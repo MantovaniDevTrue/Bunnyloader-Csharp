@@ -69,7 +69,7 @@ public sealed class BrokenSpawnDust : BunnyDust
         !wire.StartsWith("BUNNY_MANAGED_DEFAULTS_V2\n", StringComparison.Ordinal) ||
         wire.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length != 3)
         throw new Exception("Dust defaults wire mismatch:\n" + wire);
-    int modSlot = BunnyDustSourceDispatcher.Register("smoke_dust", output);
+    int modSlot = BunnyDustSourceDispatcher.Register("57a98f20-7a35-4d19-8ce8-079e25bb36a1", output);
     if (modSlot < 0)
         throw new Exception("Dust dispatcher register failed: " +
             BunnyDustSourceDispatcher.LastRegistrationError);
