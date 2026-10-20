@@ -40,7 +40,9 @@ jobs:
           set -euo pipefail
           NDK="$ANDROID_HOME/ndk/27.2.12479018"
           if [ ! -x "$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/clang++" ]; then
-            sdkmanager --install "ndk;27.2.12479018"
+            SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -maxdepth 3 -type f -name sdkmanager | sort -V | tail -n 1)"
+            test -n "$SDKMANAGER"
+            "$SDKMANAGER" --install "ndk;27.2.12479018"
           fi
       - name: Compile real RarityLoader sources with Android ARM64 ABI
         shell: bash
