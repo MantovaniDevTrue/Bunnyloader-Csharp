@@ -45,7 +45,7 @@ try
 
     var defaults = File.ReadAllText(Path.Combine(work, "source-runtime-values.txt"));
     if (!defaults.StartsWith("BUNNY_MANAGED_DEFAULTS_V2\n", StringComparison.Ordinal) ||
-        !defaults.Contains("RARITY\tExampleHigherTierModRarity\t", StringComparison.Ordinal) ||
+        !defaults.Contains("RARITY\tExampleHigherTierModRarity\n", StringComparison.Ordinal) ||
         !defaults.Contains("ITEM\tExampleItem\t", StringComparison.Ordinal))
         throw new InvalidOperationException("Full ExampleMod native handoff is incomplete");
 
