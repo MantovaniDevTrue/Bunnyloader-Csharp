@@ -1,8 +1,11 @@
 #include "experiments/csharp/NativeTouchInput.h"
 #include <algorithm>
 #include <array>
+#include <atomic>
 
 namespace bl::csharp::touch {
+
+namespace { std::atomic<bool> g_hostReady{false}; }
 
 bool Registry::validName(std::string_view value) {
     if (value.empty() || value.size() > 80 || value == "." || value == "..")
@@ -153,6 +156,13 @@ Registry& registry() {
     return value;
 }
 
+void setHostReady(bool ready) {
+    g_hostReady.store(ready, std::memory_order_release);
+    if (!ready) registry().resetWorld();
+}
+
+bool hostReady() { return g_hostReady.load(std::memory_order_acquire); }
+
 } // namespace bl::csharp::touch
 
 extern "C" __attribute__((visibility("default"))) int bunny_csharp_touch_register(
@@ -173,6 +183,9 @@ extern "C" __attribute__((visibility("default"))) int bunny_csharp_touch_frame(
 }
 extern "C" __attribute__((visibility("default"))) uint32_t bunny_csharp_touch_read(int id) {
     return bl::csharp::touch::registry().read(id);
+}
+extern "C" __attribute__((visibility("default"))) int bunny_csharp_touch_host_ready() {
+    return bl::csharp::touch::hostReady() ? 1 : 0;
 }
 extern "C" __attribute__((visibility("default"))) int bunny_csharp_touch_count() {
     return bl::csharp::touch::registry().count();
