@@ -236,6 +236,12 @@ int main() {
     assert(bl::csharp::gManagedCalls==3);
     quests[0].catchRules=0;
     quests[0].catchEnabled=false;
+    quests[0].callbackMask=2;
+    bl::csharp::gManagedAllowed=true;
+    hookedRoll(&projectile.object,attempt.data(),&kRoll);
+    assert(get(attempt,8)==850);
+    assert(bl::csharp::gManagedCalls==4);
+    quests[0].callbackMask=0;
     hookedRoll(&projectile.object,attempt.data(),&kRoll);
     assert(get(attempt,8)==13);
     quests[0].catchEnabled=true;
@@ -244,6 +250,6 @@ int main() {
     quests.clear();
     hookedRoll(&projectile.object,attempt.data(),&kRoll);
     assert(get(attempt,8)==13);
-    assert(vanillaCalls==11);
+    assert(vanillaCalls==12);
     std::cout<<"ANGLER_QUEST_FISHING_IL2CPP_HOST_OK\n";
 }
