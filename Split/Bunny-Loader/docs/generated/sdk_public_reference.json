@@ -570,6 +570,36 @@
       "methods": []
     },
     {
+      "name": "BunnyLoader.Source.BunnyGlobalItem",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [],
+      "values": [],
+      "methods": [
+        {
+          "signature": "bool AllowPrefix(BunnyPrefixItemSnapshot item, int prefix)",
+          "execution": "worker_callback_isolated"
+        },
+        {
+          "signature": "bool AppliesTo(BunnyPrefixItemSnapshot item)",
+          "execution": "worker_callback_isolated"
+        },
+        {
+          "signature": "int ChoosePrefix(BunnyPrefixItemSnapshot item)",
+          "execution": "worker_callback_isolated"
+        },
+        {
+          "signature": "Nullable\u003Cbool\u003E DecidePrefixChance(BunnyPrefixItemSnapshot item, int request)",
+          "execution": "worker_callback_isolated"
+        },
+        {
+          "signature": "void ApplyPrefix(BunnyPrefixItemSnapshot item, int prefix, ref BunnyPrefixApplyStats effects)",
+          "execution": "worker_callback_isolated"
+        }
+      ]
+    },
+    {
       "name": "BunnyLoader.Source.BunnyHoldout",
       "kind": "class",
       "baseType": "System.Object",
