@@ -7,7 +7,7 @@ public sealed class ExampleCampfireVisualProbe : BunnyTile
     {
         Texture="Content/Tiles/VisualProbes/ExampleCampfireVisualProbe.png";
         DisplayName="Example Campfire Visual Probe (3x2)";
-        Flags=BunnyTileFlags.FrameImportant|BunnyTileFlags.Lighted|
+        Flags=BunnyTileFlags.Campfire|BunnyTileFlags.FrameImportant|BunnyTileFlags.Lighted|
               BunnyTileFlags.HasOutlines|BunnyTileFlags.WaterDeath|BunnyTileFlags.LavaDeath;
         CacheDrawData=false;
         Shape=BunnyTileShape.Style3x2;

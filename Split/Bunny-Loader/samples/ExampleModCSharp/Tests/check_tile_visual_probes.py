@@ -37,6 +37,7 @@ for probe, original in TILES.items():
 camp = (PLAYABLE / "Content/Tiles/VisualProbes/ExampleCampfireVisualProbe.cs").read_text()
 lamp = (PLAYABLE / "Content/Tiles/VisualProbes/ExampleLampVisualProbe.cs").read_text()
 assert "AnimationFrameHeight=36;" in camp
+assert "BunnyTileFlags.Campfire" in camp
 assert "AnimationFrames=8;" in camp
 assert "AnimationFrameTicks=4;" in camp
 assert "int frame=draw.AnimationFrame;" in camp

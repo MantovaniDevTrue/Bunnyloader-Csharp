@@ -25,7 +25,8 @@ public enum BunnyTileFlags {
     WaterDeath = 8192,
     /// <summary>Inclui o tile na verificação nativa de junção com vizinhos.</summary>
     ChecksForMerge = 16384,
-    Cut = 32768
+    Cut = 32768,
+    Campfire = 65536
 }
 
 public enum BunnyTileShape {
