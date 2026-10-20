@@ -7,8 +7,7 @@ dispatcher = (root / "experiments/csharp/BunnyCsSdk/BunnyEntitySourceDispatcher.
 mailbox = (root / "app/src/main/cpp/experiments/csharp/NativeInvasionMailbox.cpp").read_text()
 
 start = auto.index("bool worldPlayerReady()")
-end = auto.index("struct ", start + len("bool worldPlayerReady()"))
-world_ready = auto[start:end]
+world_ready = auto[start:start + 3200]
 assert "if (!worldIsAuthoritative(mode)) return false;" in world_ready
 assert "if (mode != 0) return false;" not in world_ready
 
