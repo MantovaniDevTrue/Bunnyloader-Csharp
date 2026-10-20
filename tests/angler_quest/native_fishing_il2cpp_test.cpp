@@ -145,9 +145,11 @@ namespace bl::csharp {
 bool gManagedAllowed = true;
 bool gManagedReady = true;
 int gManagedCalls = 0;
+int gLastPlayerIndex = -999;
 bool invokeManagedAnglerQuestCallback(const std::string&,const std::string&,
-                                      int,int,int,int,bool* allowed,int) {
+                                      int,int,int,int,bool* allowed,int playerIndex) {
     ++gManagedCalls;
+    gLastPlayerIndex = playerIndex;
     if (!gManagedReady) return false;
     *allowed = gManagedAllowed;
     return true;
@@ -234,6 +236,7 @@ int main() {
     assert(get(attempt,8)==850);
     quests[0].callbackMask=0;
     assert(bl::csharp::gManagedCalls==3);
+    assert(bl::csharp::gLastPlayerIndex==0);
     quests[0].catchRules=0;
     quests[0].catchEnabled=false;
     quests[0].callbackMask=2;
