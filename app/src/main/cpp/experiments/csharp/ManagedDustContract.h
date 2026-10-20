@@ -66,4 +66,45 @@ inline bool managedDustSameInstance(const ManagedDustState& first,
            first.generation == second.generation;
 }
 
+inline bool mergeManagedDustDelta(const ManagedDustState& live,
+                                  const ManagedDustState& before,
+                                  const ManagedDustState& after,
+                                  ManagedDustState* output,
+                                  bool updateColor = true) noexcept {
+    if (!output || !managedDustStateValid(live) ||
+        !managedDustStateValid(before) || !managedDustStateValid(after) ||
+        !managedDustSameInstance(live, before) ||
+        !managedDustSameInstance(before, after))
+        return false;
+    ManagedDustState merged = live;
+    if (after.active == 0) {
+        merged.active = 0;
+        *output = merged;
+        return true;
+    }
+    if (after.x != before.x) merged.x += after.x - before.x;
+    if (after.y != before.y) merged.y += after.y - before.y;
+    if (after.velocityX != before.velocityX)
+        merged.velocityX += after.velocityX - before.velocityX;
+    if (after.velocityY != before.velocityY)
+        merged.velocityY += after.velocityY - before.velocityY;
+    if (after.scale != before.scale && before.scale > 0.f)
+        merged.scale *= after.scale / before.scale;
+    if (after.rotation != before.rotation)
+        merged.rotation += after.rotation - before.rotation;
+    if (after.alpha != before.alpha) {
+        const int alpha = merged.alpha + after.alpha - before.alpha;
+        merged.alpha = alpha < 0 ? 0 : alpha > 255 ? 255 : alpha;
+    }
+    if (after.frameX != before.frameX) merged.frameX = after.frameX;
+    if (after.frameY != before.frameY) merged.frameY = after.frameY;
+    if (after.frameWidth != before.frameWidth) merged.frameWidth = after.frameWidth;
+    if (after.frameHeight != before.frameHeight) merged.frameHeight = after.frameHeight;
+    if (updateColor && after.color != before.color) merged.color = after.color;
+    if (!managedDustStateValid(merged)) return false;
+    *output = merged;
+    return true;
+}
+
+
 }
