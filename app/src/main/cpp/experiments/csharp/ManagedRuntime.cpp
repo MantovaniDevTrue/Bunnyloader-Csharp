@@ -2,6 +2,8 @@
 #include "experiments/csharp/UniversalHookMailbox.h"
 #include "experiments/csharp/UniversalHooks.h"
 #include "experiments/csharp/ManagedRuntime.h"
+#include "experiments/csharp/TerrariaHost.h"
+#include "menu/NetRequests.h"
 #include "graphics/ScreenScene.h"
 #include "experiments/csharp/ManagedVisualMonoPump.h"
 #include "experiments/csharp/ManagedVisualState.h"
@@ -415,6 +417,7 @@ uint64_t g_entitySession = 1;
 void* g_entityRegister = nullptr;
 void* g_entityBind = nullptr;
 void* g_entityNpcTick = nullptr;
+void* g_entityWorldTick = nullptr;
 void* g_entityProjectileTick = nullptr;
 void* g_entityNpcHit = nullptr;
 void* g_entityNpcKill = nullptr;
@@ -1073,13 +1076,14 @@ int64_t executeManagedEntityOnWorker(const ManagedEntityJob& job) {
         g_entityRegister = g_api.findMethod(klass, "Register", 2);
         g_entityBind = g_api.findMethod(klass, "Bind", 4);
         g_entityNpcTick = g_api.findMethod(klass, "TickNpc", 13);
+        g_entityWorldTick = g_api.findMethod(klass, "TickWorld", 7);
         g_entityProjectileTick = g_api.findMethod(klass, "TickProjectile", 14);
         g_entityNpcHit = g_api.findMethod(klass, "HitNpc", 6);
         g_entityNpcKill = g_api.findMethod(klass, "KillNpc", 4);
         g_entityProjectileHit = g_api.findMethod(klass, "HitProjectile", 7);
         g_entityProjectileKill = g_api.findMethod(klass, "KillProjectile", 5);
         if (!g_entityRegister || !g_entityBind ||
-            !g_entityNpcTick || !g_entityProjectileTick ||
+            !g_entityNpcTick || !g_entityWorldTick || !g_entityProjectileTick ||
             !g_entityNpcHit || !g_entityNpcKill ||
             !g_entityProjectileHit || !g_entityProjectileKill) return -1;
     }
@@ -1124,6 +1128,20 @@ int64_t executeManagedEntityOnWorker(const ManagedEntityJob& job) {
                             binding.modId.c_str(), binding.npcTypes.size(),
                             binding.projectileTypes.size());
 #endif
+    }
+    if (job.kind == 6) {
+        int mode = job.owner, frames = job.life, player = job.target;
+        int64_t worldSession = static_cast<int64_t>(job.identity);
+        float playerX = job.x, playerY = job.y;
+        void* args[] = {&managedSlot, &mode, &frames, &worldSession,
+                        &player, &playerX, &playerY};
+        void* exception = nullptr;
+        void* boxed = g_api.invoke(g_entityWorldTick, nullptr, args, &exception);
+        void* raw = exception || !boxed ? nullptr : g_api.unbox(boxed);
+        if (!raw) return -1;
+        int32_t count = -1;
+        std::memcpy(&count, raw, sizeof(count));
+        return count;
     }
     int type = job.type, slot = job.slot, generation = job.generation;
     int life = job.life, maxLife = job.lifeMax, owner = job.owner;
@@ -2257,6 +2275,41 @@ bool tickManagedEntityProjectile(int type, int slot, int generation, int owner,
     return pollManagedEntity(1, type, slot, generation, owner, identity, 0, 0,
                              x, y, vx, vy, playerX, playerY, result, immediateFirstTick,
                              targetNpc, targetX, targetY);
+}
+
+void scheduleManagedInvasionWorldTicks(uint64_t worldSession) {
+    if (worldSession == 0 || !managedEntitySourceModsRegistered()) return;
+    static uint64_t lastWorldSession = 0;
+    static unsigned frameCount = 0;
+    if (lastWorldSession != worldSession) {
+        lastWorldSession = worldSession;
+        frameCount = 0;
+    }
+    if (++frameCount % 30 != 0) return;
+    const int mode = runtime::netMode();
+    if (mode != 0 && mode != 2 && mode != 3) return;
+    const TerrariaSnapshot snapshot = captureTerrariaSnapshot(false, false);
+    if (!snapshot.ready || snapshot.player.life <= 0) return;
+    std::unique_lock<std::mutex> lock(g_pinnedMutex, std::try_to_lock);
+    if (!lock.owns_lock() || !g_pinnedStarted || g_entityQueue.size() >= 16) return;
+    const int bindings = g_entityModCount.load(std::memory_order_acquire);
+    for (int index = 0; index < bindings; ++index) {
+        if (static_cast<size_t>(index) >= g_entityBindings.size() ||
+            !g_entityBindings[static_cast<size_t>(index)].armed ||
+            g_entityQueue.size() >= 16) break;
+        ManagedEntityJob job;
+        job.binding = index;
+        job.kind = 6;
+        job.owner = mode;
+        job.life = 30;
+        job.identity = static_cast<uintptr_t>(worldSession);
+        job.target = snapshot.player.index;
+        job.x = snapshot.player.x;
+        job.y = snapshot.player.y;
+        job.session = g_entitySession;
+        g_entityQueue.push_back(std::move(job));
+    }
+    g_pinnedWake.notify_one();
 }
 
 bool registerManagedPlayerHurtMod(const std::string& modId,
