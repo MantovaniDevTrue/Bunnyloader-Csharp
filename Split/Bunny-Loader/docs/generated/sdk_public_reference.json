@@ -523,6 +523,24 @@
       "methods": []
     },
     {
+      "name": "BunnyLoader.Source.BunnyGore",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [
+        "bool SafeGore { get; set; }",
+        "int SpecialAI { get; set; }",
+        "string Texture { get; set; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "void SetDefaults()",
+          "execution": "compile_policy"
+        }
+      ]
+    },
+    {
       "name": "BunnyLoader.Source.BunnyHoldout",
       "kind": "class",
       "baseType": "System.Object",
@@ -764,24 +782,6 @@
         {
           "signature": "static void RemoveSlot(int slot)",
           "execution": "experimental_worker_sync_void0"
-        }
-      ]
-    },
-    {
-      "name": "BunnyLoader.Source.BunnyGore",
-      "kind": "abstract class",
-      "baseType": "System.Object",
-      "constructors": [],
-      "properties": [
-        "bool SafeGore { get; set; }",
-        "int SpecialAI { get; set; }",
-        "string Texture { get; set; }"
-      ],
-      "values": [],
-      "methods": [
-        {
-          "signature": "void SetDefaults()",
-          "execution": "compile_policy"
         }
       ]
     },

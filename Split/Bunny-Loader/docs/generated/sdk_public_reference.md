@@ -280,6 +280,20 @@ enum; base: `System.Enum`.
 
 Values: Head, Body, Legs, Beard, Back, Wings.
 
+## BunnyLoader.Source.BunnyGore
+
+abstract class; base: `System.Object`.
+
+```csharp
+bool SafeGore { get; set; }
+int SpecialAI { get; set; }
+string Texture { get; set; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `void SetDefaults()` | compile_policy |
+
 ## BunnyLoader.Source.BunnyHoldout
 
 class; base: `System.Object`.
@@ -397,20 +411,6 @@ string LastError { get; }
 | `static void InvokeInt32(int slot, Int64 ticket, IntPtr self, int value, out int success, out int returnedValue)` | experimental_worker_sync_void0 |
 | `static void InvokeInt32Pair(int slot, Int64 ticket, IntPtr self, int first, int second, out int success, out int returnedValue)` | experimental_worker_sync_void0 |
 | `static void RemoveSlot(int slot)` | experimental_worker_sync_void0 |
-
-## BunnyLoader.Source.BunnyGore
-
-abstract class; base: `System.Object`.
-
-```csharp
-bool SafeGore { get; set; }
-int SpecialAI { get; set; }
-string Texture { get; set; }
-```
-
-| Method | Execution |
-| --- | --- |
-| `void SetDefaults()` | compile_policy |
 
 ## BunnyLoader.Source.BunnyHurtInfo
 
