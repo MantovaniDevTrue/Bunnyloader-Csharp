@@ -9,5 +9,6 @@
   <ItemGroup>
     <ProjectReference Include="../../experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj" />
     <ProjectReference Include="../../experiments/csharp/BunnySourceCompiler/BunnySourceCompiler.csproj" />
+    <ProjectReference Include="runtime_only/RuntimeOnlyProbe.csproj" />
   </ItemGroup>
 </Project>
