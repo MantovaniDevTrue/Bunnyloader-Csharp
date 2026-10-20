@@ -34,9 +34,14 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
-      - uses: android-actions/setup-android@v3
-      - name: Install pinned Android NDK
-        run: sdkmanager --install "ndk;27.2.12479018"
+      - name: Ensure pinned Android NDK is available
+        shell: bash
+        run: |
+          set -euo pipefail
+          NDK="$ANDROID_HOME/ndk/27.2.12479018"
+          if [ ! -x "$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/clang++" ]; then
+            sdkmanager --install "ndk;27.2.12479018"
+          fi
       - name: Compile real RarityLoader sources with Android ARM64 ABI
         shell: bash
         run: |
