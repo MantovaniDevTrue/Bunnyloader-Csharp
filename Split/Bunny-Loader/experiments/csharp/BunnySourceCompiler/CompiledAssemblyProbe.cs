@@ -1172,9 +1172,13 @@ public static class CompiledAssemblyProbe
                 .OrderByDescending(method => method.DeclaringType == itemType)
                 .FirstOrDefault()
                 ?? throw new InvalidOperationException("Missing dynamic ApplyPrefix callback");
-            if (callback.DeclaringType == itemType || choose.DeclaringType == itemType ||
-                chance.DeclaringType == itemType || dynamicApply.DeclaringType == itemType)
-                lines.Add(string.Join("\t", "ITEM_PREFIX_CALLBACK", itemType.Name, "1"));
+            int mask = (callback.DeclaringType == itemType ? 1 : 0) |
+                       (choose.DeclaringType == itemType ? 2 : 0) |
+                       (chance.DeclaringType == itemType ? 4 : 0) |
+                       (dynamicApply.DeclaringType == itemType ? 8 : 0);
+            if (mask != 0)
+                lines.Add(string.Join("\t", "ITEM_PREFIX_CALLBACK", itemType.Name,
+                    mask.ToString(CultureInfo.InvariantCulture)));
         }
         foreach (var item in basicItems.Concat(weapons).Concat(potions).Concat(accessories))
         {
