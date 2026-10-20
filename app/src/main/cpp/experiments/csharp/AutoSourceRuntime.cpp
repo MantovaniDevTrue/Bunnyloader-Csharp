@@ -1224,6 +1224,7 @@ void retryWorldManagedPrefixesWhenReady() {
 void noteAutoWorldTilesLoaded() {
     std::lock_guard<std::mutex> sessionGuard(g_worldTransitionMutex);
     nativeCommandMailbox().newWorld();
+    resetManagedCommandSession();
     clearManagedVisualCommands();
     resetNativeVisualRenderer();
     g_visualUpdateTick.store(0, std::memory_order_relaxed);
@@ -1308,6 +1309,7 @@ void noteAutoGameUpdate() {
         }
         std::lock_guard<std::mutex> sessionGuard(g_worldTransitionMutex);
         nativeCommandMailbox().newWorld();
+        resetManagedCommandSession();
         clearManagedVisualCommands();
         graphics::clearCSharpScreenEffects();
         pauseManagedScreenSceneCallbacks();
