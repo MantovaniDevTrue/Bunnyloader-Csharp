@@ -1131,6 +1131,7 @@ int TileCallbackMask { get; }
 int[] AdjacentTiles { get; set; }
 string DisplayName { get; set; }
 string DustName { get; set; }
+string ItemDropDefinitions { get; }
 string MapName { get; }
 string Texture { get; set; }
 ```
@@ -1166,6 +1167,8 @@ string Texture { get; set; }
 | `void PlaceInWorld(int x, int y)` | managed_helper |
 | `void PostDraw(int x, int y, BunnyTileDrawContext draw)` | managed_helper |
 | `void RandomUpdate(int x, int y)` | managed_helper |
+| `void RegisterItemDrop(int itemType, int[] styles)` | managed_helper |
+| `void RegisterItemDrop(string itemName, int[] styles)` | managed_helper |
 | `void SetDrawPositions(int x, int y, ref int width, ref int top, ref int height, ref int frameX, ref int frameY)` | managed_helper |
 | `void SetSpriteEffects(int x, int y, ref int effects)` | managed_helper |
 | `void SetStaticDefaults()` | compile_policy |
