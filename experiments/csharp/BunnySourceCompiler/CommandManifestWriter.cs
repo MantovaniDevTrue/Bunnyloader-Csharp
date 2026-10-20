@@ -44,6 +44,14 @@ public static class CommandManifestWriter
             if (!used.Add(name))
                 throw new InvalidOperationException(type.FullName + ": comando duplicado: " + name);
             lines.Add("CMD\t" + type.FullName + "\t" + name + "\t" + routes.ToString(CultureInfo.InvariantCulture));
+            string description = Read<string>(instance, "Description");
+            byte[] descriptionUtf8 = Encoding.UTF8.GetBytes(description);
+            if (descriptionUtf8.Length > 192 || description.Any(char.IsControl))
+                throw new InvalidOperationException(type.FullName + ": ajuda excede 192 bytes ou contem controles");
+            if (descriptionUtf8.Length != 0)
+                lines.Add("DESC\t" + type.FullName + "\t" +
+                          Convert.ToHexString(descriptionUtf8) + "\t" +
+                          routes.ToString(CultureInfo.InvariantCulture));
             var aliases = Read<object>(instance, "Aliases") as IEnumerable
                 ?? throw new InvalidOperationException(type.FullName + ": aliases devem ser enumeraveis");
             var aliasNames = new List<string>();
