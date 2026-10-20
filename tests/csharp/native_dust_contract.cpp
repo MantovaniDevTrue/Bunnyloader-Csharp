@@ -21,6 +21,10 @@ int main() {
     next = sample;
     next.scale = 0.f;
     assert(!managedDustStateValid(next));
+    next.active = 0;
+    assert(managedDustStateValid(next));
+    next.active = 1;
+    assert(!managedDustStateValid(next));
     next = sample;
     next.x = std::numeric_limits<float>::quiet_NaN();
     assert(!managedDustStateValid(next));
