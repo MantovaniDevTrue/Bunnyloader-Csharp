@@ -10,6 +10,9 @@
 #include <atomic>
 #include <cstdint>
 #include <cstring>
+#include <cmath>
+#include <algorithm>
+#include <limits>
 #include <initializer_list>
 #include <string>
 
@@ -171,6 +174,163 @@ bool writeNetwork(const std::string& message, int playerIndex,
     return !exception;
 }
 
+// Estes efeitos so sao chamados pelo pump da thread do Terraria. Todos
+// os campos e metodos sao resolvidos a partir do jogo; Mono nunca ve Player*.
+bool applyNativeHeal(const NativeCommandAction& action, std::string* confirmation) {
+    auto& api = il2cpp::api();
+    if (!api.runtime_invoke || !api.field_static_get_value || !api.field_get_offset)
+        return false;
+    auto* main = il2cpp::findClassQuiet("Terraria", "Main");
+    auto* playerClass = il2cpp::findClassQuiet("Terraria", "Player");
+    if (!main || !playerClass) return false;
+    FieldInfo* playersField = il2cpp::findField(main, "player");
+    FieldInfo* lifeField = il2cpp::findField(playerClass, "statLife");
+    FieldInfo* maxField = il2cpp::findField(playerClass, "statLifeMax2");
+    FieldInfo* activeField = il2cpp::findField(playerClass, "active");
+    const auto* healEffect = api.class_get_method_from_name(playerClass, "HealEffect", 2);
+    if (!maxField) maxField = il2cpp::findField(playerClass, "statLifeMax");
+    if (!playersField || !lifeField || !maxField || !activeField ||
+        !hasSignature(healEffect, true, {"System.Int32", "System.Boolean"}) ||
+        !hasReturnType(healEffect, "System.Void")) return false;
+    Il2CppArray* players = nullptr;
+    api.field_static_get_value(playersField, &players);
+    if (!players || action.playerIndex < 0 ||
+        static_cast<uintptr_t>(action.playerIndex) >= players->length ||
+        players->length > 256) return false;
+    Il2CppObject* player = static_cast<Il2CppObject**>(arrayData(players))[action.playerIndex];
+    if (!player) return false;
+    const size_t activeOffset = api.field_get_offset(activeField);
+    const size_t lifeOffset = api.field_get_offset(lifeField);
+    const size_t maxOffset = api.field_get_offset(maxField);
+    if (activeOffset < sizeof(Il2CppObject) || activeOffset > 16384 ||
+        lifeOffset < sizeof(Il2CppObject) || lifeOffset > 16384 ||
+        maxOffset < sizeof(Il2CppObject) || maxOffset > 16384) return false;
+    uint8_t active = 0;
+    int life = 0, maximum = 0;
+    std::memcpy(&active, reinterpret_cast<const char*>(player) + activeOffset, 1);
+    std::memcpy(&life, reinterpret_cast<const char*>(player) + lifeOffset, sizeof(int));
+    std::memcpy(&maximum, reinterpret_cast<const char*>(player) + maxOffset, sizeof(int));
+    if (!active || life < 0 || maximum <= 0 || maximum > 100000 ||
+        life > maximum || action.amount <= 0 || action.amount > 1000000)
+        return false;
+    const int healed = std::min(action.amount, maximum - life);
+    if (healed <= 0) {
+        *confirmation = "Vida cheia";
+        return true;
+    }
+    const int updated = life + healed;
+    std::memcpy(reinterpret_cast<char*>(player) + lifeOffset, &updated, sizeof(updated));
+    int quantity = healed;
+    bool broadcast = true;
+    void* args[] = {&quantity, &broadcast};
+    Il2CppObject* exception = nullptr;
+    api.runtime_invoke(healEffect, player, args, &exception);
+    if (exception) {
+        std::memcpy(reinterpret_cast<char*>(player) + lifeOffset, &life, sizeof(life));
+        return false;
+    }
+    *confirmation = "Curado: " + std::to_string(healed);
+    return true;
+}
+
+bool applyNativeWorldTime(const NativeCommandAction& action) {
+    auto& api = il2cpp::api();
+    if (!api.field_static_get_value || !api.field_static_set_value ||
+        action.amount < -86400000 || action.amount > 86400000)
+        return false;
+    auto* main = il2cpp::findClassQuiet("Terraria", "Main");
+    if (!main) return false;
+    FieldInfo* timeField = il2cpp::findField(main, "time");
+    FieldInfo* dayField = il2cpp::findField(main, "dayTime");
+    if (!timeField || !dayField || !api.field_get_type ||
+        !api.type_get_name || !api.il2cpp_free) return false;
+    auto typeIs = [&](FieldInfo* field, const char* expected) {
+        const auto* fieldType = api.field_get_type(field);
+        char* text = fieldType ? api.type_get_name(fieldType) : nullptr;
+        if (!text) return false;
+        const bool valid = std::strcmp(text, expected) == 0;
+        api.il2cpp_free(text);
+        return valid;
+    };
+    if (!typeIs(timeField, "System.Double") || !typeIs(dayField, "System.Boolean"))
+        return false;
+    // Comprimentos do ciclo sao os usados pelo ExampleTimeCommand Bunny.
+    constexpr double dayLength = 54000.0;
+    constexpr double nightLength = 32400.0;
+    constexpr double cycle = dayLength + nightLength;
+    double oldTime = 0;
+    bool oldDay = false;
+    api.field_static_get_value(timeField, &oldTime);
+    api.field_static_get_value(dayField, &oldDay);
+    if (!std::isfinite(oldTime) || oldTime < 0 || oldTime > cycle)
+        return false;
+
+    const MethodInfo* sendData = nullptr;
+    if ((action.networkMode & 2) != 0) {
+        auto* netMessage = il2cpp::findClassQuiet("Terraria", "NetMessage");
+        sendData = netMessage
+            ? api.class_get_method_from_name(netMessage, "SendData", 11) : nullptr;
+        if (!hasSignature(sendData, false, {"System.Int32", "System.Int32",
+                                           "System.Int32", "Terraria.Localization.NetworkText",
+                                           "System.Int32", "System.Single", "System.Single",
+                                           "System.Single", "System.Int32", "System.Int32",
+                                           "System.Int32"}) ||
+            !hasReturnType(sendData, "System.Void")) return false;
+    }
+    double absolute = std::fmod(oldTime + (oldDay ? 0 : dayLength) +
+                                static_cast<double>(action.amount), cycle);
+    if (absolute < 0) absolute += cycle;
+    const bool nextDay = absolute < dayLength;
+    const double nextTime = nextDay ? absolute : absolute - dayLength;
+    api.field_static_set_value(dayField, const_cast<bool*>(&nextDay));
+    api.field_static_set_value(timeField, const_cast<double*>(&nextTime));
+    if (sendData) {
+        // MessageID.WorldData do Terraria vanilla, como no ExampleTimeCommand.
+        int worldData = 7, remote = -1, ignore = -1, zero = 0;
+        float zeroFloat = 0.f;
+        void* args[] = {&worldData, &remote, &ignore, nullptr, &zero,
+                        &zeroFloat, &zeroFloat, &zeroFloat,
+                        &zero, &zero, &zero};
+        Il2CppObject* exception = nullptr;
+        api.runtime_invoke(sendData, nullptr, args, &exception);
+        if (exception) {
+            api.field_static_set_value(dayField, &oldDay);
+            api.field_static_set_value(timeField, &oldTime);
+            return false;
+        }
+    }
+    return true;
+}
+
+void applyNativeCommandActionsOnGameThread() {
+    int mode = -1, localPlayer = -1;
+    if (!readContext(&mode, &localPlayer)) return;
+    for (const auto& action : nativeCommandMailbox().takeActions(8)) {
+        if (action.epoch != nativeCommandMailbox().epoch() ||
+            action.networkMode != mode) continue;
+        bool accepted = false;
+        std::string reply;
+        if (action.kind == NativeCommandActionKind::Heal &&
+            action.caller == NativeCommandRoute::Chat &&
+            (mode == 0 || mode == 1 || (mode == 3 && action.playerIndex == localPlayer)))
+            accepted = applyNativeHeal(action, &reply);
+        else if (action.kind == NativeCommandActionKind::AdvanceWorldTime &&
+                 (mode == 0 && action.caller == NativeCommandRoute::Chat ||
+                  (mode & 2) && action.caller == NativeCommandRoute::Server))
+            accepted = applyNativeWorldTime(action);
+        if (!accepted) reply = "Comando C#: falha ao aplicar efeito";
+        if (!reply.empty()) {
+            if ((mode & 2) && (mode != 3 || action.playerIndex != localPlayer))
+                writeNetwork(reply, action.playerIndex,
+                             accepted ? 124 : 255, accepted ? 252 : 25,
+                             accepted ? 0 : 25);
+            else
+                writeLocal(reply, accepted ? 124 : 255,
+                           accepted ? 252 : 25, accepted ? 0 : 25);
+        }
+    }
+}
+
 NativeCommandSubmit dispatchLocal(Il2CppObject* message, int netMode,
                                    int localPlayer, NativeCommandRoute route) {
     std::string input;
@@ -319,6 +479,7 @@ void pumpNativeCommandRepliesOnGameThread() {
     if (!g_metadataReady.load(std::memory_order_acquire)) return;
     int mode = -1, localPlayer = -1;
     if (!readContext(&mode, &localPlayer)) return;
+    applyNativeCommandActionsOnGameThread();
     for (const auto& message : nativeCommandMailbox().takeReplies(8)) {
         if (mode & 2) {
             if (mode == 3 && message.playerIndex == localPlayer)
