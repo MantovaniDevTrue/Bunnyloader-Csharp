@@ -146,6 +146,14 @@ public:
             addByte(static_cast<uint8_t>(quest->catchRules));
             addByte(static_cast<uint8_t>(quest->callbackMask));
             addByte(quest->catchEnabled ? 1 : 0);
+            addString(quest->description);
+            addString(quest->location);
+            for (const auto& [culture, text] : quest->locales) {
+                addString(culture);
+                addString(text.first);
+                addString(text.second);
+            }
+            addByte(0xffu);
         }
         return hash;
     }
