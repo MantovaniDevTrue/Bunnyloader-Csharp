@@ -96,5 +96,6 @@ DustPoolStats dustPoolStats();
 
 /** Confere a pilha agora e refaz se estiver errada. true se refez. */
 bool repairDustPool();
+void resetManagedDustLifecycle();
 
 } // namespace bl::runtime
