@@ -20,6 +20,8 @@ on:
       - tests/csharp/native_dust_binding_selection.cpp
       - app/src/main/cpp/experiments/csharp/ManagedDustSlotLookup.h
       - tests/csharp/native_dust_slot_lookup.cpp
+      - app/src/main/cpp/experiments/csharp/ManagedDustDecision.h
+      - tests/csharp/native_dust_decision.cpp
       - tests/csharp/native_dust_parser.cpp
       - app/src/main/cpp/experiments/csharp/SourceParser.cpp
       - app/src/main/cpp/experiments/csharp/SourceContentIdentity.h
@@ -79,3 +81,7 @@ jobs:
         run: |
           c++ -std=c++20 -Wall -Wextra -Werror -Iapp/src/main/cpp tests/csharp/native_dust_slot_lookup.cpp -o "$RUNNER_TEMP/dust_slot_lookup"
           "$RUNNER_TEMP/dust_slot_lookup"
+      - name: Verify frame-coherent native Dust callback decisions
+        run: |
+          c++ -std=c++20 -Wall -Wextra -Werror -Iapp/src/main/cpp tests/csharp/native_dust_decision.cpp -o "$RUNNER_TEMP/dust_decision"
+          "$RUNNER_TEMP/dust_decision"
