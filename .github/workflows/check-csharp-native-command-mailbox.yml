@@ -1,0 +1,79 @@
+name: Verify Native CSharp Command Mailbox (no APK)
+
+on:
+  push:
+    branches:
+      - feat/csharp-command-loader-20261020
+    paths:
+      - 'app/src/main/cpp/experiments/csharp/NativeCommandMailbox.h'
+      - 'tests/commands/native_mailbox_test.cpp'
+      - 'tests/commands/native_command_source_parser_test.cpp'
+      - 'tests/commands/native_command_manifest_test.cpp'
+      - 'tests/commands/native_command_clock_test.cpp'
+      - 'app/src/main/cpp/experiments/csharp/NativeCommandClock.h'
+      - 'tests/commands/native_command_result_test.cpp'
+      - 'app/src/main/cpp/experiments/csharp/NativeCommandResult.h'
+      - 'app/src/main/cpp/experiments/csharp/NativeCommandManifest.h'
+      - 'app/src/main/cpp/experiments/csharp/SourceParser.cpp'
+      - 'app/src/main/cpp/experiments/csharp/SourceParser.h'
+      - 'app/src/main/cpp/experiments/csharp/SourceContentIdentity.h'
+      - 'app/src/main/cpp/experiments/csharp/ManagedSourceClassCount.h'
+      - '.github/workflows/check-csharp-native-command-mailbox.yml'
+  pull_request:
+    paths:
+      - 'app/src/main/cpp/experiments/csharp/NativeCommandMailbox.h'
+      - 'tests/commands/native_mailbox_test.cpp'
+      - '.github/workflows/check-csharp-native-command-mailbox.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  native-command-mailbox:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile C++20 source without Android/Gradle
+        run: |
+          mkdir -p /tmp/bunny-command-test
+          g++ -std=c++20 -O2 -Wall -Wextra -Werror -pedantic -pthread \
+            -Iapp/src/main/cpp \
+            tests/commands/native_mailbox_test.cpp \
+            -o /tmp/bunny-command-test/mailbox
+      - name: Check queue, world unload, multi-mod and routing
+        run: /tmp/bunny-command-test/mailbox
+      - name: Compile command-only native parser
+        run: |
+          g++ -std=c++20 -O2 -Wall -Wextra -Werror -pedantic -pthread \
+            -Iapp/src/main/cpp \
+            tests/commands/native_command_source_parser_test.cpp \
+            app/src/main/cpp/experiments/csharp/SourceParser.cpp \
+            -o /tmp/bunny-command-test/source-parser
+      - name: Verify parser identity and managed type counts
+        run: /tmp/bunny-command-test/source-parser
+      - name: Compile standalone native manifest verifier
+        run: |
+          g++ -std=c++20 -O2 -Wall -Wextra -Werror -pedantic -pthread \
+            -Iapp/src/main/cpp \
+            tests/commands/native_command_manifest_test.cpp \
+            -o /tmp/bunny-command-test/manifest
+      - name: Verify manifest SHA256, aliases and class contract
+        run: /tmp/bunny-command-test/manifest
+      - name: Compile native Mono command-result decoder
+        run: |
+          g++ -std=c++20 -O2 -Wall -Wextra -Werror -pedantic -pthread \
+            -Iapp/src/main/cpp \
+            tests/commands/native_command_result_test.cpp \
+            -o /tmp/bunny-command-test/result
+      - name: Verify replies, errors and immutable recipient
+        run: /tmp/bunny-command-test/result
+      - name: Compile native world-clock contract
+        run: |
+          g++ -std=c++20 -O2 -Wall -Wextra -Werror -pedantic -pthread \
+            -Iapp/src/main/cpp \
+            tests/commands/native_command_clock_test.cpp \
+            -o /tmp/bunny-command-test/clock
+      - name: Verify day/night rollover, negative delta and bounds
+        run: /tmp/bunny-command-test/clock

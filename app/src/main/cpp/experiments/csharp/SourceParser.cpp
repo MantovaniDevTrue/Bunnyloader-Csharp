@@ -215,12 +215,18 @@ bool parseClass(const std::vector<Token>& tokens, size_t begin, size_t end,
         base != "BunnyBuff" && base != "BunnyBuffPotion" &&
         base != "BunnyPlayer" && base != "BunnyAccessory" &&
         base != "BunnyNPC" && base != "BunnyPrefix" && base != "BunnyTile" &&
-        base != "BunnyScreenEffect") return true;
+        base != "BunnyScreenEffect" && base != "BunnyCommand") return true;
     ParsedSourceType def;
     def.name = name;
     def.base = base;
     def.namespaceName = namespaceName;
     def.properties = declaredProperties;
+    // Comandos nao declaram SetDefaults: aliases, Type e Action sao
+    // validados no assembly real pelo compilador/Mono, nao por texto C#.
+    if (base == "BunnyCommand") {
+        definitions->push_back(std::move(def));
+        return true;
+    }
     bool foundDefaults = false;
     size_t member = begin + 1;
     while (member < end) {
@@ -438,7 +444,8 @@ bool parseCSharpSource(const std::string& source,
             base == "BunnyBuff" || base == "BunnyBuffPotion" ||
             base == "BunnyPlayer" || base == "BunnyAccessory" ||
             base == "BunnyNPC" || base == "BunnyPrefix" ||
-            base == "BunnyTile" || base == "BunnyScreenEffect")) {
+            base == "BunnyTile" || base == "BunnyScreenEffect" ||
+            base == "BunnyCommand")) {
             std::string qualifiedNamespace = fileNamespace;
             for (const auto& scope : namespaces) {
                 if (!qualifiedNamespace.empty()) qualifiedNamespace += ".";
@@ -453,7 +460,7 @@ bool parseCSharpSource(const std::string& source,
         declarationStart = end + 1;
     }
     if (found == 0 && requireContent) {
-        *error = "nenhuma classe BunnyItem, BunnyTile ou outro conteudo Bunny encontrada";
+        *error = "nenhuma classe BunnyItem, BunnyCommand ou outro conteudo Bunny encontrada";
         return false;
     }
     return true;
