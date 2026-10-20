@@ -2020,6 +2020,7 @@
         "int[] AdjacentTiles { get; set; }",
         "string DisplayName { get; set; }",
         "string DustName { get; set; }",
+        "string ItemDropDefinitions { get; }",
         "string MapName { get; }",
         "string Texture { get; set; }"
       ],
@@ -2139,6 +2140,14 @@
         },
         {
           "signature": "void RandomUpdate(int x, int y)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void RegisterItemDrop(int itemType, int[] styles)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void RegisterItemDrop(string itemName, int[] styles)",
           "execution": "managed_helper"
         },
         {
