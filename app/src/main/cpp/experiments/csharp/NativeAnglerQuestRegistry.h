@@ -87,17 +87,28 @@ public:
                                         int selected) {
         QuestListUpdate result;
         result.ids.reserve(original.size() + quests.size());
-        std::set<int> requested, existing;
-        for (const auto& quest : quests) requested.insert(quest.type);
+        std::set<int> existing;
         int selectedType = selected >= 0 && static_cast<size_t>(selected) < original.size()
             ? original[static_cast<size_t>(selected)] : -1;
+        std::set<int> activeCSharp;
+        for (const auto& quest : quests) activeCSharp.insert(quest.type);
         for (int id : original) {
-            if (formerlyOwned.contains(id) && !requested.contains(id)) continue;
-            result.ids.push_back(id);
-            existing.insert(id);
+            if (formerlyOwned.contains(id)) continue;
+            if (existing.insert(id).second || !activeCSharp.contains(id))
+                result.ids.push_back(id);
         }
-        for (const auto& quest : quests)
-            if (existing.insert(quest.type).second) result.ids.push_back(quest.type);
+        std::vector<const Quest*> ordered;
+        ordered.reserve(quests.size());
+        for (const auto& quest : quests) ordered.push_back(&quest);
+        std::sort(ordered.begin(), ordered.end(),
+            [](const Quest* left, const Quest* right) {
+                if (left->mod != right->mod) return left->mod < right->mod;
+                if (left->name != right->name) return left->name < right->name;
+                return left->type < right->type;
+            });
+        for (const Quest* quest : ordered)
+            if (existing.insert(quest->type).second)
+                result.ids.push_back(quest->type);
         result.changed = result.ids != original;
         auto it = std::find(result.ids.begin(), result.ids.end(), selectedType);
         result.selected = it == result.ids.end() ? 0 :
@@ -138,6 +149,11 @@ public:
         for (const auto& old : registered_)
             if (old.mod != mod) next.push_back(old);
         next.insert(next.end(), quests.begin(), quests.end());
+        std::sort(next.begin(), next.end(), [](const Quest& left, const Quest& right) {
+            if (left.mod != right.mod) return left.mod < right.mod;
+            if (left.name != right.name) return left.name < right.name;
+            return left.type < right.type;
+        });
         if (next == registered_) return true;
         registered_.swap(next);
         generation_.fetch_add(1, std::memory_order_release);
