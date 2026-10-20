@@ -314,10 +314,19 @@ int main() {
     accessory.damage = 9;
     accessory.mana = 0;
     assert(!isPrefixDenied(&accessory.object, 71));
-    assert(hookRollable(&accessory.object, nullptr)->length == 5);
+    auto* allowedByAttribute = hookRollable(&accessory.object, nullptr);
+    assert(allowedByAttribute && allowedByAttribute->length > 0);
+    bool includesVanillaPrefix = false;
+    for (uintptr_t i = 0; i < allowedByAttribute->length; ++i)
+        includesVanillaPrefix |=
+            static_cast<const int32_t*>(arrayData(allowedByAttribute))[i] == 71;
+    assert(includesVanillaPrefix);
     accessory.damage = 10;
     assert(isPrefixDenied(&accessory.object, 71));
-    assert(hookRollable(&accessory.object, nullptr)->length == 4);
+    auto* deniedByAttribute = hookRollable(&accessory.object, nullptr);
+    assert(deniedByAttribute && deniedByAttribute->length > 0);
+    for (uintptr_t i = 0; i < deniedByAttribute->length; ++i)
+        assert(static_cast<const int32_t*>(arrayData(deniedByAttribute))[i] != 71);
     accessory.damage = 26;
     assert(!isPrefixDenied(&accessory.object, 71));
     accessory.mana = 3;
