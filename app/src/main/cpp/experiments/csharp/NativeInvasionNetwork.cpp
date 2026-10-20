@@ -121,7 +121,8 @@ void onText(Il2CppString* message, uint8_t red, uint8_t green, uint8_t blue,
     if (runtime::netMode() == 1 && message && g_ready.load(std::memory_order_acquire)) {
         const std::string text = utf8(message);
         if (text.rfind("BLINV2|", 0) == 0) {
-            if (acceptNativeInvasionChat(text)) return;
+            acceptNativeInvasionChat(text);
+            return;
         }
     }
     if (g_originalText) g_originalText(message, red, green, blue, forced, method);
