@@ -672,6 +672,18 @@ internal object ManagedFrameworkAssets {
         val markerMatches = previousFingerprint == fingerprint ||
             previousFingerprint.endsWith(":" + fingerprint)
         val path = File(dir, "BunnyManagedProbe.dll").absolutePath
+        val approval = File(dir, "compiler-references.approved")
+        val hasPackagedReferences = names.any { it.startsWith("compiler-references/") }
+        if (!hasPackagedReferences) {
+            approval.delete()
+            val stale = File(dir, "compiler-references")
+            if (stale.isDirectory) {
+                if (stale.deleteRecursively())
+                    Log.i("BunnyCSharp", "[CSharp][Startup] Stage=DiscardStaleCompactReferences Result=RuntimeReferences")
+                else
+                    Log.w("BunnyCSharp", "[CSharp][WARN][Startup] Stage=DiscardStaleCompactReferences Result=Ignored")
+            }
+        }
         if (markerMatches && !verifyCached) return Result(path, "MarkerReady", 0, names.size)
         val valid = HashSet<String>(names.size)
         for (name in names) {
@@ -682,6 +694,7 @@ internal object ManagedFrameworkAssets {
         if (valid.size == names.size) {
             if (previousFingerprint != fingerprint) marker.writeText(fingerprint)
             verifySdk(dir)
+            if (hasPackagedReferences) approval.writeText(fingerprint)
             return Result(path, "HitVerified", 0, names.size)
         }
         marker.delete()
@@ -709,6 +722,7 @@ internal object ManagedFrameworkAssets {
         }
         verifySdk(dir)
         marker.writeText(fingerprint)
+        if (hasPackagedReferences) approval.writeText(fingerprint)
         return Result(path, "InstalledVerified", installed, names.size - installed)
     }
 
