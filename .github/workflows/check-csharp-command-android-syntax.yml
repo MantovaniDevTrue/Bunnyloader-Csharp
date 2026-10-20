@@ -10,6 +10,8 @@ on:
       - 'app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp'
       - 'app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp'
       - 'app/src/main/cpp/experiments/csharp/ManagedRuntime.h'
+      - 'app/src/main/cpp/experiments/csharp/NativeCommandChatHooks.cpp'
+      - 'app/src/main/cpp/experiments/csharp/NativeCommandChatHooks.h'
       - 'app/src/main/cpp/experiments/csharp/NativeCommand*.h'
       - '.github/workflows/check-csharp-command-android-syntax.yml'
   workflow_dispatch:
@@ -40,7 +42,7 @@ jobs:
           NDK="$(cat "$RUNNER_TEMP/bunny-ndk-path")"
           CXX="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android34-clang++"
           test -x "$CXX"
-          for file in SourceParser SourceLoader AutoSourceRuntime ManagedRuntime; do
+          for file in SourceParser SourceLoader AutoSourceRuntime ManagedRuntime NativeCommandChatHooks; do
             "$CXX" -std=c++20 -fsyntax-only -fexceptions -frtti \
               -D__ANDROID__ -DANDROID -D_GNU_SOURCE \
               -Iapp/src/main/cpp -Iapp/src/main/cpp/third_party/quickjs \
