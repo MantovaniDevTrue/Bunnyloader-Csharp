@@ -18,6 +18,7 @@ O sprite do peixe mantém o mesmo blob original.
 | `BunnyItem.DefaultToQuestFish()`, fases pré/Hardmode e `BunnyQuestCatchRules` | C# SDK, compiler e registro nativo implementados |
 | `BunnyPlayer.FishingQuestFishName/FishingCatchRules` | Implementado e testado |
 | `BunnyItem.QuestAvailableWhen` e `QuestCanCatchWhen` | Delegates C# tipados com `BunnyQuestContext`, execução no worker Mono, host testado |
+| Identidade `[BunnyContent]` no Mono | Aplica nome/textura antes de `SetDefaults()` e valida a identidade declarada, inclusive em classes herdadas; host aprovado |
 | Sorteio `Main.AnglerQuestSwap`, diálogo `Lang.AnglerQuestChat` e PT-BR | Hooks nativos compilados; integração IL2CPP simulada aprovada |
 | `FishingCheck_RollItemDrop`, `FishingAttempt` e condições nativas | Integração host simulada aprovada, ABI Android pendente |
 | `ItemID.Sets.IsQuestFish` e `CanBePlacedOnWeaponRacks` | Registro e restauração por mod testados no host |
@@ -49,6 +50,10 @@ A localização aceita até oito culturas por peixe com textos UTF-8 de até 512
 
 As funções de sorteio, diálogo e pesca verificam a geração publicada do registro, recusando usar descritores antigos imediatamente após remover um mod ou invalidar um mundo. Durante a transição de mundo, as flags nativas são reavaliadas separadamente por tabela: se o Terraria substituiu a tabela por outra instância, a restauração passa a respeitar os valores que já existiam na nova tabela, e não os do mundo anterior.
 
+As tabelas nativas agora são conferidas com o validador original `il2cpp::nativeArrayContract` antes de ler os IDs da missão ou o diálogo e antes de atualizar `IsQuestFish` ou `CanBePlacedOnWeaponRacks`. O validador confirma tipo do elemento, rank do array, largura do valor e limite de entradas. Arrays incompatíveis são rejeitados sem mutação dos dados. A suíte host injeta tabelas `Boolean[]` no campo de IDs e `Int32[]` em flags para verificar essa proteção.
+
+A reconstrução de predicados C# no Mono também segue agora a mesma declaração de conteúdo que o compilador: `[BunnyContent(BunnyContentKind.Item,...)]` fornece nome e textura antes de executar `SetDefaults()`, e a identidade é conferida depois. Classes herdadas sem a declaração são rejeitadas. O fixture C# possui peixe herdado real cujo `SetDefaults()` exige os defaults do atributo.
+
 A atualização das tabelas possui **preparação antes do commit**: a lista de IDs e a expansão de ambas as tabelas de flags são verificadas antes de publicar alterações. Falhas de alocação são testadas e não deixam estado parcial nos mocks do host. Isso não constitui garantia de transação atômica do runtime IL2CPP real, que precisa de validação no dispositivo.
 
 ## Garantias e limites de multiplayer
@@ -69,12 +74,13 @@ Essa operação **não descarrega assemblies antigos da memória do Mono** nem r
 - Teste do parser `BunnyPlayer`.
 - Hooks C++ reais com IL2CPP simulado: sorteio, chat, cliente/host, flags, remoção e falhas de alocação.
 - Hook real de pesca com struct simulada de 92 bytes: gravidade, raridade, owner (índice do jogador) e callbacks dinâmicos válidos/inválidos.
+- Testes de arrays IL2CPP falsos rejeitados antes de atualizar IDs/flags, e teste gerenciado de peixe herdado com `[BunnyContent]`.
 - Regressão de descarregamento com hook já instalado, transição de mundo com tabelas substituídas e teto de quatro chamadas gerenciadas por sorteio.
 - Execução .NET das condições `QuestAvailableWhen`/`QuestCanCatchWhen` no endpoint gerenciado, incluindo recusa de snapshots inválidos.
 - Compilação C++ e C# com avisos tratados como erros no host; regressão de carregamento C# isolado e JS misto.
 - Compilação de sintaxe do próprio `ManagedRuntime.cpp` e teste host isolado de descarregamento/recarga de assemblies nativos com mil ciclos concorrentes.
 
-**CI completo aprovado:** [Actions #39353250896](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39353250896). Jobs `native-host` e `managed-host` aprovados, incluindo a checagem de revisão antes da execução do worker Mono, compilação nativa integral do worker e teste concorrente do controle de assemblies.
+**CI completo aprovado:** [Actions #39354454309](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39354454309). Jobs `native-host` e `managed-host` aprovados, incluindo validação de arrays reais IL2CPP, peixe C# herdado com declaração, callbacks, worker Mono e regressões existentes.
 
 Ainda faltam ABI do Terraria Android, validação de memória e desempenho a 60 FPS, sincronização/persistência multiplayer real, hot-unload integral de conteúdo C# e possíveis callbacks adicionais do Pescador além dos predicados tipados implementados.
 
