@@ -95,13 +95,14 @@ public:
 
     bool unregisterMod(const std::string& modId) {
         std::lock_guard<std::mutex> lock(mutex_);
-        const auto owner = owners_.find(normalize(modId));
+        const std::string ownerId = normalize(modId);
+        const auto owner = owners_.find(ownerId);
         if (owner == owners_.end()) return false;
         for (const auto& spec : owner->second) {
             auto it = names_.find(spec.name);
             if (it == names_.end()) continue;
             auto& list = it->second;
-            std::erase_if(list, [&](const Registered& item) { return item.owner == modId; });
+            std::erase_if(list, [&](const Registered& item) { return item.owner == ownerId; });
             if (list.empty()) names_.erase(it);
         }
         registeredNames_ -= owner->second.size();
