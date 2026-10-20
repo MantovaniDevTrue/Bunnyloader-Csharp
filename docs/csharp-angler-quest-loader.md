@@ -59,6 +59,8 @@ A lista de missões C# é ordenada por identidade do mod e nome da classe, indep
 
 Um novo `mods::loadAll` remove quests de fontes C# antigas e limpa seus registros de carregamento. O vínculo de callbacks nativos com o assembly também é removido; após o novo bind, o caminho do assembly recebe uma **revisão por mod** (`|bunny-revision=N`) para que o worker Mono reconheça uma compilação nova mesmo quando o arquivo continua no mesmo caminho. Os caches de receitas e predicados do Pescador são reconstruídos para a revisão seguinte. Isso foi verificado no host com revisões sucessivas e identificadores inválidos.
 
+O vínculo do assembly é confirmado novamente **depois** de cada resposta gerenciada de receitas e condições do Pescador. Se a versão foi substituída ou o mod descarregado enquanto o worker processava a solicitação, o resultado antigo é descartado e não produz efeitos nativos. A compilação do bridge e a suíte host estão verdes; a corrida entre threads de um Android real ainda requer QA.
+
 Essa operação **não descarrega assemblies antigos da memória do Mono** nem remove automaticamente todos os itens, NPCs ou projéteis do mundo em execução. O hot-unload completo continua pendente.
 
 ## CI e critérios de conclusão
@@ -71,7 +73,7 @@ Essa operação **não descarrega assemblies antigos da memória do Mono** nem r
 - Execução .NET das condições `QuestAvailableWhen`/`QuestCanCatchWhen` no endpoint gerenciado, incluindo recusa de snapshots inválidos.
 - Compilação C++ e C# com avisos tratados como erros no host; regressão de carregamento C# isolado e JS misto.
 
-**CI completo aprovado:** [Actions #39351714561](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39351714561). Jobs `native-host` e `managed-host` aprovados com testes de ordenação determinística, atualização concorrente, unload durante callback e nova identidade do assembly.
+**CI completo aprovado:** [Actions #39351945409](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39351945409). Jobs `native-host` e `managed-host` aprovados com testes de ordenação determinística, atualização concorrente, unload durante callback e nova identidade do assembly.
 
 Ainda faltam ABI do Terraria Android, validação de memória e desempenho a 60 FPS, sincronização/persistência multiplayer real, hot-unload integral de conteúdo C# e possíveis callbacks adicionais do Pescador além dos predicados tipados implementados.
 
