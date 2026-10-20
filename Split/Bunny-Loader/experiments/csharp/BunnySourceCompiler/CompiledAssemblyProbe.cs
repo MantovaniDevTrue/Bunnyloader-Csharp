@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Globalization;
 using System.Reflection;
+using System.Reflection.Emit;
 using System.Linq;
 using System.Collections.Generic;
 
@@ -63,6 +64,73 @@ public static class CompiledAssemblyProbe
     {
         for (Type? ancestor = type.BaseType; ancestor != null; ancestor = ancestor.BaseType)
             yield return ancestor;
+    }
+
+    private static bool UsesLiveLocalizationRegister(Type[] types)
+    {
+        var opcodes = new Dictionary<ushort, OpCode>();
+        foreach (FieldInfo field in typeof(OpCodes).GetFields(BindingFlags.Public | BindingFlags.Static))
+            if (field.GetValue(null) is OpCode code)
+                opcodes[unchecked((ushort)code.Value)] = code;
+        const BindingFlags flags = BindingFlags.Public | BindingFlags.NonPublic |
+            BindingFlags.Static | BindingFlags.Instance | BindingFlags.DeclaredOnly;
+        foreach (Type type in types)
+        {
+            foreach (MethodBase method in type.GetMethods(flags).Cast<MethodBase>()
+                .Concat(type.GetConstructors(flags)))
+            {
+                byte[]? il = method.GetMethodBody()?.GetILAsByteArray();
+                if (il == null) continue;
+                int position = 0;
+                while (position < il.Length)
+                {
+                    ushort raw = il[position++];
+                    if (raw == 0xFE)
+                    {
+                        if (position >= il.Length) break;
+                        raw = (ushort)(0xFE00 | il[position++]);
+                    }
+                    if (!opcodes.TryGetValue(raw, out OpCode code)) break;
+                    int operand = code.OperandType switch
+                    {
+                        OperandType.InlineNone => 0,
+                        OperandType.ShortInlineBrTarget or OperandType.ShortInlineI or
+                            OperandType.ShortInlineVar => 1,
+                        OperandType.InlineVar => 2,
+                        OperandType.InlineI or OperandType.InlineBrTarget or
+                            OperandType.InlineField or OperandType.InlineMethod or
+                            OperandType.InlineSig or OperandType.InlineString or
+                            OperandType.InlineTok or OperandType.InlineType or
+                            OperandType.ShortInlineR => 4,
+                        OperandType.InlineI8 or OperandType.InlineR => 8,
+                        OperandType.InlineSwitch when position + 4 <= il.Length =>
+                            4 + 4 * Math.Clamp(BitConverter.ToInt32(il, position), 0,
+                                (il.Length - position - 4) / 4),
+                        _ => -1
+                    };
+                    if (operand < 0 || position + operand > il.Length) break;
+                    if (code.OperandType == OperandType.InlineMethod &&
+                        (raw == unchecked((ushort)OpCodes.Call.Value) ||
+                         raw == unchecked((ushort)OpCodes.Callvirt.Value)))
+                    {
+                        int token = BitConverter.ToInt32(il, position);
+                        try
+                        {
+                            MethodBase? target = method.Module.ResolveMethod(token,
+                                type.IsGenericType ? type.GetGenericArguments() : null,
+                                method.IsGenericMethod ? method.GetGenericArguments() : null);
+                            if (target?.DeclaringType?.FullName == "BunnyLoader.Source.BunnyLocalizationRuntime" &&
+                                target.Name == "Register") return true;
+                        }
+                        catch (ArgumentException) { }
+                        catch (BadImageFormatException) { }
+                        catch (NotSupportedException) { }
+                    }
+                    position += operand;
+                }
+            }
+        }
+        return false;
     }
 
     public static int Verify(string assemblyPath, string diagnosticsPath)
@@ -164,7 +232,8 @@ public static class CompiledAssemblyProbe
             WriteRuntimeDefaults(projectiles, weapons, buffs, potions,
                 accessories, players, npcs, prefixes, basicItems, tiles, walls, diagnosticsPath);
             if (modRoot.Length != 0)
-                AppendManagedLocalization(modRoot, diagnosticsPath, localizationTypes);
+                AppendManagedLocalization(modRoot, diagnosticsPath, localizationTypes,
+                    UsesLiveLocalizationRegister(contentTypes));
 
             WriteProjectileMotionPolicies(assembly, projectileTypes, diagnosticsPath);
             WriteAutomaticCombatPolicies(projectiles, diagnosticsPath);
@@ -198,7 +267,8 @@ public static class CompiledAssemblyProbe
     }
 
 
-    private static void AppendManagedLocalization(string modRoot, string diagnosticsPath, Type[] modules)
+    private static void AppendManagedLocalization(string modRoot, string diagnosticsPath,
+        Type[] modules, bool liveRegister)
     {
         string source = Path.Combine(modRoot, "content");
         var catalog = new BunnyLoader.Source.BunnyLocalizationCatalog();
@@ -212,7 +282,7 @@ public static class CompiledAssemblyProbe
             module.RegisterTranslations(catalog);
         }
 
-        if (cultures == 0 && modules.Length == 0) return;
+        if (cultures == 0 && modules.Length == 0 && !liveRegister) return;
         foreach (string key in catalog.SnapshotForGame().Keys)
             if (key.StartsWith("Mods.", StringComparison.Ordinal) &&
                 !key.StartsWith("Mods.source.", StringComparison.Ordinal))
@@ -229,6 +299,8 @@ public static class CompiledAssemblyProbe
         {
             if (modules.Length != 0)
                 writer.WriteLine("LOCALE_MODULES\t" + modules.Length);
+            if (liveRegister)
+                writer.WriteLine("LOCALE_RUNTIME\t1");
             foreach (string row in rows)
                 writer.WriteLine(row);
         }
