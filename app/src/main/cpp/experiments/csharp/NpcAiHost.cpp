@@ -5,6 +5,7 @@
 #include "core/Log.h"
 #include "experiments/csharp/CSharpModLoader.h"
 #include "experiments/csharp/ManagedRuntime.h"
+#include "experiments/csharp/ReliableNpcKill.h"
 #include "experiments/csharp/ManagedProjectileHook.h"
 #include "experiments/csharp/TerrariaHost.h"
 #include "experiments/csharp/WorldAuthority.h"
@@ -539,8 +540,8 @@ void hookCheckActive(Il2CppObject* npc, const MethodInfo* method) {
                     state.lastLife = life;
                 }
                 state.killQueued = true;
-                queueManagedEntityCombatEvent(3, type, slot, state.generation, -1,
-                    reinterpret_cast<uintptr_t>(npc), 0, -1);
+                queueReliableNpcKill(type, slot, state.generation,
+                    reinterpret_cast<uintptr_t>(npc));
             }
         }
         retireObject(npc);
@@ -566,8 +567,8 @@ void hookLoot(Il2CppObject* npc, const MethodInfo* method) {
                     state.lastLife = life;
                 }
                 state.killQueued = true;
-                queueManagedEntityCombatEvent(3, type, slot, state.generation, -1,
-                    reinterpret_cast<uintptr_t>(npc), 0, -1);
+                queueReliableNpcKill(type, slot, state.generation,
+                    reinterpret_cast<uintptr_t>(npc));
             }
         }
     }
