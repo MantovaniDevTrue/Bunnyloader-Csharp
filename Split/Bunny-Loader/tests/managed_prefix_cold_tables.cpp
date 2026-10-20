@@ -1303,10 +1303,16 @@ int main() {
     {
         PrefixRpcScope scope;
         assert(!globalsAllowPrefix(&weapon.object,80));
-        assert(globalsAllowPrefix(&weapon.object,79));
         assert(!globalsAllowPrefix(&weapon.object,81));
+    }
+    {
+        PrefixRpcScope scope;
+        assert(globalsAllowPrefix(&weapon.object,79));
         assert(globalChoosePrefix(&weapon.object)==-1);
-        itemChoice=73;
+    }
+    itemChoice=73;
+    {
+        PrefixRpcScope scope;
         assert(globalChoosePrefix(&weapon.object)==73);
     }
     {
