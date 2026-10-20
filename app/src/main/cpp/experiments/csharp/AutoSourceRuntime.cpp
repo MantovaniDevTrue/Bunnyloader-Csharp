@@ -4,6 +4,7 @@
 #include "experiments/csharp/SourceLimits.h"
 #include "experiments/csharp/NativeAccess.h"
 #include "experiments/csharp/NativeInvasionMailbox.h"
+#include "experiments/csharp/NativeInvasionPersistence.h"
 #include "experiments/csharp/NativeCSharpItemUse.h"
 #include "experiments/csharp/WorldAuthority.h"
 #include "experiments/csharp/UniversalHookMailbox.h"
@@ -1204,6 +1205,7 @@ void noteAutoWorldTilesLoaded() {
     g_worldEpoch.fetch_add(1, std::memory_order_acq_rel);
     g_worldSessionReady.store(false, std::memory_order_release);
     setNativeInvasionWorldState(false, g_worldEpoch.load(std::memory_order_acquire));
+    updateNativeInvasionWorldPath(false, g_worldEpoch.load(std::memory_order_acquire));
         setNativeItemUseWorldState(false, g_worldEpoch.load(std::memory_order_acquire));
     pauseManagedEntitySourceCallbacks();
     pauseManagedScreenSceneCallbacks();
@@ -1233,6 +1235,13 @@ void noteAutoGameUpdate() {
     setNativeItemUseWorldState(invasionWorldReady, invasionWorldEpoch);
     pumpNativeInvasionSpawnsOnGameThread();
     pumpNativeItemUseBindingsOnGameThread();
+    static uint64_t lastSaveWorldSession = 0;
+    if (!invasionWorldReady) {
+        lastSaveWorldSession = 0;
+    } else if (lastSaveWorldSession != invasionWorldEpoch) {
+        updateNativeInvasionWorldPath(true, invasionWorldEpoch);
+        lastSaveWorldSession = invasionWorldEpoch;
+    }
     universalNativeService.store(pumpNativeAccessOnGameThread,std::memory_order_release);
     pumpNativeAccessOnGameThread();
     pumpUniversalHookInstallsOnGameThread();
@@ -1306,6 +1315,7 @@ void noteAutoGameUpdate() {
         g_worldEpoch.fetch_add(1, std::memory_order_acq_rel);
         g_worldSessionReady.store(false, std::memory_order_release);
         setNativeInvasionWorldState(false, g_worldEpoch.load(std::memory_order_acquire));
+    updateNativeInvasionWorldPath(false, g_worldEpoch.load(std::memory_order_acquire));
         setNativeItemUseWorldState(false, g_worldEpoch.load(std::memory_order_acquire));
         g_worldTilesLoaded.store(false, std::memory_order_release);
         g_worldReadyFrames.store(0, std::memory_order_relaxed);
