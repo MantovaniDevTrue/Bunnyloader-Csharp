@@ -99,6 +99,8 @@ bool inWorld(const InvasionRefs& r) {
 
 InvasionSpawnResult spawnNativeInvasionNpc(const InvasionSpawnRequest& request) {
     InvasionSpawnResult result;
+    result.epoch = request.epoch;
+    result.ticket = request.ticket;
     const int mode = runtime::netMode();
     if (!worldIsAuthoritative(mode)) {
         result.error = InvasionSpawnError::NotAuthoritative;
