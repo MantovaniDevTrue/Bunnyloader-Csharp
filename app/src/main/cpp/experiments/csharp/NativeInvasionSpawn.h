@@ -16,7 +16,8 @@ enum class InvasionSpawnError {
     NativeUnavailable,
     NativeException,
     NoNpcSlot,
-    VerificationFailed
+    VerificationFailed,
+    NoSafeSpawnSite
 };
 
 struct InvasionSpawnRequest {
