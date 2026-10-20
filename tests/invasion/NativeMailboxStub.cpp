@@ -30,6 +30,7 @@ extern "C" void bunny_invasion_test_pump() {
 
 namespace {
 std::atomic<int> pendingUse{-1};
+std::atomic<int> bindingReady{1};
 }
 
 extern "C" int bunny_item_use_bind(int64_t session, const char* mod,
@@ -41,7 +42,8 @@ extern "C" int bunny_item_use_bind(int64_t session, const char* mod,
 
 extern "C" int bunny_item_use_ready(int64_t session, const char* mod,
                                      const char* itemName) {
-    return bunny_item_use_bind(session, mod, itemName);
+    return bindingReady.load() == 1 &&
+        bunny_item_use_bind(session, mod, itemName);
 }
 
 extern "C" int bunny_item_use_poll(int64_t session, const char* mod,
@@ -58,4 +60,8 @@ extern "C" int bunny_item_use_poll(int64_t session, const char* mod,
 
 extern "C" void bunny_item_use_test_inject(int playerIndex) {
     pendingUse.store(playerIndex);
+}
+
+extern "C" void bunny_item_use_test_ready(int ready) {
+    bindingReady.store(ready != 0 ? 1 : 0);
 }
