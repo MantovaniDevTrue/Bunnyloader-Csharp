@@ -430,12 +430,13 @@ bool globalsAllowPrefix(Il2CppObject* item,int prefix) {
        g_refs.type<0 || g_refs.damage<0 || g_refs.mana<0 ||
        g_refs.stack<0 || g_refs.prefix<0 ||
        !PrefixRpcScope::current)return true;
+    const auto globals=managedGlobalPrefixCallbackView();
+    if(globals->empty())return true;
     auto* scope=PrefixRpcScope::current;
     syncItemPrefixCache(item,scope);
     int8_t& cached=scope->globalAllowed[static_cast<size_t>(prefix)];
     if(cached!=-1)return cached!=0;
     cached=-2;
-    const auto globals=managedGlobalPrefixCallbackView();
     for(const auto& owner:*globals) {
         if(!(owner.callbackMask&1))continue;
         std::string answer;
