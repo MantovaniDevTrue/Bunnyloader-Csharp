@@ -1,0 +1,32 @@
+name: CommandLoader CSharp host tests (no APK)
+
+on:
+  push:
+    branches:
+      - feat/csharp-command-loader-20261020
+    paths:
+      - experiments/csharp/BunnyCsSdk/BunnyCommand.cs
+      - experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj
+      - tests/commands/**
+      - .github/workflows/command-loader-host-tests.yml
+  pull_request:
+    paths:
+      - experiments/csharp/BunnyCsSdk/BunnyCommand.cs
+      - experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj
+      - tests/commands/**
+      - .github/workflows/command-loader-host-tests.yml
+
+permissions:
+  contents: read
+
+jobs:
+  managed-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Compile SDK and execute CSharp command tests
+        run: dotnet run --project tests/commands/Commands.HostTests.csproj -c Release
