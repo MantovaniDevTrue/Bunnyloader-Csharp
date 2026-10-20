@@ -665,6 +665,38 @@ Test("combined-dynamic-localization-limit-is-atomic", () =>
     }
 });
 
+Test("runtime-only-register-activates-without-module-or-json", () =>
+{
+    string root = Path.Combine(Path.GetTempPath(), "bunny-live-only-" + Guid.NewGuid().ToString("N"));
+    Directory.CreateDirectory(Path.Combine(root, "content"));
+    try
+    {
+        string diagnostics = Path.Combine(root, "diagnostics.txt");
+        string assembly = typeof(BunnyLoader.LocalizationRuntimeOnlyProbe.RuntimeOnlyLocaleItem)
+            .Assembly.Location;
+        Equal(1, BunnyLoader.SourceCompiler.CompiledAssemblyProbe.Verify(assembly, diagnostics, root));
+        string[] wire = File.ReadAllLines(Path.Combine(root, "source-runtime-values.txt"));
+        Equal(true, wire.Contains("LOCALE_RUNTIME\t1"));
+        Equal(false, wire.Any(row => row.StartsWith("LOCALE_MODULES\t", StringComparison.Ordinal)));
+        Equal(false, wire.Any(row => row.StartsWith("LOCALE\t", StringComparison.Ordinal)));
+        string first = BunnyLocalizationRuntime.Dispatch("runtimeprobe", assembly, "en-US");
+        Equal("OK|0\nBUNNY_DYNAMIC_LOCALES_V1", first);
+        Equal(true, BunnyLocalizationRuntime.Acknowledge("runtimeprobe", assembly, "en-US", first));
+        BunnyLoader.LocalizationRuntimeOnlyProbe.RuntimeOnlyLocaleItem.InstallTranslation();
+        string live = BunnyLocalizationRuntime.Drain("runtimeprobe", assembly, "en-US");
+        Equal("OK|0", live.Split('\n')[0]);
+        Equal(true, live.Contains(Convert.ToHexString(
+            System.Text.Encoding.UTF8.GetBytes("Runtime only")), StringComparison.Ordinal));
+        Equal(true, BunnyLocalizationRuntime.Acknowledge("runtimeprobe", assembly, "en-US", live));
+        Equal("UNCHANGED", BunnyLocalizationRuntime.Drain("runtimeprobe", assembly, "en-US"));
+        Equal(true, BunnyLocalizationRuntime.Unload("runtimeprobe"));
+    }
+    finally
+    {
+        Directory.Delete(root, true);
+    }
+});
+
 Console.WriteLine("LOCALIZATION_HOST_PASS cases=" + passed);
 
 public sealed class HostLocalizationModule : BunnyLocalizationModule
