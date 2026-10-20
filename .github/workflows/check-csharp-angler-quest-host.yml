@@ -10,6 +10,9 @@ on:
       - 'app/src/main/cpp/experiments/csharp/NativeAnglerQuestGameplay.h'
       - 'app/src/main/cpp/experiments/csharp/NativeAnglerQuestFishing.cpp'
       - 'app/src/main/cpp/experiments/csharp/SourceLoader.cpp'
+      - 'app/src/main/cpp/experiments/csharp/SourceLoader.h'
+      - 'app/src/main/cpp/mods/ModLoader.cpp'
+      - 'tests/mod_loader/independent_loading.cpp'
       - 'app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp'
       - 'experiments/csharp/BunnyCsSdk/BunnySourceScriptApi.cs'
       - 'app/src/main/cpp/experiments/csharp/SourceParser.cpp'
@@ -21,6 +24,9 @@ on:
     paths:
       - 'app/src/main/cpp/experiments/csharp/NativeAnglerQuestRegistry.h'
       - 'app/src/main/cpp/experiments/csharp/SourceLoader.cpp'
+      - 'app/src/main/cpp/experiments/csharp/SourceLoader.h'
+      - 'app/src/main/cpp/mods/ModLoader.cpp'
+      - 'tests/mod_loader/independent_loading.cpp'
       - 'experiments/csharp/BunnyCsSdk/BunnyItem.cs'
       - 'experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs'
       - 'tests/angler_quest/**'
@@ -51,6 +57,20 @@ jobs:
             -I app/src/main/cpp -I tests/basic_items/include \
             -I "$JAVA_HOME/include" -I "$JAVA_HOME/include/linux" \
             app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp
+      - name: Verify independent CSharp and mixed mod loader session reset
+        run: |
+          set -euo pipefail
+          g++ -std=c++20 -Wall -Wextra -Werror -pedantic -pthread \
+            -I tests/mod_loader/include -I app/src/main/cpp \
+            tests/mod_loader/independent_loading.cpp \
+            app/src/main/cpp/mods/ModLoader.cpp \
+            app/src/main/cpp/mods/LoadOrder.cpp \
+            app/src/main/cpp/mods/ManifestText.cpp \
+            -o "$RUNNER_TEMP/angler_mod_loader_test"
+          "$RUNNER_TEMP/angler_mod_loader_test" "$RUNNER_TEMP/mods_csharp" --only-csharp
+          "$RUNNER_TEMP/angler_mod_loader_test" "$RUNNER_TEMP/mods_mixed" --mixed
+          "$RUNNER_TEMP/angler_mod_loader_test" "$RUNNER_TEMP/mods_fail" --js-fails
+          "$RUNNER_TEMP/angler_mod_loader_test" "$RUNNER_TEMP/mods_builtin" --builtin
       - name: Compile and run native state tests
         run: |
           set -euo pipefail
