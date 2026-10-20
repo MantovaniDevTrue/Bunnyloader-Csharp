@@ -1469,7 +1469,7 @@ ManagedPrefixDiagnostics managedPrefixDiagnostics() {
 
 bool managedPrefixGameplayReady() {
     return g_hooksReady.load(std::memory_order_acquire) &&
-           !snapshotManagedPrefixes().empty();
+           (!managedPrefixView()->empty() || !managedItemPrefixCallbackView()->empty());
 }
 
 bool installManagedPrefixChanceHook() {
