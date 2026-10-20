@@ -28,6 +28,7 @@ std::vector<BasicItemEntry> pendingBasicItemBehaviors();
 bool acknowledgeBasicItemBehavior(int type,const std::string& error);
 std::vector<int> basicItemTypes();
 int basicItemForTile(const std::string& key);
+int basicItemForTileStyle(const std::string& key,int style);
 int basicItemForWall(const std::string& key);
 struct PendingBasicRecipe { std::string id,modId; int result=-1,index=-1; BasicRecipe values; std::string source="",error=""; };
 std::vector<PendingBasicRecipe> pendingBasicRecipes();
