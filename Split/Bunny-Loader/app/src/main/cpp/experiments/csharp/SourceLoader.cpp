@@ -1,5 +1,6 @@
 #include "experiments/csharp/SourceLimits.h"
 #include "experiments/csharp/NativeTileWirePolicy.h"
+#include "experiments/csharp/NativeTilePolicy.h"
 #include "experiments/csharp/SourceLoader.h"
 
 #include "experiments/csharp/NativeContent.h"
