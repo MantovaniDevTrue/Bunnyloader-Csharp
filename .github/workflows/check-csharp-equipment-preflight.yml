@@ -22,6 +22,7 @@ on:
       - Split/Bunny-Loader/experiments/csharp/BunnyCsSdk/BunnyItem.cs
       - Split/Bunny-Loader/experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs
       - Split/Bunny-Loader/tests/prefix_v89/PrefixFixture/Content.cs
+      - Split/Bunny-Loader/tests/prefix_v89/GlobalOnlyFixture/**
       - Split/Bunny-Loader/tests/prefix_v89/Program.cs
       - Split/Bunny-Loader/tests/prefix_v89/guard_native_bridge.py
       - Split/Bunny-Loader/docs/generated/sdk_public_reference.json
@@ -96,7 +97,8 @@ jobs:
         working-directory: Split/Bunny-Loader
         run: |
           dotnet build tests/prefix_v89/PrefixFixture/PrefixFixture.csproj -c Release -p:NuGetAudit=false
-          dotnet run --project tests/prefix_v89/PrefixContract.csproj -c Release -p:NuGetAudit=false -- "$(pwd)/tests/prefix_v89/PrefixFixture/bin/Release/net8.0/PrefixFixture.dll"
+          dotnet build tests/prefix_v89/GlobalOnlyFixture/GlobalOnlyFixture.csproj -c Release -p:NuGetAudit=false
+          dotnet run --project tests/prefix_v89/PrefixContract.csproj -c Release -p:NuGetAudit=false -- "$(pwd)/tests/prefix_v89/PrefixFixture/bin/Release/net8.0/PrefixFixture.dll" "$(pwd)/tests/prefix_v89/GlobalOnlyFixture/bin/Release/net8.0/GlobalOnlyFixture.dll"
           python3 tests/prefix_v89/guard_native_bridge.py
           dotnet run --project tools/sdk_reference -c Release -p:NuGetAudit=false -- --check
       - name: Compile and test native prefix snapshot path
