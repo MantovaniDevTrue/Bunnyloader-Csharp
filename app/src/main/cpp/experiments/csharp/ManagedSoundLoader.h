@@ -168,10 +168,13 @@ inline int stop(int handle,int request) {
 }
 
 inline int duration(int handle) {
-    std::lock_guard guard(mutex);
-    auto it=clips.find(handle);
-    return it==clips.end()||it->second.soundId<=0?0:
-        bl::runtime::content::soundDuration(it->second.soundId);
+    int soundId = 0;
+    {
+        std::lock_guard guard(mutex);
+        auto it=clips.find(handle);
+        if(it!=clips.end() && it->second.status>=0) soundId=it->second.soundId;
+    }
+    return soundId>0?bl::runtime::content::soundDuration(soundId):0;
 }
 
 inline void unloadMod(const char* owner) {
@@ -233,7 +236,12 @@ inline void pump() {
         }
     }
 
-    for(int n=0;n<16;++n) {
+    size_t scheduledPlays = 0;
+    {
+        std::lock_guard guard(mutex);
+        scheduledPlays = std::min<size_t>(16,pendingPlays.size());
+    }
+    for(size_t n=0;n<scheduledPlays;++n) {
         Play request;
         int style=-1;
         {
