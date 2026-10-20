@@ -11,9 +11,9 @@ class ManagedDustSlotLookup {
 public:
     int resolve(T* const* slots, std::size_t count, T* dust, int hint = -1) {
         if (!slots || !dust || count < Slots) return -1;
-        if (slots != knownArray_) rebuild(slots);
         if (hint >= 0 && static_cast<std::size_t>(hint) < Slots &&
             slots[hint] == dust) return hint;
+        if (slots != knownArray_) rebuild(slots);
         auto found = positions_.find(dust);
         if (found != positions_.end() && slots[found->second] == dust)
             return static_cast<int>(found->second);
