@@ -2341,7 +2341,11 @@ static bool invokeManagedCallback(bool shooting,const std::string& mod,const std
        (itemPrefix ? ((kind==2 && (index!=0 || !snapshot.empty())) ||
                       (kind==0 && (index<1 || index>255 || snapshot.empty())) ||
                       (kind==1 && (index!=0 || snapshot.empty())) ||
-                      (kind!=0 && kind!=1 && kind!=2)) : (index>=16 || kind<0 || kind>(prefix?6:3)))||
+                      (kind==3 && (index!=0 || snapshot.empty())) ||
+                      (kind==4 && ((index!=1 && index!=2) || snapshot.empty())) ||
+                      (kind==5 && (index<1 || index>255 || snapshot.empty())) ||
+                      (kind!=0 && kind!=1 && kind!=2 && kind!=3 &&
+                       kind!=4 && kind!=5)) : (index>=16 || kind<0 || kind>(prefix?6:3)))||
        snapshot.size()>(shooting?1024u:512u)||assembly.empty()||assembly.size()>4096){*output="ERROR|Stage=SubmitRecipeCallback Reason=InvalidTransportArguments";return false;}
     std::unique_lock<std::mutex> lock(g_pinnedMutex,std::try_to_lock);
     if(!lock.owns_lock()){*output="PENDING|Stage=SubmitRecipeCallback Reason=WorkerQueueBusy";return false;}
@@ -2483,6 +2487,45 @@ bool invokeManagedItemPrefixBatch(const std::string& mod,const std::string& asse
            std::all_of(output->begin(),output->end(),[](unsigned char c) {
                return c=='0'||c=='1';
            });
+}
+
+bool invokeManagedItemPrefixDecision(const std::string& mod,const std::string& assembly,
+    const std::string& owner,int index,int kind,const std::string& snapshot,
+    std::string* output,int budgetMicroseconds) {
+    if (!output || owner.empty() || owner.size()>64 ||
+        snapshot.empty() || snapshot.size()>512 || (kind!=3 && kind!=4 && kind!=5))
+        return false;
+    if (!std::all_of(owner.begin(),owner.end(),[](unsigned char c) {
+        return (c>='A'&&c<='Z')||(c>='a'&&c<='z')||
+               (c>='0'&&c<='9')||c=='_';
+    })) return false;
+    if (!invokeManagedCallback(false,mod,assembly,owner,index,kind,snapshot,
+                               output,budgetMicroseconds,false,false,true))
+        return false;
+    if (kind==4) return *output=="N" || *output=="0" || *output=="1";
+    if (kind==3) {
+        if (*output=="-1") return true;
+        if (output->empty() || output->size()>3) return false;
+        int value=0;
+        for (unsigned char c:*output) {
+            if (c<'0' || c>'9') return false;
+            value=value*10+(c-'0');
+        }
+        return value>=1 && value<=255;
+    }
+    const size_t comma=output->find(',');
+    if (comma==std::string::npos || comma==0 || comma>4 ||
+        output->size()-comma-1<1 || output->size()-comma-1>6 ||
+        output->find(',',comma+1)!=std::string::npos) return false;
+    int damage=0,value=0;
+    for(size_t i=0;i<output->size();++i) {
+        const char c=(*output)[i];
+        if(i==comma)continue;
+        if(c<'0'||c>'9')return false;
+        int& v=i<comma?damage:value;
+        v=v*10+(c-'0');
+    }
+    return damage<=1000 && value<=100000;
 }
 
 bool queueManagedItemPrefixWarmup(const std::string& mod,const std::string& assembly,
