@@ -518,6 +518,9 @@ int32_t hkNewDust(Vec2 pos, int32_t w, int32_t h, int32_t type, float sx, float 
     Il2CppArray* dusts = readStatic<Il2CppArray*>(refs().mainDust);
     if (!dusts) return index;
     Il2CppObject* d = dustSlots(dusts)[index];
+    if (d && csharp::hasManagedDustType(typeOf(d)))
+        g_dustSlotLookup.remember(
+            dustSlots(dusts), static_cast<size_t>(dusts->length), index, d);
     // O ChildSafety pode ter trocado o tipo (16) ou desligado a poeira.
     const int mi = d && activeOf(d) ? modIndex(typeOf(d)) : -1;
     if (mi < 0) return index;
