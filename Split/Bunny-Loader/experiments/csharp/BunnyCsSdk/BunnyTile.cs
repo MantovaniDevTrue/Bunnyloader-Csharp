@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Text;
 
 namespace BunnyLoader.Source;
 
@@ -79,6 +81,46 @@ public abstract class BunnyTile {
     public bool AllowBreaking { get; set; } = true;
     public bool AllowDrops { get; set; } = true;
     public bool CacheDrawData { get; set; } = true;
+    private readonly SortedDictionary<int, string> _itemDrops = new();
+    public void RegisterItemDrop(string itemName, params int[] styles) {
+        if (string.IsNullOrEmpty(itemName) || itemName.Length > 72)
+            throw new ArgumentException("Invalid item name", nameof(itemName));
+        foreach (char c in itemName)
+            if (!((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
+                  (c >= '0' && c <= '9') || c == '_'))
+                throw new ArgumentException("Invalid item name", nameof(itemName));
+        AddItemDropRules(itemName, styles);
+    }
+    public void RegisterItemDrop(int itemType, params int[] styles) {
+        if (itemType < 1 || itemType > 65535)
+            throw new ArgumentOutOfRangeException(nameof(itemType));
+        AddItemDropRules("#" + itemType.ToString(System.Globalization.CultureInfo.InvariantCulture), styles);
+    }
+    private void AddItemDropRules(string item, int[] styles) {
+        if (styles == null) throw new ArgumentNullException(nameof(styles));
+        if (styles.Length == 0) {
+            _itemDrops[-1] = item;
+        } else {
+            foreach (int style in styles) {
+                if (style < 0 || style > 4095)
+                    throw new ArgumentOutOfRangeException(nameof(styles));
+                _itemDrops[style] = item;
+            }
+        }
+        if (_itemDrops.Count > 16)
+            throw new InvalidOperationException("Maximum 16 registered item drop styles");
+    }
+    public string ItemDropDefinitions {
+        get {
+            if (_itemDrops.Count == 0) return "-";
+            var text = new StringBuilder();
+            foreach (var entry in _itemDrops) {
+                if (text.Length > 0) text.Append(';');
+                text.Append(entry.Key).Append('~').Append(entry.Value);
+            }
+            return text.ToString();
+        }
+    }
     public string DustName { get; set; } = "";
     public int MapR { get; private set; } = 200;
     public int MapG { get; private set; } = 200;
