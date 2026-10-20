@@ -10,6 +10,14 @@ on:
       - 'tests/csharp_gore_discovery_test.cpp'
       - 'tests/csharp_gore_catalog_test.cpp'
       - 'app/src/main/cpp/experiments/csharp/ManagedGoreCatalog.h'
+      - 'app/src/main/cpp/experiments/csharp/ManagedGoreRuntime.*'
+      - 'app/src/main/cpp/experiments/csharp/SourceLoader.cpp'
+      - 'app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp'
+      - 'experiments/csharp/BunnyCsSdk/BunnyGore.cs'
+      - 'experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj'
+      - 'samples/ExampleModCSharp/Playable/content/Content/NPCs/ExampleSlimeNPC.cs'
+      - 'samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleWaveBolt.cs'
+      - 'tests/stubs/android/log.h'
       - '.github/workflows/csharp-gore-source-check.yml'
 
 jobs:
@@ -17,7 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Compile and test source discovery only (no APK)
+      - name: Compile and test discovery, catalog and runtime syntax (no APK)
         shell: bash
         run: |
           set -euo pipefail
@@ -32,4 +40,13 @@ jobs:
             tests/csharp_gore_catalog_test.cpp \
             -o /tmp/bunny_gore_catalog_test
           /tmp/bunny_gore_catalog_test
+          c++ -std=c++20 -fsyntax-only -Wall -Wextra -Werror \
+            -Itests/stubs -Iapp/src/main/cpp \
+            app/src/main/cpp/experiments/csharp/ManagedGoreRuntime.cpp
           test ! -f app/build/outputs/apk/debug/app-debug.apk
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Compile BunnySourceSdk pure CSharp (no APK)
+        run: dotnet build experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj --configuration Release --nologo
