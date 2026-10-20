@@ -62,6 +62,7 @@ Il2CppArray* players=nullptr;
 using Roll = void (*)(Il2CppObject*,void*,const MethodInfo*);
 Roll hookedRoll=nullptr;
 int vanillaCalls=0;
+bool badPlayersStatic=false;
 
 template<typename T>
 void put(std::array<unsigned char,92>* data,size_t offset,T value) {
@@ -112,7 +113,7 @@ void configure() {
         return fields[cursor];
     };
     api.field_get_flags=[](FieldInfo* field)->uint32_t{
-        return field->isStatic?0x10u:0u;
+        return field->isStatic && !(badPlayersStatic && field==&fPlayers)?0x10u:0u;
     };
     api.field_get_type=[](FieldInfo* field){return field->type;};
     api.field_get_offset=[](FieldInfo* field){return field->offset;};
@@ -179,6 +180,11 @@ int main() {
     std::vector<Quest> quests{
         Quest{"examplemodcsharp","ExampleQuestFish",850,false,true,"","",3}
     };
+    badPlayersStatic=true;
+    assert(!bl::csharp::angler::installFishingOnGameThread(&quests));
+    assert(!bl::csharp::angler::fishingInstalled());
+    assert(!hookedRoll);
+    badPlayersStatic=false;
     assert(bl::csharp::angler::installFishingOnGameThread(&quests));
     assert(bl::csharp::angler::fishingInstalled());
     assert(hookedRoll);
