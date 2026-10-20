@@ -524,7 +524,9 @@ void hookCheckActive(Il2CppObject* npc, const MethodInfo* method) {
     if (npc && !runtime::field<uint8_t>(npc, refs().active)) {
         const int type = runtime::field<int>(npc, refs().type);
         const int slot = runtime::field<int>(npc, runtime::game().entity.whoAmI);
-        if (hasManagedEntityNpcType(type) && slot >= 0 &&
+        int mode = -1;
+        il2cpp::api().field_static_get_value(refs().netMode, &mode);
+        if (worldIsAuthoritative(mode) && hasManagedEntityNpcType(type) && slot >= 0 &&
             static_cast<size_t>(slot) < g_managedSourceNpcSlots.size() &&
             runtime::field<int>(npc, refs().life) <= 0) {
             ManagedNpcSlot& state = g_managedSourceNpcSlots[static_cast<size_t>(slot)];
