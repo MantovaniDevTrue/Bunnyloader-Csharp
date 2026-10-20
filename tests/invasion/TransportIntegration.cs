@@ -10,6 +10,18 @@ internal static class TransportIntegration
     [DllImport("bunny", EntryPoint = "bunny_invasion_test_pump")]
     private static extern void PumpNative();
 
+    [DllImport("bunny", EntryPoint = "bunny_invasion_test_reward_pump")]
+    private static extern void PumpReward();
+
+    [DllImport("bunny", EntryPoint = "bunny_invasion_test_reward_type")]
+    private static extern int RewardItemType();
+
+    [DllImport("bunny", EntryPoint = "bunny_invasion_test_reward_stack")]
+    private static extern int RewardStack();
+
+    [DllImport("bunny", EntryPoint = "bunny_invasion_test_reward_player")]
+    private static extern int RewardPlayer();
+
     [DllImport("bunny", EntryPoint = "bunny_invasion_test_world_restore")]
     private static extern void SetWorldRestore(int ready, long session,
         [MarshalAs(UnmanagedType.LPUTF8Str)] string path);
@@ -77,6 +89,20 @@ internal static class TransportIntegration
             "real native sidecar written immediately on NPC kill");
         Check(!BunnyEntitySourceDispatcher.KillNpc(mod, npcType, 1, 50),
             "double kill ignored");
+        var beforeFinish = ExampleInvasion.Controller.Snapshot();
+        Check(ExampleInvasion.Controller.Restore(true,
+            beforeFinish with {
+                Phase = BunnyInvasionPhase.Completed,
+                Progress = ExampleInvasion.Controller.Definition.Goal,
+                Active = 0, Pending = 0, Cooldown = 0
+            }), "simulate completed goal for native reward bridge");
+        Tick(mod, 11);
+        PumpReward();
+        Check(RewardItemType() == 6215 && RewardStack() == 5 &&
+            RewardPlayer() == 0, "native Bunny giveItem reward delivered once");
+        Tick(mod, 11);
+        PumpReward();
+        Check(RewardStack() == 5, "completed reward not duplicated");
 
         SetWorld(0, 12);
         SetWorld(1, 12);
