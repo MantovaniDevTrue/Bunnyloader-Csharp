@@ -769,7 +769,11 @@ Il2CppArray* hookRollable(Il2CppObject* item, const MethodInfo* method) {
         if (tablesReady && p.category != 6 && allowed(p.type) &&
             eligible(item, p, vanillaHasRollable))
             extra += itemRollWeight(item, p);
-    if (retained == oldCount && extra == 0) return base;
+    if (retained == oldCount && extra == 0) {
+        if (!base && dynamicItemCallback && !descriptors->empty())
+            g_failedRollableItem=item;
+        return base;
+    }
     const uintptr_t total = retained + static_cast<uintptr_t>(extra);
     if (total == 0) {
         if (dynamicItemCallback && (oldCount>0 || !descriptors->empty()))
