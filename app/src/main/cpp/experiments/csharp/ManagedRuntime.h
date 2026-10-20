@@ -1,9 +1,11 @@
 #pragma once
 #include "experiments/csharp/ManagedHitContextStats.h"
+#include "experiments/csharp/ManagedDustMailbox.h"
 #include "experiments/csharp/ManagedVisualQueue.h"
 #include "experiments/csharp/ManagedLiveEventQueue.h"
 #include "experiments/csharp/ManagedNpcBuffEffects.h"
 
+#include <chrono>
 #include <string>
 #include <cstdint>
 #include <vector>
@@ -11,6 +13,21 @@
 namespace bl::graphics { struct ScreenSceneRaw; }
 
 namespace bl::csharp {
+bool registerManagedDustSourceMod(const std::string& modId,
+                                  const std::string& assemblyPath,
+                                  const std::vector<std::pair<int, std::string>>& dustTypes);
+bool queueManagedDustCallback(int type, int phase,
+                              const ManagedDustState& state, uint64_t frame);
+bool invokeManagedDustSameFrame(int type, int phase,
+                                const ManagedDustState& state, uint64_t frame,
+                                std::chrono::steady_clock::time_point deadline,
+                                ManagedDustMailbox::Response* response);
+bool receiveManagedDustCallback(int type, int phase, int slot, int generation,
+                                uint64_t frame, ManagedDustMailbox::Response* response);
+void resetManagedDustSourceWorld();
+bool hasManagedDustType(int type);
+bool managedDustWorkerReady(int type);
+
 bool managedRecipeRuntimeReady();
 // Bounded request to the existing pinned Mono worker. No live IL2CPP objects cross threads.
 bool invokeManagedRecipe(const std::string& mod,const std::string& assembly,

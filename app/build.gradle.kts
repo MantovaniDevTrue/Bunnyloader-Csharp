@@ -5,6 +5,7 @@ import java.util.Properties
 //   -Pbl.nativeBuild=false   (ou a mesma linha em gradle.properties)
 // para compilar e rodar o launcher sem instalar NDK/CMake.
 val nativeBuild = (project.findProperty("bl.nativeBuild") as String?)?.toBoolean() ?: true
+val dustPreview = (project.findProperty("bl.dustPreview") as String?)?.toBoolean() ?: false
 
 // A fonte do launcher e do menu de cheats é a Andy Bold (Monotype), a mesma do
 // Terraria. Não vai para o Git: fica em src/main/res/font/bunny.ttf, integrada
@@ -71,6 +72,7 @@ android {
             externalNativeBuild {
                 cmake {
                     cppFlags += "-std=c++20"
+                    if (dustPreview) arguments += "-DBUNNY_CSHARP_DUST_PREVIEW=ON"
                 }
             }
         }

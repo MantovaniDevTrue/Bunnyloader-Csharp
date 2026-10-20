@@ -1,0 +1,121 @@
+name: CSharp DustLoader source contracts
+
+on:
+  push:
+    branches:
+      - feat/csharp-dust-loader-20261019
+    paths:
+      - experiments/csharp/BunnyCsSdk/**
+      - experiments/csharp/BunnySourceSdk/**
+      - experiments/csharp/BunnySourceCompiler/**
+      - experiments/csharp/BunnyDustTests/**
+      - experiments/csharp/BunnyDustCompilerSmoke/**
+      - app/src/main/cpp/experiments/csharp/ManagedDustContract.h
+      - tests/csharp/native_dust_contract.cpp
+      - tests/csharp/native_dust_mailbox.cpp
+      - tests/csharp/native_dust_lifecycle.cpp
+      - app/src/main/cpp/experiments/csharp/ManagedDustLifecycle.h
+      - app/src/main/cpp/experiments/csharp/ManagedDustMailbox.h
+      - app/src/main/cpp/experiments/csharp/ManagedDustBindingSelection.h
+      - tests/csharp/native_dust_binding_selection.cpp
+      - app/src/main/cpp/experiments/csharp/ManagedDustSlotLookup.h
+      - tests/csharp/native_dust_slot_lookup.cpp
+      - app/src/main/cpp/experiments/csharp/ManagedDustDecision.h
+      - tests/csharp/native_dust_decision.cpp
+      - app/src/main/cpp/experiments/csharp/ManagedDustFlagMask.h
+      - tests/csharp/native_dust_flags.cpp
+      - app/src/main/cpp/experiments/csharp/ManagedDustFrameBudget.h
+      - tests/csharp/native_dust_sync.cpp
+      - tests/csharp/native_dust_parser.cpp
+      - app/src/main/cpp/experiments/csharp/SourceParser.cpp
+      - app/src/main/cpp/experiments/csharp/SourceContentIdentity.h
+      - experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs
+      - .github/workflows/check-csharp-dust.yml
+  pull_request:
+    paths:
+      - experiments/csharp/BunnyCsSdk/**
+      - experiments/csharp/BunnySourceSdk/**
+      - experiments/csharp/BunnySourceCompiler/**
+      - experiments/csharp/BunnyDustTests/**
+      - experiments/csharp/BunnyDustCompilerSmoke/**
+      - app/src/main/cpp/experiments/csharp/ManagedDustContract.h
+      - app/src/main/cpp/experiments/csharp/ManagedDustMailbox.h
+      - app/src/main/cpp/experiments/csharp/ManagedDustFrameBudget.h
+      - app/src/main/cpp/experiments/csharp/ManagedDustDecision.h
+      - app/src/main/cpp/experiments/csharp/ManagedDustFlagMask.h
+      - app/src/main/cpp/experiments/csharp/ManagedDustLifecycle.h
+      - app/src/main/cpp/experiments/csharp/ManagedDustBindingSelection.h
+      - app/src/main/cpp/experiments/csharp/ManagedDustSlotLookup.h
+      - app/src/main/cpp/experiments/csharp/SourceLoader.cpp
+      - app/src/main/cpp/experiments/csharp/SourceParser.cpp
+      - app/src/main/cpp/experiments/csharp/SourceContentIdentity.h
+      - tests/csharp/native_dust_contract.cpp
+      - tests/csharp/native_dust_mailbox.cpp
+      - tests/csharp/native_dust_lifecycle.cpp
+      - tests/csharp/native_dust_binding_selection.cpp
+      - tests/csharp/native_dust_slot_lookup.cpp
+      - tests/csharp/native_dust_decision.cpp
+      - tests/csharp/native_dust_flags.cpp
+      - tests/csharp/native_dust_sync.cpp
+      - tests/csharp/native_dust_parser.cpp
+      - .github/workflows/check-csharp-dust.yml
+
+concurrency:
+  group: csharp-dust-contracts-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  dust-contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Compile and run managed DustLoader contracts
+        run: dotnet run --project experiments/csharp/BunnyDustTests/BunnyDustTests.csproj -c Release
+      - name: Compile and run C++ DustLoader ABI contracts
+        run: |
+          c++ -std=c++17 -Wall -Wextra -Werror -Iapp/src/main/cpp tests/csharp/native_dust_contract.cpp -o "$RUNNER_TEMP/dust_contract"
+          "$RUNNER_TEMP/dust_contract"
+          c++ -std=c++17 -Wall -Wextra -Werror -DBUNNY_CSHARP_DUST_PREVIEW=1 -Iapp/src/main/cpp tests/csharp/native_dust_contract.cpp -o "$RUNNER_TEMP/dust_contract_preview"
+          "$RUNNER_TEMP/dust_contract_preview"
+      - name: Verify Roslyn source compiler assembly
+        run: dotnet build experiments/csharp/BunnySourceCompiler/BunnySourceCompiler.csproj -c Release --nologo
+      - name: Verify DustLoader source parser
+        run: |
+          c++ -std=c++20 -Wall -Wextra -Werror -Iapp/src/main/cpp             tests/csharp/native_dust_parser.cpp             app/src/main/cpp/experiments/csharp/SourceParser.cpp             -o "$RUNNER_TEMP/dust_parser"
+          "$RUNNER_TEMP/dust_parser"
+      - name: Verify DustLoader compilation through real Roslyn and Mono source contract
+        run: dotnet run --project experiments/csharp/BunnyDustCompilerSmoke/BunnyDustCompilerSmoke.csproj -c Release
+      - name: Verify bounded Dust worker mailbox and stale-instance protection
+        run: |
+          c++ -std=c++20 -Wall -Wextra -Werror -pthread -Iapp/src/main/cpp             tests/csharp/native_dust_mailbox.cpp -o "$RUNNER_TEMP/dust_mailbox"
+          "$RUNNER_TEMP/dust_mailbox"
+      - name: Verify Dust lifecycle and bounded release tracking
+        run: |
+          c++ -std=c++20 -Wall -Wextra -Werror -Iapp/src/main/cpp             tests/csharp/native_dust_lifecycle.cpp -o "$RUNNER_TEMP/dust_lifecycle"
+          "$RUNNER_TEMP/dust_lifecycle"
+      - name: Verify only managed Dust hooks start MonoVM bindings
+        run: |
+          c++ -std=c++20 -Wall -Wextra -Werror -Iapp/src/main/cpp tests/csharp/native_dust_binding_selection.cpp -o "$RUNNER_TEMP/dust_bindings"
+          "$RUNNER_TEMP/dust_bindings"
+      - name: Verify checked Dust index with fast native hint and stable Main.dust fallback
+        run: |
+          c++ -std=c++20 -Wall -Wextra -Werror -Iapp/src/main/cpp tests/csharp/native_dust_slot_lookup.cpp -o "$RUNNER_TEMP/dust_slot_lookup"
+          "$RUNNER_TEMP/dust_slot_lookup"
+      - name: Verify frame-coherent native Dust callback decisions
+        run: |
+          c++ -std=c++20 -Wall -Wextra -Werror -Iapp/src/main/cpp tests/csharp/native_dust_decision.cpp -o "$RUNNER_TEMP/dust_decision"
+          "$RUNNER_TEMP/dust_decision"
+      - name: Validate native Dust callback flag masks by phase
+        run: |
+          c++ -std=c++20 -Wall -Wextra -Werror -Iapp/src/main/cpp tests/csharp/native_dust_flags.cpp -o "$RUNNER_TEMP/dust_flags"
+          "$RUNNER_TEMP/dust_flags"
+      - name: Verify deadline-bound MonoVM Dust handshake and per-frame budget
+        run: |
+          c++ -std=c++20 -Wall -Wextra -Werror -pthread -Iapp/src/main/cpp tests/csharp/native_dust_sync.cpp -o "$RUNNER_TEMP/dust_sync"
+          "$RUNNER_TEMP/dust_sync"

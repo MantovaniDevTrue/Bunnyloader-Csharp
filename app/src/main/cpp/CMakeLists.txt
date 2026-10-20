@@ -3,6 +3,11 @@ project(bunny CXX C ASM)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+option(BUNNY_CSHARP_DUST_PREVIEW "Enable experimental managed Dust callbacks in source-only preview" OFF)
+if(BUNNY_CSHARP_DUST_PREVIEW)
+    add_compile_definitions(BUNNY_CSHARP_DUST_PREVIEW=1)
+endif()
 set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 
 # --- ShadowHook (via prefab, vem do Gradle) ---
