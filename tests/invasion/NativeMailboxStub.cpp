@@ -2,6 +2,7 @@
 #include <cstring>
 #include "../../app/src/main/cpp/experiments/csharp/NativeInvasionMailbox.h"
 #include "../../app/src/main/cpp/experiments/csharp/NativeInvasionPersistence.h"
+#include "../../app/src/main/cpp/experiments/csharp/NativeInvasionRewards.h"
 #include "../../app/src/main/cpp/experiments/csharp/NativeInvasionSpawn.h"
 
 #include <cstdint>
@@ -24,6 +25,7 @@ InvasionSpawnResult spawnNativeInvasionNpc(const InvasionSpawnRequest& request) 
 
 extern "C" void bunny_invasion_test_world(int ready, int64_t session) {
     bl::csharp::setNativeInvasionWorldState(ready != 0, static_cast<uint64_t>(session));
+    bl::csharp::setNativeInvasionRewardWorldState(ready != 0, static_cast<uint64_t>(session));
     const std::string path = "/tmp/bunny-invasion-ci-" + std::to_string(session) + ".wld";
     bl::csharp::setNativeInvasionSaveWorld(
         ready != 0, static_cast<uint64_t>(session), path, false);
@@ -32,6 +34,7 @@ extern "C" void bunny_invasion_test_world(int ready, int64_t session) {
 extern "C" void bunny_invasion_test_world_restore(int ready, int64_t session,
                                                     const char* worldPath) {
     bl::csharp::setNativeInvasionWorldState(ready != 0, static_cast<uint64_t>(session));
+    bl::csharp::setNativeInvasionRewardWorldState(ready != 0, static_cast<uint64_t>(session));
     bl::csharp::setNativeInvasionSaveWorld(
         ready != 0, static_cast<uint64_t>(session),
         worldPath ? worldPath : "", false);
