@@ -34,6 +34,19 @@ g++ -std=c++20 -O2 -Wall -Wextra -Werror -pedantic -pthread \
 
 Esses testes são executados pelo GitHub Actions em workflows **sem APK**.
 
+## Exemplos prontos para validação
+
+- `samples/ExampleModCSharp/Experimental/CommandLoader/ExampleHealCommand.cs`:
+  `/heal <quantidade>` e `/curar <quantidade>`. O código explica a divisão
+  entre validação no MonoVM e alteração da vida na thread do Terraria.
+- `samples/ExampleModCSharp/Experimental/CommandLoader/ExampleTimeCommand.cs`:
+  `/addTime <ticks>`, com `BunnyCommandType.World` e módulo do ciclo de
+  86400 ticks. O servidor é a autoridade sobre a hora.
+- `tests/commands/Actions.HostTests.csproj` executa ambos os exemplos;
+  `native_command_clock_test.cpp` verifica viradas dia/noite.
+- Estes arquivos **permanecem em Experimental** até todo o checklist
+  de validação Android estar concluído, sem disponibilização de APK.
+
 ## Lote complementar: descoberta e transporte verificados
 
 - O `SourceParser` aceita `BunnyCommand` sem `SetDefaults`. O
@@ -81,15 +94,21 @@ Esses testes são executados pelo GitHub Actions em workflows **sem APK**.
    EM JOGO:** `Main.NewText` ou `ChatHelper.SendChatMessageToClient`
    executam no game thread, nunca no MonoVM; verificar o ABI do `Color`
    e o formato real de `NetworkText` no dispositivo.
-5. **Ações que mudam o mundo:** portar `/heal` e `/addtime` com pedidos
-   tipados de alteração aplicados exclusivamente na thread do jogo. Uma
-   confirmação de cura precisa refletir a vida realmente curada; `WorldData`
-   deve ser transmitido pelo servidor em netMode 2 e 3.
-6. **Ajuda:** consultar o registry do mod para compor `/help` junto à
-   implementação vanilla, como faz o Bunny original, sem duplicar entradas.
-7. **Sessões:** a fila nativa já invalida tickets na troca de mundo;
-   ainda falta validar descarregamento real, limpeza das instâncias do
-   registry Mono e atualização de metadados de hooks sem reinicialização.
+5. **Ações que mudam o mundo — IMPLEMENTADAS NO CÓDIGO:** `BunnyCommandCaller.Heal`
+   e `AdvanceWorldTime` geram mensagens `ACTION` tipadas. O C++ confere
+   época, jogador e permissões novamente na thread do jogo; realiza a cura,
+   chama `HealEffect` e confirma apenas o valor aplicado. O relógio usa
+   a aritmética testada de dia/noite do ExampleTimeCommand, e o servidor
+   envia `WorldData`. Faltam ensaios reais de ABI e sincronização Android.
+6. **Ajuda — IMPLEMENTADA NO CÓDIGO:** `CommandManifestWriter` exporta
+   `BunnyCommand.Description` em HEX UTF-8, validado pelo parser nativo.
+   `ComposeMessage` recebe o texto original do Terraria/JS e acrescenta
+   somente comandos C# prontos, sem entradas duplicadas. Ainda falta
+   validar o método IL2CPP real e os conflitos multi-mod em aparelho.
+7. **Sessões — IMPLEMENTADAS NO CÓDIGO:** entrar/sair do mundo invalida
+   ações pendentes e desativa aliases; o worker chama `Clear` e registra
+   novamente as classes na sessão seguinte. Ainda faltam testes Android
+   de troca rápida, hot-unload/reload de mods e instâncias compartilhadas.
 8. **Android:** testar solo, cliente, servidor hospedado no telefone
    (netMode 3), duas instâncias, colisões entre mods, chat vanilla,
    save/reload, 60 FPS, cancelamento e troca rápida de mundo.
