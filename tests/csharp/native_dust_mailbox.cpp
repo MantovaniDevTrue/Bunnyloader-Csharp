@@ -13,12 +13,16 @@ static bl::csharp::ManagedDustState sample(int slot=5,int type=332,int gen=1) {
 int main() {
     using namespace bl::csharp;
     ManagedDustMailbox queue;
+    assert(!queue.hasQueued());
     ManagedDustMailbox::Request first;
     ManagedDustMailbox::Response result;
     auto dust=sample();
-    assert(queue.offer(0,1,dust,10));
-    assert(!queue.offer(0,1,dust,10));
+    bool wake = false;
+    assert(queue.offer(0,1,dust,10,&wake) && wake);
+    assert(queue.hasQueued());
+    assert(!queue.offer(0,1,dust,10,&wake) && !wake);
     assert(queue.take(&first,1)==1);
+    assert(!queue.hasQueued());
     auto updated=dust;updated.scale=0.8f;
     assert(queue.complete(first,updated,1u | 16u | 32u));
     assert(!queue.consume(1,1,5,332,1,11,&result));
@@ -49,7 +53,9 @@ int main() {
     assert(!queue.complete(first,first.state,128u));
     assert(queue.complete(first,first.state,1u | 32u));
     assert(queue.consume(1,1,6,332,1,103,&result));
-    for(int i=0;i<128;i++) assert(queue.offer(1,1,sample(100+i),110));
+    assert(queue.offer(1,1,sample(100),110,&wake) && wake);
+    for(int i=1;i<128;i++)
+        assert(queue.offer(1,1,sample(100+i),110,&wake) && !wake);
     assert(!queue.offer(1,1,sample(400),110));
     assert(queue.drops()>=1);
     ManagedDustMailbox::Request batch[128]{};
@@ -130,7 +136,7 @@ int main() {
     for (int i = 0; i < 128; ++i)
         assert(queue.offer(0,1,sample(1000+i),100));
     auto oldestSlot = sample(1127);
-    assert(queue.offer(0,5,dead,101));
+    assert(queue.offer(0,5,dead,101,&wake) && wake);
     assert(queue.take(&first,1)==1 && first.phase==5);
     assert(queue.current(first));
     queue.discard(first);
