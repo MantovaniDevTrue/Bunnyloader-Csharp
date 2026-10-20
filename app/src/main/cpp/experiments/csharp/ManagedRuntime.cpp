@@ -304,6 +304,8 @@ struct ManagedCommandBinding {
 std::vector<ManagedCommandBinding> g_commandBindings;
 void* g_commandRegisterMethod = nullptr;
 void* g_commandExecuteMethod = nullptr;
+void* g_commandClearMethod = nullptr;
+bool g_commandSessionReset = false;
 
 
 struct SceneLightBinding {
@@ -1495,7 +1497,8 @@ bool prepareManagedCommandWorker() {
         !g_api.unbox)
         return false;
     if (!g_api.attach(g_domain)) return false;
-    if (g_commandRegisterMethod && g_commandExecuteMethod) return true;
+    if (g_commandRegisterMethod && g_commandExecuteMethod &&
+        g_commandClearMethod) return true;
     const size_t slash = g_checkpointPath.find_last_of('/');
     if (slash == std::string::npos) return false;
     const std::string sdk = g_checkpointPath.substr(0, slash + 1) + "BunnySourceSdk.dll";
@@ -1506,10 +1509,20 @@ bool prepareManagedCommandWorker() {
                                            "BunnyCommandWorker") : nullptr;
     void* registerMethod = klass ? g_api.findMethod(klass, "RegisterAssembly", 2) : nullptr;
     void* executeMethod = klass ? g_api.findMethod(klass, "Execute", 4) : nullptr;
-    if (!registerMethod || !executeMethod) return false;
+    void* clearMethod = klass ? g_api.findMethod(klass, "Clear", 0) : nullptr;
+    if (!registerMethod || !executeMethod || !clearMethod) return false;
     g_commandRegisterMethod = registerMethod;
     g_commandExecuteMethod = executeMethod;
+    g_commandClearMethod = clearMethod;
     return true;
+}
+
+bool clearManagedCommandOnWorker() {
+    std::lock_guard<std::mutex> guard(g_mutex);
+    if (!prepareManagedCommandWorker()) return false;
+    void* exception = nullptr;
+    g_api.invoke(g_commandClearMethod, nullptr, nullptr, &exception);
+    return !exception;
 }
 
 bool registerManagedCommandOnWorker(const ManagedCommandBinding& binding) {
@@ -1659,6 +1672,18 @@ void* pinnedMonoWorker(void*) {
                     g_vmCompare.phase = !done.ready ? "failed" :
                         g_vmCompare.passed ? "matched" : "mismatch";
                     g_vmCompare.error = done.error;
+                    continue;
+                }
+                if (g_commandSessionReset &&
+                    g_recipeRuntimeReady.load(std::memory_order_acquire)) {
+                    g_commandSessionReset = false;
+                    lock.unlock();
+                    const bool cleared = clearManagedCommandOnWorker();
+                    lock.lock();
+                    for (auto& binding : g_commandBindings) {
+                        binding.registered = false;
+                        binding.failures = cleared ? 0 : 3;
+                    }
                     continue;
                 }
                 if (!g_commandBindings.empty() &&
@@ -2122,6 +2147,16 @@ bool bindManagedCommandMod(const std::string& modId,
 }
 
 void notifyManagedCommandWorker() {
+    g_pinnedWake.notify_one();
+}
+
+void resetManagedCommandSession() {
+    std::lock_guard<std::mutex> lock(g_pinnedMutex);
+    g_commandSessionReset = true;
+    for (auto& binding : g_commandBindings) {
+        binding.registered = false;
+        nativeCommandMailbox().setModReady(binding.modId, false);
+    }
     g_pinnedWake.notify_one();
 }
 
