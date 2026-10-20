@@ -1148,6 +1148,18 @@ public static class CompiledAssemblyProbe
         }
         foreach (var item in basicItems.Concat(weapons).Concat(potions).Concat(accessories))
         {
+            Type itemType = item.GetType();
+            Type snapshotType = itemType.BaseType?.Assembly.GetType("BunnyLoader.Source.BunnyPrefixItemSnapshot")
+                ?? throw new InvalidOperationException("Missing item prefix callback snapshot type");
+            MethodInfo callback = itemType.GetMethod("AllowPrefix",
+                BindingFlags.Public | BindingFlags.Instance, null,
+                new[] { snapshotType, typeof(int) }, null)
+                ?? throw new InvalidOperationException("Missing item AllowPrefix callback");
+            if (callback.DeclaringType == itemType)
+                lines.Add(string.Join("\t", "ITEM_PREFIX_CALLBACK", itemType.Name, "1"));
+        }
+        foreach (var item in basicItems.Concat(weapons).Concat(potions).Concat(accessories))
+        {
             MethodInfo apply = item.GetType().GetMethod("ApplyPrefix",
                 BindingFlags.Public | BindingFlags.Instance)
                 ?? throw new InvalidOperationException("Missing Bunny item ApplyPrefix");

@@ -15,9 +15,11 @@ try
         throw new InvalidOperationException("Expected two content types and three managed prefixes, got " + classes);
 
     var data = File.ReadAllLines(Path.Combine(temp, "source-runtime-values.txt"));
-    if (data.Length != 21 || data[0] != "BUNNY_MANAGED_DEFAULTS_V2")
+    if (data.Length != 22 || data[0] != "BUNNY_MANAGED_DEFAULTS_V2")
         throw new InvalidOperationException("Unexpected MonoVM native handoff");
 
+    if (data.Count(row => row == "ITEM_PREFIX_CALLBACK\tTestWand\t1") != 1)
+        throw new InvalidOperationException("Overridden AllowPrefix callback descriptor missing");
     if (data.Count(row => row == "PREFIX_DENY\tTestWand\t71,TestMightyPrefix") != 1)
         throw new InvalidOperationException("Item-owned prefix denials missing from native wire");
     if (data.Count(row => row == "PREFIX_DENY_STACK\tTestWand\t72:3:5,TestCustomPrefix:4:6") != 1)
@@ -62,6 +64,7 @@ try
                                           !row.StartsWith("PREFIX_STACK_WEIGHT\t", StringComparison.Ordinal) &&
                                           !row.StartsWith("PREFIX_ATTRIBUTE_WEIGHT\t", StringComparison.Ordinal) &&
                                           !row.StartsWith("PREFIX_CALLBACK\t", StringComparison.Ordinal) &&
+                                          !row.StartsWith("ITEM_PREFIX_CALLBACK\t", StringComparison.Ordinal) &&
                                           !row.StartsWith("PREFIX_POST\t", StringComparison.Ordinal) &&
                                           !row.StartsWith("PREFIX_CHANCE\t", StringComparison.Ordinal) &&
                                           !row.StartsWith("PREFIX_CHANCE_STACK\t", StringComparison.Ordinal) &&

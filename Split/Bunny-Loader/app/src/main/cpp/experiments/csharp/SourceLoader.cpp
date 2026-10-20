@@ -670,6 +670,7 @@ bool applyManagedSourceDefaults(
     std::map<std::string, ManagedPrefixEntry> prefixAttributeWeights;
     std::vector<std::pair<int, std::vector<std::string>>> prefixDenials;
     std::set<int> seenPrefixDenials;
+    std::set<int> seenItemPrefixCallbacks;
     std::vector<std::pair<int, std::vector<ManagedPrefixStackDenyToken>>> prefixStackDenials;
     std::set<int> seenPrefixStackDenials;
     std::vector<std::pair<int, std::vector<ManagedPrefixAttributeDenyToken>>> prefixAttributeDenials;
@@ -693,6 +694,19 @@ bool applyManagedSourceDefaults(
         std::vector<std::string> fields;
         std::string part;
         while (std::getline(parts, part, '\t')) fields.push_back(part);
+        if (!fields.empty() && fields[0] == "ITEM_PREFIX_CALLBACK") {
+            const auto key = fields.size() > 1
+                ? sourceIdentityForWire("ITEM", fields[1]) : "";
+            const auto registered = mod->registeredKindTypes.find(key);
+            if (fields.size() != 3 || registered == mod->registeredKindTypes.end() ||
+                runtime::modItemTypeByKey(modId + "/" + fields[1]) != registered->second ||
+                fields[2] != "1" || seenItemPrefixCallbacks.size() >= kSourceMaxCategory ||
+                !seenItemPrefixCallbacks.insert(registered->second).second) {
+                *error = "[CSharp][ERROR][ItemPrefixCallback] Stage=Decode Reason=InvalidItemOrMask";
+                return false;
+            }
+            continue;
+        }
         if (!fields.empty() && fields[0] == "PREFIX_DENY") {
             const auto key = fields.size() > 1
                 ? sourceIdentityForWire("ITEM", fields[1]) : "";

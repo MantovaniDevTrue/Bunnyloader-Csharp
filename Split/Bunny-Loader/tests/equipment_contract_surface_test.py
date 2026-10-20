@@ -318,6 +318,15 @@ class EquipmentContractSurfaceTests(unittest.TestCase):
             ROOT / "experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs"
         ).read_text(encoding="utf-8"))
 
+    def test_item_prefix_callback_wire_is_registered_without_live_gameplay_hook(self):
+        compiler = (ROOT / "experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs").read_text(encoding="utf-8")
+        loader = (ROOT / "app/src/main/cpp/experiments/csharp/SourceLoader.cpp").read_text(encoding="utf-8")
+        gameplay = (ROOT / "app/src/main/cpp/experiments/csharp/ManagedPrefixGameplay.cpp").read_text(encoding="utf-8")
+        self.assertIn('string.Join("\\t", "ITEM_PREFIX_CALLBACK", itemType.Name, "1")', compiler)
+        self.assertIn('fields[0] == "ITEM_PREFIX_CALLBACK"', loader)
+        self.assertIn('seenItemPrefixCallbacks.insert(registered->second).second', loader)
+        self.assertNotIn('invokeManagedItemPrefix(', gameplay)
+
     def test_report_render_is_stable_and_honest(self):
         markdown = surface.render_markdown(surface.audit(ROOT))
         self.assertEqual(markdown, surface.render_markdown(surface.audit(ROOT)))
