@@ -61,4 +61,15 @@ int main() {
     }) == 1);
     life.reset();
     assert(life.pendingCount() == 0);
+    life.observe(make(42, 332, 1));
+    for (int generation = 2; generation <= 12005; ++generation)
+        life.observe(make(42, 332, generation));
+    assert(life.pendingCount() == ManagedDustLifecycle::kReleaseLimit);
+    assert(life.droppedCount() == 4);
+    assert(life.flush(32, [](const ManagedDustState& state) {
+        return state.active == 0;
+    }) == 32);
+    assert(life.pendingCount() == ManagedDustLifecycle::kReleaseLimit - 32);
+    life.reset();
+    assert(life.droppedCount() == 0 && life.pendingCount() == 0);
 }
