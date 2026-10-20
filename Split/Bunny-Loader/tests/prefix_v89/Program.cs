@@ -295,7 +295,7 @@ try
         BunnyLoader.Source.BunnyItemPrefixRuntime.Dispatch(
         "prefix-fixture", args[0], "TestWand", 74, 5, itemState) != "0,0")
         throw new InvalidOperationException("Dynamic item ApplyPrefix result mismatch");
-    foreach (var invalid in new[] { (0,3,itemState), (3,4,itemState),
+    foreach (var invalid in new[] { (1,3,itemState), (3,4,itemState),
                                     (0,5,itemState), (72,5,"bad") })
         if (!BunnyLoader.Source.BunnyItemPrefixRuntime.Dispatch(
             "prefix-fixture", args[0], "TestWand", invalid.Item1,
