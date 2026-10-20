@@ -595,6 +595,11 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
     if (!screenEffects.empty() &&
         !bl::graphics::registerCSharpScreenEffects(mod.id, folder, screenEffects, &status->error))
         return false;
+    if (!goreSources.empty() && !gore::install(mod.id, goreSources, &status->error)) {
+        status->error = "[CSharp][ERROR][GoreLoader] Mod=" + mod.id +
+            " Stage=NativeInstall Result=Rejected Detail=" + status->error;
+        return false;
+    }
     return true;
 }
 
@@ -607,7 +612,7 @@ bool loadCSharpSourceMod(const bl::mods::LoadedMod& mod) {
     status.loaded = load(mod, &status);
     if (status.loaded) {
         if (status.goreSourcesDiscovered > 0)
-            BL_INFO("C# GoreLoader %s: %d PNGs verificados; registro nativo ainda nao ativo",
+            BL_INFO("C# GoreLoader %s: %d PNGs registrados em arrays nativos",
                     mod.id.c_str(), status.goreSourcesDiscovered);
         BL_INFO("C# source %s: %d arquivo(s), %d item(ns), %d projetil(is), %d buff(s), %d pocao(oes), %d NPC(s)",
                 mod.id.c_str(), status.sourceFiles, status.items,
