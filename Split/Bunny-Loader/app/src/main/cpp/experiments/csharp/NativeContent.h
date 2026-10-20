@@ -3,6 +3,7 @@
 #include <cstdint>
 #include "experiments/csharp/ProjectilePolicy.h"
 #include "experiments/csharp/SummonPolicy.h"
+#include "experiments/csharp/NativeTileDropPolicy.h"
 #include <string>
 #include <vector>
 
@@ -84,6 +85,7 @@ struct ManagedTileEntry {
     bool allowDrops = true;
     int callbackMask = 0;
     bool cacheDrawData = true;
+    std::vector<tile_drop::Rule> registeredDrops;
 };
 
 bool applyManagedNativeTileDefaultsBatch(const std::string& modId,
