@@ -243,7 +243,7 @@ bool invokeManagedItemPrefixBatch(const std::string& mod,const std::string& asse
     response->clear();
     for(size_t i=0;i<count;++i) {
         const int value=std::stoi(snapshot.substr(pos+1+i*2,2),nullptr,16);
-        response->push_back(value==itemWorkerDenied?'0':'1');
+        response->push_back(value==(owner=="TestGlobal"?80:itemWorkerDenied)?'0':'1');
     }
     return true;
 }
@@ -256,7 +256,7 @@ bool invokeManagedItemPrefix(const std::string& mod,const std::string& assembly,
            budget>0 && budget<=650);
     ++itemWorkerCalls;
     if (itemWorkerFails) return false;
-    *result=prefix==itemWorkerDenied ? "0" : "1";
+    *result=prefix==(owner=="TestGlobal"?80:itemWorkerDenied) ? "0" : "1";
     return true;
 }
 std::shared_ptr<const std::map<std::string,std::string>> managedPrefixCallbackAssemblies() {
@@ -1287,7 +1287,30 @@ int main() {
     batchVanillaCandidates.clear();
     itemCallbackView=std::make_shared<const std::map<int,ManagedItemPrefixCallbackBinding>>();
     itemCallbackAssemblies=std::make_shared<const std::map<std::string,std::string>>();
+    globalView=std::make_shared<const std::vector<ManagedGlobalPrefixCallbackBinding>>(
+        std::vector<ManagedGlobalPrefixCallbackBinding>{{"test","TestGlobal",15}});
+    itemCallbackAssemblies=std::make_shared<const std::map<std::string,std::string>>(
+        std::map<std::string,std::string>{{"test","/tmp/prefix-fixture.dll"}});
+    itemWorkerWarmup=1;
+    {
+        PrefixRpcScope scope;
+        assert(!globalsAllowPrefix(&weapon.object,80));
+        assert(globalsAllowPrefix(&weapon.object,79));
+        assert(globalChoosePrefix(&weapon.object)==-1);
+        itemChoice=73;
+        assert(globalChoosePrefix(&weapon.object)==73);
+    }
+    {
+        PrefixRpcScope scope;
+        int damage=0,value=0;
+        itemPostDamage=2;
+        itemPostValue=5;
+        globalPrefixBonuses(&weapon.object,73,&damage,&value);
+        assert(damage==2 && value==5);
+        assert(globalPrefixChance(&weapon.object,1)==-1);
+    }
     globalView=std::make_shared<const std::vector<ManagedGlobalPrefixCallbackBinding>>();
+    itemCallbackAssemblies=std::make_shared<const std::map<std::string,std::string>>();
     const auto prefixGroup=allocate(4,sizeof(int32_t));
     auto* categoryIds=static_cast<int32_t*>(arrayData(prefixGroup));
     categoryIds[0]=71;
