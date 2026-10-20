@@ -242,7 +242,7 @@ bool invokeManagedPrefix(const std::string& mod,const std::string& assembly,
                          std::string* response,int budget) {
     assert(mod=="test" && assembly=="/tmp/prefix-fixture.dll" && owner=="Mighty");
     assert((kind==6 && (snapshot=="150,200" || snapshot=="200,200")) ||
-           snapshot=="6199,12,0,1,0,4" ||
+           snapshot=="6199,12,0,1,0,4" || snapshot=="6199,13,0,1,0,4" ||
            (kind==5 && snapshot=="6199,12,0,1,99,4"));
     assert(budget>0 && budget<=650 && kind>=0 && kind<=6 && kind!=2);
     ++prefixWorkerCalls;
@@ -1128,6 +1128,30 @@ int main() {
     livePlayer.defense=10;
     hookGrant(&livePlayer.object,&accessory.object,nullptr);
     assert(livePlayer.defense==14 && prefixWorkerCalls==beforeAccessory+3);
+    prefixAssemblies=std::make_shared<const std::map<std::string,std::string>>();
+    prefixAssemblies=std::make_shared<const std::map<std::string,std::string>>(
+        std::map<std::string,std::string>{{"test","/tmp/prefix-fixture.dll"}});
+    prefixWorkerWarmup=1;
+    prefixWorkerFails=false;
+    livePrefix.callbackMask=3;
+    weapon.prefix=0;
+    weapon.damage=12;
+    weapon.mana=0;
+    weapon.stack=1;
+    weapon.ranged=1;
+    weapon.accessory=0;
+    weapon.consumable=0;
+    {
+        const int beforeItemChange=prefixWorkerCalls;
+        PrefixRpcScope scope;
+        assert(itemRollWeight(&weapon.object,livePrefix)==7);
+        assert(itemRollWeight(&weapon.object,livePrefix)==7);
+        assert(prefixWorkerCalls==beforeItemChange+1);
+        weapon.damage=13;
+        assert(itemRollWeight(&weapon.object,livePrefix)==7);
+        assert(prefixWorkerCalls==beforeItemChange+2);
+    }
+    weapon.damage=12;
     prefixAssemblies=std::make_shared<const std::map<std::string,std::string>>();
     itemCallbackView=std::make_shared<const std::map<int,ManagedItemPrefixCallbackBinding>>(
         std::map<int,ManagedItemPrefixCallbackBinding>{{6199,{"test","TestWand"}}});
