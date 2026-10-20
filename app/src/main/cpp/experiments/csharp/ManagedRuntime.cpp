@@ -471,6 +471,8 @@ bool g_liveHitInFlight = false;
 int g_liveHitActiveBindingSlot = -2;
 uint64_t g_liveHitGeneration = 0;
 std::atomic<uint64_t> g_buffEffectGeneration{1};
+std::array<std::atomic<uint64_t>, ManagedLiveIngressQueue::kBindingCount>
+    g_buffOwnerGenerations{};
 std::atomic<bool> g_buffHookReady{false};
 ManagedNpcBuffEffectQueue g_buffEffectQueue;
 std::atomic<int> g_buffRequested{0};
@@ -1731,7 +1733,11 @@ void* pinnedMonoWorker(void*) {
                                     event.npc.posX, event.npc.posY,
                                     buff, ticks,
                                     g_buffEffectGeneration.load(std::memory_order_acquire),
-                                    nowMs, direction, tenths
+                                    nowMs, direction, tenths,
+                                    event.bindingSlot,
+                                    g_buffOwnerGenerations[
+                                        static_cast<size_t>(event.bindingSlot + 1)].load(
+                                            std::memory_order_acquire)
                                 };
                                 if (g_buffEffectQueue.push(request))
                                     g_buffRequested.fetch_add(1, std::memory_order_relaxed);
@@ -2994,6 +3000,7 @@ bool takeManagedNpcBuffForNpc(int npcIndex, int npcType,
         const int64_t nowMs = std::chrono::duration_cast<std::chrono::milliseconds>(
             now.time_since_epoch()).count();
         if (request.generation != g_buffEffectGeneration.load(std::memory_order_acquire) ||
+            !managedNpcBuffOwnerCurrent(request, g_buffOwnerGenerations) ||
             nowMs < request.createdAtMs || nowMs - request.createdAtMs > 1500) {
             g_buffEffectQueue.pop();
             g_buffStale.fetch_add(1, std::memory_order_relaxed);
@@ -3898,6 +3905,8 @@ void invalidateManagedDeferredSourceMod(const std::string& modId) {
 
     const bool primaryRevoked = g_liveHitStatus.modId == modId &&
         g_liveHitStatus.enabled;
+    if (g_liveHitStatus.modId == modId)
+        g_buffOwnerGenerations[0].fetch_add(1, std::memory_order_release);
     if (primaryRevoked) {
         const int discarded = g_liveIngress.pauseBinding(-1, g_liveHitType);
         addManagedCounter(g_liveHitStatus.dropped, discarded);
@@ -3910,6 +3919,8 @@ void invalidateManagedDeferredSourceMod(const std::string& modId) {
     for (int i = 0; i < liveCount; ++i) {
         auto& binding = g_additionalLiveBindings[static_cast<size_t>(i)];
         if (binding.modId == modId) {
+            g_buffOwnerGenerations[static_cast<size_t>(i + 1)].fetch_add(
+                1, std::memory_order_release);
             const int discarded = g_liveIngress.pauseBinding(i, binding.armedType);
             addManagedCounter(binding.dropped, discarded);
             addManagedCounter(g_liveHitStatus.dropped, discarded);

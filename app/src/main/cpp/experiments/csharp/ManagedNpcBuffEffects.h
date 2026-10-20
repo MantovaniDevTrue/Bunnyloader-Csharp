@@ -17,7 +17,20 @@ struct ManagedNpcBuffCommand {
     int64_t createdAtMs = 0;
     int impulseDirection = 0;
     int impulseTenths = 0;
+    int ownerBinding = -2;
+    uint64_t ownerGeneration = 0;
 };
+
+template <size_t N>
+inline bool managedNpcBuffOwnerCurrent(
+    const ManagedNpcBuffCommand& request,
+    const std::array<std::atomic<uint64_t>, N>& ownerGenerations) {
+    if (request.ownerBinding < -1 ||
+        static_cast<size_t>(request.ownerBinding + 1) >= N) return false;
+    return request.ownerGeneration ==
+        ownerGenerations[static_cast<size_t>(request.ownerBinding + 1)].load(
+            std::memory_order_acquire);
+}
 
 inline bool decodeManagedNpcBuffCode(int value, int* buffId, int* durationTicks) {
     if (!buffId || !durationTicks || value < 1000000 || value >= 2000000) return false;

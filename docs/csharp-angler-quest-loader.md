@@ -113,6 +113,15 @@ por limite de eventos não é confundido com descarregamento: eventos já
 aceitos continuam sendo processados enquanto a sessão permanecer válida. Não existe tentativa de interromper
 o callback Mono em andamento nem de descarregar assemblies do domínio.
 
+## Proveniência dos efeitos gerenciados
+
+Cada comando de buff ou impulso guarda a binding do callback que o produziu
+e a revisão desta binding. Descarregar um mod invalida só as revisões das
+bindings pertencentes a ele, sem invalidar comandos de outros mods.
+O consumidor descarta comandos com identidade obsoleta, preservando o FIFO
+da fila nativa SPSC e o limite existente de processamento por tick.
+O descarregamento não interrompe callbacks que já estão rodando.
+
 ## Diagnóstico seguro da ABI Android
 
 A preparação de `FishingCheck_RollItemDrop` diferencia os estados

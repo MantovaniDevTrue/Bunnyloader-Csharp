@@ -25,6 +25,7 @@ on:
       - 'experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs'
       - 'app/src/main/cpp/experiments/csharp/ManagedLiveSourceRevocations.h'
       - 'app/src/main/cpp/experiments/csharp/ManagedDeferredModRevocation.h'
+      - 'app/src/main/cpp/experiments/csharp/ManagedNpcBuffEffects.h'
       - 'tests/angler_quest/**'
       - '.github/workflows/check-csharp-angler-quest-host.yml'
   pull_request:
@@ -38,6 +39,7 @@ on:
       - 'experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs'
       - 'app/src/main/cpp/experiments/csharp/ManagedLiveSourceRevocations.h'
       - 'app/src/main/cpp/experiments/csharp/ManagedDeferredModRevocation.h'
+      - 'app/src/main/cpp/experiments/csharp/ManagedNpcBuffEffects.h'
       - 'tests/angler_quest/**'
 
       - 'app/src/main/cpp/experiments/csharp/ManagedAssemblyBindings.h'
@@ -94,6 +96,14 @@ jobs:
             tests/angler_quest/managed_deferred_mod_revocation_test.cpp \
             -o "$RUNNER_TEMP/angler_deferred_revocation_test"
           "$RUNNER_TEMP/angler_deferred_revocation_test"
+      - name: Verify selective NPC effect revocation and FIFO preservation
+        run: |
+          set -euo pipefail
+          g++ -std=c++20 -Wall -Wextra -Werror -pedantic -pthread \
+            -I app/src/main/cpp \
+            tests/angler_quest/managed_npc_effect_owner_test.cpp \
+            -o "$RUNNER_TEMP/angler_npc_effect_owner_test"
+          "$RUNNER_TEMP/angler_npc_effect_owner_test"
       - name: Verify selective live projectile ingress revocation
         run: |
           set -euo pipefail
