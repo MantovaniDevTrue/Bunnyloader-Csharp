@@ -34,4 +34,27 @@ int main() {
     next.active = 2;
     assert(!managedDustStateValid(next));
     static_assert((DustOnSpawn | DustUpdate | DustMidUpdate | DustGetAlpha | DustPreDraw) == 31u);
+    auto before = sample;
+    before.x = 10.f; before.y = 5.f; before.scale = 1.f; before.alpha = 100;
+    auto updated = before;
+    updated.x = 11.f; updated.scale = 0.9f; updated.alpha = 90;
+    auto live = before;
+    live.x = 100.f; live.scale = 1.5f; live.alpha = 150;
+    ManagedDustState merged{};
+    assert(mergeManagedDustDelta(live, before, updated, &merged));
+    assert(merged.x == 101.f);
+    assert(merged.scale > 1.349f && merged.scale < 1.351f);
+    assert(merged.alpha == 140);
+    updated.color = 0xff123456;
+    assert(mergeManagedDustDelta(live, before, updated, &merged, false));
+    assert(merged.color == live.color);
+    updated.active = 0;
+    assert(mergeManagedDustDelta(live, before, updated, &merged));
+    assert(merged.active == 0);
+    updated = before;
+    updated.x = std::numeric_limits<float>::quiet_NaN();
+    assert(!mergeManagedDustDelta(live, before, updated, &merged));
+    updated = before;
+    updated.generation = 2;
+    assert(!mergeManagedDustDelta(live, before, updated, &merged));
 }
