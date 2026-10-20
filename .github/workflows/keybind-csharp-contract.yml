@@ -6,6 +6,9 @@ on:
       - feat/csharp-native-keybind-loader-20261020
     paths:
       - experiments/csharp/BunnyCsSdk/BunnyTouchButtonLoader.cs
+      - experiments/csharp/BunnyCsSdk/BunnyTouchNativeHost.cs
+      - app/src/main/cpp/experiments/csharp/NativeTouchInput.cpp
+      - app/src/main/cpp/experiments/csharp/NativeTouchInput.h
       - tests/keybind_loader/**
       - .github/workflows/keybind-csharp-contract.yml
   workflow_dispatch:
@@ -29,4 +32,25 @@ jobs:
       - name: Verify no JavaScript adapter in CSharp Keybind SDK
         shell: bash
         run: |
-          ! grep -En 'QuickJS|CSharpItemBehaviorLoader|CSharpArmorPolicy|CSharpWingPolicy' experiments/csharp/BunnyCsSdk/BunnyTouchButtonLoader.cs
+          ! grep -En 'QuickJS|CSharpItemBehaviorLoader|CSharpArmorPolicy|CSharpWingPolicy' experiments/csharp/BunnyCsSdk/BunnyTouchButtonLoader.cs | grep -v 'contrato gerenciado'
+          ! grep -En 'quickjs.h|JSContext|JSValue|JS_Call' app/src/main/cpp/experiments/csharp/NativeTouchInput.cpp
+  native-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Strict GCC C++20 build and native contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          g++ -std=c++20 -Wall -Wextra -Werror -pedantic -O1 -g -pthread             -fsanitize=address,undefined -fno-omit-frame-pointer             -Iapp/src/main/cpp             app/src/main/cpp/experiments/csharp/NativeTouchInput.cpp             tests/keybind_loader/native_touch_input_test.cpp             -o "$RUNNER_TEMP/native-touch-tests"
+          ASAN_OPTIONS=detect_leaks=1 UBSAN_OPTIONS=halt_on_error=1             "$RUNNER_TEMP/native-touch-tests"
+      - name: Android ABI compilation (no APK)
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s app/src/main/cpp/experiments/csharp/NativeTouchInput.cpp
+          grep -q 'bunny_csharp_touch_register' experiments/csharp/BunnyCsSdk/BunnyTouchNativeHost.cs
+          grep -q 'bunny_csharp_touch_host_ready' app/src/main/cpp/experiments/csharp/NativeTouchInput.cpp
+
