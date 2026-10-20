@@ -43,13 +43,14 @@ inline bool decodeNativeCommandResult(const std::string& wire, int playerIndex,
         if (!*handled || replies->size() >= NativeCommandMailbox::MaxReplyLines)
             return fail("CommandResultUnexpectedReply");
         std::istringstream record(line);
-        std::string prefix, red, green, blue, encoded, extra;
+        std::string prefix, red, green, blue, encoded;
         if (!std::getline(record, prefix, '\t') ||
             !std::getline(record, red, '\t') ||
             !std::getline(record, green, '\t') ||
-            !std::getline(record, blue, '\t') ||
-            !std::getline(record, encoded, '\t') ||
-            std::getline(record, extra, '\t') || prefix != "REPLY" ||
+            !std::getline(record, blue, '\t') || record.eof())
+            return fail("CommandResultFields");
+        std::getline(record, encoded);
+        if (prefix != "REPLY" || encoded.find('\t') != std::string::npos ||
             encoded.size() > NativeCommandMailbox::MaxLineBytes * 2 ||
             encoded.size() % 2 != 0)
             return fail("CommandResultFields");
