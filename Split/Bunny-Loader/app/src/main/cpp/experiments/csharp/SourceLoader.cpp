@@ -672,6 +672,7 @@ bool applyManagedSourceDefaults(
     std::set<int> seenPrefixDenials;
     std::set<int> seenItemPrefixCallbacks;
     std::vector<std::pair<int, std::string>> itemPrefixCallbacks;
+    std::map<int,int> itemPrefixMasks;
     std::vector<std::pair<int, std::vector<ManagedPrefixStackDenyToken>>> prefixStackDenials;
     std::set<int> seenPrefixStackDenials;
     std::vector<std::pair<int, std::vector<ManagedPrefixAttributeDenyToken>>> prefixAttributeDenials;
@@ -699,14 +700,17 @@ bool applyManagedSourceDefaults(
             const auto key = fields.size() > 1
                 ? sourceIdentityForWire("ITEM", fields[1]) : "";
             const auto registered = mod->registeredKindTypes.find(key);
+            int callbackMask=0;
             if (fields.size() != 3 || registered == mod->registeredKindTypes.end() ||
                 runtime::modItemTypeByKey(modId + "/" + fields[1]) != registered->second ||
-                fields[2] != "1" || seenItemPrefixCallbacks.size() >= kSourceMaxCategory ||
+                !integer(fields[2],&callbackMask) || callbackMask<1 || callbackMask>15 ||
+                seenItemPrefixCallbacks.size() >= kSourceMaxCategory ||
                 !seenItemPrefixCallbacks.insert(registered->second).second) {
                 *error = "[CSharp][ERROR][ItemPrefixCallback] Stage=Decode Reason=InvalidItemOrMask";
                 return false;
             }
             itemPrefixCallbacks.emplace_back(registered->second, fields[1]);
+            itemPrefixMasks.emplace(registered->second,callbackMask);
             continue;
         }
         if (!fields.empty() && fields[0] == "PREFIX_DENY") {
@@ -1836,7 +1840,8 @@ bool applyManagedSourceDefaults(
         *error = "Politicas ApplyPrefix C# invalidas ou hook nativo indisponivel";
         return false;
     }
-    if (!applyManagedItemPrefixCallbackBindings(modId, itemPrefixCallbacks)) {
+    if (!applyManagedItemPrefixCallbackBindings(modId, itemPrefixCallbacks,
+                                                 itemPrefixMasks)) {
         *error = "[CSharp][ERROR][ItemPrefixCallback] Stage=Publish Reason=InvalidBinding";
         return false;
     }
