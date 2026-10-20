@@ -58,7 +58,8 @@ public static class BunnyItemPrefixRuntime
                     (typeof(BunnyItem).IsAssignableFrom(type) ||
                      typeof(BunnyWeapon).IsAssignableFrom(type) ||
                      typeof(BunnyAccessory).IsAssignableFrom(type) ||
-                     typeof(BunnyBuffPotion).IsAssignableFrom(type))).ToArray();
+                     typeof(BunnyBuffPotion).IsAssignableFrom(type) ||
+                     typeof(BunnyGlobalItem).IsAssignableFrom(type))).ToArray();
                 if (matches.Length != 1)
                     throw new InvalidOperationException("Item prefix owner must resolve to one class");
                 var type = matches[0];
@@ -91,6 +92,8 @@ public static class BunnyItemPrefixRuntime
                 var batchState = BunnyPrefixRuntime.ReadItem(snapshot[..separator]);
                 Span<bool> seen = stackalloc bool[256];
                 seen.Clear();
+                if (item is BunnyGlobalItem global && !global.AppliesTo(batchState))
+                    return new string('1', hex.Length / 2);
                 char[] results = new char[hex.Length / 2];
                 for (int i = 0; i < results.Length; i++)
                 {
@@ -105,6 +108,7 @@ public static class BunnyItemPrefixRuntime
                         BunnyWeapon weapon => weapon.AllowPrefix(batchState, candidate),
                         BunnyAccessory accessory => accessory.AllowPrefix(batchState, candidate),
                         BunnyBuffPotion potion => potion.AllowPrefix(batchState, candidate),
+                        BunnyGlobalItem globalItem => globalItem.AllowPrefix(batchState, candidate),
                         _ => throw new InvalidOperationException("Invalid item prefix owner")
                     };
                     results[i] = allowed ? '1' : '0';
@@ -112,6 +116,11 @@ public static class BunnyItemPrefixRuntime
                 return new string(results);
             }
             var state = BunnyPrefixRuntime.ReadItem(snapshot);
+            if (item is BunnyGlobalItem globalItemInstance && !globalItemInstance.AppliesTo(state))
+                return kind switch {
+                    0 => "1", 3 => "-1", 4 => "N", 5 => "0,0",
+                    _ => throw new InvalidOperationException("Invalid global prefix operation")
+                };
             if (kind == 3)
             {
                 int chosen = item switch
@@ -120,6 +129,7 @@ public static class BunnyItemPrefixRuntime
                     BunnyWeapon weapon => weapon.ChoosePrefix(state),
                     BunnyAccessory accessory => accessory.ChoosePrefix(state),
                     BunnyBuffPotion potion => potion.ChoosePrefix(state),
+                    BunnyGlobalItem globalItem => globalItem.ChoosePrefix(state),
                     _ => throw new InvalidOperationException("Invalid item prefix owner")
                 };
                 if (chosen != -1 && (chosen < 1 || chosen > 255))
@@ -134,6 +144,7 @@ public static class BunnyItemPrefixRuntime
                     BunnyWeapon weapon => weapon.DecidePrefixChance(state, -index),
                     BunnyAccessory accessory => accessory.DecidePrefixChance(state, -index),
                     BunnyBuffPotion potion => potion.DecidePrefixChance(state, -index),
+                    BunnyGlobalItem globalItem => globalItem.DecidePrefixChance(state, -index),
                     _ => throw new InvalidOperationException("Invalid item prefix owner")
                 };
                 return chance.HasValue ? (chance.Value ? "1" : "0") : "N";
@@ -147,6 +158,7 @@ public static class BunnyItemPrefixRuntime
                     case BunnyWeapon weapon: weapon.ApplyPrefix(state, index, ref effect); break;
                     case BunnyAccessory accessory: accessory.ApplyPrefix(state, index, ref effect); break;
                     case BunnyBuffPotion potion: potion.ApplyPrefix(state, index, ref effect); break;
+                    case BunnyGlobalItem globalItem: globalItem.ApplyPrefix(state, index, ref effect); break;
                     default: throw new InvalidOperationException("Invalid item prefix owner");
                 }
                 if (effect.DamageBonus < 0 || effect.DamageBonus > 1000 ||
@@ -161,6 +173,7 @@ public static class BunnyItemPrefixRuntime
                 BunnyWeapon weapon => weapon.AllowPrefix(state, index),
                 BunnyAccessory accessory => accessory.AllowPrefix(state, index),
                 BunnyBuffPotion potion => potion.AllowPrefix(state, index),
+                BunnyGlobalItem globalItem => globalItem.AllowPrefix(state, index),
                 _ => throw new InvalidOperationException("Invalid item prefix owner")
             };
             return allow ? "1" : "0";
