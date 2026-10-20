@@ -57,12 +57,14 @@ public:
     static constexpr size_t MaxInputBytes = 1024;
     static constexpr size_t MaxLineBytes = 512;
     static constexpr size_t MaxReplyLines = 16;
-    static constexpr size_t MaxCommandsPerMod = 128;
-    static constexpr size_t MaxAliasesPerMod = 1024;
+    static constexpr size_t MaxRegisteredMods = 128;
+    static constexpr size_t MaxAliasesPerMod = 128 * 17;
+    static constexpr size_t MaxRegisteredNames = 8192;
 
     bool registerMod(const std::string& modId, const std::vector<NativeCommandSpec>& specs,
                      std::string* error = nullptr) {
-        if (!validName(modId) || specs.empty() || specs.size() > MaxAliasesPerMod) {
+        const std::string ownerId = normalize(modId);
+        if (ownerId.empty() || specs.empty() || specs.size() > MaxAliasesPerMod) {
             if (error) *error = "InvalidOwnerOrSpecCount";
             return false;
         }
@@ -76,14 +78,16 @@ public:
                 if (error) *error = "InvalidOrDuplicateCommandName";
                 return false;
             }
-            proposal.push_back({modId, name, spec.routes});
+            proposal.push_back({ownerId, name, spec.routes});
         }
         std::lock_guard<std::mutex> lock(mutex_);
-        if (owners_.contains(modId) || owners_.size() >= MaxCommandsPerMod) {
+        if (owners_.contains(ownerId) || owners_.size() >= MaxRegisteredMods ||
+            registeredNames_ + proposal.size() > MaxRegisteredNames) {
             if (error) *error = "OwnerAlreadyRegisteredOrCapacityReached";
             return false;
         }
-        owners_.emplace(modId, proposal);
+        owners_.emplace(ownerId, proposal);
+        registeredNames_ += proposal.size();
         for (const auto& spec : proposal)
             names_[spec.name].push_back(spec);
         return true;
@@ -91,7 +95,7 @@ public:
 
     bool unregisterMod(const std::string& modId) {
         std::lock_guard<std::mutex> lock(mutex_);
-        const auto owner = owners_.find(modId);
+        const auto owner = owners_.find(normalize(modId));
         if (owner == owners_.end()) return false;
         for (const auto& spec : owner->second) {
             auto it = names_.find(spec.name);
@@ -100,6 +104,7 @@ public:
             std::erase_if(list, [&](const Registered& item) { return item.owner == modId; });
             if (list.empty()) names_.erase(it);
         }
+        registeredNames_ -= owner->second.size();
         owners_.erase(owner);
         // Um callback ja entregue pode estar executando no MonoVM. A epoca nova
         // invalida sua resposta e todos os pedidos ainda em transito.
@@ -113,15 +118,20 @@ public:
         if (clearCommands) {
             owners_.clear();
             names_.clear();
+            registeredNames_ = 0;
         }
     }
 
-    NativeCommandSubmit submit(const std::string& text, int playerIndex,
+    NativeCommandSubmit submit(const std::string& input, int playerIndex,
                                 int netMode, NativeCommandRoute caller) {
-        if (text.empty() || text.size() > MaxInputBytes || text.front() != '/' ||
+        if (input.empty() || input.size() > MaxInputBytes ||
             playerIndex < -1 || playerIndex > 255 || netMode < 0 || netMode > 3 ||
             (caller != NativeCommandRoute::Chat && caller != NativeCommandRoute::Server))
             return NativeCommandSubmit::Vanilla;
+        const size_t start = input.find_first_not_of(" \t\r\n");
+        if (start == std::string::npos || input[start] != '/')
+            return NativeCommandSubmit::Vanilla;
+        const std::string text = input.substr(start);
 
         size_t end = text.find_first_of(" \t\r\n");
         std::string token = text.substr(1, end == std::string::npos ? end : end - 1);
@@ -262,6 +272,7 @@ private:
     mutable std::mutex mutex_;
     uint64_t epoch_ = 1;
     uint64_t sequence_ = 0;
+    size_t registeredNames_ = 0;
     std::map<std::string, std::vector<Registered>> owners_;
     std::map<std::string, std::vector<Registered>> names_;
     std::deque<NativeCommandRequest> requests_;
