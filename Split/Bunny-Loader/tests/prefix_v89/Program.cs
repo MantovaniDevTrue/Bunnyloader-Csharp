@@ -11,14 +11,16 @@ try
     string diagnostics = Path.Combine(temp, "diagnostics.txt");
     File.WriteAllText(diagnostics, "");
     int classes = CompiledAssemblyProbe.Verify(args[0], diagnostics);
-    if (classes != 5)
+    if (classes != 6)
         throw new InvalidOperationException("Expected two content types and three managed prefixes, got " +
             classes + "; Diagnostics: " + File.ReadAllText(diagnostics));
 
     var data = File.ReadAllLines(Path.Combine(temp, "source-runtime-values.txt"));
-    if (data.Length != 22 || data[0] != "BUNNY_MANAGED_DEFAULTS_V2")
+    if (data.Length != 23 || data[0] != "BUNNY_MANAGED_DEFAULTS_V2")
         throw new InvalidOperationException("Unexpected MonoVM native handoff");
 
+    if (data.Count(row => row == "GLOBAL_PREFIX_CALLBACK\tTestGlobal\t15") != 1)
+        throw new InvalidOperationException("Global item prefix callback descriptor missing");
     if (data.Count(row => row == "ITEM_PREFIX_CALLBACK\tTestWand\t15") != 1)
         throw new InvalidOperationException("Overridden AllowPrefix callback descriptor missing");
     if (data.Count(row => row == "PREFIX_DENY\tTestWand\t71,TestMightyPrefix") != 1)
@@ -66,6 +68,7 @@ try
                                           !row.StartsWith("PREFIX_ATTRIBUTE_WEIGHT\t", StringComparison.Ordinal) &&
                                           !row.StartsWith("PREFIX_CALLBACK\t", StringComparison.Ordinal) &&
                                           !row.StartsWith("ITEM_PREFIX_CALLBACK\t", StringComparison.Ordinal) &&
+                                          !row.StartsWith("GLOBAL_PREFIX_CALLBACK\t", StringComparison.Ordinal) &&
                                           !row.StartsWith("PREFIX_POST\t", StringComparison.Ordinal) &&
                                           !row.StartsWith("PREFIX_CHANCE\t", StringComparison.Ordinal) &&
                                           !row.StartsWith("PREFIX_CHANCE_STACK\t", StringComparison.Ordinal) &&
@@ -328,6 +331,22 @@ try
     if (!BunnyLoader.Source.BunnyItemPrefixRuntime.Dispatch(
         "prefix-fixture", args[0], "MissingItem", 0, 2, "").StartsWith("ERROR|"))
         throw new InvalidOperationException("Unknown item prefix owner accepted");
+    const string globalState = "6207,22,4,1,98,4";
+    if (BunnyLoader.Source.BunnyItemPrefixRuntime.Dispatch(
+        "prefix-fixture", args[0], "TestGlobal", 0, 2, "") != "READY")
+        throw new InvalidOperationException("Global item prefix worker warmup failed");
+    if (BunnyLoader.Source.BunnyItemPrefixRuntime.Dispatch(
+        "prefix-fixture", args[0], "TestGlobal", 80, 0, globalState) != "0" ||
+        BunnyLoader.Source.BunnyItemPrefixRuntime.Dispatch(
+        "prefix-fixture", args[0], "TestGlobal", 80, 0, "6207,5,4,1,98,4") != "1")
+        throw new InvalidOperationException("Global item prefix veto or AppliesTo mismatch");
+    if (BunnyLoader.Source.BunnyItemPrefixRuntime.Dispatch(
+        "prefix-fixture", args[0], "TestGlobal", 0, 3, "6207,22,4,3,98,4") != "74" ||
+        BunnyLoader.Source.BunnyItemPrefixRuntime.Dispatch(
+        "prefix-fixture", args[0], "TestGlobal", 1, 4, globalState) != "0" ||
+        BunnyLoader.Source.BunnyItemPrefixRuntime.Dispatch(
+        "prefix-fixture", args[0], "TestGlobal", 73, 5, globalState) != "2,5")
+        throw new InvalidOperationException("Global item prefix choice, chance or apply mismatch");
     string prefixWarmup = BunnyLoader.Source.BunnyPrefixRuntime.Dispatch(
         "prefix-fixture", args[0], "TestGuardedPrefix", 0, 2, "");
     if (prefixWarmup != "READY")
