@@ -20,7 +20,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 8.0.x
+          dotnet-version: |
+            8.0.x
+            10.0.x
+      - name: Build entire Bunny CSharp SDK
+        run: dotnet build experiments/csharp/BunnyCsSdk/BunnyCsSdk.csproj --configuration Release
       - name: Compile and run pure CSharp lifecycle tests
         run: dotnet run --project tests/invasion/Invasion.csproj --configuration Release
       - name: Compile ExampleInvasion source without Android toolchain
