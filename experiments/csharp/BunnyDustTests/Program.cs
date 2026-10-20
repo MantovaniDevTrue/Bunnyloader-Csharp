@@ -211,6 +211,12 @@ static class DustTests
             dying.Scale == 1f && zero.FaultCount == 1,
             "reject zero scale while active and roll back state");
 
+        var sharedTypes = new BunnyDustRegistry("shared_ids");
+        sharedTypes.Register("LaterMod", new DefaultDust());
+        Check(sharedTypes.Bind(5000, "LaterMod"), "allow native IDs beyond local type count");
+        Check(!sharedTypes.Bind(32768, "LaterMod"), "bound native ID allocation");
+        sharedTypes.Unload();
+
         registry.ResetWorld();
         Check(registry.ActiveCount == 0 && registry.BoundCount == 3, "world reset preserves registered types");
         registry.Unload();
