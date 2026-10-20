@@ -175,6 +175,7 @@ android {
             storePassword = System.getenv("BUNNY_SIGNING_PASSWORD")
             keyAlias = System.getenv("BUNNY_SIGNING_ALIAS")
             keyPassword = System.getenv("BUNNY_SIGNING_PASSWORD")
+            if (readyPreview) enableV3Signing = true
         }
     } else null
 

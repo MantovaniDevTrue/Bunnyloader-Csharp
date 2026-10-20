@@ -4,11 +4,12 @@ set -euo pipefail
 test "$(gh repo view "$PRIVATE_INPUTS_REPO" --json isPrivate --jq .isPrivate)" = true
 APK=app/build/outputs/apk/debug/app-debug.apk
 TOOLS="$ANDROID_HOME/build-tools/34.0.0"
-"$TOOLS/apksigner" verify --verbose "$APK"
+"$TOOLS/apksigner" verify --verbose "$APK" | tee build/ready-apk-signature.txt
+grep -F "Verified using v3 scheme (APK Signature Scheme v3): true" build/ready-apk-signature.txt
 "$TOOLS/zipalign" -c 4 "$APK"
 "$TOOLS/aapt" dump badging "$APK" > build/ready-badging.txt
-rg -F "package: name='com.bunnyloader.csharptest'" build/ready-badging.txt
-rg -F "application-label:'Bunny Loader C# Test'" build/ready-badging.txt
+grep -F "package: name='com.bunnyloader.csharptest'" build/ready-badging.txt
+grep -F "application-label:'Bunny Loader C# Test'" build/ready-badging.txt
 python3 - <<'PY'
 import hashlib,json,zipfile
 from pathlib import Path
