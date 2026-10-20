@@ -81,7 +81,7 @@ Essa operação **não descarrega assemblies antigos da memória do Mono** nem r
 - Compilação C++ e C# com avisos tratados como erros no host; regressão de carregamento C# isolado e JS misto.
 - Compilação de sintaxe do próprio `ManagedRuntime.cpp` e teste host isolado de descarregamento/recarga de assemblies nativos com mil ciclos concorrentes.
 
-**CI host de GCHandle:** [Actions #39355295077](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39355295077). Testes nativos aprovados; confirmar o status gerenciado da execução antes de finalizar o lote.
+**CI completo aprovado:** [Actions #39355295077](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39355295077). Jobs `native-host` e `managed-host` concluídos com sucesso, incluindo os testes GCHandle, compilador, callbacks e regressões de ciclo de vida.
 
 Ainda faltam ABI do Terraria Android, validação de memória e desempenho a 60 FPS, sincronização/persistência multiplayer real, hot-unload integral de conteúdo C# e possíveis callbacks adicionais do Pescador além dos predicados tipados implementados.
 
