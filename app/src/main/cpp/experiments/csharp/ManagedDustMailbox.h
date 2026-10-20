@@ -58,6 +58,7 @@ public:
         if (phase == 5) {
             if (state.generation < retired_[slotIndex]) return false;
             retired_[slotIndex] = state.generation;
+            completed_.notify_all();
             for (std::size_t i = 0; i < kPhases - 1; ++i) {
                 Slot& old = slots_[slotIndex * kPhases + i];
                 if (old.generation == state.generation &&
