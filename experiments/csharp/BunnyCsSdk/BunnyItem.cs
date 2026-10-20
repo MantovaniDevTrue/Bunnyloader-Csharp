@@ -15,6 +15,14 @@ public enum BunnyQuestCatchRules
 }
 
 /// <summary>Item geral: os defaults sao aplicados ao Item real pelo host, sem callback Mono por frame.</summary>
+public sealed class BunnyQuestContext
+{
+    public int FishType { get; internal set; }
+    public bool Hardmode { get; internal set; }
+    public bool InvertedGravity { get; internal set; }
+    public bool Uncommon { get; internal set; }
+}
+
 public abstract class BunnyItem : BunnyRecipeSource
 {
     public BunnyNativeDefaults NativeDefaults { get; } = new();
@@ -53,6 +61,8 @@ public abstract class BunnyItem : BunnyRecipeSource
     public Dictionary<string,string> QuestDescriptionTranslations { get; } = new(StringComparer.Ordinal);
     public Dictionary<string,string> QuestCatchLocationTranslations { get; } = new(StringComparer.Ordinal);
     public BunnyQuestCatchRules QuestCatchRules { get; set; }
+    public Func<BunnyQuestContext,bool>? QuestAvailableWhen { get; set; }
+    public Func<BunnyQuestContext,bool>? QuestCanCatchWhen { get; set; }
     public int Defense { get => Behavior.Defense; set => Behavior.Defense=value; }
     public int Damage { get; set; }
     public int Crit { get; set; }
