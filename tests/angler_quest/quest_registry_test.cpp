@@ -56,7 +56,10 @@ int main() {
     assert(Registry::mergeIds(merged, {fish}).size() == merged.size());
     const std::vector<int> moddedIds{1, 2, 850, 7001, 851, 2};
     auto same = Registry::reconcileIds(moddedIds, {850}, {fish}, 3);
-    assert(!same.changed && same.selected == 3 && same.ids == moddedIds);
+    assert(same.changed && same.selected == 2);
+    assert((same.ids == std::vector<int>{1, 2, 7001, 851, 2, 850}));
+    const auto stable = Registry::reconcileIds(same.ids, {850}, {fish}, same.selected);
+    assert(!stable.changed && stable.selected == same.selected && stable.ids == same.ids);
     auto newQuest = Quest{"examplemodcsharp", "OtherQuest", 860, true, true, "", ""};
     auto updated = Registry::reconcileIds(moddedIds, {850}, {newQuest}, 4);
     assert(updated.changed);
@@ -67,6 +70,26 @@ int main() {
     assert((unloaded.ids == std::vector<int>{1, 2, 7001, 851, 2}));
     assert(unloaded.selected == 0);
     assert(Registry::reconcileIds(unloaded.ids, {}, {}, 2).ids == unloaded.ids);
+
+    Quest first{"alpha", "First", 950, true, true, "", ""};
+    Quest second{"zeta", "Second", 900, true, true, "", ""};
+    const std::vector<int> base{1, 2, 7001, 2};
+    auto inOrder = Registry::reconcileIds(base, {}, {first, second}, 2);
+    auto reverseOrder = Registry::reconcileIds(base, {}, {second, first}, 2);
+    assert(inOrder.ids == reverseOrder.ids);
+    assert((inOrder.ids == std::vector<int>{1, 2, 7001, 2, 950, 900}));
+    auto incremental = Registry::reconcileIds(base, {}, {second}, 2);
+    incremental = Registry::reconcileIds(incremental.ids, {900}, {second, first},
+                                         incremental.selected);
+    assert(incremental.ids == inOrder.ids && incremental.selected == 2);
+    assert(registry.publish("zeta", {second}, &error));
+    assert(registry.publish("alpha", {first}, &error));
+    const auto sorted = registry.snapshot();
+    assert(sorted[0].mod == "alpha" && sorted[1].mod == "examplemodcsharp" &&
+           sorted[2].mod == "zeta");
+    registry.unload("zeta");
+    registry.unload("alpha");
+
 
     assert(!registry.publish("secondmod",
         {Quest{"secondmod", "OtherFish", 850, true, true, "", ""}}, &error));
