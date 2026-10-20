@@ -24,6 +24,8 @@ on:
       - tests/csharp/native_dust_decision.cpp
       - app/src/main/cpp/experiments/csharp/ManagedDustFlagMask.h
       - tests/csharp/native_dust_flags.cpp
+      - app/src/main/cpp/experiments/csharp/ManagedDustFrameBudget.h
+      - tests/csharp/native_dust_sync.cpp
       - tests/csharp/native_dust_parser.cpp
       - app/src/main/cpp/experiments/csharp/SourceParser.cpp
       - app/src/main/cpp/experiments/csharp/SourceContentIdentity.h
@@ -91,3 +93,7 @@ jobs:
         run: |
           c++ -std=c++20 -Wall -Wextra -Werror -Iapp/src/main/cpp tests/csharp/native_dust_flags.cpp -o "$RUNNER_TEMP/dust_flags"
           "$RUNNER_TEMP/dust_flags"
+      - name: Verify deadline-bound MonoVM Dust handshake and per-frame budget
+        run: |
+          c++ -std=c++20 -Wall -Wextra -Werror -pthread -Iapp/src/main/cpp tests/csharp/native_dust_sync.cpp -o "$RUNNER_TEMP/dust_sync"
+          "$RUNNER_TEMP/dust_sync"
