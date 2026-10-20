@@ -102,6 +102,21 @@ try
         !handles.Contains("other_angler_mod\nDynamicQuestFish")||
         handles.Contains("angler_host_fixture\nDynamicQuestFish"))
         throw new InvalidOperationException("Stale quest delegates retained after managed assembly rebind");
+    string malformedUnload=BunnyLoader.Source.BunnyRecipeRuntime.Dispatch(
+        "angler_host_fixture",assembly+"|bunny-revision=4","__unload__",1,6,"");
+    if(!malformedUnload.StartsWith("ERROR|",StringComparison.Ordinal)||handles.Count!=2)
+        throw new InvalidOperationException("Managed unload accepted malformed request");
+    string cleared=BunnyLoader.Source.BunnyRecipeRuntime.Dispatch(
+        "angler_host_fixture",assembly+"|bunny-revision=4","__unload__",0,6,"");
+    string staleUnload=BunnyLoader.Source.BunnyRecipeRuntime.Dispatch(
+        "angler_host_fixture",assembly+"|bunny-revision=4","__unload__",0,6,"");
+    if(cleared!="CLEARED"||!staleUnload.StartsWith("PENDING|",StringComparison.Ordinal)||
+       handles.Count!=1||!handles.Contains("other_angler_mod\nDynamicQuestFish"))
+        throw new InvalidOperationException("Managed unload retained quest delegates or erased another mod");
+    string otherCleared=BunnyLoader.Source.BunnyRecipeRuntime.Dispatch(
+        "other_angler_mod",assembly+"|bunny-revision=1","__unload__",0,6,"");
+    if(otherCleared!="CLEARED"||handles.Count!=0)
+        throw new InvalidOperationException("Second mod cache not released on unload");
     Console.WriteLine("ANGLER_QUEST_COMPILED_ASSEMBLY_OK");
 }
 finally
