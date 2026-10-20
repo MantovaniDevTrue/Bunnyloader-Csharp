@@ -337,30 +337,30 @@ inline void worldExit() {
 }
 
 extern "C" {
-__attribute__((visibility("default"))) inline int bunny_csharp_sound_register(
+__attribute__((visibility("default"))) int bunny_csharp_sound_register(
     const char* owner,const char* path,float volume,float pitch,float variance,int maxInstances,int behavior) {
     return bl::csharp::managedSound::registerClip(owner,path,volume,pitch,variance,maxInstances,behavior);
 }
-__attribute__((visibility("default"))) inline int bunny_csharp_sound_state(int handle) {
+__attribute__((visibility("default"))) int bunny_csharp_sound_state(int handle) {
     return bl::csharp::managedSound::state(handle);
 }
-__attribute__((visibility("default"))) inline int bunny_csharp_sound_play(
+__attribute__((visibility("default"))) int bunny_csharp_sound_play(
     int handle,int x,int y,float volume,float pitch) {
     return bl::csharp::managedSound::play(handle,x,y,volume,pitch);
 }
-__attribute__((visibility("default"))) inline int bunny_csharp_sound_playback(int handle,int request) {
+__attribute__((visibility("default"))) int bunny_csharp_sound_playback(int handle,int request) {
     return bl::csharp::managedSound::playback(handle,request);
 }
-__attribute__((visibility("default"))) inline int bunny_csharp_sound_find_active(int handle) {
+__attribute__((visibility("default"))) int bunny_csharp_sound_find_active(int handle) {
     return bl::csharp::managedSound::lastActive(handle);
 }
-__attribute__((visibility("default"))) inline int bunny_csharp_sound_stop(int handle,int request) {
+__attribute__((visibility("default"))) int bunny_csharp_sound_stop(int handle,int request) {
     return bl::csharp::managedSound::stop(handle,request);
 }
-__attribute__((visibility("default"))) inline int bunny_csharp_sound_duration(int handle) {
+__attribute__((visibility("default"))) int bunny_csharp_sound_duration(int handle) {
     return bl::csharp::managedSound::duration(handle);
 }
-__attribute__((visibility("default"))) inline void bunny_csharp_sound_unload(const char* owner) {
+__attribute__((visibility("default"))) void bunny_csharp_sound_unload(const char* owner) {
     bl::csharp::managedSound::unloadMod(owner);
 }
 }
