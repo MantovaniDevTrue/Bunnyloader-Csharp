@@ -10,6 +10,7 @@
 #include <atomic>
 #include <cstdint>
 #include <cstring>
+#include <initializer_list>
 #include <string>
 
 namespace bl::csharp {
@@ -31,20 +32,19 @@ std::atomic<bool> g_metadataReady{false};
 std::atomic<int> g_installAttempts{0};
 
 bool hasSignature(const MethodInfo* method, bool instance,
-                  const char* first, const char* second = nullptr) {
+                  std::initializer_list<const char*> expected) {
     const auto& api = il2cpp::api();
     if (!method || !api.method_is_instance || !api.method_get_param_count ||
         !api.method_get_param || !api.type_get_name || !api.il2cpp_free ||
-        api.method_is_instance(method) != instance) return false;
-    const unsigned count = second ? 2u : first ? 1u : 0u;
-    if (api.method_get_param_count(method) != count) return false;
-    const char* expected[] = {first, second};
-    for (unsigned i = 0; i < count; ++i) {
-        const auto* parameter = api.method_get_param(method, i);
+        api.method_is_instance(method) != instance ||
+        api.method_get_param_count(method) != expected.size()) return false;
+    unsigned index = 0;
+    for (const char* type : expected) {
+        const auto* parameter = api.method_get_param(method, index++);
         if (!parameter) return false;
         char* name = api.type_get_name(parameter);
         if (!name) return false;
-        const bool same = std::strcmp(name, expected[i]) == 0;
+        const bool same = std::strcmp(name, type) == 0;
         api.il2cpp_free(name);
         if (!same) return false;
     }
@@ -178,7 +178,7 @@ void hkClient(Il2CppObject* message, const MethodInfo* method) {
 
 bool installNativeCommandChatHooks() {
     if (g_metadataReady.load(std::memory_order_acquire)) return true;
-    if (++g_installAttempts > 4) return false;
+    if (++g_installAttempts > 16) return false;
     auto& api = il2cpp::api();
     if (!api.runtime_invoke || !api.string_new || !api.field_static_get_value ||
         !api.class_get_method_from_name) return false;
@@ -198,12 +198,12 @@ bool installNativeCommandChatHooks() {
     const auto* myPlayer = api.class_get_method_from_name(main, "get_myPlayer", 0);
     const auto* netMode = il2cpp::findField(main, "netMode");
     const auto* menu = il2cpp::findField(main, "gameMenu");
-    if (!hasSignature(incoming, true, "Terraria.Chat.ChatMessage", "System.Int32") ||
-        !hasSignature(client, false, "Terraria.Chat.ChatMessage") ||
-        !hasSignature(text, true, nullptr) ||
-        !hasSignature(consumeMethod, true, nullptr) ||
-        !hasSignature(newText, false, "System.String") ||
-        !hasSignature(myPlayer, false, nullptr) ||
+    if (!hasSignature(incoming, true, {"Terraria.Chat.ChatMessage", "System.Int32"}) ||
+        !hasSignature(client, false, {"Terraria.Chat.ChatMessage"}) ||
+        !hasSignature(text, true, {}) ||
+        !hasSignature(consumeMethod, true, {}) ||
+        !hasSignature(newText, false, {"System.String", "System.Byte", "System.Byte", "System.Byte", "System.Boolean"}) ||
+        !hasSignature(myPlayer, false, {}) ||
         !netMode || !menu)
         return false;
 
