@@ -413,6 +413,7 @@ std::atomic<uint64_t> g_dustGameFrame{0};
 std::vector<ManagedDustBinding> g_dustBindings;
 std::deque<int> g_dustBootstrap;
 std::array<std::atomic<int>, 32768> g_dustOwners{};
+std::array<std::atomic<bool>, 16> g_dustReady{};
 std::atomic<int> g_dustModCount{0};
 void* g_dustRegisterMethod = nullptr;
 void* g_dustBindMethod = nullptr;
@@ -1570,6 +1571,8 @@ bool executeManagedDustOnWorker(int index,
                             binding.modId.c_str(), binding.types.size());
 #endif
     }
+    if (index >= 0 && static_cast<size_t>(index) < g_dustReady.size())
+        g_dustReady[static_cast<size_t>(index)].store(true, std::memory_order_release);
     if (!request) return true;
     if (!updated || !flags || request->binding != index ||
         !managedDustStateValid(request->state)) return false;
@@ -2276,6 +2279,14 @@ bool hasManagedDustType(int type) {
     return type >= 332 && type < 32768 &&
            g_dustOwners[static_cast<size_t>(type)].load(
                std::memory_order_acquire) > 0;
+}
+
+bool managedDustWorkerReady(int type) {
+    if (type < 332 || type >= 32768) return false;
+    const int owner = g_dustOwners[static_cast<size_t>(type)].load(
+        std::memory_order_acquire) - 1;
+    return owner >= 0 && static_cast<size_t>(owner) < g_dustReady.size() &&
+           g_dustReady[static_cast<size_t>(owner)].load(std::memory_order_acquire);
 }
 
 bool queueManagedDustCallback(int type, int phase,
