@@ -49,6 +49,7 @@ std::map<int, bool> g_previousFlags;
 std::map<int, bool> g_previousRackFlags;
 bool g_fishingWarning = false;
 bool g_sessionBoundaryPending = false;
+Il2CppArray* g_lastQuestItems = nullptr;
 Il2CppArray* g_lastFishFlags = nullptr;
 Il2CppArray* g_lastRackFlags = nullptr;
 
@@ -381,8 +382,11 @@ bool updateQuests(const std::vector<Quest>& quests) {
     int32_t selected = -1;
     a.field_static_get_value(g_questIndex, &selected);
     const std::vector<int> originalIds(data, data + original->length);
+    const bool freshList = g_sessionBoundaryPending && g_lastQuestItems &&
+        original != g_lastQuestItems;
+    const std::set<int> previouslyOwned = freshList ? std::set<int>{} : g_ownedTypes;
     const QuestListUpdate update = Registry::reconcileIds(
-        originalIds, g_ownedTypes, quests, selected);
+        originalIds, previouslyOwned, quests, selected);
     if (update.ids.empty() || update.ids.size() > 65536) return false;
     PendingArrayRoots roots;
     Il2CppArray* nextIds = nullptr;
@@ -415,6 +419,7 @@ bool updateQuests(const std::vector<Quest>& quests) {
             a.field_static_set_value(g_questIndex, &next);
         }
     }
+    g_lastQuestItems = update.changed ? nextIds : original;
     g_previousFlags = std::move(fish.previous);
     g_lastFishFlags = fish.array;
     if (g_weaponRackFlag) {
