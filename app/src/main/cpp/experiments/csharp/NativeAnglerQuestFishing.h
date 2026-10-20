@@ -7,5 +7,6 @@ namespace bl::csharp::angler {
 
 bool installFishingOnGameThread(const std::vector<Quest>* quests);
 bool fishingInstalled();
+const char* fishingInstallDiagnostic();
 
 }
