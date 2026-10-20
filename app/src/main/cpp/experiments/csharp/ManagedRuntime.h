@@ -26,6 +26,7 @@ bool receiveManagedDustCallback(int type, int phase, int slot, int generation,
                                 uint64_t frame, ManagedDustMailbox::Response* response);
 void resetManagedDustSourceWorld();
 bool hasManagedDustType(int type);
+bool managedDustWorkerReady(int type);
 
 bool managedRecipeRuntimeReady();
 // Bounded request to the existing pinned Mono worker. No live IL2CPP objects cross threads.
