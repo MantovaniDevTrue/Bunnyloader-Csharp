@@ -625,10 +625,10 @@ BunnyItemPrefixRules()
 | `string SerializeStackChance()` | compile_policy |
 | `string SerializeStackChoice()` | compile_policy |
 | `string SerializeStackDenials()` | compile_policy |
-| `void Deny(int prefixType)` | compile_policy |
-| `void Deny(string ownModPrefixName)` | compile_policy |
 | `void ChooseWhenStackBetween(int prefixType, int minimum, int maximum)` | compile_policy |
 | `void ChooseWhenStackBetween(string ownModPrefixName, int minimum, int maximum)` | compile_policy |
+| `void Deny(int prefixType)` | compile_policy |
+| `void Deny(string ownModPrefixName)` | compile_policy |
 | `void DenyWhenDamageBetween(int prefixType, int minimum, int maximum)` | compile_policy |
 | `void DenyWhenDamageBetween(string ownModPrefixName, int minimum, int maximum)` | compile_policy |
 | `void DenyWhenManaBetween(int prefixType, int minimum, int maximum)` | compile_policy |
