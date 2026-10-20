@@ -22,10 +22,13 @@ int main(int argc, char** argv) {
         }
         ++files;
     }
-    assert(files >= 93);
+    assert(files >= 97);
     assert(std::any_of(types.begin(), types.end(), [](const auto& type) {
         return type.name == "ExampleHigherTierModRarity" && type.base == "BunnyRarity";
     }));
+    assert(std::count_if(types.begin(), types.end(), [](const auto& type) {
+        return type.base == "BunnyCommand";
+    }) == 3);
     std::ifstream registrationSource("app/src/main/cpp/experiments/csharp/SourceLoader.cpp");
     assert(registrationSource.good());
     const std::string registrationText((std::istreambuf_iterator<char>(registrationSource)), {});
@@ -41,7 +44,7 @@ int main(int argc, char** argv) {
     for (const auto& type : types) {
         if (type.base == "BunnyPlayer" || type.base == "BunnyScreenEffect" ||
             type.base == "BunnyRarity" || type.base == "BunnyPrefix" ||
-            type.base == "BunnyDust") continue;
+            type.base == "BunnyDust" || type.base == "BunnyCommand") continue;
         NativeContentSpec spec{};
         std::string target, display, texture;
         if (!fields(type, &spec, &target, &display, &texture, &error)) {

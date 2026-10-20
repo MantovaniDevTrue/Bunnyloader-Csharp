@@ -22,7 +22,7 @@ assert 'if (mode == 1)' in dispatcher
 assert 'BunnyNativeItemUse.Bind(worldSession, context.Mod, itemName)' in dispatcher
 assert 'if (mode == 2) return true;' in auto
 assert 'context.netMode >= 0 && context.netMode <= 3' in auto
-assert 'else if (mode == 2 && runtime::resolveGameRefs())' in auto
+assert 'else if ((mode == 0 || mode == 2 || mode == 3) && runtime::resolveGameRefs())' in auto
 assert 'runtime::field<uint8_t>(player, activeOffset) == 0' in auto
 assert '(mode < 0 || mode > 3)' in managed
 assert 'public sealed class BunnyInvasionClientView' in wire
