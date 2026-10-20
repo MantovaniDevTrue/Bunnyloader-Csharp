@@ -11,6 +11,7 @@
     <ProjectReference Include="../../experiments/csharp/BunnySourceCompiler/BunnySourceCompiler.csproj" />
     <Compile Include="HostFixture.cs" />
     <Compile Include="DynamicQuestFish.cs" />
+    <Compile Include="AttributedQuestFish.cs" />
     <Compile Include="../../samples/ExampleModCSharp/Playable/content/Common/Players/ExampleFishingPlayer.cs" Link="ExampleFishingPlayer.cs" />
     <Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/Items/Quests/ExampleQuestFish.cs" Link="ExampleQuestFish.cs" />
   </ItemGroup>
