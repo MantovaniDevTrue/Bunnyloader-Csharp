@@ -199,8 +199,9 @@ bool invokeManagedItemPrefix(const std::string& mod,const std::string& assembly,
                              const std::string& owner,int prefix,const std::string& snapshot,
                              std::string* result,int budget) {
     assert(mod=="test" && assembly=="/tmp/prefix-fixture.dll" &&
-           owner=="TestWand" && prefix>=1 && prefix<=255 &&
-           snapshot.rfind("6199,",0)==0 && budget>0 && budget<=650);
+           (owner=="TestWand" || owner=="TestCharm") && prefix>=1 && prefix<=255 &&
+           (snapshot.rfind("6199,",0)==0 || snapshot.rfind("6196,",0)==0) &&
+           budget>0 && budget<=650);
     ++itemWorkerCalls;
     if (itemWorkerFails) return false;
     *result=prefix==itemWorkerDenied ? "0" : "1";
@@ -1160,6 +1161,27 @@ int main() {
         assert(itemAllowsPrefix(&weapon.object,74));
         assert(itemWorkerCalls==count);
     }
+    itemCallbackView=std::make_shared<const std::map<int,ManagedItemPrefixCallbackBinding>>(
+        std::map<int,ManagedItemPrefixCallbackBinding>{{6196,{"test","TestCharm"}}});
+    descriptorView=std::make_shared<const std::vector<ManagedPrefixEntry>>();
+    Item nativeItem;
+    nativeItem.type=6196;
+    nativeItem.accessory=1;
+    nativeItem.damage=-1;
+    nativeItem.prefix=0;
+    itemWorkerDenied=99;
+    const int beforeNativeUnfiltered=nativeRolls;
+    int32_t vanillaPrefix=-1;
+    assert(hookRoll(&nativeItem.object,&randomObject,&vanillaPrefix,nullptr));
+    assert(vanillaPrefix==71 && nativeRolls==beforeNativeUnfiltered+1);
+    itemWorkerDenied=71;
+    assert(hookRollable(&nativeItem.object,nullptr)==nullptr);
+    assert(!hookRoll(&nativeItem.object,&randomObject,&vanillaPrefix,nullptr));
+    assert(nativeRolls==beforeNativeUnfiltered+1);
+    itemWorkerFails=true;
+    assert(hookRoll(&nativeItem.object,&randomObject,&vanillaPrefix,nullptr));
+    assert(vanillaPrefix==71 && nativeRolls==beforeNativeUnfiltered+2);
+    itemWorkerFails=false;
     itemCallbackView=std::make_shared<const std::map<int,ManagedItemPrefixCallbackBinding>>();
     itemCallbackAssemblies=std::make_shared<const std::map<std::string,std::string>>();
     const auto metrics = managedPrefixDiagnostics();

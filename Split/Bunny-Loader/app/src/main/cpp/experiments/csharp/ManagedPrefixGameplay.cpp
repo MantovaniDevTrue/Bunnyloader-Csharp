@@ -130,6 +130,7 @@ struct RestoreRoll {
 };
 thread_local RestoreRoll g_restoreRoll{};
 thread_local Il2CppObject* g_failedRollableItem = nullptr;
+thread_local Il2CppObject* g_itemPrefixFilteredItem = nullptr;
 
 struct AppliedItemPrefixState {
     Il2CppObject* item = nullptr;
@@ -764,6 +765,7 @@ Il2CppArray* hookRollable(Il2CppObject* item, const MethodInfo* method) {
     uintptr_t retained = 0;
     for (uintptr_t i = 0; i < oldCount; ++i)
         if (allowed(oldValues[i])) ++retained;
+    if (dynamicItemCallback && retained<oldCount) g_itemPrefixFilteredItem=item;
     int extra = 0;
     for (const auto& p : *descriptors)
         if (tablesReady && p.category != 6 && allowed(p.type) &&
@@ -887,11 +889,14 @@ bool hookRoll(Il2CppObject* item, Il2CppObject* random, int32_t* rolled,
 
     auto& api = bl::il2cpp::api();
     g_failedRollableItem = nullptr;
+    g_itemPrefixFilteredItem = nullptr;
     Il2CppObject* error = nullptr;
     auto* list = reinterpret_cast<Il2CppArray*>(
         api.runtime_invoke(g_refs.rollableMethod, item, nullptr, &error));
     const bool managedCandidateFailure = g_failedRollableItem == item;
+    const bool filteredByItemCallback = g_itemPrefixFilteredItem == item;
     g_failedRollableItem = nullptr;
+    g_itemPrefixFilteredItem = nullptr;
     if (error || !list || list->length == 0 || list->length > 512)
         return (hasDeny || managedCandidateFailure) ? false :
             (nativeRollFallback(item, random, rolled, method));
@@ -903,7 +908,7 @@ bool hookRoll(Il2CppObject* item, Il2CppObject* random, int32_t* rolled,
             hasManaged = true;
             break;
         }
-    if (!hasManaged && !hasDeny && !hasItemWorker)
+    if (!hasManaged && !hasDeny && (!hasItemWorker || !filteredByItemCallback))
         return nativeRollFallback(item, random, rolled, method);
 
     error = nullptr;
