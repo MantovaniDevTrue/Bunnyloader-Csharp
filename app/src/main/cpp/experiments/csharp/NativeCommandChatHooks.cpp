@@ -21,8 +21,13 @@ namespace {
 
 using IncomingFn = void (*)(Il2CppObject*, Il2CppObject*, int, const MethodInfo*);
 using ClientFn = void (*)(Il2CppObject*, const MethodInfo*);
+using HelpFn = Il2CppObject* (*)(Il2CppObject*, const MethodInfo*);
 IncomingFn g_incomingOriginal = nullptr;
 ClientFn g_clientOriginal = nullptr;
+HelpFn g_helpOriginal = nullptr;
+const MethodInfo* g_networkToString = nullptr;
+std::atomic<bool> g_helpInstalled{false};
+int g_helpAttempts = 0;
 const MethodInfo* g_textGetter = nullptr;
 const MethodInfo* g_consume = nullptr;
 const MethodInfo* g_newText = nullptr;
@@ -71,8 +76,9 @@ bool hasReturnType(const MethodInfo* method, const char* expected) {
     return same;
 }
 
-bool utf16ToUtf8(const Il2CppString* raw, std::string* result) {
-    if (!raw || !result || raw->length < 0 || raw->length > 512) return false;
+bool utf16ToUtf8(const Il2CppString* raw, std::string* result,
+                 int maxChars = 512, size_t maxBytes = 1024) {
+    if (!raw || !result || raw->length < 0 || raw->length > maxChars) return false;
     std::string out;
     out.reserve(static_cast<size_t>(raw->length) * 2);
     for (int i = 0; i < raw->length; ++i) {
@@ -97,7 +103,7 @@ bool utf16ToUtf8(const Il2CppString* raw, std::string* result) {
             out.push_back(static_cast<char>(0x80 | ((point >> 6) & 63)));
             out.push_back(static_cast<char>(0x80 | (point & 63)));
         }
-        if (out.size() > NativeCommandMailbox::MaxInputBytes) return false;
+        if (out.size() > maxBytes) return false;
     }
     *result = std::move(out);
     return true;
@@ -394,10 +400,92 @@ void hkClient(Il2CppObject* message, const MethodInfo* method) {
     if (g_clientOriginal) g_clientOriginal(message, method);
 }
 
+// ComposeMessage ja foi chamado pelo Terraria: preservar integralmente sua
+// ajuda e anexar somente comandos C# ainda nao presentes (JS e vanilla).
+bool helpContains(const std::string& original, const std::string& command) {
+    const std::string needle = "/" + command;
+    size_t at = 0;
+    while ((at = original.find(needle, at)) != std::string::npos) {
+        const bool boundary = at == 0 || original[at - 1] == '\n';
+        const size_t end = at + needle.size();
+        if (boundary && (end == original.size() || original[end] == '\n' ||
+                         original[end] == ' ' || original[end] == '\r'))
+            return true;
+        ++at;
+    }
+    return false;
+}
+
+Il2CppObject* hkHelp(Il2CppObject* aliases, const MethodInfo* method) {
+    Il2CppObject* vanilla = g_helpOriginal
+        ? g_helpOriginal(aliases, method) : nullptr;
+    if (!vanilla || !g_networkToString || !g_networkLiteral || !g_netMode)
+        return vanilla;
+    int mode = -1;
+    il2cpp::api().field_static_get_value(g_netMode, &mode);
+    if (mode < 0 || mode > 3) return vanilla;
+    const auto help = nativeCommandMailbox().visibleHelp(mode);
+    if (help.empty()) return vanilla;
+    auto& api = il2cpp::api();
+    Il2CppObject* exception = nullptr;
+    Il2CppObject* raw = api.runtime_invoke(g_networkToString, vanilla, nullptr, &exception);
+    std::string result;
+    if (exception || !utf16ToUtf8(reinterpret_cast<Il2CppString*>(raw),
+                                   &result, 8192, 16384)) return vanilla;
+    bool appended = false;
+    for (const auto& [name, description] : help) {
+        if (helpContains(result, name)) continue;
+        const size_t extra = name.size() + description.size() + 4;
+        if (result.size() + extra > 16384) break;
+        if (!result.empty()) result += '\n';
+        result += "/" + name;
+        if (!description.empty()) result += " " + description;
+        appended = true;
+    }
+    if (!appended) return vanilla;
+    Il2CppString* value = api.string_new(result.c_str());
+    if (!value) return vanilla;
+    void* arguments[] = {value};
+    exception = nullptr;
+    Il2CppObject* combined = api.runtime_invoke(
+        g_networkLiteral, nullptr, arguments, &exception);
+    return exception || !combined ? vanilla : combined;
+}
+
+void installNativeCommandHelpHook() {
+    if (g_helpInstalled.load(std::memory_order_acquire) ||
+        ++g_helpAttempts > 8 || !g_networkLiteral) return;
+    auto& api = il2cpp::api();
+    auto* help = il2cpp::findClassQuiet("Terraria.Chat.Commands", "HelpCommand");
+    auto* networkText = il2cpp::findClassQuiet("Terraria.Localization", "NetworkText");
+    if (!help || !networkText) return;
+    const auto* compose = api.class_get_method_from_name(help, "ComposeMessage", 1);
+    const auto* toString = api.class_get_method_from_name(networkText, "ToString", 0);
+    if (!compose || !toString || !api.method_is_instance || !api.method_get_param ||
+        !api.method_get_param_count || !api.type_get_name || !api.il2cpp_free ||
+        api.method_is_instance(compose) || api.method_get_param_count(compose) != 1 ||
+        !hasReturnType(compose, "Terraria.Localization.NetworkText") ||
+        !hasSignature(toString, true, {}) ||
+        !hasReturnType(toString, "System.String"))
+        return;
+    char* parameter = api.type_get_name(api.method_get_param(compose, 0));
+    if (!parameter) return;
+    const std::string type(parameter);
+    api.il2cpp_free(parameter);
+    if (!type.starts_with("System.Collections.Generic.Dictionary"))
+        return;
+    g_networkToString = toString;
+    if (hook::install(compose, hkHelp, &g_helpOriginal))
+        g_helpInstalled.store(true, std::memory_order_release);
+}
+
 } // namespace
 
 bool installNativeCommandChatHooks() {
-    if (g_metadataReady.load(std::memory_order_acquire)) return true;
+    if (g_metadataReady.load(std::memory_order_acquire)) {
+        installNativeCommandHelpHook();
+        return true;
+    }
     if (++g_installAttempts > 16) return false;
     auto& api = il2cpp::api();
     if (!api.runtime_invoke || !api.string_new || !api.field_static_get_value ||
@@ -472,6 +560,7 @@ bool installNativeCommandChatHooks() {
     const bool ready = g_incomingInstalled.load(std::memory_order_acquire) &&
                        g_clientInstalled.load(std::memory_order_acquire);
     g_metadataReady.store(ready, std::memory_order_release);
+    if (ready) installNativeCommandHelpHook();
     return ready;
 }
 
