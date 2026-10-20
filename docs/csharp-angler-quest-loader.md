@@ -54,7 +54,7 @@ As tabelas nativas agora são conferidas com o validador original `il2cpp::nativ
 
 A reconstrução de predicados C# no Mono também segue agora a mesma declaração de conteúdo que o compilador: `[BunnyContent(BunnyContentKind.Item,...)]` fornece nome e textura antes de executar `SetDefaults()`, e a identidade é conferida depois. Classes herdadas sem a declaração são rejeitadas. O fixture C# possui peixe herdado real cujo `SetDefaults()` exige os defaults do atributo.
 
-A atualização das tabelas possui **preparação antes do commit**: a lista de IDs e a expansão de ambas as tabelas de flags são verificadas antes de publicar alterações. Falhas de alocação são testadas e não deixam estado parcial nos mocks do host. Isso não constitui garantia de transação atômica do runtime IL2CPP real, que precisa de validação no dispositivo.
+A atualização das tabelas possui **preparação antes do commit**: a lista de IDs e a expansão de ambas as tabelas de flags são verificadas antes de publicar alterações. Cada novo array IL2CPP temporário recebe um `GCHandle` forte até que todas as tabelas sejam publicadas; um objeto não pode ficar sem raiz entre as alocações do array de IDs e das duas flags. Os handles são liberados por RAII após o commit ou em qualquer falha. Se `gchandle_new`/`gchandle_free` não estiver disponível ou um handle não puder ser criado, a atualização é adiada, sem mutar as tabelas. O host verifica raiz durante cada publicação, a liberação dos handles e falhas simuladas na primeira, segunda e terceira alocação de handles. Isso não substitui o teste com GC IL2CPP real no Android.
 
 ## Garantias e limites de multiplayer
 
@@ -75,12 +75,13 @@ Essa operação **não descarrega assemblies antigos da memória do Mono** nem r
 - Hooks C++ reais com IL2CPP simulado: sorteio, chat, cliente/host, flags, remoção e falhas de alocação.
 - Hook real de pesca com struct simulada de 92 bytes: gravidade, raridade, owner (índice do jogador) e callbacks dinâmicos válidos/inválidos.
 - Testes de arrays IL2CPP falsos rejeitados antes de atualizar IDs/flags, e teste gerenciado de peixe herdado com `[BunnyContent]`.
+- Testes de GCHandle nativo: nenhuma publicação de array sem raiz; falha da API, falhas intermediárias, cleanup de todos os handles e retry bem-sucedido.
 - Regressão de descarregamento com hook já instalado, transição de mundo com tabelas substituídas e teto de quatro chamadas gerenciadas por sorteio.
 - Execução .NET das condições `QuestAvailableWhen`/`QuestCanCatchWhen` no endpoint gerenciado, incluindo recusa de snapshots inválidos.
 - Compilação C++ e C# com avisos tratados como erros no host; regressão de carregamento C# isolado e JS misto.
 - Compilação de sintaxe do próprio `ManagedRuntime.cpp` e teste host isolado de descarregamento/recarga de assemblies nativos com mil ciclos concorrentes.
 
-**CI completo aprovado:** [Actions #39354454309](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39354454309). Jobs `native-host` e `managed-host` aprovados, incluindo validação de arrays reais IL2CPP, peixe C# herdado com declaração, callbacks, worker Mono e regressões existentes.
+**CI host de GCHandle:** [Actions #39355295077](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39355295077). Testes nativos aprovados; confirmar o status gerenciado da execução antes de finalizar o lote.
 
 Ainda faltam ABI do Terraria Android, validação de memória e desempenho a 60 FPS, sincronização/persistência multiplayer real, hot-unload integral de conteúdo C# e possíveis callbacks adicionais do Pescador além dos predicados tipados implementados.
 
