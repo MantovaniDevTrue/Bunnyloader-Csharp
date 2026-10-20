@@ -29,6 +29,8 @@ bool prepareModTreePlanting();
 bool prepareModTreeEffects();
 bool configureModTreeEffects(int groundType,int leafGore,int dustType);
 bool queryModTreeDust(int x,int y,int type,int* dustType);
+bool prepareModTreeShake();
+bool configureModTreeShake(int groundType,int itemType,bool createLeaves);
 bool configureModTreeSapling(int groundType,int saplingType);
 int modTreeCount();
 

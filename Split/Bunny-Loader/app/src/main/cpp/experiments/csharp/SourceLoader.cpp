@@ -734,7 +734,7 @@ bool applyManagedSourceDefaults(
             nativeDefaults.push_back({fields[1],modId,source==mod->sourcePaths.end()?"<unavailable>":source->second,fields[2],registered->second,projectile});
             continue;
         }
-        if((fields.size()==5||fields.size()==7||fields.size()==9) && fields[0]=="TREE") {
+        if((fields.size()==5||fields.size()==7||fields.size()==9||fields.size()==11) && fields[0]=="TREE") {
             const auto key=sourceIdentityForWire("TREE",fields[1]);
             const auto declared=mod->registeredBases.find(key);
             const auto source=mod->sourcePaths.find(key);
@@ -750,7 +750,9 @@ bool applyManagedSourceDefaults(
                !safeName(fields[1])||!safeName(fields[2])||!safeName(fields[3])||
                !tree_texture::validStem(fields[4])||
                (fields.size()>=7&&((fields[6]!="0"&&fields[6]!="1") ||
-                 (fields[5]!="-"&&!safeName(fields[5]))))) {
+                 (fields[5]!="-"&&!safeName(fields[5]))))||
+               (fields.size()==11&&((fields[10]!="0"&&fields[10]!="1")||
+                 (fields[9]!="-"&&!safeName(fields[9]))))) {
                 *error="[CSharp][TreeLoader] Mod="+modId+" Class="+fields[1]+
                        " Stage=Decode Result=Rejected Reason=DescriptorOrIdentityInvalid";
                 return false;
@@ -771,6 +773,10 @@ bool applyManagedSourceDefaults(
                            " Stage=DecodeEffects Result=Rejected";
                     return false;
                 }
+            }
+            if(fields.size()==11) {
+                entry.shakeItem=fields[9]=="-"?"":fields[9];
+                entry.shakeLeaves=fields[10]=="1";
             }
             trees.push_back(std::move(entry));
             if(trees.size()>255) {
@@ -1307,6 +1313,14 @@ bool applyManagedSourceDefaults(
         }
     }
     for(auto& tree:trees) {
+        if(!tree.shakeItem.empty()) {
+            tree.shakeItemType=runtime::modItemTypeByKey(modId+"/"+tree.shakeItem);
+            if(tree.shakeItemType<runtime::kVanillaItemCount) {
+                *error="[CSharp][TreeLoader] Mod="+modId+" Class="+tree.name+
+                       " Stage=ResolveShakeItem Reason=Unregistered Result=Rejected";
+                return false;
+            }
+        }
         if(!tree.woodItem.empty()) {
             tree.woodItemType=runtime::modItemTypeByKey(modId+"/"+tree.woodItem);
             if(tree.woodItemType<runtime::kVanillaItemCount) {

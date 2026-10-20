@@ -4,6 +4,7 @@
 #include "experiments/csharp/NativeTreeDropPolicy.h"
 #include "experiments/csharp/NativeTreePlantPolicy.h"
 #include "experiments/csharp/NativeTreeEffectsPolicy.h"
+#include "experiments/csharp/NativeTreeShakePolicy.h"
 #include "content/common/GameRefs.h"
 #include "core/Log.h"
 #include "hook/HookManager.h"
@@ -35,6 +36,8 @@ struct Tree {
     std::atomic<int> leafGoreType{-1};
     std::atomic<int> dustType{7};
     std::atomic<bool> managedEffects{false};
+    std::atomic<int> shakeItem{-1};
+    std::atomic<bool> shakeLeaves{true};
 };
 
 // O chão -> 1 + índice em g_trees (0 = árvore do jogo).
@@ -399,6 +402,8 @@ bool installHooks() {
     return true;
 }
 
+#include "content/tiles/NativeTreeShakeRuntime.h"
+
 } // namespace
 
 void noteTreeDrawTile(int x, int y, int type, int frameX, int frameY) {
@@ -542,6 +547,19 @@ bool queryModTreeDust(int x,int y,int type,int* dustType) {
     const int dust=tree->dustType.load(std::memory_order_relaxed);
     if(!bl::csharp::tree_effect::acceptDust(type,dust))return false;
     *dustType=dust;
+    return true;
+}
+
+bool prepareModTreeShake() { return setupNativeShakeHook(); }
+
+bool configureModTreeShake(int groundType,int itemType,bool leaves) {
+    Tree* tree=const_cast<Tree*>(treeOfGround(groundType));
+    if(!tree||!g_shakeInstalled||!bl::csharp::tree_shake::validItem(itemType))
+        return false;
+    const int gore=tree->leafGoreType.load(std::memory_order_acquire);
+    if(leaves&&gore>=0&&!bindShakeEffects())return false;
+    tree->shakeLeaves.store(leaves,std::memory_order_relaxed);
+    tree->shakeItem.store(itemType,std::memory_order_release);
     return true;
 }
 

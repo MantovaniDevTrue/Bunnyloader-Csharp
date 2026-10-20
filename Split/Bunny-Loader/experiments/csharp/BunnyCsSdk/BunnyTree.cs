@@ -11,5 +11,7 @@ public abstract class BunnyTree
     public bool CanDropAcorn { get; set; } = true;
     public int LeafGoreType { get; set; } = -1;
     public int DustType { get; set; } = 7;
+    public string ShakeItem { get; set; } = "";
+    public bool ShakeLeaves { get; set; } = true;
     public virtual void SetDefaults() { }
 }

@@ -103,6 +103,9 @@ struct ManagedTreeEntry {
     int woodItemType=-1;
     int leafGoreType=-1;
     int dustType=7;
+    std::string shakeItem;
+    int shakeItemType=-1;
+    bool shakeLeaves=true;
 };
 bool publishManagedNativeTrees(const std::string& modId,const std::string& directory,
     const std::vector<ManagedTreeEntry>& trees,std::string* error);

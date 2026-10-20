@@ -570,12 +570,16 @@ public static class CompiledAssemblyProbe
             bool acorns=Value<bool>(tree,"CanDropAcorn");
             int leaf=Value<int>(tree,"LeafGoreType");
             int dust=Value<int>(tree,"DustType");
+            string shake=Value<string>(tree,"ShakeItem");
+            bool shakeLeaves=Value<bool>(tree,"ShakeLeaves");
             if(!ValidTreeStem(texture)||!ValidTreeName(ground)||!ValidTreeName(sapling)||
                (wood.Length>0&&!ValidTreeName(wood))||
-               leaf< -1||leaf>=32768||dust<0||dust>1999)
+               leaf< -1||leaf>=32768||dust<0||dust>1999||
+               (shake.Length>0&&!ValidTreeName(shake)))
                 throw new InvalidOperationException(name+": invalid BunnyTree descriptor");
             lines.Add(string.Join("\t","TREE",name,ground,sapling,texture,
-                wood.Length==0?"-":wood,acorns?"1":"0",leaf,dust));
+                wood.Length==0?"-":wood,acorns?"1":"0",leaf,dust,
+                shake.Length==0?"-":shake,shakeLeaves?"1":"0"));
         }
         foreach (object tile in tiles)
         {
