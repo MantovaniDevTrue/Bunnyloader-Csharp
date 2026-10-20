@@ -10,6 +10,6 @@ public sealed class DynamicQuestFish : BunnyItem
         Texture = "Content/Items/Quests/ExampleQuestFish.png";
         DefaultToQuestFish();
         QuestAvailableWhen = context => context.Hardmode && context.FishType == 950;
-        QuestCanCatchWhen = context => context.InvertedGravity && context.Uncommon;
+        QuestCanCatchWhen = context => context.InvertedGravity && context.Uncommon && (context.PlayerIndex == -1 || context.PlayerIndex == 2);
     }
 }
