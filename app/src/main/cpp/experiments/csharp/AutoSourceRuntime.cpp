@@ -1283,9 +1283,44 @@ void noteAutoGameUpdate() {
         }
         if (++invasionFrames % 30 == 0 && managedEntitySourceModsRegistered()) {
             const TerrariaSnapshot snapshot = captureTerrariaSnapshot(false, false);
-            if (snapshot.ready && snapshot.player.life > 0)
-                scheduleManagedInvasionWorldTicks(worldSession, bl::runtime::netMode(),
+            const int mode = bl::runtime::netMode();
+            if (snapshot.ready && snapshot.player.life > 0 &&
+                snapshot.player.index >= 0 && snapshot.player.index < 255) {
+                scheduleManagedInvasionWorldTicks(worldSession, mode,
                     snapshot.player.index, snapshot.player.x, snapshot.player.y);
+            } else if (mode == 2 && runtime::resolveGameRefs()) {
+                struct Point { float x, y; };
+                static FieldInfo* playerArray = nullptr;
+                static int activeOffset = -1;
+                static int lifeOffset = -1;
+                if (!playerArray || activeOffset < 0 || lifeOffset < 0) {
+                    auto* main = il2cpp::findClass({"Terraria", "Main", {}});
+                    auto* player = il2cpp::findClass({"Terraria", "Player", {}});
+                    playerArray = main ? il2cpp::findField(main, "player") : nullptr;
+                    activeOffset = player ? il2cpp::fieldOffset(player, "active") : -1;
+                    lifeOffset = player ? il2cpp::fieldOffset(player, "statLife") : -1;
+                }
+                if (playerArray && activeOffset >= 0 && lifeOffset >= 0) {
+                    Il2CppArray* players = nullptr;
+                    il2cpp::api().field_static_get_value(playerArray, &players);
+                    if (players) {
+                        const int count = std::min<int>(players->length, 255);
+                        for (int i = 0; i < count; ++i) {
+                            Il2CppObject* player =
+                                static_cast<Il2CppObject**>(arrayData(players))[i];
+                            if (!player ||
+                                runtime::field<uint8_t>(player, activeOffset) == 0 ||
+                                runtime::field<int>(player, lifeOffset) <= 0) continue;
+                            const auto pos = runtime::field<Point>(
+                                player, runtime::game().entity.position);
+                            if (std::isfinite(pos.x) && std::isfinite(pos.y))
+                                scheduleManagedInvasionWorldTicks(
+                                    worldSession, mode, i, pos.x, pos.y);
+                            break;
+                        }
+                    }
+                }
+            }
         }
         graphics::pumpCSharpScreenEffects();
         const uint64_t tick = g_visualUpdateTick.fetch_add(1, std::memory_order_relaxed) + 1;
