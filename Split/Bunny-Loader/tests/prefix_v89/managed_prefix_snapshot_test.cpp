@@ -29,8 +29,10 @@ int modItemTypeByKey(const std::string& key) {
 }
 
 namespace bl::csharp {
-bool installManagedPrefixGameplayHooks() { return true; }
-bool installManagedPrefixChanceHook() { return true; }
+int gameplayHookInstalls = 0;
+int chanceHookInstalls = 0;
+bool installManagedPrefixGameplayHooks() { ++gameplayHookInstalls; return true; }
+bool installManagedPrefixChanceHook() { ++chanceHookInstalls; return true; }
 bool queueManagedPrefixWarmup(const std::string&,const std::string&,const std::string&) {
     return true;
 }
@@ -55,7 +57,9 @@ int main() {
     assert(!applyManagedItemPrefixCallbackBindings("test",
         {{6207, "ExampleBlade"}, {6207, "ExampleBlade"}}));
     assert(managedItemPrefixCallbackView()->empty());
+    assert(gameplayHookInstalls == 0 && chanceHookInstalls == 0);
     assert(applyManagedItemPrefixCallbackBindings("test", {{6207, "ExampleBlade"}}));
+    assert(gameplayHookInstalls == 1 && chanceHookInstalls == 1);
     auto firstCallbacks = managedItemPrefixCallbackView();
     assert(firstCallbacks->at(6207).modId == "test");
     assert(firstCallbacks->at(6207).owner == "ExampleBlade");
