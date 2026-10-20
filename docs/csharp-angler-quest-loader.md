@@ -73,6 +73,21 @@ Para os **handlers de receitas e predicados do Pescador**, o runtime agora carre
 
 **Escopo da correção:** os outros subsistemas C# que ainda carregam assemblies diretamente no domínio Mono (IA, eventos, interfaces e outros tipos nativos) não são automaticamente migrados por essa alteração. Também não é possível garantir no host que o runtime Mono embutido no Android tenha exatamente o mesmo comportamento de coleta; essa validação continua pendente no aparelho. O hot-unload integral de todos os conteúdos C# e o descarregamento de itens/NPCs/projéteis nativos ainda exigem trabalho próprio.
 
+## Diagnóstico seguro da ABI Android
+
+A preparação de `FishingCheck_RollItemDrop` diferencia os estados
+`MissingIL2CPPExports`, `MissingTerrariaTypes`,
+`UnexpectedFishingAttemptLayout`, `UnexpectedFishingMethodSignature`,
+`UnexpectedFishingFieldLayout`, `UnexpectedPlayerArrayContract` e
+`HookInstallFailed`. O hook continua desativado quando o contrato falha, sem
+gravar em `FishingAttempt` nem instalar código com assinatura incerta.
+O relatório usa o motivo do último teste e é emitido uma única vez por
+sequência de falhas; não há nova sondagem por frame. O fixture host inclui
+regressões de struct com tamanho incorreto, argumento de método incompatível
+e campo `questFish` com tipo divergente. São verificações simuladas; a ABI
+do Terraria Android e o Mono embarcado continuam exigindo validação no
+dispositivo antes de qualquer pacote de instalação.
+
 ## CI e critérios de conclusão
 
 - Testes de `Registry` (validação, reroll limitado, culturas, IDs e ownership).
