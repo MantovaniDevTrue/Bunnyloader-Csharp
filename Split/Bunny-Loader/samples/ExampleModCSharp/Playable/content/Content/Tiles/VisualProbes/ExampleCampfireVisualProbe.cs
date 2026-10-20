@@ -6,7 +6,7 @@ public sealed class ExampleCampfireVisualProbe : BunnyTile
     public override void SetStaticDefaults()
     {
         Texture="Content/Tiles/VisualProbes/ExampleCampfireVisualProbe.png";
-        DisplayName="Example Campfire Visual Probe (1x1)";
+        DisplayName="Example Campfire Visual Probe (3x2)";
         Flags=BunnyTileFlags.FrameImportant|BunnyTileFlags.Lighted|
               BunnyTileFlags.HasOutlines|BunnyTileFlags.WaterDeath|BunnyTileFlags.LavaDeath;
         CacheDrawData=false;

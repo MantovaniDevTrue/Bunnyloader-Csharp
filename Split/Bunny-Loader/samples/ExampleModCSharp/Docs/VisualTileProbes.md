@@ -2,7 +2,7 @@
 
 Os dois tiles C# usam PNGs originais do ExampleModBunny, sem redimensioná-los ou alterar seus pixels. A fogueira usa `BunnyTileShape.Style3x2`, com TileObjectData copiado do campfire vanilla. A luminária usa `BunnyTileShape.Style1x3`, baseada em `Style1xX`, com offset de desenho, espelhamento e frames originais. A ponte cria as formas no Terraria usando a declaração de C#, sem JS.
 
-A geometria é equivalente à dos móveis originais, mas a portabilidade ainda é parcial: falta alternar ligado/desligado com `HitWire`/`RightClick`, sincronizar todos os frames nas trocas, reproduzir o buff da fogueira e validar a persistência. O alvo deste lote é validar desenho, placement, remoção integral, drops e partículas antes de implementar mudanças de estado com segurança.
+A geometria é equivalente à dos móveis originais. As formas declaram `FrameToggle=CampfireVertical` ou `LampHorizontal`, com alternância nativa por fio ou clique somente no single-player, validando todos os frames antes da alteração. Em multiplayer a alternância fica bloqueada até existir sincronização por `NetMessage`. Ainda é necessário validar no Android a escrita real dos frames, a persistência após salvar/carregar e o buff original da fogueira. O alvo deste lote é testar colocação, remoção integral, drops, transições ligado/desligado e partículas com a alteração de estado nativa.
 
 Os itens `ExampleCampfireVisualProbeItem` e `ExampleLampVisualProbeItem` têm receitas com um `ExampleItem` e uma bancada vanilla (tile 18). Não são versões finais distribuíveis.
 
