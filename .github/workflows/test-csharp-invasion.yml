@@ -16,6 +16,8 @@ on:
       - app/src/main/cpp/experiments/csharp/WorldAuthority.h
       - app/src/main/cpp/experiments/csharp/NativeInvasionSpawn.h
       - app/src/main/cpp/experiments/csharp/NativeInvasionSpawn.cpp
+      - app/src/main/cpp/experiments/csharp/NativeInvasionSpawnSite.cpp
+      - app/src/main/cpp/experiments/csharp/NativeInvasionSpawnSite.h
       - app/src/main/cpp/experiments/csharp/NativeInvasionMailbox.cpp
       - app/src/main/cpp/experiments/csharp/NativeInvasionMailbox.h
       - app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp
@@ -65,6 +67,15 @@ jobs:
           python3 tests/invasion/native_spawn_contract.py
           g++ -std=c++17 -Wall -Wextra -Werror tests/invasion/NativeSpawnPolicyTest.cpp -o /tmp/bunny-spawn-policy
           /tmp/bunny-spawn-policy
+      - name: Test bounded terrain spawn placement on real Bunny tile layout
+        run: |
+          g++ -std=c++20 -Wall -Wextra -Werror -Iapp/src/main/cpp tests/invasion/NativeSpawnSiteTest.cpp -o /tmp/bunny-invasion-terrain
+          /tmp/bunny-invasion-terrain
+      - name: Compile Terraria-native tile spawn adapter headers
+        run: |
+          NDK=$(find "${ANDROID_HOME}/ndk" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)
+          test -n "$NDK"
+          "$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android34-clang++" -std=c++20 -Wall -Wextra -Werror -Iapp/src/main/cpp -fsyntax-only app/src/main/cpp/experiments/csharp/NativeInvasionSpawnSite.cpp app/src/main/cpp/experiments/csharp/NativeInvasionSpawn.cpp
       - name: Run game-thread native mailbox policy and world epoch tests
         run: |
           g++ -std=c++20 -Wall -Wextra -Werror -Iapp/src/main/cpp tests/invasion/NativeMailboxTest.cpp app/src/main/cpp/experiments/csharp/NativeInvasionMailbox.cpp -o /tmp/bunny-invasion-mailbox
