@@ -74,6 +74,7 @@ struct ReforgePopup {
 struct Box { Il2CppObject object{}; uint8_t value = 0; } boxed;
 struct DoubleBox { Il2CppObject object{}; double value = 0.0; } randomDouble;
 bool mixedPrefixCandidates = false;
+std::vector<int> batchVanillaCandidates;
 int constructorRuns = 0, nativeRolls = 0;
 
 Il2CppArray* allocate(size_t count, size_t stride) {
@@ -98,6 +99,12 @@ void getStatic(FieldInfo* f, void* out) {
 void setStatic(FieldInfo* f, void* value) { f->value = static_cast<Il2CppArray*>(value); }
 Il2CppArray* vanillaRollable(Il2CppObject* object, const MethodInfo*) {
     if (!reinterpret_cast<Item*>(object)->accessory) return nullptr;
+    if (!batchVanillaCandidates.empty()) {
+        auto* result=allocate(batchVanillaCandidates.size(),sizeof(int32_t));
+        auto* values=static_cast<int32_t*>(arrayData(result));
+        std::copy(batchVanillaCandidates.begin(),batchVanillaCandidates.end(),values);
+        return result;
+    }
     auto* a = allocate(mixedPrefixCandidates ? 2 : 1, sizeof(int32_t));
     auto* values = static_cast<int32_t*>(arrayData(a));
     values[0] = 71;
@@ -1199,6 +1206,16 @@ int main() {
     assert(hookRoll(&nativeItem.object,&randomObject,&vanillaPrefix,nullptr));
     assert(vanillaPrefix==71 && nativeRolls==beforeNativeUnfiltered+2);
     itemWorkerFails=false;
+    batchVanillaCandidates={71,72,73,74,75,76,77};
+    itemWorkerDenied=75;
+    const int callsBeforeBatch=itemWorkerCalls;
+    auto* batched=hookRollable(&nativeItem.object,nullptr);
+    assert(batched && batched->length==6);
+    assert(itemWorkerCalls==callsBeforeBatch+1);
+    const auto* batchIds=static_cast<int32_t*>(arrayData(batched));
+    for (uintptr_t i=0;i<batched->length;++i)
+        assert(batchIds[i]!=75);
+    batchVanillaCandidates.clear();
     itemCallbackView=std::make_shared<const std::map<int,ManagedItemPrefixCallbackBinding>>();
     itemCallbackAssemblies=std::make_shared<const std::map<std::string,std::string>>();
     const auto metrics = managedPrefixDiagnostics();
