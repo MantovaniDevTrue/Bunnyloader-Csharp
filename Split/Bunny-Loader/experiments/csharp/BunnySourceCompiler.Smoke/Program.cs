@@ -736,6 +736,15 @@ public sealed class MinionStaff : BunnyWeapon
         badTypeDraw != "ERROR|Stage=DecodeTileDraw Reason=InvalidTileType")
         throw new InvalidOperationException("Tile animation managed draw transport mismatch: " +
             typedDraw + " / " + legacyDraw + " / " + oldWireDraw + " / " + badTypeDraw);
+    var registeredDrop = new TileRegisteredDropSmoke();
+    registeredDrop.SetStaticDefaults();
+    if(registeredDrop.ItemDropDefinitions != "-1~ExampleTileItem;0~#40;1~ExampleChest" ||
+       registeredDrop.TileCallbackMask != 0)
+        throw new InvalidOperationException("BunnyTile RegisterItemDrop style/default serialization mismatch");
+    var replacedDrop = new TileRegisteredDropSmoke();
+    replacedDrop.RegisterItemDrop("ExampleDoor", 0, 0);
+    if(replacedDrop.ItemDropDefinitions != "0~ExampleDoor")
+        throw new InvalidOperationException("RegisterItemDrop last registration should win");
     string dropsTwo=BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-drop-tile",
         tileSmokeAssembly,nameof(TileDropsSmoke),27,0,"1,4");
     string dropsDefault=BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-drop-tile",
@@ -899,6 +908,16 @@ finally
 }
 
 
+
+sealed class TileRegisteredDropSmoke : BunnyLoader.Source.BunnyTile
+{
+    public override void SetStaticDefaults()
+    {
+        RegisterItemDrop("ExampleTileItem");
+        RegisterItemDrop(40, 0);
+        RegisterItemDrop("ExampleChest", 1);
+    }
+}
 
 sealed class TileAnimatedTypeSmoke : BunnyLoader.Source.BunnyTile
 {
