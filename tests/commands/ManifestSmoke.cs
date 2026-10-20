@@ -32,8 +32,13 @@ try
     if (count != 1)
         throw new Exception("Verifier retornou " + count + ": " + File.ReadAllText(diagnostics));
     string installed = File.ReadAllText(Path.Combine(temp, "source-commands.txt"));
-    if (installed != manifest)
-        throw new Exception("manifesto do verificador nao coincide");
+    string[] lines = installed.Split('\n');
+    if (lines.Length < 4 || !lines[1].StartsWith("ASSEMBLY_SHA256\t", StringComparison.Ordinal) ||
+        lines[1].Length != "ASSEMBLY_SHA256\t".Length + 64 ||
+        installed.Replace(lines[1] + "\n", "", StringComparison.Ordinal) != manifest)
+        throw new Exception("manifesto nao corresponde ao assembly compilado");
+    if (File.ReadAllText(assembly.Location + ".commands") != installed)
+        throw new Exception("manifesto persistente nao corresponde ao verificado");
     if (!File.ReadAllText(Path.Combine(temp, "source-runtime-values.txt"))
           .StartsWith("BUNNY_MANAGED_DEFAULTS_V2\n", StringComparison.Ordinal))
         throw new Exception("mod so de comandos perdeu cabecalho de defaults");
