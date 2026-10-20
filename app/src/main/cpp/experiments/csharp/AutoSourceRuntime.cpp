@@ -907,7 +907,7 @@ void run() {
         }
         if (hasUniversalHooks && !registerUniversalHookMod(mod.id, assembly))
             BL_WARN("csharp universal hooks: fila recusada mod=%s", mod.id.c_str());
-        if (mod.npcs > 0 || mod.projectiles > 0) {
+        if (mod.npcs > 0 || mod.projectiles > 0 || mod.items > 0) {
             const auto npcs = runtime::registeredNpcsForMod(mod.id);
             const auto projectiles = runtime::registeredProjectilesForMod(mod.id);
             if (registerManagedEntitySourceMod(mod.id, assembly, npcs, projectiles))
