@@ -408,8 +408,7 @@ uint32_t nativeRarityToArgb(uint32_t native) {
 void rarityDrawString(Il2CppObject* batch, Il2CppObject* font, Il2CppString* text,
     RarityTextVec2 position, uint32_t color, float rotation, RarityTextVec2 origin,
     float scale, int32_t effects, float depth, const MethodInfo* method) {
-    if (g_groundTextHookReady.load(std::memory_order_acquire) &&
-        rarityTextMatches(text)) {
+    if (rarityTextMatches(text)) {
         const uint32_t original = nativeRarityToArgb(color);
         const uint8_t opacity = static_cast<uint8_t>(original >> 24);
         if (shouldTintNativeRarityText(original, opacity))
@@ -517,6 +516,64 @@ bool validateRarityTextVec2(Il2CppClass* type, std::string* error) {
     return true;
 }
 
+bool installRarityDrawStringHook(std::string* error) {
+    using namespace bl::il2cpp;
+    if (g_rarityDrawStringHookInstalled) return true;
+    auto& a = api();
+    auto* batch = findClass({"Microsoft.Xna.Framework.Graphics", "SpriteBatch", {}});
+    auto* font = findClass({"Microsoft.Xna.Framework.Graphics", "SpriteFont", {}});
+    auto* stringType = findClass({"System", "String", {}});
+    auto* floatType = findClass({"System", "Single", {}});
+    if (!batch || !font || !stringType || !floatType ||
+        !a.method_is_instance || !a.method_get_param_count ||
+        !a.method_get_param || !a.class_from_il2cpp_type) {
+        *error = "Reason=RarityTextDrawTypesUnavailable";
+        return false;
+    }
+    const auto* draw = findMethodBySignature(batch, parseSignature(
+        "void DrawString(SpriteFont spriteFont, string text, Vector2 position, Color color, float rotation, Vector2 origin, float scale, SpriteEffects effects, float layerDepth)"));
+    if (!draw || !a.method_is_instance(draw) ||
+        a.method_get_param_count(draw) != 9 ||
+        !isReturn(draw, "System", "Void") ||
+        a.class_from_il2cpp_type(a.method_get_param(draw, 0)) != font ||
+        a.class_from_il2cpp_type(a.method_get_param(draw, 1)) != stringType ||
+        a.class_from_il2cpp_type(a.method_get_param(draw, 4)) != floatType ||
+        a.class_from_il2cpp_type(a.method_get_param(draw, 6)) != floatType ||
+        a.class_from_il2cpp_type(a.method_get_param(draw, 8)) != floatType) {
+        *error = "Reason=RarityTextDrawSignatureMismatch";
+        return false;
+    }
+    auto* vector = a.class_from_il2cpp_type(a.method_get_param(draw, 2));
+    auto* origin = a.class_from_il2cpp_type(a.method_get_param(draw, 5));
+    auto* color = a.class_from_il2cpp_type(a.method_get_param(draw, 3));
+    auto* effects = a.class_from_il2cpp_type(a.method_get_param(draw, 7));
+    NativeColorLayout layout;
+    uint32_t effectAlignment = 0;
+    const char* effectsNamespace = effects && a.class_get_namespace
+        ? a.class_get_namespace(effects) : nullptr;
+    const char* effectsName = effects && a.class_get_name
+        ? a.class_get_name(effects) : nullptr;
+    if (vector != origin || !validateRarityTextVec2(vector, error) ||
+        !layout.bind(color, error) || !effects ||
+        !a.class_is_enum || !a.class_is_enum(effects) ||
+        !a.class_value_size || !a.class_enum_basetype ||
+        a.class_value_size(effects, &effectAlignment) != 4 ||
+        !effectsNamespace || !effectsName ||
+        std::strcmp(effectsNamespace, "Microsoft.Xna.Framework.Graphics") ||
+        std::strcmp(effectsName, "SpriteEffects")) {
+        if (error->empty()) *error = "Reason=RarityTextDrawValueAbiMismatch";
+        return false;
+    }
+    g_rarityDrawColor = layout;
+    if (!bl::hook::install(draw, rarityDrawString, &g_originalRarityDrawString)) {
+        *error = "Reason=RarityDrawStringHookRejected";
+        return false;
+    }
+    g_rarityDrawStringHookInstalled = true;
+    BL_INFO("[CSharp][RarityLoader] Stage=InstallHook API=SpriteBatch.DrawString Result=Ready");
+    return true;
+}
+
 bool installRarityGroundTextHook(std::string* error) {
     using namespace bl::il2cpp;
     if (g_groundTextHookReady.load(std::memory_order_acquire)) return true;
@@ -524,12 +581,11 @@ bool installRarityGroundTextHook(std::string* error) {
     Il2CppClass* main = findClass({"Terraria", "Main", {}});
     Il2CppClass* cache = main ? findNested(main, "MouseTextCache") : nullptr;
     Il2CppClass* item = findClass({"Terraria", "Item", {}});
-    Il2CppClass* batch = findClass({"Microsoft.Xna.Framework.Graphics", "SpriteBatch", {}});
     Il2CppClass* stringType = findClass({"System", "String", {}});
     Il2CppClass* intType = findClass({"System", "Int32", {}});
     Il2CppClass* byteType = findClass({"System", "Byte", {}});
     Il2CppClass* boolType = findClass({"System", "Boolean", {}});
-    if (!main || !cache || !item || !batch || !stringType || !intType ||
+    if (!main || !cache || !item || !stringType || !intType ||
         !byteType || !boolType || !a.class_is_valuetype ||
         a.class_is_valuetype(cache) || !a.method_is_instance ||
         !a.method_get_param_count || !a.method_get_param ||
@@ -561,58 +617,16 @@ bool installRarityGroundTextHook(std::string* error) {
     }
     const auto* mouse = findMethodBySignature(main,
         parseSignature("void MouseTextInner(Main.MouseTextCache info, bool worldMouse)"));
-    const auto* draw = findMethodBySignature(batch,
-        parseSignature("void DrawString(SpriteFont spriteFont, string text, Vector2 position, Color color, float rotation, Vector2 origin, float scale, SpriteEffects effects, float layerDepth)"));
-    if (!mouse || !draw || !a.method_is_instance(draw) ||
+    if (!mouse || !a.method_is_instance || !a.method_get_param_count ||
+        !a.method_get_param || !a.class_from_il2cpp_type ||
         a.method_get_param_count(mouse) != 2 ||
-        a.method_get_param_count(draw) != 9 ||
         a.class_from_il2cpp_type(a.method_get_param(mouse, 0)) != cache ||
         a.class_from_il2cpp_type(a.method_get_param(mouse, 1)) != boolType ||
-        !isReturn(mouse, "System", "Void") ||
-        !isReturn(draw, "System", "Void") ||
-        a.class_from_il2cpp_type(a.method_get_param(draw, 1)) != stringType) {
-        *error = "Reason=MouseTextDrawSignaturesUnavailable";
+        !isReturn(mouse, "System", "Void")) {
+        *error = "Reason=MouseTextSignatureUnavailable";
         return false;
     }
-    auto* font = findClass({"Microsoft.Xna.Framework.Graphics", "SpriteFont", {}});
-    auto* floatType = findClass({"System", "Single", {}});
-    if (!font || !floatType ||
-        a.class_from_il2cpp_type(a.method_get_param(draw, 0)) != font ||
-        a.class_from_il2cpp_type(a.method_get_param(draw, 4)) != floatType ||
-        a.class_from_il2cpp_type(a.method_get_param(draw, 6)) != floatType ||
-        a.class_from_il2cpp_type(a.method_get_param(draw, 8)) != floatType) {
-        *error = "Reason=MouseTextDrawScalarAbiMismatch";
-        return false;
-    }
-    auto* vector = a.class_from_il2cpp_type(a.method_get_param(draw, 2));
-    auto* origin = a.class_from_il2cpp_type(a.method_get_param(draw, 5));
-    auto* color = a.class_from_il2cpp_type(a.method_get_param(draw, 3));
-    auto* effects = a.class_from_il2cpp_type(a.method_get_param(draw, 7));
-    NativeColorLayout layout;
-    uint32_t effectAlignment = 0;
-    const char* effectsNamespace = effects && a.class_get_namespace
-        ? a.class_get_namespace(effects) : nullptr;
-    const char* effectsName = effects && a.class_get_name
-        ? a.class_get_name(effects) : nullptr;
-    if (vector != origin || !validateRarityTextVec2(vector, error) ||
-        !layout.bind(color, error) || !effects ||
-        !a.class_is_enum || !a.class_is_enum(effects) ||
-        !a.class_value_size || !a.class_enum_basetype ||
-        a.class_value_size(effects, &effectAlignment) != 4 ||
-        !effectsNamespace || !effectsName ||
-        std::strcmp(effectsNamespace, "Microsoft.Xna.Framework.Graphics") ||
-        std::strcmp(effectsName, "SpriteEffects")) {
-        if (error->empty()) *error = "Reason=MouseTextDrawValueAbiMismatch";
-        return false;
-    }
-    if (!g_rarityDrawStringHookInstalled) {
-        g_rarityDrawColor = layout;
-        if (!bl::hook::install(draw, rarityDrawString, &g_originalRarityDrawString)) {
-            *error = "Reason=MouseDrawStringHookRejected";
-            return false;
-        }
-        g_rarityDrawStringHookInstalled = true;
-    }
+    if (!installRarityDrawStringHook(error)) return false;
     g_cacheRareOffset = rare;
     g_cacheTextOffset = text;
     g_cacheBuffOffset = buff;
@@ -698,11 +712,7 @@ void rarityTooltipInstance(Il2CppObject* self, Il2CppObject* cache,
 bool installRarityTooltipHook(std::string* error) {
     using namespace bl::il2cpp;
     if (g_tooltipHookReady.load(std::memory_order_acquire)) return true;
-    if (!g_groundTextHookReady.load(std::memory_order_acquire) ||
-        !g_rarityDrawStringHookInstalled || !g_hoverItem) {
-        *error = "Reason=RarityTextDrawHookNotReady";
-        return false;
-    }
+    if (!installRarityDrawStringHook(error)) return false;
     auto& a = api();
     auto* main = findClass({"Terraria", "Main", {}});
     auto* item = findClass({"Terraria", "Item", {}});
@@ -713,6 +723,7 @@ bool installRarityTooltipHook(std::string* error) {
         parseSignature("string AffixName()")) : nullptr;
     const auto* boolType = findClass({"System", "Boolean", {}});
     const auto* stringType = findClass({"System", "String", {}});
+    auto* intType = findClass({"System", "Int32", {}});
     if (!method || !affix || !cache || !item || !boolType || !stringType ||
         !a.method_get_param_count || a.method_get_param_count(method) != 5 ||
         !a.method_is_instance || !a.method_is_instance(affix) ||
@@ -728,9 +739,15 @@ bool installRarityTooltipHook(std::string* error) {
         return false;
     }
     int expert = -1;
-    if (!validateRarityTextField(item, "expert",
-            const_cast<Il2CppClass*>(boolType), &expert)) {
-        *error = "Reason=RarityExpertItemLayoutMismatch";
+    int hoverType = -1;
+    auto hover = native_static::resolve(main, "HoverItem");
+    if (!intType || !a.class_is_valuetype || a.class_is_valuetype(cache) ||
+        !validateRarityTextField(item, "expert",
+            const_cast<Il2CppClass*>(boolType), &expert) ||
+        !validateRarityTextField(item, "type", intType, &hoverType) ||
+        !hover || hover.type != item ||
+        native_static::size(hover) != sizeof(Il2CppObject*)) {
+        *error = "Reason=RarityTooltipItemLayoutMismatch";
         return false;
     }
     auto affixPointer = methodPointer(affix);
@@ -741,6 +758,8 @@ bool installRarityTooltipHook(std::string* error) {
     g_rarityAffixMethod = affix;
     g_rarityAffixName = reinterpret_cast<RarityAffixNameFn>(affixPointer);
     g_rarityTooltipExpertOffset = expert;
+    g_hoverItemTypeOffset = hoverType;
+    g_hoverItem = hover;
     const bool hooked = a.method_is_instance(method)
         ? bl::hook::install(method, rarityTooltipInstance, &g_originalRarityTooltipInstance)
         : bl::hook::install(method, rarityTooltipStatic, &g_originalRarityTooltipStatic);
@@ -887,8 +906,7 @@ void pumpNativeRarityGameplay() {
             BL_WARN("[CSharp][RarityLoader] Stage=InstallPopup Result=Pending Detail=%s",
                 error.c_str());
     }
-    if (g_hookReady.load(std::memory_order_acquire) &&
-        !g_groundTextHookReady.load(std::memory_order_acquire) && (g_tick % 60u == 0)) {
+    if (!g_groundTextHookReady.load(std::memory_order_acquire) && (g_tick % 60u == 0)) {
         static std::string previousGroundTextError;
         std::string error;
         if (!installRarityGroundTextHook(&error)) {
@@ -901,8 +919,7 @@ void pumpNativeRarityGameplay() {
             previousGroundTextError.clear();
         }
     }
-    if (g_groundTextHookReady.load(std::memory_order_acquire) &&
-        !g_tooltipHookReady.load(std::memory_order_acquire) && (g_tick % 60u == 0)) {
+    if (!g_tooltipHookReady.load(std::memory_order_acquire) && (g_tick % 60u == 0)) {
         std::string error;
         if (!installRarityTooltipHook(&error) && g_tick % 600u == 0)
             BL_WARN("[CSharp][RarityLoader] Stage=InstallTooltip Result=Pending Detail=%s",
