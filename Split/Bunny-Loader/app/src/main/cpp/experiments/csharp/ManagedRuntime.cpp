@@ -2332,7 +2332,7 @@ static bool invokeManagedCallback(bool shooting,const std::string& mod,const std
                          std::string* output,int budgetMicroseconds,
                          bool tile=false,bool prefix=false) {
     if(!output)return false;
-    if(budgetMicroseconds<1||budgetMicroseconds>3000||index<0||index>=16||kind<0||kind>3||
+    if(budgetMicroseconds<1||budgetMicroseconds>3000||index<0||index>=16||kind<0||kind>(prefix?5:3)||
        snapshot.size()>(shooting?1024u:512u)||assembly.empty()||assembly.size()>4096){*output="ERROR|Stage=SubmitRecipeCallback Reason=InvalidTransportArguments";return false;}
     std::unique_lock<std::mutex> lock(g_pinnedMutex,std::try_to_lock);
     if(!lock.owns_lock()){*output="PENDING|Stage=SubmitRecipeCallback Reason=WorkerQueueBusy";return false;}
