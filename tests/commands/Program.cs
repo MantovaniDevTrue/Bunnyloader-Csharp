@@ -84,6 +84,16 @@ Check("unload remove somente o mod", () => {
     registry.Unregister("examplemod");
     Is(!registry.TryHandle("/echo", Caller()), "comando sobreviveu unload");
 });
+Check("descoberta de comandos exportados", () => {
+    var discovered = new BunnyCommandRegistry();
+    Is(discovered.RegisterTypes("types", new[] { typeof(SamplePublicCommand) }) == 1, "registro por classe");
+    Is(discovered.TryHandle("/auto", Caller()), "classe nao registrada");
+    discovered.Unregister("types");
+    Is(!discovered.TryHandle("/auto", Caller()), "registro nao descarregado");
+    Is(discovered.RegisterAssembly("assembly", typeof(SamplePublicCommand).Assembly) == 1,
+        "montagem deveria incluir apenas a classe publica exportada");
+    Is(discovered.TryHandle("/auto", Caller()), "montagem nao registrada");
+});
 Check("registro invalido nao altera o registro", () => {
     Throws<ArgumentException>(() => registry.Register("badmod", new BunnyCommand[] { new Invalid() }));
     Is(!registry.TryHandle("/ok", Caller()), "rollback falhou");
@@ -183,4 +193,10 @@ sealed class EmptyAlias : BunnyCommand
     public override string Command => "valid";
     public override IReadOnlyList<string> Aliases => new[] { "" };
     public override void Action(BunnyCommandContext context) { }
+}
+
+public sealed class SamplePublicCommand : BunnyCommand
+{
+    public override string Command => "auto";
+    public override void Action(BunnyCommandContext context) => context.Caller.Reply("registrado");
 }
