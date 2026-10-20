@@ -417,6 +417,14 @@ void sweepManagedDustLifecycle(Il2CppArray* dusts) {
         return csharp::queueManagedDustCallback(
             state.type, 5, state, static_cast<std::uint64_t>(g_frame));
     });
+    static std::uint64_t reportedDrops = 0;
+    const auto dropped = g_dustLifecycle.droppedCount();
+    if (dropped < reportedDrops) reportedDrops = 0;
+    if (dropped > reportedDrops && (reportedDrops == 0 || dropped - reportedDrops >= 64)) {
+        reportedDrops = dropped;
+        BL_ERROR("[CSharp][DustLoader] Stage=ReleaseQueue Dropped=%llu Reason=QueueCapacityExceeded",
+                 static_cast<unsigned long long>(dropped));
+    }
 }
 
 bool managedDustPhase(Il2CppObject* dust, int phase, std::uint32_t* flags,
