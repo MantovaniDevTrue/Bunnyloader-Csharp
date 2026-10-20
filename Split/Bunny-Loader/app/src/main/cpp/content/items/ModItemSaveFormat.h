@@ -134,7 +134,7 @@ inline bool read(std::istream& stream, std::vector<SavedItem>& out, bool strict 
         }
     }
 
-    if (stream.bad()) return false;
+    if (stream.bad() || (version3 && records.empty())) return false;
 
     out = std::move(records);
 
