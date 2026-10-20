@@ -897,6 +897,7 @@ string ExtraTooltip { get; set; }
 | `void AddTooltipLine(string text)` | compile_policy |
 | `void Apply(BunnyPrefixItemSnapshot item, ref BunnyPrefixApplyStats effects)` | worker_callback_opt_in |
 | `void Apply(ref BunnyPrefixApplyStats effects)` | compile_policy |
+| `void ApplyAccessoryEffects(BunnyPrefixPlayerSnapshot player, ref int defenseBonus)` | worker_callback_opt_in |
 | `void ApplyAccessoryEffects(ref int defenseBonus)` | compile_policy |
 | `void ConfigureItemConditions(BunnyPrefixItemConditions conditions)` | compile_policy |
 | `void ConfigureRollRules(BunnyPrefixRollRules rules)` | compile_policy |
@@ -958,6 +959,15 @@ int Damage { get; }
 int ItemType { get; }
 int Mana { get; }
 int Stack { get; }
+```
+
+## BunnyLoader.Source.BunnyPrefixPlayerSnapshot
+
+struct; base: `System.ValueType`.
+
+```csharp
+int Life { get; }
+int LifeMax { get; }
 ```
 
 ## BunnyLoader.Source.BunnyPrefixRollRules

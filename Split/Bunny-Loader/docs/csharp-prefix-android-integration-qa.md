@@ -39,6 +39,10 @@ O `ExampleWand` é uma arma; não presumir que ela possa ter pilha 2–5 no inve
 
 Guardar para cada caso: **PASS**, **FAIL** ou **NOT TESTED**, commit/build, mods ativos, passos de reprodução, resultado visível, contadores pré/pós, FPS e log de falha quando aplicável. `NOT TESTED` não conta como aprovação.
 
+## Efeito dinâmico de acessórios C# (experimental)
+
+O overload `BunnyPrefix.ApplyAccessoryEffects(BunnyPrefixPlayerSnapshot player, ref int defenseBonus)` recebe vida atual e máxima em snapshot imutável, opcionalmente no worker MonoVM. A política estática `ApplyAccessoryEffects(ref int)` permanece. A execução do worker tem limite por tentativa de 650 µs e cache nativo de 250 ms por jogador/prefixo/vida, com taxa máxima de uma tentativa a cada 150 ms por thread; em erros ou timeout, fica apenas o efeito compilado. O comportamento ainda exige testes reais de FPS, multiplayer, respawn e carregamento.
+
 ## Paridade ainda pendente
 
 O PrefixLoader C# implementa decisões declarativas avaliadas em C++ e lógica C# avaliada na compilação. Os callbacks gerenciados arbitrários com objetos reais do Terraria, incluindo `ChoosePrefix(item, random)`, `CanRoll(item)`, `RollChance(item)`, `GetTooltipLines(item)`, `Apply(item)` e `ApplyAccessoryEffects(player)`, ainda **não** possuem paridade geral. Um callback síncrono na thread de reforja não deve ser adicionado sem protocolo com timeout, cancelamento de requisições tardias, isolamento da MonoVM, reprodução determinística, e testes reais de carga. Até lá a PR permanece draft.
