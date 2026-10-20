@@ -13,6 +13,12 @@ inline bool managedLiveCallbackCurrent(bool sessionEnabled, bool typeArmed,
     return sessionEnabled && typeArmed && !ownerRevoked;
 }
 
+inline bool managedLiveSessionCanStop(bool sessionEnabled, bool primaryRevoked,
+                                     bool primaryIntakeDisarmed, bool additionalArmed) {
+    return sessionEnabled && primaryRevoked && primaryIntakeDisarmed &&
+        !additionalArmed;
+}
+
 template <typename Job, typename Binding>
 size_t eraseManagedModBoundJobs(std::deque<Job>& jobs,
                                 const std::vector<Binding>& bindings,

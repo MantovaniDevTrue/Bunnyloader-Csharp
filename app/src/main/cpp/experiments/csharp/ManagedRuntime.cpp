@@ -3923,9 +3923,11 @@ void invalidateManagedDeferredSourceMod(const std::string& modId) {
         if (binding.armedType.load(std::memory_order_acquire) == binding.type)
             anyAdditionalArmed = true;
     }
-    if (!anyAdditionalArmed &&
-        g_liveHitType.load(std::memory_order_acquire) < 0 &&
-        g_liveHitStatus.enabled) {
+    if (managedLiveSessionCanStop(
+            g_liveHitStatus.enabled,
+            g_revokedDeferredMods.contains(g_liveHitStatus.modId),
+            g_liveHitType.load(std::memory_order_acquire) < 0,
+            anyAdditionalArmed)) {
         g_liveHitStatus.enabled = false;
         g_liveHitAutomatic.store(false, std::memory_order_release);
         g_liveHitStatus.phase = "mod-revoked";

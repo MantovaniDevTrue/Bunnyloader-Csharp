@@ -33,6 +33,11 @@ int main() {
     assert(!managedLiveCallbackCurrent(true, false, false));
     assert(!managedLiveCallbackCurrent(true, true, true));
     assert(!managedLiveCallbackCurrent(false, true, false));
+    assert(!managedLiveSessionCanStop(true, false, true, false));
+    assert(!managedLiveSessionCanStop(true, true, true, true));
+    assert(!managedLiveSessionCanStop(true, true, false, false));
+    assert(!managedLiveSessionCanStop(false, true, true, false));
+    assert(managedLiveSessionCanStop(true, true, true, false));
 
     assert(ingress.pauseBinding(0, revoked) == 1);
     assert(revoked.load() == -1);

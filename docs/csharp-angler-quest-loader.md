@@ -108,7 +108,9 @@ bindings secundárias do mod são desarmadas individualmente, retirando apenas
 os eventos desse mod e preservando os demais. Se o mod revogado for o principal,
 a fila principal é desativada e os mods secundários permanecem ativos.
 O resultado de um callback que já estava em execução só é aplicado quando
-a binding e o mod ainda estiverem ativos. Não existe tentativa de interromper
+a binding e o mod ainda estiverem ativos. O desarme normal do ingresso
+por limite de eventos não é confundido com descarregamento: eventos já
+aceitos continuam sendo processados enquanto a sessão permanecer válida. Não existe tentativa de interromper
 o callback Mono em andamento nem de descarregar assemblies do domínio.
 
 ## Diagnóstico seguro da ABI Android
