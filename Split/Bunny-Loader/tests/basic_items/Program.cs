@@ -444,13 +444,16 @@ try {
   string src=Path.Combine(root,"content","TreeProbe.cs");
   string output=Path.Combine(scratch,"tree.dll"),diag=Path.Combine(scratch,"tree.log");
   const string valid="using BunnyLoader.Source;public sealed class TreeProbe:BunnyTree{public override void SetDefaults(){"+
-    "Texture=\"Content/Tiles/Plants/ExampleTree\";GrowsOnTile=\"ExampleTile\";SaplingTile=\"ExampleSapling\";WoodItem=\"ExampleItem\";CanDropAcorn=false;LeafGoreType=0;DustType=6;ShakeItem=\"ExampleTileItem\";ShakeLeaves=false;}}";
+    "Texture=\"Content/Tiles/Plants/ExampleTree\";GrowsOnTile=\"ExampleTile\";SaplingTile=\"ExampleSapling\";WoodItem=\"ExampleItem\";CanDropAcorn=false;LeafGoreName=\"ExampleTree_Leaf\";DustType=6;ShakeItem=\"ExampleTileItem\";ShakeLeaves=false;}}";
+  string goreSrc=Path.Combine(root,"content","ExampleTree_Leaf.cs");
+  File.WriteAllText(goreSrc,"using BunnyLoader.Source;public sealed class ExampleTree_Leaf:BunnyGore{public override void SetDefaults(){Texture=\"Content/Gores/ExampleTree_Leaf\";SpecialAI=3;SafeGore=true;}}");
   File.WriteAllText(src,valid);
   Equal(1,Compiler.Compile(root,output,runtime,diag));
   Equal(1,CompiledAssemblyProbe.Verify(output,diag));
   string[] rows=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt"));
-  Equal(2,rows.Length);
-  Equal("TREE\tTreeProbe\tExampleTile\tExampleSapling\tContent/Tiles/Plants/ExampleTree\tExampleItem\t0\t0\t6\tExampleTileItem\t0",rows[1]);
+  Equal(3,rows.Length);
+  Equal("GORE\tExampleTree_Leaf\tContent/Gores/ExampleTree_Leaf\t3\t1",rows[1]);
+  Equal("TREE\tTreeProbe\tExampleTile\tExampleSapling\tContent/Tiles/Plants/ExampleTree\tExampleItem\t0\t-1\t6\tExampleTileItem\t0\tExampleTree_Leaf",rows[2]);
   foreach(string invalid in new[]{"../OtherTree","Content//Trees/Broken","Content/Trees/Leaf.png"}) {
     File.WriteAllText(src,valid.Replace("Content/Tiles/Plants/ExampleTree",invalid));
     Equal(1,Compiler.Compile(root,output,runtime,diag));

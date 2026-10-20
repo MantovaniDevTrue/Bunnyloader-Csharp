@@ -102,11 +102,22 @@ struct ManagedTreeEntry {
     bool canDropAcorn=true;
     int woodItemType=-1;
     int leafGoreType=-1;
+    std::string leafGoreName;
     int dustType=7;
     std::string shakeItem;
     int shakeItemType=-1;
     bool shakeLeaves=true;
 };
+struct ManagedGoreEntry {
+    std::string name;
+    std::string texture;
+    int specialAI=0;
+    bool safeGore=false;
+};
+bool publishManagedNativeGores(const std::string& modId,const std::string& directory,
+    const std::vector<ManagedGoreEntry>& gores,std::map<std::string,int>* ids,
+    std::string* error);
+
 bool publishManagedNativeTrees(const std::string& modId,const std::string& directory,
     const std::vector<ManagedTreeEntry>& trees,std::string* error);
 

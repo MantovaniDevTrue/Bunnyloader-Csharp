@@ -195,7 +195,7 @@ string Texture { get; }
 
 enum; base: `System.Enum`.
 
-Values: Item, Tile, Tree, Weapon, Projectile, Buff, BuffPotion, Accessory, Player, NPC, Prefix, Wall.
+Values: Item, Tile, Tree, Weapon, Projectile, Buff, BuffPotion, Accessory, Player, NPC, Prefix, Wall, Gore.
 
 ## BunnyLoader.Source.BunnyCraftContext
 
@@ -397,6 +397,20 @@ string LastError { get; }
 | `static void InvokeInt32(int slot, Int64 ticket, IntPtr self, int value, out int success, out int returnedValue)` | experimental_worker_sync_void0 |
 | `static void InvokeInt32Pair(int slot, Int64 ticket, IntPtr self, int first, int second, out int success, out int returnedValue)` | experimental_worker_sync_void0 |
 | `static void RemoveSlot(int slot)` | experimental_worker_sync_void0 |
+
+## BunnyLoader.Source.BunnyGore
+
+abstract class; base: `System.Object`.
+
+```csharp
+bool SafeGore { get; set; }
+int SpecialAI { get; set; }
+string Texture { get; set; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `void SetDefaults()` | compile_policy |
 
 ## BunnyLoader.Source.BunnyHurtInfo
 
@@ -1257,6 +1271,7 @@ bool ShakeLeaves { get; set; }
 int DustType { get; set; }
 int LeafGoreType { get; set; }
 string GrowsOnTile { get; set; }
+string LeafGoreName { get; set; }
 string SaplingTile { get; set; }
 string ShakeItem { get; set; }
 string Texture { get; set; }

@@ -96,6 +96,9 @@ public static class CompiledAssemblyProbe
             var treeTypes = contentTypes
                 .Where(type => IsContentType(type, "BunnyTree"))
                 .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
+            var goreTypes = contentTypes
+                .Where(type => IsContentType(type, "BunnyGore"))
+                .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
             var basicItemTypes = contentTypes
                 .Where(type => IsContentType(type, "BunnyItem"))
                 .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
@@ -123,12 +126,12 @@ public static class CompiledAssemblyProbe
             var screenEffectTypes = contentTypes
                 .Where(type => IsContentType(type, "BunnyScreenEffect"))
                 .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
-            if (wallTypes.Length > 4096 || tileTypes.Length > 4096 || treeTypes.Length > 255 || prefixTypes.Length > 4096 || npcTypes.Length > 4096 || accessoryTypes.Length > 4096 || playerTypes.Length > 4096 ||
+            if (wallTypes.Length > 4096 || tileTypes.Length > 4096 || treeTypes.Length > 255 || goreTypes.Length > 256 || prefixTypes.Length > 4096 || npcTypes.Length > 4096 || accessoryTypes.Length > 4096 || playerTypes.Length > 4096 ||
                 projectileTypes.Length > 4096 ||
                 weaponTypes.Length > 4096 || basicItemTypes.Length > 4096 ||
                 buffTypes.Length > 4096 || potionTypes.Length > 4096 || screenEffectTypes.Length > 4096)
                 throw new InvalidOperationException("C# content class count out of bounds");
-            if (wallTypes.Length + tileTypes.Length + treeTypes.Length + basicItemTypes.Length + projectileTypes.Length + weaponTypes.Length + buffTypes.Length + potionTypes.Length + accessoryTypes.Length + playerTypes.Length + npcTypes.Length + prefixTypes.Length + screenEffectTypes.Length == 0)
+            if (wallTypes.Length + tileTypes.Length + treeTypes.Length + goreTypes.Length + basicItemTypes.Length + projectileTypes.Length + weaponTypes.Length + buffTypes.Length + potionTypes.Length + accessoryTypes.Length + playerTypes.Length + npcTypes.Length + prefixTypes.Length + screenEffectTypes.Length == 0)
                 throw new InvalidOperationException("C# assembly has no supported content types");
             bool fixture = projectileTypes.Any(t => t.FullName == "SourceCSharpMod.SourceBolt") &&
                 weaponTypes.Any(t => t.FullName == "SourceCSharpMod.SourceWand");
@@ -143,6 +146,7 @@ public static class CompiledAssemblyProbe
             object[] basicItems = basicItemTypes.Select(CreateContent).ToArray();
             object[] tiles = tileTypes.Select(CreateTileContent).ToArray();
             object[] trees = treeTypes.Select(CreateContent).ToArray();
+            object[] gores = goreTypes.Select(CreateContent).ToArray();
             object[] walls = wallTypes.Select(CreateTileContent).ToArray();
             object[] buffs = buffTypes.Select(CreateContent).ToArray();
             object[] potions = potionTypes.Select(CreateContent).ToArray();
@@ -159,7 +163,7 @@ public static class CompiledAssemblyProbe
                     throw new InvalidOperationException(effect.GetType().FullName + ": exactly one ShaderFile or PipelineFile required");
             }
             WriteRuntimeDefaults(projectiles, weapons, buffs, potions,
-                accessories, players, npcs, prefixes, basicItems, tiles, walls, trees, diagnosticsPath);
+                accessories, players, npcs, prefixes, basicItems, tiles, walls, trees, gores, diagnosticsPath);
             WriteProjectileMotionPolicies(assembly, projectileTypes, diagnosticsPath);
             WriteAutomaticCombatPolicies(projectiles, diagnosticsPath);
             if (fixture)
@@ -181,7 +185,7 @@ public static class CompiledAssemblyProbe
                     ? " projectile=SourceBolt width=10 weapon=SourceWand damage=22 shoot=SourceBolt"
                     : " policy=generic-managed-defaults"));
             return projectiles.Length + weapons.Length + buffs.Length + potions.Length +
-                accessories.Length + players.Length + npcs.Length + prefixes.Length + basicItems.Length + tiles.Length + walls.Length + trees.Length + screenEffects.Length;
+                accessories.Length + players.Length + npcs.Length + prefixes.Length + basicItems.Length + tiles.Length + walls.Length + trees.Length + gores.Length + screenEffects.Length;
         }
         catch (Exception exception)
         {
@@ -528,7 +532,7 @@ public static class CompiledAssemblyProbe
     private static void WriteRuntimeDefaults(object[] projectiles, object[] weapons,
         object[] buffs, object[] potions, object[] accessories,
         object[] players, object[] npcs, object[] prefixes, object[] basicItems,
-        object[] tiles, object[] walls, object[] trees, string diagnosticsPath)
+        object[] tiles, object[] walls, object[] trees, object[] gores, string diagnosticsPath)
     {
         static T Value<T>(object instance, string name) =>
             (T)(instance.GetType().GetProperty(name)?.GetValue(instance)
@@ -558,6 +562,19 @@ public static class CompiledAssemblyProbe
             if (!names.Add("WALL:" + name)) throw new InvalidOperationException("Duplicate BunnyWall: " + name);
             lines.Add(Value<string>(wall, "NativeDefinition"));
         }
+        foreach (object gore in gores)
+        {
+            string name=gore.GetType().Name;
+            CheckName(name);
+            if(!names.Add("GORE:"+name))
+                throw new InvalidOperationException("Duplicate BunnyGore: "+name);
+            string texture=Value<string>(gore,"Texture");
+            int ai=Value<int>(gore,"SpecialAI");
+            bool safe=Value<bool>(gore,"SafeGore");
+            if(!ValidTreeStem(texture)||ai<0||ai>255)
+                throw new InvalidOperationException(name+": invalid BunnyGore descriptor");
+            lines.Add(string.Join("\t","GORE",name,texture,ai,safe?"1":"0"));
+        }
         foreach (object tree in trees)
         {
             string name=tree.GetType().Name;
@@ -569,17 +586,20 @@ public static class CompiledAssemblyProbe
             string wood=Value<string>(tree,"WoodItem");
             bool acorns=Value<bool>(tree,"CanDropAcorn");
             int leaf=Value<int>(tree,"LeafGoreType");
+            string leafName=Value<string>(tree,"LeafGoreName");
             int dust=Value<int>(tree,"DustType");
             string shake=Value<string>(tree,"ShakeItem");
             bool shakeLeaves=Value<bool>(tree,"ShakeLeaves");
             if(!ValidTreeStem(texture)||!ValidTreeName(ground)||!ValidTreeName(sapling)||
                (wood.Length>0&&!ValidTreeName(wood))||
                leaf< -1||leaf>=32768||dust<0||dust>1999||
+               (leafName.Length>0&&(!ValidTreeName(leafName)||leaf>=0))||
                (shake.Length>0&&!ValidTreeName(shake)))
                 throw new InvalidOperationException(name+": invalid BunnyTree descriptor");
             lines.Add(string.Join("\t","TREE",name,ground,sapling,texture,
                 wood.Length==0?"-":wood,acorns?"1":"0",leaf,dust,
-                shake.Length==0?"-":shake,shakeLeaves?"1":"0"));
+                shake.Length==0?"-":shake,shakeLeaves?"1":"0",
+                leafName.Length==0?"-":leafName));
         }
         foreach (object tile in tiles)
         {

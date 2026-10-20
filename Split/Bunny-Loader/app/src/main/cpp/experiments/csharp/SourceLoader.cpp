@@ -504,6 +504,8 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
     }
     status->trees = static_cast<int>(std::count_if(defs.begin(),defs.end(),
         [](const ParsedSourceType& def){return def.base=="BunnyTree";}));
+    status->gores = static_cast<int>(std::count_if(defs.begin(),defs.end(),
+        [](const ParsedSourceType& def){return def.base=="BunnyGore";}));
     status->tiles = ctx.tiles;
     status->walls = ctx.walls;
     status->items = ctx.items;
@@ -649,6 +651,7 @@ bool applyManagedSourceDefaults(
     std::map<std::string, bool> seen;
     std::vector<ManagedTileEntry> tiles;
     std::vector<ManagedTreeEntry> trees;
+    std::vector<ManagedGoreEntry> gores;
     std::vector<walls::Definition> wallDefinitions;
     std::vector<ManagedProjectileEntry> projectiles;
     std::vector<ManagedWeaponEntry> weapons;
@@ -734,7 +737,29 @@ bool applyManagedSourceDefaults(
             nativeDefaults.push_back({fields[1],modId,source==mod->sourcePaths.end()?"<unavailable>":source->second,fields[2],registered->second,projectile});
             continue;
         }
-        if((fields.size()==5||fields.size()==7||fields.size()==9||fields.size()==11) && fields[0]=="TREE") {
+        if(fields.size()==5&&fields[0]=="GORE") {
+            const auto key=sourceIdentityForWire("GORE",fields[1]);
+            auto found=mod->registeredBases.find(key);
+            const auto safe=[](const std::string& name) {
+                return !name.empty()&&name.size()<=72&&
+                    std::all_of(name.begin(),name.end(),[](unsigned char c) {
+                        return (c>='a'&&c<='z')||(c>='A'&&c<='Z')||
+                               (c>='0'&&c<='9')||c=='_';
+                    });
+            };
+            int ai=-1;
+            if(found==mod->registeredBases.end()||found->second!="BunnyGore"||
+               !mod->sourcePaths.contains(key)||!seen.emplace(key,true).second||
+               !safe(fields[1])||!tree_texture::validStem(fields[2])||
+               !integer(fields[3],&ai)||ai<0||ai>255||
+               (fields[4]!="0"&&fields[4]!="1")||gores.size()>=256) {
+                *error="[CSharp][GoreLoader] Mod="+modId+" Stage=Decode Result=Rejected";
+                return false;
+            }
+            gores.push_back({fields[1],fields[2],ai,fields[4]=="1"});
+            continue;
+        }
+        if((fields.size()==5||fields.size()==7||fields.size()==9||fields.size()==11||fields.size()==12) && fields[0]=="TREE") {
             const auto key=sourceIdentityForWire("TREE",fields[1]);
             const auto declared=mod->registeredBases.find(key);
             const auto source=mod->sourcePaths.find(key);
@@ -751,7 +776,7 @@ bool applyManagedSourceDefaults(
                !tree_texture::validStem(fields[4])||
                (fields.size()>=7&&((fields[6]!="0"&&fields[6]!="1") ||
                  (fields[5]!="-"&&!safeName(fields[5]))))||
-               (fields.size()==11&&((fields[10]!="0"&&fields[10]!="1")||
+               (fields.size()>=11&&((fields[10]!="0"&&fields[10]!="1")||
                  (fields[9]!="-"&&!safeName(fields[9]))))) {
                 *error="[CSharp][TreeLoader] Mod="+modId+" Class="+fields[1]+
                        " Stage=Decode Result=Rejected Reason=DescriptorOrIdentityInvalid";
@@ -774,9 +799,20 @@ bool applyManagedSourceDefaults(
                     return false;
                 }
             }
-            if(fields.size()==11) {
+            if(fields.size()>=11) {
                 entry.shakeItem=fields[9]=="-"?"":fields[9];
                 entry.shakeLeaves=fields[10]=="1";
+            }
+            if(fields.size()==12) {
+                if(fields[11]!="-"&&!safeName(fields[11])) {
+                    *error="[CSharp][TreeLoader] Stage=Decode Reason=InvalidLeafGoreName";
+                    return false;
+                }
+                entry.leafGoreName=fields[11]=="-"?"":fields[11];
+                if(!entry.leafGoreName.empty()&&entry.leafGoreType>=0) {
+                    *error="[CSharp][TreeLoader] Stage=Decode Reason=CompetingLeafGoreRefs";
+                    return false;
+                }
             }
             trees.push_back(std::move(entry));
             if(trees.size()>255) {
@@ -1270,6 +1306,7 @@ bool applyManagedSourceDefaults(
         }
     }
     if (trees.size() != static_cast<size_t>(mod->trees) ||
+        gores.size() != static_cast<size_t>(mod->gores) ||
         tiles.size() != static_cast<size_t>(mod->tiles) ||
         projectiles.size() != static_cast<size_t>(mod->projectiles) ||
         weapons.size() + potions.size() + accessories.size() + basicItems.size() !=
@@ -1281,7 +1318,7 @@ bool applyManagedSourceDefaults(
         players.size() != static_cast<size_t>(mod->players) ||
         npcs.size() != static_cast<size_t>(mod->npcs) ||
         prefixes.size() != static_cast<size_t>(mod->prefixes) ||
-        seen.size() != mod->registeredKindTypes.size() + mod->playerClasses.size() + trees.size()) {
+        seen.size() != mod->registeredKindTypes.size() + mod->playerClasses.size() + trees.size() + gores.size()) {
         *error = "As classes compiladas nao correspondem ao conteudo registrado";
         return false;
     }
@@ -1367,6 +1404,26 @@ bool applyManagedSourceDefaults(
     if(!wallDefinitions.empty()&&!walls::publish(std::move(wallDefinitions),error))return false;
     if (!tiles.empty() && !applyManagedNativeTileDefaultsBatch(modId, tiles)) {
         *error = "Falha ao aplicar os defaults nativos de BunnyTile"; return false;
+    }
+    for(const auto& tree:trees)if(!tree.leafGoreName.empty()&&
+       std::none_of(gores.begin(),gores.end(),[&](const ManagedGoreEntry& gore) {
+           return gore.name==tree.leafGoreName;
+       })) {
+        *error="[CSharp][TreeLoader] Mod="+modId+" Class="+tree.name+
+               " Stage=ResolveLeaf Reason=GoreNotDeclared";
+        return false;
+    }
+    std::map<std::string,int> goreIds;
+    if(!gores.empty()&&!publishManagedNativeGores(
+         modId,mod->directory,gores,&goreIds,error))return false;
+    for(auto& tree:trees)if(!tree.leafGoreName.empty()) {
+        auto id=goreIds.find(tree.leafGoreName);
+        if(id==goreIds.end()) {
+            *error="[CSharp][TreeLoader] Mod="+modId+" Class="+tree.name+
+                   " Stage=ResolveLeaf Reason=GoreNotPublished";
+            return false;
+        }
+        tree.leafGoreType=id->second;
     }
     if(!trees.empty()&&!publishManagedNativeTrees(modId,mod->directory,trees,error))return false;
     if (!useSounds::publish(useSounds,error)) return false;

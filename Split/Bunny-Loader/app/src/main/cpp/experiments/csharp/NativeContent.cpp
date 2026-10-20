@@ -15,6 +15,7 @@
 #include "experiments/csharp/NativeTilePolicy.h"
 #include "experiments/csharp/NativeTileMiningPolicy.h"
 #include "experiments/csharp/NativeTreeTexturePolicy.h"
+#include "experiments/csharp/NativeGorePolicy.h"
 #include "experiments/csharp/NativeBootEffects.h"
 
 #include "content/common/GameRefs.h"
@@ -2456,6 +2457,133 @@ bool applyManagedNativeTileDefaultsBatch(const std::string& modId,
     }
     runtime::setNativeTilesInstalledHook(onManagedTilesInstalled);
     runtime::requestNativeTileDefaults();
+    return true;
+}
+
+
+bool publishManagedNativeGores(const std::string& modId,const std::string& directory,
+                               const std::vector<ManagedGoreEntry>& gores,
+                               std::map<std::string,int>* ids,std::string* error) {
+    if(!ids||!error)return false;
+    if(gores.empty())return true;
+    const auto fail=[&](const char* stage,const std::string& reason) {
+        *error="[CSharp][GoreLoader] Mod="+modId+" Stage="+stage+
+               " Reason="+reason+" Result=Rejected";
+        BL_ERROR("%s",error->c_str());
+        return false;
+    };
+    auto& a=il2cpp::api();
+    if(!a.field_static_get_value||!a.field_static_set_value||!a.object_get_class||
+       !a.class_get_element_class||!a.class_get_name||!a.array_new||
+       !a.runtime_invoke)return fail("ABI","UnavailableIL2CPPAccess");
+    auto* textures=il2cpp::findClass({"Terraria.GameContent","TextureAssets",{}});
+    auto* goreClass=il2cpp::findClass({"Terraria.ID","GoreID",{}});
+    auto* sets=goreClass?il2cpp::findNested(goreClass,"Sets"):nullptr;
+    auto* safety=il2cpp::findClass({"Terraria.GameContent","ChildSafety",{}});
+    if(!textures||!sets||!safety)return fail("ABI","GoreClassesUnavailable");
+    const std::array<Il2CppClass*,6> classes={textures,sets,sets,sets,sets,safety};
+    const std::array<const char*,6> names={
+        "Gore","SpecialAI","DisappearSpeed","DisappearSpeedAlpha","IsDrip","SafeGore"
+    };
+    std::array<FieldInfo*,6> fields{};
+    std::array<Il2CppArray*,6> original{};
+    std::array<Il2CppArray*,6> pending{};
+    for(size_t i=0;i<fields.size();++i) {
+        fields[i]=il2cpp::findField(classes[i],names[i]);
+        if(!fields[i])return fail("ABI",std::string("MissingField:")+names[i]);
+        a.field_static_get_value(fields[i],&original[i]);
+        if(!original[i])return fail("ABI",std::string("MissingArray:")+names[i]);
+    }
+    const auto first=original[0]->length;
+    if(!gore_policy::capacity(first,gores.size()))
+        return fail("Capacity","ExceededGoreIDs");
+    for(size_t i=1;i<original.size();++i)
+        if(original[i]->length>first || original[i]->length==0)
+            return fail("ABI",std::string("GoreTableLengthMismatch:")+names[i]);
+    const auto elemName=[&](Il2CppArray* arr)->std::string {
+        auto* cls=a.class_get_element_class(
+            a.object_get_class(reinterpret_cast<Il2CppObject*>(arr)));
+        const char* name=cls?a.class_get_name(cls):nullptr;
+        return name?name:"";
+    };
+    const std::string special=elemName(original[1]);
+    const std::string speed=elemName(original[2]);
+    const std::string alpha=elemName(original[3]);
+    if((special!="Byte"&&special!="Int32")||
+       (speed!="Int32"&&speed!="Single"&&speed!="Byte")||
+       (alpha!="Int32"&&alpha!="Single"&&alpha!="Byte")||
+       elemName(original[4])!="Boolean"||elemName(original[5])!="Boolean")
+        return fail("ABI","UnexpectedGoreElementTypes");
+    std::map<std::string,bool> namesUsed;
+    std::vector<std::string> files;
+    files.reserve(gores.size());
+    for(const auto& gore:gores) {
+        if(!gore_policy::valid(gore.name,gore.texture,gore.specialAI)||
+           !namesUsed.emplace(gore.name,true).second)
+            return fail("Preflight","InvalidOrDuplicateGore:"+gore.name);
+        const auto file=gore_policy::filePath(directory,gore.texture);
+        if(file.empty()||!fileExists(file))
+            return fail("Files","MissingGorePng:"+gore.name);
+        files.push_back(file);
+    }
+    std::vector<Il2CppObject*> assets;
+    assets.reserve(gores.size());
+    for(size_t i=0;i<gores.size();++i) {
+        int width=0,height=0;
+        auto* asset=runtime::content::loadTextureAsset(
+            files[i],nullptr,0,modId+"/Gores/"+gores[i].name,&width,&height);
+        if(!asset||width<1||height<1||width>4096||height>4096)
+            return fail("Texture","InvalidGorePng:"+gores[i].name);
+        assets.push_back(asset);
+    }
+    const auto total=first+gores.size();
+    for(size_t i=0;i<pending.size();++i) {
+        pending[i]=runtime::TypeTables::resizedCopy(original[i],total);
+        if(!pending[i])return fail("Array","ResizeFailed:"+std::string(names[i]));
+    }
+    auto* arrays=il2cpp::findClass({"System","Array",{}});
+    const auto* set=arrays?il2cpp::findMethodBySignature(arrays,
+        il2cpp::parseSignature("void SetValue(object value, int index)")):nullptr;
+    if(!set||!il2cpp::methodPointer(set))
+        return fail("ABI","GoreAssetSetValueMissing");
+    const auto putNumber=[&](size_t arrayIndex,int index,int number)->bool {
+        auto* array=pending[arrayIndex];
+        if(!array||static_cast<uintptr_t>(index)>=array->length)return false;
+        const std::string type=elemName(array);
+        auto* bytes=static_cast<char*>(arrayData(array));
+        if(type=="Byte"||type=="Boolean") {
+            if(number<0||number>255)return false;
+            bytes[index]=static_cast<char>(number);
+            return true;
+        }
+        if(type=="Int32") {
+            int value=number;
+            std::memcpy(bytes+static_cast<size_t>(index)*sizeof(value),&value,sizeof(value));
+            return true;
+        }
+        if(type=="Single") {
+            float value=static_cast<float>(number);
+            std::memcpy(bytes+static_cast<size_t>(index)*sizeof(value),&value,sizeof(value));
+            return true;
+        }
+        return false;
+    };
+    for(size_t i=0;i<gores.size();++i) {
+        const int index=static_cast<int>(first+i);
+        Il2CppObject* exception=nullptr;
+        void* args[]={assets[i],&index};
+        a.runtime_invoke(set,reinterpret_cast<Il2CppObject*>(pending[0]),args,&exception);
+        if(exception||!putNumber(1,index,gores[i].specialAI)||
+           !putNumber(2,index,1)||!putNumber(3,index,1)||
+           !putNumber(4,index,0)||!putNumber(5,index,gores[i].safeGore?1:0))
+            return fail("Publish","GoreValuesFailed:"+gores[i].name);
+    }
+    for(size_t i=0;i<pending.size();++i)
+        a.field_static_set_value(fields[i],pending[i]);
+    for(size_t i=0;i<gores.size();++i)
+        ids->emplace(gores[i].name,static_cast<int>(first+i));
+    BL_INFO("[CSharp][GoreLoader] Mod=%s Registered=%zu First=%zu Result=Ready",
+            modId.c_str(),gores.size(),static_cast<size_t>(first));
     return true;
 }
 

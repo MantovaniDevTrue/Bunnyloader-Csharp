@@ -349,7 +349,8 @@
         "Player",
         "NPC",
         "Prefix",
-        "Wall"
+        "Wall",
+        "Gore"
       ],
       "methods": []
     },
@@ -763,6 +764,24 @@
         {
           "signature": "static void RemoveSlot(int slot)",
           "execution": "experimental_worker_sync_void0"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyGore",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [
+        "bool SafeGore { get; set; }",
+        "int SpecialAI { get; set; }",
+        "string Texture { get; set; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "void SetDefaults()",
+          "execution": "compile_policy"
         }
       ]
     },
@@ -2330,6 +2349,7 @@
         "int DustType { get; set; }",
         "int LeafGoreType { get; set; }",
         "string GrowsOnTile { get; set; }",
+        "string LeafGoreName { get; set; }",
         "string SaplingTile { get; set; }",
         "string ShakeItem { get; set; }",
         "string Texture { get; set; }",

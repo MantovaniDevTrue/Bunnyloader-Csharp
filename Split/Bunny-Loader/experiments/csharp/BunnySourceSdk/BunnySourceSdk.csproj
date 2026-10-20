@@ -25,6 +25,7 @@
     <Compile Include="../BunnyCsSdk/BunnyWall.cs" Link="BunnyWall.cs" />
     <Compile Include="../BunnyCsSdk/BunnyTile.cs" Link="BunnyTile.cs" />
     <Compile Include="../BunnyCsSdk/BunnyTree.cs" Link="BunnyTree.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyGore.cs" Link="BunnyGore.cs" />
     <Compile Include="../BunnyCsSdk/BunnyTileDrawContext.cs" Link="BunnyTileDrawContext.cs" />
     <Compile Include="../BunnyCsSdk/BunnyTileRuntime.cs" Link="BunnyTileRuntime.cs" />
     <Compile Include="../BunnyCsSdk/BunnyCombatUtilities.cs" Link="BunnyCombatUtilities.cs" />
