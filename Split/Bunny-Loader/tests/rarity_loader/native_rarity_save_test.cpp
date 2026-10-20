@@ -199,6 +199,9 @@ int main() {
     assert(protectedRecords[0].rarityKey == "rarity/Original");
     std::stringstream v3HeaderWithoutNewline("bunnyloader itens 3");
     assert(!read(v3HeaderWithoutNewline, protectedRecords));
+    std::stringstream v3HeaderOnly("bunnyloader itens 3\n");
+    assert(!read(v3HeaderOnly, protectedRecords));
+    assert(protectedRecords.size() == 1);
     std::stringstream v2WithoutNewline("bunnyloader itens 2\n"
         "inventory\t0\t1\t0\t0\tmod/Original\t{}");
     std::vector<SavedItem> legacyWithoutTerminator;
