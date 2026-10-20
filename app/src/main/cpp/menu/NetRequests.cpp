@@ -148,6 +148,33 @@ void sendData(int msgType, int number, float number2, float number3) {
     if (exc) BL_ERROR("rede: SendData(%d, %d) lancou excecao", msgType, number);
 }
 
+bool sendNetworkChat(const std::string& message, int remoteClient) {
+    if (!isNetHost() || message.empty() || message.size() > 350 ||
+        !g_sendData || remoteClient < -1 || remoteClient >= 255)
+        return false;
+    static const MethodInfo* fromLiteral = [] {
+        auto* klass = il2cpp::findClass({"Terraria.Localization", "NetworkText", {}});
+        return klass ? il2cpp::api().class_get_method_from_name(
+            klass, "FromLiteral", 1) : nullptr;
+    }();
+    if (!fromLiteral) return false;
+    auto& a = il2cpp::api();
+    void* literalArgs[] = {a.string_new(message.c_str())};
+    Il2CppObject* exception = nullptr;
+    Il2CppObject* text = a.runtime_invoke(
+        fromLiteral, nullptr, literalArgs, &exception);
+    if (exception || !text) return false;
+    int msgType = 25, ignoreClient = -1;
+    int number = 250, number5 = 0, number6 = 0, number7 = 0;
+    float number2 = 205.f, number3 = 90.f, number4 = 0.f;
+    void* args[] = {&msgType, &remoteClient, &ignoreClient, text,
+                    &number, &number2, &number3, &number4,
+                    &number5, &number6, &number7};
+    exception = nullptr;
+    a.runtime_invoke(g_sendData, nullptr, args, &exception);
+    return !exception;
+}
+
 bool sendToServer(const std::string& command) {
     if (!g_chatMessageCtor || !g_sendFromClient) {
         BL_ERROR("rede: sem refs do chat; pedido '%s' perdido", command.c_str());
