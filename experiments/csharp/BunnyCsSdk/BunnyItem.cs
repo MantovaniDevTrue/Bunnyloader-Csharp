@@ -83,6 +83,7 @@ public abstract class BunnyItem : BunnyRecipeSource
         UseTurn=true;AutoReuse=true;Consumable=true;
     }
     public virtual bool OnUse(int playerIndex) => false;
+    public virtual bool OnUse(int playerIndex, BunnyUseContext context) => OnUse(playerIndex);
     public abstract void SetDefaults();
 }
 
