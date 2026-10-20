@@ -10,6 +10,7 @@
 #include <memory>
 #include <limits>
 #include <vector>
+#include <thread>
 
 #ifndef PREFIX_GAMEPLAY_SOURCE
 #define PREFIX_GAMEPLAY_SOURCE "../app/src/main/cpp/experiments/csharp/ManagedPrefixGameplay.cpp"
@@ -55,7 +56,7 @@ struct Item {
     float knockBack = 2;
     uint8_t accessory = 0, consumable = 0, ranged = 1, prefix = 0;
 };
-struct Player { Il2CppObject object{}; int defense = 10; };
+struct Player { Il2CppObject object{}; int defense = 10; int life = 150; int lifeMax = 200; };
 struct ReforgePopup {
     Il2CppObject object{};
     int lines=0;
@@ -187,15 +188,17 @@ bool invokeManagedPrefix(const std::string& mod,const std::string& assembly,
                          const std::string& owner,int kind,const std::string& snapshot,
                          std::string* response,int budget) {
     assert(mod=="test" && assembly=="/tmp/prefix-fixture.dll" && owner=="Mighty");
-    assert(snapshot=="6199,12,0,1,0,4" ||
+    assert((kind==6 && (snapshot=="150,200" || snapshot=="200,200")) ||
+           snapshot=="6199,12,0,1,0,4" ||
            (kind==5 && snapshot=="6199,12,0,1,99,4"));
-    assert(budget>0 && budget<=650 && kind>=0 && kind<=5 && kind!=2);
+    assert(budget>0 && budget<=650 && kind>=0 && kind<=6 && kind!=2);
     ++prefixWorkerCalls;
     if(prefixWorkerFails) return false;
     if(kind==0) *response=std::to_string(prefixWorkerCanRoll);
     else if(kind==1) *response=std::to_string(prefixWorkerWeight);
     else if(kind==3) *response=std::to_string(prefixWorkerEfficacy);
     else if(kind==4) *response="2,10";
+    else if(kind==6) *response=snapshot=="150,200" ? "2" : "-1";
     else *response="0:4F4B;1:5269736B";
     return true;
 }
@@ -1038,6 +1041,40 @@ int main() {
     assert(static_cast<uint8_t*>(arrayData(reforge.bad))[1]==1);
     g_reforgeTooltipReady=false;
     weapon.prefix=0;
+    ManagedPrefixEntry liveAccessory=guarded;
+    liveAccessory.modId="test";
+    liveAccessory.name="Mighty";
+    liveAccessory.callbackMask=32;
+    descriptorView=std::make_shared<const std::vector<ManagedPrefixEntry>>(
+        std::vector<ManagedPrefixEntry>{liveAccessory,livePrefix});
+    g_refs.playerLife=offsetof(Player,life);
+    g_refs.playerLifeMax=offsetof(Player,lifeMax);
+    Player livePlayer;
+    accessory.prefix=98;
+    const int beforeAccessory=prefixWorkerCalls;
+    hookGrant(&livePlayer.object,&accessory.object,nullptr);
+    assert(livePlayer.defense==16 && prefixWorkerCalls==beforeAccessory+1);
+    livePlayer.defense=10;
+    hookGrant(&livePlayer.object,&accessory.object,nullptr);
+    assert(livePlayer.defense==16 && prefixWorkerCalls==beforeAccessory+1);
+    livePlayer.life=200;
+    livePlayer.defense=10;
+    hookGrant(&livePlayer.object,&accessory.object,nullptr);
+    assert(livePlayer.defense==14 && prefixWorkerCalls==beforeAccessory+1);
+    std::this_thread::sleep_for(std::chrono::milliseconds(270));
+    livePlayer.defense=10;
+    hookGrant(&livePlayer.object,&accessory.object,nullptr);
+    assert(livePlayer.defense==13 && prefixWorkerCalls==beforeAccessory+2);
+    prefixWorkerFails=true;
+    std::this_thread::sleep_for(std::chrono::milliseconds(270));
+    livePlayer.defense=10;
+    hookGrant(&livePlayer.object,&accessory.object,nullptr);
+    assert(livePlayer.defense==14 && prefixWorkerCalls==beforeAccessory+3);
+    prefixWorkerFails=false;
+    g_refs.playerLife=-1;
+    livePlayer.defense=10;
+    hookGrant(&livePlayer.object,&accessory.object,nullptr);
+    assert(livePlayer.defense==14 && prefixWorkerCalls==beforeAccessory+3);
     prefixAssemblies=std::make_shared<const std::map<std::string,std::string>>();
     const auto metrics = managedPrefixDiagnostics();
     assert(metrics.rollAttempts >= 12);
