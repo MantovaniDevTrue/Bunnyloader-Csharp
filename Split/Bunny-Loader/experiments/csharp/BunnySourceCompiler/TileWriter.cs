@@ -22,6 +22,7 @@ internal static class TileWriter {
         bool allowBreaking = Get<bool>("AllowBreaking");
         bool allowDrops = Get<bool>("AllowDrops");
         bool cacheDrawData = Get<bool>("CacheDrawData");
+        string itemDrops = Get<string>("ItemDropDefinitions");
         int callbackMask = Get<int>("TileCallbackMask");
         string dust = Get<string>("DustName");
         string map = Get<string>("MapName");
@@ -77,7 +78,8 @@ internal static class TileWriter {
             allowDrops ? "1" : "0",
             callbackMask.ToString(CultureInfo.InvariantCulture),
             cacheDrawData ? "1" : "0",
-            toggle.ToString(CultureInfo.InvariantCulture));
+            toggle.ToString(CultureInfo.InvariantCulture),
+            itemDrops);
     }
 
     private static bool Safe(string value) {
