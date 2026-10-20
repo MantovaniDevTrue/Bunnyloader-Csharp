@@ -198,6 +198,8 @@ struct PrefixRpcScope {
     PrefixRpcScope* previous = nullptr;
     std::chrono::steady_clock::time_point end;
     std::array<int,256> can{}, weight{}, efficacy{};
+    Il2CppObject* cachedPrefixItem = nullptr;
+    std::array<int,6> cachedPrefixFields{};
     std::array<int8_t,256> itemAllowed{};
     Il2CppObject* cachedItem = nullptr;
     std::array<int,6> cachedFields{};
@@ -239,6 +241,25 @@ int queryPrefixWorker(Il2CppObject* item,const ManagedPrefixEntry& p,int kind) {
     auto* scope=PrefixRpcScope::current;
     if (!scope || !item || p.type<1 || p.type>255 ||
         !(p.callbackMask & (kind==0?1:kind==1?2:4))) return -2;
+    if (g_refs.type<0 || g_refs.damage<0 || g_refs.mana<0 ||
+        g_refs.stack<0 || g_refs.prefix<0) return -2;
+    const std::array<int,6> signature{
+        bl::runtime::field<int32_t>(item,g_refs.type),
+        bl::runtime::field<int32_t>(item,g_refs.damage),
+        bl::runtime::field<int32_t>(item,g_refs.mana),
+        bl::runtime::field<int32_t>(item,g_refs.stack),
+        bl::runtime::field<uint8_t>(item,g_refs.prefix),
+        (g_refs.accessory>=0 && bl::runtime::field<uint8_t>(item,g_refs.accessory)?1:0) |
+        (g_refs.consumable>=0 && bl::runtime::field<uint8_t>(item,g_refs.consumable)?2:0) |
+        (g_refs.ranged>=0 && bl::runtime::field<uint8_t>(item,g_refs.ranged)?4:0)
+    };
+    if (scope->cachedPrefixItem!=item || scope->cachedPrefixFields!=signature) {
+        scope->cachedPrefixItem=item;
+        scope->cachedPrefixFields=signature;
+        scope->can.fill(-1);
+        scope->weight.fill(-1);
+        scope->efficacy.fill(-1);
+    }
     auto& cache=kind==0?scope->can[static_cast<size_t>(p.type)]:
                 kind==1?scope->weight[static_cast<size_t>(p.type)]:
                         scope->efficacy[static_cast<size_t>(p.type)];
