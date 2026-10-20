@@ -80,10 +80,20 @@ void onFishingRoll(Il2CppObject* bobber, void* attempt, const MethodInfo* mi) {
     auto& a = il2cpp::api();
     Il2CppArray* players = nullptr;
     a.field_static_get_value(g_players, &players);
-    if (!players || owner < 0 || static_cast<uintptr_t>(owner) >= players->length)
+    if (!players || !a.class_get_rank || !a.class_get_element_class ||
+        !a.class_get_name || !a.class_get_namespace ||
+        a.class_get_rank(players->obj.klass) != 1 ||
+        players->length > 256 || owner < 0 ||
+        static_cast<uintptr_t>(owner) >= players->length)
         return;
+    Il2CppClass* actual = a.class_get_element_class(players->obj.klass);
+    const char* actualName = actual ? a.class_get_name(actual) : nullptr;
+    const char* actualNamespace = actual ? a.class_get_namespace(actual) : nullptr;
+    if (!actualName || !actualNamespace ||
+        std::strcmp(actualName, "Player") != 0 ||
+        std::strcmp(actualNamespace, "Terraria") != 0) return;
     auto* player = static_cast<Il2CppObject**>(arrayData(players))[owner];
-    if (!player) return;
+    if (!player || a.object_get_class(player) != actual) return;
     float gravity = 1.f;
     std::memcpy(&gravity, reinterpret_cast<const char*>(player) + g_gravity, sizeof(gravity));
     if (!Registry::canCatch(*found, gravity < 0.f, uncommon != 0)) return;
@@ -111,7 +121,7 @@ bool installFishingOnGameThread(const std::vector<Quest>* quests) {
         !a.method_get_param || !a.method_get_return_type ||
         !a.field_static_get_value || !a.object_get_class ||
         !a.class_get_element_class || !a.class_get_name ||
-        !a.class_get_namespace || !a.field_get_flags ||
+        !a.class_get_namespace || !a.class_get_rank || !a.field_get_flags ||
         !a.method_is_instance) return false;
 
     Il2CppClass* projectile = il2cpp::findClass({"Terraria", "Projectile", {}});
