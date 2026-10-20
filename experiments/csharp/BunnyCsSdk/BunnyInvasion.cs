@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 
 namespace BunnyLoader.Source;
 
@@ -84,7 +85,7 @@ public sealed class BunnyInvasionController
 
     private readonly Dictionary<NpcKey, BunnyInvasionEnemy> active = new();
     private readonly Dictionary<int, BunnyInvasionEnemy> pending = new();
-    private int ticket;
+    private static int globalTicket;
     private int epoch;
     private int revision;
     private int progress;
@@ -113,7 +114,6 @@ public sealed class BunnyInvasionController
         cooldown = 0;
         Phase = BunnyInvasionPhase.Running;
         epoch = NextPositive(epoch);
-        ticket = 0;
         revision = NextPositive(revision);
         return true;
     }
@@ -138,7 +138,6 @@ public sealed class BunnyInvasionController
         pending.Clear();
         progress = 0;
         cooldown = 0;
-        ticket = 0;
         epoch = NextPositive(epoch);
         revision = NextPositive(revision);
     }
@@ -167,8 +166,10 @@ public sealed class BunnyInvasionController
             roll -= candidate.Weight;
         }
 
-        ticket = NextPositive(ticket);
-        while (pending.ContainsKey(ticket)) ticket = NextPositive(ticket);
+        int ticket = Interlocked.Increment(ref globalTicket) & int.MaxValue;
+        if (ticket == 0) ticket = Interlocked.Increment(ref globalTicket) & int.MaxValue;
+        while (pending.ContainsKey(ticket) || ticket == 0)
+            ticket = Interlocked.Increment(ref globalTicket) & int.MaxValue;
         pending.Add(ticket, selected);
         cooldown = Definition.SpawnInterval;
         revision = NextPositive(revision);
@@ -250,7 +251,6 @@ public sealed class BunnyInvasionController
 
         active.Clear();
         pending.Clear();
-        ticket = 0;
         epoch = NextPositive(Math.Max(epoch, snapshot.Epoch));
         revision = NextPositive(Math.Max(revision, snapshot.Revision));
         Phase = snapshot.Phase;
