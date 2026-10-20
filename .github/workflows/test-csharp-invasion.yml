@@ -35,6 +35,8 @@ jobs:
         run: dotnet build tests/invasion/SampleCompile.csproj --configuration Release
       - name: Test actual Bunny NPC dispatcher and ExampleInvasion integration
         run: dotnet run --project tests/invasion/DispatcherIntegration.csproj --configuration Release
+      - name: Verify real Terraria NPC hook authority and kill ingress
+        run: python3 tests/invasion/test_npc_hook_contract.py
       - name: Validate CSharp NPC world authority in native C++
         run: |
           g++ -std=c++17 -Wall -Wextra -Werror tests/invasion/WorldAuthorityTest.cpp -o /tmp/bunny-invasion-authority
