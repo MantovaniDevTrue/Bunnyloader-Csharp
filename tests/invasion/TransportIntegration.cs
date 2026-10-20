@@ -29,6 +29,9 @@ internal static class TransportIntegration
     [DllImport("bunny", EntryPoint = "bunny_item_use_test_inject")]
     private static extern void InjectItemUse(int playerIndex);
 
+    [DllImport("bunny", EntryPoint = "bunny_item_use_test_inject_context")]
+    private static extern void InjectItemUseContext(int playerIndex, int flags);
+
     [DllImport("bunny", EntryPoint = "bunny_item_use_test_ready")]
     private static extern void SetItemReady(int ready);
 
@@ -109,6 +112,14 @@ internal static class TransportIntegration
         Check(Tick(mod, 12) == 0 && ExampleInvasion.Controller.Progress == 0 &&
             ExampleInvasion.Controller.Phase == BunnyInvasionPhase.Inactive,
             "new Terraria world resets old invasion");
+        foreach (int requiredFlag in new[] { 1, 2, 4, 8, 16 })
+        {
+            InjectItemUseContext(0, 31 & ~requiredFlag);
+            Check(Tick(mod, 12) == 1 &&
+                ExampleInvasion.Controller.Phase == BunnyInvasionPhase.Inactive &&
+                ExampleInvasion.Pipeline.PendingCount == 0,
+                "native item context prevents starting invasion when a required flag is missing");
+        }
         InjectItemUse(0);
         Check(Tick(mod, 12) == 1 &&
             ExampleInvasion.Controller.Phase == BunnyInvasionPhase.Running,
