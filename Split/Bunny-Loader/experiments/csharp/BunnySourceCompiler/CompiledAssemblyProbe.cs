@@ -1165,7 +1165,12 @@ public static class CompiledAssemblyProbe
                 ?? throw new InvalidOperationException("Missing ChoosePrefix callback");
             MethodInfo chance = itemType.GetMethod("DecidePrefixChance", snapshotAndPrefix)
                 ?? throw new InvalidOperationException("Missing DecidePrefixChance callback");
-            MethodInfo dynamicApply = itemType.GetMethod("ApplyPrefix", snapshotPrefixAndStats)
+            MethodInfo dynamicApply = itemType.GetMethods(BindingFlags.Public | BindingFlags.Instance)
+                .Where(method => method.Name == "ApplyPrefix")
+                .Where(method => method.GetParameters().Select(parameter => parameter.ParameterType)
+                    .SequenceEqual(snapshotPrefixAndStats))
+                .OrderByDescending(method => method.DeclaringType == itemType)
+                .FirstOrDefault()
                 ?? throw new InvalidOperationException("Missing dynamic ApplyPrefix callback");
             if (callback.DeclaringType == itemType || choose.DeclaringType == itemType ||
                 chance.DeclaringType == itemType || dynamicApply.DeclaringType == itemType)
@@ -1173,8 +1178,12 @@ public static class CompiledAssemblyProbe
         }
         foreach (var item in basicItems.Concat(weapons).Concat(potions).Concat(accessories))
         {
+            Type staticStatsType = item.GetType().BaseType!.Assembly.GetType(
+                "BunnyLoader.Source.BunnyPrefixApplyStats")
+                ?? throw new InvalidOperationException("Missing static ApplyPrefix state type");
             MethodInfo apply = item.GetType().GetMethod("ApplyPrefix",
-                BindingFlags.Public | BindingFlags.Instance)
+                BindingFlags.Public | BindingFlags.Instance, null,
+                new[] { staticStatsType.MakeByRefType() }, null)
                 ?? throw new InvalidOperationException("Missing Bunny item ApplyPrefix");
             Type stateType = apply.GetParameters().Single().ParameterType.GetElementType()
                 ?? throw new InvalidOperationException("BunnyPrefixApplyStats must be passed by reference");
