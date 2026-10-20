@@ -5,6 +5,7 @@ public struct BunnyNpcAiState
     public int Slot;
     public int Type;
     public int Generation;
+    public long NativeIdentity;
     public int Life;
     public int LifeMax;
     public int Age;
