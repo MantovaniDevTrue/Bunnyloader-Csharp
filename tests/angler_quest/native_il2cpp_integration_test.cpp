@@ -267,6 +267,18 @@ int main() {
 
     Quest extra{"examplemodcsharp","ExtraQuestFish",940,true,true,"Extra","Elsewhere",0};
     assert(reg.publish("examplemodcsharp",{quest,extra},&error));
+    Il2CppArray* correctIds=gIds;
+    gIds=array(&kBool,4);
+    bl::csharp::angler::pumpOnGameThread();
+    assert(gFlags->length==851&&gRack->length==851);
+    assert(stringAscii(hookedChat(0,&kChat))=="VANILLA");
+    gIds=correctIds;
+    Il2CppArray* correctRack=gRack;
+    gRack=array(&kInt,851);
+    bl::csharp::angler::pumpOnGameThread();
+    assert((ids()==std::vector<int>{10,500,11,850}));
+    assert(gFlags->length==851);
+    gRack=correctRack;
     gFailIdsAllocation=true;
     bl::csharp::angler::pumpOnGameThread();
     assert((ids()==std::vector<int>{10,500,11,850}));
