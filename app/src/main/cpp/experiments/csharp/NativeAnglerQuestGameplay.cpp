@@ -7,6 +7,7 @@
 #include "hook/HookManager.h"
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
+#include "il2cpp/FieldContract.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -217,7 +218,8 @@ bool findContracts() {
             int32_t selected = -1;
             api.field_static_get_value(g_questItems, &arr);
             api.field_static_get_value(g_questIndex, &selected);
-            if (!arr || selected < 0 || static_cast<uintptr_t>(selected) >= arr->length)
+            if (!il2cpp::nativeArrayContract(arr, "Int32", sizeof(int32_t), 65536) ||
+                selected < 0 || static_cast<uintptr_t>(selected) >= arr->length)
                 return -1;
             return static_cast<const int32_t*>(arrayData(arr))[selected];
         }, [&]() -> bool {
@@ -255,8 +257,8 @@ bool findContracts() {
         api.field_static_get_value(g_questFinished, &finished);
         api.field_static_get_value(g_questIndex, &index);
         api.field_static_get_value(g_questItems, &array);
-        if (finished || !array || index < 0 ||
-            static_cast<uintptr_t>(index) >= array->length)
+        if (finished || !il2cpp::nativeArrayContract(array, "Int32", sizeof(int32_t), 65536) ||
+            index < 0 || static_cast<uintptr_t>(index) >= array->length)
             return g_originalChat(turnIn, mi);
         const int type = static_cast<const int32_t*>(arrayData(array))[index];
         const auto it = std::find_if(g_active.begin(), g_active.end(),
@@ -299,14 +301,16 @@ bool prepareFlags(FieldInfo* field, const std::map<int, bool>& saved,
     auto& a = il2cpp::api();
     Il2CppArray* original = nullptr;
     a.field_static_get_value(field, &original);
-    if (!original || original->length == 0 || original->length > 65536) return false;
+    if (!il2cpp::nativeArrayContract(original, "Boolean", 1, 65536) ||
+        original->length == 0) return false;
     int maximum = -1;
     if (!upcoming.empty()) maximum = *upcoming.rbegin();
     if (maximum >= 65536) return false;
     Il2CppArray* next = original;
     if (maximum >= 0 && static_cast<uintptr_t>(maximum) >= original->length) {
         next = runtime::TypeTables::resizedCopy(original, maximum + 1);
-        if (!next || next->length <= static_cast<uintptr_t>(maximum)) return false;
+        if (!il2cpp::nativeArrayContract(next, "Boolean", 1, 65536) ||
+            next->length <= static_cast<uintptr_t>(maximum)) return false;
     }
     plan->field = field;
     plan->array = next;
@@ -347,8 +351,8 @@ bool updateQuests(const std::vector<Quest>& quests) {
     auto& a = il2cpp::api();
     Il2CppArray* original = nullptr;
     a.field_static_get_value(g_questItems, &original);
-    if (!original || original->length == 0 || original->length > 65536)
-        return false;
+    if (!il2cpp::nativeArrayContract(original, "Int32", sizeof(int32_t), 65536) ||
+        original->length == 0) return false;
     const auto* data = static_cast<const int32_t*>(arrayData(original));
     int32_t selected = -1;
     a.field_static_get_value(g_questIndex, &selected);
@@ -362,7 +366,8 @@ bool updateQuests(const std::vector<Quest>& quests) {
             a.object_get_class(reinterpret_cast<Il2CppObject*>(original)));
         if (!element) return false;
         nextIds = a.array_new(element, update.ids.size());
-        if (!nextIds || nextIds->length != update.ids.size()) return false;
+        if (!il2cpp::nativeArrayContract(nextIds, "Int32", sizeof(int32_t), 65536) ||
+            nextIds->length != update.ids.size()) return false;
         std::copy(update.ids.begin(), update.ids.end(),
                   static_cast<int32_t*>(arrayData(nextIds)));
     }
