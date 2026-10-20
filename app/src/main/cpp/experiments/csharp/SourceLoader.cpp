@@ -609,6 +609,12 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
 
 }
 
+void resetCSharpSourceModSession() {
+    for (const auto& mod : g_statuses)
+        angler::registry().unload(mod.id);
+    g_statuses.clear();
+}
+
 bool loadCSharpSourceMod(const bl::mods::LoadedMod& mod) {
     auto previous = std::find_if(g_statuses.begin(), g_statuses.end(),
         [&](const SourceModStatus& entry) { return entry.id == mod.id; });
