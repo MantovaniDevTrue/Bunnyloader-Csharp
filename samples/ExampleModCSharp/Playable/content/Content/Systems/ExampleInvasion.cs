@@ -12,20 +12,27 @@ public static class ExampleInvasion
             120,
             new BunnyInvasionEnemy(nameof(ExampleSlimeNPC), 1, 1)));
 
+    public static readonly BunnyInvasionSpawnPipeline Pipeline = new(Controller);
+
     public static bool Start(bool serverAuthority) =>
         Controller.Start(serverAuthority);
 
     public static bool TrySpawn(bool serverAuthority, int randomRoll,
         out BunnyInvasionSpawn spawn) =>
-        Controller.TryReserveSpawn(serverAuthority, randomRoll, out spawn);
+        Pipeline.TryReserve(serverAuthority, randomRoll, out spawn);
 
-    public static bool ConfirmSpawn(bool serverAuthority, int ticket,
-        int npcSlot, int npcGeneration) =>
-        Controller.CommitSpawn(serverAuthority, ticket,
-            nameof(ExampleSlimeNPC), npcSlot, npcGeneration);
+    public static bool NativeSpawnCreated(bool serverAuthority, int epoch,
+        int ticket, int npcSlot, long nativeIdentity) =>
+        Pipeline.ReportCreated(serverAuthority, epoch, ticket,
+            nameof(ExampleSlimeNPC), npcSlot, nativeIdentity);
 
-    public static bool SpawnFailed(bool serverAuthority, int ticket) =>
-        Controller.CancelSpawn(serverAuthority, ticket);
+    public static bool NativeSpawnFailed(bool serverAuthority, int epoch, int ticket) =>
+        Pipeline.ReportFailed(serverAuthority, epoch, ticket);
+
+    public static bool ConfirmFirstTick(bool serverAuthority, ref BunnyNpcAiState state) =>
+        Pipeline.PendingCount != 0 &&
+        Pipeline.ConfirmFirstTick(serverAuthority, Controller.Snapshot().Epoch,
+            nameof(ExampleSlimeNPC), state.Slot, state.Generation, state.NativeIdentity);
 
     public static bool EnemyKilled(bool serverAuthority, int npcSlot, int npcGeneration) =>
         Controller.ReportKill(serverAuthority, npcSlot, npcGeneration,
@@ -34,5 +41,5 @@ public static class ExampleInvasion
     public static bool EnemyDespawned(bool serverAuthority, int npcSlot, int npcGeneration) =>
         Controller.ReportDespawn(serverAuthority, npcSlot, npcGeneration);
 
-    public static void WorldExit() => Controller.ResetWorld();
+    public static void WorldExit() => Pipeline.ResetWorld();
 }
