@@ -291,6 +291,11 @@ public static class BunnyEntitySourceDispatcher
         try
         {
             if (fresh) npc.OnSpawn(ref state);
+            foreach (BunnyInvasionSystem invasion in context.Invasions.Values)
+                if (invasion.Pipeline.MatchesPendingNpc(npc.GetType().Name, slot, nativeIdentity))
+                    invasion.Pipeline.ConfirmFirstTick(true,
+                        invasion.Pipeline.Controller.Snapshot().Epoch,
+                        npc.GetType().Name, slot, generation, nativeIdentity);
             bool changed = npc.AI(ref state);
             context.NpcCalls++;
             if (instance.Age < int.MaxValue) instance.Age++;
@@ -374,6 +379,8 @@ public static class BunnyEntitySourceDispatcher
             {
                 instance.Blocked = true;
                 npc.OnKill(ref state);
+                foreach (BunnyInvasionSystem invasion in context.Invasions.Values)
+                    invasion.Pipeline.Controller.ReportKill(true, slot, generation, npc.GetType().Name);
                 context.NpcKills++;
                 SaveInvasionIfChanged(context);
             }
@@ -429,6 +436,8 @@ public static class BunnyEntitySourceDispatcher
         try
         {
             npc.OnKill(ref state);
+            foreach (BunnyInvasionSystem invasion in context.Invasions.Values)
+                invasion.Pipeline.Controller.ReportKill(true, slot, generation, npc.GetType().Name);
             context.NpcKills++;
             SaveInvasionIfChanged(context);
             return true;
