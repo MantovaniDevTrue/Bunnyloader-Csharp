@@ -308,6 +308,7 @@ class EquipmentContractSurfaceTests(unittest.TestCase):
         self.assertIn('now-cache.updated<std::chrono::milliseconds(200)', gameplay)
         self.assertIn('queryPrefixApply(item,*prefixPolicy', gameplay)
         self.assertIn('queryPrefixWorker(item,*p,3)', gameplay)
+        self.assertIn('scope->cachedPrefixFields!=signature', gameplay)
         self.assertIn('if (!success) return false;', runtime)
         self.assertIn("invokeManagedPrefix(", gameplay)
         self.assertIn("PrefixRpcScope prefixCallbacks;", gameplay)
