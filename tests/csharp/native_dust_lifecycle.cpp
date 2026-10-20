@@ -72,4 +72,24 @@ int main() {
     assert(life.pendingCount() == ManagedDustLifecycle::kReleaseLimit - 32);
     life.reset();
     assert(life.droppedCount() == 0 && life.pendingCount() == 0);
+    for (int i = 0; i < 6000; ++i)
+        life.observe(make(i));
+    assert(life.trackedCount() == 6000);
+    for (int i = 0; i < 6000; i += 2)
+        life.retire(i);
+    assert(life.trackedCount() == 3000 && life.pendingCount() == 3000);
+    for (int i = 0; i < 6000; i += 2)
+        life.observe(make(i, 332, 2));
+    assert(life.trackedCount() == 6000 && life.pendingCount() == 3000);
+    life.sweep([](int slot, int, int) { return slot % 3 == 0; });
+    assert(life.trackedCount() == 2000 && life.pendingCount() == 7000);
+    life.retire(3);
+    assert(life.trackedCount() == 1999 && life.pendingCount() == 7001);
+    life.retire(3);
+    assert(life.pendingCount() == 7001);
+    assert(life.flush(8000, [](const ManagedDustState& state) {
+        return state.active == 0;
+    }) == 7001);
+    life.reset();
+    assert(life.trackedCount() == 0 && life.pendingCount() == 0);
 }
