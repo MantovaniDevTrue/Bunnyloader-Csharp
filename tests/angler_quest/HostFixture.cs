@@ -73,6 +73,19 @@ try
        !malformedRevision.StartsWith("ERROR|",StringComparison.Ordinal))
         throw new InvalidOperationException("Managed assembly revision rebinding failed: "+
             string.Join(";",revisionOne,revisionTwo,malformedRevision));
+    string[] attributed = lines.Single(line =>
+        line.StartsWith("QUEST_CALLBACK\tAttributedQuestFish\t", StringComparison.Ordinal)).Split('\t');
+    if (attributed.Length != 3 || attributed[2] != "2")
+        throw new InvalidOperationException("Inherited BunnyContent quest callback mask incorrect");
+    string declaredFish = BunnyLoader.Source.BunnyRecipeRuntime.Dispatch(
+        "angler_host_fixture", assembly+"|bunny-revision=3",
+        "AttributedQuestFish", 0, 5, "1,1,2,954");
+    string declaredWrongOwner = BunnyLoader.Source.BunnyRecipeRuntime.Dispatch(
+        "angler_host_fixture", assembly+"|bunny-revision=3",
+        "AttributedQuestFish", 0, 5, "1,1,1,954");
+    if (declaredFish != "1" || declaredWrongOwner != "0")
+        throw new InvalidOperationException("Inherited quest declaration was not honored by Mono: "+
+            string.Join(";",declaredFish,declaredWrongOwner));
     Console.WriteLine("ANGLER_QUEST_COMPILED_ASSEMBLY_OK");
 }
 finally
