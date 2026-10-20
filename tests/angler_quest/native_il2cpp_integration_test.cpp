@@ -172,7 +172,8 @@ void setupApi() {
     a.method_is_instance=[](const MethodInfo* m){return m->instance;};
     a.object_get_class=[](Il2CppObject* object){return object->klass;};
     a.array_new=array;
-    a.gchandle_new=[](Il2CppObject* object,bool)->uint32_t {
+    a.gchandle_new=[](Il2CppObject* object,bool pinned)->uint32_t {
+        assert(pinned);
         ++gHandleCalls;
         if(gHandleCalls==gFailHandleAt)return 0;
         const uint32_t handle=gNextHandle++;
