@@ -44,7 +44,10 @@ int main() {
     assert(!queue.await(0, 4, input, 20,
                         std::chrono::steady_clock::now() + 1ms, &response));
     ManagedDustMailbox::Request late{};
-    assert(queue.take(&late, 1) == 0);
+    assert(queue.take(&late, 1) == 1);
+    assert(late.phase == 4 && late.frame == 20 && late.synchronous);
+    assert(queue.complete(late, late.state, 1u | 2u | 16u | 32u));
+    assert(queue.consume(0, 4, 320, 332, 1, 21, &response));
     assert(queue.offer(0, 4, input, 21, &wake, true));
     assert(queue.take(&late, 1) == 1);
     assert(!queue.await(0, 4, input, 20,
