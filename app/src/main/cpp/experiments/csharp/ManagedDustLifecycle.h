@@ -16,13 +16,19 @@ public:
     static constexpr std::size_t kSlots = 6000;
     static constexpr std::size_t kReleaseLimit = 12000;
 
+    ManagedDustLifecycle() { positions_.fill(-1); }
+
     void observe(const ManagedDustState& state) {
         if (!managedDustStateValid(state) || state.active == 0) return;
         Slot& tracked = tracked_[static_cast<size_t>(state.slot)];
         if (!tracked.active) {
             tracked.active = true;
             tracked.state = state;
-            indices_.push_back(state.slot);
+            if (positions_[static_cast<size_t>(state.slot)] < 0) {
+                positions_[static_cast<size_t>(state.slot)] =
+                    static_cast<int>(indices_.size());
+                indices_.push_back(state.slot);
+            }
         } else if (!managedDustSameInstance(tracked.state, state)) {
             queueRetirement(tracked.state);
             tracked.state = state;
@@ -37,12 +43,8 @@ public:
         if (!tracked.active) return;
         queueRetirement(tracked.state);
         tracked.active = false;
-        for (size_t i = 0; i < indices_.size(); ++i) {
-            if (indices_[i] != slot) continue;
-            indices_[i] = indices_.back();
-            indices_.pop_back();
-            break;
-        }
+        const int index = positions_[static_cast<size_t>(slot)];
+        if (index >= 0) eraseTracked(static_cast<size_t>(index));
     }
 
     template <class Alive>
@@ -52,15 +54,13 @@ public:
             const int index = indices_[i];
             Slot& tracked = tracked_[static_cast<size_t>(index)];
             if (!tracked.active) {
-                indices_[i] = indices_.back();
-                indices_.pop_back();
+                eraseTracked(i);
                 continue;
             }
             if (!alive(index, tracked.state.type, tracked.state.generation)) {
                 queueRetirement(tracked.state);
                 tracked.active = false;
-                indices_[i] = indices_.back();
-                indices_.pop_back();
+                eraseTracked(i);
                 continue;
             }
             ++i;
@@ -81,6 +81,7 @@ public:
     void reset() {
         tracked_.fill({});
         indices_.clear();
+        positions_.fill(-1);
         pending_.clear();
         dropped_ = 0;
     }
@@ -90,6 +91,15 @@ public:
     uint64_t droppedCount() const { return dropped_; }
 
 private:
+    void eraseTracked(size_t index) {
+        const int removed = indices_[index];
+        const int tail = indices_.back();
+        indices_[index] = tail;
+        positions_[static_cast<size_t>(tail)] = static_cast<int>(index);
+        indices_.pop_back();
+        positions_[static_cast<size_t>(removed)] = -1;
+    }
+
     struct Slot {
         ManagedDustState state{};
         bool active = false;
@@ -106,6 +116,7 @@ private:
 
     std::array<Slot, kSlots> tracked_{};
     std::vector<int> indices_;
+    std::array<int, kSlots> positions_{};
     std::deque<ManagedDustState> pending_;
     uint64_t dropped_ = 0;
 };
