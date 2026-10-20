@@ -484,18 +484,20 @@ bool managedDustPhase(Il2CppObject* dust, int phase, std::uint32_t* flags,
         if (flags) *flags = cache.flags;
         return true;
     }
-    if (activeOf(dust)) {
-        auto state = captureManagedDust(dust, slot, generation);
-        g_dustLifecycle.observe(state);
-        if (argColor) state.color = *argColor;
-        csharp::queueManagedDustCallback(state.type, phase, state,
-                                          static_cast<std::uint64_t>(g_frame));
-    }
     const bool valid = cache.ready &&
         cache.generation == generation && cache.type == typeOf(dust) &&
         csharp::managedDustDecisionCurrent(
             phase, static_cast<std::uint64_t>(g_frame), cache.frame,
             cache.requestColor, argColor ? *argColor : 0u);
+    if (activeOf(dust)) {
+        auto state = captureManagedDust(dust, slot, generation);
+        g_dustLifecycle.observe(state);
+        if (!valid) {
+            if (argColor) state.color = *argColor;
+            csharp::queueManagedDustCallback(state.type, phase, state,
+                                              static_cast<std::uint64_t>(g_frame));
+        }
+    }
     if (valid) {
         if (flags) *flags = cache.flags;
         if (argColor && (cache.flags & 8u) != 0u) *argColor = cache.color;
