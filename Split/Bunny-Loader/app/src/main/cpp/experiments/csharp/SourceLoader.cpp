@@ -662,6 +662,7 @@ bool applyManagedSourceDefaults(
     std::vector<localization::Entry> localized;
     std::set<std::string> seenLocale;
     bool seenLocalizationModules = false;
+    bool seenLocalizationRuntime = false;
     std::vector<SourceRecipeOwner> recipeOwners;
     std::map<std::string,bool> seenRecipeOwners;
     std::map<std::string, int> accessoryTypes;
@@ -681,6 +682,14 @@ bool applyManagedSourceDefaults(
                 return false;
             }
             seenLocalizationModules=true;
+            continue;
+        }
+        if(!fields.empty()&&fields[0]=="LOCALE_RUNTIME") {
+            if (seenLocalizationRuntime || fields.size()!=2 || fields[1]!="1") {
+                *error="[CSharp][ERROR][Localization] Stage=Decode Reason=InvalidRuntimeMarker";
+                return false;
+            }
+            seenLocalizationRuntime=true;
             continue;
         }
         if(!fields.empty()&&fields[0]=="LOCALE") {
