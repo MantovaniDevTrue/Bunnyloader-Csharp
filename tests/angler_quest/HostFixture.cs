@@ -60,6 +60,19 @@ try
         !invalid.StartsWith("ERROR|", StringComparison.Ordinal))
         throw new InvalidOperationException("Managed quest callbacks failed: " +
             string.Join(";", allowed, unavailable, caught, missed, otherPlayer, invalidOwner, invalid));
+    string revisionOne = BunnyLoader.Source.BunnyRecipeRuntime.Dispatch(
+        "angler_host_fixture", assembly+"|bunny-revision=1",
+        "DynamicQuestFish", 0, 4, "1,950");
+    string revisionTwo = BunnyLoader.Source.BunnyRecipeRuntime.Dispatch(
+        "angler_host_fixture", assembly+"|bunny-revision=2",
+        "DynamicQuestFish", 0, 5, "1,1,2,950");
+    string malformedRevision = BunnyLoader.Source.BunnyRecipeRuntime.Dispatch(
+        "angler_host_fixture", assembly+"|bunny-revision=bad",
+        "DynamicQuestFish", 0, 4, "1,950");
+    if(revisionOne!="1"||revisionTwo!="1"||
+       !malformedRevision.StartsWith("ERROR|",StringComparison.Ordinal))
+        throw new InvalidOperationException("Managed assembly revision rebinding failed: "+
+            string.Join(";",revisionOne,revisionTwo,malformedRevision));
     Console.WriteLine("ANGLER_QUEST_COMPILED_ASSEMBLY_OK");
 }
 finally
