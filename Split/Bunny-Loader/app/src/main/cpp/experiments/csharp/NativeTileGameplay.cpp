@@ -1709,8 +1709,8 @@ bool hkGrowSapling(int32_t x,int32_t y,bool underground,int32_t addon,
                    bool ignoreWalls,const MethodInfo* method) {
     if(!g_origSaplingAttempt)return false;
     const auto it=g_tiles.find(runtime::tileTypeAt(x,y));
-    if(it==g_tiles.end()||(it->second.spec.callbackMask&(1<<28))==0&&
-        it->second.spec.shape!=4))
+    if(it==g_tiles.end()||
+       (((it->second.spec.callbackMask&(1<<28))==0)&&it->second.spec.shape!=4))
         return g_origSaplingAttempt(x,y,underground,addon,ignoreWalls,method);
     const auto& spec=it->second.spec;
     if(!tile_sapling::validInput(x,y,addon))return false;
