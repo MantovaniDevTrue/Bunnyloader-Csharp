@@ -18,6 +18,8 @@ required = [
     'g_requests.size() >= kBindingsLimit',
     'bunny_item_use_bind(',
     'bunny_item_use_poll(',
+    'bunny_item_use_poll_context(',
+    'startFlags(player)',
     'bunny_item_use_ready(',
     'if (g_originalUse) g_originalUse(player, item, method);',
 ]
@@ -28,16 +30,20 @@ assert 'setNativeItemUseWorldState(' in auto
 assert 'pumpNativeItemUseBindingsOnGameThread();' in auto
 assert 'public virtual bool OnUse(int playerIndex) => false;' in sdk
 assert 'typeof(BunnyItem).IsAssignableFrom(type)' in dispatcher
-assert 'pair.Value.OnUse(usingPlayer);' in dispatcher
-assert 'BunnyNativeItemUse.TryPoll(' in dispatcher
+assert 'pair.Value.OnUse(usingPlayer, useContext);' in dispatcher
+assert 'BunnyNativeItemUse.TryPollContext(' in dispatcher
 assert 'BunnyNativeItemUse.IsReady(' in dispatcher
 assert 'BunnyNativeItemUse.Bind(' in dispatcher
 assert 'public override bool OnUse(int playerIndex)' in beacon
+assert 'public override bool OnUse(int playerIndex, BunnyUseContext context)' in beacon
+assert 'context.CanStartSurfaceInvasion && ExampleInvasion.Start(true)' in beacon
+assert 'public virtual bool OnUse(int playerIndex, BunnyUseContext context)' in sdk
 assert 'ExampleInvasion.Start(true)' in beacon
 assert 'CreateRecipe()' in beacon and 'AddTile(BunnyVanillaTiles.WorkBenches)' in beacon
 assert 'Consumable = false;' in beacon
 assert 'EntryPoint = "bunny_item_use_bind"' in transport
 assert 'EntryPoint = "bunny_item_use_poll"' in transport
+assert 'EntryPoint = "bunny_item_use_poll_context"' in transport
 assert 'EntryPoint = "bunny_item_use_ready"' in transport
 assert 'QuickJS' not in native
 print("Native CSharp item-use hook and invasion invoker: OK")
