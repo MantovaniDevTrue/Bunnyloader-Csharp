@@ -1072,7 +1072,7 @@ int64_t executeManagedEntityOnWorker(const ManagedEntityJob& job) {
         if (!klass) return -1;
         g_entityRegister = g_api.findMethod(klass, "Register", 2);
         g_entityBind = g_api.findMethod(klass, "Bind", 4);
-        g_entityNpcTick = g_api.findMethod(klass, "TickNpc", 12);
+        g_entityNpcTick = g_api.findMethod(klass, "TickNpc", 13);
         g_entityProjectileTick = g_api.findMethod(klass, "TickProjectile", 14);
         g_entityNpcHit = g_api.findMethod(klass, "HitNpc", 6);
         g_entityNpcKill = g_api.findMethod(klass, "KillNpc", 4);
@@ -1150,8 +1150,10 @@ int64_t executeManagedEntityOnWorker(const ManagedEntityJob& job) {
         void* raw = g_api.unbox(boxed);
         return raw && *static_cast<uint8_t*>(raw) ? 1 : 0;
     }
+    int64_t nativeIdentity = static_cast<int64_t>(job.identity);
     void* npcArgs[] = {&managedSlot, &type, &slot, &generation,
-                       &life, &maxLife, &x, &y, &vx, &vy, &px, &py};
+                       &life, &maxLife, &x, &y, &vx, &vy, &px, &py,
+                       &nativeIdentity};
     int targetNpc = job.target;
     float targetX = job.targetX, targetY = job.targetY;
     void* projectileArgs[] = {&managedSlot, &type, &slot, &generation, &owner,
