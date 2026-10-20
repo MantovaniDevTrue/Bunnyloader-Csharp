@@ -259,6 +259,7 @@ struct PrefixRpcScope {
     Il2CppObject* cachedPrefixItem = nullptr;
     std::array<int,6> cachedPrefixFields{};
     std::array<int8_t,256> itemAllowed{};
+    std::array<int8_t,256> globalAllowed{};
     Il2CppObject* cachedItem = nullptr;
     std::array<int,6> cachedFields{};
     int requests = 0;
@@ -270,6 +271,7 @@ struct PrefixRpcScope {
             weight.fill(-1);
             efficacy.fill(-1);
             itemAllowed.fill(-1);
+            globalAllowed.fill(-1);
             end=std::chrono::steady_clock::now()+std::chrono::microseconds(2500);
             current=this;
         }
@@ -379,10 +381,75 @@ void syncItemPrefixCache(Il2CppObject* item,PrefixRpcScope* scope) {
         scope->cachedItem=item;
         scope->cachedFields=signature;
         scope->itemAllowed.fill(-1);
+        scope->globalAllowed.fill(-1);
     }
 }
 
-bool itemAllowsPrefix(Il2CppObject* item,int prefix) {
+bool globalPrefixWorkerReady(int mask) {
+    const auto globals=managedGlobalPrefixCallbackView();
+    const auto assemblies=managedItemPrefixCallbackAssemblies();
+    for(const auto& owner:*globals) {
+        if(!(owner.callbackMask&mask))continue;
+        const auto assembly=assemblies->find(owner.modId);
+        if(assembly!=assemblies->end() &&
+            managedItemPrefixWarmupState(owner.modId,assembly->second,owner.owner)==1)
+            return true;
+    }
+    return false;
+}
+
+bool queryGlobalPrefixCallback(Il2CppObject* item,
+                               const ManagedGlobalPrefixCallbackBinding& owner,
+                               int index,int kind,std::string* result) {
+    if(!item || !result || g_restoreRoll.item==item || !PrefixRpcScope::current ||
+       PrefixRpcScope::current->requests>=4 || g_refs.type<0 ||
+       !(owner.callbackMask&(kind==0?1:kind==3?2:kind==4?4:8)))return false;
+    const auto assemblies=managedItemPrefixCallbackAssemblies();
+    const auto assembly=assemblies->find(owner.modId);
+    if(assembly==assemblies->end() ||
+       managedItemPrefixWarmupState(owner.modId,assembly->second,owner.owner)!=1)
+        return false;
+    const std::string snapshot=prefixItemSnapshot(item);
+    if(snapshot.empty())return false;
+    auto* scope=PrefixRpcScope::current;
+    const auto now=std::chrono::steady_clock::now();
+    if(now>=scope->end)return false;
+    const int micros=static_cast<int>(
+        std::chrono::duration_cast<std::chrono::microseconds>(scope->end-now).count());
+    if(micros<1)return false;
+    ++scope->requests;
+    if(kind==0)
+        return invokeManagedItemPrefix(owner.modId,assembly->second,owner.owner,
+            index,snapshot,result,std::min(micros,650));
+    return invokeManagedItemPrefixDecision(owner.modId,assembly->second,owner.owner,
+        index,kind,snapshot,result,std::min(micros,650));
+}
+
+bool globalsAllowPrefix(Il2CppObject* item,int prefix) {
+    if(!item || prefix<1 || prefix>255 || g_restoreRoll.item==item ||
+       g_refs.type<0 || g_refs.damage<0 || g_refs.mana<0 ||
+       g_refs.stack<0 || g_refs.prefix<0 ||
+       !PrefixRpcScope::current)return true;
+    auto* scope=PrefixRpcScope::current;
+    syncItemPrefixCache(item,scope);
+    int8_t& cached=scope->globalAllowed[static_cast<size_t>(prefix)];
+    if(cached!=-1)return cached!=0;
+    cached=-2;
+    const auto globals=managedGlobalPrefixCallbackView();
+    for(const auto& owner:*globals) {
+        if(!(owner.callbackMask&1))continue;
+        std::string answer;
+        if(!queryGlobalPrefixCallback(item,owner,prefix,0,&answer))continue;
+        if(answer=="0") {
+            cached=0;
+            return false;
+        }
+    }
+    cached=1;
+    return true;
+}
+
+bool itemAllowsOwnPrefix(Il2CppObject* item,int prefix) {
     if (!item || prefix<1 || prefix>255 || g_restoreRoll.item==item ||
         g_refs.type<0 || g_refs.damage<0 || g_refs.mana<0 ||
         g_refs.stack<0 || g_refs.prefix<0) return true;
@@ -416,6 +483,10 @@ bool itemAllowsPrefix(Il2CppObject* item,int prefix) {
                                 &answer,std::min(micros,650)))
         cached=answer=="1" ? 1 : answer=="0" ? 0 : -2;
     return cached!=0;
+}
+
+bool itemAllowsPrefix(Il2CppObject* item,int prefix) {
+    return itemAllowsOwnPrefix(item,prefix) && globalsAllowPrefix(item,prefix);
 }
 
 void primeItemPrefixCandidates(Il2CppObject* item,const int32_t* vanilla,
@@ -470,6 +541,112 @@ void primeItemPrefixCandidates(Il2CppObject* item,const int32_t* vanilla,
             owner->second.owner,wire,length,&decisions,std::min(micros,650))) return;
     for(size_t i=0;i<length;++i)
         scope->itemAllowed[batch[i]]=decisions[i]=='1'?1:0;
+}
+
+void primeGlobalPrefixCandidates(Il2CppObject* item,const int32_t* vanilla,
+                                uintptr_t count,
+                                const std::vector<ManagedPrefixEntry>& prefixes) {
+    auto* scope=PrefixRpcScope::current;
+    if(!scope || !item || g_restoreRoll.item==item || scope->requests>=4 ||
+       g_refs.type<0 || g_refs.damage<0 || g_refs.mana<0 ||
+       g_refs.stack<0 || g_refs.prefix<0)return;
+    const auto globals=managedGlobalPrefixCallbackView();
+    if(globals->empty())return;
+    syncItemPrefixCache(item,scope);
+    std::array<bool,256> seen{};
+    std::array<uint8_t,128> candidates{};
+    size_t length=0;
+    const auto take=[&](int value) {
+        if(value<1 || value>255 || seen[static_cast<size_t>(value)] ||
+           scope->globalAllowed[static_cast<size_t>(value)]!=-1 ||
+           length==candidates.size())return;
+        seen[static_cast<size_t>(value)]=true;
+        candidates[length++]=static_cast<uint8_t>(value);
+    };
+    for(uintptr_t i=0;i<count;++i)take(vanilla[i]);
+    for(const auto& prefix:prefixes)
+        if(prefix.category!=6)take(prefix.type);
+    if(!length)return;
+    std::string wire=prefixItemSnapshot(item);
+    if(wire.empty())return;
+    static constexpr char digits[]="0123456789ABCDEF";
+    wire.reserve(wire.size()+1+length*2);
+    wire.push_back('|');
+    for(size_t i=0;i<length;++i) {
+        wire.push_back(digits[candidates[i]>>4]);
+        wire.push_back(digits[candidates[i]&15]);
+    }
+    const auto assemblies=managedItemPrefixCallbackAssemblies();
+    for(const auto& owner:*globals) {
+        if(!(owner.callbackMask&1) || scope->requests>=4)continue;
+        const auto assembly=assemblies->find(owner.modId);
+        if(assembly==assemblies->end() ||
+           managedItemPrefixWarmupState(owner.modId,assembly->second,owner.owner)!=1)
+            continue;
+        const auto now=std::chrono::steady_clock::now();
+        if(now>=scope->end)break;
+        const int micros=static_cast<int>(
+            std::chrono::duration_cast<std::chrono::microseconds>(scope->end-now).count());
+        if(micros<1)break;
+        ++scope->requests;
+        std::string decisions;
+        if(!invokeManagedItemPrefixBatch(owner.modId,assembly->second,owner.owner,
+                                         wire,length,&decisions,std::min(micros,650)))
+            continue;
+        for(size_t i=0;i<length;++i) {
+            int8_t& cached=scope->globalAllowed[candidates[i]];
+            if(decisions[i]=='0')cached=0;
+            else if(cached==-1)cached=1;
+        }
+    }
+}
+
+int globalChoosePrefix(Il2CppObject* item) {
+    const auto globals=managedGlobalPrefixCallbackView();
+    for(const auto& owner:*globals) {
+        if(!(owner.callbackMask&2))continue;
+        std::string answer;
+        if(!queryGlobalPrefixCallback(item,owner,0,3,&answer) || answer=="-1")
+            continue;
+        int value=0;
+        const auto parsed=std::from_chars(answer.data(),answer.data()+answer.size(),value);
+        if(parsed.ec==std::errc{} && parsed.ptr==answer.data()+answer.size() &&
+           value>0 && value<=255)return value;
+    }
+    return -1;
+}
+
+int globalPrefixChance(Il2CppObject* item,int index) {
+    const auto globals=managedGlobalPrefixCallbackView();
+    int decision=-1;
+    for(const auto& owner:*globals) {
+        if(!(owner.callbackMask&4))continue;
+        std::string answer;
+        if(!queryGlobalPrefixCallback(item,owner,index,4,&answer))continue;
+        if(answer=="0")return 0;
+        if(answer=="1")decision=1;
+    }
+    return decision;
+}
+
+void globalPrefixBonuses(Il2CppObject* item,int prefix,int* damage,int* value) {
+    const auto globals=managedGlobalPrefixCallbackView();
+    for(const auto& owner:*globals) {
+        if(!(owner.callbackMask&8))continue;
+        std::string result;
+        if(!queryGlobalPrefixCallback(item,owner,prefix,5,&result))continue;
+        const size_t comma=result.find(',');
+        if(comma==std::string::npos)continue;
+        int d=0,v=0;
+        const auto a=std::from_chars(result.data(),result.data()+comma,d);
+        const auto b=std::from_chars(result.data()+comma+1,
+                                     result.data()+result.size(),v);
+        if(a.ec!=std::errc{} || b.ec!=std::errc{} ||
+           a.ptr!=result.data()+comma || b.ptr!=result.data()+result.size() ||
+           d<0 || d>1000 || v<0 || v>100000)continue;
+        *damage+=d;
+        *value+=v;
+    }
 }
 
 bool queryItemPrefixDecision(Il2CppObject* item,int index,int kind,std::string* output) {
@@ -920,7 +1097,7 @@ Il2CppArray* hookRollable(Il2CppObject* item, const MethodInfo* method) {
     const auto attributeBan = attributeBans->find(itemType);
     const std::map<int, std::vector<ManagedPrefixAttributeDenyRange>>* attributes =
         attributeBan == attributeBans->end() ? nullptr : &attributeBan->second;
-    const bool dynamicItemCallback=itemPrefixWorkerReady(itemType);
+    const bool dynamicItemCallback=itemPrefixWorkerReady(itemType) || globalPrefixWorkerReady(1);
     const auto allowed = [denied, conditional, currentStack, attributes, item](int prefix) {
         if (denied && denied->contains(prefix)) return false;
         if (conditional) {
@@ -940,6 +1117,7 @@ Il2CppArray* hookRollable(Il2CppObject* item, const MethodInfo* method) {
     const auto* oldValues = oldCount ? vanilla.data() : nullptr;
     if (oldCount>originalCount) g_extendedVanillaItem=item;
     primeItemPrefixCandidates(item,oldValues,oldCount,*descriptors);
+    primeGlobalPrefixCandidates(item,oldValues,oldCount,*descriptors);
     if (!tablesReady) {
         for (const auto& p : *descriptors) {
             if (p.category != 6 && allowed(p.type) &&
@@ -1014,7 +1192,7 @@ bool hookRoll(Il2CppObject* item, Il2CppObject* random, int32_t* rolled,
     const int currentItemType = g_refs.type >= 0 ?
         bl::runtime::field<int32_t>(item, g_refs.type) : -1;
     bool hasDeny = banView->contains(currentItemType);
-    const bool hasItemWorker = itemPrefixWorkerReady(currentItemType);
+    const bool hasItemWorker = itemPrefixWorkerReady(currentItemType) || globalPrefixWorkerReady(1);
     if (!hasDeny) {
         const auto stackBans = managedItemPrefixStackDenyView();
         const auto found = stackBans->find(currentItemType);
@@ -1037,6 +1215,19 @@ bool hookRoll(Il2CppObject* item, Il2CppObject* random, int32_t* rolled,
     }
     PrefixRpcScope prefixCallbacks;
     if (g_restoreRoll.item != item && currentItemType > 0) {
+        const int globalChoice=globalChoosePrefix(item);
+        if(globalChoice>0 && !isPrefixDenied(item,globalChoice) &&
+           itemAllowsPrefix(item,globalChoice)) {
+            const auto* managed=byType(*descriptors,globalChoice);
+            const bool valid=managed
+                ? eligible(item,*managed,true) && ensurePrefixTables(*descriptors)
+                : g_originalCanRoll && g_originalCanRoll(item,globalChoice,nullptr);
+            if(valid) {
+                *rolled=globalChoice;
+                g_prefixChosenRolls.fetch_add(1,std::memory_order_relaxed);
+                return true;
+            }
+        }
         std::string dynamicChoice;
         if (queryItemPrefixDecision(item,0,3,&dynamicChoice) &&
             dynamicChoice!="-1") {
@@ -1618,7 +1809,8 @@ ManagedPrefixDiagnostics managedPrefixDiagnostics() {
 
 bool managedPrefixGameplayReady() {
     return g_hooksReady.load(std::memory_order_acquire) &&
-           (!managedPrefixView()->empty() || !managedItemPrefixCallbackView()->empty());
+           (!managedPrefixView()->empty() || !managedItemPrefixCallbackView()->empty() ||
+            !managedGlobalPrefixCallbackView()->empty());
 }
 
 bool installManagedPrefixChanceHook() {
