@@ -55,7 +55,7 @@ As tabelas nativas agora são conferidas com o validador original `il2cpp::nativ
 
 A reconstrução de predicados C# no Mono também segue agora a mesma declaração de conteúdo que o compilador: `[BunnyContent(BunnyContentKind.Item,...)]` fornece nome e textura antes de executar `SetDefaults()`, e a identidade é conferida depois. Classes herdadas sem a declaração são rejeitadas. O fixture C# possui peixe herdado real cujo `SetDefaults()` exige os defaults do atributo.
 
-A atualização das tabelas possui **preparação antes do commit**: a lista de IDs e a expansão de ambas as tabelas de flags são verificadas antes de publicar alterações. Cada novo array IL2CPP temporário recebe um `GCHandle` forte até que todas as tabelas sejam publicadas; um objeto não pode ficar sem raiz entre as alocações do array de IDs e das duas flags. Os handles são liberados por RAII após o commit ou em qualquer falha. Se `gchandle_new`/`gchandle_free` não estiver disponível ou um handle não puder ser criado, a atualização é adiada, sem mutar as tabelas. O host verifica raiz durante cada publicação, a liberação dos handles e falhas simuladas na primeira, segunda e terceira alocação de handles. Isso não substitui o teste com GC IL2CPP real no Android.
+A atualização das tabelas possui **preparação antes do commit**: a lista de IDs e a expansão de ambas as tabelas de flags são verificadas antes de publicar alterações. Cada novo array IL2CPP temporário recebe um `GCHandle` **pinned** até que todas as tabelas sejam publicadas; ele mantém o objeto vivo e fixa o endereço enquanto ponteiros nativos são utilizados entre alocações do array de IDs e das duas flags. Os handles são liberados por RAII após o commit ou em qualquer falha. Se `gchandle_new`/`gchandle_free` não estiver disponível ou um handle não puder ser criado, a atualização é adiada, sem mutar as tabelas. O host verifica raiz durante cada publicação, a liberação dos handles e falhas simuladas na primeira, segunda e terceira alocação de handles. Isso não substitui o teste com GC IL2CPP real no Android.
 
 ## Garantias e limites de multiplayer
 
@@ -78,7 +78,7 @@ Essa operação **não descarrega assemblies antigos da memória do Mono** nem r
 - Hooks C++ reais com IL2CPP simulado: sorteio, chat, cliente/host, flags, remoção e falhas de alocação.
 - Hook real de pesca com struct simulada de 92 bytes: gravidade, raridade, owner (índice do jogador) e callbacks dinâmicos válidos/inválidos.
 - Testes de arrays IL2CPP falsos rejeitados antes de atualizar IDs/flags, e teste gerenciado de peixe herdado com `[BunnyContent]`.
-- Testes de GCHandle nativo: nenhuma publicação de array sem raiz; falha da API, falhas intermediárias, cleanup de todos os handles e retry bem-sucedido.
+- Testes de GCHandle nativo pinned: nenhuma publicação de array sem raiz/endereço fixo; falha da API, falhas intermediárias, cleanup de todos os handles e retry bem-sucedido.
 - Testes de `Main.player` inválido, preservação de índice selecionado em uma nova tabela de mundo, fingerprints com ordem de mods invertida e limpeza de handlers C# sem interferir em outro mod.
 - Testes de perda do jogador ou troca do dono do anzol durante callback C#, modificação externa de flags originalmente verdadeiras e detecção de diferenças de lista vanilla/JS e de traduções.
 - Índice restaurado inválido ou negativo com lista inalterada, e corrida de descarregamento de assembly antigo contra vínculo novo: testes C++ host aprovados.
