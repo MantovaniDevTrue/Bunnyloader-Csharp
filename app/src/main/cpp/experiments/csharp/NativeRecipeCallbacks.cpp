@@ -213,6 +213,7 @@ void bindNativeRecipeAssembly(const std::string& mod,const std::string& assembly
     assemblies[mod]=assembly+"|bunny-revision="+std::to_string(revision);
 }
 void unbindNativeRecipeAssembly(const std::string& mod){std::lock_guard lock(assemblyMutex);assemblies.erase(mod);}
+bool isNativeRecipeAssemblyCurrent(const std::string& mod,const std::string& assembly){return currentManagedAssembly(mod,assembly);}
 bool hasManagedAnglerQuestCallbacks(const std::string& mod) {
     const auto quests=angler::registry().snapshot();
     return std::any_of(quests.begin(),quests.end(),
