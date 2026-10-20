@@ -1147,7 +1147,6 @@ string Texture { get; set; }
 | `bool RightClick(int x, int y)` | managed_helper |
 | `bool Slope(int x, int y)` | managed_helper |
 | `bool TileFrame(int x, int y, ref bool resetFrame, ref bool noBreak)` | managed_helper |
-| `bool TileFrame(int x, int y, ref bool resetFrame, ref bool noBreak)` | managed_helper |
 | `int NumDust(bool fail)` | compile_policy |
 | `void AddMapEntry(int red, int green, int blue, string name)` | managed_helper |
 | `void AnimateIndividualTile(int type, int x, int y, ref int addFrameX, ref int addFrameY)` | managed_helper |
@@ -1156,8 +1155,6 @@ string Texture { get; set; }
 | `void DrawEffects(int x, int y, int tileFrameX, int tileFrameY, BunnyTileDrawContext draw)` | managed_helper |
 | `void EmitParticles(int x, int y, int tileFrameX, int tileFrameY, BunnyTileDrawContext draw)` | managed_helper |
 | `void HitWire(int x, int y)` | managed_helper |
-| `void KillMultiTile(int x, int y, int frameX, int frameY)` | managed_helper |
-| `void KillTile(int x, int y, ref bool fail, ref bool effectOnly, ref bool noItem)` | managed_helper |
 | `void KillMultiTile(int x, int y, int frameX, int frameY)` | managed_helper |
 | `void KillTile(int x, int y, ref bool fail, ref bool effectOnly, ref bool noItem)` | managed_helper |
 | `void ModifyLight(int x, int y, ref float r, ref float g, ref float b)` | managed_helper |
