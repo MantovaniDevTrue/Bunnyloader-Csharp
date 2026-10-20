@@ -414,6 +414,32 @@ void primeItemPrefixCandidates(Il2CppObject* item,const int32_t* vanilla,
         scope->itemAllowed[batch[i]]=decisions[i]=='1'?1:0;
 }
 
+bool queryItemPrefixDecision(Il2CppObject* item,int index,int kind,std::string* output) {
+    if (!item || !output || g_restoreRoll.item==item ||
+        !PrefixRpcScope::current || PrefixRpcScope::current->requests>=4 ||
+        g_refs.type<0) return false;
+    const int type=bl::runtime::field<int32_t>(item,g_refs.type);
+    const auto bindings=managedItemPrefixCallbackView();
+    const auto owner=bindings->find(type);
+    if (owner==bindings->end()) return false;
+    const auto assemblies=managedItemPrefixCallbackAssemblies();
+    const auto assembly=assemblies->find(owner->second.modId);
+    if (assembly==assemblies->end() ||
+        managedItemPrefixWarmupState(owner->second.modId,assembly->second,
+                                     owner->second.owner)!=1) return false;
+    const std::string snapshot=prefixItemSnapshot(item);
+    if (snapshot.empty()) return false;
+    auto* scope=PrefixRpcScope::current;
+    const auto now=std::chrono::steady_clock::now();
+    if (now>=scope->end) return false;
+    const int micros=static_cast<int>(
+        std::chrono::duration_cast<std::chrono::microseconds>(scope->end-now).count());
+    if (micros<1) return false;
+    ++scope->requests;
+    return invokeManagedItemPrefixDecision(owner->second.modId,assembly->second,
+        owner->second.owner,index,kind,snapshot,output,std::min(micros,650));
+}
+
 bool queryPrefixApply(Il2CppObject* item,const ManagedPrefixEntry& p,
                       int* damage,int* value) {
     if (!item || !damage || !value || !(p.callbackMask & 8) ||
@@ -682,6 +708,7 @@ bool hookItemPrefixChance(Il2CppObject* item, int32_t want, uint8_t* topTier,
         g_chanceDamageOffset >= 0 && g_chanceValueOffset >= 0;
     const int type = ready
         ? bl::runtime::field<int32_t>(item, g_chanceItemTypeOffset) : 0;
+    PrefixRpcScope itemPrefixScope;
 
     if (ready && want > 0 && g_restoreRoll.item != item) {
         PrefixRpcScope prefixCallbacks;
@@ -689,6 +716,11 @@ bool hookItemPrefixChance(Il2CppObject* item, int32_t want, uint8_t* topTier,
     }
 
     if (ready && g_restoreRoll.item != item && (want == -1 || want == -2)) {
+        std::string dynamicChance;
+        if (queryItemPrefixDecision(item,want==-1?1:2,4,&dynamicChance)) {
+            if (dynamicChance=="0") return false;
+            if (dynamicChance=="1" && want==-1) request=-2;
+        }
         const auto stackPolicies = managedItemPrefixStackChanceView();
         const auto stackRule = stackPolicies->find(type);
         bool useStackDecision = false;
@@ -734,7 +766,7 @@ bool hookItemPrefixChance(Il2CppObject* item, int32_t want, uint8_t* topTier,
         const int currentDamage = bl::runtime::field<int32_t>(item, g_chanceDamageOffset);
         const int currentValue = bl::runtime::field<int32_t>(item, g_chanceValueOffset);
         const int currentPrefix = bl::runtime::field<uint8_t>(item, g_chancePrefixOffset);
-        if ((hasItemPolicy || hadPrefixBonus) &&
+        if ((hasItemPolicy || hadPrefixBonus || itemPrefixWorkerReady(type)) &&
             previous->type == type && previous->prefix == currentPrefix &&
             previous->damage == currentDamage && previous->value == currentValue &&
             currentDamage >= previous->damageBonus &&
@@ -771,9 +803,22 @@ bool hookItemPrefixChance(Il2CppObject* item, int32_t want, uint8_t* topTier,
     const auto* prefixPolicy = prefixView ? byType(*prefixView, prefix) : nullptr;
     int callbackDamage=0,callbackValue=0;
     if (prefixPolicy) queryPrefixApply(item,*prefixPolicy,&callbackDamage,&callbackValue);
-    const int damageBonus = (hasItemPolicy ? policy->second.damageBonus : 0) +
+    int dynamicDamage=0,dynamicValue=0;
+    if (prefix>0) {
+        std::string post;
+        if (queryItemPrefixDecision(item,prefix,5,&post)) {
+            const size_t comma=post.find(',');
+            if (comma!=std::string::npos) {
+                std::from_chars(post.data(),post.data()+comma,dynamicDamage);
+                std::from_chars(post.data()+comma+1,post.data()+post.size(),dynamicValue);
+            }
+        }
+    }
+    const int damageBonus = dynamicDamage +
+        (hasItemPolicy ? policy->second.damageBonus : 0) +
         (prefixPolicy ? prefixPolicy->applyDamageBonus : 0) + callbackDamage;
-    const int valueBonus = (hasItemPolicy ? policy->second.valueBonus : 0) +
+    const int valueBonus = dynamicValue +
+        (hasItemPolicy ? policy->second.valueBonus : 0) +
         (prefixPolicy ? prefixPolicy->applyValueBonus : 0) + callbackValue;
     if (!prefix || (damageBonus == 0 && valueBonus == 0)) {
         if (previous) previous->item = nullptr;
@@ -931,6 +976,25 @@ bool hookRoll(Il2CppObject* item, Il2CppObject* random, int32_t* rolled,
     }
     PrefixRpcScope prefixCallbacks;
     if (g_restoreRoll.item != item && currentItemType > 0) {
+        std::string dynamicChoice;
+        if (queryItemPrefixDecision(item,0,3,&dynamicChoice) &&
+            dynamicChoice!="-1") {
+            int requested=0;
+            const auto parsed=std::from_chars(dynamicChoice.data(),
+                dynamicChoice.data()+dynamicChoice.size(),requested);
+            if (parsed.ec==std::errc() && requested>0 && requested<=255 &&
+                !isPrefixDenied(item,requested) && itemAllowsPrefix(item,requested)) {
+                const auto* managed=byType(*descriptors,requested);
+                const bool allowed=managed
+                    ? eligible(item,*managed,true) && ensurePrefixTables(*descriptors)
+                    : g_originalCanRoll && g_originalCanRoll(item,requested,nullptr);
+                if (allowed) {
+                    *rolled=requested;
+                    g_prefixChosenRolls.fetch_add(1,std::memory_order_relaxed);
+                    return true;
+                }
+            }
+        }
         const auto choices = managedItemPrefixChoiceView();
         const auto selected = choices->find(currentItemType);
         if (selected != choices->end() && g_refs.stack >= 0) {
