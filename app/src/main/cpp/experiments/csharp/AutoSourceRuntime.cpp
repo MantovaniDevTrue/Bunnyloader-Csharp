@@ -902,9 +902,13 @@ void run() {
             std::vector<std::pair<int, std::string>> dustTypes;
             for (const auto& [key, nativeType] : mod.registeredKindTypes) {
                 if (!key.starts_with("DUST:")) continue;
-                dustTypes.emplace_back(nativeType, key.substr(5));
+                const std::string name = key.substr(5);
+                const auto mask = mod.dustMasks.find(name);
+                if (mask == mod.dustMasks.end() || mask->second == 0u) continue;
+                dustTypes.emplace_back(nativeType, name);
             }
-            if (!registerManagedDustSourceMod(mod.id, assembly, dustTypes))
+            if (!dustTypes.empty() &&
+                !registerManagedDustSourceMod(mod.id, assembly, dustTypes))
                 BL_WARN("[CSharp][DustLoader] Mod=%s Stage=MonoRegister Result=Rejected",
                         mod.id.c_str());
         }
