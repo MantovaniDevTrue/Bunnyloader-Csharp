@@ -20,6 +20,7 @@ struct NativeTileGameplaySpec {
     bool cacheDrawData = true;
     std::string assembly;
     int frameToggle=0;
+    bool campfire=false;
 };
 
 bool registerNativeTileGameplay(const NativeTileGameplaySpec& spec);

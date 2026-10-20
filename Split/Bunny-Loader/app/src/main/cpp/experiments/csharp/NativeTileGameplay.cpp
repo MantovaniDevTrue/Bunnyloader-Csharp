@@ -2,6 +2,7 @@
 #include "experiments/csharp/ManagedRuntime.h"
 #include "experiments/csharp/NativeTilePolicy.h"
 #include "experiments/csharp/NativeTileFrameTogglePolicy.h"
+#include "experiments/csharp/NativeTileCampfirePolicy.h"
 #include "experiments/csharp/NativeTileAnimationPolicy.h"
 #include "experiments/csharp/NativeTileScanPolicy.h"
 #include "experiments/csharp/NativeTileDrawWire.h"
@@ -30,6 +31,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <unordered_set>
 
 namespace bl::csharp {
 namespace {
@@ -40,6 +42,7 @@ struct TileBehavior {
     int dustType = -1;
 };
 std::map<int, TileBehavior> g_tiles;
+std::unordered_set<int> g_campfireTiles;
 std::array<std::atomic<uint8_t>, 65536> g_managedDrawMarks{};
 std::array<std::atomic<uint8_t>, 65536> g_managedDrawUncached{};
 tile_draw::PublishedBindings<TileBehavior, 65536> g_managedDrawBindings;
@@ -89,6 +92,18 @@ size_t g_tileScanVisualCursor=0,g_tileScanBuffCursor=0,g_tileScanLightCursor=0;
 struct TileLightCache {int x=0,y=0,type=0,r=0,g=0,b=0;uint64_t frame=0;};
 std::map<uint64_t,TileLightCache> g_tileLightCache;
 std::map<uint64_t,uint64_t> g_tileNearbyEvents;
+using SceneScanFn=void(*)(Il2CppObject*,const void*,const MethodInfo*);
+SceneScanFn g_originalSceneScan=nullptr;
+struct CampfireSceneBinding {
+    bool ready=false;
+    bool valueSettings=false;
+    int centerOffset=0;
+    int hasCampfireOffset=0;
+    FieldInfo* scanWidth=nullptr;
+    FieldInfo* scanHeight=nullptr;
+};
+CampfireSceneBinding g_campfireScene{};
+
 using AnimateFn = void (*)(const MethodInfo*);
 AnimateFn g_originalAnimate = nullptr;
 FieldInfo* g_frameArray = nullptr;
@@ -744,6 +759,81 @@ bool setupCanKillTileHook() {
     return true;
 }
 
+
+void hkCampfireSceneScan(Il2CppObject* scene,const void* settings,const MethodInfo* method) {
+    if(g_originalSceneScan)g_originalSceneScan(scene,settings,method);
+    if(!g_campfireScene.ready||!scene||!settings||g_campfireTiles.empty())return;
+    auto* bytes=reinterpret_cast<uint8_t*>(scene);
+    if(bytes[g_campfireScene.hasCampfireOffset])return;
+    const auto* value=reinterpret_cast<const uint8_t*>(settings);
+    const int offset=g_campfireScene.centerOffset-
+                     (g_campfireScene.valueSettings?static_cast<int>(sizeof(Il2CppObject)):0);
+    if(offset<0)return;
+    float center[2]{};
+    std::memcpy(center,value+offset,sizeof(center));
+    auto& a=il2cpp::api();
+    int32_t width=0,height=0;
+    a.field_static_get_value(g_campfireScene.scanWidth,&width);
+    a.field_static_get_value(g_campfireScene.scanHeight,&height);
+    runtime::TileArrays world{};
+    if(!runtime::tileArrays(&world)||!world.lookup||!world.type||
+       !world.sHeader||!world.frameY)return;
+    const auto region=tile_campfire::area(center[0],center[1],width,height,
+                                          world.width,world.height);
+    for(int y=region.top;y<region.bottom;++y)for(int x=region.left;x<region.right;++x) {
+        const uint32_t id=world.lookup[static_cast<size_t>(y)*world.width+x];
+        if((world.sHeader[id]&runtime::kTileActiveBit)==0)continue;
+        if(g_campfireTiles.find(world.type[id])==g_campfireTiles.end())continue;
+        if(tile_campfire::lit(true,world.frameY[id])) {
+            bytes[g_campfireScene.hasCampfireOffset]=1;
+            return;
+        }
+    }
+}
+bool setupNativeCampfireSceneHook() {
+    if(g_campfireScene.ready)return true;
+    auto& a=il2cpp::api();
+    if(!a.method_get_param_count||!a.method_get_param||!a.method_get_return_type||
+       !a.method_is_instance||!a.class_from_il2cpp_type||!a.class_is_valuetype||
+       !a.class_value_size||!a.field_get_offset||!a.field_static_get_value)return false;
+    auto* metrics=il2cpp::findClass({"Terraria","SceneMetrics",{}});
+    auto* main=il2cpp::findClass({"Terraria","Main",{}});
+    const auto* method=metrics?a.class_get_method_from_name(metrics,"Scan",1):nullptr;
+    if(!method||!a.method_is_instance(method)||a.method_get_param_count(method)!=1||
+       !nameOf(a.method_get_return_type(method),"System.Void")||
+       !nameOf(a.method_get_param(method,0),"Terraria.SceneMetricsScanSettings")||
+       !il2cpp::methodPointer(method))return false;
+    auto* settings=a.class_from_il2cpp_type(a.method_get_param(method,0));
+    if(!settings)return false;
+    const bool value=a.class_is_valuetype(settings);
+    if(value) {
+        uint32_t alignment=0;
+        if(a.class_value_size(settings,&alignment)<=16||
+           !il2cpp::findField(settings,"VisualScanArea"))return false;
+    }
+    std::string error;
+    FieldInfo* center=nullptr;
+    FieldInfo* hasCampfire=nullptr;
+    FieldInfo* scanWidth=nullptr;
+    FieldInfo* scanHeight=nullptr;
+    int centerOffset=0,hasCampfireOffset=0;
+    if(!il2cpp::nativeFieldContract(settings,"BiomeScanCenterPositionInWorld",
+          "Microsoft.Xna.Framework.Vector2",false,8,&center,&centerOffset,&error)||
+       !il2cpp::nativeFieldContract(metrics,"HasCampfire",
+          "System.Boolean",false,1,&hasCampfire,&hasCampfireOffset,&error)||
+       !il2cpp::nativeFieldContract(main,"buffScanAreaWidth",
+          "System.Int32",true,4,&scanWidth,nullptr,&error)||
+       !il2cpp::nativeFieldContract(main,"buffScanAreaHeight",
+          "System.Int32",true,4,&scanHeight,nullptr,&error)) {
+        BL_ERROR("[CSharp][Campfire] Stage=SceneMetricsBind Result=Rejected Reason=%s",error.c_str());
+        return false;
+    }
+    if(value&&centerOffset<static_cast<int>(sizeof(Il2CppObject)))return false;
+    if(!hook::install(method,hkCampfireSceneScan,&g_originalSceneScan))return false;
+    g_campfireScene={true,value,centerOffset,hasCampfireOffset,scanWidth,scanHeight};
+    return true;
+}
+
 bool setupNativeFrameToggle() {
     if(g_frameToggle.ready)return true;
     auto& a=il2cpp::api();
@@ -1249,6 +1339,11 @@ bool registerNativeTileGameplay(const NativeTileGameplaySpec& spec) {
                  spec.mod.c_str(), spec.name.c_str());
         return false;
     }
+    if(spec.campfire&&!setupNativeCampfireSceneHook()) {
+        BL_ERROR("[CSharp][Campfire] Mod=%s Class=%s Stage=BindSceneMetrics Result=Rejected",
+                 spec.mod.c_str(),spec.name.c_str());
+        return false;
+    }
     if(spec.frameToggle&&!setupNativeFrameToggle())return false;
     if(((spec.callbackMask&(1<<4))||tile_toggle::allowsRightClick(spec.frameToggle))&&
        !setupTileInteractHook())return false;
@@ -1288,6 +1383,7 @@ bool registerNativeTileGameplay(const NativeTileGameplaySpec& spec) {
         }
     }
     g_tiles[spec.type] = behavior;
+    if(spec.campfire)g_campfireTiles.insert(spec.type);
     if(spec.callbackMask&((1<<5)|(1<<16)))
         runtime::requestModTileOverlays(spec.type);
     if((spec.callbackMask & tile_policy::kManagedDrawCallbacks) != 0 && !behavior.spec.assembly.empty()) {
