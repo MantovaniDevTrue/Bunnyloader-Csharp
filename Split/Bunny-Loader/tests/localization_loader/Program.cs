@@ -627,6 +627,7 @@ Test("assembly-identity-ambiguity-denies-live-registration", () =>
     Equal("OK|1", one.Split('\n')[0]);
     Equal("OK|1", two.Split('\n')[0]);
     Reject(() => BunnyLocalizationRuntime.Register("LegacyInterface.28", "en-US", "Ambiguous"));
+    Equal("", BunnyLocalizationRuntime.ActiveCultureName);
     Equal(true, BunnyLocalizationRuntime.Acknowledge("one", assembly, "en-US", one));
     Equal(true, BunnyLocalizationRuntime.Acknowledge("two", assembly, "en-US", two));
     Equal("UNCHANGED", BunnyLocalizationRuntime.Drain("one", assembly, "en-US"));
