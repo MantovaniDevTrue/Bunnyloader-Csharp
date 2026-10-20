@@ -90,7 +90,10 @@ jobs:
           dotnet build tests/prefix_v89/PrefixFixture/PrefixFixture.csproj -c Release -p:NuGetAudit=false
           dotnet run --project tests/prefix_v89/PrefixContract.csproj -c Release -p:NuGetAudit=false -- "$(pwd)/tests/prefix_v89/PrefixFixture/bin/Release/net8.0/PrefixFixture.dll"
           python3 tests/prefix_v89/guard_native_bridge.py
-          dotnet run --project tools/sdk_reference -c Release -p:NuGetAudit=false -- --check
+          dotnet run --project tools/sdk_reference -c Release -p:NuGetAudit=false -- --write
+          echo SDK_REFERENCE_DIFF_BEGIN
+          git diff -- docs/generated/sdk_public_reference.json docs/generated/sdk_public_reference.md
+          echo SDK_REFERENCE_DIFF_END
       - name: Compile and test native prefix snapshot path
         working-directory: Split/Bunny-Loader
         shell: bash
