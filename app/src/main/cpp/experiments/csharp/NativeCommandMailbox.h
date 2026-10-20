@@ -248,9 +248,9 @@ public:
                 return false;
         } else if (action.kind == NativeCommandActionKind::AdvanceWorldTime) {
             if (action.amount < -86400000 || action.amount > 86400000 ||
-                !(request.networkMode == 0 && request.caller == NativeCommandRoute::Chat) &&
-                !((request.networkMode & 2) != 0 &&
-                  request.caller == NativeCommandRoute::Server))
+                (!(request.networkMode == 0 && request.caller == NativeCommandRoute::Chat) &&
+                 !((request.networkMode & 2) != 0 &&
+                   request.caller == NativeCommandRoute::Server)))
                 return false;
         } else return false;
         action.epoch = request.epoch;
