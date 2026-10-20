@@ -13,6 +13,9 @@ internal static class TransportIntegration
     [DllImport("bunny", EntryPoint = "bunny_item_use_test_inject")]
     private static extern void InjectItemUse(int playerIndex);
 
+    [DllImport("bunny", EntryPoint = "bunny_item_use_test_ready")]
+    private static extern void SetItemReady(int ready);
+
     private static int checks;
 
     private static void Check(bool value, string description)
@@ -36,11 +39,16 @@ internal static class TransportIntegration
         const int npcType = 700;
         Check(BunnyEntitySourceDispatcher.Bind(mod, 0, npcType,
             nameof(ExampleSlimeNPC)), "bind NPC");
-        Check(Tick(mod, 11) == 0, "world activation binds item and resets stale state");
+        SetItemReady(0);
+        Check(Tick(mod, 11) == 0, "world activation queues item binding and resets stale state");
         Check(ExampleInvasion.Controller.Phase == BunnyInvasionPhase.Inactive,
             "no automatic invasion before item use");
         InjectItemUse(0);
-        Check(Tick(mod, 11) == 1, "item OnUse starts invasion and queues NPC spawn");
+        Check(Tick(mod, 11) == 0 &&
+            ExampleInvasion.Controller.Phase == BunnyInvasionPhase.Inactive,
+            "native item hook not acknowledged: no managed invocation");
+        SetItemReady(1);
+        Check(Tick(mod, 11) == 1, "native-ready item OnUse starts invasion and queues NPC spawn");
         int epoch = ExampleInvasion.Controller.Snapshot().Epoch;
         InjectItemUse(0);
         Check(Tick(mod, 11) == 0 &&
