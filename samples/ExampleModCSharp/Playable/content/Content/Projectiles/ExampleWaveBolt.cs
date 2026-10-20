@@ -35,7 +35,11 @@ public sealed class ExampleWaveBolt : BunnyProjectile
 
     public override void OnHitNPC(ref BunnyProjectileAiState state, int npcIndex, int damage)
     {
-        if (npcIndex >= 0 && damage >= 0) HitEvents++;
+        if (npcIndex >= 0 && damage >= 0)
+        {
+            HitEvents++;
+            ExampleSoundEffects.PlayHit((int)state.X, (int)state.Y);
+        }
     }
 
     public override void OnKill(ref BunnyProjectileAiState state)
