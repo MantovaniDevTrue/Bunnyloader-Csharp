@@ -62,7 +62,19 @@
       "values": [],
       "methods": [
         {
+          "signature": "Nullable\u003Cbool\u003E DecidePrefixChance(BunnyPrefixItemSnapshot item, int request)",
+          "execution": "worker_callback_isolated"
+        },
+        {
           "signature": "bool AllowPrefix(BunnyPrefixItemSnapshot item, int prefix)",
+          "execution": "worker_callback_isolated"
+        },
+        {
+          "signature": "int ChoosePrefix(BunnyPrefixItemSnapshot item)",
+          "execution": "worker_callback_isolated"
+        },
+        {
+          "signature": "void ApplyPrefix(BunnyPrefixItemSnapshot item, int prefix, ref BunnyPrefixApplyStats effects)",
           "execution": "worker_callback_isolated"
         },
         {
@@ -253,7 +265,19 @@
       "values": [],
       "methods": [
         {
+          "signature": "Nullable\u003Cbool\u003E DecidePrefixChance(BunnyPrefixItemSnapshot item, int request)",
+          "execution": "worker_callback_isolated"
+        },
+        {
           "signature": "bool AllowPrefix(BunnyPrefixItemSnapshot item, int prefix)",
+          "execution": "worker_callback_isolated"
+        },
+        {
+          "signature": "int ChoosePrefix(BunnyPrefixItemSnapshot item)",
+          "execution": "worker_callback_isolated"
+        },
+        {
+          "signature": "void ApplyPrefix(BunnyPrefixItemSnapshot item, int prefix, ref BunnyPrefixApplyStats effects)",
           "execution": "worker_callback_isolated"
         },
         {
@@ -1018,7 +1042,15 @@
       "values": [],
       "methods": [
         {
+          "signature": "Nullable\u003Cbool\u003E DecidePrefixChance(BunnyPrefixItemSnapshot item, int request)",
+          "execution": "worker_callback_isolated"
+        },
+        {
           "signature": "bool AllowPrefix(BunnyPrefixItemSnapshot item, int prefix)",
+          "execution": "worker_callback_isolated"
+        },
+        {
+          "signature": "int ChoosePrefix(BunnyPrefixItemSnapshot item)",
           "execution": "worker_callback_isolated"
         },
         {
@@ -1028,6 +1060,10 @@
         {
           "signature": "static int SellPrice(int platinum, int gold, int silver, int copper)",
           "execution": "managed_helper"
+        },
+        {
+          "signature": "void ApplyPrefix(BunnyPrefixItemSnapshot item, int prefix, ref BunnyPrefixApplyStats effects)",
+          "execution": "worker_callback_isolated"
         },
         {
           "signature": "void ApplyPrefix(ref BunnyPrefixApplyStats effects)",
@@ -2845,7 +2881,19 @@
       "values": [],
       "methods": [
         {
+          "signature": "Nullable\u003Cbool\u003E DecidePrefixChance(BunnyPrefixItemSnapshot item, int request)",
+          "execution": "worker_callback_isolated"
+        },
+        {
           "signature": "bool AllowPrefix(BunnyPrefixItemSnapshot item, int prefix)",
+          "execution": "worker_callback_isolated"
+        },
+        {
+          "signature": "int ChoosePrefix(BunnyPrefixItemSnapshot item)",
+          "execution": "worker_callback_isolated"
+        },
+        {
+          "signature": "void ApplyPrefix(BunnyPrefixItemSnapshot item, int prefix, ref BunnyPrefixApplyStats effects)",
           "execution": "worker_callback_isolated"
         },
         {
