@@ -76,8 +76,9 @@ int startFlags(Il2CppObject* player) {
     static FieldInfo* surface = nullptr;
     static FieldInfo* invasion = nullptr;
     static FieldInfo* menu = nullptr;
+    static FieldInfo* firstBoss = nullptr;
     static int health = -1;
-    if (!day || !surface || !invasion || !menu || health < 0) {
+    if (!day || !surface || !invasion || !menu || !firstBoss || health < 0) {
         auto* main = il2cpp::findClass({"Terraria", "Main", {}});
         auto* klass = il2cpp::findClass({"Terraria", "Player", {}});
         if (!main || !klass) return 0;
@@ -85,17 +86,20 @@ int startFlags(Il2CppObject* player) {
         surface = il2cpp::findField(main, "worldSurface");
         invasion = il2cpp::findField(main, "invasionType");
         menu = il2cpp::findField(main, "gameMenu");
+        auto* npc = il2cpp::findClass({"Terraria", "NPC", {}});
+        firstBoss = npc ? il2cpp::findField(npc, "downedBoss1") : nullptr;
         health = il2cpp::fieldOffset(klass, "statLife");
     }
     if (!day || !surface || !invasion || !menu || health < 0) return 0;
     auto& api = il2cpp::api();
-    uint8_t daytime = 0, gameMenu = 1;
+    uint8_t daytime = 0, gameMenu = 1, boss1 = 0;
     double surfaceY = 0;
     int invasionType = -1;
     api.field_static_get_value(day, &daytime);
     api.field_static_get_value(surface, &surfaceY);
     api.field_static_get_value(invasion, &invasionType);
     api.field_static_get_value(menu, &gameMenu);
+    if (firstBoss) api.field_static_get_value(firstBoss, &boss1);
     struct Point {float x, y;};
     const Point playerPos = runtime::field<Point>(
         player, runtime::game().entity.position);
@@ -107,6 +111,7 @@ int startFlags(Il2CppObject* player) {
     if (invasionType == 0) flags |= 4;
     if (runtime::field<int32_t>(player, health) > 0) flags |= 8;
     if (gameMenu == 0) flags |= 16;
+    if (boss1 != 0) flags |= 32;
     return flags;
 }
 

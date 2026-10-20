@@ -14,6 +14,10 @@ static class Tests
         var controller = new BunnyInvasionController(new BunnyInvasionDefinition(
             "invasion-a", 10, 3, 30, new BunnyInvasionEnemy("Slime", 1, 2)));
         var view = new BunnyInvasionClientView();
+        Check(new BunnyUseContext(31).CanStartSurfaceInvasion &&
+            !new BunnyUseContext(31).CanStartSurfaceInvasionAfterFirstBoss &&
+            new BunnyUseContext(63).CanStartSurfaceInvasionAfterFirstBoss,
+            "optional progression flags do not block starter-world sample invasion");
         Check(controller.Start(true), "host starts");
         var state = BunnyInvasionWireState.Capture(11, "my_mod", controller);
         Check(state.IsValid(), "snapshot valid");

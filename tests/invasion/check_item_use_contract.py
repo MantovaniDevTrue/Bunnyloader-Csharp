@@ -37,6 +37,8 @@ assert 'BunnyNativeItemUse.Bind(' in dispatcher
 assert 'public override bool OnUse(int playerIndex)' in beacon
 assert 'public override bool OnUse(int playerIndex, BunnyUseContext context)' in beacon
 assert 'context.CanStartSurfaceInvasion && ExampleInvasion.Start(true)' in beacon
+assert 'downedBoss1' in native
+assert 'FirstBossDefeated' in (root / 'experiments/csharp/BunnyCsSdk/BunnyUseContext.cs').read_text()
 assert 'public virtual bool OnUse(int playerIndex, BunnyUseContext context)' in sdk
 assert 'ExampleInvasion.Start(true)' in beacon
 assert 'CreateRecipe()' in beacon and 'AddTile(BunnyVanillaTiles.WorkBenches)' in beacon
