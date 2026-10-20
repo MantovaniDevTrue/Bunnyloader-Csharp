@@ -279,7 +279,7 @@ class EquipmentContractSurfaceTests(unittest.TestCase):
         self.assertIn("bool invokeManagedPrefix(", runtime)
         self.assertIn("bool invokeManagedPrefix(", header)
         self.assertIn('job.prefix?"BunnyPrefixRuntime"', runtime)
-        self.assertIn("g_recipeRpcQueue.push_back({mod,assembly,owner,snapshot,index,kind,until,completion,shooting,tile,prefix})", runtime)
+        self.assertIn("g_recipeRpcQueue.push_back({mod,assembly,owner,snapshot,index,kind,until,completion,shooting,tile,prefix,itemPrefix})", runtime)
         self.assertIn("completion->cancelled=true;", runtime)
         self.assertIn("!job.completion->cancelled&&std::chrono::steady_clock::now()<job.deadline", runtime)
         self.assertIn("BunnyPrefixItemSnapshot", callbacks)
@@ -299,7 +299,7 @@ class EquipmentContractSurfaceTests(unittest.TestCase):
         self.assertIn('p.callbackMask<0 || p.callbackMask>63', (
             ROOT / "app/src/main/cpp/experiments/csharp/ManagedPrefixBridge.cpp"
         ).read_text(encoding="utf-8"))
-        self.assertIn('kind<0||kind>(prefix?6:3)||', runtime)
+        self.assertIn('kind<0||kind>(prefix?6:3)))||', runtime)
         self.assertNotIn('kind<0||kind>3||', runtime)
         self.assertIn('queryPrefixTooltip(item,*selected)', gameplay)
         self.assertIn('queryPrefixTooltip(item,*p)', gameplay)
@@ -317,6 +317,18 @@ class EquipmentContractSurfaceTests(unittest.TestCase):
         self.assertIn('PREFIX_CALLBACK', (
             ROOT / "experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs"
         ).read_text(encoding="utf-8"))
+
+    def test_item_prefix_worker_is_bounded_and_bound_before_gameplay(self):
+        runtime = (ROOT / "app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp").read_text(encoding="utf-8")
+        bridge = (ROOT / "app/src/main/cpp/experiments/csharp/ManagedPrefixBridge.cpp").read_text(encoding="utf-8")
+        auto = (ROOT / "app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp").read_text(encoding="utf-8")
+        self.assertIn('job.itemPrefix?"BunnyItemPrefixRuntime"', runtime)
+        self.assertIn('g_itemPrefixWarmups.emplace(key,completion)', runtime)
+        self.assertIn('completion->cancelled=true;', runtime)
+        self.assertIn('(*output=="0" || *output=="1")', runtime)
+        self.assertIn('g_itemCallbackAssemblies', bridge)
+        self.assertIn('queueManagedItemPrefixWarmup(modId,assembly,owner.owner)', bridge)
+        self.assertIn('bindManagedItemPrefixCallbackAssembly(mod.id,assembly)', auto)
 
     def test_item_prefix_callback_wire_is_registered_without_live_gameplay_hook(self):
         compiler = (ROOT / "experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs").read_text(encoding="utf-8")

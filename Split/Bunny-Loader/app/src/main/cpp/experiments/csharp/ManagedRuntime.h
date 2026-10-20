@@ -32,6 +32,13 @@ bool invokeManagedRecipe(const std::string& mod,const std::string& assembly,
 bool invokeManagedPrefix(const std::string& mod,const std::string& assembly,
                          const std::string& owner,int kind,const std::string& snapshot,
                          std::string* output,int budgetMicroseconds=1500);
+bool invokeManagedItemPrefix(const std::string& mod,const std::string& assembly,
+                             const std::string& owner,int prefix,const std::string& snapshot,
+                             std::string* output,int budgetMicroseconds=650);
+bool queueManagedItemPrefixWarmup(const std::string& mod,const std::string& assembly,
+                                  const std::string& owner);
+int managedItemPrefixWarmupState(const std::string& mod,const std::string& assembly,
+                                 const std::string& owner);
 bool queueManagedPrefixWarmup(const std::string& mod,const std::string& assembly,
                               const std::string& owner);
 int managedPrefixWarmupState(const std::string& mod,const std::string& assembly,

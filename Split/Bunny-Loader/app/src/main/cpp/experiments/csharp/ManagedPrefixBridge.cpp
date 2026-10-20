@@ -25,6 +25,8 @@ std::shared_ptr<const std::vector<ManagedPrefixEntry>> g_prefixView =
     std::make_shared<const std::vector<ManagedPrefixEntry>>();
 std::shared_ptr<const std::map<std::string,std::string>> g_callbackAssemblies =
     std::make_shared<const std::map<std::string,std::string>>();
+std::shared_ptr<const std::map<std::string,std::string>> g_itemCallbackAssemblies =
+    std::make_shared<const std::map<std::string,std::string>>();
 std::shared_ptr<const std::map<int, ManagedItemPrefixCallbackBinding>> g_itemCallbackView =
     std::make_shared<const std::map<int, ManagedItemPrefixCallbackBinding>>();
 std::shared_ptr<const std::map<int, bool>> g_itemChanceView =
@@ -167,6 +169,31 @@ bool applyManagedItemPrefixCallbackBindings(
 std::shared_ptr<const std::map<int, ManagedItemPrefixCallbackBinding>>
 managedItemPrefixCallbackView() {
     return std::atomic_load_explicit(&g_itemCallbackView, std::memory_order_acquire);
+}
+
+bool bindManagedItemPrefixCallbackAssembly(
+    const std::string& modId,const std::string& assembly) {
+    if (modId.empty() || modId.size()>128 || assembly.empty() || assembly.size()>4096)
+        return false;
+    const auto owners=managedItemPrefixCallbackView();
+    for (const auto& [type, owner]:*owners)
+        if (owner.modId==modId && !queueManagedItemPrefixWarmup(modId,assembly,owner.owner))
+            return false;
+    std::lock_guard<std::mutex> guard(g_prefixMutex);
+    const auto previous=std::atomic_load_explicit(&g_itemCallbackAssemblies,
+                                                   std::memory_order_acquire);
+    if (previous->contains(modId)) return previous->at(modId)==assembly;
+    auto updated=std::make_shared<std::map<std::string,std::string>>(*previous);
+    updated->emplace(modId,assembly);
+    std::shared_ptr<const std::map<std::string,std::string>> published=updated;
+    std::atomic_store_explicit(&g_itemCallbackAssemblies,std::move(published),
+                               std::memory_order_release);
+    return true;
+}
+
+std::shared_ptr<const std::map<std::string,std::string>>
+managedItemPrefixCallbackAssemblies() {
+    return std::atomic_load_explicit(&g_itemCallbackAssemblies,std::memory_order_acquire);
 }
 
 bool applyManagedItemPrefixDenials(

@@ -290,6 +290,7 @@ struct RecipeRpcJob {
     bool shooting=false;
     bool tile=false;
     bool prefix=false;
+    bool itemPrefix=false;
 };
 std::deque<RecipeRpcJob> g_recipeRpcQueue;
 std::condition_variable g_recipeRpcWake;
@@ -297,8 +298,10 @@ void* g_recipeDispatchMethod=nullptr;
 void* g_shootDispatchMethod=nullptr;
 void* g_tileDispatchMethod=nullptr;
 void* g_prefixDispatchMethod=nullptr;
+void* g_itemPrefixDispatchMethod=nullptr;
 std::map<std::string,std::shared_ptr<RecipeRpcCompletion>> g_shootWarmups;
 std::map<std::string,std::shared_ptr<RecipeRpcCompletion>> g_prefixWarmups;
+std::map<std::string,std::shared_ptr<RecipeRpcCompletion>> g_itemPrefixWarmups;
 std::map<std::string,std::shared_ptr<RecipeRpcCompletion>> g_tileWarmups;
 std::atomic<bool> g_recipeRuntimeReady{false};
 
@@ -1375,13 +1378,13 @@ bool processManagedRecipeRpc(std::unique_lock<std::mutex>& lock,Execute execute)
     if(g_recipeRpcQueue.empty())return false;
     auto job=std::move(g_recipeRpcQueue.front());g_recipeRpcQueue.pop_front();
     if(job.completion->cancelled||std::chrono::steady_clock::now()>=job.deadline){
-        if((job.shooting||job.tile||job.prefix)&&job.kind==2&&!job.completion->cancelled){job.completion->done=true;job.completion->output="ERROR|Stage=Warmup Reason=WarmupDeadlineExceeded";}
+        if((job.shooting||job.tile||job.prefix||job.itemPrefix)&&job.kind==2&&!job.completion->cancelled){job.completion->done=true;job.completion->output="ERROR|Stage=Warmup Reason=WarmupDeadlineExceeded";}
         g_recipeRpcWake.notify_all();return true;
     }
     lock.unlock();auto output=execute(job);lock.lock();
     if(!job.completion->cancelled&&std::chrono::steady_clock::now()<job.deadline) {
         job.completion->output=std::move(output);job.completion->done=true;
-    } else if((job.shooting||job.tile||job.prefix)&&job.kind==2&&!job.completion->cancelled) {
+    } else if((job.shooting||job.tile||job.prefix||job.itemPrefix)&&job.kind==2&&!job.completion->cancelled) {
         job.completion->output="ERROR|Stage=Warmup Reason=WarmupDeadlineExceeded";job.completion->done=true;
     }
     g_recipeRpcWake.notify_all();return true;
@@ -1392,10 +1395,12 @@ std::string executeRecipeOnWorker(const RecipeRpcJob& job) {
     if(!g_domain||!g_status.methodExecuted||!g_api.attach||!g_api.openAssembly||!g_api.image||
        !g_api.findClass||!g_api.findMethod||!g_api.newString||!g_api.invoke)return "PENDING|Stage=Invoke Reason=MonoRuntimeOrRequiredExportsNotReady";
     if(!g_api.attach(g_domain))return "ERROR|Stage=AttachThread Reason=MonoAttachFailed";
-    void*& dispatcher=job.prefix?g_prefixDispatchMethod:
-        (job.tile?g_tileDispatchMethod:(job.shooting?g_shootDispatchMethod:g_recipeDispatchMethod));
-    const char* endpoint=job.prefix?"BunnyPrefixRuntime":
-        (job.tile?"BunnyTileRuntime":(job.shooting?"BunnyShootRuntime":"BunnyRecipeRuntime"));
+    void*& dispatcher=job.itemPrefix?g_itemPrefixDispatchMethod:
+        (job.prefix?g_prefixDispatchMethod:
+        (job.tile?g_tileDispatchMethod:(job.shooting?g_shootDispatchMethod:g_recipeDispatchMethod)));
+    const char* endpoint=job.itemPrefix?"BunnyItemPrefixRuntime":
+        (job.prefix?"BunnyPrefixRuntime":
+        (job.tile?"BunnyTileRuntime":(job.shooting?"BunnyShootRuntime":"BunnyRecipeRuntime")));
     if(!dispatcher) {
         const auto slash=g_checkpointPath.find_last_of('/');
         if(slash==std::string::npos)return "ERROR|Stage=ResolveSdk Reason=InvalidCheckpointPath";
@@ -2330,9 +2335,12 @@ bool managedRecipeRuntimeReady(){return g_recipeRuntimeReady.load(std::memory_or
 static bool invokeManagedCallback(bool shooting,const std::string& mod,const std::string& assembly,
                          const std::string& owner,int index,int kind,const std::string& snapshot,
                          std::string* output,int budgetMicroseconds,
-                         bool tile=false,bool prefix=false) {
+                         bool tile=false,bool prefix=false,bool itemPrefix=false) {
     if(!output)return false;
-    if(budgetMicroseconds<1||budgetMicroseconds>3000||index<0||index>=16||kind<0||kind>(prefix?6:3)||
+    if(budgetMicroseconds<1||budgetMicroseconds>3000||index<0||
+       (itemPrefix ? ((kind==2 && (index!=0 || !snapshot.empty())) ||
+                      (kind==0 && (index<1 || index>255 || snapshot.empty())) ||
+                      (kind!=0 && kind!=2)) : (index>=16 || kind<0 || kind>(prefix?6:3)))||
        snapshot.size()>(shooting?1024u:512u)||assembly.empty()||assembly.size()>4096){*output="ERROR|Stage=SubmitRecipeCallback Reason=InvalidTransportArguments";return false;}
     std::unique_lock<std::mutex> lock(g_pinnedMutex,std::try_to_lock);
     if(!lock.owns_lock()){*output="PENDING|Stage=SubmitRecipeCallback Reason=WorkerQueueBusy";return false;}
@@ -2340,7 +2348,7 @@ static bool invokeManagedCallback(bool shooting,const std::string& mod,const std
     if(g_recipeRpcQueue.size()>=16){*output="PENDING|Stage=SubmitRecipeCallback Reason=QueueCapacityExceeded Expected=Below16";return false;}
     const auto until=std::chrono::steady_clock::now()+std::chrono::microseconds(budgetMicroseconds);
     auto completion=std::make_shared<RecipeRpcCompletion>();
-    g_recipeRpcQueue.push_back({mod,assembly,owner,snapshot,index,kind,until,completion,shooting,tile,prefix});g_pinnedWake.notify_one();
+    g_recipeRpcQueue.push_back({mod,assembly,owner,snapshot,index,kind,until,completion,shooting,tile,prefix,itemPrefix});g_pinnedWake.notify_one();
     if(!g_recipeRpcWake.wait_until(lock,until,[&]{return completion->done;})) {
         completion->cancelled=true;*output="PENDING|Stage=WaitRecipeCallback Reason=DeadlineExceeded BudgetUs="+std::to_string(budgetMicroseconds);return false;
     }
@@ -2437,6 +2445,49 @@ bool invokeManagedPrefix(const std::string& mod,const std::string& assembly,
     int weight=0;
     for (char ch : *output) weight=weight*10+(ch-'0');
     return weight >= 0 && weight <= 20;
+}
+
+bool invokeManagedItemPrefix(const std::string& mod,const std::string& assembly,
+                             const std::string& owner,int prefix,const std::string& snapshot,
+                             std::string* output,int budgetMicroseconds) {
+    if (!output || prefix<1 || prefix>255 || snapshot.empty() ||
+        snapshot.size()>512 || owner.empty() || owner.size()>64)
+        return false;
+    const bool validOwner = std::all_of(owner.begin(),owner.end(),[](unsigned char ch) {
+        return (ch>='A' && ch<='Z') || (ch>='a' && ch<='z') ||
+               (ch>='0' && ch<='9') || ch=='_';
+    });
+    if (!validOwner || !((owner[0]>='A' && owner[0]<='Z') ||
+                         (owner[0]>='a' && owner[0]<='z') || owner[0]=='_')) return false;
+    return invokeManagedCallback(false,mod,assembly,owner,prefix,0,snapshot,
+                                 output,budgetMicroseconds,false,false,true) &&
+           (*output=="0" || *output=="1");
+}
+
+bool queueManagedItemPrefixWarmup(const std::string& mod,const std::string& assembly,
+                                  const std::string& owner) {
+    if (mod.empty() || mod.size()>128 || assembly.empty() || assembly.size()>4096 ||
+        owner.empty() || owner.size()>64) return false;
+    const std::string key=mod+"|"+assembly+"|"+owner;
+    std::lock_guard lock(g_pinnedMutex);
+    if (g_itemPrefixWarmups.contains(key)) return true;
+    if (g_itemPrefixWarmups.size()>=4096 || g_recipeRpcQueue.size()>=4096) return false;
+    auto completion=std::make_shared<RecipeRpcCompletion>();
+    g_itemPrefixWarmups.emplace(key,completion);
+    g_recipeRpcQueue.push_back({mod,assembly,owner,"",0,2,
+        std::chrono::steady_clock::now()+std::chrono::seconds(60),
+        completion,false,false,false,true});
+    g_pinnedWake.notify_one();
+    return true;
+}
+
+int managedItemPrefixWarmupState(const std::string& mod,const std::string& assembly,
+                                 const std::string& owner) {
+    std::unique_lock lock(g_pinnedMutex,std::try_to_lock);
+    if (!lock.owns_lock()) return 0;
+    const auto found=g_itemPrefixWarmups.find(mod+"|"+assembly+"|"+owner);
+    if (found==g_itemPrefixWarmups.end() || !found->second->done) return 0;
+    return found->second->output=="READY" ? 1 : -1;
 }
 
 bool queueManagedPrefixWarmup(const std::string& mod,const std::string& assembly,

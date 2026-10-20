@@ -60,6 +60,10 @@ bool applyManagedItemPrefixCallbackBindings(
     const std::string& modId, const std::vector<std::pair<int, std::string>>& items);
 std::shared_ptr<const std::map<int, ManagedItemPrefixCallbackBinding>>
 managedItemPrefixCallbackView();
+bool bindManagedItemPrefixCallbackAssembly(const std::string& modId,
+                                           const std::string& assembly);
+std::shared_ptr<const std::map<std::string, std::string>>
+managedItemPrefixCallbackAssemblies();
 
 struct ManagedItemPrefixApply {
     int damageBonus = 0;
