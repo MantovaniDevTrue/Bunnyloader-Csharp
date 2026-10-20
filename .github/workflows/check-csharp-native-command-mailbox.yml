@@ -7,6 +7,11 @@ on:
     paths:
       - 'app/src/main/cpp/experiments/csharp/NativeCommandMailbox.h'
       - 'tests/commands/native_mailbox_test.cpp'
+      - 'tests/commands/native_command_source_parser_test.cpp'
+      - 'app/src/main/cpp/experiments/csharp/SourceParser.cpp'
+      - 'app/src/main/cpp/experiments/csharp/SourceParser.h'
+      - 'app/src/main/cpp/experiments/csharp/SourceContentIdentity.h'
+      - 'app/src/main/cpp/experiments/csharp/ManagedSourceClassCount.h'
       - '.github/workflows/check-csharp-native-command-mailbox.yml'
   pull_request:
     paths:
@@ -33,3 +38,12 @@ jobs:
             -o /tmp/bunny-command-test/mailbox
       - name: Check queue, world unload, multi-mod and routing
         run: /tmp/bunny-command-test/mailbox
+      - name: Compile command-only native parser
+        run: |
+          g++ -std=c++20 -O2 -Wall -Wextra -Werror -pedantic -pthread \
+            -Iapp/src/main/cpp \
+            tests/commands/native_command_source_parser_test.cpp \
+            app/src/main/cpp/experiments/csharp/SourceParser.cpp \
+            -o /tmp/bunny-command-test/source-parser
+      - name: Verify parser identity and managed type counts
+        run: /tmp/bunny-command-test/source-parser
