@@ -51,7 +51,7 @@ string Mode(Type type, MethodInfo method)
         return "worker_async_entity";
     if (type == typeof(BunnyProjectile) && method.Name != "SetDefaults") return "compile_sampled_policy";
     if (type == typeof(BunnyPrefix) &&
-        method.Name is "CanRoll" or "RollChance" or "AllStatChangesHaveEffectOn" ||
+        method.Name is "CanRoll" or "RollChance" or "AllStatChangesHaveEffectOn" or "GetTooltipLines" ||
         type == typeof(BunnyPrefix) && method.Name == "Apply" && method.GetParameters().Length == 2) return "worker_callback_opt_in";
     if (type == typeof(BunnyPrefixRuntime)) return "worker_dispatcher";
     if (type == typeof(BunnyPrefix) || type == typeof(BunnyPrefixRollRules) ||

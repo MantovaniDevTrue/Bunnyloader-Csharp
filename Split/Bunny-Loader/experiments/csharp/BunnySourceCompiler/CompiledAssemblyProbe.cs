@@ -874,7 +874,7 @@ public static class CompiledAssemblyProbe
                 throw new InvalidOperationException("Duplicate managed prefix: " + name);
             int callbackMask = 0;
             foreach (var (methodName, bit) in new[] { ("CanRoll", 1), ("RollChance", 2),
-                ("AllStatChangesHaveEffectOn", 4) })
+                ("AllStatChangesHaveEffectOn", 4), ("GetTooltipLines", 16) })
             {
                 MethodInfo callback = type.GetMethod(methodName,
                     BindingFlags.Public | BindingFlags.Instance,

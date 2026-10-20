@@ -887,6 +887,7 @@ string ExtraTooltip { get; set; }
 
 | Method | Execution |
 | --- | --- |
+| `IReadOnlyList<BunnyPrefixTooltipLine> GetTooltipLines(BunnyPrefixItemSnapshot item)` | worker_callback_opt_in |
 | `bool AllStatChangesHaveEffectOn(BunnyPrefixItemSnapshot item)` | worker_callback_opt_in |
 | `bool CanRoll(BunnyPrefixItemSnapshot item)` | worker_callback_opt_in |
 | `int RollChance(BunnyPrefixItemSnapshot item)` | worker_callback_opt_in |
@@ -988,6 +989,16 @@ abstract class; base: `System.Object`.
 | Method | Execution |
 | --- | --- |
 | `static string Dispatch(string modId, string assemblyPath, string owner, int index, int kind, string snapshot)` | worker_dispatcher |
+
+## BunnyLoader.Source.BunnyPrefixTooltipLine
+
+struct; base: `System.ValueType`.
+
+```csharp
+BunnyPrefixTooltipLine(string text, bool isNegative)
+bool IsNegative { get; }
+string Text { get; }
+```
 
 ## BunnyLoader.Source.BunnyProjectile
 

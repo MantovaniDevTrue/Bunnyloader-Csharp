@@ -1622,6 +1622,10 @@
       "values": [],
       "methods": [
         {
+          "signature": "IReadOnlyList<BunnyPrefixTooltipLine> GetTooltipLines(BunnyPrefixItemSnapshot item)",
+          "execution": "worker_callback_opt_in"
+        },
+        {
           "signature": "bool AllStatChangesHaveEffectOn(BunnyPrefixItemSnapshot item)",
           "execution": "worker_callback_opt_in"
         },
@@ -1834,6 +1838,20 @@
           "execution": "worker_dispatcher"
         }
       ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyPrefixTooltipLine",
+      "kind": "struct",
+      "baseType": "System.ValueType",
+      "constructors": [
+        "BunnyPrefixTooltipLine(string text, bool isNegative)"
+      ],
+      "properties": [
+        "bool IsNegative { get; }",
+        "string Text { get; }"
+      ],
+      "values": [],
+      "methods": []
     },
     {
       "name": "BunnyLoader.Source.BunnyProjectile",

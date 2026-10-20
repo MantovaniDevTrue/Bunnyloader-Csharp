@@ -183,6 +183,7 @@ assert 'public override bool CanRoll(BunnyPrefixItemSnapshot item)' in guarded_p
 assert 'public override int RollChance(BunnyPrefixItemSnapshot item)' in guarded_prefix_example
 assert 'public override bool AllStatChangesHaveEffectOn(BunnyPrefixItemSnapshot item)' in guarded_prefix_example
 assert 'public override void Apply(BunnyPrefixItemSnapshot item, ref BunnyPrefixApplyStats effects)' in guarded_prefix_example
+assert 'public override System.Collections.Generic.IReadOnlyList<BunnyPrefixTooltipLine> GetTooltipLines(' in guarded_prefix_example
 item_deny_example = (playable / "content/Content/Items/Weapons/ExampleWand.cs").read_text(encoding="utf-8")
 assert 'rules.Deny(71);' in item_deny_example
 assert 'rules.Deny(nameof(ExampleGuardedPrefix));' in item_deny_example

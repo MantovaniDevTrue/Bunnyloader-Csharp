@@ -298,6 +298,66 @@ bool queryPrefixApply(Il2CppObject* item,const ManagedPrefixEntry& p,
     return true;
 }
 
+std::vector<std::pair<std::string,bool>> queryPrefixTooltip(
+    Il2CppObject* item,const ManagedPrefixEntry& p) {
+    if (!(p.callbackMask & 16)) return {};
+    const auto assemblies=managedPrefixCallbackAssemblies();
+    const auto found=assemblies->find(p.modId);
+    if (found==assemblies->end() ||
+        managedPrefixWarmupState(p.modId,found->second,p.name)!=1) return {};
+    const std::string snapshot=prefixItemSnapshot(item);
+    if (snapshot.empty()) return {};
+    const std::string key=p.modId+"/"+p.name+"|"+snapshot;
+    struct TooltipCache {
+        std::string key;
+        std::vector<std::pair<std::string,bool>> lines;
+        std::chrono::steady_clock::time_point updated{};
+    };
+    static thread_local TooltipCache cache;
+    const auto now=std::chrono::steady_clock::now();
+    if (cache.key==key && now-cache.updated<std::chrono::milliseconds(200))
+        return cache.lines;
+    std::string wire;
+    std::vector<std::pair<std::string,bool>> result;
+    if (invokeManagedPrefix(p.modId,found->second,p.name,5,snapshot,&wire,650)) {
+        const auto nibble=[](char ch)->int {
+            if (ch>='0' && ch<='9') return ch-'0';
+            if (ch>='A' && ch<='F') return ch-'A'+10;
+            return -1;
+        };
+        size_t pos=0;
+        while (pos<wire.size() && result.size()<4) {
+            const auto stop=wire.find(';',pos);
+            const auto end=stop==std::string::npos?wire.size():stop;
+            if (end<pos+4 || wire[pos+1]!=':' ||
+                (wire[pos]!='0' && wire[pos]!='1') ||
+                (end-pos-2)%2 || end-pos-2>240) {
+                result.clear();
+                break;
+            }
+            std::string line;
+            line.reserve((end-pos-2)/2);
+            bool valid=true;
+            for (size_t i=pos+2;i<end;i+=2) {
+                const int hi=nibble(wire[i]),lo=nibble(wire[i+1]);
+                if (hi<0 || lo<0) { valid=false;break; }
+                const int ch=(hi<<4)|lo;
+                if (ch<32 || ch==127) {valid=false;break;}
+                line.push_back(static_cast<char>(ch));
+            }
+            if (!valid || line.empty()) {result.clear();break;}
+            result.emplace_back(std::move(line),wire[pos]=='1');
+            pos=stop==std::string::npos?end:stop+1;
+            if (stop!=std::string::npos && pos==wire.size()) {result.clear();break;}
+        }
+        if (pos<wire.size()) result.clear();
+    }
+    cache.key=key;
+    cache.lines=result;
+    cache.updated=now;
+    return result;
+}
+
 int nativeItemRollWeight(Il2CppObject* item, const ManagedPrefixEntry& p) {
     if (!item || g_refs.type < 0) return 0;
     const int itemType = bl::runtime::field<int32_t>(item, g_refs.type);
@@ -968,7 +1028,8 @@ void hookInventoryTooltip(Il2CppObject* item, int32_t* yoyo, int32_t* research,
                 auto** output = static_cast<Il2CppString**>(arrayData(lines));
                 auto* flags = static_cast<uint8_t*>(arrayData(modifier));
                 auto* negative = static_cast<uint8_t*>(arrayData(bad));
-                const auto append = [&](const std::string& message) {
+                const auto append = [&](const std::string& message,
+                                        bool isNegative=false) {
                     if (message.empty() || static_cast<uintptr_t>(*count) >= capacity)
                         return;
                     Il2CppString* rendered = api.string_new(message.c_str());
@@ -976,7 +1037,7 @@ void hookInventoryTooltip(Il2CppObject* item, int32_t* yoyo, int32_t* research,
                     api.gc_wbarrier_set_field(reinterpret_cast<Il2CppObject*>(lines),
                         reinterpret_cast<void**>(&output[*count]), rendered);
                     flags[*count] = 1;
-                    negative[*count] = 0;
+                    negative[*count] = isNegative?1:0;
                     ++*count;
                 };
                 append(selected->extraTooltip);
@@ -990,6 +1051,8 @@ void hookInventoryTooltip(Il2CppObject* item, int32_t* yoyo, int32_t* research,
                     for (const auto& itemLine : selected->tooltipItemLines)
                         append(renderPrefixItemTooltip(itemLine, damage, mana, stack));
                 }
+                for (const auto& line : queryPrefixTooltip(item,*selected))
+                    append(line.first,line.second);
             }
         }
     }

@@ -38,7 +38,7 @@ try
         throw new InvalidOperationException("Dynamic per-instance roll weight descriptor missing");
     if (data.Count(row => row == "PREFIX_CALLBACK\tTestMightyPrefix\t8") != 1)
         throw new InvalidOperationException("Managed prefix Apply callback mask missing");
-    if (data.Count(row => row == "PREFIX_CALLBACK\tTestGuardedPrefix\t7") != 1)
+    if (data.Count(row => row == "PREFIX_CALLBACK\tTestGuardedPrefix\t23") != 1)
         throw new InvalidOperationException("Managed prefix override mask missing");
     if (data.Count(row => row == "PREFIX_ATTRIBUTE_WEIGHT\tTestGuardedPrefix\tM\t0\t8\t4") != 1)
         throw new InvalidOperationException("Per-instance mana RollChance descriptor missing");
@@ -307,6 +307,11 @@ try
     if (BunnyLoader.Source.BunnyPrefixRuntime.Dispatch(
         "prefix-fixture", args[0], "TestGuardedPrefix", 0, 3, "6207,26,4,1,98,1") != "0")
         throw new InvalidOperationException("Managed prefix stat efficacy rejection failed");
+    string tooltipText = "0:" + Convert.ToHexString(System.Text.Encoding.UTF8.GetBytes("Dano 22")) +
+        ";1:" + Convert.ToHexString(System.Text.Encoding.UTF8.GetBytes("Ruim"));
+    if (BunnyLoader.Source.BunnyPrefixRuntime.Dispatch(
+        "prefix-fixture", args[0], "TestGuardedPrefix", 0, 5, validItem) != tooltipText)
+        throw new InvalidOperationException("Dynamic managed tooltip lines and negative flags missing");
     if (BunnyLoader.Source.BunnyPrefixRuntime.Dispatch(
         "prefix-fixture", args[0], "TestMightyPrefix", 0, 2, "") != "READY")
         throw new InvalidOperationException("Managed prefix Apply warmup failed");

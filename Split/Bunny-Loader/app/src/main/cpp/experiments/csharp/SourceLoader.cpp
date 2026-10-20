@@ -937,7 +937,7 @@ bool applyManagedSourceDefaults(
             int mask=0;
             if (fields.size()!=3 || registered==mod->registeredKindTypes.end() ||
                 runtime::modPrefixByKey(modId+"/"+fields[1])!=registered->second ||
-                !integer(fields[2],&mask) || mask<1 || mask>15 ||
+                !integer(fields[2],&mask) || mask<1 || mask>31 ||
                 !prefixCallbackMasks.emplace(fields[1],mask).second) {
                 *error="[CSharp][ERROR][PrefixCallback] InvalidPrefixOrMask";
                 return false;

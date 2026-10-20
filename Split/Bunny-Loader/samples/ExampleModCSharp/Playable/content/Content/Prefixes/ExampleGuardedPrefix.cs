@@ -33,6 +33,10 @@ public sealed class ExampleGuardedPrefix : BunnyPrefix
         effects.ValueBonus = item.Mana <= 8 ? 10 : 0;
     }
 
+    public override System.Collections.Generic.IReadOnlyList<BunnyPrefixTooltipLine> GetTooltipLines(
+        BunnyPrefixItemSnapshot item)
+        => new[] { new BunnyPrefixTooltipLine("Mana: " + item.Mana) };
+
     public override void ModifyValue(ref float valueMultiplier)
     {
         valueMultiplier *= 1.2f;

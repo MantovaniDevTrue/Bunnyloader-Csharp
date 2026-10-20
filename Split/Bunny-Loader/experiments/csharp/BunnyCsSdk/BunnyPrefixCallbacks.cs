@@ -69,7 +69,7 @@ public static class BunnyPrefixRuntime
     {
         try
         {
-            if(index!=0||kind<0||kind>4||modId.Length==0||modId.Length>128||
+            if(index!=0||kind<0||kind>5||modId.Length==0||modId.Length>128||
                owner.Length==0||owner.Length>128||assemblyPath.Length==0||
                assemblyPath.Length>4096||(kind==2?!string.IsNullOrEmpty(snapshot):string.IsNullOrEmpty(snapshot)))
                 throw new ArgumentException("Invalid prefix transport arguments");
@@ -89,7 +89,7 @@ public static class BunnyPrefixRuntime
                 var type=matches[0];
                 prefix=(BunnyPrefix)Activator.CreateInstance(type)!;
                 prefix.SetDefaults();
-                foreach(string method in new[]{"CanRoll","RollChance","AllStatChangesHaveEffectOn"})
+                foreach(string method in new[]{"CanRoll","RollChance","AllStatChangesHaveEffectOn","GetTooltipLines"})
                 {
                     var callback=type.GetMethod(method,new[]{typeof(BunnyPrefixItemSnapshot)});
                     if(callback==null)throw new MissingMethodException(type.FullName,method);
@@ -106,6 +106,24 @@ public static class BunnyPrefixRuntime
             var item=ReadItem(snapshot);
             if(kind==0)return prefix.CanRoll(item)?"1":"0";
             if(kind==3)return prefix.AllStatChangesHaveEffectOn(item)?"1":"0";
+            if(kind==5)
+            {
+                var lines=prefix.GetTooltipLines(item);
+                if(lines==null)return "";
+                if(lines.Count>4)throw new ArgumentOutOfRangeException(nameof(lines));
+                var encoded=new System.Collections.Generic.List<string>(lines.Count);
+                foreach(var line in lines)
+                {
+                    string text=line.Text ?? "";
+                    if(text.Length==0 || text.Any(char.IsControl))
+                        throw new ArgumentException("Invalid tooltip line");
+                    byte[] bytes=System.Text.Encoding.UTF8.GetBytes(text);
+                    if(bytes.Length>120)
+                        throw new ArgumentOutOfRangeException(nameof(lines));
+                    encoded.Add((line.IsNegative?"1:":"0:")+Convert.ToHexString(bytes));
+                }
+                return string.Join(";",encoded);
+            }
             if(kind==4)
             {
                 var extra=new BunnyPrefixApplyStats();

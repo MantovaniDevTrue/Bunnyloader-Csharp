@@ -144,4 +144,9 @@ public sealed class TestGuardedPrefix : BunnyPrefix
 
     public override bool AllStatChangesHaveEffectOn(BunnyPrefixItemSnapshot item)
         => item.Damage <= 25;
+
+    public override System.Collections.Generic.IReadOnlyList<BunnyPrefixTooltipLine> GetTooltipLines(
+        BunnyPrefixItemSnapshot item)
+        => new[] { new BunnyPrefixTooltipLine("Dano " + item.Damage),
+                   new BunnyPrefixTooltipLine("Ruim", true) };
 }

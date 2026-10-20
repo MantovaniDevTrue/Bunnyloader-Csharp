@@ -41,7 +41,7 @@ std::shared_ptr<const ManagedPrefixAttributeDenyTable> g_itemAttributeDenyView =
     std::make_shared<const ManagedPrefixAttributeDenyTable>();
 
 bool valid(const ManagedPrefixEntry& p) {
-    if (p.callbackMask<0 || p.callbackMask>15 ||
+    if (p.callbackMask<0 || p.callbackMask>31 ||
         (p.callbackMask && (p.modId.empty() || p.modId.size()>128)) ||
         p.type < 0 || p.type > 255 || p.category < 0 || p.category > 6 ||
         p.displayName.size() > 80 ||

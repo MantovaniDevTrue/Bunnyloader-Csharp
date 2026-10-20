@@ -2365,7 +2365,7 @@ bool invokeManagedPrefix(const std::string& mod,const std::string& assembly,
                    (ch >= '0' && ch <= '9') || ch == '_';
         });
     };
-    if (!output || !validOwner(owner) || kind < 0 || kind > 4 ||
+    if (!output || !validOwner(owner) || kind < 0 || kind > 5 ||
         (kind == 2 ? !snapshot.empty() : snapshot.empty())) {
         if (output) *output = "ERROR|Stage=PrefixCallback Reason=InvalidArguments";
         return false;
@@ -2382,6 +2382,26 @@ bool invokeManagedPrefix(const std::string& mod,const std::string& assembly,
     if (!success) return false;
     if (kind == 2) return *output == "READY";
     if (kind == 0 || kind == 3) return *output == "0" || *output == "1";
+    if (kind == 5) {
+        if (output->size()>1024) return false;
+        if (output->empty()) return true;
+        size_t pos=0, count=0;
+        while (pos<output->size()) {
+            if (++count>4 || pos+4>output->size() ||
+                ((*output)[pos]!='0' && (*output)[pos]!='1') ||
+                (*output)[pos+1]!=':') return false;
+            const size_t end=output->find(';',pos);
+            const size_t stop=end==std::string::npos?output->size():end;
+            if (stop<=pos+2 || (stop-pos-2)%2!=0 || stop-pos-2>240)
+                return false;
+            for (size_t i=pos+2;i<stop;++i)
+                if (!(((*output)[i]>='0'&&(*output)[i]<='9') ||
+                      ((*output)[i]>='A'&&(*output)[i]<='F'))) return false;
+            pos=end==std::string::npos?stop:stop+1;
+            if (end!=std::string::npos && pos==output->size()) return false;
+        }
+        return true;
+    }
     if (kind == 4) {
         const size_t comma=output->find(',');
         if (comma==std::string::npos || comma==0 || comma>4 ||

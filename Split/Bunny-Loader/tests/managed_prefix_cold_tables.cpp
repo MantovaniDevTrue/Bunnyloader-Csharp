@@ -182,13 +182,14 @@ bool invokeManagedPrefix(const std::string& mod,const std::string& assembly,
                          std::string* response,int budget) {
     assert(mod=="test" && assembly=="/tmp/prefix-fixture.dll" && owner=="Mighty");
     assert(snapshot=="6199,12,0,1,0,4");
-    assert(budget>0 && budget<=650 && kind>=0 && kind<=4 && kind!=2);
+    assert(budget>0 && budget<=650 && kind>=0 && kind<=5 && kind!=2);
     ++prefixWorkerCalls;
     if(prefixWorkerFails) return false;
     if(kind==0) *response=std::to_string(prefixWorkerCanRoll);
     else if(kind==1) *response=std::to_string(prefixWorkerWeight);
     else if(kind==3) *response=std::to_string(prefixWorkerEfficacy);
-    else *response="2,10";
+    else if(kind==4) *response="2,10";
+    else *response="0:4F4B;1:5269736B";
     return true;
 }
 int managedNativeAccessoryDefense(int type) { return type == 6196 ? 7 : 0; }
@@ -1002,6 +1003,15 @@ int main() {
     assert(!queryPrefixApply(&weapon.object,livePrefix,&dynamicDamage,&dynamicValue));
     assert(prefixWorkerCalls==10);
     prefixWorkerFails=false;
+    livePrefix.callbackMask=31;
+    {
+        auto lines=queryPrefixTooltip(&weapon.object,livePrefix);
+        assert(lines.size()==2 && lines[0].first=="OK" && !lines[0].second);
+        assert(lines[1].first=="Risk" && lines[1].second);
+        assert(prefixWorkerCalls==11);
+        lines=queryPrefixTooltip(&weapon.object,livePrefix);
+        assert(lines.size()==2 && prefixWorkerCalls==11);
+    }
     prefixAssemblies=std::make_shared<const std::map<std::string,std::string>>();
     const auto metrics = managedPrefixDiagnostics();
     assert(metrics.rollAttempts >= 12);

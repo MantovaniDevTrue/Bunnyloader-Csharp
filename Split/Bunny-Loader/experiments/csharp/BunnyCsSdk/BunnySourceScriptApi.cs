@@ -734,6 +734,17 @@ public sealed class BunnyPrefixItemConditions
         => OverrideAttributeRollWeight('M', minimum, maximum, weight);
 }
 
+public readonly struct BunnyPrefixTooltipLine
+{
+    public string Text { get; }
+    public bool IsNegative { get; }
+    public BunnyPrefixTooltipLine(string text, bool isNegative = false)
+    {
+        Text = text;
+        IsNegative = isNegative;
+    }
+}
+
 public abstract class BunnyPrefix
 {
     public string DisplayName { get; set; } = "";
@@ -748,6 +759,8 @@ public abstract class BunnyPrefix
         (int)System.MathF.Round(RollWeight);
     public virtual bool AllStatChangesHaveEffectOn(BunnyPrefixItemSnapshot item) => true;
     public virtual void Apply(BunnyPrefixItemSnapshot item, ref BunnyPrefixApplyStats effects) { }
+    public virtual System.Collections.Generic.IReadOnlyList<BunnyPrefixTooltipLine> GetTooltipLines(
+        BunnyPrefixItemSnapshot item) => System.Array.Empty<BunnyPrefixTooltipLine>();
     public virtual void SetStats(ref PrefixStats stats) { }
     public bool RequireEffectiveStats { get; set; } = true;
     public string ExtraTooltip { get; set; } = "";
