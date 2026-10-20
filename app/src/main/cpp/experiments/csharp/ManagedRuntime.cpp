@@ -1488,6 +1488,76 @@ bool executeManagedSceneOnWorker(const SceneLightRequest& request,
     return true;
 }
 
+bool prepareManagedCommandWorker() {
+    if (!g_domain || !g_status.domainInitialized || !g_status.methodExecuted ||
+        !g_api.attach || !g_api.openAssembly || !g_api.image ||
+        !g_api.findClass || !g_api.findMethod || !g_api.invoke || !g_api.newString ||
+        !g_api.unbox)
+        return false;
+    if (!g_api.attach(g_domain)) return false;
+    if (g_commandRegisterMethod && g_commandExecuteMethod) return true;
+    const size_t slash = g_checkpointPath.find_last_of('/');
+    if (slash == std::string::npos) return false;
+    const std::string sdk = g_checkpointPath.substr(0, slash + 1) + "BunnySourceSdk.dll";
+    if (!validAssembly(sdk)) return false;
+    void* assembly = g_api.openAssembly(g_domain, sdk.c_str());
+    void* image = assembly ? g_api.image(assembly) : nullptr;
+    void* klass = image ? g_api.findClass(image, "BunnyLoader.Source",
+                                           "BunnyCommandWorker") : nullptr;
+    void* registerMethod = klass ? g_api.findMethod(klass, "RegisterAssembly", 2) : nullptr;
+    void* executeMethod = klass ? g_api.findMethod(klass, "Execute", 4) : nullptr;
+    if (!registerMethod || !executeMethod) return false;
+    g_commandRegisterMethod = registerMethod;
+    g_commandExecuteMethod = executeMethod;
+    return true;
+}
+
+bool registerManagedCommandOnWorker(const ManagedCommandBinding& binding) {
+    std::lock_guard<std::mutex> guard(g_mutex);
+    if (!validAssembly(binding.assembly) || !prepareManagedCommandWorker()) return false;
+    void* args[] = {
+        g_api.newString(g_domain, binding.modId.c_str()),
+        g_api.newString(g_domain, binding.assembly.c_str())
+    };
+    if (!args[0] || !args[1]) return false;
+    void* exception = nullptr;
+    void* boxed = g_api.invoke(g_commandRegisterMethod, nullptr, args, &exception);
+    void* raw = !exception && boxed ? g_api.unbox(boxed) : nullptr;
+    if (!raw) return false;
+    int count = 0;
+    std::memcpy(&count, raw, sizeof(count));
+    return count > 0 && count <= 128;
+}
+
+std::string executeManagedCommandOnWorker(const NativeCommandRequest& request) {
+    std::lock_guard<std::mutex> guard(g_mutex);
+    if (!prepareManagedCommandWorker()) return {};
+    int player = request.playerIndex;
+    int mode = request.networkMode;
+    int kind = static_cast<int>(request.caller);
+    void* args[] = {
+        g_api.newString(g_domain, request.input.c_str()),
+        &player, &mode, &kind
+    };
+    if (!args[0]) return {};
+    void* exception = nullptr;
+    void* result = g_api.invoke(g_commandExecuteMethod, nullptr, args, &exception);
+    if (exception || !result) return {};
+    using Utf8Fn = char* (*)(void*);
+    using FreeFn = void (*)(void*);
+    static const auto utf8 = resolve<Utf8Fn>("mono_string_to_utf8");
+    static const auto release = resolve<FreeFn>("mono_free");
+    if (!utf8 || !release) return {};
+    char* raw = utf8(result);
+    if (!raw) return {};
+    const size_t bytes = strnlen(raw, 20 * 1024 + 1);
+    std::string wire;
+    if (bytes > 0 && bytes <= 20 * 1024)
+        wire.assign(raw, bytes);
+    release(raw);
+    return wire;
+}
+
 void* pinnedMonoWorker(void*) {
     {
         std::lock_guard<std::mutex> lock(g_pinnedMutex);
