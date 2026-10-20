@@ -40,7 +40,12 @@ public sealed class ExampleSlimeNPC : BunnyNPC
     public override void OnKill(ref BunnyNpcAiState state)
     {
         KillEvents++;
+        ExampleInvasion.EnemyKilled(true, state.Slot, state.Generation);
     }
 
+    public override void OnDespawn(ref BunnyNpcAiState state)
+    {
+        ExampleInvasion.EnemyDespawned(true, state.Slot, state.Generation);
+    }
 }
 
