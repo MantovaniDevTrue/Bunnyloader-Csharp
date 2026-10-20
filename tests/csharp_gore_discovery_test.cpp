@@ -114,5 +114,15 @@ int main() {
         assert(discover(mod.root.string(), &result, &error));
         assert(result.empty());
     }
+    {
+        // Exercita o mesmo pacote ExampleMod C# distribuido ao modder,
+        // com os dois PNGs originais do ExampleModBunny.
+        const std::string sample = "samples/ExampleModCSharp/Playable";
+        assert(fs::exists(sample + "/content/Content/Gores/ExampleDroplet.png"));
+        assert(discover(sample, &result, &error));
+        assert(result.size() == 2);
+        assert(result[0].name == "ExampleBoss_GoreFront");
+        assert(result[1].name == "ExampleDroplet");
+    }
     std::puts("CSHARP_GORE_DISCOVERY_PASS");
 }
