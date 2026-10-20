@@ -441,7 +441,7 @@ try {
  Check("tiles.unknown-flags-rejected-by-real-compiler-probe",()=>{
   string root=Path.Combine(scratch,"bad-tile-flags");Directory.CreateDirectory(Path.Combine(root,"content"));
   string output=Path.Combine(scratch,"bad-tile.dll"),diag=Path.Combine(scratch,"bad-tile.txt");
-  foreach(int flags in new[]{-1,65536,int.MaxValue}) {
+  foreach(int flags in new[]{-1,131072,int.MaxValue}) {
    File.WriteAllText(Path.Combine(root,"content","InvalidTile.cs"),
     "using BunnyLoader.Source;public sealed class InvalidTile:BunnyTile{public override void SetStaticDefaults(){Texture=\"InvalidTile.png\";DisplayName=\"Example Invalid\";Flags=(BunnyTileFlags)("+flags+");}}");
    Equal(1,Compiler.Compile(root,output,runtime,diag));Equal(-1,CompiledAssemblyProbe.Verify(output,diag));
