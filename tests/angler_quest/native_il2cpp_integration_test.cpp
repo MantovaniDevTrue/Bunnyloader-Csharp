@@ -339,6 +339,12 @@ int main() {
     gCulture="en-US";
     assert(stringAscii(hookedChat(0,&kChat))=="The upside-down fish\n\n(Anywhere)");
 
+    bl::csharp::angler::invalidateWorldSession();
+    gFlags=array(&kBool,1000);
+    gRack=array(&kBool,1000);
+    static_cast<uint8_t*>(arrayData(gFlags))[850]=1;
+    static_cast<uint8_t*>(arrayData(gRack))[850]=1;
+    bl::csharp::angler::pumpOnGameThread();
     reg.unload("examplemodcsharp");
     gHard=0;
     gSelected=2;
@@ -348,8 +354,8 @@ int main() {
     assert(stringAscii(hookedChat(0,&kChat))=="VANILLA");
     bl::csharp::angler::pumpOnGameThread();
     assert((ids()==std::vector<int>{10,500,11}));
-    assert(static_cast<const uint8_t*>(arrayData(gFlags))[850]==0);
-    assert(static_cast<const uint8_t*>(arrayData(gRack))[850]==0);
+    assert(static_cast<const uint8_t*>(arrayData(gFlags))[850]==1);
+    assert(static_cast<const uint8_t*>(arrayData(gRack))[850]==1);
     assert(gSelected==0);
     assert(stringAscii(hookedChat(0,&kChat))=="VANILLA");
     bl::csharp::angler::invalidateWorldSession();
