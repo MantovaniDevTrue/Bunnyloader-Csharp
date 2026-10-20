@@ -340,6 +340,7 @@
       "values": [
         "Item",
         "Tile",
+        "Tree",
         "Weapon",
         "Projectile",
         "Buff",

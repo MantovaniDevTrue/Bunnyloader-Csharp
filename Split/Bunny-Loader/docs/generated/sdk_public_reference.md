@@ -195,7 +195,7 @@ string Texture { get; }
 
 enum; base: `System.Enum`.
 
-Values: Item, Tile, Weapon, Projectile, Buff, BuffPotion, Accessory, Player, NPC, Prefix, Wall.
+Values: Item, Tile, Tree, Weapon, Projectile, Buff, BuffPotion, Accessory, Player, NPC, Prefix, Wall.
 
 ## BunnyLoader.Source.BunnyCraftContext
 
