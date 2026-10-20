@@ -3,6 +3,15 @@
 #include "experiments/csharp/WorldEntryReadiness.h"
 #include "experiments/csharp/SourceLimits.h"
 #include "experiments/csharp/NativeAccess.h"
+#include "experiments/csharp/NativeInvasionMailbox.h"
+#include "experiments/csharp/NativeInvasionRewards.h"
+#include "experiments/csharp/NativeInvasionNotifications.h"
+#include "experiments/csharp/NativeInvasionNetwork.h"
+#include "experiments/csharp/NativeInvasionHud.h"
+#include "experiments/csharp/ReliableNpcKill.h"
+#include "experiments/csharp/NativeInvasionPersistence.h"
+#include "experiments/csharp/NativeCSharpItemUse.h"
+#include "experiments/csharp/WorldAuthority.h"
 #include "experiments/csharp/UniversalHookMailbox.h"
 #include "experiments/csharp/UniversalHooks.h"
 #include "experiments/csharp/AutoSourceCache.h"
@@ -27,6 +36,8 @@
 #include "experiments/csharp/ManagedProjectileHook.h"
 #include "experiments/csharp/NpcAiHost.h"
 #include "experiments/csharp/ManagedRuntime.h"
+#include "experiments/csharp/TerrariaHost.h"
+#include "menu/NetRequests.h"
 #include "experiments/csharp/MonoServiceDispatch.h"
 #include "experiments/csharp/SourceLoader.h"
 #include "experiments/csharp/ManagedSourceClassCount.h"
@@ -475,10 +486,11 @@ bool worldPlayerReady() {
         return false;
     int mode = -1;
     api.field_static_get_value(refs.netMode, &mode);
-    if (mode != 0) return false;
+    if (mode < 0 || mode > 3) return false;
     Il2CppObject* world = nullptr;
     api.field_static_get_value(refs.world, &world);
     if (!world) return false;
+    if (mode == 2) return true;
     Il2CppArray* players = nullptr;
     api.field_static_get_value(refs.players, &players);
     if (!players) return false;
@@ -897,7 +909,7 @@ void run() {
         }
         if (hasUniversalHooks && !registerUniversalHookMod(mod.id, assembly))
             BL_WARN("csharp universal hooks: fila recusada mod=%s", mod.id.c_str());
-        if (mod.npcs > 0 || mod.projectiles > 0) {
+        if (mod.npcs > 0 || mod.projectiles > 0 || mod.items > 0) {
             const auto npcs = runtime::registeredNpcsForMod(mod.id);
             const auto projectiles = runtime::registeredProjectilesForMod(mod.id);
             if (registerManagedEntitySourceMod(mod.id, assembly, npcs, projectiles))
@@ -1198,8 +1210,16 @@ void noteAutoWorldTilesLoaded() {
     g_worldLoads.fetch_add(1, std::memory_order_relaxed);
     g_worldEpoch.fetch_add(1, std::memory_order_acq_rel);
     g_worldSessionReady.store(false, std::memory_order_release);
+    setNativeInvasionWorldState(false, g_worldEpoch.load(std::memory_order_acquire));
+    setNativeInvasionRewardWorldState(false, g_worldEpoch.load(std::memory_order_acquire));
+    setNativeInvasionNoticeWorld(false, g_worldEpoch.load(std::memory_order_acquire));
+    setNativeInvasionNetWorldState(false, g_worldEpoch.load(std::memory_order_acquire));
+    setNativeInvasionHudWorldState(false, g_worldEpoch.load(std::memory_order_acquire));
+    updateNativeInvasionWorldPath(false, g_worldEpoch.load(std::memory_order_acquire));
+        setNativeItemUseWorldState(false, g_worldEpoch.load(std::memory_order_acquire));
     pauseManagedEntitySourceCallbacks();
     pauseManagedScreenSceneCallbacks();
+    resetReliableNpcKills();
     resetManagedSourceNpcSlots();
     resetManagedSourceProjectileSlots();
     g_worldReadyFrames.store(0, std::memory_order_relaxed);
@@ -1220,6 +1240,28 @@ void noteAutoWorldTilesLoaded() {
 void flushDeferredWorldEntry();
 
 void noteAutoGameUpdate() {
+    const bool invasionWorldReady = g_worldSessionReady.load(std::memory_order_acquire);
+    const uint64_t invasionWorldEpoch = g_worldEpoch.load(std::memory_order_acquire);
+    setNativeInvasionWorldState(invasionWorldReady, invasionWorldEpoch);
+    setNativeItemUseWorldState(invasionWorldReady, invasionWorldEpoch);
+    setNativeInvasionRewardWorldState(invasionWorldReady, invasionWorldEpoch);
+    setNativeInvasionNoticeWorld(invasionWorldReady, invasionWorldEpoch);
+    setNativeInvasionNetWorldState(invasionWorldReady, invasionWorldEpoch);
+    setNativeInvasionHudWorldState(invasionWorldReady, invasionWorldEpoch);
+    pumpNativeInvasionSpawnsOnGameThread();
+    pumpNativeInvasionRewardsOnGameThread();
+    pumpNativeInvasionNoticesOnGameThread();
+    pumpNativeInvasionNetworkOnGameThread();
+    pumpNativeInvasionHudOnGameThread();
+    pumpReliableNpcKillsOnGameThread();
+    pumpNativeItemUseBindingsOnGameThread();
+    static uint64_t lastSaveWorldSession = 0;
+    if (!invasionWorldReady) {
+        lastSaveWorldSession = 0;
+    } else if (lastSaveWorldSession != invasionWorldEpoch) {
+        updateNativeInvasionWorldPath(true, invasionWorldEpoch);
+        lastSaveWorldSession = invasionWorldEpoch;
+    }
     universalNativeService.store(pumpNativeAccessOnGameThread,std::memory_order_release);
     pumpNativeAccessOnGameThread();
     pumpUniversalHookInstallsOnGameThread();
@@ -1251,6 +1293,54 @@ void noteAutoGameUpdate() {
         return;
     }
     if (g_worldSessionReady.load(std::memory_order_acquire)) {
+        static uint64_t lastInvasionWorld = 0;
+        static unsigned invasionFrames = 0;
+        const uint64_t worldSession = g_worldEpoch.load(std::memory_order_acquire);
+        if (lastInvasionWorld != worldSession) {
+            lastInvasionWorld = worldSession;
+            invasionFrames = 0;
+        }
+        if (++invasionFrames % 30 == 0 && managedEntitySourceModsRegistered()) {
+            const TerrariaSnapshot snapshot = captureTerrariaSnapshot(false, false);
+            const int mode = bl::runtime::netMode();
+            if (snapshot.ready && snapshot.player.life > 0 &&
+                snapshot.player.index >= 0 && snapshot.player.index < 255) {
+                scheduleManagedInvasionWorldTicks(worldSession, mode,
+                    snapshot.player.index, snapshot.player.x, snapshot.player.y);
+            } else if (mode == 2 && runtime::resolveGameRefs()) {
+                struct Point { float x, y; };
+                static FieldInfo* playerArray = nullptr;
+                static int activeOffset = -1;
+                static int lifeOffset = -1;
+                if (!playerArray || activeOffset < 0 || lifeOffset < 0) {
+                    auto* main = il2cpp::findClass({"Terraria", "Main", {}});
+                    auto* player = il2cpp::findClass({"Terraria", "Player", {}});
+                    playerArray = main ? il2cpp::findField(main, "player") : nullptr;
+                    activeOffset = player ? il2cpp::fieldOffset(player, "active") : -1;
+                    lifeOffset = player ? il2cpp::fieldOffset(player, "statLife") : -1;
+                }
+                if (playerArray && activeOffset >= 0 && lifeOffset >= 0) {
+                    Il2CppArray* players = nullptr;
+                    il2cpp::api().field_static_get_value(playerArray, &players);
+                    if (players) {
+                        const int count = std::min<int>(players->length, 255);
+                        for (int i = 0; i < count; ++i) {
+                            Il2CppObject* player =
+                                static_cast<Il2CppObject**>(arrayData(players))[i];
+                            if (!player ||
+                                runtime::field<uint8_t>(player, activeOffset) == 0 ||
+                                runtime::field<int>(player, lifeOffset) <= 0) continue;
+                            const auto pos = runtime::field<Point>(
+                                player, runtime::game().entity.position);
+                            if (std::isfinite(pos.x) && std::isfinite(pos.y))
+                                scheduleManagedInvasionWorldTicks(
+                                    worldSession, mode, i, pos.x, pos.y);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
         graphics::pumpCSharpScreenEffects();
         const uint64_t tick = g_visualUpdateTick.fetch_add(1, std::memory_order_relaxed) + 1;
         if (tick % 12 == 0) {
@@ -1264,10 +1354,13 @@ void noteAutoGameUpdate() {
         if (g_worldMenuPollFrames.fetch_add(
                 1, std::memory_order_relaxed) % 30 != 0) return;
         const ActivationContext context = readActivationContext();
-        if (context.gameMenu != 1 && context.netMode == 0) {
-            retryWorldManagedPrefixesWhenReady();
-            showWorldPlayerMessagesWhenReady();
-            updateManagedNpcBuffDispatcherOnGameThread();
+        if (context.gameMenu != 1 &&
+            context.netMode >= 0 && context.netMode <= 3) {
+            if (worldIsAuthoritative(context.netMode)) {
+                retryWorldManagedPrefixesWhenReady();
+                showWorldPlayerMessagesWhenReady();
+                updateManagedNpcBuffDispatcherOnGameThread();
+            }
             return;
         }
         std::lock_guard<std::mutex> sessionGuard(g_worldTransitionMutex);
@@ -1279,6 +1372,13 @@ void noteAutoGameUpdate() {
         g_worldExits.fetch_add(1, std::memory_order_relaxed);
         g_worldEpoch.fetch_add(1, std::memory_order_acq_rel);
         g_worldSessionReady.store(false, std::memory_order_release);
+        setNativeInvasionWorldState(false, g_worldEpoch.load(std::memory_order_acquire));
+    setNativeInvasionRewardWorldState(false, g_worldEpoch.load(std::memory_order_acquire));
+    setNativeInvasionNoticeWorld(false, g_worldEpoch.load(std::memory_order_acquire));
+    setNativeInvasionNetWorldState(false, g_worldEpoch.load(std::memory_order_acquire));
+    setNativeInvasionHudWorldState(false, g_worldEpoch.load(std::memory_order_acquire));
+    updateNativeInvasionWorldPath(false, g_worldEpoch.load(std::memory_order_acquire));
+        setNativeItemUseWorldState(false, g_worldEpoch.load(std::memory_order_acquire));
         g_worldTilesLoaded.store(false, std::memory_order_release);
         g_worldReadyFrames.store(0, std::memory_order_relaxed);
         g_worldPrefixesRestored.store(false, std::memory_order_release);
@@ -1292,6 +1392,7 @@ void noteAutoGameUpdate() {
         resetNativeAccessOnGameThread();
         pauseUniversalHookMods();
         pauseManagedEntitySourceCallbacks();
+    resetReliableNpcKills();
     resetManagedSourceNpcSlots();
     resetManagedSourceProjectileSlots();
         {
@@ -1308,7 +1409,8 @@ void noteAutoGameUpdate() {
     }
     if (g_worldReadyFrames.fetch_add(1, std::memory_order_relaxed) >= 2) {
         const ActivationContext context = readActivationContext();
-        if (context.netMode != 0 || context.gameMenu == 1) return;
+        if (context.netMode < 0 || context.netMode > 3 ||
+            context.gameMenu == 1) return;
         g_worldSessionReady.store(true, std::memory_order_release);
         requestBasicItemInstanceRefresh("WorldLoaded");
         enableUniversalHooks();
