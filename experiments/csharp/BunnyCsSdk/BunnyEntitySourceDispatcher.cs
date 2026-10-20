@@ -36,6 +36,9 @@ public static class BunnyEntitySourceDispatcher
         public readonly HashSet<string> RegisteredItemUses = new(StringComparer.Ordinal);
         public BunnyInvasionSystem? Invasion;
         public long NativeWorldSession;
+        public bool WorldStateInitialized;
+        public BunnyInvasionPhase SavedPhase;
+        public int SavedProgress;
         public readonly NpcInstance[] NpcSlots = new NpcInstance[512];
         public readonly ProjectileInstance[] ProjectileSlots = new ProjectileInstance[4096];
         public string LastError = "";
@@ -133,12 +136,22 @@ public static class BunnyEntitySourceDispatcher
         {
             invasion?.OnWorldExit();
             context.RegisteredItemUses.Clear();
+            context.WorldStateInitialized = false;
             context.NativeWorldSession = worldSession;
         }
         if (!authoritative || playerIndex < 0 ||
             !float.IsFinite(playerX) || !float.IsFinite(playerY)) return 0;
         try
         {
+            if (invasion != null && !context.WorldStateInitialized)
+            {
+                BunnyInvasionWorldPersistence.TryRestore(worldSession, context.Mod,
+                    invasion.Pipeline.Controller);
+                BunnyInvasionSnapshot initial = invasion.Pipeline.Controller.Snapshot();
+                context.SavedPhase = initial.Phase;
+                context.SavedProgress = initial.Progress;
+                context.WorldStateInitialized = true;
+            }
             int used = 0;
             foreach (var pair in context.ItemUsers)
             {
@@ -154,6 +167,7 @@ public static class BunnyEntitySourceDispatcher
                 {
                     pair.Value.OnUse(usingPlayer);
                     used++;
+                    SaveInvasionIfChanged(context);
                 }
             }
             if (invasion == null) return used;
@@ -171,6 +185,7 @@ public static class BunnyEntitySourceDispatcher
                     invasion.OnNativeFailed(true, result.Epoch, result.Ticket);
             }
             invasion.Tick(true, elapsedFrames, true);
+            SaveInvasionIfChanged(context);
             if (invasion.Pipeline.PendingCount >= 2 ||
                 !invasion.Pipeline.Controller.CanSpawn) return received;
             int roll = HashCode.Combine(worldSession, elapsedFrames,
@@ -188,6 +203,20 @@ public static class BunnyEntitySourceDispatcher
             context.LastError = "TickWorld: " + error.GetType().Name + ": " + error.Message;
             return -1;
         }
+    }
+
+    private static void SaveInvasionIfChanged(Context context)
+    {
+        if (!context.WorldStateInitialized || context.NativeWorldSession <= 0 ||
+            context.Invasion == null) return;
+        BunnyInvasionController controller = context.Invasion.Pipeline.Controller;
+        BunnyInvasionSnapshot state = controller.Snapshot();
+        if (state.Phase == context.SavedPhase &&
+            state.Progress == context.SavedProgress) return;
+        if (!BunnyInvasionWorldPersistence.Save(
+            context.NativeWorldSession, context.Mod, controller)) return;
+        context.SavedPhase = state.Phase;
+        context.SavedProgress = state.Progress;
     }
 
     private static long Encode(float x, float y)
@@ -327,6 +356,7 @@ public static class BunnyEntitySourceDispatcher
                 instance.Blocked = true;
                 npc.OnKill(ref state);
                 context.NpcKills++;
+                SaveInvasionIfChanged(context);
             }
             return true;
         }
@@ -381,6 +411,7 @@ public static class BunnyEntitySourceDispatcher
         {
             npc.OnKill(ref state);
             context.NpcKills++;
+            SaveInvasionIfChanged(context);
             return true;
         }
         catch (Exception error)
