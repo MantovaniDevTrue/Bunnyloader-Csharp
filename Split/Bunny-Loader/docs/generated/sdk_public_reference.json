@@ -1181,6 +1181,10 @@
       "values": [],
       "methods": [
         {
+          "signature": "static bool Acknowledge(string modId, string assemblyPath, string culture, string wire)",
+          "execution": "worker_async_localization"
+        },
+        {
           "signature": "static bool Unload(string modId)",
           "execution": "worker_async_localization"
         },
