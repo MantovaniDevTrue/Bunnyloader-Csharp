@@ -5,11 +5,10 @@ file = root / "app/src/main/cpp/experiments/csharp/NativeInvasionSpawn.cpp"
 content = file.read_text(encoding="utf-8")
 
 required = (
-    "NPC.NewNPC" if False else "int NewNPC(IEntitySource source",
+    "int NewNPC(IEntitySource source",
     "worldIsAuthoritative(mode)",
     "runtime::modNpcTypeByName(request.modId, request.npcClass)",
     "runtime::modNpcBelongsTo(type, request.modId)",
-    "request.worldReady",
     "r.playerActive",
     "r.playerLife",
     "r.npcActive",
@@ -22,6 +21,9 @@ required = (
 for marker in required:
     assert marker in content, marker
 
+policy = (root / "app/src/main/cpp/experiments/csharp/NativeInvasionSpawn.h").read_text(encoding="utf-8")
+assert "request.worldReady" in policy
+assert "worldIsAuthoritative(mode)" in policy
 assert "script/js/" not in content
 assert "QuickJS" not in content
 print("Native spawn contract: OK")
