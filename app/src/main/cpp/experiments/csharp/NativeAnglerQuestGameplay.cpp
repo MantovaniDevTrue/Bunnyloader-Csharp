@@ -1,6 +1,7 @@
 #include "experiments/csharp/NativeAnglerQuestGameplay.h"
 #include "experiments/csharp/NativeAnglerQuestRegistry.h"
 #include "experiments/csharp/NativeAnglerQuestFishing.h"
+#include "experiments/csharp/NativeRecipeCallbacks.h"
 #include "content/common/TypeTables.h"
 #include "core/Log.h"
 #include "hook/HookManager.h"
@@ -204,6 +205,7 @@ bool findContracts() {
         api.field_static_get_value(g_questFinished, &finished);
         api.field_static_get_value(g_hardMode, &hardmode);
         if (finished) return;
+        std::map<int,bool> decisions;
         Registry::reroll([&] { g_originalSwap(mi); }, [&]() -> int {
             Il2CppArray* arr = nullptr;
             int32_t selected = -1;
@@ -216,7 +218,17 @@ bool findContracts() {
             uint8_t done = 0;
             api.field_static_get_value(g_questFinished, &done);
             return done != 0;
-        }, g_active, hardmode != 0);
+        }, g_active, hardmode != 0, [&](const Quest& quest,bool mode) {
+            if (!Registry::available(quest,mode)) return false;
+            if ((quest.callbackMask&1)==0) return true;
+            const auto cached=decisions.find(quest.type);
+            if (cached!=decisions.end()) return cached->second;
+            bool allowed=false;
+            const bool ok=bl::csharp::invokeManagedAnglerQuestCallback(
+                quest.mod,quest.name,4,mode?1:0,0,quest.type,&allowed);
+            decisions[quest.type]=ok&&allowed;
+            return ok&&allowed;
+        });
     }, &g_originalSwap);
     if (!g_chatHooked) g_chatHooked = hook::install(chat, +[](uint8_t turnIn, const MethodInfo* mi) -> Il2CppString* {
         if (!g_originalChat) return nullptr;
