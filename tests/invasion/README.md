@@ -77,6 +77,26 @@ O dispatcher gerenciado agora dispõe de um overload `TickNpc` de
 `ManagedEntityJob`. O caminho nativo usa a assinatura de 13 argumentos,
 enquanto o overload antigo de 12 permanece disponível a chamadas C#.
 
+## Procura nativa de terreno (lote 5)
+
+`NativeInvasionSpawnSite.h/.cpp` usa o `TileAccess` **já existente no
+Bunny** e as tabelas `Main.tileSolid` e `Main.tileSolidTop`.
+A busca se limita a 9 colunas candidatas próximas ao local solicitado
+e no máximo 53 linhas por coluna; exige espaço livre de 5×6 tiles
+sobre piso sólido contínuo de três tiles. Sem local válido, o host
+recusa o spawn com `NoSafeSpawnSite`, antes de chamar `NPC.NewNPC`.
+A resolução dos campos IL2CPP é cacheada; os arrays de tiles são
+revalidados por mundo. Não há leitura de todos os tiles do mapa.
+
+Testes puros verificam chão, plataforma, teto baixo, ausência de
+piso, coluna bloqueada e borda de mundo. Compilação de sintaxe
+Android é feita com NDK, sem APK.
+
+**Limitação:** a verificação de tile sólido e espaço livre não
+inclui líquido, lava, paredes inclinadas, half-block, armadilhas,
+nem um teste de colisão final após a criação. Ainda requer
+QA de diferentes biomas/terrenos em Android real.
+
 ## Canal host ⇄ MonoVM (implementado)
 
 `BunnyInvasionSystem` é descoberto por reflexão no registro de NPCs
@@ -125,6 +145,8 @@ dotnet run --project tests/invasion/DispatcherIntegration.csproj --configuration
 python3 tests/invasion/test_npc_hook_contract.py
 python3 tests/invasion/check_native_identity_bridge.py
 python3 tests/invasion/native_spawn_contract.py
+g++ -std=c++20 -Wall -Wextra -Werror -Iapp/src/main/cpp tests/invasion/NativeSpawnSiteTest.cpp -o /tmp/bunny-invasion-terrain
+/tmp/bunny-invasion-terrain
 python3 tests/invasion/check_world_host_contract.py
 g++ -std=c++17 -Wall -Wextra -Werror tests/invasion/WorldAuthorityTest.cpp -o /tmp/bunny-invasion-authority
 /tmp/bunny-invasion-authority
