@@ -125,6 +125,8 @@ public static class CompiledAssemblyProbe
                         catch (ArgumentException) { }
                         catch (BadImageFormatException) { }
                         catch (NotSupportedException) { }
+                        catch (TypeLoadException) { }
+                        catch (FileNotFoundException) { }
                     }
                     position += operand;
                 }
