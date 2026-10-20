@@ -2492,6 +2492,14 @@ bool publishManagedNativeTrees(const std::string& modId,const std::string& direc
         il2cpp::parseSignature("void SetValue(object value, int index)")):nullptr;
     if(!arraySet||!il2cpp::methodPointer(arraySet))
         return fail("ABI","ArrayWriteUnavailable");
+    const bool needsDrops=std::any_of(trees.begin(),trees.end(),[](const ManagedTreeEntry& tree) {
+        return tree.woodItemType>=0||!tree.canDropAcorn;
+    });
+    const bool needsAcorns=std::any_of(trees.begin(),trees.end(),[](const ManagedTreeEntry& tree) {
+        return !tree.canDropAcorn;
+    });
+    if(needsDrops&&!runtime::prepareModTreeDrops(needsAcorns))
+        return fail("BindTreeDrops","MissingNativeDropsOrAcornABI");
     std::map<int,bool> uniqueGround;
     struct Ready {
         int ground=-1;
@@ -2556,8 +2564,10 @@ bool publishManagedNativeTrees(const std::string& modId,const std::string& direc
     a.field_static_set_value(fieldBranch,newBranch);
     for(size_t i=0;i<ready.size();++i) {
         const int style=static_cast<int>(originalTop->length+i);
-        if(!runtime::registerModTreeChecked(ready[i].ground,ready[i].trunk,style))
-            return fail("Publish","TreeRegistrationFailed:"+trees[i].name);
+        if(!runtime::registerModTreeChecked(ready[i].ground,ready[i].trunk,style)||
+           !runtime::configureModTreeDrops(ready[i].ground,trees[i].woodItemType,
+                                            trees[i].canDropAcorn))
+            return fail("Publish","TreeRegistrationOrDropsFailed:"+trees[i].name);
     }
     BL_INFO("[CSharp][TreeLoader] Mod=%s Trees=%zu Stage=Publish Result=Ready",
             modId.c_str(),ready.size());

@@ -297,3 +297,12 @@ O publicador `publishManagedNativeTrees` reutiliza `content::loadTextureAsset`, 
 Exemplo: `public sealed class ExampleTree : BunnyTree { public override void SetDefaults() { Texture = "Content/Tiles/Plants/ExampleTree"; GrowsOnTile = "ExampleTile"; SaplingTile = "ExampleSapling"; } }`. Deve coexistir no pacote com os tiles C# `ExampleTile` e `ExampleSapling` e os três PNGs nas pastas correspondentes. O teste de compilador usa uma árvore isolada para conferir o wire e recusas de path traversal; um pacote jogável ainda precisa testar os hooks e o ciclo completo no Android.
 
 **Não concluído:** `SaplingGrowthType` para bolota via `TileObject.CanPlace`, `DropWood`, `CanDropAcorn`, `TreeLeaf`, `Shake`, `CreateDust` e outros callbacks comportamentais do `TreeLoader.js`, mais testes Android de renderização real, GC, FPS, multitarefa JS e multiplayer. A PR continua draft, sem APK e sem afirmar equivalência completa.
+
+
+## BunnyTree — DropWood e CanDropAcorn nativos (20/10)
+
+Os callbacks do `ModTree.js` foram adicionados ao `BunnyTree` como propriedades C# calculadas no carregamento: `WoodItem` (nome de um item do mesmo mod, vazio = madeira original) e `CanDropAcorn` (verdadeiro por padrão). O compilador emite `TREE` com sete campos; a leitura de descritores anteriores de cinco campos continua compatível. O SourceLoader resolve `WoodItem` por `modItemTypeByKey`, rejeitando itens não registrados.
+
+O publicador instala o hook de `WorldGen.KillTile_GetTreeDrops` somente quando há substituição de madeira ou veto de bolota. O núcleo `ModTrees.cpp` localiza a árvore pelo tronco e terreno, chama primeiro o método original e substitui `dropItem` apenas quando `dropIsWood`; `secondaryItem` é suprimido somente quando coincide com a bolota do jogo. O ID de `ItemID.Acorn` é obtido e validado do campo literal IL2CPP em execução, sem número hardcoded. Se ABI/constante não estiverem disponíveis, a regra não é registrada. Não há callback gerenciado por quebra.
+
+Os testes verificam regras puras de drops, compilação Roslyn de `WoodItem="ExampleItem"` e `CanDropAcorn=false`, compatibilidade do wire V2 e documentação SDK. Permanecem pendentes: bolota extra probabilística das copas, folhas, `Shake`, poeira, plantio via `TileObject.CanPlace` e validação no Android/JS simultâneo/multiplayer/FPS. O TreeLoader não está completo; manter PR em draft, sem APK.

@@ -2325,9 +2325,11 @@
       "baseType": "System.Object",
       "constructors": [],
       "properties": [
+        "bool CanDropAcorn { get; set; }",
         "string GrowsOnTile { get; set; }",
         "string SaplingTile { get; set; }",
-        "string Texture { get; set; }"
+        "string Texture { get; set; }",
+        "string WoodItem { get; set; }"
       ],
       "values": [],
       "methods": [

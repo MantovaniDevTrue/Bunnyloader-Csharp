@@ -1252,9 +1252,11 @@ int LY { get; }
 abstract class; base: `System.Object`.
 
 ```csharp
+bool CanDropAcorn { get; set; }
 string GrowsOnTile { get; set; }
 string SaplingTile { get; set; }
 string Texture { get; set; }
+string WoodItem { get; set; }
 ```
 
 | Method | Execution |

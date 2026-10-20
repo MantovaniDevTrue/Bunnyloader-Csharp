@@ -1,6 +1,7 @@
 #include "content/tiles/ModTrees.h"
 #include "content/tiles/ModTiles.h"
 #include "content/tiles/TileAccess.h"
+#include "experiments/csharp/NativeTreeDropPolicy.h"
 #include "content/common/GameRefs.h"
 #include "core/Log.h"
 #include "hook/HookManager.h"
@@ -8,6 +9,7 @@
 #include "il2cpp/Resolver.h"
 
 #include <atomic>
+#include <dlfcn.h>
 #include <cstdint>
 #include <cstring>
 #include <mutex>
@@ -24,6 +26,8 @@ constexpr int kMaxTrunk = 300;          // altura máxima procurada até o chão
 struct Tree {
     uint32_t trunk = 0;   // gchandle do Texture2D do tronco
     int topStyle = -1;    // índice em TextureAssets.TreeTop/TreeBranch
+    std::atomic<int> woodItem{-1};
+    std::atomic<bool> allowAcorn{true};
 };
 
 // O chão -> 1 + índice em g_trees (0 = árvore do jogo).
@@ -167,6 +171,53 @@ bool hkGetCommonTreeFoliageData(int32_t i, int32_t j, int32_t xoffset, int32_t* 
     return true;
 }
 
+
+using TreeDropsFn=void (*)(int32_t,int32_t,uint32_t,bool*,bool*,int32_t*,int32_t*,const MethodInfo*);
+TreeDropsFn g_originalTreeDrops=nullptr;
+bool g_treeDropsHooked=false;
+int g_acornType=-1;
+
+bool readNativeAcornType() {
+    if(g_acornType>0)return true;
+    auto& a=il2cpp::api();
+    auto* cls=il2cpp::findClass({"Terraria.ID","ItemID",{}});
+    auto* f=cls?il2cpp::findField(cls,"Acorn"):nullptr;
+    if(!f||!a.field_get_type||!a.field_get_flags||!a.type_get_name)return false;
+    if((a.field_get_flags(f)&0x40u)==0)return false;
+    char* typeName=a.type_get_name(a.field_get_type(f));
+    const bool rightType=typeName&&std::strcmp(typeName,"System.Int32")==0;
+    if(typeName)std::free(typeName);
+    if(!rightType)return false;
+    using DefaultFn=const void* (*)(const FieldInfo*,const Il2CppType**);
+    auto* getDefault=reinterpret_cast<DefaultFn>(dlsym(RTLD_DEFAULT,"il2cpp_field_get_default_value"));
+    if(!getDefault)return false;
+    const Il2CppType* outType=nullptr;
+    const void* value=getDefault(f,&outType);
+    int acorn=-1;
+    if(value)std::memcpy(&acorn,value,sizeof(acorn));
+    if(acorn<=0||acorn>=6196)return false;
+    g_acornType=acorn;
+    return true;
+}
+
+void hkGetTreeDrops(int32_t x,int32_t y,uint32_t tile,
+                    bool* isWood,bool* bonusWood,int32_t* primary,int32_t* secondary,
+                    const MethodInfo* method) {
+    if(g_originalTreeDrops)
+        g_originalTreeDrops(x,y,tile,isWood,bonusWood,primary,secondary,method);
+    if(!primary||!secondary||!isWood)return;
+    TileArrays t;
+    if(!tileArrays(&t)||x<0||x>=t.width||y<0||y>=t.height||
+       typeAt(t,x,y)!=kTreeType)return;
+    const uint32_t def=t.lookup[static_cast<int64_t>(t.width)*y+x];
+    const int ground=groundBelow(t,trunkColumn(x,t.frameX[def],t.frameY[def]),y,nullptr);
+    const Tree* tree=treeOfGround(ground);
+    if(!tree)return;
+    bl::csharp::tree_drop::apply(*isWood,g_acornType,
+        tree->woodItem.load(std::memory_order_acquire),
+        tree->allowAcorn.load(std::memory_order_acquire),primary,secondary);
+}
+
 bool installHooks() {
     using namespace il2cpp;
     auto& a = api();
@@ -226,6 +277,45 @@ void noteTreeDrawTile(int x, int y, int type, int frameX, int frameY) {
     TileArrays t;
     const Tree* tree = tileArrays(&t) ? treeOfGround(groundBelow(t, trunkColumn(x, frameX, frameY), y, nullptr)) : nullptr;
     t_trunk = tree ? il2cpp::api().gchandle_get_target(tree->trunk) : nullptr;
+}
+
+bool prepareModTreeDrops(bool needAcorn) {
+    if(needAcorn&&!readNativeAcornType())return false;
+    if(g_treeDropsHooked)return true;
+    auto& a=il2cpp::api();
+    if(!a.method_is_instance||!a.method_get_param_count||
+       !a.method_get_return_type||!a.class_from_il2cpp_type||
+       !a.class_value_size||!a.class_is_valuetype)return false;
+    auto* world=il2cpp::findClass({"Terraria","WorldGen",{}});
+    const auto* method=world?a.class_get_method_from_name(world,"KillTile_GetTreeDrops",7):nullptr;
+    if(!method||a.method_is_instance(method)||a.method_get_param_count(method)!=7||
+       !paramIs(method,0,"System.Int32",true)||
+       !paramIs(method,1,"System.Int32",true)||
+       !paramIs(method,2,"Terraria.Tile",true)||
+       !paramIs(method,3,"System.Boolean&",true)||
+       !paramIs(method,4,"System.Boolean&",true)||
+       !paramIs(method,5,"System.Int32&",true)||
+       !paramIs(method,6,"System.Int32&",true)||
+       !il2cpp::methodPointer(method))return false;
+    char* typeName=a.type_get_name(a.method_get_return_type(method));
+    const bool returnsVoid=typeName&&std::strcmp(typeName,"System.Void")==0;
+    if(typeName)std::free(typeName);
+    auto* tileType=a.class_from_il2cpp_type(a.method_get_param(method,2));
+    uint32_t alignment=0;
+    if(!returnsVoid||!tileType||!a.class_is_valuetype(tileType)||
+       a.class_value_size(tileType,&alignment)!=4)return false;
+    if(!hook::install(method,hkGetTreeDrops,&g_originalTreeDrops))return false;
+    g_treeDropsHooked=true;
+    return true;
+}
+
+bool configureModTreeDrops(int groundType,int woodItem,bool allowAcorn) {
+    Tree* tree=const_cast<Tree*>(treeOfGround(groundType));
+    if(!tree||!bl::csharp::tree_drop::valid(woodItem,allowAcorn))return false;
+    if((woodItem>=0||!allowAcorn)&&!prepareModTreeDrops(!allowAcorn))return false;
+    tree->woodItem.store(woodItem,std::memory_order_release);
+    tree->allowAcorn.store(allowAcorn,std::memory_order_release);
+    return true;
 }
 
 bool hasModTree(int groundType) { return treeOfGround(groundType)!=nullptr; }
