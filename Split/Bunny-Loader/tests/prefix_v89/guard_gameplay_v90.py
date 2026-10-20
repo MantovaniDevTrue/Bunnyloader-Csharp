@@ -20,6 +20,8 @@ assert "snapshotManagedPrefixes()" in game
 assert "std::nearbyint" in game
 assert "PREFIX_STACK_WEIGHT" in source
 assert "PREFIX_DENY_STACK" in source
+assert "PREFIX_TOOLTIP_ITEM" in source
+assert "renderPrefixItemTooltip(itemLine, damage, mana, stack)" in game
 assert "PREFIX_DENY_ATTRIBUTE" in source
 assert "applyManagedItemPrefixAttributeDenials" in source
 assert "managedItemPrefixAttributeDenyView()" in game

@@ -14,6 +14,7 @@
 #include "content/items/ModItems.h"
 #include "content/items/ModPrefixes.h"
 #include "experiments/csharp/ManagedPrefixBridge.h"
+#include "experiments/csharp/ManagedPrefixTooltipTemplate.h"
 #include "content/npcs/ModNpcs.h"
 #include "experiments/csharp/SourceParser.h"
 #include "experiments/csharp/SourceContentIdentity.h"
@@ -662,6 +663,7 @@ bool applyManagedSourceDefaults(
     std::vector<ManagedPrefixEntry> prefixes;
     std::map<std::string, ManagedPrefixEntry> prefixPostPolicies;
     std::map<std::string, std::vector<std::string>> prefixTooltipPolicies;
+    std::map<std::string, std::vector<std::string>> prefixItemTooltipPolicies;
     std::map<std::string, ManagedPrefixEntry> prefixItemConditions;
     std::map<std::string, ManagedPrefixEntry> prefixStackWeights;
     std::vector<std::pair<int, std::vector<std::string>>> prefixDenials;
@@ -893,14 +895,17 @@ bool applyManagedSourceDefaults(
             }
             continue;
         }
-        if (!fields.empty() && fields[0] == "PREFIX_TOOLTIP") {
+        if (!fields.empty() &&
+            (fields[0] == "PREFIX_TOOLTIP" || fields[0] == "PREFIX_TOOLTIP_ITEM")) {
+            const bool itemTemplate = fields[0] == "PREFIX_TOOLTIP_ITEM";
+            auto& policies = itemTemplate ? prefixItemTooltipPolicies : prefixTooltipPolicies;
             const auto key = fields.size() > 1 ?
                 sourceIdentityForWire("PREFIX", fields[1]) : "";
             const auto registered = mod->registeredKindTypes.find(key);
             if (fields.size() != 3 || registered == mod->registeredKindTypes.end() ||
                 runtime::modPrefixByKey(modId + "/" + fields[1]) != registered->second ||
                 fields[2].empty() || fields[2].size() > 970 ||
-                prefixTooltipPolicies.contains(fields[1])) {
+                policies.contains(fields[1])) {
                 *error = "[CSharp][ERROR][PrefixTooltip] InvalidPrefixOrWire";
                 return false;
             }
@@ -932,13 +937,17 @@ bool applyManagedSourceDefaults(
                     }
                     decoded.push_back(static_cast<char>(ch));
                 }
+                if (itemTemplate && !validPrefixItemTooltip(decoded)) {
+                    *error = "[CSharp][ERROR][PrefixTooltip] InvalidItemTemplate";
+                    return false;
+                }
                 tooltips.push_back(std::move(decoded));
             }
             if (tooltips.empty() || fields[2].back() == ',') {
                 *error = "[CSharp][ERROR][PrefixTooltip] EmptyOrTrailingLine";
                 return false;
             }
-            prefixTooltipPolicies.emplace(fields[1], std::move(tooltips));
+            policies.emplace(fields[1], std::move(tooltips));
             continue;
         }
         if (!fields.empty() && fields[0] == "PREFIX_POST") {
@@ -1577,6 +1586,15 @@ bool applyManagedSourceDefaults(
             prefix.tooltipLines = lines->second;
             prefixTooltipPolicies.erase(lines);
         }
+        const auto itemLines = prefixItemTooltipPolicies.find(prefix.name);
+        if (itemLines != prefixItemTooltipPolicies.end()) {
+            prefix.tooltipItemLines = itemLines->second;
+            prefixItemTooltipPolicies.erase(itemLines);
+        }
+        if (prefix.tooltipLines.size() + prefix.tooltipItemLines.size() > 4) {
+            *error = "[CSharp][ERROR][PrefixTooltip] CombinedLineCapacityExceeded";
+            return false;
+        }
         const auto condition = prefixItemConditions.find(prefix.name);
         if (condition != prefixItemConditions.end()) {
             prefix.minItemDamage = condition->second.minItemDamage;
@@ -1617,6 +1635,10 @@ bool applyManagedSourceDefaults(
     }
     if (!prefixTooltipPolicies.empty()) {
         *error = "PREFIX_TOOLTIP sem descritor de prefixo correspondente";
+        return false;
+    }
+    if (!prefixItemTooltipPolicies.empty()) {
+        *error = "PREFIX_TOOLTIP_ITEM sem descritor de prefixo correspondente";
         return false;
     }
     for (size_t i = 0; i < weapons.size(); ++i) {

@@ -172,6 +172,7 @@ assert 'effects.ValueBonus = 40;' in prefix_example
 assert 'ExtraTooltip = "Bonus adicional do prefixo";' in prefix_example
 assert 'AddTooltipLine("Dano extra do prefixo");' in prefix_example
 assert 'AddTooltipLine("Valor adicional");' in prefix_example
+assert 'AddTooltipItemLine("Dano atual: {damage}, mana: {mana}, pilha: {stack}");' in prefix_example
 assert 'conditions.RequireDamageBetween(10, 25);' in prefix_example
 assert 'conditions.RequireManaBetween(0, 8);' in prefix_example
 assert 'conditions.RequireStackBetween(1, 10);' in prefix_example

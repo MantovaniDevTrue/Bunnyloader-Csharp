@@ -49,6 +49,7 @@ public sealed class TestMightyPrefix : BunnyPrefix
         ExtraTooltip = "Bonus adicional do prefixo";
         AddTooltipLine("First line");
         AddTooltipLine("Second line");
+        AddTooltipItemLine("Dano {damage}, mana {mana}, pilha {stack}");
         RequireEffectiveStats = false;
     }
 

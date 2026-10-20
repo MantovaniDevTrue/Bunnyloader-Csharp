@@ -1,5 +1,6 @@
 #include "experiments/csharp/ManagedPrefixGameplay.h"
 #include "experiments/csharp/ManagedPrefixBridge.h"
+#include "experiments/csharp/ManagedPrefixTooltipTemplate.h"
 #include "experiments/csharp/NativeContent.h"
 #include "experiments/csharp/ManagedPrefixRollSelection.h"
 #include "content/common/ContentAssets.h"
@@ -783,6 +784,14 @@ void hookInventoryTooltip(Il2CppObject* item, int32_t* yoyo, int32_t* research,
                 append(selected->extraTooltip);
                 for (const auto& line : selected->tooltipLines)
                     append(line);
+                if (!selected->tooltipItemLines.empty() &&
+                    g_refs.damage >= 0 && g_refs.mana >= 0 && g_refs.stack >= 0) {
+                    const int damage = bl::runtime::field<int32_t>(item, g_refs.damage);
+                    const int mana = bl::runtime::field<int32_t>(item, g_refs.mana);
+                    const int stack = bl::runtime::field<int32_t>(item, g_refs.stack);
+                    for (const auto& itemLine : selected->tooltipItemLines)
+                        append(renderPrefixItemTooltip(itemLine, damage, mana, stack));
+                }
             }
         }
     }

@@ -15,7 +15,7 @@ try
         throw new InvalidOperationException("Expected two content types and three managed prefixes, got " + classes);
 
     var data = File.ReadAllLines(Path.Combine(temp, "source-runtime-values.txt"));
-    if (data.Length != 16 || data[0] != "BUNNY_MANAGED_DEFAULTS_V2")
+    if (data.Length != 17 || data[0] != "BUNNY_MANAGED_DEFAULTS_V2")
         throw new InvalidOperationException("Unexpected MonoVM native handoff");
 
     if (data.Count(row => row == "PREFIX_DENY\tTestWand\t71,TestMightyPrefix") != 1)
@@ -41,7 +41,12 @@ try
         Convert.ToHexString(System.Text.Encoding.UTF8.GetBytes("Second line")));
     if (data.Count(row => row == "PREFIX_TOOLTIP\tTestMightyPrefix\t" + tipsHex) != 1)
         throw new InvalidOperationException("Multiple prefix tooltip lines missing");
+    var dynamicTipHex = Convert.ToHexString(System.Text.Encoding.UTF8.GetBytes(
+        "Dano {damage}, mana {mana}, pilha {stack}"));
+    if (data.Count(row => row == "PREFIX_TOOLTIP_ITEM\tTestMightyPrefix\t" + dynamicTipHex) != 1)
+        throw new InvalidOperationException("Current item tooltip template missing");
     var byName = data.Skip(1).Where(row => !row.StartsWith("PREFIX_TOOLTIP\t", StringComparison.Ordinal) &&
+                                          !row.StartsWith("PREFIX_TOOLTIP_ITEM\t", StringComparison.Ordinal) &&
                                           !row.StartsWith("PREFIX_DENY\t", StringComparison.Ordinal) &&
                                           !row.StartsWith("PREFIX_DENY_STACK\t", StringComparison.Ordinal) &&
                                           !row.StartsWith("PREFIX_DENY_ATTRIBUTE\t", StringComparison.Ordinal) &&

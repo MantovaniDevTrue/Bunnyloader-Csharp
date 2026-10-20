@@ -189,6 +189,7 @@ int main() {
     mighty.requireEffectiveStats = false;
     mighty.extraTooltip = "Bonus adicional do prefixo";
     mighty.tooltipLines = {"First line", "Second line"};
+    mighty.tooltipItemLines = {"Dano {damage}, mana {mana}, pilha {stack}"};
     auto invalidPost = mighty;
     invalidPost.applyDamageBonus = 1001;
     assert(!applyManagedPrefixDescriptors("test", {invalidPost}));
@@ -215,6 +216,14 @@ int main() {
     assert(managedPrefixView() == second);
     invalidPost = mighty;
     invalidPost.maxItemStack = 1000000;
+    assert(!applyManagedPrefixDescriptors("test", {invalidPost}));
+    assert(managedPrefixView() == second);
+    invalidPost = mighty;
+    invalidPost.tooltipItemLines = {"bad {unknown}"};
+    assert(!applyManagedPrefixDescriptors("test", {invalidPost}));
+    assert(managedPrefixView() == second);
+    invalidPost = mighty;
+    invalidPost.tooltipItemLines = {"{stack}", "{mana}", "{damage}"};
     assert(!applyManagedPrefixDescriptors("test", {invalidPost}));
     assert(managedPrefixView() == second);
     invalidPost = mighty;
@@ -249,6 +258,8 @@ int main() {
     assert(third->at(1).extraTooltip == "Bonus adicional do prefixo");
     assert(third->at(1).tooltipLines.size() == 2);
     assert(third->at(1).tooltipLines[0] == "First line");
+    assert(third->at(1).tooltipItemLines.size() == 1);
+    assert(third->at(1).tooltipItemLines[0] == "Dano {damage}, mana {mana}, pilha {stack}");
     assert(snapshotManagedPrefixes().size() == 2);
     assert(registeredManagedPrefixCount() == 2);
     assert(managedPrefixView() == third);

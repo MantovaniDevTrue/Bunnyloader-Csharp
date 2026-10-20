@@ -41,6 +41,7 @@ struct ManagedPrefixEntry {
     bool requireEffectiveStats = true;
     std::string extraTooltip;
     std::vector<std::string> tooltipLines;
+    std::vector<std::string> tooltipItemLines;
 };
 
 struct ManagedItemPrefixApply {

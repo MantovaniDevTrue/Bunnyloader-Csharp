@@ -741,6 +741,40 @@ int main() {
                          nullptr, nullptr);
     assert(lineCount == 6);
     assert(static_cast<Il2CppString**>(arrayData(lines))[5]->chars[0] == 'B');
+    mighty.tooltipItemLines = {"D:{damage} M:{mana} S:{stack}"};
+    descriptorView = std::make_shared<const std::vector<ManagedPrefixEntry>>(
+        std::vector<ManagedPrefixEntry>{guarded, mighty, custom});
+    tooltipItem.damage = 17;
+    tooltipItem.mana = 4;
+    tooltipItem.stack = 6;
+    lineCount = 0;
+    hookInventoryTooltip(&tooltipItem.object, nullptr, nullptr, nullptr, 0.f,
+                         &lineCount, lines, modifier, bad, nullptr, nullptr,
+                         nullptr, nullptr);
+    assert(lineCount == 4);
+    auto* dynamicLine = static_cast<Il2CppString**>(arrayData(lines))[3];
+    assert(dynamicLine && utf8Text(dynamicLine) == "D:17 M:4 S:6");
+    tooltipItem.damage = 25;
+    tooltipItem.mana = 8;
+    tooltipItem.stack = 1;
+    lineCount = 0;
+    hookInventoryTooltip(&tooltipItem.object, nullptr, nullptr, nullptr, 0.f,
+                         &lineCount, lines, modifier, bad, nullptr, nullptr,
+                         nullptr, nullptr);
+    assert(lineCount == 4);
+    dynamicLine = static_cast<Il2CppString**>(arrayData(lines))[3];
+    assert(dynamicLine && utf8Text(dynamicLine) == "D:25 M:8 S:1");
+    const int tooltipManaOffset = g_refs.mana;
+    g_refs.mana = -1;
+    lineCount = 0;
+    hookInventoryTooltip(&tooltipItem.object, nullptr, nullptr, nullptr, 0.f,
+                         &lineCount, lines, modifier, bad, nullptr, nullptr,
+                         nullptr, nullptr);
+    assert(lineCount == 3);
+    g_refs.mana = tooltipManaOffset;
+    mighty.tooltipItemLines.clear();
+    descriptorView = std::make_shared<const std::vector<ManagedPrefixEntry>>(
+        std::vector<ManagedPrefixEntry>{guarded, mighty, custom});
     Item ineffective{};
     ineffective.type = 6199;
     ineffective.damage = 12;

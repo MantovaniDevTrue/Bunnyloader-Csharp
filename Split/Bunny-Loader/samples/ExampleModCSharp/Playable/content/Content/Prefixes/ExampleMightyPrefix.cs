@@ -12,6 +12,7 @@ public sealed class ExampleMightyPrefix : BunnyPrefix
         ExtraTooltip = "Bonus adicional do prefixo";
         AddTooltipLine("Dano extra do prefixo");
         AddTooltipLine("Valor adicional");
+        AddTooltipItemLine("Dano atual: {damage}, mana: {mana}, pilha: {stack}");
     }
 
     public override void ConfigureRollRules(BunnyPrefixRollRules rules)

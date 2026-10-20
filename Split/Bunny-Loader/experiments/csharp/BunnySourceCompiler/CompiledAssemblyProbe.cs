@@ -1020,6 +1020,11 @@ public static class CompiledAssemblyProbe
                 ?? throw new InvalidOperationException("Missing BunnyPrefix tooltip lines"));
             if (tooltipWire.Length != 0)
                 lines.Add(string.Join("\t", "PREFIX_TOOLTIP", name, tooltipWire));
+            string itemTooltips = (string)(type.GetMethod("SerializeTooltipItemLines",
+                BindingFlags.Public | BindingFlags.Instance)?.Invoke(prefix, null)
+                ?? throw new InvalidOperationException("Missing BunnyPrefix item tooltip templates"));
+            if (itemTooltips.Length != 0)
+                lines.Add(string.Join("\t", "PREFIX_TOOLTIP_ITEM", name, itemTooltips));
         }
         string folder = Path.GetDirectoryName(diagnosticsPath)
             ?? throw new InvalidOperationException("Missing managed diagnostics directory");

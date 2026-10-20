@@ -687,16 +687,44 @@ public abstract class BunnyPrefix
     public bool RequireEffectiveStats { get; set; } = true;
     public string ExtraTooltip { get; set; } = "";
     private readonly System.Collections.Generic.List<string> tooltipLines = new();
+    private readonly System.Collections.Generic.List<string> tooltipItemLines = new();
 
     public void AddTooltipLine(string text)
     {
-        if (string.IsNullOrEmpty(text) || tooltipLines.Count >= 4 ||
+        if (string.IsNullOrEmpty(text) || tooltipLines.Count + tooltipItemLines.Count >= 4 ||
             System.Text.Encoding.UTF8.GetByteCount(text) > 120)
             throw new System.ArgumentOutOfRangeException(nameof(text));
         foreach (char value in text)
             if (char.IsControl(value))
                 throw new System.ArgumentOutOfRangeException(nameof(text));
         tooltipLines.Add(text);
+    }
+
+    public void AddTooltipItemLine(string template)
+    {
+        if (string.IsNullOrEmpty(template) || tooltipLines.Count + tooltipItemLines.Count >= 4 ||
+            System.Text.Encoding.UTF8.GetByteCount(template) > 120)
+            throw new System.ArgumentOutOfRangeException(nameof(template));
+        foreach (char value in template)
+            if (char.IsControl(value))
+                throw new System.ArgumentOutOfRangeException(nameof(template));
+        bool variable = template.Contains("{damage}", System.StringComparison.Ordinal) ||
+                        template.Contains("{mana}", System.StringComparison.Ordinal) ||
+                        template.Contains("{stack}", System.StringComparison.Ordinal);
+        string rest = template.Replace("{damage}", "", System.StringComparison.Ordinal)
+                              .Replace("{mana}", "", System.StringComparison.Ordinal)
+                              .Replace("{stack}", "", System.StringComparison.Ordinal);
+        if (!variable || rest.Contains('{') || rest.Contains('}'))
+            throw new System.ArgumentOutOfRangeException(nameof(template));
+        tooltipItemLines.Add(template);
+    }
+
+    public string SerializeTooltipItemLines()
+    {
+        var lines = new System.Collections.Generic.List<string>(tooltipItemLines.Count);
+        foreach (string template in tooltipItemLines)
+            lines.Add(System.Convert.ToHexString(System.Text.Encoding.UTF8.GetBytes(template)));
+        return string.Join(",", lines);
     }
 
     public string SerializeTooltipLines()

@@ -1614,6 +1614,14 @@
           "execution": "compile_policy"
         },
         {
+          "signature": "string SerializeTooltipItemLines()",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "void AddTooltipItemLine(string template)",
+          "execution": "compile_policy"
+        },
+        {
           "signature": "void AddTooltipLine(string text)",
           "execution": "compile_policy"
         },
