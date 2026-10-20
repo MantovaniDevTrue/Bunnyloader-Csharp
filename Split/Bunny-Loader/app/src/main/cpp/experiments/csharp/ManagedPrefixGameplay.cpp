@@ -295,10 +295,10 @@ int queryPrefixWorker(Il2CppObject* item,const ManagedPrefixEntry& p,int kind) {
     return cache;
 }
 
-bool itemPrefixWorkerReady(int itemType) {
+bool itemPrefixWorkerReady(int itemType,int mask=1) {
     const auto owners=managedItemPrefixCallbackView();
     const auto found=owners->find(itemType);
-    if (found==owners->end()) return false;
+    if (found==owners->end() || !(found->second.callbackMask&mask)) return false;
     const auto assemblies=managedItemPrefixCallbackAssemblies();
     const auto assembly=assemblies->find(found->second.modId);
     return assembly!=assemblies->end() &&
@@ -333,7 +333,7 @@ bool itemAllowsPrefix(Il2CppObject* item,int prefix) {
     const int type=bl::runtime::field<int32_t>(item,g_refs.type);
     const auto bindings=managedItemPrefixCallbackView();
     const auto binding=bindings->find(type);
-    if (binding==bindings->end()) return true;
+    if (binding==bindings->end() || !(binding->second.callbackMask&1)) return true;
     syncItemPrefixCache(item,scope);
     int8_t& cached=scope->itemAllowed[static_cast<size_t>(prefix)];
     if (cached!=-1) return cached!=0;
@@ -369,7 +369,7 @@ void primeItemPrefixCandidates(Il2CppObject* item,const int32_t* vanilla,
     const int type=bl::runtime::field<int32_t>(item,g_refs.type);
     const auto owners=managedItemPrefixCallbackView();
     const auto owner=owners->find(type);
-    if (owner==owners->end()) return;
+    if (owner==owners->end() || !(owner->second.callbackMask&1)) return;
     const auto assemblies=managedItemPrefixCallbackAssemblies();
     const auto assembly=assemblies->find(owner->second.modId);
     if (assembly==assemblies->end() ||
@@ -421,7 +421,8 @@ bool queryItemPrefixDecision(Il2CppObject* item,int index,int kind,std::string* 
     const int type=bl::runtime::field<int32_t>(item,g_refs.type);
     const auto bindings=managedItemPrefixCallbackView();
     const auto owner=bindings->find(type);
-    if (owner==bindings->end()) return false;
+    if (owner==bindings->end() ||
+        !(owner->second.callbackMask&(kind==3?2:kind==4?4:8))) return false;
     const auto assemblies=managedItemPrefixCallbackAssemblies();
     const auto assembly=assemblies->find(owner->second.modId);
     if (assembly==assemblies->end() ||
@@ -766,7 +767,7 @@ bool hookItemPrefixChance(Il2CppObject* item, int32_t want, uint8_t* topTier,
         const int currentDamage = bl::runtime::field<int32_t>(item, g_chanceDamageOffset);
         const int currentValue = bl::runtime::field<int32_t>(item, g_chanceValueOffset);
         const int currentPrefix = bl::runtime::field<uint8_t>(item, g_chancePrefixOffset);
-        if ((hasItemPolicy || hadPrefixBonus || itemPrefixWorkerReady(type)) &&
+        if ((hasItemPolicy || hadPrefixBonus || itemPrefixWorkerReady(type,8)) &&
             previous->type == type && previous->prefix == currentPrefix &&
             previous->damage == currentDamage && previous->value == currentValue &&
             currentDamage >= previous->damageBonus &&
