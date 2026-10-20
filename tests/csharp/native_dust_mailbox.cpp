@@ -88,6 +88,18 @@ int main() {
     queue.discard(first);
     assert(queue.offer(0,1,sample(3),321));
     queue.resetWorld();
+    auto dying = sample(770);
+    dying.active = 0;
+    dying.scale = 0.f;
+    assert(queue.offer(0,5,dying,1));
+    assert(queue.offer(0,1,sample(771),1));
+    ManagedDustMailbox::Request released[2]{};
+    assert(queue.take(released,2)==2);
+    assert(released[0].phase==5 && released[1].phase==1);
+    assert(queue.complete(released[0],dying,1u));
+    assert(queue.consume(0,5,770,332,1,2,&result));
+    assert(result.state.active==0 && result.state.scale==0.f);
+    queue.resetWorld();
     for(const auto& request:batch)
         assert(!queue.complete(request,request.state,1u | 32u));
 }
