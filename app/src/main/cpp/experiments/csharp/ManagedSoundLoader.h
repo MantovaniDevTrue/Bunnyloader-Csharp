@@ -28,6 +28,7 @@ struct Clip {
     int maxInstances = 1, behavior = 1;
     int status = 0;
     int soundId = 0, styleId = -1;
+    int durationMs = 0;
     int lastToken = 0;
     unsigned decodeAttempts = 0;
 };
@@ -54,6 +55,7 @@ constexpr size_t MaxClips = 256;
 constexpr size_t MaxPerMod = 32;
 constexpr size_t MaxPendingPlays = 128;
 constexpr size_t MaxRequestHistory = 512;
+constexpr size_t MaxAudioAssetsPerProcess = 512;
 
 inline bool validPath(const char* value) {
     if (!value) return false;
@@ -177,13 +179,9 @@ inline int stop(int handle,int request) {
 }
 
 inline int duration(int handle) {
-    int soundId = 0;
-    {
-        std::lock_guard guard(mutex);
-        auto it=clips.find(handle);
-        if(it!=clips.end() && it->second.status>=0) soundId=it->second.soundId;
-    }
-    return soundId>0?bl::runtime::content::soundDuration(soundId):0;
+    std::lock_guard guard(mutex);
+    auto it=clips.find(handle);
+    return it!=clips.end() && it->second.status==1?it->second.durationMs:0;
 }
 
 inline void unloadMod(const char* owner) {
@@ -227,14 +225,21 @@ inline void pump() {
         int sound=clip.soundId;
         if(sound<=0) {
             auto cached=assetCache.find(clip.path);
-            sound=cached==assetCache.end()?loadSound(clip.path):cached->second;
-            if(sound>0 && cached==assetCache.end())assetCache.emplace(clip.path,sound);
+            if(cached==assetCache.end() && assetCache.size()>=MaxAudioAssetsPerProcess) {
+                BL_WARN("[CSharp][SoundLoader] Stage=LoadAsset Mod=%s Reason=AudioAssetCacheCapacityExceeded",
+                        clip.owner.c_str());
+            } else {
+                sound=cached==assetCache.end()?loadSound(clip.path):cached->second;
+                if(sound>0 && cached==assetCache.end())assetCache.emplace(clip.path,sound);
+            }
         }
         const int decode=sound>0?soundState(sound):-1;
-        int style=-1;
-        if(decode==1)
+        int style=-1, durationMs=0;
+        if(decode==1) {
             style=registerSoundStyle(sound,clip.volume,clip.pitch,clip.variance,
                                       clip.maxInstances,clip.behavior);
+            if(style>=0) durationMs=std::max(0,soundDuration(sound));
+        }
         {
             std::lock_guard guard(mutex);
             auto it=clips.find(clip.handle);
@@ -255,6 +260,7 @@ inline void pump() {
                     clip.owner.c_str(),clip.path.c_str());
             } else {
                 it->second.styleId=style;
+                it->second.durationMs=durationMs;
                 it->second.status=1;
             }
         }
