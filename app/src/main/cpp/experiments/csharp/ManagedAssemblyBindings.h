@@ -21,6 +21,15 @@ public:
         active_.erase(mod);
     }
 
+    bool unbindIfCurrent(const std::string& mod, const std::string& captured) {
+        if (captured.empty()) return false;
+        std::lock_guard lock(mutex_);
+        const auto it = active_.find(mod);
+        if (it == active_.end() || it->second != captured) return false;
+        active_.erase(it);
+        return true;
+    }
+
     std::string current(const std::string& mod) const {
         std::lock_guard lock(mutex_);
         const auto it = active_.find(mod);
