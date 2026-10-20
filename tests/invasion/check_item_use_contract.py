@@ -11,7 +11,9 @@ transport = (root / "experiments/csharp/BunnyCsSdk/BunnyNativeItemUse.cs").read_
 required = [
     'parseSignature("void ItemCheck_StartActualUse(Item sItem)")',
     'runtime::modItemTypeByKey(binding.mod + "/" + binding.name)',
-    'worldIsAuthoritative(runtime::netMode())',
+    'worldIsAuthoritative(mode)',
+    'runtime::sendToServer("invuse "',
+    'enqueueVerifiedRemoteItemUse(',
     'g_events.size() >= kEventsLimit',
     'g_requests.size() >= kBindingsLimit',
     'bunny_item_use_bind(',
