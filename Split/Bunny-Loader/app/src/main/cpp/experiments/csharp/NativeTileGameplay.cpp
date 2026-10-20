@@ -243,6 +243,10 @@ bool applyManagedTileDraw(int x,int y,int type,runtime::TileDrawData* data,bool 
         reportTileCallbackFailure(spec,13,"Stage=DecodeDraw Reason=InvalidReply");
         return false;
     }
+    if(spec.frameToggle==1 && spec.animationFrames==8 &&
+       spec.animationFrameHeight==36)
+        draw.addFrameY=tile_animation::campfireFrameOffset(
+            draw.frameY,frameIndex,draw.addFrameY);
     if(hasParticles&&(special||!tile_particle::owned(particles,type,x,y))) {
         reportTileCallbackFailure(spec,13,"Stage=ValidateParticles Reason=OwnershipOrPass");
         return false;
