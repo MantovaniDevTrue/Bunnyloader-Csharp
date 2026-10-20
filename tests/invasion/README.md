@@ -9,16 +9,18 @@ mantém progresso, limite de criaturas, cooldown e deduplicação de mortes.
 
 **Ainda não é uma invasão jogável completa.** O canal host ⇄ MonoVM,
 a fila limitada de spawn, o agendamento periódico e o adaptador nativo
-estão implementados e passam na CI. O item invocador e a persistência
-local por mundo também estão implementados. Ainda faltam sincronização
-multiplayer, suporte a saves em nuvem, conteúdo visual e QA no aparelho.
+estão implementados e passam na CI. Também existem invocador, salvamento
+por mundo, retries de mortes, múltiplas invasões por mod, rewards
+nativos, alertas no chat e encaminhamento autenticado de item cliente→host.
+Ainda falta um transporte real host→cliente para snapshots versionados,
+saves em nuvem, HUD visual completo e QA no aparelho.
 Nenhum APK deve ser gerado antes do fechamento integral.
 
 ## Contrato obrigatório do host
 
 1. O host deve decidir se está em servidor/singleplayer, bloquear
    mutações de clientes e chamar `Start(true)` somente após uma invocação
-   real e válida, com um único evento ativo por mundo.
+   real e válida, respeitando a política de eventos do mod.
 2. Uma atualização de mundo deve enviar ticks autoritativos ao worker
    MonoVM usando `Pipeline.Tick(true, jogadoresDisponíveis)`. Quando há vaga,
    `TrySpawn(true, sorteio, out pedido)` gera `Ticket + Epoch`.
@@ -27,11 +29,11 @@ Nenhum APK deve ser gerado antes do fechamento integral.
    nativeIdentity` e deve ser encaminhada ao worker com
    `NativeSpawnCreated(true, epoch, ticket, slot, identity)`.
    Se o spawn falhar, chamar `NativeSpawnFailed` com o mesmo epoch/ticket.
-   A primeira IA real do NPC chama `OnSpawn`, que confirma
+   O dispatcher C# verifica a IA do NPC, que confirma
    `slot + generation + nativeIdentity` antes de contabilizar o inimigo.
-3. O evento real de morte do NPC deve chamar `EnemyKilled` uma única vez.
-   Despawn normal chama `EnemyDespawned`, sem conceder pontos. O slot
-   deve estar vinculado ao pedido confirmado da mesma invasão.
+3. O dispatcher encaminha morte e despawn a cada controlador registrado;
+   apenas o dono da reserva do NPC pontua. O buffer nativo de mortes
+   reenvia eventos que encontraram o MonoVM ocupado, com deduplicação.
 4. Mudança/saída de mundo, unload e troca de personagem chamam
    `WorldExit`. Não transportar contadores nem membros de outro mundo.
 5. Incluir sincronização servidor → clientes de início, progresso e
@@ -43,11 +45,14 @@ Nenhum APK deve ser gerado antes do fechamento integral.
 
 ## Integração ao ciclo real dos NPCs
 
-O `ExampleSlimeNPC.OnKill` agora encaminha a morte do NPC gerenciado
-para `ExampleInvasion.EnemyKilled`, usando o par `Slot/Generation` já
-fornecido pelo `BunnyEntitySourceDispatcher`. `OnDespawn` devolve a
-vaga sem pontuar. Sem reserva confirmada pelo primeiro tick com a identidade nativa,
-o mesmo NPC não altera o progresso.
+O `BunnyEntitySourceDispatcher` faz os encaminhamentos genéricos
+de `OnSpawn`, `OnKill` e `OnDespawn` para todos os controladores
+registrados, usando `Slot/Generation/NativeIdentity`. O mesmo NPC
+não pontua se não pertencer a uma reserva confirmada. O
+`ExampleSlimeNPC` não depende mais de chamadas manuais para
+`ExampleInvasion`. Os eventos de morte do C++ usam
+`ReliableNpcKill`, com até 512 retries e drenagem limitada a 16
+eventos por atualização; o buffer limpa na troca de mundo.
 
 A auditoria identificou que `NpcAiHost.cpp` rejeitava eventos
 gerenciados quando `Main.netMode != 0`. O contrato móvel do Bunny
@@ -99,8 +104,9 @@ Na primeira atualização gerenciada após a entrada no mundo,
 `TickWorld` tenta restaurar o progresso. Inimigos ativos, tickets
 de spawn e identidades antigas **não** são restaurados; o
 controlador incrementa a geração lógica e recria ondas novas.
-A gravação ocorre somente quando a fase ou o progresso mudam:
-início pelo invocador, mortes e conclusão. Não há escrita em disco
+A gravação ocorre na mudança de fase/progresso (início, mortes,
+conclusão) e, quando necessário, no máximo uma vez a cada
+600 quadros para atualizar o cooldown. Não há escrita em disco
 por frame nem por NPC gerado. Em `KillNpc` e no caminho de hit
 letal, a alteração é gravada antes de a execução do job terminar.
 
@@ -111,8 +117,7 @@ end-to-end C# → biblioteca nativa real → C# valida que sair
 e reentrar recupera o progresso sem revalidar NPCs antigos.
 
 **Limites:** suporte de mundo na nuvem não está implementado.
-O cooldown é persistido nos momentos de alteração do progresso,
-não a cada diminuição do contador. Falhas de armazenamento
+O cooldown é persistido periodicamente, sem escrita por quadro. Falhas de armazenamento
 devem ser diagnosticadas no Android antes da conclusão do loader.
 A sincronização host/cliente ainda precisa de protocolo próprio.
 Os arquivos de teste são locais ao runner e nenhum APK é gerado.
@@ -134,8 +139,11 @@ A fila suporta até 64 bindings e 64 usos; sessões do mundo antigas
 não são reaproveitadas. O host expõe `bunny_item_use_ready` para
 confirmar que o tipo de item foi resolvido e o hook instalado
 antes de o dispatcher C# começar a consumir eventos; testes cobrem
-respostas atrasadas de instalação. Somente modos autoritativos 0/2/3
-registram o evento. Itens que não sobrescrevem `OnUse` são ignorados.
+respostas atrasadas de instalação. O cliente 1 registra apenas o hook e encaminha o uso ao host pelo
+canal nativo `NetRequests`; o servidor valida o índice do cliente,
+o item selecionado e a propriedade do item ao mod antes de
+enfileirar o evento para MonoVM. Modos 0/2/3 usam callbacks
+autoritativos. Itens sem `OnUse` são ignorados.
 
 O novo `ExampleInvasionBeacon` é um `BunnyItem` não consumível com
 receita na bancada de trabalho usando 10 `ExampleItem`.
@@ -144,11 +152,13 @@ durante a invasão não reiniciam o progresso, como os testes
 de ida e volta C# → C++ → C# demonstram. A textura atual é
 reutilizada do `ExampleItem`; arte final permanece pendente.
 
-**Limites:** o modo cliente 1 ainda precisa de solicitação confiável
-ao host. A invocação não está validada em Terraria Android real.
-Mods que possuem apenas itens, sem NPC ou projétil C# no registro
-do `BunnyEntitySourceDispatcher`, ainda precisam de integração
-de descoberta própria; portanto a API genérica não está concluída.
+**Limites:** o pedido cliente→host está no código, mas não foi
+testado com jogadores conectados no Android. A confirmação da
+requisição ainda usa o chat nativo do Bunny, que não equivale
+a um transporte de snapshots host→cliente. Mods registrados
+pelo dispatcher que possuem apenas itens podem usar o novo hook;
+a descoberta de pacotes sem quaisquer entidades C# precisa
+de validação adicional no carregador. A API não foi validada no aparelho.
 Não substituir testes Android por simulações.
 
 ## Procura nativa de terreno (lote 5)
@@ -177,9 +187,8 @@ QA de diferentes biomas/terrenos em Android real.
 do SDK. O `ExampleInvasionSystem` usa o controlador existente, sem
 JavaScript. A cada 30 quadros de mundo pronto, o host cria um job
 no worker MonoVM, que invoca `BunnyEntitySourceDispatcher.TickWorld`.
-Somente mods que possuem uma invasão continuam recebendo esses jobs:
-o retorno -2 remove permanentemente o polling desnecessário para
-mods sem invasão.
+Somente mods com invasão ou itens com `OnUse` continuam recebendo
+esses jobs: o retorno -2 remove o polling de mods sem ambos.
 
 O worker comunica com a biblioteca nativa por P/Invoke, usando
 `bunny_invasion_submit` e `bunny_invasion_poll`.
@@ -188,28 +197,35 @@ não transfere objetos IL2CPP entre threads, executa até dois spawns
 por atualização na thread do Terraria e limpa ambas as filas quando
 a sessão do mundo muda. O pedido leva `epoch`, `ticket` e
 `nativeWorldSession`; o resultado devolve `slot` e `nativeIdentity`.
-`ExampleSlimeNPC` tenta confirmar tanto no `OnSpawn` quanto nos
-ticks seguintes de IA, porque a resposta nativa pode chegar depois
-da primeira IA.
+O dispatcher tenta confirmar a identidade na IA sem alocações,
+inclusive se a resposta nativa chegar após o primeiro `OnSpawn`.
 
 A CI compila `ManagedRuntime.cpp` e `AutoSourceRuntime.cpp` com
 o compilador Android do NDK, **sem linkar aplicativo**, além de simular
 a cadeia C# → P/Invoke → C++ → P/Invoke → C# com uma biblioteca
 nativa de teste.
 
-O host móvel admite singleplayer (0) e host com jogador (3).
-O modo 2 ainda exige seleção de jogador válida em servidor dedicado;
-não há validação real no Android ou protocolo de multiplayer da invasão.
+O host móvel admite singleplayer (0), cliente apenas para hooks de item
+(1), servidor dedicado (2) selecionando um jogador ativo a cada 30
+quadros e host-jogador (3). O protocolo `BunnyInvasionWireState`
+é versionado, limitado e rejeita snapshots antigos, incluindo
+entrada tardia e troca de mundo nos testes .NET. Seu canal real
+de envio host→cliente ainda precisa ser instalado e testado.
 
-**Pendências obrigatórias:** validação Android do item de invocação,
-regras de início e sincronização cliente→servidor, geração em solo
-real sem prender inimigos, tratamento de
-eventos perdidos por fila de morte sob carga, verificação do save
-Android/nuvem, sincronização host/cliente e entrada tardia, UI/avisos, efeitos,
-balanceamento, QA Android/host/cliente e revisão final de release.
+**Pendências obrigatórias:** canal real host→cliente de snapshots;
+validação Android do item de invocação, start rules e gameplay multiplayer;
+cobertura de lava/líquidos, blocos inclinados, armadilhas e colisão real;
+verificação de saves Android/nuvem; HUD visual e assets definitivos;
+efeitos sonoros/visuais; balanceamento, QA Android/host/cliente
+e revisão final de release.
 
-Atualmente cada mod C# aceita um `BunnyInvasionSystem`. Suporte a
-múltiplas invasões no mesmo mod continua pendente.
+Até 16 `BunnyInvasionSystem` independentes por mod são aceitos,
+com tickets globais únicos, spawn em turnos e persistência por ID.
+`ExampleInvasionSystem` premia cinco `ExampleItem` pela ponte
+nativa de `giveItem`, com deduplicação por sessão/epoch.
+O servidor publica marcos de 10% e mudanças de fase como avisos
+leves pelo `Main.NewText` já usado no Bunny original, sem render
+por quadro. Ainda não é um HUD gráfico completo.
 
 ## Teste sem APK
 
@@ -225,6 +241,9 @@ g++ -std=c++20 -Wall -Wextra -Werror -Iapp/src/main/cpp tests/invasion/NativeSpa
 python3 tests/invasion/check_world_host_contract.py
 python3 tests/invasion/check_item_use_contract.py
 python3 tests/invasion/check_world_save_contract.py
+python3 tests/invasion/check_multiplayer_contract.py
+dotnet run --project tests/invasion/net/InvasionNet.csproj --configuration Release
+dotnet run --project tests/invasion/MultiInvasionIntegration.csproj --configuration Release
 g++ -std=c++17 -Wall -Wextra -Werror tests/invasion/WorldAuthorityTest.cpp -o /tmp/bunny-invasion-authority
 /tmp/bunny-invasion-authority
 ```
