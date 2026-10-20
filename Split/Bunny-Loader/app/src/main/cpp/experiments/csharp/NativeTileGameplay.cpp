@@ -1140,7 +1140,8 @@ bool setupTileSmartInteractHook() {
     const bool value=a.class_is_valuetype&&a.class_is_valuetype(settings);
     il2cpp::ValueLayout layout{};
     std::string error;
-    if(value&&!il2cpp::resolveValueLayout(settings,&layout,&error))return false;
+    if(value&&(!il2cpp::resolveValueLayout(settings,&layout,&error)||
+               layout.size<=16))return false;
     int offsets[4]{};
     constexpr const char* names[]={"LX","LY","HX","HY"};
     for(int i=0;i<4;++i) {
