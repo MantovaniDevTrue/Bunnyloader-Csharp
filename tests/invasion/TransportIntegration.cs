@@ -44,6 +44,10 @@ internal static class TransportIntegration
         Check(BunnyEntitySourceDispatcher.Bind(mod, 0, npcType,
             nameof(ExampleSlimeNPC)), "bind NPC");
         SetItemReady(0);
+        Check(BunnyEntitySourceDispatcher.TickWorld(mod, 1, 30, 11,
+            0, 1700f, 2200f) == 0 &&
+            ExampleInvasion.Controller.Phase == BunnyInvasionPhase.Inactive,
+            "client world tick only registers item hooks, not the invasion");
         Check(Tick(mod, 11) == 0, "world activation queues item binding and resets stale state");
         Check(ExampleInvasion.Controller.Phase == BunnyInvasionPhase.Inactive,
             "no automatic invasion before item use");
