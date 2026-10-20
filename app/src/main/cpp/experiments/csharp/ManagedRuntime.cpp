@@ -1219,10 +1219,19 @@ int64_t executeManagedEntityOnWorker(const ManagedEntityJob& job) {
         std::memcpy(&count, raw, sizeof(count));
         static std::atomic<unsigned> worldTickDiagnostics{0};
         const unsigned diagnostic = worldTickDiagnostics.fetch_add(1, std::memory_order_relaxed);
-        if (diagnostic < 4 || (count < 0 && diagnostic < 10))
-            BL_INFO("[CSharp][ItemUse] Stage=WorldTick Mod=%s Result=%d Player=%d Mode=%d Session=%llu",
-                    binding.modId.c_str(), count, player, mode,
-                    static_cast<unsigned long long>(worldSession));
+        if (diagnostic < 4 || (count < 0 && diagnostic < 10)) {
+#ifdef __ANDROID__
+            __android_log_print(ANDROID_LOG_INFO, "BunnyCSharp",
+                "[CSharp][ItemUse] Stage=WorldTick Mod=%s Result=%d Player=%d Mode=%d Session=%llu",
+                binding.modId.c_str(), count, player, mode,
+                static_cast<unsigned long long>(worldSession));
+#else
+            std::fprintf(stderr,
+                "[CSharp][ItemUse] Stage=WorldTick Mod=%s Result=%d Player=%d Mode=%d Session=%llu\n",
+                binding.modId.c_str(), count, player, mode,
+                static_cast<unsigned long long>(worldSession));
+#endif
+        }
         return count;
     }
     int type = job.type, slot = job.slot, generation = job.generation;
