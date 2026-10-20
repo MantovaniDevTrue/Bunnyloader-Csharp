@@ -952,6 +952,9 @@ bool hookItemPrefixChance(Il2CppObject* item, int32_t want, uint8_t* topTier,
     }
 
     if (ready && g_restoreRoll.item != item && (want == -1 || want == -2)) {
+        const int globalChance=globalPrefixChance(item,want==-1?1:2);
+        if(globalChance==0)return false;
+        if(globalChance==1 && want==-1)request=-2;
         std::string dynamicChance;
         if (queryItemPrefixDecision(item,want==-1?1:2,4,&dynamicChance)) {
             if (dynamicChance=="0") return false;
@@ -1002,7 +1005,8 @@ bool hookItemPrefixChance(Il2CppObject* item, int32_t want, uint8_t* topTier,
         const int currentDamage = bl::runtime::field<int32_t>(item, g_chanceDamageOffset);
         const int currentValue = bl::runtime::field<int32_t>(item, g_chanceValueOffset);
         const int currentPrefix = bl::runtime::field<uint8_t>(item, g_chancePrefixOffset);
-        if ((hasItemPolicy || hadPrefixBonus || itemPrefixWorkerReady(type,8)) &&
+        if ((hasItemPolicy || hadPrefixBonus || itemPrefixWorkerReady(type,8) ||
+             globalPrefixWorkerReady(8)) &&
             previous->type == type && previous->prefix == currentPrefix &&
             previous->damage == currentDamage && previous->value == currentValue &&
             currentDamage >= previous->damageBonus &&
@@ -1041,12 +1045,19 @@ bool hookItemPrefixChance(Il2CppObject* item, int32_t want, uint8_t* topTier,
     if (prefixPolicy) queryPrefixApply(item,*prefixPolicy,&callbackDamage,&callbackValue);
     int dynamicDamage=0,dynamicValue=0;
     if (prefix>0) {
+        globalPrefixBonuses(item,prefix,&dynamicDamage,&dynamicValue);
         std::string post;
         if (queryItemPrefixDecision(item,prefix,5,&post)) {
             const size_t comma=post.find(',');
             if (comma!=std::string::npos) {
-                std::from_chars(post.data(),post.data()+comma,dynamicDamage);
-                std::from_chars(post.data()+comma+1,post.data()+post.size(),dynamicValue);
+                int extraDamage=0,extraValue=0;
+                const auto d=std::from_chars(post.data(),post.data()+comma,extraDamage);
+                const auto v=std::from_chars(post.data()+comma+1,
+                                             post.data()+post.size(),extraValue);
+                if(d.ec==std::errc{} && v.ec==std::errc{}) {
+                    dynamicDamage+=extraDamage;
+                    dynamicValue+=extraValue;
+                }
             }
         }
     }
