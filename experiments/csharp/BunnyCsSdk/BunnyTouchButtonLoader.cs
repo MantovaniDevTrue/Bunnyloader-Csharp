@@ -60,6 +60,7 @@ public static class BunnyTouchButtonLoader
     {
         public BunnyTouchButton Button = null!;
         public BunnyTouchButtonState State;
+        public int NativeId = -1;
     }
 
     private const int MaxButtons = 128;
@@ -67,6 +68,8 @@ public static class BunnyTouchButtonLoader
     private static readonly List<Entry?> Entries = new();
     private static readonly Dictionary<string, Entry> ByName = new(StringComparer.Ordinal);
     private static long lastTick = -1;
+    private static bool nativeBound;
+    public static string LastHostError { get; private set; } = "HostNotConnected";
 
     public static int Count { get { lock (Gate) return ByName.Count; } }
 
@@ -95,6 +98,12 @@ public static class BunnyTouchButtonLoader
 
             var button = new BunnyTouchButton(Entries.Count, modId, name, label, icon);
             var entry = new Entry { Button = button };
+            if (nativeBound)
+            {
+                entry.NativeId = BunnyTouchNativeHost.Register(button);
+                if (entry.NativeId < 0)
+                    throw new InvalidOperationException("Host nativo recusou o novo botão: " + key);
+            }
             Entries.Add(entry);
             ByName.Add(key, entry);
             return button;
@@ -118,8 +127,49 @@ public static class BunnyTouchButtonLoader
     public static BunnyTouchButtonState Read(int id)
     {
         lock (Gate)
-            return id >= 0 && id < Entries.Count && Entries[id] is { } entry
-                ? entry.State : default;
+        {
+            if (id < 0 || id >= Entries.Count || Entries[id] is not { } entry)
+                return default;
+            return nativeBound && entry.NativeId >= 0
+                ? BunnyTouchNativeHost.Read(entry.NativeId) : entry.State;
+        }
+    }
+
+    /// <summary>
+    /// Ativa a leitura nativa somente após o host declarar os hooks IL2CPP prontos.
+    /// Até lá, Read usa exclusivamente ApplyHostFrame nos testes gerenciados.
+    /// Falhas nativas não são ignoradas: LastHostError explica a indisponibilidade.
+    /// </summary>
+    public static bool TryBindNativeHost()
+    {
+        lock (Gate)
+        {
+            if (nativeBound) return true;
+            try
+            {
+                if (!BunnyTouchNativeHost.Ready())
+                {
+                    LastHostError = "NativeHooksNotReady";
+                    return false;
+                }
+                foreach (Entry? entry in Entries)
+                {
+                    if (entry is null) continue;
+                    int remoteId = BunnyTouchNativeHost.Register(entry.Button);
+                    if (remoteId < 0)
+                    {
+                        LastHostError = "RegisterFailed:" + entry.Button.FullName;
+                        return false;
+                    }
+                    entry.NativeId = remoteId;
+                }
+                nativeBound = true;
+                LastHostError = "Ready";
+                return true;
+            }
+            catch (DllNotFoundException) { LastHostError = "LibBunnyUnavailable"; return false; }
+            catch (EntryPointNotFoundException) { LastHostError = "TouchAbiUnavailable"; return false; }
+        }
     }
 
     /// <summary>
@@ -176,6 +226,7 @@ public static class BunnyTouchButtonLoader
                 if (Entries[i] is { } entry)
                     entry.State = new BunnyTouchButtonState(false, false, false, false, false, false);
             lastTick = -1;
+            if (nativeBound) BunnyTouchNativeHost.ResetWorld();
         }
     }
 
@@ -191,6 +242,7 @@ public static class BunnyTouchButtonLoader
                 ByName.Remove(entry.Button.FullName);
                 Entries[i] = null;
             }
+            if (nativeBound) BunnyTouchNativeHost.Unload(modId);
         }
     }
 
