@@ -59,16 +59,18 @@ public static class BunnyLocalizationRuntime
         }
 
         state = null;
-        foreach (ModState candidate in Mods.Values)
+        string? owner = null;
+        foreach (var pair in Mods)
         {
-            if (!ReferenceEquals(candidate.Assembly, caller)) continue;
+            if (!ReferenceEquals(pair.Value.Assembly, caller)) continue;
             if (state != null)
                 throw new InvalidOperationException("Ambiguous localization module assembly");
-            state = candidate;
+            state = pair.Value;
+            owner = pair.Key;
         }
-        if (state == null)
+        if (state == null || owner == null)
             throw new InvalidOperationException("Localization registration requires a loaded module assembly");
-        ValidateRegistrationOwner(key, Mods.First(pair => ReferenceEquals(pair.Value, state)).Key);
+        ValidateRegistrationOwner(key, owner);
         return state.Live;
     }
 
