@@ -54,14 +54,12 @@ int main() {
     world.fill(100, 2);
     assert(!findInvasionSpawnSite(world.view(), 90 * 16, 80 * 16).valid);
 
-    world.fill(100, 1);
-    for (int x = 42; x < TestWorld::width - 42; ++x)
-        world.set(x, 97, 1);
+    world.fill(42, 1);
     assert(!findInvasionSpawnSite(world.view(), 90 * 16, 80 * 16).valid);
 
-    world.fill(100, 1);
-    for (int x = 42; x < TestWorld::width - 42; ++x)
-        world.set(x, 97, 0);
+    for (int y = 42; y < 100; ++y)
+        for (int x = 0; x < TestWorld::width; ++x)
+            world.set(x, y, 0);
     assert(!findInvasionSpawnSite(world.view(), 90 * 16, 40 * 16).valid);
     assert(!findInvasionSpawnSite(world.view(), 0, 80 * 16).valid);
     assert(!findInvasionSpawnSite(world.view(), -1, 80 * 16).valid);
