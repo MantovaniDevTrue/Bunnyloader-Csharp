@@ -253,11 +253,9 @@ class ManagedProbeService : Service() {
             }
             if (!accepted) {
                 if (!precompile) runCatching {
-                    File(filesDir, "bunny-csharp/source-compile-status.txt").apply {
-                        parentFile?.mkdirs()
-                        writeText("state=failed\nmodId=" + modId +
+                    writeOfficialCompileStatus(File(filesDir, "bunny-csharp"), modId,
+                        "state=failed\nmodId=" + modId +
                             "\nrequestId=" + requestId + "\nerror=CompilerQueueFull\n")
-                    }
                 }
                 else Log.w("BunnyCSharp", "Launch precompile skipped: queue full, mod=$modId")
             } else if (workerThread == null) {
@@ -294,6 +292,18 @@ class ManagedProbeService : Service() {
         }
     }
 
+    private fun writeOfficialCompileStatus(dir: File, modId: String, value: String) {
+        val status = File(dir, "source-compile-status-" + modId + ".txt")
+        val pending = File(dir, status.name + ".tmp")
+        dir.mkdirs()
+        pending.writeText(value)
+        if (!pending.renameTo(status)) {
+            status.writeText(value)
+            pending.delete()
+        }
+        File(dir, "source-compile-status.txt").writeText(value)
+    }
+
     private fun executeJob(job: CompileWork, resident: ResidentRuntime) {
         val dir = File(filesDir, "bunny-csharp")
         dir.mkdirs()
@@ -306,13 +316,17 @@ class ManagedProbeService : Service() {
             "source-launch-precompile-" + job.modId + ".txt" else "source-compile-status.txt")
         val diagnostic = File(dir, if (job.precompile)
             "source-launch-precompile-diagnostics-" + job.modId + ".txt"
-            else "source-compile-diagnostics.txt")
+            else "source-compile-diagnostics-" + job.modId + ".txt")
         val health = File(dir, if (job.precompile)
             "source-launch-precompile-health.txt" else "source-compile-health.txt")
         val nativeTrace = File(dir, "native-abort-trace.txt")
         val nativeMaps = File(dir, "native-abort-maps.txt")
         val nativeThreads = File(dir, "native-abort-threads.txt")
         val abortWatch = File(dir, "native-abort-watch.txt")
+        val writeStatus: (String) -> Unit = { value ->
+            if (job.precompile) compileStatus.writeText(value)
+            else writeOfficialCompileStatus(dir, job.modId, value)
+        }
         val workerStartedMs = android.os.SystemClock.elapsedRealtime()
         val originalPriority = Process.getThreadPriority(Process.myTid())
         val reused = resident.assembly != null
@@ -351,13 +365,13 @@ class ManagedProbeService : Service() {
                     nativeThreads.delete()
                     abortWatch.delete()
                 }
-                compileStatus.writeText("state=preparing-framework\nmodId=" +
+                writeStatus("state=preparing-framework\nmodId=" +
                     job.modId + "\nrequestId=" + job.requestId + "\npid=" + Process.myPid() + "\n")
                 startCompileHealthMonitor(health, currentHealth)
             }
             System.loadLibrary("bunnymonoprobe")
             if (compileRoot != null && !resident.cryptoReady) {
-                compileStatus.writeText("state=preparing-crypto-jni\nmodId=" +
+                writeStatus("state=preparing-crypto-jni\nmodId=" +
                     job.modId + "\nrequestId=" + job.requestId + "\npid=" + Process.myPid() + "\n")
                 Class.forName("net.dot.android.crypto.DotnetProxyTrustManager")
                 System.loadLibrary("System.Security.Cryptography.Native.Android")
@@ -380,7 +394,7 @@ class ManagedProbeService : Service() {
             val receipt = File(outputDir, job.modId + ".launch-ready")
             if (job.precompile &&
                 CSharpPrefetchReceipt.ready(receipt, File(compileRoot), dir, job.modId, output)) {
-                compileStatus.writeText(
+                writeStatus(
                     "state=finished\nmodId=" + job.modId +
                     "\npid=" + Process.myPid() +
                     "\nphase=compile-prefetched-cache-hit\nassemblyReady=1" +
@@ -396,7 +410,7 @@ class ManagedProbeService : Service() {
             } else null
             val canReuse = !job.precompile &&
                 CSharpPrefetchReceipt.ready(receipt, File(compileRoot), dir, job.modId, output)
-            compileStatus.writeText("state=compiling\nmodId=" + job.modId +
+            writeStatus("state=compiling\nmodId=" + job.modId +
                 "\npid=" + Process.myPid() + "\nwatchers=memory-monitor\n")
             val compilerStarted = android.os.SystemClock.elapsedRealtime()
             val compilerCpuStarted = Process.getElapsedCpuTime()
@@ -434,7 +448,7 @@ class ManagedProbeService : Service() {
                     .takeIf { it.isFile }?.readText()?.trim()?.replace('\n', ' ')?.take(1024)
             }.getOrNull() ?: "Unavailable"
             Log.i("BunnyCSharp", "[CSharp][Startup] Mod=${job.modId} Stage=RoslynProfile PrefetchReused=${if (canReuse) 1 else 0} Detail=$roslynProfile")
-            compileStatus.writeText(
+            writeStatus(
                 "state=" + (if (passed) "finished" else "failed") + "\n" +
                 "modId=" + job.modId + "\nrequestId=" + job.requestId + "\npid=" + Process.myPid() + "\n" + result + "\n" +
                 "assemblyReady=" + (if (passed && output.isFile) 1 else 0) + "\n" +
