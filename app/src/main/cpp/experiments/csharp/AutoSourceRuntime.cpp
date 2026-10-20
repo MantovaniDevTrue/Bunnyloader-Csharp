@@ -7,6 +7,7 @@
 #include "experiments/csharp/NativeInvasionRewards.h"
 #include "experiments/csharp/NativeInvasionNotifications.h"
 #include "experiments/csharp/NativeInvasionNetwork.h"
+#include "experiments/csharp/NativeInvasionHud.h"
 #include "experiments/csharp/ReliableNpcKill.h"
 #include "experiments/csharp/NativeInvasionPersistence.h"
 #include "experiments/csharp/NativeCSharpItemUse.h"
@@ -1213,6 +1214,7 @@ void noteAutoWorldTilesLoaded() {
     setNativeInvasionRewardWorldState(false, g_worldEpoch.load(std::memory_order_acquire));
     setNativeInvasionNoticeWorld(false, g_worldEpoch.load(std::memory_order_acquire));
     setNativeInvasionNetWorldState(false, g_worldEpoch.load(std::memory_order_acquire));
+    setNativeInvasionHudWorldState(false, g_worldEpoch.load(std::memory_order_acquire));
     updateNativeInvasionWorldPath(false, g_worldEpoch.load(std::memory_order_acquire));
         setNativeItemUseWorldState(false, g_worldEpoch.load(std::memory_order_acquire));
     pauseManagedEntitySourceCallbacks();
@@ -1245,10 +1247,12 @@ void noteAutoGameUpdate() {
     setNativeInvasionRewardWorldState(invasionWorldReady, invasionWorldEpoch);
     setNativeInvasionNoticeWorld(invasionWorldReady, invasionWorldEpoch);
     setNativeInvasionNetWorldState(invasionWorldReady, invasionWorldEpoch);
+    setNativeInvasionHudWorldState(invasionWorldReady, invasionWorldEpoch);
     pumpNativeInvasionSpawnsOnGameThread();
     pumpNativeInvasionRewardsOnGameThread();
     pumpNativeInvasionNoticesOnGameThread();
     pumpNativeInvasionNetworkOnGameThread();
+    pumpNativeInvasionHudOnGameThread();
     pumpReliableNpcKillsOnGameThread();
     pumpNativeItemUseBindingsOnGameThread();
     static uint64_t lastSaveWorldSession = 0;
@@ -1372,6 +1376,7 @@ void noteAutoGameUpdate() {
     setNativeInvasionRewardWorldState(false, g_worldEpoch.load(std::memory_order_acquire));
     setNativeInvasionNoticeWorld(false, g_worldEpoch.load(std::memory_order_acquire));
     setNativeInvasionNetWorldState(false, g_worldEpoch.load(std::memory_order_acquire));
+    setNativeInvasionHudWorldState(false, g_worldEpoch.load(std::memory_order_acquire));
     updateNativeInvasionWorldPath(false, g_worldEpoch.load(std::memory_order_acquire));
         setNativeItemUseWorldState(false, g_worldEpoch.load(std::memory_order_acquire));
         g_worldTilesLoaded.store(false, std::memory_order_release);
