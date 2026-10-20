@@ -17,6 +17,15 @@ public static class BunnyInvasionNotifications
             (int)snapshot.Phase, snapshot.Progress, controller.Definition.Goal) == 1;
     }
 
+    public static bool Publish(long localSession, string modId,
+        BunnyInvasionWireState state)
+    {
+        if (localSession <= 0 || !state.IsValid() || state.ModId != modId)
+            return false;
+        return Native.Publish(localSession, state.ModId, state.InvasionId,
+            (int)state.Phase, state.Progress, state.Goal) == 1;
+    }
+
     private static class Native
     {
         [DllImport("bunny", EntryPoint = "bunny_invasion_notice",
