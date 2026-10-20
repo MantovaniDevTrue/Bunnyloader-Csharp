@@ -5,6 +5,7 @@
 #include "experiments/csharp/ManagedLiveEventQueue.h"
 #include "experiments/csharp/ManagedNpcBuffEffects.h"
 
+#include <chrono>
 #include <string>
 #include <cstdint>
 #include <vector>
@@ -17,6 +18,10 @@ bool registerManagedDustSourceMod(const std::string& modId,
                                   const std::vector<std::pair<int, std::string>>& dustTypes);
 bool queueManagedDustCallback(int type, int phase,
                               const ManagedDustState& state, uint64_t frame);
+bool invokeManagedDustSameFrame(int type, int phase,
+                                const ManagedDustState& state, uint64_t frame,
+                                std::chrono::steady_clock::time_point deadline,
+                                ManagedDustMailbox::Response* response);
 bool receiveManagedDustCallback(int type, int phase, int slot, int generation,
                                 uint64_t frame, ManagedDustMailbox::Response* response);
 void resetManagedDustSourceWorld();
