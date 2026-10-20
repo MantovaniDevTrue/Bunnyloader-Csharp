@@ -237,6 +237,8 @@ bool findContracts() {
             bool allowed=false;
             const bool ok=bl::csharp::invokeManagedAnglerQuestCallback(
                 quest.mod,quest.name,4,mode?1:0,0,quest.type,&allowed);
+            if (activeGeneration().load(std::memory_order_acquire) != registry().generation())
+                return true;
             decisions[quest.type]=ok&&allowed;
             return ok&&allowed;
         });
