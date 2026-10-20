@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.Loader;
 using System.Text;
 
 namespace BunnyLoader.Source;
@@ -52,7 +53,29 @@ public static class BunnyRecipeLoader
     {
         public string Path="";
         public Assembly Assembly=null!;
+        public AssemblyLoadContext Context=null!;
         public Dictionary<string,List<BunnyRecipe>> Recipes=new(StringComparer.Ordinal);
+    }
+
+    private sealed class ModContext : AssemblyLoadContext
+    {
+        internal ModContext(string modId) : base("BunnyMod:"+modId,isCollectible:true) { }
+
+        protected override Assembly? Load(AssemblyName name)
+        {
+            Assembly shared=typeof(BunnyRecipeLoader).Assembly;
+            if(name.Name==shared.GetName().Name)return shared;
+            return Default.Assemblies.FirstOrDefault(candidate=>
+                string.Equals(candidate.GetName().Name,name.Name,StringComparison.Ordinal));
+        }
+    }
+
+    private static void Evict(string modId,Mod mod)
+    {
+        mods.Remove(modId);
+        BunnyQuestRuntime.EvictMod(modId);
+        mod.Recipes.Clear();
+        mod.Context.Unload();
     }
     private static readonly Dictionary<string,Mod> mods=new(StringComparer.Ordinal);
     [ThreadStatic] private static List<BunnyRecipe>? capture;
@@ -72,9 +95,20 @@ public static class BunnyRecipeLoader
         }
         if(!mods.TryGetValue(modId,out Mod? mod)||mod.Path!=assemblyPath)
         {
-            BunnyQuestRuntime.EvictMod(modId);
-            mod=new Mod{Path=assemblyPath,Assembly=Assembly.Load(File.ReadAllBytes(filePath))};
-            mods[modId]=mod;
+            if(mod!=null)Evict(modId,mod);
+            var context=new ModContext(modId);
+            try
+            {
+                using var bytes=new MemoryStream(File.ReadAllBytes(filePath),writable:false);
+                var loaded=context.LoadFromStream(bytes);
+                mod=new Mod{Path=assemblyPath,Assembly=loaded,Context=context};
+                mods[modId]=mod;
+            }
+            catch
+            {
+                context.Unload();
+                throw;
+            }
         }
         return mod.Assembly;
     }
@@ -88,8 +122,7 @@ public static class BunnyRecipeLoader
                     throw new ArgumentException("Invalid managed unload request");
                 if(!mods.TryGetValue(modId,out Mod? previous)||previous.Path!=assemblyPath)
                     return "PENDING|Stage=Unload Reason=BindingNotFoundOrReplaced";
-                mods.Remove(modId);
-                BunnyQuestRuntime.EvictMod(modId);
+                Evict(modId,previous);
                 return "CLEARED";
             }
             if(kind==4||kind==5)
