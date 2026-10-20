@@ -12,6 +12,8 @@ on:
       - app/src/main/cpp/experiments/csharp/ManagedDustContract.h
       - tests/csharp/native_dust_contract.cpp
       - tests/csharp/native_dust_mailbox.cpp
+      - tests/csharp/native_dust_lifecycle.cpp
+      - app/src/main/cpp/experiments/csharp/ManagedDustLifecycle.h
       - app/src/main/cpp/experiments/csharp/ManagedDustMailbox.h
       - tests/csharp/native_dust_parser.cpp
       - app/src/main/cpp/experiments/csharp/SourceParser.cpp
@@ -59,3 +61,7 @@ jobs:
         run: |
           c++ -std=c++20 -Wall -Wextra -Werror -pthread -Iapp/src/main/cpp             tests/csharp/native_dust_mailbox.cpp -o "$RUNNER_TEMP/dust_mailbox"
           "$RUNNER_TEMP/dust_mailbox"
+      - name: Verify Dust lifecycle and bounded release tracking
+        run: |
+          c++ -std=c++20 -Wall -Wextra -Werror -Iapp/src/main/cpp             tests/csharp/native_dust_lifecycle.cpp -o "$RUNNER_TEMP/dust_lifecycle"
+          "$RUNNER_TEMP/dust_lifecycle"
