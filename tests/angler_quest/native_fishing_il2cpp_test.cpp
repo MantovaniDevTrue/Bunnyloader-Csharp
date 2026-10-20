@@ -146,7 +146,7 @@ bool gManagedAllowed = true;
 bool gManagedReady = true;
 int gManagedCalls = 0;
 bool invokeManagedAnglerQuestCallback(const std::string&,const std::string&,
-                                      int,int,int,int,bool* allowed) {
+                                      int,int,int,int,bool* allowed,int) {
     ++gManagedCalls;
     if (!gManagedReady) return false;
     *allowed = gManagedAllowed;
