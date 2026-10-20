@@ -7,6 +7,7 @@
 #include "experiments/csharp/NativeTileFramePolicy.h"
 #include "experiments/csharp/NativeTileKillPolicy.h"
 #include "experiments/csharp/NativeTileDustPolicy.h"
+#include "experiments/csharp/NativeTileDropPolicy.h"
 #include "experiments/csharp/NativeTileAnimationPolicy.h"
 #include "experiments/csharp/NativeTileScanPolicy.h"
 #include "experiments/csharp/NativeTileDrawWire.h"
@@ -330,6 +331,19 @@ void hkGetItemDrops(int32_t x, int32_t y, uint32_t tile,
     bool allowDrop=true;
     if(invokeTileBool(behavior.spec,1,x,y,&allowDrop)&&!allowDrop) {
         *drop=0;*stack=0;*extra=0;*extraStack=0;return;
+    }
+    if((behavior.spec.callbackMask&(1<<27))&&managedTileReady(behavior.spec,27)) {
+        std::string reply;
+        tile_drop::Drops selected{};
+        if(invokeManagedTileDrops(behavior.spec.mod,behavior.spec.assembly,
+             behavior.spec.name,x,y,&reply,900)&&
+           tile_drop::parseReply(reply,&selected)) {
+            if(selected.custom) {
+                *drop=selected.first.type;*stack=selected.first.stack;
+                *extra=selected.second.type;*extraStack=selected.second.stack;
+                return;
+            }
+        } else reportTileCallbackFailure(behavior.spec,27,reply);
     }
     int itemType = behavior.itemType;
     if (itemType <= 0)

@@ -14,6 +14,8 @@ namespace bl::csharp {
 bool managedRecipeRuntimeReady();
 bool invokeManagedTile(const std::string& mod,const std::string& assembly,
     const std::string& owner,int callback,int x,int y,std::string* output,int budgetMicroseconds=1800);
+bool invokeManagedTileDrops(const std::string& mod,const std::string& assembly,
+    const std::string& owner,int x,int y,std::string* output,int budgetMicroseconds=900);
 bool invokeManagedTileKillSound(const std::string& mod,const std::string& assembly,
     const std::string& owner,int x,int y,bool fail,
     std::string* output,int budgetMicroseconds=650);
