@@ -124,5 +124,23 @@ int main() {
         assert(result[0].name == "ExampleBoss_GoreFront");
         assert(result[1].name == "ExampleDroplet");
     }
+    {
+        Fixture mod;
+        Fixture external;
+        mod.png("Content/Gores/Protected.png", 12, 18);
+        external.png("Gores/Escape.png", 12, 18);
+        std::vector<Source> found;
+        assert(discover(mod.root.string(), &found, &error));
+        assert(found.size() == 1);
+        std::vector<unsigned char> contents;
+        assert(bl::csharp::gore::readOwnedPng(found[0], &contents, &error));
+        assert(contents.size() == 33);
+        const fs::path original = mod.root / "content/Content/Gores/Protected.png";
+        fs::remove(original);
+        fs::create_symlink(external.root / "content/Gores/Escape.png", original);
+        assert(!bl::csharp::gore::readOwnedPng(found[0], &contents, &error));
+        assert(error.find("link simbolico") != std::string::npos);
+        assert(contents.size() == 33);
+    }
     std::puts("CSHARP_GORE_DISCOVERY_PASS");
 }
