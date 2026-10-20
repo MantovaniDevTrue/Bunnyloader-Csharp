@@ -50,3 +50,7 @@ O contrato `ModTile.HasSmartInteract(i,j,settings)` agora aceita um override C# 
 ## Callbacks nativos de quebra
 
 `KillTile(i,j,ref fail,ref effectOnly,ref noItem)` tem serialização booleana estrita e atualiza os três parâmetros antes da quebra pelo Terraria. O callback roda apenas quando sobrescrito e após warmup, com orçamento de 1100 µs; falhas usam os parâmetros originais. `KillMultiTile(i,j,frameX,frameY)` recebe a origem e os frames originais calculados antes de destruir as células. É enviado como evento assíncrono uma vez por móvel removido, evitando bloquear o jogo na limpeza, com limite de fila 16. O hook de quebra já existente preserva o budget de partículas e drops de objetos compostos. Os métodos exigem validação de ABI, persistência e gameplay no Android.
+
+## Dust de quebra C#
+
+`NumDust(int x,int y,bool fail,ref int num)` modifica a quantidade de poeira por quebra sem perder o default `NumDust(bool fail)` do compilador. `CreateDust(int x,int y,ref int type)` modifica o tipo ou cancela a poeira, exatamente como no exemplo original. A política valida quantidade entre 0 e 20 e `DustID` -1..1999; callbacks executam somente com override, worker preparado e deadline de 700/450 µs. Em timeout ou falha, o efeito nativo preexistente continua. Pendente teste Android.

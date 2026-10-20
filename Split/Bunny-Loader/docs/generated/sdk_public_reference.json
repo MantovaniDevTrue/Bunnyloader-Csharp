@@ -380,7 +380,7 @@
           "execution": "worker_craft_command_queue"
         },
         {
-          "signature": "void GiveItem<TItem>(int count)",
+          "signature": "void GiveItem\u003CTItem\u003E(int count)",
           "execution": "worker_craft_command_queue"
         }
       ]
@@ -956,7 +956,7 @@
         "BunnyItemBehavior Behavior { get; }",
         "BunnyNativeDefaults NativeDefaults { get; }",
         "BunnySoundStyle CustomUseSound { get; set; }",
-        "Dictionary<string, string> TooltipTranslations { get; }",
+        "Dictionary\u003Cstring, string\u003E TooltipTranslations { get; }",
         "bool Accessory { get; set; }",
         "bool AutoReuse { get; set; }",
         "bool Consumable { get; set; }",
@@ -1638,11 +1638,11 @@
           "execution": "managed_helper"
         },
         {
-          "signature": "BunnyRecipe AddCondition(string description, Func<BunnyCraftContext, bool> predicate)",
+          "signature": "BunnyRecipe AddCondition(string description, Func\u003CBunnyCraftContext, bool\u003E predicate)",
           "execution": "managed_helper"
         },
         {
-          "signature": "BunnyRecipe AddConsumeIngredientCallback(Func<BunnyCraftContext, int, int, int> callback)",
+          "signature": "BunnyRecipe AddConsumeIngredientCallback(Func\u003CBunnyCraftContext, int, int, int\u003E callback)",
           "execution": "managed_helper"
         },
         {
@@ -1654,7 +1654,7 @@
           "execution": "managed_helper"
         },
         {
-          "signature": "BunnyRecipe AddIngredient<TItem>(int count)",
+          "signature": "BunnyRecipe AddIngredient\u003CTItem\u003E(int count)",
           "execution": "managed_helper"
         },
         {
@@ -1662,7 +1662,7 @@
           "execution": "managed_helper"
         },
         {
-          "signature": "BunnyRecipe AddOnCraftCallback(Action<BunnyCraftContext> callback)",
+          "signature": "BunnyRecipe AddOnCraftCallback(Action\u003CBunnyCraftContext\u003E callback)",
           "execution": "managed_helper"
         },
         {
@@ -1678,7 +1678,7 @@
           "execution": "managed_helper"
         },
         {
-          "signature": "BunnyRecipe AddTile<TTile>()",
+          "signature": "BunnyRecipe AddTile\u003CTTile\u003E()",
           "execution": "managed_helper"
         },
         {
@@ -1698,7 +1698,7 @@
           "execution": "managed_helper"
         },
         {
-          "signature": "bool RemoveIngredient<TItem>()",
+          "signature": "bool RemoveIngredient\u003CTItem\u003E()",
           "execution": "managed_helper"
         },
         {
@@ -1744,7 +1744,7 @@
       "kind": "class",
       "baseType": "System.Object",
       "constructors": [
-        "BunnyRecipeCondition(string description, Func<BunnyCraftContext, bool> predicate)"
+        "BunnyRecipeCondition(string description, Func\u003CBunnyCraftContext, bool\u003E predicate)"
       ],
       "properties": [
         "BunnyRecipeCondition Day { get; }",
@@ -1796,7 +1796,7 @@
           "execution": "managed_helper"
         },
         {
-          "signature": "BunnyRecipeGroup AddItem<TItem>()",
+          "signature": "BunnyRecipeGroup AddItem\u003CTItem\u003E()",
           "execution": "managed_helper"
         }
       ]
@@ -1835,7 +1835,7 @@
       "baseType": "System.Object",
       "constructors": [],
       "properties": [
-        "IReadOnlyList<string> RecipeDefinitions { get; }"
+        "IReadOnlyList\u003Cstring\u003E RecipeDefinitions { get; }"
       ],
       "values": [],
       "methods": [
@@ -2034,6 +2034,10 @@
           "execution": "managed_helper"
         },
         {
+          "signature": "bool CreateDust(int x, int y, ref int type)",
+          "execution": "managed_helper"
+        },
+        {
           "signature": "bool HasSmartInteract(int x, int y, BunnyTileSmartInteractSettings settings)",
           "execution": "managed_helper"
         },
@@ -2111,6 +2115,10 @@
         },
         {
           "signature": "void NearbyEffects(int x, int y, bool closer)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void NumDust(int x, int y, bool fail, ref int num)",
           "execution": "managed_helper"
         },
         {

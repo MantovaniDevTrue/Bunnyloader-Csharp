@@ -1139,11 +1139,13 @@ string Texture { get; set; }
 | --- | --- |
 | `bool CanDrop(int x, int y)` | managed_helper |
 | `bool CanKillTile(int x, int y)` | managed_helper |
+| `bool CreateDust(int x, int y, ref int type)` | managed_helper |
 | `bool HasSmartInteract(int x, int y, BunnyTileSmartInteractSettings settings)` | managed_helper |
 | `bool PreDraw(int x, int y)` | managed_helper |
 | `bool PreDraw(int x, int y, BunnyTileDrawContext draw)` | managed_helper |
 | `bool RightClick(int x, int y)` | managed_helper |
 | `bool Slope(int x, int y)` | managed_helper |
+| `bool TileFrame(int x, int y, ref bool resetFrame, ref bool noBreak)` | managed_helper |
 | `bool TileFrame(int x, int y, ref bool resetFrame, ref bool noBreak)` | managed_helper |
 | `int NumDust(bool fail)` | compile_policy |
 | `void AddMapEntry(int red, int green, int blue, string name)` | managed_helper |
@@ -1155,10 +1157,13 @@ string Texture { get; set; }
 | `void HitWire(int x, int y)` | managed_helper |
 | `void KillMultiTile(int x, int y, int frameX, int frameY)` | managed_helper |
 | `void KillTile(int x, int y, ref bool fail, ref bool effectOnly, ref bool noItem)` | managed_helper |
+| `void KillMultiTile(int x, int y, int frameX, int frameY)` | managed_helper |
+| `void KillTile(int x, int y, ref bool fail, ref bool effectOnly, ref bool noItem)` | managed_helper |
 | `void ModifyLight(int x, int y, ref float r, ref float g, ref float b)` | managed_helper |
 | `void MouseOver(int x, int y)` | managed_helper |
 | `void MouseOverFar(int x, int y)` | managed_helper |
 | `void NearbyEffects(int x, int y, bool closer)` | managed_helper |
+| `void NumDust(int x, int y, bool fail, ref int num)` | managed_helper |
 | `void PlaceInWorld(int x, int y)` | managed_helper |
 | `void PostDraw(int x, int y, BunnyTileDrawContext draw)` | managed_helper |
 | `void RandomUpdate(int x, int y)` | managed_helper |
