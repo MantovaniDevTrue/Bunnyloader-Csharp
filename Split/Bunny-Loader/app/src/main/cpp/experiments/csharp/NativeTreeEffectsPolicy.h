@@ -1,5 +1,9 @@
 #pragma once
+#include <cstddef>
 namespace bl::csharp::tree_effect {
+inline bool hasEffectFields(std::size_t count) {
+    return count==9||count==11||count==12;
+}
 inline bool valid(int leaf,int dust) {
     return leaf>=-1&&leaf<32768&&dust>=0&&dust<=1999;
 }

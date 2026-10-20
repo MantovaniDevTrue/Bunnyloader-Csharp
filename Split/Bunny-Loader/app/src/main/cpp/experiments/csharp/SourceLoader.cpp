@@ -3,6 +3,7 @@
 #include "experiments/csharp/NativeTilePolicy.h"
 #include "experiments/csharp/NativeTileMiningPolicy.h"
 #include "experiments/csharp/NativeTreeTexturePolicy.h"
+#include "experiments/csharp/NativeTreeEffectsPolicy.h"
 #include "experiments/csharp/SourceLoader.h"
 
 #include "experiments/csharp/NativeContent.h"
@@ -789,7 +790,7 @@ bool applyManagedSourceDefaults(
                 entry.woodItem=fields[5]=="-"?"":fields[5];
                 entry.canDropAcorn=fields[6]=="1";
             }
-            if(fields.size()==9) {
+            if(tree_effect::hasEffectFields(fields.size())) {
                 if(!integer(fields[7],&entry.leafGoreType)||
                    !integer(fields[8],&entry.dustType)||
                    entry.leafGoreType< -1||entry.leafGoreType>=32768||
