@@ -1,0 +1,25 @@
+name: CSharp Invasion Unit Tests (no APK)
+
+on:
+  push:
+    branches:
+      - feat/csharp-example-invasion-20261019
+    paths:
+      - experiments/csharp/BunnyCsSdk/BunnyInvasion.cs
+      - tests/invasion/**
+      - .github/workflows/test-csharp-invasion.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  invasion:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Compile and run pure CSharp lifecycle tests
+        run: dotnet run --project tests/invasion/Invasion.csproj --configuration Release
