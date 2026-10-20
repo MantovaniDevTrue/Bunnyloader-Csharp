@@ -13,6 +13,12 @@ public sealed class ExampleSparkDust : BunnyDust
     public override void OnSpawn(ref BunnyDustState state)
     {
         state.Scale = 1f;
+        // A textura é uma imagem 12x14, sem os três frames da folha vanilla.
+        // Definir o retângulo evita selecionar uma região fora da imagem.
+        state.FrameX = 0;
+        state.FrameY = 0;
+        state.FrameWidth = 12;
+        state.FrameHeight = 14;
     }
 
     public override bool Update(ref BunnyDustState state)

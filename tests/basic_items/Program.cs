@@ -334,6 +334,16 @@ try {
       if(!string.IsNullOrWhiteSpace(name))
         assets.Add(new {path=name,className=type.Name,file="ExecutedCSharpDefaults"});
     }
+    if(instance is BunnyDust dust) {
+      var state=new BunnyDustState{Slot=0,Type=332,Generation=1,Active=1,Scale=1,FrameWidth=8,FrameHeight=8,FrameY=20};
+      dust.OnSpawn(ref state);
+      byte[] png=File.ReadAllBytes(Path.Combine(root,"content",dust.Texture));
+      int textureWidth=System.Buffers.Binary.BinaryPrimitives.ReadInt32BigEndian(png.AsSpan(16,4));
+      int textureHeight=System.Buffers.Binary.BinaryPrimitives.ReadInt32BigEndian(png.AsSpan(20,4));
+      if(state.FrameX<0||state.FrameY<0||state.FrameWidth<=0||state.FrameHeight<=0||
+         state.FrameX+state.FrameWidth>textureWidth||state.FrameY+state.FrameHeight>textureHeight)
+        throw new Exception("Dust OnSpawn frame exceeds original PNG: "+type.Name);
+    }
     foreach(var propertyName in new[]{"Texture","VisualTexture"})
       RequireAsset(type.GetProperty(propertyName)?.GetValue(instance) as string);
     if(type.GetProperty("CustomUseSound")?.GetValue(instance) is BunnySoundStyle sound)RequireAsset(sound.Path);

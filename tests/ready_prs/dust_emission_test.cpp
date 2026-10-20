@@ -19,6 +19,7 @@ bl::il2cpp::Api api;
 namespace bl::log { void write(int,const char*,...){} }
 namespace bl::il2cpp {
 Api& api(){return ::api;}
+std::string describeException(Il2CppObject*) { return "FixtureException"; }
 Il2CppClass* findClass(const TypeRef&) {return reinterpret_cast<Il2CppClass*>(1);}
 FieldInfo* findField(Il2CppClass*,std::string_view name) {
     return name=="player"?&playersField:name=="position"?&positionField:&activeField;

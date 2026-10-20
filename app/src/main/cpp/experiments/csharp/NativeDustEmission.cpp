@@ -2,6 +2,7 @@
 #include "content/dusts/ModDusts.h"
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
+#include "il2cpp/GuardedCall.h"
 #include "core/Log.h"
 #include <cmath>
 #include <cstring>
@@ -115,7 +116,7 @@ void pumpNativeDustEmission() {
         for(int i=0;i<request.count;++i) {
             Il2CppObject* exception=nullptr;api.runtime_invoke(refs.spawn,nullptr,args,&exception);
             if(exception) {
-                BL_ERROR("[CSharp][ERROR][DustEmission] Mod=%s Class=%s Stage=NewDust Result=Interrupted Reason=NativeException",request.mod.c_str(),request.name.c_str());
+                BL_ERROR("[CSharp][ERROR][DustEmission] Mod=%s Class=%s Stage=NewDust Result=Interrupted Reason=NativeException Exception=%s",request.mod.c_str(),request.name.c_str(),il2cpp::describeException(exception).c_str());
                 break;
             }
         }
