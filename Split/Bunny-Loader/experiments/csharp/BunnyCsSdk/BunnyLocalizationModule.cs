@@ -27,6 +27,7 @@ public static class BunnyLocalizationRuntime
         public string Culture = "";
         public int Revision;
         public int DeliveredRevision;
+        public HashSet<string> ActiveRows = new(StringComparer.Ordinal);
     }
 
     private static readonly object Gate = new();
@@ -74,6 +75,9 @@ public static class BunnyLocalizationRuntime
         return state.Live;
     }
 
+    private static string RowIdentity(string key, string culture)
+        => culture + "\t" + Convert.ToHexString(Encoding.UTF8.GetBytes(key));
+
     [MethodImpl(MethodImplOptions.NoInlining)]
     public static void Register(string key, string culture, string value)
     {
@@ -81,14 +85,19 @@ public static class BunnyLocalizationRuntime
         lock (Gate)
         {
             BunnyLocalizationCatalog catalog = ResolveCatalog(key, caller, out ModState? state);
-            int existingCount = catalog.WireRowCount;
-            if (existingCount >= 256 &&
-                !(catalog.Texts(key)?.ContainsKey(culture) ?? false))
+            string identity = RowIdentity(key, culture);
+            if (state != null) {
+                if (!state.ActiveRows.Contains(identity) && state.ActiveRows.Count >= 256)
+                    throw new InvalidOperationException("Dynamic localization row limit exceeded");
+            } else if (catalog.WireRowCount >= 256 &&
+                       !(catalog.Texts(key)?.ContainsKey(culture) ?? false)) {
                 throw new InvalidOperationException("Dynamic localization row limit exceeded");
+            }
             catalog.Register(key, culture, value);
-            if (catalog.WireRowCount > 256)
-                throw new InvalidOperationException("Dynamic localization row limit exceeded");
-            if (state != null) state.Revision++;
+            if (state != null) {
+                state.ActiveRows.Add(identity);
+                state.Revision++;
+            }
         }
     }
 
@@ -101,12 +110,22 @@ public static class BunnyLocalizationRuntime
             BunnyLocalizationCatalog catalog = ResolveCatalog(key, caller, out ModState? state);
             if (cultures == null || cultures.Count == 0 || cultures.Count > 32)
                 throw new ArgumentOutOfRangeException(nameof(cultures));
-            int oldCount = catalog.WireRowCount;
-            int alreadyPresent = catalog.Texts(key)?.Keys.Intersect(cultures.Keys).Count() ?? 0;
-            if (oldCount + cultures.Count - alreadyPresent > 256)
-                throw new InvalidOperationException("Dynamic localization row limit exceeded");
+            if (state != null) {
+                int extra = cultures.Keys.Count(culture =>
+                    !state.ActiveRows.Contains(RowIdentity(key, culture)));
+                if (state.ActiveRows.Count + extra > 256)
+                    throw new InvalidOperationException("Dynamic localization row limit exceeded");
+            } else {
+                int alreadyPresent = catalog.Texts(key)?.Keys.Intersect(cultures.Keys).Count() ?? 0;
+                if (catalog.WireRowCount + cultures.Count - alreadyPresent > 256)
+                    throw new InvalidOperationException("Dynamic localization row limit exceeded");
+            }
             catalog.Register(key, cultures);
-            if (state != null) state.Revision++;
+            if (state != null) {
+                foreach (string culture in cultures.Keys)
+                    state.ActiveRows.Add(RowIdentity(key, culture));
+                state.Revision++;
+            }
         }
     }
 
@@ -184,6 +203,12 @@ public static class BunnyLocalizationRuntime
                     if (!wire.StartsWith("OK|", StringComparison.Ordinal)) return wire;
                     state.Callback = registrations;
                     state.Culture = culture;
+                    state.ActiveRows.Clear();
+                    foreach (string row in wire.Split('\n').Skip(2))
+                    {
+                        string[] fields = row.Split('\t');
+                        state.ActiveRows.Add(fields[1] + "\t" + fields[2]);
+                    }
                     state.Revision++;
                     state.DeliveredRevision = state.Revision;
                     return wire;
