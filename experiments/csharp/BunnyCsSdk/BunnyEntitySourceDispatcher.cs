@@ -131,10 +131,11 @@ public static class BunnyEntitySourceDispatcher
                 worldSession, context.Mod, out BunnyNativeInvasionReply result))
             {
                 received++;
-                if (result.Success)
+                if (result.Success && invasion.Pipeline.TryGetReservedClass(
+                    result.Epoch, result.Ticket, out string reservedClass))
                     invasion.OnNativeCreated(true, new BunnyInvasionSpawn(
-                        result.Ticket, invasion.Pipeline.Controller.Definition.Enemies[0].NpcClass)
-                        { Epoch = result.Epoch }, result.Slot, result.Identity);
+                        result.Ticket, reservedClass) { Epoch = result.Epoch },
+                        result.Slot, result.Identity);
                 else
                     invasion.OnNativeFailed(true, result.Epoch, result.Ticket);
             }
