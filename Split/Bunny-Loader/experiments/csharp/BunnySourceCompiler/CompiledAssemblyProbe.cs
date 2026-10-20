@@ -944,7 +944,8 @@ public static class CompiledAssemblyProbe
                 .Invoke(prefix, valueArgs);
             value = (float)(valueArgs[0] ?? throw new InvalidOperationException("Prefix value missing"));
             object?[] defenseArgs = { 0 };
-            type.GetMethod("ApplyAccessoryEffects", BindingFlags.Public | BindingFlags.Instance)!
+            type.GetMethod("ApplyAccessoryEffects", BindingFlags.Public | BindingFlags.Instance,
+                null, new[] { typeof(int).MakeByRefType() }, null)!
                 .Invoke(prefix, defenseArgs);
             int defense = (int)(defenseArgs[0] ?? throw new InvalidOperationException("Prefix defense missing"));
             if (!float.IsFinite(value) || value < 0.05f || value > 100f ||
