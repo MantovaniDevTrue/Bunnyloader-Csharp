@@ -652,8 +652,9 @@ string ActiveCultureName { get; }
 | --- | --- |
 | `static bool Unload(string modId)` | worker_async_localization |
 | `static string Dispatch(string modId, string assemblyPath, string culture)` | worker_async_localization |
-| `static void Register(string key, IReadOnlyDictionary<string, string> cultures)` | worker_callback_registration |
-| `static void Register(string key, string culture, string value)` | worker_callback_registration |
+| `static string Drain(string modId, string assemblyPath, string culture)` | worker_async_localization |
+| `static void Register(string key, IReadOnlyDictionary<string, string> cultures)` | managed_owned_registration |
+| `static void Register(string key, string culture, string value)` | managed_owned_registration |
 
 ## BunnyLoader.Source.BunnyMethodHook
 
