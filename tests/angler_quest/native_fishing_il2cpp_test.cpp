@@ -247,9 +247,19 @@ int main() {
     quests[0].catchEnabled=true;
     hookedRoll(&projectile.object,attempt.data(),&kRoll);
     assert(get(attempt,8)==850);
+    std::string error;
+    auto& active=bl::csharp::angler::registry();
+    assert(active.publish("examplemodcsharp",quests,&error));
+    bl::csharp::angler::activeGeneration().store(
+        active.generation(),std::memory_order_release);
+    hookedRoll(&projectile.object,attempt.data(),&kRoll);
+    assert(get(attempt,8)==850);
+    active.unload("examplemodcsharp");
+    hookedRoll(&projectile.object,attempt.data(),&kRoll);
+    assert(get(attempt,8)==13);
     quests.clear();
     hookedRoll(&projectile.object,attempt.data(),&kRoll);
     assert(get(attempt,8)==13);
-    assert(vanillaCalls==12);
+    assert(vanillaCalls==14);
     std::cout<<"ANGLER_QUEST_FISHING_IL2CPP_HOST_OK\n";
 }
