@@ -98,6 +98,9 @@ public abstract class BunnyWeapon : BunnyShootSource
     public abstract void SetDefaults();
     public virtual void ConfigurePrefixRules(BunnyItemPrefixRules rules) { }
     public virtual bool AllowPrefix(BunnyPrefixItemSnapshot item, int prefix) => true;
+    public virtual int ChoosePrefix(BunnyPrefixItemSnapshot item) => -1;
+    public virtual bool? DecidePrefixChance(BunnyPrefixItemSnapshot item, int request) => null;
+    public virtual void ApplyPrefix(BunnyPrefixItemSnapshot item, int prefix, ref BunnyPrefixApplyStats effects) { }
     public virtual void ApplyPrefix(ref BunnyPrefixApplyStats effects) { }
 }
 
@@ -135,6 +138,9 @@ public abstract class BunnyBuffPotion : BunnyRecipeSource
     public abstract void SetDefaults();
     public virtual void ConfigurePrefixRules(BunnyItemPrefixRules rules) { }
     public virtual bool AllowPrefix(BunnyPrefixItemSnapshot item, int prefix) => true;
+    public virtual int ChoosePrefix(BunnyPrefixItemSnapshot item) => -1;
+    public virtual bool? DecidePrefixChance(BunnyPrefixItemSnapshot item, int request) => null;
+    public virtual void ApplyPrefix(BunnyPrefixItemSnapshot item, int prefix, ref BunnyPrefixApplyStats effects) { }
     public virtual void ApplyPrefix(ref BunnyPrefixApplyStats effects) { }
 }
 
@@ -163,6 +169,9 @@ public abstract class BunnyAccessory : BunnyRecipeSource
     public abstract void SetDefaults();
     public virtual void ConfigurePrefixRules(BunnyItemPrefixRules rules) { }
     public virtual bool AllowPrefix(BunnyPrefixItemSnapshot item, int prefix) => true;
+    public virtual int ChoosePrefix(BunnyPrefixItemSnapshot item) => -1;
+    public virtual bool? DecidePrefixChance(BunnyPrefixItemSnapshot item, int request) => null;
+    public virtual void ApplyPrefix(BunnyPrefixItemSnapshot item, int prefix, ref BunnyPrefixApplyStats effects) { }
     public virtual void ApplyPrefix(ref BunnyPrefixApplyStats effects) { }
 }
 
