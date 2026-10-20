@@ -1,55 +1,70 @@
-# AnglerQuestLoader C# — fonte em revisão
+# AnglerQuestLoader C# — integração em revisão
 
-**PR #114 (draft). Sem APK, .bmod ou release.** Desenvolvimento isolado da branch `v1.0`, sem copiar o tModLoader e sem usar o QuickJS no caminho C#.
+**PR #114 (draft). Não gerar APK, .bmod ou release.** Base de implementação: Bunny Loader e ExampleModBunny, sem copiar o tModLoader, sem depender de QuickJS para os componentes C#.
 
-## Fonte do Bunny original
+## Referências originais
 
 - `app/src/main/cpp/script/js/mod/Loaders/AnglerQuestLoader.js`
-- `app/src/main/cpp/script/js/mod/Loaders/PlayerLoader.js`, `CatchFish`
+- `app/src/main/cpp/script/js/mod/Loaders/PlayerLoader.js`, comportamento `CatchFish`
 - `samples/ExampleMod/content/Content/Items/Quests/ExampleQuestFish.js`
 - `samples/ExampleMod/content/Common/Players/ExampleFishingPlayer.js`
 
-O sprite foi copiado com o mesmo Git blob do ExampleModBunny.
+O sprite do peixe mantém o mesmo blob original.
 
-## Componentes já implementados em código
+## Contratos implementados
 
-| Categoria | Estado |
+| Sistema | Estado |
 | --- | --- |
-| `BunnyItem.DefaultToQuestFish()` e atributos de disponibilidade | SDK C# implementado |
-| `BunnyQuestCatchRules` (gravidade invertida e sorteio incomum) | SDK C# implementado |
-| `BunnyPlayer.FishingQuestFishName/FishingCatchRules` e `QUEST_CATCH` | SDK, compilador e SourceLoader implementados; host validado |
-| Compilador: `QUEST_FISH` contendo flags, UTF-8 hex e regras de captura | Host validado |
-| `SourceLoader`: proprietário, identidade, defaults e publicação ao final | Código integrado; host CI |
-| `NativeAnglerQuestRegistry`: por mod, deduplicação, atualização, unload lógico, 50 tentativas, UTF-8 | Host validado |
-| `NativeAnglerQuestGameplay`: sorteio, diálogo, `IsQuestFish`, suporte de armas e lista de quests | Integração IL2CPP simulada aprovada; **não validado em Terraria Android** |
-| `NativeAnglerQuestFishing`: `FishingCheck_RollItemDrop`, `FishingAttempt` (92 bytes) e exigência de captura explícita | Integração IL2CPP simulada aprovada; **ABI Android não confirmada** |
-| `ExampleQuestFish.cs` e `ExampleFishingPlayer.cs` separados como no ExampleModBunny | Wire e parser host validados; ainda não testados no jogo |
-| Preservação dos IDs JS/vanilla, escolha atual e limpeza de IDs C# antigos | Reconciliador C++ testado no host; jogo real pendente |
-| PT-BR do ExampleModBunny, fallback por idioma e detecção nativa da cultura | Implementado em fonte e validado no host; Android pendente |\n| Hooks dinâmicos C# arbitrários e sincronização de captura por jogador | Pendente |
-| Reinvalidação na entrada/saída de mundo e substituição da mesma fonte C# | Implementadas; cenário Android pendente |\n| Seleção de missão autoritativa por `Main.netMode` (0/1/2/3) | Implementada; host IL2CPP simulado aprovado; rede real pendente |
-| Novo ciclo `mods::loadAll`: limpeza de missões antigas e registros C# | Implementado e testado no host com C# puro/misto, falha de JS e segunda carga |
-| Multiplayer real, save e remoção do conteúdo nativo a quente | Pendente |
-| Testes Android e desempenho/FPS | Pendente |
+| `BunnyItem.DefaultToQuestFish()`, fases pré/Hardmode e `BunnyQuestCatchRules` | C# SDK, compiler e registro nativo implementados |
+| `BunnyPlayer.FishingQuestFishName/FishingCatchRules` | Implementado e testado |
+| `BunnyItem.QuestAvailableWhen` e `QuestCanCatchWhen` | Delegates C# tipados com `BunnyQuestContext`, execução no worker Mono, host testado |
+| Sorteio `Main.AnglerQuestSwap`, diálogo `Lang.AnglerQuestChat` e PT-BR | Hooks nativos compilados; integração IL2CPP simulada aprovada |
+| `FishingCheck_RollItemDrop`, `FishingAttempt` e condições nativas | Integração host simulada aprovada, ABI Android pendente |
+| `ItemID.Sets.IsQuestFish` e `CanBePlacedOnWeaponRacks` | Registro e restauração por mod testados no host |
+| Tabelas `Main.anglerQuestItemNetIDs` e seleção preservadas | Planejamento de IDs e flags antes da aplicação; falhas de alocação simuladas |
+| Compatibilidade com JS, lista de vanilla e outros mods | Reconciliação de IDs testada no host |
+| Ciclo `mods::loadAll` e substituição da fonte C# | Limpeza dos registros de quests da sessão anterior; testes de C# puro/misto |
+| `netMode` 0/1/2/3 | O cliente não refaz sorteio autoritativo; testes host aprovados |
+| Multiplayer e persistência de missão em dispositivos reais | Ainda não validados |
+| Hot-unload de todos os tipos de conteúdo C# | Ainda não concluído |
+| Terraria Android, crash-free e 60 FPS | Ainda não testados |
 
-## Protocolo de compilação
-
-O compilador emite dois registros independentes para item e jogador:
+## Contrato do compilador
 
 ```text
-QUEST_FISH<TAB>Classe<TAB>PreHardmode<TAB>Hardmode<TAB>DescriptionUtf8HexOu-<TAB>LocationUtf8HexOu-<TAB>CatchRules
-QUEST_CATCH<TAB>ClasseBunnyPlayer<TAB>NomePeixe<TAB>CatchRules\nQUEST_LOCALE<TAB>NomePeixe<TAB>Cultura<TAB>DescricaoHexOu-<TAB>LocalHexOu-
+QUEST_FISH<TAB>Classe<TAB>PreHardmode<TAB>Hardmode<TAB>DescricaoHexOu-<TAB>LocalHexOu-<TAB>CatchRules
+QUEST_CALLBACK<TAB>Classe<TAB>CallbackMask
+QUEST_LOCALE<TAB>Classe<TAB>Cultura<TAB>DescricaoHexOu-<TAB>LocalHexOu-
+QUEST_CATCH<TAB>ClasseBunnyPlayer<TAB>NomePeixe<TAB>CatchRules
 ```
 
-`CatchRules=1`: gravidade invertida; `CatchRules=2`: captura incomum; `3` exige ambos. A leitura nativa também aceita o formato anterior de seis colunas, com regras `0`.
+Em `CatchRules`, o bit 1 exige gravidade invertida, o bit 2 exige tentativa de pesca incomum, e 3 exige ambos. O `CallbackMask` usa bit 1 para `QuestAvailableWhen` e bit 2 para `QuestCanCatchWhen`. O protocolo antigo de `QUEST_FISH` com seis colunas permanece aceito.
 
-O item expõe `QuestDescriptionTranslations` e `QuestCatchLocationTranslations`, com no máximo oito culturas válidas por classe e textos de até 512 bytes UTF-8. O diálogo é escolhido pela cultura ativa do Terraria (exata, depois idioma), com fallback inglês. Não há chamada JavaScript no diálogo.\n\nUma classe sem `QUEST_CATCH` e sem regras de captura explícitas **não sobrescreve o peixe sorteado pelo Terraria**; isso evita capturas garantidas indevidas. A flag `ItemID.Sets.CanBePlacedOnWeaponRacks` recebe o mesmo tratamento de ownership e rollback, se existir na ABI nativa. Mods C# sem peixes de missão não ativam hooks nem invalidam o registro.\n\nA sincronização utiliza o campo nativo `Main.netMode` e falha sem instalar os hooks se esse campo não for verificável: o cliente (`1`) não refaz o sorteio autoritativo; singleplayer (`0`), servidor (`2`) e host (`3`) podem refazê-lo. O diálogo permanece disponível nos clientes a partir da missão sincronizada pelo jogo; a sincronização real entre dispositivos ainda não foi validada.\n\nUm novo `mods::loadAll` zera os estados das fontes C# e remove os registros de missões dos mods da sessão anterior; isso **não** equivale ao hot-unload completo de outros conteúdos C# (itens/projéteis), ainda pendente.\n\nO registro só é publicado depois das demais operações de defaults. O registro QUEST_CATCH exige BunnyPlayer e um BunnyItem de missão do próprio mod; duplicações e políticas conflitantes são rejeitadas. A thread do jogo atualiza `IsQuestFish` e a lista de `anglerQuestItemNetIDs` sem deslocar entradas JS, usando identidade estável do mod. Os hooks conferem métodos e campos IL2CPP antes de atuar; contratos incompatíveis preservam o funcionamento vanilla. O hook de pesca usa `resolveValueLayout` existente no núcleo, aplica o predicado testado por C++, e não executa MonoVM nem JS.
+`BunnyQuestContext` contém `FishType`, `Hardmode`, `InvertedGravity` e `Uncommon`. As condições são delegates C# reconstruídos no worker Mono a partir do assembly compilado e consultados através do RPC limitado já existente de receitas. Disponibilidade é consultada apenas na escolha da missão, com cache por peixe na mesma chamada; captura apenas durante o sorteio de pesca. Não existe execução Mono por frame. Se o worker estiver indisponível, a condição personalizada não autoriza o resultado; o jogo segue a rotina nativa/vanilla.
 
-## Testes e bloqueios
+Peixes sem `QUEST_CATCH`, sem `QuestCatchRules` e sem `QuestCanCatchWhen` não alteram o resultado do sorteio de pesca. Uma condição dinâmica de captura, isoladamente, pode autorizá-lo.
 
-O workflow `check-csharp-angler-quest-host.yml` executa compilação C++ host com `-Werror`, suite do registro, teste do parser da classe de jogador, **integração executável das funções reais de sorteio e chat contra IL2CPP simulado** (incluindo compat JS, flags de suporte de armas e remoção), **integração executável do hook real de pesca contra `FishingAttempt` simulado** (gravidade, sorteio incomum, owner e ausência de política explícita), verificação de sintaxe da integração `SourceLoader`/`AutoSourceRuntime`, compilação .NET do SDK/compilador e execução do `CompiledAssemblyProbe` no peixe real.
+A localização aceita até oito culturas por peixe com textos UTF-8 de até 512 bytes. A cultura ativa é resolvida via IL2CPP, com fallback por idioma e para inglês.
 
-**Checkpoint de CI verde:** [Actions #39346548739](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39346548739). SDK e compilador C#, integração nativa IL2CPP simulada (incluindo campos inválidos de rede/pesca), quatro estados de autoridade do `netMode`, recarga da lista de mods C# puro/JS misto e negativa de callback sem política. O teste simulado não comprova sincronização/performance real no Android.
+A atualização das tabelas possui **preparação antes do commit**: a lista de IDs e a expansão de ambas as tabelas de flags são verificadas antes de publicar alterações. Falhas de alocação são testadas e não deixam estado parcial nos mocks do host. Isso não constitui garantia de transação atômica do runtime IL2CPP real, que precisa de validação no dispositivo.
 
-**Ainda não existe garantia de paridade total:** salvar/restaurar dinâmica de missões em multiplayer, traduções por cultura, hooks gerenciados personalizáveis de pesca/jogador, validação de acesso e ABI IL2CPP no Terraria Android, efeitos de outra versão do jogo, união com mods JS e 60 FPS. Não marcar esta PR como pronta até testes funcionais e regressões completas.
+## Garantias e limites de multiplayer
 
-**Política absoluta deste lote: não executar Gradle Android, não compilar/gerar/distribuir APK ou .bmod enquanto houver qualquer item pendente.**
+`Main.netMode` é campo obrigatório do hook nativo: 0 solo, 1 cliente, 2 servidor, 3 host. O cliente só chama o sorteio vanilla; servidor e host podem rejeitar peixes indisponíveis. A lista e o diálogo podem ser reconstruídos no cliente, mas **sincronização completa e persistência da quest em sessões multiplayer reais ainda precisam de teste e revisão**.
+
+Um novo `mods::loadAll` remove quests de fontes C# antigas e limpa seus registros de carregamento. Essa limpeza não equivale a descarregar todos os itens, NPCs, projéteis e assemblies C# durante o jogo; o hot-unload completo permanece pendente.
+
+## CI e critérios de conclusão
+
+- Testes de `Registry` (validação, reroll limitado, culturas, IDs e ownership).
+- Teste do parser `BunnyPlayer`.
+- Hooks C++ reais com IL2CPP simulado: sorteio, chat, cliente/host, flags, remoção e falhas de alocação.
+- Hook real de pesca com struct simulada de 92 bytes: gravidade, raridade, owner e callbacks dinâmicos válidos/inválidos.
+- Execução .NET das condições `QuestAvailableWhen`/`QuestCanCatchWhen` no endpoint gerenciado, incluindo recusa de snapshots inválidos.
+- Compilação C++ e C# com avisos tratados como erros no host; regressão de carregamento C# isolado e JS misto.
+
+**Último CI aprovado antes do teste adicional de callback isolado:** [Actions #39348545313](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39348545313). Consultar também o resultado do commit mais recente antes de marcar qualquer etapa como validada.
+
+Ainda faltam ABI do Terraria Android, validação de memória e desempenho a 60 FPS, sincronização/persistência multiplayer real, hot-unload integral de conteúdo C# e possíveis callbacks adicionais do Pescador além dos predicados tipados implementados.
+
+**Não executar Gradle Android, não gerar APK ou .bmod enquanto houver qualquer bloqueio.**
