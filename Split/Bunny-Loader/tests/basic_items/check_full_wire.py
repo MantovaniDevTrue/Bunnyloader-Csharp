@@ -7,7 +7,7 @@ expected = {
     "SHOOT": {3}, "USE_SOUND": {8}, "HOLDOUT": {4}, "NATIVE_ITEM": {3}, "NATIVE_PROJECTILE": {3},
     "RECIPES": {4},
     "ITEM": {20, 21, 22, 23, 24, 25, 26},
-    "TILE": {13, 14, 16, 17, 19, 20, 21, 22, 23},
+    "TILE": {13, 14, 16, 17, 19, 20, 21, 22, 23, 25},
     "WALL": {16},
     "PROJECTILE": {8, 12, 13, 14, 16, 17, 18},
     "WEAPON": {6, 9},
