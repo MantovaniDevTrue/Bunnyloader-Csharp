@@ -5,8 +5,9 @@ on:
     branches:
       - feat/csharp-dust-loader-20261019
     paths:
-      - experiments/csharp/BunnyCsSdk/BunnyDust.cs
+      - experiments/csharp/BunnyCsSdk/**
       - experiments/csharp/BunnySourceSdk/**
+      - experiments/csharp/BunnySourceCompiler/**
       - experiments/csharp/BunnyDustTests/**
       - experiments/csharp/BunnyDustCompilerSmoke/**
       - app/src/main/cpp/experiments/csharp/ManagedDustContract.h
@@ -24,8 +25,9 @@ on:
       - .github/workflows/check-csharp-dust.yml
   pull_request:
     paths:
-      - experiments/csharp/BunnyCsSdk/BunnyDust.cs
+      - experiments/csharp/BunnyCsSdk/**
       - experiments/csharp/BunnySourceSdk/**
+      - experiments/csharp/BunnySourceCompiler/**
       - experiments/csharp/BunnyDustTests/**
       - app/src/main/cpp/experiments/csharp/ManagedDustContract.h
       - tests/csharp/native_dust_contract.cpp
