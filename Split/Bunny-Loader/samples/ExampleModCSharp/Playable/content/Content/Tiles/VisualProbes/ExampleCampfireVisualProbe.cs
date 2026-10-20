@@ -11,6 +11,7 @@ public sealed class ExampleCampfireVisualProbe : BunnyTile
               BunnyTileFlags.HasOutlines|BunnyTileFlags.WaterDeath|BunnyTileFlags.LavaDeath;
         CacheDrawData=false;
         Shape=BunnyTileShape.Style3x2;
+        FrameToggle=BunnyTileFrameToggle.CampfireVertical;
         AddMapEntry(254,121,2,"Campfire Visual Probe");
     }
     public override void ModifyLight(int x,int y,ref float r,ref float g,ref float b)

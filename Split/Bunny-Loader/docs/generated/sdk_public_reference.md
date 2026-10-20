@@ -1115,6 +1115,7 @@ abstract class; base: `System.Object`.
 ```csharp
 BunnyTileFlags Flags { get; set; }
 BunnyTileShape Shape { get; set; }
+BunnyTileFrameToggle FrameToggle { get; set; }
 bool AllowBreaking { get; set; }
 bool AllowDrops { get; set; }
 bool CacheDrawData { get; set; }
@@ -1179,6 +1180,12 @@ int ParticleCount { get; }
 | `void EmitDust(int dustType, int offsetX, int offsetY, int width, int height, int speedXMilli, int speedYMilli, int alpha, int scaleMilli, UInt32 argb)` | managed_helper |
 | `void EmitDustStyled(int dustType, int offsetX, int offsetY, int width, int height, int speedXMilli, int speedYMilli, int alpha, int scaleMilli, UInt32 argb, bool noGravity, int fadeInMilli, int velocityXScaleMilli, int velocityYScaleMilli, int velocityYAddMilli, int positionXAdd, int alphaAdd)` | managed_helper |
 | `void RequestSpecialDraw()` | managed_helper |
+
+## BunnyLoader.Source.BunnyTileFrameToggle
+
+enum; base: `System.Enum`.
+
+Values: None, CampfireVertical, LampHorizontal.
 
 ## BunnyLoader.Source.BunnyTileFlags
 

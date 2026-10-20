@@ -19,6 +19,7 @@ struct NativeTileGameplaySpec {
     int callbackMask = 0;
     bool cacheDrawData = true;
     std::string assembly;
+    int frameToggle=0;
 };
 
 bool registerNativeTileGameplay(const NativeTileGameplaySpec& spec);

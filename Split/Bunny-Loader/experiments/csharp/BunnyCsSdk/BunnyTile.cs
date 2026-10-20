@@ -35,11 +35,18 @@ public enum BunnyTileShape {
     Style1x3 = 3
 }
 
+public enum BunnyTileFrameToggle {
+    None = 0,
+    CampfireVertical = 1,
+    LampHorizontal = 2
+}
+
 public abstract class BunnyTile {
     public string Texture { get; set; } = "";
     public string DisplayName { get; set; } = "";
     public BunnyTileFlags Flags { get; set; }
     public BunnyTileShape Shape { get; set; }
+    public BunnyTileFrameToggle FrameToggle { get; set; }
     public int CoordinateHeight { get; set; } = 18;
     public int AnimationFrameHeight { get; set; } = 0;
     public int AnimationFrames { get; set; } = 1;

@@ -837,6 +837,14 @@ bool applyManagedSourceDefaults(
                 (!integer(fields[19], &tile.callbackMask) || tile.callbackMask < 0 || tile.callbackMask > 65535)) {
                 *error = fields[1] + ": TileCallbackMask invalido"; return false;
             }
+            if(tile_wire::hasFrameToggle(fields.size())) {
+                if(!integer(fields[21],&tile.frameToggle)||
+                   tile.frameToggle<0||tile.frameToggle>2||
+                   (tile.frameToggle==1&&tile.shape!=2)||
+                   (tile.frameToggle==2&&tile.shape!=3)) {
+                    *error=fields[1]+": FrameToggle fora dos limites da forma";return false;
+                }
+            }
             if (tile_wire::hasDrawCachePolicy(fields.size())) {
                 if (fields[20] != "0" && fields[20] != "1") {
                     *error = fields[1] + ": CacheDrawData deve ser 0 ou 1"; return false;

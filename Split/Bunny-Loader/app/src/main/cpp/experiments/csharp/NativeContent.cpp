@@ -2377,7 +2377,7 @@ void onManagedTilesInstalled(int first, int last) {
                                         entry.animationFrameHeight, entry.animationFrames,
                                         entry.animationFrameTicks,
                                         entry.allowBreaking, entry.allowDrops, entry.callbackMask,
-                                        entry.cacheDrawData, {}});
+                                        entry.cacheDrawData, {},entry.frameToggle});
         if (gameplay && entry.animationFrameHeight > 0)
             runtime::setModTileAnimation(entry.type, entry.animationFrameHeight);
         if (!gameplay)
@@ -2403,7 +2403,10 @@ bool applyManagedNativeTileDefaultsBatch(const std::string& modId,
         if (entry.type < runtime::kVanillaTileCount ||
             runtime::modTileTypeByName(modId, entry.name) != entry.type ||
             entry.flags < 0 || entry.flags > tile_flags::supportedMask ||
-            entry.shape < 0 || entry.shape > 3 || entry.coordinateHeight != 18 ||
+            entry.shape < 0 || entry.shape > 3 ||
+            entry.frameToggle < 0 || entry.frameToggle > 2 ||
+            (entry.frameToggle==1&&entry.shape!=2) ||
+            (entry.frameToggle==2&&entry.shape!=3) || entry.coordinateHeight != 18 ||
             entry.animationFrameHeight < 0 || entry.animationFrameHeight > 4096 ||
             entry.animationFrames < 1 || entry.animationFrames > 64 ||
             entry.animationFrameTicks < 0 || entry.animationFrameTicks > 600 ||

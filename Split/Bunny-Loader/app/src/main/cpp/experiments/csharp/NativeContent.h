@@ -69,6 +69,7 @@ struct ManagedTileEntry {
     int type = -1;
     int flags = 0;
     int shape = 0;
+    int frameToggle = 0;
     int coordinateHeight = 18;
     int adjacentTile = -1;
     std::vector<int> adjacentTiles;

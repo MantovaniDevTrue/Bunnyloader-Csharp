@@ -12,6 +12,7 @@ internal static class TileWriter {
             ?? throw new InvalidOperationException(type.FullName + ": missing tile property " + name));
         int flags = Convert.ToInt32(Get<object>("Flags"), CultureInfo.InvariantCulture);
         int shape = Convert.ToInt32(Get<object>("Shape"), CultureInfo.InvariantCulture);
+        int toggle = Convert.ToInt32(Get<object>("FrameToggle"), CultureInfo.InvariantCulture);
         int height = Get<int>("CoordinateHeight");
         int animationHeight = Get<int>("AnimationFrameHeight");
         int animationFrames = Get<int>("AnimationFrames");
@@ -44,7 +45,8 @@ internal static class TileWriter {
             throw new InvalidOperationException("[CSharp][ERROR][TileDefaults] Class=" + type.FullName +
                 " API=BunnyTile.Flags Field=Flags Stage=Serialize Expected=Int32:KnownMask0xFFFF Actual=" +
                 flags.ToString(CultureInfo.InvariantCulture) + " Result=Rejected Reason=UnknownFlagBits");
-        if (shape < 0 || shape > 3 ||
+        if (shape < 0 || shape > 3 || toggle < 0 || toggle > 2 ||
+            (toggle == 1 && shape != 2) || (toggle == 2 && shape != 3) ||
             height < 1 || height > 32 || adjacent < -1 || adjacent >= 754 ||
             dust.Length > 72 || !Safe(dust) || map.Length > 80 || !Safe(map) ||
             (uint)r > 255 || (uint)g > 255 || (uint)b > 255 ||
@@ -74,7 +76,8 @@ internal static class TileWriter {
             allowBreaking ? "1" : "0",
             allowDrops ? "1" : "0",
             callbackMask.ToString(CultureInfo.InvariantCulture),
-            cacheDrawData ? "1" : "0");
+            cacheDrawData ? "1" : "0",
+            toggle.ToString(CultureInfo.InvariantCulture));
     }
 
     private static bool Safe(string value) {
