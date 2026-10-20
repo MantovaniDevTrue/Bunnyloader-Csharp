@@ -1,6 +1,7 @@
 #pragma once
 
 #include "experiments/csharp/ManagedDustContract.h"
+#include "experiments/csharp/ManagedDustFlagMask.h"
 
 #include <algorithm>
 #include <atomic>
@@ -145,8 +146,8 @@ public:
             !managedDustStateValid(request.state) ||
             !currentLocked(request) || !managedDustStateValid(state) ||
             !managedDustSameInstance(request.state, state) ||
-            (flags & ~63u) != 0u ||
-            (((flags & 32u) != 0u) != (state.active != 0))) return false;
+            !managedDustFlagsValid(request.phase, flags, state.active != 0))
+            return false;
         Slot& slot = slots_[static_cast<std::size_t>(state.slot) * kPhases + static_cast<size_t>(request.phase)];
         if (!slot.pending || slot.type != state.type ||
             slot.generation != state.generation ||
