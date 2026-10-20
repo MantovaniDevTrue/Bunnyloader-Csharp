@@ -873,7 +873,8 @@ bool setupTileWorldHooks(bool wire,bool random) {
 void hkTileUse(Il2CppObject* player,int32_t x,int32_t y,const MethodInfo* method) {
     const auto it=g_tiles.find(runtime::tileTypeAt(x,y));
     if(!player||!g_interactInstalled||it==g_tiles.end()||
-       ((it->second.spec.callbackMask&(1<<4))==0&&it->second.spec.frameToggle==0)) {
+       ((it->second.spec.callbackMask&(1<<4))==0&&
+        !tile_toggle::allowsRightClick(it->second.spec.frameToggle))) {
         if(g_origUse)g_origUse(player,x,y,method);
         return;
     }
@@ -890,7 +891,8 @@ void hkTileUse(Il2CppObject* player,int32_t x,int32_t y,const MethodInfo* method
         (frame>old->second&&frame-old->second>1);
     g_lastUseFrames[player]=frame;
     if(!fresh)return;
-    if(it->second.spec.frameToggle&&toggleNativeFrame(it->second.spec,x,y)) {
+    if(tile_toggle::allowsRightClick(it->second.spec.frameToggle)&&
+       toggleNativeFrame(it->second.spec,x,y)) {
         reinterpret_cast<uint8_t*>(player)[g_useHappened]=1;
         return;
     }
@@ -1030,7 +1032,8 @@ void hkTileMouseOver(Il2CppObject* player,int32_t x,int32_t y,const MethodInfo* 
     if(targetX!=x||targetY!=y)return;
     const auto it=g_tiles.find(runtime::tileTypeAt(x,y));
     if(it==g_tiles.end())return;
-    if((it->second.spec.callbackMask&(1<<4))!=0&&
+    if(((it->second.spec.callbackMask&(1<<4))!=0||
+        tile_toggle::allowsRightClick(it->second.spec.frameToggle))&&
        g_cursorEnabledOffset>=0&&g_cursorItemOffset>=0&&it->second.itemType>0) {
         auto* pointer=reinterpret_cast<uint8_t*>(player);
         if(!pointer[g_cursorEnabledOffset]) {
@@ -1236,9 +1239,11 @@ bool registerNativeTileGameplay(const NativeTileGameplaySpec& spec) {
         return false;
     }
     if(spec.frameToggle&&!setupNativeFrameToggle())return false;
-    if(((spec.callbackMask&(1<<4))||spec.frameToggle)&&!setupTileInteractHook())return false;
+    if(((spec.callbackMask&(1<<4))||tile_toggle::allowsRightClick(spec.frameToggle))&&
+       !setupTileInteractHook())return false;
     if((spec.callbackMask&(1<<8))&&!setupTileSlopeHooks())return false;
-    if(!setupTileMouseOverHooks((spec.callbackMask&((1<<4)|(1<<9)))!=0,
+    if(!setupTileMouseOverHooks((spec.callbackMask&((1<<4)|(1<<9)))!=0||
+                                 tile_toggle::allowsRightClick(spec.frameToggle),
                                 (spec.callbackMask&(1<<10))!=0))return false;
     if((spec.callbackMask&(1<<7))&&!setupTilePlacementHooks())return false;
     if(!setupTileWorldHooks(((spec.callbackMask&4)!=0)||spec.frameToggle,(spec.callbackMask&8)!=0)) {

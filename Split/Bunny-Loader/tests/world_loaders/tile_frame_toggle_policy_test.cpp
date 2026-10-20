@@ -19,6 +19,8 @@ int main() {
     assert(!plan(3,2,20,14,36,36,&p));
     assert(!plan(2,1,0,0,-1,0,&p));
     assert(!plan(2,1,0,0,36,18,&p));
+    assert(allowsRightClick(1));
+    assert(!allowsRightClick(0)&&!allowsRightClick(2)&&!allowsRightClick(3));
     assert(lit(0,999,999));
     assert(lit(1,0,0)&&lit(1,36,18));
     assert(!lit(1,0,36)&&!lit(1,36,54));

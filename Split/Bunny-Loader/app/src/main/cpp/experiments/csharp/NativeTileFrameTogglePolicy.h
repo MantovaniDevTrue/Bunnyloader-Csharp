@@ -7,6 +7,7 @@ struct Plan {
     std::array<Patch,6> cells{};
     int count=0,left=0,top=0,width=0,height=0;
 };
+inline bool allowsRightClick(int mode) {return mode==1;}
 inline bool plan(int shape,int mode,int x,int y,int frameX,int frameY,Plan* out) {
     if(!out||mode<1||mode>2||(mode==1&&shape!=2)||(mode==2&&shape!=3))
         return false;
