@@ -344,6 +344,7 @@ class EquipmentContractSurfaceTests(unittest.TestCase):
         self.assertIn('scope->requests>=4', gameplay)
         self.assertIn('itemAllowsPrefix(item,choice)', gameplay)
         self.assertIn('itemAllowsPrefix(item,prefix)', gameplay)
+        self.assertIn('isPrefixDenied(item,prefix) ||', gameplay)
 
     def test_report_render_is_stable_and_honest(self):
         markdown = surface.render_markdown(surface.audit(ROOT))

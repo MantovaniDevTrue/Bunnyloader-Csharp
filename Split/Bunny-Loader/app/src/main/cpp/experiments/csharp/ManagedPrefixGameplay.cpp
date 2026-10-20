@@ -968,7 +968,8 @@ bool hookStats(Il2CppObject* item, int32_t prefix, float* dmg, float* kb,
             if (!dmg || !kb || !spd || !size || !shootSpeed || !mana ||
                 !crit || !tagDamage || !pen || !value ||
                 !ensurePrefixTables(*list) ||
-                (!restoring && (!eligible(item,*p,true) || !itemAllowsPrefix(item,prefix))) ||
+                (!restoring && (isPrefixDenied(item,prefix) ||
+                                !eligible(item,*p,true) || !itemAllowsPrefix(item,prefix))) ||
                 (!restoring && queryPrefixWorker(item,*p,3)==0))
                 return false;
             *dmg = p->multipliers[0];
