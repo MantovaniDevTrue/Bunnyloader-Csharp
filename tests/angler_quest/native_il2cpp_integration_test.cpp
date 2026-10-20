@@ -230,6 +230,7 @@ bool invokeManagedAnglerQuestCallback(const std::string&,const std::string&,
 }
 namespace bl::csharp::angler {
 bool installFishingOnGameThread(const std::vector<Quest>*) { return true; }
+const char* fishingInstallDiagnostic() { return "HostFixture"; }
 }
 namespace bl::runtime {
 Il2CppArray* TypeTables::resizedCopy(Il2CppArray* old,uintptr_t len) {
