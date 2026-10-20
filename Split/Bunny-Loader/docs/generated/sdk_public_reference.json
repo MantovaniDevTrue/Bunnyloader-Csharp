@@ -1189,12 +1189,16 @@
           "execution": "worker_async_localization"
         },
         {
+          "signature": "static string Drain(string modId, string assemblyPath, string culture)",
+          "execution": "worker_async_localization"
+        },
+        {
           "signature": "static void Register(string key, IReadOnlyDictionary\u003Cstring, string\u003E cultures)",
-          "execution": "worker_callback_registration"
+          "execution": "managed_owned_registration"
         },
         {
           "signature": "static void Register(string key, string culture, string value)",
-          "execution": "worker_callback_registration"
+          "execution": "managed_owned_registration"
         }
       ]
     },
