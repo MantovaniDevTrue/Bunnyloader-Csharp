@@ -2,7 +2,7 @@
 
 #include <cstdint>
 #include <cmath>
-#include "experiments/csharp/WorldAuthority.h"
+#include "WorldAuthority.h"
 #include <string>
 
 namespace bl::csharp {
