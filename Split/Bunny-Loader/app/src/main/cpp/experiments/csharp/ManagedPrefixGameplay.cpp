@@ -1121,11 +1121,14 @@ Il2CppArray* hookRollable(Il2CppObject* item, const MethodInfo* method) {
         return !attributeDenied(item, prefix, attributes) && itemAllowsPrefix(item,prefix);
     };
     const bool tablesReady = descriptors->empty() || ensurePrefixTables(*descriptors);
-    const auto vanilla=vanillaItemCandidates(item,base);
-    const uintptr_t oldCount = vanilla.size();
-    const uintptr_t originalCount = base ? base->length : 0;
-    const bool vanillaHasRollable = oldCount>0;
-    const auto* oldValues = oldCount ? vanilla.data() : nullptr;
+    const bool modItem=itemType>0 && bl::runtime::isModItem(itemType);
+    const auto vanilla=modItem ? vanillaItemCandidates(item,base) : std::vector<int32_t>{};
+    const uintptr_t originalCount=base?base->length:0;
+    const uintptr_t oldCount=modItem?vanilla.size():originalCount;
+    const bool vanillaHasRollable=oldCount>0;
+    const auto* oldValues=oldCount
+        ? (modItem ? vanilla.data() : static_cast<const int32_t*>(arrayData(base)))
+        : nullptr;
     if (oldCount>originalCount) g_extendedVanillaItem=item;
     primeItemPrefixCandidates(item,oldValues,oldCount,*descriptors);
     primeGlobalPrefixCandidates(item,oldValues,oldCount,*descriptors);
