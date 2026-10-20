@@ -939,6 +939,11 @@ void run() {
                 note(&status, "failed", "ModCommand: " + commandError);
                 continue;
             }
+            if (!bindManagedCommandMod(mod.id, assembly, &commandError)) {
+                nativeCommandMailbox().unregisterMod(mod.id);
+                note(&status, "failed", "ModCommand: " + commandError);
+                continue;
+            }
             BL_INFO("[CSharp][CommandLoader] Mod=%s Stage=Verified Commands=%d Names=%zu",
                     mod.id.c_str(), mod.commands, commandSpecs.size());
         }
