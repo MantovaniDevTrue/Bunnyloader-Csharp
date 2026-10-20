@@ -18,6 +18,7 @@ using RollFn = void (*)(Il2CppObject*, void*, const MethodInfo*);
 RollFn g_originalRoll = nullptr;
 const std::vector<Quest>* g_quests = nullptr;
 bool g_installed = false;
+const char* g_installDiagnostic = "NotAttempted";
 FieldInfo* g_players = nullptr;
 int g_owner = -1;
 int g_gravity = -1;
@@ -123,6 +124,7 @@ void onFishingRoll(Il2CppObject* bobber, void* attempt, const MethodInfo* mi) {
 bool installFishingOnGameThread(const std::vector<Quest>* quests) {
     g_quests = quests;
     if (g_installed) return true;
+    g_installDiagnostic = "MissingIL2CPPExports";
     auto& a = il2cpp::api();
     if (!a.class_is_valuetype || !a.class_value_size ||
         !a.class_get_method_from_name || !a.method_get_param_count ||
@@ -132,14 +134,17 @@ bool installFishingOnGameThread(const std::vector<Quest>* quests) {
         !a.class_get_namespace || !a.class_get_rank || !a.field_get_flags ||
         !a.method_is_instance) return false;
 
+    g_installDiagnostic = "MissingTerrariaTypes";
     Il2CppClass* projectile = il2cpp::findClass({"Terraria", "Projectile", {}});
     Il2CppClass* player = il2cpp::findClass({"Terraria", "Player", {}});
     Il2CppClass* fishing = il2cpp::findClass({"Terraria.DataStructures", "FishingAttempt", {}});
     Il2CppClass* main = il2cpp::findClass({"Terraria", "Main", {}});
     if (!projectile || !player || !fishing || !main) return false;
+    g_installDiagnostic = "UnexpectedFishingAttemptLayout";
     uint32_t alignment = 0;
     if (!a.class_is_valuetype(fishing) || a.class_value_size(fishing, &alignment) != 92)
         return false;
+    g_installDiagnostic = "UnexpectedFishingMethodSignature";
     const MethodInfo* method = a.class_get_method_from_name(
         projectile, "FishingCheck_RollItemDrop", 1);
     if (!method || a.method_get_param_count(method) != 1 ||
@@ -147,6 +152,7 @@ bool installFishingOnGameThread(const std::vector<Quest>* quests) {
         !isType(a.method_get_param(method, 0), "Terraria.DataStructures.FishingAttempt&") ||
         !a.method_is_instance(method)) return false;
 
+    g_installDiagnostic = "UnexpectedFishingFieldLayout";
     bl::il2cpp::ValueLayout layout;
     std::string error;
     if (!bl::il2cpp::resolveValueLayout(fishing, &layout, &error) ||
@@ -156,6 +162,7 @@ bool installFishingOnGameThread(const std::vector<Quest>* quests) {
         !instanceField(projectile, "owner", "System.Int32", 4, &g_owner) ||
         !instanceField(player, "gravDir", "System.Single", 4, &g_gravity))
         return false;
+    g_installDiagnostic = "UnexpectedPlayerArrayContract";
     g_players = il2cpp::findField(main, "player");
     if (!g_players || (a.field_get_flags(g_players) & 0x10u) == 0 ||
         !a.field_get_type || !a.class_from_il2cpp_type ||
@@ -167,12 +174,16 @@ bool installFishingOnGameThread(const std::vector<Quest>* quests) {
     const char* elementNs = a.class_get_namespace(elements);
     if (!elementName || !elementNs || std::strcmp(elementName, "Player") != 0 ||
         std::strcmp(elementNs, "Terraria") != 0) return false;
+    g_installDiagnostic = "HookInstallFailed";
     g_installed = bl::hook::install(method, onFishingRoll, &g_originalRoll);
-    if (g_installed)
+    if (g_installed) {
+        g_installDiagnostic = "Installed";
         BL_INFO("[CSharp][AnglerQuest] Stage=FishingHook Result=Installed StructBytes=92");
+    }
     return g_installed;
 }
 
 bool fishingInstalled() { return g_installed; }
+const char* fishingInstallDiagnostic() { return g_installDiagnostic; }
 
 }
