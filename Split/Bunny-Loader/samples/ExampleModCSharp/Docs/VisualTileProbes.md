@@ -30,3 +30,7 @@ Esse código ainda exige teste no Android real para confirmar compatibilidade AB
 ## Áudio de clique
 
 A fogueira 3×2 C# usa o `SoundID.Mech` original através de `SoundEngine.PlaySound(LegacySoundStyle,Vector2,float,float)`. O host confere a assinatura nativa, `SoundID.Mech` e o layout de `Vector2` no registro, e invoca o som somente após o clique completar a alternância. Fios não tocam o som. O runtime não consulta QuickJS. A emissão de áudio real e os diagnósticos de ABI ainda requerem teste no Android; incompatibilidade rejeita o registro em vez de inventar um ID de som.
+
+## Layout e tamanho da área de varredura
+
+Os limites são os mesmos do `ExampleModBunny` original: `centro - floor(tamanho/2)` até `centro + floor(tamanho/2)` (limite superior exclusivo). Para tamanho par, isso examina exatamente as células pedidas; para ímpar, preserva a fórmula do fonte original. Em `SceneMetricsScanSettings` struct, o host exige tamanho acima de 16 bytes e usa `il2cpp::resolveValueLayout` para converter offsets boxed/unboxed; em classe usa `nativeFieldContract`. Um layout ambíguo interrompe a instalação do hook. Não são inferidos offsets pelo tamanho do cabeçalho.

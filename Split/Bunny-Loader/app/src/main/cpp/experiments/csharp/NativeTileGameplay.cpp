@@ -19,6 +19,7 @@
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
 #include "il2cpp/Signature.h"
+#include "il2cpp/ValueLayout.h"
 #include <algorithm>
 #include <array>
 #include <atomic>
@@ -97,7 +98,6 @@ using SceneScanFn=void(*)(Il2CppObject*,const void*,const MethodInfo*);
 SceneScanFn g_originalSceneScan=nullptr;
 struct CampfireSceneBinding {
     bool ready=false;
-    bool valueSettings=false;
     int centerOffset=0;
     int hasCampfireOffset=0;
     FieldInfo* scanWidth=nullptr;
@@ -773,11 +773,8 @@ void hkCampfireSceneScan(Il2CppObject* scene,const void* settings,const MethodIn
     auto* bytes=reinterpret_cast<uint8_t*>(scene);
     if(bytes[g_campfireScene.hasCampfireOffset])return;
     const auto* value=reinterpret_cast<const uint8_t*>(settings);
-    const int offset=g_campfireScene.centerOffset-
-                     (g_campfireScene.valueSettings?static_cast<int>(sizeof(Il2CppObject)):0);
-    if(offset<0)return;
     float center[2]{};
-    std::memcpy(center,value+offset,sizeof(center));
+    std::memcpy(center,value+g_campfireScene.centerOffset,sizeof(center));
     auto& a=il2cpp::api();
     int32_t width=0,height=0;
     a.field_static_get_value(g_campfireScene.scanWidth,&width);
@@ -861,20 +858,35 @@ bool setupNativeCampfireSceneHook() {
     auto* settings=a.class_from_il2cpp_type(a.method_get_param(method,0));
     if(!settings)return false;
     const bool value=a.class_is_valuetype(settings);
-    if(value) {
-        uint32_t alignment=0;
-        if(a.class_value_size(settings,&alignment)<=16||
-           !il2cpp::findField(settings,"VisualScanArea"))return false;
-    }
     std::string error;
     FieldInfo* center=nullptr;
     FieldInfo* hasCampfire=nullptr;
     FieldInfo* scanWidth=nullptr;
     FieldInfo* scanHeight=nullptr;
     int centerOffset=0,hasCampfireOffset=0;
-    if(!il2cpp::nativeFieldContract(settings,"BiomeScanCenterPositionInWorld",
-          "Microsoft.Xna.Framework.Vector2",false,8,&center,&centerOffset,&error)||
-       !il2cpp::nativeFieldContract(metrics,"HasCampfire",
+    if(value) {
+        uint32_t alignment=0;
+        const int size=a.class_value_size(settings,&alignment);
+        if(size<=16||!il2cpp::findField(settings,"VisualScanArea"))return false;
+        il2cpp::ValueLayout layout{};
+        if(!il2cpp::resolveValueLayout(settings,&layout,&error)) {
+            BL_ERROR("[CSharp][Campfire] Stage=SceneLayout Result=Rejected Reason=%s",error.c_str());
+            return false;
+        }
+        center=il2cpp::findField(settings,"BiomeScanCenterPositionInWorld");
+        size_t offset=0;
+        if(!center||!a.field_get_type||!a.field_get_flags||!a.field_get_offset||
+           (a.field_get_flags(center)&0x10u)!=0||
+           !nameOf(a.field_get_type(center),"Microsoft.Xna.Framework.Vector2")||
+           !layout.offset(a.field_get_offset(center),8,&offset)||
+           offset>static_cast<size_t>(INT32_MAX))return false;
+        centerOffset=static_cast<int>(offset);
+    } else if(!il2cpp::nativeFieldContract(settings,"BiomeScanCenterPositionInWorld",
+                 "Microsoft.Xna.Framework.Vector2",false,8,&center,&centerOffset,&error)) {
+        BL_ERROR("[CSharp][Campfire] Stage=SceneCenter Result=Rejected Reason=%s",error.c_str());
+        return false;
+    }
+    if(!il2cpp::nativeFieldContract(metrics,"HasCampfire",
           "System.Boolean",false,1,&hasCampfire,&hasCampfireOffset,&error)||
        !il2cpp::nativeFieldContract(main,"buffScanAreaWidth",
           "System.Int32",true,4,&scanWidth,nullptr,&error)||
@@ -883,9 +895,8 @@ bool setupNativeCampfireSceneHook() {
         BL_ERROR("[CSharp][Campfire] Stage=SceneMetricsBind Result=Rejected Reason=%s",error.c_str());
         return false;
     }
-    if(value&&centerOffset<static_cast<int>(sizeof(Il2CppObject)))return false;
     if(!hook::install(method,hkCampfireSceneScan,&g_originalSceneScan))return false;
-    g_campfireScene={true,value,centerOffset,hasCampfireOffset,scanWidth,scanHeight};
+    g_campfireScene={true,centerOffset,hasCampfireOffset,scanWidth,scanHeight};
     return true;
 }
 
