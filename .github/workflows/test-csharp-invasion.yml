@@ -6,6 +6,7 @@ on:
       - feat/csharp-example-invasion-20261019
     paths:
       - experiments/csharp/BunnyCsSdk/BunnyInvasion.cs
+      - experiments/csharp/BunnyCsSdk/BunnyInvasionWire.cs
       - experiments/csharp/BunnyCsSdk/BunnyInvasionSpawnPipeline.cs
       - experiments/csharp/BunnyCsSdk/BunnyInvasionSystem.cs
       - experiments/csharp/BunnyCsSdk/BunnyInvasionNativeTransport.cs
@@ -59,6 +60,8 @@ jobs:
         run: dotnet build experiments/csharp/BunnyCsSdk/BunnyCsSdk.csproj --configuration Release
       - name: Compile and run pure CSharp lifecycle tests
         run: dotnet run --project tests/invasion/Invasion.csproj --configuration Release
+      - name: Validate versioned invasion replication packets, late join and client revision
+        run: dotnet run --project tests/invasion/net/InvasionNet.csproj --configuration Release
       - name: Verify epoch-bound native spawn pipeline
         run: dotnet run --project tests/invasion/pipeline/Pipeline.csproj --configuration Release
       - name: Compile ExampleInvasion source without Android toolchain
