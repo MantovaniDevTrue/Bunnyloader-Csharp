@@ -39,9 +39,15 @@ Referência nativa: `JonataOliveiraa/Bunny-Loader` (`ModDusts.h/.cpp`). Integra�
 - Compilação nativa ARM64 em CI sem empacotamento de APK aprovada no commit `3f15ee395`; testes C#/C++ também aprovados nesse commit. Cada nova alteração dispara validação; conferir os checks do commit final.
 - As DLLs `BunnySourceSdk.dll` e `BunnySourceCompiler.dll` são montadas pelo pipeline C# sem APK, e os hashes correspondentes são reescritos em `framework.sha256` no mesmo commit.
 
+## Ativação experimental controlada (sem APK)
+
+- O gate `managedDustCallbacksConnected()` continua **false em qualquer build normal**. O modo experimental só pode ser habilitado explicitamente com `-Pbl.dustPreview=true`, que passa `BUNNY_CSHARP_DUST_PREVIEW=ON` ao CMake. Nenhum caminho JavaScript é usado para callbacks Dust C#.
+- O pipeline ARM64 de fontes nativas compila **com o gate experimental ligado**, executando apenas `:app:externalNativeBuildDebug` (não gera APK). Os contratos C++ verificam as duas variantes, OFF e ON. A proteção continua OFF em builds normais.
+- O opt-in não altera a falta de validação IL2CPP/MonoVM real: **não considerar release**, não mesclar e não gerar APK. Quando testes Android forem autorizados, usar os contadores `managedSyncAttempts`, `managedSyncReady`, `managedSyncMissed`, `managedSyncWaitNs` para medir o sucesso no próprio quadro.
+
 ## Bloqueios antes de considerar completo
 
-1. **A barreira `managedDustCallbacksConnected()` continua em `false`.** Mods C# que sobrescrevem callbacks Dust continuam recusados com `MonoDustBridgeNotConnected`. Isso evita anunciar funcionalidade não validada e mantém o ExampleMod estável.
+1. **Em builds normais a barreira continua em `false`.** Em compilação experimental explicitamente habilitada, callbacks Dust C# são aceitos, mas ainda não comprovados no Android. Não liberar o opt-in por padrão nem chamar o DustLoader de completo até passar os testes práticos.
 2. Ainda falta executar o fluxo completo em Terraria Android com IL2CPP e MonoVM juntos, conferindo campos nativos como `dustIndex`, `position`, `scale`, `rotation`, `alpha`, `color` e `frame`.
 3. **Integração síncrona ainda não garantida:** existe tentativa de despacho no próprio quadro com espera curta e orçamento global. Sob carga, o MonoVM pode não responder no prazo, e a execução continua pelo fallback nativo + atualização assíncrona. Portanto não há equivalência incondicional para `Update=false`, `PreDraw=false` ou `GetAlpha`. Precisamos medir a taxa de respostas no prazo no Android e, se insuficiente, melhorar o agendamento ou reprojetar os callbacks críticos antes de liberar. Validar também a devolução real dos slots pela fila `Release`.
 4. Medir desempenho, consumo de memória, limite de 128 jobs, estabilidade em grandes lotes, comportamento com QuickJS + vários mods C# e recarregamento de mundos.
