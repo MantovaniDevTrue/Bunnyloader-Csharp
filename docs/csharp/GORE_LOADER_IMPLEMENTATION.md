@@ -20,18 +20,32 @@ A versão C# precisa entregar exatamente essa funcionalidade, sem
 renderização falsa, sem despachar a execução por QuickJS, sem varredura por
 quadro e sem exigir que o modder informe um tipo numérico global.
 
-## Etapa 1 — implementada nesta branch
+## Implementação de fontes nesta branch (sem APK)
 
 - `ManagedGoreDiscovery.h/.cpp`: visita os arquivos **uma vez no
   carregamento**, em ordem determinística. Rejeita links simbólicos,
   caminhos externos, duplicatas e cabeçalhos PNG inválidos, com limites
   de diretórios, quantidade de gores, dimensão e bytes.
-- `SourceLoader.cpp`: executa a descoberta antes do registro dos
-  conteúdos C#. O campo `SourceModStatus.goreSourcesDiscovered` informa
-  quantos arquivos foram encontrados, **não** quantos tipos foram instalados.
-- `ManagedGoreCatalog.h`: prepara a reserva atomica dos tipos por
-  par `(mod UID, nome)`, aceita gores homonimos de mods diferentes e
-  proibe realocar IDs durante a sessao. Ainda nao publica os IDs no jogo.
+- `SourceLoader.cpp`: executa a descoberta, registra os demais conteúdos
+  e entrega as gores ao registrador IL2CPP; falhas interrompem a carga
+  com diagnóstico por mod. O campo `goreSourcesDiscovered` representa os
+  PNGs encontrados; o registro só é considerado sucesso quando
+  `gore::install` conclui a instalação real.
+- `ManagedGoreCatalog.h`: reserva IDs por `(mod, nome)`, aceita gores
+  homônimos entre mods e proíbe realocar IDs durante a sessão.
+- `ManagedGoreRuntime.cpp`: redimensiona as seis tabelas de Terraria
+  por cópia com validação de tipos, protege os arrays e sprites no GC,
+  decodifica os PNGs por bytes já verificados e publica os IDs ao fim do
+  lote. A chamada `Gore.NewGore` roda apenas na thread do jogo.
+- `BunnyGore.cs`: expõe `GetType`, `TrySpawn` e `TryConfigure`
+  para o modder, com P/Invoke e parâmetros tipados. Fila limitada a
+  128 pedidos, 32 spawns processados por quadro; nenhuma VM JavaScript.
+- `AutoSourceRuntime.cpp`: ativa e pausa os pedidos nas transições
+  de mundo, descartando spawns antigos. Repara arrays reconstruídos
+  sem reler todos os arquivos por quadro.
+- O exemplo C# tem uma gore original do ExampleModBunny no
+  `ExampleSlimeNPC.OnKill` e outra no `ExampleWaveBolt.OnKill`,
+  incluindo a configuração de drip com explicações no código.
 - `tests/csharp_gore_catalog_test.cpp`: testa a separacao entre mods,
   falhas de capacidade, indices estaveis e limpeza do catalogo.
 - `tests/csharp_gore_discovery_test.cpp`: testa subpastas, nomes,
@@ -40,36 +54,37 @@ quadro e sem exigir que o modder informe um tipo numérico global.
 - `.github/workflows/csharp-gore-source-check.yml`: compilação C++20
   e teste de host, expressamente **sem build de APK**.
 
-O scanner checa a assinatura/IHDR, mas ainda **não decodifica integralmente**
-o PNG. A decodificação real e a confirmação de dimensões ocorrerão na
-etapa de instalação por `content::loadTextureAsset`.
+A descoberta confere a assinatura/IHDR, tamanho e limites do PNG;
+`readOwnedPng` lê o arquivo novamente por `openat(O_NOFOLLOW)` em todos
+os componentes, protegendo contra troca por symlink. A instalação então
+decodifica os bytes seguros com `content::loadTextureAsset` e confere as
+dimensões reais. A compilação de sintaxe C++ e o SDK/examples C#
+foram verificados no GitHub Actions; isso ainda não valida IL2CPP Android.
 
-## Etapas obrigatórias antes de poder marcar como completo
+## Contratos implementados que ainda exigem QA Android
 
-1. **Registro nativo:** criar a tabela de identidades
-   `(mod UID, nome da gore) → type`, reservando tipos exclusivos por
-   mod, com erros claros e sem colisões com os tipos existentes.
-2. **Tabelas do Terraria:** aumentar com segurança os seis arrays
-   descritos acima. Usar `TypeTables::resizedCopy` e
-   `content::setTableElement` quando couber, validar tipos/limites no
-   IL2CPP, manter as texturas vivas e reaplicar os dados se o jogo recriar
-   uma tabela.
-3. **Spawn de verdade:** expor API C# própria (nome, posição, velocidade
-   e escala), comunicar-se com a thread do jogo por uma fila limitada e
-   chamar `Terraria.Gore.NewGore` nativamente. Proibir chamadas diretas
-   ao IL2CPP a partir do worker MonoVM.
-4. **Ciclo de vida:** assegurar descarte correto ao descarregar mods,
-   reiniciar o mundo e trocar sessão; não reutilizar tipos incorretos
-   nem vazá-los em outro mod.
-5. **Exemplos C#:** implementar no próprio
-   `ExampleModCSharp` pelo menos uma gore de projétil e uma de NPC,
-   com comentários explicando *quando* usar a API e *por que* os
-   valores escolhidos correspondem à fonte original. Não colocar APIs
-   fictícias no exemplo enquanto a ponte nativa não existir.
-6. **Validação:** conferir compilação do SDK e C++, testes host de
-   registro, multimoD com PNGs homônimos, ausência de JS, e no Android
-   a textura, a física, o desaparecimento, troca de mundo e estabilidade
-   de 60 FPS. Não declarar sucesso Android com base em compilação.
+1. **Registro nativo — fonte implementada:** validar no Android o
+   endereço e os layouts IL2CPP das seis tabelas antes de considerar o
+   contrato de registro confirmado. O registro rejeita APIs ausentes.
+2. **Arrays e GC — fonte implementada:** conferir em jogo a extensão,
+   retenção de texturas, `SpecialAI`, `DisappearSpeed`,
+   `DisappearSpeedAlpha`, `IsDrip`, `SafeGore` e regeneração de
+   arrays após mudança de mundo. Não falsificar tipo/sprite.
+3. **Spawn de verdade — fonte implementada:** confirmar Android
+   `NewGore`, trajetória, desaparecimento e escala; filas aceitam
+   apenas tipos existentes e números finitos e descartam sessão antiga.
+4. **Ciclo de vida:** a fila é descartada na saída/entrada de mundo,
+   mas as texturas registradas permanecem carregadas até encerrar a
+   sessão do processo. Desabilitação/reinstalação de mods no mesmo
+   processo exige QA específico antes de declarar hot-unload suportado.
+5. **Exemplos C# — fontes implementadas e compiladas:** verificar
+   os dois efeitos reais `OnKill` e a configuração `IsDrip` no
+   ExampleMod C# durante teste de jogo. Os PNGs foram copiados sem
+   alteração do exemplo original.
+6. **Validação:** testes de host (descoberta e catálogo), análise de
+   sintaxe nativa C++20, build do SDK net8.0 e compilação dos dois
+   exemplos passaram em CI. Ainda precisa QA Android real: multimoD,
+   reinício, sprites, física e estabilidade de FPS.
 
 **Bloqueio de APK:** a primeira compilacao Android so pode ocorrer **depois**
 de finalizar o registro, a API de spawn, os exemplos e os testes estaticos.
@@ -97,3 +112,10 @@ c++ -std=c++20 -O2 -Wall -Wextra -Werror -pedantic \
 Saídas esperadas: `CSHARP_GORE_DISCOVERY_PASS` e
 `CSHARP_GORE_CATALOG_PASS`. Isso valida somente a descoberta e o catalogo;
 nao prova o registro IL2CPP ou os efeitos no jogo.
+
+## Artefato SDK sem APK
+
+O workflow `.github/workflows/stage-csharp-gore-sdk-no-apk.yml`
+compila o `BunnySourceSdk.dll` puro, verifica os exemplos, atualiza apenas
+`app/src/main/assets/managed/BunnySourceSdk.dll` e a entrada correspondente
+em `managed/framework.sha256`. Não invoca Gradle ou gera APK.
