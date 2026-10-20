@@ -13,7 +13,11 @@ assert "NativeIdentity = nativeIdentity" in dispatcher
 assert 'g_api.findMethod(klass, "TickNpc", 13)' in host
 assert "int64_t nativeIdentity = static_cast<int64_t>(job.identity);" in host
 assert "&nativeIdentity};" in host
-assert "ExampleInvasion.ConfirmFirstTick(true, ref state);" in sample
+assert "invasion.Pipeline.MatchesPendingNpc(" in dispatcher
+assert "invasion.Pipeline.ConfirmFirstTick(true," in dispatcher
+assert "invasion.Pipeline.Controller.ReportKill(true," in dispatcher
+assert "invasion.Pipeline.Controller.ReportDespawn(true," in dispatcher
+assert "ExampleInvasion.ConfirmFirstTick" not in sample
 assert "Pipeline.ConfirmFirstTick(" in pipeline
 assert "Pipeline.ReportCreated(" in pipeline
 assert "Controller.CommitSpawn(" not in pipeline
