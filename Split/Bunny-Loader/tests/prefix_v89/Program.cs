@@ -269,6 +269,26 @@ try
     try { denied.SetPrefixChanceWhenStackBetween(3, 5, true); }
     catch (InvalidOperationException) { repeatedChance = true; }
     if (!repeatedChance) throw new InvalidOperationException("Duplicate PrefixChance policy accepted");
+    string itemWarmup = BunnyLoader.Source.BunnyItemPrefixRuntime.Dispatch(
+        "prefix-fixture", args[0], "TestWand", 0, 2, "");
+    if (itemWarmup != "READY")
+        throw new InvalidOperationException("Item prefix worker warmup failed: " + itemWarmup);
+    const string itemState = "6207,22,4,1,98,4";
+    if (BunnyLoader.Source.BunnyItemPrefixRuntime.Dispatch(
+        "prefix-fixture", args[0], "TestWand", 71, 0, itemState) != "0")
+        throw new InvalidOperationException("Item native prefix veto preview failed");
+    if (BunnyLoader.Source.BunnyItemPrefixRuntime.Dispatch(
+        "prefix-fixture", args[0], "TestWand", 72, 0, itemState) != "1")
+        throw new InvalidOperationException("Item native prefix acceptance preview failed");
+    if (BunnyLoader.Source.BunnyItemPrefixRuntime.Dispatch(
+        "prefix-fixture", args[0], "TestWand", 72, 0, "6207,12,4,1,98,4") != "0")
+        throw new InvalidOperationException("Item state-aware prefix rejection preview failed");
+    if (!BunnyLoader.Source.BunnyItemPrefixRuntime.Dispatch(
+        "prefix-fixture", args[0], "TestWand", 256, 0, itemState).StartsWith("ERROR|"))
+        throw new InvalidOperationException("Invalid prefix ID accepted by item worker");
+    if (!BunnyLoader.Source.BunnyItemPrefixRuntime.Dispatch(
+        "prefix-fixture", args[0], "MissingItem", 0, 2, "").StartsWith("ERROR|"))
+        throw new InvalidOperationException("Unknown item prefix owner accepted");
     string prefixWarmup = BunnyLoader.Source.BunnyPrefixRuntime.Dispatch(
         "prefix-fixture", args[0], "TestGuardedPrefix", 0, 2, "");
     if (prefixWarmup != "READY")

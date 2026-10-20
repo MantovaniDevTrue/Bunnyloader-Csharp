@@ -97,6 +97,7 @@ public abstract class BunnyWeapon : BunnyShootSource
     public int MinionBuffTime { get; set; } = 2;
     public abstract void SetDefaults();
     public virtual void ConfigurePrefixRules(BunnyItemPrefixRules rules) { }
+    public virtual bool AllowPrefix(BunnyPrefixItemSnapshot item, int prefix) => true;
     public virtual void ApplyPrefix(ref BunnyPrefixApplyStats effects) { }
 }
 
@@ -133,6 +134,7 @@ public abstract class BunnyBuffPotion : BunnyRecipeSource
     public bool? PrefixChance { get; set; }
     public abstract void SetDefaults();
     public virtual void ConfigurePrefixRules(BunnyItemPrefixRules rules) { }
+    public virtual bool AllowPrefix(BunnyPrefixItemSnapshot item, int prefix) => true;
     public virtual void ApplyPrefix(ref BunnyPrefixApplyStats effects) { }
 }
 
@@ -160,6 +162,7 @@ public abstract class BunnyAccessory : BunnyRecipeSource
     public uint VisualColor { get; set; } = 0xFFFFFFFF;
     public abstract void SetDefaults();
     public virtual void ConfigurePrefixRules(BunnyItemPrefixRules rules) { }
+    public virtual bool AllowPrefix(BunnyPrefixItemSnapshot item, int prefix) => true;
     public virtual void ApplyPrefix(ref BunnyPrefixApplyStats effects) { }
 }
 

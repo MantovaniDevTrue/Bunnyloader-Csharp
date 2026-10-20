@@ -56,7 +56,7 @@ public static class BunnyPrefixRuntime
 
     private static readonly Dictionary<string,Mod> mods=new(StringComparer.Ordinal);
 
-    private static BunnyPrefixItemSnapshot ReadItem(string snapshot)
+    internal static BunnyPrefixItemSnapshot ReadItem(string snapshot)
     {
         if(snapshot.Length==0||snapshot.Length>512)
             throw new ArgumentException("Invalid prefix snapshot size");

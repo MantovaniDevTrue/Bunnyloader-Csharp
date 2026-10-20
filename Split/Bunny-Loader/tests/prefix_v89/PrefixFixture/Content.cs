@@ -33,6 +33,9 @@ public sealed class TestWand : BunnyWeapon
         rules.ChooseWhenStackBetween("TestCustomPrefix", 1, 2);
     }
 
+    public override bool AllowPrefix(BunnyPrefixItemSnapshot item, int prefix)
+        => prefix != 71 && item.Damage >= 15;
+
     public override void ApplyPrefix(ref BunnyPrefixApplyStats effects)
     {
         effects.DamageBonus = 4;

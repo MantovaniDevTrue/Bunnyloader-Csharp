@@ -85,6 +85,7 @@ public abstract class BunnyItem : BunnyShootSource
     }
     public abstract void SetDefaults();
     public virtual void ConfigurePrefixRules(BunnyItemPrefixRules rules) { }
+    public virtual bool AllowPrefix(BunnyPrefixItemSnapshot item, int prefix) => true;
     public virtual void ApplyPrefix(ref BunnyPrefixApplyStats effects) { }
 }
 
