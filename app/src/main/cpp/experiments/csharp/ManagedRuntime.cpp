@@ -2283,7 +2283,7 @@ bool tickManagedEntityProjectile(int type, int slot, int generation, int owner,
 void scheduleManagedInvasionWorldTicks(uint64_t worldSession, int mode,
                                        int playerIndex, float playerX, float playerY) {
     if (worldSession == 0 || !managedEntitySourceModsRegistered() ||
-        (mode != 0 && mode != 2 && mode != 3) ||
+        (mode < 0 || mode > 3) ||
         playerIndex < 0 || !std::isfinite(playerX) || !std::isfinite(playerY)) return;
     std::unique_lock<std::mutex> lock(g_pinnedMutex, std::try_to_lock);
     if (!lock.owns_lock() || !g_pinnedStarted || g_entityQueue.size() >= 16) return;
