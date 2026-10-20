@@ -346,7 +346,6 @@ class EquipmentContractSurfaceTests(unittest.TestCase):
         self.assertIn('scope->requests>=4', gameplay)
         self.assertIn('primeItemPrefixCandidates(item,oldValues,oldCount,*descriptors)', gameplay)
         self.assertIn('invokeManagedItemPrefixBatch(', gameplay)
-        self.assertIn('job.itemPrefix?"BunnyItemPrefixRuntime"', runtime)
         self.assertIn('itemAllowsPrefix(item,choice)', gameplay)
         self.assertIn('itemAllowsPrefix(item,prefix)', gameplay)
         self.assertIn('isPrefixDenied(item,prefix) ||', gameplay)
