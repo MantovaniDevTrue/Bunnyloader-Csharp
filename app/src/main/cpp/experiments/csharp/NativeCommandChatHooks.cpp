@@ -55,6 +55,19 @@ bool hasSignature(const MethodInfo* method, bool instance,
     return true;
 }
 
+bool hasReturnType(const MethodInfo* method, const char* expected) {
+    auto& api = il2cpp::api();
+    if (!method || !api.method_get_return_type || !api.type_get_name ||
+        !api.il2cpp_free) return false;
+    const auto* type = api.method_get_return_type(method);
+    if (!type) return false;
+    char* name = api.type_get_name(type);
+    if (!name) return false;
+    const bool same = std::strcmp(name, expected) == 0;
+    api.il2cpp_free(name);
+    return same;
+}
+
 bool utf16ToUtf8(const Il2CppString* raw, std::string* result) {
     if (!raw || !result || raw->length < 0 || raw->length > 512) return false;
     std::string out;
@@ -267,6 +280,15 @@ bool installNativeCommandChatHooks() {
                                     "Microsoft.Xna.Framework.Color", "System.Int32"}) ||
         !hasSignature(colorConstructor, true,
                       {"System.Byte", "System.Byte", "System.Byte", "System.Byte"}) ||
+        !hasReturnType(incoming, "System.Void") ||
+        !hasReturnType(client, "System.Void") ||
+        !hasReturnType(text, "System.String") ||
+        !hasReturnType(consumeMethod, "System.Void") ||
+        !hasReturnType(newText, "System.Void") ||
+        !hasReturnType(myPlayer, "System.Int32") ||
+        !hasReturnType(literal, "Terraria.Localization.NetworkText") ||
+        !hasReturnType(send, "System.Void") ||
+        !hasReturnType(colorConstructor, "System.Void") ||
         !validColor || !netMode || !menu)
         return false;
 
