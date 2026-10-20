@@ -115,6 +115,23 @@ int main() {
     differentType=second;
     differentType.callbackMask=1;
     assert(manifest!=Registry::manifestFingerprint({first,differentType}));
+    differentType=second;
+    differentType.description="Different quest";
+    assert(manifest!=Registry::manifestFingerprint({first,differentType}));
+    differentType=second;
+    differentType.location="Jungle";
+    assert(manifest!=Registry::manifestFingerprint({first,differentType}));
+    differentType=second;
+    differentType.locales.emplace("pt-BR",std::make_pair("Peixe","Selva"));
+    assert(manifest!=Registry::manifestFingerprint({first,differentType}));
+    Quest reversedLocales=differentType;
+    reversedLocales.locales.emplace("en-US",std::make_pair("Fish","Jungle"));
+    Quest swappedLocales=differentType;
+    swappedLocales.locales.clear();
+    swappedLocales.locales.emplace("en-US",std::make_pair("Fish","Jungle"));
+    swappedLocales.locales.emplace("pt-BR",std::make_pair("Peixe","Selva"));
+    assert(Registry::manifestFingerprint({first,reversedLocales})==
+           Registry::manifestFingerprint({swappedLocales,first}));
     assert((inOrder.ids == std::vector<int>{1, 2, 7001, 2, 950, 900}));
     auto incremental = Registry::reconcileIds(base, {}, {second}, 2);
     incremental = Registry::reconcileIds(incremental.ids, {900}, {second, first},
