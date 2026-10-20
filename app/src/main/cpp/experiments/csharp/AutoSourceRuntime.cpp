@@ -479,7 +479,7 @@ bool worldPlayerReady() {
         return false;
     int mode = -1;
     api.field_static_get_value(refs.netMode, &mode);
-    if (mode != 0) return false;
+    if (!worldIsAuthoritative(mode)) return false;
     Il2CppObject* world = nullptr;
     api.field_static_get_value(refs.world, &world);
     if (!world) return false;
