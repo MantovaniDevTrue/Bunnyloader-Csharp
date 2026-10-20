@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.Loader;
 using System.Text;
 using BunnyLoader.SourceCompiler;
 
@@ -94,6 +95,25 @@ try
         "AttributedQuestFish", 0, 5, "1,1,2,954");
     if(otherMod!="1"||newestMod!="1")
         throw new InvalidOperationException("Quest assembly revision or separate mod failed");
+    var loadedMods=typeof(BunnyLoader.Source.BunnyRecipeLoader).GetField(
+        "mods",BindingFlags.Static|BindingFlags.NonPublic)?.GetValue(null)
+        as System.Collections.IDictionary;
+    if(loadedMods==null || loadedMods.Count!=2)
+        throw new InvalidOperationException("Collectible CSharp mod contexts were not registered");
+    foreach(string modId in new[]{"angler_host_fixture","other_angler_mod"})
+    {
+        var activeMod=loadedMods[modId]??throw new InvalidOperationException("Missing cached mod");
+        var context=activeMod.GetType().GetField("Context")?.GetValue(activeMod)
+            as AssemblyLoadContext;
+        var modAssembly=activeMod.GetType().GetField("Assembly")?.GetValue(activeMod)
+            as Assembly;
+        if(context==null || modAssembly==null || !context.IsCollectible ||
+            !ReferenceEquals(context,AssemblyLoadContext.GetLoadContext(modAssembly)))
+            throw new InvalidOperationException("CSharp mod assembly is not in a collectible per-mod context");
+        Type owner=modAssembly.GetTypes().Single(type=>type.Name=="DynamicQuestFish");
+        if(!typeof(BunnyLoader.Source.BunnyItem).IsAssignableFrom(owner))
+            throw new InvalidOperationException("Collectible mod duplicated BunnySourceSdk type identity");
+    }
     var handles=typeof(BunnyLoader.Source.BunnyQuestRuntime).GetField(
         "handlers", BindingFlags.Static|BindingFlags.NonPublic)?.GetValue(null)
         as System.Collections.IDictionary;
