@@ -215,7 +215,7 @@ std::array<Il2CppArray*,6> resolveVanillaPrefixGroups() {
     return groups;
 }
 
-std::vector<int32_t> vanillaItemCandidates(Il2CppObject* item,const Il2CppArray* base) {
+std::vector<int32_t> vanillaItemCandidates(Il2CppObject* item,Il2CppArray* base) {
     std::vector<int32_t> candidates;
     if (base && base->length<=512) {
         const auto* values=static_cast<const int32_t*>(arrayData(base));
@@ -238,7 +238,7 @@ std::vector<int32_t> vanillaItemCandidates(Il2CppObject* item,const Il2CppArray*
     for (int32_t prefix:candidates)
         if (prefix>0 && prefix<256) seen[static_cast<size_t>(prefix)]=true;
     for(size_t i=0;i<groups.size();++i) {
-        const auto* values=g_refs.vanillaPrefixGroups[i];
+        auto* values=g_refs.vanillaPrefixGroups[i];
         if (!groups[i] || !values || values->length>256) continue;
         const auto* types=static_cast<const int32_t*>(arrayData(values));
         for(uintptr_t index=0;index<values->length;++index) {
