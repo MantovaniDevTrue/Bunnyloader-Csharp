@@ -1,8 +1,8 @@
 using BunnyLoader.SourceCompiler;
 using System.Globalization;
 
-if (args.Length != 1 || !File.Exists(args[0]))
-    throw new InvalidOperationException("Expected compiled C# prefix fixture path");
+if (args.Length != 2 || !File.Exists(args[0]) || !File.Exists(args[1]))
+    throw new InvalidOperationException("Expected normal and global-only C# prefix fixture paths");
 
 string temp = Path.Combine(Path.GetTempPath(), "bunny-prefix-v89-" + Guid.NewGuid().ToString("N"));
 Directory.CreateDirectory(temp);
@@ -415,6 +415,31 @@ try
     if (!BunnyLoader.Source.BunnyPrefixRuntime.Dispatch(
         "prefix-fixture", args[0], "TestGuardedPrefix", 0, 7, validItem).StartsWith("ERROR|"))
         throw new InvalidOperationException("Unsupported prefix callback kind accepted");
+    string globalDir = Path.Combine(temp, "global-only");
+    Directory.CreateDirectory(globalDir);
+    string globalDiagnostics = Path.Combine(globalDir, "diagnostics.txt");
+    File.WriteAllText(globalDiagnostics, "");
+    int globalClasses = CompiledAssemblyProbe.Verify(args[1], globalDiagnostics);
+    if (globalClasses != 1)
+        throw new InvalidOperationException("Global-only C# mod rejected: " +
+            File.ReadAllText(globalDiagnostics));
+    var globalRows = File.ReadAllLines(Path.Combine(globalDir, "source-runtime-values.txt"));
+    if (globalRows.Length != 2 || globalRows[0] != "BUNNY_MANAGED_DEFAULTS_V2" ||
+        globalRows[1] != "GLOBAL_PREFIX_CALLBACK\tGlobalOnlyPolicy\t15")
+        throw new InvalidOperationException("Global-only mod emitted unexpected native wire");
+    const string globalOnlyState = "6207,22,4,3,98,4";
+    if (BunnyLoader.Source.BunnyItemPrefixRuntime.Dispatch(
+        "global-only", args[1], "GlobalOnlyPolicy", 0, 2, "") != "READY" ||
+        BunnyLoader.Source.BunnyItemPrefixRuntime.Dispatch(
+        "global-only", args[1], "GlobalOnlyPolicy", 80, 0, globalOnlyState) != "0" ||
+        BunnyLoader.Source.BunnyItemPrefixRuntime.Dispatch(
+        "global-only", args[1], "GlobalOnlyPolicy", 0, 3, globalOnlyState) != "74" ||
+        BunnyLoader.Source.BunnyItemPrefixRuntime.Dispatch(
+        "global-only", args[1], "GlobalOnlyPolicy", 1, 4, globalOnlyState) != "0" ||
+        BunnyLoader.Source.BunnyItemPrefixRuntime.Dispatch(
+        "global-only", args[1], "GlobalOnlyPolicy", 73, 5, globalOnlyState) != "2,5")
+        throw new InvalidOperationException("Standalone global-only MonoVM callback failed");
+    Console.WriteLine("BUNNY_CSHARP_GLOBAL_ONLY_PREFIX_CONTRACT=PASS classes=1 worker=ready");
     Console.WriteLine("BUNNY_CSHARP_PREFIX_NATIVE_CONTRACT=PASS prefixes=3 callbacks=6 content=2 managed_worker=ready");
 }
 finally
