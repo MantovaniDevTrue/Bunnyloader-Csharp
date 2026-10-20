@@ -132,6 +132,13 @@ int main() {
     swappedLocales.locales.emplace("pt-BR",std::make_pair("Peixe","Selva"));
     assert(Registry::manifestFingerprint({first,reversedLocales})==
            Registry::manifestFingerprint({swappedLocales,first}));
+    const auto effective=Registry::listFingerprint(inOrder.ids,{first,second});
+    assert(effective==Registry::listFingerprint(reverseOrder.ids,{second,first}));
+    assert(effective!=Registry::listFingerprint({1,2,7001,2,900,950},
+                                               {first,second}));
+    assert(effective!=Registry::listFingerprint({1,2,7002,2,950,900},
+                                               {first,second}));
+    assert(effective!=Registry::listFingerprint(inOrder.ids,{first,differentType}));
     assert((inOrder.ids == std::vector<int>{1, 2, 7001, 2, 950, 900}));
     auto incremental = Registry::reconcileIds(base, {}, {second}, 2);
     incremental = Registry::reconcileIds(incremental.ids, {900}, {second, first},
