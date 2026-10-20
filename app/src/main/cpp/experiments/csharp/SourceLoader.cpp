@@ -351,7 +351,8 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
         totalSourceBytes+=contents.size();
         if(totalSourceBytes>kSourceMaxTotalBytes) {status->error="Fontes excedem 32 MiB";return false;}
         const size_t previousTypes=defs.size();
-        if (!parseCSharpSource(contents, &defs, &status->error, false)) {
+        if (!parseCSharpSource(contents, &defs, &status->error, false,
+                               &status->localizationModules)) {
             status->error = path + ": " + status->error;
             return false;
         }
