@@ -1,0 +1,69 @@
+name: CSharp SoundLoader native and managed checks (no APK)
+
+on:
+  push:
+    branches:
+      - feat/csharp-soundloader-native-complete
+    paths:
+      - app/src/main/cpp/experiments/csharp/ManagedSoundLoader.h
+      - app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp
+      - app/src/main/cpp/content/sounds/NativeSoundRouter.*
+      - experiments/csharp/BunnyCsSdk/**
+      - samples/ExampleModCSharp/Playable/content/**
+      - tests/summon_lifecycle/managed_sound_loader_test.cpp
+      - tests/summon_lifecycle/sound_router_test.cpp
+      - .github/workflows/check-csharp-soundloader.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  native-host:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: SoundLoader source and exported ABI
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'bunny_csharp_sound_register' app/src/main/cpp/experiments/csharp/ManagedSoundLoader.h
+          grep -q 'managedSound::pump()' app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp
+          grep -q 'managedSound::worldExit()' app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp
+          grep -q 'stopAllSoundStyleInstances' app/src/main/cpp/content/sounds/NativeSoundRouter.cpp
+          test -s samples/ExampleModCSharp/Playable/content/Assets/Sounds/Items/Guns/ExampleGun.ogg
+      - name: Compile and execute production native audio bridge host test
+        shell: bash
+        run: |
+          set -euo pipefail
+          g++ -std=c++20 -O1 -Wall -Wextra -pthread             -Iapp/src/main/cpp -Itests/basic_items/include             tests/summon_lifecycle/managed_sound_loader_test.cpp             -o /tmp/bunny_csharp_soundloader_test
+          /tmp/bunny_csharp_soundloader_test
+      - name: Existing native sound router test (no Android)
+        shell: bash
+        run: |
+          set -euo pipefail
+          g++ -std=c++20 -O1 -Wall -Wextra -pthread             -Iapp/src/main/cpp -Itests/basic_items/include             tests/summon_lifecycle/sound_router_test.cpp             -o /tmp/bunny_csharp_soundrouter_test
+          /tmp/bunny_csharp_soundrouter_test
+  managed-sdk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Compile entire Bunny Source SDK, including new native SoundLoader bindings
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet build experiments/csharp/BunnyCsSdk/BunnyCsSdk.csproj -c Release             -p:AssemblyName=BunnySourceSdk -o /tmp/bunny-csharp-sound-sdk
+          test -s /tmp/bunny-csharp-sound-sdk/BunnySourceSdk.dll
+          grep -a -q BunnySounds /tmp/bunny-csharp-sound-sdk/BunnySourceSdk.dll
+          grep -a -q BunnySoundPlayback /tmp/bunny-csharp-sound-sdk/BunnySourceSdk.dll
+          echo 'CSHARP_SOUNDLOADER_MANAGED_SDK_COMPILE_PASS'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: BunnySourceSdk-SoundLoader-verified-no-apk
+          path: /tmp/bunny-csharp-sound-sdk/BunnySourceSdk.dll
+          retention-days: 7
