@@ -435,11 +435,20 @@ int main() {
     assert(stringAscii(hookedChat(0,&kChat))=="The upside-down fish\n\n(Anywhere)");
 
     bl::csharp::angler::invalidateWorldSession();
+    gIds=array(&kInt,4);
+    auto* newWorldIds=static_cast<int32_t*>(arrayData(gIds));
+    newWorldIds[0]=10;
+    newWorldIds[1]=500;
+    newWorldIds[2]=850;
+    newWorldIds[3]=11;
+    gSelected=2;
     gFlags=array(&kBool,1000);
     gRack=array(&kBool,1000);
     static_cast<uint8_t*>(arrayData(gFlags))[850]=1;
     static_cast<uint8_t*>(arrayData(gRack))[850]=1;
     bl::csharp::angler::pumpOnGameThread();
+    assert((ids()==std::vector<int>{10,500,850,11}));
+    assert(gSelected==2);
     reg.unload("examplemodcsharp");
     gHard=0;
     gSelected=2;
