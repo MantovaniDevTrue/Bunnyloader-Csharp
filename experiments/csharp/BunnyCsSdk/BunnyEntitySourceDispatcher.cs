@@ -36,6 +36,7 @@ public static class BunnyEntitySourceDispatcher
         public readonly HashSet<string> RegisteredItemUses = new(StringComparer.Ordinal);
         public readonly Dictionary<string, BunnyInvasionSystem> Invasions = new(StringComparer.Ordinal);
         public readonly Dictionary<string, (BunnyInvasionPhase Phase, int Progress)> SavedInvasions = new(StringComparer.Ordinal);
+        public readonly Dictionary<string, (BunnyInvasionPhase Phase, int PercentStep)> NotifiedInvasions = new(StringComparer.Ordinal);
         public int NextInvasionIndex;
         public readonly HashSet<string> PendingRewards = new(StringComparer.Ordinal);
         public int RewardPlayer = -1;
@@ -139,6 +140,7 @@ public static class BunnyEntitySourceDispatcher
             foreach (BunnyInvasionSystem system in context.Invasions.Values) system.OnWorldExit();
             context.RegisteredItemUses.Clear();
             context.SavedInvasions.Clear();
+            context.NotifiedInvasions.Clear();
             context.WorldStateInitialized = false;
             context.PendingRewards.Clear();
             context.RewardPlayer = -1;
@@ -244,13 +246,15 @@ public static class BunnyEntitySourceDispatcher
             BunnyInvasionController controller = system.Pipeline.Controller;
             BunnyInvasionSnapshot state = controller.Snapshot();
             bool hasSaved = context.SavedInvasions.TryGetValue(system.Id, out var saved);
-            int previousPercentStep = hasSaved ?
-                saved.Progress * 10 / controller.Definition.Goal : -1;
             int nextPercentStep = state.Progress * 10 / controller.Definition.Goal;
-            if (!hasSaved || state.Phase != saved.Phase ||
-                nextPercentStep != previousPercentStep)
-                BunnyInvasionNotifications.Publish(context.NativeWorldSession,
-                    context.Mod, controller);
+            if (!context.NotifiedInvasions.TryGetValue(system.Id, out var lastNotice) ||
+                state.Phase != lastNotice.Phase ||
+                nextPercentStep != lastNotice.PercentStep)
+            {
+                if (BunnyInvasionNotifications.Publish(context.NativeWorldSession,
+                    context.Mod, controller))
+                    context.NotifiedInvasions[system.Id] = (state.Phase, nextPercentStep);
+            }
             if (state.Phase == BunnyInvasionPhase.Completed &&
                 (!hasSaved || saved.Phase != BunnyInvasionPhase.Completed) &&
                 system.RewardStack > 0 && system.RewardItemClass.Length > 0)
