@@ -2,8 +2,15 @@ using System;
 using System.Linq;
 using System.Reflection;
 using BunnyLoader.Source;
+using BunnyLoader.SourceCompiler;
 
 string assemblyPath = Assembly.GetExecutingAssembly().Location;
+string descriptor = CommandManifestWriter.Build(Assembly.GetExecutingAssembly());
+if (!descriptor.Contains("CMD\tExampleModCSharp.Commands.ExampleHealCommand\theal\t1\n", StringComparison.Ordinal) ||
+    !descriptor.Contains("DESC\tExampleModCSharp.Commands.ExampleHealCommand\t", StringComparison.Ordinal) ||
+    !descriptor.Contains("CMD\tExampleModCSharp.Commands.ExampleTimeCommand\taddtime\t4\n", StringComparison.Ordinal) ||
+    !descriptor.Contains("DESC\tExampleModCSharp.Commands.ExampleTimeCommand\t", StringComparison.Ordinal))
+    throw new Exception("Roslyn deixou de registrar a ajuda dos dois exemplos");
 var registry = new BunnyCommandRegistry();
 if (registry.RegisterAssembly("exampleactions", Assembly.GetExecutingAssembly()) != 2)
     throw new Exception("Faltam HealCommand ou ExampleTimeCommand");
