@@ -21,4 +21,9 @@ struct Source {
 bool discover(const std::string& modDirectory, std::vector<Source>* out,
               std::string* error);
 
+// Relê um único PNG usando openat(O_NOFOLLOW) em cada componente.
+// A decodificação recebe bytes da cópia verificada e não reabre caminhos.
+bool readOwnedPng(const Source& source, std::vector<unsigned char>* bytes,
+                  std::string* error);
+
 }
