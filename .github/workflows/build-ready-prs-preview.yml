@@ -3,6 +3,7 @@ name: Build five ready PRs — experimental Android QA
   push:
     branches:
     - integration/ready-prs-20261020
+    - integration/pr117-pr118-pr102-gameplay-qa
   workflow_dispatch: {}
 permissions:
   contents: read
