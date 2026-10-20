@@ -1692,11 +1692,18 @@ void* pinnedMonoWorker(void*) {
                             const std::string wire = executeManagedCommandOnWorker(command);
                             std::vector<NativeCommandReply> messages;
                             bool handled = false;
+                            NativeCommandAction action;
                             std::string parseError;
-                            if (wire.empty() ||
-                                !decodeNativeCommandResult(wire, command.playerIndex,
-                                                           &handled, &messages, &parseError) ||
-                                !handled) {
+                            const bool valid = !wire.empty() &&
+                                decodeNativeCommandResult(wire, command.playerIndex,
+                                                          &handled, &messages, &parseError,
+                                                          &action) && handled;
+                            if (valid && wire.find("\nACTION\t") != std::string::npos) {
+                                if (nativeCommandMailbox().deliverAction(command, action))
+                                    continue;
+                            }
+                            if (!valid ||
+                                wire.find("\nACTION\t") != std::string::npos) {
                                 messages.clear();
                                 NativeCommandReply fallback;
                                 fallback.playerIndex = command.playerIndex;
