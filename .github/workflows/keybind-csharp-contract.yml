@@ -32,7 +32,7 @@ jobs:
       - name: Verify no JavaScript adapter in CSharp Keybind SDK
         shell: bash
         run: |
-          ! grep -En 'QuickJS|CSharpItemBehaviorLoader|CSharpArmorPolicy|CSharpWingPolicy' experiments/csharp/BunnyCsSdk/BunnyTouchButtonLoader.cs | grep -v 'contrato gerenciado'
+          ! grep -En 'JSContext|JS_Call|JSValue|CSharpItemBehaviorLoader|CSharpArmorPolicy|CSharpWingPolicy' experiments/csharp/BunnyCsSdk/BunnyTouchButtonLoader.cs
           ! grep -En 'quickjs.h|JSContext|JSValue|JS_Call' app/src/main/cpp/experiments/csharp/NativeTouchInput.cpp
   native-contract:
     runs-on: ubuntu-latest
