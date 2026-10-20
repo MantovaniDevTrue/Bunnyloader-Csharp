@@ -330,6 +330,7 @@ struct ManagedLivePerfStatus {
 bool bindManagedCommandMod(const std::string& modId, const std::string& assemblyPath,
                            std::string* error);
 void notifyManagedCommandWorker();
+void resetManagedCommandSession();
 
 bool startManagedLivePerf(std::string* error);
 ManagedLivePerfStatus managedLivePerfStatus();
