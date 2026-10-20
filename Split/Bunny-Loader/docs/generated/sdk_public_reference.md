@@ -42,7 +42,7 @@ string VisualTexture { get; set; }
 | --- | --- |
 | `bool AllowPrefix(BunnyPrefixItemSnapshot item, int prefix)` | worker_callback_isolated |
 | `void ApplyPrefix(ref BunnyPrefixApplyStats effects)` | compile_policy |
-| `void ConfigurePrefixRules(BunnyItemPrefixRules rules)` | compile_policy |
+| `void ConfigurePrefixRules(BunnyItemPrefixRules rules)` | managed_helper |
 | `void SetDefaults()` | compile_policy |
 
 ## BunnyLoader.Source.BunnyAccessoryVisualMode
@@ -154,7 +154,7 @@ string Texture { get; set; }
 | --- | --- |
 | `bool AllowPrefix(BunnyPrefixItemSnapshot item, int prefix)` | worker_callback_isolated |
 | `void ApplyPrefix(ref BunnyPrefixApplyStats effects)` | compile_policy |
-| `void ConfigurePrefixRules(BunnyItemPrefixRules rules)` | compile_policy |
+| `void ConfigurePrefixRules(BunnyItemPrefixRules rules)` | managed_helper |
 | `void SetDefaults()` | compile_policy |
 
 ## BunnyLoader.Source.BunnyColor
@@ -581,7 +581,7 @@ string UseSound { get; set; }
 | `static int BuyPrice(int platinum, int gold, int silver, int copper)` | managed_helper |
 | `static int SellPrice(int platinum, int gold, int silver, int copper)` | managed_helper |
 | `void ApplyPrefix(ref BunnyPrefixApplyStats effects)` | compile_policy |
-| `void ConfigurePrefixRules(BunnyItemPrefixRules rules)` | compile_policy |
+| `void ConfigurePrefixRules(BunnyItemPrefixRules rules)` | managed_helper |
 | `void DefaultToPlaceableTile(int vanillaTileId, int style)` | managed_helper |
 | `void DefaultToPlaceableTile(string modTileName, int style)` | managed_helper |
 | `void SetDefaults()` | compile_policy |
@@ -890,9 +890,9 @@ abstract class; base: `System.Object`.
 
 ```csharp
 PrefixCategory Category { get; set; }
+bool RequireEffectiveStats { get; set; }
 float RollWeight { get; set; }
 string DisplayName { get; set; }
-bool RequireEffectiveStats { get; set; }
 string ExtraTooltip { get; set; }
 ```
 
@@ -931,12 +931,12 @@ class; base: `System.Object`.
 
 ```csharp
 BunnyPrefixItemConditions()
+Char AttributeRollWeightKind { get; }
 bool HasAttributeRollWeight { get; }
-char AttributeRollWeightKind { get; }
-int AttributeRollWeightMinimum { get; }
-int AttributeRollWeightMaximum { get; }
-int AttributeRollWeightValue { get; }
 bool HasStackRollWeight { get; }
+int AttributeRollWeightMaximum { get; }
+int AttributeRollWeightMinimum { get; }
+int AttributeRollWeightValue { get; }
 int MaxDamage { get; }
 int MaxMana { get; }
 int MaxStack { get; }
@@ -1280,11 +1280,18 @@ abstract class; base: `System.Object`.
 ```csharp
 BunnyTileFlags Flags { get; set; }
 BunnyTileShape Shape { get; set; }
+bool AllowBreaking { get; set; }
+bool AllowDrops { get; set; }
 int AdjacentTile { get; set; }
+int AnimationFrameHeight { get; set; }
+int AnimationFrameTicks { get; set; }
+int AnimationFrames { get; set; }
 int CoordinateHeight { get; set; }
 int MapB { get; }
 int MapG { get; }
 int MapR { get; }
+int TileCallbackMask { get; }
+int[] AdjacentTiles { get; set; }
 string DisplayName { get; set; }
 string DustName { get; set; }
 string MapName { get; }
@@ -1293,8 +1300,21 @@ string Texture { get; set; }
 
 | Method | Execution |
 | --- | --- |
+| `bool CanDrop(int x, int y)` | managed_helper |
+| `bool CanKillTile(int x, int y)` | managed_helper |
+| `bool PreDraw(int x, int y)` | managed_helper |
+| `bool RightClick(int x, int y)` | managed_helper |
+| `bool Slope(int x, int y)` | managed_helper |
 | `int NumDust(bool fail)` | compile_policy |
 | `void AddMapEntry(int red, int green, int blue, string name)` | managed_helper |
+| `void AnimateTile(ref int frame, ref int frameCounter)` | managed_helper |
+| `void HitWire(int x, int y)` | managed_helper |
+| `void ModifyLight(int x, int y, ref float r, ref float g, ref float b)` | managed_helper |
+| `void MouseOver(int x, int y)` | managed_helper |
+| `void MouseOverFar(int x, int y)` | managed_helper |
+| `void NearbyEffects(int x, int y, bool closer)` | managed_helper |
+| `void PlaceInWorld(int x, int y)` | managed_helper |
+| `void RandomUpdate(int x, int y)` | managed_helper |
 | `void SetStaticDefaults()` | compile_policy |
 
 ## BunnyLoader.Source.BunnyTileFlags
@@ -1302,6 +1322,14 @@ string Texture { get; set; }
 enum; base: `System.Enum`.
 
 Values: None, Table, SolidTop, NoAttach, LavaDeath, FrameImportant, DisableSmartCursor, HasOutlines, IgnoredByNpcStepUp, CountsAsTable, Solid, BlockLight, MergeDirt, Lighted, WaterDeath, ChecksForMerge, Cut.
+
+## BunnyLoader.Source.BunnyTileRuntime
+
+abstract class; base: `System.Object`.
+
+| Method | Execution |
+| --- | --- |
+| `static string Dispatch(string modId, string assemblyPath, string owner, int index, int kind, string snapshot)` | managed_helper |
 
 ## BunnyLoader.Source.BunnyTileShape
 
@@ -1468,8 +1496,8 @@ abstract class; base: `BunnyLoader.Source.BunnyShootSource`.
 ```csharp
 BunnyHoldout Holdout { get; set; }
 BunnyNativeDefaults NativeDefaults { get; }
-Nullable<bool> PrefixChance { get; set; }
 BunnySoundStyle CustomUseSound { get; set; }
+Nullable<bool> PrefixChance { get; set; }
 bool Summon { get; set; }
 float ShootSpeed { get; set; }
 int Damage { get; set; }
@@ -1486,7 +1514,7 @@ string Texture { get; set; }
 | --- | --- |
 | `bool AllowPrefix(BunnyPrefixItemSnapshot item, int prefix)` | worker_callback_isolated |
 | `void ApplyPrefix(ref BunnyPrefixApplyStats effects)` | compile_policy |
-| `void ConfigurePrefixRules(BunnyItemPrefixRules rules)` | compile_policy |
+| `void ConfigurePrefixRules(BunnyItemPrefixRules rules)` | managed_helper |
 | `void SetDefaults()` | compile_policy |
 
 ## BunnyLoader.Source.PrefixCategory

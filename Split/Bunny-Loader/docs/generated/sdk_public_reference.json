@@ -48,7 +48,7 @@
       "properties": [
         "BunnyAccessoryVisualMode VisualMode { get; set; }",
         "BunnyNativeDefaults NativeDefaults { get; }",
-        "Nullable<bool> PrefixChance { get; set; }",
+        "Nullable\u003Cbool\u003E PrefixChance { get; set; }",
         "UInt32 VisualColor { get; set; }",
         "float VisualOpacity { get; set; }",
         "float VisualScale { get; set; }",
@@ -71,7 +71,7 @@
         },
         {
           "signature": "void ConfigurePrefixRules(BunnyItemPrefixRules rules)",
-          "execution": "compile_policy"
+          "execution": "managed_helper"
         },
         {
           "signature": "void SetDefaults()",
@@ -243,7 +243,7 @@
       "constructors": [],
       "properties": [
         "BunnyNativeDefaults NativeDefaults { get; }",
-        "Nullable<bool> PrefixChance { get; set; }",
+        "Nullable\u003Cbool\u003E PrefixChance { get; set; }",
         "int Duration { get; set; }",
         "string Buff { get; set; }",
         "string DisplayName { get; set; }",
@@ -262,7 +262,7 @@
         },
         {
           "signature": "void ConfigurePrefixRules(BunnyItemPrefixRules rules)",
-          "execution": "compile_policy"
+          "execution": "managed_helper"
         },
         {
           "signature": "void SetDefaults()",
@@ -405,7 +405,7 @@
           "execution": "worker_craft_command_queue"
         },
         {
-          "signature": "void GiveItem<TItem>(int count)",
+          "signature": "void GiveItem\u003CTItem\u003E(int count)",
           "execution": "worker_craft_command_queue"
         }
       ]
@@ -981,8 +981,8 @@
         "BunnyItemBehavior Behavior { get; }",
         "BunnyNativeDefaults NativeDefaults { get; }",
         "BunnySoundStyle CustomUseSound { get; set; }",
-        "Dictionary<string, string> TooltipTranslations { get; }",
-        "Nullable<bool> PrefixChance { get; set; }",
+        "Dictionary\u003Cstring, string\u003E TooltipTranslations { get; }",
+        "Nullable\u003Cbool\u003E PrefixChance { get; set; }",
         "bool Accessory { get; set; }",
         "bool AutoReuse { get; set; }",
         "bool Consumable { get; set; }",
@@ -1035,7 +1035,7 @@
         },
         {
           "signature": "void ConfigurePrefixRules(BunnyItemPrefixRules rules)",
-          "execution": "compile_policy"
+          "execution": "managed_helper"
         },
         {
           "signature": "void DefaultToPlaceableTile(int vanillaTileId, int style)",
@@ -1640,15 +1640,15 @@
       "constructors": [],
       "properties": [
         "PrefixCategory Category { get; set; }",
+        "bool RequireEffectiveStats { get; set; }",
         "float RollWeight { get; set; }",
         "string DisplayName { get; set; }",
-        "bool RequireEffectiveStats { get; set; }",
         "string ExtraTooltip { get; set; }"
       ],
       "values": [],
       "methods": [
         {
-          "signature": "IReadOnlyList<BunnyPrefixTooltipLine> GetTooltipLines(BunnyPrefixItemSnapshot item)",
+          "signature": "IReadOnlyList\u003CBunnyPrefixTooltipLine\u003E GetTooltipLines(BunnyPrefixItemSnapshot item)",
           "execution": "worker_callback_opt_in"
         },
         {
@@ -1737,12 +1737,12 @@
         "BunnyPrefixItemConditions()"
       ],
       "properties": [
+        "Char AttributeRollWeightKind { get; }",
         "bool HasAttributeRollWeight { get; }",
-        "char AttributeRollWeightKind { get; }",
-        "int AttributeRollWeightMinimum { get; }",
-        "int AttributeRollWeightMaximum { get; }",
-        "int AttributeRollWeightValue { get; }",
         "bool HasStackRollWeight { get; }",
+        "int AttributeRollWeightMaximum { get; }",
+        "int AttributeRollWeightMinimum { get; }",
+        "int AttributeRollWeightValue { get; }",
         "int MaxDamage { get; }",
         "int MaxMana { get; }",
         "int MaxStack { get; }",
@@ -1990,11 +1990,11 @@
           "execution": "managed_helper"
         },
         {
-          "signature": "BunnyRecipe AddCondition(string description, Func<BunnyCraftContext, bool> predicate)",
+          "signature": "BunnyRecipe AddCondition(string description, Func\u003CBunnyCraftContext, bool\u003E predicate)",
           "execution": "managed_helper"
         },
         {
-          "signature": "BunnyRecipe AddConsumeIngredientCallback(Func<BunnyCraftContext, int, int, int> callback)",
+          "signature": "BunnyRecipe AddConsumeIngredientCallback(Func\u003CBunnyCraftContext, int, int, int\u003E callback)",
           "execution": "managed_helper"
         },
         {
@@ -2006,7 +2006,7 @@
           "execution": "managed_helper"
         },
         {
-          "signature": "BunnyRecipe AddIngredient<TItem>(int count)",
+          "signature": "BunnyRecipe AddIngredient\u003CTItem\u003E(int count)",
           "execution": "managed_helper"
         },
         {
@@ -2014,7 +2014,7 @@
           "execution": "managed_helper"
         },
         {
-          "signature": "BunnyRecipe AddOnCraftCallback(Action<BunnyCraftContext> callback)",
+          "signature": "BunnyRecipe AddOnCraftCallback(Action\u003CBunnyCraftContext\u003E callback)",
           "execution": "managed_helper"
         },
         {
@@ -2030,7 +2030,7 @@
           "execution": "managed_helper"
         },
         {
-          "signature": "BunnyRecipe AddTile<TTile>()",
+          "signature": "BunnyRecipe AddTile\u003CTTile\u003E()",
           "execution": "managed_helper"
         },
         {
@@ -2050,7 +2050,7 @@
           "execution": "managed_helper"
         },
         {
-          "signature": "bool RemoveIngredient<TItem>()",
+          "signature": "bool RemoveIngredient\u003CTItem\u003E()",
           "execution": "managed_helper"
         },
         {
@@ -2096,7 +2096,7 @@
       "kind": "class",
       "baseType": "System.Object",
       "constructors": [
-        "BunnyRecipeCondition(string description, Func<BunnyCraftContext, bool> predicate)"
+        "BunnyRecipeCondition(string description, Func\u003CBunnyCraftContext, bool\u003E predicate)"
       ],
       "properties": [
         "BunnyRecipeCondition Day { get; }",
@@ -2148,7 +2148,7 @@
           "execution": "managed_helper"
         },
         {
-          "signature": "BunnyRecipeGroup AddItem<TItem>()",
+          "signature": "BunnyRecipeGroup AddItem\u003CTItem\u003E()",
           "execution": "managed_helper"
         }
       ]
@@ -2187,7 +2187,7 @@
       "baseType": "System.Object",
       "constructors": [],
       "properties": [
-        "IReadOnlyList<string> RecipeDefinitions { get; }"
+        "IReadOnlyList\u003Cstring\u003E RecipeDefinitions { get; }"
       ],
       "values": [],
       "methods": [
@@ -2356,11 +2356,18 @@
       "properties": [
         "BunnyTileFlags Flags { get; set; }",
         "BunnyTileShape Shape { get; set; }",
+        "bool AllowBreaking { get; set; }",
+        "bool AllowDrops { get; set; }",
         "int AdjacentTile { get; set; }",
+        "int AnimationFrameHeight { get; set; }",
+        "int AnimationFrameTicks { get; set; }",
+        "int AnimationFrames { get; set; }",
         "int CoordinateHeight { get; set; }",
         "int MapB { get; }",
         "int MapG { get; }",
         "int MapR { get; }",
+        "int TileCallbackMask { get; }",
+        "int[] AdjacentTiles { get; set; }",
         "string DisplayName { get; set; }",
         "string DustName { get; set; }",
         "string MapName { get; }",
@@ -2369,11 +2376,63 @@
       "values": [],
       "methods": [
         {
+          "signature": "bool CanDrop(int x, int y)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool CanKillTile(int x, int y)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool PreDraw(int x, int y)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool RightClick(int x, int y)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool Slope(int x, int y)",
+          "execution": "managed_helper"
+        },
+        {
           "signature": "int NumDust(bool fail)",
           "execution": "compile_policy"
         },
         {
           "signature": "void AddMapEntry(int red, int green, int blue, string name)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void AnimateTile(ref int frame, ref int frameCounter)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void HitWire(int x, int y)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void ModifyLight(int x, int y, ref float r, ref float g, ref float b)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void MouseOver(int x, int y)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void MouseOverFar(int x, int y)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void NearbyEffects(int x, int y, bool closer)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void PlaceInWorld(int x, int y)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void RandomUpdate(int x, int y)",
           "execution": "managed_helper"
         },
         {
@@ -2408,6 +2467,20 @@
         "Cut"
       ],
       "methods": []
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyTileRuntime",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [],
+      "values": [],
+      "methods": [
+        {
+          "signature": "static string Dispatch(string modId, string assemblyPath, string owner, int index, int kind, string snapshot)",
+          "execution": "managed_helper"
+        }
+      ]
     },
     {
       "name": "BunnyLoader.Source.BunnyTileShape",
@@ -2756,8 +2829,8 @@
       "properties": [
         "BunnyHoldout Holdout { get; set; }",
         "BunnyNativeDefaults NativeDefaults { get; }",
-        "Nullable<bool> PrefixChance { get; set; }",
         "BunnySoundStyle CustomUseSound { get; set; }",
+        "Nullable\u003Cbool\u003E PrefixChance { get; set; }",
         "bool Summon { get; set; }",
         "float ShootSpeed { get; set; }",
         "int Damage { get; set; }",
@@ -2781,7 +2854,7 @@
         },
         {
           "signature": "void ConfigurePrefixRules(BunnyItemPrefixRules rules)",
-          "execution": "compile_policy"
+          "execution": "managed_helper"
         },
         {
           "signature": "void SetDefaults()",
