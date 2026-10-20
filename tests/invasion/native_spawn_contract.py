@@ -16,6 +16,9 @@ required = (
     "InvasionSpawnError::NoNpcSlot",
     "InvasionSpawnError::VerificationFailed",
     "runtime::sendData(23, slot)",
+    "findNativeInvasionSpawnSite(",
+    "InvasionSpawnError::NoSafeSpawnSite",
+    "int x = site.x, y = site.y;",
 )
 
 for marker in required:
@@ -23,6 +26,7 @@ for marker in required:
 
 policy = (root / "app/src/main/cpp/experiments/csharp/NativeInvasionSpawn.h").read_text(encoding="utf-8")
 assert "request.worldReady" in policy
+assert "NoSafeSpawnSite" in policy
 assert "worldIsAuthoritative(mode)" in policy
 assert "script/js/" not in content
 assert "QuickJS" not in content
