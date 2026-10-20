@@ -270,6 +270,7 @@ std::chrono::steady_clock::time_point g_auditStart;
 
 struct UniversalMod { std::string id, path; bool registered = false; };
 std::vector<UniversalMod> g_universalMods;
+std::deque<std::string> g_universalPendingUnloads;
 bool g_universalUnload = false;
 bool g_universalEnabled = true;
 void* g_universalRegister = nullptr;
@@ -278,6 +279,7 @@ void* g_universalDispatchInt32 = nullptr;
 void* g_universalDispatchInt32Pair = nullptr;
 void* g_universalDispatchExtended = nullptr;
 void* g_universalClear = nullptr;
+void* g_universalUnloadMod = nullptr;
 void* g_universalRemove = nullptr;
 void* g_universalError = nullptr;
 void* g_universalSnapshot = nullptr;
@@ -1180,7 +1182,8 @@ int64_t executeManagedEntityOnWorker(const ManagedEntityJob& job) {
 }
 
 bool prepareUniversalHookSdk() {
-    if (g_universalRegister && g_universalSnapshot && g_universalDispatch && g_universalDispatchInt32 && g_universalDispatchInt32Pair && g_universalDispatchExtended && g_universalClear && g_universalRemove) return true;
+    if (g_universalRegister && g_universalSnapshot && g_universalDispatch && g_universalDispatchInt32 && g_universalDispatchInt32Pair && g_universalDispatchExtended && g_universalClear && g_universalUnloadMod &&
+        g_universalRemove) return true;
     if (!g_domain || !g_status.methodExecuted || !g_api.openAssembly || !g_api.image ||
         !g_api.findClass || !g_api.findMethod || !g_api.invoke || !g_api.unbox) return false;
     const auto slash = g_checkpointPath.find_last_of('/');
@@ -1193,6 +1196,7 @@ bool prepareUniversalHookSdk() {
     if (!dispatcher || !hooks) return false;
     g_universalRegister = g_api.findMethod(dispatcher, "Register", 2);
     g_universalClear = g_api.findMethod(dispatcher, "UnloadAll", 0);
+    g_universalUnloadMod = g_api.findMethod(dispatcher, "Unload", 1);
     g_universalError = g_api.findMethod(dispatcher, "get_LastError", 0);
     g_universalSnapshot = g_api.findMethod(dispatcher, "GetStatusSnapshot", 1);
     g_universalDispatch = g_api.findMethod(hooks, "Invoke", 4);
@@ -1201,7 +1205,8 @@ bool prepareUniversalHookSdk() {
     g_universalDispatchExtended = g_api.findMethod(hooks, "InvokeExtended", 9);
     g_universalRemove = g_api.findMethod(hooks, "RemoveSlot", 1);
     return g_universalRegister && g_universalSnapshot && g_universalDispatch && g_universalDispatchInt32 &&
-           g_universalDispatchInt32Pair && g_universalDispatchExtended && g_universalClear && g_universalRemove;
+           g_universalDispatchInt32Pair && g_universalDispatchExtended &&
+           g_universalClear && g_universalUnloadMod && g_universalRemove;
 }
 
 void writeUniversalRegistrationStatus(const std::string& id, const char* state, const std::string& detail) {
@@ -1303,14 +1308,23 @@ bool pollUniversalHooksOnWorker() {
         return true;
     }
     UniversalMod next;
-    bool unload = false, found = false;
+    std::string targetUnload;
+    bool unload = false, found = false, targeted = false;
     {
         std::lock_guard<std::mutex> lock(g_pinnedMutex);
         unload = g_universalUnload;
         g_universalUnload = false;
-        if (!unload && g_universalEnabled) {
+        if (unload) {
+            g_universalPendingUnloads.clear();
+        } else if (!g_universalPendingUnloads.empty()) {
+            targetUnload = std::move(g_universalPendingUnloads.front());
+            g_universalPendingUnloads.pop_front();
+            targeted = true;
+        }
+        if (!unload && !targeted && g_universalEnabled) {
             for (auto& mod : g_universalMods) {
-                if (mod.registered) continue;
+                if (mod.registered || g_revokedDeferredMods.contains(mod.id))
+                    continue;
                 mod.registered = true;
                 next = mod;
                 found = true;
@@ -1318,13 +1332,16 @@ bool pollUniversalHooksOnWorker() {
             }
         }
     }
-    if (!unload && !found) return false;
+    if (!unload && !found && !targeted) return false;
     std::lock_guard<std::mutex> guard(g_mutex);
     if (!prepareUniversalHookSdk()) {
+        std::lock_guard<std::mutex> lock(g_pinnedMutex);
+        if (targeted) g_universalPendingUnloads.push_front(targetUnload);
         if (found) {
-            std::lock_guard<std::mutex> lock(g_pinnedMutex);
-            for (auto& mod : g_universalMods) if (mod.id == next.id) mod.registered = false;
+            for (auto& mod : g_universalMods)
+                if (mod.id == next.id) mod.registered = false;
         }
+        g_universalPolling.store(false, std::memory_order_release);
         return false;
     }
     void* exception = nullptr;
@@ -1341,7 +1358,26 @@ bool pollUniversalHooksOnWorker() {
         std::lock_guard<std::mutex> lock(g_pinnedMutex);
         if (!g_universalEnabled) g_universalPolling.store(false, std::memory_order_release);
     }
-    else if (g_api.newString) {
+    else if (targeted && g_api.newString) {
+        void* id = g_api.newString(g_domain, targetUnload.c_str());
+        void* args[] = {id};
+        void* boxed = id ? g_api.invoke(g_universalUnloadMod, nullptr, args, &exception) : nullptr;
+        void* value = !exception && boxed ? g_api.unbox(boxed) : nullptr;
+        if (!value) {
+            writeUniversalRegistrationStatus(targetUnload, "unload-failed",
+                "SDK Unload(id) unavailable or threw; restart required");
+        } else {
+            writeUniversalRegistrationStatus(targetUnload, "unloaded",
+                "native hook scope released; Mono assembly remains loaded");
+        }
+    }
+    else if (found && g_api.newString) {
+        bool revoked = false;
+        {
+            std::lock_guard<std::mutex> lock(g_pinnedMutex);
+            revoked = g_revokedDeferredMods.contains(next.id);
+        }
+        if (revoked) return true;
         void* args[] = {g_api.newString(g_domain, next.id.c_str()), g_api.newString(g_domain, next.path.c_str())};
         void* boxed = args[0] && args[1] ? g_api.invoke(g_universalRegister, nullptr, args, &exception) : nullptr;
         int count = -1;
@@ -2086,6 +2122,7 @@ void wakeUniversalHookWorker() { g_pinnedWake.notify_one(); }
 bool registerUniversalHookMod(const std::string& id, const std::string& assembly) {
     if (id.empty() || id.size() > 128 || !validAssembly(assembly)) return false;
     std::lock_guard<std::mutex> lock(g_pinnedMutex);
+    if (g_revokedDeferredMods.contains(id)) return false;
     for (const auto& mod : g_universalMods) if (mod.id == id) return mod.path == assembly;
     if (g_universalMods.size() >= 16) return false;
     g_universalMods.push_back({id, assembly, false});
@@ -3902,6 +3939,17 @@ void invalidateManagedDeferredSourceMod(const std::string& modId) {
     if (modId.empty()) return;
     std::lock_guard<std::mutex> lock(g_pinnedMutex);
     g_revokedDeferredMods.insert(modId);
+    for (auto& binding : g_universalMods) {
+        if (binding.id != modId) continue;
+        binding.registered = true;
+        if (std::find(g_universalPendingUnloads.begin(),
+                      g_universalPendingUnloads.end(), modId) ==
+            g_universalPendingUnloads.end())
+            g_universalPendingUnloads.push_back(modId);
+        g_universalPolling.store(true, std::memory_order_release);
+        g_pinnedWake.notify_one();
+        break;
+    }
 
     const bool primaryRevoked = g_liveHitStatus.modId == modId &&
         g_liveHitStatus.enabled;

@@ -122,6 +122,19 @@ O consumidor descarta comandos com identidade obsoleta, preservando o FIFO
 da fila nativa SPSC e o limite existente de processamento por tick.
 O descarregamento não interrompe callbacks que já estão rodando.
 
+## Descarregamento individual de hooks universais
+
+O dispatcher C# `BunnyUniversalHookDispatcher` agora oferece `Unload(id)`
+ao lado de `UnloadAll()`, fechando apenas o escopo nativo dos hooks
+pertencentes ao mod indicado e chamando seus métodos `Unload()`.
+O runtime envia a solicitação pela thread Mono existente e impede
+re-registrar um mod revogado no mesmo processo. Os outros mods não são
+removidos; a regressão .NET host cobre dois contextos independentes.
+
+Isso é liberação de hooks, não coleta do assembly Mono. Se o dispatcher
+Mono não estiver pronto, o fechamento fica pendente para uma retomada
+do worker. Falhas na liberação ainda exigem reiniciar o aplicativo.
+
 ## Diagnóstico seguro da ABI Android
 
 A preparação de `FishingCheck_RollItemDrop` diferencia os estados

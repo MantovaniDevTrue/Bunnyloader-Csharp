@@ -622,6 +622,17 @@ public static class BunnyUniversalHookDispatcher
             catch (Exception error) { LastError = context.Id + ": " + error.Message; }
         context.Modules.Clear();
     }
+    public static bool Unload(string id)
+    {
+        if (string.IsNullOrWhiteSpace(id)) return false;
+        int index = Contexts.FindIndex(context => context.Id == id);
+        if (index < 0) return false;
+        Context context = Contexts[index];
+        Contexts.RemoveAt(index);
+        Close(context);
+        return true;
+    }
+
     public static void UnloadAll()
     {
         foreach (Context context in Contexts) Close(context);
