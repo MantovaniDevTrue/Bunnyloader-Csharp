@@ -86,6 +86,16 @@ public sealed class BunnyInvasionSpawnPipeline
         return true;
     }
 
+    public bool TryGetReservedClass(int epoch, int ticket, out string npcClass)
+    {
+        SyncEpoch();
+        npcClass = "";
+        if (epoch != knownEpoch || !pending.TryGetValue(ticket, out Pending claim))
+            return false;
+        npcClass = claim.NpcClass;
+        return true;
+    }
+
     public bool ReportCreated(bool authoritative, int epoch, int ticket,
         string npcClass, int slot, long nativeIdentity)
     {
