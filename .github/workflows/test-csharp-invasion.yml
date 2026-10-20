@@ -8,6 +8,8 @@ on:
       - experiments/csharp/BunnyCsSdk/BunnyInvasion.cs
       - app/src/main/cpp/experiments/csharp/NpcAiHost.cpp
       - app/src/main/cpp/experiments/csharp/WorldAuthority.h
+      - app/src/main/cpp/experiments/csharp/NativeInvasionSpawn.h
+      - app/src/main/cpp/experiments/csharp/NativeInvasionSpawn.cpp
       - samples/ExampleModCSharp/Playable/content/Content/NPCs/ExampleSlimeNPC.cs
       - samples/ExampleModCSharp/Playable/content/Content/Systems/ExampleInvasion.cs
       - tests/invasion/**
@@ -37,6 +39,13 @@ jobs:
         run: dotnet run --project tests/invasion/DispatcherIntegration.csproj --configuration Release
       - name: Verify real Terraria NPC hook authority and kill ingress
         run: python3 tests/invasion/test_npc_hook_contract.py
+      - name: Verify pure native spawn policy and source contracts
+        run: |
+          python3 tests/invasion/native_spawn_contract.py
+          g++ -std=c++17 -Wall -Wextra -Werror tests/invasion/NativeSpawnPolicyTest.cpp -o /tmp/bunny-spawn-policy
+          /tmp/bunny-spawn-policy
+      - name: Syntax-check native invasion host against real Bunny headers
+        run: g++ -std=c++20 -Wall -Wextra -Werror -Iapp/src/main/cpp -fsyntax-only app/src/main/cpp/experiments/csharp/NativeInvasionSpawn.cpp
       - name: Validate CSharp NPC world authority in native C++
         run: |
           g++ -std=c++17 -Wall -Wextra -Werror tests/invasion/WorldAuthorityTest.cpp -o /tmp/bunny-invasion-authority
