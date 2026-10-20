@@ -1213,9 +1213,8 @@ Values: Single, Style2x1, Style3x2, Style1x3.
 
 struct; base: `System.ValueType`.
 
-Constructors: `BunnyTileSmartInteractSettings(int lx, int ly, int hx, int hy)`.
-
 ```csharp
+BunnyTileSmartInteractSettings(int lx, int ly, int hx, int hy)
 int HX { get; }
 int HY { get; }
 int LX { get; }
