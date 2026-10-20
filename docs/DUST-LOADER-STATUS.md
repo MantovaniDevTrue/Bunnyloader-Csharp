@@ -12,6 +12,10 @@ Referência nativa: `JonataOliveiraa/Bunny-Loader` (`ModDusts.h/.cpp`). Integra�
 - `ModDusts.cpp`: hooks nativos `NewDust`, `UpdateDust`, `MidUpdate`, `DrawDust` e `GetAlpha` encaminham C# pelo worker quando o tipo pertence à categoria gerenciada; seguem usando `SetNotActive` para devolver as vagas ao pool.
 - `mergeManagedDustDelta`: aplica apenas mudanças retornadas pelo C#, em vez de restaurar o snapshot antigo e causar saltos visuais; teste de finitude e identidade de partícula.
 - Atualização do registro de máscaras no thread do jogo, inclusive instalação tardia de GetAlpha, sem instalar hooks duplos.
+- `ManagedDustLifecycle`: rastreia gerações e slots observados, envia `Release` na morte, mudança de tipo ou reutilização, retém liberações para nova tentativa quando a fila está ocupada e prioriza a fase 5. O backlog é limitado a 12.000 liberações; ultrapassar o limite produz erro explícito no log em vez de perda silenciosa.
+- `noteAutoWorldTilesLoaded` e a saída de mundo reinicializam o rastreio nativo, o contador de gerações, o cache de respostas, a sessão da mailbox e a instância do dispatcher no MonoVM.
+- `BunnyDustSourceDispatcher` impede repetir uma exceção em `OnSpawn` durante a mesma geração; utiliza fallback vanilla e rearma o callback somente em nova geração. `Bind` aceita IDs globais abaixo de 32768 mesmo que o mod tenha registrado poucos tipos localmente.
+- Estados inativos com `Scale=0` são válidos para encerrar corretamente a partícula. Escala zero enquanto ativa permanece inválida e aciona rollback.
 - `noteAutoWorldTilesLoaded` solicita reset da sessão, fila e estado gerenciado quando um mundo é carregado.
 - Exemplo `ExampleSparkDust` isolado em `DustLoaderPreview`. Foi retirado de `Playable` porque a feature ainda está bloqueada e não pode comprometer o ExampleMod C# estável.
 
@@ -21,6 +25,9 @@ Referência nativa: `JonataOliveiraa/Bunny-Loader` (`ModDusts.h/.cpp`). Integra�
 - Smoke da compilação de fonte via Roslyn, exportação do registro DUST e execução dos callbacks por ponteiro em C#.
 - Testes da mailbox para concorrência entre fases, expiração, troca de mundo, reincidência, descarte e reuso da vaga.
 - Testes matemáticos do merge de delta: posição, escala, alpha, cor, cancelamento e NaN.
+- Testes novos de `ManagedDustLifecycle`: morte, troca de tipo, reuso de slot, reentrada no mundo, retries, priorização de `Release`, overflows limitados a 12.000 e proteção de gerações.
+- Smoke Roslyn com um `BrokenSpawnDust` confirma que `OnSpawn` defeituoso é chamado apenas uma vez por instância/geração; um novo spawn rearma a chamada.
+- Contrato de escala zero valida que somente uma poeira inativa pode terminar com `Scale=0`.
 - Compilação nativa ARM64 em CI sem empacotamento de APK, com execuções aprovadas; a última execução após alterações adicionais deve ser avaliada separadamente.
 - As DLLs `BunnySourceSdk.dll` e `BunnySourceCompiler.dll` são montadas pelo pipeline C# sem APK, e os hashes correspondentes são reescritos em `framework.sha256` no mesmo commit.
 
@@ -28,9 +35,9 @@ Referência nativa: `JonataOliveiraa/Bunny-Loader` (`ModDusts.h/.cpp`). Integra�
 
 1. **A barreira `managedDustCallbacksConnected()` continua em `false`.** Mods C# que sobrescrevem callbacks Dust continuam recusados com `MonoDustBridgeNotConnected`. Isso evita anunciar funcionalidade não validada e mantém o ExampleMod estável.
 2. Ainda falta executar o fluxo completo em Terraria Android com IL2CPP e MonoVM juntos, conferindo campos nativos como `dustIndex`, `position`, `scale`, `rotation`, `alpha`, `color` e `frame`.
-3. Validar em jogo a fidelidade do primeiro `OnSpawn`, de `PreDraw`, do `GetAlpha`, do retorno `Update=false`, da morte e devolução de slots. O worker assíncrono aplica resultados em frames posteriores (até 3); é necessário avaliar e ajustar esse atraso visual.
+3. Validar em jogo a fidelidade do primeiro `OnSpawn`, de `PreDraw`, do `GetAlpha`, do retorno `Update=false`, e confirmar no Android a devolução real dos slots com a fila `Release`. O worker assíncrono aplica resultados em frames posteriores (até 3); é necessário avaliar e ajustar esse atraso visual.
 4. Medir desempenho, consumo de memória, limite de 128 jobs, estabilidade em grandes lotes, comportamento com QuickJS + vários mods C# e recarregamento de mundos.
-5. A versão compilada das DLLs precisa ter seu hash e build nativa revalidados na versão final do commit. Nenhuma falha de compilação ou regressão em mods existentes pode ser aceita.
+5. Os artefatos devem permanecer com hashes iguais ao manifesto e a compilação ARM64 deve ser aprovada no commit final. Nenhuma falha de compilação ou regressão em mods existentes pode ser aceita.
 
 ## Regra permanente de release
 
