@@ -852,6 +852,11 @@ bool applyManagedSourceDefaults(
                 }
                 tile.cacheDrawData = fields[20] == "1";
             }
+            if (tile_wire::hasRegisteredDrops(fields.size()) &&
+                !tile_drop::parseRules(fields[22], &tile.registeredDrops)) {
+                *error = fields[1] + ": RegisterItemDrop invalido";
+                return false;
+            }
             tiles.push_back(std::move(tile));
             if (tiles.size() > kSourceMaxCategory) {
                 *error = "[CSharp][ERROR][Tile] Mod="+modId+" Stage=Decode Expected=AtMost"+std::to_string(kSourceMaxCategory)+" Actual="+std::to_string(tiles.size())+" Reason=CategoryCapacityExceeded Result=ModRejected"; return false;
