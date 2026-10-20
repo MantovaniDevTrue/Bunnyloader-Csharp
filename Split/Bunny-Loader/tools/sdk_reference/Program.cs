@@ -51,7 +51,8 @@ string Mode(Type type, MethodInfo method)
         return "worker_async_entity";
     if (type == typeof(BunnyProjectile) && method.Name != "SetDefaults") return "compile_sampled_policy";
     if (type == typeof(BunnyPrefix)) return "compile_policy";
-    if (method.Name is "SetDefaults" or "SetStaticDefaults" or "AddRecipes" or "NumDust") return "compile_policy";
+    if (method.Name == "NumDust") return method.GetParameters().Length == 1 ? "compile_policy" : "managed_helper";
+    if (method.Name is "SetDefaults" or "SetStaticDefaults" or "AddRecipes") return "compile_policy";
     if (type == typeof(BunnyVisual)) return "managed_command_queue";
     return "managed_helper";
 }
