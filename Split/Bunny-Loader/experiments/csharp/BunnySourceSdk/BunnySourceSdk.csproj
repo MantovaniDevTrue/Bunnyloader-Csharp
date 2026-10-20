@@ -29,6 +29,7 @@
     <Compile Include="../BunnyCsSdk/BunnySourceScriptApi.cs" Link="BunnySourceScriptApi.cs" />
     <Compile Include="../BunnyCsSdk/BunnyPrefixCallbacks.cs" Link="BunnyPrefixCallbacks.cs" />
     <Compile Include="../BunnyCsSdk/BunnyItemPrefixCallbacks.cs" Link="BunnyItemPrefixCallbacks.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyGlobalItem.cs" Link="BunnyGlobalItem.cs" />
     <Compile Include="../BunnyCsSdk/BunnyEntitySourceDispatcher.cs" Link="BunnyEntitySourceDispatcher.cs" />
     <Compile Include="../BunnyCsSdk/BunnyPrimitives.cs" Link="BunnyPrimitives.cs" />
     <Compile Include="../BunnyCsSdk/BunnyNativeAccess.cs" Link="BunnyNativeAccess.cs" />
