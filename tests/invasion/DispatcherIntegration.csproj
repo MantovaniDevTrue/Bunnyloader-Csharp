@@ -5,8 +5,10 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="DispatcherIntegration.cs" />
     <ProjectReference Include="../../experiments/csharp/BunnyCsSdk/BunnyCsSdk.csproj" />
     <Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/Systems/ExampleInvasion.cs" Link="ExampleInvasion.cs" />
     <Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/NPCs/ExampleSlimeNPC.cs" Link="ExampleSlimeNPC.cs" />
