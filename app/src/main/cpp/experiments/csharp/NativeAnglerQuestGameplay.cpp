@@ -461,8 +461,9 @@ void pumpOnGameThread() {
         g_fishingWarning = true;
     } else g_fishingWarning = false;
     if (pending)
-        BL_INFO("[CSharp][AnglerQuest] Stage=Ready Quests=%zu Hooks=2 Result=Installed",
-                quests.size());
+        BL_INFO("[CSharp][AnglerQuest] Stage=Ready Quests=%zu Manifest=%016llx Hooks=2 Result=Installed",
+                quests.size(), static_cast<unsigned long long>(
+                    Registry::manifestFingerprint(quests)));
 }
 
 void invalidateWorldSession() {
