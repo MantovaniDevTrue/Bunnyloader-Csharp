@@ -6,6 +6,8 @@
 #include <algorithm>
 #include <atomic>
 #include <array>
+#include <chrono>
+#include <condition_variable>
 #include <cstddef>
 #include <cstdint>
 #include <deque>
@@ -27,6 +29,7 @@ public:
         std::uint64_t frame = 0;
         std::int32_t binding = -1;
         std::int32_t phase = 0;
+        bool synchronous = false;
     };
 
     struct Response {
@@ -40,7 +43,7 @@ public:
 
     bool offer(std::int32_t binding, std::int32_t phase,
                const ManagedDustState& state, std::uint64_t frame,
-               bool* wake = nullptr) {
+               bool* wake = nullptr, bool synchronous = false) {
         if (wake) *wake = false;
         if (binding < 0 || phase < 0 || phase >= static_cast<int>(kPhases) ||
             !managedDustStateValid(state) ||
@@ -69,7 +72,8 @@ public:
         } else if (state.generation <= retired_[slotIndex]) {
             return false;
         }
-        if (requests_.size() >= kPendingLimit && (phase == 5 || phase == 0)) {
+        if (requests_.size() >= kPendingLimit &&
+            (phase == 5 || phase == 0 || synchronous)) {
             const auto evict = std::find_if(requests_.rbegin(), requests_.rend(),
                 [](const Request& queued) { return queued.phase != 5 && queued.phase != 0; });
             if (evict != requests_.rend()) {
@@ -102,10 +106,10 @@ public:
         slot.phase = phase;
         slot.frame = frame;
         const bool wasEmpty = requests_.empty();
-        Request request{state, session_, frame, binding, phase};
+        Request request{state, session_, frame, binding, phase, synchronous};
         if (phase == 5) {
             requests_.push_front(request);
-        } else if (phase == 0) {
+        } else if (phase == 0 || synchronous) {
             const auto firstNormal = std::find_if(requests_.begin(), requests_.end(),
                 [](const Request& queued) {
                     return queued.phase != 5 && queued.phase != 0;
@@ -114,7 +118,7 @@ public:
         } else {
             requests_.push_back(request);
         }
-        if (wake) *wake = wasEmpty || phase == 5 || phase == 0;
+        if (wake) *wake = wasEmpty || phase == 5 || phase == 0 || synchronous;
         return true;
     }
 
@@ -158,7 +162,52 @@ public:
         slot.ready = (flags & 1u) != 0u;
         if (slot.ready)
             slot.result = {state, request.state, flags, request.session, request.frame, request.phase};
+        if (request.synchronous) completed_.notify_all();
         return true;
+    }
+
+    bool await(std::int32_t binding, std::int32_t phase,
+               const ManagedDustState& original, std::uint64_t frame,
+               std::chrono::steady_clock::time_point deadline,
+               Response* out) {
+        if (!out || binding < 0 || phase < 0 || phase >= static_cast<int>(kPhases) ||
+            !managedDustStateValid(original)) return false;
+        std::unique_lock<std::mutex> lock(mutex_);
+        Slot& slot = slots_[static_cast<std::size_t>(original.slot) * kPhases +
+                            static_cast<std::size_t>(phase)];
+        const std::uint64_t session = session_;
+        const auto same = [&]() {
+            return session_ == session && slot.binding == binding &&
+                   slot.phase == phase && slot.type == original.type &&
+                   slot.generation == original.generation && slot.frame == frame &&
+                   (phase == 5 || original.generation >
+                        retired_[static_cast<std::size_t>(original.slot)]);
+        };
+        completed_.wait_until(lock, deadline, [&]() {
+            return !same() || slot.ready || !slot.pending;
+        });
+        if (!same()) return false;
+        if (slot.ready) {
+            const Response result = slot.result;
+            slot.ready = false;
+            if (result.session == session && result.frame == frame &&
+                result.phase == phase &&
+                managedDustSameInstance(result.before, original)) {
+                *out = result;
+                return true;
+            }
+        }
+        if (slot.pending) {
+            slot.pending = false;
+            requests_.erase(std::remove_if(requests_.begin(), requests_.end(),
+                [&](const Request& request) {
+                    return request.synchronous && request.session == session &&
+                        request.binding == binding && request.phase == phase &&
+                        request.frame == frame &&
+                        managedDustSameInstance(request.state, original);
+                }), requests_.end());
+        }
+        return false;
     }
 
     bool consume(std::int32_t binding, std::int32_t phase,
@@ -203,6 +252,7 @@ public:
         requests_.clear();
         slots_.fill({});
         retired_.fill(0);
+        completed_.notify_all();
     }
 
     bool hasQueued() const {
@@ -246,6 +296,7 @@ private:
     };
 
     mutable std::mutex mutex_;
+    std::condition_variable completed_;
     std::uint64_t session_ = 1;
     std::atomic<std::uint64_t> drops_{0};
     std::array<Slot, kSlots * kPhases> slots_{};
