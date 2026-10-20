@@ -492,8 +492,12 @@ bool validateRarityTextVec2(Il2CppClass* type, std::string* error) {
     auto& a = api();
     ValueLayout layout;
     if (!type || !a.class_get_name || !a.class_get_namespace ||
-        std::strcmp(a.class_get_namespace(type), "Microsoft.Xna.Framework") ||
-        std::strcmp(a.class_get_name(type), "Vector2") ||
+        !a.field_get_flags || !a.field_get_offset) return false;
+    const char* typeNamespace = a.class_get_namespace(type);
+    const char* typeName = a.class_get_name(type);
+    if (!typeNamespace || !typeName ||
+        std::strcmp(typeNamespace, "Microsoft.Xna.Framework") ||
+        std::strcmp(typeName, "Vector2") ||
         !resolveValueLayout(type, &layout, error) || layout.size != 8) return false;
     for (const auto& [name, expected] :
         {std::pair{"X", size_t{0}}, std::pair{"Y", size_t{4}}}) {
@@ -586,14 +590,18 @@ bool installRarityGroundTextHook(std::string* error) {
     auto* effects = a.class_from_il2cpp_type(a.method_get_param(draw, 7));
     NativeColorLayout layout;
     uint32_t effectAlignment = 0;
+    const char* effectsNamespace = effects && a.class_get_namespace
+        ? a.class_get_namespace(effects) : nullptr;
+    const char* effectsName = effects && a.class_get_name
+        ? a.class_get_name(effects) : nullptr;
     if (vector != origin || !validateRarityTextVec2(vector, error) ||
         !layout.bind(color, error) || !effects ||
         !a.class_is_enum || !a.class_is_enum(effects) ||
         !a.class_value_size || !a.class_enum_basetype ||
         a.class_value_size(effects, &effectAlignment) != 4 ||
-        !a.class_get_namespace || !a.class_get_name ||
-        std::strcmp(a.class_get_namespace(effects), "Microsoft.Xna.Framework.Graphics") ||
-        std::strcmp(a.class_get_name(effects), "SpriteEffects")) {
+        !effectsNamespace || !effectsName ||
+        std::strcmp(effectsNamespace, "Microsoft.Xna.Framework.Graphics") ||
+        std::strcmp(effectsName, "SpriteEffects")) {
         if (error->empty()) *error = "Reason=MouseTextDrawValueAbiMismatch";
         return false;
     }
