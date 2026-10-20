@@ -77,6 +77,45 @@ O dispatcher gerenciado agora dispõe de um overload `TickNpc` de
 `ManagedEntityJob`. O caminho nativo usa a assinatura de 13 argumentos,
 enquanto o overload antigo de 12 permanece disponível a chamadas C#.
 
+## Persistência de invasão por mundo (lote 7)
+
+`BunnyInvasionWorldPersistence` salva a fase, o progresso e o
+cooldown na extensão `.wld.invasions.bl`, usando
+`Main.ActiveWorldFileData` e os campos `FileData._path` e
+`_isCloudSave` já usados no Bunny original. O arquivo é
+`bunny-invasions 1`, com uma entrada identificada por
+`modId + invasionId`. Outros mods e invasões armazenados no mesmo
+arquivo são preservados. Leitura e gravação pertencem ao worker MonoVM,
+e o host fornece apenas o caminho verificado na thread do Terraria.
+
+A gravação usa um arquivo temporário, `fflush`, `fsync` e
+`rename` atômico. Arquivos com versão desconhecida, registros
+inválidos ou limites excedidos não são sobrescritos. Mundo em nuvem
+e sessão antiga não têm acesso à persistência local. Toda transição
+de mundo invalida o caminho anterior.
+
+Na primeira atualização gerenciada após a entrada no mundo,
+`TickWorld` tenta restaurar o progresso. Inimigos ativos, tickets
+de spawn e identidades antigas **não** são restaurados; o
+controlador incrementa a geração lógica e recria ondas novas.
+A gravação ocorre somente quando a fase ou o progresso mudam:
+início pelo invocador, mortes e conclusão. Não há escrita em disco
+por frame nem por NPC gerado. Em `KillNpc` e no caminho de hit
+letal, a alteração é gravada antes de a execução do job terminar.
+
+Testes C++ cobrem mundos independentes, dois mods no mesmo
+arquivo, retorno ao mundo anterior, progressão, conclusão,
+arquivos corrompidos, nuvem e sessões inválidas. O teste
+end-to-end C# → biblioteca nativa real → C# valida que sair
+e reentrar recupera o progresso sem revalidar NPCs antigos.
+
+**Limites:** suporte de mundo na nuvem não está implementado.
+O cooldown é persistido nos momentos de alteração do progresso,
+não a cada diminuição do contador. Falhas de armazenamento
+devem ser diagnosticadas no Android antes da conclusão do loader.
+A sincronização host/cliente ainda precisa de protocolo próprio.
+Os arquivos de teste são locais ao runner e nenhum APK é gerado.
+
 ## Uso nativo de item C# (lote 6)
 
 `BunnyItem.OnUse(int playerIndex)` é um callback opt-in. O dispatcher
@@ -184,6 +223,7 @@ g++ -std=c++20 -Wall -Wextra -Werror -Iapp/src/main/cpp tests/invasion/NativeSpa
 /tmp/bunny-invasion-terrain
 python3 tests/invasion/check_world_host_contract.py
 python3 tests/invasion/check_item_use_contract.py
+python3 tests/invasion/check_world_save_contract.py
 g++ -std=c++17 -Wall -Wextra -Werror tests/invasion/WorldAuthorityTest.cpp -o /tmp/bunny-invasion-authority
 /tmp/bunny-invasion-authority
 ```
