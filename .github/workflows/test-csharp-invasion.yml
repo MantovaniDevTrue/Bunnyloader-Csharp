@@ -128,6 +128,8 @@ jobs:
           NDK=$(find "${ANDROID_HOME}/ndk" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)
           test -n "$NDK"
           "$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android34-clang++" -std=c++20 -Wall -Wextra -Werror -Iapp/src/main/cpp -fsyntax-only app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp app/src/main/cpp/experiments/csharp/NpcAiHost.cpp app/src/main/cpp/experiments/csharp/ReliableNpcKill.cpp app/src/main/cpp/menu/NetRequests.cpp
+      - name: Audit host-to-client world snapshots and late join network state
+        run: python3 tests/invasion/check_replication_contract.py
       - name: Audit secure native client-to-server item invocation and dedicated host
         run: python3 tests/invasion/check_multiplayer_contract.py
       - name: Audit opt-in CSharp item-use dispatch and ExampleInvasion invoker
