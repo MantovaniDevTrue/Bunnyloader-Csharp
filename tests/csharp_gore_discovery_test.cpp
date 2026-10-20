@@ -64,10 +64,10 @@ int main() {
         assert(error.empty());
         assert(result.size() == 3);
         assert(result[0].name == "Leaf");
-        assert(result[1].name == "Arm");
-        assert(result[2].name == "Head");
-        assert(result[2].width == 12 && result[2].height == 18);
-        assert(result[2].relativePath == "Content/Gores/Head.png");
+        assert(result[1].name == "Head");
+        assert(result[2].name == "Arm");
+        assert(result[1].width == 12 && result[1].height == 18);
+        assert(result[1].relativePath == "Content/Gores/Head.png");
     }
     {
         Fixture mod;
