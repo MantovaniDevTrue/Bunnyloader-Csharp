@@ -1952,7 +1952,7 @@ void* pinnedMonoWorker(void*) {
                         const bool timely = job.phase == 5 ||
                             (now >= job.frame &&
                              now - job.frame <= ManagedDustMailbox::kMaxResultAgeFrames);
-                        const bool invoked = timely &&
+                        const bool invoked = timely && g_dustMailbox.current(job) &&
                             executeManagedDustOnWorker(job.binding, &job,
                                                        &updated, &callbackFlags);
                         if (invoked && job.phase != 5) {
