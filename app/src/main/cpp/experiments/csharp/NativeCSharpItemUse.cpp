@@ -141,7 +141,10 @@ void pumpNativeItemUseBindingsOnGameThread() {
         }
         const int type = runtime::modItemTypeByKey(binding.mod + "/" + binding.name);
         if (type < runtime::kVanillaItemCount || !installItemUseHook()) continue;
-        g_installed[type] = std::move(binding);
+        std::lock_guard<std::mutex> guard(g_mutex);
+        if (g_ready.load(std::memory_order_acquire) &&
+            binding.session == g_session.load(std::memory_order_acquire))
+            g_installed[type] = std::move(binding);
     }
 }
 
@@ -157,10 +160,27 @@ int bunny_item_use_bind(int64_t session, const char* mod, const char* itemName) 
         g_session.load(std::memory_order_acquire) != static_cast<uint64_t>(session) ||
         g_requests.size() >= kBindingsLimit) return 0;
     ItemBinding request{static_cast<uint64_t>(session), mod, itemName};
+    for (const auto& entry : g_installed)
+        if (sameBinding(entry.second, request)) return 1;
     for (const auto& other : g_requests)
         if (sameBinding(other, request)) return 1;
     g_requests.push_back(std::move(request));
     return 1;
+}
+
+extern "C" __attribute__((visibility("default")))
+int bunny_item_use_ready(int64_t session, const char* mod, const char* itemName) {
+    using namespace bl::csharp;
+    if (session <= 0 || !validName(mod, 128) || !validName(itemName, 128))
+        return 0;
+    std::lock_guard<std::mutex> guard(g_mutex);
+    if (!g_ready.load(std::memory_order_acquire) ||
+        g_session.load(std::memory_order_acquire) != static_cast<uint64_t>(session))
+        return 0;
+    const ItemBinding target{static_cast<uint64_t>(session), mod, itemName};
+    for (const auto& entry : g_installed)
+        if (sameBinding(entry.second, target)) return 1;
+    return 0;
 }
 
 extern "C" __attribute__((visibility("default")))
