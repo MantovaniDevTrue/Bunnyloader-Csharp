@@ -1,0 +1,27 @@
+name: Check CSharp ModCommand Core (no APK)
+
+on:
+  push:
+    branches:
+      - feature/csharp-modcommand-core-20261020
+    paths:
+      - 'Split/Bunny-Loader/experiments/csharp/BunnyCsSdk/BunnyCommand.cs'
+      - 'Split/Bunny-Loader/experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj'
+      - 'Split/Bunny-Loader/tests/command_core/**'
+      - '.github/workflows/check-csharp-command-core.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  command-core:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Build and test CSharp command rules only
+        run: dotnet run --project Split/Bunny-Loader/tests/command_core/CommandCore.csproj -c Release
