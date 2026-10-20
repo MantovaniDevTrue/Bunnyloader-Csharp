@@ -1,9 +1,11 @@
 #pragma once
 #include "experiments/csharp/ManagedHitContextStats.h"
+#include "experiments/csharp/ManagedDustMailbox.h"
 #include "experiments/csharp/ManagedVisualQueue.h"
 #include "experiments/csharp/ManagedLiveEventQueue.h"
 #include "experiments/csharp/ManagedNpcBuffEffects.h"
 
+#include <chrono>
 #include <string>
 #include <cstdint>
 #include <vector>
@@ -20,6 +22,21 @@ bool queueManagedLocalizationLoaded(const std::string& modId,
                                    const std::string& culture,
                                    uint64_t generation);
 void unloadManagedLocalizationCallbacks(const std::string& modId);
+bool registerManagedDustSourceMod(const std::string& modId,
+                                  const std::string& assemblyPath,
+                                  const std::vector<std::pair<int, std::string>>& dustTypes);
+bool queueManagedDustCallback(int type, int phase,
+                              const ManagedDustState& state, uint64_t frame);
+bool invokeManagedDustSameFrame(int type, int phase,
+                                const ManagedDustState& state, uint64_t frame,
+                                std::chrono::steady_clock::time_point deadline,
+                                ManagedDustMailbox::Response* response);
+bool receiveManagedDustCallback(int type, int phase, int slot, int generation,
+                                uint64_t frame, ManagedDustMailbox::Response* response);
+void resetManagedDustSourceWorld();
+bool hasManagedDustType(int type);
+bool managedDustWorkerReady(int type);
+
 bool managedRecipeRuntimeReady();
 bool queueManagedRarityWarmup(const std::string& mod, const std::string& assembly,
     const std::string& identities);

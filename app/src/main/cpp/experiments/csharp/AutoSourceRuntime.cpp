@@ -11,6 +11,7 @@
 #include "experiments/csharp/UniversalHooks.h"
 #include "experiments/csharp/AutoSourceCache.h"
 #include "experiments/csharp/AutoSourceRuntime.h"
+#include "content/dusts/ModDusts.h"
 #include "experiments/csharp/NativeVisualRenderer.h"
 #include "experiments/csharp/NativeRarityGameplay.h"
 #include "graphics/CSharpScreenEffects.h"
@@ -35,6 +36,7 @@
 #include "experiments/csharp/ManagedRuntime.h"
 #include "experiments/csharp/MonoServiceDispatch.h"
 #include "experiments/csharp/SourceLoader.h"
+#include "experiments/csharp/ManagedDustBindingSelection.h"
 #include "experiments/csharp/ManagedSourceClassCount.h"
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
@@ -945,6 +947,30 @@ void run() {
         }
         if (hasUniversalHooks && !registerUniversalHookMod(mod.id, assembly))
             BL_WARN("csharp universal hooks: fila recusada mod=%s", mod.id.c_str());
+        if (mod.dusts > 0) {
+            const auto dustTypes = selectManagedDustBindings(mod);
+            if (!dustTypes.empty()) {
+                if (!registerManagedDustSourceMod(mod.id, assembly, dustTypes)) {
+                    BL_WARN("[CSharp][DustLoader] Mod=%s Stage=MonoRegister Result=Rejected",
+                            mod.id.c_str());
+                } else {
+                    const std::string probe = work + "BunnyManagedProbe.dll";
+                    struct stat probeStat{};
+                    if (stat(probe.c_str(), &probeStat) != 0 || !S_ISREG(probeStat.st_mode)) {
+                        BL_ERROR("[CSharp][DustLoader] Stage=MonoWorkerPrewarm Reason=ProbeMissing");
+                    } else if (!g_runtimeWarmStarted.exchange(true, std::memory_order_acq_rel)) {
+                        g_runtimeWarming.store(true, std::memory_order_release);
+                        std::thread([probe] {
+                            const auto state = probeManagedRuntimePinnedThread(probe, "PINNED_MONO");
+                            if (!state.methodExecuted || state.result != 42)
+                                BL_ERROR("[CSharp][DustLoader] Stage=MonoWorkerPrewarm Result=Pending Phase=%s",
+                                         state.phase.c_str());
+                            g_runtimeWarming.store(false, std::memory_order_release);
+                        }).detach();
+                    }
+                }
+            }
+        }
         if (mod.npcs > 0 || mod.projectiles > 0) {
             const auto npcs = runtime::registeredNpcsForMod(mod.id);
             const auto projectiles = runtime::registeredProjectilesForMod(mod.id);
@@ -1251,6 +1277,8 @@ void noteAutoWorldTilesLoaded() {
     g_worldEpoch.fetch_add(1, std::memory_order_acq_rel);
     g_worldSessionReady.store(false, std::memory_order_release);
     pauseManagedEntitySourceCallbacks();
+    runtime::resetManagedDustLifecycle();
+    resetManagedDustSourceWorld();
     pauseManagedScreenSceneCallbacks();
     resetManagedSourceNpcSlots();
     resetManagedSourceProjectileSlots();
@@ -1349,7 +1377,9 @@ void noteAutoGameUpdate() {
         resetNativeAccessOnGameThread();
         pauseUniversalHookMods();
         pauseManagedEntitySourceCallbacks();
-    resetManagedSourceNpcSlots();
+        runtime::resetManagedDustLifecycle();
+        resetManagedDustSourceWorld();
+        resetManagedSourceNpcSlots();
     resetManagedSourceProjectileSlots();
         {
             std::lock_guard<std::mutex> guard(g_lock);

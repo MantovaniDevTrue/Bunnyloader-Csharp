@@ -20,7 +20,7 @@ public sealed class BunnyNameAttribute : Attribute
 
 public enum BunnyContentKind
 {
-    Item, Tile, Weapon, Projectile, Buff, BuffPotion, Accessory, Player, NPC, Prefix, Wall
+    Item, Tile, Weapon, Projectile, Buff, BuffPotion, Accessory, Player, NPC, Prefix, Wall, Dust
 }
 
 /// <summary>Declares content identity before Mono starts. Required for custom base classes.</summary>

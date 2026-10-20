@@ -16,6 +16,7 @@ struct SourceModStatus {
     int items = 0;
     int tiles = 0;
     int walls = 0;
+    int dusts = 0;
     int projectiles = 0;
     int buffs = 0;
     int potions = 0;
@@ -29,6 +30,8 @@ struct SourceModStatus {
     std::vector<std::string> playerClasses;
     bool loaded = false;
     bool runtimeApplied = false;
+    std::map<std::string, unsigned> dustMasks;
+    std::map<std::string, std::string> dustTextures;
     std::map<std::string, int> registeredTypes;
     std::map<std::string, int> registeredKindTypes;
     std::map<std::string, std::string> registeredBases,sourcePaths;

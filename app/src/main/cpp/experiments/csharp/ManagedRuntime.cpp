@@ -6,6 +6,7 @@
 #include "experiments/csharp/ManagedLiveSourceRevocations.h"
 #include "experiments/csharp/ManagedDeferredModRevocation.h"
 #include "experiments/csharp/NativeRecipeCallbacks.h"
+#include "experiments/csharp/ManagedDustMailbox.h"
 #include "graphics/ScreenScene.h"
 #include "experiments/csharp/ManagedVisualMonoPump.h"
 #include "experiments/csharp/ManagedVisualState.h"
@@ -435,6 +436,26 @@ struct ManagedEntityResult {
     int64_t packed = -1;
     bool ready = false;
 };
+
+struct ManagedDustBinding {
+    std::string modId;
+    std::string assemblyPath;
+    std::vector<std::pair<int, std::string>> types;
+    int managedSlot = -1;
+    bool enabled = true;
+};
+ManagedDustMailbox g_dustMailbox;
+std::atomic<uint64_t> g_dustGameFrame{0};
+std::vector<ManagedDustBinding> g_dustBindings;
+std::deque<int> g_dustBootstrap;
+std::array<std::atomic<int>, 32768> g_dustOwners{};
+std::array<std::atomic<bool>, 16> g_dustReady{};
+std::atomic<int> g_dustModCount{0};
+void* g_dustRegisterMethod = nullptr;
+void* g_dustBindMethod = nullptr;
+void* g_dustInvokeMethod = nullptr;
+void* g_dustResetMethod = nullptr;
+bool g_dustWorldResetPending = false;
 
 std::vector<ManagedEntityBinding> g_entityBindings;
 std::deque<ManagedEntityJob> g_entityQueue;
@@ -1635,6 +1656,116 @@ bool executeManagedSceneOnWorker(const SceneLightRequest& request,
     return true;
 }
 
+bool executeManagedDustOnWorker(int index,
+                               const ManagedDustMailbox::Request* request,
+                               ManagedDustState* updated, uint32_t* flags) {
+    std::lock_guard<std::mutex> monoGuard(g_mutex);
+    if (!g_domain || !g_status.domainInitialized || !g_status.methodExecuted ||
+        !g_api.attach || !g_api.openAssembly || !g_api.image ||
+        !g_api.findClass || !g_api.findMethod || !g_api.invoke ||
+        !g_api.unbox || !g_api.newString || !g_api.attach(g_domain)) return false;
+    ManagedDustBinding binding;
+    {
+        std::lock_guard<std::mutex> lock(g_pinnedMutex);
+        if (index < 0 || static_cast<size_t>(index) >= g_dustBindings.size() ||
+            !g_dustBindings[static_cast<size_t>(index)].enabled) return false;
+        binding = g_dustBindings[static_cast<size_t>(index)];
+    }
+    if (!g_dustRegisterMethod) {
+        const size_t slash = g_checkpointPath.find_last_of('/');
+        if (slash == std::string::npos) return false;
+        const std::string sdk = g_checkpointPath.substr(0, slash + 1) +
+                                "BunnySourceSdk.dll";
+        if (!validAssembly(sdk)) return false;
+        void* sdkAssembly = g_api.openAssembly(g_domain, sdk.c_str());
+        void* sdkImage = sdkAssembly ? g_api.image(sdkAssembly) : nullptr;
+        void* cls = sdkImage ? g_api.findClass(sdkImage, "BunnyLoader.Source",
+                                            "BunnyDustSourceDispatcher") : nullptr;
+        if (!cls) return false;
+        g_dustRegisterMethod = g_api.findMethod(cls, "Register", 2);
+        g_dustBindMethod = g_api.findMethod(cls, "Bind", 3);
+        g_dustInvokeMethod = g_api.findMethod(cls, "Invoke", 3);
+        g_dustResetMethod = g_api.findMethod(cls, "ResetWorld", 0);
+        if (!g_dustRegisterMethod || !g_dustBindMethod ||
+            !g_dustInvokeMethod || !g_dustResetMethod) {
+            g_dustRegisterMethod = nullptr;
+            return false;
+        }
+    }
+    int managedSlot = binding.managedSlot;
+    if (managedSlot < 0) {
+        if (!validAssembly(binding.assemblyPath)) return false;
+        void* argStrings[2] = {
+            g_api.newString(g_domain, binding.modId.c_str()),
+            g_api.newString(g_domain, binding.assemblyPath.c_str())
+        };
+        if (!argStrings[0] || !argStrings[1]) return false;
+        void* error = nullptr;
+        void* boxed = g_api.invoke(g_dustRegisterMethod, nullptr,
+                                   argStrings, &error);
+        void* raw = error || !boxed ? nullptr : g_api.unbox(boxed);
+        if (!raw) return false;
+        std::memcpy(&managedSlot, raw, sizeof(managedSlot));
+        if (managedSlot < 0 || managedSlot >= 16) return false;
+        for (const auto& [type, name] : binding.types) {
+            void* nameArg = g_api.newString(g_domain, name.c_str());
+            if (!nameArg) return false;
+            int nativeType = type;
+            void* args[3] = {&managedSlot, &nativeType, nameArg};
+            error = nullptr;
+            boxed = g_api.invoke(g_dustBindMethod, nullptr, args, &error);
+            raw = error || !boxed ? nullptr : g_api.unbox(boxed);
+            if (!raw || !*static_cast<uint8_t*>(raw)) return false;
+        }
+        {
+            std::lock_guard<std::mutex> lock(g_pinnedMutex);
+            if (static_cast<size_t>(index) >= g_dustBindings.size() ||
+                g_dustBindings[static_cast<size_t>(index)].modId != binding.modId)
+                return false;
+            g_dustBindings[static_cast<size_t>(index)].managedSlot = managedSlot;
+        }
+#ifdef __ANDROID__
+        __android_log_print(ANDROID_LOG_INFO, "BunnyCSharp",
+                            "[CSharp][DustLoader] Stage=MonoBind Mod=%s Types=%zu Result=Ready",
+                            binding.modId.c_str(), binding.types.size());
+#endif
+    }
+    if (index >= 0 && static_cast<size_t>(index) < g_dustReady.size())
+        g_dustReady[static_cast<size_t>(index)].store(true, std::memory_order_release);
+    if (!request) return true;
+    if (!updated || !flags || request->binding != index ||
+        !managedDustStateValid(request->state)) return false;
+    ManagedDustState localState = request->state;
+    int phase = request->phase;
+    void* statePointer = &localState;
+    void* args[] = {&managedSlot, &phase, &statePointer};
+    void* error = nullptr;
+    void* boxed = g_api.invoke(g_dustInvokeMethod, nullptr, args, &error);
+    void* raw = error || !boxed ? nullptr : g_api.unbox(boxed);
+    if (!raw) return false;
+    int result = 0;
+    std::memcpy(&result, raw, sizeof(result));
+    if (result < 0 || result > 63 ||
+        !managedDustStateValid(localState) ||
+        !managedDustSameInstance(request->state, localState)) return false;
+    *updated = localState;
+    *flags = static_cast<uint32_t>(result);
+    return true;
+}
+
+void executeManagedDustResetOnWorker() {
+    std::lock_guard<std::mutex> monoGuard(g_mutex);
+    if (!g_domain || !g_dustResetMethod || !g_api.attach ||
+        !g_api.invoke || !g_api.attach(g_domain)) return;
+    void* error = nullptr;
+    g_api.invoke(g_dustResetMethod, nullptr, nullptr, &error);
+#ifdef __ANDROID__
+    if (error)
+        __android_log_print(ANDROID_LOG_WARN, "BunnyCSharp",
+                            "[CSharp][DustLoader] Stage=ResetWorld Result=ManagedException");
+#endif
+}
+
 void* pinnedMonoWorker(void*) {
     {
         std::lock_guard<std::mutex> lock(g_pinnedMutex);
@@ -2028,6 +2159,47 @@ void* pinnedMonoWorker(void*) {
                 }
                 // Recipe UI has a 3ms deadline; do not queue it behind an AI backlog.
                 if(processManagedRecipeRpc(lock,executeRecipeOnWorker))continue;
+                if (g_dustWorldResetPending) {
+                    g_dustWorldResetPending = false;
+                    lock.unlock();
+                    executeManagedDustResetOnWorker();
+                    lock.lock();
+                    continue;
+                }
+                if (!g_dustBootstrap.empty()) {
+                    const int index = g_dustBootstrap.front();
+                    g_dustBootstrap.pop_front();
+                    lock.unlock();
+                    executeManagedDustOnWorker(index, nullptr, nullptr, nullptr);
+                    lock.lock();
+                    continue;
+                }
+                ManagedDustMailbox::Request dustJobs[8]{};
+                const size_t dustCount = g_dustMailbox.take(dustJobs, 8);
+                if (dustCount > 0) {
+                    lock.unlock();
+                    for (size_t i = 0; i < dustCount; ++i) {
+                        ManagedDustState updated{};
+                        uint32_t callbackFlags = 0;
+                        const auto& job = dustJobs[i];
+                        const uint64_t now = g_dustGameFrame.load(std::memory_order_acquire);
+                        const bool timely = job.phase == 5 ||
+                            (now >= job.frame &&
+                             now - job.frame <= ManagedDustMailbox::kMaxResultAgeFrames);
+                        const bool invoked = timely && g_dustMailbox.current(job) &&
+                            executeManagedDustOnWorker(job.binding, &job,
+                                                       &updated, &callbackFlags);
+                        if (invoked && job.phase != 5) {
+                            if (!g_dustMailbox.complete(job, updated, callbackFlags))
+                                g_dustMailbox.discard(job);
+                        } else {
+                            g_dustMailbox.discard(job);
+                        }
+                    }
+                    lock.lock();
+                    continue;
+                }
+
                 if (!g_entityQueue.empty()) {
                     ManagedEntityJob job = std::move(g_entityQueue.front());
                     g_entityQueue.pop_front();
@@ -2141,8 +2313,11 @@ void* pinnedMonoWorker(void*) {
                 if (!g_auditEnabled) {
                     if (g_universalPolling.load(std::memory_order_acquire) ||
                         g_liveHitStatus.enabled || g_liveIngress.depth() != 0 ||
-                        !g_managedHurtQueue.empty() || !g_entityQueue.empty())
+                        !g_managedHurtQueue.empty() || !g_entityQueue.empty() ||
+                        !g_dustBootstrap.empty() || g_dustWorldResetPending)
                         g_pinnedWake.wait_for(lock, std::chrono::milliseconds(2));
+                    else if (g_dustModCount.load(std::memory_order_acquire) > 0)
+                        g_pinnedWake.wait_for(lock, std::chrono::milliseconds(8));
                     else if (g_recipeRuntimeReady.load(std::memory_order_acquire) &&
                              !g_localizationLiveBindings.empty())
                         g_pinnedWake.wait_until(lock, g_nextLocalizationPoll);
@@ -2158,12 +2333,16 @@ void* pinnedMonoWorker(void*) {
                 if (g_recipeRuntimeReady.load(std::memory_order_acquire) &&
                     !g_localizationLiveBindings.empty())
                     deadline = std::min(deadline, g_nextLocalizationPoll);
+                if (g_dustModCount.load(std::memory_order_acquire)>0)
+                    deadline=std::min(deadline,std::chrono::steady_clock::now()+std::chrono::milliseconds(8));
                 if (g_pinnedWake.wait_until(lock, deadline, [] {
                     return g_pinnedPending || g_vmComparePending ||
                         !g_liveHitQueue.empty() || g_liveIngress.depth() != 0 ||
                         !g_entityQueue.empty() || !g_recipeRpcQueue.empty() ||
                         (g_recipeRuntimeReady.load(std::memory_order_acquire) &&
-                         (!g_localizationQueue.empty() || !g_localizationUnloads.empty()));
+                         (!g_localizationQueue.empty() || !g_localizationUnloads.empty())) ||
+                        !g_dustBootstrap.empty() || g_dustWorldResetPending ||
+                        g_dustMailbox.hasQueued();
                 }))
                     continue;
                 if (std::chrono::steady_clock::now() < until) continue;
@@ -2359,6 +2538,95 @@ void resumeUniversalHookMods() {
     std::lock_guard<std::mutex> lock(g_pinnedMutex);
     g_universalEnabled = true;
     if (!g_universalMods.empty()) g_universalPolling.store(true, std::memory_order_release);
+    g_pinnedWake.notify_one();
+}
+
+bool registerManagedDustSourceMod(
+    const std::string& modId, const std::string& assemblyPath,
+    const std::vector<std::pair<int, std::string>>& dustTypes) {
+    if (modId.empty() || modId.size() > 128 || !validAssembly(assemblyPath) ||
+        dustTypes.empty() || dustTypes.size() > 4096) return false;
+    for (const auto& [type, name] : dustTypes)
+        if (type < 332 || type >= 32768 || name.empty() || name.size() > 72)
+            return false;
+    std::lock_guard<std::mutex> lock(g_pinnedMutex);
+    for (const auto& entry : g_dustBindings)
+        if (entry.modId == modId)
+            return entry.assemblyPath == assemblyPath && entry.types == dustTypes;
+    if (g_dustBindings.size() >= 16) return false;
+    for (const auto& [type, name] : dustTypes)
+        if (g_dustOwners[static_cast<size_t>(type)].load(
+                std::memory_order_acquire) != 0) return false;
+    const int owner = static_cast<int>(g_dustBindings.size()) + 1;
+    g_dustBindings.push_back({modId, assemblyPath, dustTypes, -1, true});
+    for (const auto& [type, name] : dustTypes)
+        g_dustOwners[static_cast<size_t>(type)].store(
+            owner, std::memory_order_release);
+    g_dustModCount.store(owner, std::memory_order_release);
+    g_dustBootstrap.push_back(owner - 1);
+    g_pinnedWake.notify_one();
+    return true;
+}
+
+bool hasManagedDustType(int type) {
+    return type >= 332 && type < 32768 &&
+           g_dustOwners[static_cast<size_t>(type)].load(
+               std::memory_order_acquire) > 0;
+}
+
+bool managedDustWorkerReady(int type) {
+    if (type < 332 || type >= 32768) return false;
+    const int owner = g_dustOwners[static_cast<size_t>(type)].load(
+        std::memory_order_acquire) - 1;
+    return owner >= 0 && static_cast<size_t>(owner) < g_dustReady.size() &&
+           g_dustReady[static_cast<size_t>(owner)].load(std::memory_order_acquire);
+}
+
+bool queueManagedDustCallback(int type, int phase,
+                              const ManagedDustState& state, uint64_t frame) {
+    if (!hasManagedDustType(type) || type != state.type) return false;
+    const int owner = g_dustOwners[static_cast<size_t>(type)].load(
+        std::memory_order_acquire) - 1;
+    g_dustGameFrame.store(frame, std::memory_order_release);
+    bool wake = false;
+    if (!g_dustMailbox.offer(owner, phase, state, frame, &wake)) return false;
+    if (wake) g_pinnedWake.notify_one();
+    return true;
+}
+
+bool invokeManagedDustSameFrame(int type, int phase,
+                                const ManagedDustState& state, uint64_t frame,
+                                std::chrono::steady_clock::time_point deadline,
+                                ManagedDustMailbox::Response* response) {
+    if (!response || phase < 0 || phase > 4 ||
+        !hasManagedDustType(type) || type != state.type ||
+        !managedDustStateValid(state) ||
+        std::chrono::steady_clock::now() >= deadline)
+        return false;
+    const int owner = g_dustOwners[static_cast<size_t>(type)].load(
+        std::memory_order_acquire) - 1;
+    bool wake = false;
+    if (!g_dustMailbox.offer(owner, phase, state, frame, &wake, true))
+        return false;
+    g_dustGameFrame.store(frame, std::memory_order_release);
+    g_pinnedWake.notify_one();
+    return g_dustMailbox.await(owner, phase, state, frame, deadline, response);
+}
+
+bool receiveManagedDustCallback(int type, int phase, int slot, int generation,
+                                uint64_t frame, ManagedDustMailbox::Response* response) {
+    if (!hasManagedDustType(type)) return false;
+    const int owner = g_dustOwners[static_cast<size_t>(type)].load(
+        std::memory_order_acquire) - 1;
+    return g_dustMailbox.consume(owner, phase, slot, type, generation,
+                                 frame, response);
+}
+
+void resetManagedDustSourceWorld() {
+    g_dustGameFrame.store(0, std::memory_order_release);
+    g_dustMailbox.resetWorld();
+    std::lock_guard<std::mutex> lock(g_pinnedMutex);
+    g_dustWorldResetPending = true;
     g_pinnedWake.notify_one();
 }
 
