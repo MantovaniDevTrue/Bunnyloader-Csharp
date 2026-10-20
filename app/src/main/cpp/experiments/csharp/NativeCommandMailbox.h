@@ -62,7 +62,7 @@ public:
     static constexpr size_t MaxRegisteredNames = 8192;
 
     bool registerMod(const std::string& modId, const std::vector<NativeCommandSpec>& specs,
-                     std::string* error = nullptr) {
+                     std::string* error = nullptr, bool ready = true) {
         const std::string ownerId = normalize(modId);
         if (ownerId.empty() || specs.empty() || specs.size() > MaxAliasesPerMod) {
             if (error) *error = "InvalidOwnerOrSpecCount";
@@ -88,8 +88,20 @@ public:
         }
         owners_.emplace(ownerId, proposal);
         registeredNames_ += proposal.size();
+        if (ready) readyOwners_.insert(ownerId);
         for (const auto& spec : proposal)
             names_[spec.name].push_back(spec);
+        return true;
+    }
+
+    // O compilador pode descobrir um comando antes de o worker Mono abrir a
+    // DLL. Nomes pendentes nao devem consumir mensagens do chat vanilla.
+    bool setModReady(const std::string& modId, bool ready) {
+        std::lock_guard<std::mutex> lock(mutex_);
+        const std::string ownerId = normalize(modId);
+        if (!owners_.contains(ownerId)) return false;
+        if (ready) readyOwners_.insert(ownerId);
+        else readyOwners_.erase(ownerId);
         return true;
     }
 
@@ -106,6 +118,7 @@ public:
             if (list.empty()) names_.erase(it);
         }
         registeredNames_ -= owner->second.size();
+        readyOwners_.erase(ownerId);
         owners_.erase(owner);
         // Um callback ja entregue pode estar executando no MonoVM. A epoca nova
         // invalida sua resposta e todos os pedidos ainda em transito.
@@ -120,6 +133,7 @@ public:
             owners_.clear();
             names_.clear();
             registeredNames_ = 0;
+            readyOwners_.clear();
         }
     }
 
@@ -151,7 +165,8 @@ public:
         if (found == names_.end()) return NativeCommandSubmit::Vanilla;
         bool recognized = false;
         for (const auto& candidate : found->second) {
-            if (matches(candidate.routes, caller, netMode)) {
+            if (readyOwners_.contains(candidate.owner) &&
+                matches(candidate.routes, caller, netMode)) {
                 // Com nome de mod desconhecido, o dispatcher C# respondera
                 // corretamente qualificado, como no CommandLoader original.
                 recognized = true;
@@ -281,6 +296,7 @@ private:
     size_t registeredNames_ = 0;
     std::map<std::string, std::vector<Registered>> owners_;
     std::map<std::string, std::vector<Registered>> names_;
+    std::set<std::string> readyOwners_;
     std::deque<NativeCommandRequest> requests_;
     std::deque<NativeCommandReply> replies_;
     std::map<uint64_t, int> inFlight_;
