@@ -1,4 +1,5 @@
 #include "experiments/csharp/NativeInvasionSpawn.h"
+#include "experiments/csharp/NativeInvasionSpawnSite.h"
 
 #include "content/common/GameRefs.h"
 #include "content/npcs/ModNpcs.h"
@@ -154,6 +155,15 @@ InvasionSpawnResult spawnNativeInvasionNpc(const InvasionSpawnRequest& request) 
         return result;
     }
 
+    InvasionSpawnSite site;
+    if (!findNativeInvasionSpawnSite(static_cast<int>(request.x),
+                                     static_cast<int>(request.y), &site) ||
+        std::fabs(static_cast<float>(site.x) - playerPos.x) > 1400.f ||
+        std::fabs(static_cast<float>(site.y) - playerPos.y) > 1000.f) {
+        result.error = InvasionSpawnError::NoSafeSpawnSite;
+        return result;
+    }
+
     Il2CppArray* npcs = mainArray(r.mainNpc);
     if (!npcs) {
         result.error = InvasionSpawnError::WorldUnavailable;
@@ -184,7 +194,7 @@ InvasionSpawnResult spawnNativeInvasionNpc(const InvasionSpawnRequest& request) 
         return result;
     }
 
-    int x = static_cast<int>(request.x), y = static_cast<int>(request.y);
+    int x = site.x, y = site.y;
     int npcType = type, start = 0, target = request.playerIndex;
     float ai0 = 0.f, ai1 = 0.f, ai2 = 0.f, ai3 = 0.f;
     void* args[] = {source, &x, &y, &npcType, &start, &ai0, &ai1, &ai2, &ai3, &target};
