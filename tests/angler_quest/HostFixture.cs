@@ -45,15 +45,21 @@ try
     string unavailable = BunnyLoader.Source.BunnyRecipeRuntime.Dispatch(
         "angler_host_fixture", assembly, "DynamicQuestFish", 0, 4, "0,950");
     string caught = BunnyLoader.Source.BunnyRecipeRuntime.Dispatch(
-        "angler_host_fixture", assembly, "DynamicQuestFish", 0, 5, "1,1,950");
+        "angler_host_fixture", assembly, "DynamicQuestFish", 0, 5, "1,1,2,950");
     string missed = BunnyLoader.Source.BunnyRecipeRuntime.Dispatch(
         "angler_host_fixture", assembly, "DynamicQuestFish", 0, 5, "1,0,950");
+    string otherPlayer = BunnyLoader.Source.BunnyRecipeRuntime.Dispatch(
+        "angler_host_fixture", assembly, "DynamicQuestFish", 0, 5, "1,1,1,950");
+    string invalidOwner = BunnyLoader.Source.BunnyRecipeRuntime.Dispatch(
+        "angler_host_fixture", assembly, "DynamicQuestFish", 0, 5, "1,1,256,950");
     string invalid = BunnyLoader.Source.BunnyRecipeRuntime.Dispatch(
         "angler_host_fixture", assembly, "DynamicQuestFish", 0, 5, "1,2,950");
     if (allowed != "1" || unavailable != "0" || caught != "1" ||
-        missed != "0" || !invalid.StartsWith("ERROR|", StringComparison.Ordinal))
+        missed != "0" || otherPlayer != "0" ||
+        !invalidOwner.StartsWith("ERROR|", StringComparison.Ordinal) ||
+        !invalid.StartsWith("ERROR|", StringComparison.Ordinal))
         throw new InvalidOperationException("Managed quest callbacks failed: " +
-            string.Join(";", allowed, unavailable, caught, missed, invalid));
+            string.Join(";", allowed, unavailable, caught, missed, otherPlayer, invalidOwner, invalid));
     Console.WriteLine("ANGLER_QUEST_COMPILED_ASSEMBLY_OK");
 }
 finally
