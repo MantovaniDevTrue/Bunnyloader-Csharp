@@ -46,3 +46,7 @@ O overload `BunnyPrefix.ApplyAccessoryEffects(BunnyPrefixPlayerSnapshot player, 
 ## Paridade ainda pendente
 
 O PrefixLoader C# implementa decisões declarativas avaliadas em C++ e lógica C# avaliada na compilação. Os callbacks gerenciados arbitrários com objetos reais do Terraria, incluindo `ChoosePrefix(item, random)`, `CanRoll(item)`, `RollChance(item)`, `GetTooltipLines(item)`, `Apply(item)` e `ApplyAccessoryEffects(player)`, ainda **não** possuem paridade geral. Um callback síncrono na thread de reforja não deve ser adicionado sem protocolo com timeout, cancelamento de requisições tardias, isolamento da MonoVM, reprodução determinística, e testes reais de carga. Até lá a PR permanece draft.
+
+## Preparação do AllowPrefix gerenciado por item
+
+O SDK agora permite `AllowPrefix(BunnyPrefixItemSnapshot item,int prefix)` nas quatro famílias de itens e testa `BunnyItemPrefixRuntime.Dispatch` em fixture C#, sem compartilhar ponteiros IL2CPP. O caminho **ainda não é vinculado** aos hooks de Terraria: só a política declarativa `BunnyItemPrefixRules` participa das rolagens nativas. Antes de ativar, são necessários descriptor `ITEM_PREFIX_CALLBACK`, binding por mod e tipo, warmup isolado, cota de RPC por tentativa, cache por candidato, precedência do veto permanente, exclusão da restauração de saves e testes host/dispositivo. Não declarar paridade com `ModItem/GlobalItem.AllowPrefix(item,prefix)` neste estágio.

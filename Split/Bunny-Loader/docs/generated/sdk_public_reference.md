@@ -40,6 +40,7 @@ string VisualTexture { get; set; }
 
 | Method | Execution |
 | --- | --- |
+| `bool AllowPrefix(BunnyPrefixItemSnapshot item, int prefix)` | worker_callback_isolated |
 | `void ApplyPrefix(ref BunnyPrefixApplyStats effects)` | compile_policy |
 | `void ConfigurePrefixRules(BunnyItemPrefixRules rules)` | compile_policy |
 | `void SetDefaults()` | compile_policy |
@@ -151,6 +152,7 @@ string Texture { get; set; }
 
 | Method | Execution |
 | --- | --- |
+| `bool AllowPrefix(BunnyPrefixItemSnapshot item, int prefix)` | worker_callback_isolated |
 | `void ApplyPrefix(ref BunnyPrefixApplyStats effects)` | compile_policy |
 | `void ConfigurePrefixRules(BunnyItemPrefixRules rules)` | compile_policy |
 | `void SetDefaults()` | compile_policy |
@@ -575,6 +577,7 @@ string UseSound { get; set; }
 
 | Method | Execution |
 | --- | --- |
+| `bool AllowPrefix(BunnyPrefixItemSnapshot item, int prefix)` | worker_callback_isolated |
 | `static int BuyPrice(int platinum, int gold, int silver, int copper)` | managed_helper |
 | `static int SellPrice(int platinum, int gold, int silver, int copper)` | managed_helper |
 | `void ApplyPrefix(ref BunnyPrefixApplyStats effects)` | compile_policy |
@@ -636,6 +639,14 @@ BunnyItemPrefixRules()
 | `void DenyWhenStackBetween(int prefixType, int minimum, int maximum)` | compile_policy |
 | `void DenyWhenStackBetween(string ownModPrefixName, int minimum, int maximum)` | compile_policy |
 | `void SetPrefixChanceWhenStackBetween(int minimum, int maximum, bool allowed)` | compile_policy |
+
+## BunnyLoader.Source.BunnyItemPrefixRuntime
+
+abstract class; base: `System.Object`.
+
+| Method | Execution |
+| --- | --- |
+| `static string Dispatch(string modId, string assemblyPath, string owner, int index, int kind, string snapshot)` | worker_dispatcher |
 
 ## BunnyLoader.Source.BunnyMethodHook
 
@@ -1473,6 +1484,7 @@ string Texture { get; set; }
 
 | Method | Execution |
 | --- | --- |
+| `bool AllowPrefix(BunnyPrefixItemSnapshot item, int prefix)` | worker_callback_isolated |
 | `void ApplyPrefix(ref BunnyPrefixApplyStats effects)` | compile_policy |
 | `void ConfigurePrefixRules(BunnyItemPrefixRules rules)` | compile_policy |
 | `void SetDefaults()` | compile_policy |

@@ -62,6 +62,10 @@
       "values": [],
       "methods": [
         {
+          "signature": "bool AllowPrefix(BunnyPrefixItemSnapshot item, int prefix)",
+          "execution": "worker_callback_isolated"
+        },
+        {
           "signature": "void ApplyPrefix(ref BunnyPrefixApplyStats effects)",
           "execution": "compile_policy"
         },
@@ -248,6 +252,10 @@
       ],
       "values": [],
       "methods": [
+        {
+          "signature": "bool AllowPrefix(BunnyPrefixItemSnapshot item, int prefix)",
+          "execution": "worker_callback_isolated"
+        },
         {
           "signature": "void ApplyPrefix(ref BunnyPrefixApplyStats effects)",
           "execution": "compile_policy"
@@ -1010,6 +1018,10 @@
       "values": [],
       "methods": [
         {
+          "signature": "bool AllowPrefix(BunnyPrefixItemSnapshot item, int prefix)",
+          "execution": "worker_callback_isolated"
+        },
+        {
           "signature": "static int BuyPrice(int platinum, int gold, int silver, int copper)",
           "execution": "managed_helper"
         },
@@ -1171,6 +1183,20 @@
         {
           "signature": "void SetPrefixChanceWhenStackBetween(int minimum, int maximum, bool allowed)",
           "execution": "compile_policy"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyItemPrefixRuntime",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [],
+      "values": [],
+      "methods": [
+        {
+          "signature": "static string Dispatch(string modId, string assemblyPath, string owner, int index, int kind, string snapshot)",
+          "execution": "worker_dispatcher"
         }
       ]
     },
@@ -2745,6 +2771,10 @@
       ],
       "values": [],
       "methods": [
+        {
+          "signature": "bool AllowPrefix(BunnyPrefixItemSnapshot item, int prefix)",
+          "execution": "worker_callback_isolated"
+        },
         {
           "signature": "void ApplyPrefix(ref BunnyPrefixApplyStats effects)",
           "execution": "compile_policy"
