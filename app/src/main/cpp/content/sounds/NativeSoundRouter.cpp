@@ -304,6 +304,15 @@ void stopSoundStyleToken(int token) {
     queueStop(token);
 }
 
+void stopAllSoundStyleInstances(int style) {
+    std::lock_guard<std::mutex> guard(g_mutex);
+    if (style < 0 || static_cast<size_t>(style) >= g_styles.size()) return;
+    auto& instance = g_styles[static_cast<size_t>(style)];
+    if (instance.released) return;
+    for (const auto& stream : instance.active) queueStop(stream.token);
+    instance.active.clear();
+}
+
 bool isSoundStyleToken(int token) {
     return token >= kAsyncSoundTokenBase;
 }
