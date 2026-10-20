@@ -24,6 +24,11 @@ struct NativeCommandSpec {
     uint8_t routes = 1;
     std::string description;
     bool canonical = false;
+
+    NativeCommandSpec(std::string commandName, uint8_t commandRoutes = 1,
+                      std::string helpText = {}, bool primary = false)
+        : name(std::move(commandName)), routes(commandRoutes),
+          description(std::move(helpText)), canonical(primary) {}
 };
 
 struct NativeCommandRequest {
