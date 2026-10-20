@@ -403,6 +403,7 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
                 }
                 typed[sourceIdentityForBase(def.base, def.name)] = type;
                 ++status->rarities;
+                continue;
             } else if (base == "BunnyDust") {
                 for (const auto& [key, value] : def.properties) {
                     if (key != "Texture" && key != "DisplayName") {
