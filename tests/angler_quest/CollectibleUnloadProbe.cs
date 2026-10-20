@@ -28,16 +28,51 @@ internal static class CollectibleUnloadProbe
         return weak;
     }
 
-    public static void AssertCollected(string assemblyPath)
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static WeakReference Rebind(string assemblyPath)
     {
-        var weak=Unload(assemblyPath);
+        const string modId="collectible_rebind_probe";
+        string original=assemblyPath+"|bunny-revision=1";
+        string newer=assemblyPath+"|bunny-revision=2";
+        if(BunnyRecipeRuntime.Dispatch(modId,original,"DynamicQuestFish",0,4,"1,950")!="1")
+            throw new InvalidOperationException("Original mod callback failed");
+        var mods=typeof(BunnyRecipeLoader).GetField("mods",
+            BindingFlags.NonPublic|BindingFlags.Static)?.GetValue(null) as IDictionary;
+        object previous=mods?[modId]??throw new InvalidOperationException("Missing original mod");
+        var oldContext=previous.GetType().GetField("Context")?.GetValue(previous)
+            as AssemblyLoadContext ??throw new InvalidOperationException("Missing old context");
+        var oldWeak=new WeakReference(oldContext);
+        if(BunnyRecipeRuntime.Dispatch(modId,newer,"DynamicQuestFish",0,5,"1,1,2,950")!="1")
+            throw new InvalidOperationException("Rebound callback failed");
+        object latest=mods[modId]??throw new InvalidOperationException("Missing rebound mod");
+        var context=latest.GetType().GetField("Context")?.GetValue(latest)
+            as AssemblyLoadContext ??throw new InvalidOperationException("Missing new context");
+        if(ReferenceEquals(oldContext,context))
+            throw new InvalidOperationException("Rebind reused existing assembly context");
+        return oldWeak;
+    }
+
+    private static void WaitForRelease(WeakReference weak,string reason)
+    {
         for(int attempt=0;attempt<12&&weak.IsAlive;++attempt)
         {
             GC.Collect();
             GC.WaitForPendingFinalizers();
             GC.Collect();
         }
-        if(weak.IsAlive)
-            throw new InvalidOperationException("Unload did not release collectible mod assembly");
+        if(weak.IsAlive)throw new InvalidOperationException(reason);
+    }
+
+    public static void AssertCollected(string assemblyPath)
+    {
+        WaitForRelease(Unload(assemblyPath),
+            "Unload did not release collectible mod assembly");
+        WaitForRelease(Rebind(assemblyPath),
+            "Hot rebind did not release old collectible mod assembly");
+        string cleanup=BunnyRecipeRuntime.Dispatch(
+            "collectible_rebind_probe",assemblyPath+"|bunny-revision=2",
+            "__unload__",0,6,"");
+        if(cleanup!="CLEARED")
+            throw new InvalidOperationException("Rebound mod cleanup failed");
     }
 }
