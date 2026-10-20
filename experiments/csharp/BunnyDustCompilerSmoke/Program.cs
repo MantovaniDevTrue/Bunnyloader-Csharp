@@ -43,6 +43,16 @@ public sealed class ExampleDust : BunnyDust
         return true;
     }
 }
+public sealed class BrokenSpawnDust : BunnyDust
+{
+    public static int SpawnAttempts;
+    public override void SetStaticDefaults() { }
+    public override void OnSpawn(ref BunnyDustState state)
+    {
+        ++SpawnAttempts;
+        throw new System.InvalidOperationException("Expected test failure");
+    }
+}
 """);
     string output = Path.Combine(dir, "ExampleDust.dll");
     string diag = Path.Combine(dir, "compile.txt");
@@ -50,20 +60,22 @@ public sealed class ExampleDust : BunnyDust
     if (result != 1)
         throw new Exception("Compiler returned " + result + "\n" + File.ReadAllText(diag));
     int classes = CompiledAssemblyProbe.Verify(output, diag);
-    if (classes != 1)
+    if (classes != 2)
         throw new Exception("Probe returned " + classes + "\n" + File.ReadAllText(diag));
     string wire = File.ReadAllText(Path.Combine(dir, "source-runtime-values.txt"));
     if (!wire.Contains("DUST\tExampleDust\t6\t5\tContent/Dusts/Example.png\n",
         StringComparison.Ordinal) ||
+        !wire.Contains("DUST\tBrokenSpawnDust\t-1\t1\t-\n", StringComparison.Ordinal) ||
         !wire.StartsWith("BUNNY_MANAGED_DEFAULTS_V2\n", StringComparison.Ordinal) ||
-        wire.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length != 2)
+        wire.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length != 3)
         throw new Exception("Dust defaults wire mismatch:\n" + wire);
     int modSlot = BunnyDustSourceDispatcher.Register("smoke_dust", output);
     if (modSlot < 0)
         throw new Exception("Dust dispatcher register failed: " +
             BunnyDustSourceDispatcher.LastRegistrationError);
     if (!BunnyDustSourceDispatcher.Bind(modSlot, 332, "ExampleDust") ||
-        BunnyDustSourceDispatcher.Bind(modSlot, 333, "ExampleDust"))
+        BunnyDustSourceDispatcher.Bind(modSlot, 333, "ExampleDust") ||
+        !BunnyDustSourceDispatcher.Bind(modSlot, 333, "BrokenSpawnDust"))
         throw new Exception("Dust dispatcher native binding failed");
     BunnyDustState state = new()
     {
@@ -91,6 +103,31 @@ public sealed class ExampleDust : BunnyDust
         if (BunnyDustSourceDispatcher.Tick(modSlot, (IntPtr)(&state)) != expected ||
             Math.Abs(state.Scale - 1.728f) > 0.00001f)
             throw new Exception("Dust world reset lifecycle mismatch");
+    }
+    var broken = output;
+    var brokenType = System.Reflection.Assembly.LoadFrom(broken)
+        .GetType("BunnyDustSmoke.BrokenSpawnDust", throwOnError: true)!;
+    var attempts = brokenType.GetField("SpawnAttempts")!;
+    BunnyDustState failed = new()
+    {
+        Slot = 16, Type = 333, Generation = 1, Active = 1,
+        X = 6, Y = 9, Scale = 1, FrameWidth = 8, FrameHeight = 8
+    };
+    unsafe
+    {
+        int first = BunnyDustSourceDispatcher.Invoke(modSlot,
+            BunnyDustSourceDispatcher.Spawn, (IntPtr)(&failed));
+        int second = BunnyDustSourceDispatcher.Invoke(modSlot,
+            BunnyDustSourceDispatcher.Spawn, (IntPtr)(&failed));
+        if ((first & BunnyDustSourceDispatcher.Accepted) == 0 ||
+            (second & BunnyDustSourceDispatcher.Accepted) == 0 ||
+            (int)attempts.GetValue(null)! != 1)
+            throw new Exception("OnSpawn fault was repeatedly invoked on same slot/generation");
+        failed.Generation = 2;
+        BunnyDustSourceDispatcher.Invoke(modSlot,
+            BunnyDustSourceDispatcher.Spawn, (IntPtr)(&failed));
+        if ((int)attempts.GetValue(null)! != 2)
+            throw new Exception("New Dust generation did not rearm quarantined callback");
     }
     BunnyDustSourceDispatcher.Unload();
     Console.WriteLine("DUST_SOURCE_ROSLYN_SMOKE=PASS");
