@@ -1149,7 +1149,9 @@ public static class CompiledAssemblyProbe
         foreach (var item in basicItems.Concat(weapons).Concat(potions).Concat(accessories))
         {
             Type itemType = item.GetType();
-            Type snapshotType = itemType.BaseType?.Assembly.GetType("BunnyLoader.Source.BunnyPrefixItemSnapshot")
+            Type snapshotType = Ancestors(itemType)
+                .Select(ancestor => ancestor.Assembly.GetType("BunnyLoader.Source.BunnyPrefixItemSnapshot"))
+                .FirstOrDefault(type => type != null)
                 ?? throw new InvalidOperationException("Missing item prefix callback snapshot type");
             MethodInfo callback = itemType.GetMethod("AllowPrefix",
                 BindingFlags.Public | BindingFlags.Instance, null,
@@ -1159,7 +1161,9 @@ public static class CompiledAssemblyProbe
             var snapshotOnly = new[] { snapshotType };
             var snapshotPrefixAndStats = new[] {
                 snapshotType, typeof(int),
-                itemType.BaseType!.Assembly.GetType("BunnyLoader.Source.BunnyPrefixApplyStats")!.MakeByRefType()
+                Ancestors(itemType)
+                    .Select(ancestor => ancestor.Assembly.GetType("BunnyLoader.Source.BunnyPrefixApplyStats"))
+                    .First(type => type != null)!.MakeByRefType()
             };
             MethodInfo choose = itemType.GetMethod("ChoosePrefix", snapshotOnly)
                 ?? throw new InvalidOperationException("Missing ChoosePrefix callback");
@@ -1172,18 +1176,19 @@ public static class CompiledAssemblyProbe
                 .OrderByDescending(method => method.DeclaringType == itemType)
                 .FirstOrDefault()
                 ?? throw new InvalidOperationException("Missing dynamic ApplyPrefix callback");
-            int mask = (callback.DeclaringType == itemType ? 1 : 0) |
-                       (choose.DeclaringType == itemType ? 2 : 0) |
-                       (chance.DeclaringType == itemType ? 4 : 0) |
-                       (dynamicApply.DeclaringType == itemType ? 8 : 0);
+            int mask = (callback.DeclaringType?.Assembly == itemType.Assembly ? 1 : 0) |
+                       (choose.DeclaringType?.Assembly == itemType.Assembly ? 2 : 0) |
+                       (chance.DeclaringType?.Assembly == itemType.Assembly ? 4 : 0) |
+                       (dynamicApply.DeclaringType?.Assembly == itemType.Assembly ? 8 : 0);
             if (mask != 0)
                 lines.Add(string.Join("\t", "ITEM_PREFIX_CALLBACK", itemType.Name,
                     mask.ToString(CultureInfo.InvariantCulture)));
         }
         foreach (var item in basicItems.Concat(weapons).Concat(potions).Concat(accessories))
         {
-            Type staticStatsType = item.GetType().BaseType!.Assembly.GetType(
-                "BunnyLoader.Source.BunnyPrefixApplyStats")
+            Type staticStatsType = Ancestors(item.GetType())
+                .Select(ancestor => ancestor.Assembly.GetType("BunnyLoader.Source.BunnyPrefixApplyStats"))
+                .FirstOrDefault(type => type != null)
                 ?? throw new InvalidOperationException("Missing static ApplyPrefix state type");
             MethodInfo apply = item.GetType().GetMethod("ApplyPrefix",
                 BindingFlags.Public | BindingFlags.Instance, null,
