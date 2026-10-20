@@ -36,9 +36,10 @@ public static class BunnyEntitySourceDispatcher
         public readonly HashSet<string> RegisteredItemUses = new(StringComparer.Ordinal);
         public readonly Dictionary<string, BunnyInvasionSystem> Invasions = new(StringComparer.Ordinal);
         public readonly List<BunnyInvasionSystem> InvasionOrder = new();
-        public readonly Dictionary<string, (BunnyInvasionPhase Phase, int Progress)> SavedInvasions = new(StringComparer.Ordinal);
+        public readonly Dictionary<string, (BunnyInvasionPhase Phase, int Progress, int Cooldown)> SavedInvasions = new(StringComparer.Ordinal);
         public readonly Dictionary<string, (BunnyInvasionPhase Phase, int PercentStep)> NotifiedInvasions = new(StringComparer.Ordinal);
         public int NextInvasionIndex;
+        public int SaveTimerFrames;
         public readonly HashSet<string> PendingRewards = new(StringComparer.Ordinal);
         public int RewardPlayer = -1;
         public int LastWorldPlayer = -1;
@@ -149,6 +150,7 @@ public static class BunnyEntitySourceDispatcher
             context.LastWorldPlayer = -1;
             context.NativeWorldSession = worldSession;
             context.NextInvasionIndex = 0;
+            context.SaveTimerFrames = 0;
         }
         if (mode == 1)
         {
@@ -168,7 +170,8 @@ public static class BunnyEntitySourceDispatcher
                     BunnyInvasionController controller = system.Pipeline.Controller;
                     BunnyInvasionWorldPersistence.TryRestore(worldSession, context.Mod, controller);
                     BunnyInvasionSnapshot initial = controller.Snapshot();
-                    context.SavedInvasions[system.Id] = (initial.Phase, initial.Progress);
+                    context.SavedInvasions[system.Id] =
+                        (initial.Phase, initial.Progress, initial.Cooldown);
                 }
                 context.WorldStateInitialized = true;
             }
@@ -211,7 +214,10 @@ public static class BunnyEntitySourceDispatcher
             }
             foreach (BunnyInvasionSystem system in context.Invasions.Values)
                 system.Tick(true, elapsedFrames, true);
-            SaveInvasionIfChanged(context);
+            context.SaveTimerFrames += elapsedFrames;
+            bool periodicSave = context.SaveTimerFrames >= 600;
+            if (periodicSave) context.SaveTimerFrames = 0;
+            SaveInvasionIfChanged(context, periodicSave);
             if (context.Invasions.Count == 0) return received + used;
             List<BunnyInvasionSystem> systems = context.InvasionOrder;
             for (int iteration = 0; iteration < systems.Count; iteration++)
@@ -240,7 +246,7 @@ public static class BunnyEntitySourceDispatcher
         }
     }
 
-    private static void SaveInvasionIfChanged(Context context)
+    private static void SaveInvasionIfChanged(Context context, bool periodicSave = false)
     {
         if (!context.WorldStateInitialized || context.NativeWorldSession <= 0) return;
         foreach (BunnyInvasionSystem system in context.Invasions.Values)
@@ -261,11 +267,14 @@ public static class BunnyEntitySourceDispatcher
                 (!hasSaved || saved.Phase != BunnyInvasionPhase.Completed) &&
                 system.RewardStack > 0 && system.RewardItemClass.Length > 0)
                 context.PendingRewards.Add(system.Id);
-            if (!hasSaved || state.Phase != saved.Phase || state.Progress != saved.Progress)
+            if (!hasSaved || state.Phase != saved.Phase ||
+                state.Progress != saved.Progress ||
+                (periodicSave && state.Cooldown != saved.Cooldown))
             {
                 if (BunnyInvasionWorldPersistence.Save(
                     context.NativeWorldSession, context.Mod, controller))
-                    context.SavedInvasions[system.Id] = (state.Phase, state.Progress);
+                    context.SavedInvasions[system.Id] =
+                        (state.Phase, state.Progress, state.Cooldown);
             }
             if (!context.PendingRewards.Contains(system.Id)) continue;
             int target = context.RewardPlayer >= 0 ?
