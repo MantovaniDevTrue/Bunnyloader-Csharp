@@ -204,9 +204,10 @@ bool hasManagedAnglerQuestCallbacks(const std::string& mod) {
         [&](const angler::Quest& q) { return q.mod==mod&&q.callbackMask!=0; });
 }
 bool invokeManagedAnglerQuestCallback(const std::string& mod,const std::string& owner,
-                                      int kind,int first,int second,int itemType,bool* allowed) {
+                                      int kind,int first,int second,int itemType,bool* allowed,int playerIndex) {
     if (!allowed || (kind!=4&&kind!=5) || first<0 || first>1 ||
         second<0 || second>1 || itemType<0 || itemType>=65536 ||
+        (kind==5 && (playerIndex<0||playerIndex>255)) ||
         !managedRecipeRuntimeReady()) return false;
     std::string assembly;
     {
@@ -217,7 +218,8 @@ bool invokeManagedAnglerQuestCallback(const std::string& mod,const std::string& 
     }
     const std::string input=kind==4?
         std::to_string(first)+","+std::to_string(itemType):
-        std::to_string(first)+","+std::to_string(second)+","+std::to_string(itemType);
+        std::to_string(first)+","+std::to_string(second)+","+
+        std::to_string(playerIndex)+","+std::to_string(itemType);
     std::string output;
     if(!invokeManagedRecipe(mod,assembly,owner,0,kind,input,&output,1500) ||
        (output!="1"&&output!="0"))return false;
