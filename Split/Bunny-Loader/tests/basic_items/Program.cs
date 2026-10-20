@@ -274,7 +274,8 @@ try {
   var domains=new Dictionary<Type,string>{
    [typeof(BunnyItem)]="ITEM",[typeof(BunnyWeapon)]="ITEM",[typeof(BunnyAccessory)]="ITEM",[typeof(BunnyBuffPotion)]="ITEM",
    [typeof(BunnyWall)]="WALL",[typeof(BunnyTile)]="TILE",[typeof(BunnyProjectile)]="PROJECTILE",[typeof(BunnyNPC)]="NPC",
-   [typeof(BunnyBuff)]="BUFF",[typeof(BunnyPlayer)]="PLAYER",[typeof(BunnyPrefix)]="PREFIX"
+   [typeof(BunnyBuff)]="BUFF",[typeof(BunnyPlayer)]="PLAYER",[typeof(BunnyPrefix)]="PREFIX",
+   [typeof(BunnyTree)]="TREE",[typeof(BunnyGore)]="GORE"
   };
   var compiled=Assembly.Load(File.ReadAllBytes(output));
   var identities=compiled.GetTypes().Where(t=>t.IsClass&&!t.IsAbstract&&!t.ContainsGenericParameters)
