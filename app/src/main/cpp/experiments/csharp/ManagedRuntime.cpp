@@ -2095,8 +2095,7 @@ bool registerManagedEntitySourceMod(
     const std::vector<std::pair<int, std::string>>& projectileTypes) {
     if (modId.empty() || modId.size() > 128 || assemblyPath.empty() ||
         assemblyPath.size() > 2048 || assemblyPath.find("..") != std::string::npos ||
-        modId.find_first_not_of("0123456789abcdefABCDEF-") != std::string::npos ||
-        (npcTypes.empty() && projectileTypes.empty())) return false;
+        modId.find_first_not_of("0123456789abcdefABCDEF-") != std::string::npos) return false;
     for (const auto& list : {&npcTypes, &projectileTypes})
         for (const auto& [type, name] : *list)
             if (type < 0 || type >= 32768 || name.empty() || name.size() > 128)
