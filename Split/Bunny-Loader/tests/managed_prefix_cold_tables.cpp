@@ -44,6 +44,8 @@ std::shared_ptr<const bl::csharp::ManagedPrefixAttributeDenyTable> attributeDeni
     std::make_shared<const bl::csharp::ManagedPrefixAttributeDenyTable>();
 std::shared_ptr<const std::map<int, bl::csharp::ManagedItemPrefixCallbackBinding>> itemCallbackView =
     std::make_shared<const std::map<int, bl::csharp::ManagedItemPrefixCallbackBinding>>();
+std::shared_ptr<const std::vector<bl::csharp::ManagedGlobalPrefixCallbackBinding>> globalView =
+    std::make_shared<const std::vector<bl::csharp::ManagedGlobalPrefixCallbackBinding>>();
 std::shared_ptr<const std::map<std::string,std::string>> itemCallbackAssemblies =
     std::make_shared<const std::map<std::string,std::string>>();
 int itemWorkerWarmup = 0;
@@ -198,6 +200,10 @@ std::shared_ptr<const ManagedPrefixStackDenyTable> managedItemPrefixStackDenyVie
 std::shared_ptr<const ManagedPrefixAttributeDenyTable> managedItemPrefixAttributeDenyView() {
     return attributeDeniedView;
 }
+std::shared_ptr<const std::vector<ManagedGlobalPrefixCallbackBinding>>
+managedGlobalPrefixCallbackView() {
+    return globalView;
+}
 std::shared_ptr<const std::map<int, ManagedItemPrefixCallbackBinding>> managedItemPrefixCallbackView() {
     return itemCallbackView;
 }
@@ -211,7 +217,7 @@ bool invokeManagedItemPrefixDecision(const std::string& mod,const std::string& a
     const std::string& owner,int index,int kind,const std::string& snapshot,
     std::string* output,int budget) {
     assert(mod=="test" && assembly=="/tmp/prefix-fixture.dll" &&
-           (owner=="TestWand" || owner=="TestCharm") &&
+           (owner=="TestWand" || owner=="TestCharm" || owner=="TestGlobal") &&
            (kind==3 || kind==4 || kind==5) &&
            ((kind==3 && index==0) || (kind==4 && index>=1 && index<=2) ||
             (kind==5 && index>=1 && index<=255)) &&
@@ -228,7 +234,7 @@ bool invokeManagedItemPrefixBatch(const std::string& mod,const std::string& asse
     const std::string& owner,const std::string& snapshot,size_t count,
     std::string* response,int budget) {
     assert(mod=="test" && assembly=="/tmp/prefix-fixture.dll" &&
-           (owner=="TestWand" || owner=="TestCharm") &&
+           (owner=="TestWand" || owner=="TestCharm" || owner=="TestGlobal") &&
            count>=1 && count<=128 && budget>0 && budget<=650);
     const auto pos=snapshot.find('|');
     assert(pos!=std::string::npos && snapshot.size()-pos-1==count*2);
@@ -245,7 +251,7 @@ bool invokeManagedItemPrefix(const std::string& mod,const std::string& assembly,
                              const std::string& owner,int prefix,const std::string& snapshot,
                              std::string* result,int budget) {
     assert(mod=="test" && assembly=="/tmp/prefix-fixture.dll" &&
-           (owner=="TestWand" || owner=="TestCharm") && prefix>=1 && prefix<=255 &&
+           (owner=="TestWand" || owner=="TestCharm" || owner=="TestGlobal") && prefix>=1 && prefix<=255 &&
            (snapshot.rfind("6199,",0)==0 || snapshot.rfind("6196,",0)==0) &&
            budget>0 && budget<=650);
     ++itemWorkerCalls;
@@ -1281,6 +1287,7 @@ int main() {
     batchVanillaCandidates.clear();
     itemCallbackView=std::make_shared<const std::map<int,ManagedItemPrefixCallbackBinding>>();
     itemCallbackAssemblies=std::make_shared<const std::map<std::string,std::string>>();
+    globalView=std::make_shared<const std::vector<ManagedGlobalPrefixCallbackBinding>>();
     const auto prefixGroup=allocate(4,sizeof(int32_t));
     auto* categoryIds=static_cast<int32_t*>(arrayData(prefixGroup));
     categoryIds[0]=71;
