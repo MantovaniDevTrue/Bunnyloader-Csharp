@@ -68,17 +68,20 @@ bool sameBinding(const ItemBinding& a, const ItemBinding& b) {
 }
 
 void onActualUse(Il2CppObject* player, Il2CppObject* item, const MethodInfo* method) {
+    int itemType = -1;
+    int playerIndex = -1;
+    if (player && item && g_ready.load(std::memory_order_acquire) &&
+        g_playerIndexOffset >= 0 && g_itemTypeOffset >= 0) {
+        itemType = runtime::field<int32_t>(item, g_itemTypeOffset);
+        playerIndex = runtime::field<int32_t>(player, g_playerIndexOffset);
+    }
     if (g_originalUse) g_originalUse(player, item, method);
-    if (!player || !item || !g_ready.load(std::memory_order_acquire) ||
-        !worldIsAuthoritative(runtime::netMode()) ||
-        g_playerIndexOffset < 0 || g_itemTypeOffset < 0) return;
-    const int type = runtime::field<int32_t>(item, g_itemTypeOffset);
-    const auto binding = g_installed.find(type);
-    if (binding == g_installed.end()) return;
-    const int playerIndex = runtime::field<int32_t>(player, g_playerIndexOffset);
-    if (playerIndex < 0 || playerIndex >= 255 ||
-        binding->second.session != g_session.load(std::memory_order_acquire))
-        return;
+    if (itemType < 0 || playerIndex < 0 || playerIndex >= 255 ||
+        !g_ready.load(std::memory_order_acquire) ||
+        !worldIsAuthoritative(runtime::netMode())) return;
+    const auto binding = g_installed.find(itemType);
+    if (binding == g_installed.end() ||
+        binding->second.session != g_session.load(std::memory_order_acquire)) return;
     std::lock_guard<std::mutex> guard(g_mutex);
     if (g_events.size() >= kEventsLimit) {
         g_dropped.fetch_add(1, std::memory_order_relaxed);
