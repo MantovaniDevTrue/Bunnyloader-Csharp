@@ -161,7 +161,7 @@ jobs:
           test -x "$clang"
           "$clang" --version | head -n 1
           "$clang" -std=c++20 -Wall -Wextra -Werror -pedantic -pthread -fsyntax-only \
-            -I app/src/main/cpp -I tests/basic_items/include \
+            -I app/src/main/cpp \
             app/src/main/cpp/experiments/csharp/NativeAnglerQuestGameplay.cpp \
             app/src/main/cpp/experiments/csharp/NativeAnglerQuestFishing.cpp \
             app/src/main/cpp/experiments/csharp/NativeRecipeCallbacks.cpp \
