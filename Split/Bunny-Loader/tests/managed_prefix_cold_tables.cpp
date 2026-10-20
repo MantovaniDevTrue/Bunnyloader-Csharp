@@ -213,6 +213,8 @@ bool invokeManagedItemPrefixDecision(const std::string& mod,const std::string& a
     assert(mod=="test" && assembly=="/tmp/prefix-fixture.dll" &&
            (owner=="TestWand" || owner=="TestCharm") &&
            (kind==3 || kind==4 || kind==5) &&
+           ((kind==3 && index==0) || (kind==4 && index>=1 && index<=2) ||
+            (kind==5 && index>=1 && index<=255)) &&
            !snapshot.empty() && budget>=1 && budget<=650);
     ++itemDecisionCalls;
     if(itemWorkerFails)return false;
