@@ -8,6 +8,7 @@
 #include "graphics/CSharpScreenEffects.h"
 #include "experiments/csharp/NativeBasicItems.h"
 #include "experiments/csharp/NativeAnglerQuestRegistry.h"
+#include "experiments/csharp/NativeRecipeCallbacks.h"
 #include "content/buffs/ModBuffs.h"
 #include "content/tiles/ModTiles.h"
 #include "content/items/ModItems.h"
@@ -610,16 +611,20 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
 }
 
 void resetCSharpSourceModSession() {
-    for (const auto& mod : g_statuses)
+    for (const auto& mod : g_statuses) {
         angler::registry().unload(mod.id);
+        unbindNativeRecipeAssembly(mod.id);
+    }
     g_statuses.clear();
 }
 
 bool loadCSharpSourceMod(const bl::mods::LoadedMod& mod) {
     auto previous = std::find_if(g_statuses.begin(), g_statuses.end(),
         [&](const SourceModStatus& entry) { return entry.id == mod.id; });
-    if (previous != g_statuses.end())
+    if (previous != g_statuses.end()) {
         angler::registry().unload(mod.id);
+        unbindNativeRecipeAssembly(mod.id);
+    }
     SourceModStatus status;
     status.id = mod.id;
     status.directory = mod.dir;
