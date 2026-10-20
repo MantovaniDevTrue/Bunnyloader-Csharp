@@ -5,6 +5,7 @@ namespace BunnyLoader.Source;
 public abstract class BunnyInvasionSystem
 {
     public abstract BunnyInvasionSpawnPipeline Pipeline { get; }
+    public string Id => Pipeline.Controller.Definition.Id;
 
     public virtual void OnWorldExit() => Pipeline.ResetWorld();
 
