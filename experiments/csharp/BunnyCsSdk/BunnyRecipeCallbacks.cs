@@ -147,13 +147,16 @@ public static class BunnyQuestRuntime
             if(kind!=4&&kind!=5)throw new ArgumentOutOfRangeException(nameof(kind));
             if(snapshot.Length>128)throw new ArgumentException("Quest snapshot too large");
             string[] parts=snapshot.Split(',');
-            if(parts.Length!=(kind==4?2:3))throw new ArgumentException("Invalid quest snapshot width");
+            if(kind==4?parts.Length!=2:parts.Length!=3&&parts.Length!=4)
+                throw new ArgumentException("Invalid quest snapshot width");
             var numbers=new int[parts.Length];
             for(int i=0;i<parts.Length;++i)
                 if(!int.TryParse(parts[i],NumberStyles.None,CultureInfo.InvariantCulture,out numbers[i]))
                     throw new ArgumentException("Invalid quest snapshot field");
             int fishType=numbers[^1];
-            if(fishType<0||fishType>=65536||numbers.Take(numbers.Length-1).Any(value=>value!=0&&value!=1))
+            if(fishType<0||fishType>=65536||
+                numbers.Take(kind==4?1:2).Any(value=>value!=0&&value!=1)||
+                (kind==5&&parts.Length==4&&(numbers[2]<0||numbers[2]>255)))
                 throw new ArgumentException("Quest snapshot outside supported bounds");
             Assembly assembly=BunnyRecipeLoader.LoadAssembly(modId,assemblyPath);
             string key=modId+"\n"+owner;
@@ -169,6 +172,7 @@ public static class BunnyQuestRuntime
                 handlers[key]=handler;
             }
             var context=new BunnyQuestContext{FishType=fishType,
+                PlayerIndex=kind==5&&parts.Length==4?numbers[2]:-1,
                 Hardmode=kind==4&&numbers[0]!=0,
                 InvertedGravity=kind==5&&numbers[0]!=0,
                 Uncommon=kind==5&&numbers[1]!=0};
