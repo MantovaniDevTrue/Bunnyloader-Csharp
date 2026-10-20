@@ -2,6 +2,7 @@
 #include "experiments/csharp/UniversalHookMailbox.h"
 #include "experiments/csharp/UniversalHooks.h"
 #include "experiments/csharp/ManagedRuntime.h"
+#include "experiments/csharp/NativeRecipeCallbacks.h"
 #include "graphics/ScreenScene.h"
 #include "experiments/csharp/ManagedVisualMonoPump.h"
 #include "experiments/csharp/ManagedVisualState.h"
@@ -1374,6 +1375,8 @@ bool processManagedRecipeRpc(std::unique_lock<std::mutex>& lock,Execute execute)
 }
 
 std::string executeRecipeOnWorker(const RecipeRpcJob& job) {
+    if (!isNativeRecipeAssemblyCurrent(job.mod, job.assembly))
+        return "PENDING|Stage=Invoke Reason=AssemblyUnloadedOrRebound";
     std::lock_guard<std::mutex> monoGuard(g_mutex);
     if(!g_domain||!g_status.methodExecuted||!g_api.attach||!g_api.openAssembly||!g_api.image||
        !g_api.findClass||!g_api.findMethod||!g_api.newString||!g_api.invoke)return "PENDING|Stage=Invoke Reason=MonoRuntimeOrRequiredExportsNotReady";
