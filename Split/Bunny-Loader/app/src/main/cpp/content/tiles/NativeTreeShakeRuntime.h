@@ -185,10 +185,17 @@ bool setupNativeShakeHook() {
        !paramIs(ref.newItem,0,"IEntitySource",false)||
        !paramIs(ref.newItem,7,"System.Boolean",true)||
        !paramIs(ref.newItem,9,"NewItemOwnership",false)||
-       !paramIs(ref.newItem,10,"Nullable",false)||
-       !paramIs(ref.newItem,10,"Vector2",false)||
+       !paramIs(ref.newItem,10,"System.Nullable",false)||
        !paramIs(ref.newItem,11,"NewItemModifier",false)||
        !il2cpp::methodPointer(ref.newItem))return false;
+    char* nullableName=a.type_get_name(a.method_get_param(ref.newItem,10));
+    const bool nullableVector2=nullableName&&std::strstr(nullableName,"Vector2")!=nullptr;
+    if(nullableName)std::free(nullableName);
+    if(!nullableVector2)return false;
+    char* itemReturn=a.type_get_name(a.method_get_return_type(ref.newItem));
+    const bool returnsItemIndex=itemReturn&&std::strcmp(itemReturn,"System.Int32")==0;
+    if(itemReturn)std::free(itemReturn);
+    if(!returnsItemIndex)return false;
     auto* nullable=a.class_from_il2cpp_type(a.method_get_param(ref.newItem,10));
     auto* ownership=a.class_from_il2cpp_type(a.method_get_param(ref.newItem,9));
     uint32_t align=0;
