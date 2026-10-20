@@ -52,7 +52,7 @@ inline bool managedDustStateValid(const ManagedDustState& state) noexcept {
            state.generation > 0 && (state.active == 0 || state.active == 1) &&
            std::isfinite(state.x) && std::isfinite(state.y) &&
            std::isfinite(state.velocityX) && std::isfinite(state.velocityY) &&
-           std::isfinite(state.scale) && state.scale > 0.f &&
+           std::isfinite(state.scale) && (state.active == 0 || state.scale > 0.f) &&
            std::isfinite(state.rotation) &&
            state.alpha >= 0 && state.alpha <= 255 &&
            state.frameX >= 0 && state.frameY >= 0 &&
