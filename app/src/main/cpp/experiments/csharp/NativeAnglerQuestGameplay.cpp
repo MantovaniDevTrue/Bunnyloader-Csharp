@@ -273,7 +273,8 @@ bool findContracts() {
             }
         }
         Il2CppString* output = api.string_new(Registry::chat(*it, name, currentCulture()).c_str());
-        if (!output) return g_originalChat(turnIn, mi);
+        if (!output || activeGeneration().load(std::memory_order_acquire) != registry().generation())
+            return g_originalChat(turnIn, mi);
         int32_t corner = type;
         api.field_static_set_value(g_chatCorner, &corner);
         return output;
