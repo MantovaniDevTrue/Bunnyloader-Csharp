@@ -672,6 +672,7 @@ bool applyManagedSourceDefaults(
     std::set<int> seenPrefixDenials;
     std::set<int> seenItemPrefixCallbacks;
     std::vector<std::pair<int, std::string>> itemPrefixCallbacks;
+    std::vector<std::pair<std::string,int>> globalPrefixCallbacks;
     std::map<int,int> itemPrefixMasks;
     std::vector<std::pair<int, std::vector<ManagedPrefixStackDenyToken>>> prefixStackDenials;
     std::set<int> seenPrefixStackDenials;
@@ -696,6 +697,24 @@ bool applyManagedSourceDefaults(
         std::vector<std::string> fields;
         std::string part;
         while (std::getline(parts, part, '\t')) fields.push_back(part);
+        if (!fields.empty() && fields[0] == "GLOBAL_PREFIX_CALLBACK") {
+            int mask=0;
+            if(fields.size()!=3 || fields[1].empty() || fields[1].size()>64 ||
+               !((fields[1][0]>='A'&&fields[1][0]<='Z') ||
+                 (fields[1][0]>='a'&&fields[1][0]<='z') || fields[1][0]=='_') ||
+               !std::all_of(fields[1].begin(),fields[1].end(),[](unsigned char c) {
+                   return (c>='A'&&c<='Z') || (c>='a'&&c<='z') ||
+                          (c>='0'&&c<='9') || c=='_';
+               }) || !integer(fields[2],&mask) || mask<1 || mask>15 ||
+               globalPrefixCallbacks.size()>=128 ||
+               std::any_of(globalPrefixCallbacks.begin(),globalPrefixCallbacks.end(),
+                   [&](const auto& entry){return entry.first==fields[1];})) {
+                *error="[CSharp][ERROR][GlobalPrefixCallback] Stage=Decode Reason=InvalidOwnerOrMask";
+                return false;
+            }
+            globalPrefixCallbacks.emplace_back(fields[1],mask);
+            continue;
+        }
         if (!fields.empty() && fields[0] == "ITEM_PREFIX_CALLBACK") {
             const auto key = fields.size() > 1
                 ? sourceIdentityForWire("ITEM", fields[1]) : "";
@@ -1843,6 +1862,10 @@ bool applyManagedSourceDefaults(
     if (!applyManagedItemPrefixCallbackBindings(modId, itemPrefixCallbacks,
                                                  itemPrefixMasks)) {
         *error = "[CSharp][ERROR][ItemPrefixCallback] Stage=Publish Reason=InvalidBinding";
+        return false;
+    }
+    if (!applyManagedGlobalPrefixCallbackBindings(modId,globalPrefixCallbacks)) {
+        *error="[CSharp][ERROR][GlobalPrefixCallback] Stage=Publish Reason=InvalidBinding";
         return false;
     }
     if (!tiles.empty() && !applyManagedNativeTileDefaultsBatch(modId, tiles)) {
