@@ -10,6 +10,9 @@ internal static class TransportIntegration
     [DllImport("bunny", EntryPoint = "bunny_invasion_test_pump")]
     private static extern void PumpNative();
 
+    [DllImport("bunny", EntryPoint = "bunny_item_use_test_inject")]
+    private static extern void InjectItemUse(int playerIndex);
+
     private static int checks;
 
     private static void Check(bool value, string description)
@@ -33,9 +36,16 @@ internal static class TransportIntegration
         const int npcType = 700;
         Check(BunnyEntitySourceDispatcher.Bind(mod, 0, npcType,
             nameof(ExampleSlimeNPC)), "bind NPC");
-        Check(Tick(mod, 11) == 0, "world activation resets stale state");
-        Check(ExampleInvasion.Start(true), "invasion starts");
-        Check(Tick(mod, 11) == 1, "world tick submitted invasion spawn");
+        Check(Tick(mod, 11) == 0, "world activation binds item and resets stale state");
+        Check(ExampleInvasion.Controller.Phase == BunnyInvasionPhase.Inactive,
+            "no automatic invasion before item use");
+        InjectItemUse(0);
+        Check(Tick(mod, 11) == 1, "item OnUse starts invasion and queues NPC spawn");
+        int epoch = ExampleInvasion.Controller.Snapshot().Epoch;
+        InjectItemUse(0);
+        Check(Tick(mod, 11) == 0 &&
+            ExampleInvasion.Controller.Snapshot().Epoch == epoch,
+            "repeated item use cannot restart running invasion");
         Check(ExampleInvasion.Pipeline.PendingCount == 1, "reservation created");
         PumpNative();
         Check(Tick(mod, 11) == 1, "MonoVM receives native spawn reply");
@@ -55,8 +65,10 @@ internal static class TransportIntegration
         Check(Tick(mod, 12) == 0 && ExampleInvasion.Controller.Progress == 0 &&
             ExampleInvasion.Controller.Phase == BunnyInvasionPhase.Inactive,
             "new Terraria world resets old invasion");
-        Check(ExampleInvasion.Start(true), "invasion restarts");
-        Check(Tick(mod, 12) == 1, "new world receives ticket");
+        InjectItemUse(0);
+        Check(Tick(mod, 12) == 1 &&
+            ExampleInvasion.Controller.Phase == BunnyInvasionPhase.Running,
+            "new world item use starts a fresh invasion");
         SetWorld(0, 13);
         SetWorld(1, 13);
         Check(Tick(mod, 13) == 0 && ExampleInvasion.Pipeline.PendingCount == 0,
