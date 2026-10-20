@@ -38,9 +38,21 @@ struct Spawn {
     float scale = 1.f;
     uint64_t generation = 0;
 };
+struct GoreSettings {
+    int special = 0;
+    int speed = 1;
+    int speedAlpha = 1;
+    bool isDrip = false;
+    bool safe = false;
+};
+struct ConfigRequest {
+    int type = 0;
+    GoreSettings values{};
+};
 struct NativeEntry {
     Entry entry;
     uint32_t root = 0;
+    GoreSettings settings{};
     NativeEntry(const Entry& value, uint32_t handle) : entry(value), root(handle) {}
 };
 struct Tables {
@@ -61,6 +73,7 @@ std::vector<NativeEntry> g_entries;
 std::shared_ptr<const TypeIndex> g_types = std::make_shared<const TypeIndex>();
 std::mutex g_queueMutex;
 std::deque<Spawn> g_queue;
+std::deque<ConfigRequest> g_configs;
 std::atomic<uint64_t> g_generation{1};
 std::atomic<bool> g_worldReady{false};
 uint64_t g_frame = 0;
@@ -172,6 +185,15 @@ std::array<FieldInfo*, 6> fields() {
             g_tables.speedAlpha, g_tables.drip, g_tables.safe};
 }
 
+bool writeSettings(std::array<Il2CppArray*, 6>& arrays,
+                   int type, const GoreSettings& settings) {
+    return writeInt(arrays[1], type, settings.special) &&
+           writeInt(arrays[2], type, settings.speed) &&
+           writeInt(arrays[3], type, settings.speedAlpha) &&
+           writeInt(arrays[4], type, settings.isDrip ? 1 : 0) &&
+           writeInt(arrays[5], type, settings.safe ? 1 : 0);
+}
+
 struct PinnedArrays {
     std::array<uint32_t, 6> handles{};
     ~PinnedArrays() {
@@ -206,11 +228,7 @@ bool applyDefaults(std::array<Il2CppArray*, 6>& arrays, int start,
         const int type = start + static_cast<int>(i);
         Il2CppObject* asset = a.gchandle_get_target(roots[i]);
         if (!asset || !setObject(arrays[0], type, asset) ||
-            !writeInt(arrays[1], type, 0) ||
-            !writeInt(arrays[2], type, 1) ||
-            !writeInt(arrays[3], type, 1) ||
-            !writeInt(arrays[4], type, 0) ||
-            !writeInt(arrays[5], type, 0))
+            !writeSettings(arrays, type, GoreSettings{}))
             return false;
     }
     return true;
@@ -238,11 +256,7 @@ bool repairOnGameThread() {
         const int type = record.entry.type;
         if (!setObject(candidate[0], type,
                 il2cpp::api().gchandle_get_target(record.root)) ||
-            !writeInt(candidate[1], type, 0) ||
-            !writeInt(candidate[2], type, 1) ||
-            !writeInt(candidate[3], type, 1) ||
-            !writeInt(candidate[4], type, 0) ||
-            !writeInt(candidate[5], type, 0))
+            !writeSettings(candidate, type, record.settings))
             return false;
     }
     for (size_t i = 0; i < f.size(); ++i)
@@ -382,6 +396,35 @@ void worldReady() {
 }
 
 void pumpOnGameThread() {
+    if (!g_tables.ready) return;
+    std::array<ConfigRequest, 32> configs{};
+    size_t configured = 0;
+    {
+        std::lock_guard lock(g_queueMutex);
+        while (configured < configs.size() && !g_configs.empty()) {
+            configs[configured++] = g_configs.front();
+            g_configs.pop_front();
+        }
+    }
+    if (configured && !repairOnGameThread())
+        BL_WARN("csharp GoreLoader: tabelas indisponiveis para configurar gore");
+    else if (configured) {
+        const auto f = fields();
+        std::array<Il2CppArray*, 6> arrays{};
+        for (size_t i = 0; i < f.size(); ++i)
+            arrays[i] = staticArray(f[i]);
+        for (size_t i = 0; i < configured; ++i) {
+            const auto& request = configs[i];
+            auto found = std::find_if(g_entries.begin(), g_entries.end(),
+                [&](const NativeEntry& e) { return e.entry.type == request.type; });
+            if (found == g_entries.end() || !writeSettings(arrays, request.type, request.values)) {
+                BL_WARN("csharp GoreLoader: configuracao nativa rejeitada type=%d",
+                        request.type);
+                continue;
+            }
+            found->settings = request.values;
+        }
+    }
     if (!g_worldReady.load(std::memory_order_acquire)) return;
     if (++g_frame % 20 == 0 && !repairOnGameThread()) {
         static unsigned failures = 0;
@@ -409,6 +452,33 @@ extern "C" __attribute__((visibility("default")))
 int bunny_csharp_gore_type(const char* modId, const char* name) {
     if (!validText(modId, 128) || !validText(name, 180)) return 0;
     return typeOf(modId, name);
+}
+
+extern "C" __attribute__((visibility("default")))
+int bunny_csharp_gore_configure(const char* modId, const char* name,
+                                int special, int speed, int speedAlpha,
+                                int isDrip, int safe) {
+    if (!validText(modId, 128) || !validText(name, 180) ||
+        special < 0 || special > 255 ||
+        speed < 0 || speed > 255 ||
+        speedAlpha < 0 || speedAlpha > 255 ||
+        (isDrip != 0 && isDrip != 1) ||
+        (safe != 0 && safe != 1))
+        return 0;
+    const int type = typeOf(modId, name);
+    if (type <= 0) return 0;
+    const GoreSettings settings{special, speed, speedAlpha,
+                                isDrip != 0, safe != 0};
+    std::lock_guard lock(g_queueMutex);
+    for (auto& existing : g_configs) {
+        if (existing.type == type) {
+            existing.values = settings;
+            return 1;
+        }
+    }
+    if (g_configs.size() >= kMaxQueue) return 0;
+    g_configs.push_back({type, settings});
+    return 1;
 }
 
 extern "C" __attribute__((visibility("default")))
