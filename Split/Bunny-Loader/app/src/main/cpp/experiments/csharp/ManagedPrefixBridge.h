@@ -54,10 +54,12 @@ struct ManagedPrefixEntry {
 struct ManagedItemPrefixCallbackBinding {
     std::string modId;
     std::string owner;
+    int callbackMask = 1;
 };
 
 bool applyManagedItemPrefixCallbackBindings(
-    const std::string& modId, const std::vector<std::pair<int, std::string>>& items);
+    const std::string& modId, const std::vector<std::pair<int, std::string>>& items,
+    const std::map<int,int>& masks = {});
 std::shared_ptr<const std::map<int, ManagedItemPrefixCallbackBinding>>
 managedItemPrefixCallbackView();
 bool bindManagedItemPrefixCallbackAssembly(const std::string& modId,
