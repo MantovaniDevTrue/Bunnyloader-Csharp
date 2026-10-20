@@ -22,6 +22,8 @@ enum class InvasionSpawnError {
 struct InvasionSpawnRequest {
     std::string modId;
     std::string npcClass;
+    int epoch = 0;
+    int ticket = 0;
     int playerIndex = -1;
     float x = 0.f;
     float y = 0.f;
@@ -30,6 +32,8 @@ struct InvasionSpawnRequest {
 
 struct InvasionSpawnResult {
     InvasionSpawnError error = InvasionSpawnError::InvalidRequest;
+    int epoch = 0;
+    int ticket = 0;
     int npcType = -1;
     int npcSlot = -1;
     uintptr_t identity = 0;
@@ -43,6 +47,7 @@ inline bool canDispatchInvasionSpawn(const InvasionSpawnRequest& request, int mo
     return worldIsAuthoritative(mode) && request.worldReady &&
         !request.modId.empty() && request.modId.size() <= 128 &&
         !request.npcClass.empty() && request.npcClass.size() <= 128 &&
+        request.epoch > 0 && request.ticket > 0 &&
         request.playerIndex >= 0 && request.playerIndex < 255 &&
         std::isfinite(request.x) && std::isfinite(request.y) &&
         request.x >= 640.f && request.y >= 640.f &&
