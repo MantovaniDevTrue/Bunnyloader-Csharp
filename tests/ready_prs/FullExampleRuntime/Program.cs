@@ -22,7 +22,9 @@ try
     };
     var trusted = ((string?)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")
         ?? throw new InvalidOperationException("Host reference list unavailable"))
-        .Split(Path.PathSeparator).ToDictionary(Path.GetFileName, StringComparer.OrdinalIgnoreCase);
+        .Split(Path.PathSeparator)
+        .GroupBy(path => Path.GetFileName(path), StringComparer.OrdinalIgnoreCase)
+        .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase);
     foreach (string name in references)
     {
         if (!trusted.TryGetValue(name, out string? location))
