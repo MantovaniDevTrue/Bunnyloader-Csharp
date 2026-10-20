@@ -4,6 +4,7 @@
 #include "experiments/csharp/SourceLimits.h"
 #include "experiments/csharp/NativeAccess.h"
 #include "experiments/csharp/NativeInvasionMailbox.h"
+#include "experiments/csharp/WorldAuthority.h"
 #include "experiments/csharp/UniversalHookMailbox.h"
 #include "experiments/csharp/UniversalHooks.h"
 #include "experiments/csharp/AutoSourceCache.h"
@@ -1257,6 +1258,7 @@ void noteAutoGameUpdate() {
         return;
     }
     if (g_worldSessionReady.load(std::memory_order_acquire)) {
+        scheduleManagedInvasionWorldTicks(g_worldEpoch.load(std::memory_order_acquire));
         graphics::pumpCSharpScreenEffects();
         const uint64_t tick = g_visualUpdateTick.fetch_add(1, std::memory_order_relaxed) + 1;
         if (tick % 12 == 0) {
@@ -1270,7 +1272,7 @@ void noteAutoGameUpdate() {
         if (g_worldMenuPollFrames.fetch_add(
                 1, std::memory_order_relaxed) % 30 != 0) return;
         const ActivationContext context = readActivationContext();
-        if (context.gameMenu != 1 && context.netMode == 0) {
+        if (context.gameMenu != 1 && worldIsAuthoritative(context.netMode)) {
             retryWorldManagedPrefixesWhenReady();
             showWorldPlayerMessagesWhenReady();
             updateManagedNpcBuffDispatcherOnGameThread();
@@ -1315,7 +1317,7 @@ void noteAutoGameUpdate() {
     }
     if (g_worldReadyFrames.fetch_add(1, std::memory_order_relaxed) >= 2) {
         const ActivationContext context = readActivationContext();
-        if (context.netMode != 0 || context.gameMenu == 1) return;
+        if (!worldIsAuthoritative(context.netMode) || context.gameMenu == 1) return;
         g_worldSessionReady.store(true, std::memory_order_release);
         requestBasicItemInstanceRefresh("WorldLoaded");
         enableUniversalHooks();
