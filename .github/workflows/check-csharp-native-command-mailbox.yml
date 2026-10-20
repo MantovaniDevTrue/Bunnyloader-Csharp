@@ -1,0 +1,35 @@
+name: Verify Native CSharp Command Mailbox (no APK)
+
+on:
+  push:
+    branches:
+      - feat/csharp-command-loader-20261020
+    paths:
+      - 'app/src/main/cpp/experiments/csharp/NativeCommandMailbox.h'
+      - 'tests/commands/native_mailbox_test.cpp'
+      - '.github/workflows/check-csharp-native-command-mailbox.yml'
+  pull_request:
+    paths:
+      - 'app/src/main/cpp/experiments/csharp/NativeCommandMailbox.h'
+      - 'tests/commands/native_mailbox_test.cpp'
+      - '.github/workflows/check-csharp-native-command-mailbox.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  native-command-mailbox:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile C++20 source without Android/Gradle
+        run: |
+          mkdir -p /tmp/bunny-command-test
+          g++ -std=c++20 -O2 -Wall -Wextra -Werror -pedantic -pthread \
+            -Iapp/src/main/cpp \
+            tests/commands/native_mailbox_test.cpp \
+            -o /tmp/bunny-command-test/mailbox
+      - name: Check queue, world unload, multi-mod and routing
+        run: /tmp/bunny-command-test/mailbox
