@@ -4,8 +4,8 @@ namespace ExampleModCSharp.Commands;
 
 /// <summary>
 /// Baseado no padrao de classe do ExampleModBunny (HealCommand e ExampleTimeCommand).
-/// Esta classe e um exemplo de sintaxe C#; ainda nao e carregada no Terraria.
-/// Somente sera movida para Playable quando o host nativo registrar os comandos.
+/// Exemplo carregavel na fase de validacao Android do CommandLoader C#.
+/// /echo texto ou /dizer texto responde no chat sem alterar o mundo.
 /// </summary>
 public sealed class ExampleEchoCommand : BunnyCommand
 {
