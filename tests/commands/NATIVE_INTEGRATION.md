@@ -44,8 +44,10 @@ Esses testes são executados pelo GitHub Actions em workflows **sem APK**.
   86400 ticks. O servidor é a autoridade sobre a hora.
 - `tests/commands/Actions.HostTests.csproj` executa ambos os exemplos;
   `native_command_clock_test.cpp` verifica viradas dia/noite.
-- Estes arquivos **permanecem em Experimental** até todo o checklist
-  de validação Android estar concluído, sem disponibilização de APK.
+- Uma cópia fiel dos três exemplos (`ExampleEchoCommand`, `ExampleHealCommand`,
+  `ExampleTimeCommand`) está em `samples/ExampleModCSharp/Playable/content/Common/Commands/`
+  para validação direta em um mundo de testes. As versões originais permanecem
+  em `Experimental`; nenhuma APK foi gerada e nada foi validado em aparelho.
 
 ## Lote complementar: descoberta e transporte verificados
 
