@@ -24,6 +24,7 @@ on:
       - 'experiments/csharp/BunnyCsSdk/BunnyItem.cs'
       - 'experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs'
       - 'app/src/main/cpp/experiments/csharp/ManagedLiveSourceRevocations.h'
+      - 'app/src/main/cpp/experiments/csharp/ManagedDeferredModRevocation.h'
       - 'tests/angler_quest/**'
       - '.github/workflows/check-csharp-angler-quest-host.yml'
   pull_request:
@@ -36,6 +37,7 @@ on:
       - 'experiments/csharp/BunnyCsSdk/BunnyItem.cs'
       - 'experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs'
       - 'app/src/main/cpp/experiments/csharp/ManagedLiveSourceRevocations.h'
+      - 'app/src/main/cpp/experiments/csharp/ManagedDeferredModRevocation.h'
       - 'tests/angler_quest/**'
 
       - 'app/src/main/cpp/experiments/csharp/ManagedAssemblyBindings.h'
@@ -84,6 +86,14 @@ jobs:
             tests/angler_quest/managed_assembly_binding_test.cpp \
             -o "$RUNNER_TEMP/angler_assembly_binding_test"
           "$RUNNER_TEMP/angler_assembly_binding_test"
+      - name: Test per-mod deferred Mono queue invalidation
+        run: |
+          set -euo pipefail
+          g++ -std=c++20 -Wall -Wextra -Werror -pedantic -pthread \
+            -I app/src/main/cpp \
+            tests/angler_quest/managed_deferred_mod_revocation_test.cpp \
+            -o "$RUNNER_TEMP/angler_deferred_revocation_test"
+          "$RUNNER_TEMP/angler_deferred_revocation_test"
       - name: Test live Mono cache revocation on source-mod unload
         run: |
           set -euo pipefail

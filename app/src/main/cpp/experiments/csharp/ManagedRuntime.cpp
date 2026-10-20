@@ -3,6 +3,7 @@
 #include "experiments/csharp/UniversalHooks.h"
 #include "experiments/csharp/ManagedRuntime.h"
 #include "experiments/csharp/ManagedLiveSourceRevocations.h"
+#include "experiments/csharp/ManagedDeferredModRevocation.h"
 #include "experiments/csharp/NativeRecipeCallbacks.h"
 #include "graphics/ScreenScene.h"
 #include "experiments/csharp/ManagedVisualMonoPump.h"
@@ -314,6 +315,7 @@ struct SceneLightReply {
     std::chrono::steady_clock::time_point updated{};
     uint64_t generation = 0;
 };
+std::set<std::string> g_revokedDeferredMods;
 std::vector<SceneLightBinding> g_sceneLightBindings;
 std::deque<SceneLightRequest> g_sceneLightQueue;
 std::map<std::string, SceneLightReply> g_sceneLightResults;
@@ -1118,6 +1120,7 @@ int64_t executeManagedEntityOnWorker(const ManagedEntityJob& job) {
             std::lock_guard<std::mutex> guard(g_pinnedMutex);
             if (job.session == g_entitySession && job.binding >= 0 &&
                 static_cast<size_t>(job.binding) < g_entityBindings.size() &&
+                g_entityBindings[static_cast<size_t>(job.binding)].armed &&
                 g_entityBindings[static_cast<size_t>(job.binding)].modId == binding.modId)
                 g_entityBindings[static_cast<size_t>(job.binding)].managedSlot = managedSlot;
         }
@@ -1808,7 +1811,10 @@ void* pinnedMonoWorker(void*) {
                     lock.unlock();
                     const int64_t result = executeManagedEntityOnWorker(job);
                     lock.lock();
-                    if (job.session == g_entitySession && job.slot >= 0) {
+                    const bool stillArmed = job.binding >= 0 &&
+                        static_cast<size_t>(job.binding) < g_entityBindings.size() &&
+                        g_entityBindings[static_cast<size_t>(job.binding)].armed;
+                    if (job.session == g_entitySession && job.slot >= 0 && stillArmed) {
                         if (job.kind == 0 && static_cast<size_t>(job.slot) < g_entityNpcResults.size()) {
                             g_entityNpcPending[static_cast<size_t>(job.slot)] = false;
                             g_entityNpcResults[static_cast<size_t>(job.slot)] = {
@@ -1851,9 +1857,18 @@ void* pinnedMonoWorker(void*) {
 #endif
                             }
                         }
-                    } else if (job.kind >= 2 && job.kind <= 5) {
-                        g_entityCombatLost[static_cast<size_t>(job.kind - 2)]
-                            .fetch_add(1, std::memory_order_relaxed);
+                    } else {
+                        if (job.session == g_entitySession && !stillArmed && job.slot >= 0) {
+                            if (job.kind == 0 &&
+                                static_cast<size_t>(job.slot) < g_entityNpcPending.size())
+                                g_entityNpcPending[static_cast<size_t>(job.slot)] = false;
+                            if (job.kind == 1 &&
+                                static_cast<size_t>(job.slot) < g_entityProjectilePending.size())
+                                g_entityProjectilePending[static_cast<size_t>(job.slot)] = false;
+                        }
+                        if (job.kind >= 2 && job.kind <= 5)
+                            g_entityCombatLost[static_cast<size_t>(job.kind - 2)]
+                                .fetch_add(1, std::memory_order_relaxed);
                     }
                     if (job.kind >= 0 && job.kind <= 5) {
                         static std::chrono::steady_clock::time_point nextAiSnapshot{};
@@ -1884,12 +1899,12 @@ void* pinnedMonoWorker(void*) {
                         request.binding >= 0 &&
                         static_cast<size_t>(request.binding) < g_sceneLightBindings.size()) {
                         auto& binding = g_sceneLightBindings[static_cast<size_t>(request.binding)];
-                        if (ok) {
+                        if (binding.enabled && ok) {
                             g_sceneLightResults[binding.modId] = {
                                 computed, std::chrono::steady_clock::now(), request.generation
                             };
                             binding.failures = 0;
-                        } else if (++binding.failures >= 3 && binding.enabled) {
+                        } else if (binding.enabled && ++binding.failures >= 3) {
                             binding.enabled = false;
 #ifdef __ANDROID__
                             __android_log_print(ANDROID_LOG_WARN, "BunnyCSharp",
@@ -1977,6 +1992,7 @@ bool registerManagedScreenSceneMod(const std::string& id,
         !identifier(nameSpace) || !identifier(className) || !identifier(method))
         return false;
     std::lock_guard<std::mutex> guard(g_pinnedMutex);
+    if (g_revokedDeferredMods.contains(id)) return false;
     for (auto& binding : g_sceneLightBindings) {
         if (binding.modId != id) continue;
         if (binding.assemblyPath != assembly || binding.nameSpace != nameSpace ||
@@ -2084,6 +2100,7 @@ bool registerManagedEntitySourceMod(
             if (type < 0 || type >= 32768 || name.empty() || name.size() > 128)
                 return false;
     std::lock_guard<std::mutex> guard(g_pinnedMutex);
+    if (g_revokedDeferredMods.contains(modId)) return false;
     for (const auto& binding : g_entityBindings)
         if (binding.modId == modId)
             return binding.assemblyPath == assemblyPath;
@@ -3842,6 +3859,72 @@ ManagedSourceCompileResult compileManagedSource(
     out.phase = "compile-verified";
     trace(out.phase.c_str());
     return out;
+}
+
+void invalidateManagedDeferredSourceMod(const std::string& modId) {
+    if (modId.empty()) return;
+    std::lock_guard<std::mutex> lock(g_pinnedMutex);
+    g_revokedDeferredMods.insert(modId);
+    for (auto& binding : g_sceneLightBindings)
+        if (binding.modId == modId) binding.enabled = false;
+    g_sceneLightResults.erase(modId);
+    eraseManagedModBoundJobs(g_sceneLightQueue, g_sceneLightBindings, modId);
+
+    for (size_t index = 0; index < g_entityBindings.size(); ++index) {
+        auto& binding = g_entityBindings[index];
+        if (binding.modId != modId || !binding.armed) continue;
+        binding.armed = false;
+        for (const auto& type : binding.npcTypes) {
+            auto& owner = g_entityNpcTypeOwner[static_cast<size_t>(type.first)];
+            if (owner.load(std::memory_order_acquire) == static_cast<int>(index + 1))
+                owner.store(0, std::memory_order_release);
+        }
+        for (const auto& type : binding.projectileTypes) {
+            auto& owner = g_entityProjectileTypeOwner[static_cast<size_t>(type.first)];
+            if (owner.load(std::memory_order_acquire) == static_cast<int>(index + 1))
+                owner.store(0, std::memory_order_release);
+        }
+    }
+    for (const auto& job : g_entityQueue) {
+        if (job.binding < 0 ||
+            static_cast<size_t>(job.binding) >= g_entityBindings.size() ||
+            g_entityBindings[static_cast<size_t>(job.binding)].modId != modId ||
+            job.slot < 0) continue;
+        if (job.kind == 0 && static_cast<size_t>(job.slot) < g_entityNpcPending.size())
+            g_entityNpcPending[static_cast<size_t>(job.slot)] = false;
+        if (job.kind == 1 &&
+            static_cast<size_t>(job.slot) < g_entityProjectilePending.size())
+            g_entityProjectilePending[static_cast<size_t>(job.slot)] = false;
+    }
+    eraseManagedModBoundJobs(g_entityQueue, g_entityBindings, modId);
+    for (auto& result : g_entityNpcResults) {
+        if (!result.ready || result.type < 0 || result.type >= 32768) continue;
+        const int owner = g_entityNpcTypeOwner[static_cast<size_t>(result.type)].load(
+            std::memory_order_acquire);
+        if (owner != 0) continue;
+        for (const auto& binding : g_entityBindings) {
+            if (binding.modId != modId) continue;
+            if (std::any_of(binding.npcTypes.begin(), binding.npcTypes.end(),
+                [&](const auto& entry) { return entry.first == result.type; })) {
+                result = {};
+                break;
+            }
+        }
+    }
+    for (auto& result : g_entityProjectileResults) {
+        if (!result.ready || result.type < 0 || result.type >= 32768) continue;
+        const int owner = g_entityProjectileTypeOwner[static_cast<size_t>(result.type)].load(
+            std::memory_order_acquire);
+        if (owner != 0) continue;
+        for (const auto& binding : g_entityBindings) {
+            if (binding.modId != modId) continue;
+            if (std::any_of(binding.projectileTypes.begin(), binding.projectileTypes.end(),
+                [&](const auto& entry) { return entry.first == result.type; })) {
+                result = {};
+                break;
+            }
+        }
+    }
 }
 
 void invalidateManagedLiveSourceMod(const std::string& modId) {

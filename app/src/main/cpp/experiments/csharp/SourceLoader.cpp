@@ -616,6 +616,7 @@ void resetCSharpSourceModSession() {
         angler::registry().unload(mod.id);
         unbindNativeRecipeAssembly(mod.id);
         invalidateManagedLiveSourceMod(mod.id);
+        invalidateManagedDeferredSourceMod(mod.id);
     }
     g_statuses.clear();
 }
@@ -627,6 +628,7 @@ bool loadCSharpSourceMod(const bl::mods::LoadedMod& mod) {
         angler::registry().unload(mod.id);
         unbindNativeRecipeAssembly(mod.id);
         invalidateManagedLiveSourceMod(mod.id);
+        invalidateManagedDeferredSourceMod(mod.id);
     }
     SourceModStatus status;
     status.id = mod.id;
