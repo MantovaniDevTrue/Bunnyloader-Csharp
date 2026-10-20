@@ -331,6 +331,10 @@ class EquipmentContractSurfaceTests(unittest.TestCase):
         self.assertIn('(*output=="0" || *output=="1")', runtime)
         self.assertIn('g_itemCallbackAssemblies', bridge)
         self.assertIn('queueManagedItemPrefixWarmup(modId,assembly,owner.owner)', bridge)
+        self.assertIn('if (!installManagedPrefixGameplayHooks() || !installManagedPrefixChanceHook())', bridge)
+        self.assertIn('!managedItemPrefixCallbackView()->empty()', (
+            ROOT / "app/src/main/cpp/experiments/csharp/ManagedPrefixGameplay.cpp"
+        ).read_text(encoding="utf-8"))
         self.assertIn('bindManagedItemPrefixCallbackAssembly(mod.id,assembly)', auto)
 
     def test_item_prefix_callback_wire_is_registered_without_live_gameplay_hook(self):
