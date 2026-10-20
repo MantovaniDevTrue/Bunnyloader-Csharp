@@ -19,6 +19,7 @@
 #include "experiments/csharp/NativeBasicItems.h"
 #include "content/tiles/TileAccess.h"
 #include "content/tiles/ModTiles.h"
+#include "content/items/ModItems.h"
 #include "core/Log.h"
 #include "hook/HookManager.h"
 #include "il2cpp/Api.h"
