@@ -158,6 +158,22 @@ public:
         return hash;
     }
 
+    static uint64_t listFingerprint(const std::vector<int>& ids,
+                                    const std::vector<Quest>& quests) {
+        uint64_t hash = manifestFingerprint(quests);
+        const auto addByte = [&](uint8_t value) {
+            hash ^= value;
+            hash *= 1099511628211ull;
+        };
+        const auto addInt = [&](uint32_t value) {
+            for (unsigned shift = 0; shift < 32; shift += 8)
+                addByte(static_cast<uint8_t>((value >> shift) & 0xffu));
+        };
+        addInt(static_cast<uint32_t>(ids.size()));
+        for (int id : ids) addInt(static_cast<uint32_t>(id));
+        return hash;
+    }
+
     bool publish(const std::string& mod, const std::vector<Quest>& quests, std::string* error) {
         if (mod.empty() || quests.size() > 4096) return fail(error, "InvalidModOrCapacity");
         std::lock_guard<std::mutex> lock(mutex_);
