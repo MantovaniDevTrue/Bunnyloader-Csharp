@@ -1,4 +1,5 @@
 #include "experiments/csharp/NativeInvasionNetwork.h"
+#include "experiments/csharp/NativeInvasionPeerPolicy.h"
 #include "hook/HookManager.h"
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
@@ -27,6 +28,7 @@ struct Packet {
 };
 struct Peer {
     uint64_t nonce = 0;
+    uint64_t lastSeenTick = 0;
     std::map<Key, uint64_t> delivered;
 };
 struct Received {
@@ -44,10 +46,20 @@ std::atomic<bool> g_ready{false};
 bool g_dirty = false;
 uint64_t g_nonce = 0;
 uint32_t g_joinTimer = 0;
+uint64_t g_hostTick = 0;
 using NewTextFn = void (*)(Il2CppString*, uint8_t, uint8_t, uint8_t, bool,
                            const MethodInfo*);
 NewTextFn g_originalText = nullptr;
 bool g_textHook = false;
+
+void pruneExpiredPeersLocked() {
+    for (auto it = g_peers.begin(); it != g_peers.end();) {
+        if (invasion_peer::expired(g_hostTick, it->second.lastSeenTick))
+            it = g_peers.erase(it);
+        else
+            ++it;
+    }
+}
 
 bool validName(const std::string& value, size_t maximum) {
     if (value.empty() || value.size() > maximum) return false;
@@ -150,6 +162,7 @@ void setNativeInvasionNetWorldState(bool ready, uint64_t session) {
         g_dirty = false;
         g_nonce = 0;
         g_joinTimer = 0;
+        g_hostTick = 0;
     }
     g_session.store(session, std::memory_order_release);
     g_ready.store(ready && session != 0, std::memory_order_release);
@@ -159,8 +172,10 @@ bool registerNativeInvasionClient(int client, uint64_t nonce) {
     if (!runtime::isNetHost() || client < 0 || client >= 255 || nonce == 0 ||
         !g_ready.load(std::memory_order_acquire)) return false;
     std::lock_guard<std::mutex> guard(g_mutex);
+    pruneExpiredPeersLocked();
     if (g_peers.size() >= 32 && !g_peers.contains(client)) return false;
     Peer& peer = g_peers[client];
+    peer.lastSeenTick = g_hostTick;
     if (peer.nonce != nonce) {
         peer.nonce = nonce;
         peer.delivered.clear();
@@ -209,6 +224,12 @@ void pumpNativeInvasionNetworkOnGameThread() {
         return;
     }
     if (!runtime::isNetHost()) return;
+    {
+        std::lock_guard<std::mutex> guard(g_mutex);
+        ++g_hostTick;
+        if (g_hostTick % invasion_peer::sweepInterval == 0)
+            pruneExpiredPeersLocked();
+    }
     for (int sent = 0; sent < 2; ++sent) {
         int player = -1;
         uint64_t nonce = 0, revision = 0;
