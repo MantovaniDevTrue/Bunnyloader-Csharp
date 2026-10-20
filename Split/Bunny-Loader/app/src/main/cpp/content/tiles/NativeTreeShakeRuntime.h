@@ -3,6 +3,7 @@
 using ShakeFn=void (*)(int32_t,int32_t,const MethodInfo*);
 ShakeFn g_originalShake=nullptr;
 bool g_shakeInstalled=false;
+thread_local bool g_shakeActive=false;
 
 struct ShakeRefs {
     const MethodInfo *bottom=nullptr,*leafy=nullptr,*solid=nullptr,*source=nullptr,*newItem=nullptr;
@@ -20,7 +21,7 @@ bool shakeCallBool(const MethodInfo* method,void** args) {
 }
 
 void hkShakeTree(int32_t x,int32_t y,const MethodInfo* method) {
-    if(!g_originalShake)return;
+    if(!g_originalShake||g_shakeActive)return;
     const auto original=[&](){g_originalShake(x,y,method);};
     const auto& r=g_shakeRefs;
     auto& a=il2cpp::api();
@@ -82,16 +83,30 @@ void hkShakeTree(int32_t x,int32_t y,const MethodInfo* method) {
     alignas(4) uint8_t nullableVelocity[12]={};
     void* itemArgs[]={source,&px,&py,&w,&h,&kind,&stack,&broadcast,
                       &prefix,&ownership,nullableVelocity,nullptr};
+    g_shakeActive=true;
     exception=nullptr;
     Il2CppObject* created=a.runtime_invoke(r.newItem,nullptr,itemArgs,&exception);
+    g_shakeActive=false;
     if(exception||!created){original();return;}
     int itemIndex=-1;
     std::memcpy(&itemIndex,
         reinterpret_cast<char*>(created)+sizeof(Il2CppObject),sizeof(itemIndex));
     if(itemIndex<0){original();return;}
-    xData[count]=bx;
-    yData[count]=by;
-    int next=count+1;
+    Il2CppArray *freshX=nullptr,*freshY=nullptr;
+    int latestCount=-1;
+    a.field_static_get_value(r.xs,&freshX);
+    a.field_static_get_value(r.ys,&freshY);
+    a.field_static_get_value(r.number,&latestCount);
+    if(!freshX||!freshY||freshX->length!=freshY->length||
+       latestCount<0||latestCount>=maximum||
+       static_cast<uintptr_t>(latestCount)>=freshX->length)return;
+    auto* latestX=static_cast<int32_t*>(arrayData(freshX));
+    auto* latestY=static_cast<int32_t*>(arrayData(freshY));
+    if(bl::csharp::tree_shake::repeated(
+         latestX,latestY,freshX->length,latestCount,bx,by))return;
+    latestX[latestCount]=bx;
+    latestY[latestCount]=by;
+    int next=latestCount+1;
     a.field_static_set_value(r.number,&next);
     int gore=tree->leafGoreType.load(std::memory_order_acquire);
     if(!bl::csharp::tree_shake::sendLeaf(
