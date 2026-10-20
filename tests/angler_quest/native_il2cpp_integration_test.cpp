@@ -409,12 +409,12 @@ int main() {
     assert(gSwapCalls==1 && gSelected==3);
     bl::csharp::angler::pumpOnGameThread();
     gHard=0;
-    for (const int mode : {0, 1, 2, 3}) {
+    for (const int mode : {0, 1, 2, 3, -1, 4}) {
         gNetMode=mode;
         gSelected=2;
         gSwapCalls=0;
         hookedSwap(&kSwap);
-        if (mode == 1) {
+        if (mode == 1 || mode < 0 || mode > 3) {
             assert(gSwapCalls==1);
             assert(gSelected==3);
         } else {

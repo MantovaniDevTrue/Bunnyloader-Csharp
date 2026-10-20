@@ -20,6 +20,7 @@ const std::vector<Quest>* g_quests = nullptr;
 bool g_installed = false;
 const char* g_installDiagnostic = "NotAttempted";
 FieldInfo* g_players = nullptr;
+FieldInfo* g_netMode = nullptr;
 int g_owner = -1;
 int g_gravity = -1;
 size_t g_questFish = 0;
@@ -67,6 +68,10 @@ void onFishingRoll(Il2CppObject* bobber, void* attempt, const MethodInfo* mi) {
     if (!bobber || !attempt || !g_quests || g_quests->empty() ||
         activeGeneration().load(std::memory_order_acquire) != registry().generation())
         return;
+    auto& a = il2cpp::api();
+    int32_t netMode = -1;
+    a.field_static_get_value(g_netMode, &netMode);
+    if (netMode < 0 || netMode > 3) return;
     int32_t questId = -1;
     uint8_t uncommon = 0;
     std::memcpy(&questId, static_cast<const char*>(attempt) + g_questFish, sizeof(questId));
@@ -78,7 +83,6 @@ void onFishingRoll(Il2CppObject* bobber, void* attempt, const MethodInfo* mi) {
         (found->callbackMask & 2) == 0)) return;
     int32_t owner = -1;
     std::memcpy(&owner, reinterpret_cast<const char*>(bobber) + g_owner, sizeof(owner));
-    auto& a = il2cpp::api();
     Il2CppArray* players = nullptr;
     a.field_static_get_value(g_players, &players);
     if (!players || !a.class_get_rank || !a.class_get_element_class ||
@@ -162,6 +166,11 @@ bool installFishingOnGameThread(const std::vector<Quest>* quests) {
         !instanceField(projectile, "owner", "System.Int32", 4, &g_owner) ||
         !instanceField(player, "gravDir", "System.Single", 4, &g_gravity))
         return false;
+    g_installDiagnostic = "UnexpectedNetModeContract";
+    g_netMode = il2cpp::findField(main, "netMode");
+    if (!g_netMode || (a.field_get_flags(g_netMode) & 0x10u) == 0 ||
+        !a.field_get_type ||
+        !isType(a.field_get_type(g_netMode), "System.Int32")) return false;
     g_installDiagnostic = "UnexpectedPlayerArrayContract";
     g_players = il2cpp::findField(main, "player");
     if (!g_players || (a.field_get_flags(g_players) & 0x10u) == 0 ||

@@ -208,7 +208,7 @@ bool findContracts() {
         auto& api = il2cpp::api();
         int32_t mode = 0;
         api.field_static_get_value(g_netMode, &mode);
-        if ((mode & 1) != 0 && (mode & 2) == 0) return;
+        if (mode < 0 || mode > 3 || mode == 1) return;
         uint8_t finished = 0, hardmode = 0;
         if (!g_questFinished || !g_hardMode) return;
         api.field_static_get_value(g_questFinished, &finished);

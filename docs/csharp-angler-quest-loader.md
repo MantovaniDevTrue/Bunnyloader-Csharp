@@ -63,7 +63,7 @@ A lista de missões C# é ordenada por identidade do mod e nome da classe, indep
 
 **Compatibilidade multiplayer:** a mensagem `Stage=Ready` inclui `Manifest=<hex>` com hash ordenado das identidades, IDs, regras, textos e traduções de todos os peixes C# locais, além de `EffectiveList=<hex>` com hash da **lista real e ordenada** de IDs vanilla, JavaScript e C#. O log também é atualizado quando um mod externo altera a lista, sem repetir a cada frame. Dois aparelhos com manifest ou EffectiveList diferentes possuem listas incompatíveis. Valores iguais são apenas indício de compatibilidade: os hashes **não são autenticação, handshake, transporte de estado nem prova de equivalência do código C# dos outros mods**. A infraestrutura nativa encontrada não fornece handshake C# pronto, portanto não foram criados pacotes de rede ou APIs fictícias.
 
-`Main.netMode` é campo obrigatório do hook nativo: 0 solo, 1 cliente, 2 servidor, 3 host. O cliente só chama o sorteio vanilla; servidor e host podem rejeitar peixes indisponíveis. A lista e o diálogo podem ser reconstruídos no cliente, mas **sincronização completa e persistência da quest em sessões multiplayer reais ainda precisam de teste e revisão**. O `AutoSourceRuntime` existente ainda impõe `singleplayer-only` para curvas de projétil e efeitos automáticos C# e só declara a sessão de live callbacks pronta quando `netMode==0`; remover essa limitação sem um sistema de sincronização confirmado seria inseguro.
+`Main.netMode` é campo obrigatório do hook nativo: 0 solo, 1 cliente, 2 servidor, 3 host. O cliente só chama o sorteio vanilla; servidor e host podem rejeitar peixes indisponíveis. Valores fora de 0–3 são rejeitados pelos hooks C# de sorteio e captura, preservando o caminho vanilla sem aplicar regras do mod. A lista e o diálogo podem ser reconstruídos no cliente, mas **sincronização completa e persistência da quest em sessões multiplayer reais ainda precisam de teste e revisão**. O `AutoSourceRuntime` existente ainda impõe `singleplayer-only` para curvas de projétil e efeitos automáticos C# e só declara a sessão de live callbacks pronta quando `netMode==0`; remover essa limitação sem um sistema de sincronização confirmado seria inseguro.
 
 Um novo `mods::loadAll` remove quests de fontes C# antigas e limpa seus registros de carregamento. O vínculo de callbacks nativos com o assembly também é removido; após o novo bind, o caminho do assembly recebe uma **revisão por mod** (`|bunny-revision=N`) para que o worker Mono reconheça uma compilação nova mesmo quando o arquivo continua no mesmo caminho. Os caches de receitas e predicados do Pescador são reconstruídos para a revisão seguinte. Isso foi verificado no host com revisões sucessivas e identificadores inválidos.
 
@@ -78,13 +78,13 @@ Para os **handlers de receitas e predicados do Pescador**, o runtime agora carre
 A preparação de `FishingCheck_RollItemDrop` diferencia os estados
 `MissingIL2CPPExports`, `MissingTerrariaTypes`,
 `UnexpectedFishingAttemptLayout`, `UnexpectedFishingMethodSignature`,
-`UnexpectedFishingFieldLayout`, `UnexpectedPlayerArrayContract` e
+`UnexpectedFishingFieldLayout`, `UnexpectedNetModeContract`, `UnexpectedPlayerArrayContract` e
 `HookInstallFailed`. O hook continua desativado quando o contrato falha, sem
 gravar em `FishingAttempt` nem instalar código com assinatura incerta.
 O relatório usa o motivo do último teste e é emitido uma única vez por
 sequência de falhas; não há nova sondagem por frame. O fixture host inclui
 regressões de struct com tamanho incorreto, argumento de método incompatível
-e campo `questFish` com tipo divergente. São verificações simuladas; a ABI
+e campo `questFish` com tipo divergente, além do campo `Main.netMode` ausente, não-estático ou com tipo incompatível. São verificações simuladas; a ABI
 do Terraria Android e o Mono embarcado continuam exigindo validação no
 dispositivo antes de qualquer pacote de instalação.
 
@@ -93,7 +93,7 @@ dispositivo antes de qualquer pacote de instalação.
 - Testes de `Registry` (validação, reroll limitado, culturas, IDs e ownership).
 - Teste do parser `BunnyPlayer`.
 - Hooks C++ reais com IL2CPP simulado: sorteio, chat, cliente/host, flags, remoção e falhas de alocação.
-- Hook real de pesca com struct simulada de 92 bytes: gravidade, raridade, owner (índice do jogador) e callbacks dinâmicos válidos/inválidos.
+- Hook real de pesca com struct simulada de 92 bytes: gravidade, raridade, owner (índice do jogador), modos 0/1/2/3 e rejeição de modos de rede inválidos, com callbacks dinâmicos válidos/inválidos.
 - Testes de arrays IL2CPP falsos rejeitados antes de atualizar IDs/flags, e teste gerenciado de peixe herdado com `[BunnyContent]`.
 - Testes de GCHandle nativo pinned: nenhuma publicação de array sem raiz/endereço fixo; falha da API, falhas intermediárias, cleanup de todos os handles e retry bem-sucedido.
 - Testes de `Main.player` inválido, preservação de índice selecionado em uma nova tabela de mundo, fingerprints com ordem de mods invertida e limpeza de handlers C# sem interferir em outro mod.

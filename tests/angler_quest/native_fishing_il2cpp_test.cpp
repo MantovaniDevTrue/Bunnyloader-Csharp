@@ -56,6 +56,8 @@ FieldInfo fLast{"testTail",&tInt,sizeof(Il2CppObject)+88};
 FieldInfo fOwner{"owner",&tInt,sizeof(Il2CppObject)};
 FieldInfo fGravity{"gravDir",&tFloat,sizeof(Il2CppObject)};
 FieldInfo fPlayers{"player",&tPlayerArray,0,true};
+FieldInfo fNetMode{"netMode",&tInt,0,true};
+int32_t netMode=0;
 struct ProjectileObject { Il2CppObject object; int32_t owner = 0; };
 struct PlayerObject { Il2CppObject object; float gravDir = 1.f; };
 ProjectileObject projectile{};
@@ -65,6 +67,8 @@ using Roll = void (*)(Il2CppObject*,void*,const MethodInfo*);
 Roll hookedRoll=nullptr;
 int vanillaCalls=0;
 bool badPlayersStatic=false;
+bool badNetModeStatic=false;
+bool badNetModeType=false;
 bool badFishingSize=false;
 bool badFishingParameter=false;
 bool badQuestFieldType=false;
@@ -118,10 +122,13 @@ void configure() {
         return fields[cursor];
     };
     api.field_get_flags=[](FieldInfo* field)->uint32_t{
-        return field->isStatic && !(badPlayersStatic && field==&fPlayers)?0x10u:0u;
+        return field->isStatic &&
+            !(badPlayersStatic && field==&fPlayers) &&
+            !(badNetModeStatic && field==&fNetMode) ? 0x10u : 0u;
     };
     api.field_get_type=[](FieldInfo* field){
-        return badQuestFieldType && field==&fQuest ? &tBool : field->type;
+        return ((badQuestFieldType && field==&fQuest) ||
+                (badNetModeType && field==&fNetMode)) ? &tBool : field->type;
     };
     api.field_get_offset=[](FieldInfo* field){return field->offset;};
     api.class_from_il2cpp_type=[](const Il2CppType* type){return type->cls;};
@@ -134,6 +141,7 @@ void configure() {
     };
     api.field_static_get_value=[](FieldInfo* field,void* dest){
         if(field==&fPlayers)std::memcpy(dest,&players,sizeof(players));
+        if(field==&fNetMode)std::memcpy(dest,&netMode,sizeof(netMode));
     };
     api.object_get_class=[](Il2CppObject* object){return object->klass;};
     api.class_get_element_class=[](Il2CppClass* cls){return cls->element;};
@@ -185,6 +193,7 @@ FieldInfo* findField(Il2CppClass* cls,std::string_view name) {
     if(cls==&kProjectile&&name=="owner")return &fOwner;
     if(cls==&kPlayer&&name=="gravDir")return &fGravity;
     if(cls==&kMain&&name=="player")return &fPlayers;
+    if(cls==&kMain&&name=="netMode")return &fNetMode;
     if(cls==&kFishing) {
         for(auto* field:{&fQuest,&fUncommon,&fRolled,&fLast})
             if(name==field->name)return field;
@@ -236,6 +245,18 @@ int main() {
     assert(std::strcmp(bl::csharp::angler::fishingInstallDiagnostic(),
                        "UnexpectedFishingFieldLayout")==0);
     badQuestFieldType=false;
+    badNetModeStatic=true;
+    assert(!bl::csharp::angler::installFishingOnGameThread(&quests));
+    assert(!hookedRoll);
+    assert(std::strcmp(bl::csharp::angler::fishingInstallDiagnostic(),
+                       "UnexpectedNetModeContract")==0);
+    badNetModeStatic=false;
+    badNetModeType=true;
+    assert(!bl::csharp::angler::installFishingOnGameThread(&quests));
+    assert(!hookedRoll);
+    assert(std::strcmp(bl::csharp::angler::fishingInstallDiagnostic(),
+                       "UnexpectedNetModeContract")==0);
+    badNetModeType=false;
     assert(bl::csharp::angler::installFishingOnGameThread(&quests));
     assert(std::strcmp(bl::csharp::angler::fishingInstallDiagnostic(),
                        "Installed")==0);
@@ -254,6 +275,12 @@ int main() {
     put(&attempt,4,uint8_t(1));
     hookedRoll(&projectile.object,attempt.data(),&kRoll);
     assert(get(attempt,8)==850);
+    for (const int mode : {0, 1, 2, 3, -1, 4}) {
+        netMode=mode;
+        hookedRoll(&projectile.object,attempt.data(),&kRoll);
+        assert(get(attempt,8)==(mode >= 0 && mode <= 3 ? 850 : 13));
+    }
+    netMode=0;
     put(&attempt,0,int32_t(100));
     hookedRoll(&projectile.object,attempt.data(),&kRoll);
     assert(get(attempt,8)==13);
@@ -333,6 +360,6 @@ int main() {
     quests.clear();
     hookedRoll(&projectile.object,attempt.data(),&kRoll);
     assert(get(attempt,8)==13);
-    assert(vanillaCalls==21);
+    assert(vanillaCalls==27);
     std::cout<<"ANGLER_QUEST_FISHING_IL2CPP_HOST_OK\n";
 }
