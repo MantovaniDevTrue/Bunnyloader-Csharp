@@ -731,6 +731,24 @@ public sealed class MinionStaff : BunnyWeapon
         badTypeDraw != "ERROR|Stage=DecodeTileDraw Reason=InvalidTileType")
         throw new InvalidOperationException("Tile animation managed draw transport mismatch: " +
             typedDraw + " / " + legacyDraw + " / " + oldWireDraw + " / " + badTypeDraw);
+    string nativeFrame = BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-native-animated",
+        tileSmokeAssembly, nameof(TileNativeAnimatedSmoke), 13, 0,
+        "3,4,0,0,16,16,0,0,0,0,0,754,5");
+    string resetFrame = BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-native-animated",
+        tileSmokeAssembly, nameof(TileNativeAnimatedSmoke), 13, 0,
+        "3,4,0,0,16,16,0,0,0,0,0,754,0");
+    string missingFrame = BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-native-animated",
+        tileSmokeAssembly, nameof(TileNativeAnimatedSmoke), 13, 0,
+        "3,4,0,0,16,16,0,0,0,0,0,754");
+    string invalidFrame = BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-native-animated",
+        tileSmokeAssembly, nameof(TileNativeAnimatedSmoke), 13, 0,
+        "3,4,0,0,16,16,0,0,0,0,0,754,128");
+    if (nativeFrame != "DRAW|0|0|16|16|0|0|0|0\nSPRITES|1|754,3,4,0,180,16,16,0,0,4294967295,0,2" ||
+        resetFrame != "DRAW|0|0|16|16|0|0|0|0\nSPRITES|1|754,3,4,0,0,16,16,0,0,4294967295,0,2" ||
+        missingFrame != "DRAW|0|0|16|16|0|0|0|0" ||
+        invalidFrame != "ERROR|Stage=DecodeTileDraw Reason=InvalidAnimationFrame")
+        throw new InvalidOperationException("Native tile animation frame transport regression: " +
+            nativeFrame + " / " + resetFrame + " / " + missingFrame + " / " + invalidFrame);
     string spriteDraw = BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-sprite-tile",
         tileSmokeAssembly, nameof(TileSpriteSmoke), 13, 0,
         "3,4,0,0,16,16,0,0,0,0,0,754");
@@ -917,5 +935,16 @@ sealed class TileStyledDustSmoke : BunnyLoader.Source.BunnyTile
         if(tileFrameY!=0)return;
         draw.EmitDustStyled(31,2,-4,4,8,0,0,100,1000,0xffffffffu,
                             true,500,200,200,-1000,4,63);
+    }
+}
+
+sealed class TileNativeAnimatedSmoke : BunnyLoader.Source.BunnyTile
+{
+    public override void SetStaticDefaults() { CacheDrawData=false; }
+    public override void DrawEffects(int x,int y,int tileFrameX,int tileFrameY,
+        BunnyLoader.Source.BunnyTileDrawContext draw)
+    {
+        if (draw.AnimationFrame >= 0)
+            draw.DrawFlameTexture(0,draw.AnimationFrame*36,16,16);
     }
 }
