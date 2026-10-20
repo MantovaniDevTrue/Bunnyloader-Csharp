@@ -29,6 +29,8 @@
 #include "experiments/csharp/ManagedProjectileHook.h"
 #include "experiments/csharp/NpcAiHost.h"
 #include "experiments/csharp/ManagedRuntime.h"
+#include "experiments/csharp/TerrariaHost.h"
+#include "menu/NetRequests.h"
 #include "experiments/csharp/MonoServiceDispatch.h"
 #include "experiments/csharp/SourceLoader.h"
 #include "experiments/csharp/ManagedSourceClassCount.h"
@@ -1258,7 +1260,19 @@ void noteAutoGameUpdate() {
         return;
     }
     if (g_worldSessionReady.load(std::memory_order_acquire)) {
-        scheduleManagedInvasionWorldTicks(g_worldEpoch.load(std::memory_order_acquire));
+        static uint64_t lastInvasionWorld = 0;
+        static unsigned invasionFrames = 0;
+        const uint64_t worldSession = g_worldEpoch.load(std::memory_order_acquire);
+        if (lastInvasionWorld != worldSession) {
+            lastInvasionWorld = worldSession;
+            invasionFrames = 0;
+        }
+        if (++invasionFrames % 30 == 0 && managedEntitySourceModsRegistered()) {
+            const TerrariaSnapshot snapshot = captureTerrariaSnapshot(false, false);
+            if (snapshot.ready && snapshot.player.life > 0)
+                scheduleManagedInvasionWorldTicks(worldSession, bl::runtime::netMode(),
+                    snapshot.player.index, snapshot.player.x, snapshot.player.y);
+        }
         graphics::pumpCSharpScreenEffects();
         const uint64_t tick = g_visualUpdateTick.fetch_add(1, std::memory_order_relaxed) + 1;
         if (tick % 12 == 0) {
