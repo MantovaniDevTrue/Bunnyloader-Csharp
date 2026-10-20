@@ -88,6 +88,9 @@ struct ManagedTileEntry {
     std::vector<tile_drop::Rule> registeredDrops;
     int minPick = 0;
     float mineResist = 1.f;
+    std::string saplingGroundTile;
+    int saplingVanillaGroundTile = -1;
+    int saplingStyleRange = 3;
 };
 
 bool applyManagedNativeTileDefaultsBatch(const std::string& modId,

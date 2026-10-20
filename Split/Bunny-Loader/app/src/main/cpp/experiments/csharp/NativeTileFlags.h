@@ -72,7 +72,7 @@ inline bool apply(int type, int flags, std::string* error) {
         {65536,"Sets","Campfires"}, {65536,"Sets","InteractableByNPCs"},
         {65536,"Wiring","IsAMechanism"},
         {65536,"Wiring","IgnoreWhenValidatingTraps"},
-        {131072,"Sets","TreeSapling"}, {262144,"Sets","CommonSapling"},
+        {262144,"Sets","CommonSapling"},
         {524288,"Sets","SwaysInWindBasic"}
     };
     // CountsAsTable (256) is an integer list in RoomNeeds, not a bool indexed

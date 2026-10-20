@@ -1129,12 +1129,15 @@ int MapB { get; }
 int MapG { get; }
 int MapR { get; }
 int MinPick { get; set; }
+int SaplingStyleRange { get; set; }
+int SaplingVanillaGroundTile { get; set; }
 int TileCallbackMask { get; }
 int[] AdjacentTiles { get; set; }
 string DisplayName { get; set; }
 string DustName { get; set; }
 string ItemDropDefinitions { get; }
 string MapName { get; }
+string SaplingGroundTile { get; set; }
 string Texture { get; set; }
 ```
 
@@ -1230,7 +1233,7 @@ abstract class; base: `System.Object`.
 
 enum; base: `System.Enum`.
 
-Values: Single, Style2x1, Style3x2, Style1x3.
+Values: Single, Style2x1, Style3x2, Style1x3, Sapling1x2.
 
 ## BunnyLoader.Source.BunnyTileSmartInteractSettings
 

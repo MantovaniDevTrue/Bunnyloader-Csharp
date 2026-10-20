@@ -1831,7 +1831,7 @@ void bindNativeTileAssembly(const std::string& mod,const std::string& assembly) 
 }
 bool registerNativeTileGameplay(const NativeTileGameplaySpec& spec) {
     if (spec.type < runtime::kVanillaTileCount || spec.type >= 65536 ||
-        spec.shape < 0 || spec.shape > 3 ||
+        spec.shape < 0 || spec.shape > 4 ||
         spec.frameToggle < 0 || spec.frameToggle > 2 ||
         (spec.frameToggle==1&&spec.shape!=2) ||
         (spec.frameToggle==2&&spec.shape!=3) ||

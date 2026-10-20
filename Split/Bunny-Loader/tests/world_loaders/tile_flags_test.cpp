@@ -46,7 +46,7 @@ int main(int argc,char** argv) {
  fixture.class_get_element_class=[](Il2CppClass* c){return c->element;};
  fixture.field_static_get_value=[](FieldInfo* f,void* p){std::memcpy(p,&f->data,sizeof(f->data));};
  for(const char* n:{"tileTable","tileSolidTop","tileNoAttach","tileLavaDeath","tileObsidianKill","tileFrameImportant","tileSolid","tileNoSunLight","tileBlockLight","tileMergeDirt","tileLighted","tileWaterDeath","tileCut"})fields[&mainClass][n]={{&boolArray},0x10,allocate()};
- for(const char* n:{"DisableSmartCursor","HasOutlines","IgnoredByNpcStepUp","ChecksForMerge","Campfires","InteractableByNPCs","TreeSapling","CommonSapling","SwaysInWindBasic"})fields[&setsClass][n]={{&boolArray},0x10,allocate()};
+ for(const char* n:{"DisableSmartCursor","HasOutlines","IgnoredByNpcStepUp","ChecksForMerge","Campfires","InteractableByNPCs","CommonSapling","SwaysInWindBasic"})fields[&setsClass][n]={{&boolArray},0x10,allocate()};
  for(const char* n:{"IsAMechanism","IgnoreWhenValidatingTraps"})fields[&wiringClass][n]={{&boolArray},0x10,allocate()};
  std::string error;
  assert(apply(2195,supportedMask,&error));
@@ -79,8 +79,9 @@ int main(int argc,char** argv) {
   assert(static_cast<uint8_t*>(arrayData(fields[&wiringClass][n].data))[2195]==1);
  assert(static_cast<uint8_t*>(arrayData(fields[&mainClass]["tileSolid"].data))[2195]==0);
  clear();
+ assert(apply(2195,131072,&error)&&allZero());
  assert(apply(2195,131072|262144|524288,&error));
- for(const char* n:{"TreeSapling","CommonSapling","SwaysInWindBasic"})
+ for(const char* n:{"CommonSapling","SwaysInWindBasic"})
   assert(static_cast<uint8_t*>(arrayData(fields[&setsClass][n].data))[2195]==1);
  clear();
  auto saplingFlag=fields[&setsClass].extract("CommonSapling");

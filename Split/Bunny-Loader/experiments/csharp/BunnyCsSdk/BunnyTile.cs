@@ -38,7 +38,8 @@ public enum BunnyTileShape {
     Single = 0,
     Style2x1 = 1,
     Style3x2 = 2,
-    Style1x3 = 3
+    Style1x3 = 3,
+    Sapling1x2 = 4
 }
 
 public enum BunnyTileFrameToggle {
@@ -86,6 +87,9 @@ public abstract class BunnyTile {
     public bool CacheDrawData { get; set; } = true;
     public int MinPick { get; set; }
     public float MineResist { get; set; } = 1f;
+    public string SaplingGroundTile { get; set; } = "";
+    public int SaplingVanillaGroundTile { get; set; } = -1;
+    public int SaplingStyleRange { get; set; } = 3;
     private readonly SortedDictionary<int, string> _itemDrops = new();
     public void RegisterItemDrop(string itemName, params int[] styles) {
         if (string.IsNullOrEmpty(itemName) || itemName.Length > 72)

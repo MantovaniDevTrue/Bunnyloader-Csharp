@@ -2126,7 +2126,10 @@ Il2CppObject* tileStaticObject(Il2CppClass* cls, const char* name) {
     return method ? a.runtime_invoke(method, nullptr, nullptr, &exc) : nullptr;
 }
 
-bool applyTileShape(int type, const ManagedTileEntry& e) {
+#include "experiments/csharp/NativeTileSaplingShape.h"
+
+bool applyTileShape(const std::string& mod,int type,const ManagedTileEntry& e) {
+    if(e.shape==4)return applyNativeSaplingShape(mod,type,e);
     if (e.shape == 0) return true;
     if (!tile_policy::validShape(e.shape)) return false;
     auto& a=il2cpp::api();
@@ -2357,7 +2360,7 @@ void onManagedTilesInstalled(int first, int last) {
     }
     for (const auto& [mod, entry] : records) {
         const bool flags = applyTileFlags(mod, entry.type, entry);
-        const bool shape = applyTileShape(entry.type, entry);
+        const bool shape = applyTileShape(mod,entry.type, entry);
         const bool housing = (entry.flags & 256) == 0 || appendNativeHousingTable(mod, entry);
         const bool guide = installCraftingStationIcon(mod, entry);
         bool adjacency = true;
@@ -2406,7 +2409,7 @@ bool applyManagedNativeTileDefaultsBatch(const std::string& modId,
         if (entry.type < runtime::kVanillaTileCount ||
             runtime::modTileTypeByName(modId, entry.name) != entry.type ||
             entry.flags < 0 || entry.flags > tile_flags::supportedMask ||
-            entry.shape < 0 || entry.shape > 3 ||
+            entry.shape < 0 || entry.shape > 4 ||
             entry.frameToggle < 0 || entry.frameToggle > 2 ||
             (entry.frameToggle==1&&entry.shape!=2) ||
             (entry.frameToggle==2&&entry.shape!=3) || entry.coordinateHeight != 18 ||

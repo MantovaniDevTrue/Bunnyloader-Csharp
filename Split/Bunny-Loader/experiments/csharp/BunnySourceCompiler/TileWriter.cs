@@ -25,6 +25,12 @@ internal static class TileWriter {
         string itemDrops = Get<string>("ItemDropDefinitions");
         int minPick = Get<int>("MinPick");
         float mineResist = Get<float>("MineResist");
+        string saplingGround = Get<string>("SaplingGroundTile");
+        int saplingVanilla = Get<int>("SaplingVanillaGroundTile");
+        int saplingStyles = Get<int>("SaplingStyleRange");
+        if (saplingGround == null || saplingGround.Length > 72 ||
+            saplingGround.Length > 0 && !SafeIdentifier(saplingGround))
+            throw new InvalidOperationException(type.FullName + ": invalid sapling ground tile");
         int callbackMask = Get<int>("TileCallbackMask");
         string dust = Get<string>("DustName");
         string map = Get<string>("MapName");
@@ -48,7 +54,7 @@ internal static class TileWriter {
             throw new InvalidOperationException("[CSharp][ERROR][TileDefaults] Class=" + type.FullName +
                 " API=BunnyTile.Flags Field=Flags Stage=Serialize Expected=Int32:KnownMask0xFFFFF Actual=" +
                 flags.ToString(CultureInfo.InvariantCulture) + " Result=Rejected Reason=UnknownFlagBits");
-        if (shape < 0 || shape > 3 || toggle < 0 || toggle > 2 ||
+        if (shape < 0 || shape > 4 || toggle < 0 || toggle > 2 ||
             (toggle == 1 && shape != 2) || (toggle == 2 && shape != 3) ||
             height < 1 || height > 32 || adjacent < -1 || adjacent >= 754 ||
             dust.Length > 72 || !Safe(dust) || map.Length > 80 || !Safe(map) ||
@@ -60,6 +66,11 @@ internal static class TileWriter {
             (animationFrames > 1 && (animationHeight == 0 || animationTicks == 0)) ||
             (animationFrames == 1 && animationTicks != 0) ||
             height != 18 || minPick < 0 || minPick > 1000 ||
+            saplingVanilla < -1 || saplingVanilla >= 754 ||
+            saplingStyles < 1 || saplingStyles > 12 ||
+            (shape == 4 && (flags & (131072 | 262144 | 524288)) != (131072 | 262144 | 524288)) ||
+            (shape == 4 && saplingGround.Length == 0 && saplingVanilla < 0) ||
+            (shape != 4 && (saplingGround.Length > 0 || saplingVanilla >= 0)) ||
             !float.IsFinite(mineResist) || mineResist < 0f || mineResist > 128f)
             throw new InvalidOperationException(type.FullName + ": native tile defaults out of bounds");
         return string.Join("\t", "TILE", type.Name,
@@ -84,7 +95,16 @@ internal static class TileWriter {
             toggle.ToString(CultureInfo.InvariantCulture),
             itemDrops,
             minPick.ToString(CultureInfo.InvariantCulture),
-            mineResist.ToString("R", CultureInfo.InvariantCulture));
+            mineResist.ToString("R", CultureInfo.InvariantCulture),
+            saplingGround.Length == 0 ? "-" : saplingGround,
+            saplingVanilla.ToString(CultureInfo.InvariantCulture),
+            saplingStyles.ToString(CultureInfo.InvariantCulture));
+    }
+
+    private static bool SafeIdentifier(string name) {
+        foreach (char c in name)
+            if (!(char.IsAsciiLetterOrDigit(c) || c == '_')) return false;
+        return name.Length > 0;
     }
 
     private static bool Safe(string value) {

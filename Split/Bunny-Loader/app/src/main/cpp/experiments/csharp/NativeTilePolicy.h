@@ -20,10 +20,11 @@ inline TileFootprint footprint(int shape) {
         case 1: return {2,1,36,18};
         case 2: return {3,2,54,36};
         case 3: return {1,3,18,54};
+        case 4: return {1,2,18,36};
         default: return {};
     }
 }
-inline bool validShape(int shape) {return shape>=0&&shape<=3;}
+inline bool validShape(int shape) {return shape>=0&&shape<=4;}
 inline bool origin(int shape,int x,int y,int frameX,int frameY,int* left,int* top) {
     const auto size=footprint(shape);
     if(size.width==0||frameX<0||frameY<0||!left||!top)return false;

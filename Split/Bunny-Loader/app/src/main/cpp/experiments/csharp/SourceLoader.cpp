@@ -778,7 +778,7 @@ bool applyManagedSourceDefaults(
                 (tile_wire::hasAnimationPolicy(fields.size()) &&
                  (!integer(fields[14], &tile.animationFrames) ||
                   !integer(fields[15], &tile.animationFrameTicks))) ||
-                tile.shape < 0 || tile.shape > 3 ||
+                tile.shape < 0 || tile.shape > 4 ||
                 tile.coordinateHeight != 18 ||
                 tile.adjacentTile < -1 || tile.adjacentTile >= 754 ||
                 tile.mapR < 0 || tile.mapR > 255 ||
@@ -864,6 +864,27 @@ bool applyManagedSourceDefaults(
                  !tile_mining::valid(tile.minPick, tile.mineResist))) {
                 *error = fields[1] + ": MinPick/MineResist invalidos";
                 return false;
+            }
+            if (tile_wire::hasSaplingShape(fields.size())) {
+                tile.saplingGroundTile=fields[25]=="-"?"":fields[25];
+                if (!integer(fields[26],&tile.saplingVanillaGroundTile) ||
+                    !integer(fields[27],&tile.saplingStyleRange)) {
+                    *error=fields[1]+": descriptor Sapling1x2 invalido";return false;
+                }
+            }
+            if (tile.shape==4 && !tile_wire::hasSaplingShape(fields.size())) {
+                *error=fields[1]+": Sapling1x2 requer campos de ancora";return false;
+            }
+            if (tile.saplingGroundTile.size()>72 ||
+                !std::all_of(tile.saplingGroundTile.begin(),tile.saplingGroundTile.end(),
+                    [](unsigned char ch){return (ch>='a'&&ch<='z')||
+                        (ch>='A'&&ch<='Z')||(ch>='0'&&ch<='9')||ch=='_';}) ||
+                tile.saplingVanillaGroundTile< -1 || tile.saplingVanillaGroundTile>=754 ||
+                tile.saplingStyleRange<1 || tile.saplingStyleRange>12 ||
+                (tile.shape==4 && ((tile.flags&(131072|262144|524288))!=(131072|262144|524288) ||
+                    (tile.saplingGroundTile.empty() && tile.saplingVanillaGroundTile<0))) ||
+                (tile.shape!=4 && (!tile.saplingGroundTile.empty() || tile.saplingVanillaGroundTile>=0))) {
+                *error=fields[1]+": ancora de sapling invalida";return false;
             }
             tiles.push_back(std::move(tile));
             if (tiles.size() > kSourceMaxCategory) {
