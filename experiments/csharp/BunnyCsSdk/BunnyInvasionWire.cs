@@ -104,9 +104,36 @@ public sealed class BunnyInvasionClientView
         return true;
     }
 
+    private long localWorldSession;
+    private long remoteWorldSession;
+
+    public bool ReceiveRemoteFromHost(BunnyInvasionWireState state,
+        long localSession, string modId, string invasionId)
+    {
+        if (!state.IsValid() || localSession <= 0 ||
+            state.ModId != modId || state.InvasionId != invasionId) return false;
+        if (localWorldSession != localSession)
+        {
+            ResetWorld();
+            localWorldSession = localSession;
+        }
+        if (HasState &&
+            (remoteWorldSession != state.WorldSession ||
+             state.Epoch < epoch ||
+             (state.Epoch == epoch && state.Revision <= revision))) return false;
+        remoteWorldSession = state.WorldSession;
+        epoch = state.Epoch;
+        revision = state.Revision;
+        Current = state;
+        HasState = true;
+        return true;
+    }
+
     public void ResetWorld()
     {
         session = 0;
+        localWorldSession = 0;
+        remoteWorldSession = 0;
         epoch = -1;
         revision = -1;
         Current = default;
