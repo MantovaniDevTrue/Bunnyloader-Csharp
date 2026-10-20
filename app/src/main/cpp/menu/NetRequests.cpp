@@ -175,7 +175,7 @@ bool sendNetworkChat(const std::string& message, int remoteClient) {
         fromLiteral, nullptr, literalArgs, &exception);
     if (exception || !text) return false;
     int msgType = 25, ignoreClient = -1;
-    int number = 250, number5 = 0, number6 = 0, number7 = 0;
+    int number = 255, number5 = 0, number6 = 0, number7 = 0;
     float number2 = 205.f, number3 = 90.f, number4 = 0.f;
     void* args[] = {&msgType, &remoteClient, &ignoreClient, text,
                     &number, &number2, &number3, &number4,
