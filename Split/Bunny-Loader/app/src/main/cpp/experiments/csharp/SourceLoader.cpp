@@ -589,8 +589,12 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
         screenEffects.push_back(std::move(effect));
     }
     status->screenEffects = static_cast<int>(screenEffects.size());
+    const bool hasGlobalPrefix=std::any_of(defs.begin(),defs.end(),[](const auto& def) {
+        return def.base=="BunnyGlobalItem";
+    });
     if (status->items+status->tiles+status->projectiles+status->buffs+
-        status->npcs+status->prefixes+status->players+status->screenEffects==0) {
+        status->npcs+status->prefixes+status->players+status->screenEffects==0 &&
+        !hasGlobalPrefix) {
         status->error = "mod C# sem conteudo registrado";
         return false;
     }
@@ -706,6 +710,8 @@ bool applyManagedSourceDefaults(
                    return (c>='A'&&c<='Z') || (c>='a'&&c<='z') ||
                           (c>='0'&&c<='9') || c=='_';
                }) || !integer(fields[2],&mask) || mask<1 || mask>15 ||
+               !mod->registeredBases.contains(
+                   sourceIdentityForBase("BunnyGlobalItem",fields[1])) ||
                globalPrefixCallbacks.size()>=128 ||
                std::any_of(globalPrefixCallbacks.begin(),globalPrefixCallbacks.end(),
                    [&](const auto& entry){return entry.first==fields[1];})) {
