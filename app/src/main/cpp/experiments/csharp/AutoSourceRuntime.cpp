@@ -30,6 +30,7 @@
 #include "experiments/csharp/ManagedRuntime.h"
 #include "experiments/csharp/MonoServiceDispatch.h"
 #include "experiments/csharp/SourceLoader.h"
+#include "experiments/csharp/ManagedDustBindingSelection.h"
 #include "experiments/csharp/ManagedSourceClassCount.h"
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
@@ -899,14 +900,7 @@ void run() {
         if (hasUniversalHooks && !registerUniversalHookMod(mod.id, assembly))
             BL_WARN("csharp universal hooks: fila recusada mod=%s", mod.id.c_str());
         if (mod.dusts > 0) {
-            std::vector<std::pair<int, std::string>> dustTypes;
-            for (const auto& [key, nativeType] : mod.registeredKindTypes) {
-                if (!key.starts_with("DUST:")) continue;
-                const std::string name = key.substr(5);
-                const auto mask = mod.dustMasks.find(name);
-                if (mask == mod.dustMasks.end() || mask->second == 0u) continue;
-                dustTypes.emplace_back(nativeType, name);
-            }
+            const auto dustTypes = selectManagedDustBindings(mod);
             if (!dustTypes.empty()) {
                 if (!registerManagedDustSourceMod(mod.id, assembly, dustTypes)) {
                     BL_WARN("[CSharp][DustLoader] Mod=%s Stage=MonoRegister Result=Rejected",
