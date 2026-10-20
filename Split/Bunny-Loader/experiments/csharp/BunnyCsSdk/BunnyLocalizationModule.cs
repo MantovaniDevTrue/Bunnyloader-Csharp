@@ -27,6 +27,8 @@ public static class BunnyLocalizationRuntime
         public string Culture = "";
         public int Revision;
         public int DeliveredRevision;
+        public int PendingRevision;
+        public string PendingWire = "";
         public HashSet<string> ActiveRows = new(StringComparer.Ordinal);
     }
 
@@ -229,7 +231,8 @@ public static class BunnyLocalizationRuntime
                         state.ActiveRows.Add(fields[1] + "\t" + fields[2]);
                     }
                     state.Revision++;
-                    state.DeliveredRevision = state.Revision;
+                    state.PendingRevision = state.Revision;
+                    state.PendingWire = wire;
                     return wire;
                 }
                 finally
@@ -256,10 +259,34 @@ public static class BunnyLocalizationRuntime
                 state.AssemblyPath != assemblyPath || state.Culture != culture)
                 return "UNCHANGED";
             if (state.Revision == state.DeliveredRevision) return "UNCHANGED";
+            if (state.PendingRevision == state.Revision && state.PendingWire.Length != 0)
+                return state.PendingWire;
             string wire = Serialize(state, state.Callback);
             if (wire.StartsWith("OK|", StringComparison.Ordinal))
-                state.DeliveredRevision = state.Revision;
+            {
+                state.PendingRevision = state.Revision;
+                state.PendingWire = wire;
+            }
             return wire;
+        }
+    }
+
+    public static bool Acknowledge(string modId, string assemblyPath,
+        string culture, string wire)
+    {
+        if (!ValidId(modId) || !ValidCulture(culture) ||
+            string.IsNullOrEmpty(assemblyPath) || string.IsNullOrEmpty(wire))
+            return false;
+        lock (Gate)
+        {
+            if (!Mods.TryGetValue(modId, out ModState? state) ||
+                state.AssemblyPath != assemblyPath || state.Culture != culture ||
+                state.PendingRevision <= state.DeliveredRevision ||
+                !string.Equals(state.PendingWire, wire, StringComparison.Ordinal))
+                return false;
+            state.DeliveredRevision = state.PendingRevision;
+            state.PendingWire = "";
+            return true;
         }
     }
 
