@@ -67,6 +67,20 @@ bool bindManagedItemPrefixCallbackAssembly(const std::string& modId,
 std::shared_ptr<const std::map<std::string, std::string>>
 managedItemPrefixCallbackAssemblies();
 
+struct ManagedGlobalPrefixCallbackBinding {
+    std::string modId;
+    std::string owner;
+    int callbackMask = 0;
+};
+
+bool applyManagedGlobalPrefixCallbackBindings(
+    const std::string& modId,
+    const std::vector<std::pair<std::string,int>>& policies);
+std::shared_ptr<const std::vector<ManagedGlobalPrefixCallbackBinding>>
+managedGlobalPrefixCallbackView();
+bool bindManagedGlobalPrefixCallbackAssembly(const std::string& modId,
+                                              const std::string& assembly);
+
 struct ManagedItemPrefixApply {
     int damageBonus = 0;
     int valueBonus = 0;
