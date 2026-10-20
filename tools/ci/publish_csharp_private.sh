@@ -1,11 +1,10 @@
 #!/usr/bin/env bash
 # Extracted without removing private-destination, signature or same-SHA CI gates.
 set -euo pipefail
-# User requires the entire example port before another deliverable.
+# User now requires exactly five complete loaders and their original examples.
 if [ "${GITHUB_REF:-}" = "refs/heads/feat/csharp-summon-lifecycle-v95" ] ||
    [ "${GITHUB_HEAD_REF:-}" = "feat/csharp-summon-lifecycle-v95" ]; then
-  echo "::error::PublicationHeldFullExamplePort: no partial APK or mod release is authorized on this branch."
-  exit 1
+  python3 "$(dirname "$0")/../loader_batch_gate.py" --delivery
 fi
 if [ -z "${GH_TOKEN:-}" ]; then
   echo "::error::BUNNY_PRIVATE_BUILD_TOKEN is missing. Full APK delivery was not attempted."
@@ -220,26 +219,26 @@ if [ "$GITHUB_REF" = "refs/heads/feat/csharp-90-5-native-minion-targeting-lot" ]
   TITLE="EXPERIMENTAL — CSharp minion native combat and animated summon | $VERSION"
   NOTES="Native CSharp summon .90.5 (MonoVM) with player/minion buff spawn, hostile-target packet, four-frame minion sprites, own C# steering class and real ExampleMinion visual assets. ExampleMod CSharp 0.1.49, recipe tests and Lights 0.4.2.3 preserved. Source-only NativeMinionCSharpProbe v0.1.1. Android gameplay, damage and 60 FPS REQUIRE testing. Source ${GITHUB_SHA}. Workflow https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}."
 fi
-if [ "$GITHUB_REF" = "refs/heads/feat/csharp-summon-lifecycle-v95" ]; then
+if [ "$GITHUB_REF" = "refs/heads/feat/csharp-summon-lifecycle-v95" ] || [ "${GITHUB_HEAD_REF:-}" = "feat/csharp-summon-lifecycle-v95" ]; then
+  SOURCE_SHA="$BUNNY_SOURCE_SHA"
   for attempt in $(seq 1 30); do
-    GH_TOKEN="$BUNNY_SOURCE_READ_TOKEN" gh api "repos/${GITHUB_REPOSITORY}/actions/runs?head_sha=${GITHUB_SHA}&per_page=100" > "$RUNNER_TEMP/v95-workflows.json"
+    GH_TOKEN="$BUNNY_SOURCE_READ_TOKEN" gh api "repos/${GITHUB_REPOSITORY}/actions/runs?head_sha=${SOURCE_SHA}&per_page=100" > "$RUNNER_TEMP/v95-workflows.json"
     set +e
-    python3 Split/Bunny-Loader/tools/check_lot_a_delivery.py "$RUNNER_TEMP/v95-workflows.json" "$GITHUB_SHA" --current
+    python3 Split/Bunny-Loader/tools/check_lot_a_delivery.py "$RUNNER_TEMP/v95-workflows.json" "$SOURCE_SHA" --current
     DELIVERY_STATUS=$?
     set -e
     if [ "$DELIVERY_STATUS" = 0 ]; then break; fi
     if [ "$DELIVERY_STATUS" != 2 ] || [ "$attempt" = 30 ]; then echo "[CSharp][ERROR][Delivery] Stage=RequiredChecks Result=Rejected Reason=ChecksNotSuccessful"; exit 1; fi
     sleep 10
   done
-  TITLE="Bunny CSharp .96 + ExampleMod 0.1.55 | typed native defaults and holdouts"
-  NOTES="Experimental .96. Preserves the Android-tested .95.2 summon fix. Public typed native defaults for items/projectiles, metadata-checked primitive writes, symbolic vanilla IDs and shared mod projectile references, immutable batch publication. Native holdout hooks validate Rectangle ABI and follow direction/gravity/rotation. Localized content names via BunnyName. Adds melee sword, bullet, bullet projectile and rocket launcher ports plus an ExampleMod-only bullet test launcher. Recipe RPC scheduled before entity AI backlog without increasing the 3ms budget; arbitrary slow callbacks can still exceed it. Host fixtures and required CI suites are not Android gameplay/FPS certification. All canonical 206 examples remain accounted for; full port is still in progress. Source ${GITHUB_SHA}."
 fi
 
+EXAMPLE_VERSION="$(python3 -c 'import json; print(json.load(open("Split/Bunny-Loader/samples/ExampleModCSharp/Playable/manifest.json"))["version"])')"
 RELEASE_ASSETS=(
   "$RUNNER_TEMP/$FILE"
   "$RUNNER_TEMP/$FILE.sha256"
-  "$RUNNER_TEMP/ExampleModCSharp-v0.1.55.bmod"
-  "$RUNNER_TEMP/ExampleModCSharp-v0.1.55.bmod.sha256"
+  "$RUNNER_TEMP/ExampleModCSharp-v${EXAMPLE_VERSION}.bmod"
+  "$RUNNER_TEMP/ExampleModCSharp-v${EXAMPLE_VERSION}.bmod.sha256"
   "Split/Bunny-Loader/build/combat-batch-results.json"
   "Split/Bunny-Loader/build/basic-items-results.json"
 )
@@ -295,6 +294,11 @@ PYSCREENFX_GATE
     fi
     sleep 15
   done
+fi
+if [ "${GITHUB_REF:-}" = "refs/heads/feat/csharp-summon-lifecycle-v95" ] ||
+   [ "${GITHUB_HEAD_REF:-}" = "feat/csharp-summon-lifecycle-v95" ]; then
+  TITLE="EXPERIMENTAL — cinco loaders completos | Bunny CSharp $VERSION"
+  NOTES="Lote de cinco loaders e um exemplo original completo por loader. Revisao de contratos e testes automatizados aprovados; gameplay e FPS Android aguardam validacao. Fonte ${BUNNY_SOURCE_SHA}; run https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}. Contratos, pendencias e roteiros no repositorio. Bundle privado, nao redistribuir."
 fi
 gh release create "$TAG" "${RELEASE_ASSETS[@]}" \
   --repo "$PRIVATE_REPO" \

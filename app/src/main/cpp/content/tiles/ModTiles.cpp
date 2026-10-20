@@ -1,5 +1,6 @@
 #include "content/tiles/TileRegistryInternal.h"
 #include "content/tiles/ModTiles.h"
+#include "experiments/csharp/NativeTileDrawCachePolicy.h"
 #include "content/tiles/ModTrees.h"
 #include "core/Log.h"
 #include "hook/HookManager.h"
@@ -543,6 +544,9 @@ constexpr size_t kMaxAnimated = 8192;
 std::atomic<int> g_animHeight[kMaxAnimated];
 FieldInfo* g_tileFrameField = nullptr;   // Main.tileFrame
 std::atomic<DrawDataHook> g_drawDataHook{nullptr};
+std::atomic<DrawDataHook> g_managedDrawDataHook{nullptr};
+std::atomic<const std::atomic<uint8_t>*> g_managedDrawDataMarks{nullptr};
+std::atomic<const std::atomic<uint8_t>*> g_managedDrawDataUncached{nullptr};
 std::atomic<const std::atomic<uint8_t>*> g_drawDataMarks{nullptr};
 std::atomic<const std::atomic<uint8_t>*> g_drawDataUncached{nullptr};   // CacheDrawData = false
 
@@ -687,6 +691,10 @@ void applyTileDrawData(int32_t x, int32_t y, uint16_t type, int16_t* frameX,
     const DrawDataHook hook = g_drawDataHook.load(std::memory_order_acquire);
     const std::atomic<uint8_t>* marks = g_drawDataMarks.load(std::memory_order_acquire);
     const bool toMod = hook && marks && marks[type].load(std::memory_order_relaxed);
+    const DrawDataHook managedHook = g_managedDrawDataHook.load(std::memory_order_acquire);
+    const std::atomic<uint8_t>* managedMarks = g_managedDrawDataMarks.load(std::memory_order_acquire);
+    const bool toManaged = managedHook && managedMarks &&
+                           managedMarks[type].load(std::memory_order_acquire);
 
     // O jogo ja põe um deslocamento vertical padrao baseado em Main.tileFrame.
     // Para tiles de mod, a folha usa AnimationFrameHeight (ou zero quando os
@@ -694,7 +702,7 @@ void applyTileDrawData(int32_t x, int32_t y, uint16_t type, int16_t* frameX,
     // O quadro tambem vai na chave do cache para AnimateIndividualTile.
     const int frameHeight = i < kMaxAnimated ? g_animHeight[i].load(std::memory_order_relaxed) : 0;
     int32_t tileFrame = 0;
-    if ((frameHeight > 0 || toMod) && g_tileFrameField) {
+    if ((frameHeight > 0 || toMod || toManaged) && g_tileFrameField) {
         Il2CppArray* frames = readStatic(g_tileFrameField);
         if (frames && type < frames->length) tileFrame = static_cast<const int32_t*>(arrayData(frames))[type];
     }
@@ -713,7 +721,7 @@ void applyTileDrawData(int32_t x, int32_t y, uint16_t type, int16_t* frameX,
     }
 
     // O SetDrawPositions & cia. do mod, so para os tipos que os sobrescrevem.
-    if (!toMod) return;
+    if (!toMod && !toManaged) return;
     DrawKey key;
     key.x = x;
     key.y = y;
@@ -731,11 +739,20 @@ void applyTileDrawData(int32_t x, int32_t y, uint16_t type, int16_t* frameX,
     const DrawEpoch epoch = drawEpochAt(x, y);
     const int64_t now = coarseNowNs();
     const std::atomic<uint8_t>* uncached = g_drawDataUncached.load(std::memory_order_acquire);
-    const bool cached = !special && (!uncached || !uncached[type].load(std::memory_order_relaxed));
+    const std::atomic<uint8_t>* managedUncached =
+        g_managedDrawDataUncached.load(std::memory_order_acquire);
+    const bool jsSkipCache = toMod && uncached &&
+        uncached[type].load(std::memory_order_relaxed);
+    const bool managedSkipCache = toManaged && managedUncached &&
+        managedUncached[type].load(std::memory_order_relaxed);
+    const bool cached = tile_draw_cache::enabled(special, jsSkipCache, managedSkipCache);
     TileDrawData d;
     if (!cached || !drawCacheGet(key, epoch, now, &d)) {
         d = key.in;
-        if (hook(x, y, type, &d, special) && cached) drawCachePut(key, epoch, now, d);
+        bool applied = false;
+        if (toMod) applied = hook(x, y, type, &d, special);
+        if (toManaged) applied = managedHook(x, y, type, &d, special) || applied;
+        if (applied && cached) drawCachePut(key, epoch, now, d);
     }
     *frameX = static_cast<int16_t>(d.frameX);
     *frameY = static_cast<int16_t>(d.frameY);
@@ -801,8 +818,7 @@ DrawShape readDrawShape(Il2CppObject* data) {
 
 void hookDrawData() {
     static bool done = false;
-    if (done) return;
-    done = true;
+    if (done && g_origSpecialDrawData) return;
     auto& a = il2cpp::api();
     Il2CppClass* main = il2cpp::findClass({"Terraria", "Main", {}});
     g_tileFrameField = main ? il2cpp::findField(main, "tileFrame") : nullptr;
@@ -821,13 +837,17 @@ void hookDrawData() {
         if (drawTile) special = m;
     }
 
-    if (!special || !hook::install(special, hkGetSpecialTileDrawData, &g_origSpecialDrawData))
+    if (!g_origSpecialDrawData &&
+        (!special || !hook::install(special, hkGetSpecialTileDrawData, &g_origSpecialDrawData)))
         BL_ERROR("tiles de mod: sem hook no GetTileDrawData(Tile); desenho especial indisponivel");
-    if (!target || !hook::install(target, hkGetTileDrawData, &g_origDrawData)) {
+    if (!g_origDrawData &&
+        (!target || !hook::install(target, hkGetTileDrawData, &g_origDrawData))) {
         BL_ERROR("tiles de mod: sem hook no TileDrawing.GetTileDrawData; a ultima linha de um movel de mod sai cortada");
         return;
     }
 
+    if (done) return;
+    done = true;
     Il2CppClass* worldGen = il2cpp::findClass({"Terraria", "WorldGen", {}});
     const MethodInfo* square = worldGen ? a.class_get_method_from_name(worldGen, "SquareTileFrame", 3) : nullptr;
     const MethodInfo* range = worldGen ? a.class_get_method_from_name(worldGen, "RangeFrame", 4) : nullptr;
@@ -1091,8 +1111,22 @@ void setDrawDataHook(DrawDataHook hook, const std::atomic<uint8_t>* marks, const
     invalidateDrawCache();
 }
 
+void setManagedTileDrawDataHook(DrawDataHook hook, const std::atomic<uint8_t>* marks,
+                                const std::atomic<uint8_t>* uncached) {
+    g_managedDrawDataUncached.store(uncached, std::memory_order_release);
+    g_managedDrawDataMarks.store(marks, std::memory_order_release);
+    g_managedDrawDataHook.store(hook, std::memory_order_release);
+    invalidateDrawCache();
+}
+void invalidateManagedTileDrawCache() {
+    invalidateDrawCache();
+}
+
 void ensureTileDrawHook() {
     hookDrawData();
+}
+bool tileDrawHooksReady() {
+    return g_origDrawData && g_origSpecialDrawData;
 }
 
 bool modObjectShape(int type, ModObjectShape* out) {

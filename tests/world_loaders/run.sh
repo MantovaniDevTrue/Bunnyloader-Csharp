@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")/../.."
+output="${RUNNER_TEMP:-/tmp}/bunny-world-tile-flags"
+"${CXX:-g++}" -std=c++20 -Wall -Wextra -Werror -DBL_HAVE_QUICKJS=0 -I tests/basic_items/include -I app/src/main/cpp tests/world_loaders/tile_flags_test.cpp -o "$output"
+"$output" build/basic-items/full-source-runtime-values.txt
+anim="${RUNNER_TEMP:-/tmp}/bunny-world-tile-animation"
+"${CXX:-g++}" -std=c++20 -Wall -Wextra -Werror -DBL_HAVE_QUICKJS=0 -I app/src/main/cpp tests/world_loaders/tile_animation_test.cpp -o "$anim"
+"$anim"
+adj="${RUNNER_TEMP:-/tmp}/bunny-world-tile-adjacencies"
+"${CXX:-g++}" -std=c++20 -Wall -Wextra -Werror -DBL_HAVE_QUICKJS=0 -I app/src/main/cpp tests/world_loaders/tile_adjacency_test.cpp -o "$adj"
+"$adj"
+wire="${RUNNER_TEMP:-/tmp}/bunny-world-tile-wire"
+"${CXX:-g++}" -std=c++20 -Wall -Wextra -Werror -DBL_HAVE_QUICKJS=0 -I app/src/main/cpp tests/world_loaders/tile_wire_test.cpp -o "$wire"
+"$wire"
+break_test="${RUNNER_TEMP:-/tmp}/bunny-world-tile-break"
+"${CXX:-g++}" -std=c++20 -Wall -Wextra -Werror -DBL_HAVE_QUICKJS=0 -I app/src/main/cpp tests/world_loaders/tile_break_policy_test.cpp -o "$break_test"
+"$break_test"
+
+scan="${RUNNER_TEMP:-/tmp}/bunny-world-tile-scan"
+"${CXX:-g++}" -std=c++20 -Wall -Wextra -Werror -DBL_HAVE_QUICKJS=0 -I app/src/main/cpp tests/world_loaders/tile_scan_policy_test.cpp -o "$scan"
+"$scan"
+wall="${RUNNER_TEMP:-/tmp}/bunny-world-wall-runtime"
+"${CXX:-g++}" -std=c++20 -Wall -Wextra -Werror -Wno-deprecated-declarations -DBL_HAVE_QUICKJS=0 -I tests/basic_items/include -I app/src/main/cpp tests/world_loaders/wall_runtime_test.cpp -o "$wall"
+"$wall" build/basic-items/wall-source-runtime-values.txt
+registry="${RUNNER_TEMP:-/tmp}/bunny-world-wall-registry"
+"${CXX:-g++}" -std=c++20 -Wall -Wextra -Werror -Wno-deprecated-declarations -ffunction-sections -fdata-sections -DBL_HAVE_QUICKJS=0 -I tests/basic_items/include -I app/src/main/cpp tests/world_loaders/wall_registry_test.cpp app/src/main/cpp/content/walls/ModWalls.cpp app/src/main/cpp/content/tiles/ModTileMap.cpp app/src/main/cpp/content/common/TypeTables.cpp -Wl,--gc-sections -o "$registry"
+"$registry"
+
+draw="${RUNNER_TEMP:-/tmp}/bunny-world-tile-draw"
+"${CXX:-g++}" -std=c++20 -Wall -Wextra -Werror -DBL_HAVE_QUICKJS=0 -I app/src/main/cpp tests/world_loaders/tile_draw_wire_test.cpp -o "$draw"
+"$draw"
+
+bindings="${RUNNER_TEMP:-/tmp}/bunny-world-tile-bindings"
+"${CXX:-g++}" -std=c++20 -Wall -Wextra -Werror -pthread -DBL_HAVE_QUICKJS=0 -I app/src/main/cpp tests/world_loaders/tile_draw_bindings_test.cpp -o "$bindings"
+"$bindings"
+
+cache="${RUNNER_TEMP:-/tmp}/bunny-world-tile-draw-cache"
+"${CXX:-g++}" -std=c++20 -Wall -Wextra -Werror -DBL_HAVE_QUICKJS=0 -I app/src/main/cpp tests/world_loaders/tile_draw_cache_test.cpp -o "$cache"
+"$cache"

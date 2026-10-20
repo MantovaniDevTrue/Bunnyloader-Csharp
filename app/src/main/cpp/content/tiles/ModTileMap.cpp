@@ -711,6 +711,19 @@ void hkMapLoad(Il2CppObject* self, const MethodInfo* m) {
 
 } // namespace
 
+bool setModWallMapEntries(int type,const std::vector<WallMapEntry>& entries) {
+    if(!isModWall(type)||g_disabled.load()||entries.size()>16)return false;
+    std::vector<Entry> replacement;replacement.reserve(entries.size());
+    for(const auto& e:entries) {
+        if(e.r<0||e.r>255||e.g<0||e.g>255||e.b<0||e.b>255||e.name.empty()||e.name.size()>160)return false;
+        replacement.push_back({static_cast<uint8_t>(e.r),static_cast<uint8_t>(e.g),static_cast<uint8_t>(e.b),e.name});
+    }
+    std::lock_guard lock(g_mx);
+    const size_t index=static_cast<size_t>(type-kVanillaWallCount);
+    if(g_wallEntries.size()<=index)g_wallEntries.resize(index+1);
+    g_wallEntries[index]=std::move(replacement);g_dirty.store(true);return true;
+}
+
 int addModWallMapEntry(int type, int r, int g, int b, const std::string& nameKey) {
     if (!isModWall(type) || g_disabled.load()) return -1;
     std::lock_guard<std::mutex> l(g_mx);

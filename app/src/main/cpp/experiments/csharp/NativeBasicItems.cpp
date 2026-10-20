@@ -1,3 +1,4 @@
+#include "il2cpp/GuardedCall.h"
 #include "experiments/csharp/NativeDefaults.h"
 #include "experiments/csharp/SourceLimits.h"
 #include "experiments/csharp/NativeBasicItems.h"
@@ -7,6 +8,7 @@
 #include "experiments/csharp/ManagedPrefixGameplay.h"
 #include "content/items/ModItems.h"
 #include "content/tiles/ModTiles.h"
+#include "content/walls/ModWalls.h"
 #include "content/recipes/NativeRecipes.h"
 #include "content/common/GameRefs.h"
 #include "experiments/csharp/NativeContent.h"
@@ -44,6 +46,9 @@ std::map<int,std::map<std::string,EquipSlot>> equipSlots;
 std::map<int,EquipSlot> defenseDefaults;
 std::array<IntegerField,2> placementFields{};
 bool placementPrepared=false;
+IntegerField wallPlacementField{};
+bool wallPlacementPrepared=false;
+const MethodInfo* wallDefaultMethod=nullptr;
 std::map<int,std::string> placementErrors;
 int lastPlacementType=-1;
 
@@ -157,6 +162,25 @@ bool preparePlacement(std::string* error) {
     placementFields=resolved;placementPrepared=true;return true;
 }
 
+bool prepareWallPlacement(std::string* error) {
+    if(wallPlacementPrepared)return true;
+    auto& a=il2cpp::api();auto* cls=il2cpp::findClass({"Terraria","Item",{}});
+    auto* field=cls?il2cpp::findField(cls,"createWall"):nullptr;
+    auto* type=field?a.class_from_il2cpp_type(a.field_get_type(field)):nullptr;
+    IntegerField resolved{};
+    if(!field||(a.field_get_flags(field)&0x10u)||!integerContract(type,&resolved)) {
+        *error="API=DefaultToPlaceableWall Stage=BindPlacement Field=createWall Expected=InstanceIntegral Actual="+
+            std::string(type?a.class_get_name(type):"Missing")+" Reason=NativeTypeOrStorageMismatch";return false;
+    }
+    const auto offset=a.field_get_offset(field);resolved.offset=offset<=INT32_MAX?static_cast<int>(offset):-1;
+    if(!instanceBounds(cls,resolved.offset,resolved.bytes,"createWall",error))return false;
+    const auto* helper=il2cpp::findMethodBySignature(cls,il2cpp::parseSignature("void DefaultToPlaceableWall(ushort wallToPlace)"));
+    if(!helper||!a.method_is_instance||!a.method_is_instance(helper)||!a.runtime_invoke||!il2cpp::methodPointer(helper)) {
+        *error="API=DefaultToPlaceableWall Stage=BindPlacement Expected=Instance:void(ushort) Actual=MissingOrIncompatible Reason=NativeMethodContractMismatch";return false;
+    }
+    wallDefaultMethod=helper;wallPlacementField=resolved;wallPlacementPrepared=true;return true;
+}
+
 struct NativeAccessoryWrite { int offset=-1; float value=0; uint8_t kind=0; };
 using NativeAccessoryTable=std::map<int,std::vector<NativeAccessoryWrite>>;
 std::shared_ptr<const NativeAccessoryTable> nativeAccessoryTable;
@@ -201,14 +225,16 @@ void resolvePlacements() {
         if(it==definitions.end())it=definitions.begin();
         auto& entry=it->second;lastPlacementType=it->first;++it;
         if(!entry.placeable||entry.placeTileKey.empty()||entry.placeTile>=0)continue;
-        ++processed;const int target=runtime::modTileTypeByKey(entry.placeTileKey);
-        std::string reason=target<0?"MissingDependency":target>=runtime::tileTypeCount()?"DependencyNotInstalled":
-            target>placementFields[0].max?"NativeRangeExceeded":"";
+        ++processed;const int target=entry.wallPlaceable?runtime::modWallTypeByKey(entry.placeTileKey):runtime::modTileTypeByKey(entry.placeTileKey);
+        const auto limit=entry.wallPlaceable?wallPlacementField.max:placementFields[0].max;
+        std::string reason=target<0?"MissingDependency":target>=(entry.wallPlaceable?runtime::wallTypeCount():runtime::tileTypeCount())?"DependencyNotInstalled":
+            target>std::min<int64_t>(limit,entry.wallPlaceable?65535:INT32_MAX)?"NativeRangeExceeded":
+            entry.wallPlaceable&&!runtime::modWallAssetReady(target)?"NativeWallAssetUnavailable":"";
         if(!reason.empty()) {
             auto message="[CSharp]["+std::string(reason=="NativeRangeExceeded"?"ERROR":"WARN")+
                 "][Placement] Mod="+entry.modId+" Class="+entry.name+" File="+entry.sourceFile+
-                " API=DefaultToPlaceableTile ContentId="+std::to_string(entry.type)+" Tile="+entry.placeTileKey+
-                " Stage=ResolveTile Expected=InstalledTileWithinNativeRange Actual="+std::to_string(target)+
+                " API=DefaultToPlaceable"+std::string(entry.wallPlaceable?"Wall":"Tile")+" ContentId="+std::to_string(entry.type)+" Key="+entry.placeTileKey+
+                " Stage=ResolvePlacement Expected=InstalledContentWithinNativeRange Actual="+std::to_string(target)+
                 " Result=PlacementDisabled Reason="+reason;
             if(placementErrors[entry.type]!=message){placementErrors[entry.type]=message;
                 if(reason=="NativeRangeExceeded")BL_ERROR("%s",message.c_str());else BL_DEBUG("%s",message.c_str());}
@@ -481,11 +507,11 @@ bool applyNativeBasicItemDefaults(const std::string& modId,const std::vector<Bas
         if(!definitions.contains(entry.type)||runtime::modItemKey(entry.type)!=modId+"/"+entry.name||
            !validateBasicItem(entry,error)||!fitIntegerFields(entry,error)||!cacheSound(entry.useSound,error)) {if(error->empty())*error=entry.name+": item nao pertence ao mod";return false;}
         if(entry.placeable) {
-            if(!preparePlacement(error)) {
+            if(!(entry.wallPlaceable?prepareWallPlacement(error):preparePlacement(error))) {
                 *error="[CSharp][ERROR][Placement] Mod="+modId+" Class="+entry.name+
                     " File="+definitions.at(entry.type).sourceFile+" ContentId="+std::to_string(entry.type)+" Detail="+*error;return false;
             }
-            if(entry.placeTile>placementFields[0].max||entry.placeStyle>placementFields[1].max) {
+            if(entry.placeTile>std::min<int64_t>(entry.wallPlaceable?wallPlacementField.max:placementFields[0].max,entry.wallPlaceable?65535:INT32_MAX)||(!entry.wallPlaceable&&entry.placeStyle>placementFields[1].max)) {
                 *error="[CSharp][ERROR][Placement] Mod="+modId+" Class="+entry.name+
                     " Stage=BindPlacement Expected=ValuesWithinNativeWidths Actual=Tile:"+std::to_string(entry.placeTile)+
                     ",Style:"+std::to_string(entry.placeStyle)+" Result=Rejected Reason=NativeRangeExceeded";return false;
@@ -694,12 +720,25 @@ bool applyBasicItemToObject(Il2CppObject* object,int type) {
     std::lock_guard lock(mutex);const auto found=definitions.find(type);
     if(found==definitions.end()||!object)return false;
     const auto& entry=found->second;
+    if(entry.wallPlaceable) {
+        uint16_t target=static_cast<uint16_t>(std::max(0,entry.placeTile));
+        void* args[]={&target};Il2CppObject* exception=nullptr;
+        il2cpp::api().runtime_invoke(wallDefaultMethod,object,args,&exception);
+        if(exception) {
+            BL_ERROR("[CSharp][ERROR][NativeItem] Mod=%s Class=%s File=%s ContentId=%d API=DefaultToPlaceableWall Stage=Invoke Result=Rejected Reason=NativeException Exception=%s",entry.modId.c_str(),entry.name.c_str(),entry.sourceFile.c_str(),type,il2cpp::describeException(exception).c_str());
+            return false;
+        }
+    }
     const bool cloned=applyNativeItemPolicyDefaults(object,type);
     if(entry.placeable) {
-        writeIntegral(object,placementFields[0],entry.placeTile);
-        writeIntegral(object,placementFields[1],entry.placeStyle);
+        if(entry.wallPlaceable)writeIntegral(object,wallPlacementField,std::max(0,entry.placeTile));
+        else {
+            writeIntegral(object,placementFields[0],entry.placeTile);
+            writeIntegral(object,placementFields[1],entry.placeStyle);
+        }
     }
     for(size_t i=0;i<integerFields.size();++i) {
+        if(entry.wallPlaceable&&(entry.wallIntegerOverrides&(1<<i))==0)continue;
         if(cloned&&i<2&&entry.values[i]==0)continue;
         const auto& field=integerFields[i];auto* destination=reinterpret_cast<unsigned char*>(object)+field.offset;
         // Converter antes de copiar: jamais escrever quatro bytes em Byte/Int16.
@@ -709,7 +748,10 @@ bool applyBasicItemToObject(Il2CppObject* object,int type) {
             case 4: {const auto value=static_cast<uint32_t>(entry.values[i]);std::memcpy(destination,&value,4);break;}
         }
     }
-    for(size_t i=0;i<flagOffsets.size();++i)runtime::field<uint8_t>(object,flagOffsets[i])=!!(entry.values[BasicFlags]&(1<<i));
+    for(size_t i=0;i<flagOffsets.size();++i) {
+        if(entry.wallPlaceable&&(entry.wallFlagOverrides&(1<<i))==0)continue;
+        runtime::field<uint8_t>(object,flagOffsets[i])=!!(entry.values[BasicFlags]&(1<<i));
+    }
     const auto defense=defenseDefaults.find(type);
     if(defense!=defenseDefaults.end()) {
         const auto& value=defense->second;
@@ -816,8 +858,15 @@ std::vector<int> basicItemTypes() {std::lock_guard lock(mutex);std::vector<int> 
 int basicItemForTile(const std::string& key) {
     std::lock_guard lock(mutex);
     for (const auto& [id, entry] : definitions)
-        if (entry.placeable && entry.placeStyle == 0 && entry.placeTileKey == key)
+        if (entry.placeable && !entry.wallPlaceable && entry.placeStyle == 0 && entry.placeTileKey == key)
             return id;
+    return -1;
+}
+
+int basicItemForWall(const std::string& key) {
+    std::lock_guard lock(mutex);
+    for(const auto& [type,entry]:definitions)
+        if(entry.placeable&&entry.wallPlaceable&&entry.placeTileKey==key)return type;
     return -1;
 }
 

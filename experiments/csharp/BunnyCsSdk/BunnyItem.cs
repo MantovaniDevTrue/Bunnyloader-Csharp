@@ -6,7 +6,7 @@ using System.Linq;
 namespace BunnyLoader.Source;
 
 /// <summary>Item geral: os defaults sao aplicados ao Item real pelo host, sem callback Mono por frame.</summary>
-public abstract class BunnyItem : BunnyRecipeSource
+public abstract class BunnyItem : BunnyShootSource
 {
     public BunnyNativeDefaults NativeDefaults { get; } = new();
     public BunnyHoldout? Holdout { get; set; }
@@ -31,29 +31,54 @@ public abstract class BunnyItem : BunnyRecipeSource
     public string Tooltip { get; set; } = "";
     public Dictionary<string,string> TooltipTranslations { get; } = new(StringComparer.Ordinal);
     // Zero deixa o host inferir o tamanho pela textura, como o ModItem JS.
-    public int Width { get; set; }
-    public int Height { get; set; }
-    public int MaxStack { get; set; } = 1;
-    public int Value { get; set; }
-    public int Rare { get; set; }
+    private bool nativeWallDefaults;
+    private int wallIntegerOverrides,wallFlagOverrides;
+    private string placement="";
+    private void OverrideInteger(int index) { if(nativeWallDefaults)wallIntegerOverrides|=1<<index; }
+    private void OverrideFlag(int index) { if(nativeWallDefaults)wallFlagOverrides|=1<<index; }
+    public int Width { get => width; set { width=value; OverrideInteger(0); } }
+    private int width;
+    private int wallHeight=0;
+    public int Height { get => wallHeight; set { wallHeight=value; OverrideInteger(1); } }
+    private int wallMaxStack=1;
+    public int MaxStack { get => wallMaxStack; set { wallMaxStack=value; OverrideInteger(2); } }
+    private int wallValue=0;
+    public int Value { get => wallValue; set { wallValue=value; OverrideInteger(3); } }
+    private int wallRare=0;
+    public int Rare { get => wallRare; set { wallRare=value; OverrideInteger(4); } }
     public int Defense { get => Behavior.Defense; set => Behavior.Defense=value; }
-    public int Damage { get; set; }
-    public int Crit { get; set; }
+    private int wallDamage=0;
+    public int Damage { get => wallDamage; set { wallDamage=value; OverrideInteger(5); } }
+    private int wallCrit=0;
+    public int Crit { get => wallCrit; set { wallCrit=value; OverrideInteger(6); } }
     public float KnockBack { get; set; }
-    public int UseTime { get; set; }
-    public int UseAnimation { get; set; }
-    public int UseStyle { get; set; }
-    public bool Melee { get; set; }
-    public bool NoMelee { get; set; }
-    public bool AutoReuse { get; set; }
-    public bool UseTurn { get; set; }
-    public bool Consumable { get; set; }
-    public int Pick { get; set; }
+    private int wallUseTime=0;
+    public int UseTime { get => wallUseTime; set { wallUseTime=value; OverrideInteger(7); } }
+    private int wallUseAnimation=0;
+    public int UseAnimation { get => wallUseAnimation; set { wallUseAnimation=value; OverrideInteger(8); } }
+    private int wallUseStyle=0;
+    public int UseStyle { get => wallUseStyle; set { wallUseStyle=value; OverrideInteger(9); } }
+    private bool wallMelee;
+    public bool Melee { get => wallMelee; set { wallMelee=value; OverrideFlag(0); } }
+    private bool wallNoMelee;
+    public bool NoMelee { get => wallNoMelee; set { wallNoMelee=value; OverrideFlag(1); } }
+    private bool wallAutoReuse;
+    public bool AutoReuse { get => wallAutoReuse; set { wallAutoReuse=value; OverrideFlag(2); } }
+    private bool wallUseTurn;
+    public bool UseTurn { get => wallUseTurn; set { wallUseTurn=value; OverrideFlag(3); } }
+    private bool wallConsumable;
+    public bool Consumable { get => wallConsumable; set { wallConsumable=value; OverrideFlag(4); } }
+    private int wallPick=0;
+    public int Pick { get => wallPick; set { wallPick=value; OverrideInteger(10); } }
     // Unidade interna Terraria: Axe=30 mostra 150% no tooltip (30 * 5).
-    public int Axe { get; set; }
-    public int Hammer { get; set; }
-    public bool Accessory { get; set; }
-    public bool Vanity { get; set; }
+    private int wallAxe=0;
+    public int Axe { get => wallAxe; set { wallAxe=value; OverrideInteger(11); } }
+    private int wallHammer=0;
+    public int Hammer { get => wallHammer; set { wallHammer=value; OverrideInteger(12); } }
+    private bool wallAccessory;
+    public bool Accessory { get => wallAccessory; set { wallAccessory=value; OverrideFlag(5); } }
+    private bool wallVanity;
+    public bool Vanity { get => wallVanity; set { wallVanity=value; OverrideFlag(6); } }
     public BunnyItemBehavior Behavior { get; } = new();
     public string BehaviorDefinition => Behavior.ToJson();
     public string NativeAccessoryEffectsDefinition => Behavior.NativeAccessoryEffectsDefinition;
@@ -62,7 +87,7 @@ public abstract class BunnyItem : BunnyRecipeSource
     /// <summary>Nome de um campo SoundID, como Item1. Vazio deixa o item sem som de uso.</summary>
     public string UseSound { get; set; } = "";
     /// <summary>Descritor de colocacao resolvido pelo nucleo; vazio preserva itens antigos.</summary>
-    public string PlacementDefinition { get; private set; } = "";
+    public string PlacementDefinition => placement + (nativeWallDefaults ? ":"+wallIntegerOverrides.ToString(CultureInfo.InvariantCulture)+":"+wallFlagOverrides.ToString(CultureInfo.InvariantCulture) : "");
     /// <summary>Defaults do Bunny original: coloca um tile vanilla com o estilo indicado.</summary>
     public void DefaultToPlaceableTile(int vanillaTileId, int style = 0)
     {
@@ -75,10 +100,25 @@ public abstract class BunnyItem : BunnyRecipeSource
         BunnyContentKey.Validate(modTileName,nameof(modTileName),"BunnyItem.DefaultToPlaceableTile");
         Placeable("m"+modTileName,style);
     }
+    /// <summary>Coloca uma parede vanilla. O host valida o campo createWall e sua largura real.</summary>
+    public void DefaultToPlaceableWall(int vanillaWallId) {
+        if(vanillaWallId<=0||vanillaWallId>=367)throw new ArgumentOutOfRangeException(nameof(vanillaWallId));
+        WallPlaceable("wv"+vanillaWallId.ToString(CultureInfo.InvariantCulture));
+    }
+    /// <summary>Parede local ou UID/Nome, inclusive de outro mod C# ou JS.</summary>
+    public void DefaultToPlaceableWall(string modWallName) {
+        BunnyContentKey.Validate(modWallName,nameof(modWallName),"BunnyItem.DefaultToPlaceableWall");
+        WallPlaceable("wm"+modWallName);
+    }
+    // The Android helper owns its defaults. Only later assignments override them,
+    // including assigning false or a value equal to the SDK initial value.
+    private void WallPlaceable(string token) {
+        wallMaxStack=9999;placement=token+":0";nativeWallDefaults=true;wallIntegerOverrides=0;wallFlagOverrides=0;
+    }
     private void Placeable(string token,int style)
     {
         if(style<0||style>32767)throw new ArgumentOutOfRangeException(nameof(style));
-        PlacementDefinition=token+":"+style.ToString(CultureInfo.InvariantCulture);
+        nativeWallDefaults=false;placement=token+":"+style.ToString(CultureInfo.InvariantCulture);
         UseStyle=1;UseAnimation=15;UseTime=10;MaxStack=9999;
         UseTurn=true;AutoReuse=true;Consumable=true;
     }

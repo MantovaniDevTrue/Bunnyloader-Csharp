@@ -1,0 +1,1312 @@
+{
+  "schemaVersion": 1,
+  "codeCommit": "367488d989ac1a81ae867e8492d36a61c6880945",
+  "loader": "0.1.10.16.90.29.98-full-example-port-wip",
+  "versionCode": 275,
+  "exampleMod": "0.1.57",
+  "delivery": {
+    "held": true,
+    "newReleasePublished": false,
+    "reason": "User requires the entire port before another package delivery"
+  },
+  "sourceCounts": {
+    "editableCSharp": 78,
+    "pngFiles": 49,
+    "oggFiles": 1,
+    "publicSdkTypes": 93,
+    "canonicalJS": 206,
+    "uploadedJS": 178,
+    "officialPcActiveCSharp": 449,
+    "officialPcLegacyCSharp": 112
+  },
+  "userAndroidObservation": {
+    "loader": ".96",
+    "record": "csharp-v96-android-user-2026-10-19.json",
+    "validatesNewRevision": false
+  },
+  "implemented": [
+    "CanShoot / ModifyShootStats / OnShoot on BunnyItem and BunnyWeapon through shared BunnyShootSource",
+    "Native shooting hooks and typed snapshots; original owner/source/modifier remain on game thread",
+    "Managed callback prewarm, bounded transport, three-millisecond deadline, cancelled/late response rejection",
+    "64 extra spawns and 32 KiB response, full validation before command execution, named projectile dependencies",
+    "Native exception isolation and shooting-scope restoration; original Android no-projectile sentinel1000 with padded-pool test",
+    "ExampleShotgun faithful original defaults, asset and eight-pellet algorithm",
+    "Example prefix for display/localized/prefix names without changing persisted identities"
+  ],
+  "localValidation": {
+    "itemCases": 36,
+    "itemFailures": 0,
+    "entityChecks": 43,
+    "entityTenThousandTicksAllocatedBytes": 0,
+    "combatCases": 31,
+    "combatFailures": 0,
+    "shootingManagedChecks": 42,
+    "shootingNativeProductionFixture": "passed",
+    "nativeSummonAudioExecutables": 10,
+    "recipeProjectileRegressions": "passed",
+    "fullRoslynContentClasses": 55,
+    "fullRoslynWireRows": 72,
+    "packageAssetTests": 6,
+    "compiledPackageAssetsChecked": true,
+    "sourceAndCompiledNameConvention": "passed",
+    "asanUbsanNativeShooting": "passed",
+    "nativeSyntaxWarningsAsErrors": "passed",
+    "publicationGuardTests": "passed",
+    "sdkWarmupWithoutUserCallbacks": "passed",
+    "closedAndThreadBoundShootContexts": "passed",
+    "paddedProjectilePoolSentinel": "passed"
+  },
+  "referenceFidelity": {
+    "uploadedShotgunJsSha256": "3a698ed9c3c2f9a132df049d5de27b367c7415851a5e4ac73aa05d335e26bd61",
+    "uploadedShotgunPngSha256": "90c544db569f701d4ebf94b647a8ecfec2976b11f6c1c44d32eaa9b1f020f286",
+    "canonicalAndUploadedShotgunIdentical": true
+  },
+  "notValidated": [
+    "Terraria Android execution of the new callbacks and ExampleShotgun",
+    "Complete equivalence of all 206 JS examples or the official PC inventory",
+    "Native IL2CPP contracts on the actual device for the new shooting bridge",
+    "Sustained 60 FPS, five-second cold compilation and multiplayer"
+  ],
+  "manualProcedure": "Split/Bunny-Loader/samples/ExampleModCSharp/Playable/content/Documentation/SHOOTING.md",
+  "matrixCoverage": {
+    "Accessories": {
+      "total": 7,
+      "states": {
+        "Implementado, aguardando validação": 3,
+        "Parcial": 4
+      },
+      "implemented": 3,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 4,
+      "implementedPercent": 42.86,
+      "validatedPercent": 0.0,
+      "partialPercent": 57.14,
+      "limitations": 0,
+      "missingExamples": 4
+    },
+    "Achievements": {
+      "total": 2,
+      "states": {
+        "Não implementado": 2
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 2
+    },
+    "Ammo": {
+      "total": 1,
+      "states": {
+        "Implementado, aguardando validação": 1
+      },
+      "implemented": 1,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 100.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 0
+    },
+    "Armor": {
+      "total": 6,
+      "states": {
+        "Implementado, aguardando validação": 5,
+        "Não implementado": 1
+      },
+      "implemented": 5,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 83.33,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 1
+    },
+    "Biomes": {
+      "total": 6,
+      "states": {
+        "Não implementado": 6
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 6
+    },
+    "Bosses": {
+      "total": 2,
+      "states": {
+        "Não implementado": 2
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 2
+    },
+    "Buffs": {
+      "total": 6,
+      "states": {
+        "Não implementado": 3,
+        "Parcial": 3
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 3,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 50.0,
+      "limitations": 0,
+      "missingExamples": 6
+    },
+    "Clouds": {
+      "total": 1,
+      "states": {
+        "Não implementado": 1
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 1
+    },
+    "Commands": {
+      "total": 2,
+      "states": {
+        "Não implementado": 2
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 2
+    },
+    "Configs": {
+      "total": 1,
+      "states": {
+        "Não implementado": 1
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 1
+    },
+    "Consumables": {
+      "total": 3,
+      "states": {
+        "Não implementado": 2,
+        "Parcial": 1
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 1,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 33.33,
+      "limitations": 0,
+      "missingExamples": 3
+    },
+    "DamageClasses": {
+      "total": 1,
+      "states": {
+        "Não implementado": 1
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 1
+    },
+    "Effects": {
+      "total": 1,
+      "states": {
+        "Não implementado": 1
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 1
+    },
+    "EmoteBubbles": {
+      "total": 2,
+      "states": {
+        "Não implementado": 2
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 2
+    },
+    "GlobalBossBars": {
+      "total": 1,
+      "states": {
+        "Não implementado": 1
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 1
+    },
+    "GlobalBuffs": {
+      "total": 1,
+      "states": {
+        "Não implementado": 1
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 1
+    },
+    "GlobalRecipes": {
+      "total": 1,
+      "states": {
+        "Não implementado": 1
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 1
+    },
+    "GlobalTiles": {
+      "total": 2,
+      "states": {
+        "Não implementado": 2
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 2
+    },
+    "Hairs": {
+      "total": 1,
+      "states": {
+        "Não implementado": 1
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 1
+    },
+    "Items": {
+      "total": 4,
+      "states": {
+        "Não implementado": 3,
+        "Parcial": 1
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 1,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 25.0,
+      "limitations": 0,
+      "missingExamples": 4
+    },
+    "Materials": {
+      "total": 1,
+      "states": {
+        "Implementado, aguardando validação": 1
+      },
+      "implemented": 1,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 100.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 0
+    },
+    "Mounts": {
+      "total": 4,
+      "states": {
+        "Não implementado": 4
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 4
+    },
+    "NPCs": {
+      "total": 5,
+      "states": {
+        "Não implementado": 4,
+        "Parcial": 1
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 1,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 20.0,
+      "limitations": 0,
+      "missingExamples": 5
+    },
+    "Pets": {
+      "total": 6,
+      "states": {
+        "Não implementado": 6
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 6
+    },
+    "Placeable": {
+      "total": 36,
+      "states": {
+        "Não implementado": 35,
+        "Implementado, aguardando validação": 1
+      },
+      "implemented": 1,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 2.78,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 35
+    },
+    "Players": {
+      "total": 7,
+      "states": {
+        "Não implementado": 6,
+        "Parcial": 1
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 1,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 14.29,
+      "limitations": 0,
+      "missingExamples": 7
+    },
+    "Prefixes": {
+      "total": 3,
+      "states": {
+        "Parcial": 2,
+        "Não implementado": 1
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 2,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 66.67,
+      "limitations": 0,
+      "missingExamples": 3
+    },
+    "Projectiles": {
+      "total": 20,
+      "states": {
+        "Não implementado": 18,
+        "Implementado, aguardando validação": 1,
+        "Parcial": 1
+      },
+      "implemented": 1,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 1,
+      "implementedPercent": 5.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 5.0,
+      "limitations": 0,
+      "missingExamples": 19
+    },
+    "Quests": {
+      "total": 1,
+      "states": {
+        "Não implementado": 1
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 1
+    },
+    "Rarities": {
+      "total": 2,
+      "states": {
+        "Não implementado": 2
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 2
+    },
+    "Systems": {
+      "total": 6,
+      "states": {
+        "Não implementado": 5,
+        "Parcial": 1
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 1,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 16.67,
+      "limitations": 0,
+      "missingExamples": 6
+    },
+    "TileEntities": {
+      "total": 2,
+      "states": {
+        "Não implementado": 2
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 2
+    },
+    "Tiles": {
+      "total": 37,
+      "states": {
+        "Não implementado": 36,
+        "Implementado, aguardando validação": 1
+      },
+      "implemented": 1,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 2.7,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 36
+    },
+    "Tools": {
+      "total": 5,
+      "states": {
+        "Não implementado": 3,
+        "Implementado, aguardando validação": 2
+      },
+      "implemented": 2,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 40.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 3
+    },
+    "Walls": {
+      "total": 2,
+      "states": {
+        "Não implementado": 2
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 2
+    },
+    "Weapons": {
+      "total": 18,
+      "states": {
+        "Não implementado": 13,
+        "Implementado, aguardando validação": 4,
+        "Parcial": 1
+      },
+      "implemented": 4,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 1,
+      "implementedPercent": 22.22,
+      "validatedPercent": 0.0,
+      "partialPercent": 5.56,
+      "limitations": 0,
+      "missingExamples": 14
+    }
+  },
+  "androidCi": {
+    "conclusion": "success",
+    "jobs": [
+      {
+        "completedAt": "2026-10-19T10:26:04Z",
+        "conclusion": "success",
+        "databaseId": 118006294890,
+        "name": "build",
+        "startedAt": "2026-10-19T10:17:19Z",
+        "status": "completed",
+        "steps": [
+          {
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run actions/checkout@v4",
+            "number": 2,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Resolve tested CSharp build policy",
+            "number": 3,
+            "status": "completed"
+          },
+          {
+            "conclusion": "skipped",
+            "name": "Announce CSharp .83 batch API build",
+            "number": 4,
+            "status": "completed"
+          },
+          {
+            "conclusion": "skipped",
+            "name": "Announce integrated CSharp .82 APK build",
+            "number": 5,
+            "status": "completed"
+          },
+          {
+            "conclusion": "skipped",
+            "name": "Announce experimental .71 APK build",
+            "number": 6,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run actions/setup-java@v4",
+            "number": 7,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run actions/setup-dotnet@v4",
+            "number": 8,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Install Android toolchain",
+            "number": 9,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run gradle/actions/setup-gradle@v4",
+            "number": 10,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Stage verified Unity 2021.3.56f2 Android player classes",
+            "number": 11,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Ensure QuickJS",
+            "number": 12,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Configure Maven mirror",
+            "number": 13,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Verify signing secret integration contract",
+            "number": 14,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Verify game-process abort instrumentation",
+            "number": 15,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Verify retained crash session diagnostics",
+            "number": 16,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Verify isolated MonoVM modes and early SIGABRT capture",
+            "number": 17,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Stress test concurrent managed ingress queue",
+            "number": 18,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Validate 25k managed callback limit and FIFO64",
+            "number": 19,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Verify multi-projectile FIFO64 routing and event caps",
+            "number": 20,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run Codex managed lifecycle and failure isolation regressions",
+            "number": 21,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Verify optional CSharp per-projectile profiler and isolation",
+            "number": 22,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Verify optional Mono heap and assembly cache reuse counters",
+            "number": 23,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Verify CSharp memory snapshot and world lifecycle diagnostics",
+            "number": 24,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Verify independent per-mod pause and world queue reset",
+            "number": 25,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Validate opt-in 25k MonoVM benchmark guards",
+            "number": 26,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Verify opt-in gameplay performance telemetry",
+            "number": 27,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Verify real gameplay profiling extensions have safe sampling guards",
+            "number": 28,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Verify identical QuickJS and MonoVM math benchmark",
+            "number": 29,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Verify distinct versioned benchmark source binding",
+            "number": 30,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Verify AI benchmark parity API and original Bunny JS AI patterns",
+            "number": 31,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Verify benchmark assembly extracted before game core loads",
+            "number": 32,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Verify native MonoVM owner controls",
+            "number": 33,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Verify staged MonoVM startup isolation",
+            "number": 34,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Verify pre-domain MonoVM controls",
+            "number": 35,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Build and validate source-only CSharp mod",
+            "number": 36,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Guard managed prefix class-count auto-loader on native host",
+            "number": 37,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Verify native CSharp reforge candidate weights and mobile eligibility",
+            "number": 38,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Verify CSharp-only native equipment and grounded boot effects",
+            "number": 39,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Validate loader inventory and read-only private delivery checks",
+            "number": 40,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Execute basic item compiler and native bridge regressions",
+            "number": 41,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Execute shared native content and recipe service without QuickJS",
+            "number": 42,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Execute combat batch and actionable diagnostic regressions",
+            "number": 43,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Export per-case combat batch results",
+            "number": 44,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Verify source batch limits agree",
+            "number": 45,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Package independent ExampleMod CSharp 0.1.57",
+            "number": 46,
+            "status": "completed"
+          },
+          {
+            "conclusion": "skipped",
+            "name": "Package standalone native minion CSharp probe",
+            "number": 47,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Package optimized Lights And Shadows CSharp 0.4.2.3",
+            "number": 48,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Validate native-only CSharp runtime and package standalone armor sample",
+            "number": 49,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Package native CSharp placement Android probe",
+            "number": 50,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Package read-only native access CSharp Android probe",
+            "number": 51,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Package second independent CSharp mod 0.1.0",
+            "number": 52,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Validate multiple mod callback identity routing",
+            "number": 53,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Execute production summon lifecycle, source damage and legacy curve callbacks",
+            "number": 54,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Verify universal hook timeout recovery circuit breaker",
+            "number": 55,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Verify stale universal callback cannot unload recovered hook",
+            "number": 56,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Verify typed Int32 CSharp hook ABI and MonoVM worker bridge",
+            "number": 57,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Verify experimental universal hooks and dedicated CSharp editor",
+            "number": 58,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Verify fused native access and fast hook recovery in .70 and .71",
+            "number": 59,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Verify typed native access lot before Android compilation",
+            "number": 60,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Verify packages QuickJS C# isolation and mixed-mode warning",
+            "number": 61,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Validate generic C# projectile policy integration",
+            "number": 62,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Check automatic CSharp integration and cache guards",
+            "number": 63,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Reuse Android-validated patched MonoVM 8.0.23 from .72",
+            "number": 64,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Stage experimental MonoVM and managed probe",
+            "number": 65,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Install patched MonoVM ARM64 in APK",
+            "number": 66,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Build normal ARM64 AOT compiler modules",
+            "number": 67,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Integrate Terraria runtime",
+            "number": 68,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Restore stable sprite pack",
+            "number": 69,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Rebuild CheatBridge dex",
+            "number": 70,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Build APK with isolated v3 signing secrets",
+            "number": 71,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Validate APK",
+            "number": 72,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Guard world-lifecycle boot and preserve legacy external loader",
+            "number": 73,
+            "status": "completed"
+          },
+          {
+            "conclusion": "skipped",
+            "name": "Deliver signed APK to private Builds repository",
+            "number": 74,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Verify and retain only source-only mod packages",
+            "number": 75,
+            "status": "completed"
+          },
+          {
+            "conclusion": "skipped",
+            "name": "Export independent native minion CSharp probe",
+            "number": 76,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Export compiler reference comparison",
+            "number": 77,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Export compiler AOT build measurements",
+            "number": 78,
+            "status": "completed"
+          },
+          {
+            "conclusion": "skipped",
+            "name": "Export source-only CSharp examples as safe workflow artifact",
+            "number": 79,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Run gradle/actions/setup-gradle@v4",
+            "number": 155,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Run actions/setup-dotnet@v4",
+            "number": 156,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Run actions/setup-java@v4",
+            "number": 157,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@v4",
+            "number": 158,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 159,
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39236367596/job/118006294890"
+      },
+      {
+        "completedAt": "2026-10-19T10:26:05Z",
+        "conclusion": "skipped",
+        "databaseId": 118009787696,
+        "name": "report-private-csharp-apk",
+        "startedAt": "2026-10-19T10:26:05Z",
+        "status": "completed",
+        "steps": [],
+        "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39236367596/job/118009787696"
+      }
+    ],
+    "status": "completed",
+    "run": 39236367596,
+    "headSha": "367488d989ac1a81ae867e8492d36a61c6880945",
+    "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39236367596",
+    "validatedDeviceGameplay": false
+  },
+  "priorAndroidBuild": {
+    "codeCommit": "aea495b066e686d25139e0659a84b1552efa5992",
+    "run": 39234639199,
+    "conclusion": "success",
+    "publication": "skipped",
+    "doesNotCertifyFinalSource": true
+  },
+  "passedPushRuns": [
+    {
+      "conclusion": "success",
+      "databaseId": 39236367626,
+      "event": "push",
+      "headSha": "367488d989ac1a81ae867e8492d36a61c6880945",
+      "name": "Check Mono pinned worker GC transitions",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39236367515,
+      "event": "push",
+      "headSha": "367488d989ac1a81ae867e8492d36a61c6880945",
+      "name": "Check Mono Android signal ownership",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39236367677,
+      "event": "push",
+      "headSha": "367488d989ac1a81ae867e8492d36a61c6880945",
+      "name": "Check Bunny CSharp Native Visual Queue",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39236367669,
+      "event": "push",
+      "headSha": "367488d989ac1a81ae867e8492d36a61c6880945",
+      "name": "Check managed callback lifecycle",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39236367628,
+      "event": "push",
+      "headSha": "367488d989ac1a81ae867e8492d36a61c6880945",
+      "name": "CSharp Native ScreenFx",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39236367811,
+      "event": "push",
+      "headSha": "367488d989ac1a81ae867e8492d36a61c6880945",
+      "name": "Check Bunny CSharp Visual Queue",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39236367715,
+      "event": "push",
+      "headSha": "367488d989ac1a81ae867e8492d36a61c6880945",
+      "name": "Check CSharp combat batch",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39236367884,
+      "event": "push",
+      "headSha": "367488d989ac1a81ae867e8492d36a61c6880945",
+      "name": "Check complete ExampleMod audit",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39236367821,
+      "event": "push",
+      "headSha": "367488d989ac1a81ae867e8492d36a61c6880945",
+      "name": "Check CSharp SDK and continuous runtime foundation",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39236367596,
+      "event": "push",
+      "headSha": "367488d989ac1a81ae867e8492d36a61c6880945",
+      "name": "Build Bunny CSharp Source Files Prototype",
+      "status": "completed"
+    }
+  ],
+  "publicationVerification": {
+    "apkPublishStep": "skipped",
+    "sourceOnlyBmodExportStep": "skipped",
+    "deliveryReportJob": "skipped",
+    "privateBuildRepositoryAccessible": true,
+    "privateReleaseTag": "csharp-v3-run-39236367596-a1",
+    "privateReleaseTagHttpStatus": 404,
+    "workflowArtifacts": [
+      "compiler-reference-results",
+      "compiler-aot-build",
+      "Bunny-CSharp-Combat-Batch-Results"
+    ],
+    "newApkOrBmodDownload": null
+  },
+  "apiConstraints": [
+    "No live Player/Item pointers cross to Mono; context contains copied data",
+    "Original source/owner/modifier remain on the game thread",
+    "64 extra projectile requests and 32 KiB response per native shot",
+    "Three-millisecond callback deadline; late/error output is rejected, not replayed later",
+    "Ammo already consumed before a failed Shoot callback is not rolled back",
+    "Callback instances are per content type/session; this is not arbitrary persistent per-item state",
+    "Command contexts close after return/exception and reject other threads"
+  ]
+}

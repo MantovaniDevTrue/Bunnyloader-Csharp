@@ -9,7 +9,7 @@ public sealed class ExampleMightyPrefix : BunnyPrefix
 {
     public override void SetDefaults()
     {
-        DisplayName = "Poderoso";
+        DisplayName = "Example Poderoso";
         Category = PrefixCategory.AnyWeapon;
         RollWeight = 5f;
     }

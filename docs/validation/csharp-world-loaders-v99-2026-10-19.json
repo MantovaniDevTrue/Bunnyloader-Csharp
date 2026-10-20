@@ -1,0 +1,754 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "f70caa8044c2d6ae8a27716c6526a40080446601",
+  "loaderVersion": "0.1.10.16.90.29.99-world-loaders-wip",
+  "versionCode": 276,
+  "exampleModVersion": "0.1.58",
+  "policy": "Five complete loaders per APK; one complete original example per loader, supporting files allowed",
+  "activeLoaders": [
+    "TileLoader",
+    "WallLoader",
+    "TreeLoader",
+    "TileEntityLoader",
+    "GlobalTileLoader"
+  ],
+  "wholeLoadersCertified": 0,
+  "scope": {
+    "canonicalJs": 206,
+    "originalLoaderModules": 88,
+    "initialPlannedSystems": 50,
+    "csharpSources": 80,
+    "sdkPublicTypes": 93,
+    "compiledContentTypes": 57,
+    "wireLines": 74
+  },
+  "originalAssets": [
+    {
+      "path": "Content/Tiles/ExampleTile.png",
+      "sha256": "e6daadfeee8b0fee177a27ca00ee3f360289678f53e76bd7cc93f85d2ced55ae",
+      "matchesOriginal": true
+    },
+    {
+      "path": "Content/Items/Placeable/ExampleTileItem.png",
+      "sha256": "6ef7f481242b7b724a443a9b1068a7abec87d0b8300e4bc9b0b6d67d69f7a891",
+      "matchesOriginal": true
+    }
+  ],
+  "localValidation": {
+    "items": {
+      "cases": 37,
+      "failures": 0
+    },
+    "combat": {
+      "cases": 31,
+      "failures": 0
+    },
+    "managedShootingChecks": 42,
+    "entityChecks": 43,
+    "entity10000TicksAllocatedBytes": 0,
+    "nativeTilePublisher": "Passed controlled IL2CPP metadata + actual compiled ExampleTile wire; Boolean flags and Int32 housing-list publisher, BL_HAVE_QUICKJS=0; ASan/UBSan passed",
+    "summonRecipeProjectileAudioRegressions": "Passed host tests",
+    "fullRoslynCompileAndEditableSourceRecompile": "Passed",
+    "packageAssets": {
+      "referencedAssets": 50,
+      "editableSources": 80,
+      "sourceOnly": true
+    },
+    "batchAndPublicationGateTests": "Passed; incomplete batch is refused before credentials/network",
+    "newFlagDiagnostics": "Compiler verifies Class,Field,Stage,Expected,Actual,Reason for -1/65536/Int32Max"
+  },
+  "limitations": [
+    "Controlled IL2CPP fixtures do not execute Terraria Android.",
+    "No new Android gameplay/FPS/cold compilation timing measured.",
+    "ExampleTile/ExampleTileItem implemented awaiting Android; complete TileLoader contract still pending.",
+    "Wall/Tree/TileEntity/GlobalTile still require the implementations and examples in the batch plan."
+  ],
+  "androidCI": {
+    "runId": 39246685678,
+    "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39246685678",
+    "status": "completed",
+    "conclusion": "success",
+    "jobs": [
+      {
+        "completedAt": "2026-10-19T11:53:26Z",
+        "conclusion": "success",
+        "databaseId": 118040364286,
+        "name": "build",
+        "startedAt": "2026-10-19T11:43:55Z",
+        "status": "completed",
+        "steps": [
+          {
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run actions/checkout@v4",
+            "number": 2,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Resolve tested CSharp build policy",
+            "number": 3,
+            "status": "completed"
+          },
+          {
+            "conclusion": "skipped",
+            "name": "Announce CSharp .83 batch API build",
+            "number": 4,
+            "status": "completed"
+          },
+          {
+            "conclusion": "skipped",
+            "name": "Announce integrated CSharp .82 APK build",
+            "number": 5,
+            "status": "completed"
+          },
+          {
+            "conclusion": "skipped",
+            "name": "Announce experimental .71 APK build",
+            "number": 6,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run actions/setup-java@v4",
+            "number": 7,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run actions/setup-dotnet@v4",
+            "number": 8,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Install Android toolchain",
+            "number": 9,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run gradle/actions/setup-gradle@v4",
+            "number": 10,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Stage verified Unity 2021.3.56f2 Android player classes",
+            "number": 11,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Ensure QuickJS",
+            "number": 12,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Configure Maven mirror",
+            "number": 13,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Verify signing secret integration contract",
+            "number": 14,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Verify game-process abort instrumentation",
+            "number": 15,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Verify retained crash session diagnostics",
+            "number": 16,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Verify isolated MonoVM modes and early SIGABRT capture",
+            "number": 17,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Stress test concurrent managed ingress queue",
+            "number": 18,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Validate 25k managed callback limit and FIFO64",
+            "number": 19,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Verify multi-projectile FIFO64 routing and event caps",
+            "number": 20,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run Codex managed lifecycle and failure isolation regressions",
+            "number": 21,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Verify optional CSharp per-projectile profiler and isolation",
+            "number": 22,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Verify optional Mono heap and assembly cache reuse counters",
+            "number": 23,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Verify CSharp memory snapshot and world lifecycle diagnostics",
+            "number": 24,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Verify independent per-mod pause and world queue reset",
+            "number": 25,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Validate opt-in 25k MonoVM benchmark guards",
+            "number": 26,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Verify opt-in gameplay performance telemetry",
+            "number": 27,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Verify real gameplay profiling extensions have safe sampling guards",
+            "number": 28,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Verify identical QuickJS and MonoVM math benchmark",
+            "number": 29,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Verify distinct versioned benchmark source binding",
+            "number": 30,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Verify AI benchmark parity API and original Bunny JS AI patterns",
+            "number": 31,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Verify benchmark assembly extracted before game core loads",
+            "number": 32,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Verify native MonoVM owner controls",
+            "number": 33,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Verify staged MonoVM startup isolation",
+            "number": 34,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Verify pre-domain MonoVM controls",
+            "number": 35,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Build and validate source-only CSharp mod",
+            "number": 36,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Guard managed prefix class-count auto-loader on native host",
+            "number": 37,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Verify native CSharp reforge candidate weights and mobile eligibility",
+            "number": 38,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Verify CSharp-only native equipment and grounded boot effects",
+            "number": 39,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Validate loader inventory and read-only private delivery checks",
+            "number": 40,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Execute basic item compiler and native bridge regressions",
+            "number": 41,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Execute shared native content and recipe service without QuickJS",
+            "number": 42,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Execute combat batch and actionable diagnostic regressions",
+            "number": 43,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Export per-case combat batch results",
+            "number": 44,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Verify source batch limits agree",
+            "number": 45,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Package independent ExampleMod CSharp 0.1.58",
+            "number": 46,
+            "status": "completed"
+          },
+          {
+            "conclusion": "skipped",
+            "name": "Package standalone native minion CSharp probe",
+            "number": 47,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Package optimized Lights And Shadows CSharp 0.4.2.3",
+            "number": 48,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Validate native-only CSharp runtime and package standalone armor sample",
+            "number": 49,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Package native CSharp placement Android probe",
+            "number": 50,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Package read-only native access CSharp Android probe",
+            "number": 51,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Package second independent CSharp mod 0.1.0",
+            "number": 52,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Validate multiple mod callback identity routing",
+            "number": 53,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Execute production summon lifecycle, source damage and legacy curve callbacks",
+            "number": 54,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Verify universal hook timeout recovery circuit breaker",
+            "number": 55,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Verify stale universal callback cannot unload recovered hook",
+            "number": 56,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Verify typed Int32 CSharp hook ABI and MonoVM worker bridge",
+            "number": 57,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Verify experimental universal hooks and dedicated CSharp editor",
+            "number": 58,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Verify fused native access and fast hook recovery in .70 and .71",
+            "number": 59,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Verify typed native access lot before Android compilation",
+            "number": 60,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Verify packages QuickJS C# isolation and mixed-mode warning",
+            "number": 61,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Validate generic C# projectile policy integration",
+            "number": 62,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Check automatic CSharp integration and cache guards",
+            "number": 63,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Reuse Android-validated patched MonoVM 8.0.23 from .72",
+            "number": 64,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Stage experimental MonoVM and managed probe",
+            "number": 65,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Install patched MonoVM ARM64 in APK",
+            "number": 66,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Build normal ARM64 AOT compiler modules",
+            "number": 67,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Integrate Terraria runtime",
+            "number": 68,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Restore stable sprite pack",
+            "number": 69,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Rebuild CheatBridge dex",
+            "number": 70,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Build APK with isolated v3 signing secrets",
+            "number": 71,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Validate APK",
+            "number": 72,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Guard world-lifecycle boot and preserve legacy external loader",
+            "number": 73,
+            "status": "completed"
+          },
+          {
+            "conclusion": "skipped",
+            "name": "Deliver signed APK to private Builds repository",
+            "number": 74,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Verify and retain only source-only mod packages",
+            "number": 75,
+            "status": "completed"
+          },
+          {
+            "conclusion": "skipped",
+            "name": "Export independent native minion CSharp probe",
+            "number": 76,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Export compiler reference comparison",
+            "number": 77,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Export compiler AOT build measurements",
+            "number": 78,
+            "status": "completed"
+          },
+          {
+            "conclusion": "skipped",
+            "name": "Export source-only CSharp examples as safe workflow artifact",
+            "number": 79,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Run gradle/actions/setup-gradle@v4",
+            "number": 155,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Run actions/setup-dotnet@v4",
+            "number": 156,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Run actions/setup-java@v4",
+            "number": 157,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@v4",
+            "number": 158,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 159,
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39246685678/job/118040364286"
+      },
+      {
+        "completedAt": "2026-10-19T11:53:26Z",
+        "conclusion": "skipped",
+        "databaseId": 118044249347,
+        "name": "report-private-csharp-apk",
+        "startedAt": "2026-10-19T11:53:27Z",
+        "status": "completed",
+        "steps": [],
+        "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39246685678/job/118044249347"
+      }
+    ],
+    "artifacts": [
+      {
+        "id": 12184695285,
+        "node_id": "MDg6QXJ0aWZhY3QxMjE4NDY5NTI4NQ==",
+        "name": "compiler-reference-results",
+        "size_in_bytes": 853,
+        "url": "https://api.github.com/repos/MantovaniDevTrue/Bunnyloader-Csharp/actions/artifacts/12184695285",
+        "archive_download_url": "https://api.github.com/repos/MantovaniDevTrue/Bunnyloader-Csharp/actions/artifacts/12184695285/zip",
+        "expired": false,
+        "digest": "sha256:96f6dddac039db9a79ff8b3986ca46179b9ecc5c6ba53f770917e3f97029a76b",
+        "created_at": "2026-10-19T11:53:22Z",
+        "updated_at": "2026-10-19T11:53:22Z",
+        "expires_at": "2027-01-17T11:43:24Z",
+        "workflow_run": {
+          "id": 39246685678,
+          "repository_id": 1396761716,
+          "head_repository_id": 1396761716,
+          "head_branch": "feat/csharp-summon-lifecycle-v95",
+          "head_sha": "f70caa8044c2d6ae8a27716c6526a40080446601"
+        }
+      },
+      {
+        "id": 12184112542,
+        "node_id": "MDg6QXJ0aWZhY3QxMjE4NDExMjU0Mg==",
+        "name": "compiler-aot-build",
+        "size_in_bytes": 803,
+        "url": "https://api.github.com/repos/MantovaniDevTrue/Bunnyloader-Csharp/actions/artifacts/12184112542",
+        "archive_download_url": "https://api.github.com/repos/MantovaniDevTrue/Bunnyloader-Csharp/actions/artifacts/12184112542/zip",
+        "expired": false,
+        "digest": "sha256:01f2fe4447f042e623e6182c14e8ab76b08bf7ac59d8b061312506a5d565f30e",
+        "created_at": "2026-10-19T11:53:23Z",
+        "updated_at": "2026-10-19T11:53:23Z",
+        "expires_at": "2027-01-17T11:43:24Z",
+        "workflow_run": {
+          "id": 39246685678,
+          "repository_id": 1396761716,
+          "head_repository_id": 1396761716,
+          "head_branch": "feat/csharp-summon-lifecycle-v95",
+          "head_sha": "f70caa8044c2d6ae8a27716c6526a40080446601"
+        }
+      },
+      {
+        "id": 12183807660,
+        "node_id": "MDg6QXJ0aWZhY3QxMjE4MzgwNzY2MA==",
+        "name": "Bunny-CSharp-Combat-Batch-Results",
+        "size_in_bytes": 631,
+        "url": "https://api.github.com/repos/MantovaniDevTrue/Bunnyloader-Csharp/actions/artifacts/12183807660",
+        "archive_download_url": "https://api.github.com/repos/MantovaniDevTrue/Bunnyloader-Csharp/actions/artifacts/12183807660/zip",
+        "expired": false,
+        "digest": "sha256:d554f7552eb0c0fb7cc1e834f03a01e53ebb4a587f6bb592a3ae4c643dad1db3",
+        "created_at": "2026-10-19T11:47:03Z",
+        "updated_at": "2026-10-19T11:47:03Z",
+        "expires_at": "2027-01-17T11:43:24Z",
+        "workflow_run": {
+          "id": 39246685678,
+          "repository_id": 1396761716,
+          "head_repository_id": 1396761716,
+          "head_branch": "feat/csharp-summon-lifecycle-v95",
+          "head_sha": "f70caa8044c2d6ae8a27716c6526a40080446601"
+        }
+      }
+    ]
+  },
+  "delivery": {
+    "published": false,
+    "reason": "Five loader contracts/examples are not complete",
+    "privateDestinationVerified": true,
+    "releaseTag": "csharp-v3-run-39246685678-a1",
+    "releaseTagStatus": "HTTP404NotFound",
+    "apkPublishStep": "skipped",
+    "sourceOnlyExportStep": "skipped",
+    "privateReceiptJob": "skipped"
+  },
+  "independentPushRegressions": [
+    {
+      "id": 39246685719,
+      "name": "Check Mono Android signal ownership",
+      "event": "push",
+      "head_sha": "f70caa8044c2d6ae8a27716c6526a40080446601",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39246685719"
+    },
+    {
+      "id": 39246685780,
+      "name": "Check Bunny CSharp Native Visual Queue",
+      "event": "push",
+      "head_sha": "f70caa8044c2d6ae8a27716c6526a40080446601",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39246685780"
+    },
+    {
+      "id": 39246685608,
+      "name": "CSharp Native ScreenFx",
+      "event": "push",
+      "head_sha": "f70caa8044c2d6ae8a27716c6526a40080446601",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39246685608"
+    },
+    {
+      "id": 39246685680,
+      "name": "Check Bunny CSharp Visual Queue",
+      "event": "push",
+      "head_sha": "f70caa8044c2d6ae8a27716c6526a40080446601",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39246685680"
+    },
+    {
+      "id": 39246685620,
+      "name": "Check Mono pinned worker GC transitions",
+      "event": "push",
+      "head_sha": "f70caa8044c2d6ae8a27716c6526a40080446601",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39246685620"
+    },
+    {
+      "id": 39246685880,
+      "name": "Check CSharp combat batch",
+      "event": "push",
+      "head_sha": "f70caa8044c2d6ae8a27716c6526a40080446601",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39246685880"
+    },
+    {
+      "id": 39246685572,
+      "name": "Check managed callback lifecycle",
+      "event": "push",
+      "head_sha": "f70caa8044c2d6ae8a27716c6526a40080446601",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39246685572"
+    },
+    {
+      "id": 39246685667,
+      "name": "Check complete ExampleMod audit",
+      "event": "push",
+      "head_sha": "f70caa8044c2d6ae8a27716c6526a40080446601",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39246685667"
+    },
+    {
+      "id": 39246685768,
+      "name": "Check CSharp SDK and continuous runtime foundation",
+      "event": "push",
+      "head_sha": "f70caa8044c2d6ae8a27716c6526a40080446601",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39246685768"
+    }
+  ]
+}

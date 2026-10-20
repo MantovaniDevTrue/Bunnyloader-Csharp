@@ -1,0 +1,113 @@
+name: CSharp Localization Core
+
+on:
+  push:
+    branches:
+      - feat/csharp-content-localization-loader-20261019
+    paths:
+      - 'experiments/csharp/BunnyCsSdk/BunnyLocalization.cs'
+      - 'experiments/csharp/BunnyCsSdk/BunnyLocalizationModule.cs'
+      - 'experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj'
+      - 'docs/generated/sdk_public_reference.json'
+      - 'docs/generated/sdk_public_reference.md'
+      - 'experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs'
+      - 'experiments/csharp/BunnySourceCompiler/BunnySourceCompiler.csproj'
+      - 'app/src/main/cpp/experiments/csharp/NativeLocalizationRuntime.*'
+      - 'app/src/main/cpp/experiments/csharp/LocalizationResolve.h'
+      - 'app/src/main/cpp/experiments/csharp/NativeLocalizationSession.h'
+      - 'app/src/main/cpp/experiments/csharp/NativeLocalizationRetirePolicy.h'
+      - 'app/src/main/cpp/experiments/csharp/SourceLoader.cpp'
+      - 'app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp'
+      - 'app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp'
+      - 'app/src/main/cpp/experiments/csharp/ManagedRuntime.h'
+      - 'app/src/main/cpp/experiments/csharp/ManagedLocalizationEpochFence.h'
+      - 'tools/sdk_reference/Program.cs'
+      - 'samples/ExampleModCSharp/Playable/content/Common/Localization/ExampleLocalizationModule.cs'
+      - 'tests/localization_loader/**'
+      - '.github/workflows/check-csharp-localization.yml'
+  pull_request:
+    paths:
+      - 'experiments/csharp/BunnyCsSdk/BunnyLocalization.cs'
+      - 'experiments/csharp/BunnyCsSdk/BunnyLocalizationModule.cs'
+      - 'experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj'
+      - 'docs/generated/sdk_public_reference.json'
+      - 'docs/generated/sdk_public_reference.md'
+      - 'experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs'
+      - 'experiments/csharp/BunnySourceCompiler/BunnySourceCompiler.csproj'
+      - 'app/src/main/cpp/experiments/csharp/NativeLocalizationRuntime.*'
+      - 'app/src/main/cpp/experiments/csharp/LocalizationResolve.h'
+      - 'app/src/main/cpp/experiments/csharp/NativeLocalizationSession.h'
+      - 'app/src/main/cpp/experiments/csharp/NativeLocalizationRetirePolicy.h'
+      - 'app/src/main/cpp/experiments/csharp/SourceLoader.cpp'
+      - 'app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp'
+      - 'app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp'
+      - 'app/src/main/cpp/experiments/csharp/ManagedRuntime.h'
+      - 'app/src/main/cpp/experiments/csharp/ManagedLocalizationEpochFence.h'
+      - 'tools/sdk_reference/Program.cs'
+      - 'samples/ExampleModCSharp/Playable/content/Common/Localization/ExampleLocalizationModule.cs'
+      - 'tests/localization_loader/**'
+      - '.github/workflows/check-csharp-localization.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  managed-localization:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Compile and run managed localization contract suite
+        run: dotnet run --project tests/localization_loader/LocalizationLoader.csproj --configuration Release
+      - name: Build MonoVM Roslyn verifier against CSharp SDK
+        run: dotnet build experiments/csharp/BunnySourceCompiler/BunnySourceCompiler.csproj --configuration Release
+      - name: Check generated public SDK reference
+        working-directory: .
+        run: dotnet run --project tools/sdk_reference/SdkReference.csproj --configuration Release -- --check
+      - name: Syntax-check native language publisher
+        working-directory: .
+        run: g++ -std=c++20 -Wall -Wextra -Werror -fsyntax-only -Itests/basic_items/include -Iapp/src/main/cpp app/src/main/cpp/experiments/csharp/NativeLocalizationRuntime.cpp
+      - name: Test native locale wire without Android or APK
+        working-directory: .
+        run: |
+          g++ -std=c++20 -O2 -Wall -Wextra -Werror -ffunction-sections -fdata-sections -Wl,--gc-sections \
+            -Itests/basic_items/include -Iapp/src/main/cpp app/src/main/cpp/experiments/csharp/NativeLocalizationRuntime.cpp \
+            tests/localization_loader/native_wire_test.cpp -o /tmp/bunny-native-localization-test
+          /tmp/bunny-native-localization-test
+      - name: Resolve cross-mod and vanilla references in native host
+        working-directory: .
+        run: |
+          g++ -std=c++20 -O2 -Wall -Wextra -Werror \
+            -Iapp/src/main/cpp tests/localization_loader/native_resolver_test.cpp \
+            -o /tmp/bunny-native-localization-resolver
+          /tmp/bunny-native-localization-resolver
+      - name: Verify CSharp localization mod enable and unload lifecycle
+        working-directory: .
+        run: |
+          g++ -std=c++20 -O2 -Wall -Wextra -Werror \
+            -Iapp/src/main/cpp tests/localization_loader/native_session_test.cpp \
+            -o /tmp/bunny-native-localization-session
+          /tmp/bunny-native-localization-session
+      - name: Verify physical retirement key ownership policy
+        working-directory: .
+        run: |
+          g++ -std=c++20 -O2 -Wall -Wextra -Werror \
+            -Iapp/src/main/cpp tests/localization_loader/native_retire_test.cpp \
+            -o /tmp/bunny-native-localization-retire
+          /tmp/bunny-native-localization-retire
+      - name: Syntax-check CSharp source, worker and boot integration
+        working-directory: .
+        run: |
+          JAVA_INCLUDE="$(dirname "$(dirname "$(readlink -f "$(command -v javac)")")")/include"
+          for source in \
+            app/src/main/cpp/experiments/csharp/SourceLoader.cpp \
+            app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp \
+            app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp; do
+            g++ -std=c++20 -O0 -Wall -Wextra -Werror -fsyntax-only \
+              -I"$JAVA_INCLUDE" -I"$JAVA_INCLUDE/linux" \
+              -Itests/basic_items/include -Iapp/src/main/cpp "$source"
+          done

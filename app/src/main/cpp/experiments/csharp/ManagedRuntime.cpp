@@ -2,6 +2,7 @@
 #include "experiments/csharp/UniversalHookMailbox.h"
 #include "experiments/csharp/UniversalHooks.h"
 #include "experiments/csharp/ManagedRuntime.h"
+#include "experiments/csharp/ManagedLocalizationEpochFence.h"
 #include "graphics/ScreenScene.h"
 #include "experiments/csharp/ManagedVisualMonoPump.h"
 #include "experiments/csharp/ManagedVisualState.h"
@@ -287,10 +288,35 @@ struct RecipeRpcJob {
     std::string mod,assembly,owner,snapshot;int index=0,kind=0;
     std::chrono::steady_clock::time_point deadline;
     std::shared_ptr<RecipeRpcCompletion> completion;
+    bool shooting=false;
+    bool tile=false;
 };
+struct LocalizationJob {
+    std::string modId;
+    std::string assemblyPath;
+    std::string culture;
+    uint64_t generation = 0;
+    bool unload = false;
+    bool drain = false;
+};
+std::deque<LocalizationJob> g_localizationQueue;
+std::deque<std::string> g_localizationUnloads;
+std::map<std::string, LocalizationJob> g_localizationLiveBindings;
+std::string g_lastLocalizationPollMod;
+std::chrono::steady_clock::time_point g_nextLocalizationPoll{};
+ManagedLocalizationEpochFence g_localizationEpochFence;
+void* g_localizationDispatchMethod = nullptr;
+void* g_localizationDrainMethod = nullptr;
+void* g_localizationAckMethod = nullptr;
+void* g_localizationUnloadMethod = nullptr;
+std::atomic<ManagedLocalizationResultSink> g_localizationResultSink{nullptr};
 std::deque<RecipeRpcJob> g_recipeRpcQueue;
 std::condition_variable g_recipeRpcWake;
 void* g_recipeDispatchMethod=nullptr;
+void* g_shootDispatchMethod=nullptr;
+void* g_tileDispatchMethod=nullptr;
+std::map<std::string,std::shared_ptr<RecipeRpcCompletion>> g_shootWarmups;
+std::map<std::string,std::shared_ptr<RecipeRpcCompletion>> g_tileWarmups;
 std::atomic<bool> g_recipeRuntimeReady{false};
 
 
@@ -1365,10 +1391,15 @@ template<class Execute>
 bool processManagedRecipeRpc(std::unique_lock<std::mutex>& lock,Execute execute) {
     if(g_recipeRpcQueue.empty())return false;
     auto job=std::move(g_recipeRpcQueue.front());g_recipeRpcQueue.pop_front();
-    if(job.completion->cancelled||std::chrono::steady_clock::now()>=job.deadline){g_recipeRpcWake.notify_all();return true;}
+    if(job.completion->cancelled||std::chrono::steady_clock::now()>=job.deadline){
+        if((job.shooting||job.tile)&&job.kind==2&&!job.completion->cancelled){job.completion->done=true;job.completion->output="ERROR|Stage=Warmup Reason=WarmupDeadlineExceeded";}
+        g_recipeRpcWake.notify_all();return true;
+    }
     lock.unlock();auto output=execute(job);lock.lock();
     if(!job.completion->cancelled&&std::chrono::steady_clock::now()<job.deadline) {
         job.completion->output=std::move(output);job.completion->done=true;
+    } else if((job.shooting||job.tile)&&job.kind==2&&!job.completion->cancelled) {
+        job.completion->output="ERROR|Stage=Warmup Reason=WarmupDeadlineExceeded";job.completion->done=true;
     }
     g_recipeRpcWake.notify_all();return true;
 }
@@ -1378,31 +1409,104 @@ std::string executeRecipeOnWorker(const RecipeRpcJob& job) {
     if(!g_domain||!g_status.methodExecuted||!g_api.attach||!g_api.openAssembly||!g_api.image||
        !g_api.findClass||!g_api.findMethod||!g_api.newString||!g_api.invoke)return "PENDING|Stage=Invoke Reason=MonoRuntimeOrRequiredExportsNotReady";
     if(!g_api.attach(g_domain))return "ERROR|Stage=AttachThread Reason=MonoAttachFailed";
-    if(!g_recipeDispatchMethod) {
+    void*& dispatcher=job.tile?g_tileDispatchMethod:(job.shooting?g_shootDispatchMethod:g_recipeDispatchMethod);
+    const char* endpoint=job.tile?"BunnyTileRuntime":(job.shooting?"BunnyShootRuntime":"BunnyRecipeRuntime");
+    if(!dispatcher) {
         const auto slash=g_checkpointPath.find_last_of('/');
         if(slash==std::string::npos)return "ERROR|Stage=ResolveSdk Reason=InvalidCheckpointPath";
         const auto sdk=g_checkpointPath.substr(0,slash+1)+"BunnySourceSdk.dll";
         if(!validAssembly(sdk))return "ERROR|Stage=ResolveSdk Path="+sdk+" Reason=SdkAssemblyMissingOrInvalid";
         auto* assembly=g_api.openAssembly(g_domain,sdk.c_str());
         auto* image=assembly?g_api.image(assembly):nullptr;
-        auto* cls=image?g_api.findClass(image,"BunnyLoader.Source","BunnyRecipeRuntime"):nullptr;
-        g_recipeDispatchMethod=cls?g_api.findMethod(cls,"Dispatch",6):nullptr;
-        if(!g_recipeDispatchMethod)return "ERROR|Stage=BindDispatcher Class=BunnyRecipeRuntime Method=Dispatch Expected=SixParameters Reason=MethodMissing";
+        auto* cls=image?g_api.findClass(image,"BunnyLoader.Source",endpoint):nullptr;
+        dispatcher=cls?g_api.findMethod(cls,"Dispatch",6):nullptr;
+        if(!dispatcher)return std::string("ERROR|Stage=BindDispatcher Class=")+endpoint+" Method=Dispatch Expected=SixParameters Reason=MethodMissing";
     }
     void* args[]={g_api.newString(g_domain,job.mod.c_str()),g_api.newString(g_domain,job.assembly.c_str()),
         g_api.newString(g_domain,job.owner.c_str()),const_cast<int*>(&job.index),const_cast<int*>(&job.kind),
         g_api.newString(g_domain,job.snapshot.c_str())};
     if(!args[0]||!args[1]||!args[2]||!args[5])return "ERROR|Stage=MarshalArguments Reason=MonoStringAllocationFailed";
-    void* exception=nullptr;auto* result=g_api.invoke(g_recipeDispatchMethod,nullptr,args,&exception);
+    void* exception=nullptr;auto* result=g_api.invoke(dispatcher,nullptr,args,&exception);
     if(exception||!result)return "ERROR|Reason=MonoDispatchException";
     using Utf8=char*(*)(void*);using Release=void(*)(void*);
     static auto utf8=resolve<Utf8>("mono_string_to_utf8");static auto release=resolve<Release>("mono_free");
     if(!utf8||!release)return "ERROR|Stage=DecodeResponse Expected=mono_string_to_utf8Andmono_free Reason=RequiredExportMissing";
     char* value=utf8(result);if(!value)return "ERROR|Stage=DecodeResponse Reason=MonoUtf8AllocationFailed";
-    const auto length=strnlen(value,16385);std::string output;
-    if(length<=16384)output.assign(value,length);
-    else output="ERROR|Stage=DecodeResponse ExpectedBytes=UpTo16384 ActualAtLeast=16385 Reason=ResponseTooLarge";
+    const size_t maximum=job.shooting?32768u:16384u;
+    const auto length=strnlen(value,maximum+1);std::string output;
+    if(length<=maximum)output.assign(value,length);
+    else output="ERROR|Stage=DecodeResponse ExpectedBytes=UpTo"+std::to_string(maximum)+" ActualAtLeast="+std::to_string(maximum+1)+" Reason=ResponseTooLarge";
     release(value);return output;
+}
+
+std::string executeManagedLocalizationOnWorker(const LocalizationJob& job) {
+    std::lock_guard<std::mutex> monoGuard(g_mutex);
+    if (!g_domain || !g_status.methodExecuted || !g_api.attach ||
+        !g_api.openAssembly || !g_api.image || !g_api.findClass ||
+        !g_api.findMethod || !g_api.newString || !g_api.invoke) return "PENDING|MonoNotReady";
+    if (!g_api.attach(g_domain)) return "ERROR|MonoAttachFailed";
+    if (!g_localizationDispatchMethod || !g_localizationUnloadMethod ||
+        !g_localizationDrainMethod || !g_localizationAckMethod) {
+        const auto slash = g_checkpointPath.find_last_of('/');
+        if (slash == std::string::npos) return "ERROR|InvalidSdkPath";
+        const std::string sdk = g_checkpointPath.substr(0, slash + 1) + "BunnySourceSdk.dll";
+        if (!validAssembly(sdk)) return "ERROR|MissingSdk";
+        void* assembly = g_api.openAssembly(g_domain, sdk.c_str());
+        void* image = assembly ? g_api.image(assembly) : nullptr;
+        void* klass = image ? g_api.findClass(image, "BunnyLoader.Source", "BunnyLocalizationRuntime") : nullptr;
+        if (!klass) return "ERROR|MissingLocalizationRuntime";
+        g_localizationDispatchMethod = g_api.findMethod(klass, "Dispatch", 3);
+        g_localizationDrainMethod = g_api.findMethod(klass, "Drain", 3);
+        g_localizationAckMethod = g_api.findMethod(klass, "Acknowledge", 4);
+        g_localizationUnloadMethod = g_api.findMethod(klass, "Unload", 1);
+        if (!g_localizationDispatchMethod || !g_localizationDrainMethod ||
+            !g_localizationUnloadMethod || !g_localizationAckMethod)
+            return "ERROR|MissingLocalizationMethods";
+    }
+    void* id = g_api.newString(g_domain, job.modId.c_str());
+    if (!id) return "ERROR|MonoIdAllocation";
+    void* exception = nullptr;
+    if (job.unload) {
+        void* args[] = {id};
+        g_api.invoke(g_localizationUnloadMethod, nullptr, args, &exception);
+        return exception ? "ERROR|MonoUnloadException" : "OK|Unload";
+    }
+    void* assembly = g_api.newString(g_domain, job.assemblyPath.c_str());
+    void* culture = g_api.newString(g_domain, job.culture.c_str());
+    if (!assembly || !culture) return "ERROR|MonoStringAllocation";
+    void* args[] = {id, assembly, culture};
+    void* value = g_api.invoke(job.drain ? g_localizationDrainMethod :
+                               g_localizationDispatchMethod, nullptr, args, &exception);
+    if (exception || !value) return "ERROR|MonoDispatchException";
+    using Utf8 = char* (*)(void*);
+    using Release = void (*)(void*);
+    static auto utf8 = resolve<Utf8>("mono_string_to_utf8");
+    static auto release = resolve<Release>("mono_free");
+    if (!utf8 || !release) return "ERROR|MonoStringExportsMissing";
+    char* text = utf8(value);
+    if (!text) return "ERROR|MonoStringDecode";
+    const size_t length = strnlen(text, 262145);
+    std::string result = length <= 262144 ? std::string(text, length) : "ERROR|ResponseTooLarge";
+    release(text);
+    return result;
+}
+
+bool acknowledgeManagedLocalizationOnWorker(const LocalizationJob& job,
+                                          const std::string& wire) {
+    std::lock_guard<std::mutex> monoGuard(g_mutex);
+    if (!g_domain || !g_api.attach || !g_api.newString || !g_api.invoke ||
+        !g_api.unbox || !g_localizationAckMethod || !g_api.attach(g_domain)) return false;
+    void* args[] = {
+        g_api.newString(g_domain, job.modId.c_str()),
+        g_api.newString(g_domain, job.assemblyPath.c_str()),
+        g_api.newString(g_domain, job.culture.c_str()),
+        g_api.newString(g_domain, wire.c_str())
+    };
+    for (void* arg : args) if (!arg) return false;
+    void* exception = nullptr;
+    void* result = g_api.invoke(g_localizationAckMethod, nullptr, args, &exception);
+    void* value = exception || !result ? nullptr : g_api.unbox(result);
+    return value && *static_cast<uint8_t*>(value) != 0;
 }
 
 bool executeManagedSceneOnWorker(const SceneLightRequest& request,
@@ -1491,6 +1595,60 @@ void* pinnedMonoWorker(void*) {
         {
             std::unique_lock<std::mutex> lock(g_pinnedMutex);
             while (!g_pinnedPending) {
+                if(processManagedRecipeRpc(lock,executeRecipeOnWorker))continue;
+                const bool localizationReady =
+                    g_recipeRuntimeReady.load(std::memory_order_acquire);
+                const bool livePolling = localizationReady &&
+                    !g_localizationLiveBindings.empty() &&
+                    std::chrono::steady_clock::now() >= g_nextLocalizationPoll;
+                if (localizationReady &&
+                    (!g_localizationUnloads.empty() || !g_localizationQueue.empty() ||
+                     livePolling)) {
+                    LocalizationJob job;
+                    if (!g_localizationUnloads.empty()) {
+                        job.modId = std::move(g_localizationUnloads.front());
+                        g_localizationUnloads.pop_front();
+                        job.unload = true;
+                    } else if (!g_localizationQueue.empty()) {
+                        job = std::move(g_localizationQueue.front());
+                        g_localizationQueue.pop_front();
+                    } else {
+                        auto it = g_localizationLiveBindings.upper_bound(g_lastLocalizationPollMod);
+                        if (it == g_localizationLiveBindings.end())
+                            it = g_localizationLiveBindings.begin();
+                        job = it->second;
+                        job.drain = true;
+                        g_lastLocalizationPollMod = it->first;
+                        g_nextLocalizationPoll = std::chrono::steady_clock::now() +
+                            std::chrono::milliseconds(250);
+                    }
+                    if (!job.unload && !g_localizationEpochFence.current(job.modId, job.generation))
+                        continue;
+                    lock.unlock();
+                    std::string result = executeManagedLocalizationOnWorker(job);
+                    if (!job.unload && result.rfind("OK|", 0) == 0) {
+                        auto sink = g_localizationResultSink.load(std::memory_order_acquire);
+                        if (!sink || !sink(job.modId, job.assemblyPath, job.culture,
+                                           job.generation, result))
+                            result = "ERROR|DynamicWireRejectedOrStale";
+                        else if (!acknowledgeManagedLocalizationOnWorker(job, result))
+                            result = "ERROR|DynamicWireAckFailed";
+                    }
+                    if (result.rfind("OK|", 0) != 0 && result != "UNCHANGED") {
+#ifdef __ANDROID__
+                        __android_log_print(ANDROID_LOG_WARN, "BunnyCSharp",
+                            "[CSharp][Localization] Mod=%s Stage=ManagedNotify Result=%s",
+                            job.modId.c_str(), result.c_str());
+#else
+                        std::fprintf(stderr,
+                            "[CSharp][Localization] Mod=%s Stage=ManagedNotify Result=%s\n",
+                            job.modId.c_str(), result.c_str());
+#endif
+                    }
+                    lock.lock();
+                    continue;
+                }
+
                 if (g_universalPolling.load(std::memory_order_acquire)) {
                     lock.unlock();
                     const bool handled = pollUniversalHooksOnWorker();
@@ -1900,19 +2058,27 @@ void* pinnedMonoWorker(void*) {
                         g_liveHitStatus.enabled || g_liveIngress.depth() != 0 ||
                         !g_managedHurtQueue.empty() || !g_entityQueue.empty())
                         g_pinnedWake.wait_for(lock, std::chrono::milliseconds(2));
+                    else if (g_recipeRuntimeReady.load(std::memory_order_acquire) &&
+                             !g_localizationLiveBindings.empty())
+                        g_pinnedWake.wait_until(lock, g_nextLocalizationPoll);
                     else
                         g_pinnedWake.wait(lock);
                     continue;
                 }
                 const int seconds = kAuditSamples[g_auditIndex];
                 const auto until = g_auditStart + std::chrono::seconds(seconds);
-                const auto deadline = (g_liveHitStatus.enabled || g_universalPolling.load(std::memory_order_acquire))
+                auto deadline = (g_liveHitStatus.enabled || g_universalPolling.load(std::memory_order_acquire))
                     ? std::min(until, std::chrono::steady_clock::now() +
                         std::chrono::milliseconds(2)) : until;
+                if (g_recipeRuntimeReady.load(std::memory_order_acquire) &&
+                    !g_localizationLiveBindings.empty())
+                    deadline = std::min(deadline, g_nextLocalizationPoll);
                 if (g_pinnedWake.wait_until(lock, deadline, [] {
                     return g_pinnedPending || g_vmComparePending ||
                         !g_liveHitQueue.empty() || g_liveIngress.depth() != 0 ||
-                        !g_entityQueue.empty() || !g_recipeRpcQueue.empty();
+                        !g_entityQueue.empty() || !g_recipeRpcQueue.empty() ||
+                        (g_recipeRuntimeReady.load(std::memory_order_acquire) &&
+                         (!g_localizationQueue.empty() || !g_localizationUnloads.empty()));
                 }))
                     continue;
                 if (std::chrono::steady_clock::now() < until) continue;
@@ -1955,6 +2121,49 @@ void* pinnedMonoWorker(void*) {
 
 }
 
+
+void setManagedLocalizationResultSink(ManagedLocalizationResultSink sink) {
+    g_localizationResultSink.store(sink, std::memory_order_release);
+}
+
+bool queueManagedLocalizationLoaded(const std::string& modId,
+                                    const std::string& assemblyPath,
+                                    const std::string& culture,
+                                    uint64_t generation) {
+    if (modId.empty() || modId.size() > 64 ||
+        assemblyPath.empty() || assemblyPath.size() > 2048 ||
+        culture.size() < 2 || culture.size() > 20 || generation == 0) return false;
+    std::lock_guard<std::mutex> lock(g_pinnedMutex);
+    if (!g_localizationEpochFence.permits(modId, generation)) return false;
+    g_localizationQueue.erase(std::remove_if(
+        g_localizationQueue.begin(), g_localizationQueue.end(),
+        [&](const LocalizationJob& job) {
+            return job.modId == modId && job.generation < generation;
+        }), g_localizationQueue.end());
+    if (g_localizationQueue.size() >= 64) return false;
+    g_localizationEpochFence.activate(modId, generation);
+    g_localizationLiveBindings[modId] = {modId, assemblyPath, culture, generation, false, false};
+    g_nextLocalizationPoll = std::chrono::steady_clock::now() +
+        std::chrono::milliseconds(250);
+    g_localizationQueue.push_back({modId, assemblyPath, culture, generation, false, false});
+    g_pinnedWake.notify_one();
+    return true;
+}
+
+void unloadManagedLocalizationCallbacks(const std::string& modId) {
+    if (modId.empty() || modId.size() > 64) return;
+    std::lock_guard<std::mutex> lock(g_pinnedMutex);
+    g_localizationQueue.erase(std::remove_if(g_localizationQueue.begin(),
+        g_localizationQueue.end(), [&](const LocalizationJob& job) {
+            return job.modId == modId;
+        }), g_localizationQueue.end());
+    g_localizationEpochFence.retire(modId);
+    g_localizationLiveBindings.erase(modId);
+    if (std::find(g_localizationUnloads.begin(), g_localizationUnloads.end(), modId)
+        == g_localizationUnloads.end())
+        g_localizationUnloads.push_back(modId);
+    g_pinnedWake.notify_one();
+}
 
 bool registerManagedScreenSceneMod(const std::string& id,
                                    const std::string& assembly,
@@ -2308,23 +2517,123 @@ ManagedHurtSchedulerStatus managedHurtSchedulerStatus() {
 
 bool managedRecipeRuntimeReady(){return g_recipeRuntimeReady.load(std::memory_order_acquire);}
 
-bool invokeManagedRecipe(const std::string& mod,const std::string& assembly,
+static bool invokeManagedCallback(bool shooting,const std::string& mod,const std::string& assembly,
                          const std::string& owner,int index,int kind,const std::string& snapshot,
-                         std::string* output,int budgetMicroseconds) {
+                         std::string* output,int budgetMicroseconds,bool tile=false) {
     if(!output)return false;
     if(budgetMicroseconds<1||budgetMicroseconds>3000||index<0||index>=16||kind<0||kind>3||
-       snapshot.size()>512||assembly.empty()||assembly.size()>4096){*output="ERROR|Stage=SubmitRecipeCallback Reason=InvalidTransportArguments";return false;}
+       snapshot.size()>(shooting?1024u:512u)||assembly.empty()||assembly.size()>4096){*output="ERROR|Stage=SubmitRecipeCallback Reason=InvalidTransportArguments";return false;}
     std::unique_lock<std::mutex> lock(g_pinnedMutex,std::try_to_lock);
     if(!lock.owns_lock()){*output="PENDING|Stage=SubmitRecipeCallback Reason=WorkerQueueBusy";return false;}
     if(!g_pinnedStarted){*output="PENDING|Stage=SubmitRecipeCallback Reason=WorkerNotStarted";return false;}
     if(g_recipeRpcQueue.size()>=16){*output="PENDING|Stage=SubmitRecipeCallback Reason=QueueCapacityExceeded Expected=Below16";return false;}
     const auto until=std::chrono::steady_clock::now()+std::chrono::microseconds(budgetMicroseconds);
     auto completion=std::make_shared<RecipeRpcCompletion>();
-    g_recipeRpcQueue.push_back({mod,assembly,owner,snapshot,index,kind,until,completion});g_pinnedWake.notify_one();
+    g_recipeRpcQueue.push_back({mod,assembly,owner,snapshot,index,kind,until,completion,shooting,tile});g_pinnedWake.notify_one();
     if(!g_recipeRpcWake.wait_until(lock,until,[&]{return completion->done;})) {
         completion->cancelled=true;*output="PENDING|Stage=WaitRecipeCallback Reason=DeadlineExceeded BudgetUs="+std::to_string(budgetMicroseconds);return false;
     }
     *output=std::move(completion->output);return !output->empty();
+}
+
+bool invokeManagedRecipe(const std::string& mod,const std::string& assembly,
+    const std::string& owner,int index,int kind,const std::string& snapshot,std::string* output,int budgetMicroseconds) {
+    return invokeManagedCallback(false,mod,assembly,owner,index,kind,snapshot,output,budgetMicroseconds);
+}
+bool invokeManagedShoot(const std::string& mod,const std::string& assembly,const std::string& owner,
+    int kind,const std::string& snapshot,std::string* output) {
+    if(kind<0||kind>1){if(output)*output="ERROR|Reason=InvalidShootCallbackKind";return false;}
+    const bool result=invokeManagedCallback(true,mod,assembly,owner,0,kind,snapshot,output,3000);
+    if(output) { // Preserve the actual cause while identifying the correct API in transport diagnostics.
+        size_t pos=0;while((pos=output->find("RecipeCallback",pos))!=std::string::npos){output->replace(pos,14,"ShootCallback");pos+=13;}
+    }
+    return result;
+}
+bool invokeManagedTile(const std::string& mod,const std::string& assembly,
+    const std::string& owner,int callback,int x,int y,std::string* output,int budgetMicroseconds) {
+    if(callback<0||callback>12||x<0||y<0||x>100000||y>100000) {
+        if(output)*output="ERROR|Stage=TileCallback Reason=InvalidCoordinatesOrKind";
+        return false;
+    }
+    return invokeManagedCallback(false,mod,assembly,owner,callback,0,
+        std::to_string(x)+","+std::to_string(y),output,budgetMicroseconds,true);
+}
+bool invokeManagedTileDraw(const std::string& mod,const std::string& assembly,
+    const std::string& owner,const std::string& snapshot,
+    std::string* output,int budgetMicroseconds) {
+    if(snapshot.size()>512||snapshot.empty()) {
+        if (output) *output = "ERROR|Stage=TileDraw Reason=InvalidSnapshot";
+        return false;
+    }
+    return invokeManagedCallback(false,mod,assembly,owner,13,0,
+        snapshot,output,budgetMicroseconds,true);
+}
+bool queueManagedTileEvent(const std::string& mod,const std::string& assembly,
+    const std::string& owner,int callback,int x,int y) {
+    if(callback<2||callback>12||x<0||y<0||x>100000||y>100000||assembly.empty())return false;
+    std::unique_lock<std::mutex> lock(g_pinnedMutex,std::try_to_lock);
+    if(!lock.owns_lock()||!g_pinnedStarted||g_recipeRpcQueue.size()>=16)return false;
+    auto result=std::make_shared<RecipeRpcCompletion>();
+    g_recipeRpcQueue.push_back({mod,assembly,owner,std::to_string(x)+","+std::to_string(y),
+        callback,0,std::chrono::steady_clock::now()+std::chrono::milliseconds(100),result,false,true});
+    g_pinnedWake.notify_one();return true;
+}
+bool queueManagedTileNearby(const std::string& mod,const std::string& assembly,
+    const std::string& owner,int x,int y,bool closer) {
+    if(x<0||y<0||x>100000||y>100000||assembly.empty())return false;
+    std::unique_lock<std::mutex> lock(g_pinnedMutex,std::try_to_lock);
+    if(!lock.owns_lock()||!g_pinnedStarted||g_recipeRpcQueue.size()>=16)return false;
+    auto result=std::make_shared<RecipeRpcCompletion>();
+    g_recipeRpcQueue.push_back({mod,assembly,owner,
+        std::to_string(x)+","+std::to_string(y)+","+(closer?"1":"0"),
+        11,0,std::chrono::steady_clock::now()+std::chrono::milliseconds(100),
+        result,false,true});
+    g_pinnedWake.notify_one();return true;
+}
+bool queueManagedTileWarmup(const std::string& mod,const std::string& assembly,const std::string& owner) {
+    if(mod.empty()||owner.empty()||assembly.empty()||assembly.size()>4096)return false;
+    std::lock_guard lock(g_pinnedMutex);
+    const auto key=mod+"|"+assembly+"|"+owner;
+    if(g_tileWarmups.count(key))return true;
+    if(g_tileWarmups.size()>=4096||g_recipeRpcQueue.size()>=4096)return false;
+    auto result=std::make_shared<RecipeRpcCompletion>();
+    g_tileWarmups.emplace(key,result);
+    g_recipeRpcQueue.push_back({mod,assembly,owner,"",0,2,
+        std::chrono::steady_clock::now()+std::chrono::seconds(60),result,false,true});
+    g_pinnedWake.notify_one();return true;
+}
+int managedTileWarmupState(const std::string& mod,const std::string& assembly,
+    const std::string& owner,std::string* error) {
+    std::unique_lock lock(g_pinnedMutex,std::try_to_lock);
+    if(!lock.owns_lock())return 0;
+    const auto key=mod+"|"+assembly+"|"+owner;
+    const auto found=g_tileWarmups.find(key);
+    if(found==g_tileWarmups.end()){if(error)*error="Stage=Warmup Reason=TileOwnerNotQueued";return -1;}
+    if(!found->second->done)return 0;
+    if(found->second->output=="READY")return 1;
+    if(error)*error=found->second->output;
+    return -1;
+}
+static std::string shootWarmupKey(const std::string& mod,const std::string& assembly,const std::string& owner) {
+    return mod+"|"+assembly+"|"+owner;
+}
+bool queueManagedShootWarmup(const std::string& mod,const std::string& assembly,const std::string& owner) {
+    if(mod.empty()||owner.empty()||assembly.empty()||assembly.size()>4096)return false;
+    std::lock_guard lock(g_pinnedMutex);const auto key=shootWarmupKey(mod,assembly,owner);
+    if(g_shootWarmups.count(key))return true;
+    if(g_shootWarmups.size()>=4096||g_recipeRpcQueue.size()>=4096)return false;
+    auto completion=std::make_shared<RecipeRpcCompletion>();
+    g_shootWarmups.emplace(key,completion);
+    g_recipeRpcQueue.push_back({mod,assembly,owner,"",0,2,std::chrono::steady_clock::now()+std::chrono::seconds(60),completion,true});
+    g_pinnedWake.notify_one();return true;
+}
+int managedShootWarmupState(const std::string& mod,const std::string& assembly,const std::string& owner,std::string* error) {
+    std::unique_lock lock(g_pinnedMutex,std::try_to_lock);if(!lock.owns_lock())return 0;
+    const auto found=g_shootWarmups.find(shootWarmupKey(mod,assembly,owner));
+    if(found==g_shootWarmups.end()){*error="Stage=Warmup Reason=OwnerNotQueued";return -1;}
+    if(!found->second->done)return 0;
+    if(found->second->output=="READY")return 1;
+    *error=found->second->output;return -1;
 }
 
 bool modifyManagedPlayerHurt(const std::string& modId, int damage,
@@ -3788,7 +4097,7 @@ ManagedSourceCompileResult compileManagedSource(
     trace("compiled-assembly-execution-start");
     void* verifierClass = image ? g_api.findClass(
         image, "BunnyLoader.SourceCompiler", "CompiledAssemblyProbe") : nullptr;
-    void* verifier = verifierClass ? g_api.findMethod(verifierClass, "Verify", 2) : nullptr;
+    void* verifier = verifierClass ? g_api.findMethod(verifierClass, "Verify", 3) : nullptr;
     if (!verifier) {
         out.phase = "compiled-assembly-verifier-missing";
         out.error = "CompiledAssemblyProbe.Verify indisponivel";
@@ -3797,14 +4106,15 @@ ManagedSourceCompileResult compileManagedSource(
     }
     void* verifyArgumentsManaged[] = {
         g_api.newString(g_domain, outputAssembly.c_str()),
-        g_api.newString(g_domain, diagnosticsPath.c_str())
+        g_api.newString(g_domain, diagnosticsPath.c_str()),
+        g_api.newString(g_domain, modRoot.c_str())
     };
-    if (!verifyArgumentsManaged[0] || !verifyArgumentsManaged[1]) {
+    if (!verifyArgumentsManaged[0] || !verifyArgumentsManaged[1] || !verifyArgumentsManaged[2]) {
         out.phase = "compiled-assembly-verifier-arguments-failed";
         trace(out.phase.c_str());
         return out;
     }
-    void* verifyArguments[] = { verifyArgumentsManaged[0], verifyArgumentsManaged[1] };
+    void* verifyArguments[] = { verifyArgumentsManaged[0], verifyArgumentsManaged[1], verifyArgumentsManaged[2] };
     void* verifyException = nullptr;
     const auto verifyStarted = std::chrono::steady_clock::now();
     void* verifiedBoxed = g_api.invoke(verifier, nullptr, verifyArguments, &verifyException);

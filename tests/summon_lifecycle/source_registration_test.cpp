@@ -2,7 +2,7 @@
 #include <cassert>
 #include <iostream>
 int main(int argc,char** argv) {
- using namespace bl::csharp;assert(argc==3);
+ using namespace bl::csharp;assert(argc==4);
  std::ifstream file(argv[1]);std::string source((std::istreambuf_iterator<char>(file)),{}),error;
  std::vector<ParsedSourceType> types;assert(parseCSharpSource(source,&types,&error));assert(types.size()==1);
  NativeContentSpec spec{};std::string target,display,texture;
@@ -12,7 +12,11 @@ int main(int argc,char** argv) {
  assert(parseCSharpSource(source,&types,&error)&&types.size()==1);
  assert(fields(types[0],&spec,&target,&display,&texture,&error));
  assert(spec.kind==NativeBasicItem&&types[0].name=="ExampleGun"&&display=="Example Gun"&&texture=="Content/Items/Weapons/Ranged/ExampleGun.png");
- assert(types[0].localizedNames.size()==2&&types[0].localizedNames[1].second=="Arma de Exemplo");
+ assert(types[0].localizedNames.size()==2&&types[0].localizedNames[1].second=="Example Arma");
+ types.clear();std::ifstream shotgunFile(argv[3]);source.assign((std::istreambuf_iterator<char>(shotgunFile)),{});
+ assert(parseCSharpSource(source,&types,&error)&&types.size()==1);
+ assert(fields(types[0],&spec,&target,&display,&texture,&error));
+ assert(spec.kind==NativeBasicItem&&display=="Example Shotgun"&&texture=="Content/Items/Weapons/Ranged/ExampleShotgun.png");
  // Runtime registration uses only names/assets; Roslyn executes arbitrary numeric/movement defaults.
  types.clear();source=R"(public sealed class IndependentMinion:BunnyProjectile {
  public override void SetDefaults(){DisplayName="Independent";Texture="independent.png";

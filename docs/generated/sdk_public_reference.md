@@ -195,7 +195,7 @@ string Texture { get; }
 
 enum; base: `System.Enum`.
 
-Values: Item, Tile, Weapon, Projectile, Buff, BuffPotion, Accessory, Player, NPC, Prefix.
+Values: Item, Tile, Weapon, Projectile, Buff, BuffPotion, Accessory, Player, NPC, Prefix, Wall.
 
 ## BunnyLoader.Source.BunnyCraftContext
 
@@ -525,7 +525,7 @@ BunnyInt32ZeroHook(Object object, IntPtr method)
 
 ## BunnyLoader.Source.BunnyItem
 
-abstract class; base: `BunnyLoader.Source.BunnyRecipeSource`.
+abstract class; base: `BunnyLoader.Source.BunnyShootSource`.
 
 ```csharp
 BunnyHoldout Holdout { get; set; }
@@ -572,6 +572,8 @@ string UseSound { get; set; }
 | `static int SellPrice(int platinum, int gold, int silver, int copper)` | managed_helper |
 | `void DefaultToPlaceableTile(int vanillaTileId, int style)` | managed_helper |
 | `void DefaultToPlaceableTile(string modTileName, int style)` | managed_helper |
+| `void DefaultToPlaceableWall(int vanillaWallId)` | managed_helper |
+| `void DefaultToPlaceableWall(string modWallName)` | managed_helper |
 | `void SetDefaults()` | compile_policy |
 
 ## BunnyLoader.Source.BunnyItemBehavior
@@ -600,6 +602,60 @@ string NativeArmorDefinition { get; }
 | `void SetWingStats(int flyTime, float flySpeed, float acceleration, float ascentWhenFalling, float ascentWhenRising, float maxCanAscendMultiplier, float maxAscentMultiplier, float constantAscend)` | managed_helper |
 | `void WorldAlpha(Byte red, Byte green, Byte blue, Byte opacity)` | managed_helper |
 | `void WorldLight(float red, float green, float blue, bool scaleByEssence)` | managed_helper |
+
+## BunnyLoader.Source.BunnyLocalizationCatalog
+
+class; base: `System.Object`.
+
+```csharp
+BunnyLocalizationCatalog(string culture)
+int Count { get; }
+int Revision { get; }
+string ActiveCultureName { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `IReadOnlyDictionary<string, string> SnapshotForGame()` | managed_helper |
+| `IReadOnlyDictionary<string, string> Texts(string path, string callerModId)` | managed_helper |
+| `IReadOnlyList<string> ExportWireRows()` | managed_helper |
+| `bool Exists(string path, string callerModId)` | managed_helper |
+| `int LoadFromContent(string modId, string contentDirectory)` | managed_helper |
+| `string Key(string path, string callerModId)` | managed_helper |
+| `string Translate(string path, string callerModId)` | managed_helper |
+| `string TryTranslate(string path, string callerModId)` | managed_helper |
+| `void Register(string fullKey, IReadOnlyDictionary<string, string> cultures)` | managed_helper |
+| `void Register(string fullKey, string culture, string text)` | managed_helper |
+| `void RegisterCulture(string modId, string culture, IReadOnlyDictionary<string, string> texts)` | managed_helper |
+| `void RemoveMod(string modId)` | managed_helper |
+| `void ReplaceModCultures(string modId, IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>> cultures)` | managed_helper |
+| `void SetCulture(string culture)` | managed_helper |
+
+## BunnyLoader.Source.BunnyLocalizationModule
+
+abstract class; base: `System.Object`.
+
+| Method | Execution |
+| --- | --- |
+| `void OnLocalizationsLoaded()` | worker_async_localization |
+| `void RegisterTranslations(BunnyLocalizationCatalog catalog)` | compile_policy |
+
+## BunnyLoader.Source.BunnyLocalizationRuntime
+
+abstract class; base: `System.Object`.
+
+```csharp
+string ActiveCultureName { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `static bool Acknowledge(string modId, string assemblyPath, string culture, string wire)` | worker_async_localization |
+| `static bool Unload(string modId)` | worker_async_localization |
+| `static string Dispatch(string modId, string assemblyPath, string culture)` | worker_async_localization |
+| `static string Drain(string modId, string assemblyPath, string culture)` | worker_async_localization |
+| `static void Register(string key, IReadOnlyDictionary<string, string> cultures)` | managed_owned_registration |
+| `static void Register(string key, string culture, string value)` | managed_owned_registration |
 
 ## BunnyLoader.Source.BunnyMethodHook
 
@@ -1044,6 +1100,47 @@ string ShaderFile { get; set; }
 | --- | --- |
 | `void SetDefaults()` | compile_policy |
 
+## BunnyLoader.Source.BunnyShootContext
+
+class; base: `System.Object`.
+
+```csharp
+Random Random { get; }
+int ItemType { get; }
+int PlayerIndex { get; }
+int WeaponDamage { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `void Spawn(BunnyShot shot)` | worker_shoot_command_batch |
+
+## BunnyLoader.Source.BunnyShootRuntime
+
+abstract class; base: `System.Object`.
+
+| Method | Execution |
+| --- | --- |
+| `static string Dispatch(string modId, string assemblyPath, string owner, int index, int kind, string snapshot)` | worker_sync_shoot_snapshot |
+
+## BunnyLoader.Source.BunnyShootSource
+
+abstract class; base: `BunnyLoader.Source.BunnyRecipeSource`.
+
+```csharp
+int ShootCallbackMask { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `bool CanShoot(BunnyShootContext context)` | worker_sync_shoot_snapshot |
+| `bool OnShoot(BunnyShootContext context, BunnyShot shot)` | worker_sync_shoot_snapshot |
+| `void ModifyShootStats(BunnyShootContext context, ref BunnyShot shot)` | worker_sync_shoot_snapshot |
+
+## BunnyLoader.Source.BunnyShot
+
+struct; base: `System.ValueType`.
+
 ## BunnyLoader.Source.BunnySoundLimitBehavior
 
 enum; base: `System.Enum`.
@@ -1072,11 +1169,19 @@ abstract class; base: `System.Object`.
 ```csharp
 BunnyTileFlags Flags { get; set; }
 BunnyTileShape Shape { get; set; }
+bool AllowBreaking { get; set; }
+bool AllowDrops { get; set; }
+bool CacheDrawData { get; set; }
 int AdjacentTile { get; set; }
+int AnimationFrameHeight { get; set; }
+int AnimationFrameTicks { get; set; }
+int AnimationFrames { get; set; }
 int CoordinateHeight { get; set; }
 int MapB { get; }
 int MapG { get; }
 int MapR { get; }
+int TileCallbackMask { get; }
+int[] AdjacentTiles { get; set; }
 string DisplayName { get; set; }
 string DustName { get; set; }
 string MapName { get; }
@@ -1085,15 +1190,40 @@ string Texture { get; set; }
 
 | Method | Execution |
 | --- | --- |
+| `bool CanDrop(int x, int y)` | managed_helper |
+| `bool CanKillTile(int x, int y)` | managed_helper |
+| `bool PreDraw(int x, int y)` | managed_helper |
+| `bool RightClick(int x, int y)` | managed_helper |
+| `bool Slope(int x, int y)` | managed_helper |
 | `int NumDust(bool fail)` | compile_policy |
 | `void AddMapEntry(int red, int green, int blue, string name)` | managed_helper |
+| `void AnimateIndividualTile(int type, int x, int y, ref int addFrameX, ref int addFrameY)` | managed_helper |
+| `void AnimateIndividualTile(int x, int y, ref int addFrameX, ref int addFrameY)` | managed_helper |
+| `void AnimateTile(ref int frame, ref int frameCounter)` | managed_helper |
+| `void HitWire(int x, int y)` | managed_helper |
+| `void ModifyLight(int x, int y, ref float r, ref float g, ref float b)` | managed_helper |
+| `void MouseOver(int x, int y)` | managed_helper |
+| `void MouseOverFar(int x, int y)` | managed_helper |
+| `void NearbyEffects(int x, int y, bool closer)` | managed_helper |
+| `void PlaceInWorld(int x, int y)` | managed_helper |
+| `void RandomUpdate(int x, int y)` | managed_helper |
+| `void SetDrawPositions(int x, int y, ref int width, ref int top, ref int height, ref int frameX, ref int frameY)` | managed_helper |
+| `void SetSpriteEffects(int x, int y, ref int effects)` | managed_helper |
 | `void SetStaticDefaults()` | compile_policy |
 
 ## BunnyLoader.Source.BunnyTileFlags
 
 enum; base: `System.Enum`.
 
-Values: None, Table, SolidTop, NoAttach, LavaDeath, FrameImportant, DisableSmartCursor, HasOutlines, IgnoredByNpcStepUp, CountsAsTable.
+Values: None, Table, SolidTop, NoAttach, LavaDeath, FrameImportant, DisableSmartCursor, HasOutlines, IgnoredByNpcStepUp, CountsAsTable, Solid, BlockLight, MergeDirt, Lighted, WaterDeath, ChecksForMerge, Cut.
+
+## BunnyLoader.Source.BunnyTileRuntime
+
+abstract class; base: `System.Object`.
+
+| Method | Execution |
+| --- | --- |
+| `static string Dispatch(string modId, string assemblyPath, string owner, int index, int kind, string snapshot)` | managed_helper |
 
 ## BunnyLoader.Source.BunnyTileShape
 
@@ -1253,9 +1383,35 @@ BunnyVoidInt32TripleHook(Object object, IntPtr method)
 | `void EndInvoke(IAsyncResult result)` | managed_helper |
 | `void Invoke(BunnyOriginalVoid original, IntPtr self, int first, int second, int third)` | managed_helper |
 
+## BunnyLoader.Source.BunnyWall
+
+abstract class; base: `System.Object`.
+
+```csharp
+BunnyWorldLight DayLight { get; set; }
+BunnyWorldLight NightLight { get; set; }
+bool Housing { get; set; }
+int AnimationFrameTicks { get; set; }
+int AnimationFrames { get; set; }
+int DustCount { get; set; }
+int FailedDustCount { get; set; }
+string BlendWallName { get; set; }
+string DisplayName { get; set; }
+string DustName { get; set; }
+string NativeDefinition { get; }
+string Texture { get; set; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `void AddMapEntry(int r, int g, int b, string name)` | managed_helper |
+| `void RandomizeFrame(int from, float chance, int[] alternatives)` | managed_helper |
+| `void SetFrameDust(int frameNumber, string dustName)` | managed_helper |
+| `void SetStaticDefaults()` | compile_policy |
+
 ## BunnyLoader.Source.BunnyWeapon
 
-abstract class; base: `BunnyLoader.Source.BunnyRecipeSource`.
+abstract class; base: `BunnyLoader.Source.BunnyShootSource`.
 
 ```csharp
 BunnyHoldout Holdout { get; set; }
@@ -1276,6 +1432,17 @@ string Texture { get; set; }
 | Method | Execution |
 | --- | --- |
 | `void SetDefaults()` | compile_policy |
+
+## BunnyLoader.Source.BunnyWorldLight
+
+struct; base: `System.ValueType`.
+
+```csharp
+BunnyWorldLight(float r, float g, float b)
+float B { get; }
+float G { get; }
+float R { get; }
+```
 
 ## BunnyLoader.Source.PrefixCategory
 

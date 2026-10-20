@@ -20,7 +20,7 @@
     "forkJsFiles": 178,
     "canonicalJsFiles": 206,
     "newUpstreamFiles": 28,
-    "cSharpSourceFiles": 76
+    "cSharpSourceFiles": 83
   },
   "statePolicy": "Validado no Android exige evidencia de jogo do exemplo inteiro; Validado por testes automatizados nao prova execucao no aparelho.",
   "coverageByCategory": {
@@ -417,19 +417,20 @@
     "Placeable": {
       "total": 36,
       "states": {
-        "Não implementado": 35,
-        "Implementado, aguardando validação": 1
+        "Não implementado": 33,
+        "Implementado, aguardando validação": 2,
+        "Parcial": 1
       },
-      "implemented": 1,
+      "implemented": 2,
       "validated": 0,
       "automated": 0,
       "automatedPercent": 0.0,
-      "partial": 0,
-      "implementedPercent": 2.78,
+      "partial": 1,
+      "implementedPercent": 5.56,
       "validatedPercent": 0.0,
-      "partialPercent": 0.0,
+      "partialPercent": 2.78,
       "limitations": 0,
-      "missingExamples": 35
+      "missingExamples": 34
     },
     "Players": {
       "total": 7,
@@ -551,19 +552,19 @@
     "Tiles": {
       "total": 37,
       "states": {
-        "Não implementado": 36,
-        "Implementado, aguardando validação": 1
+        "Não implementado": 35,
+        "Implementado, aguardando validação": 2
       },
-      "implemented": 1,
+      "implemented": 2,
       "validated": 0,
       "automated": 0,
       "automatedPercent": 0.0,
       "partial": 0,
-      "implementedPercent": 2.7,
+      "implementedPercent": 5.41,
       "validatedPercent": 0.0,
       "partialPercent": 0.0,
       "limitations": 0,
-      "missingExamples": 36
+      "missingExamples": 35
     },
     "Tools": {
       "total": 5,
@@ -585,36 +586,37 @@
     "Walls": {
       "total": 2,
       "states": {
-        "Não implementado": 2
+        "Não implementado": 1,
+        "Parcial": 1
       },
       "implemented": 0,
       "validated": 0,
       "automated": 0,
       "automatedPercent": 0.0,
-      "partial": 0,
+      "partial": 1,
       "implementedPercent": 0.0,
       "validatedPercent": 0.0,
-      "partialPercent": 0.0,
+      "partialPercent": 50.0,
       "limitations": 0,
       "missingExamples": 2
     },
     "Weapons": {
       "total": 18,
       "states": {
-        "Não implementado": 15,
-        "Implementado, aguardando validação": 2,
+        "Não implementado": 13,
+        "Implementado, aguardando validação": 4,
         "Parcial": 1
       },
-      "implemented": 2,
+      "implemented": 4,
       "validated": 0,
       "automated": 0,
       "automatedPercent": 0.0,
       "partial": 1,
-      "implementedPercent": 11.11,
+      "implementedPercent": 22.22,
       "validatedPercent": 0.0,
       "partialPercent": 5.56,
       "limitations": 0,
-      "missingExamples": 16
+      "missingExamples": 14
     }
   },
   "examples": [
@@ -4330,7 +4332,8 @@
       ],
       "preservedFeatures": [
         "Municao Bullet nativa, consumivel/pilha9999, dano12, repulsao1, valor5000 (sellPrice10silver), Green, velocidade4.5 e referencia por nome ao projetil.",
-        "Assets originais do anexo1.8.0; nomes en-US/pt-BR originais via BunnyName. API publica e fontes comentadas, sem QuickJS."
+        "Assets originais do anexo1.8.0; nomes en-US/pt-BR localizados via BunnyName. API publica e fontes comentadas, sem QuickJS.",
+        "Continuidade0.1.57: nomes exibidos e traduções começam com Example; identidades e assets preservados."
       ],
       "missingFeatures": [],
       "nativeDependencies": [
@@ -4352,7 +4355,9 @@
         "Verificar persistencia, remocao do mod e morte/respawn quando o exemplo mantiver estado."
       ],
       "validation": "Sem validacao funcional C# deste exemplo inteiro.",
-      "deviceEvidence": [],
+      "deviceEvidence": [
+        "Usuário aprovou .96 + ExampleMod de forma geral em19/10/2026; procedimentos individuais não informados. docs/validation/csharp-v96-android-user-2026-10-19.json. Estado integral não promovido."
+      ],
       "technicalBlockEvidence": [],
       "sourceEvidence": [
         {
@@ -6752,31 +6757,42 @@
         "nativeSignatures": [],
         "imports": []
       },
-      "cSharp": [],
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Placeable/ExampleTileItem.cs"
+      ],
       "requiredApis": [
         "AddRecipes",
         "ModItem",
         "SetDefaults"
       ],
-      "status": "Não implementado",
+      "status": "Implementado, aguardando validação",
       "assets": [
         "content/Content/Items/Placeable/ExampleTileItem.png"
       ],
       "automatedEvidence": [],
-      "preservedFeatures": [],
-      "missingFeatures": [
-        "Sem contrato C# reutilizavel equivalente para ModItem"
+      "preservedFeatures": [
+        "DefaultToPlaceableTile por chave local, Width/Height12.",
+        "Receita original: um ExampleItem produz dez blocos, estação WorkBenches.",
+        "Textura original e nome exibido Example Block, sem alterar UID ou conteúdo existente."
       ],
+      "missingFeatures": [],
       "nativeDependencies": [
-        "app/src/main/cpp/script/js/mod/ModItem.js"
+        "app/src/main/cpp/experiments/csharp/NativeTileFlags.h",
+        "app/src/main/cpp/experiments/csharp/NativeContent.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeTileGameplay.cpp",
+        "app/src/main/cpp/content/tiles/ModTiles.cpp"
       ],
-      "automatedTests": [],
+      "automatedTests": [
+        "tests/basic_items/Program.cs",
+        "tests/world_loaders/tile_flags_test.cpp",
+        "tests/basic_items/package_assets_test.py"
+      ],
       "terrariaTests": [
         "Comparar cada hook/propriedade listado com o comportamento JS original no Terraria 1.4.5.8.6.",
         "Carregar junto de um mod JS; entrar/sair do mundo e conferir falhas e desempenho.",
         "Verificar persistencia, remocao do mod e morte/respawn quando o exemplo mantiver estado."
       ],
-      "validation": "Sem validacao funcional C# deste exemplo inteiro.",
+      "validation": "Port dos comportamentos explícitos do original; contratos e wire no host. Colisão, frames, iluminação e save aguardam Terraria Android; isso não certifica TileLoader completo.",
       "deviceEvidence": [],
       "technicalBlockEvidence": [],
       "sourceEvidence": [
@@ -7091,29 +7107,48 @@
         "nativeSignatures": [],
         "imports": []
       },
-      "cSharp": [],
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Placeable/ExampleWallAdvanced.cs"
+      ],
       "requiredApis": [
         "AddRecipes",
         "ModItem",
         "SetDefaults"
       ],
-      "status": "Não implementado",
+      "status": "Parcial",
       "assets": [
-        "content/Content/Items/Placeable/ExampleWallAdvanced.png"
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Placeable/ExampleWallAdvanced.png"
       ],
-      "automatedEvidence": [],
-      "preservedFeatures": [],
+      "automatedEvidence": [
+        "Testes host executam o código de produção com metadados IL2CPP controlados; não são execução no Terraria."
+      ],
+      "preservedFeatures": [
+        "DefaultToPlaceableWall do próprio Terraria Android; createWall com largura/offset validados.",
+        "Overrides explícitos após o helper, inclusive valores 0 e false, preservados no wire.",
+        "Receita original de quatro paredes com ExampleItem e bancada C# ExampleWorkbench; nomes resolvidos a cada sessão."
+      ],
       "missingFeatures": [
-        "Sem contrato C# reutilizavel equivalente para ModItem"
+        "Validar contratos IL2CPP e paridade visual no Terraria Android real: colocação, frames, blend, iluminação, partículas, fabricação, mapa e save/reload.",
+        "BunnyWall oferece políticas nativas reutilizáveis; callbacks C# arbitrários do WallLoader original ainda pendentes, sem overrides públicos silenciosamente ignorados."
       ],
       "nativeDependencies": [
-        "app/src/main/cpp/script/js/mod/ModItem.js"
+        "app/src/main/cpp/experiments/csharp/NativeWallRuntime.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp",
+        "app/src/main/cpp/content/walls/ModWalls.cpp",
+        "app/src/main/cpp/content/tiles/ModTileMap.cpp"
       ],
-      "automatedTests": [],
+      "automatedTests": [
+        "tests/basic_items/Program.cs",
+        "tests/world_loaders/wall_runtime_test.cpp",
+        "tests/world_loaders/wall_registry_test.cpp",
+        "tests/basic_items/native_item_binding_test.cpp --wall",
+        "tests/basic_items/package_assets_test.py"
+      ],
       "terrariaTests": [
-        "Comparar cada hook/propriedade listado com o comportamento JS original no Terraria 1.4.5.8.6.",
-        "Carregar junto de um mod JS; entrar/sair do mundo e conferir falhas e desempenho.",
-        "Verificar persistencia, remocao do mod e morte/respawn quando o exemplo mantiver estado."
+        "Após o grupo de cinco loaders estar liberado, usar ExampleItem e ExampleWorkbench para fabricar quatro Example Advanced Wall.",
+        "Colocar Example Advanced Wall, comparar frames/mesclagem e conferir luz ao alternar dia/noite.",
+        "Bater e quebrar a parede: partículas variam pelo frame; recolher o item original.",
+        "Salvar/sair, reabrir e verificar parede, mapa, drops e fabricação com o ExampleMod junto de um mod JS."
       ],
       "validation": "Sem validacao funcional C# deste exemplo inteiro.",
       "deviceEvidence": [],
@@ -9056,7 +9091,8 @@
       ],
       "preservedFeatures": [
         "Espada nativa melee, dano50, repulsao6, critico6, swing20/20, autoReuse, valor50000 (sellPrice1gold), raridadeGreen e SoundID.Item1.",
-        "Assets originais do anexo1.8.0; nomes en-US/pt-BR originais via BunnyName. API publica e fontes comentadas, sem QuickJS."
+        "Assets originais do anexo1.8.0; nomes en-US/pt-BR localizados via BunnyName. API publica e fontes comentadas, sem QuickJS.",
+        "Continuidade0.1.57: nomes exibidos e traduções começam com Example; identidades e assets preservados."
       ],
       "missingFeatures": [],
       "nativeDependencies": [
@@ -9078,7 +9114,9 @@
         "Verificar persistencia, remocao do mod e morte/respawn quando o exemplo mantiver estado."
       ],
       "validation": "Sem validacao funcional C# deste exemplo inteiro.",
-      "deviceEvidence": [],
+      "deviceEvidence": [
+        "Usuário aprovou .96 + ExampleMod de forma geral em19/10/2026; procedimentos individuais não informados. docs/validation/csharp-v96-android-user-2026-10-19.json. Estado integral não promovido."
+      ],
       "technicalBlockEvidence": [],
       "sourceEvidence": [
         {
@@ -9520,31 +9558,46 @@
         "nativeSignatures": [],
         "imports": []
       },
-      "cSharp": [],
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Ranged/ExampleGun.cs"
+      ],
       "requiredApis": [
         "HoldoutOffset",
         "ModItem",
         "SetDefaults"
       ],
-      "status": "Não implementado",
+      "status": "Implementado, aguardando validação",
       "assets": [
-        "content/Content/Items/Weapons/Ranged/ExampleGun.png"
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Ranged/ExampleGun.png",
+        "samples/ExampleModCSharp/Playable/content/Assets/Sounds/Items/Guns/ExampleGun.ogg"
       ],
       "automatedEvidence": [],
-      "preservedFeatures": [],
-      "missingFeatures": [
-        "Sem contrato C# reutilizavel equivalente para ModItem"
+      "preservedFeatures": [
+        "Defaults ranged, dano20/knockback5/crit0, uso10, autoReuse/noMelee, sellPrice10gold, raridadeGreen, muniçãoBullet e shootSpeed10 com fallbackPurificationPowder",
+        "Holdout(-18,0) nativo com direção/gravidade/rotação",
+        "Som original Ogg, volume0.9, pitchVariance0.2, MaxInstances3/ReplaceOldest pelo serviço nativo compartilhado sem QuickJS",
+        "Nomes originais en-US/pt-BR da localização do pacote",
+        "Continuidade0.1.57: nomes exibidos e traduções começam com Example; identidades e assets preservados."
       ],
+      "missingFeatures": [],
       "nativeDependencies": [
-        "app/src/main/cpp/script/js/mod/ModItem.js"
+        "app/src/main/cpp/experiments/csharp/NativeUseSounds.h",
+        "app/src/main/cpp/content/sounds/NativeSoundRouter.cpp",
+        "app/src/main/cpp/content/sounds/AndroidAudio.cpp",
+        "app/src/main/kotlin/dev/bunnyloader/game/SfxQueue.kt",
+        "app/src/main/kotlin/dev/bunnyloader/game/ModAudio.kt"
       ],
-      "automatedTests": [],
+      "automatedTests": [
+        "tests/basic_items/Program.cs",
+        "tests/basic_items/package_assets_test.py",
+        "tests/summon_lifecycle/use_sound_test.cpp",
+        "tests/summon_lifecycle/sound_router_test.cpp"
+      ],
       "terrariaTests": [
-        "Comparar cada hook/propriedade listado com o comportamento JS original no Terraria 1.4.5.8.6.",
-        "Carregar junto de um mod JS; entrar/sair do mundo e conferir falhas e desempenho.",
-        "Verificar persistencia, remocao do mod e morte/respawn quando o exemplo mantiver estado."
+        "Usar ExampleGun com ExampleBullet, conferir consumo/dano/sprite; comparar som original/volume/variação e posição da arma ao virar/mirar.",
+        "Testar pausa/retorno, mais de uma arma/mod de áudio, limite de sobreposição3 e nenhuma regressão JavaScript."
       ],
-      "validation": "Sem validacao funcional C# deste exemplo inteiro.",
+      "validation": "Contratos gerenciados e binders/roteador C++ de produção exercitados no host com providers IL2CPP/Android controlados. Não executa SoundPool/decodificador Android, combate ou direção real no Terraria. Publicação suspensa até o port integral.",
       "deviceEvidence": [],
       "technicalBlockEvidence": [],
       "sourceEvidence": [
@@ -9608,7 +9661,8 @@
       ],
       "preservedFeatures": [
         "Lancador nativo: dano55, repulsao4, uso30/30, municaoRocket e RocketI resolvidos por nomes, velocidade5, valor400000, raridadeYellow, SoundID.Item11 e HoldoutOffset(-2,-2).",
-        "Assets originais do anexo1.8.0; nomes en-US/pt-BR originais via BunnyName. API publica e fontes comentadas, sem QuickJS."
+        "Assets originais do anexo1.8.0; nomes en-US/pt-BR localizados via BunnyName. API publica e fontes comentadas, sem QuickJS.",
+        "Continuidade0.1.57: nomes exibidos e traduções começam com Example; identidades e assets preservados."
       ],
       "missingFeatures": [],
       "nativeDependencies": [
@@ -9630,7 +9684,9 @@
         "Verificar persistencia, remocao do mod e morte/respawn quando o exemplo mantiver estado."
       ],
       "validation": "Sem validacao funcional C# deste exemplo inteiro.",
-      "deviceEvidence": [],
+      "deviceEvidence": [
+        "Usuário aprovou .96 + ExampleMod de forma geral em19/10/2026; procedimentos individuais não informados. docs/validation/csharp-v96-android-user-2026-10-19.json. Estado integral não promovido."
+      ],
       "technicalBlockEvidence": [],
       "sourceEvidence": [
         {
@@ -9689,7 +9745,9 @@
         ],
         "imports": []
       },
-      "cSharp": [],
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Ranged/ExampleShotgun.cs"
+      ],
       "requiredApis": [
         "HoldoutOffset",
         "ModItem",
@@ -9697,25 +9755,38 @@
         "Shoot",
         "int NewProjectile(IEntitySource spawnSource, float X, float Y, float SpeedX, float SpeedY, int Type, int Damage, float KnockBack, int Owner, float ai0, float ai1, float ai2, NewProjectileModifier modifer)"
       ],
-      "status": "Não implementado",
+      "status": "Implementado, aguardando validação",
       "assets": [
-        "content/Content/Items/Weapons/Ranged/ExampleShotgun.png"
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Ranged/ExampleShotgun.png"
       ],
-      "automatedEvidence": [],
-      "preservedFeatures": [],
-      "missingFeatures": [
-        "Sem contrato C# reutilizavel equivalente para ModItem"
+      "automatedEvidence": [
+        "42 verificações gerenciadas; oito spawns C# reais processados pelos hooks C++, fonte/dono/modifier/AI preservados, validação transacional, cancelamento, warmup e contratos inválidos."
       ],
+      "preservedFeatures": [
+        "Defaults originais:44x18,Green,buyPrice10gold,use55/55,Shoot,autoReuse,SoundItem36,ranged,dano10,knockback6,noMelee,AmmoBullet,shootSpeed10,fallbackPurificationPowder,holdout(-2,-2).",
+        "Shoot real C# com oito spawns, dispersão uniforme±15°, velocidade70–100%, retornofalse; snapshot após munição/modificadores preserva tipo/dano/dono/fonte/AI.",
+        "Textura original; nomes começam com Example por pedido do usuário, sem alteração de chave persistida."
+      ],
+      "missingFeatures": [],
       "nativeDependencies": [
-        "app/src/main/cpp/script/js/mod/ModItem.js"
+        "app/src/main/cpp/experiments/csharp/NativeShooting.cpp",
+        "app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeDefaults.h",
+        "app/src/main/cpp/experiments/csharp/NativeHoldout.h"
       ],
-      "automatedTests": [],
+      "automatedTests": [
+        "tests/shooting/Program.cs",
+        "tests/shooting/native_test.cpp",
+        "tests/summon_lifecycle/scheduler_test.cpp",
+        "tests/summon_lifecycle/source_registration_test.cpp",
+        "tests/basic_items/Program.cs"
+      ],
       "terrariaTests": [
         "Comparar cada hook/propriedade listado com o comportamento JS original no Terraria 1.4.5.8.6.",
         "Carregar junto de um mod JS; entrar/sair do mundo e conferir falhas e desempenho.",
         "Verificar persistencia, remocao do mod e morte/respawn quando o exemplo mantiver estado."
       ],
-      "validation": "Sem validacao funcional C# deste exemplo inteiro.",
+      "validation": "CI39236367596 e nove suítes de push aprovados no código367488d9; testes C# e hooks/decoder/binder C++ de produção com providers controlados. APK Android compilado/validado, sem execução no Terraria nem pacote publicado. Aguardando gameplay Android.",
       "deviceEvidence": [],
       "technicalBlockEvidence": [],
       "sourceEvidence": [
@@ -11303,7 +11374,8 @@
       ],
       "preservedFeatures": [
         "IA nativa de bala aiStyle1, 8x8, escala1, penetracao5, timeLeft600, luz0.5, extraUpdates1, ranged/friendly, colisao/agua e imunidade local com cooldown-1.",
-        "Assets originais do anexo1.8.0; nomes en-US/pt-BR originais via BunnyName. API publica e fontes comentadas, sem QuickJS."
+        "Assets originais do anexo1.8.0; nomes en-US/pt-BR localizados via BunnyName. API publica e fontes comentadas, sem QuickJS.",
+        "Continuidade0.1.57: nomes exibidos e traduções começam com Example; identidades e assets preservados."
       ],
       "missingFeatures": [],
       "nativeDependencies": [
@@ -11325,7 +11397,9 @@
         "Verificar persistencia, remocao do mod e morte/respawn quando o exemplo mantiver estado."
       ],
       "validation": "Sem validacao funcional C# deste exemplo inteiro.",
-      "deviceEvidence": [],
+      "deviceEvidence": [
+        "Usuário aprovou .96 + ExampleMod de forma geral em19/10/2026; procedimentos individuais não informados. docs/validation/csharp-v96-android-user-2026-10-19.json. Estado integral não promovido."
+      ],
       "technicalBlockEvidence": [],
       "sourceEvidence": [
         {
@@ -14325,30 +14399,40 @@
         "nativeSignatures": [],
         "imports": []
       },
-      "cSharp": [],
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Tiles/ExampleTile.cs"
+      ],
       "requiredApis": [
         "ModTile",
         "SetStaticDefaults"
       ],
-      "status": "Não implementado",
+      "status": "Implementado, aguardando validação",
       "assets": [
         "content/Content/Tiles/ExampleTile.png"
       ],
       "automatedEvidence": [],
-      "preservedFeatures": [],
-      "missingFeatures": [
-        "Sem contrato C# reutilizavel equivalente para ModTile"
+      "preservedFeatures": [
+        "tileSolid/tileBlockLight/tileMergeDirt/ChecksForMerge originais por arrays IL2CPP tipados, sem QuickJS.",
+        "Dust Stone e mapa RGB(0,200,255); textura original, drop via item correspondente e persistência no serviço existente."
       ],
+      "missingFeatures": [],
       "nativeDependencies": [
-        "app/src/main/cpp/script/js/mod/ModTile.js"
+        "app/src/main/cpp/experiments/csharp/NativeTileFlags.h",
+        "app/src/main/cpp/experiments/csharp/NativeContent.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeTileGameplay.cpp",
+        "app/src/main/cpp/content/tiles/ModTiles.cpp"
       ],
-      "automatedTests": [],
+      "automatedTests": [
+        "tests/basic_items/Program.cs",
+        "tests/world_loaders/tile_flags_test.cpp",
+        "tests/basic_items/package_assets_test.py"
+      ],
       "terrariaTests": [
         "Comparar cada hook/propriedade listado com o comportamento JS original no Terraria 1.4.5.8.6.",
         "Carregar junto de um mod JS; entrar/sair do mundo e conferir falhas e desempenho.",
         "Verificar persistencia, remocao do mod e morte/respawn quando o exemplo mantiver estado."
       ],
-      "validation": "Sem validacao funcional C# deste exemplo inteiro.",
+      "validation": "Port dos comportamentos explícitos do original; contratos e wire no host. Colisão, frames, iluminação e save aguardam Terraria Android; isso não certifica TileLoader completo.",
       "deviceEvidence": [],
       "technicalBlockEvidence": [],
       "sourceEvidence": [
@@ -15955,7 +16039,9 @@
         ],
         "imports": []
       },
-      "cSharp": [],
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Walls/ExampleWallAdvanced.cs"
+      ],
       "requiredApis": [
         "AnimateWall",
         "CreateDust",
@@ -15967,23 +16053,41 @@
         "WallFrame",
         "byte wallFrameNumber()"
       ],
-      "status": "Não implementado",
+      "status": "Parcial",
       "assets": [
-        "content/Content/Walls/ExampleWallAdvanced.png"
+        "samples/ExampleModCSharp/Playable/content/Content/Walls/ExampleWallAdvanced.png"
       ],
-      "automatedEvidence": [],
-      "preservedFeatures": [],
+      "automatedEvidence": [
+        "Testes host executam o código de produção com metadados IL2CPP controlados; não são execução no Terraria."
+      ],
+      "preservedFeatures": [
+        "Registro nativo compartilhado WALL separado de ITEM, moradia e blend CogWall.",
+        "Frames condicionais com chance de 75%; animação de dois quadros a cada cinco ticks.",
+        "Poeira Stone/GemEmerald por frame, orçamento 3/10 e iluminação RGB noturna 0.1/0.5/0.",
+        "Textura original preservada; serviço de mapa transacional e persistência de parede no núcleo existente."
+      ],
       "missingFeatures": [
-        "Sem contrato C# reutilizavel equivalente para ModWall"
+        "Validar contratos IL2CPP e paridade visual no Terraria Android real: colocação, frames, blend, iluminação, partículas, fabricação, mapa e save/reload.",
+        "BunnyWall oferece políticas nativas reutilizáveis; callbacks C# arbitrários do WallLoader original ainda pendentes, sem overrides públicos silenciosamente ignorados."
       ],
       "nativeDependencies": [
-        "app/src/main/cpp/script/js/mod/ModWall.js"
+        "app/src/main/cpp/experiments/csharp/NativeWallRuntime.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp",
+        "app/src/main/cpp/content/walls/ModWalls.cpp",
+        "app/src/main/cpp/content/tiles/ModTileMap.cpp"
       ],
-      "automatedTests": [],
+      "automatedTests": [
+        "tests/basic_items/Program.cs",
+        "tests/world_loaders/wall_runtime_test.cpp",
+        "tests/world_loaders/wall_registry_test.cpp",
+        "tests/basic_items/native_item_binding_test.cpp --wall",
+        "tests/basic_items/package_assets_test.py"
+      ],
       "terrariaTests": [
-        "Comparar cada hook/propriedade listado com o comportamento JS original no Terraria 1.4.5.8.6.",
-        "Carregar junto de um mod JS; entrar/sair do mundo e conferir falhas e desempenho.",
-        "Verificar persistencia, remocao do mod e morte/respawn quando o exemplo mantiver estado."
+        "Após o grupo de cinco loaders estar liberado, usar ExampleItem e ExampleWorkbench para fabricar quatro Example Advanced Wall.",
+        "Colocar Example Advanced Wall, comparar frames/mesclagem e conferir luz ao alternar dia/noite.",
+        "Bater e quebrar a parede: partículas variam pelo frame; recolher o item original.",
+        "Salvar/sair, reabrir e verificar parede, mapa, drops e fabricação com o ExampleMod junto de um mod JS."
       ],
       "validation": "Sem validacao funcional C# deste exemplo inteiro.",
       "deviceEvidence": [],
@@ -16157,6 +16261,15 @@
       "path": "samples/ExampleModCSharp/Playable/content/Common/Live/ExampleWaveBoltLiveEvents.cs",
       "classes": [
         "ExampleWaveBoltLiveEvents"
+      ],
+      "mappedToJs": [],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Common/Localization/ExampleLocalizationModule.cs",
+      "classes": [
+        "ExampleLocalizationModule"
       ],
       "mappedToJs": [],
       "deviceEvidence": [],
@@ -16648,6 +16761,28 @@
       "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
     },
     {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Items/Placeable/ExampleTileItem.cs",
+      "classes": [
+        "ExampleTileItem"
+      ],
+      "mappedToJs": [
+        "Content/Items/Placeable/ExampleTileItem.js"
+      ],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Items/Placeable/ExampleWallAdvanced.cs",
+      "classes": [
+        "ExampleWallAdvanced"
+      ],
+      "mappedToJs": [
+        "Content/Items/Placeable/ExampleWallAdvanced.js"
+      ],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
       "path": "samples/ExampleModCSharp/Playable/content/Content/Items/Placeable/Furniture/ExampleWorkbench.cs",
       "classes": [
         "ExampleWorkbench"
@@ -16720,12 +16855,34 @@
       "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
     },
     {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Ranged/ExampleGun.cs",
+      "classes": [
+        "ExampleGun"
+      ],
+      "mappedToJs": [
+        "Content/Items/Weapons/Ranged/ExampleGun.js"
+      ],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
       "path": "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Ranged/ExampleRocketLauncher.cs",
       "classes": [
         "ExampleRocketLauncher"
       ],
       "mappedToJs": [
         "Content/Items/Weapons/Ranged/ExampleRocketLauncher.js"
+      ],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Ranged/ExampleShotgun.cs",
+      "classes": [
+        "ExampleShotgun"
+      ],
+      "mappedToJs": [
+        "Content/Items/Weapons/Ranged/ExampleShotgun.js"
       ],
       "deviceEvidence": [],
       "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
@@ -16824,12 +16981,34 @@
       "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
     },
     {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Tiles/ExampleTile.cs",
+      "classes": [
+        "ExampleTile"
+      ],
+      "mappedToJs": [
+        "Content/Tiles/ExampleTile.js"
+      ],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
       "path": "samples/ExampleModCSharp/Playable/content/Content/Tiles/Furniture/ExampleWorkbench.cs",
       "classes": [
         "ExampleWorkbench"
       ],
       "mappedToJs": [
         "Content/Tiles/Furniture/ExampleWorkbench.js"
+      ],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Walls/ExampleWallAdvanced.cs",
+      "classes": [
+        "ExampleWallAdvanced"
+      ],
+      "mappedToJs": [
+        "Content/Walls/ExampleWallAdvanced.js"
       ],
       "deviceEvidence": [],
       "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."

@@ -2,6 +2,7 @@
 #include "core/Log.h"
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
+#include "il2cpp/FieldContract.h"
 #include "content/common/ContentAssets.h"
 #include "content/common/GameRefs.h"
 #include "content/common/TypeTables.h"
@@ -25,6 +26,8 @@ struct Entry {
 std::mutex g_mx;
 std::vector<Entry> g_regs;
 std::atomic<WallsInstalledHook> g_installedHook{nullptr};
+std::atomic<WallsInstalledHook> g_nativeInstalledHook{nullptr};
+std::atomic<bool> g_nativeDefaultsPending{false};
 std::atomic<int> g_total{0};
 std::atomic<int> g_installed{0};
 std::atomic<int> g_unloadedType{-1};
@@ -55,10 +58,16 @@ Refs& refs() {
     Il2CppClass* main = findClass({"Terraria", "Main", {}});
     Il2CppClass* wallId = findClass({"Terraria.ID", "WallID", {}});
     r.textures = textures ? findField(textures, "Wall") : nullptr;
-    r.house = main ? findField(main, "wallHouse") : nullptr;
-    r.blend = main ? findField(main, "wallBlend") : nullptr;
-    r.count = wallId ? findField(wallId, "Count") : nullptr;
-    r.ok = r.textures && r.house && r.blend && r.count;
+    std::string contractError;
+    r.ok=nativeFieldContract(main,"wallHouse","System.Boolean[]",true,sizeof(void*),&r.house,nullptr,&contractError)&&
+         nativeFieldContract(main,"wallBlend","System.Int32[]",true,sizeof(void*),&r.blend,nullptr,&contractError)&&
+         nativeFieldContract(wallId,"Count","System.UInt16",true,2,&r.count,nullptr,&contractError);
+    auto& a=api();auto* arrayClass=r.textures&&a.field_get_type&&a.class_from_il2cpp_type?a.class_from_il2cpp_type(a.field_get_type(r.textures)):nullptr;
+    auto* element=arrayClass&&a.class_get_rank&&a.class_get_rank(arrayClass)==1&&a.class_get_element_class?a.class_get_element_class(arrayClass):nullptr;
+    const bool textureValid=r.textures&&a.field_get_flags&&(a.field_get_flags(r.textures)&0x10u)&&element&&a.class_is_valuetype&&!a.class_is_valuetype(element)&&
+        a.class_get_name&&std::strcmp(a.class_get_name(element),"Asset`1")==0;
+    r.ok=r.ok&&textureValid;
+    if(!r.ok)BL_ERROR("[NativeContent][ERROR][Wall] Stage=BindTables Result=Disabled Detail=%s TextureArrayValid=%d",contractError.c_str(),textureValid);
     if (!r.ok) {
         BL_ERROR("paredes de mod: refs faltando (TextureAssets.Wall=%p Main.wallHouse=%p Main.wallBlend=%p "
                  "WallID.Count=%p)", (void*)r.textures, (void*)r.house, (void*)r.blend, (void*)r.count);
@@ -90,7 +99,7 @@ void applyTexture(int type, const Entry& e) {
 
 void applyBlend(int from, int to) {
     Il2CppArray* blend = readStatic(refs().blend);
-    if (!blend || blend->length < static_cast<uintptr_t>(to)) return;
+    if (!il2cpp::nativeArrayContract(blend,"Int32",4,65535) || blend->length < static_cast<uintptr_t>(to)) return;
     auto* v = static_cast<int32_t*>(arrayData(blend));
     for (int t = from; t < to; ++t) {
         if (v[t] == 0) v[t] = t;
@@ -98,6 +107,7 @@ void applyBlend(int from, int to) {
 }
 
 void onTableRegrown(FieldInfo* f, int size) {
+    g_nativeDefaultsPending.store(true,std::memory_order_release);
     const Refs& r = refs();
     if (f == r.blend) applyBlend(kVanillaWallCount, size);
     if (f != r.textures) return;
@@ -109,25 +119,35 @@ void onTableRegrown(FieldInfo* f, int size) {
 
 bool gameReady(int size) {
     const Refs& r = refs();
-    if (!r.ok) return false;
+    if (!r.ok) {g_failed=true;return false;}
     Il2CppArray* textures = readStatic(r.textures);
     Il2CppArray* house = readStatic(r.house);
-    return textures && house && textures->length == static_cast<uintptr_t>(size) &&
+    return textures && il2cpp::nativeArrayContract(house,"Boolean",1,65535) && textures->length == static_cast<uintptr_t>(size) &&
            house->length == static_cast<uintptr_t>(size);
 }
 
 } // namespace
 
-int registerModWall(ModWallDef def) {
+int registerModWall(ModWallDef def) {return registerModWall(std::move(def),nullptr);}
+
+int registerModWall(ModWallDef def,std::string* error) {
     std::lock_guard<std::mutex> l(g_mx);
+    if(error)error->clear();
+    // WallID.Count is UInt16; the count itself must remain representable.
+    if(g_regs.size()>=65535u-kVanillaWallCount){if(error)*error="Expected=WallCountAtMost65535 Actual="+std::to_string(g_regs.size()+kVanillaWallCount+1)+" Reason=NativeWallCountCapacityExceeded";return -1;}
     for (const Entry& e : g_regs) {
-        if (e.def.mod == def.mod && e.def.name == def.name) return -1;
+        if(e.def.mod==def.mod&&e.def.name==def.name){if(error)*error="Key="+def.mod+"/"+def.name+" Expected=UniqueWallKey Actual=AlreadyRegistered Reason=DuplicateNativeWall";return -1;}
     }
     Entry e;
     e.def = std::move(def);
     g_regs.push_back(std::move(e));
     g_total.store(static_cast<int>(g_regs.size()), std::memory_order_release);
     return kVanillaWallCount + static_cast<int>(g_regs.size()) - 1;
+}
+
+bool modWallAssetReady(int type) {
+    std::lock_guard lock(g_mx);const int index=type-kVanillaWallCount;
+    return index>=0&&static_cast<size_t>(index)<g_regs.size()&&g_regs[index].asset!=0;
 }
 
 bool isModWall(int type) {
@@ -145,6 +165,8 @@ void tickModWalls() {
     const int from = kVanillaWallCount + installed;
 
     if (installed == total) {
+        if(g_nativeDefaultsPending.exchange(false))
+            if(auto hook=g_nativeInstalledHook.load(std::memory_order_acquire))hook(kVanillaWallCount,kVanillaWallCount+installed-1);
         g_tables.checkPending(from);
         applyModTileMap(tileTypeCount(), false);
         static int frame = 0;
@@ -193,6 +215,8 @@ void tickModWalls() {
     }
     BL_INFO("paredes de mod: %d instalada(s) (ids %d..%d), %d tabela(s) aumentadas de %d para %d; "
             "WallID.Count = %d", total - installed, from, to - 1, grown, from, to, readWallCount());
+    g_nativeDefaultsPending.store(false);
+    if(auto hook=g_nativeInstalledHook.load(std::memory_order_acquire))hook(from,to-1);
     if (WallsInstalledHook hook = g_installedHook.load(std::memory_order_acquire)) {
         hook(from, to - 1);
     }
@@ -205,6 +229,9 @@ bool modWallsSettled() {
 void setWallsInstalledHook(WallsInstalledHook hook) {
     g_installedHook.store(hook, std::memory_order_release);
 }
+
+void setNativeWallsInstalledHook(WallsInstalledHook hook) {g_nativeInstalledHook.store(hook,std::memory_order_release);}
+void requestNativeWallDefaults() {g_nativeDefaultsPending.store(true,std::memory_order_release);}
 
 int modWallTypeByName(const std::string& mod, const std::string& name) {
     std::lock_guard<std::mutex> l(g_mx);

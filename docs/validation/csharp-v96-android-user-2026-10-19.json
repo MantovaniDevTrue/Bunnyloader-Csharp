@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "source": "Relato do usuário nesta conversa",
+  "reportedLoader": ".96",
+  "correspondingLoader": "0.1.10.16.90.29.96-native-defaults-holdouts",
+  "correspondingExampleModFromDelivery": "0.1.55",
+  "statement": "testei a .96 junto de example e funcionou perfeitamente",
+  "validation": "Teste geral informado pelo usuário; nenhum erro relatado",
+  "newDeviceLogAttached": false,
+  "fpsMeasured": null,
+  "perExampleProceduresReported": false,
+  "doesNotProve": [
+    "Cada mecânica original de todos os exemplos",
+    "A continuação .97/.98, ExampleGun com áudio próprio e os novos callbacks Shoot",
+    "60 FPS sustentados ou compilação fria em 5 segundos"
+  ],
+  "namingRequest": "Todo nome exibido deve começar com Example; manter identidades persistidas"
+}

@@ -1,9 +1,14 @@
 #include "experiments/csharp/SourceLimits.h"
+#include "experiments/csharp/NativeTileWirePolicy.h"
 #include "experiments/csharp/SourceLoader.h"
 
 #include "experiments/csharp/NativeContent.h"
 #include "experiments/csharp/NativeDefaults.h"
 #include "experiments/csharp/NativeHoldout.h"
+#include "experiments/csharp/NativeShooting.h"
+#include "experiments/csharp/NativeWallRuntime.h"
+#include "experiments/csharp/NativeLocalizationRuntime.h"
+#include "content/walls/ModWalls.h"
 #include "content/projectiles/ModProjectiles.h"
 #include "graphics/CSharpScreenEffects.h"
 #include "experiments/csharp/NativeBasicItems.h"
@@ -30,6 +35,7 @@
 #include <iterator>
 #include <map>
 #include <sstream>
+#include <set>
 #include <string>
 #include <sys/stat.h>
 #include <vector>
@@ -117,12 +123,13 @@ bool fields(const ParsedSourceType& type, NativeContentSpec* spec,
     const bool projectile = type.base == "BunnyProjectile";
     const bool basic = type.base == "BunnyItem";
     const bool tile = type.base == "BunnyTile";
+    const bool wall = type.base == "BunnyWall";
     const bool weapon = type.base == "BunnyWeapon";
     const bool buff = type.base == "BunnyBuff";
     const bool potion = type.base == "BunnyBuffPotion";
     const bool accessory = type.base == "BunnyAccessory";
     const bool npc = type.base == "BunnyNPC";
-    if (!basic && !tile && !projectile && !weapon && !buff && !potion && !accessory && !npc) {
+    if (!basic && !tile && !wall && !projectile && !weapon && !buff && !potion && !accessory && !npc) {
         *error = type.name + ": tipo de conteudo C# desconhecido";
         return false;
     }
@@ -135,10 +142,10 @@ bool fields(const ParsedSourceType& type, NativeContentSpec* spec,
     spec->useTime = npc ? 2 : weapon ? 18 : 0;
     spec->shootType = npc ? 25 : 0;
     spec->shootSpeed = weapon ? 12.f : 0.f;
-    spec->kind = tile ? NativeTile : basic ? NativeBasicItem : projectile ? NativeProjectile :
+    spec->kind = wall ? NativeWall : tile ? NativeTile : basic ? NativeBasicItem : projectile ? NativeProjectile :
                  weapon ? NativeWeapon : buff ? NativeBuff :
                  accessory ? NativeAccessory : npc ? NativeNpc : NativeBuffPotion;
-    *texture = tile ? "Content/Tiles/" + type.name + ".png" :
+    *texture = wall ? "Content/Walls/" + type.name + ".png" : tile ? "Content/Tiles/" + type.name + ".png" :
                basic ? "Content/Items/" + type.name + ".png" : npc ? "Content/NPCs/" + type.name + ".png" :
                projectile ? "Content/Projectiles/" + type.name + ".png" :
                weapon ? "Content/Items/Weapons/" + type.name + ".png" :
@@ -149,8 +156,8 @@ bool fields(const ParsedSourceType& type, NativeContentSpec* spec,
     for (const auto& [key, value] : type.properties) {
         if (key == "DisplayName") { *display = value; continue; }
         if (key == "Texture") { *texture = value; continue; }
-        if (tile) {
-            *error = type.name + ": BunnyTile permite somente Texture e DisplayName no registro antecipado";
+        if (tile || wall) {
+            *error = type.name + ": "+type.base+" permite somente Texture e DisplayName no registro antecipado";
             return false;
         }
         if (basic) {
@@ -370,8 +377,8 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
         return false;
     }
     NativeRegisterContext ctx{mod.id, mod.dir, 0, 0};
-    const std::array<std::string, 9> order = {
-        "BunnyTile", "BunnyItem",
+    const std::array<std::string, 10> order = {
+        "BunnyTile", "BunnyWall", "BunnyItem",
         "BunnyBuff", "BunnyProjectile", "BunnyAccessory",
         "BunnyNPC", "BunnyBuffPotion", "BunnyWeapon", "BunnyPrefix"
     };
@@ -495,6 +502,7 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
             status->registeredTypes.try_emplace(key.substr(colon + 1), type);
     }
     status->tiles = ctx.tiles;
+    status->walls = ctx.walls;
     status->items = ctx.items;
     status->projectiles = ctx.projectiles;
     status->buffs = ctx.buffs;
@@ -637,11 +645,13 @@ bool applyManagedSourceDefaults(
     std::map<std::string, int> buffsByName;
     std::map<std::string, bool> seen;
     std::vector<ManagedTileEntry> tiles;
+    std::vector<walls::Definition> wallDefinitions;
     std::vector<ManagedProjectileEntry> projectiles;
     std::vector<ManagedWeaponEntry> weapons;
     std::vector<BasicItemEntry> basicItems;
     std::vector<NativeDefaultsRequest> nativeDefaults;
     std::vector<holdout::Entry> holdouts;
+    std::vector<shooting::Entry> shooting;
     std::vector<useSounds::Entry> useSounds;
     std::vector<ManagedBuffEntry> buffs;
     std::vector<ManagedPotionEntry> potions;
@@ -649,6 +659,10 @@ bool applyManagedSourceDefaults(
     std::vector<ManagedPlayerEntry> players;
     std::vector<ManagedNpcEntry> npcs;
     std::vector<ManagedPrefixEntry> prefixes;
+    std::vector<localization::Entry> localized;
+    std::set<std::string> seenLocale;
+    bool seenLocalizationModules = false;
+    bool seenLocalizationRuntime = false;
     std::vector<SourceRecipeOwner> recipeOwners;
     std::map<std::string,bool> seenRecipeOwners;
     std::map<std::string, int> accessoryTypes;
@@ -660,6 +674,35 @@ bool applyManagedSourceDefaults(
         std::vector<std::string> fields;
         std::string part;
         while (std::getline(parts, part, '\t')) fields.push_back(part);
+        if(!fields.empty()&&fields[0]=="LOCALE_MODULES") {
+            int count=0;
+            if (seenLocalizationModules || fields.size()!=2 ||
+                !integer(fields[1],&count) || count<1 || count>32) {
+                *error="[CSharp][ERROR][Localization] Stage=Decode Reason=InvalidModuleMarker";
+                return false;
+            }
+            seenLocalizationModules=true;
+            continue;
+        }
+        if(!fields.empty()&&fields[0]=="LOCALE_RUNTIME") {
+            if (seenLocalizationRuntime || fields.size()!=2 || fields[1]!="1") {
+                *error="[CSharp][ERROR][Localization] Stage=Decode Reason=InvalidRuntimeMarker";
+                return false;
+            }
+            seenLocalizationRuntime=true;
+            continue;
+        }
+        if(!fields.empty()&&fields[0]=="LOCALE") {
+            localization::Entry entry;
+            if (!localization::decodeWire(fields,modId,&entry,error))return false;
+            if (!seenLocale.insert(entry.culture+"\t"+entry.key).second ||
+                localized.size() >= 8192u*32u) {
+                *error="[CSharp][ERROR][Localization] Stage=Decode Result=Rejected Reason=DuplicateOrOverflow";
+                return false;
+            }
+            localized.push_back(std::move(entry));
+            continue;
+        }
         if(!fields.empty()&&fields[0]=="RECIPES") {
             SourceRecipeOwner owner;
             if(!parseSourceRecipeOwner(fields,modId,&owner,error))return false;
@@ -680,6 +723,15 @@ bool applyManagedSourceDefaults(
             recipeOwners.push_back(std::move(owner));
             if(recipeOwners.size()>kSourceMaxCategory){*error="[CSharp][ERROR][RecipeLoader] Mod="+modId+" Stage=DecodeOwners Reason=OwnerCapacityExceeded Expected=4096 Actual="+std::to_string(recipeOwners.size());return false;}
             continue;
+        }
+        if(!fields.empty()&&fields[0]=="SHOOT") {
+            const auto key=fields.size()>1?sourceIdentityForWire("ITEM",fields[1]):"";
+            const auto target=mod->registeredKindTypes.find(key);int mask=0;
+            if(fields.size()!=3||target==mod->registeredKindTypes.end()||!integer(fields[2],&mask)||mask<1||mask>7) {
+                *error="[CSharp][ERROR][Shoot] Mod="+modId+" Class="+(fields.size()>1?fields[1]:"<missing>")+" Stage=Decode Expected=RegisteredItemAndCallbackMask1..7 Reason=InvalidShootDescriptor Result=Rejected";return false;
+            }
+            const auto source=mod->sourcePaths.find(key);
+            shooting.push_back({modId,fields[1],source==mod->sourcePaths.end()?"<unavailable>":source->second,"",target->second,mask});continue;
         }
         if(!fields.empty()&&fields[0]=="USE_SOUND") {
             useSounds::Entry context;context.mod=modId;context.directory=mod->directory;
@@ -711,13 +763,25 @@ bool applyManagedSourceDefaults(
             nativeDefaults.push_back({fields[1],modId,source==mod->sourcePaths.end()?"<unavailable>":source->second,fields[2],registered->second,projectile});
             continue;
         }
+        if(fields.size()>1&&fields[0]=="WALL") {
+            const auto key=sourceIdentityForWire("WALL",fields[1]);auto target=mod->registeredKindTypes.find(key);
+            walls::Definition definition;
+            if(target==mod->registeredKindTypes.end()||runtime::modWallTypeByName(modId,fields[1])!=target->second) {
+                *error="[CSharp][ERROR][WallDefaults] Mod="+modId+" Class="+fields[1]+" Stage=ResolveContent Result=Rejected Reason=WallNotRegistered";return false;
+            }
+            auto source=mod->sourcePaths.find(key);const std::string sourcePath=source==mod->sourcePaths.end()?"<unavailable>":source->second;
+            if(!walls::parse(fields,&definition,error)){*error="[CSharp][ERROR][Wall] Mod="+modId+" Class="+fields[1]+" File="+sourcePath+" ContentId="+std::to_string(target->second)+" Stage=Decode Result=Rejected Detail="+*error;return false;}
+            definition.mod=modId;definition.type=target->second;definition.source=sourcePath;
+            if(!seen.emplace(key,true).second){*error="Duplicate WALL: "+fields[1];return false;}
+            wallDefinitions.push_back(std::move(definition));continue;
+        }
         const std::string identity = fields.size() >= 2
             ? sourceIdentityForWire(fields[0], fields[1]) : "";
         if (identity.empty() || !seen.emplace(identity, true).second) {
             *error = "Classe C# duplicada ou registro invalido";
             return false;
         }
-        if (fields[0] == "TILE" && fields.size() == 13) {
+        if (fields[0] == "TILE" && tile_wire::supported(fields.size())) {
             const auto it = mod->registeredKindTypes.find(identity);
             if (it == mod->registeredKindTypes.end() ||
                 runtime::modTileTypeByName(modId, fields[1]) != it->second) {
@@ -725,8 +789,17 @@ bool applyManagedSourceDefaults(
             }
             ManagedTileEntry tile;
             tile.name = fields[1]; tile.type = it->second;
-            if (!integer(fields[2], &tile.flags) ||
-                !integer(fields[3], &tile.shape) ||
+            const bool flagsEncoded = integer(fields[2], &tile.flags);
+            if (!flagsEncoded || tile.flags < 0 || tile.flags > 65535) {
+                const auto source = mod->sourcePaths.find(identity);
+                *error = "[CSharp][ERROR][TileDefaults] Mod=" + modId + " Class=" + fields[1] +
+                    " File=" + (source == mod->sourcePaths.end() ? "<unavailable>" : source->second) +
+                    " API=BunnyTile.Flags Field=Flags ContentId=" + std::to_string(tile.type) +
+                    " Stage=Decode Expected=Int32:KnownMask0xFFFF Actual=" + fields[2] +
+                    " Result=Rejected Reason=" + (flagsEncoded ? "UnknownFlagBits" : "InvalidInt32");
+                return false;
+            }
+            if (!integer(fields[3], &tile.shape) ||
                 !integer(fields[4], &tile.coordinateHeight) ||
                 !integer(fields[5], &tile.adjacentTile) ||
                 !integer(fields[7], &tile.mapR) ||
@@ -734,7 +807,10 @@ bool applyManagedSourceDefaults(
                 !integer(fields[9], &tile.mapB) ||
                 !integer(fields[11], &tile.failDust) ||
                 !integer(fields[12], &tile.normalDust) ||
-                tile.flags < 0 || tile.flags > 511 ||
+                (tile_wire::hasAnimationHeight(fields.size()) && !integer(fields[13], &tile.animationFrameHeight)) ||
+                (tile_wire::hasAnimationPolicy(fields.size()) &&
+                 (!integer(fields[14], &tile.animationFrames) ||
+                  !integer(fields[15], &tile.animationFrameTicks))) ||
                 tile.shape < 0 || tile.shape > 1 ||
                 tile.coordinateHeight != 18 ||
                 tile.adjacentTile < -1 || tile.adjacentTile >= 754 ||
@@ -743,6 +819,12 @@ bool applyManagedSourceDefaults(
                 tile.mapB < 0 || tile.mapB > 255 ||
                 tile.failDust < 0 || tile.failDust > 20 ||
                 tile.normalDust < 0 || tile.normalDust > 20 ||
+                tile.animationFrameHeight < 0 || tile.animationFrameHeight > 4096 ||
+                tile.animationFrames < 1 || tile.animationFrames > 64 ||
+                tile.animationFrameTicks < 0 || tile.animationFrameTicks > 600 ||
+                (tile.animationFrames > 1 &&
+                 (tile.animationFrameHeight == 0 || tile.animationFrameTicks == 0)) ||
+                (tile.animationFrames == 1 && tile.animationFrameTicks != 0) ||
                 fields[6].size() > 72 || fields[10].size() > 160) {
                 *error = fields[1] + ": descritor BunnyTile fora dos limites"; return false;
             }
@@ -760,6 +842,41 @@ bool applyManagedSourceDefaults(
                     if (left < 0 || right < 0) { *error = "Nome do mapa tile invalido"; return false; }
                     tile.mapName.push_back(static_cast<char>(left * 16 + right));
                 }
+            }
+            if (tile_wire::hasAdjacencies(fields.size()) && fields[16] != "-") {
+                std::istringstream adjacentStream(fields[16]);
+                std::string token;
+                while (std::getline(adjacentStream, token, ',')) {
+                    int alias = -1;
+                    if (!integer(token, &alias) || alias < 0 || alias >= runtime::kVanillaTileCount ||
+                        alias == tile.adjacentTile || tile.adjacentTiles.size() >= 16 ||
+                        std::find(tile.adjacentTiles.begin(), tile.adjacentTiles.end(), alias) != tile.adjacentTiles.end()) {
+                        *error = fields[1] + ": lista AdjacentTiles invalida"; return false;
+                    }
+                    tile.adjacentTiles.push_back(alias);
+                }
+                if (fields[16].empty() || fields[16].back() == ',') {
+                    *error = fields[1] + ": lista AdjacentTiles malformada"; return false;
+                }
+            }
+            if (tile_wire::hasBreakPolicy(fields.size())) {
+                if ((fields[17] != "0" && fields[17] != "1") ||
+                    (fields[18] != "0" && fields[18] != "1")) {
+                    *error = fields[1] + ": flags AllowBreaking/AllowDrops invalidas";
+                    return false;
+                }
+                tile.allowBreaking = fields[17] == "1";
+                tile.allowDrops = fields[18] == "1";
+            }
+            if (tile_wire::hasCallbacks(fields.size()) &&
+                (!integer(fields[19], &tile.callbackMask) || tile.callbackMask < 0 || tile.callbackMask > 65535)) {
+                *error = fields[1] + ": TileCallbackMask invalido"; return false;
+            }
+            if (tile_wire::hasDrawCachePolicy(fields.size())) {
+                if (fields[20] != "0" && fields[20] != "1") {
+                    *error = fields[1] + ": CacheDrawData deve ser 0 ou 1"; return false;
+                }
+                tile.cacheDrawData = fields[20] == "1";
             }
             tiles.push_back(std::move(tile));
             if (tiles.size() > kSourceMaxCategory) {
@@ -1152,6 +1269,7 @@ bool applyManagedSourceDefaults(
         *error = "Falha ao validar descritores de prefixo C#";
         return false;
     }
+    if(!wallDefinitions.empty()&&!walls::publish(std::move(wallDefinitions),error))return false;
     if (!tiles.empty() && !applyManagedNativeTileDefaultsBatch(modId, tiles)) {
         *error = "Falha ao aplicar os defaults nativos de BunnyTile"; return false;
     }
@@ -1172,6 +1290,8 @@ bool applyManagedSourceDefaults(
         requestBasicItemInstanceRefresh("NativeDefaultsPublished");
         BL_INFO("[CSharp][NativeDefaults] Mod=%s Stage=Publish Contents=%zu Result=Ready",modId.c_str(),nativeDefaults.size());
     }
+    if(!shooting::publish(shooting,error))return false;
+    localization::stage(modId,std::move(localized));
     mod->runtimeApplied = true;
     return true;
 }

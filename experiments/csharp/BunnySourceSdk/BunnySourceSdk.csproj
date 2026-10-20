@@ -13,6 +13,9 @@
     <Compile Include="../BunnyCsSdk/BunnyContentDeclaration.cs" Link="BunnyContentDeclaration.cs" />
     <Compile Include="../BunnyCsSdk/BunnyArmorEffects.cs" Link="BunnyArmorEffects.cs" />
     <Compile Include="../BunnyCsSdk/BunnyItemBehavior.cs" Link="BunnyItemBehavior.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyLocalization.cs" Link="BunnyLocalization.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyLocalizationModule.cs" Link="BunnyLocalizationModule.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyLocalizationJson.cs" Link="BunnyLocalizationJson.cs" />
     <Compile Include="../BunnyCsSdk/BunnyRecipeGroup.cs" Link="BunnyRecipeGroup.cs" />
     <Compile Include="../BunnyCsSdk/BunnyRecipeCallbacks.cs" Link="BunnyRecipeCallbacks.cs" />
     <Compile Include="../BunnyCsSdk/BunnyRecipeBehavior.cs" Link="BunnyRecipeBehavior.cs" />
@@ -20,8 +23,11 @@
     <Compile Include="../BunnyCsSdk/BunnyItem.cs" Link="BunnyItem.cs" />
     <Compile Include="../BunnyCsSdk/BunnyNativeDefaults.cs" Link="BunnyNativeDefaults.cs" />
     <Compile Include="../BunnyCsSdk/BunnyHoldout.cs" Link="BunnyHoldout.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyShooting.cs" Link="BunnyShooting.cs" />
     <Compile Include="../BunnyCsSdk/BunnySoundStyle.cs" Link="BunnySoundStyle.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyWall.cs" Link="BunnyWall.cs" />
     <Compile Include="../BunnyCsSdk/BunnyTile.cs" Link="BunnyTile.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyTileRuntime.cs" Link="BunnyTileRuntime.cs" />
     <Compile Include="../BunnyCsSdk/BunnyCombatUtilities.cs" Link="BunnyCombatUtilities.cs" />
     <Compile Include="../BunnyCsSdk/BunnyMinionSteering.cs" Link="BunnyMinionSteering.cs" />
     <Compile Include="../BunnyCsSdk/BunnySourceScriptApi.cs" Link="BunnySourceScriptApi.cs" />
