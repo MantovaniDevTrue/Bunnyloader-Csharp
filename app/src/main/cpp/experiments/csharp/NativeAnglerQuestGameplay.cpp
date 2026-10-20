@@ -46,6 +46,9 @@ std::set<int> g_ownedTypes;
 std::map<int, bool> g_previousFlags;
 std::map<int, bool> g_previousRackFlags;
 bool g_fishingWarning = false;
+bool g_sessionBoundaryPending = false;
+Il2CppArray* g_lastFishFlags = nullptr;
+Il2CppArray* g_lastRackFlags = nullptr;
 
 std::string utf8(Il2CppString* input) {
     if (!input || input->length < 0 || input->length > 256) return {};
@@ -281,7 +284,8 @@ struct FlagPlan {
 };
 
 bool prepareFlags(FieldInfo* field, const std::map<int, bool>& saved,
-                  const std::set<int>& upcoming, FlagPlan* plan) {
+                  const std::set<int>& upcoming, Il2CppArray* lastPublished,
+                  FlagPlan* plan) {
     if (!field || !plan) return false;
     auto& a = il2cpp::api();
     Il2CppArray* original = nullptr;
@@ -299,6 +303,8 @@ bool prepareFlags(FieldInfo* field, const std::map<int, bool>& saved,
     plan->array = next;
     plan->replace = next != original;
     plan->previous = saved;
+    if (g_sessionBoundaryPending && lastPublished && original != lastPublished)
+        plan->previous.clear();
     const auto* values = static_cast<const uint8_t*>(arrayData(next));
     for (int former : g_ownedTypes) {
         if (upcoming.contains(former) || former < 0 ||
@@ -354,9 +360,10 @@ bool updateQuests(const std::vector<Quest>& quests) {
     std::set<int> upcoming;
     for (const auto& quest : quests) upcoming.insert(quest.type);
     FlagPlan fish, rack;
-    if (!prepareFlags(g_questFlag, g_previousFlags, upcoming, &fish) ||
+    if (!prepareFlags(g_questFlag, g_previousFlags, upcoming, g_lastFishFlags, &fish) ||
         (g_weaponRackFlag &&
-         !prepareFlags(g_weaponRackFlag, g_previousRackFlags, upcoming, &rack)))
+         !prepareFlags(g_weaponRackFlag, g_previousRackFlags, upcoming,
+                       g_lastRackFlags, &rack)))
         return false;
     applyFlags(fish);
     if (g_weaponRackFlag) applyFlags(rack);
@@ -368,7 +375,15 @@ bool updateQuests(const std::vector<Quest>& quests) {
         }
     }
     g_previousFlags = std::move(fish.previous);
-    if (g_weaponRackFlag) g_previousRackFlags = std::move(rack.previous);
+    g_lastFishFlags = fish.array;
+    if (g_weaponRackFlag) {
+        g_previousRackFlags = std::move(rack.previous);
+        g_lastRackFlags = rack.array;
+    } else {
+        g_previousRackFlags.clear();
+        g_lastRackFlags = nullptr;
+    }
+    g_sessionBoundaryPending = false;
     g_ownedTypes = std::move(upcoming);
     return true;
 }
@@ -409,6 +424,7 @@ void pumpOnGameThread() {
 }
 
 void invalidateWorldSession() {
+    g_sessionBoundaryPending = true;
     activeGeneration().store(std::numeric_limits<uint64_t>::max(), std::memory_order_release);
     g_appliedGeneration = std::numeric_limits<uint64_t>::max();
     g_poll = 0;
