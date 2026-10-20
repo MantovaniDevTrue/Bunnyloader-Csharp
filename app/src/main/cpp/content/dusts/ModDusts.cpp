@@ -369,34 +369,27 @@ csharp::ManagedDustState captureManagedDust(Il2CppObject* dust, int slot, int ge
 void applyManagedDust(Il2CppObject* dust, const csharp::ManagedDustState& before,
                       const csharp::ManagedDustState& state, bool updateColor = true) {
     if (!activeOf(dust)) return;
-    if (state.active == 0) {
+    const int slot = managedIndex(dust);
+    if (slot < 0) return;
+    const auto live = captureManagedDust(dust, slot, state.generation);
+    csharp::ManagedDustState merged{};
+    if (!csharp::mergeManagedDustDelta(live, before, state, &merged, updateColor))
+        return;
+    if (merged.active == 0) {
         setNotActive(dust);
         return;
     }
     const Refs& r = refs();
     Vec2& pos = field<Vec2>(dust, r.position);
     Vec2& velocity = field<Vec2>(dust, r.velocity);
-    if (state.x != before.x) pos.x += state.x - before.x;
-    if (state.y != before.y) pos.y += state.y - before.y;
-    if (state.velocityX != before.velocityX)
-        velocity.x += state.velocityX - before.velocityX;
-    if (state.velocityY != before.velocityY)
-        velocity.y += state.velocityY - before.velocityY;
-    if (state.scale != before.scale && before.scale > 0.f)
-        field<float>(dust, r.scale) *= state.scale / before.scale;
-    if (state.rotation != before.rotation)
-        field<float>(dust, r.rotation) += state.rotation - before.rotation;
-    if (state.alpha != before.alpha)
-        field<int32_t>(dust, r.alpha) =
-            std::clamp(field<int32_t>(dust, r.alpha) +
-                       state.alpha - before.alpha, 0, 255);
+    pos = {merged.x, merged.y};
+    velocity = {merged.velocityX, merged.velocityY};
+    field<float>(dust, r.scale) = merged.scale;
+    field<float>(dust, r.rotation) = merged.rotation;
+    field<int32_t>(dust, r.alpha) = merged.alpha;
     Rect& rect = field<Rect>(dust, r.frame);
-    if (state.frameX != before.frameX) rect.x = state.frameX;
-    if (state.frameY != before.frameY) rect.y = state.frameY;
-    if (state.frameWidth != before.frameWidth) rect.w = state.frameWidth;
-    if (state.frameHeight != before.frameHeight) rect.h = state.frameHeight;
-    if (updateColor && state.color != before.color)
-        field<Color32>(dust, r.color).packed = state.color;
+    rect = {merged.frameX, merged.frameY, merged.frameWidth, merged.frameHeight};
+    if (updateColor) field<Color32>(dust, r.color).packed = merged.color;
 }
 
 struct ManagedDustCached {
