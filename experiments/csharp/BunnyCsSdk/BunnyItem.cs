@@ -160,6 +160,8 @@ public abstract class BunnyItem : BunnyShootSource
         Value = 0;
     }
 
+    public virtual bool OnUse(int playerIndex) => false;
+    public virtual bool OnUse(int playerIndex, BunnyUseContext context) => OnUse(playerIndex);
     public abstract void SetDefaults();
 }
 
