@@ -2492,14 +2492,8 @@ bool publishManagedNativeTrees(const std::string& modId,const std::string& direc
         il2cpp::parseSignature("void SetValue(object value, int index)")):nullptr;
     if(!arraySet||!il2cpp::methodPointer(arraySet))
         return fail("ABI","ArrayWriteUnavailable");
-    const bool needsDrops=std::any_of(trees.begin(),trees.end(),[](const ManagedTreeEntry& tree) {
-        return tree.woodItemType>=0||!tree.canDropAcorn;
-    });
-    const bool needsAcorns=std::any_of(trees.begin(),trees.end(),[](const ManagedTreeEntry& tree) {
-        return !tree.canDropAcorn;
-    });
-    if(needsDrops&&!runtime::prepareModTreeDrops(needsAcorns))
-        return fail("BindTreeDrops","MissingNativeDropsOrAcornABI");
+    if(!runtime::prepareModTreeDrops(true))
+        return fail("BindTreeDrops","MissingNativeDropsAcornOrRandomABI");
     if(!runtime::prepareModTreePlanting())
         return fail("BindSaplingPlanting","MissingTileObjectCanPlaceABI");
     std::map<int,bool> uniqueGround;

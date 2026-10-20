@@ -8,6 +8,7 @@
 #include "hook/HookManager.h"
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
+#include "il2cpp/Signature.h"
 
 #include <atomic>
 #include <dlfcn.h>
@@ -242,6 +243,64 @@ using TreeDropsFn=void (*)(int32_t,int32_t,uint32_t,bool*,bool*,int32_t*,int32_t
 TreeDropsFn g_originalTreeDrops=nullptr;
 bool g_treeDropsHooked=false;
 int g_acornType=-1;
+FieldInfo* g_treeRandField=nullptr;
+FieldInfo* g_treeNetModeField=nullptr;
+const MethodInfo* g_treeNextDouble=nullptr;
+
+bool bindTreeRandom() {
+    if(g_treeRandField&&g_treeNetModeField&&g_treeNextDouble)return true;
+    auto& a=il2cpp::api();
+    if(!a.field_static_get_value||!a.field_get_flags||!a.field_get_type||
+       !a.type_get_name||!a.method_get_param_count||!a.method_is_instance||
+       !a.method_get_return_type||!a.runtime_invoke)return false;
+    auto* main=il2cpp::findClass({"Terraria","Main",{}});
+    auto* random=main?il2cpp::findField(main,"rand"):nullptr;
+    auto* netMode=main?il2cpp::findField(main,"netMode"):nullptr;
+    if(!random||!netMode||(a.field_get_flags(random)&0x10u)==0||
+       (a.field_get_flags(netMode)&0x10u)==0)return false;
+    char* randName=a.type_get_name(a.field_get_type(random));
+    char* modeName=a.type_get_name(a.field_get_type(netMode));
+    const bool unified=randName&&std::strcmp(randName,"Terraria.Utilities.UnifiedRandom")==0;
+    const bool system=randName&&std::strcmp(randName,"System.Random")==0;
+    const bool modeOk=modeName&&std::strcmp(modeName,"System.Int32")==0;
+    if(randName)std::free(randName);
+    if(modeName)std::free(modeName);
+    if(!modeOk||(!unified&&!system))return false;
+    auto* rng=unified?il2cpp::findClass({"Terraria.Utilities","UnifiedRandom",{}}):
+                      il2cpp::findClass({"System","Random",{}});
+    const auto* next=rng?il2cpp::findMethodBySignature(rng,
+        il2cpp::parseSignature("double NextDouble()")):nullptr;
+    if(!next||!a.method_is_instance(next)||a.method_get_param_count(next)!=0||
+       !il2cpp::methodPointer(next))return false;
+    char* returnName=a.type_get_name(a.method_get_return_type(next));
+    const bool validReturn=returnName&&std::strcmp(returnName,"System.Double")==0;
+    if(returnName)std::free(returnName);
+    if(!validReturn)return false;
+    g_treeRandField=random;
+    g_treeNetModeField=netMode;
+    g_treeNextDouble=next;
+    return true;
+}
+
+bool rollTopAcorn(int frameX,int frameY,bool enabled) {
+    if(!enabled||frameX<22||frameY<198||g_acornType<=0||
+       !g_treeRandField||!g_treeNetModeField||!g_treeNextDouble)return false;
+    auto& a=il2cpp::api();
+    int32_t mode=-1;
+    Il2CppObject* random=nullptr;
+    a.field_static_get_value(g_treeNetModeField,&mode);
+    if(mode==1||mode<0||mode>2)return false;
+    a.field_static_get_value(g_treeRandField,&random);
+    if(!random)return false;
+    Il2CppObject* exception=nullptr;
+    Il2CppObject* result=a.runtime_invoke(g_treeNextDouble,random,nullptr,&exception);
+    if(exception||!result)return false;
+    double value=-1;
+    std::memcpy(&value,reinterpret_cast<const char*>(result)+sizeof(Il2CppObject),
+                sizeof(value));
+    return bl::csharp::tree_drop::shouldAddTopAcorn(
+        0,g_acornType,enabled,frameX,frameY,mode,value);
+}
 
 bool readNativeAcornType() {
     if(g_acornType>0)return true;
@@ -279,9 +338,12 @@ void hkGetTreeDrops(int32_t x,int32_t y,uint32_t tile,
     const int ground=groundBelow(t,trunkColumn(x,t.frameX[def],t.frameY[def]),y,nullptr);
     const Tree* tree=treeOfGround(ground);
     if(!tree)return;
+    const bool acorns=tree->allowAcorn.load(std::memory_order_acquire);
     bl::csharp::tree_drop::apply(*isWood,g_acornType,
         tree->woodItem.load(std::memory_order_acquire),
-        tree->allowAcorn.load(std::memory_order_acquire),primary,secondary);
+        acorns,primary,secondary);
+    if(*secondary==0&&rollTopAcorn(t.frameX[def],t.frameY[def],acorns))
+        *secondary=g_acornType;
 }
 
 bool installHooks() {
@@ -346,7 +408,8 @@ void noteTreeDrawTile(int x, int y, int type, int frameX, int frameY) {
 }
 
 bool prepareModTreeDrops(bool needAcorn) {
-    if(needAcorn&&!readNativeAcornType())return false;
+    (void)needAcorn;
+    if(!readNativeAcornType()||!bindTreeRandom())return false;
     if(g_treeDropsHooked)return true;
     auto& a=il2cpp::api();
     if(!a.method_is_instance||!a.method_get_param_count||

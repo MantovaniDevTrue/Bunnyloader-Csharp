@@ -20,5 +20,15 @@ int main() {
     main=9;other=27;
     apply(true,-1,6200,false,&main,&other);
     assert(main==6200&&other==27);
+    assert(shouldAddTopAcorn(0,27,true,22,198,0,0.0));
+    assert(shouldAddTopAcorn(0,27,true,44,220,2,0.49999));
+    assert(!shouldAddTopAcorn(0,27,true,22,198,0,0.5));
+    assert(!shouldAddTopAcorn(27,27,true,22,198,0,0.0));
+    assert(!shouldAddTopAcorn(0,27,false,22,198,0,0.0));
+    assert(!shouldAddTopAcorn(0,27,true,21,198,0,0.0));
+    assert(!shouldAddTopAcorn(0,27,true,22,197,0,0.0));
+    assert(!shouldAddTopAcorn(0,27,true,22,198,1,0.0));
+    assert(!shouldAddTopAcorn(0,-1,true,22,198,0,0.0));
+    assert(!shouldAddTopAcorn(0,27,true,22,198,0,-0.01));
     std::cout<<"CSHARP_TREE_WOOD_AND_ACORN_NATIVE_POLICY=PASS\n";
 }

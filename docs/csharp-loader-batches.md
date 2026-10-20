@@ -315,3 +315,10 @@ A ponte nativa registra o relacionamento `GrowsOnTile -> SaplingTile` de cada `B
 A instalação do hook é feita antes da publicação dos assets, e falha fechada caso o contrato IL2CPP não esteja disponível. A relação da muda só é publicada após registrar a árvore, pela tabela `ModTrees.cpp`. O teste puro `tree_plant_policy_test.cpp` cobre plantio correto, outro tipo de tile, chão de árvore não correspondente, limites de ID, parâmetros nulos e isolamento. O runner também compila sintaticamente `ModTrees.cpp`.
 
 Ainda faltam `TreeLeaf`, `Shake`, `CreateDust`, a chance extra de bolota da copa, além da validação real da ABI no Terraria Android, GC, multiplayer e convivência dos hooks JS/C#. O `TreeLoader` não está completo, e a PR permanece draft, sem APK/.bmod ou merge.
+
+
+## BunnyTree — bolota extra de copa com RNG nativo (20/10)
+
+O `TreeLoader.js` também dá 50% de chance de bolota extra se `secondaryItem` é zero e os frames da árvore indicam a copa (`frameX >= 22 && frameY >= 198`). A implementação nativa passa a usar o `Terraria.Main.rand` verificado como `Terraria.Utilities.UnifiedRandom` ou `System.Random` e invoca `double NextDouble()` usando a mesma API IL2CPP que o caminho de prefixos do Bunny Loader. Valida `Main.netMode`, impedindo geração no cliente (`netMode == 1`); somente árvores registradas em `ModTrees` são elegíveis. Não há callback C# ou JavaScript por quebra, nem RNG por frame. O sorteio só acontece se `secondaryItem` continuar zero depois do comportamento original, `CanDropAcorn` for verdadeiro e os frames forem de copa. O campo `ItemID.Acorn` continua sendo lido do Terraria nativo e a ausência de ABI faz o recurso falhar fechado no carregamento.
+
+O teste `tree_drop_policy_test.cpp` cobre fronteira de 50%, multiplayer cliente, frames, bolota já recebida e configuração que proíbe bolotas. Permanecem pendentes `TreeLeaf`, `Shake`, `CreateDust` e a execução real no Android. A CI cobre políticas e contratos, não valida a animação ou o RNG do jogo em dispositivo.
