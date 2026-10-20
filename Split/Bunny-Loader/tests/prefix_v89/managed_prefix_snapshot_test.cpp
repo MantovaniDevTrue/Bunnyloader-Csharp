@@ -34,8 +34,11 @@ bool installManagedPrefixChanceHook() { return true; }
 bool queueManagedPrefixWarmup(const std::string&,const std::string&,const std::string&) {
     return true;
 }
+int itemWarmupCalls = 0;
+bool itemWarmupAccepted = true;
 bool queueManagedItemPrefixWarmup(const std::string&,const std::string&,const std::string&) {
-    return true;
+    ++itemWarmupCalls;
+    return itemWarmupAccepted;
 }
 }
 
@@ -61,6 +64,18 @@ int main() {
     assert(applyManagedItemPrefixCallbackBindings("test", {{6208, "ExampleCharm"}}));
     assert(managedItemPrefixCallbackView()->at(6208).owner == "ExampleCharm");
     assert(firstCallbacks->size() == 1);
+    assert(managedItemPrefixCallbackAssemblies()->empty());
+    itemWarmupAccepted = false;
+    assert(!bindManagedItemPrefixCallbackAssembly("test", "/tmp/item-prefix.dll"));
+    assert(itemWarmupCalls == 1);
+    assert(managedItemPrefixCallbackAssemblies()->empty());
+    itemWarmupAccepted = true;
+    assert(bindManagedItemPrefixCallbackAssembly("test", "/tmp/item-prefix.dll"));
+    auto assemblies = managedItemPrefixCallbackAssemblies();
+    assert(assemblies->at("test") == "/tmp/item-prefix.dll");
+    assert(bindManagedItemPrefixCallbackAssembly("test", "/tmp/item-prefix.dll"));
+    assert(!bindManagedItemPrefixCallbackAssembly("test", "/tmp/other-item.dll"));
+    assert(managedItemPrefixCallbackAssemblies() == assemblies);
     assert(managedItemPrefixChanceView()->empty());
     assert(!applyManagedItemPrefixChances({{6207, false}, {6207, true}}));
     assert(managedItemPrefixChanceView()->empty());
