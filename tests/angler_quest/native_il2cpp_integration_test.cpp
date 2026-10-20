@@ -62,6 +62,8 @@ int32_t gNetMode=0;
 uint8_t gFinished=0, gHard=0;
 bool gBadStaticField=false;
 bool gBadNetMode=false;
+bool gFailRackResize=false;
+bool gFailIdsAllocation=false;
 int gSwapCalls=0;
 std::string gCulture="en-US";
 FieldInfo fIds{"anglerQuestItemNetIDs",&kIntArrayType,&gIds,sizeof(gIds)};
@@ -113,6 +115,7 @@ FieldInfo* findField(Il2CppClass* cls,std::string_view name) {
     return nullptr;
 }
 Il2CppArray* array(Il2CppClass* element,uintptr_t size) {
+    if (gFailIdsAllocation && element == &kInt) return nullptr;
     const size_t width=element==&kBool?1u:sizeof(int32_t);
     auto* a=static_cast<Il2CppArray*>(std::calloc(1,sizeof(Il2CppArray)+width*size));
     a->obj.klass=element==&kBool?&kBoolArray:&kIntArray;
@@ -184,6 +187,7 @@ bool installFishingOnGameThread(const std::vector<Quest>*) { return true; }
 }
 namespace bl::runtime {
 Il2CppArray* TypeTables::resizedCopy(Il2CppArray* old,uintptr_t len) {
+    if (gFailRackResize && old == gRack) return nullptr;
     auto* next=array(old->obj.klass==&kBoolArray?&kBool:&kInt,len);
     const size_t width=old->obj.klass==&kBoolArray?1u:sizeof(int32_t);
     std::memcpy(arrayData(next),arrayData(old),std::min(old->length,len)*width);
@@ -238,6 +242,30 @@ int main() {
     assert(static_cast<const uint8_t*>(arrayData(gFlags))[850]==1);
     assert(static_cast<const uint8_t*>(arrayData(gRack))[850]==1);
     assert(hookedSwap && hookedChat);
+
+    Quest extra{"examplemodcsharp","ExtraQuestFish",940,true,true,"Extra","Elsewhere",0};
+    assert(reg.publish("examplemodcsharp",{quest,extra},&error));
+    gFailIdsAllocation=true;
+    bl::csharp::angler::pumpOnGameThread();
+    assert((ids()==std::vector<int>{10,500,11,850}));
+    assert(gFlags->length==851 && gRack->length==851);
+    gFailIdsAllocation=false;
+    gFailRackResize=true;
+    bl::csharp::angler::pumpOnGameThread();
+    assert((ids()==std::vector<int>{10,500,11,850}));
+    assert(gFlags->length==851 && gRack->length==851);
+    assert(gSelected==0);
+    gFailRackResize=false;
+    bl::csharp::angler::pumpOnGameThread();
+    assert((ids()==std::vector<int>{10,500,11,850,940}));
+    assert(gFlags->length==941 && gRack->length==941);
+    assert(static_cast<const uint8_t*>(arrayData(gFlags))[940]==1);
+    assert(static_cast<const uint8_t*>(arrayData(gRack))[940]==1);
+    assert(reg.publish("examplemodcsharp",{quest},&error));
+    bl::csharp::angler::pumpOnGameThread();
+    assert((ids()==std::vector<int>{10,500,11,850}));
+    assert(static_cast<const uint8_t*>(arrayData(gFlags))[940]==0);
+    assert(static_cast<const uint8_t*>(arrayData(gRack))[940]==0);
 
     gHard=0;
     for (const int mode : {0, 1, 2, 3}) {
