@@ -2,6 +2,7 @@
 #include "content/items/ModItems.h"
 #include "experiments/csharp/ManagedRuntime.h"
 #include "experiments/csharp/NativeAnglerQuestRegistry.h"
+#include "experiments/csharp/ManagedAssemblyBindings.h"
 #include "il2cpp/FieldContract.h"
 #include "il2cpp/Signature.h"
 #include "il2cpp/ValueLayout.h"
@@ -24,13 +25,9 @@ using runtime::kVanillaItemCount; namespace {
 struct Policy {NativeRecipeRequest request;int index=0;};
 std::map<uintptr_t,Policy> policies;
 std::map<int,uintptr_t> byIndex;
-std::mutex assemblyMutex;
-std::map<std::string,std::string> assemblies;
-std::map<std::string,uint64_t> assemblyRevisions;
+ManagedAssemblyBindings assemblyBindings;
 bool currentManagedAssembly(const std::string& mod,const std::string& captured) {
-    std::lock_guard lock(assemblyMutex);
-    const auto it=assemblies.find(mod);
-    return it!=assemblies.end() && it->second==captured;
+    return assemblyBindings.isCurrent(mod,captured);
 }
 struct Slot {FieldInfo* field=nullptr;const MethodInfo* get=nullptr;const MethodInfo* set=nullptr;};
 struct BoolValue {int offset=-1;const MethodInfo* getter=nullptr;};
@@ -128,7 +125,7 @@ void diagnose(const Policy& p,int kind,const std::string& reason) {
         static_cast<unsigned long long>(suppressed),reason.c_str());
 }
 bool call(const Policy& policy,int kind,Il2CppObject* player,int type,int amount,bool quick,std::string* output,int budget=3000,int available=0) {
-    std::string assembly;{std::lock_guard lock(assemblyMutex);auto it=assemblies.find(policy.request.mod);if(it!=assemblies.end())assembly=it->second;}
+    std::string assembly=assemblyBindings.current(policy.request.mod);
     if(assembly.empty()||!player){diagnose(policy,kind,"AssemblyOrPlayerNotReady");return false;}
     if(!csharp::invokeManagedRecipe(policy.request.mod,assembly,policy.request.name,policy.index,kind,
         snapshot(player,policy.request.result,type,amount,quick,available),output,budget)) {diagnose(policy,kind,output->empty()?"Stage=Invoke Reason=EmptyTransportResponse":*output);return false;}
@@ -205,14 +202,9 @@ void hkCraft(Il2CppObject* recipe,Il2CppObject* result,bool quick,const MethodIn
 }
 } // namespace
 void bindNativeRecipeAssembly(const std::string& mod,const std::string& assembly){
-    std::lock_guard lock(assemblyMutex);
-    if(mod.empty()||assembly.empty())return;
-    uint64_t& revision=assemblyRevisions[mod];
-    ++revision;
-    if(revision==0)revision=1;
-    assemblies[mod]=assembly+"|bunny-revision="+std::to_string(revision);
+    assemblyBindings.bind(mod,assembly);
 }
-void unbindNativeRecipeAssembly(const std::string& mod){std::lock_guard lock(assemblyMutex);assemblies.erase(mod);}
+void unbindNativeRecipeAssembly(const std::string& mod){assemblyBindings.unbind(mod);}
 bool isNativeRecipeAssemblyCurrent(const std::string& mod,const std::string& assembly){return currentManagedAssembly(mod,assembly);}
 bool hasManagedAnglerQuestCallbacks(const std::string& mod) {
     const auto quests=angler::registry().snapshot();
@@ -225,13 +217,8 @@ bool invokeManagedAnglerQuestCallback(const std::string& mod,const std::string& 
         second<0 || second>1 || itemType<0 || itemType>=65536 ||
         (kind==5 && (playerIndex<0||playerIndex>255)) ||
         !managedRecipeRuntimeReady()) return false;
-    std::string assembly;
-    {
-        std::lock_guard lock(assemblyMutex);
-        auto it=assemblies.find(mod);
-        if(it==assemblies.end())return false;
-        assembly=it->second;
-    }
+    std::string assembly=assemblyBindings.current(mod);
+    if(assembly.empty())return false;
     const std::string input=kind==4?
         std::to_string(first)+","+std::to_string(itemType):
         std::to_string(first)+","+std::to_string(second)+","+
@@ -332,7 +319,7 @@ runtime::RecipeCallbackReadiness prepareNativeRecipeCallbackProvider(const Nativ
     using Ready=runtime::RecipeCallbackReadiness;
     if(!managedRecipeRuntimeReady()) {*error="Stage=WaitMonoWorker Reason=ManagedWorkerNotReady";return Ready::Pending;}
     if(!prepareNativeRecipeCallbacks(request.callbacks,error))return Ready::Rejected;
-    std::string assembly;{std::lock_guard lock(assemblyMutex);const auto found=assemblies.find(request.mod);if(found!=assemblies.end())assembly=found->second;}
+    std::string assembly=assemblyBindings.current(request.mod);
     const auto hash=request.key.rfind('#');int index=-1;
     if(hash!=std::string::npos){const auto token=request.key.substr(hash+1);const auto parsed=std::from_chars(token.data(),token.data()+token.size(),index);
         if(parsed.ec!=std::errc{}||parsed.ptr!=token.data()+token.size())index=-1;}
