@@ -72,6 +72,7 @@ public static class BunnyRecipeLoader
         }
         if(!mods.TryGetValue(modId,out Mod? mod)||mod.Path!=assemblyPath)
         {
+            BunnyQuestRuntime.EvictMod(modId);
             mod=new Mod{Path=assemblyPath,Assembly=Assembly.Load(File.ReadAllBytes(filePath))};
             mods[modId]=mod;
         }
@@ -150,6 +151,13 @@ public static class BunnyQuestRuntime
         public BunnyItem Item=null!;
     }
     private static readonly Dictionary<string,Handler> handlers=new(StringComparer.Ordinal);
+
+    internal static void EvictMod(string modId)
+    {
+        string prefix=modId+"\n";
+        foreach(string key in handlers.Keys.Where(key=>key.StartsWith(prefix,StringComparison.Ordinal)).ToArray())
+            handlers.Remove(key);
+    }
 
     public static string Dispatch(string modId,string assemblyPath,string owner,int kind,string snapshot)
     {
