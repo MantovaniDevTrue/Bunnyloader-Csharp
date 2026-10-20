@@ -2188,7 +2188,8 @@
         "Lighted",
         "WaterDeath",
         "ChecksForMerge",
-        "Cut"
+        "Cut",
+        "Campfire"
       ],
       "methods": []
     },
