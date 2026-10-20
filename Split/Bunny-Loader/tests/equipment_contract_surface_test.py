@@ -247,7 +247,7 @@ class EquipmentContractSurfaceTests(unittest.TestCase):
     def test_mixed_mod_prefix_rolls_use_native_weights_and_denials(self):
         gameplay = (ROOT / "app/src/main/cpp/experiments/csharp/ManagedPrefixGameplay.cpp").read_text(encoding="utf-8")
         fixture = (ROOT / "tests/managed_prefix_cold_tables.cpp").read_text(encoding="utf-8")
-        self.assertIn("if (!hasManaged && !hasDeny && (!hasItemWorker || !filteredByItemCallback))", gameplay)
+        self.assertIn("if (!hasManaged && !hasDeny && !extendedVanilla && (!hasItemWorker || !filteredByItemCallback))", gameplay)
         self.assertNotIn("|| hasOtherMod)", gameplay)
         self.assertIn("weightedPrefixCandidate(", gameplay)
         self.assertIn("mixedPrefixCandidates = true;", fixture)
