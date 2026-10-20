@@ -122,7 +122,7 @@ public sealed class BunnyDustRegistry
 
     public bool Bind(int nativeType, string name)
     {
-        if (nativeType < VanillaDustCount || nativeType >= VanillaDustCount + MaxRegisteredDustTypes ||
+        if (nativeType < VanillaDustCount || nativeType >= 32768 ||
             !_names.TryGetValue(name, out Entry? entry))
             return false;
         if (entry.Type >= 0)
