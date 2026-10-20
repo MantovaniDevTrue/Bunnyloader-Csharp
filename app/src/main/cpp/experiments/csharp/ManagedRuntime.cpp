@@ -1661,6 +1661,56 @@ void* pinnedMonoWorker(void*) {
                     g_vmCompare.error = done.error;
                     continue;
                 }
+                if (!g_commandBindings.empty() &&
+                    g_recipeRuntimeReady.load(std::memory_order_acquire)) {
+                    bool attemptedRegistration = false;
+                    for (const auto& pending : g_commandBindings) {
+                        if (pending.registered || pending.failures >= 3) continue;
+                        ManagedCommandBinding binding = pending;
+                        lock.unlock();
+                        const bool registered = registerManagedCommandOnWorker(binding);
+                        lock.lock();
+                        for (auto& current : g_commandBindings) {
+                            if (current.modId != binding.modId ||
+                                current.assembly != binding.assembly) continue;
+                            if (registered) current.registered = true;
+                            else ++current.failures;
+                            break;
+                        }
+                        attemptedRegistration = true;
+                        break;
+                    }
+                    if (attemptedRegistration) continue;
+                    auto commands = nativeCommandMailbox().takeRequests(8);
+                    if (!commands.empty()) {
+                        lock.unlock();
+                        for (const auto& command : commands) {
+                            if (command.epoch != nativeCommandMailbox().epoch())
+                                continue;
+                            const std::string wire = executeManagedCommandOnWorker(command);
+                            std::vector<NativeCommandReply> messages;
+                            bool handled = false;
+                            std::string parseError;
+                            if (wire.empty() ||
+                                !decodeNativeCommandResult(wire, command.playerIndex,
+                                                           &handled, &messages, &parseError) ||
+                                !handled) {
+                                messages.clear();
+                                NativeCommandReply fallback;
+                                fallback.playerIndex = command.playerIndex;
+                                fallback.text = "Comando C# indisponivel";
+                                fallback.red = 255;
+                                fallback.green = 25;
+                                fallback.blue = 25;
+                                messages.push_back(std::move(fallback));
+                            }
+                            nativeCommandMailbox().deliver(command.epoch,
+                                                           command.sequence, messages);
+                        }
+                        lock.lock();
+                        continue;
+                    }
+                }
                 ManagedLiveQueuedEvent event;
                 bool hasEvent = g_liveHitQueue.pop(&event);
                 if (!hasEvent && g_liveIngress.pop(&event)) {
