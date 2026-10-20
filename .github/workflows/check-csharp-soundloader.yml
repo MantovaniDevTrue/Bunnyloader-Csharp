@@ -109,6 +109,11 @@ jobs:
         run: |
           set -euo pipefail
           test -s /tmp/bunny-csharp-sound-sdk/BunnySourceSdk.dll
+          CURRENT=$(git ls-remote origin refs/heads/feat/csharp-soundloader-native-complete | cut -f1)
+          if test "$CURRENT" != "$GITHUB_SHA"; then
+            echo "Outra revisão foi enviada; não publicar DLL de commit antigo."
+            exit 0
+          fi
           cp /tmp/bunny-csharp-sound-sdk/BunnySourceSdk.dll app/src/main/assets/managed/BunnySourceSdk.dll
           python3 - <<'PY'
           from pathlib import Path
