@@ -43,6 +43,21 @@ public sealed class ExampleDust : BunnyDust
         return true;
     }
 }
+public sealed class DecisionDust : BunnyDust
+{
+    public override void SetStaticDefaults() { }
+    public override bool Update(ref BunnyDustState state)
+    {
+        state.VelocityX += 2f;
+        return false;
+    }
+    public override bool GetAlpha(ref BunnyDustState state, ref uint color)
+    {
+        color = 0x11223344u;
+        return true;
+    }
+    public override bool PreDraw(ref BunnyDustState state) => false;
+}
 public sealed class BrokenSpawnDust : BunnyDust
 {
     public static int SpawnAttempts;
@@ -60,14 +75,15 @@ public sealed class BrokenSpawnDust : BunnyDust
     if (result != 1)
         throw new Exception("Compiler returned " + result + "\n" + File.ReadAllText(diag));
     int classes = CompiledAssemblyProbe.Verify(output, diag);
-    if (classes != 2)
+    if (classes != 3)
         throw new Exception("Probe returned " + classes + "\n" + File.ReadAllText(diag));
     string wire = File.ReadAllText(Path.Combine(dir, "source-runtime-values.txt"));
     if (!wire.Contains("DUST\tExampleDust\t6\t5\tContent/Dusts/Example.png\n",
         StringComparison.Ordinal) ||
         !wire.Contains("DUST\tBrokenSpawnDust\t-1\t1\t-\n", StringComparison.Ordinal) ||
+        !wire.Contains("DUST\tDecisionDust\t-1\t26\t-\n", StringComparison.Ordinal) ||
         !wire.StartsWith("BUNNY_MANAGED_DEFAULTS_V2\n", StringComparison.Ordinal) ||
-        wire.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length != 3)
+        wire.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length != 4)
         throw new Exception("Dust defaults wire mismatch:\n" + wire);
     int modSlot = BunnyDustSourceDispatcher.Register("57a98f20-7a35-4d19-8ce8-079e25bb36a1", output);
     if (modSlot < 0)
@@ -75,7 +91,8 @@ public sealed class BrokenSpawnDust : BunnyDust
             BunnyDustSourceDispatcher.LastRegistrationError);
     if (!BunnyDustSourceDispatcher.Bind(modSlot, 332, "ExampleDust") ||
         BunnyDustSourceDispatcher.Bind(modSlot, 333, "ExampleDust") ||
-        !BunnyDustSourceDispatcher.Bind(modSlot, 333, "BrokenSpawnDust"))
+        !BunnyDustSourceDispatcher.Bind(modSlot, 333, "BrokenSpawnDust") ||
+        !BunnyDustSourceDispatcher.Bind(modSlot, 334, "DecisionDust"))
         throw new Exception("Dust dispatcher native binding failed");
     BunnyDustState state = new()
     {
@@ -130,6 +147,32 @@ public sealed class BrokenSpawnDust : BunnyDust
             BunnyDustSourceDispatcher.Spawn, (IntPtr)(&failed));
         if ((int)attempts.GetValue(null)! != 2)
             throw new Exception("New Dust generation did not rearm quarantined callback");
+    }
+    BunnyDustState decision = new()
+    {
+        Slot = 18, Type = 334, Generation = 1, Active = 1,
+        X = 7, Y = 9, Scale = 1, Color = 0xffaabbccu,
+        FrameWidth = 8, FrameHeight = 8
+    };
+    unsafe
+    {
+        int update = BunnyDustSourceDispatcher.Invoke(modSlot,
+            BunnyDustSourceDispatcher.Update, (IntPtr)(&decision));
+        if (update != (BunnyDustSourceDispatcher.Accepted |
+                       BunnyDustSourceDispatcher.Draw |
+                       BunnyDustSourceDispatcher.Active) ||
+            Math.Abs(decision.VelocityX - 2f) > 0.00001f)
+            throw new Exception("Dust Update=false was not preserved in managed dispatcher");
+        int alpha = BunnyDustSourceDispatcher.Invoke(modSlot,
+            BunnyDustSourceDispatcher.Alpha, (IntPtr)(&decision));
+        if ((alpha & BunnyDustSourceDispatcher.OverrideAlpha) == 0 ||
+            decision.Color != 0x11223344u)
+            throw new Exception("Dust GetAlpha result not applied");
+        int preDraw = BunnyDustSourceDispatcher.Invoke(modSlot,
+            BunnyDustSourceDispatcher.PreDraw, (IntPtr)(&decision));
+        if ((preDraw & BunnyDustSourceDispatcher.Draw) != 0 ||
+            (preDraw & BunnyDustSourceDispatcher.Accepted) == 0)
+            throw new Exception("Dust PreDraw=false result not respected");
     }
     BunnyDustSourceDispatcher.Unload();
     Console.WriteLine("DUST_SOURCE_ROSLYN_SMOKE=PASS");
