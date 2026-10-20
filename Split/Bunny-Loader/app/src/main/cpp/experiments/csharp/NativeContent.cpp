@@ -2569,7 +2569,7 @@ bool publishManagedNativeGores(const std::string& modId,const std::string& direc
         return false;
     };
     for(size_t i=0;i<gores.size();++i) {
-        const int index=static_cast<int>(first+i);
+        int index=static_cast<int>(first+i);
         Il2CppObject* exception=nullptr;
         void* args[]={assets[i],&index};
         a.runtime_invoke(set,reinterpret_cast<Il2CppObject*>(pending[0]),args,&exception);

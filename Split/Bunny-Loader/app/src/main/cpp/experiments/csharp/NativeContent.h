@@ -6,6 +6,7 @@
 #include "experiments/csharp/NativeTileDropPolicy.h"
 #include <string>
 #include <vector>
+#include <map>
 
 namespace bl::csharp {
 
