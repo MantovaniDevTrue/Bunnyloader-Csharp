@@ -169,6 +169,8 @@ bool gManagedAllowed = true;
 bool gManagedReady = true;
 bool gUnloadDuringCall = false;
 bool gChangeOwnerDuringCall = false;
+bool gChangeModeDuringCall = false;
+bool gChangeGravityDuringCall = false;
 bool gChangePlayersDuringCall = false;
 int gManagedCalls = 0;
 int gLastPlayerIndex = -999;
@@ -179,6 +181,8 @@ bool invokeManagedAnglerQuestCallback(const std::string&,const std::string&,
     if (!gManagedReady) return false;
     if (gUnloadDuringCall) bl::csharp::angler::registry().unload("examplemodcsharp");
     if (gChangeOwnerDuringCall) projectile.owner=1;
+    if (gChangeModeDuringCall) netMode=1;
+    if (gChangeGravityDuringCall) player.gravDir=1.f;
     if (gChangePlayersDuringCall)
         static_cast<Il2CppObject**>(arrayData(players))[0]=nullptr;
     *allowed = gManagedAllowed;
@@ -333,10 +337,20 @@ int main() {
     assert(get(attempt,8)==13);
     static_cast<Il2CppObject**>(arrayData(players))[0]=&player.object;
     bl::csharp::gChangePlayersDuringCall=false;
+    bl::csharp::gChangeModeDuringCall=true;
+    hookedRoll(&projectile.object,attempt.data(),&kRoll);
+    assert(get(attempt,8)==13);
+    netMode=0;
+    bl::csharp::gChangeModeDuringCall=false;
+    bl::csharp::gChangeGravityDuringCall=true;
+    hookedRoll(&projectile.object,attempt.data(),&kRoll);
+    assert(get(attempt,8)==13);
+    player.gravDir=-1.f;
+    bl::csharp::gChangeGravityDuringCall=false;
     hookedRoll(&projectile.object,attempt.data(),&kRoll);
     assert(get(attempt,8)==850);
     quests[0].callbackMask=0;
-    assert(bl::csharp::gManagedCalls==5);
+    assert(bl::csharp::gManagedCalls==7);
     assert(bl::csharp::gLastPlayerIndex==0);
     quests[0].catchRules=0;
     quests[0].catchEnabled=false;
@@ -344,7 +358,7 @@ int main() {
     bl::csharp::gManagedAllowed=true;
     hookedRoll(&projectile.object,attempt.data(),&kRoll);
     assert(get(attempt,8)==850);
-    assert(bl::csharp::gManagedCalls==6);
+    assert(bl::csharp::gManagedCalls==8);
     quests[0].callbackMask=0;
     hookedRoll(&projectile.object,attempt.data(),&kRoll);
     assert(get(attempt,8)==13);
@@ -385,6 +399,6 @@ int main() {
     quests.clear();
     hookedRoll(&projectile.object,attempt.data(),&kRoll);
     assert(get(attempt,8)==13);
-    assert(vanillaCalls==27);
+    assert(vanillaCalls==29);
     std::cout<<"ANGLER_QUEST_FISHING_IL2CPP_HOST_OK\n";
 }

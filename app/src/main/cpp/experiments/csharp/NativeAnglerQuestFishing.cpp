@@ -111,14 +111,29 @@ void onFishingRoll(Il2CppObject* bobber, void* attempt, const MethodInfo* mi) {
     }
     if (activeGeneration().load(std::memory_order_acquire) != registry().generation())
         return;
+    int32_t currentNetMode = -1;
+    a.field_static_get_value(g_netMode, &currentNetMode);
+    if (currentNetMode != netMode) return;
     int32_t currentOwner = -1;
     std::memcpy(&currentOwner, reinterpret_cast<const char*>(bobber) + g_owner,
                 sizeof(currentOwner));
     Il2CppArray* currentPlayers = nullptr;
     a.field_static_get_value(g_players, &currentPlayers);
     if (currentOwner != owner || currentPlayers != players ||
-        static_cast<Il2CppObject**>(arrayData(players))[owner] != player)
+        static_cast<Il2CppObject**>(arrayData(players))[owner] != player ||
+        a.object_get_class(player) != actual)
         return;
+    float currentGravity = 1.f;
+    std::memcpy(&currentGravity, reinterpret_cast<const char*>(player) + g_gravity,
+                sizeof(currentGravity));
+    if ((currentGravity < 0.f) != (gravity < 0.f)) return;
+    int32_t currentQuest = -1;
+    uint8_t currentUncommon = 0;
+    std::memcpy(&currentQuest, static_cast<const char*>(attempt) + g_questFish,
+                sizeof(currentQuest));
+    std::memcpy(&currentUncommon, static_cast<const char*>(attempt) + g_uncommon,
+                sizeof(currentUncommon));
+    if (currentQuest != questId || currentUncommon != uncommon) return;
     const int32_t result = questId;
     std::memcpy(static_cast<char*>(attempt) + g_rolledItem, &result, sizeof(result));
 }
