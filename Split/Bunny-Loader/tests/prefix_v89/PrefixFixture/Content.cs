@@ -36,6 +36,21 @@ public sealed class TestWand : BunnyWeapon
     public override bool AllowPrefix(BunnyPrefixItemSnapshot item, int prefix)
         => prefix != 71 && item.Damage >= 15;
 
+    public override int ChoosePrefix(BunnyPrefixItemSnapshot item)
+        => item.Stack == 2 ? 73 : -1;
+
+    public override bool? DecidePrefixChance(BunnyPrefixItemSnapshot item, int request)
+        => request == -1 ? item.Damage >= 20 : (bool?)null;
+
+    public override void ApplyPrefix(BunnyPrefixItemSnapshot item, int prefix, ref BunnyPrefixApplyStats effects)
+    {
+        if (prefix == 72 && item.Damage >= 20)
+        {
+            effects.DamageBonus = 3;
+            effects.ValueBonus = 15;
+        }
+    }
+
     public override void ApplyPrefix(ref BunnyPrefixApplyStats effects)
     {
         effects.DamageBonus = 4;
