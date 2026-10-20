@@ -59,9 +59,20 @@ public static class BunnyRecipeLoader
     internal static void Capture(BunnyRecipe recipe) { capture?.Add(recipe); }
     internal static Assembly LoadAssembly(string modId,string assemblyPath)
     {
+        const string marker="|bunny-revision=";
+        int suffix=assemblyPath.LastIndexOf(marker,StringComparison.Ordinal);
+        string filePath=assemblyPath;
+        if(suffix>=0)
+        {
+            string revision=assemblyPath[(suffix+marker.Length)..];
+            if(revision.Length<1||revision.Length>20||
+                revision.Any(ch=>ch<'0'||ch>'9'))
+                throw new InvalidOperationException("Invalid managed assembly revision");
+            filePath=assemblyPath[..suffix];
+        }
         if(!mods.TryGetValue(modId,out Mod? mod)||mod.Path!=assemblyPath)
         {
-            mod=new Mod{Path=assemblyPath,Assembly=Assembly.Load(File.ReadAllBytes(assemblyPath))};
+            mod=new Mod{Path=assemblyPath,Assembly=Assembly.Load(File.ReadAllBytes(filePath))};
             mods[modId]=mod;
         }
         return mod.Assembly;
