@@ -375,8 +375,8 @@ void hkGetItemDrops(int32_t x, int32_t y, uint32_t tile,
             }
         } else reportTileCallbackFailure(behavior.spec,27,reply);
     }
+    const int style=behavior.spec.shape==0?0:readNativeTileStyle(tile);
     if(!behavior.styleDrops.empty()) {
-        const int style=behavior.spec.shape==0?0:readNativeTileStyle(tile);
         auto registered=style>=0?behavior.styleDrops.find(style):behavior.styleDrops.end();
         if(registered==behavior.styleDrops.end())
             registered=behavior.styleDrops.find(-1);
@@ -386,9 +386,9 @@ void hkGetItemDrops(int32_t x, int32_t y, uint32_t tile,
         }
         if(style<0)return;
     }
-    int itemType = behavior.itemType;
-    if (itemType <= 0)
-        itemType = basicItemForTile(behavior.spec.mod + "/" + behavior.spec.name);
+    const std::string key=behavior.spec.mod + "/" + behavior.spec.name;
+    int itemType=style>=0?basicItemForTileStyle(key,style):behavior.itemType;
+    if(itemType<=0)itemType=basicItemForTile(key);
     if (itemType <= 0) return;
     *drop = itemType;
     *stack = 1;
