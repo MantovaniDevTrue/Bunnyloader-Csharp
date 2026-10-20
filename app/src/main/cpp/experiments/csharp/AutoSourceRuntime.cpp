@@ -936,7 +936,7 @@ void run() {
             if (!parseNativeCommandManifest(
                     readText(assembly + ".commands", 96 * 1024), assembly,
                     mod.commandClasses, &commandSpecs, &commandError) ||
-                !nativeCommandMailbox().registerMod(mod.id, commandSpecs, &commandError)) {
+                !nativeCommandMailbox().registerMod(mod.id, commandSpecs, &commandError, false)) {
                 note(&status, "failed", "ModCommand: " + commandError);
                 continue;
             }
