@@ -6,6 +6,7 @@ on:
       - feat/csharp-example-invasion-20261019
     paths:
       - experiments/csharp/BunnyCsSdk/BunnyInvasion.cs
+      - experiments/csharp/BunnyCsSdk/BunnyInvasionSpawnPipeline.cs
       - app/src/main/cpp/experiments/csharp/NpcAiHost.cpp
       - app/src/main/cpp/experiments/csharp/WorldAuthority.h
       - app/src/main/cpp/experiments/csharp/NativeInvasionSpawn.h
@@ -33,6 +34,8 @@ jobs:
         run: dotnet build experiments/csharp/BunnyCsSdk/BunnyCsSdk.csproj --configuration Release
       - name: Compile and run pure CSharp lifecycle tests
         run: dotnet run --project tests/invasion/Invasion.csproj --configuration Release
+      - name: Verify epoch-bound native spawn pipeline
+        run: dotnet run --project tests/invasion/pipeline/Pipeline.csproj --configuration Release
       - name: Compile ExampleInvasion source without Android toolchain
         run: dotnet build tests/invasion/SampleCompile.csproj --configuration Release
       - name: Test actual Bunny NPC dispatcher and ExampleInvasion integration
