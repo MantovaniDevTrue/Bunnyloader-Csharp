@@ -130,6 +130,12 @@ void setupApi() {
     a.field_get_flags=[](FieldInfo* field)->uint32_t{return gBadStaticField && field==&fCorner ? 0u : 0x10u;};
     a.class_from_il2cpp_type=[](const Il2CppType* t){return t->type;};
     a.class_get_element_class=[](Il2CppClass* cls){return cls->element;};
+    a.class_get_rank=[](const Il2CppClass* cls) {return cls==&kBoolArray||cls==&kIntArray?1:0;};
+    a.class_is_valuetype=[](const Il2CppClass* cls) {return cls==&kBool||cls==&kInt;};
+    a.class_value_size=[](Il2CppClass* cls,uint32_t* align)->int32_t {
+        if(align)*align=cls==&kBool?1u:4u;
+        return cls==&kBool?1:cls==&kInt?4:0;
+    };
     a.class_get_name=[](Il2CppClass* c){return c->name;};
     a.class_get_namespace=[](Il2CppClass* c){return c->ns;};
     a.class_get_method_from_name=findMethod;
