@@ -23,6 +23,9 @@ on:
       - Split/Bunny-Loader/docs/generated/sdk_public_reference.json
       - Split/Bunny-Loader/docs/generated/sdk_public_reference.md
       - Split/Bunny-Loader/tools/sdk_reference/Program.cs
+      - Split/Bunny-Loader/experiments/csharp/BunnyCsSdk/BunnyPrefixCallbacks.cs
+      - Split/Bunny-Loader/experiments/csharp/BunnyCsSdk/BunnyItemPrefixCallbacks.cs
+      - Split/Bunny-Loader/experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj
       - Split/Bunny-Loader/tests/prefix_v89/managed_prefix_snapshot_test.cpp
       - Split/Bunny-Loader/tests/prefix_v89/guard_reforge_v90_2.py
       - Split/Bunny-Loader/tests/managed_prefix_cold_tables.cpp
@@ -49,7 +52,12 @@ on:
       - Split/Bunny-Loader/app/src/main/cpp/script/js/mod/Loaders/**
       - Split/Bunny-Loader/samples/ExampleMod/**
       - Split/Bunny-Loader/samples/ExampleModCSharp/**
+      - Split/Bunny-Loader/experiments/csharp/BunnyCsSdk/BunnyItemPrefixCallbacks.cs
+      - Split/Bunny-Loader/experiments/csharp/BunnyCsSdk/BunnyPrefixCallbacks.cs
+      - Split/Bunny-Loader/experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj
+      - Split/Bunny-Loader/tools/sdk_reference/Program.cs
       - Split/Bunny-Loader/docs/generated/sdk_public_reference.json
+      - Split/Bunny-Loader/docs/generated/sdk_public_reference.md
       - docs/csharp-loader-batches.json
   workflow_dispatch:
 
@@ -82,6 +90,7 @@ jobs:
           dotnet build tests/prefix_v89/PrefixFixture/PrefixFixture.csproj -c Release -p:NuGetAudit=false
           dotnet run --project tests/prefix_v89/PrefixContract.csproj -c Release -p:NuGetAudit=false -- "$(pwd)/tests/prefix_v89/PrefixFixture/bin/Release/net8.0/PrefixFixture.dll"
           python3 tests/prefix_v89/guard_native_bridge.py
+          dotnet run --project tools/sdk_reference -c Release -p:NuGetAudit=false -- --check
       - name: Compile and test native prefix snapshot path
         working-directory: Split/Bunny-Loader
         shell: bash
