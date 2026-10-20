@@ -2290,6 +2290,25 @@ bool queueManagedDustCallback(int type, int phase,
     return true;
 }
 
+bool invokeManagedDustSameFrame(int type, int phase,
+                                const ManagedDustState& state, uint64_t frame,
+                                std::chrono::steady_clock::time_point deadline,
+                                ManagedDustMailbox::Response* response) {
+    if (!response || phase < 0 || phase > 4 ||
+        !hasManagedDustType(type) || type != state.type ||
+        !managedDustStateValid(state) ||
+        std::chrono::steady_clock::now() >= deadline)
+        return false;
+    const int owner = g_dustOwners[static_cast<size_t>(type)].load(
+        std::memory_order_acquire) - 1;
+    bool wake = false;
+    if (!g_dustMailbox.offer(owner, phase, state, frame, &wake, true))
+        return false;
+    g_dustGameFrame.store(frame, std::memory_order_release);
+    g_pinnedWake.notify_one();
+    return g_dustMailbox.await(owner, phase, state, frame, deadline, response);
+}
+
 bool receiveManagedDustCallback(int type, int phase, int slot, int generation,
                                 uint64_t frame, ManagedDustMailbox::Response* response) {
     if (!hasManagedDustType(type)) return false;
