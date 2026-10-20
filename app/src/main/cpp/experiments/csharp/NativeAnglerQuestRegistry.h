@@ -171,9 +171,13 @@ public:
 
     uint64_t generation() const { return generation_.load(std::memory_order_acquire); }
 
-    std::vector<Quest> snapshot() const {
+    std::pair<uint64_t, std::vector<Quest>> snapshotVersion() const {
         std::lock_guard<std::mutex> lock(mutex_);
-        return registered_;
+        return {generation_.load(std::memory_order_relaxed), registered_};
+    }
+
+    std::vector<Quest> snapshot() const {
+        return snapshotVersion().second;
     }
 
     static std::vector<int> mergeIds(const std::vector<int>& original,
