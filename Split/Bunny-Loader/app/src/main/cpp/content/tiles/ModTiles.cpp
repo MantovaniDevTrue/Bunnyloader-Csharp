@@ -773,7 +773,7 @@ void applyTileDrawData(int32_t x, int32_t y, uint16_t type, int16_t* frameX,
         uncached[type].load(std::memory_order_relaxed);
     const bool managedSkipCache = toManaged && managedUncached &&
         managedUncached[type].load(std::memory_order_relaxed);
-    const bool cached = tile_draw_cache::enabled(special, jsSkipCache, managedSkipCache);
+    const bool cached = csharp::tile_draw_cache::enabled(special, jsSkipCache, managedSkipCache);
     TileDrawData d;
     if (!cached || !drawCacheGet(key, epoch, now, &d)) {
         d = key.in;
