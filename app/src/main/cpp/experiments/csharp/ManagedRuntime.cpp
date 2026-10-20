@@ -2070,20 +2070,28 @@ void* pinnedMonoWorker(void*) {
                         !g_managedHurtQueue.empty() || !g_entityQueue.empty() ||
                         !g_dustBootstrap.empty() || g_dustWorldResetPending)
                         g_pinnedWake.wait_for(lock, std::chrono::milliseconds(2));
+                    else if (g_dustModCount.load(std::memory_order_acquire) > 0)
+                        g_pinnedWake.wait_for(lock, std::chrono::milliseconds(8));
                     else
                         g_pinnedWake.wait(lock);
                     continue;
                 }
                 const int seconds = kAuditSamples[g_auditIndex];
                 const auto until = g_auditStart + std::chrono::seconds(seconds);
-                const auto deadline = (g_liveHitStatus.enabled || g_universalPolling.load(std::memory_order_acquire))
+                const bool dustActive = g_dustModCount.load(std::memory_order_acquire) > 0;
+                const bool urgent = g_liveHitStatus.enabled ||
+                    g_universalPolling.load(std::memory_order_acquire);
+                const auto deadline = urgent
                     ? std::min(until, std::chrono::steady_clock::now() +
-                        std::chrono::milliseconds(2)) : until;
+                        std::chrono::milliseconds(2))
+                    : dustActive ? std::min(until, std::chrono::steady_clock::now() +
+                        std::chrono::milliseconds(8)) : until;
                 if (g_pinnedWake.wait_until(lock, deadline, [] {
                     return g_pinnedPending || g_vmComparePending ||
                         !g_liveHitQueue.empty() || g_liveIngress.depth() != 0 ||
                         !g_entityQueue.empty() || !g_recipeRpcQueue.empty() ||
-                        !g_dustBootstrap.empty() || g_dustWorldResetPending;
+                        !g_dustBootstrap.empty() || g_dustWorldResetPending ||
+                        g_dustMailbox.hasQueued();
                 }))
                     continue;
                 if (std::chrono::steady_clock::now() < until) continue;
