@@ -32,6 +32,22 @@ public static class BunnyEntitySourceDispatcher
         public readonly Dictionary<string, BunnyProjectile> NamedProjectiles = new(StringComparer.Ordinal);
         public readonly Dictionary<int, BunnyNPC> Npcs = new();
         public readonly Dictionary<int, BunnyProjectile> Projectiles = new();
+        public readonly Dictionary<string, BunnyItem> ItemUsers = new(StringComparer.Ordinal);
+        public readonly HashSet<string> RegisteredItemUses = new(StringComparer.Ordinal);
+        public readonly Dictionary<string, BunnyInvasionSystem> Invasions = new(StringComparer.Ordinal);
+        public readonly List<BunnyInvasionSystem> InvasionOrder = new();
+        public readonly Dictionary<string, BunnyInvasionClientView> ClientViews = new(StringComparer.Ordinal);
+        public readonly Dictionary<string, int> NetRevisions = new(StringComparer.Ordinal);
+        public readonly Dictionary<string, int> HudRevisions = new(StringComparer.Ordinal);
+        public readonly Dictionary<string, (BunnyInvasionPhase Phase, int Progress, int Cooldown)> SavedInvasions = new(StringComparer.Ordinal);
+        public readonly Dictionary<string, (BunnyInvasionPhase Phase, int PercentStep)> NotifiedInvasions = new(StringComparer.Ordinal);
+        public int NextInvasionIndex;
+        public int SaveTimerFrames;
+        public readonly HashSet<string> PendingRewards = new(StringComparer.Ordinal);
+        public int RewardPlayer = -1;
+        public int LastWorldPlayer = -1;
+        public long NativeWorldSession;
+        public bool WorldStateInitialized;
         public readonly NpcInstance[] NpcSlots = new NpcInstance[512];
         public readonly ProjectileInstance[] ProjectileSlots = new ProjectileInstance[4096];
         public string LastError = "";
@@ -70,6 +86,28 @@ public static class BunnyEntitySourceDispatcher
                         !context.NamedProjectiles.TryAdd(type.Name, projectile))
                         throw new InvalidOperationException("Duplicated projectile class " + type.Name);
                 }
+                else if (typeof(BunnyItem).IsAssignableFrom(type))
+                {
+                    MethodInfo? use = type.GetMethod(nameof(BunnyItem.OnUse),
+                        new[] { typeof(int) });
+                    MethodInfo? contextual = type.GetMethod(nameof(BunnyItem.OnUse),
+                        new[] { typeof(int), typeof(BunnyUseContext) });
+                    if ((use?.DeclaringType != typeof(BunnyItem) ||
+                         contextual?.DeclaringType != typeof(BunnyItem)) &&
+                        Activator.CreateInstance(type) is BunnyItem item)
+                    {
+                        if (!context.ItemUsers.TryAdd(type.Name, item))
+                            throw new InvalidOperationException("Duplicate item use class " + type.Name);
+                    }
+                }
+                else if (typeof(BunnyInvasionSystem).IsAssignableFrom(type))
+                {
+                    BunnyInvasionSystem system = Activator.CreateInstance(type) as BunnyInvasionSystem
+                        ?? throw new InvalidOperationException("Invalid invasion system " + type.Name);
+                    if (context.Invasions.Count >= 16 || !context.Invasions.TryAdd(system.Id, system))
+                        throw new InvalidOperationException("Duplicate invasion ID or too many invasion systems: " + system.Id);
+                    context.InvasionOrder.Add(system);
+                }
             }
             Contexts.Add(context);
             return Contexts.Count - 1;
@@ -99,6 +137,222 @@ public static class BunnyEntitySourceDispatcher
         return false;
     }
 
+    public static int TickWorld(int modSlot, int mode, int elapsedFrames,
+        long worldSession, int playerIndex, float playerX, float playerY)
+    {
+        if ((uint)modSlot >= (uint)Contexts.Count || worldSession <= 0 ||
+            elapsedFrames < 1 || elapsedFrames > 60) return 0;
+        Context context = Contexts[modSlot];
+        if (context.Invasions.Count == 0 && context.ItemUsers.Count == 0) return -2;
+        bool authoritative = mode == 0 || mode == 2 || mode == 3;
+        if (context.NativeWorldSession != worldSession)
+        {
+            foreach (BunnyInvasionSystem system in context.Invasions.Values) system.OnWorldExit();
+            context.RegisteredItemUses.Clear();
+            context.SavedInvasions.Clear();
+            context.NotifiedInvasions.Clear();
+            context.ClientViews.Clear();
+            context.NetRevisions.Clear();
+            context.HudRevisions.Clear();
+            context.WorldStateInitialized = false;
+            context.PendingRewards.Clear();
+            context.RewardPlayer = -1;
+            context.LastWorldPlayer = -1;
+            context.NativeWorldSession = worldSession;
+            context.NextInvasionIndex = 0;
+            context.SaveTimerFrames = 0;
+        }
+        if (mode == 1)
+        {
+            foreach (string itemName in context.ItemUsers.Keys)
+                BunnyNativeItemUse.Bind(worldSession, context.Mod, itemName);
+            try
+            {
+                int updates = 0;
+                while (updates < 8 && BunnyInvasionNativeNetwork.TryPoll(
+                    worldSession, context.Mod, out BunnyInvasionWireState state))
+                {
+                    updates++;
+                    if (!context.Invasions.ContainsKey(state.InvasionId)) continue;
+                    if (!context.ClientViews.TryGetValue(state.InvasionId, out var view))
+                        context.ClientViews[state.InvasionId] = view = new BunnyInvasionClientView();
+                    bool hadState = view.HasState;
+                    BunnyInvasionWireState previous = view.Current;
+                    if (view.ReceiveRemoteFromHost(state, worldSession, context.Mod,
+                        state.InvasionId))
+                    {
+                        BunnyInvasionHud.Publish(worldSession, state);
+                        bool significant = !hadState || previous.Phase != state.Phase ||
+                            previous.Progress * 10 / previous.Goal !=
+                            state.Progress * 10 / state.Goal;
+                        if (significant)
+                            BunnyInvasionNotifications.Publish(worldSession,
+                                context.Mod, state);
+                    }
+                }
+                return updates;
+            }
+            catch (Exception error)
+            {
+                context.LastError = "TickWorld(client): " + error.GetType().Name +
+                    ": " + error.Message;
+                return -1;
+            }
+        }
+        if (!authoritative || playerIndex < 0 ||
+            !float.IsFinite(playerX) || !float.IsFinite(playerY)) return 0;
+        context.LastWorldPlayer = playerIndex;
+        try
+        {
+            if (!context.WorldStateInitialized)
+            {
+                foreach (BunnyInvasionSystem system in context.Invasions.Values)
+                {
+                    BunnyInvasionController controller = system.Pipeline.Controller;
+                    BunnyInvasionWorldPersistence.TryRestore(worldSession, context.Mod, controller);
+                    BunnyInvasionSnapshot initial = controller.Snapshot();
+                    context.SavedInvasions[system.Id] =
+                        (initial.Phase, initial.Progress, initial.Cooldown);
+                }
+                context.WorldStateInitialized = true;
+            }
+            int used = 0;
+            foreach (var pair in context.ItemUsers)
+            {
+                if (!context.RegisteredItemUses.Contains(pair.Key))
+                {
+                    BunnyNativeItemUse.Bind(worldSession, context.Mod, pair.Key);
+                    if (BunnyNativeItemUse.IsReady(worldSession, context.Mod, pair.Key))
+                        context.RegisteredItemUses.Add(pair.Key);
+                }
+                if (!context.RegisteredItemUses.Contains(pair.Key)) continue;
+                for (int n = 0; n < 8 && BunnyNativeItemUse.TryPollContext(
+                    worldSession, context.Mod, pair.Key, out int usingPlayer,
+                    out BunnyUseContext useContext); n++)
+                {
+                    context.RewardPlayer = usingPlayer;
+                    pair.Value.OnUse(usingPlayer, useContext);
+                    used++;
+                    SaveInvasionIfChanged(context);
+                }
+            }
+            int received = 0;
+            while (received < 8 && BunnyInvasionNativeTransport.TryPoll(
+                worldSession, context.Mod, out BunnyNativeInvasionReply result))
+            {
+                received++;
+                foreach (BunnyInvasionSystem system in context.Invasions.Values)
+                {
+                    if (!system.Pipeline.TryGetReservedClass(
+                        result.Epoch, result.Ticket, out string reservedClass)) continue;
+                    if (result.Success)
+                        system.OnNativeCreated(true, new BunnyInvasionSpawn(
+                            result.Ticket, reservedClass) { Epoch = result.Epoch },
+                            result.Slot, result.Identity);
+                    else
+                        system.OnNativeFailed(true, result.Epoch, result.Ticket);
+                    break;
+                }
+            }
+            foreach (BunnyInvasionSystem system in context.Invasions.Values)
+                system.Tick(true, elapsedFrames, true);
+            context.SaveTimerFrames += elapsedFrames;
+            bool periodicSave = context.SaveTimerFrames >= 600;
+            if (periodicSave) context.SaveTimerFrames = 0;
+            SaveInvasionIfChanged(context, periodicSave);
+            if (context.Invasions.Count == 0) return received + used;
+            List<BunnyInvasionSystem> systems = context.InvasionOrder;
+            for (int iteration = 0; iteration < systems.Count; iteration++)
+            {
+                int index = (context.NextInvasionIndex + iteration) % systems.Count;
+                BunnyInvasionSystem system = systems[index];
+                if (system.Pipeline.PendingCount >= 2 ||
+                    !system.Pipeline.Controller.CanSpawn) continue;
+                int roll = HashCode.Combine(worldSession, elapsedFrames,
+                    system.Id, system.Pipeline.Controller.Snapshot().Revision);
+                if (!system.TryReserve(true, roll, out BunnyInvasionSpawn spawn)) continue;
+                context.NextInvasionIndex = (index + 1) % systems.Count;
+                float x = Math.Clamp(playerX + 320f, 640f, 10000000f);
+                float y = Math.Clamp(playerY - 160f, 640f, 10000000f);
+                if (!BunnyInvasionNativeTransport.Submit(worldSession, spawn,
+                    context.Mod, playerIndex, x, y))
+                    system.OnNativeFailed(true, spawn.Epoch, spawn.Ticket);
+                return received + 1;
+            }
+            return received + (used > 0 ? 1 : 0);
+        }
+        catch (Exception error)
+        {
+            context.LastError = "TickWorld: " + error.GetType().Name + ": " + error.Message;
+            return -1;
+        }
+    }
+
+    public static bool TryGetInvasionView(int modSlot, string invasionId,
+        out BunnyInvasionWireState state)
+    {
+        state = default;
+        if ((uint)modSlot >= (uint)Contexts.Count ||
+            string.IsNullOrEmpty(invasionId)) return false;
+        return Contexts[modSlot].ClientViews.TryGetValue(
+            invasionId, out BunnyInvasionClientView? view) &&
+            view.HasState && (state = view.Current).IsValid();
+    }
+
+    private static void SaveInvasionIfChanged(Context context, bool periodicSave = false)
+    {
+        if (!context.WorldStateInitialized || context.NativeWorldSession <= 0) return;
+        foreach (BunnyInvasionSystem system in context.Invasions.Values)
+        {
+            BunnyInvasionController controller = system.Pipeline.Controller;
+            BunnyInvasionSnapshot state = controller.Snapshot();
+            if (!context.HudRevisions.TryGetValue(system.Id, out int lastHudRevision) ||
+                lastHudRevision != state.Revision)
+            {
+                if (BunnyInvasionHud.Publish(context.NativeWorldSession,
+                    context.Mod, controller))
+                    context.HudRevisions[system.Id] = state.Revision;
+            }
+            if (!context.NetRevisions.TryGetValue(system.Id, out int lastNetRevision) ||
+                lastNetRevision != state.Revision)
+            {
+                if (BunnyInvasionNativeNetwork.Publish(context.NativeWorldSession,
+                    context.Mod, controller))
+                    context.NetRevisions[system.Id] = state.Revision;
+            }
+            bool hasSaved = context.SavedInvasions.TryGetValue(system.Id, out var saved);
+            int nextPercentStep = state.Progress * 10 / controller.Definition.Goal;
+            if (!context.NotifiedInvasions.TryGetValue(system.Id, out var lastNotice) ||
+                state.Phase != lastNotice.Phase ||
+                nextPercentStep != lastNotice.PercentStep)
+            {
+                if (BunnyInvasionNotifications.Publish(context.NativeWorldSession,
+                    context.Mod, controller))
+                    context.NotifiedInvasions[system.Id] = (state.Phase, nextPercentStep);
+            }
+            if (state.Phase == BunnyInvasionPhase.Completed &&
+                (!hasSaved || saved.Phase != BunnyInvasionPhase.Completed) &&
+                system.RewardStack > 0 && system.RewardItemClass.Length > 0)
+                context.PendingRewards.Add(system.Id);
+            if (!hasSaved || state.Phase != saved.Phase ||
+                state.Progress != saved.Progress ||
+                (periodicSave && state.Cooldown != saved.Cooldown))
+            {
+                if (BunnyInvasionWorldPersistence.Save(
+                    context.NativeWorldSession, context.Mod, controller))
+                    context.SavedInvasions[system.Id] =
+                        (state.Phase, state.Progress, state.Cooldown);
+            }
+            if (!context.PendingRewards.Contains(system.Id)) continue;
+            int target = context.RewardPlayer >= 0 ?
+                context.RewardPlayer : context.LastWorldPlayer;
+            if (BunnyInvasionNativeRewards.Submit(context.NativeWorldSession,
+                context.Mod, system.Id, state.Epoch, system.RewardItemClass,
+                system.RewardStack, target))
+                context.PendingRewards.Remove(system.Id);
+        }
+    }
+
     private static long Encode(float x, float y)
     {
         if (!float.IsFinite(x) || !float.IsFinite(y) ||
@@ -116,6 +370,12 @@ public static class BunnyEntitySourceDispatcher
 
     public static long TickNpc(int modSlot, int type, int slot, int generation,
         int life, int lifeMax, float x, float y, float vx, float vy, float playerX, float playerY)
+        => TickNpc(modSlot, type, slot, generation,
+            life, lifeMax, x, y, vx, vy, playerX, playerY, 0L);
+
+    public static long TickNpc(int modSlot, int type, int slot, int generation,
+        int life, int lifeMax, float x, float y, float vx, float vy,
+        float playerX, float playerY, long nativeIdentity)
     {
         if ((uint)modSlot >= (uint)Contexts.Count || (uint)slot >= 512u || generation < 1 ||
             life <= 0 || !float.IsFinite(x) || !float.IsFinite(y)) return -1;
@@ -134,6 +394,8 @@ public static class BunnyEntitySourceDispatcher
                 };
                 try { previousNpc.OnDespawn(ref previousState); }
                 catch (Exception error) { Fault(context, previousNpc.GetType().Name + ".OnDespawn", error); }
+                foreach (BunnyInvasionSystem invasion in context.Invasions.Values)
+                    invasion.Pipeline.Controller.ReportDespawn(true, slot, instance.Generation);
             }
             instance = new NpcInstance { Generation = generation, Type = type };
         }
@@ -141,11 +403,16 @@ public static class BunnyEntitySourceDispatcher
         var state = new BunnyNpcAiState {
             Slot = slot, Type = type, Generation = generation, Life = life, LifeMax = lifeMax,
             Age = instance.Age, X = x, Y = y, VelocityX = vx, VelocityY = vy,
-            PlayerX = playerX, PlayerY = playerY
+            PlayerX = playerX, PlayerY = playerY, NativeIdentity = nativeIdentity
         };
         try
         {
             if (fresh) npc.OnSpawn(ref state);
+            foreach (BunnyInvasionSystem invasion in context.Invasions.Values)
+                if (invasion.Pipeline.MatchesPendingNpc(npc.GetType().Name, slot, nativeIdentity))
+                    invasion.Pipeline.ConfirmFirstTick(true,
+                        invasion.Pipeline.Controller.Snapshot().Epoch,
+                        npc.GetType().Name, slot, generation, nativeIdentity);
             bool changed = npc.AI(ref state);
             context.NpcCalls++;
             if (instance.Age < int.MaxValue) instance.Age++;
@@ -229,7 +496,10 @@ public static class BunnyEntitySourceDispatcher
             {
                 instance.Blocked = true;
                 npc.OnKill(ref state);
+                foreach (BunnyInvasionSystem invasion in context.Invasions.Values)
+                    invasion.Pipeline.Controller.ReportKill(true, slot, generation, npc.GetType().Name);
                 context.NpcKills++;
+                SaveInvasionIfChanged(context);
             }
             return true;
         }
@@ -283,7 +553,10 @@ public static class BunnyEntitySourceDispatcher
         try
         {
             npc.OnKill(ref state);
+            foreach (BunnyInvasionSystem invasion in context.Invasions.Values)
+                invasion.Pipeline.Controller.ReportKill(true, slot, generation, npc.GetType().Name);
             context.NpcKills++;
+            SaveInvasionIfChanged(context);
             return true;
         }
         catch (Exception error)
@@ -333,6 +606,8 @@ public static class BunnyEntitySourceDispatcher
                 };
                 try { npc.OnDespawn(ref state); }
                 catch (Exception error) { Fault(context, npc.GetType().Name + ".ResetWorld", error); }
+                foreach (BunnyInvasionSystem invasion in context.Invasions.Values)
+                    invasion.Pipeline.Controller.ReportDespawn(true, i, current.Generation);
             }
             for (int i = 0; i < context.ProjectileSlots.Length; i++)
             {

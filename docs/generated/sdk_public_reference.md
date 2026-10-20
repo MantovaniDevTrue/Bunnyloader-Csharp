@@ -31,6 +31,7 @@ float VisualOpacity { get; set; }
 float VisualScale { get; set; }
 int DefenseBonus { get; set; }
 string DisplayName { get; set; }
+string ModRarityClassName { get; }
 string NativeDefaultsDefinition { get; }
 string Texture { get; set; }
 string Tooltip { get; set; }
@@ -40,6 +41,7 @@ string VisualTexture { get; set; }
 | Method | Execution |
 | --- | --- |
 | `void SetDefaults()` | compile_policy |
+| `void SetRarity<T>()` | managed_helper |
 
 ## BunnyLoader.Source.BunnyAccessoryVisualMode
 
@@ -141,6 +143,7 @@ BunnyNativeDefaults NativeDefaults { get; }
 int Duration { get; set; }
 string Buff { get; set; }
 string DisplayName { get; set; }
+string ModRarityClassName { get; }
 string NativeDefaultsDefinition { get; }
 string Texture { get; set; }
 ```
@@ -148,6 +151,7 @@ string Texture { get; set; }
 | Method | Execution |
 | --- | --- |
 | `void SetDefaults()` | compile_policy |
+| `void SetRarity<T>()` | managed_helper |
 
 ## BunnyLoader.Source.BunnyColor
 
@@ -195,7 +199,7 @@ string Texture { get; }
 
 enum; base: `System.Enum`.
 
-Values: Item, Tile, Weapon, Projectile, Buff, BuffPotion, Accessory, Player, NPC, Prefix.
+Values: Item, Tile, Weapon, Projectile, Buff, BuffPotion, Accessory, Player, NPC, Prefix, Wall, Dust.
 
 ## BunnyLoader.Source.BunnyCraftContext
 
@@ -234,6 +238,114 @@ BunnyDodgeHook(Object object, IntPtr method)
 | `void EndInvoke(out bool dodge, IAsyncResult result)` | managed_helper |
 | `void Invoke(int damage, out bool dodge)` | managed_helper |
 
+## BunnyLoader.Source.BunnyDust
+
+abstract class; base: `System.Object`.
+
+```csharp
+int UpdateType { get; }
+string Texture { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `bool GetAlpha(ref BunnyDustState state, ref UInt32 color)` | managed_helper |
+| `bool MidUpdate(ref BunnyDustState state)` | managed_helper |
+| `bool PreDraw(ref BunnyDustState state)` | managed_helper |
+| `bool Update(ref BunnyDustState state)` | managed_helper |
+| `void OnSpawn(ref BunnyDustState state)` | managed_helper |
+| `void SetStaticDefaults()` | compile_policy |
+
+## BunnyLoader.Source.BunnyDustDefinition
+
+struct; base: `System.ValueType`.
+
+```csharp
+BunnyDustDefinition(string Name, string Texture, int UpdateType, BunnyDustHooks Hooks)
+BunnyDustHooks Hooks { get; set; }
+int UpdateType { get; set; }
+string Name { get; set; }
+string Texture { get; set; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `bool Equals(BunnyDustDefinition other)` | managed_helper |
+| `bool Equals(Object obj)` | managed_helper |
+| `int GetHashCode()` | managed_helper |
+| `string ToString()` | managed_helper |
+| `void Deconstruct(out string Name, out string Texture, out int UpdateType, out BunnyDustHooks Hooks)` | managed_helper |
+
+## BunnyLoader.Source.BunnyDustEffects
+
+abstract class; base: `System.Object`.
+
+| Method | Execution |
+| --- | --- |
+| `static bool EmitAtPlayer<T>(int playerIndex, int count)` | managed_helper |
+
+## BunnyLoader.Source.BunnyDustHooks
+
+enum; base: `System.Enum`.
+
+Values: None, OnSpawn, Update, MidUpdate, GetAlpha, PreDraw.
+
+## BunnyLoader.Source.BunnyDustRegistry
+
+class; base: `System.Object`.
+
+```csharp
+BunnyDustRegistry(string modId)
+Int64 FaultCount { get; }
+int ActiveCount { get; }
+int BoundCount { get; }
+int RegisteredCount { get; }
+string LastError { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `BunnyDustDefinition Register(string name, BunnyDust dust)` | managed_helper |
+| `bool Bind(int nativeType, string name)` | managed_helper |
+| `bool GetAlpha(ref BunnyDustState state, ref UInt32 color)` | managed_helper |
+| `bool MidUpdate(ref BunnyDustState state, out bool keepHorizontalSpeed)` | managed_helper |
+| `bool OnSpawn(ref BunnyDustState state)` | managed_helper |
+| `bool PreDraw(ref BunnyDustState state, out bool draw)` | managed_helper |
+| `bool TryGetDefinition(string name, out BunnyDustDefinition definition)` | managed_helper |
+| `bool Update(ref BunnyDustState state, out bool useVanilla)` | managed_helper |
+| `void Release(int slot, int type, int generation)` | managed_helper |
+| `void ResetWorld()` | managed_helper |
+| `void Unload()` | managed_helper |
+
+## BunnyLoader.Source.BunnyDustSourceDispatcher
+
+abstract class; base: `System.Object`.
+
+```csharp
+string LastRegistrationError { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `static bool Bind(int modSlot, int nativeType, string className)` | managed_helper |
+| `static int Invoke(int modSlot, int phase, IntPtr statePointer)` | managed_helper |
+| `static int Register(string modId, string assemblyPath)` | managed_helper |
+| `static int Tick(int modSlot, IntPtr statePointer)` | managed_helper |
+| `static void ResetWorld()` | managed_helper |
+| `static void Unload()` | managed_helper |
+
+## BunnyLoader.Source.BunnyDustState
+
+struct; base: `System.ValueType`.
+
+```csharp
+bool IsActive { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `void Kill()` | managed_helper |
+
 ## BunnyLoader.Source.BunnyEntitySourceDispatcher
 
 abstract class; base: `System.Object`.
@@ -245,6 +357,7 @@ string LastRegistrationError { get; }
 | Method | Execution |
 | --- | --- |
 | `static Int64 TickNpc(int modSlot, int type, int slot, int generation, int life, int lifeMax, float x, float y, float vx, float vy, float playerX, float playerY)` | worker_async_entity |
+| `static Int64 TickNpc(int modSlot, int type, int slot, int generation, int life, int lifeMax, float x, float y, float vx, float vy, float playerX, float playerY, Int64 nativeIdentity)` | worker_async_entity |
 | `static Int64 TickProjectile(int modSlot, int type, int slot, int generation, int owner, float x, float y, float vx, float vy, float playerX, float playerY)` | worker_async_entity |
 | `static Int64 TickProjectile(int modSlot, int type, int slot, int generation, int owner, float x, float y, float vx, float vy, float playerX, float playerY, int targetNpc, float targetX, float targetY)` | worker_async_entity |
 | `static bool Bind(int modSlot, int kind, int type, string name)` | worker_async_entity |
@@ -252,7 +365,9 @@ string LastRegistrationError { get; }
 | `static bool HitProjectile(int modSlot, int type, int slot, int generation, int owner, int npcIndex, int damage)` | worker_async_entity |
 | `static bool KillNpc(int modSlot, int type, int slot, int generation)` | worker_async_entity |
 | `static bool KillProjectile(int modSlot, int type, int slot, int generation, int owner)` | worker_async_entity |
+| `static bool TryGetInvasionView(int modSlot, string invasionId, out BunnyInvasionWireState state)` | worker_async_entity |
 | `static int Register(string modId, string assemblyPath)` | worker_async_entity |
+| `static int TickWorld(int modSlot, int mode, int elapsedFrames, Int64 worldSession, int playerIndex, float playerX, float playerY)` | worker_async_entity |
 | `static string Status(int modSlot)` | worker_async_entity |
 | `static void ResetWorld()` | worker_async_entity |
 
@@ -523,21 +638,287 @@ BunnyInt32ZeroHook(Object object, IntPtr method)
 | `int EndInvoke(IAsyncResult result)` | managed_helper |
 | `int Invoke(BunnyOriginalInt32 original, IntPtr self)` | managed_helper |
 
+## BunnyLoader.Source.BunnyInvasionClientView
+
+class; base: `System.Object`.
+
+```csharp
+BunnyInvasionClientView()
+BunnyInvasionWireState Current { get; }
+bool HasState { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `bool ReceiveFromHost(BunnyInvasionWireState state, Int64 currentWorldSession, string modId, string invasionId)` | managed_helper |
+| `bool ReceiveRemoteFromHost(BunnyInvasionWireState state, Int64 localSession, string modId, string invasionId)` | managed_helper |
+| `void ResetWorld()` | managed_helper |
+
+## BunnyLoader.Source.BunnyInvasionController
+
+class; base: `System.Object`.
+
+```csharp
+BunnyInvasionController(BunnyInvasionDefinition definition)
+BunnyInvasionDefinition Definition { get; }
+BunnyInvasionPhase Phase { get; }
+bool CanSpawn { get; }
+bool IsComplete { get; }
+int ActiveCount { get; }
+int PendingCount { get; }
+int Progress { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `BunnyInvasionSnapshot Snapshot()` | managed_helper |
+| `bool CancelSpawn(bool authoritative, int spawnTicket)` | managed_helper |
+| `bool CommitSpawn(bool authoritative, int spawnTicket, string npcClass, int npcSlot, int npcGeneration)` | managed_helper |
+| `bool ReportDespawn(bool authoritative, int npcSlot, int npcGeneration)` | managed_helper |
+| `bool ReportKill(bool authoritative, int npcSlot, int npcGeneration, string npcClass)` | managed_helper |
+| `bool Restore(bool authoritative, BunnyInvasionSnapshot snapshot)` | managed_helper |
+| `bool Start(bool authoritative)` | managed_helper |
+| `bool Stop(bool authoritative)` | managed_helper |
+| `bool TryReserveSpawn(bool authoritative, int weightedRoll, out BunnyInvasionSpawn spawn)` | managed_helper |
+| `void ResetWorld()` | managed_helper |
+| `void Tick(bool authoritative, bool playersAvailable)` | managed_helper |
+
+## BunnyLoader.Source.BunnyInvasionDefinition
+
+class; base: `System.Object`.
+
+```csharp
+BunnyInvasionDefinition(string id, int goal, int maxActive, int spawnInterval, BunnyInvasionEnemy[] enemies)
+IReadOnlyList<BunnyInvasionEnemy> Enemies { get; }
+int Goal { get; }
+int MaxActive { get; }
+int SpawnInterval { get; }
+string Id { get; }
+```
+
+## BunnyLoader.Source.BunnyInvasionEnemy
+
+struct; base: `System.ValueType`.
+
+```csharp
+BunnyInvasionEnemy(string NpcClass, int Weight, int Points, int UnlockAtProgress)
+int Points { get; set; }
+int UnlockAtProgress { get; set; }
+int Weight { get; set; }
+string NpcClass { get; set; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `bool Equals(BunnyInvasionEnemy other)` | managed_helper |
+| `bool Equals(Object obj)` | managed_helper |
+| `int GetHashCode()` | managed_helper |
+| `string ToString()` | managed_helper |
+| `void Deconstruct(out string NpcClass, out int Weight, out int Points, out int UnlockAtProgress)` | managed_helper |
+
+## BunnyLoader.Source.BunnyInvasionHud
+
+abstract class; base: `System.Object`.
+
+| Method | Execution |
+| --- | --- |
+| `static bool Publish(Int64 worldSession, BunnyInvasionWireState state)` | managed_helper |
+| `static bool Publish(Int64 worldSession, string modId, BunnyInvasionController controller)` | managed_helper |
+
+## BunnyLoader.Source.BunnyInvasionNativeNetwork
+
+abstract class; base: `System.Object`.
+
+| Method | Execution |
+| --- | --- |
+| `static bool Publish(Int64 worldSession, string modId, BunnyInvasionController controller)` | managed_helper |
+| `static bool TryPoll(Int64 worldSession, string modId, out BunnyInvasionWireState state)` | managed_helper |
+
+## BunnyLoader.Source.BunnyInvasionNativeRewards
+
+abstract class; base: `System.Object`.
+
+| Method | Execution |
+| --- | --- |
+| `static bool Submit(Int64 worldSession, string modId, string invasionId, int epoch, string itemClass, int stack, int playerIndex)` | managed_helper |
+
+## BunnyLoader.Source.BunnyInvasionNativeTransport
+
+abstract class; base: `System.Object`.
+
+```csharp
+Int64 WorldSession { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `static bool Submit(Int64 worldSession, BunnyInvasionSpawn spawn, string modId, int playerIndex, float x, float y)` | managed_helper |
+| `static bool TryPoll(Int64 worldSession, string modId, out BunnyNativeInvasionReply result)` | managed_helper |
+
+## BunnyLoader.Source.BunnyInvasionNotifications
+
+abstract class; base: `System.Object`.
+
+| Method | Execution |
+| --- | --- |
+| `static bool Publish(Int64 localSession, string modId, BunnyInvasionWireState state)` | managed_helper |
+| `static bool Publish(Int64 worldSession, string modId, BunnyInvasionController controller)` | managed_helper |
+
+## BunnyLoader.Source.BunnyInvasionPhase
+
+enum; base: `System.Enum`.
+
+Values: Inactive, Running, Completed.
+
+## BunnyLoader.Source.BunnyInvasionSnapshot
+
+struct; base: `System.ValueType`.
+
+```csharp
+BunnyInvasionSnapshot(int Epoch, int Revision, BunnyInvasionPhase Phase, int Progress, int Active, int Pending, int Cooldown)
+BunnyInvasionPhase Phase { get; set; }
+int Active { get; set; }
+int Cooldown { get; set; }
+int Epoch { get; set; }
+int Pending { get; set; }
+int Progress { get; set; }
+int Revision { get; set; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `bool Equals(BunnyInvasionSnapshot other)` | managed_helper |
+| `bool Equals(Object obj)` | managed_helper |
+| `int GetHashCode()` | managed_helper |
+| `string ToString()` | managed_helper |
+| `void Deconstruct(out int Epoch, out int Revision, out BunnyInvasionPhase Phase, out int Progress, out int Active, out int Pending, out int Cooldown)` | managed_helper |
+
+## BunnyLoader.Source.BunnyInvasionSpawn
+
+struct; base: `System.ValueType`.
+
+```csharp
+BunnyInvasionSpawn(int Ticket, string NpcClass)
+int Epoch { get; set; }
+int Ticket { get; set; }
+string NpcClass { get; set; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `bool Equals(BunnyInvasionSpawn other)` | managed_helper |
+| `bool Equals(Object obj)` | managed_helper |
+| `int GetHashCode()` | managed_helper |
+| `string ToString()` | managed_helper |
+| `void Deconstruct(out int Ticket, out string NpcClass)` | managed_helper |
+
+## BunnyLoader.Source.BunnyInvasionSpawnPipeline
+
+class; base: `System.Object`.
+
+```csharp
+BunnyInvasionSpawnPipeline(BunnyInvasionController controller, int timeoutTicks)
+BunnyInvasionController Controller { get; }
+int ConfirmedCount { get; }
+int ExpiredCount { get; }
+int FailedCount { get; }
+int PendingCount { get; }
+int RejectedCount { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `bool ConfirmFirstTick(bool authoritative, int epoch, string npcClass, int slot, int generation, Int64 nativeIdentity)` | managed_helper |
+| `bool MatchesPendingNpc(string npcClass, int slot, Int64 nativeIdentity)` | managed_helper |
+| `bool ReportCreated(bool authoritative, int epoch, int ticket, string npcClass, int slot, Int64 nativeIdentity)` | managed_helper |
+| `bool ReportFailed(bool authoritative, int epoch, int ticket)` | managed_helper |
+| `bool TryGetReservedClass(int epoch, int ticket, out string npcClass)` | managed_helper |
+| `bool TryReserve(bool authoritative, int weightedRoll, out BunnyInvasionSpawn spawn)` | managed_helper |
+| `void ResetWorld()` | managed_helper |
+| `void Tick(bool authoritative, bool playersAvailable)` | managed_helper |
+
+## BunnyLoader.Source.BunnyInvasionSystem
+
+abstract class; base: `System.Object`.
+
+```csharp
+BunnyInvasionSpawnPipeline Pipeline { get; }
+int RewardStack { get; }
+string Id { get; }
+string RewardItemClass { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `bool OnNativeCreated(bool authoritative, BunnyInvasionSpawn spawn, int slot, Int64 identity)` | managed_helper |
+| `bool OnNativeFailed(bool authoritative, int epoch, int ticket)` | managed_helper |
+| `bool TryReserve(bool authoritative, int roll, out BunnyInvasionSpawn spawn)` | managed_helper |
+| `void OnWorldExit()` | managed_helper |
+| `void Tick(bool authoritative, int frames, bool playerAvailable)` | managed_helper |
+
+## BunnyLoader.Source.BunnyInvasionWireState
+
+struct; base: `System.ValueType`.
+
+```csharp
+BunnyInvasionWireState(Int64 WorldSession, string ModId, string InvasionId, int Epoch, int Revision, BunnyInvasionPhase Phase, int Progress, int Goal, int Active, int Pending)
+BunnyInvasionPhase Phase { get; set; }
+Int64 WorldSession { get; set; }
+int Active { get; set; }
+int Epoch { get; set; }
+int Goal { get; set; }
+int Pending { get; set; }
+int Progress { get; set; }
+int Revision { get; set; }
+string InvasionId { get; set; }
+string ModId { get; set; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `bool Equals(BunnyInvasionWireState other)` | managed_helper |
+| `bool Equals(Object obj)` | managed_helper |
+| `bool IsValid()` | managed_helper |
+| `int GetHashCode()` | managed_helper |
+| `static BunnyInvasionWireState Capture(Int64 worldSession, string modId, BunnyInvasionController controller)` | managed_helper |
+| `static bool TryDecode(string payload, out BunnyInvasionWireState state)` | managed_helper |
+| `static bool ValidName(string value, int limit)` | managed_helper |
+| `string Encode()` | managed_helper |
+| `string ToString()` | managed_helper |
+| `void Deconstruct(out Int64 WorldSession, out string ModId, out string InvasionId, out int Epoch, out int Revision, out BunnyInvasionPhase Phase, out int Progress, out int Goal, out int Active, out int Pending)` | managed_helper |
+
+## BunnyLoader.Source.BunnyInvasionWorldPersistence
+
+abstract class; base: `System.Object`.
+
+| Method | Execution |
+| --- | --- |
+| `static bool Save(Int64 worldSession, string modId, BunnyInvasionController controller)` | managed_helper |
+| `static bool TryRestore(Int64 worldSession, string modId, BunnyInvasionController controller)` | managed_helper |
+
 ## BunnyLoader.Source.BunnyItem
 
-abstract class; base: `BunnyLoader.Source.BunnyRecipeSource`.
+abstract class; base: `BunnyLoader.Source.BunnyShootSource`.
 
 ```csharp
 BunnyHoldout Holdout { get; set; }
 BunnyItemBehavior Behavior { get; }
 BunnyNativeDefaults NativeDefaults { get; }
+BunnyQuestCatchRules QuestCatchRules { get; set; }
 BunnySoundStyle CustomUseSound { get; set; }
+Dictionary<string, string> QuestCatchLocationTranslations { get; }
+Dictionary<string, string> QuestDescriptionTranslations { get; }
 Dictionary<string, string> TooltipTranslations { get; }
+Func<BunnyQuestContext, bool> QuestAvailableWhen { get; set; }
+Func<BunnyQuestContext, bool> QuestCanCatchWhen { get; set; }
 bool Accessory { get; set; }
 bool AutoReuse { get; set; }
 bool Consumable { get; set; }
 bool Melee { get; set; }
 bool NoMelee { get; set; }
+bool QuestAvailableInHardmode { get; set; }
+bool QuestAvailableInPreHardmode { get; set; }
+bool QuestFish { get; set; }
 bool UseTurn { get; set; }
 bool Vanity { get; set; }
 float KnockBack { get; set; }
@@ -557,10 +938,13 @@ int Value { get; set; }
 int Width { get; set; }
 string BehaviorDefinition { get; }
 string DisplayName { get; set; }
+string ModRarityClassName { get; }
 string NativeAccessoryEffectsDefinition { get; }
 string NativeArmorDefinition { get; }
 string NativeDefaultsDefinition { get; }
 string PlacementDefinition { get; }
+string QuestCatchLocation { get; set; }
+string QuestDescription { get; set; }
 string Texture { get; set; }
 string Tooltip { get; set; }
 string UseSound { get; set; }
@@ -568,11 +952,17 @@ string UseSound { get; set; }
 
 | Method | Execution |
 | --- | --- |
+| `bool OnUse(int playerIndex)` | managed_helper |
+| `bool OnUse(int playerIndex, BunnyUseContext context)` | managed_helper |
 | `static int BuyPrice(int platinum, int gold, int silver, int copper)` | managed_helper |
 | `static int SellPrice(int platinum, int gold, int silver, int copper)` | managed_helper |
 | `void DefaultToPlaceableTile(int vanillaTileId, int style)` | managed_helper |
 | `void DefaultToPlaceableTile(string modTileName, int style)` | managed_helper |
+| `void DefaultToPlaceableWall(int vanillaWallId)` | managed_helper |
+| `void DefaultToPlaceableWall(string modWallName)` | managed_helper |
+| `void DefaultToQuestFish()` | managed_helper |
 | `void SetDefaults()` | compile_policy |
+| `void SetRarity<T>()` | managed_helper |
 
 ## BunnyLoader.Source.BunnyItemBehavior
 
@@ -600,6 +990,61 @@ string NativeArmorDefinition { get; }
 | `void SetWingStats(int flyTime, float flySpeed, float acceleration, float ascentWhenFalling, float ascentWhenRising, float maxCanAscendMultiplier, float maxAscentMultiplier, float constantAscend)` | managed_helper |
 | `void WorldAlpha(Byte red, Byte green, Byte blue, Byte opacity)` | managed_helper |
 | `void WorldLight(float red, float green, float blue, bool scaleByEssence)` | managed_helper |
+
+## BunnyLoader.Source.BunnyLocalizationCatalog
+
+class; base: `System.Object`.
+
+```csharp
+BunnyLocalizationCatalog(string culture)
+int Count { get; }
+int Revision { get; }
+string ActiveCultureName { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `IReadOnlyDictionary<string, string> SnapshotForGame()` | managed_helper |
+| `IReadOnlyDictionary<string, string> Texts(string path, string callerModId)` | managed_helper |
+| `IReadOnlyList<string> ExportWireRows()` | managed_helper |
+| `bool Exists(string path, string callerModId)` | managed_helper |
+| `int LoadFromContent(string modId, string contentDirectory)` | managed_helper |
+| `string Key(string path, string callerModId)` | managed_helper |
+| `string Translate(string path, string callerModId)` | managed_helper |
+| `string TryTranslate(string path, string callerModId)` | managed_helper |
+| `void Register(string fullKey, IReadOnlyDictionary<string, string> cultures)` | managed_helper |
+| `void Register(string fullKey, string culture, string text)` | managed_helper |
+| `void RegisterCulture(string modId, string culture, IReadOnlyDictionary<string, string> texts)` | managed_helper |
+| `void RemoveMod(string modId)` | managed_helper |
+| `void ReplaceModCultures(string modId, IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>> cultures)` | managed_helper |
+| `void SetCulture(string culture)` | managed_helper |
+
+## BunnyLoader.Source.BunnyLocalizationModule
+
+abstract class; base: `System.Object`.
+
+| Method | Execution |
+| --- | --- |
+| `void OnLocalizationsLoaded()` | worker_async_localization |
+| `void RegisterTranslations(BunnyLocalizationCatalog catalog)` | compile_policy |
+
+## BunnyLoader.Source.BunnyLocalizationRuntime
+
+abstract class; base: `System.Object`.
+
+```csharp
+string ActiveCultureName { get; }
+string ActiveModId { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `static bool Acknowledge(string modId, string assemblyPath, string culture, string wire)` | worker_async_localization |
+| `static bool Unload(string modId)` | worker_async_localization |
+| `static string Dispatch(string modId, string assemblyPath, string culture)` | worker_async_localization |
+| `static string Drain(string modId, string assemblyPath, string culture)` | worker_async_localization |
+| `static void Register(string key, IReadOnlyDictionary<string, string> cultures)` | managed_owned_registration |
+| `static void Register(string key, string culture, string value)` | managed_owned_registration |
 
 ## BunnyLoader.Source.BunnyMethodHook
 
@@ -714,6 +1159,39 @@ string Definition { get; }
 | `BunnyNativeDefaults SetInt(string field, int value)` | managed_helper |
 | `BunnyNativeDefaults SetProjectile(string field, string key)` | managed_helper |
 
+## BunnyLoader.Source.BunnyNativeInvasionReply
+
+struct; base: `System.ValueType`.
+
+```csharp
+BunnyNativeInvasionReply(int Epoch, int Ticket, int Error, int Slot, Int64 Identity)
+Int64 Identity { get; set; }
+bool Success { get; }
+int Epoch { get; set; }
+int Error { get; set; }
+int Slot { get; set; }
+int Ticket { get; set; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `bool Equals(BunnyNativeInvasionReply other)` | managed_helper |
+| `bool Equals(Object obj)` | managed_helper |
+| `int GetHashCode()` | managed_helper |
+| `string ToString()` | managed_helper |
+| `void Deconstruct(out int Epoch, out int Ticket, out int Error, out int Slot, out Int64 Identity)` | managed_helper |
+
+## BunnyLoader.Source.BunnyNativeItemUse
+
+abstract class; base: `System.Object`.
+
+| Method | Execution |
+| --- | --- |
+| `static bool Bind(Int64 worldSession, string modId, string itemName)` | managed_helper |
+| `static bool IsReady(Int64 worldSession, string modId, string itemName)` | managed_helper |
+| `static bool TryPoll(Int64 worldSession, string modId, string itemName, out int playerIndex)` | managed_helper |
+| `static bool TryPollContext(Int64 worldSession, string modId, string itemName, out int playerIndex, out BunnyUseContext context)` | managed_helper |
+
 ## BunnyLoader.Source.BunnyNativeMember
 
 class; base: `System.Object`.
@@ -797,9 +1275,11 @@ struct; base: `System.ValueType`.
 abstract class; base: `System.Object`.
 
 ```csharp
+BunnyQuestCatchRules FishingCatchRules { get; set; }
 int DefenseBonus { get; }
 int MoveSpeedPercent { get; }
 string Accessory { get; set; }
+string FishingQuestFishName { get; set; }
 ```
 
 | Method | Execution |
@@ -900,6 +1380,99 @@ struct; base: `System.ValueType`.
 ```csharp
 bool HasTarget { get; }
 ```
+
+## BunnyLoader.Source.BunnyQuestCatchRules
+
+enum; base: `System.Enum`.
+
+Values: None, InvertedGravity, Uncommon, InvertedGravityAndUncommon.
+
+## BunnyLoader.Source.BunnyQuestContext
+
+class; base: `System.Object`.
+
+```csharp
+BunnyQuestContext()
+bool Hardmode { get; }
+bool InvertedGravity { get; }
+bool Uncommon { get; }
+int FishType { get; }
+int PlayerIndex { get; }
+```
+
+## BunnyLoader.Source.BunnyQuestRuntime
+
+abstract class; base: `System.Object`.
+
+| Method | Execution |
+| --- | --- |
+| `static string Dispatch(string modId, string assemblyPath, string owner, int kind, string snapshot)` | managed_helper |
+
+## BunnyLoader.Source.BunnyRarity
+
+abstract class; base: `System.Object`.
+
+```csharp
+BunnyColor RarityColor { get; }
+int Type { get; }
+string ModId { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `int GetPrefixedRarity(int offset, float valueMultiplier)` | managed_helper |
+| `void SetStaticDefaults()` | compile_policy |
+
+## BunnyLoader.Source.BunnyRarityEntry
+
+struct; base: `System.ValueType`.
+
+```csharp
+BunnyRarityEntry(int Type, string ModId, string ClassName, BunnyRarity Instance)
+BunnyRarity Instance { get; set; }
+int Type { get; set; }
+string ClassName { get; set; }
+string ModId { get; set; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `bool Equals(BunnyRarityEntry other)` | managed_helper |
+| `bool Equals(Object obj)` | managed_helper |
+| `int GetHashCode()` | managed_helper |
+| `string ToString()` | managed_helper |
+| `void Deconstruct(out int Type, out string ModId, out string ClassName, out BunnyRarity Instance)` | managed_helper |
+
+## BunnyLoader.Source.BunnyRarityRegistry
+
+class; base: `System.Object`.
+
+```csharp
+BunnyRarityRegistry(int firstCustomType)
+int RarityCount { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `IReadOnlyList<BunnyRarityEntry> Seal()` | managed_helper |
+| `bool TryGetColor(int type, out BunnyColor color)` | managed_helper |
+| `int Register(string modId, BunnyRarity rarity)` | managed_helper |
+| `int ResolvePrefixedRarity(int originalType, float valueMultiplier, int nativeResult)` | managed_helper |
+| `int TypeOf<T>(string modId)` | managed_helper |
+| `static int PrefixOffset(float valueMultiplier)` | managed_helper |
+
+## BunnyLoader.Source.BunnyRarityRuntime
+
+abstract class; base: `System.Object`.
+
+```csharp
+BunnyColor DiscoColor { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `static int TypeOf<T>(string modId)` | managed_helper |
+| `static string Dispatch(string modId, string assemblyPath, string owner, int index, int kind, string snapshot)` | managed_helper |
 
 ## BunnyLoader.Source.BunnyRecipe
 
@@ -1044,6 +1617,47 @@ string ShaderFile { get; set; }
 | --- | --- |
 | `void SetDefaults()` | compile_policy |
 
+## BunnyLoader.Source.BunnyShootContext
+
+class; base: `System.Object`.
+
+```csharp
+Random Random { get; }
+int ItemType { get; }
+int PlayerIndex { get; }
+int WeaponDamage { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `void Spawn(BunnyShot shot)` | worker_shoot_command_batch |
+
+## BunnyLoader.Source.BunnyShootRuntime
+
+abstract class; base: `System.Object`.
+
+| Method | Execution |
+| --- | --- |
+| `static string Dispatch(string modId, string assemblyPath, string owner, int index, int kind, string snapshot)` | worker_sync_shoot_snapshot |
+
+## BunnyLoader.Source.BunnyShootSource
+
+abstract class; base: `BunnyLoader.Source.BunnyRecipeSource`.
+
+```csharp
+int ShootCallbackMask { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `bool CanShoot(BunnyShootContext context)` | worker_sync_shoot_snapshot |
+| `bool OnShoot(BunnyShootContext context, BunnyShot shot)` | worker_sync_shoot_snapshot |
+| `void ModifyShootStats(BunnyShootContext context, ref BunnyShot shot)` | worker_sync_shoot_snapshot |
+
+## BunnyLoader.Source.BunnyShot
+
+struct; base: `System.ValueType`.
+
 ## BunnyLoader.Source.BunnySoundLimitBehavior
 
 enum; base: `System.Enum`.
@@ -1072,11 +1686,19 @@ abstract class; base: `System.Object`.
 ```csharp
 BunnyTileFlags Flags { get; set; }
 BunnyTileShape Shape { get; set; }
+bool AllowBreaking { get; set; }
+bool AllowDrops { get; set; }
+bool CacheDrawData { get; set; }
 int AdjacentTile { get; set; }
+int AnimationFrameHeight { get; set; }
+int AnimationFrameTicks { get; set; }
+int AnimationFrames { get; set; }
 int CoordinateHeight { get; set; }
 int MapB { get; }
 int MapG { get; }
 int MapR { get; }
+int TileCallbackMask { get; }
+int[] AdjacentTiles { get; set; }
 string DisplayName { get; set; }
 string DustName { get; set; }
 string MapName { get; }
@@ -1085,15 +1707,40 @@ string Texture { get; set; }
 
 | Method | Execution |
 | --- | --- |
+| `bool CanDrop(int x, int y)` | managed_helper |
+| `bool CanKillTile(int x, int y)` | managed_helper |
+| `bool PreDraw(int x, int y)` | managed_helper |
+| `bool RightClick(int x, int y)` | managed_helper |
+| `bool Slope(int x, int y)` | managed_helper |
 | `int NumDust(bool fail)` | compile_policy |
 | `void AddMapEntry(int red, int green, int blue, string name)` | managed_helper |
+| `void AnimateIndividualTile(int type, int x, int y, ref int addFrameX, ref int addFrameY)` | managed_helper |
+| `void AnimateIndividualTile(int x, int y, ref int addFrameX, ref int addFrameY)` | managed_helper |
+| `void AnimateTile(ref int frame, ref int frameCounter)` | managed_helper |
+| `void HitWire(int x, int y)` | managed_helper |
+| `void ModifyLight(int x, int y, ref float r, ref float g, ref float b)` | managed_helper |
+| `void MouseOver(int x, int y)` | managed_helper |
+| `void MouseOverFar(int x, int y)` | managed_helper |
+| `void NearbyEffects(int x, int y, bool closer)` | managed_helper |
+| `void PlaceInWorld(int x, int y)` | managed_helper |
+| `void RandomUpdate(int x, int y)` | managed_helper |
+| `void SetDrawPositions(int x, int y, ref int width, ref int top, ref int height, ref int frameX, ref int frameY)` | managed_helper |
+| `void SetSpriteEffects(int x, int y, ref int effects)` | managed_helper |
 | `void SetStaticDefaults()` | compile_policy |
 
 ## BunnyLoader.Source.BunnyTileFlags
 
 enum; base: `System.Enum`.
 
-Values: None, Table, SolidTop, NoAttach, LavaDeath, FrameImportant, DisableSmartCursor, HasOutlines, IgnoredByNpcStepUp, CountsAsTable.
+Values: None, Table, SolidTop, NoAttach, LavaDeath, FrameImportant, DisableSmartCursor, HasOutlines, IgnoredByNpcStepUp, CountsAsTable, Solid, BlockLight, MergeDirt, Lighted, WaterDeath, ChecksForMerge, Cut.
+
+## BunnyLoader.Source.BunnyTileRuntime
+
+abstract class; base: `System.Object`.
+
+| Method | Execution |
+| --- | --- |
+| `static string Dispatch(string modId, string assemblyPath, string owner, int index, int kind, string snapshot)` | managed_helper |
 
 ## BunnyLoader.Source.BunnyTileShape
 
@@ -1111,9 +1758,35 @@ string LastError { get; }
 
 | Method | Execution |
 | --- | --- |
+| `static bool Unload(string id)` | experimental_worker_sync_void0 |
 | `static int Register(string id, string path)` | experimental_worker_sync_void0 |
 | `static string GetStatusSnapshot(string id)` | experimental_worker_sync_void0 |
 | `static void UnloadAll()` | experimental_worker_sync_void0 |
+
+## BunnyLoader.Source.BunnyUseContext
+
+struct; base: `System.ValueType`.
+
+```csharp
+BunnyUseContext(int Flags)
+bool CanStartSurfaceInvasion { get; }
+bool CanStartSurfaceInvasionAfterFirstBoss { get; }
+bool Daytime { get; }
+bool FirstBossDefeated { get; }
+bool NoVanillaInvasion { get; }
+bool OnSurface { get; }
+bool PlayerAlive { get; }
+bool WorldReady { get; }
+int Flags { get; set; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `bool Equals(BunnyUseContext other)` | managed_helper |
+| `bool Equals(Object obj)` | managed_helper |
+| `int GetHashCode()` | managed_helper |
+| `string ToString()` | managed_helper |
+| `void Deconstruct(out int Flags)` | managed_helper |
 
 ## BunnyLoader.Source.BunnyValue
 
@@ -1253,9 +1926,35 @@ BunnyVoidInt32TripleHook(Object object, IntPtr method)
 | `void EndInvoke(IAsyncResult result)` | managed_helper |
 | `void Invoke(BunnyOriginalVoid original, IntPtr self, int first, int second, int third)` | managed_helper |
 
+## BunnyLoader.Source.BunnyWall
+
+abstract class; base: `System.Object`.
+
+```csharp
+BunnyWorldLight DayLight { get; set; }
+BunnyWorldLight NightLight { get; set; }
+bool Housing { get; set; }
+int AnimationFrameTicks { get; set; }
+int AnimationFrames { get; set; }
+int DustCount { get; set; }
+int FailedDustCount { get; set; }
+string BlendWallName { get; set; }
+string DisplayName { get; set; }
+string DustName { get; set; }
+string NativeDefinition { get; }
+string Texture { get; set; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `void AddMapEntry(int r, int g, int b, string name)` | managed_helper |
+| `void RandomizeFrame(int from, float chance, int[] alternatives)` | managed_helper |
+| `void SetFrameDust(int frameNumber, string dustName)` | managed_helper |
+| `void SetStaticDefaults()` | compile_policy |
+
 ## BunnyLoader.Source.BunnyWeapon
 
-abstract class; base: `BunnyLoader.Source.BunnyRecipeSource`.
+abstract class; base: `BunnyLoader.Source.BunnyShootSource`.
 
 ```csharp
 BunnyHoldout Holdout { get; set; }
@@ -1268,6 +1967,7 @@ int MinionBuffTime { get; set; }
 int UseTime { get; set; }
 string DisplayName { get; set; }
 string MinionBuff { get; set; }
+string ModRarityClassName { get; }
 string NativeDefaultsDefinition { get; }
 string Shoot { get; set; }
 string Texture { get; set; }
@@ -1276,6 +1976,18 @@ string Texture { get; set; }
 | Method | Execution |
 | --- | --- |
 | `void SetDefaults()` | compile_policy |
+| `void SetRarity<T>()` | managed_helper |
+
+## BunnyLoader.Source.BunnyWorldLight
+
+struct; base: `System.ValueType`.
+
+```csharp
+BunnyWorldLight(float r, float g, float b)
+float B { get; }
+float G { get; }
+float R { get; }
+```
 
 ## BunnyLoader.Source.PrefixCategory
 

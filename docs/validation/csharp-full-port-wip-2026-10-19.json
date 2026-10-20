@@ -1,0 +1,742 @@
+{
+  "sourceCommit": "e11f5279b1ed4a573fb08e999cc3228c8cd2dc19",
+  "status": "Development checkpoint; full port incomplete; no deliverable authorized",
+  "loaderDevelopmentVersion": "0.1.10.16.90.29.97-full-example-port-wip",
+  "versionCode": 274,
+  "exampleModDevelopmentVersion": "0.1.56",
+  "run": 39190838803,
+  "ci": "success",
+  "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39190838803",
+  "independentSuites": [
+    {
+      "conclusion": "success",
+      "databaseId": 39190838928,
+      "event": "push",
+      "headSha": "e11f5279b1ed4a573fb08e999cc3228c8cd2dc19",
+      "name": "Check Bunny CSharp Native Visual Queue",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39190838875,
+      "event": "push",
+      "headSha": "e11f5279b1ed4a573fb08e999cc3228c8cd2dc19",
+      "name": "Check managed callback lifecycle",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39190838905,
+      "event": "push",
+      "headSha": "e11f5279b1ed4a573fb08e999cc3228c8cd2dc19",
+      "name": "Check complete ExampleMod audit",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39190838793,
+      "event": "push",
+      "headSha": "e11f5279b1ed4a573fb08e999cc3228c8cd2dc19",
+      "name": "Check Bunny CSharp Visual Queue",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39190838907,
+      "event": "push",
+      "headSha": "e11f5279b1ed4a573fb08e999cc3228c8cd2dc19",
+      "name": "CSharp Native ScreenFx",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39190838923,
+      "event": "push",
+      "headSha": "e11f5279b1ed4a573fb08e999cc3228c8cd2dc19",
+      "name": "Check CSharp combat batch",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39190838917,
+      "event": "push",
+      "headSha": "e11f5279b1ed4a573fb08e999cc3228c8cd2dc19",
+      "name": "Check Mono Android signal ownership",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39190838892,
+      "event": "push",
+      "headSha": "e11f5279b1ed4a573fb08e999cc3228c8cd2dc19",
+      "name": "Check Mono pinned worker GC transitions",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39190838850,
+      "event": "push",
+      "headSha": "e11f5279b1ed4a573fb08e999cc3228c8cd2dc19",
+      "name": "Check CSharp SDK and continuous runtime foundation",
+      "status": "completed"
+    }
+  ],
+  "publication": {
+    "heldByUserRequest": true,
+    "privateReleaseCreated": false,
+    "releaseAbsence": "Authenticated private repository read succeeded; tag csharp-v3-run-39190838803-a1 returned HTTP404",
+    "skippedSteps": [
+      "Deliver signed APK to private Builds repository",
+      "Export source-only CSharp examples as safe workflow artifact",
+      "Export independent native minion CSharp probe"
+    ],
+    "deliveryVerificationJob": "skipped",
+    "sourceArchiveExport": "skipped",
+    "apkOrModLinks": "none"
+  },
+  "validation": {
+    "managedItemCases": 36,
+    "entityChecks": 43,
+    "combatCases": 31,
+    "nativeExecutables": 10,
+    "roslynSmoke": "54 content classes/68 wire rows; editable-source recompile and second independent mod passed",
+    "sanitizers": "ASan/UBSan passed for production native sound binding/cache and native router fixtures on host",
+    "androidBuild": "Gradle testDebugUnitTest and assembleDebug, native ARM64 compilation and signature/APK validation passed in CI",
+    "deviceGameplay": "not tested",
+    "fps": "not measured",
+    "coldFiveSecondTarget": "not measured"
+  },
+  "newNativeAudioContracts": [
+    "compiled USE_SOUND decode to production binder/publication",
+    "native type/storage/size/alignment/constructor validation",
+    "GC roots and write barrier/nonincremental fallback",
+    "canonical asset confinement including symlink escape",
+    "atomic binding publication and temporary style/root rollback",
+    "idempotent registration and explicit restart on incompatible hot replacement",
+    "shared audio asset and weak style cache, shared instance limit across content",
+    "legacy JavaScript token compatibility, bounded Android queue, pause and cancellation",
+    "10000 native router completions",
+    "actual SoundPool decode status logged"
+  ],
+  "exampleModEditableSources": 77,
+  "publicSdkTypes": 89,
+  "exampleModBunnyInventory": {
+    "forkJsFiles": 178,
+    "canonicalJsFiles": 206,
+    "newUpstreamFiles": 28,
+    "cSharpSourceFiles": 77
+  },
+  "officialPcInventory": {
+    "exampleModFiles": 1210,
+    "exampleModCSharp": 561,
+    "activeCSharp": 449,
+    "legacyCSharp": 112,
+    "dependencyFiles": 11
+  },
+  "coverageByCategory": {
+    "Accessories": {
+      "total": 7,
+      "states": {
+        "Implementado, aguardando validação": 3,
+        "Parcial": 4
+      },
+      "implemented": 3,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 4,
+      "implementedPercent": 42.86,
+      "validatedPercent": 0.0,
+      "partialPercent": 57.14,
+      "limitations": 0,
+      "missingExamples": 4
+    },
+    "Achievements": {
+      "total": 2,
+      "states": {
+        "Não implementado": 2
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 2
+    },
+    "Ammo": {
+      "total": 1,
+      "states": {
+        "Implementado, aguardando validação": 1
+      },
+      "implemented": 1,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 100.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 0
+    },
+    "Armor": {
+      "total": 6,
+      "states": {
+        "Implementado, aguardando validação": 5,
+        "Não implementado": 1
+      },
+      "implemented": 5,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 83.33,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 1
+    },
+    "Biomes": {
+      "total": 6,
+      "states": {
+        "Não implementado": 6
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 6
+    },
+    "Bosses": {
+      "total": 2,
+      "states": {
+        "Não implementado": 2
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 2
+    },
+    "Buffs": {
+      "total": 6,
+      "states": {
+        "Não implementado": 3,
+        "Parcial": 3
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 3,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 50.0,
+      "limitations": 0,
+      "missingExamples": 6
+    },
+    "Clouds": {
+      "total": 1,
+      "states": {
+        "Não implementado": 1
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 1
+    },
+    "Commands": {
+      "total": 2,
+      "states": {
+        "Não implementado": 2
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 2
+    },
+    "Configs": {
+      "total": 1,
+      "states": {
+        "Não implementado": 1
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 1
+    },
+    "Consumables": {
+      "total": 3,
+      "states": {
+        "Não implementado": 2,
+        "Parcial": 1
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 1,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 33.33,
+      "limitations": 0,
+      "missingExamples": 3
+    },
+    "DamageClasses": {
+      "total": 1,
+      "states": {
+        "Não implementado": 1
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 1
+    },
+    "Effects": {
+      "total": 1,
+      "states": {
+        "Não implementado": 1
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 1
+    },
+    "EmoteBubbles": {
+      "total": 2,
+      "states": {
+        "Não implementado": 2
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 2
+    },
+    "GlobalBossBars": {
+      "total": 1,
+      "states": {
+        "Não implementado": 1
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 1
+    },
+    "GlobalBuffs": {
+      "total": 1,
+      "states": {
+        "Não implementado": 1
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 1
+    },
+    "GlobalRecipes": {
+      "total": 1,
+      "states": {
+        "Não implementado": 1
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 1
+    },
+    "GlobalTiles": {
+      "total": 2,
+      "states": {
+        "Não implementado": 2
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 2
+    },
+    "Hairs": {
+      "total": 1,
+      "states": {
+        "Não implementado": 1
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 1
+    },
+    "Items": {
+      "total": 4,
+      "states": {
+        "Não implementado": 3,
+        "Parcial": 1
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 1,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 25.0,
+      "limitations": 0,
+      "missingExamples": 4
+    },
+    "Materials": {
+      "total": 1,
+      "states": {
+        "Implementado, aguardando validação": 1
+      },
+      "implemented": 1,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 100.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 0
+    },
+    "Mounts": {
+      "total": 4,
+      "states": {
+        "Não implementado": 4
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 4
+    },
+    "NPCs": {
+      "total": 5,
+      "states": {
+        "Não implementado": 4,
+        "Parcial": 1
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 1,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 20.0,
+      "limitations": 0,
+      "missingExamples": 5
+    },
+    "Pets": {
+      "total": 6,
+      "states": {
+        "Não implementado": 6
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 6
+    },
+    "Placeable": {
+      "total": 36,
+      "states": {
+        "Não implementado": 35,
+        "Implementado, aguardando validação": 1
+      },
+      "implemented": 1,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 2.78,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 35
+    },
+    "Players": {
+      "total": 7,
+      "states": {
+        "Não implementado": 6,
+        "Parcial": 1
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 1,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 14.29,
+      "limitations": 0,
+      "missingExamples": 7
+    },
+    "Prefixes": {
+      "total": 3,
+      "states": {
+        "Parcial": 2,
+        "Não implementado": 1
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 2,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 66.67,
+      "limitations": 0,
+      "missingExamples": 3
+    },
+    "Projectiles": {
+      "total": 20,
+      "states": {
+        "Não implementado": 18,
+        "Implementado, aguardando validação": 1,
+        "Parcial": 1
+      },
+      "implemented": 1,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 1,
+      "implementedPercent": 5.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 5.0,
+      "limitations": 0,
+      "missingExamples": 19
+    },
+    "Quests": {
+      "total": 1,
+      "states": {
+        "Não implementado": 1
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 1
+    },
+    "Rarities": {
+      "total": 2,
+      "states": {
+        "Não implementado": 2
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 2
+    },
+    "Systems": {
+      "total": 6,
+      "states": {
+        "Não implementado": 5,
+        "Parcial": 1
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 1,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 16.67,
+      "limitations": 0,
+      "missingExamples": 6
+    },
+    "TileEntities": {
+      "total": 2,
+      "states": {
+        "Não implementado": 2
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 2
+    },
+    "Tiles": {
+      "total": 37,
+      "states": {
+        "Não implementado": 36,
+        "Implementado, aguardando validação": 1
+      },
+      "implemented": 1,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 2.7,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 36
+    },
+    "Tools": {
+      "total": 5,
+      "states": {
+        "Não implementado": 3,
+        "Implementado, aguardando validação": 2
+      },
+      "implemented": 2,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 40.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 3
+    },
+    "Walls": {
+      "total": 2,
+      "states": {
+        "Não implementado": 2
+      },
+      "implemented": 0,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 0,
+      "implementedPercent": 0.0,
+      "validatedPercent": 0.0,
+      "partialPercent": 0.0,
+      "limitations": 0,
+      "missingExamples": 2
+    },
+    "Weapons": {
+      "total": 18,
+      "states": {
+        "Não implementado": 14,
+        "Implementado, aguardando validação": 3,
+        "Parcial": 1
+      },
+      "implemented": 3,
+      "validated": 0,
+      "automated": 0,
+      "automatedPercent": 0.0,
+      "partial": 1,
+      "implementedPercent": 16.67,
+      "validatedPercent": 0.0,
+      "partialPercent": 5.56,
+      "limitations": 0,
+      "missingExamples": 15
+    }
+  },
+  "wholePortCompleted": false,
+  "wholeLoadersCertified": 0,
+  "previousAttempt": {
+    "run": 39189539050,
+    "result": "failed delivery test inherited held GITHUB_REF; isolated test environment corrected, release hold preserved"
+  },
+  "previousInternalSuccess": {
+    "run": 39189955135,
+    "sourceCommit": "5e1aeaf1 (abbreviated)",
+    "result": "internal Android build success; no partial publication"
+  },
+  "nextSystem": "Managed Shoot/ModifyShootStats and validated native spawns; no hardcoded shotgun shortcut; follow docs/csharp-full-example-port-progress.md"
+}

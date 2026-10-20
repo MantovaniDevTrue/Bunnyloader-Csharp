@@ -1,0 +1,97 @@
+name: DustLoader CSharp native ARM64 compile only
+
+on:
+  push:
+    branches:
+      - feat/csharp-dust-loader-20261019
+    paths:
+      - .github/workflows/check-csharp-dust-native.yml
+      - app/build.gradle.kts
+      - app/src/main/cpp/CMakeLists.txt
+      - app/src/main/cpp/content/dusts/**
+      - app/src/main/cpp/content/common/ModContent.cpp
+      - app/src/main/cpp/menu/Cheats.cpp
+      - app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp
+      - app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp
+      - app/src/main/cpp/experiments/csharp/ManagedRuntime.h
+      - app/src/main/cpp/experiments/csharp/ManagedDustContract.h
+      - app/src/main/cpp/experiments/csharp/ManagedDustDecision.h
+      - app/src/main/cpp/experiments/csharp/ManagedDustFlagMask.h
+      - app/src/main/cpp/experiments/csharp/ManagedDustMailbox.h
+      - app/src/main/cpp/experiments/csharp/ManagedDustFrameBudget.h
+      - app/src/main/cpp/experiments/csharp/ManagedDustLifecycle.h
+      - app/src/main/cpp/experiments/csharp/ManagedDustSlotLookup.h
+      - app/src/main/cpp/experiments/csharp/ManagedDustBindingSelection.h
+      - app/src/main/cpp/experiments/csharp/SourceLoader.h
+      - app/src/main/cpp/experiments/csharp/SourceLoader.cpp
+      - app/src/main/cpp/experiments/csharp/SourceParser.cpp
+      - app/src/main/cpp/experiments/csharp/SourceContentIdentity.h
+  pull_request:
+    paths:
+      - app/src/main/cpp/content/dusts/**
+      - app/src/main/cpp/content/common/ModContent.cpp
+      - app/src/main/cpp/menu/Cheats.cpp
+      - app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp
+      - app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp
+      - app/src/main/cpp/experiments/csharp/ManagedRuntime.h
+      - app/src/main/cpp/experiments/csharp/ManagedDustContract.h
+      - app/src/main/cpp/experiments/csharp/ManagedDustDecision.h
+      - app/src/main/cpp/experiments/csharp/ManagedDustFlagMask.h
+      - app/src/main/cpp/experiments/csharp/ManagedDustMailbox.h
+      - app/src/main/cpp/experiments/csharp/ManagedDustFrameBudget.h
+      - app/src/main/cpp/experiments/csharp/ManagedDustLifecycle.h
+      - app/src/main/cpp/experiments/csharp/ManagedDustSlotLookup.h
+      - app/src/main/cpp/experiments/csharp/ManagedDustBindingSelection.h
+      - app/src/main/cpp/experiments/csharp/SourceLoader.h
+      - app/src/main/cpp/experiments/csharp/SourceLoader.cpp
+      - app/src/main/cpp/experiments/csharp/SourceParser.cpp
+      - app/src/main/cpp/experiments/csharp/SourceContentIdentity.h
+
+concurrency:
+  group: csharp-dust-native-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  native-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout DustLoader branch
+        uses: actions/checkout@v4
+      - name: Configure Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Configure Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+      - name: Install Android CMake and ARM64 NDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+          if [ ! -x "$ANDROID_HOME/cmake/3.22.1/bin/cmake" ]; then
+            "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "cmake;3.22.1"
+          fi
+          if [ ! -x "$ANDROID_HOME/ndk/30.0.16248370/ndk-build" ]; then
+            "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "ndk;30.0.16248370"
+          fi
+          if [ ! -f "$ANDROID_HOME/platforms/android-34/android.jar" ]; then
+            "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "platforms;android-34"
+          fi
+      - name: Compile native sources without APK packaging
+        shell: bash
+        run: |
+          set -euo pipefail
+          gradle :app:externalNativeBuildDebug --no-daemon --stacktrace -Pbl.uiOnly=true -Pbl.dustPreview=true
+          if find app/build/outputs/apk -type f -name '*.apk' -print -quit 2>/dev/null | grep -q .; then
+            echo "APK output forbidden for incomplete DustLoader"
+            exit 1
+          fi
+          find app/build/intermediates/cxx -type f -name 'libbunny.so' -print -quit | grep -q .
+          echo "DUST_NATIVE_ARM64_COMPILE=PASS NO_APK=TRUE"

@@ -30,7 +30,8 @@ struct BasicItemEntry {
     std::map<std::string,std::string> localizedTooltips;
     std::vector<BasicAccessoryEffect> accessoryEffects;
     BasicArmorPolicy armor;
-    std::string placeTileKey; int placeTile=-1,placeStyle=0; bool placeable=false;
+    std::string placeTileKey; int placeTile=-1,placeStyle=0; bool placeable=false,wallPlaceable=false;
+    int wallIntegerOverrides=8191,wallFlagOverrides=127;
     bool behaviorInstalled=false;
     std::string behaviorError;
     std::vector<BasicRecipe> recipes;
@@ -53,7 +54,7 @@ inline bool validBasicAccessoryEffect(const BasicAccessoryEffect& e) {
 }
 inline bool validateBasicItem(const BasicItemEntry& item,std::string* error) {
     const int min[]={0,0,1,0,-1,0,-100,0,0,0,0,0,0,0};
-    const int max[]={256,256,9999,100000000,11,1000,100,600,600,20,1000,200,1000,127};
+    const int max[]={256,256,9999,100000000,4107,1000,100,600,600,20,1000,200,1000,127};
     for(size_t i=0;i<BasicFieldCount;++i) if(item.values[i]<min[i]||item.values[i]>max[i]) {
         *error=item.name+": "+kBasicFieldNames[i]+" fora do limite";return false;
     }
@@ -100,7 +101,7 @@ inline bool parseBasicRecipes(const std::string& text,BasicItemEntry* item,std::
                 *error="[CSharp][ERROR][Recipe] Class="+item->name+" API=BunnyRecipe Stage=ParseIngredient Expected=TypedKey:Count(1..9999) Actual="+parts[i]+" Result=Rejected Reason=InvalidIngredientDescriptor";return false;
             }
             ingredient.key=pair[0];
-            if(pair[0][0]=='v') {
+                    if(pair[0][0]=='v') {
                 if(!basicInteger(pair[0].substr(1),&ingredient.type)||ingredient.type<1||ingredient.type>=6196) {*error=item->name+": ItemID vanilla invalido";return false;}
             } else if(pair[0][0]=='m') {
                 for(unsigned char c:pair[0].substr(1))if(!((c>='A'&&c<='Z')||(c>='a'&&c<='z')||(c>='0'&&c<='9')||c=='_'||c=='-'||c=='/')) {*error=item->name+": chave de item invalida";return false;}
@@ -168,6 +169,10 @@ inline bool parseBasicItemWire(const std::vector<std::string>& fields,BasicItemE
     if((fields.size()<20||fields.size()>26)||fields[0]!="ITEM") {*error="ITEM requer 20 a 26 campos";return false;}
     BasicItemEntry out;out.name=fields[1];
     for(size_t i=0;i<BasicFieldCount;++i)if(!basicInteger(fields[i+2],&out.values[i])) {*error=out.name+": inteiro invalido em "+kBasicFieldNames[i];return false;}
+    if (out.values[BasicRare] > 11) {
+        *error = out.name + ": Rare nativo de origem precisa ser vanilla; use SetRarity<T>()";
+        return false;
+    }
     char* end=nullptr;errno=0;out.knockBack=std::strtof(fields[16].c_str(),&end);
     if(errno||!end||*end||fields[16].empty()) {*error=out.name+": KnockBack invalido";return false;}
     out.useSound=fields[17]=="-"?"":fields[17];
@@ -189,11 +194,21 @@ inline bool parseBasicItemWire(const std::vector<std::string>& fields,BasicItemE
     }
     if(fields.size()>=22 && fields[21]!="-") {
         auto pair=basicSplit(fields[21],':');
-        if(pair.size()!=2||pair[0].size()<2||!basicInteger(pair[1],&out.placeStyle)||out.placeStyle<0||out.placeStyle>32767) {
+        if((pair.size()!=2&&pair.size()!=4)||pair[0].size()<2||!basicInteger(pair[1],&out.placeStyle)||out.placeStyle<0||out.placeStyle>32767) {
             *error=out.name+": Stage=ParsePlacement Field=placeStyle Expected=0..32767 Actual="+fields[21]+" Reason=InvalidPlacement";return false;
         }
+        if(pair[0].starts_with("w")) {
+            out.wallPlaceable=true;pair[0].erase(0,1);
+            if(pair[0].size()<2||out.placeStyle!=0){*error=out.name+": Stage=ParsePlacement Reason=InvalidWallTokenOrStyle";return false;}
+        }
+        if(pair.size()==4) {
+            if(!out.wallPlaceable||!basicInteger(pair[2],&out.wallIntegerOverrides)||out.wallIntegerOverrides<0||out.wallIntegerOverrides>8191||
+               !basicInteger(pair[3],&out.wallFlagOverrides)||out.wallFlagOverrides<0||out.wallFlagOverrides>127) {
+                *error=out.name+": Stage=ParsePlacement Reason=InvalidWallOverrideMask Expected=Integers0..8191:Flags0..127 Actual="+fields[21];return false;
+            }
+        }
         if(pair[0][0]=='v') {
-            if(!basicInteger(pair[0].substr(1),&out.placeTile)||out.placeTile<0||out.placeTile>=754) {
+            if(!basicInteger(pair[0].substr(1),&out.placeTile)||out.placeTile<(out.wallPlaceable?1:0)||out.placeTile>=(out.wallPlaceable?367:754)) {
                 *error=out.name+": Stage=ParsePlacement Field=createTile Expected=VanillaTileId Actual="+pair[0]+" Reason=InvalidTileId";return false;
             }
         } else if(pair[0][0]=='m') {

@@ -5,6 +5,7 @@ public struct BunnyNpcAiState
     public int Slot;
     public int Type;
     public int Generation;
+    public long NativeIdentity;
     public int Life;
     public int LifeMax;
     public int Age;
@@ -72,8 +73,11 @@ public abstract class BunnyProjectile
     public virtual int OnKillDuration(int damage) => 0;
 }
 
-public abstract class BunnyWeapon : BunnyRecipeSource
+public abstract class BunnyWeapon : BunnyShootSource
 {
+    public string ModRarityClassName { get; private set; } = "";
+    public void SetRarity<T>() where T : BunnyRarity
+        => ModRarityClassName = BunnyRarityReference.Resolve(GetType(), typeof(T));
     public BunnyHoldout? Holdout { get; set; }
     /// <summary>Som próprio do mod; tem precedência sobre o SoundID vanilla.</summary>
     public BunnySoundStyle? CustomUseSound { get; set; }
@@ -115,6 +119,9 @@ public abstract class BunnyBuff
 
 public abstract class BunnyBuffPotion : BunnyRecipeSource
 {
+    public string ModRarityClassName { get; private set; } = "";
+    public void SetRarity<T>() where T : BunnyRarity
+        => ModRarityClassName = BunnyRarityReference.Resolve(GetType(), typeof(T));
     public BunnyNativeDefaults NativeDefaults { get; } = new();
     public string NativeDefaultsDefinition => NativeDefaults.Definition;
     public string DisplayName { get; set; } = "";
@@ -134,6 +141,9 @@ public enum BunnyAccessoryVisualMode
 
 public abstract class BunnyAccessory : BunnyRecipeSource
 {
+    public string ModRarityClassName { get; private set; } = "";
+    public void SetRarity<T>() where T : BunnyRarity
+        => ModRarityClassName = BunnyRarityReference.Resolve(GetType(), typeof(T));
     public BunnyNativeDefaults NativeDefaults { get; } = new();
     public string NativeDefaultsDefinition => NativeDefaults.Definition;
     public string DisplayName { get; set; } = "";
@@ -151,6 +161,8 @@ public abstract class BunnyAccessory : BunnyRecipeSource
 public abstract class BunnyPlayer
 {
     public string Accessory { get; set; } = "";
+    public string FishingQuestFishName { get; set; } = "";
+    public BunnyQuestCatchRules FishingCatchRules { get; set; }
     public int DefenseBonus { get; protected set; } = 0;
     public int MoveSpeedPercent { get; protected set; } = 0;
     public abstract void SetDefaults();

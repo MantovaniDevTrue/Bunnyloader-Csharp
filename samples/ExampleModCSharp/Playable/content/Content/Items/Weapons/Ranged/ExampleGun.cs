@@ -3,7 +3,7 @@ namespace ExampleModCSharp;
 
 /// <summary>Port do ExampleGun.js: a munição escolhe o projétil; o som usa o áudio nativo Android.</summary>
 [BunnyName("en-US", "Example Gun")]
-[BunnyName("pt-BR", "Arma de Exemplo")]
+[BunnyName("pt-BR", "Example Arma")]
 public sealed class ExampleGun : BunnyItem
 {
     public override void SetDefaults()

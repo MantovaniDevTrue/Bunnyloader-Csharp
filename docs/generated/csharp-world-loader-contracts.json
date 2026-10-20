@@ -1,0 +1,633 @@
+{
+  "schemaVersion": 1,
+  "batch": "world-01",
+  "meaning": "Source anchors for manual review. Presence or compilation is not implementation evidence.",
+  "contracts": {
+    "TileLoader": {
+      "source": "app/src/main/cpp/script/js/mod/ModTile.js",
+      "sha256": "9956e82ca70294a0e624c83038bd30dc31c5ff69e26d7def483b18f018972798",
+      "members": [
+        {
+          "name": "Type",
+          "line": 4
+        },
+        {
+          "name": "Texture",
+          "line": 5
+        },
+        {
+          "name": "DustType",
+          "line": 6
+        },
+        {
+          "name": "HitSound",
+          "line": 7
+        },
+        {
+          "name": "MinPick",
+          "line": 8
+        },
+        {
+          "name": "MineResist",
+          "line": 9
+        },
+        {
+          "name": "ItemDrop",
+          "line": 10
+        },
+        {
+          "name": "AdjTiles",
+          "line": 11
+        },
+        {
+          "name": "AnimationFrameHeight",
+          "line": 12
+        },
+        {
+          "name": "CacheDrawData",
+          "line": 15
+        },
+        {
+          "name": "VanillaFallbackOnModDeletion",
+          "line": 16
+        },
+        {
+          "name": "HighlightTexture",
+          "line": 18
+        },
+        {
+          "name": "SetStaticDefaults",
+          "line": 20
+        },
+        {
+          "name": "PostSetDefaults",
+          "line": 21
+        },
+        {
+          "name": "PostSetupContent",
+          "line": 22
+        },
+        {
+          "name": "AddMapEntry",
+          "line": 28
+        },
+        {
+          "name": "CreateMapEntryName",
+          "line": 52
+        },
+        {
+          "name": "RegisterItemDrop",
+          "line": 55
+        },
+        {
+          "name": "GetMapOption",
+          "line": 61
+        },
+        {
+          "name": "CanKillTile",
+          "line": 63
+        },
+        {
+          "name": "KillTile",
+          "line": 64
+        },
+        {
+          "name": "KillMultiTile",
+          "line": 66
+        },
+        {
+          "name": "NumDust",
+          "line": 67
+        },
+        {
+          "name": "CreateDust",
+          "line": 68
+        },
+        {
+          "name": "KillSound",
+          "line": 69
+        },
+        {
+          "name": "CanDrop",
+          "line": 70
+        },
+        {
+          "name": "GetItemDrops",
+          "line": 72
+        },
+        {
+          "name": "PlaceInWorld",
+          "line": 73
+        },
+        {
+          "name": "ModifyLight",
+          "line": 75
+        },
+        {
+          "name": "AnimateTile",
+          "line": 76
+        },
+        {
+          "name": "AnimateIndividualTile",
+          "line": 77
+        },
+        {
+          "name": "SetDrawPositions",
+          "line": 78
+        },
+        {
+          "name": "SetSpriteEffects",
+          "line": 79
+        },
+        {
+          "name": "PreDraw",
+          "line": 81
+        },
+        {
+          "name": "PostDraw",
+          "line": 82
+        },
+        {
+          "name": "DrawEffects",
+          "line": 83
+        },
+        {
+          "name": "SpecialDraw",
+          "line": 84
+        },
+        {
+          "name": "EmitParticles",
+          "line": 85
+        },
+        {
+          "name": "NearbyEffects",
+          "line": 86
+        },
+        {
+          "name": "RightClick",
+          "line": 88
+        },
+        {
+          "name": "MouseOver",
+          "line": 89
+        },
+        {
+          "name": "MouseOverFar",
+          "line": 90
+        },
+        {
+          "name": "HasSmartInteract",
+          "line": 94
+        },
+        {
+          "name": "HitWire",
+          "line": 95
+        },
+        {
+          "name": "GrowSapling",
+          "line": 98
+        },
+        {
+          "name": "Slope",
+          "line": 104
+        },
+        {
+          "name": "RandomUpdate",
+          "line": 105
+        },
+        {
+          "name": "TileFrame",
+          "line": 106
+        },
+        {
+          "name": "ModifySittingTargetInfo",
+          "line": 108
+        },
+        {
+          "name": "ModifySleepingTargetInfo",
+          "line": 109
+        },
+        {
+          "name": "IsLockedChest",
+          "line": 111
+        },
+        {
+          "name": "UnlockChest",
+          "line": 112
+        },
+        {
+          "name": "LockChest",
+          "line": 113
+        },
+        {
+          "name": "DefaultContainerName",
+          "line": 114
+        },
+        {
+          "name": "register",
+          "line": 116
+        },
+        {
+          "name": "isModType",
+          "line": 143
+        },
+        {
+          "name": "getTypeByName",
+          "line": 144
+        },
+        {
+          "name": "getModTile",
+          "line": 145
+        }
+      ]
+    },
+    "WallLoader": {
+      "source": "app/src/main/cpp/script/js/mod/ModWall.js",
+      "sha256": "ac99abe21da30dd8bc986af8a931bd3e205d5bdd82cd4ffd72706b8e515539df",
+      "members": [
+        {
+          "name": "Type",
+          "line": 2
+        },
+        {
+          "name": "Texture",
+          "line": 3
+        },
+        {
+          "name": "DustType",
+          "line": 4
+        },
+        {
+          "name": "HitSound",
+          "line": 5
+        },
+        {
+          "name": "ItemDrop",
+          "line": 6
+        },
+        {
+          "name": "VanillaFallbackOnModDeletion",
+          "line": 7
+        },
+        {
+          "name": "SetStaticDefaults",
+          "line": 9
+        },
+        {
+          "name": "PostSetupContent",
+          "line": 10
+        },
+        {
+          "name": "AddMapEntry",
+          "line": 12
+        },
+        {
+          "name": "CreateMapEntryName",
+          "line": 34
+        },
+        {
+          "name": "KillWall",
+          "line": 36
+        },
+        {
+          "name": "NumDust",
+          "line": 37
+        },
+        {
+          "name": "CreateDust",
+          "line": 38
+        },
+        {
+          "name": "KillSound",
+          "line": 39
+        },
+        {
+          "name": "Drop",
+          "line": 40
+        },
+        {
+          "name": "ModifyLight",
+          "line": 41
+        },
+        {
+          "name": "AnimateWall",
+          "line": 42
+        },
+        {
+          "name": "RandomUpdate",
+          "line": 43
+        },
+        {
+          "name": "WallFrame",
+          "line": 44
+        },
+        {
+          "name": "register",
+          "line": 46
+        },
+        {
+          "name": "isModType",
+          "line": 72
+        },
+        {
+          "name": "getTypeByName",
+          "line": 73
+        },
+        {
+          "name": "getModWall",
+          "line": 74
+        }
+      ]
+    },
+    "TreeLoader": {
+      "source": "app/src/main/cpp/script/js/mod/ModTree.js",
+      "sha256": "34f1a13ba0c736ad0466cb5f4102b72311f6c71d79b0fd812ac6522d9b5d1e96",
+      "members": [
+        {
+          "name": "GrowsOnTileId",
+          "line": 10
+        },
+        {
+          "name": "Texture",
+          "line": 11
+        },
+        {
+          "name": "SetStaticDefaults",
+          "line": 14
+        },
+        {
+          "name": "GetTexture",
+          "line": 15
+        },
+        {
+          "name": "GetTopTextures",
+          "line": 16
+        },
+        {
+          "name": "GetBranchTextures",
+          "line": 17
+        },
+        {
+          "name": "CountsAsTreeType",
+          "line": 20
+        },
+        {
+          "name": "CreateDust",
+          "line": 22
+        },
+        {
+          "name": "TreeLeaf",
+          "line": 24
+        },
+        {
+          "name": "Shake",
+          "line": 26
+        },
+        {
+          "name": "CanDropAcorn",
+          "line": 27
+        },
+        {
+          "name": "SaplingGrowthType",
+          "line": 29
+        },
+        {
+          "name": "DropWood",
+          "line": 34
+        },
+        {
+          "name": "register",
+          "line": 36
+        }
+      ]
+    },
+    "TileEntityLoader": {
+      "source": "app/src/main/cpp/script/js/mod/ModTileEntity.js",
+      "sha256": "8db7a3f05e6fb47fdff64216cf58734180d5b77c27c96a4bcd694c2b344ba627",
+      "members": [
+        {
+          "name": "ByID",
+          "line": 11
+        },
+        {
+          "name": "ByPosition",
+          "line": 12
+        },
+        {
+          "name": "Type",
+          "line": 14
+        },
+        {
+          "name": "ID",
+          "line": 15
+        },
+        {
+          "name": "Position",
+          "line": 16
+        },
+        {
+          "name": "RequiresUpdates",
+          "line": 18
+        },
+        {
+          "name": "Name",
+          "line": 20
+        },
+        {
+          "name": "FullName",
+          "line": 21
+        },
+        {
+          "name": "IsTileValidForEntity",
+          "line": 25
+        },
+        {
+          "name": "Load",
+          "line": 27
+        },
+        {
+          "name": "Update",
+          "line": 28
+        },
+        {
+          "name": "PreGlobalUpdate",
+          "line": 29
+        },
+        {
+          "name": "PostGlobalUpdate",
+          "line": 30
+        },
+        {
+          "name": "OnNetPlace",
+          "line": 32
+        },
+        {
+          "name": "OnKill",
+          "line": 34
+        },
+        {
+          "name": "SaveData",
+          "line": 35
+        },
+        {
+          "name": "LoadData",
+          "line": 36
+        },
+        {
+          "name": "NetSend",
+          "line": 38
+        },
+        {
+          "name": "NetReceive",
+          "line": 39
+        },
+        {
+          "name": "Hook_AfterPlacement",
+          "line": 41
+        },
+        {
+          "name": "Place",
+          "line": 44
+        },
+        {
+          "name": "Kill",
+          "line": 45
+        },
+        {
+          "name": "Find",
+          "line": 47
+        },
+        {
+          "name": "Generic_HookPostPlaceMyPlayer",
+          "line": 54
+        },
+        {
+          "name": "PlacementHook",
+          "line": 56
+        },
+        {
+          "name": "Generic_Hook_AfterPlacement",
+          "line": 58
+        },
+        {
+          "name": "CountInWorld",
+          "line": 62
+        },
+        {
+          "name": "TryGet",
+          "line": 66
+        },
+        {
+          "name": "register",
+          "line": 72
+        }
+      ]
+    },
+    "GlobalTileLoader": {
+      "source": "app/src/main/cpp/script/js/mod/GlobalTile.js",
+      "sha256": "4e1bddb7eb2106b620c080729439cca1b8b4cd1c57a2afbc725ebf59a0064310",
+      "members": [
+        {
+          "name": "SetStaticDefaults",
+          "line": 7
+        },
+        {
+          "name": "PostSetupContent",
+          "line": 8
+        },
+        {
+          "name": "PostSetupTileMerge",
+          "line": 10
+        },
+        {
+          "name": "CanKillTile",
+          "line": 13
+        },
+        {
+          "name": "KillTile",
+          "line": 15
+        },
+        {
+          "name": "NumDust",
+          "line": 17
+        },
+        {
+          "name": "CreateDust",
+          "line": 19
+        },
+        {
+          "name": "KillSound",
+          "line": 21
+        },
+        {
+          "name": "CanDrop",
+          "line": 23
+        },
+        {
+          "name": "Drop",
+          "line": 25
+        },
+        {
+          "name": "CanPlace",
+          "line": 28
+        },
+        {
+          "name": "PlaceInWorld",
+          "line": 29
+        },
+        {
+          "name": "CanExplode",
+          "line": 31
+        },
+        {
+          "name": "Slope",
+          "line": 33
+        },
+        {
+          "name": "RandomUpdate",
+          "line": 37
+        },
+        {
+          "name": "PreHitWire",
+          "line": 40
+        },
+        {
+          "name": "HitWire",
+          "line": 41
+        },
+        {
+          "name": "RightClick",
+          "line": 44
+        },
+        {
+          "name": "MouseOver",
+          "line": 45
+        },
+        {
+          "name": "MouseOverFar",
+          "line": 46
+        },
+        {
+          "name": "AnimateTile",
+          "line": 49
+        },
+        {
+          "name": "AdjTiles",
+          "line": 51
+        },
+        {
+          "name": "PreShakeTree",
+          "line": 55
+        },
+        {
+          "name": "ShakeTree",
+          "line": 56
+        },
+        {
+          "name": "register",
+          "line": 58
+        }
+      ]
+    }
+  }
+}

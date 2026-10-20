@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Globalization;
 using System.Reflection;
+using System.Reflection.Emit;
 using System.Linq;
 using System.Collections.Generic;
 
@@ -65,7 +66,79 @@ public static class CompiledAssemblyProbe
             yield return ancestor;
     }
 
+    private static bool UsesLiveLocalizationRegister(Type[] types)
+    {
+        var opcodes = new Dictionary<ushort, OpCode>();
+        foreach (FieldInfo field in typeof(OpCodes).GetFields(BindingFlags.Public | BindingFlags.Static))
+            if (field.GetValue(null) is OpCode code)
+                opcodes[unchecked((ushort)code.Value)] = code;
+        const BindingFlags flags = BindingFlags.Public | BindingFlags.NonPublic |
+            BindingFlags.Static | BindingFlags.Instance | BindingFlags.DeclaredOnly;
+        foreach (Type type in types)
+        {
+            foreach (MethodBase method in type.GetMethods(flags).Cast<MethodBase>()
+                .Concat(type.GetConstructors(flags)))
+            {
+                byte[]? il = method.GetMethodBody()?.GetILAsByteArray();
+                if (il == null) continue;
+                int position = 0;
+                while (position < il.Length)
+                {
+                    ushort raw = il[position++];
+                    if (raw == 0xFE)
+                    {
+                        if (position >= il.Length) break;
+                        raw = (ushort)(0xFE00 | il[position++]);
+                    }
+                    if (!opcodes.TryGetValue(raw, out OpCode code)) break;
+                    int operand = code.OperandType switch
+                    {
+                        OperandType.InlineNone => 0,
+                        OperandType.ShortInlineBrTarget or OperandType.ShortInlineI or
+                            OperandType.ShortInlineVar => 1,
+                        OperandType.InlineVar => 2,
+                        OperandType.InlineI or OperandType.InlineBrTarget or
+                            OperandType.InlineField or OperandType.InlineMethod or
+                            OperandType.InlineSig or OperandType.InlineString or
+                            OperandType.InlineTok or OperandType.InlineType or
+                            OperandType.ShortInlineR => 4,
+                        OperandType.InlineI8 or OperandType.InlineR => 8,
+                        OperandType.InlineSwitch when position + 4 <= il.Length =>
+                            4 + 4 * Math.Clamp(BitConverter.ToInt32(il, position), 0,
+                                (il.Length - position - 4) / 4),
+                        _ => -1
+                    };
+                    if (operand < 0 || position + operand > il.Length) break;
+                    if (code.OperandType == OperandType.InlineMethod &&
+                        (raw == unchecked((ushort)OpCodes.Call.Value) ||
+                         raw == unchecked((ushort)OpCodes.Callvirt.Value)))
+                    {
+                        int token = BitConverter.ToInt32(il, position);
+                        try
+                        {
+                            MethodBase? target = method.Module.ResolveMethod(token,
+                                type.IsGenericType ? type.GetGenericArguments() : null,
+                                method.IsGenericMethod ? method.GetGenericArguments() : null);
+                            if (target?.DeclaringType?.FullName == "BunnyLoader.Source.BunnyLocalizationRuntime" &&
+                                target.Name == "Register") return true;
+                        }
+                        catch (ArgumentException) { }
+                        catch (BadImageFormatException) { }
+                        catch (NotSupportedException) { }
+                        catch (TypeLoadException) { }
+                        catch (FileNotFoundException) { }
+                    }
+                    position += operand;
+                }
+            }
+        }
+        return false;
+    }
+
     public static int Verify(string assemblyPath, string diagnosticsPath)
+        => Verify(assemblyPath, diagnosticsPath, "");
+
+    public static int Verify(string assemblyPath, string diagnosticsPath, string modRoot)
     {
         try
         {
@@ -89,8 +162,12 @@ public static class CompiledAssemblyProbe
             var projectileTypes = contentTypes
                 .Where(type => IsContentType(type, "BunnyProjectile"))
                 .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
+            var wallTypes = contentTypes.Where(type => IsContentType(type, "BunnyWall")).OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
             var tileTypes = contentTypes
                 .Where(type => IsContentType(type, "BunnyTile"))
+                .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
+            var dustTypes = contentTypes
+                .Where(type => IsContentType(type, "BunnyDust"))
                 .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
             var basicItemTypes = contentTypes
                 .Where(type => IsContentType(type, "BunnyItem"))
@@ -116,15 +193,22 @@ public static class CompiledAssemblyProbe
             var prefixTypes = contentTypes
                 .Where(type => IsContentType(type, "BunnyPrefix"))
                 .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
+            var localizationTypes = contentTypes
+                .Where(type => type.IsClass && !type.IsAbstract && !type.ContainsGenericParameters &&
+                    type.BaseType?.FullName == "BunnyLoader.Source.BunnyLocalizationModule")
+                .OrderBy(type => type.FullName, StringComparer.Ordinal).ToArray();
+            var rarityTypes = contentTypes
+                .Where(type => IsContentType(type, "BunnyRarity"))
+                .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
             var screenEffectTypes = contentTypes
                 .Where(type => IsContentType(type, "BunnyScreenEffect"))
                 .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
-            if (tileTypes.Length > 4096 || prefixTypes.Length > 4096 || npcTypes.Length > 4096 || accessoryTypes.Length > 4096 || playerTypes.Length > 4096 ||
+            if (dustTypes.Length > 4096 || wallTypes.Length > 4096 || tileTypes.Length > 4096 || rarityTypes.Length > 4096 || localizationTypes.Length > 32 || prefixTypes.Length > 4096 || npcTypes.Length > 4096 || accessoryTypes.Length > 4096 || playerTypes.Length > 4096 ||
                 projectileTypes.Length > 4096 ||
                 weaponTypes.Length > 4096 || basicItemTypes.Length > 4096 ||
                 buffTypes.Length > 4096 || potionTypes.Length > 4096 || screenEffectTypes.Length > 4096)
                 throw new InvalidOperationException("C# content class count out of bounds");
-            if (tileTypes.Length + basicItemTypes.Length + projectileTypes.Length + weaponTypes.Length + buffTypes.Length + potionTypes.Length + accessoryTypes.Length + playerTypes.Length + npcTypes.Length + prefixTypes.Length + screenEffectTypes.Length == 0)
+            if (dustTypes.Length + wallTypes.Length + tileTypes.Length + basicItemTypes.Length + projectileTypes.Length + weaponTypes.Length + buffTypes.Length + potionTypes.Length + accessoryTypes.Length + playerTypes.Length + npcTypes.Length + prefixTypes.Length + screenEffectTypes.Length + rarityTypes.Length + localizationTypes.Length == 0)
                 throw new InvalidOperationException("C# assembly has no supported content types");
             bool fixture = projectileTypes.Any(t => t.FullName == "SourceCSharpMod.SourceBolt") &&
                 weaponTypes.Any(t => t.FullName == "SourceCSharpMod.SourceWand");
@@ -138,6 +222,8 @@ public static class CompiledAssemblyProbe
                     ? primaryWeapon! : CreateContent(type)).ToArray();
             object[] basicItems = basicItemTypes.Select(CreateContent).ToArray();
             object[] tiles = tileTypes.Select(CreateTileContent).ToArray();
+            object[] walls = wallTypes.Select(CreateTileContent).ToArray();
+            object[] dusts = dustTypes.Select(CreateTileContent).ToArray();
             object[] buffs = buffTypes.Select(CreateContent).ToArray();
             object[] potions = potionTypes.Select(CreateContent).ToArray();
             object[] accessories = accessoryTypes.Select(CreateContent).ToArray();
@@ -153,7 +239,11 @@ public static class CompiledAssemblyProbe
                     throw new InvalidOperationException(effect.GetType().FullName + ": exactly one ShaderFile or PipelineFile required");
             }
             WriteRuntimeDefaults(projectiles, weapons, buffs, potions,
-                accessories, players, npcs, prefixes, basicItems, tiles, diagnosticsPath);
+                accessories, players, npcs, prefixes, basicItems, tiles, walls, dusts, rarityTypes, diagnosticsPath);
+            if (modRoot.Length != 0)
+                AppendManagedLocalization(modRoot, diagnosticsPath, localizationTypes,
+                    UsesLiveLocalizationRegister(contentTypes));
+
             WriteProjectileMotionPolicies(assembly, projectileTypes, diagnosticsPath);
             WriteAutomaticCombatPolicies(projectiles, diagnosticsPath);
             if (fixture)
@@ -165,17 +255,18 @@ public static class CompiledAssemblyProbe
                 WriteKillPolicy(primaryProjectile!, diagnosticsPath);
             }
             File.AppendAllText(diagnosticsPath,
-                "\nASSEMBLY_EXEC_OK classes=" + (tiles.Length + projectiles.Length + weapons.Length + buffs.Length + potions.Length + accessories.Length + players.Length + npcs.Length + prefixes.Length + basicItems.Length + screenEffects.Length) +
+                "\nASSEMBLY_EXEC_OK classes=" + (dusts.Length + walls.Length + tiles.Length + projectiles.Length + weapons.Length + buffs.Length + potions.Length + accessories.Length + players.Length + npcs.Length + prefixes.Length + rarityTypes.Length + basicItems.Length + screenEffects.Length) +
                 " projectiles=" + projectiles.Length + " weapons=" + weapons.Length +
                 " buffs=" + buffs.Length + " potions=" + potions.Length +
                 " accessories=" + accessories.Length + " players=" + players.Length +
-                " npcs=" + npcs.Length + " tiles=" + tiles.Length + " prefixes=" + prefixes.Length +
-                " screenEffects=" + screenEffects.Length +
+                " dusts=" + dusts.Length + " npcs=" + npcs.Length + " tiles=" + tiles.Length + " prefixes=" + prefixes.Length +
+                " rarities=" + rarityTypes.Length +
+                " screenEffects=" + screenEffects.Length + " localizationModules=" + localizationTypes.Length +
                 (fixture
                     ? " projectile=SourceBolt width=10 weapon=SourceWand damage=22 shoot=SourceBolt"
                     : " policy=generic-managed-defaults"));
             return projectiles.Length + weapons.Length + buffs.Length + potions.Length +
-                accessories.Length + players.Length + npcs.Length + prefixes.Length + basicItems.Length + tiles.Length + screenEffects.Length;
+                accessories.Length + players.Length + npcs.Length + prefixes.Length + basicItems.Length + tiles.Length + dusts.Length + walls.Length + screenEffects.Length + rarityTypes.Length + localizationTypes.Length;
         }
         catch (Exception exception)
         {
@@ -184,6 +275,50 @@ public static class CompiledAssemblyProbe
             return -1;
         }
     }
+
+
+    private static void AppendManagedLocalization(string modRoot, string diagnosticsPath,
+        Type[] modules, bool liveRegister)
+    {
+        string source = Path.Combine(modRoot, "content");
+        var catalog = new BunnyLoader.Source.BunnyLocalizationCatalog();
+        int cultures = catalog.LoadFromContent("source", source);
+        foreach (Type type in modules)
+        {
+            if (type.GetConstructor(Type.EmptyTypes) == null)
+                throw new InvalidOperationException("BunnyLocalizationModule requires a public parameterless constructor: " + type.FullName);
+            var module = Activator.CreateInstance(type) as BunnyLoader.Source.BunnyLocalizationModule
+                ?? throw new InvalidOperationException("Failed to instantiate localization module: " + type.FullName);
+            module.RegisterTranslations(catalog);
+        }
+
+        if (cultures == 0 && modules.Length == 0 && !liveRegister) return;
+        foreach (string key in catalog.SnapshotForGame().Keys)
+            if (key.StartsWith("Mods.", StringComparison.Ordinal) &&
+                !key.StartsWith("Mods.source.", StringComparison.Ordinal))
+                throw new InvalidOperationException(
+                    "BunnyLocalizationModule cannot register keys owned by other mods: " + key);
+
+        IReadOnlyList<string> rows = catalog.ExportWireRows();
+        if (rows.Count > 16384)
+            throw new InvalidDataException("Localization wire exceeds row limit");
+        string output = Path.Combine(Path.GetDirectoryName(diagnosticsPath) ??
+            throw new InvalidOperationException("Missing diagnostics directory"), "source-runtime-values.txt");
+        using (var stream = new FileStream(output, FileMode.Append, FileAccess.Write, FileShare.None))
+        using (var writer = new StreamWriter(stream, new System.Text.UTF8Encoding(false)))
+        {
+            if (modules.Length != 0)
+                writer.WriteLine("LOCALE_MODULES\t" + modules.Length);
+            if (liveRegister)
+                writer.WriteLine("LOCALE_RUNTIME\t1");
+            foreach (string row in rows)
+                writer.WriteLine(row);
+        }
+        File.AppendAllText(diagnosticsPath,
+            "\nMANAGED_LOCALIZATION_WIRE cultures=" + cultures +
+            " modules=" + modules.Length + " rows=" + rows.Count);
+    }
+
 
     private static object CreateContent(Type type)
     {
@@ -195,6 +330,25 @@ public static class CompiledAssemblyProbe
         method.Invoke(instance, null);
         ValidateDeclaration(instance);
         return instance;
+    }
+
+    private static int DustHookMask(Type type)
+    {
+        Type dust = Ancestors(type).First(parent => parent.FullName == "BunnyLoader.Source.BunnyDust");
+        Type state = dust.Assembly.GetType("BunnyLoader.Source.BunnyDustState", throwOnError: true)!;
+        Type stateRef = state.MakeByRefType();
+        Type colorRef = typeof(uint).MakeByRefType();
+        bool Overrides(string name, params Type[] args)
+        {
+            MethodInfo? method = type.GetMethod(name, BindingFlags.Public | BindingFlags.Instance,
+                binder: null, types: args, modifiers: null);
+            return method != null && method.DeclaringType != dust;
+        }
+        return (Overrides("OnSpawn", stateRef) ? 1 : 0) |
+               (Overrides("Update", stateRef) ? 2 : 0) |
+               (Overrides("MidUpdate", stateRef) ? 4 : 0) |
+               (Overrides("GetAlpha", stateRef, colorRef) ? 8 : 0) |
+               (Overrides("PreDraw", stateRef) ? 16 : 0);
     }
 
     private static object CreateTileContent(Type type)
@@ -514,7 +668,7 @@ public static class CompiledAssemblyProbe
     private static void WriteRuntimeDefaults(object[] projectiles, object[] weapons,
         object[] buffs, object[] potions, object[] accessories,
         object[] players, object[] npcs, object[] prefixes, object[] basicItems,
-        object[] tiles, string diagnosticsPath)
+        object[] tiles, object[] walls, object[] dusts, Type[] rarityTypes, string diagnosticsPath)
     {
         static T Value<T>(object instance, string name) =>
             (T)(instance.GetType().GetProperty(name)?.GetValue(instance)
@@ -531,13 +685,20 @@ public static class CompiledAssemblyProbe
         }
 
         var names = new HashSet<string>(StringComparer.Ordinal);
+        var questFishNames = new HashSet<string>(StringComparer.Ordinal);
         var projectileNames = new HashSet<string>(StringComparer.Ordinal);
         var buffNames = new HashSet<string>(StringComparer.Ordinal);
         var lines = new List<string>(projectiles.Length + weapons.Length + buffs.Length +
-            potions.Length + accessories.Length + players.Length + npcs.Length + prefixes.Length + tiles.Length + 1)
+            potions.Length + accessories.Length + players.Length + npcs.Length + prefixes.Length + rarityTypes.Length + tiles.Length + dusts.Length + 1)
         {
             "BUNNY_MANAGED_DEFAULTS_V2"
         };
+        foreach (object wall in walls) {
+            string name = wall.GetType().Name;
+            CheckName(name);
+            if (!names.Add("WALL:" + name)) throw new InvalidOperationException("Duplicate BunnyWall: " + name);
+            lines.Add(Value<string>(wall, "NativeDefinition"));
+        }
         foreach (object tile in tiles)
         {
             string name = tile.GetType().Name;
@@ -546,12 +707,87 @@ public static class CompiledAssemblyProbe
                 throw new InvalidOperationException("Duplicate BunnyTile: " + name);
             lines.Add(TileWriter.Write(tile));
         }
+        foreach (object dust in dusts)
+        {
+            Type type = dust.GetType();
+            string name = type.Name;
+            CheckName(name);
+            if (!names.Add("DUST:" + name))
+                throw new InvalidOperationException("Duplicate BunnyDust: " + name);
+            string texture = Value<string>(dust, "Texture");
+            int updateType = Value<int>(dust, "UpdateType");
+            if (updateType < -1 || updateType >= 332 ||
+                texture.Length > 240 || texture.Contains((char)92) ||
+                texture.Contains("..") || texture.Contains('|') ||
+                texture.Contains(':') || texture.StartsWith('/'))
+                throw new InvalidOperationException("Invalid BunnyDust defaults: " + name);
+            int hooks = DustHookMask(type);
+            lines.Add(string.Join("\t", "DUST", name,
+                updateType.ToString(CultureInfo.InvariantCulture),
+                hooks.ToString(CultureInfo.InvariantCulture),
+                texture.Length == 0 ? "-" : texture));
+        }
         foreach (object item in basicItems)
         {
             string name=item.GetType().Name;
             CheckName(name);
             if(!names.Add("ITEM:" + name)) throw new InvalidOperationException("Duplicate BunnyItem: "+name);
             lines.Add(BasicItemWriter.Write(item));
+            if (Value<bool>(item, "QuestFish"))
+            {
+                questFishNames.Add(name);
+                if (Value<int>(item, "MaxStack") != 1)
+                    throw new InvalidOperationException("Quest fish must have MaxStack=1: " + name);
+                bool pre = Value<bool>(item, "QuestAvailableInPreHardmode");
+                bool hard = Value<bool>(item, "QuestAvailableInHardmode");
+                if (!pre && !hard)
+                    throw new InvalidOperationException("Quest fish cannot be unavailable in both world phases: " + name);
+                string description = Value<string>(item, "QuestDescription") ?? "";
+                string location = Value<string>(item, "QuestCatchLocation") ?? "";
+                foreach (string value in new[] { description, location })
+                {
+                    if (System.Text.Encoding.UTF8.GetByteCount(value) > 512 ||
+                        value.Any(c => c == '\0' || c == '\r' || c == '\t' || c == (char)127))
+                        throw new InvalidOperationException("Invalid angler quest chat text: " + name);
+                }
+                static string EncodeQuestText(string value) =>
+                    value.Length == 0 ? "-" : Convert.ToHexString(System.Text.Encoding.UTF8.GetBytes(value));
+                int rules = Convert.ToInt32(Value<object>(item, "QuestCatchRules"), CultureInfo.InvariantCulture);
+                if ((rules & ~3) != 0)
+                    throw new InvalidOperationException("Unknown quest catch requirements: " + name);
+                lines.Add(string.Join("\t", "QUEST_FISH", name,
+                    pre ? "1" : "0", hard ? "1" : "0",
+                    EncodeQuestText(description), EncodeQuestText(location),
+                    rules.ToString(CultureInfo.InvariantCulture)));
+                int callbackMask=(item.GetType().GetProperty("QuestAvailableWhen")?.GetValue(item) is Delegate?1:0) |
+                    (item.GetType().GetProperty("QuestCanCatchWhen")?.GetValue(item) is Delegate?2:0);
+                if(callbackMask!=0)
+                    lines.Add(string.Join("\t","QUEST_CALLBACK",name,callbackMask.ToString(CultureInfo.InvariantCulture)));
+                var descriptions = Value<Dictionary<string,string>>(item, "QuestDescriptionTranslations");
+                var locations = Value<Dictionary<string,string>>(item, "QuestCatchLocationTranslations");
+                var cultures = descriptions.Keys.Concat(locations.Keys)
+                    .Distinct(StringComparer.Ordinal).OrderBy(x => x, StringComparer.Ordinal).ToArray();
+                if (cultures.Length > 8)
+                    throw new InvalidOperationException("Too many quest dialogue cultures: " + name);
+                foreach (string culture in cultures)
+                {
+                    if (culture.Length < 2 || culture.Length > 20 ||
+                        culture.Any(ch => !((ch >= 'A' && ch <= 'Z') ||
+                                            (ch >= 'a' && ch <= 'z') ||
+                                            (ch >= '0' && ch <= '9') || ch == '-')))
+                        throw new InvalidOperationException("Invalid quest dialogue culture: " + name);
+                    string translatedDescription = descriptions.TryGetValue(culture, out var d) ? d : "";
+                    string translatedLocation = locations.TryGetValue(culture, out var l) ? l : "";
+                    if (translatedDescription.Length == 0 && translatedLocation.Length == 0)
+                        throw new InvalidOperationException("Empty quest dialogue translation: " + name);
+                    foreach (string value in new[] { translatedDescription, translatedLocation })
+                        if (System.Text.Encoding.UTF8.GetByteCount(value) > 512 ||
+                            value.Any(ch => ch == '\0' || ch == '\r' || ch == '\t' || ch == (char)127))
+                            throw new InvalidOperationException("Invalid translated quest dialogue: " + name);
+                    lines.Add(string.Join("\t", "QUEST_LOCALE", name, culture,
+                        EncodeQuestText(translatedDescription), EncodeQuestText(translatedLocation)));
+                }
+            }
         }
         foreach (object projectile in projectiles)
         {
@@ -835,6 +1071,18 @@ public static class CompiledAssemblyProbe
                 deadMessage.Length == 0 ? "-" : deadMessage,
                 lifeRegen.ToString(CultureInfo.InvariantCulture),
                 manaRegen.ToString(CultureInfo.InvariantCulture)));
+            string questFishName = Value<string>(player, "FishingQuestFishName") ?? "";
+            int catchRules = Convert.ToInt32(Value<object>(player, "FishingCatchRules"), CultureInfo.InvariantCulture);
+            if (questFishName.Length == 0 && catchRules != 0)
+                throw new InvalidOperationException("FishingCatchRules requires FishingQuestFishName: " + name);
+            if (questFishName.Length != 0)
+            {
+                CheckName(questFishName);
+                if (!questFishNames.Contains(questFishName) || (catchRules & ~3) != 0)
+                    throw new InvalidOperationException("FishingQuestFish must reference an owned quest BunnyItem: " + name);
+                lines.Add(string.Join("\t", "QUEST_CATCH", name, questFishName,
+                    catchRules.ToString(CultureInfo.InvariantCulture)));
+            }
         }
         foreach (object npc in npcs)
         {
@@ -865,6 +1113,14 @@ public static class CompiledAssemblyProbe
                 frames.ToString(CultureInfo.InvariantCulture)));
         }
 
+        foreach (Type rarity in rarityTypes)
+        {
+            string name = rarity.Name;
+            CheckName(name);
+            if (!names.Add("RARITY:" + name))
+                throw new InvalidOperationException("Duplicate BunnyRarity: " + name);
+            lines.Add("RARITY\t" + name);
+        }
         foreach (object prefix in prefixes)
         {
             Type type = prefix.GetType();
@@ -953,8 +1209,23 @@ public static class CompiledAssemblyProbe
             if(recipes.Count>16)throw new InvalidOperationException(type.FullName+": recipe capacity exceeded");
             lines.Add(string.Join("\t","RECIPES",type.Name,owner.Kind,string.Join(";",recipes)));
         }
+        foreach (object item in basicItems.Concat(weapons).Concat(potions).Concat(accessories))
+        {
+            string owner = item.GetType().Name;
+            string rarity = Value<string>(item, "ModRarityClassName");
+            if (rarity.Length == 0) continue;
+            CheckName(owner);
+            CheckName(rarity);
+            Type[] matches = rarityTypes.Where(t => t.Name == rarity).ToArray();
+            if (matches.Length != 1)
+                throw new InvalidOperationException("[CSharp][ERROR][RarityLoader] Class=" +
+                    owner + " API=SetRarity Stage=Compile Reason=RarityNotRegisteredInSameAssembly");
+            lines.Add("ITEM_RARITY\t" + owner + "\t" + rarity);
+        }
         foreach(var item in basicItems.Concat(weapons))
         {
+            int shootMask=Value<int>(item,"ShootCallbackMask");
+            if(shootMask!=0)lines.Add("SHOOT\t"+item.GetType().Name+"\t"+shootMask.ToString(CultureInfo.InvariantCulture));
             object? sound=item.GetType().GetProperty("CustomUseSound")!.GetValue(item);
             if(sound!=null)lines.Add("USE_SOUND\t"+item.GetType().Name+"\t"+Value<string>(sound,"Definition"));
             object? holdout=item.GetType().GetProperty("Holdout")!.GetValue(item);

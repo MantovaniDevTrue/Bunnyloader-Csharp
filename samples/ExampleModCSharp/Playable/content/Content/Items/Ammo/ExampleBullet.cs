@@ -2,7 +2,7 @@ using BunnyLoader.Source;
 namespace ExampleModCSharp;
 
 [BunnyName("en-US", "Example Bullet")]
-[BunnyName("pt-BR", "Bala de Exemplo")]
+[BunnyName("pt-BR", "Example Bala")]
 public sealed class ExampleBullet : BunnyItem
 {
     public override void SetDefaults()

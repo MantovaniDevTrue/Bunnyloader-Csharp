@@ -1,0 +1,322 @@
+[
+  {
+    "source": "check-csharp-localization.yml",
+    "name": "Compile and run managed localization contract suite",
+    "command": "dotnet run --project tests/localization_loader/LocalizationLoader.csproj --configuration Release"
+  },
+  {
+    "source": "check-csharp-localization.yml",
+    "name": "Build MonoVM Roslyn verifier against CSharp SDK",
+    "command": "dotnet build experiments/csharp/BunnySourceCompiler/BunnySourceCompiler.csproj --configuration Release"
+  },
+  {
+    "source": "check-csharp-localization.yml",
+    "name": "Syntax-check native language publisher",
+    "command": "g++ -std=c++20 -Wall -Wextra -Werror -Wno-deprecated-declarations -fsyntax-only -Itests/basic_items/include -Iapp/src/main/cpp app/src/main/cpp/experiments/csharp/NativeLocalizationRuntime.cpp"
+  },
+  {
+    "source": "check-csharp-localization.yml",
+    "name": "Test native locale wire without Android or APK",
+    "command": "g++ -std=c++20 -O2 -Wall -Wextra -Werror -Wno-deprecated-declarations -ffunction-sections -fdata-sections -Wl,--gc-sections \\\n  -Itests/basic_items/include -Iapp/src/main/cpp app/src/main/cpp/experiments/csharp/NativeLocalizationRuntime.cpp \\\n  tests/localization_loader/native_wire_test.cpp -o /tmp/bunny-native-localization-test\n/tmp/bunny-native-localization-test\n"
+  },
+  {
+    "source": "check-csharp-localization.yml",
+    "name": "Resolve cross-mod and vanilla references in native host",
+    "command": "g++ -std=c++20 -O2 -Wall -Wextra -Werror -Wno-deprecated-declarations \\\n  -Iapp/src/main/cpp tests/localization_loader/native_resolver_test.cpp \\\n  -o /tmp/bunny-native-localization-resolver\n/tmp/bunny-native-localization-resolver\n"
+  },
+  {
+    "source": "check-csharp-localization.yml",
+    "name": "Verify CSharp localization mod enable and unload lifecycle",
+    "command": "g++ -std=c++20 -O2 -Wall -Wextra -Werror -Wno-deprecated-declarations \\\n  -Iapp/src/main/cpp tests/localization_loader/native_session_test.cpp \\\n  -o /tmp/bunny-native-localization-session\n/tmp/bunny-native-localization-session\n"
+  },
+  {
+    "source": "check-csharp-localization.yml",
+    "name": "Verify physical retirement key ownership policy",
+    "command": "g++ -std=c++20 -O2 -Wall -Wextra -Werror -Wno-deprecated-declarations \\\n  -Iapp/src/main/cpp tests/localization_loader/native_retire_test.cpp \\\n  -o /tmp/bunny-native-localization-retire\n/tmp/bunny-native-localization-retire\n"
+  },
+  {
+    "source": "check-csharp-rarity-loader.yml",
+    "name": "Test CSharp rarity contracts without APK or game",
+    "command": "dotnet run --project tests/rarity_loader/RarityLoaderHost.csproj --configuration Release"
+  },
+  {
+    "source": "check-csharp-rarity-loader.yml",
+    "name": "Compile playable ExampleModCSharp native rarity examples",
+    "command": "dotnet run --project tests/rarity_loader/PlayableRarity.csproj --configuration Release"
+  },
+  {
+    "source": "check-csharp-rarity-loader.yml",
+    "name": "Verify native rarity registry and parser without JS",
+    "command": "true\ng++ -std=c++20 -Wall -Wextra -Werror -Wno-deprecated-declarations -O2 -pthread -DBL_HAVE_QUICKJS=0 -I app/src/main/cpp \\\n  tests/rarity_loader/native_rarity_registry_test.cpp \\\n  app/src/main/cpp/experiments/csharp/SourceParser.cpp \\\n  -o /tmp/bunny-rarity-native\n/tmp/bunny-rarity-native\ng++ -std=c++20 -Wall -Wextra -Werror -Wno-deprecated-declarations -O2 -pthread -I app/src/main/cpp \\\n  tests/rarity_loader/native_rarity_color_test.cpp -o /tmp/bunny-rarity-color\n/tmp/bunny-rarity-color\ng++ -std=c++20 -Wall -Wextra -Werror -Wno-deprecated-declarations -O2 -I app/src/main/cpp \\\n  tests/rarity_loader/native_rarity_item_test.cpp -o /tmp/bunny-rarity-item\n/tmp/bunny-rarity-item\ng++ -std=c++20 -Wall -Wextra -Werror -Wno-deprecated-declarations -O2 -pthread -I app/src/main/cpp \\\n  tests/rarity_loader/native_rarity_save_test.cpp -o /tmp/bunny-rarity-save\n/tmp/bunny-rarity-save\n"
+  },
+  {
+    "source": "check-csharp-rarity-loader.yml",
+    "name": "Verify shared JS/CSharp rarity allocation",
+    "command": "node tests/rarity_loader/check_shared_rarity_js.cjs"
+  },
+  {
+    "source": "check-csharp-rarity-loader.yml",
+    "name": "Verify original JS tooltip interop with CSharp native rarity cache",
+    "command": "node tests/rarity_loader/check_rarity_tooltip_js.cjs"
+  },
+  {
+    "source": "check-csharp-rarity-loader.yml",
+    "name": "Compile rarity native host integration and lifecycle regressions",
+    "command": "true\ng++ -std=c++20 -Wall -Wextra -Werror -Wno-deprecated-declarations -DBL_HAVE_QUICKJS=0 \\\n  -I \"$JAVA_HOME/include\" -I \"$JAVA_HOME/include/linux\" \\\n  -I tests/basic_items/include -I app/src/main/cpp -fsyntax-only \\\n  app/src/main/cpp/experiments/csharp/SourceLoader.cpp\ng++ -std=c++20 -Wall -Wextra -Werror -Wno-deprecated-declarations -DBL_HAVE_QUICKJS=0 \\\n  -I \"$JAVA_HOME/include\" -I \"$JAVA_HOME/include/linux\" \\\n  -I tests/basic_items/include -I app/src/main/cpp -fsyntax-only \\\n  app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp\ng++ -std=c++20 -Wall -Wextra -Werror -Wno-deprecated-declarations -DBL_HAVE_QUICKJS=0 \\\n  -I \"$JAVA_HOME/include\" -I \"$JAVA_HOME/include/linux\" \\\n  -I tests/basic_items/include -I app/src/main/cpp -fsyntax-only \\\n  app/src/main/cpp/experiments/csharp/NativeRarityGameplay.cpp\ng++ -std=c++20 -Wall -Wextra -Werror -Wno-deprecated-declarations -DBL_HAVE_QUICKJS=0 \\\n  -I \"$JAVA_HOME/include\" -I \"$JAVA_HOME/include/linux\" \\\n  -I tests/basic_items/include -I app/src/main/cpp -fsyntax-only \\\n  app/src/main/cpp/content/items/ModItemSave.cpp\npython3 tests/run_managed_lifecycle_regressions.py"
+  },
+  {
+    "source": "check-csharp-angler-quest-host.yml",
+    "name": "Verify native Terraria integration signatures compile",
+    "command": "set -euo pipefail\ng++ -std=c++20 -Wall -Wextra -Werror -Wno-deprecated-declarations -pedantic -fsyntax-only \\\n  -I app/src/main/cpp -I tests/basic_items/include \\\n  app/src/main/cpp/experiments/csharp/NativeAnglerQuestGameplay.cpp \\\n  app/src/main/cpp/experiments/csharp/NativeAnglerQuestFishing.cpp\n"
+  },
+  {
+    "source": "check-csharp-angler-quest-host.yml",
+    "name": "Compile shared Mono quest callback bridge",
+    "command": "set -euo pipefail\ng++ -std=c++20 -Wall -Wextra -Werror -Wno-deprecated-declarations -pedantic -fsyntax-only \\\n  -I app/src/main/cpp -I tests/basic_items/include \\\n  app/src/main/cpp/experiments/csharp/NativeRecipeCallbacks.cpp\n"
+  },
+  {
+    "source": "check-csharp-angler-quest-host.yml",
+    "name": "Verify native Mono worker and queued callback identity compile",
+    "command": "set -euo pipefail\ng++ -std=c++20 -Wall -Wextra -Werror -Wno-deprecated-declarations -pedantic -fsyntax-only \\\n  -I app/src/main/cpp -I tests/basic_items/include \\\n  -I \"$JAVA_HOME/include\" -I \"$JAVA_HOME/include/linux\" \\\n  app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp\n"
+  },
+  {
+    "source": "check-csharp-angler-quest-host.yml",
+    "name": "Test managed assembly generation and concurrent unload/rebind",
+    "command": "set -euo pipefail\ng++ -std=c++20 -Wall -Wextra -Werror -Wno-deprecated-declarations -pedantic -pthread \\\n  -I app/src/main/cpp \\\n  tests/angler_quest/managed_assembly_binding_test.cpp \\\n  -o \"$RUNNER_TEMP/angler_assembly_binding_test\"\n\"$RUNNER_TEMP/angler_assembly_binding_test\"\n"
+  },
+  {
+    "source": "check-csharp-angler-quest-host.yml",
+    "name": "Test per-mod deferred Mono queue invalidation",
+    "command": "set -euo pipefail\ng++ -std=c++20 -Wall -Wextra -Werror -Wno-deprecated-declarations -pedantic -pthread \\\n  -I app/src/main/cpp \\\n  tests/angler_quest/managed_deferred_mod_revocation_test.cpp \\\n  -o \"$RUNNER_TEMP/angler_deferred_revocation_test\"\n\"$RUNNER_TEMP/angler_deferred_revocation_test\"\n"
+  },
+  {
+    "source": "check-csharp-angler-quest-host.yml",
+    "name": "Verify selective NPC effect revocation and FIFO preservation",
+    "command": "set -euo pipefail\ng++ -std=c++20 -Wall -Wextra -Werror -Wno-deprecated-declarations -pedantic -pthread \\\n  -I app/src/main/cpp \\\n  tests/angler_quest/managed_npc_effect_owner_test.cpp \\\n  -o \"$RUNNER_TEMP/angler_npc_effect_owner_test\"\n\"$RUNNER_TEMP/angler_npc_effect_owner_test\"\n"
+  },
+  {
+    "source": "check-csharp-angler-quest-host.yml",
+    "name": "Verify selective live projectile ingress revocation",
+    "command": "set -euo pipefail\ng++ -std=c++20 -Wall -Wextra -Werror -Wno-deprecated-declarations -pedantic -pthread \\\n  -I app/src/main/cpp \\\n  tests/angler_quest/managed_live_ingress_revocation_test.cpp \\\n  -o \"$RUNNER_TEMP/angler_live_ingress_revocation_test\"\n\"$RUNNER_TEMP/angler_live_ingress_revocation_test\"\n"
+  },
+  {
+    "source": "check-csharp-angler-quest-host.yml",
+    "name": "Test live Mono cache revocation on source-mod unload",
+    "command": "set -euo pipefail\ng++ -std=c++20 -Wall -Wextra -Werror -Wno-deprecated-declarations -pedantic -pthread \\\n  -I app/src/main/cpp \\\n  tests/angler_quest/managed_live_source_revocation_test.cpp \\\n  -o \"$RUNNER_TEMP/angler_live_revocation_test\"\n\"$RUNNER_TEMP/angler_live_revocation_test\"\n"
+  },
+  {
+    "source": "check-csharp-angler-quest-host.yml",
+    "name": "Verify native source handoff and game-thread lifecycle compile",
+    "command": "set -euo pipefail\ng++ -std=c++20 -Wall -Wextra -Werror -Wno-deprecated-declarations -pedantic -fsyntax-only \\\n  -I app/src/main/cpp -I tests/basic_items/include \\\n  app/src/main/cpp/experiments/csharp/SourceLoader.cpp\ng++ -std=c++20 -Wall -Wextra -Werror -Wno-deprecated-declarations -pedantic -fsyntax-only \\\n  -I app/src/main/cpp -I tests/basic_items/include \\\n  -I \"$JAVA_HOME/include\" -I \"$JAVA_HOME/include/linux\" \\\n  app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp\n"
+  },
+  {
+    "source": "check-csharp-angler-quest-host.yml",
+    "name": "Verify independent CSharp and mixed mod loader session reset",
+    "command": "set -euo pipefail\ng++ -std=c++20 -Wall -Wextra -Werror -Wno-deprecated-declarations -pedantic -pthread \\\n  -I tests/mod_loader/include -I tests/basic_items/include -I app/src/main/cpp \\\n  tests/mod_loader/independent_loading.cpp \\\n  app/src/main/cpp/mods/ModLoader.cpp \\\n  app/src/main/cpp/mods/LoadOrder.cpp \\\n  app/src/main/cpp/mods/ManifestText.cpp \\\n  -o \"$RUNNER_TEMP/angler_mod_loader_test\"\n\"$RUNNER_TEMP/angler_mod_loader_test\" \"$RUNNER_TEMP/mods_csharp\" --only-csharp\n\"$RUNNER_TEMP/angler_mod_loader_test\" \"$RUNNER_TEMP/mods_mixed\" --mixed\n\"$RUNNER_TEMP/angler_mod_loader_test\" \"$RUNNER_TEMP/mods_fail\" --js-fails\n\"$RUNNER_TEMP/angler_mod_loader_test\" \"$RUNNER_TEMP/mods_builtin\" --builtin\n"
+  },
+  {
+    "source": "check-csharp-angler-quest-host.yml",
+    "name": "Compile and run native state tests",
+    "command": "set -euo pipefail\ng++ -std=c++20 -Wall -Wextra -Werror -Wno-deprecated-declarations -pedantic -pthread \\\n  -I app/src/main/cpp \\\n  tests/angler_quest/quest_registry_test.cpp \\\n  -o \"$RUNNER_TEMP/angler_quest_test\"\n\"$RUNNER_TEMP/angler_quest_test\"\ng++ -std=c++20 -Wall -Wextra -Werror -Wno-deprecated-declarations -pedantic -pthread \\\n  -I app/src/main/cpp \\\n  tests/angler_quest/quest_player_parser_test.cpp \\\n  app/src/main/cpp/experiments/csharp/SourceParser.cpp \\\n  -o \"$RUNNER_TEMP/angler_player_parser_test\"\n\"$RUNNER_TEMP/angler_player_parser_test\"\n"
+  },
+  {
+    "source": "check-csharp-angler-quest-host.yml",
+    "name": "Execute angler quest hooks against host IL2CPP fixture",
+    "command": "set -euo pipefail\ng++ -std=c++20 -Wall -Wextra -Werror -Wno-deprecated-declarations -pedantic -pthread \\\n  -I app/src/main/cpp -I tests/basic_items/include \\\n  tests/angler_quest/native_il2cpp_integration_test.cpp \\\n  app/src/main/cpp/experiments/csharp/NativeAnglerQuestGameplay.cpp \\\n  -o \"$RUNNER_TEMP/angler_il2cpp_integration_test\"\n\"$RUNNER_TEMP/angler_il2cpp_integration_test\"\n"
+  },
+  {
+    "source": "check-csharp-angler-quest-host.yml",
+    "name": "Execute native fishing against host IL2CPP value layout",
+    "command": "set -euo pipefail\ng++ -std=c++20 -Wall -Wextra -Werror -Wno-deprecated-declarations -pedantic -pthread \\\n  -I app/src/main/cpp -I tests/basic_items/include \\\n  tests/angler_quest/native_fishing_il2cpp_test.cpp \\\n  app/src/main/cpp/experiments/csharp/NativeAnglerQuestFishing.cpp \\\n  -o \"$RUNNER_TEMP/angler_fishing_il2cpp_test\"\n\"$RUNNER_TEMP/angler_fishing_il2cpp_test\"\n"
+  },
+  {
+    "source": "check-csharp-angler-quest-host.yml",
+    "name": "Verify BunnySourceSdk and Compiler sources",
+    "command": "set -euo pipefail\ndotnet build experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj \\\n  --configuration Release --nologo\ndotnet build experiments/csharp/BunnySourceCompiler/BunnySourceCompiler.csproj \\\n  --configuration Release --nologo\ndotnet run --project tests/angler_quest/HostFixture.csproj \\\n  --configuration Release --no-launch-profile --nologo\n"
+  },
+  {
+    "source": "check-csharp-dust.yml",
+    "name": "Compile and run managed DustLoader contracts",
+    "command": "dotnet run --project experiments/csharp/BunnyDustTests/BunnyDustTests.csproj -c Release"
+  },
+  {
+    "source": "check-csharp-dust.yml",
+    "name": "Compile and run C++ DustLoader ABI contracts",
+    "command": "c++ -std=c++17 -Wall -Wextra -Werror -Wno-deprecated-declarations -Iapp/src/main/cpp tests/csharp/native_dust_contract.cpp -o \"$RUNNER_TEMP/dust_contract\"\n\"$RUNNER_TEMP/dust_contract\"\nc++ -std=c++17 -Wall -Wextra -Werror -Wno-deprecated-declarations -DBUNNY_CSHARP_DUST_PREVIEW=1 -Iapp/src/main/cpp tests/csharp/native_dust_contract.cpp -o \"$RUNNER_TEMP/dust_contract_preview\"\n\"$RUNNER_TEMP/dust_contract_preview\"\n"
+  },
+  {
+    "source": "check-csharp-dust.yml",
+    "name": "Verify Roslyn source compiler assembly",
+    "command": "dotnet build experiments/csharp/BunnySourceCompiler/BunnySourceCompiler.csproj -c Release --nologo"
+  },
+  {
+    "source": "check-csharp-dust.yml",
+    "name": "Verify DustLoader source parser",
+    "command": "c++ -std=c++20 -Wall -Wextra -Werror -Wno-deprecated-declarations -Iapp/src/main/cpp             tests/csharp/native_dust_parser.cpp             app/src/main/cpp/experiments/csharp/SourceParser.cpp             -o \"$RUNNER_TEMP/dust_parser\"\n\"$RUNNER_TEMP/dust_parser\"\n"
+  },
+  {
+    "source": "check-csharp-dust.yml",
+    "name": "Verify DustLoader compilation through real Roslyn and Mono source contract",
+    "command": "dotnet run --project experiments/csharp/BunnyDustCompilerSmoke/BunnyDustCompilerSmoke.csproj -c Release"
+  },
+  {
+    "source": "check-csharp-dust.yml",
+    "name": "Verify bounded Dust worker mailbox and stale-instance protection",
+    "command": "c++ -std=c++20 -Wall -Wextra -Werror -Wno-deprecated-declarations -pthread -Iapp/src/main/cpp             tests/csharp/native_dust_mailbox.cpp -o \"$RUNNER_TEMP/dust_mailbox\"\n\"$RUNNER_TEMP/dust_mailbox\"\n"
+  },
+  {
+    "source": "check-csharp-dust.yml",
+    "name": "Verify Dust lifecycle and bounded release tracking",
+    "command": "c++ -std=c++20 -Wall -Wextra -Werror -Wno-deprecated-declarations -Iapp/src/main/cpp             tests/csharp/native_dust_lifecycle.cpp -o \"$RUNNER_TEMP/dust_lifecycle\"\n\"$RUNNER_TEMP/dust_lifecycle\"\n"
+  },
+  {
+    "source": "check-csharp-dust.yml",
+    "name": "Verify only managed Dust hooks start MonoVM bindings",
+    "command": "c++ -std=c++20 -Wall -Wextra -Werror -Wno-deprecated-declarations -Iapp/src/main/cpp tests/csharp/native_dust_binding_selection.cpp -o \"$RUNNER_TEMP/dust_bindings\"\n\"$RUNNER_TEMP/dust_bindings\"\n"
+  },
+  {
+    "source": "check-csharp-dust.yml",
+    "name": "Verify checked Dust index with fast native hint and stable Main.dust fallback",
+    "command": "c++ -std=c++20 -Wall -Wextra -Werror -Wno-deprecated-declarations -Iapp/src/main/cpp tests/csharp/native_dust_slot_lookup.cpp -o \"$RUNNER_TEMP/dust_slot_lookup\"\n\"$RUNNER_TEMP/dust_slot_lookup\"\n"
+  },
+  {
+    "source": "check-csharp-dust.yml",
+    "name": "Verify frame-coherent native Dust callback decisions",
+    "command": "c++ -std=c++20 -Wall -Wextra -Werror -Wno-deprecated-declarations -Iapp/src/main/cpp tests/csharp/native_dust_decision.cpp -o \"$RUNNER_TEMP/dust_decision\"\n\"$RUNNER_TEMP/dust_decision\"\n"
+  },
+  {
+    "source": "check-csharp-dust.yml",
+    "name": "Validate native Dust callback flag masks by phase",
+    "command": "c++ -std=c++20 -Wall -Wextra -Werror -Wno-deprecated-declarations -Iapp/src/main/cpp tests/csharp/native_dust_flags.cpp -o \"$RUNNER_TEMP/dust_flags\"\n\"$RUNNER_TEMP/dust_flags\"\n"
+  },
+  {
+    "source": "check-csharp-dust.yml",
+    "name": "Verify deadline-bound MonoVM Dust handshake and per-frame budget",
+    "command": "c++ -std=c++20 -Wall -Wextra -Werror -Wno-deprecated-declarations -pthread -Iapp/src/main/cpp tests/csharp/native_dust_sync.cpp -o \"$RUNNER_TEMP/dust_sync\"\n\"$RUNNER_TEMP/dust_sync\"\n"
+  },
+  {
+    "source": "test-csharp-invasion.yml",
+    "name": "Compile and run pure CSharp lifecycle tests",
+    "command": "dotnet run --project tests/invasion/Invasion.csproj --configuration Release"
+  },
+  {
+    "source": "test-csharp-invasion.yml",
+    "name": "Validate versioned invasion replication packets, late join and client revision",
+    "command": "dotnet run --project tests/invasion/net/InvasionNet.csproj --configuration Release"
+  },
+  {
+    "source": "test-csharp-invasion.yml",
+    "name": "Verify epoch-bound native spawn pipeline",
+    "command": "dotnet run --project tests/invasion/pipeline/Pipeline.csproj --configuration Release"
+  },
+  {
+    "source": "test-csharp-invasion.yml",
+    "name": "Test actual Bunny NPC dispatcher and ExampleInvasion integration",
+    "command": "dotnet run --project tests/invasion/DispatcherIntegration.csproj --configuration Release"
+  },
+  {
+    "source": "test-csharp-invasion.yml",
+    "name": "Audit native NPC identity handoff and verified spawn admission",
+    "command": "python3 tests/invasion/check_native_identity_bridge.py"
+  },
+  {
+    "source": "test-csharp-invasion.yml",
+    "name": "Verify reward drops for completed invasions using original Bunny item API",
+    "command": "g++ -std=c++20 -Wall -Wextra -Werror -Wno-deprecated-declarations -Iapp/src/main/cpp tests/invasion/NativeInvasionRewardsTest.cpp tests/invasion/RewardRuntimeStub.cpp app/src/main/cpp/experiments/csharp/NativeInvasionRewards.cpp -o /tmp/bunny-invasion-rewards\n/tmp/bunny-invasion-rewards\n"
+  },
+  {
+    "source": "test-csharp-invasion.yml",
+    "name": "Test atomic per-world invasion sidecars and session isolation",
+    "command": "g++ -std=c++20 -Wall -Wextra -Werror -Wno-deprecated-declarations -Iapp/src/main/cpp tests/invasion/NativeSaveStoreTest.cpp app/src/main/cpp/experiments/csharp/NativeInvasionPersistence.cpp -o /tmp/bunny-invasion-save\n/tmp/bunny-invasion-save\n"
+  },
+  {
+    "source": "test-csharp-invasion.yml",
+    "name": "Simulate CSharp-to-native-to-CSharp invasion round trip",
+    "command": "mkdir -p /tmp/bunny-invasion-test\ng++ -std=c++20 -shared -fPIC -Wall -Wextra -Werror -Wno-deprecated-declarations -Iapp/src/main/cpp tests/invasion/NativeMailboxStub.cpp tests/invasion/RewardRuntimeStub.cpp app/src/main/cpp/experiments/csharp/NativeInvasionMailbox.cpp app/src/main/cpp/experiments/csharp/NativeInvasionPersistence.cpp app/src/main/cpp/experiments/csharp/NativeInvasionRewards.cpp -o /tmp/bunny-invasion-test/libbunny.so\nLD_LIBRARY_PATH=/tmp/bunny-invasion-test dotnet run --project tests/invasion/TransportIntegration.csproj --configuration Release\n"
+  },
+  {
+    "source": "test-csharp-invasion.yml",
+    "name": "Simulate simultaneous native invasions and isolated NPC scoring",
+    "command": "LD_LIBRARY_PATH=/tmp/bunny-invasion-test dotnet run --project tests/invasion/MultiInvasionIntegration.csproj --configuration Release\n"
+  },
+  {
+    "source": "test-csharp-invasion.yml",
+    "name": "Audit world-ready host and autonomous MonoVM invasion integration",
+    "command": "python3 tests/invasion/check_world_host_contract.py"
+  },
+  {
+    "source": "test-csharp-invasion.yml",
+    "name": "Verify real Terraria NPC hook authority and kill ingress",
+    "command": "python3 tests/invasion/test_npc_hook_contract.py"
+  },
+  {
+    "source": "test-csharp-invasion.yml",
+    "name": "Test reliable native NPC death dispatch under queue congestion",
+    "command": "g++ -std=c++20 -Wall -Wextra -Werror -Wno-deprecated-declarations -Iapp/src/main/cpp tests/invasion/ReliableNpcKillTest.cpp app/src/main/cpp/experiments/csharp/ReliableNpcKill.cpp -o /tmp/bunny-invasion-kills\n/tmp/bunny-invasion-kills\n"
+  },
+  {
+    "source": "test-csharp-invasion.yml",
+    "name": "Verify pure native spawn policy and source contracts",
+    "command": "python3 tests/invasion/native_spawn_contract.py\ng++ -std=c++17 -Wall -Wextra -Werror -Wno-deprecated-declarations tests/invasion/NativeSpawnPolicyTest.cpp -o /tmp/bunny-spawn-policy\n/tmp/bunny-spawn-policy\n"
+  },
+  {
+    "source": "test-csharp-invasion.yml",
+    "name": "Test bounded terrain spawn placement on real Bunny tile layout",
+    "command": "g++ -std=c++20 -Wall -Wextra -Werror -Wno-deprecated-declarations -Iapp/src/main/cpp tests/invasion/NativeSpawnSiteTest.cpp -o /tmp/bunny-invasion-terrain\n/tmp/bunny-invasion-terrain\n"
+  },
+  {
+    "source": "test-csharp-invasion.yml",
+    "name": "Run game-thread native mailbox policy and world epoch tests",
+    "command": "g++ -std=c++20 -Wall -Wextra -Werror -Wno-deprecated-declarations -Iapp/src/main/cpp tests/invasion/NativeMailboxTest.cpp app/src/main/cpp/experiments/csharp/NativeInvasionMailbox.cpp -o /tmp/bunny-invasion-mailbox\n/tmp/bunny-invasion-mailbox\n"
+  },
+  {
+    "source": "test-csharp-invasion.yml",
+    "name": "Syntax-check native invasion host against real Bunny headers",
+    "command": "g++ -std=c++20 -Wall -Wextra -Werror -Wno-deprecated-declarations -Iapp/src/main/cpp -fsyntax-only app/src/main/cpp/experiments/csharp/NativeInvasionSpawn.cpp app/src/main/cpp/experiments/csharp/NativeInvasionMailbox.cpp"
+  },
+  {
+    "source": "test-csharp-invasion.yml",
+    "name": "Audit item-only CSharp mod registration and OnUse dispatch",
+    "command": "python3 tests/invasion/check_item_only_contract.py"
+  },
+  {
+    "source": "test-csharp-invasion.yml",
+    "name": "Test native multiplayer peer expiry without Android",
+    "command": "g++ -std=c++20 -Wall -Wextra -Werror -Wno-deprecated-declarations tests/invasion/NativeInvasionPeerPolicyTest.cpp -o /tmp/bunny-invasion-peer-policy\n/tmp/bunny-invasion-peer-policy\n"
+  },
+  {
+    "source": "test-csharp-invasion.yml",
+    "name": "Audit host-to-client world snapshots and late join network state",
+    "command": "python3 tests/invasion/check_replication_contract.py"
+  },
+  {
+    "source": "test-csharp-invasion.yml",
+    "name": "Audit secure native client-to-server item invocation and dedicated host",
+    "command": "python3 tests/invasion/check_multiplayer_contract.py"
+  },
+  {
+    "source": "test-csharp-invasion.yml",
+    "name": "Audit opt-in CSharp item-use dispatch and ExampleInvasion invoker",
+    "command": "python3 tests/invasion/check_item_use_contract.py"
+  },
+  {
+    "source": "test-csharp-invasion.yml",
+    "name": "Audit native world persistence lifecycle and atomic saves",
+    "command": "python3 tests/invasion/check_world_save_contract.py"
+  },
+  {
+    "source": "test-csharp-invasion.yml",
+    "name": "Validate CSharp NPC world authority in native C++",
+    "command": "g++ -std=c++17 -Wall -Wextra -Werror -Wno-deprecated-declarations tests/invasion/WorldAuthorityTest.cpp -o /tmp/bunny-invasion-authority\n/tmp/bunny-invasion-authority\n"
+  },
+  {
+    "source": "combined integration",
+    "name": "Compile actual shared tile draw cache and Dust emission bridges",
+    "command": "g++ -std=c++20 -Wall -Wextra -Werror -Wno-unused-parameter -Wno-deprecated-declarations -DBL_HAVE_QUICKJS=0 -Itests/basic_items/include -Iapp/src/main/cpp -fsyntax-only app/src/main/cpp/content/tiles/ModTiles.cpp app/src/main/cpp/experiments/csharp/NativeDustEmission.cpp app/src/main/cpp/experiments/csharp/NativeInvasionNetwork.cpp"
+  },
+  {
+    "name": "Execute full ExampleMod native bootstrap and actual invasion HUD binding/drawing",
+    "source": "integration-regression",
+    "command": "bash tests/ready_prs/run.sh"
+  }
+]

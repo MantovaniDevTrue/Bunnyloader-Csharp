@@ -37,6 +37,8 @@ void sendData(int msgType, int number, float number2, float number3);
  */
 bool sendToServer(const std::string& command);
 
+bool sendNetworkChat(const std::string& message, int remoteClient = -1);
+
 /** Executa os pedidos recebidos. Chamado do DoUpdate, na thread do jogo. */
 void tickNetRequests();
 

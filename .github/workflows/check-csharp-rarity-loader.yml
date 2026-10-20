@@ -1,0 +1,119 @@
+name: Check CSharp RarityLoader Core
+on:
+  push:
+    branches:
+      - feat/csharp-rarity-loader-core-20261019
+    paths:
+      - '**'
+      - '.github/workflows/check-csharp-rarity-loader.yml'
+  pull_request:
+    paths:
+      - 'experiments/csharp/BunnyCsSdk/BunnyRarity.cs'
+      - 'experiments/csharp/BunnyCsSdk/BunnyRarityReference.cs'
+      - 'experiments/csharp/BunnyCsSdk/BunnyItem.cs'
+      - 'experiments/csharp/BunnyCsSdk/BunnySourceScriptApi.cs'
+      - 'app/src/main/cpp/experiments/csharp/BasicItemDefaults.h'
+      - 'app/src/main/cpp/experiments/csharp/NativeDefaults.h'
+      - 'app/src/main/cpp/content/items/ModItemSaveFormat.h'
+      - 'app/src/main/cpp/content/items/ModItemSaveSafety.h'
+      - 'app/src/main/cpp/content/items/NativeRarityPending.h'
+      - 'app/src/main/cpp/content/items/ModItemSave.cpp'
+      - 'experiments/csharp/BunnyCsSdk/BunnyRarityRuntime.cs'
+      - 'app/src/main/cpp/experiments/csharp/NativeRarity*.h'
+      - 'app/src/main/cpp/script/js/mod/Loaders/RarityLoader.js'
+      - 'app/src/main/cpp/script/js/mod/Loaders/TooltipLoader.js'
+      - 'app/src/main/cpp/script/api/CSharpPrototypeApi.cpp'
+      - 'app/src/main/cpp/experiments/csharp/NativeRarity*.cpp'
+      - 'app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp'
+      - 'app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp'
+      - 'experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj'
+      - 'samples/ExampleModCSharp/Playable/content/Content/Rarities/**'
+      - 'samples/ExampleModCSharp/Playable/content/Content/Items/**'
+      - 'tests/rarity_loader/**'
+      - 'app/src/main/cpp/experiments/csharp/NativeRarityRegistry.h'
+      - 'app/src/main/cpp/experiments/csharp/SourceContentIdentity.h'
+      - 'app/src/main/cpp/experiments/csharp/SourceParser.cpp'
+      - 'app/src/main/cpp/experiments/csharp/SourceLoader.cpp'
+      - 'experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs'
+      - '.github/workflows/check-csharp-rarity-loader.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  rarity-host:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Compile complete playable ExampleMod with current Bunny SDK
+        run: dotnet build tests/ready_prs/FullExampleManaged.csproj -c Release --nologo
+      - name: Execute complete ExampleMod native defaults through Roslyn
+        run: dotnet run --project tests/ready_prs/FullExampleRuntime/FullExampleRuntime.csproj -c Release -- samples/ExampleModCSharp/Playable
+      - name: Test CSharp rarity contracts without APK or game
+        run: dotnet run --project tests/rarity_loader/RarityLoaderHost.csproj --configuration Release
+      - name: Compile playable ExampleModCSharp native rarity examples
+        run: dotnet run --project tests/rarity_loader/PlayableRarity.csproj --configuration Release
+      - name: Verify native rarity registry and parser without JS
+        run: |
+          true
+          g++ -std=c++20 -Wall -Wextra -Werror -O2 -pthread -DBL_HAVE_QUICKJS=0 -I app/src/main/cpp \
+            tests/rarity_loader/native_rarity_registry_test.cpp \
+            app/src/main/cpp/experiments/csharp/SourceParser.cpp \
+            -o /tmp/bunny-rarity-native
+          /tmp/bunny-rarity-native
+          g++ -std=c++20 -Wall -Wextra -Werror -O2 -pthread -I app/src/main/cpp \
+            tests/rarity_loader/native_rarity_color_test.cpp -o /tmp/bunny-rarity-color
+          /tmp/bunny-rarity-color
+          g++ -std=c++20 -Wall -Wextra -Werror -O2 -I app/src/main/cpp \
+            tests/rarity_loader/native_rarity_item_test.cpp -o /tmp/bunny-rarity-item
+          /tmp/bunny-rarity-item
+          g++ -std=c++20 -Wall -Wextra -Werror -O2 -pthread -I app/src/main/cpp \
+            tests/rarity_loader/native_rarity_save_test.cpp -o /tmp/bunny-rarity-save
+          /tmp/bunny-rarity-save
+      - name: Verify shared JS/CSharp rarity allocation
+        run: node tests/rarity_loader/check_shared_rarity_js.cjs
+      - name: Verify original JS tooltip interop with CSharp native rarity cache
+        run: node tests/rarity_loader/check_rarity_tooltip_js.cjs
+      - name: Compile rarity native host integration and lifecycle regressions
+        run: |
+          true
+          JAVA_INCLUDES="$(dirname "$(dirname "$(readlink -f "$(command -v javac)")")")/include"
+          g++ -std=c++20 -Wall -Wextra -Werror -DBL_HAVE_QUICKJS=0 \
+            -I "$JAVA_INCLUDES" -I "$JAVA_INCLUDES/linux" \
+            -I tests/basic_items/include -I app/src/main/cpp -fsyntax-only \
+            app/src/main/cpp/experiments/csharp/SourceLoader.cpp
+          g++ -std=c++20 -Wall -Wextra -Werror -DBL_HAVE_QUICKJS=0 \
+            -I "$JAVA_INCLUDES" -I "$JAVA_INCLUDES/linux" \
+            -I tests/basic_items/include -I app/src/main/cpp -fsyntax-only \
+            app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp
+          g++ -std=c++20 -Wall -Wextra -Werror -DBL_HAVE_QUICKJS=0 \
+            -I "$JAVA_INCLUDES" -I "$JAVA_INCLUDES/linux" \
+            -I tests/basic_items/include -I app/src/main/cpp -fsyntax-only \
+            app/src/main/cpp/experiments/csharp/NativeRarityGameplay.cpp
+          g++ -std=c++20 -Wall -Wextra -Werror -DBL_HAVE_QUICKJS=0 \
+            -I "$JAVA_INCLUDES" -I "$JAVA_INCLUDES/linux" \
+            -I tests/basic_items/include -I app/src/main/cpp -fsyntax-only \
+            app/src/main/cpp/content/items/ModItemSave.cpp
+          python3 tests/run_managed_lifecycle_regressions.py
+      - name: Commit compiled public SDK reference
+        if: github.event_name == 'push' && success()
+        run: |
+          true
+          dotnet run --project tools/sdk_reference/SdkReference.csproj --configuration Release -- --write
+          git add docs/generated/sdk_public_reference.json docs/generated/sdk_public_reference.md
+          if ! git diff --cached --quiet; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -m "docs(csharp): regenerate public SDK reference from compiled rarity API"
+            REMOTE_HEAD="$(git ls-remote origin refs/heads/feat/csharp-rarity-loader-core-20261019 | cut -f1)"
+            if [ "$REMOTE_HEAD" != "$GITHUB_SHA" ]; then
+              echo "SDK_REFERENCE_SYNC_SKIPPED newer-source-commit-on-branch"
+            elif ! git push origin "HEAD:refs/heads/feat/csharp-rarity-loader-core-20261019"; then
+              echo "SDK_REFERENCE_SYNC_SKIPPED parallel-newer-commit"
+            fi
+          fi

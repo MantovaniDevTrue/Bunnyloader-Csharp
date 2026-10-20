@@ -16,7 +16,8 @@ enum NativeContentKind : int32_t {
     NativeBuff = 5,
     NativeBuffPotion = 6,
     NativeBasicItem = 7,
-    NativeTile = 8
+    NativeTile = 8,
+    NativeWall = 9
 };
 
 struct NativeContentSpec {
@@ -52,6 +53,7 @@ struct NativeRegisterContext {
     int potions = 0;
     int basicItems = 0;
     int tiles = 0;
+    int walls = 0;
     int firstNpcType = -1;
     int firstAccessoryType = -1;
     int firstBuffType = -1;
@@ -69,10 +71,18 @@ struct ManagedTileEntry {
     int shape = 0;
     int coordinateHeight = 18;
     int adjacentTile = -1;
+    std::vector<int> adjacentTiles;
     std::string dustName;
     int mapR = 200, mapG = 200, mapB = 200;
     std::string mapName;
     int failDust = 1, normalDust = 3;
+    int animationFrameHeight = 0;
+    int animationFrames = 1;
+    int animationFrameTicks = 0;
+    bool allowBreaking = true;
+    bool allowDrops = true;
+    int callbackMask = 0;
+    bool cacheDrawData = true;
 };
 
 bool applyManagedNativeTileDefaultsBatch(const std::string& modId,

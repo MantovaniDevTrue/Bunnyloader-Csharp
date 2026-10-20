@@ -14,11 +14,21 @@ class RarityLoader {
     static VanillaCount = 12;   // ItemRarityID.Count
     static #DRAW_STRING = 'void DrawString(SpriteFont spriteFont, string text, Vector2 position, Color color, float rotation, Vector2 origin, float scale, SpriteEffects effects, float layerDepth)';
 
-    static get RarityCount() { return RarityLoader.VanillaCount + RarityLoader.ByType.size; }
+    static get RarityCount() {
+        const shared = globalThis.bl?.csharp?.rarityCount;
+        if (typeof shared === 'function') return shared();
+        let maximum = RarityLoader.VanillaCount - 1;
+        for (const id of RarityLoader.ByType.keys()) if (id > maximum) maximum = id;
+        return maximum + 1;
+    }
 
     static Add(inst) {
-        inst.Type = RarityLoader.RarityCount;
-        RarityLoader.ByType.set(inst.Type, inst);
+        const native = globalThis.bl?.csharp?.reserveRarityId;
+        const type = typeof native === 'function' ? native() : RarityLoader.RarityCount;
+        if (!Number.isInteger(type) || type < RarityLoader.VanillaCount || type >= 4108 ||
+            RarityLoader.ByType.has(type)) throw new RangeError('RarityLoader: invalid shared rarity ID');
+        inst.Type = type;
+        RarityLoader.ByType.set(type, inst);
         if (RarityLoader.ByType.size === 1) Ready.Add(() => RarityLoader.#Install(), 'setup');
         Hooks.Once('item.Tooltips', TooltipLoader.Install);   // a cor do nome no tooltip
         return inst.Type;

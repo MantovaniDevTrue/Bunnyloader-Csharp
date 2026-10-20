@@ -9,7 +9,11 @@
 #include "content/items/ModItems.h"
 #include "content/npcs/ModNpcs.h"
 #include "menu/Powers.h"
+#include "experiments/csharp/NativeCSharpItemUse.h"
+#include "experiments/csharp/NativeInvasionNetwork.h"
 #include <cstdio>
+#include <array>
+#include <chrono>
 #include <deque>
 #include <mutex>
 
@@ -73,6 +77,32 @@ void hkProcessIncomingMessage(Il2CppObject* self, Il2CppObject* message, int32_t
  * conferido contra a contagem real (jogo + mods) antes de chegar ao jogo.
  */
 void run(const Request& r) {
+    if (r.command.rfind("invjoin ", 0) == 0) {
+        unsigned long long nonce = 0;
+        char extra = 0;
+        if (std::sscanf(r.command.c_str(), "invjoin %llu %c", &nonce, &extra) == 1 &&
+            nonce != 0 && r.client >= 0 && r.client < 255)
+            bl::csharp::registerNativeInvasionClient(
+                r.client, static_cast<uint64_t>(nonce));
+        return;
+    }
+    if (r.command.rfind("invuse ", 0) == 0) {
+        char mod[129] = {}, itemName[129] = {}, extra[2] = {};
+        const int count = std::sscanf(r.command.c_str(),
+                                      "invuse %128s %128s %1s",
+                                      mod, itemName, extra);
+        if (count != 2 || r.client < 0 || r.client >= 255) return;
+        using Clock = std::chrono::steady_clock;
+        static std::array<Clock::time_point, 255> lastRequest{};
+        const auto now = Clock::now();
+        if (lastRequest[static_cast<size_t>(r.client)] != Clock::time_point{} &&
+            now - lastRequest[static_cast<size_t>(r.client)] <
+                std::chrono::milliseconds(300))
+            return;
+        if (bl::csharp::enqueueVerifiedRemoteItemUse(r.client, mod, itemName))
+            lastRequest[static_cast<size_t>(r.client)] = now;
+        return;
+    }
     int type = 0, amount = 0;
     char verb[16] = {};
     if (std::sscanf(r.command.c_str(), "%15s %d %d", verb, &type, &amount) < 2) {
@@ -128,6 +158,33 @@ void sendData(int msgType, int number, float number2, float number3) {
     if (exc) BL_ERROR("rede: SendData(%d, %d) lancou excecao", msgType, number);
 }
 
+bool sendNetworkChat(const std::string& message, int remoteClient) {
+    if (!isNetHost() || message.empty() || message.size() > 350 ||
+        !g_sendData || remoteClient < -1 || remoteClient >= 255)
+        return false;
+    static const MethodInfo* fromLiteral = [] {
+        auto* klass = il2cpp::findClass({"Terraria.Localization", "NetworkText", {}});
+        return klass ? il2cpp::api().class_get_method_from_name(
+            klass, "FromLiteral", 1) : nullptr;
+    }();
+    if (!fromLiteral) return false;
+    auto& a = il2cpp::api();
+    void* literalArgs[] = {a.string_new(message.c_str())};
+    Il2CppObject* exception = nullptr;
+    Il2CppObject* text = a.runtime_invoke(
+        fromLiteral, nullptr, literalArgs, &exception);
+    if (exception || !text) return false;
+    int msgType = 25, ignoreClient = -1;
+    int number = 255, number5 = 0, number6 = 0, number7 = 0;
+    float number2 = 205.f, number3 = 90.f, number4 = 0.f;
+    void* args[] = {&msgType, &remoteClient, &ignoreClient, text,
+                    &number, &number2, &number3, &number4,
+                    &number5, &number6, &number7};
+    exception = nullptr;
+    a.runtime_invoke(g_sendData, nullptr, args, &exception);
+    return !exception;
+}
+
 bool sendToServer(const std::string& command) {
     if (!g_chatMessageCtor || !g_sendFromClient) {
         BL_ERROR("rede: sem refs do chat; pedido '%s' perdido", command.c_str());
@@ -143,7 +200,8 @@ bool sendToServer(const std::string& command) {
     void* args[1] = { msg };
     a.runtime_invoke(g_sendFromClient, nullptr, args, &exc);
     if (exc) { BL_ERROR("rede: SendChatMessageFromClient lancou excecao"); return false; }
-    BL_INFO("rede: pedido ao servidor: %s", command.c_str());
+    if (command.rfind("invjoin ", 0) != 0)
+        BL_INFO("rede: pedido ao servidor: %s", command.c_str());
     return true;
 }
 
@@ -154,7 +212,8 @@ void tickNetRequests() {
         batch.swap(g_queue);
     }
     for (const Request& r : batch) {
-        BL_INFO("rede: pedido do jogador %d: %s", r.client, r.command.c_str());
+        if (r.command.rfind("invjoin ", 0) != 0)
+            BL_INFO("rede: pedido do jogador %d: %s", r.client, r.command.c_str());
         run(r);
     }
 }

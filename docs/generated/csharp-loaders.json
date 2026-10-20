@@ -1,0 +1,1470 @@
+{
+  "schemaVersion": 1,
+  "reference": "Bunnyloader-Csharp fork, source hash per module",
+  "preservedBase": "77be9001c2e0328324bb9b60db0fd3a7a64ad23a",
+  "meaning": "Inventory includes helpers in Loaders. Hook candidates are lexical hints, not complete contracts. APIs are evidence pointers, not a parity certificate.",
+  "counts": {
+    "modules": 88,
+    "partialMappings": 12,
+    "verifiedComplete": 0
+  },
+  "modules": [
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/AchievementLoader.js",
+      "sha256": "f477d34dcedbe651692230b4ab0d0b50895278fc9e6b144f2f7dca2dc8a66637",
+      "module": "AchievementLoader",
+      "hookCandidates": [
+        "OnCompleted",
+        "OnItemCraft",
+        "OnItemPickup",
+        "OnNPCKilled",
+        "OnTileDestroyed"
+      ],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/AnglerQuestLoader.js",
+      "sha256": "a2d95633725f5334e2cd53a70cc5f3894e39c19495990752543b1d91fb697ad0",
+      "module": "AnglerQuestLoader",
+      "hookCandidates": [],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/ArmorSetLoader.js",
+      "sha256": "62eea2fdfa3618a3d340d42dfcc50e2165245ec9ac61e0df9a312a7e69c5d5f7",
+      "module": "ArmorSetLoader",
+      "hookCandidates": [
+        "SetMatch",
+        "UpdateArmorSet"
+      ],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/BackgroundTextureLoader.js",
+      "sha256": "492850e03518e1a0f0836eb253d4585dfade99fba57cae455d0f20914b6e2599",
+      "module": "BackgroundTextureLoader",
+      "hookCandidates": [],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/BannerLoader.js",
+      "sha256": "224019fb24a6cb088153a378606c70f1b00039146209161de325a6a520727683",
+      "module": "BannerLoader",
+      "hookCandidates": [],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/BestiaryLoader.js",
+      "sha256": "062cf707ce6002ac6b45b40b11142740890d7adfeb9fa8e6d68496825f7d3bdb",
+      "module": "BestiaryLoader",
+      "hookCandidates": [],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/BiomeBestiaryLoader.js",
+      "sha256": "faee17950c8db0ae1ed009076a0b7b328b13f3ec87a729393ff7e9f380956d94",
+      "module": "BiomeBestiaryLoader",
+      "hookCandidates": [],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/BiomeLoader.js",
+      "sha256": "bf4ccc2f9b9b9d736de5fadfe554b545f93a78333c7f2182ab3fd9a6564023f2",
+      "module": "BiomeLoader",
+      "hookCandidates": [],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/BiomeShoppingLoader.js",
+      "sha256": "ee6c088bb1e9d08f667e63e65ef56d51f897cd4c1126f335cc28aad8a032bf9a",
+      "module": "BiomeShoppingLoader",
+      "hookCandidates": [],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/BossBarLoader.js",
+      "sha256": "9a2132989f29d86d4ed031ef7c1d2e08daa177bf278f3e6ba9b152ddb751dc9b",
+      "module": "BossBarLoader",
+      "hookCandidates": [],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/BuffLoader.js",
+      "sha256": "268cab8ed30419e662c0a4dc4eeafd7432200775ec279c972aef615af4c6a905",
+      "module": "BuffLoader",
+      "hookCandidates": [
+        "ApplyNPC",
+        "ApplyPlayer",
+        "CanRemove",
+        "ModifyBuffText",
+        "OnRemove",
+        "PostDraw",
+        "PreDraw",
+        "ReApplyNPC",
+        "ReApplyPlayer",
+        "RightClick",
+        "UpdateNPC",
+        "UpdatePlayer"
+      ],
+      "publicApis": [
+        "BunnyBuff",
+        "BunnyBuffPotion"
+      ],
+      "nativeEvidence": [
+        "experiments/csharp/NativeContent.cpp",
+        "content/buffs/ModBuffs.cpp"
+      ],
+      "state": "Parcial",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Conferir cada hook/propriedade e seus exemplos antes de promover a cobertura"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/ChestNetworkHooks.js",
+      "sha256": "a393241be34cab54640de3bdd201142925dda8bbf3391c97670c70063f8d38dc",
+      "module": "ChestNetworkHooks",
+      "hookCandidates": [],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/CloudLoader.js",
+      "sha256": "730deb5283083224848b91657fc13f92832ad18f69d47d50079416b3f23e7e88",
+      "module": "CloudLoader",
+      "hookCandidates": [],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/CombatLoader.js",
+      "sha256": "2b72b582597be33fba66b25c258a58a515a6fb17dca1b2038a2a761379f211b5",
+      "module": "CombatLoader",
+      "hookCandidates": [
+        "CanBeHitByProjectile",
+        "CanHitNPC",
+        "CanHitPvp",
+        "CanMeleeAttackCollideWithNPC",
+        "MeleeEffects",
+        "ModifyIncomingHit"
+      ],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/CommandLoader.js",
+      "sha256": "2f45704a77051512cb0e76be6d8acdb0d3a2676195cf529d32461798a4fc2c28",
+      "module": "CommandLoader",
+      "hookCandidates": [],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/ConfigLoader.js",
+      "sha256": "671af815787d8d78cb049821646f9e0e2a5f8f4185542a2974a5f77e72dca85f",
+      "module": "ConfigLoader",
+      "hookCandidates": [],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/DamageClassLoader.js",
+      "sha256": "14449eeeabe7c325884c0d4ca6251806416f97d51bcd2e19452f7aac26e55996",
+      "module": "DamageClassLoader",
+      "hookCandidates": [],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/EmoteBubbleLoader.js",
+      "sha256": "3f640e31d93d3b5fe6ab2274cc8698728761635dec651676c91a193696c66b68",
+      "module": "EmoteBubbleLoader",
+      "hookCandidates": [
+        "OnSpawn",
+        "UpdateFrame"
+      ],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/EquipLoader.js",
+      "sha256": "d8c856b946ec4217c2b6a9f4fcabf862f6e317e3ed65666e4c35bbf177695037",
+      "module": "EquipLoader",
+      "hookCandidates": [
+        "ArmorSetShadows",
+        "FrameEffects",
+        "HorizontalWingSpeeds",
+        "IsVanitySet",
+        "PreUpdateVanitySet",
+        "SetMatch",
+        "UpdateVanitySet",
+        "VerticalWingSpeeds",
+        "WingUpdate"
+      ],
+      "publicApis": [
+        "BunnyItemBehavior",
+        "BunnyArmorEffects",
+        "BunnyArmorSet"
+      ],
+      "nativeEvidence": [
+        "experiments/csharp/NativeItemPolicies.cpp",
+        "experiments/csharp/NativeArmorPolicies.cpp"
+      ],
+      "state": "Parcial",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Conferir cada hook/propriedade e seus exemplos antes de promover a cobertura"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/GlobalItemLoader.js",
+      "sha256": "f57c89e7afad5c4fcc2ca64e8eabf6b3244a1b6e3d33486c44cb64b10c735a17",
+      "module": "GlobalItemLoader",
+      "hookCandidates": [
+        "ArmorSetShadows",
+        "CanAccessoryBeEquippedWith",
+        "CanUseItem",
+        "HoldItem",
+        "HorizontalWingSpeeds",
+        "ModifyWeaponDamage",
+        "OnCraft",
+        "PostUpdateInWorld",
+        "PreUpdateInWorld",
+        "PreUpdateVanitySet",
+        "SetDefaults",
+        "SetMatch",
+        "UpdateAccessory",
+        "UpdateArmorSet",
+        "UpdateEquip",
+        "UpdateInventory",
+        "UpdateVanitySet",
+        "UseItem",
+        "VerticalWingSpeeds",
+        "WingUpdate"
+      ],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/GlobalLootLoader.js",
+      "sha256": "599936db516b6291a59aaeaa63b9d5ba7db3b31197d7af5f23ad2ef244f8e60b",
+      "module": "GlobalLootLoader",
+      "hookCandidates": [
+        "ModifyGlobalLoot",
+        "ModifyNPCLoot"
+      ],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/GlobalNPCLoader.js",
+      "sha256": "2c31a324d8916dc4816700b610afbab79cab03f5c9c75f78a895da37438150b5",
+      "module": "GlobalNPCLoader",
+      "hookCandidates": [
+        "AI",
+        "EditSpawnFlags",
+        "EditSpawnInfo",
+        "EditSpawnPool",
+        "EditSpawnRange",
+        "EditSpawnRate",
+        "HitEffect",
+        "ModifyGlobalLoot",
+        "ModifyNPCLoot",
+        "NetReceive",
+        "NetSend",
+        "PostAI",
+        "PreAI",
+        "SetDefaults",
+        "SetupTravelShop"
+      ],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/GlobalProjectileLoader.js",
+      "sha256": "57e44be1985c4ecb707c3bb94a747d87a0c37dfa83c369bc5274112949a800d1",
+      "module": "GlobalProjectileLoader",
+      "hookCandidates": [
+        "AI",
+        "NetReceive",
+        "NetSend",
+        "OnSpawn",
+        "PostAI",
+        "PreAI",
+        "SetDefaults"
+      ],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/GlobalTileLoader.js",
+      "sha256": "96b28478cdc14824e0c8868fb724187e4f5997a8f5273ccdc3caa459c66e881f",
+      "module": "GlobalTileLoader",
+      "hookCandidates": [
+        "AdjTiles",
+        "AnimateTile",
+        "CanExplode",
+        "CanKillTile",
+        "CanPlace",
+        "KillSound",
+        "MouseOver",
+        "MouseOverFar",
+        "PlaceInWorld",
+        "PostSetupTileMerge",
+        "RandomUpdate",
+        "RightClick",
+        "Slope"
+      ],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/GoreLoader.js",
+      "sha256": "88a53e1d3b1d58fc5ca27744a96c0d3f14c79d2c41d3440b8941340c50405c7f",
+      "module": "GoreLoader",
+      "hookCandidates": [],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/HairLoader.js",
+      "sha256": "dc34deaaa7d0652e0ba5a3a7b83b983569a35859680ed342d35dd68ce5a07262",
+      "module": "HairLoader",
+      "hookCandidates": [],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/HostSettingsMenu.js",
+      "sha256": "4696b7a040b159cd0c53d43c8c0e584eb9e886d09f82a9501f9e8c337043f903",
+      "module": "HostSettingsMenu",
+      "hookCandidates": [],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/ItemCombatHooks.js",
+      "sha256": "eaae0da388ab841346e8721d6f1563165f952b60d99ae8c23b3dbd29907f0f26",
+      "module": "ItemCombatHooks",
+      "hookCandidates": [],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/ItemDataLoader.js",
+      "sha256": "720c25aaf87fe4c075024422cb0b9a344b5ee92ed27779425435197d50d07f60",
+      "module": "ItemDataLoader",
+      "hookCandidates": [
+        "LoadData",
+        "SaveData"
+      ],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/ItemDrawLoader.js",
+      "sha256": "c077b91aef3a5196dfcb82f7860b7be683eccb0670ab5cc1d357195f5da954b3",
+      "module": "ItemDrawLoader",
+      "hookCandidates": [],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/ItemHealingHooks.js",
+      "sha256": "b3d645b2996661ea8f3d2d1fafbba1c72cc6db1dd0e6366bb31a38f36db6e72e",
+      "module": "ItemHealingHooks",
+      "hookCandidates": [
+        "ApplyPotionDelay",
+        "GetHealLife"
+      ],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/ItemLoader.js",
+      "sha256": "189eaa936678738008318c7579953d02aef5e9ef923a7ec4dec9097014aa98ac",
+      "module": "ItemLoader",
+      "hookCandidates": [
+        "ArmorSetShadows",
+        "CanAccessoryBeEquippedWith",
+        "CanRightClick",
+        "CanShoot",
+        "CanUseItem",
+        "EquipFrameEffects",
+        "GetAlpha",
+        "HoldItem",
+        "HoldStyle",
+        "HoldoutOffset",
+        "HorizontalWingSpeeds",
+        "IsArmorSet",
+        "IsVanitySet",
+        "ModifyFishingLine",
+        "ModifyShootStats",
+        "ModifyTooltipLines",
+        "OnCraft",
+        "PostUpdate",
+        "PostUpdateInWorld",
+        "PreUpdateInWorld",
+        "PreUpdateVanitySet",
+        "SetMatch",
+        "Shoot",
+        "UpdateAccessory",
+        "UpdateArmorSet",
+        "UpdateEquip",
+        "UpdateInventory",
+        "UpdateVanity",
+        "UpdateVanitySet",
+        "UseItem",
+        "UseStyle",
+        "VerticalWingSpeeds",
+        "WingUpdate"
+      ],
+      "publicApis": [
+        "BunnyItem",
+        "BunnyWeapon",
+        "BunnyAccessory",
+        "BunnyShootSource",
+        "BunnyShootContext",
+        "BunnyShot"
+      ],
+      "nativeEvidence": [
+        "experiments/csharp/NativeBasicItems.cpp",
+        "experiments/csharp/NativeItemPolicies.cpp",
+        "experiments/csharp/NativeShooting.cpp"
+      ],
+      "state": "Parcial",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Conferir cada hook/propriedade e seus exemplos antes de promover a cobertura"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/ItemNetworkHooks.js",
+      "sha256": "57116283a5012bd3a8035786a0c5d74934c8c3b8bee06634de8318c682c34257",
+      "module": "ItemNetworkHooks",
+      "hookCandidates": [
+        "NetReceive",
+        "NetSend",
+        "SaveData"
+      ],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/ItemPickupLoader.js",
+      "sha256": "6ffb7d135f2f388b64cd64ec1a494a04b2837273e29803f84d79a1f98e97ae6d",
+      "module": "ItemPickupLoader",
+      "hookCandidates": [
+        "GrabRange"
+      ],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/ItemUseHooks.js",
+      "sha256": "24185692906af3265cadfcc7de65f146105e41aee70652422214b5313a426aae",
+      "module": "ItemUseHooks",
+      "hookCandidates": [],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/KeybindLoader.js",
+      "sha256": "16fb8fdc5c2208fd3cfa9808c4aa643a980f7c528da0e60448116994da34f9ea",
+      "module": "KeybindLoader",
+      "hookCandidates": [],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/LocalizationLoader.js",
+      "sha256": "5fc8d08313bff6b17815cf84adc2c98675f8d75ea28fff5879e24e310be0bb7d",
+      "module": "LocalizationLoader",
+      "hookCandidates": [],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/MapBackgroundLoader.js",
+      "sha256": "88786ea7af6a8d6e9325972ffda234db564b6e330d0fd4747f022a2398652def",
+      "module": "MapBackgroundLoader",
+      "hookCandidates": [],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/MenuLoader.js",
+      "sha256": "ce1aa3ccda70e0086bb150cb3c066d27ce4d6beb38cc5b8c579d0f736b38372a",
+      "module": "MenuLoader",
+      "hookCandidates": [],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/MenuThemeSetting.js",
+      "sha256": "ab2991ece40fbccb39f401503d2d8ee57f75e5fac0b3ae44fd312a6a4524d93a",
+      "module": "MenuThemeSetting",
+      "hookCandidates": [],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/ModConfigMenu.js",
+      "sha256": "3940889d1c010573b65c441d0d1f57a1b7295c9d1b5d666d07e1227183160542",
+      "module": "ModConfigMenu",
+      "hookCandidates": [],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/ModMusic.js",
+      "sha256": "b10da4b5b6177b2018c15fded5b1921fe0561979c2e19edb668c4141de1544db",
+      "module": "ModMusic",
+      "hookCandidates": [],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/MountLoader.js",
+      "sha256": "fa770ce4f8f729cbb052960ac65f1d6a80a7df8d63cb951ad67d7a8713b74247",
+      "module": "MountLoader",
+      "hookCandidates": [
+        "AimAbility",
+        "Dismount",
+        "Draw",
+        "JumpHeight",
+        "JumpSpeed",
+        "SetMount",
+        "UpdateEffects",
+        "UpdateFrame",
+        "UseAbility"
+      ],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/NPCLoader.js",
+      "sha256": "2e8a9d7a87ba55cabc3bea18305f2d5e869ae1a1ee7a51536c1ef4fde366d9bc",
+      "module": "NPCLoader",
+      "hookCandidates": [
+        "ApplyDifficultyAndPlayerScaling",
+        "CanChat",
+        "CheckActive",
+        "CheckDead",
+        "DrawBehind",
+        "DrawEffects",
+        "FindFrame",
+        "GetAlpha",
+        "GetChat",
+        "ModifyNPCHappiness",
+        "OnKill",
+        "OnSpawn",
+        "PostDraw",
+        "PreDraw",
+        "PreKill",
+        "ReceiveExtraAI",
+        "ResetEffects",
+        "SendExtraAI",
+        "SpawnChance"
+      ],
+      "publicApis": [
+        "BunnyNPC"
+      ],
+      "nativeEvidence": [
+        "experiments/csharp/NativeContent.cpp",
+        "experiments/csharp/ManagedRuntime.cpp"
+      ],
+      "state": "Parcial",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Conferir cada hook/propriedade e seus exemplos antes de promover a cobertura"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/PlayerDrawHooks.js",
+      "sha256": "108effbcc36fc04a15a438f7735d3c2719f2fae8e67f54e621d9b31590b40b26",
+      "module": "PlayerDrawHooks",
+      "hookCandidates": [
+        "Draw",
+        "GetDefaultPosition"
+      ],
+      "publicApis": [
+        "BunnyVisual"
+      ],
+      "nativeEvidence": [
+        "experiments/csharp/NativeVisualRenderer.cpp"
+      ],
+      "state": "Parcial",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Conferir cada hook/propriedade e seus exemplos antes de promover a cobertura"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/PlayerItemHooks.js",
+      "sha256": "8cb6756ed137921ed8fbf8fc3bff8090acc2a50425c5d21b6fe3bf7afa4f16d4",
+      "module": "PlayerItemHooks",
+      "hookCandidates": [
+        "ModifyItemScale",
+        "ModifyWeaponCrit",
+        "ModifyWeaponKnockback"
+      ],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/PlayerJumpHooks.js",
+      "sha256": "ee298bf1beb2d493fb348960d145b0b271a332aa8a02f0041c5cc0c36adc131b",
+      "module": "PlayerJumpHooks",
+      "hookCandidates": [],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/PlayerLoader.js",
+      "sha256": "dced2731044865fc552f8279b587de30974f72b2a0cf5435d0b7af4386962f93",
+      "module": "PlayerLoader",
+      "hookCandidates": [
+        "CanUseItem",
+        "CatchFish",
+        "FrameEffects",
+        "Kill",
+        "ModifyLuck",
+        "ModifyMaxStats",
+        "ModifyWeaponDamage",
+        "OnEnterWorld",
+        "OnRespawn",
+        "PostUpdate",
+        "PostUpdateBuffs",
+        "PostUpdateEquips",
+        "PreKill",
+        "PreModifyLuck",
+        "PreUpdate",
+        "PreUpdateBuffs",
+        "ResetEffects",
+        "SaveData",
+        "UpdateBadLifeRegen",
+        "UpdateDead",
+        "UpdateEquips",
+        "UpdateLifeRegen",
+        "UpdateManaRegen",
+        "UpdateMovement"
+      ],
+      "publicApis": [
+        "BunnyPlayer"
+      ],
+      "nativeEvidence": [
+        "experiments/csharp/NativeContent.cpp",
+        "experiments/csharp/ManagedRuntime.cpp"
+      ],
+      "state": "Parcial",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Conferir cada hook/propriedade e seus exemplos antes de promover a cobertura"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/PlayerNetworkHooks.js",
+      "sha256": "bab1902af57dece3a4ed6280c2059a5e2f9d634bc0067083303f8637062ee17c",
+      "module": "PlayerNetworkHooks",
+      "hookCandidates": [],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/PlayerUpdateHooks.js",
+      "sha256": "90b7afb13e61550766ca05273335bd9d301855c21461d3b090eabfb91a11c4ab",
+      "module": "PlayerUpdateHooks",
+      "hookCandidates": [],
+      "publicApis": [
+        "BunnyPlayer"
+      ],
+      "nativeEvidence": [
+        "experiments/csharp/NativeContent.cpp"
+      ],
+      "state": "Parcial",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Conferir cada hook/propriedade e seus exemplos antes de promover a cobertura"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/PlayerWorldHooks.js",
+      "sha256": "6d66a49c0b7d20ccd8b6a277267bd1f4523b96736d62f26851c4e1cd82655873",
+      "module": "PlayerWorldHooks",
+      "hookCandidates": [],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/PrefixLoader.js",
+      "sha256": "e77ed1b53a90a7663c006b31793ee136a50b8d6e970830218cead6555c779c36",
+      "module": "PrefixLoader",
+      "hookCandidates": [
+        "AllowPrefix",
+        "Apply",
+        "ApplyAccessoryEffects",
+        "ApplyPrefix",
+        "ChoosePrefix",
+        "GetTooltipLines",
+        "PrefixChance"
+      ],
+      "publicApis": [
+        "BunnyPrefix"
+      ],
+      "nativeEvidence": [
+        "experiments/csharp/NativeContent.cpp"
+      ],
+      "state": "Parcial",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Conferir cada hook/propriedade e seus exemplos antes de promover a cobertura"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/ProjectileLoader.js",
+      "sha256": "6ac97dcd46e4f1ce06ef283f0db473f3cccb1234c5b3066f10b0f43aaaa7ab88",
+      "module": "ProjectileLoader",
+      "hookCandidates": [
+        "GrapplePullSpeed",
+        "GrappleTargetPoint",
+        "PreDraw",
+        "PreDrawExtras",
+        "ReceiveExtraAI",
+        "SendExtraAI"
+      ],
+      "publicApis": [
+        "BunnyProjectile",
+        "BunnyMinionSteering",
+        "BunnyMinionMovement"
+      ],
+      "nativeEvidence": [
+        "experiments/csharp/NativeContent.cpp",
+        "experiments/csharp/ManagedRuntime.cpp",
+        "experiments/csharp/ProjectilePolicy.h",
+        "experiments/csharp/SummonPolicy.h"
+      ],
+      "state": "Parcial",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Conferir cada hook/propriedade e seus exemplos antes de promover a cobertura"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/PvpItemNetwork.js",
+      "sha256": "e1c37e2afc5c138d05aecdd49f4efc2587ac757ab10e024833bf72993c723162",
+      "module": "PvpItemNetwork",
+      "hookCandidates": [],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/PylonLoader.js",
+      "sha256": "97b9f912ac1f58ba2f174f394fff536349c782c2c2553ce2be85021e50fca7ad",
+      "module": "PylonLoader",
+      "hookCandidates": [
+        "ValidTeleportCheck_BiomeRequirements"
+      ],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/RarityLoader.js",
+      "sha256": "e4c61fbaf6ad777413a927bddb2181124092241a7b8108f419fa6185a960d01e",
+      "module": "RarityLoader",
+      "hookCandidates": [],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/RecipeLoader.js",
+      "sha256": "68ae0318de998166b3cbf327f93f028570535cffdbaeb49d71b3c6a01e37973e",
+      "module": "RecipeLoader",
+      "hookCandidates": [
+        "ConsumeItem",
+        "OnCraft",
+        "RecipeAvailable"
+      ],
+      "publicApis": [
+        "BunnyRecipeLoader",
+        "BunnyRecipeSource",
+        "BunnyRecipe",
+        "BunnyRecipeGroup",
+        "BunnyRecipeBehavior",
+        "BunnyRecipeCondition"
+      ],
+      "nativeEvidence": [
+        "content/recipes/NativeRecipes.cpp",
+        "experiments/csharp/NativeRecipeCallbacks.cpp"
+      ],
+      "state": "Parcial",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Conferir cada hook/propriedade e seus exemplos antes de promover a cobertura"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/SceneEffectLoader.js",
+      "sha256": "af69f2968036c4620c43673c3dbdb5c29ae671666d05a6a277364561214ac370",
+      "module": "SceneEffectLoader",
+      "hookCandidates": [
+        "IsSceneEffectActive"
+      ],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/ScreenEffectsSetting.js",
+      "sha256": "b5fb5f1bec8dba572c7bcd799196e759fb8c41fe828510c785778ce4da61035e",
+      "module": "ScreenEffectsSetting",
+      "hookCandidates": [],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/ServerSyncLoader.js",
+      "sha256": "7fc5cc4728cdf1b241d994353383dd65cc34ff805357f1938666ac173d9b2888",
+      "module": "ServerSyncLoader",
+      "hookCandidates": [],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/ServerSyncMenu.js",
+      "sha256": "2cb2728fed4a9522f55d223a47521d41e29fd1cb8fe79909997835ae21aaf526",
+      "module": "ServerSyncMenu",
+      "hookCandidates": [],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/SoundLoader.js",
+      "sha256": "f808c1a24dded9c3add4a93609289c6e71d069f1f61dd8deb5f8bf7c360c6b92",
+      "module": "SoundLoader",
+      "hookCandidates": [],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/SpawnLoader.js",
+      "sha256": "a0e3629f55b3e07dd54de3782d603a79fdc4fa93e7f4248fe5a418c82abf64a5",
+      "module": "SpawnLoader",
+      "hookCandidates": [],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/SurfaceBackgroundLoader.js",
+      "sha256": "4538e3d819e0d0c6a0b5be387fd0d2b10b306e8d44c09c9ef71b1a56c620c2a0",
+      "module": "SurfaceBackgroundLoader",
+      "hookCandidates": [],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/SystemDrawHooks.js",
+      "sha256": "884eb7fc2705b56889874fd7dabd1ece5a5cf26cacf8eb9b0b74fc2414086a5f",
+      "module": "SystemDrawHooks",
+      "hookCandidates": [
+        "ModifyLightingBrightness",
+        "ModifyScreenPosition",
+        "ModifySunLightColor",
+        "ModifyTransformMatrix"
+      ],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/SystemLoader.js",
+      "sha256": "e706a1f6353aec000f73d45def4a24dd89d4eb84ebacce580dee6c14e5ff95be",
+      "module": "SystemLoader",
+      "hookCandidates": [
+        "CanWorldBePlayed",
+        "ClearWorld",
+        "LoadWorldData",
+        "NetReceive",
+        "NetSend",
+        "OnLocalizationsLoaded",
+        "OnModUnload",
+        "OnWorldLoad",
+        "OnWorldUnload",
+        "PostUpdateTime",
+        "PostUpdateWorld",
+        "PostWorldLoad",
+        "PreSaveAndQuit",
+        "PreUpdateTime",
+        "PreUpdateWorld",
+        "ResetNearbyTileEffects",
+        "SaveWorldData",
+        "SaveWorldHeader",
+        "TileCountsAvailable"
+      ],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/SystemNetworkHooks.js",
+      "sha256": "7f840f1c42882c98e3aeb3f310c14354ca95496845baa369f7beb81b139861aa",
+      "module": "SystemNetworkHooks",
+      "hookCandidates": [
+        "HijackGetData",
+        "HijackSendData"
+      ],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/SystemUpdateHooks.js",
+      "sha256": "fcac4168e31402980e10b8940b22cfe164ebd1d2458b9f9f58896cd65aa5bb0f",
+      "module": "SystemUpdateHooks",
+      "hookCandidates": [
+        "ModifyTimeRate",
+        "PostUpdateDusts",
+        "PostUpdateEverything",
+        "PostUpdateInput",
+        "PostUpdateInvasions",
+        "PreUpdateDusts",
+        "PreUpdateEntities",
+        "PreUpdateInvasions",
+        "PreUpdateProjectiles",
+        "UpdateUI"
+      ],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/SystemWorldHooks.js",
+      "sha256": "ce10a27741fc8dc11db845bf5af2bac4c069dd6f712db3e546872bfd0eaf4464",
+      "module": "SystemWorldHooks",
+      "hookCandidates": [
+        "CanWorldBePlayed",
+        "ModifyHardmodeTasks",
+        "ModifyWorldGenTasks",
+        "PostWorldGen",
+        "PreWorldGen",
+        "SaveWorldHeader"
+      ],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/TileDrawLoader.js",
+      "sha256": "fff03ef41e145307796feeb06a4e9bb8ecbdd5f21ebcb7977a52b9a95fd392e6",
+      "module": "TileDrawLoader",
+      "hookCandidates": [
+        "AnimateIndividualTile",
+        "DrawEffects",
+        "EmitParticles",
+        "PostDraw",
+        "PreDraw",
+        "SetDrawPositions",
+        "SetSpriteEffects"
+      ],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/TileEntityItemHooks.js",
+      "sha256": "230839845128cc9a2d3a7fbd48a5b6a422b7823db7b82b71ff3cf621694c5202",
+      "module": "TileEntityItemHooks",
+      "hookCandidates": [],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/TileEntityLoader.js",
+      "sha256": "d5c9b4aece299ce862a764eab6574e9fc3c8a0dd1f8bd469586b0a7a3dbde893",
+      "module": "TileEntityLoader",
+      "hookCandidates": [],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/TileLoader.js",
+      "sha256": "d280b447c195e9ed3a671c2af05ea81703b3e61acc8e207c48b72a841d107dc1",
+      "module": "TileLoader",
+      "hookCandidates": [
+        "GetItemDrops"
+      ],
+      "publicApis": [
+        "BunnyTile"
+      ],
+      "nativeEvidence": [
+        "experiments/csharp/NativeTileGameplay.cpp"
+      ],
+      "state": "Parcial",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Conferir cada hook/propriedade e seus exemplos antes de promover a cobertura"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/TileUseLoader.js",
+      "sha256": "dcfafee9ed00860891360681e8920e5599858d81b0cf7952180cb5be5ef3945d",
+      "module": "TileUseLoader",
+      "hookCandidates": [
+        "RightClick"
+      ],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/TileWorldLoader.js",
+      "sha256": "87cf3abcb415f5ade943364fdf7e88da2e48fb37b3492e63eafe764b0d4686bb",
+      "module": "TileWorldLoader",
+      "hookCandidates": [
+        "HitWire"
+      ],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/TooltipLoader.js",
+      "sha256": "4ab1d23a1a1dae44fd108e38982431198b6f5783e51e9ecb6481382006ba1acc",
+      "module": "TooltipLoader",
+      "hookCandidates": [
+        "GetTooltipLines",
+        "ModifyTooltips",
+        "PostDrawTooltip",
+        "PostDrawTooltipLine",
+        "PreDrawTooltip",
+        "PreDrawTooltipLine"
+      ],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/TouchButtonHooks.js",
+      "sha256": "4cbab0a3723fd2b8df416b2285af10bca370905fec2e79bf14160a7783335c63",
+      "module": "TouchButtonHooks",
+      "hookCandidates": [],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/TouchButtonLayouts.js",
+      "sha256": "974a931b4ed764d1869f00f74621cdbe275c896977616ab6ce3937db856f3c6b",
+      "module": "TouchButtonLayouts",
+      "hookCandidates": [],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/TouchButtonLoader.js",
+      "sha256": "73ca9e1ca744f7e8db5703b528fb8ac1548caf4ffa8764e61a1d43f270c2ba1c",
+      "module": "TouchButtonLoader",
+      "hookCandidates": [],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/TownNPCLoader.js",
+      "sha256": "c6556615902ba78d598e8bd42d8ce02bea6ce7e8709f865cfffe6ca80293d2c8",
+      "module": "TownNPCLoader",
+      "hookCandidates": [
+        "CanTownNPCSpawn",
+        "CheckConditions",
+        "OnChatButtonClicked",
+        "SetChatButtons",
+        "SetNPCNameList",
+        "TownNPCAttackProj"
+      ],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/TreeLoader.js",
+      "sha256": "48c99de5fcf18aaddb5b1819041d20fe69aa621fda7bb380d3640dcd21bb1dfa",
+      "module": "TreeLoader",
+      "hookCandidates": [
+        "Shake"
+      ],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/UndergroundBackgroundLoader.js",
+      "sha256": "ee5adbbb735d221655a205af721a413ab27b18283d552b70bfcd0a7a74d195dd",
+      "module": "UndergroundBackgroundLoader",
+      "hookCandidates": [],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/VanillaMusic.js",
+      "sha256": "95576cc5cc1983df6ead682b2242a0b356b19fd6196ce6a83bc6cdb17facaf29",
+      "module": "VanillaMusic",
+      "hookCandidates": [],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/VanillaTooltips.js",
+      "sha256": "e03d2d30249fe8f953e09276ecf42b93bb47dff8f0035afba062ed9988b016a4",
+      "module": "VanillaTooltips",
+      "hookCandidates": [],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/WallLoader.js",
+      "sha256": "af5d174bd35e3e4d7e97716590ad991d0b09c255348617c39ce6e3e6529714e1",
+      "module": "WallLoader",
+      "hookCandidates": [
+        "AnimateWall",
+        "ModifyLight",
+        "RandomUpdate",
+        "WallFrame"
+      ],
+      "publicApis": [
+        "BunnyWall",
+        "BunnyWorldLight"
+      ],
+      "nativeEvidence": [
+        "experiments/csharp/NativeWallRuntime.cpp",
+        "content/walls/ModWalls.cpp"
+      ],
+      "state": "Parcial",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Conferir cada hook/propriedade e seus exemplos antes de promover a cobertura"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/WaterStyleLoader.js",
+      "sha256": "a6d6b854c04f5642f9f05e1b699619de8ece59eeae8e155a429b72b1cc6a790c",
+      "module": "WaterStyleLoader",
+      "hookCandidates": [
+        "BiomeHairColor",
+        "GetRainTexture",
+        "GetRainVariant",
+        "LightColorMultiplier"
+      ],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/WaterfallStyleLoader.js",
+      "sha256": "cb9243465c3baf8a471019e7f9edf0cc0a5234d3fc8931f6a9e4226552b34c5a",
+      "module": "WaterfallStyleLoader",
+      "hookCandidates": [
+        "AddLight",
+        "ColorMultiplier"
+      ],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    },
+    {
+      "original": "app/src/main/cpp/script/js/mod/Loaders/WingLoader.js",
+      "sha256": "bd5953f6ad113163f9b61ca34c9347177e0732bf9c0ceb50c779d9ea3ff808c5",
+      "module": "WingLoader",
+      "hookCandidates": [
+        "WingUpdate"
+      ],
+      "publicApis": [],
+      "nativeEvidence": [],
+      "state": "Auditoria pendente",
+      "verifiedParity": false,
+      "android": "Não validado integralmente",
+      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+    }
+  ]
+}

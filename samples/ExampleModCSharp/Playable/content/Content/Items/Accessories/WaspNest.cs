@@ -6,7 +6,7 @@ public sealed class WaspNest : BunnyItem
 {
     public override void SetDefaults()
     {
-        DisplayName = "Wasp Nest";
+        DisplayName = "Example Wasp Nest";
         Texture = "Content/Items/Accessories/WaspNest";
         Tooltip = "Suas abelhas ficam mais fortes";
         Width = 26; Height = 26; Accessory = true;

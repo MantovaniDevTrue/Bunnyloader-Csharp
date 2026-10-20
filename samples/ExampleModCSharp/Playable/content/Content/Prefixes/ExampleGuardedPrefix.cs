@@ -9,7 +9,7 @@ public sealed class ExampleGuardedPrefix : BunnyPrefix
 {
     public override void SetDefaults()
     {
-        DisplayName = "Protegido";
+        DisplayName = "Example Protegido";
         Category = PrefixCategory.Accessory;
         RollWeight = 1f;
     }

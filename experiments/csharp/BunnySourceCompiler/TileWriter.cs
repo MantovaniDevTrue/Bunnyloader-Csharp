@@ -13,19 +13,47 @@ internal static class TileWriter {
         int flags = Convert.ToInt32(Get<object>("Flags"), CultureInfo.InvariantCulture);
         int shape = Convert.ToInt32(Get<object>("Shape"), CultureInfo.InvariantCulture);
         int height = Get<int>("CoordinateHeight");
+        int animationHeight = Get<int>("AnimationFrameHeight");
+        int animationFrames = Get<int>("AnimationFrames");
+        int animationTicks = Get<int>("AnimationFrameTicks");
         int adjacent = Get<int>("AdjacentTile");
+        int[] aliases = Get<int[]>("AdjacentTiles");
+        bool allowBreaking = Get<bool>("AllowBreaking");
+        bool allowDrops = Get<bool>("AllowDrops");
+        bool cacheDrawData = Get<bool>("CacheDrawData");
+        int callbackMask = Get<int>("TileCallbackMask");
         string dust = Get<string>("DustName");
         string map = Get<string>("MapName");
         int r = Get<int>("MapR"), g = Get<int>("MapG"), b = Get<int>("MapB");
+        if (aliases.Length > 16) throw new InvalidOperationException(type.FullName + ": maximum 16 adjacent tile aliases");
+        int[] sortedAliases = (int[])aliases.Clone();
+        Array.Sort(sortedAliases);
+        for (int i = 0; i < sortedAliases.Length; i++)
+            if (sortedAliases[i] < 0 || sortedAliases[i] >= 754 ||
+                sortedAliases[i] == adjacent ||
+                (i > 0 && sortedAliases[i] == sortedAliases[i - 1]))
+                throw new InvalidOperationException(type.FullName + ": invalid or duplicate adjacent tile");
+        string adjacentList = sortedAliases.Length == 0 ? "-" :
+            string.Join(",", Array.ConvertAll(sortedAliases,
+                value => value.ToString(CultureInfo.InvariantCulture)));
         int fail = (int)(type.GetMethod("NumDust")?.Invoke(tile, new object[] {true})
             ?? throw new InvalidOperationException(type.FullName + ": NumDust missing"));
         int normal = (int)(type.GetMethod("NumDust")?.Invoke(tile, new object[] {false})
             ?? throw new InvalidOperationException(type.FullName + ": NumDust missing"));
-        if ((flags & ~511) != 0 || shape < 0 || shape > 1 ||
+        if ((flags & ~65535) != 0)
+            throw new InvalidOperationException("[CSharp][ERROR][TileDefaults] Class=" + type.FullName +
+                " API=BunnyTile.Flags Field=Flags Stage=Serialize Expected=Int32:KnownMask0xFFFF Actual=" +
+                flags.ToString(CultureInfo.InvariantCulture) + " Result=Rejected Reason=UnknownFlagBits");
+        if (shape < 0 || shape > 1 ||
             height < 1 || height > 32 || adjacent < -1 || adjacent >= 754 ||
             dust.Length > 72 || !Safe(dust) || map.Length > 80 || !Safe(map) ||
             (uint)r > 255 || (uint)g > 255 || (uint)b > 255 ||
             fail < 0 || fail > 20 || normal < 0 || normal > 20 ||
+            animationHeight < 0 || animationHeight > 4096 ||
+            animationFrames < 1 || animationFrames > 64 ||
+            animationTicks < 0 || animationTicks > 600 ||
+            (animationFrames > 1 && (animationHeight == 0 || animationTicks == 0)) ||
+            (animationFrames == 1 && animationTicks != 0) ||
             (shape == 0 && height != 18) || (shape == 1 && height != 18))
             throw new InvalidOperationException(type.FullName + ": native tile defaults out of bounds");
         return string.Join("\t", "TILE", type.Name,
@@ -38,7 +66,15 @@ internal static class TileWriter {
             b.ToString(CultureInfo.InvariantCulture),
             map.Length == 0 ? "-" : Convert.ToHexString(Encoding.UTF8.GetBytes(map)),
             fail.ToString(CultureInfo.InvariantCulture),
-            normal.ToString(CultureInfo.InvariantCulture));
+            normal.ToString(CultureInfo.InvariantCulture),
+            animationHeight.ToString(CultureInfo.InvariantCulture),
+            animationFrames.ToString(CultureInfo.InvariantCulture),
+            animationTicks.ToString(CultureInfo.InvariantCulture),
+            adjacentList,
+            allowBreaking ? "1" : "0",
+            allowDrops ? "1" : "0",
+            callbackMask.ToString(CultureInfo.InvariantCulture),
+            cacheDrawData ? "1" : "0");
     }
 
     private static bool Safe(string value) {

@@ -1,0 +1,128 @@
+name: Stage Bunny Dust managed DLLs without APK
+
+on:
+  push:
+    branches:
+      - feat/csharp-dust-loader-20261019
+    paths:
+      - .github/workflows/stage-dust-managed-dlls.yml
+      - experiments/csharp/BunnyCsSdk/**
+      - experiments/csharp/BunnySourceSdk/**
+      - experiments/csharp/BunnySourceCompiler/**
+      - experiments/csharp/BunnyDustTests/**
+      - experiments/csharp/BunnyDustCompilerSmoke/**
+
+permissions:
+  contents: write
+
+concurrency:
+  group: dust-managed-binaries-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  managed-dll-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout source branch
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          fetch-depth: 50
+      - name: Install dotnet 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Compile and validate source SDK and compiler
+        run: |
+          set -euo pipefail
+          dotnet build experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj -c Release --nologo
+          dotnet build experiments/csharp/BunnySourceCompiler/BunnySourceCompiler.csproj -c Release --nologo
+          dotnet run --project experiments/csharp/BunnyDustTests/BunnyDustTests.csproj -c Release
+          dotnet run --project experiments/csharp/BunnyDustCompilerSmoke/BunnyDustCompilerSmoke.csproj -c Release
+      - name: Stage only validated managed assemblies
+        run: |
+          set -euo pipefail
+          cp experiments/csharp/BunnySourceSdk/bin/Release/net8.0/BunnySourceSdk.dll app/src/main/assets/managed/BunnySourceSdk.dll
+          cp experiments/csharp/BunnySourceCompiler/bin/Release/net8.0/BunnySourceCompiler.dll app/src/main/assets/managed/BunnySourceCompiler.dll
+          python3 - <<'PY'
+          import hashlib
+          from pathlib import Path
+          folder = Path('app/src/main/assets/managed')
+          manifest = folder / 'framework.sha256'
+          updated = {'BunnySourceCompiler.dll', 'BunnySourceSdk.dll'}
+          lines = []
+          found = set()
+          for row in manifest.read_text().splitlines():
+              if not row:
+                  continue
+              name, digest = row.split('\t', 1)
+              if name in updated:
+                  digest = hashlib.sha256((folder / name).read_bytes()).hexdigest()
+                  found.add(name)
+              lines.append(f'{name}\t{digest}')
+          if found != updated:
+              raise SystemExit('Manifest is missing Bunny managed assembly entries')
+          manifest.write_text('\n'.join(lines) + '\n')
+          PY
+          test -s app/src/main/assets/managed/BunnySourceSdk.dll
+          test -s app/src/main/assets/managed/BunnySourceCompiler.dll
+          if find . -type f -name '*.apk' -print -quit | grep -q .; then
+            echo "FORBIDDEN: Android APK exists"
+            exit 1
+          fi
+      - name: Commit DLLs to feature branch only
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/src/main/assets/managed/BunnySourceSdk.dll app/src/main/assets/managed/BunnySourceCompiler.dll app/src/main/assets/managed/framework.sha256
+          if ! git diff --cached --quiet; then
+            cp app/src/main/assets/managed/BunnySourceSdk.dll "$RUNNER_TEMP/DustBunnySourceSdk.dll"
+            cp app/src/main/assets/managed/BunnySourceCompiler.dll "$RUNNER_TEMP/DustBunnySourceCompiler.dll"
+            git commit -m "build(csharp): stage validated DustLoader managed assemblies only"
+            branch=feat/csharp-dust-loader-20261019
+            pushed=0
+            for attempt in 1 2 3; do
+              if git push origin "HEAD:${branch}"; then
+                pushed=1
+                break
+              fi
+              git fetch origin "refs/heads/${branch}:refs/remotes/origin/${branch}"
+              for source in experiments/csharp/BunnyCsSdk experiments/csharp/BunnySourceSdk experiments/csharp/BunnySourceCompiler experiments/csharp/BunnyDustTests experiments/csharp/BunnyDustCompilerSmoke; do
+                if [ "$(git rev-parse "HEAD:${source}")" != "$(git rev-parse "origin/${branch}:${source}")" ]; then
+                  echo "DUST_MANAGED_DLLS_STAGED=SUPERSEDED_BY_NEWER_SOURCE NO_APK=TRUE"
+                  exit 0
+                fi
+              done
+              git reset --hard "origin/${branch}"
+              cp "$RUNNER_TEMP/DustBunnySourceSdk.dll" app/src/main/assets/managed/BunnySourceSdk.dll
+              cp "$RUNNER_TEMP/DustBunnySourceCompiler.dll" app/src/main/assets/managed/BunnySourceCompiler.dll
+              python3 - <<'PY'
+          import hashlib
+          from pathlib import Path
+          folder = Path('app/src/main/assets/managed')
+          manifest = folder / 'framework.sha256'
+          lines = []
+          for row in manifest.read_text().splitlines():
+              if not row:
+                  continue
+              name, digest = row.split('\t', 1)
+              if name in ('BunnySourceSdk.dll', 'BunnySourceCompiler.dll'):
+                  digest = hashlib.sha256((folder / name).read_bytes()).hexdigest()
+              lines.append(f'{name}\t{digest}')
+          manifest.write_text('\n'.join(lines) + '\n')
+          PY
+              git add app/src/main/assets/managed/BunnySourceSdk.dll app/src/main/assets/managed/BunnySourceCompiler.dll app/src/main/assets/managed/framework.sha256
+              if git diff --cached --quiet; then
+                pushed=1
+                break
+              fi
+              git commit -m "build(csharp): stage validated DustLoader managed assemblies only"
+            done
+            if [ "$pushed" -ne 1 ]; then
+              echo "DUST_MANAGED_DLLS_STAGED=PUSH_FAILED NO_APK=TRUE"
+              exit 1
+            fi
+          fi
+          echo "DUST_MANAGED_DLLS_STAGED=PASS NO_APK=TRUE"

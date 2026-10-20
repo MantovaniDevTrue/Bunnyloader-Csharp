@@ -1,5 +1,7 @@
 #include "content/items/ModItemSave.h"
 #include "content/items/ModItemSaveFormat.h"
+#include "content/items/ModItemSaveSafety.h"
+#include "content/items/NativeRarityPending.h"
 #include "core/Log.h"
 #include "hook/HookManager.h"
 #include "il2cpp/Api.h"
@@ -14,11 +16,15 @@
 #include "experiments/csharp/NativeContent.h"
 #include "experiments/csharp/SourceLoader.h"
 #include "experiments/csharp/NativeBasicItems.h"
+#include "experiments/csharp/NativeRarityRegistry.h"
 #include "script/api/Items.h"
 
+#include <algorithm>
 #include <atomic>
+#include <cstring>
 #include <cstdio>
 #include <fstream>
+#include <filesystem>
 #include <cstdlib>
 #include <map>
 #include <mutex>
@@ -87,7 +93,7 @@ struct Refs {
     int32_t bank[4] = {-1, -1, -1, -1};
     int32_t storageItems = -1;                  // InventoryStorage.item
     int32_t loadoutArmor = -1, loadoutDye = -1;  // EquipmentLoadout
-    int32_t type = -1, stack = -1, prefix = -1, favorited = -1;   // Item
+    int32_t type = -1, stack = -1, prefix = -1, favorited = -1, rare = -1;   // Item
     const MethodInfo* setDefaults = nullptr;
     const MethodInfo* applyPrefix = nullptr;
     const MethodInfo* applyPrefixDetailed = nullptr;
@@ -108,9 +114,54 @@ std::map<std::string, std::vector<SavedItem>> g_kept;
 struct PendingPrefix {
     int type = 0;
     std::string key;
+    std::string origin{};
 };
 std::map<std::string, std::map<std::string, PendingPrefix>> g_pendingPrefix;
+std::map<std::string, std::map<std::string, PendingPrefix>> g_pendingRarity;
+std::map<std::string, std::map<Il2CppObject*, PendingPrefix>> g_pendingRarityByItem;
 std::atomic<int> g_prefixRestoreFailureLogs{0};
+
+std::string rarityFor(Il2CppObject* item) {
+    if (!item || g_refs.rare < 0) return {};
+    return bl::csharp::nativeRarities().stableKeyForType(
+        field<int32_t>(item, g_refs.rare));
+}
+
+bool restoreRarity(Il2CppObject* item, const std::string& key) {
+    if (key.empty()) return true;
+    if (!item || g_refs.rare < 0) return false;
+    const int type = bl::csharp::nativeRarities().typeForStableKey(key);
+    if (type < bl::csharp::NativeRarityRegistry::kVanillaCount) return false;
+    field<int32_t>(item, g_refs.rare) = type;
+    return true;
+}
+
+std::string pendingRarityFor(const std::string& path, const std::string& container,
+    int slot, int type, Il2CppObject* item) {
+    std::lock_guard<std::mutex> l(g_mx);
+    const auto file = g_pendingRarity.find(path);
+    if (file == g_pendingRarity.end()) return {};
+    const auto it = file->second.find(container + "#" + std::to_string(slot));
+    if (it == file->second.end() || it->second.type != type) return {};
+    const auto tracked = g_pendingRarityByItem.find(path);
+    if (tracked != g_pendingRarityByItem.end()) {
+        for (const auto& [originalItem, state] : tracked->second)
+            if (state.type == type && state.key == it->second.key &&
+                originalItem != item) return {};
+    }
+    return it->second.key;
+}
+
+std::string pendingRarityForItem(const std::string& path, Il2CppObject* item,
+    int type) {
+    if (!item) return {};
+    std::lock_guard<std::mutex> guard(g_mx);
+    const auto file = g_pendingRarityByItem.find(path);
+    if (file == g_pendingRarityByItem.end()) return {};
+    const auto entry = file->second.find(item);
+    return entry != file->second.end() && entry->second.type == type
+        ? entry->second.key : std::string();
+}
 
 std::string placeKey(const std::string& container, int slot) {
     return container + "#" + std::to_string(slot);
@@ -214,16 +265,29 @@ std::vector<SavedItem> readFile(const std::string& path) {
 }
 
 /** Grava por arquivo temporario + rename: queda no meio nao deixa arquivo pela metade. */
-void writeFile(const std::string& path, const std::vector<SavedItem>& items) {
+bool writeFile(const std::string& path, const std::vector<SavedItem>& items) {
+    if (!item_save::canReplaceExisting(path)) {
+        BL_ERROR("save de itens de mod: arquivo existente invalido ou inacessivel em %s; gravacao cancelada",
+            path.c_str());
+        return false;
+    }
     if (items.empty()) {
-        std::remove(path.c_str());
-        return;
+        std::error_code error;
+        std::filesystem::remove(path, error);
+        if (error)
+            BL_ERROR("save de itens de mod: nao consegui remover %s", path.c_str());
+        return !error;
+    }
+    if (!item_save::preserveLegacyBeforeRaritySave(path, items)) {
+        BL_ERROR("save de raridade: backup v1/v2 falhou em %s; gravacao v3 abortada",
+            path.c_str());
+        return false;
     }
     const std::string tmp = path + ".tmp";
     std::ofstream f(tmp, std::ios::binary | std::ios::trunc);
     if (!f) {
         BL_ERROR("save de itens de mod: nao consegui escrever %s", tmp.c_str());
-        return;
+        return false;
     }
     const bool encoded = item_save::write(f, items);
     f.flush();
@@ -232,7 +296,9 @@ void writeFile(const std::string& path, const std::vector<SavedItem>& items) {
     if (!ok || std::rename(tmp.c_str(), path.c_str()) != 0) {
         BL_ERROR("save de itens de mod: falha ao gravar %s", path.c_str());
         std::remove(tmp.c_str());
+        return false;
     }
+    return true;
 }
 
 /** Caminho do .plr, ou "" para personagem na nuvem (nao ha arquivo local ao lado). */
@@ -245,16 +311,6 @@ std::string localPath(Il2CppObject* fileData) {
  * Prefixo de mod ausente num item do jogo: a linha segue no arquivo enquanto o
  * mesmo item estiver no lugar, sem prefixo (o jogo tira o que nao conhece).
  */
-bool stillWaitingForPrefix(const std::vector<Container>& containers, const SavedItem& k) {
-    for (const Container& c : containers) {
-        if (c.name != k.container) continue;
-        Il2CppObject* item = c.at(k.slot);
-        return item && field<int32_t>(item, g_refs.type) == vanillaPrefixEntryType(k) &&
-               field<uint8_t>(item, g_refs.prefix) == 0;
-    }
-    return false;
-}
-
 bool csharpPrefixSourcePending(const std::string& key) {
     const auto slash = key.find('/');
     if (slash == std::string::npos) return false;
@@ -353,6 +409,7 @@ void hkInternalSavePlayerFile(Il2CppObject* fileData, const MethodInfo* m) {
     const Refs& r = g_refs;
     Il2CppObject* beforePlayer = objectAt(fileData, r.filePlayer);
     std::map<Il2CppObject*, std::pair<int, int>> before;
+    std::map<Il2CppObject*, std::pair<int, std::string>> beforeRarity;
     if (beforePlayer) {
         for (const Container& container : containersOf(beforePlayer)) {
             for (int slot = 0; slot < container.size(); ++slot) {
@@ -360,6 +417,9 @@ void hkInternalSavePlayerFile(Il2CppObject* fileData, const MethodInfo* m) {
                 if (!item) continue;
                 const int type = field<int32_t>(item, r.type);
                 const int prefix = field<uint8_t>(item, r.prefix);
+                const std::string stableRarity = rarityFor(item);
+                if (type > 0 && !stableRarity.empty())
+                    beforeRarity.emplace(item, std::make_pair(type, stableRarity));
                 if (type > 0 && prefix >= vanillaPrefixCount() &&
                     !modPrefixKey(prefix).empty()) {
                     before.emplace(item, std::make_pair(type, prefix));
@@ -388,9 +448,25 @@ void hkInternalSavePlayerFile(Il2CppObject* fileData, const MethodInfo* m) {
                     ++recoveredPrefixes;
                 }
             }
+            std::string stableRarity = rarityFor(item);
+            if (stableRarity.empty()) {
+                const auto previousRarity = beforeRarity.find(item);
+                if (previousRarity != beforeRarity.end() &&
+                    previousRarity->second.first == type)
+                    stableRarity = previousRarity->second.second;
+            }
+            if (stableRarity.empty())
+                stableRarity = pendingRarityForItem(path, item, type);
+            if (stableRarity.empty())
+                stableRarity = pendingRarityFor(path, c.name, slot, type, item);
             if (!isModItem(type)) {
-                if (prefix >= vanillaPrefixCount() && !modPrefixKey(prefix).empty()) {
-                    items.push_back(vanillaPrefixEntry(c.name, slot, type, prefix));
+                const bool customPrefix = prefix >= vanillaPrefixCount() &&
+                    !modPrefixKey(prefix).empty();
+                if (customPrefix || !stableRarity.empty()) {
+                    SavedItem record = vanillaPrefixEntry(c.name, slot, type,
+                        customPrefix ? prefix : 0);
+                    record.rarityKey = stableRarity;
+                    items.push_back(std::move(record));
                 }
                 continue;
             }
@@ -398,6 +474,7 @@ void hkInternalSavePlayerFile(Il2CppObject* fileData, const MethodInfo* m) {
             const std::string pendingKey = pendingPrefixFor(path, c.name, slot, type);
             if (!pendingKey.empty()) it.prefixKey = pendingKey;
             else encodePrefix(it, prefix);
+            it.rarityKey = stableRarity;
             items.push_back(std::move(it));
         }
     }
@@ -411,17 +488,64 @@ void hkInternalSavePlayerFile(Il2CppObject* fileData, const MethodInfo* m) {
         if (it != g_kept.end()) {
             const std::vector<Container> containers = containersOf(player);
             for (const SavedItem& k : it->second) {
-                if (isVanillaPrefixEntry(k) && !stillWaitingForPrefix(containers, k)) continue;
-                items.push_back(k);
+                SavedItem remaining = k;
+                if (isVanillaPrefixEntry(k)) {
+                    Il2CppObject* matching = nullptr;
+                    for (const Container& c : containers)
+                        if (c.name == k.container) matching = c.at(k.slot);
+                    if (!matching ||
+                        field<int32_t>(matching, g_refs.type) != vanillaPrefixEntryType(k))
+                        continue;
+                    remaining = item_save::remainingVanillaMetadata(k,
+                        field<uint8_t>(matching, g_refs.prefix), rarityFor(matching));
+                    if (!item_save::hasRemainingVanillaMetadata(remaining)) continue;
+                }
+                if (!item_save::mergePending(items, remaining))
+                    items.push_back(std::move(remaining));
                 ++kept;
             }
         }
     }
-    writeFile(path + kSuffix, items);
+    const bool sidecarSaved = writeFile(path + kSuffix, items);
+    bool hasRarityPending = false;
+    {
+        std::lock_guard<std::mutex> guard(g_mx);
+        hasRarityPending = g_pendingRarity.find(path) != g_pendingRarity.end() ||
+            g_pendingRarityByItem.find(path) != g_pendingRarityByItem.end();
+    }
+    if (sidecarSaved && hasRarityPending) {
+        std::vector<item_save::LiveRarityItem<Il2CppObject*>> liveRarityItems;
+        for (const Container& container : containersOf(player)) {
+            for (int slot = 0; slot < container.size(); ++slot) {
+                auto* item = container.at(slot);
+                if (!item) continue;
+                liveRarityItems.push_back({item, placeKey(container.name, slot),
+                    field<int32_t>(item, r.type), !rarityFor(item).empty()});
+            }
+        }
+        std::lock_guard<std::mutex> guard(g_mx);
+        const auto oldSlots = g_pendingRarity.find(path);
+        const auto oldItems = g_pendingRarityByItem.find(path);
+        if (oldSlots != g_pendingRarity.end() ||
+            oldItems != g_pendingRarityByItem.end()) {
+            const std::map<std::string, PendingPrefix> emptySlots;
+            const std::map<Il2CppObject*, PendingPrefix> emptyItems;
+            std::map<std::string, PendingPrefix> nextSlots;
+            std::map<Il2CppObject*, PendingPrefix> nextItems;
+            item_save::reconcileTrackedRarities(
+                oldItems == g_pendingRarityByItem.end() ? emptyItems : oldItems->second,
+                oldSlots == g_pendingRarity.end() ? emptySlots : oldSlots->second,
+                liveRarityItems, &nextItems, &nextSlots);
+            if (nextSlots.empty()) g_pendingRarity.erase(path);
+            else g_pendingRarity[path] = std::move(nextSlots);
+            if (nextItems.empty()) g_pendingRarityByItem.erase(path);
+            else g_pendingRarityByItem[path] = std::move(nextItems);
+        }
+    }
     if (recoveredPrefixes) {
         BL_INFO("save de itens de mod: %d prefixo(s) preservados antes do save original", recoveredPrefixes);
     }
-    if (!items.empty()) {
+    if (!items.empty() && sidecarSaved) {
         // Diz quem mandou salvar: o jogo salva o personagem tambem com a
         // gravacao automatica desligada (ao morrer, no multijogador, ao sair),
         // e sem isto parecia que o Bunny Loader salvava por conta propria.
@@ -537,6 +661,8 @@ Il2CppObject* hkLoadPlayer(Il2CppString* playerPath, bool cloudSave, const Metho
     int restored = 0, moved = 0, unloaded = 0, stray = 0, prefixes = 0;
     int managedPrefixes = 0, pendingManagedPrefixes = 0;
     std::map<std::string, PendingPrefix> pending;
+    std::map<std::string, PendingPrefix> pendingRarity;
+    std::map<Il2CppObject*, PendingPrefix> pendingRarityByItem;
     if (!saved.empty()) {
         const std::vector<Container> containers = containersOf(player);
         const Container* inventory = nullptr;
@@ -550,8 +676,18 @@ Il2CppObject* hkLoadPlayer(Il2CppString* playerPath, bool cloudSave, const Metho
                 }
                 // O item mudou de lugar (ou saiu) sem o loader: a linha nao vale mais.
                 if (!slotItem || field<int32_t>(slotItem, g_refs.type) != vanillaPrefixEntryType(s)) continue;
-                if (restoreVanillaPrefix(slotItem, s)) ++prefixes;
-                else kept.push_back(s);
+                const bool prefixOk = !item_save::hasSavedVanillaPrefix(s) ||
+                    restoreVanillaPrefix(slotItem, s);
+                if (prefixOk && item_save::hasSavedVanillaPrefix(s)) ++prefixes;
+                if (!prefixOk) kept.push_back(s);
+                if (!s.rarityKey.empty() && !restoreRarity(slotItem, s.rarityKey)) {
+                    const PendingPrefix unresolved{
+                        field<int32_t>(slotItem, g_refs.type), s.rarityKey};
+                    pendingRarity[placeKey(s.container, s.slot)] = unresolved;
+                    pendingRarityByItem[slotItem] = {
+                        unresolved.type, unresolved.key,
+                        placeKey(s.container, s.slot)};
+                }
                 continue;
             }
             const int type = typeForKey(s.key);
@@ -576,6 +712,11 @@ Il2CppObject* hkLoadPlayer(Il2CppString* playerPath, bool cloudSave, const Metho
                         ++pendingManagedPrefixes;
                     }
                 }
+                if (!s.rarityKey.empty() && !restoreRarity(slotItem, s.rarityKey)) {
+                    pendingRarity[placeKey(s.container, s.slot)] = {type, s.rarityKey};
+                    pendingRarityByItem[slotItem] = {type, s.rarityKey,
+                        placeKey(s.container, s.slot)};
+                }
                 ++restored;
                 continue;
             }
@@ -591,6 +732,23 @@ Il2CppObject* hkLoadPlayer(Il2CppString* playerPath, bool cloudSave, const Metho
             }
             bool prefixRestored = false;
             if (target && restore(target, type, s, &prefixRestored)) {
+                if (!s.rarityKey.empty() && !restoreRarity(target, s.rarityKey)) {
+                    pendingRarityByItem[target] = {type, s.rarityKey,
+                        target == slotItem ? placeKey(s.container, s.slot) : std::string()};
+                    bool located = false;
+                    for (const Container& candidate : containers) {
+                        for (int targetSlot = 0; targetSlot < candidate.size(); ++targetSlot) {
+                            if (candidate.at(targetSlot) != target) continue;
+                            const std::string destination = placeKey(candidate.name, targetSlot);
+                            pendingRarity[destination] = {type, s.rarityKey};
+                            pendingRarityByItem[target].origin = destination;
+                            located = true;
+                            break;
+                        }
+                        if (located) break;
+                    }
+                    if (!located) kept.push_back(s);
+                }
                 ++restored;
                 if (!s.prefixKey.empty()) {
                     if (prefixRestored) {
@@ -622,6 +780,10 @@ Il2CppObject* hkLoadPlayer(Il2CppString* playerPath, bool cloudSave, const Metho
         else g_kept[path] = kept;
         if (pending.empty()) g_pendingPrefix.erase(path);
         else g_pendingPrefix[path] = std::move(pending);
+        if (pendingRarity.empty()) g_pendingRarity.erase(path);
+        else g_pendingRarity[path] = std::move(pendingRarity);
+        if (pendingRarityByItem.empty()) g_pendingRarityByItem.erase(path);
+        else g_pendingRarityByItem[path] = std::move(pendingRarityByItem);
     }
     if (buffCount) {
         BL_INFO("save de buffs de mod: %zu reposto(s), %zu so no arquivo", buffCount - buffsKept, buffsKept);
@@ -757,6 +919,73 @@ void retryPendingManagedPrefixesInWorld() {
             attempted, restored, unresolved, remaining);
 }
 
+void retryPendingManagedRaritiesInWorld() {
+    if (!g_refs.ok || g_refs.rare < 0) return;
+    auto& api = il2cpp::api();
+    auto* main = il2cpp::findClass({"Terraria", "Main", {}});
+    const MethodInfo* getter = main
+        ? api.class_get_method_from_name(main, "get_ActivePlayerFileData", 0) : nullptr;
+    if (!getter) return;
+    Il2CppObject* exception = nullptr;
+    auto* file = api.runtime_invoke(getter, nullptr, nullptr, &exception);
+    if (exception || !file) return;
+    const std::string path = localPath(file);
+    auto* player = objectAt(file, g_refs.filePlayer);
+    if (path.empty() || !player) return;
+
+    std::map<std::string, PendingPrefix> pendingBySlot;
+    std::map<Il2CppObject*, PendingPrefix> pendingByItem;
+    {
+        std::lock_guard<std::mutex> lock(g_mx);
+        const auto slots = g_pendingRarity.find(path);
+        if (slots != g_pendingRarity.end()) pendingBySlot = slots->second;
+        const auto items = g_pendingRarityByItem.find(path);
+        if (items != g_pendingRarityByItem.end()) pendingByItem = items->second;
+    }
+    if (pendingBySlot.empty() && pendingByItem.empty()) return;
+
+    struct Completed {
+        std::string origin;
+        Il2CppObject* item;
+        int type;
+        std::string key;
+    };
+    std::vector<Completed> completed;
+    for (const Container& container : containersOf(player)) {
+        for (int slot = 0; slot < container.size(); ++slot) {
+            auto* item = container.at(slot);
+            if (!item) continue;
+            const int type = field<int32_t>(item, g_refs.type);
+            const auto desired = item_save::selectTrackedRarity(
+                pendingByItem, pendingBySlot, item, placeKey(container.name, slot), type);
+            if (!desired) continue;
+            if (!rarityFor(item).empty() || restoreRarity(item, desired->key))
+                completed.push_back({desired->origin, item, desired->type, desired->key});
+        }
+    }
+    if (completed.empty()) return;
+
+    std::lock_guard<std::mutex> lock(g_mx);
+    auto slots = g_pendingRarity.find(path);
+    auto items = g_pendingRarityByItem.find(path);
+    for (const auto& done : completed) {
+        if (slots != g_pendingRarity.end() && !done.origin.empty()) {
+            auto at = slots->second.find(done.origin);
+            if (at != slots->second.end() && at->second.type == done.type &&
+                at->second.key == done.key) slots->second.erase(at);
+        }
+        if (items != g_pendingRarityByItem.end()) {
+            auto at = items->second.find(done.item);
+            if (at != items->second.end() && at->second.type == done.type &&
+                at->second.key == done.key) items->second.erase(at);
+        }
+    }
+    if (slots != g_pendingRarity.end() && slots->second.empty())
+        g_pendingRarity.erase(slots);
+    if (items != g_pendingRarityByItem.end() && items->second.empty())
+        g_pendingRarityByItem.erase(items);
+}
+
 // ------------------------------ mundo ------------------------------
 //
 // Os baus do mundo, com o mesmo arquivo ao lado (`<mundo>.wld.bl`). O bau e
@@ -776,6 +1005,7 @@ ChestLayout g_chest;
 struct ChestData {
     int type;
     std::string data;
+    std::string rarityKey{};
 };
 
 std::map<void*, ChestData> g_chestData;
@@ -786,10 +1016,43 @@ std::string chestData(void* slot, int type) {
     return it != g_chestData.end() && it->second.type == type ? it->second.data : std::string();
 }
 
+std::string chestRarity(void* slot, int type) {
+    std::lock_guard<std::mutex> lock(g_mx);
+    const auto it = g_chestData.find(slot);
+    return it != g_chestData.end() && it->second.type == type ?
+        it->second.rarityKey : std::string();
+}
+
 void setChestData(void* slot, int type, std::string data) {
     std::lock_guard<std::mutex> lock(g_mx);
-    if (data.empty() || type <= 0) g_chestData.erase(slot);
-    else g_chestData[slot] = {type, std::move(data)};
+    if (!slot) return;
+    if (type <= 0) {
+        g_chestData.erase(slot);
+        return;
+    }
+    const auto found = g_chestData.find(slot);
+    if (found != g_chestData.end() && found->second.type == type) {
+        found->second.data = std::move(data);
+        if (found->second.data.empty() && found->second.rarityKey.empty())
+            g_chestData.erase(found);
+    } else if (!data.empty()) {
+        g_chestData[slot] = {type, std::move(data), {}};
+    } else {
+        g_chestData.erase(slot);
+    }
+}
+
+void setChestRarity(void* slot, int type, std::string key) {
+    if (!slot || type <= 0) return;
+    std::lock_guard<std::mutex> lock(g_mx);
+    const auto found = g_chestData.find(slot);
+    if (found != g_chestData.end() && found->second.type == type) {
+        found->second.rarityKey = std::move(key);
+        if (found->second.data.empty() && found->second.rarityKey.empty())
+            g_chestData.erase(found);
+    } else if (!key.empty()) {
+        g_chestData[slot] = {type, {}, std::move(key)};
+    }
 }
 
 using ChestSetFn = void (*)(void*, Il2CppObject*, const MethodInfo*);
@@ -797,10 +1060,12 @@ ChestSetFn g_origChestSet = nullptr;
 void hkChestSet(void* slot, Il2CppObject* item, const MethodInfo* method) {
     std::string data;
     const int type = item ? field<int32_t>(item, g_refs.type) : 0;
+    const std::string rarity = rarityFor(item);
     if (isModItem(type)) script::saveModItemData(item, data);
 
     g_origChestSet(slot, item, method);
     setChestData(slot, type, std::move(data));
+    setChestRarity(slot, type, rarity);
 }
 
 using ChestExpandFn = Il2CppObject* (*)(void*, const MethodInfo*);
@@ -811,7 +1076,8 @@ Il2CppObject* hkChestExpand(void* slot, const MethodInfo* method) {
         const std::string data = chestData(slot, field<int32_t>(item, g_refs.type));
         script::loadModItemData(item, data);
     }
-
+    if (item)
+        restoreRarity(item, chestRarity(slot, field<int32_t>(item, g_refs.type)));
     return item;
 }
 
@@ -872,7 +1138,8 @@ std::vector<ChestData> snapshotChest(Il2CppObject* chest, bool erase) {
 
     for (uintptr_t i = 0; i < items->length; ++i) {
         const ChestSlot slot = slotOf(items, static_cast<int>(i));
-        snapshot.push_back({slot.type(), chestData(slot.data, slot.type())});
+        snapshot.push_back({slot.type(), chestData(slot.data, slot.type()),
+            chestRarity(slot.data, slot.type())});
         if (erase) setChestData(slot.data, 0, {});
     }
 
@@ -885,7 +1152,9 @@ void restoreChestData(Il2CppObject* chest, const std::vector<ChestData>& snapsho
 
     for (uintptr_t i = 0; i < items->length; ++i) {
         const ChestSlot slot = slotOf(items, static_cast<int>(i));
-        setChestData(slot.data, slot.type(), i < snapshot.size() && slot.type() == snapshot[i].type ? snapshot[i].data : "");
+        const bool matching = i < snapshot.size() && slot.type() == snapshot[i].type;
+        setChestData(slot.data, slot.type(), matching ? snapshot[i].data : "");
+        setChestRarity(slot.data, slot.type(), matching ? snapshot[i].rarityKey : "");
     }
 }
 
@@ -952,8 +1221,14 @@ int32_t hkSaveChests(Il2CppObject* writer, const MethodInfo* m) {
                 const ChestSlot s = slotOf(chestItems, i);
                 if (s.type() <= 0 || s.stack() <= 0) continue;
                 if (s.type() < kVanillaItemCount) {
-                    if (s.prefix() >= vanillaPrefixCount() && !modPrefixKey(s.prefix()).empty()) {
-                        items.push_back(vanillaPrefixEntry(chestName(chest), i, s.type(), s.prefix()));
+                    const auto stable = chestRarity(s.data, s.type());
+                    const bool customPrefix = s.prefix() >= vanillaPrefixCount() &&
+                        !modPrefixKey(s.prefix()).empty();
+                    if (customPrefix || !stable.empty()) {
+                        SavedItem record = vanillaPrefixEntry(chestName(chest), i, s.type(),
+                            customPrefix ? s.prefix() : 0);
+                        record.rarityKey = stable;
+                        items.push_back(std::move(record));
                     }
                     continue;
                 }
@@ -962,6 +1237,7 @@ int32_t hkSaveChests(Il2CppObject* writer, const MethodInfo* m) {
                 SavedItem it{chestName(chest), i, s.stack(), 0, s.favorited() != 0, std::move(key), {}};
                 encodePrefix(it, s.prefix());
                 it.data = chestData(s.data, s.type());
+                it.rarityKey = chestRarity(s.data, s.type());
                 if (s.prefix() == 0) it.prefixKey = pendingPrefixFor(path, it.container, i, s.type());
                 items.push_back(std::move(it));
             }
@@ -974,19 +1250,24 @@ int32_t hkSaveChests(Il2CppObject* writer, const MethodInfo* m) {
                 std::map<std::string, Il2CppArray*> byName;
                 forEachChest([&](Il2CppObject* chest, Il2CppArray* a) { byName[chestName(chest)] = a; });
                 for (const SavedItem& k : it->second) {
+                    SavedItem remaining = k;
                     if (isVanillaPrefixEntry(k)) {
-                        // Enquanto o mesmo item seguir no lugar, sem prefixo.
                         auto c = byName.find(k.container);
-                        const ChestSlot s = c == byName.end() ? ChestSlot{} : slotOf(c->second, k.slot);
-                        if (!s.data || s.type() != vanillaPrefixEntryType(k) || s.prefix() != 0) continue;
+                        const ChestSlot slot = c == byName.end() ?
+                            ChestSlot{} : slotOf(c->second, k.slot);
+                        if (!slot.data || slot.type() != vanillaPrefixEntryType(k)) continue;
+                        remaining = item_save::remainingVanillaMetadata(k,
+                            slot.prefix(), chestRarity(slot.data, slot.type()));
+                        if (!item_save::hasRemainingVanillaMetadata(remaining)) continue;
                     }
-                    items.push_back(k);
+                    if (!item_save::mergePending(items, remaining))
+                        items.push_back(std::move(remaining));
                     ++kept;
                 }
             }
         }
-        writeFile(path + kSuffix, items);
-        if (!items.empty()) {
+        const bool sidecarSaved = writeFile(path + kSuffix, items);
+        if (!items.empty() && sidecarSaved) {
             BL_INFO("save de itens de mod: mundo: %zu item(ns) em bau gravado(s) (%zu so no arquivo)",
                     items.size(), kept);
         }
@@ -1024,9 +1305,11 @@ void hkFixAgainstExploits(const MethodInfo* m) {
             cov.resize(it->second->length);
             cov[static_cast<size_t>(s.slot)] = true;
             const int prefix = decodePrefix(s);
-            slot.prefix() = static_cast<uint8_t>(prefix > 0 ? prefix : 0);
+            if (item_save::hasSavedVanillaPrefix(s))
+                slot.prefix() = static_cast<uint8_t>(prefix > 0 ? prefix : 0);
+            setChestRarity(slot.data, slot.type(), s.rarityKey);
             if (prefix > 0) ++prefixes;
-            else kept.push_back(s);
+            else if (!s.prefixKey.empty()) kept.push_back(s);
             continue;
         }
         const int type = it == byName.end() ? -1 : typeForKey(s.key);
@@ -1043,6 +1326,7 @@ void hkFixAgainstExploits(const MethodInfo* m) {
         slot.prefix() = static_cast<uint8_t>(prefix > 0 ? prefix : 0);
         slot.favorited() = s.favorited ? 1 : 0;
         setChestData(slot.data, type, s.data);
+        setChestRarity(slot.data, type, s.rarityKey);
         if (prefix < 0 && !s.prefixKey.empty()) pending[placeKey(s.container, s.slot)] = {type, s.prefixKey};
         std::vector<bool>& cov = covered[s.container];
         cov.resize(it->second->length);
@@ -1164,6 +1448,20 @@ bool resolve() {
     r.stack = fieldOffset(item, "stack");
     r.prefix = fieldOffset(item, "prefix");
     r.favorited = fieldOffset(item, "favorited");
+    auto* rareField = il2cpp::findField(item, "rare");
+    if (rareField && il2cpp::api().field_get_type &&
+        il2cpp::api().class_from_il2cpp_type &&
+        il2cpp::api().class_get_name && il2cpp::api().class_get_namespace &&
+        il2cpp::api().field_get_flags &&
+        !(il2cpp::api().field_get_flags(rareField) & 0x10u)) {
+        auto* type = il2cpp::api().class_from_il2cpp_type(
+            il2cpp::api().field_get_type(rareField));
+        const char* ns = type ? il2cpp::api().class_get_namespace(type) : nullptr;
+        const char* name = type ? il2cpp::api().class_get_name(type) : nullptr;
+        if (ns && name && std::strcmp(ns, "System") == 0 &&
+            std::strcmp(name, "Int32") == 0)
+            r.rare = fieldOffset(item, "rare");
+    }
     r.setDefaults = findMethodBySignature(item, parseSignature("void SetDefaults(int Type, ItemVariant variant)"));
     r.applyPrefix = findMethodBySignature(item, parseSignature("bool Prefix(int prefixWeWant)"));
     r.applyPrefixDetailed = findMethodBySignature(item, parseSignature(
@@ -1229,6 +1527,7 @@ int pendingManagedPrefixCountForActivePlayer() {
 
 void retryPendingManagedPrefixesOnWorldReady() {
     retryPendingManagedPrefixesInWorld();
+    retryPendingManagedRaritiesInWorld();
 }
 
 void installModItemSave() {

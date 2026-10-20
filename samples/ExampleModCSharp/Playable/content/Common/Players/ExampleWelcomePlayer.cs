@@ -14,7 +14,7 @@ public sealed class ExampleWelcomePlayer : BunnyPlayer
 
     public override string OnEnterWorld()
     {
-        return "C# Hook QA 0.1.56: consulte os estados H1-H5 no relatorio do Bunny Loader.";
+        return "C# Hook QA 0.1.61: consulte os estados H1-H5 no relatorio do Bunny Loader.";
     }
 
     public override string OnRespawn()
