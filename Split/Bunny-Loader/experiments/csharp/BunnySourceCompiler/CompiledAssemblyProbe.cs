@@ -175,8 +175,8 @@ public static class CompiledAssemblyProbe
                 WriteKillPolicy(primaryProjectile!, diagnosticsPath);
             }
             File.AppendAllText(diagnosticsPath,
-                "\nASSEMBLY_EXEC_OK classes=" + (tiles.Length + projectiles.Length + weapons.Length + buffs.Length + potions.Length + accessories.Length + players.Length + npcs.Length + prefixes.Length + basicItems.Length + screenEffects.Length) +
-                " projectiles=" + projectiles.Length + " weapons=" + weapons.Length +
+                "\nASSEMBLY_EXEC_OK classes=" + (tiles.Length + projectiles.Length + weapons.Length + buffs.Length + potions.Length + accessories.Length + players.Length + npcs.Length + prefixes.Length + basicItems.Length + screenEffects.Length + globalItems.Length) +
+                " globalItems=" + globalItems.Length + " projectiles=" + projectiles.Length + " weapons=" + weapons.Length +
                 " buffs=" + buffs.Length + " potions=" + potions.Length +
                 " accessories=" + accessories.Length + " players=" + players.Length +
                 " npcs=" + npcs.Length + " tiles=" + tiles.Length + " prefixes=" + prefixes.Length +
@@ -1161,6 +1161,10 @@ public static class CompiledAssemblyProbe
         {
             Type globalType = global.GetType();
             CheckName(globalType.Name);
+            if (basicItems.Concat(weapons).Concat(potions).Concat(accessories)
+                .Any(item => item.GetType().Name == globalType.Name))
+                throw new InvalidOperationException("Global item name collides with item owner: " +
+                                                    globalType.Name);
             if (!names.Add("GLOBAL_PREFIX:" + globalType.Name))
                 throw new InvalidOperationException("Duplicate BunnyGlobalItem: " + globalType.Name);
             var snapshot = Ancestors(globalType)
