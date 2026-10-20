@@ -2276,8 +2276,9 @@ bool queueManagedDustCallback(int type, int phase,
     const int owner = g_dustOwners[static_cast<size_t>(type)].load(
         std::memory_order_acquire) - 1;
     g_dustGameFrame.store(frame, std::memory_order_release);
-    if (!g_dustMailbox.offer(owner, phase, state, frame)) return false;
-    g_pinnedWake.notify_one();
+    bool wake = false;
+    if (!g_dustMailbox.offer(owner, phase, state, frame, &wake)) return false;
+    if (wake) g_pinnedWake.notify_one();
     return true;
 }
 
