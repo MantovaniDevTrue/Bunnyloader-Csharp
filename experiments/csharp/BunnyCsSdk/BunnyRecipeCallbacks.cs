@@ -82,6 +82,16 @@ public static class BunnyRecipeLoader
     {
         try
         {
+            if(kind==6)
+            {
+                if(index!=0||owner!="__unload__"||snapshot.Length!=0)
+                    throw new ArgumentException("Invalid managed unload request");
+                if(!mods.TryGetValue(modId,out Mod? previous)||previous.Path!=assemblyPath)
+                    return "PENDING|Stage=Unload Reason=BindingNotFoundOrReplaced";
+                mods.Remove(modId);
+                BunnyQuestRuntime.EvictMod(modId);
+                return "CLEARED";
+            }
             if(kind==4||kind==5)
                 return BunnyQuestRuntime.Dispatch(modId,assemblyPath,owner,kind,snapshot);
             LoadAssembly(modId,assemblyPath);
