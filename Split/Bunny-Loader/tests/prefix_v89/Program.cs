@@ -12,7 +12,8 @@ try
     File.WriteAllText(diagnostics, "");
     int classes = CompiledAssemblyProbe.Verify(args[0], diagnostics);
     if (classes != 5)
-        throw new InvalidOperationException("Expected two content types and three managed prefixes, got " + classes);
+        throw new InvalidOperationException("Expected two content types and three managed prefixes, got " +
+            classes + "; Diagnostics: " + File.ReadAllText(diagnostics));
 
     var data = File.ReadAllLines(Path.Combine(temp, "source-runtime-values.txt"));
     if (data.Length != 22 || data[0] != "BUNNY_MANAGED_DEFAULTS_V2")
