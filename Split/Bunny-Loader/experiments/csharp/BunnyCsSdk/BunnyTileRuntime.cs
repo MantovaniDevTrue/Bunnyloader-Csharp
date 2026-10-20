@@ -28,7 +28,7 @@ public static class BunnyTileRuntime {
         nameof(BunnyTile.AnimateIndividualTile), nameof(BunnyTile.SetSpriteEffects),
         nameof(BunnyTile.PostDraw), nameof(BunnyTile.DrawEffects),
         nameof(BunnyTile.SpecialDraw), nameof(BunnyTile.EmitParticles),
-        nameof(BunnyTile.HasSmartInteract)
+        nameof(BunnyTile.HasSmartInteract), nameof(BunnyTile.TileFrame)
     };
     public static string Dispatch(string modId, string assemblyPath, string owner, int index, int kind, string snapshot) {
         try {
@@ -65,7 +65,7 @@ public static class BunnyTileRuntime {
                 if ((mod.Masks[owner] & ((7 << 13) | (1 << 5) | (15 << 16))) == 0) return "DEFAULT";
             } else if ((mod.Masks[owner] & (1 << index)) == 0) return "DEFAULT";
             string[] fields = snapshot.Split(',');
-            int expected = index == 11 ? 3 : index == 13 ? 12 : 2;
+            int expected = index == 11 ? 3 : index == 13 ? 12 : index == 21 ? 4 : 2;
             if (fields.Length != (index == 20 ? 6 : expected) && !(index == 13 && (fields.Length == 11 || fields.Length == 13)))
                 return "ERROR|Stage=DecodeTileSnapshot Reason=ExpectedCoordinates";
             int x = int.Parse(fields[0], NumberStyles.Integer, CultureInfo.InvariantCulture);
@@ -178,6 +178,13 @@ public static class BunnyTileRuntime {
                     if(fields[2]!="0"&&fields[2]!="1")
                         return "ERROR|Stage=DecodeTileSnapshot Reason=InvalidNearbyCloser";
                     tile.NearbyEffects(x,y,fields[2]=="1"); return "1";
+                case 21:
+                    if ((fields[2] != "0" && fields[2] != "1") ||
+                        (fields[3] != "0" && fields[3] != "1"))
+                        return "ERROR|Stage=DecodeTileFrame Reason=InvalidBooleans";
+                    bool resetFrame=fields[2]=="1",noBreak=fields[3]=="1";
+                    bool runOriginal=tile.TileFrame(x,y,ref resetFrame,ref noBreak);
+                    return "FRAME|"+(runOriginal?"1":"0")+"|"+(resetFrame?"1":"0")+"|"+(noBreak?"1":"0");
                 case 20:
                     int lx=int.Parse(fields[2],NumberStyles.Integer,CultureInfo.InvariantCulture);
                     int ly=int.Parse(fields[3],NumberStyles.Integer,CultureInfo.InvariantCulture);

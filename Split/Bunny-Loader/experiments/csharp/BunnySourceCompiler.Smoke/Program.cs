@@ -736,6 +736,12 @@ public sealed class MinionStaff : BunnyWeapon
         badTypeDraw != "ERROR|Stage=DecodeTileDraw Reason=InvalidTileType")
         throw new InvalidOperationException("Tile animation managed draw transport mismatch: " +
             typedDraw + " / " + legacyDraw + " / " + oldWireDraw + " / " + badTypeDraw);
+    string f0=BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-frame-tile",tileSmokeAssembly,nameof(TileFrameSmoke),21,0,"2,4,1,0");
+    string f1=BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-frame-tile",tileSmokeAssembly,nameof(TileFrameSmoke),21,0,"3,4,0,1");
+    string f2=BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-frame-tile",tileSmokeAssembly,nameof(TileFrameSmoke),21,0,"2,4,2,0");
+    if((new TileFrameSmoke().TileCallbackMask&(1<<21))==0||f0!="FRAME|1|0|1"||
+       f1!="FRAME|0|0|1"||f2!="ERROR|Stage=DecodeTileFrame Reason=InvalidBooleans")
+        throw new InvalidOperationException("CSharp TileFrame callback wire regression: "+f0+" / "+f1+" / "+f2);
     string smartAllow=BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-smart-tile",
         tileSmokeAssembly,nameof(TileSmartInteractSmoke),20,0,"3,4,1,2,5,6");
     string smartReject=BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-smart-tile",
@@ -968,4 +974,12 @@ sealed class TileSmartInteractSmoke : BunnyLoader.Source.BunnyTile {
     public override void SetStaticDefaults() {}
     public override bool HasSmartInteract(int x,int y,BunnyLoader.Source.BunnyTileSmartInteractSettings settings)
         => x>=settings.LX && x<=settings.HX && y>=settings.LY && y<=settings.HY;
+}
+
+sealed class TileFrameSmoke : BunnyLoader.Source.BunnyTile {
+    public override void SetStaticDefaults() {}
+    public override bool TileFrame(int x,int y,ref bool resetFrame,ref bool noBreak) {
+        resetFrame=false;noBreak=true;
+        return x!=3;
+    }
 }
