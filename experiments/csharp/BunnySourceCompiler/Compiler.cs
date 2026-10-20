@@ -15,7 +15,7 @@ public static class Compiler
     private const int MaxFiles = 4096;
     private const int MaxFileBytes = 1024 * 1024;
     private const int MaxTotalBytes = 32 * 1024 * 1024;
-    private const string CacheVersion = "roslyn-net8-source-v50-ready-prs-integration";
+    private const string CacheVersion = "roslyn-net8-source-v51-corelib-reference";
     private static readonly string[] ReferenceNames =
     {
         "System.Private.CoreLib.dll",
@@ -130,14 +130,16 @@ public static class Compiler
         string referenceDir = Path.Combine(runtimeDir, "compiler-references");
         bool compactReferences = Directory.Exists(referenceDir);
         string[] framework = ReferenceNames
-            .Where(name => !compactReferences || name != "System.Private.CoreLib.dll")
-            .Select(name => Path.Combine(compactReferences ? referenceDir : runtimeDir, name))
+            .Select(name => Path.Combine(
+                compactReferences && name != "System.Private.CoreLib.dll" &&
+                    name != "BunnySourceSdk.dll" ? referenceDir : runtimeDir,
+                name))
             .Where(File.Exists).ToArray();
-        int expectedReferences = ReferenceNames.Length - (compactReferences ? 1 : 0);
-        if ((compactReferences && framework.Length != expectedReferences) ||
-            (!compactReferences && (!framework.Contains(sdkFile) ||
-                !framework.Contains(Path.Combine(runtimeDir, "System.Private.CoreLib.dll")) ||
-                !framework.Contains(Path.Combine(runtimeDir, "System.Runtime.dll")))))
+        int expectedReferences = ReferenceNames.Length;
+        if (framework.Length != expectedReferences ||
+            !framework.Contains(sdkFile) ||
+            !framework.Contains(Path.Combine(runtimeDir, "System.Private.CoreLib.dll")) ||
+            (!compactReferences && !framework.Contains(Path.Combine(runtimeDir, "System.Runtime.dll"))))
         {
             WriteDiagnostic(diagnosticsFile, "FRAMEWORK_REFERENCES_INCOMPLETE Expected=" +
                 expectedReferences + " Actual=" + framework.Length + " Directory=" +
