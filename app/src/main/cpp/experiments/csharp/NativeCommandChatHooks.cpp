@@ -2,6 +2,7 @@
 
 #include "experiments/csharp/ManagedRuntime.h"
 #include "experiments/csharp/NativeCommandMailbox.h"
+#include "experiments/csharp/NativeCommandClock.h"
 #include "hook/HookManager.h"
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
@@ -260,16 +261,11 @@ bool applyNativeWorldTime(const NativeCommandAction& action) {
     };
     if (!typeIs(timeField, "System.Double") || !typeIs(dayField, "System.Boolean"))
         return false;
-    // Comprimentos do ciclo sao os usados pelo ExampleTimeCommand Bunny.
-    constexpr double dayLength = 54000.0;
-    constexpr double nightLength = 32400.0;
-    constexpr double cycle = dayLength + nightLength;
     double oldTime = 0;
     bool oldDay = false;
     api.field_static_get_value(timeField, &oldTime);
     api.field_static_get_value(dayField, &oldDay);
-    if (!std::isfinite(oldTime) || oldTime < 0 || oldTime > cycle)
-        return false;
+    if (!std::isfinite(oldTime)) return false;
 
     const MethodInfo* sendData = nullptr;
     if ((action.networkMode & 2) != 0) {
@@ -283,13 +279,12 @@ bool applyNativeWorldTime(const NativeCommandAction& action) {
                                            "System.Int32"}) ||
             !hasReturnType(sendData, "System.Void")) return false;
     }
-    double absolute = std::fmod(oldTime + (oldDay ? 0 : dayLength) +
-                                static_cast<double>(action.amount), cycle);
-    if (absolute < 0) absolute += cycle;
-    const bool nextDay = absolute < dayLength;
-    const double nextTime = nextDay ? absolute : absolute - dayLength;
-    api.field_static_set_value(dayField, const_cast<bool*>(&nextDay));
-    api.field_static_set_value(timeField, const_cast<double*>(&nextTime));
+    bool nextDay = false;
+    double nextTime = 0;
+    if (!advanceNativeCommandClock(oldTime, oldDay, action.amount,
+                                   &nextTime, &nextDay)) return false;
+    api.field_static_set_value(dayField, &nextDay);
+    api.field_static_set_value(timeField, &nextTime);
     if (sendData) {
         // MessageID.WorldData do Terraria vanilla, como no ExampleTimeCommand.
         int worldData = 7, remote = -1, ignore = -1, zero = 0;
