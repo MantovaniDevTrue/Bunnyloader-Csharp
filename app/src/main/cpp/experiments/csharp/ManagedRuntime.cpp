@@ -2,6 +2,7 @@
 #include "experiments/csharp/UniversalHookMailbox.h"
 #include "experiments/csharp/UniversalHooks.h"
 #include "experiments/csharp/ManagedRuntime.h"
+#include "experiments/csharp/ManagedLiveSourceRevocations.h"
 #include "experiments/csharp/NativeRecipeCallbacks.h"
 #include "graphics/ScreenScene.h"
 #include "experiments/csharp/ManagedVisualMonoPump.h"
@@ -122,6 +123,7 @@ struct LiveEntry {
 };
 
 std::map<std::string, LiveEntry> g_sourceLiveEntries;
+ManagedLiveSourceRevocations g_liveSourceRevocations;
 uint64_t g_liveMethodCacheHits = 0;
 uint64_t g_liveMethodCacheMisses = 0;
 uint64_t g_liveAssemblyOpenAttempts = 0;
@@ -3842,8 +3844,20 @@ ManagedSourceCompileResult compileManagedSource(
     return out;
 }
 
+void invalidateManagedLiveSourceMod(const std::string& modId) {
+    std::lock_guard<std::mutex> guard(g_mutex);
+    g_liveSourceRevocations.revoke(modId, g_sourceLiveEntries);
+}
+
 LiveSourceStatus liveSourceStatus(const std::string& modId) {
     std::lock_guard<std::mutex> guard(g_mutex);
+    if (g_liveSourceRevocations.revoked(modId)) {
+        LiveSourceStatus status;
+        status.modId = modId;
+        status.phase = "restart-required";
+        status.error = "Live Mono assembly remains loaded after mod unload";
+        return status;
+    }
     const auto found = g_sourceLiveEntries.find(modId);
     if (found != g_sourceLiveEntries.end()) return found->second.status;
     LiveSourceStatus status;
@@ -3865,6 +3879,11 @@ LiveSourceStatus invokeLiveSourceTick(const std::string& modId,
         tick < 0 || tick > 1000000 ||
         state < -1000000 || state > 1000000) {
         invalid.error = "Invalid mod identity or callback arguments";
+        return invalid;
+    }
+    if (g_liveSourceRevocations.revoked(modId)) {
+        invalid.phase = "restart-required";
+        invalid.error = "Live Mono assembly remains loaded after mod unload";
         return invalid;
     }
     if (!g_domain || !g_status.domainInitialized || !g_status.methodExecuted ||
@@ -3967,6 +3986,11 @@ LiveCallbackResult invokeLiveSourceEvent(const std::string& modId,
         return result;
     }
     std::lock_guard<std::mutex> lock(g_mutex);
+    if (g_liveSourceRevocations.revoked(modId)) {
+        result.phase = "restart-required";
+        result.error = "Live Mono assembly remains loaded after mod unload";
+        return result;
+    }
     if (!g_domain || !g_status.domainInitialized || !g_status.methodExecuted ||
         !g_api.attach || !g_api.invoke || !g_api.unbox) {
         result.phase = "waiting-mono";
@@ -4083,7 +4107,8 @@ bool invokeLiveSourceNpcAi(const std::string& modId,
     if (!velocityTenths || playerDeltaX < -100000 || playerDeltaX > 100000 ||
         npcLife <= 0 || npcLife > 1000000) return false;
     std::lock_guard<std::mutex> guard(g_mutex);
-    if (!g_domain || !g_status.domainInitialized || !g_status.methodExecuted ||
+    if (g_liveSourceRevocations.revoked(modId) ||
+        !g_domain || !g_status.domainInitialized || !g_status.methodExecuted ||
         !g_api.attach || !g_api.invoke || !g_api.unbox) return false;
     const auto found = g_sourceLiveEntries.find(modId);
     if (found == g_sourceLiveEntries.end()) return false;

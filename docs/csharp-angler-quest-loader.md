@@ -73,6 +73,21 @@ Para os **handlers de receitas e predicados do Pescador**, o runtime agora carre
 
 **Escopo da correção:** os outros subsistemas C# que ainda carregam assemblies diretamente no domínio Mono (IA, eventos, interfaces e outros tipos nativos) não são automaticamente migrados por essa alteração. Também não é possível garantir no host que o runtime Mono embutido no Android tenha exatamente o mesmo comportamento de coleta; essa validação continua pendente no aparelho. O hot-unload integral de todos os conteúdos C# e o descarregamento de itens/NPCs/projéteis nativos ainda exigem trabalho próprio.
 
+## Revogação dos callbacks Mono fora dos predicados
+
+Ao descarregar ou substituir fontes C#, o cache de métodos dos callbacks
+`BunnyLiveEntry`, `BunnyLiveEvents` e `BunnyLiveNpc` daquele mod é removido.
+Os próximos pedidos de callbacks para o mesmo mod retornam `restart-required`
+sem reabrir a DLL; classes de outros mods continuam preservadas. Uma
+regressão host verifica exclusão exata de todas as entradas do mod e evita
+remover outro identificador com prefixo semelhante, incluindo 1000 revogações.
+
+**Limite:** a revogação não descarrega os assemblies do domínio Mono. Ela
+impede reutilizar métodos antigos, mas ainda não implementa hot-reload.
+Reiniciar o aplicativo permanece obrigatório para reativar callbacks Mono
+que foram carregados diretamente no domínio. Outros subsistemas gerenciados
+e suas filas precisam de auditoria de propriedade por mod.
+
 ## Diagnóstico seguro da ABI Android
 
 A preparação de `FishingCheck_RollItemDrop` diferencia os estados

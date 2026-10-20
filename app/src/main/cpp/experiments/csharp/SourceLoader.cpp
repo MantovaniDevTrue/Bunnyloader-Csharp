@@ -9,6 +9,7 @@
 #include "experiments/csharp/NativeBasicItems.h"
 #include "experiments/csharp/NativeAnglerQuestRegistry.h"
 #include "experiments/csharp/NativeRecipeCallbacks.h"
+#include "experiments/csharp/ManagedRuntime.h"
 #include "content/buffs/ModBuffs.h"
 #include "content/tiles/ModTiles.h"
 #include "content/items/ModItems.h"
@@ -614,6 +615,7 @@ void resetCSharpSourceModSession() {
     for (const auto& mod : g_statuses) {
         angler::registry().unload(mod.id);
         unbindNativeRecipeAssembly(mod.id);
+        invalidateManagedLiveSourceMod(mod.id);
     }
     g_statuses.clear();
 }
@@ -624,6 +626,7 @@ bool loadCSharpSourceMod(const bl::mods::LoadedMod& mod) {
     if (previous != g_statuses.end()) {
         angler::registry().unload(mod.id);
         unbindNativeRecipeAssembly(mod.id);
+        invalidateManagedLiveSourceMod(mod.id);
     }
     SourceModStatus status;
     status.id = mod.id;

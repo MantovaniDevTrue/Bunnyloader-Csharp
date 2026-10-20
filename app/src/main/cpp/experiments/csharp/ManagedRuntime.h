@@ -182,6 +182,7 @@ struct LiveSourceStatus {
     std::string error;
 };
 
+void invalidateManagedLiveSourceMod(const std::string& modId);
 LiveSourceStatus liveSourceStatus(const std::string& modId);
 bool invokeLiveSourceNpcAi(const std::string& modId,
                            const std::string& assemblyPath,
