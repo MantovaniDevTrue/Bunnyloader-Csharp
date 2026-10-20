@@ -106,6 +106,15 @@ int main() {
     auto inOrder = Registry::reconcileIds(base, {}, {first, second}, 2);
     auto reverseOrder = Registry::reconcileIds(base, {}, {second, first}, 2);
     assert(inOrder.ids == reverseOrder.ids);
+    const auto manifest=Registry::manifestFingerprint({first,second});
+    assert(manifest==Registry::manifestFingerprint({second,first}));
+    assert(manifest!=Registry::manifestFingerprint({first}));
+    Quest differentType=second;
+    differentType.type=901;
+    assert(manifest!=Registry::manifestFingerprint({first,differentType}));
+    differentType=second;
+    differentType.callbackMask=1;
+    assert(manifest!=Registry::manifestFingerprint({first,differentType}));
     assert((inOrder.ids == std::vector<int>{1, 2, 7001, 2, 950, 900}));
     auto incremental = Registry::reconcileIds(base, {}, {second}, 2);
     incremental = Registry::reconcileIds(incremental.ids, {900}, {second, first},
