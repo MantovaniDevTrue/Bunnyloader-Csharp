@@ -211,6 +211,7 @@ bool findContracts() {
         api.field_static_get_value(g_hardMode, &hardmode);
         if (finished) return;
         std::map<int,bool> decisions;
+        int callbackBudget = 4;
         Registry::reroll([&] { g_originalSwap(mi); }, [&]() -> int {
             Il2CppArray* arr = nullptr;
             int32_t selected = -1;
@@ -228,6 +229,11 @@ bool findContracts() {
             if ((quest.callbackMask&1)==0) return true;
             const auto cached=decisions.find(quest.type);
             if (cached!=decisions.end()) return cached->second;
+            if (callbackBudget==0) {
+                decisions[quest.type]=false;
+                return false;
+            }
+            --callbackBudget;
             bool allowed=false;
             const bool ok=bl::csharp::invokeManagedAnglerQuestCallback(
                 quest.mod,quest.name,4,mode?1:0,0,quest.type,&allowed);
