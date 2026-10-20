@@ -39,6 +39,11 @@ extern "C" int bunny_item_use_bind(int64_t session, const char* mod,
         std::strcmp(itemName, "ExampleInvasionBeacon") == 0 ? 1 : 0;
 }
 
+extern "C" int bunny_item_use_ready(int64_t session, const char* mod,
+                                     const char* itemName) {
+    return bunny_item_use_bind(session, mod, itemName);
+}
+
 extern "C" int bunny_item_use_poll(int64_t session, const char* mod,
                                     const char* itemName, int* playerIndex) {
     if (!session || !mod || !itemName || !playerIndex ||
