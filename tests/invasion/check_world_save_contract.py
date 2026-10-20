@@ -29,5 +29,5 @@ assert 'BunnyInvasionWorldPersistence.TryRestore(' in dispatcher
 assert 'SaveInvasionIfChanged(context);' in dispatcher
 assert 'BunnyInvasionWorldPersistence.Save(' in dispatcher
 assert 'context.SavedInvasions.TryGetValue(system.Id' in dispatcher
-assert 'state.Progress == saved.Progress' in dispatcher
+assert 'state.Progress != saved.Progress' in dispatcher
 print("Native CSharp per-world invasion save contract: OK")
