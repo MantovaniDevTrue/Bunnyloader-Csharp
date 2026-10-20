@@ -373,6 +373,7 @@ struct ManagedEntityBinding {
     std::vector<std::pair<int, std::string>> projectileTypes;
     int managedSlot = -1;
     bool armed = true;
+    bool invasionSupported = true;
 };
 
 struct ManagedEntityJob {
@@ -1823,6 +1824,10 @@ void* pinnedMonoWorker(void*) {
                     lock.unlock();
                     const int64_t result = executeManagedEntityOnWorker(job);
                     lock.lock();
+                    if (job.kind == 6 && job.session == g_entitySession &&
+                        result == -2 && job.binding >= 0 &&
+                        static_cast<size_t>(job.binding) < g_entityBindings.size())
+                        g_entityBindings[static_cast<size_t>(job.binding)].invasionSupported = false;
                     if (job.session == g_entitySession && job.slot >= 0) {
                         if (job.kind == 0 && static_cast<size_t>(job.slot) < g_entityNpcResults.size()) {
                             g_entityNpcPending[static_cast<size_t>(job.slot)] = false;
@@ -2295,8 +2300,10 @@ void scheduleManagedInvasionWorldTicks(uint64_t worldSession) {
     const int bindings = g_entityModCount.load(std::memory_order_acquire);
     for (int index = 0; index < bindings; ++index) {
         if (static_cast<size_t>(index) >= g_entityBindings.size() ||
-            !g_entityBindings[static_cast<size_t>(index)].armed ||
             g_entityQueue.size() >= 16) break;
+        if (!g_entityBindings[static_cast<size_t>(index)].armed ||
+            !g_entityBindings[static_cast<size_t>(index)].invasionSupported)
+            continue;
         ManagedEntityJob job;
         job.binding = index;
         job.kind = 6;
