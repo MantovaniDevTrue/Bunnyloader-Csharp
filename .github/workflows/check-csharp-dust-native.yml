@@ -6,6 +6,8 @@ on:
       - feat/csharp-dust-loader-20261019
     paths:
       - .github/workflows/check-csharp-dust-native.yml
+      - app/build.gradle.kts
+      - app/src/main/cpp/CMakeLists.txt
       - app/src/main/cpp/content/dusts/**
       - app/src/main/cpp/content/common/ModContent.cpp
       - app/src/main/cpp/menu/Cheats.cpp
@@ -86,7 +88,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          gradle :app:externalNativeBuildDebug --no-daemon --stacktrace -Pbl.uiOnly=true
+          gradle :app:externalNativeBuildDebug --no-daemon --stacktrace -Pbl.uiOnly=true -Pbl.dustPreview=true
           if find app/build/outputs/apk -type f -name '*.apk' -print -quit 2>/dev/null | grep -q .; then
             echo "APK output forbidden for incomplete DustLoader"
             exit 1
