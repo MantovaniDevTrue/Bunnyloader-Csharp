@@ -81,12 +81,12 @@ public static class BunnyLocalizationRuntime
         lock (Gate)
         {
             BunnyLocalizationCatalog catalog = ResolveCatalog(key, caller, out ModState? state);
-            int existingCount = catalog.ExportWireRows().Count;
+            int existingCount = catalog.WireRowCount;
             if (existingCount >= 256 &&
                 !(catalog.Texts(key)?.ContainsKey(culture) ?? false))
                 throw new InvalidOperationException("Dynamic localization row limit exceeded");
             catalog.Register(key, culture, value);
-            if (catalog.ExportWireRows().Count > 256)
+            if (catalog.WireRowCount > 256)
                 throw new InvalidOperationException("Dynamic localization row limit exceeded");
             if (state != null) state.Revision++;
         }
@@ -101,7 +101,7 @@ public static class BunnyLocalizationRuntime
             BunnyLocalizationCatalog catalog = ResolveCatalog(key, caller, out ModState? state);
             if (cultures == null || cultures.Count == 0 || cultures.Count > 32)
                 throw new ArgumentOutOfRangeException(nameof(cultures));
-            int oldCount = catalog.ExportWireRows().Count;
+            int oldCount = catalog.WireRowCount;
             int alreadyPresent = catalog.Texts(key)?.Keys.Intersect(cultures.Keys).Count() ?? 0;
             if (oldCount + cultures.Count - alreadyPresent > 256)
                 throw new InvalidOperationException("Dynamic localization row limit exceeded");
