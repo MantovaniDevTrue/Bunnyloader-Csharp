@@ -12,6 +12,7 @@ void releaseSoundStyle(int style);
 int playSoundStyle(int style, int x, int y, float volumeScale, float pitchOffset);
 int findActiveSoundStyle(int style);
 void stopSoundStyleToken(int token);
+void stopAllSoundStyleInstances(int style);
 bool isSoundStyleToken(int token);
 bool installNativeSoundRouter();
 
