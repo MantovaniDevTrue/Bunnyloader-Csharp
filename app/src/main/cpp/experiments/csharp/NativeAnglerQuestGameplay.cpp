@@ -256,41 +256,63 @@ bool findContracts() {
     return g_swapHooked && g_chatHooked;
 }
 
-bool writeFlagTable(FieldInfo* field, std::map<int, bool>* saved,
-                    const std::vector<Quest>& quests) {
-    if (!field || !saved) return false;
+struct FlagPlan {
+    FieldInfo* field = nullptr;
+    Il2CppArray* array = nullptr;
+    bool replace = false;
+    std::map<int, bool> previous;
+    std::map<int, uint8_t> writes;
+};
+
+bool prepareFlags(FieldInfo* field, const std::map<int, bool>& saved,
+                  const std::set<int>& upcoming, FlagPlan* plan) {
+    if (!field || !plan) return false;
     auto& a = il2cpp::api();
-    Il2CppArray* flags = nullptr;
-    a.field_static_get_value(field, &flags);
-    if (!flags || flags->length == 0 || flags->length > 65536) return false;
-    int largest = -1;
-    for (const auto& quest : quests) largest = std::max(largest, quest.type);
-    if (largest >= 65536) return false;
-    if (largest >= 0 && static_cast<uintptr_t>(largest) >= flags->length) {
-        Il2CppArray* expanded = runtime::TypeTables::resizedCopy(flags, largest + 1);
-        if (!expanded) return false;
-        a.field_static_set_value(field, &expanded);
-        flags = expanded;
+    Il2CppArray* original = nullptr;
+    a.field_static_get_value(field, &original);
+    if (!original || original->length == 0 || original->length > 65536) return false;
+    int maximum = -1;
+    if (!upcoming.empty()) maximum = *upcoming.rbegin();
+    if (maximum >= 65536) return false;
+    Il2CppArray* next = original;
+    if (maximum >= 0 && static_cast<uintptr_t>(maximum) >= original->length) {
+        next = runtime::TypeTables::resizedCopy(original, maximum + 1);
+        if (!next || next->length <= static_cast<uintptr_t>(maximum)) return false;
     }
-    auto* values = static_cast<uint8_t*>(arrayData(flags));
-    std::set<int> upcoming;
-    for (const auto& quest : quests) upcoming.insert(quest.type);
-    for (int former : g_ownedTypes)
-        if (!upcoming.contains(former) &&
-            former >= 0 && static_cast<uintptr_t>(former) < flags->length) {
-            const auto before = saved->find(former);
-            if (before != saved->end()) values[former] = before->second ? 1 : 0;
-            saved->erase(former);
+    plan->field = field;
+    plan->array = next;
+    plan->replace = next != original;
+    plan->previous = saved;
+    const auto* values = static_cast<const uint8_t*>(arrayData(next));
+    for (int former : g_ownedTypes) {
+        if (upcoming.contains(former) || former < 0 ||
+            static_cast<uintptr_t>(former) >= next->length) continue;
+        const auto before = plan->previous.find(former);
+        if (before != plan->previous.end()) {
+            if (values[former] != static_cast<uint8_t>(before->second))
+                plan->writes[former] = before->second ? 1 : 0;
+            plan->previous.erase(before);
         }
-    for (const auto& quest : quests) {
-        if (!saved->contains(quest.type))
-            (*saved)[quest.type] = values[quest.type] != 0;
-        values[quest.type] = 1;
+    }
+    for (int type : upcoming) {
+        if (!plan->previous.contains(type))
+            plan->previous[type] = values[type] != 0;
+        if (!values[type]) plan->writes[type] = 1;
     }
     return true;
 }
 
-bool writeQuestIds(const std::vector<Quest>& quests) {
+void applyFlags(const FlagPlan& plan) {
+    auto& a = il2cpp::api();
+    auto* values = static_cast<uint8_t*>(arrayData(plan.array));
+    for (const auto& [type, value] : plan.writes) values[type] = value;
+    if (plan.replace) {
+        Il2CppArray* next = plan.array;
+        a.field_static_set_value(plan.field, &next);
+    }
+}
+
+bool updateQuests(const std::vector<Quest>& quests) {
     auto& a = il2cpp::api();
     Il2CppArray* original = nullptr;
     a.field_static_get_value(g_questItems, &original);
@@ -303,28 +325,34 @@ bool writeQuestIds(const std::vector<Quest>& quests) {
     const QuestListUpdate update = Registry::reconcileIds(
         originalIds, g_ownedTypes, quests, selected);
     if (update.ids.empty() || update.ids.size() > 65536) return false;
-    if (!update.changed) return true;
-    Il2CppClass* element = a.class_get_element_class(
-        a.object_get_class(reinterpret_cast<Il2CppObject*>(original)));
-    if (!element) return false;
-    Il2CppArray* updated = a.array_new(element, update.ids.size());
-    if (!updated) return false;
-    std::copy(update.ids.begin(), update.ids.end(),
-              static_cast<int32_t*>(arrayData(updated)));
-    int32_t next = update.selected;
-    a.field_static_set_value(g_questItems, &updated);
-    a.field_static_set_value(g_questIndex, &next);
-    return true;
-}
-
-bool updateQuests(const std::vector<Quest>& quests) {
-    if (!writeQuestIds(quests)) return false;
-    if (!writeFlagTable(g_questFlag, &g_previousFlags, quests)) return false;
-    if (g_weaponRackFlag &&
-        !writeFlagTable(g_weaponRackFlag, &g_previousRackFlags, quests))
-        return false;
+    Il2CppArray* nextIds = nullptr;
+    if (update.changed) {
+        Il2CppClass* element = a.class_get_element_class(
+            a.object_get_class(reinterpret_cast<Il2CppObject*>(original)));
+        if (!element) return false;
+        nextIds = a.array_new(element, update.ids.size());
+        if (!nextIds || nextIds->length != update.ids.size()) return false;
+        std::copy(update.ids.begin(), update.ids.end(),
+                  static_cast<int32_t*>(arrayData(nextIds)));
+    }
     std::set<int> upcoming;
     for (const auto& quest : quests) upcoming.insert(quest.type);
+    FlagPlan fish, rack;
+    if (!prepareFlags(g_questFlag, g_previousFlags, upcoming, &fish) ||
+        (g_weaponRackFlag &&
+         !prepareFlags(g_weaponRackFlag, g_previousRackFlags, upcoming, &rack)))
+        return false;
+    applyFlags(fish);
+    if (g_weaponRackFlag) applyFlags(rack);
+    if (update.changed) {
+        a.field_static_set_value(g_questItems, &nextIds);
+        if (selected != update.selected) {
+            int32_t next = update.selected;
+            a.field_static_set_value(g_questIndex, &next);
+        }
+    }
+    g_previousFlags = std::move(fish.previous);
+    if (g_weaponRackFlag) g_previousRackFlags = std::move(rack.previous);
     g_ownedTypes = std::move(upcoming);
     return true;
 }
