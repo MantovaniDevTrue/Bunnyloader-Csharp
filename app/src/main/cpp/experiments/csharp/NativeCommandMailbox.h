@@ -148,9 +148,11 @@ public:
             }
         }
         if (!recognized) return NativeCommandSubmit::Vanilla;
-        if (requests_.size() >= MaxPending)
+        if (inFlight_.size() >= MaxPending)
             return NativeCommandSubmit::Busy;
-        requests_.push_back({epoch_, ++sequence_, text, playerIndex, netMode, caller});
+        const uint64_t ticket = ++sequence_;
+        inFlight_.emplace(ticket, playerIndex);
+        requests_.push_back({epoch_, ticket, text, playerIndex, netMode, caller});
         return NativeCommandSubmit::Queued;
     }
 
@@ -176,11 +178,16 @@ public:
                 return false;
 
         std::lock_guard<std::mutex> lock(mutex_);
-        if (epoch != epoch_ || sequence == 0 || sequence > sequence_ ||
+        const auto pending = inFlight_.find(sequence);
+        if (epoch != epoch_ || pending == inFlight_.end() ||
             replies_.size() + messages.size() > MaxReplies)
             return false;
+        // Uma resposta nao pode redirecionar texto privado a outro jogador.
+        for (const auto& message : messages)
+            if (message.playerIndex != pending->second) return false;
         for (const auto& message : messages)
             replies_.push_back(message);
+        inFlight_.erase(pending);
         return true;
     }
 
@@ -249,6 +256,7 @@ private:
         ++epoch_;
         requests_.clear();
         replies_.clear();
+        inFlight_.clear();
     }
 
     mutable std::mutex mutex_;
@@ -258,6 +266,7 @@ private:
     std::map<std::string, std::vector<Registered>> names_;
     std::deque<NativeCommandRequest> requests_;
     std::deque<NativeCommandReply> replies_;
+    std::map<uint64_t, int> inFlight_;
 };
 
 } // namespace bl::csharp
