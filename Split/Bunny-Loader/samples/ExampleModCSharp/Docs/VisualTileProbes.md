@@ -46,3 +46,7 @@ O contrato `ModTile.HasSmartInteract(i,j,settings)` agora aceita um override C# 
 ## Hook TileFrame
 
 `BunnyTile.TileFrame(int x,int y,ref bool resetFrame,ref bool noBreak)` oferece cancelamento do enquadramento (`false`) e alteração das duas flags, como no `TileLoader.js` original. `WorldGen.TileFrame` é interceptado só para os tiles C# com override e se o worker estiver pronto. A resposta `FRAME|executar|reset|noBreak` exige booleanos válidos. Em falha, fila ocupada ou timeout de 650 µs, o Terraria executa o framing original. `TileFrameImportant` e a limpeza de móveis permanecem nativos. Testes de ABI e gameplay no Android continuam pendentes.
+
+## Callbacks nativos de quebra
+
+`KillTile(i,j,ref fail,ref effectOnly,ref noItem)` tem serialização booleana estrita e atualiza os três parâmetros antes da quebra pelo Terraria. O callback roda apenas quando sobrescrito e após warmup, com orçamento de 1100 µs; falhas usam os parâmetros originais. `KillMultiTile(i,j,frameX,frameY)` recebe a origem e os frames originais calculados antes de destruir as células. É enviado como evento assíncrono uma vez por móvel removido, evitando bloquear o jogo na limpeza, com limite de fila 16. O hook de quebra já existente preserva o budget de partículas e drops de objetos compostos. Os métodos exigem validação de ABI, persistência e gameplay no Android.

@@ -380,7 +380,7 @@
           "execution": "worker_craft_command_queue"
         },
         {
-          "signature": "void GiveItem\u003CTItem\u003E(int count)",
+          "signature": "void GiveItem<TItem>(int count)",
           "execution": "worker_craft_command_queue"
         }
       ]
@@ -956,7 +956,7 @@
         "BunnyItemBehavior Behavior { get; }",
         "BunnyNativeDefaults NativeDefaults { get; }",
         "BunnySoundStyle CustomUseSound { get; set; }",
-        "Dictionary\u003Cstring, string\u003E TooltipTranslations { get; }",
+        "Dictionary<string, string> TooltipTranslations { get; }",
         "bool Accessory { get; set; }",
         "bool AutoReuse { get; set; }",
         "bool Consumable { get; set; }",
@@ -1638,11 +1638,11 @@
           "execution": "managed_helper"
         },
         {
-          "signature": "BunnyRecipe AddCondition(string description, Func\u003CBunnyCraftContext, bool\u003E predicate)",
+          "signature": "BunnyRecipe AddCondition(string description, Func<BunnyCraftContext, bool> predicate)",
           "execution": "managed_helper"
         },
         {
-          "signature": "BunnyRecipe AddConsumeIngredientCallback(Func\u003CBunnyCraftContext, int, int, int\u003E callback)",
+          "signature": "BunnyRecipe AddConsumeIngredientCallback(Func<BunnyCraftContext, int, int, int> callback)",
           "execution": "managed_helper"
         },
         {
@@ -1654,7 +1654,7 @@
           "execution": "managed_helper"
         },
         {
-          "signature": "BunnyRecipe AddIngredient\u003CTItem\u003E(int count)",
+          "signature": "BunnyRecipe AddIngredient<TItem>(int count)",
           "execution": "managed_helper"
         },
         {
@@ -1662,7 +1662,7 @@
           "execution": "managed_helper"
         },
         {
-          "signature": "BunnyRecipe AddOnCraftCallback(Action\u003CBunnyCraftContext\u003E callback)",
+          "signature": "BunnyRecipe AddOnCraftCallback(Action<BunnyCraftContext> callback)",
           "execution": "managed_helper"
         },
         {
@@ -1678,7 +1678,7 @@
           "execution": "managed_helper"
         },
         {
-          "signature": "BunnyRecipe AddTile\u003CTTile\u003E()",
+          "signature": "BunnyRecipe AddTile<TTile>()",
           "execution": "managed_helper"
         },
         {
@@ -1698,7 +1698,7 @@
           "execution": "managed_helper"
         },
         {
-          "signature": "bool RemoveIngredient\u003CTItem\u003E()",
+          "signature": "bool RemoveIngredient<TItem>()",
           "execution": "managed_helper"
         },
         {
@@ -1744,7 +1744,7 @@
       "kind": "class",
       "baseType": "System.Object",
       "constructors": [
-        "BunnyRecipeCondition(string description, Func\u003CBunnyCraftContext, bool\u003E predicate)"
+        "BunnyRecipeCondition(string description, Func<BunnyCraftContext, bool> predicate)"
       ],
       "properties": [
         "BunnyRecipeCondition Day { get; }",
@@ -1796,7 +1796,7 @@
           "execution": "managed_helper"
         },
         {
-          "signature": "BunnyRecipeGroup AddItem\u003CTItem\u003E()",
+          "signature": "BunnyRecipeGroup AddItem<TItem>()",
           "execution": "managed_helper"
         }
       ]
@@ -1835,7 +1835,7 @@
       "baseType": "System.Object",
       "constructors": [],
       "properties": [
-        "IReadOnlyList\u003Cstring\u003E RecipeDefinitions { get; }"
+        "IReadOnlyList<string> RecipeDefinitions { get; }"
       ],
       "values": [],
       "methods": [
@@ -2054,6 +2054,10 @@
           "execution": "managed_helper"
         },
         {
+          "signature": "bool TileFrame(int x, int y, ref bool resetFrame, ref bool noBreak)",
+          "execution": "managed_helper"
+        },
+        {
           "signature": "int NumDust(bool fail)",
           "execution": "compile_policy"
         },
@@ -2083,6 +2087,14 @@
         },
         {
           "signature": "void HitWire(int x, int y)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void KillMultiTile(int x, int y, int frameX, int frameY)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void KillTile(int x, int y, ref bool fail, ref bool effectOnly, ref bool noItem)",
           "execution": "managed_helper"
         },
         {
@@ -2127,10 +2139,6 @@
         },
         {
           "signature": "void SpecialDraw(int x, int y, BunnyTileDrawContext draw)",
-          "execution": "managed_helper"
-        },
-        {
-          "signature": "bool TileFrame(int x, int y, ref bool resetFrame, ref bool noBreak)",
           "execution": "managed_helper"
         }
       ]
