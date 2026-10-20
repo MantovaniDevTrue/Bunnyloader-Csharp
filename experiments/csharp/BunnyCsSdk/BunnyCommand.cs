@@ -109,6 +109,41 @@ public sealed class BunnyCommandRegistry
 
     public BunnyCommandRegistry(Action<Exception>? onError = null) => this.onError = onError;
 
+    /// <summary>
+    /// O worker chama isto uma vez apos carregar a montagem do mod. Ordem por FullName
+    /// garante IDs e diagnosticos deterministas; falhas nao deixam registros parciais.
+    /// </summary>
+    public int RegisterAssembly(string modId, System.Reflection.Assembly assembly)
+    {
+        ArgumentNullException.ThrowIfNull(assembly);
+        Type[] types = assembly.GetTypes()
+            .Where(t => t.IsClass && !t.IsAbstract && !t.ContainsGenericParameters &&
+                        typeof(BunnyCommand).IsAssignableFrom(t))
+            .OrderBy(t => t.FullName, StringComparer.Ordinal).ToArray();
+        return RegisterTypes(modId, types);
+    }
+
+    public int RegisterTypes(string modId, IEnumerable<Type> types)
+    {
+        ArgumentNullException.ThrowIfNull(types);
+        Type[] snapshot = types.Take(MaxCommandsPerMod + 1).ToArray();
+        if (snapshot.Length == 0 || snapshot.Length > MaxCommandsPerMod)
+            throw new ArgumentOutOfRangeException(nameof(types));
+        var instances = new List<BunnyCommand>(snapshot.Length);
+        foreach (Type type in snapshot)
+        {
+            if (type == null || !type.IsClass || type.IsAbstract || type.ContainsGenericParameters ||
+                !typeof(BunnyCommand).IsAssignableFrom(type) ||
+                type.GetConstructor(Type.EmptyTypes) == null)
+                throw new ArgumentException("Classe precisa estender BunnyCommand e ter construtor publico vazio",
+                    nameof(types));
+            if (Activator.CreateInstance(type) is not BunnyCommand instance)
+                throw new InvalidOperationException("Falha ao criar comando " + type.FullName);
+            instances.Add(instance);
+        }
+        return Register(modId, instances);
+    }
+
     public int Register(string modId, IEnumerable<BunnyCommand> commands)
     {
         CheckName(modId, nameof(modId));
