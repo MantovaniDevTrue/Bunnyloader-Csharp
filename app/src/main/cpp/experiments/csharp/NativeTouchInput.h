@@ -58,6 +58,8 @@ private:
 };
 
 Registry& registry();
+// Somente o instalador IL2CPP validado pode liberar a leitura C# no jogo.
+void setHostReady(bool ready);
 
 } // namespace bl::csharp::touch
 
@@ -70,6 +72,7 @@ __attribute__((visibility("default"))) int bunny_csharp_touch_frame(
     const int* held, int heldCount, const int* bound, int boundCount);
 __attribute__((visibility("default"))) uint32_t bunny_csharp_touch_read(int id);
 __attribute__((visibility("default"))) int bunny_csharp_touch_count();
+__attribute__((visibility("default"))) int bunny_csharp_touch_host_ready();
 __attribute__((visibility("default"))) void bunny_csharp_touch_world_reset();
 __attribute__((visibility("default"))) void bunny_csharp_touch_mod_unload(const char* owner);
 }
