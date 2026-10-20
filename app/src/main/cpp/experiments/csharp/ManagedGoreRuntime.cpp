@@ -314,9 +314,15 @@ bool install(const std::string& modId, const std::vector<Source>& sources,
     roots.reserve(sources.size());
     auto& api = il2cpp::api();
     for (const auto& entry : batch.entries()) {
+        std::vector<unsigned char> png;
+        if (!readOwnedPng(entry.source, &png, error)) {
+            destroyUncommitted(roots);
+            return false;
+        }
         int width = 0, height = 0;
+        // Decodifica a copia validada, sem reabrir um caminho alteravel.
         Il2CppObject* asset = runtime::content::loadTextureAsset(
-            entry.source.absolutePath, nullptr, 0,
+            entry.source.absolutePath, png.data(), png.size(),
             entry.modId + "/Gores/" + entry.source.name, &width, &height);
         if (!asset || width != static_cast<int>(entry.source.width) ||
             height != static_cast<int>(entry.source.height)) {
