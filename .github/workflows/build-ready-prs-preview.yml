@@ -31,6 +31,8 @@ jobs:
       with:
         distribution: temurin
         java-version: '17'
+    - name: Compile all 93 playable CSharp example sources with the current SDK
+      run: dotnet build tests/ready_prs/FullExampleManaged.csproj -c Release --nologo
     - name: Run combined PR contracts and integration tests
       run: python3 tools/ci/test_ready_prs.py
     - name: Run core regressions and editable ExampleMod compilation
