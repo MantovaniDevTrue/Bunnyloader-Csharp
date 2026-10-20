@@ -46,6 +46,18 @@ jobs:
           set -euo pipefail
           g++ -std=c++20 -O1 -Wall -Wextra -pthread             -Iapp/src/main/cpp -Itests/basic_items/include             tests/summon_lifecycle/sound_router_test.cpp             -o /tmp/bunny_csharp_soundrouter_test
           /tmp/bunny_csharp_soundrouter_test
+      - name: Confirm exported C ABI for all MonoVM audio entrypoints
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf '%s\n' '#include "experiments/csharp/ManagedSoundLoader.h"' > /tmp/bunny_sound_exports.cpp
+          g++ -std=c++20 -fPIC -shared -fvisibility=hidden \
+            -Iapp/src/main/cpp -Itests/basic_items/include \
+            /tmp/bunny_sound_exports.cpp -o /tmp/libbunny_sound_exports.so
+          for api in register state play playback find_active stop duration unload; do
+            nm -D --defined-only /tmp/libbunny_sound_exports.so | grep -q "bunny_csharp_sound_${api}$"
+          done
+          echo 'CSHARP_SOUNDLOADER_EIGHT_EXPORTED_P_INVOKE_SYMBOLS_PASS'
   managed-sdk:
     runs-on: ubuntu-latest
     timeout-minutes: 15
