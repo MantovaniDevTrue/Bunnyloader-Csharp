@@ -438,6 +438,25 @@ try {
      !records.Any(line=>line.StartsWith("PROJECTILE\tExampleWorkbench\t")))
       throw new Exception("native domain identity dropped a class");
  });
+ Check("tree.native-three-texture-source-wire",()=>{
+  string root=Path.Combine(scratch,"tree-source");
+  Directory.CreateDirectory(Path.Combine(root,"content"));
+  string src=Path.Combine(root,"content","TreeProbe.cs");
+  string output=Path.Combine(scratch,"tree.dll"),diag=Path.Combine(scratch,"tree.log");
+  const string valid="using BunnyLoader.Source;public sealed class TreeProbe:BunnyTree{public override void SetDefaults(){"+
+    "Texture=\"Content/Tiles/Plants/ExampleTree\";GrowsOnTile=\"ExampleTile\";SaplingTile=\"ExampleSapling\";}}";
+  File.WriteAllText(src,valid);
+  Equal(1,Compiler.Compile(root,output,runtime,diag));
+  Equal(1,CompiledAssemblyProbe.Verify(output,diag));
+  string[] rows=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt"));
+  Equal(2,rows.Length);
+  Equal("TREE\tTreeProbe\tExampleTile\tExampleSapling\tContent/Tiles/Plants/ExampleTree",rows[1]);
+  foreach(string invalid in new[]{"../OtherTree","Content//Trees/Broken","Content/Trees/Leaf.png"}) {
+    File.WriteAllText(src,valid.Replace("Content/Tiles/Plants/ExampleTree",invalid));
+    Equal(1,Compiler.Compile(root,output,runtime,diag));
+    Equal(-1,CompiledAssemblyProbe.Verify(output,diag));
+  }
+ });
  Check("tiles.sapling-1x2-native-descriptor",()=>{
   string root=Path.Combine(scratch,"sapling1x2-source");
   Directory.CreateDirectory(Path.Combine(root,"content"));

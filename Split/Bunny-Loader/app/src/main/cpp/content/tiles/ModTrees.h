@@ -21,6 +21,9 @@ namespace bl::runtime {
  * primeira árvore registrada.
  */
 void setModTree(int groundType, Il2CppObject* trunk, int topStyle);
+bool registerModTreeChecked(int groundType, Il2CppObject* trunk, int topStyle);
+bool hasModTree(int groundType);
+int modTreeCount();
 
 /**
  * Chamado pelo hook do TileDrawing.GetTileDrawData (ModTiles.cpp) para cada

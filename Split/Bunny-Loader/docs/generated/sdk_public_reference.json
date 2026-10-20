@@ -2319,6 +2319,24 @@
       "methods": []
     },
     {
+      "name": "BunnyLoader.Source.BunnyTree",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [
+        "string GrowsOnTile { get; set; }",
+        "string SaplingTile { get; set; }",
+        "string Texture { get; set; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "void SetDefaults()",
+          "execution": "compile_policy"
+        }
+      ]
+    },
+    {
       "name": "BunnyLoader.Source.BunnyUniversalHookDispatcher",
       "kind": "abstract class",
       "baseType": "System.Object",

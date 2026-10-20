@@ -1247,6 +1247,20 @@ int LX { get; }
 int LY { get; }
 ```
 
+## BunnyLoader.Source.BunnyTree
+
+abstract class; base: `System.Object`.
+
+```csharp
+string GrowsOnTile { get; set; }
+string SaplingTile { get; set; }
+string Texture { get; set; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `void SetDefaults()` | compile_policy |
+
 ## BunnyLoader.Source.BunnyUniversalHookDispatcher
 
 abstract class; base: `System.Object`.

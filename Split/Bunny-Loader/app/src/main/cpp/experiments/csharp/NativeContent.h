@@ -93,6 +93,15 @@ struct ManagedTileEntry {
     int saplingStyleRange = 3;
 };
 
+struct ManagedTreeEntry {
+    std::string name;
+    std::string groundTile;
+    std::string saplingTile;
+    std::string texture;
+};
+bool publishManagedNativeTrees(const std::string& modId,const std::string& directory,
+    const std::vector<ManagedTreeEntry>& trees,std::string* error);
+
 bool applyManagedNativeTileDefaultsBatch(const std::string& modId,
                                          const std::vector<ManagedTileEntry>& tiles);
 

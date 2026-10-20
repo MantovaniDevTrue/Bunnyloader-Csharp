@@ -14,6 +14,7 @@
 #include "experiments/csharp/NativeTileAdjacencyPolicy.h"
 #include "experiments/csharp/NativeTilePolicy.h"
 #include "experiments/csharp/NativeTileMiningPolicy.h"
+#include "experiments/csharp/NativeTreeTexturePolicy.h"
 #include "experiments/csharp/NativeBootEffects.h"
 
 #include "content/common/GameRefs.h"
@@ -22,6 +23,8 @@
 #include "content/npcs/ModNpcs.h"
 #include "content/buffs/ModBuffs.h"
 #include "content/tiles/ModTiles.h"
+#include "content/tiles/ModTrees.h"
+#include "content/common/ContentAssets.h"
 #include "content/walls/ModWalls.h"
 #include "content/tiles/ModTileMap.h"
 #include "content/tiles/TileAccess.h"
@@ -2453,6 +2456,111 @@ bool applyManagedNativeTileDefaultsBatch(const std::string& modId,
     }
     runtime::setNativeTilesInstalledHook(onManagedTilesInstalled);
     runtime::requestNativeTileDefaults();
+    return true;
+}
+
+bool publishManagedNativeTrees(const std::string& modId,const std::string& directory,
+                               const std::vector<ManagedTreeEntry>& trees,std::string* error) {
+    if(!error)return false;
+    const auto fail=[&](const std::string& stage,const std::string& detail) {
+        *error="[CSharp][TreeLoader] Mod="+modId+" Stage="+stage+
+               " Result=Rejected Reason="+detail;
+        BL_ERROR("%s",error->c_str());
+        return false;
+    };
+    if(trees.empty())return true;
+    if(trees.size()>255||runtime::modTreeCount()+static_cast<int>(trees.size())>255)
+        return fail("Preflight","CapacityExceeded");
+    auto& a=il2cpp::api();
+    if(!a.field_static_get_value||!a.field_static_set_value||
+       !a.runtime_invoke||!a.object_get_class||!a.array_new)
+        return fail("ABI","MissingIl2CppFunctions");
+    auto* textures=il2cpp::findClass({"Terraria.GameContent","TextureAssets",{}});
+    auto* fieldTop=textures?il2cpp::findField(textures,"TreeTop"):nullptr;
+    auto* fieldBranch=textures?il2cpp::findField(textures,"TreeBranch"):nullptr;
+    Il2CppArray* originalTop=nullptr;
+    Il2CppArray* originalBranch=nullptr;
+    if(!fieldTop||!fieldBranch)return fail("ABI","TextureTablesUnavailable");
+    a.field_static_get_value(fieldTop,&originalTop);
+    a.field_static_get_value(fieldBranch,&originalBranch);
+    if(!originalTop||!originalBranch||
+       originalTop->length!=originalBranch->length||
+       originalTop->length+trees.size()>32767)
+        return fail("ABI","TextureTablesMismatch");
+    auto* sysArray=il2cpp::findClass({"System","Array",{}});
+    const auto* arraySet=sysArray?il2cpp::findMethodBySignature(sysArray,
+        il2cpp::parseSignature("void SetValue(object value, int index)")):nullptr;
+    if(!arraySet||!il2cpp::methodPointer(arraySet))
+        return fail("ABI","ArrayWriteUnavailable");
+    std::map<int,bool> uniqueGround;
+    struct Ready {
+        int ground=-1;
+        std::array<std::string,3> paths;
+        Il2CppObject* trunk=nullptr;
+        Il2CppObject* top=nullptr;
+        Il2CppObject* branch=nullptr;
+    };
+    std::vector<Ready> ready;
+    ready.reserve(trees.size());
+    for(const auto& tree:trees) {
+        const int ground=runtime::modTileTypeByName(modId,tree.groundTile);
+        const int sapling=runtime::modTileTypeByName(modId,tree.saplingTile);
+        if(ground<runtime::kVanillaTileCount||sapling<runtime::kVanillaTileCount||
+           !uniqueGround.emplace(ground,true).second||
+           runtime::hasModTree(ground)||!tree_texture::validStem(tree.texture))
+            return fail("Resolve","GroundOrSaplingNotOwnedOrDuplicate");
+        const auto files=tree_texture::paths(directory,tree.texture);
+        for(const auto& path:files) {
+            if(path.empty()||!fileExists(path))
+                return fail("Files","MissingTreeTexture:"+tree.name);
+        }
+        ready.push_back({ground,files,nullptr,nullptr,nullptr});
+    }
+    for(size_t i=0;i<ready.size();++i) {
+        auto& tree=ready[i];
+        int width[3]={},height[3]={};
+        Il2CppObject* assets[3]={};
+        for(int part=0;part<3;++part) {
+            assets[part]=runtime::content::loadTextureAsset(
+                tree.paths[part],nullptr,0,
+                modId+"/"+trees[i].name+(part==1?"_Tops":part==2?"_Branches":""),
+                &width[part],&height[part]);
+            if(!assets[part])return fail("Asset","LoadFailed:"+trees[i].name);
+        }
+        if(!tree_texture::validDimensions(width[0],height[0],width[1],height[1],
+                                           width[2],height[2]))
+            return fail("Asset","InvalidDimensions:"+trees[i].name);
+        tree.trunk=runtime::content::textureAssetValue(assets[0]);
+        tree.top=assets[1];
+        tree.branch=assets[2];
+        if(!tree.trunk)return fail("Asset","TrunkTextureNotLoaded:"+trees[i].name);
+    }
+    auto* newTop=runtime::TypeTables::resizedCopy(originalTop,
+        originalTop->length+ready.size());
+    auto* newBranch=runtime::TypeTables::resizedCopy(originalBranch,
+        originalBranch->length+ready.size());
+    if(!newTop||!newBranch)return fail("Asset","CannotExtendTreeTables");
+    const auto set=[&](Il2CppArray* array,int index,Il2CppObject* asset) {
+        Il2CppObject* exception=nullptr;
+        void* args[]={asset,&index};
+        a.runtime_invoke(arraySet,reinterpret_cast<Il2CppObject*>(array),args,&exception);
+        return exception==nullptr;
+    };
+    for(size_t i=0;i<ready.size();++i) {
+        const int index=static_cast<int>(originalTop->length+i);
+        if(!set(newTop,index,ready[i].top)||
+           !set(newBranch,index,ready[i].branch))
+            return fail("Asset","ArrayWriteFailed");
+    }
+    a.field_static_set_value(fieldTop,newTop);
+    a.field_static_set_value(fieldBranch,newBranch);
+    for(size_t i=0;i<ready.size();++i) {
+        const int style=static_cast<int>(originalTop->length+i);
+        if(!runtime::registerModTreeChecked(ready[i].ground,ready[i].trunk,style))
+            return fail("Publish","TreeRegistrationFailed:"+trees[i].name);
+    }
+    BL_INFO("[CSharp][TreeLoader] Mod=%s Trees=%zu Stage=Publish Result=Ready",
+            modId.c_str(),ready.size());
     return true;
 }
 

@@ -2,6 +2,7 @@
 #include "experiments/csharp/NativeTileWirePolicy.h"
 #include "experiments/csharp/NativeTilePolicy.h"
 #include "experiments/csharp/NativeTileMiningPolicy.h"
+#include "experiments/csharp/NativeTreeTexturePolicy.h"
 #include "experiments/csharp/SourceLoader.h"
 
 #include "experiments/csharp/NativeContent.h"
@@ -501,6 +502,8 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
         if (colon != std::string::npos && type >= 0)
             status->registeredTypes.try_emplace(key.substr(colon + 1), type);
     }
+    status->trees = static_cast<int>(std::count_if(defs.begin(),defs.end(),
+        [](const ParsedSourceType& def){return def.base=="BunnyTree";}));
     status->tiles = ctx.tiles;
     status->walls = ctx.walls;
     status->items = ctx.items;
@@ -645,6 +648,7 @@ bool applyManagedSourceDefaults(
     std::map<std::string, int> buffsByName;
     std::map<std::string, bool> seen;
     std::vector<ManagedTileEntry> tiles;
+    std::vector<ManagedTreeEntry> trees;
     std::vector<walls::Definition> wallDefinitions;
     std::vector<ManagedProjectileEntry> projectiles;
     std::vector<ManagedWeaponEntry> weapons;
@@ -728,6 +732,32 @@ bool applyManagedSourceDefaults(
             }
             const auto source=mod->sourcePaths.find(key);
             nativeDefaults.push_back({fields[1],modId,source==mod->sourcePaths.end()?"<unavailable>":source->second,fields[2],registered->second,projectile});
+            continue;
+        }
+        if(fields.size()==5 && fields[0]=="TREE") {
+            const auto key=sourceIdentityForWire("TREE",fields[1]);
+            const auto declared=mod->registeredBases.find(key);
+            const auto source=mod->sourcePaths.find(key);
+            const auto safeName=[](const std::string& value) {
+                if(value.empty()||value.size()>72)return false;
+                return std::all_of(value.begin(),value.end(),[](unsigned char c) {
+                    return (c>='a'&&c<='z')||(c>='A'&&c<='Z')||
+                           (c>='0'&&c<='9')||c=='_';
+                });
+            };
+            if(declared==mod->registeredBases.end()||declared->second!="BunnyTree"||
+               source==mod->sourcePaths.end()||!seen.emplace(key,true).second||
+               !safeName(fields[1])||!safeName(fields[2])||!safeName(fields[3])||
+               !tree_texture::validStem(fields[4])) {
+                *error="[CSharp][TreeLoader] Mod="+modId+" Class="+fields[1]+
+                       " Stage=Decode Result=Rejected Reason=DescriptorOrIdentityInvalid";
+                return false;
+            }
+            trees.push_back({fields[1],fields[2],fields[3],fields[4]});
+            if(trees.size()>255) {
+                *error="[CSharp][TreeLoader] Stage=Decode Reason=TreeCapacityExceeded";
+                return false;
+            }
             continue;
         }
         if(fields.size()>1&&fields[0]=="WALL") {
@@ -1214,7 +1244,8 @@ bool applyManagedSourceDefaults(
             return false;
         }
     }
-    if (tiles.size() != static_cast<size_t>(mod->tiles) ||
+    if (trees.size() != static_cast<size_t>(mod->trees) ||
+        tiles.size() != static_cast<size_t>(mod->tiles) ||
         projectiles.size() != static_cast<size_t>(mod->projectiles) ||
         weapons.size() + potions.size() + accessories.size() + basicItems.size() !=
             static_cast<size_t>(mod->items) ||
@@ -1225,7 +1256,7 @@ bool applyManagedSourceDefaults(
         players.size() != static_cast<size_t>(mod->players) ||
         npcs.size() != static_cast<size_t>(mod->npcs) ||
         prefixes.size() != static_cast<size_t>(mod->prefixes) ||
-        seen.size() != mod->registeredKindTypes.size() + mod->playerClasses.size()) {
+        seen.size() != mod->registeredKindTypes.size() + mod->playerClasses.size() + trees.size()) {
         *error = "As classes compiladas nao correspondem ao conteudo registrado";
         return false;
     }
@@ -1256,6 +1287,21 @@ bool applyManagedSourceDefaults(
             }
         }
     }
+    for(const auto& tree:trees) {
+        const auto ground=std::find_if(tiles.begin(),tiles.end(),[&](const ManagedTileEntry& e) {
+            return e.name==tree.groundTile;
+        });
+        const auto sapling=std::find_if(tiles.begin(),tiles.end(),[&](const ManagedTileEntry& e) {
+            return e.name==tree.saplingTile;
+        });
+        if(ground==tiles.end()||sapling==tiles.end()||ground->type<runtime::kVanillaTileCount||
+           sapling->shape!=4||sapling->saplingGroundTile!=tree.groundTile ||
+           sapling->type<runtime::kVanillaTileCount) {
+            *error="[CSharp][TreeLoader] Mod="+modId+" Class="+tree.name+
+                   " Stage=ResolveTree Reason=GroundOrSaplingMismatch Result=Rejected";
+            return false;
+        }
+    }
     if (!applyManagedNativeBuffDefaultsBatch(modId, buffs, potions)) {
         *error = "Falha ao validar buffs e pocoes C# gerenciados";
         return false;
@@ -1281,6 +1327,7 @@ bool applyManagedSourceDefaults(
     if (!tiles.empty() && !applyManagedNativeTileDefaultsBatch(modId, tiles)) {
         *error = "Falha ao aplicar os defaults nativos de BunnyTile"; return false;
     }
+    if(!trees.empty()&&!publishManagedNativeTrees(modId,mod->directory,trees,error))return false;
     if (!useSounds::publish(useSounds,error)) return false;
     if (!applyNativeBasicItemDefaults(modId,basicItems,error)) return false;
     for (const auto& item : basicItems) {

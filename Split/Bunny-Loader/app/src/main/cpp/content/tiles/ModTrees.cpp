@@ -228,21 +228,31 @@ void noteTreeDrawTile(int x, int y, int type, int frameX, int frameY) {
     t_trunk = tree ? il2cpp::api().gchandle_get_target(tree->trunk) : nullptr;
 }
 
-void setModTree(int groundType, Il2CppObject* trunk, int topStyle) {
-    if (groundType < 0 || static_cast<size_t>(groundType) >= kMaxGroundTypes || !trunk) return;
+bool hasModTree(int groundType) { return treeOfGround(groundType)!=nullptr; }
+int modTreeCount() {return g_treeCount.load(std::memory_order_acquire);}
+
+bool registerModTreeChecked(int groundType, Il2CppObject* trunk, int topStyle) {
+    if (groundType < 0 || static_cast<size_t>(groundType) >= kMaxGroundTypes || !trunk ||
+        topStyle<0 || hasModTree(groundType)) return false;
     const int count = g_treeCount.load(std::memory_order_relaxed);
     if (count >= kMaxTrees) {
         BL_ERROR("árvores de mod: mais de %d árvores; a de chão %d ficou de fora", kMaxTrees, groundType);
-        return;
+        return false;
     }
     static std::once_flag once;
     std::call_once(once, installHooks);
 
     Tree& tree = g_trees[count];
     tree.trunk = il2cpp::api().gchandle_new(trunk, false);
+    if (!tree.trunk) return false;
     tree.topStyle = topStyle;
     g_treeCount.store(count + 1, std::memory_order_release);
     g_treeOf[groundType].store(static_cast<uint8_t>(count + 1), std::memory_order_release);
+    return true;
+}
+
+void setModTree(int groundType, Il2CppObject* trunk, int topStyle) {
+    (void)registerModTreeChecked(groundType,trunk,topStyle);
 }
 
 } // namespace bl::runtime
