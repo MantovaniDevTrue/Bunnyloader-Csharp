@@ -137,25 +137,7 @@ try
         "other_angler_mod",assembly+"|bunny-revision=1","__unload__",0,6,"");
     if(otherCleared!="CLEARED"||handles.Count!=0)
         throw new InvalidOperationException("Second mod cache not released on unload");
-    BunnyLoader.Source.BunnyUniversalHookDispatcher.UnloadAll();
-    if (BunnyLoader.Source.BunnyUniversalHookDispatcher.Register("hook-alpha", assembly) != 1 ||
-        BunnyLoader.Source.BunnyUniversalHookDispatcher.Register("hook-beta", assembly) != 1)
-        throw new InvalidOperationException("Managed universal hook fixtures could not register");
-    if (BunnyLoader.Source.BunnyUniversalHookDispatcher.GetStatusSnapshot("hook-alpha") != "UniversalHookLifecycleFixture=active" ||
-        BunnyLoader.Source.BunnyUniversalHookDispatcher.GetStatusSnapshot("hook-beta") != "UniversalHookLifecycleFixture=active" ||
-        UniversalHookLifecycleFixture.Loads != 2)
-        throw new InvalidOperationException("Independent managed universal hook contexts did not load");
-    if (!BunnyLoader.Source.BunnyUniversalHookDispatcher.Unload("hook-alpha") ||
-        BunnyLoader.Source.BunnyUniversalHookDispatcher.GetStatusSnapshot("hook-alpha") != "nao registrado" ||
-        BunnyLoader.Source.BunnyUniversalHookDispatcher.GetStatusSnapshot("hook-beta") != "UniversalHookLifecycleFixture=active" ||
-        UniversalHookLifecycleFixture.Unloads != 1 ||
-        BunnyLoader.Source.BunnyUniversalHookDispatcher.Unload("hook-alpha") ||
-        BunnyLoader.Source.BunnyUniversalHookDispatcher.Unload(""))
-        throw new InvalidOperationException("Per-mod universal hook unload affected another mod");
-    BunnyLoader.Source.BunnyUniversalHookDispatcher.UnloadAll();
-    if (UniversalHookLifecycleFixture.Unloads != 2 ||
-        BunnyLoader.Source.BunnyUniversalHookDispatcher.GetStatusSnapshot("hook-beta") != "nao registrado")
-        throw new InvalidOperationException("Universal hook teardown left managed modules active");
+    UniversalHookUnloadProbe.Run(assembly);
     CollectibleUnloadProbe.AssertCollected(assembly);
     Console.WriteLine("ANGLER_QUEST_COMPILED_ASSEMBLY_OK");
 }

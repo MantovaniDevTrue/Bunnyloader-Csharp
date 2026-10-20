@@ -124,16 +124,22 @@ O descarregamento não interrompe callbacks que já estão rodando.
 
 ## Descarregamento individual de hooks universais
 
-O dispatcher C# `BunnyUniversalHookDispatcher` agora oferece `Unload(id)`
-ao lado de `UnloadAll()`, fechando apenas o escopo nativo dos hooks
-pertencentes ao mod indicado e chamando seus métodos `Unload()`.
+O dispatcher C# `BunnyUniversalHookDispatcher` oferece `Unload(id)`
+ao lado de `UnloadAll()`. Cada conjunto de módulos agora é carregado em
+`AssemblyLoadContext` coletável individual, compartilhando as APIs do
+`BunnySourceSdk` com o contexto principal. Ao descarregar, fecha apenas o
+escopo de hooks do mod, chama seus métodos `Unload()`, elimina suas referências
+e solicita a coleta do contexto gerenciado. A regressão .NET verifica o
+`WeakReference` do contexto descarregado, sem afetar outro mod ativo.
 O runtime envia a solicitação pela thread Mono existente e impede
 re-registrar um mod revogado no mesmo processo. Os outros mods não são
 removidos; a regressão .NET host cobre dois contextos independentes.
 
-Isso é liberação de hooks, não coleta do assembly Mono. Se o dispatcher
-Mono não estiver pronto, o fechamento fica pendente para uma retomada
-do worker. Falhas na liberação ainda exigem reiniciar o aplicativo.
+A coleta está comprovada apenas no .NET host. O Android embute Mono com
+restrições próprias e ainda necessita confirmar suporte a contextos coletáveis,
+descarga real de módulos e ausência de referências de hooks pendentes.
+Se o dispatcher Mono não estiver pronto, o fechamento fica pendente para
+retomada do worker; falhas de liberação exigem reiniciar o aplicativo.
 
 ## Diagnóstico seguro da ABI Android
 
