@@ -124,6 +124,50 @@ int main() {
         {{"wrong recipient", 1}}));
     assert(bounded.deliver(limited[0].epoch, limited[0].sequence, {}));
 
+    // Um efeito depende de seu ticket, de sua origem e da sessao atual.
+    NativeCommandMailbox effects;
+    assert(effects.registerMod("actions", {{"heal", 1}, {"addtime", 4}}));
+    assert(effects.submit("/heal 35", 12, 0, NativeCommandRoute::Chat) ==
+           NativeCommandSubmit::Queued);
+    auto healRequest = effects.takeRequests();
+    assert(healRequest.size() == 1);
+    bl::csharp::NativeCommandAction heal;
+    heal.kind = bl::csharp::NativeCommandActionKind::Heal;
+    heal.amount = 35;
+    auto forged = healRequest[0];
+    forged.playerIndex = 13;
+    assert(!effects.deliverAction(forged, heal));
+    assert(effects.deliverAction(healRequest[0], heal));
+    assert(!effects.deliverAction(healRequest[0], heal));
+    auto healed = effects.takeActions();
+    assert(healed.size() == 1 && healed[0].playerIndex == 12 &&
+           healed[0].epoch == effects.epoch() && healed[0].amount == 35);
+    assert(effects.submit("/addtime -5", 12, 1, NativeCommandRoute::Chat) ==
+           NativeCommandSubmit::Vanilla);
+    assert(effects.submit("/addtime -5", 12, 3, NativeCommandRoute::Server) ==
+           NativeCommandSubmit::Queued);
+    auto clockRequest = effects.takeRequests();
+    assert(clockRequest.size() == 1);
+    bl::csharp::NativeCommandAction clock;
+    clock.kind = bl::csharp::NativeCommandActionKind::AdvanceWorldTime;
+    clock.amount = -5;
+    assert(effects.deliverAction(clockRequest[0], clock));
+    assert(effects.takeActions().size() == 1);
+    assert(effects.submit("/heal 12", 2, 0, NativeCommandRoute::Chat) ==
+           NativeCommandSubmit::Queued);
+    auto later = effects.takeRequests();
+    assert(later.size() == 1);
+    assert(effects.deliverAction(later[0], heal));
+    effects.newWorld();
+    assert(effects.takeActions().empty());
+    assert(!effects.deliverAction(later[0], heal));
+    assert(effects.submit("/addtime 50", 0, 2, NativeCommandRoute::Server) ==
+           NativeCommandSubmit::Queued);
+    auto server = effects.takeRequests();
+    assert(server.size() == 1);
+    assert(!effects.deliverAction(server[0], heal));
+    assert(effects.deliverAction(server[0], clock));
+
     // Dois threads exercitam somente o mailbox, sem chamar IL2CPP ou Mono.
     NativeCommandMailbox threaded;
     assert(threaded.registerMod("threads", {{"test", 1}}));
