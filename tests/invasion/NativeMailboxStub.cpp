@@ -88,3 +88,17 @@ extern "C" int bunny_invasion_notice(int64_t session, const char* mod,
     return session > 0 && mod && id && phase >= 0 && phase <= 2 &&
         progress >= 0 && progress <= goal ? 1 : 0;
 }
+
+extern "C" int bunny_invasion_net_publish(int64_t session, const char* payload) {
+    return session > 0 && payload &&
+        std::strncmp(payload, "INV1|", 5) == 0;
+}
+
+extern "C" int bunny_invasion_net_poll(int64_t session, const char* mod,
+                                        char* data, int capacity) {
+    (void)session;
+    (void)mod;
+    (void)data;
+    (void)capacity;
+    return 0;
+}
