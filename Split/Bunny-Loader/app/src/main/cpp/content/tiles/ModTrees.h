@@ -25,6 +25,8 @@ bool registerModTreeChecked(int groundType, Il2CppObject* trunk, int topStyle);
 bool hasModTree(int groundType);
 bool prepareModTreeDrops(bool needAcorn);
 bool configureModTreeDrops(int groundType,int woodItem,bool allowAcorn);
+bool prepareModTreePlanting();
+bool configureModTreeSapling(int groundType,int saplingType);
 int modTreeCount();
 
 /**

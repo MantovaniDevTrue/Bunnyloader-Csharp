@@ -2,6 +2,7 @@
 #include "content/tiles/ModTiles.h"
 #include "content/tiles/TileAccess.h"
 #include "experiments/csharp/NativeTreeDropPolicy.h"
+#include "experiments/csharp/NativeTreePlantPolicy.h"
 #include "content/common/GameRefs.h"
 #include "core/Log.h"
 #include "hook/HookManager.h"
@@ -28,6 +29,7 @@ struct Tree {
     int topStyle = -1;    // índice em TextureAssets.TreeTop/TreeBranch
     std::atomic<int> woodItem{-1};
     std::atomic<bool> allowAcorn{true};
+    std::atomic<int> saplingType{-1};
 };
 
 // O chão -> 1 + índice em g_trees (0 = árvore do jogo).
@@ -172,6 +174,70 @@ bool hkGetCommonTreeFoliageData(int32_t i, int32_t j, int32_t xoffset, int32_t* 
 }
 
 
+
+using PlaceTreeFn=bool (*)(int32_t,int32_t,int32_t,int32_t,int32_t,void*,bool,uint64_t,const MethodInfo*);
+PlaceTreeFn g_originalPlaceTree=nullptr;
+bool g_treePlantHooked=false;
+
+bool hkPlaceModTreeSapling(int32_t x,int32_t y,int32_t type,int32_t style,int32_t dir,
+                          void* objectData,bool onlyCheck,uint64_t forcedRandom,const MethodInfo* method) {
+    if(!g_originalPlaceTree)return false;
+    if(type==bl::csharp::tree_plant::vanillaSapling) {
+        TileArrays t;
+        if(tileArrays(&t)&&x>=0&&y>=0&&x<t.width&&y<t.height-1) {
+            const int ground=typeAt(t,x,y+1);
+            const Tree* tree=treeOfGround(ground);
+            if(tree) {
+                int nextType=type,nextStyle=style;
+                if(bl::csharp::tree_plant::rewrite(type,ground,ground,
+                       tree->saplingType.load(std::memory_order_acquire),
+                       &nextType,&nextStyle)) {
+                    type=nextType;
+                    style=nextStyle;
+                }
+            }
+        }
+    }
+    return g_originalPlaceTree(x,y,type,style,dir,objectData,onlyCheck,forcedRandom,method);
+}
+
+bool setupNativeTreePlantingHook() {
+    if(g_treePlantHooked)return true;
+    auto& a=il2cpp::api();
+    if(sizeof(void*)!=8||!a.method_is_instance||!a.method_get_param_count||
+       !a.method_get_param||!a.method_get_return_type||!a.class_from_il2cpp_type||
+       !a.class_is_valuetype||!a.class_value_size||!a.type_get_name||
+       !a.il2cpp_free)return false;
+    auto* object=il2cpp::findClass({"Terraria","TileObject",{}});
+    const auto* method=object?a.class_get_method_from_name(object,"CanPlace",8):nullptr;
+    if(!method||a.method_is_instance(method)||a.method_get_param_count(method)!=8||
+       !paramIs(method,0,"System.Int32",true)||
+       !paramIs(method,1,"System.Int32",true)||
+       !paramIs(method,2,"System.Int32",true)||
+       !paramIs(method,3,"System.Int32",true)||
+       !paramIs(method,4,"System.Int32",true)||
+       !paramIs(method,5,"Terraria.TileObject&",true)||
+       !paramIs(method,6,"System.Boolean",true)||
+       !paramIs(method,7,"System.Nullable",false)||
+       !il2cpp::methodPointer(method))return false;
+    const auto* nullableType=a.method_get_param(method,7);
+    char* nullableName=a.type_get_name(nullableType);
+    const bool isNullableInt=nullableName&&
+        std::strstr(nullableName,"System.Int32")!=nullptr;
+    if(nullableName)std::free(nullableName);
+    auto* nullableClass=a.class_from_il2cpp_type(nullableType);
+    uint32_t alignment=0;
+    if(!isNullableInt||!nullableClass||!a.class_is_valuetype(nullableClass)||
+       a.class_value_size(nullableClass,&alignment)!=8)return false;
+    char* result=a.type_get_name(a.method_get_return_type(method));
+    const bool returnsBool=result&&std::strcmp(result,"System.Boolean")==0;
+    if(result)std::free(result);
+    if(!returnsBool||!hook::install(method,hkPlaceModTreeSapling,&g_originalPlaceTree))
+        return false;
+    g_treePlantHooked=true;
+    return true;
+}
+
 using TreeDropsFn=void (*)(int32_t,int32_t,uint32_t,bool*,bool*,int32_t*,int32_t*,const MethodInfo*);
 TreeDropsFn g_originalTreeDrops=nullptr;
 bool g_treeDropsHooked=false;
@@ -315,6 +381,18 @@ bool configureModTreeDrops(int groundType,int woodItem,bool allowAcorn) {
     if((woodItem>=0||!allowAcorn)&&!prepareModTreeDrops(!allowAcorn))return false;
     tree->woodItem.store(woodItem,std::memory_order_release);
     tree->allowAcorn.store(allowAcorn,std::memory_order_release);
+    return true;
+}
+
+bool prepareModTreePlanting() {
+    return setupNativeTreePlantingHook();
+}
+
+bool configureModTreeSapling(int groundType,int saplingType) {
+    Tree* tree=const_cast<Tree*>(treeOfGround(groundType));
+    if(!tree||!bl::csharp::tree_plant::valid(groundType,saplingType)||
+       !g_treePlantHooked)return false;
+    tree->saplingType.store(saplingType,std::memory_order_release);
     return true;
 }
 

@@ -34,6 +34,10 @@ treeTextures="${RUNNER_TEMP:-/tmp}/bunny-world-tree-texture"
 treeDrops="${RUNNER_TEMP:-/tmp}/bunny-world-tree-drops"
 "${CXX:-g++}" -std=c++20 -Wall -Wextra -Werror -DBL_HAVE_QUICKJS=0 -I app/src/main/cpp tests/world_loaders/tree_drop_policy_test.cpp -o "$treeDrops"
 "$treeDrops"
+treePlant="${RUNNER_TEMP:-/tmp}/bunny-world-tree-plant"
+"${CXX:-g++}" -std=c++20 -Wall -Wextra -Werror -DBL_HAVE_QUICKJS=0 -I app/src/main/cpp tests/world_loaders/tree_plant_policy_test.cpp -o "$treePlant"
+"$treePlant"
+"${CXX:-g++}" -std=c++20 -Wall -Wextra -Werror -fsyntax-only -DBL_HAVE_QUICKJS=0 -I tests/basic_items/include -I app/src/main/cpp app/src/main/cpp/content/tiles/ModTrees.cpp
 
 shape_test="${RUNNER_TEMP:-/tmp}/bunny-world-tile-shapes"
 "${CXX:-g++}" -std=c++20 -Wall -Wextra -Werror -DBL_HAVE_QUICKJS=0 -I app/src/main/cpp tests/world_loaders/tile_shape_policy_test.cpp -o "$shape_test"

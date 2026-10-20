@@ -2500,9 +2500,12 @@ bool publishManagedNativeTrees(const std::string& modId,const std::string& direc
     });
     if(needsDrops&&!runtime::prepareModTreeDrops(needsAcorns))
         return fail("BindTreeDrops","MissingNativeDropsOrAcornABI");
+    if(!runtime::prepareModTreePlanting())
+        return fail("BindSaplingPlanting","MissingTileObjectCanPlaceABI");
     std::map<int,bool> uniqueGround;
     struct Ready {
         int ground=-1;
+        int sapling=-1;
         std::array<std::string,3> paths;
         Il2CppObject* trunk=nullptr;
         Il2CppObject* top=nullptr;
@@ -2522,7 +2525,7 @@ bool publishManagedNativeTrees(const std::string& modId,const std::string& direc
             if(path.empty()||!fileExists(path))
                 return fail("Files","MissingTreeTexture:"+tree.name);
         }
-        ready.push_back({ground,files,nullptr,nullptr,nullptr});
+        ready.push_back({ground,sapling,files,nullptr,nullptr,nullptr});
     }
     for(size_t i=0;i<ready.size();++i) {
         auto& tree=ready[i];
@@ -2565,6 +2568,7 @@ bool publishManagedNativeTrees(const std::string& modId,const std::string& direc
     for(size_t i=0;i<ready.size();++i) {
         const int style=static_cast<int>(originalTop->length+i);
         if(!runtime::registerModTreeChecked(ready[i].ground,ready[i].trunk,style)||
+           !runtime::configureModTreeSapling(ready[i].ground,ready[i].sapling)||
            !runtime::configureModTreeDrops(ready[i].ground,trees[i].woodItemType,
                                             trees[i].canDropAcorn))
             return fail("Publish","TreeRegistrationOrDropsFailed:"+trees[i].name);
