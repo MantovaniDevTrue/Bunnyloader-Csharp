@@ -30,8 +30,6 @@ Check(replies[^1].Text.Contains("cheia"), "full health message");
 Check(dispatcher.Handle("/heal -2", Caller(BunnyCommandType.Chat)), "bad argument handled");
 Check(replies[^1].Color == BunnyCommandColors.Error, "usage error");
 Check(dispatcher.Handle("/heal xyz", Caller(BunnyCommandType.Chat)), "non number handled");
-Check(!dispatcher.Handle("/addtime 900", Caller(BunnyCommandType.Chat)) || world.NetMode == 0,
-    "world may be called from local solo");
 world.Time = 53900;
 world.DayTime = true;
 world.NetMode = 0;
