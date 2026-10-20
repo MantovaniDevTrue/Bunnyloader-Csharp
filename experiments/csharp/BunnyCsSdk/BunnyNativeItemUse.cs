@@ -10,6 +10,11 @@ public static class BunnyNativeItemUse
         !string.IsNullOrWhiteSpace(itemName) &&
         Native.Bind(worldSession, modId, itemName) == 1;
 
+    public static bool IsReady(long worldSession, string modId, string itemName) =>
+        worldSession > 0 && !string.IsNullOrWhiteSpace(modId) &&
+        !string.IsNullOrWhiteSpace(itemName) &&
+        Native.Ready(worldSession, modId, itemName) == 1;
+
     public static bool TryPoll(long worldSession, string modId, string itemName,
         out int playerIndex)
     {
@@ -25,6 +30,12 @@ public static class BunnyNativeItemUse
         [DllImport("bunny", EntryPoint = "bunny_item_use_bind",
             CallingConvention = CallingConvention.Cdecl)]
         internal static extern int Bind(long session,
+            [MarshalAs(UnmanagedType.LPUTF8Str)] string mod,
+            [MarshalAs(UnmanagedType.LPUTF8Str)] string name);
+
+        [DllImport("bunny", EntryPoint = "bunny_item_use_ready",
+            CallingConvention = CallingConvention.Cdecl)]
+        internal static extern int Ready(long session,
             [MarshalAs(UnmanagedType.LPUTF8Str)] string mod,
             [MarshalAs(UnmanagedType.LPUTF8Str)] string name);
 
