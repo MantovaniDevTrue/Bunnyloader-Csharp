@@ -100,6 +100,33 @@ int main() {
     assert(queue.consume(0,5,770,332,1,2,&result));
     assert(result.state.active==0 && result.state.scale==0.f);
     queue.resetWorld();
+    auto aging = sample(892, 353, 4);
+    assert(queue.offer(0,1,aging,61));
+    assert(queue.offer(0,3,aging,61));
+    ManagedDustMailbox::Request inFlight{};
+    assert(queue.take(&inFlight,1)==1 && inFlight.phase==1);
+    assert(queue.current(inFlight));
+    auto dead = aging;
+    dead.active = 0;
+    dead.scale = 0;
+    assert(queue.offer(0,5,dead,62));
+    assert(!queue.current(inFlight));
+    assert(!queue.complete(inFlight,inFlight.state,1u | 32u));
+    assert(!queue.offer(0,1,aging,62));
+    assert(!queue.offer(0,3,aging,63));
+    ManagedDustMailbox::Request remaining[2]{};
+    assert(queue.take(remaining,2)==1);
+    assert(remaining[0].phase==5 && remaining[0].state.active==0);
+    assert(queue.current(remaining[0]));
+    queue.discard(remaining[0]);
+    assert(queue.offer(0,1,sample(892,353,5),63));
+    assert(queue.take(&inFlight,1)==1 && inFlight.state.generation==5);
+    assert(queue.current(inFlight));
+    queue.resetWorld();
+    assert(!queue.current(inFlight));
+    assert(!queue.complete(inFlight,inFlight.state,1u | 32u));
+    assert(queue.offer(0,1,aging,1));
+    queue.resetWorld();
     for(const auto& request:batch)
         assert(!queue.complete(request,request.state,1u | 32u));
 }
