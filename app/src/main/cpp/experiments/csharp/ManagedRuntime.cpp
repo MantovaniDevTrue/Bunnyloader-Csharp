@@ -2,6 +2,8 @@
 #include "experiments/csharp/UniversalHookMailbox.h"
 #include "experiments/csharp/UniversalHooks.h"
 #include "experiments/csharp/ManagedRuntime.h"
+#include "experiments/csharp/NativeCommandMailbox.h"
+#include "experiments/csharp/NativeCommandResult.h"
 #include "graphics/ScreenScene.h"
 #include "experiments/csharp/ManagedVisualMonoPump.h"
 #include "experiments/csharp/ManagedVisualState.h"
@@ -292,6 +294,16 @@ std::deque<RecipeRpcJob> g_recipeRpcQueue;
 std::condition_variable g_recipeRpcWake;
 void* g_recipeDispatchMethod=nullptr;
 std::atomic<bool> g_recipeRuntimeReady{false};
+
+struct ManagedCommandBinding {
+    std::string modId;
+    std::string assembly;
+    bool registered = false;
+    int failures = 0;
+};
+std::vector<ManagedCommandBinding> g_commandBindings;
+void* g_commandRegisterMethod = nullptr;
+void* g_commandExecuteMethod = nullptr;
 
 
 struct SceneLightBinding {
