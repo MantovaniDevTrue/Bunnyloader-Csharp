@@ -216,8 +216,9 @@ int managedItemPrefixWarmupState(const std::string&,const std::string&,const std
 bool invokeManagedItemPrefixDecision(const std::string& mod,const std::string& assembly,
     const std::string& owner,int index,int kind,const std::string& snapshot,
     std::string* output,int budget) {
-    assert(mod=="test" && assembly=="/tmp/prefix-fixture.dll" &&
-           (owner=="TestWand" || owner=="TestCharm" || owner=="TestGlobal") &&
+    assert((mod=="test" || mod=="alt") && assembly=="/tmp/prefix-fixture.dll" &&
+           (owner=="TestWand" || owner=="TestCharm" || owner=="TestGlobal" ||
+            owner=="TestGlobal2") &&
            (kind==3 || kind==4 || kind==5) &&
            ((kind==3 && index==0) || (kind==4 && index>=1 && index<=2) ||
             (kind==5 && index>=1 && index<=255)) &&
@@ -225,16 +226,18 @@ bool invokeManagedItemPrefixDecision(const std::string& mod,const std::string& a
     ++itemDecisionCalls;
     if(itemWorkerFails)return false;
     if(kind==3) *output=std::to_string(itemChoice);
-    if(kind==4) *output=itemChance<0?"N":itemChance==0?"0":"1";
-    if(kind==5) *output=std::to_string(itemPostDamage)+","+
-                         std::to_string(itemPostValue);
+    if(kind==4) *output=owner=="TestGlobal2" ? "0" :
+        itemChance<0?"N":itemChance==0?"0":"1";
+    if(kind==5) *output=owner=="TestGlobal2" ? "1,3" :
+        std::to_string(itemPostDamage)+","+std::to_string(itemPostValue);
     return true;
 }
 bool invokeManagedItemPrefixBatch(const std::string& mod,const std::string& assembly,
     const std::string& owner,const std::string& snapshot,size_t count,
     std::string* response,int budget) {
-    assert(mod=="test" && assembly=="/tmp/prefix-fixture.dll" &&
-           (owner=="TestWand" || owner=="TestCharm" || owner=="TestGlobal") &&
+    assert((mod=="test" || mod=="alt") && assembly=="/tmp/prefix-fixture.dll" &&
+           (owner=="TestWand" || owner=="TestCharm" || owner=="TestGlobal" ||
+            owner=="TestGlobal2") &&
            count>=1 && count<=128 && budget>0 && budget<=650);
     const auto pos=snapshot.find('|');
     assert(pos!=std::string::npos && snapshot.size()-pos-1==count*2);
@@ -243,20 +246,23 @@ bool invokeManagedItemPrefixBatch(const std::string& mod,const std::string& asse
     response->clear();
     for(size_t i=0;i<count;++i) {
         const int value=std::stoi(snapshot.substr(pos+1+i*2,2),nullptr,16);
-        response->push_back(value==(owner=="TestGlobal"?80:itemWorkerDenied)?'0':'1');
+        response->push_back(value==(owner=="TestGlobal"?80:
+                                       owner=="TestGlobal2"?81:itemWorkerDenied)?'0':'1');
     }
     return true;
 }
 bool invokeManagedItemPrefix(const std::string& mod,const std::string& assembly,
                              const std::string& owner,int prefix,const std::string& snapshot,
                              std::string* result,int budget) {
-    assert(mod=="test" && assembly=="/tmp/prefix-fixture.dll" &&
-           (owner=="TestWand" || owner=="TestCharm" || owner=="TestGlobal") && prefix>=1 && prefix<=255 &&
+    assert((mod=="test" || mod=="alt") && assembly=="/tmp/prefix-fixture.dll" &&
+           (owner=="TestWand" || owner=="TestCharm" || owner=="TestGlobal" ||
+            owner=="TestGlobal2") && prefix>=1 && prefix<=255 &&
            (snapshot.rfind("6199,",0)==0 || snapshot.rfind("6196,",0)==0) &&
            budget>0 && budget<=650);
     ++itemWorkerCalls;
     if (itemWorkerFails) return false;
-    *result=prefix==(owner=="TestGlobal"?80:itemWorkerDenied) ? "0" : "1";
+    *result=prefix==(owner=="TestGlobal"?80:
+                             owner=="TestGlobal2"?81:itemWorkerDenied)?"0":"1";
     return true;
 }
 std::shared_ptr<const std::map<std::string,std::string>> managedPrefixCallbackAssemblies() {
@@ -1288,14 +1294,17 @@ int main() {
     itemCallbackView=std::make_shared<const std::map<int,ManagedItemPrefixCallbackBinding>>();
     itemCallbackAssemblies=std::make_shared<const std::map<std::string,std::string>>();
     globalView=std::make_shared<const std::vector<ManagedGlobalPrefixCallbackBinding>>(
-        std::vector<ManagedGlobalPrefixCallbackBinding>{{"test","TestGlobal",15}});
+        std::vector<ManagedGlobalPrefixCallbackBinding>{{"test","TestGlobal",15},
+            {"alt","TestGlobal2",15}});
     itemCallbackAssemblies=std::make_shared<const std::map<std::string,std::string>>(
-        std::map<std::string,std::string>{{"test","/tmp/prefix-fixture.dll"}});
+        std::map<std::string,std::string>{{"test","/tmp/prefix-fixture.dll"},
+                                          {"alt","/tmp/prefix-fixture.dll"}});
     itemWorkerWarmup=1;
     {
         PrefixRpcScope scope;
         assert(!globalsAllowPrefix(&weapon.object,80));
         assert(globalsAllowPrefix(&weapon.object,79));
+        assert(!globalsAllowPrefix(&weapon.object,81));
         assert(globalChoosePrefix(&weapon.object)==-1);
         itemChoice=73;
         assert(globalChoosePrefix(&weapon.object)==73);
@@ -1306,8 +1315,8 @@ int main() {
         itemPostDamage=2;
         itemPostValue=5;
         globalPrefixBonuses(&weapon.object,73,&damage,&value);
-        assert(damage==2 && value==5);
-        assert(globalPrefixChance(&weapon.object,1)==-1);
+        assert(damage==3 && value==8);
+        assert(globalPrefixChance(&weapon.object,1)==0);
     }
     globalView=std::make_shared<const std::vector<ManagedGlobalPrefixCallbackBinding>>();
     itemCallbackAssemblies=std::make_shared<const std::map<std::string,std::string>>();
