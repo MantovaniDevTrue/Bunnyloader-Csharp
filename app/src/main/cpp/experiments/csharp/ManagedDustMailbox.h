@@ -3,6 +3,7 @@
 #include "experiments/csharp/ManagedDustContract.h"
 
 #include <algorithm>
+#include <atomic>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -112,6 +113,7 @@ public:
                   std::uint32_t flags) {
         std::lock_guard<std::mutex> lock(mutex_);
         if (request.session != session_ || request.phase < 0 || request.phase > 5 ||
+            !managedDustStateValid(request.state) ||
             !currentLocked(request) || !managedDustStateValid(state) ||
             !managedDustSameInstance(request.state, state) ||
             (flags & ~63u) != 0u ||
@@ -179,8 +181,7 @@ public:
     }
 
     std::uint64_t drops() const {
-        std::lock_guard<std::mutex> lock(mutex_);
-        return drops_;
+        return drops_.load(std::memory_order_relaxed);
     }
 
 private:
@@ -211,7 +212,7 @@ private:
 
     mutable std::mutex mutex_;
     std::uint64_t session_ = 1;
-    std::uint64_t drops_ = 0;
+    std::atomic<std::uint64_t> drops_{0};
     std::array<Slot, kSlots * kPhases> slots_{};
     std::array<std::int32_t, kSlots> retired_{};
     std::deque<Request> requests_;
