@@ -91,6 +91,8 @@ struct DustPoolStats {
     int64_t updateNs = 0, drawNs = 0, jsNs = 0;
     int64_t updates = 0, draws = 0;
     int64_t groupPasses = 0, groupDusts = 0;   // passadas de textura propria e poeiras nelas
+    int64_t managedSyncAttempts = 0, managedSyncReady = 0, managedSyncMissed = 0;
+    int64_t managedSyncWaitNs = 0;
 };
 DustPoolStats dustPoolStats();
 
