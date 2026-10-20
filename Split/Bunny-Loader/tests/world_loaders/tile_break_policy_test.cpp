@@ -22,7 +22,8 @@ int main() {
     assert(validCallbackMask(1<<25));
     assert(validCallbackMask(1<<26));
     assert(validCallbackMask(1<<27));
-    assert(!validCallbackMask(1<<28));
+    assert(validCallbackMask(1<<28));
+    assert(!validCallbackMask(1<<29));
     assert(validCallbackMask((1<<13)|(1<<14)|(1<<15)));
     assert(validCallbackMask(1<<5));
     assert(validCallbackMask(1<<6));
