@@ -40,7 +40,26 @@ public static class BunnyLocalizationRuntime
     [ThreadStatic]
     private static BunnyLocalizationCatalog? activeRegistrations;
 
-    public static string ActiveCultureName => activeCulture ?? "";
+    public static string ActiveCultureName
+    {
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        get
+        {
+            if (activeCulture != null) return activeCulture;
+            Assembly caller = Assembly.GetCallingAssembly();
+            lock (Gate)
+            {
+                string? culture = null;
+                foreach (ModState state in Mods.Values)
+                {
+                    if (!ReferenceEquals(state.Assembly, caller)) continue;
+                    if (culture != null && culture != state.Culture) return "";
+                    culture = state.Culture;
+                }
+                return culture ?? "";
+            }
+        }
+    }
 
     private static void ValidateRegistrationOwner(string key, string modId)
     {
