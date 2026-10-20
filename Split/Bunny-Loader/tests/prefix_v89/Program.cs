@@ -322,7 +322,7 @@ try
         "prefix-fixture", args[0], "TestMightyPrefix", 0, 4, "6207,18,4,1,98,1") != "0,0")
         throw new InvalidOperationException("Managed prefix dynamic Apply low-damage outcome failed");
     if (!BunnyLoader.Source.BunnyPrefixRuntime.Dispatch(
-        "prefix-fixture", args[0], "TestGuardedPrefix", 0, 5, validItem).StartsWith("ERROR|"))
+        "prefix-fixture", args[0], "TestGuardedPrefix", 0, 6, validItem).StartsWith("ERROR|"))
         throw new InvalidOperationException("Unsupported prefix callback kind accepted");
     Console.WriteLine("BUNNY_CSHARP_PREFIX_NATIVE_CONTRACT=PASS prefixes=3 callbacks=5 content=2 managed_worker=ready");
 }
