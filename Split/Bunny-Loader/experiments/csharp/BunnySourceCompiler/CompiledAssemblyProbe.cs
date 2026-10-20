@@ -107,6 +107,12 @@ public static class CompiledAssemblyProbe
             var accessoryTypes = contentTypes
                 .Where(type => IsContentType(type, "BunnyAccessory"))
                 .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
+            var globalItemTypes = contentTypes
+                .Where(type => type.IsClass && !type.IsAbstract &&
+                    !type.ContainsGenericParameters &&
+                    Ancestors(type).Any(ancestor =>
+                        ancestor.FullName == "BunnyLoader.Source.BunnyGlobalItem"))
+                .OrderBy(type => type.FullName, StringComparer.Ordinal).ToArray();
             var playerTypes = contentTypes
                 .Where(type => IsContentType(type, "BunnyPlayer"))
                 .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
@@ -122,9 +128,10 @@ public static class CompiledAssemblyProbe
             if (tileTypes.Length > 4096 || prefixTypes.Length > 4096 || npcTypes.Length > 4096 || accessoryTypes.Length > 4096 || playerTypes.Length > 4096 ||
                 projectileTypes.Length > 4096 ||
                 weaponTypes.Length > 4096 || basicItemTypes.Length > 4096 ||
-                buffTypes.Length > 4096 || potionTypes.Length > 4096 || screenEffectTypes.Length > 4096)
+                buffTypes.Length > 4096 || potionTypes.Length > 4096 || screenEffectTypes.Length > 4096 ||
+                globalItemTypes.Length > 128)
                 throw new InvalidOperationException("C# content class count out of bounds");
-            if (tileTypes.Length + basicItemTypes.Length + projectileTypes.Length + weaponTypes.Length + buffTypes.Length + potionTypes.Length + accessoryTypes.Length + playerTypes.Length + npcTypes.Length + prefixTypes.Length + screenEffectTypes.Length == 0)
+            if (tileTypes.Length + basicItemTypes.Length + projectileTypes.Length + weaponTypes.Length + buffTypes.Length + potionTypes.Length + accessoryTypes.Length + playerTypes.Length + npcTypes.Length + prefixTypes.Length + screenEffectTypes.Length + globalItemTypes.Length == 0)
                 throw new InvalidOperationException("C# assembly has no supported content types");
             bool fixture = projectileTypes.Any(t => t.FullName == "SourceCSharpMod.SourceBolt") &&
                 weaponTypes.Any(t => t.FullName == "SourceCSharpMod.SourceWand");
@@ -141,6 +148,9 @@ public static class CompiledAssemblyProbe
             object[] buffs = buffTypes.Select(CreateContent).ToArray();
             object[] potions = potionTypes.Select(CreateContent).ToArray();
             object[] accessories = accessoryTypes.Select(CreateContent).ToArray();
+            object[] globalItems = globalItemTypes.Select(type =>
+                Activator.CreateInstance(type) ??
+                throw new InvalidOperationException("Global item constructor failed: " + type.Name)).ToArray();
             object[] players = playerTypes.Select(CreateContent).ToArray();
             object[] npcs = npcTypes.Select(CreateContent).ToArray();
             object[] prefixes = prefixTypes.Select(CreateContent).ToArray();
@@ -153,7 +163,7 @@ public static class CompiledAssemblyProbe
                     throw new InvalidOperationException(effect.GetType().FullName + ": exactly one ShaderFile or PipelineFile required");
             }
             WriteRuntimeDefaults(projectiles, weapons, buffs, potions,
-                accessories, players, npcs, prefixes, basicItems, tiles, diagnosticsPath);
+                accessories, players, npcs, prefixes, basicItems, tiles, globalItems, diagnosticsPath);
             WriteProjectileMotionPolicies(assembly, projectileTypes, diagnosticsPath);
             WriteAutomaticCombatPolicies(projectiles, diagnosticsPath);
             if (fixture)
@@ -175,7 +185,8 @@ public static class CompiledAssemblyProbe
                     ? " projectile=SourceBolt width=10 weapon=SourceWand damage=22 shoot=SourceBolt"
                     : " policy=generic-managed-defaults"));
             return projectiles.Length + weapons.Length + buffs.Length + potions.Length +
-                accessories.Length + players.Length + npcs.Length + prefixes.Length + basicItems.Length + tiles.Length + screenEffects.Length;
+                accessories.Length + players.Length + npcs.Length + prefixes.Length +
+                basicItems.Length + tiles.Length + screenEffects.Length + globalItems.Length;
         }
         catch (Exception exception)
         {
@@ -514,7 +525,7 @@ public static class CompiledAssemblyProbe
     private static void WriteRuntimeDefaults(object[] projectiles, object[] weapons,
         object[] buffs, object[] potions, object[] accessories,
         object[] players, object[] npcs, object[] prefixes, object[] basicItems,
-        object[] tiles, string diagnosticsPath)
+        object[] tiles, object[] globalItems, string diagnosticsPath)
     {
         static T Value<T>(object instance, string name) =>
             (T)(instance.GetType().GetProperty(name)?.GetValue(instance)
@@ -1145,6 +1156,37 @@ public static class CompiledAssemblyProbe
                 ?? throw new InvalidOperationException("BunnyItemPrefixRules stack choice serialization missing"));
             if (stackChoice.Length != 0)
                 lines.Add(string.Join("\t", "PREFIX_CHOOSE_STACK", item.GetType().Name, stackChoice));
+        }
+        foreach (object global in globalItems)
+        {
+            Type globalType = global.GetType();
+            CheckName(globalType.Name);
+            if (!names.Add("GLOBAL_PREFIX:" + globalType.Name))
+                throw new InvalidOperationException("Duplicate BunnyGlobalItem: " + globalType.Name);
+            var snapshot = Ancestors(globalType)
+                .Select(ancestor => ancestor.Assembly.GetType("BunnyLoader.Source.BunnyPrefixItemSnapshot"))
+                .First(type => type != null)!;
+            var effect = Ancestors(globalType)
+                .Select(ancestor => ancestor.Assembly.GetType("BunnyLoader.Source.BunnyPrefixApplyStats"))
+                .First(type => type != null)!;
+            var methods = new (string Name, Type[] Parameters)[] {
+                ("AllowPrefix", new[] { snapshot, typeof(int) }),
+                ("ChoosePrefix", new[] { snapshot }),
+                ("DecidePrefixChance", new[] { snapshot, typeof(int) }),
+                ("ApplyPrefix", new[] { snapshot, typeof(int), effect.MakeByRefType() })
+            };
+            int mask = 0;
+            for (int i=0;i<methods.Length;++i)
+            {
+                var spec=methods[i];
+                MethodInfo method=globalType.GetMethod(spec.Name, spec.Parameters)
+                    ?? throw new InvalidOperationException("Invalid global prefix callback: " + spec.Name);
+                if (method.DeclaringType?.Assembly == globalType.Assembly)
+                    mask |= 1 << i;
+            }
+            if (mask!=0)
+                lines.Add(string.Join("\t", "GLOBAL_PREFIX_CALLBACK", globalType.Name,
+                    mask.ToString(CultureInfo.InvariantCulture)));
         }
         foreach (var item in basicItems.Concat(weapons).Concat(potions).Concat(accessories))
         {
