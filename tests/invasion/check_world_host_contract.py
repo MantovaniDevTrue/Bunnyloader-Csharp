@@ -8,12 +8,12 @@ mailbox = (root / "app/src/main/cpp/experiments/csharp/NativeInvasionMailbox.cpp
 
 start = auto.index("bool worldPlayerReady()")
 world_ready = auto[start:start + 3200]
-assert "if (!worldIsAuthoritative(mode)) return false;" in world_ready
+assert "if (mode < 0 || mode > 3) return false;" in world_ready
 assert "if (mode != 0) return false;" not in world_ready
 
 assert "pumpNativeInvasionSpawnsOnGameThread();" in auto
 assert "setNativeInvasionWorldState(false, g_worldEpoch.load(" in auto
-assert "scheduleManagedInvasionWorldTicks(worldSession, bl::runtime::netMode()," in auto
+assert "scheduleManagedInvasionWorldTicks(worldSession, mode," in auto
 assert "if (++invasionFrames % 30 == 0" in auto
 assert "captureTerrariaSnapshot(false, false)" in auto
 assert "g_entityWorldTick = g_api.findMethod(klass, \"TickWorld\", 7);" in managed
