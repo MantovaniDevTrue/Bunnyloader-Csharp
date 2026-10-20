@@ -86,6 +86,22 @@ try
     if (declaredFish != "1" || declaredWrongOwner != "0")
         throw new InvalidOperationException("Inherited quest declaration was not honored by Mono: "+
             string.Join(";",declaredFish,declaredWrongOwner));
+    string otherMod = BunnyLoader.Source.BunnyRecipeRuntime.Dispatch(
+        "other_angler_mod", assembly+"|bunny-revision=1",
+        "DynamicQuestFish", 0, 4, "1,950");
+    string newestMod = BunnyLoader.Source.BunnyRecipeRuntime.Dispatch(
+        "angler_host_fixture", assembly+"|bunny-revision=4",
+        "AttributedQuestFish", 0, 5, "1,1,2,954");
+    if(otherMod!="1"||newestMod!="1")
+        throw new InvalidOperationException("Quest assembly revision or separate mod failed");
+    var handles=typeof(BunnyLoader.Source.BunnyQuestRuntime).GetField(
+        "handlers", BindingFlags.Static|BindingFlags.NonPublic)?.GetValue(null)
+        as System.Collections.IDictionary;
+    if(handles==null||handles.Count!=2||
+        !handles.Contains("angler_host_fixture\nAttributedQuestFish")||
+        !handles.Contains("other_angler_mod\nDynamicQuestFish")||
+        handles.Contains("angler_host_fixture\nDynamicQuestFish"))
+        throw new InvalidOperationException("Stale quest delegates retained after managed assembly rebind");
     Console.WriteLine("ANGLER_QUEST_COMPILED_ASSEMBLY_OK");
 }
 finally
