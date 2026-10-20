@@ -74,5 +74,19 @@ int main() {
     world.set(90, 99, 1);
     placement = findInvasionSpawnSite(world.view(), 90 * 16, 80 * 16);
     assert(placement.valid && placement.x == 82 * 16);
+
+    world.set(90, 99, 0);
+    int tested = 0;
+    placement = bl::csharp::findInvasionSpawnSiteChecked(
+        world.view(), 90 * 16, 80 * 16,
+        [&](int x, int) {
+            ++tested;
+            return x != 90 * 16;
+        });
+    assert(placement.valid && placement.x == 82 * 16 && tested >= 2);
+    placement = bl::csharp::findInvasionSpawnSiteChecked(
+        world.view(), 90 * 16, 80 * 16,
+        [](int, int) { return false; });
+    assert(!placement.valid);
     return 0;
 }
