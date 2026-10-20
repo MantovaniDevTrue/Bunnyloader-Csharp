@@ -18,6 +18,7 @@ public enum BunnyQuestCatchRules
 public sealed class BunnyQuestContext
 {
     public int FishType { get; internal set; }
+    public int PlayerIndex { get; internal set; } = -1;
     public bool Hardmode { get; internal set; }
     public bool InvertedGravity { get; internal set; }
     public bool Uncommon { get; internal set; }
