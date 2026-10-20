@@ -838,7 +838,7 @@ public sealed class MinionStaff : BunnyWeapon
     string legacyPost = BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-postonly-tile",
         tileSmokeAssembly, nameof(TilePostOnlySmoke), 13, 0,
         "3,4,0,0,16,16,0,0,0,0,0");
-    if (legacyPost != "ERROR|Stage=DecodeTileDraw Reason=PostDrawRequiresTileType")
+    if (legacyPost != "ERROR|Stage=DecodeTileDraw Reason=VisualCallbacksRequireTileType")
         throw new InvalidOperationException("PostDraw without native type: "+legacyPost);
     string both = BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-prepost-tile",
         tileSmokeAssembly, nameof(TilePrePostSmoke), 13, 0,
