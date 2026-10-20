@@ -7,7 +7,11 @@
 
 namespace bl::csharp {
 
+#if defined(BUNNY_CSHARP_DUST_PREVIEW) && BUNNY_CSHARP_DUST_PREVIEW == 1
+inline constexpr bool managedDustCallbacksConnected() noexcept { return true; }
+#else
 inline constexpr bool managedDustCallbacksConnected() noexcept { return false; }
+#endif
 
 enum ManagedDustHook : std::uint32_t {
     DustOnSpawn = 1u,
