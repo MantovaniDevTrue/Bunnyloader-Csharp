@@ -2088,6 +2088,34 @@ void* pinnedMonoWorker(void*) {
 }
 
 
+bool bindManagedCommandMod(const std::string& modId,
+                           const std::string& assemblyPath, std::string* error) {
+    if (!error) return false;
+    error->clear();
+    if (modId.empty() || modId.size() > 64 ||
+        !validAssembly(assemblyPath)) {
+        *error = "ModCommand: mod ou assembly invalidos";
+        return false;
+    }
+    std::lock_guard<std::mutex> lock(g_pinnedMutex);
+    if (g_commandBindings.size() >= 128) {
+        *error = "ModCommand: limite de 128 mods";
+        return false;
+    }
+    for (const auto& binding : g_commandBindings)
+        if (binding.modId == modId) {
+            *error = "ModCommand: mod ja vinculado ao MonoVM";
+            return false;
+        }
+    g_commandBindings.push_back({modId, assemblyPath});
+    g_pinnedWake.notify_one();
+    return true;
+}
+
+void notifyManagedCommandWorker() {
+    g_pinnedWake.notify_one();
+}
+
 bool registerManagedScreenSceneMod(const std::string& id,
                                    const std::string& assembly,
                                    const std::string& nameSpace,
