@@ -160,7 +160,7 @@ bool findContracts() {
     g_netMode = il2cpp::findField(main, "netMode");
     if (!staticField(g_netMode) ||
         !typeName(a.field_get_type(g_netMode), "System.Int32"))
-        g_netMode = nullptr;
+        return false;
     g_chatCorner = il2cpp::findField(main, "npcChatCornerItem");
     g_questFlag = il2cpp::findField(sets, "IsQuestFish");
     g_weaponRackFlag = il2cpp::findField(sets, "CanBePlacedOnWeaponRacks");
@@ -196,11 +196,9 @@ bool findContracts() {
         g_originalSwap(mi);
         if (g_active.empty()) return;
         auto& api = il2cpp::api();
-        if (g_netMode) {
-            int32_t mode = 0;
-            api.field_static_get_value(g_netMode, &mode);
-            if ((mode & 1) != 0 && (mode & 2) == 0) return;
-        }
+        int32_t mode = 0;
+        api.field_static_get_value(g_netMode, &mode);
+        if ((mode & 1) != 0 && (mode & 2) == 0) return;
         uint8_t finished = 0, hardmode = 0;
         if (!g_questFinished || !g_hardMode) return;
         api.field_static_get_value(g_questFinished, &finished);
