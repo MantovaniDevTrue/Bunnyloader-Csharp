@@ -873,7 +873,8 @@ public static class CompiledAssemblyProbe
             if (!names.Add("PREFIX:" + name))
                 throw new InvalidOperationException("Duplicate managed prefix: " + name);
             int callbackMask = 0;
-            foreach (var (methodName, bit) in new[] { ("CanRoll", 1), ("RollChance", 2) })
+            foreach (var (methodName, bit) in new[] { ("CanRoll", 1), ("RollChance", 2),
+                ("AllStatChangesHaveEffectOn", 4) })
             {
                 MethodInfo callback = type.GetMethod(methodName,
                     BindingFlags.Public | BindingFlags.Instance,
@@ -883,6 +884,14 @@ public static class CompiledAssemblyProbe
                 if (callback.DeclaringType == type)
                     callbackMask |= bit;
             }
+            MethodInfo applySnapshot = type.GetMethod("Apply",
+                BindingFlags.Public | BindingFlags.Instance, null,
+                new[] { type.BaseType?.Assembly.GetType("BunnyLoader.Source.BunnyPrefixItemSnapshot")
+                    ?? throw new InvalidOperationException("Missing SDK prefix item snapshot"),
+                    type.BaseType?.Assembly.GetType("BunnyLoader.Source.BunnyPrefixApplyStats")?.MakeByRefType()
+                    ?? throw new InvalidOperationException("Missing SDK prefix effect struct") }, null)
+                ?? throw new InvalidOperationException("Missing prefix snapshot Apply");
+            if (applySnapshot.DeclaringType == type) callbackMask |= 8;
             if (callbackMask != 0)
                 lines.Add(string.Join("\t", "PREFIX_CALLBACK", name,
                     callbackMask.ToString(CultureInfo.InvariantCulture)));
@@ -1025,7 +1034,9 @@ public static class CompiledAssemblyProbe
                     attributeMax.ToString(CultureInfo.InvariantCulture),
                     attributeWeight.ToString(CultureInfo.InvariantCulture)));
             MethodInfo applyPrefix = type.GetMethod("Apply",
-                BindingFlags.Public | BindingFlags.Instance)
+                BindingFlags.Public | BindingFlags.Instance, null,
+                new[] { type.BaseType?.Assembly.GetType("BunnyLoader.Source.BunnyPrefixApplyStats")?.MakeByRefType()
+                    ?? throw new InvalidOperationException("Missing SDK prefix effect struct") }, null)
                 ?? throw new InvalidOperationException("Missing BunnyPrefix.Apply");
             Type effectType = applyPrefix.GetParameters().Single().ParameterType.GetElementType()
                 ?? throw new InvalidOperationException("BunnyPrefixApplyStats requires ref");

@@ -2365,7 +2365,7 @@ bool invokeManagedPrefix(const std::string& mod,const std::string& assembly,
                    (ch >= '0' && ch <= '9') || ch == '_';
         });
     };
-    if (!output || !validOwner(owner) || kind < 0 || kind > 2 ||
+    if (!output || !validOwner(owner) || kind < 0 || kind > 4 ||
         (kind == 2 ? !snapshot.empty() : snapshot.empty())) {
         if (output) *output = "ERROR|Stage=PrefixCallback Reason=InvalidArguments";
         return false;
@@ -2381,7 +2381,22 @@ bool invokeManagedPrefix(const std::string& mod,const std::string& assembly,
     }
     if (!success) return false;
     if (kind == 2) return *output == "READY";
-    if (kind == 0) return *output == "0" || *output == "1";
+    if (kind == 0 || kind == 3) return *output == "0" || *output == "1";
+    if (kind == 4) {
+        const size_t comma=output->find(',');
+        if (comma==std::string::npos || comma==0 || comma>4 ||
+            output->size()-comma-1<1 || output->size()-comma-1>6 ||
+            output->find(',',comma+1)!=std::string::npos) return false;
+        int damage=0,value=0;
+        for (size_t i=0;i<output->size();++i) {
+            const char ch=(*output)[i];
+            if (i==comma) continue;
+            if (ch<'0'||ch>'9') return false;
+            int& target=i<comma?damage:value;
+            target=target*10+ch-'0';
+        }
+        return damage<=1000 && value<=100000;
+    }
     if (output->empty() || output->size() > 2 ||
         !std::all_of(output->begin(), output->end(), [](unsigned char ch) {
             return ch >= '0' && ch <= '9';

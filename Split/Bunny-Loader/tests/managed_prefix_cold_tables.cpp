@@ -47,6 +47,7 @@ int prefixWorkerWarmup = 0;
 int prefixWorkerCalls = 0;
 int prefixWorkerCanRoll = 1;
 int prefixWorkerWeight = 7;
+int prefixWorkerEfficacy = 1;
 bool prefixWorkerFails = false;
 struct Item {
     Il2CppObject object{};
@@ -181,11 +182,13 @@ bool invokeManagedPrefix(const std::string& mod,const std::string& assembly,
                          std::string* response,int budget) {
     assert(mod=="test" && assembly=="/tmp/prefix-fixture.dll" && owner=="Mighty");
     assert(snapshot=="6199,12,0,1,0,4");
-    assert(budget>0 && budget<=650 && kind>=0 && kind<=1);
+    assert(budget>0 && budget<=650 && kind>=0 && kind<=4 && kind!=2);
     ++prefixWorkerCalls;
     if(prefixWorkerFails) return false;
     if(kind==0) *response=std::to_string(prefixWorkerCanRoll);
-    else *response=std::to_string(prefixWorkerWeight);
+    else if(kind==1) *response=std::to_string(prefixWorkerWeight);
+    else if(kind==3) *response=std::to_string(prefixWorkerEfficacy);
+    else *response="2,10";
     return true;
 }
 int managedNativeAccessoryDefense(int type) { return type == 6196 ? 7 : 0; }
@@ -976,6 +979,28 @@ int main() {
         assert(eligible(&weapon.object,livePrefix,true));
         assert(prefixWorkerCalls==6);
     }
+    prefixWorkerFails=false;
+    livePrefix.callbackMask=15;
+    prefixWorkerEfficacy=1;
+    {
+        PrefixRpcScope scope;
+        assert(queryPrefixWorker(&weapon.object,livePrefix,3)==1);
+        assert(queryPrefixWorker(&weapon.object,livePrefix,3)==1);
+        assert(prefixWorkerCalls==7);
+    }
+    prefixWorkerEfficacy=0;
+    {
+        PrefixRpcScope scope;
+        assert(queryPrefixWorker(&weapon.object,livePrefix,3)==0);
+        assert(prefixWorkerCalls==8);
+    }
+    prefixWorkerEfficacy=1;
+    int dynamicDamage=-1,dynamicValue=-1;
+    assert(queryPrefixApply(&weapon.object,livePrefix,&dynamicDamage,&dynamicValue));
+    assert(dynamicDamage==2 && dynamicValue==10 && prefixWorkerCalls==9);
+    prefixWorkerFails=true;
+    assert(!queryPrefixApply(&weapon.object,livePrefix,&dynamicDamage,&dynamicValue));
+    assert(prefixWorkerCalls==10);
     prefixWorkerFails=false;
     prefixAssemblies=std::make_shared<const std::map<std::string,std::string>>();
     const auto metrics = managedPrefixDiagnostics();

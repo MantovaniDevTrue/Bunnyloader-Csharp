@@ -15,7 +15,7 @@ try
         throw new InvalidOperationException("Expected two content types and three managed prefixes, got " + classes);
 
     var data = File.ReadAllLines(Path.Combine(temp, "source-runtime-values.txt"));
-    if (data.Length != 20 || data[0] != "BUNNY_MANAGED_DEFAULTS_V2")
+    if (data.Length != 21 || data[0] != "BUNNY_MANAGED_DEFAULTS_V2")
         throw new InvalidOperationException("Unexpected MonoVM native handoff");
 
     if (data.Count(row => row == "PREFIX_DENY\tTestWand\t71,TestMightyPrefix") != 1)
@@ -36,7 +36,9 @@ try
         throw new InvalidOperationException("Per-instance item condition descriptor missing");
     if (data.Count(row => row == "PREFIX_STACK_WEIGHT\tTestMightyPrefix\t3\t5\t6") != 1)
         throw new InvalidOperationException("Dynamic per-instance roll weight descriptor missing");
-    if (data.Count(row => row == "PREFIX_CALLBACK\tTestGuardedPrefix\t3") != 1)
+    if (data.Count(row => row == "PREFIX_CALLBACK\tTestMightyPrefix\t8") != 1)
+        throw new InvalidOperationException("Managed prefix Apply callback mask missing");
+    if (data.Count(row => row == "PREFIX_CALLBACK\tTestGuardedPrefix\t7") != 1)
         throw new InvalidOperationException("Managed prefix override mask missing");
     if (data.Count(row => row == "PREFIX_ATTRIBUTE_WEIGHT\tTestGuardedPrefix\tM\t0\t8\t4") != 1)
         throw new InvalidOperationException("Per-instance mana RollChance descriptor missing");
@@ -299,8 +301,23 @@ try
     if (!BunnyLoader.Source.BunnyPrefixRuntime.Dispatch(
         "prefix-fixture", args[0], "MissingPrefix", 0, 2, "").StartsWith("ERROR|"))
         throw new InvalidOperationException("Unknown managed prefix callback owner accepted");
+    if (BunnyLoader.Source.BunnyPrefixRuntime.Dispatch(
+        "prefix-fixture", args[0], "TestGuardedPrefix", 0, 3, validItem) != "1")
+        throw new InvalidOperationException("Managed prefix stat efficacy callback failed");
+    if (BunnyLoader.Source.BunnyPrefixRuntime.Dispatch(
+        "prefix-fixture", args[0], "TestGuardedPrefix", 0, 3, "6207,26,4,1,98,1") != "0")
+        throw new InvalidOperationException("Managed prefix stat efficacy rejection failed");
+    if (BunnyLoader.Source.BunnyPrefixRuntime.Dispatch(
+        "prefix-fixture", args[0], "TestMightyPrefix", 0, 2, "") != "READY")
+        throw new InvalidOperationException("Managed prefix Apply warmup failed");
+    if (BunnyLoader.Source.BunnyPrefixRuntime.Dispatch(
+        "prefix-fixture", args[0], "TestMightyPrefix", 0, 4, validItem) != "2,10")
+        throw new InvalidOperationException("Managed prefix dynamic Apply outcome failed");
+    if (BunnyLoader.Source.BunnyPrefixRuntime.Dispatch(
+        "prefix-fixture", args[0], "TestMightyPrefix", 0, 4, "6207,18,4,1,98,1") != "0,0")
+        throw new InvalidOperationException("Managed prefix dynamic Apply low-damage outcome failed");
     if (!BunnyLoader.Source.BunnyPrefixRuntime.Dispatch(
-        "prefix-fixture", args[0], "TestGuardedPrefix", 0, 3, validItem).StartsWith("ERROR|"))
+        "prefix-fixture", args[0], "TestGuardedPrefix", 0, 5, validItem).StartsWith("ERROR|"))
         throw new InvalidOperationException("Unsupported prefix callback kind accepted");
     Console.WriteLine("BUNNY_CSHARP_PREFIX_NATIVE_CONTRACT=PASS prefixes=3 callbacks=5 content=2 managed_worker=ready");
 }

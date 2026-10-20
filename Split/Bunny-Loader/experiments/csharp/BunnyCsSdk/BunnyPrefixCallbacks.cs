@@ -69,7 +69,7 @@ public static class BunnyPrefixRuntime
     {
         try
         {
-            if(index!=0||kind<0||kind>2||modId.Length==0||modId.Length>128||
+            if(index!=0||kind<0||kind>4||modId.Length==0||modId.Length>128||
                owner.Length==0||owner.Length>128||assemblyPath.Length==0||
                assemblyPath.Length>4096||(kind==2?!string.IsNullOrEmpty(snapshot):string.IsNullOrEmpty(snapshot)))
                 throw new ArgumentException("Invalid prefix transport arguments");
@@ -89,18 +89,33 @@ public static class BunnyPrefixRuntime
                 var type=matches[0];
                 prefix=(BunnyPrefix)Activator.CreateInstance(type)!;
                 prefix.SetDefaults();
-                foreach(string method in new[]{"CanRoll","RollChance"})
+                foreach(string method in new[]{"CanRoll","RollChance","AllStatChangesHaveEffectOn"})
                 {
                     var callback=type.GetMethod(method,new[]{typeof(BunnyPrefixItemSnapshot)});
                     if(callback==null)throw new MissingMethodException(type.FullName,method);
                     RuntimeHelpers.PrepareMethod(callback.MethodHandle);
                 }
+                var apply=type.GetMethod("Apply",new[]{typeof(BunnyPrefixItemSnapshot),
+                    typeof(BunnyPrefixApplyStats).MakeByRefType()});
+                if(apply==null)throw new MissingMethodException(type.FullName,"Apply");
+                RuntimeHelpers.PrepareMethod(apply.MethodHandle);
                 mod.Prefixes.Add(owner,prefix);
             }
 
             if(kind==2)return "READY";
             var item=ReadItem(snapshot);
             if(kind==0)return prefix.CanRoll(item)?"1":"0";
+            if(kind==3)return prefix.AllStatChangesHaveEffectOn(item)?"1":"0";
+            if(kind==4)
+            {
+                var extra=new BunnyPrefixApplyStats();
+                prefix.Apply(item,ref extra);
+                if(extra.DamageBonus<0||extra.DamageBonus>1000||
+                   extra.ValueBonus<0||extra.ValueBonus>100000)
+                    throw new ArgumentOutOfRangeException(nameof(extra));
+                return extra.DamageBonus.ToString(CultureInfo.InvariantCulture)+","+
+                    extra.ValueBonus.ToString(CultureInfo.InvariantCulture);
+            }
             int weight=prefix.RollChance(item);
             if(weight<0||weight>20)
                 throw new ArgumentOutOfRangeException(nameof(weight));

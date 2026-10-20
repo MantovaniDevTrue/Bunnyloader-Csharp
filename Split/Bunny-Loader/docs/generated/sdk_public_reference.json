@@ -1622,6 +1622,10 @@
       "values": [],
       "methods": [
         {
+          "signature": "bool AllStatChangesHaveEffectOn(BunnyPrefixItemSnapshot item)",
+          "execution": "worker_callback_opt_in"
+        },
+        {
           "signature": "bool CanRoll(BunnyPrefixItemSnapshot item)",
           "execution": "worker_callback_opt_in"
         },
@@ -1644,6 +1648,10 @@
         {
           "signature": "void AddTooltipLine(string text)",
           "execution": "compile_policy"
+        },
+        {
+          "signature": "void Apply(BunnyPrefixItemSnapshot item, ref BunnyPrefixApplyStats effects)",
+          "execution": "worker_callback_opt_in"
         },
         {
           "signature": "void Apply(ref BunnyPrefixApplyStats effects)",

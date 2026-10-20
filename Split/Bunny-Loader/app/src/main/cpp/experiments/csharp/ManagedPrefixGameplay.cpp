@@ -19,6 +19,7 @@
 #include <array>
 #include <atomic>
 #include <chrono>
+#include <charconv>
 #include <mutex>
 #include <cmath>
 #include <cstdint>
@@ -193,7 +194,7 @@ bool weaponCandidate(Il2CppObject* item, bool vanillaHasRollable) {
 struct PrefixRpcScope {
     PrefixRpcScope* previous = nullptr;
     std::chrono::steady_clock::time_point end;
-    std::array<int,256> can{}, weight{};
+    std::array<int,256> can{}, weight{}, efficacy{};
     int requests = 0;
     static thread_local PrefixRpcScope* current;
     PrefixRpcScope() {
@@ -201,6 +202,7 @@ struct PrefixRpcScope {
         if (!previous) {
             can.fill(-1);
             weight.fill(-1);
+            efficacy.fill(-1);
             end=std::chrono::steady_clock::now()+std::chrono::microseconds(2500);
             current=this;
         }
@@ -209,12 +211,30 @@ struct PrefixRpcScope {
 };
 thread_local PrefixRpcScope* PrefixRpcScope::current=nullptr;
 
+std::string prefixItemSnapshot(Il2CppObject* item) {
+    if (!item || g_refs.type<0 || g_refs.damage<0 || g_refs.mana<0 ||
+        g_refs.stack<0 || g_refs.prefix<0) return {};
+    const int flags=(g_refs.accessory>=0 &&
+                     bl::runtime::field<uint8_t>(item,g_refs.accessory)?1:0) |
+                    (g_refs.consumable>=0 &&
+                     bl::runtime::field<uint8_t>(item,g_refs.consumable)?2:0) |
+                    (g_refs.ranged>=0 &&
+                     bl::runtime::field<uint8_t>(item,g_refs.ranged)?4:0);
+    return std::to_string(bl::runtime::field<int32_t>(item,g_refs.type))+","+
+        std::to_string(bl::runtime::field<int32_t>(item,g_refs.damage))+","+
+        std::to_string(bl::runtime::field<int32_t>(item,g_refs.mana))+","+
+        std::to_string(bl::runtime::field<int32_t>(item,g_refs.stack))+","+
+        std::to_string(bl::runtime::field<uint8_t>(item,g_refs.prefix))+","+
+        std::to_string(flags);
+}
+
 int queryPrefixWorker(Il2CppObject* item,const ManagedPrefixEntry& p,int kind) {
     auto* scope=PrefixRpcScope::current;
     if (!scope || !item || p.type<1 || p.type>255 ||
-        !(p.callbackMask & (kind==0?1:2))) return -2;
+        !(p.callbackMask & (kind==0?1:kind==1?2:4))) return -2;
     auto& cache=kind==0?scope->can[static_cast<size_t>(p.type)]:
-                         scope->weight[static_cast<size_t>(p.type)];
+                kind==1?scope->weight[static_cast<size_t>(p.type)]:
+                        scope->efficacy[static_cast<size_t>(p.type)];
     if (cache!=-1) return cache;
     cache=-2;
     if (scope->requests>=4 || g_refs.type<0 || g_refs.damage<0 ||
@@ -228,24 +248,14 @@ int queryPrefixWorker(Il2CppObject* item,const ManagedPrefixEntry& p,int kind) {
     const int micros=static_cast<int>(
         std::chrono::duration_cast<std::chrono::microseconds>(scope->end-now).count());
     if (micros<1) return cache;
-    const int flags=(g_refs.accessory>=0 &&
-                     bl::runtime::field<uint8_t>(item,g_refs.accessory)?1:0) |
-                    (g_refs.consumable>=0 &&
-                     bl::runtime::field<uint8_t>(item,g_refs.consumable)?2:0) |
-                    (g_refs.ranged>=0 &&
-                     bl::runtime::field<uint8_t>(item,g_refs.ranged)?4:0);
-    const std::string snapshot=
-        std::to_string(bl::runtime::field<int32_t>(item,g_refs.type))+","+
-        std::to_string(bl::runtime::field<int32_t>(item,g_refs.damage))+","+
-        std::to_string(bl::runtime::field<int32_t>(item,g_refs.mana))+","+
-        std::to_string(bl::runtime::field<int32_t>(item,g_refs.stack))+","+
-        std::to_string(bl::runtime::field<uint8_t>(item,g_refs.prefix))+","+
-        std::to_string(flags);
+    const std::string snapshot=prefixItemSnapshot(item);
+    if (snapshot.empty()) return cache;
     ++scope->requests;
     std::string answer;
     if (!invokeManagedPrefix(p.modId,assembly->second,p.name,kind,snapshot,
                              &answer,std::min(micros,650))) return cache;
-    if (kind==0 && (answer=="0" || answer=="1")) cache=answer=="1"?1:0;
+    if ((kind==0 || kind==3) && (answer=="0" || answer=="1"))
+        cache=answer=="1"?1:0;
     else if (kind==1 && !answer.empty() && answer.size()<=2 &&
              std::all_of(answer.begin(),answer.end(),[](unsigned char ch) {
                  return ch>='0' && ch<='9';
@@ -255,6 +265,37 @@ int queryPrefixWorker(Il2CppObject* item,const ManagedPrefixEntry& p,int kind) {
         if (value<=20) cache=value;
     }
     return cache;
+}
+
+bool queryPrefixApply(Il2CppObject* item,const ManagedPrefixEntry& p,
+                      int* damage,int* value) {
+    if (!item || !damage || !value || !(p.callbackMask & 8) ||
+        g_restoreRoll.item==item) return false;
+    const auto assemblies=managedPrefixCallbackAssemblies();
+    const auto found=assemblies->find(p.modId);
+    if (found==assemblies->end() ||
+        managedPrefixWarmupState(p.modId,found->second,p.name)!=1) return false;
+    const std::string snapshot=prefixItemSnapshot(item);
+    if (snapshot.empty()) return false;
+    std::string answer;
+    if (!invokeManagedPrefix(p.modId,found->second,p.name,4,snapshot,&answer,650))
+        return false;
+    const auto comma=answer.find(',');
+    if (comma==std::string::npos || answer.find(',',comma+1)!=std::string::npos)
+        return false;
+    int bonusDamage=0,bonusValue=0;
+    const auto parse=[](const char* begin,const char* end,int* out) {
+        if (begin==end || end-begin>6) return false;
+        const auto result=std::from_chars(begin,end,*out);
+        return result.ec==std::errc{} && result.ptr==end;
+    };
+    if (!parse(answer.data(),answer.data()+comma,&bonusDamage) ||
+        !parse(answer.data()+comma+1,answer.data()+answer.size(),&bonusValue) ||
+        bonusDamage<0 || bonusDamage>1000 || bonusValue<0 || bonusValue>100000)
+        return false;
+    *damage=bonusDamage;
+    *value=bonusValue;
+    return true;
 }
 
 int nativeItemRollWeight(Il2CppObject* item, const ManagedPrefixEntry& p) {
@@ -474,7 +515,8 @@ bool hookItemPrefixChance(Il2CppObject* item, int32_t want, uint8_t* topTier,
     const int oldPrefix = ready ? bl::runtime::field<uint8_t>(item, g_chancePrefixOffset) : 0;
     const auto* oldPrefixPolicy = prefixView ? byType(*prefixView, oldPrefix) : nullptr;
     const bool hadPrefixBonus = oldPrefixPolicy &&
-        (oldPrefixPolicy->applyDamageBonus || oldPrefixPolicy->applyValueBonus);
+        (oldPrefixPolicy->applyDamageBonus || oldPrefixPolicy->applyValueBonus ||
+         (oldPrefixPolicy->callbackMask & 8));
     auto* previous = ready ? rememberedPrefix(item) : nullptr;
     bool removedPrevious = false;
     int originalDamage = 0;
@@ -518,10 +560,12 @@ bool hookItemPrefixChance(Il2CppObject* item, int32_t want, uint8_t* topTier,
 
     const int prefix = bl::runtime::field<uint8_t>(item, g_chancePrefixOffset);
     const auto* prefixPolicy = prefixView ? byType(*prefixView, prefix) : nullptr;
+    int callbackDamage=0,callbackValue=0;
+    if (prefixPolicy) queryPrefixApply(item,*prefixPolicy,&callbackDamage,&callbackValue);
     const int damageBonus = (hasItemPolicy ? policy->second.damageBonus : 0) +
-        (prefixPolicy ? prefixPolicy->applyDamageBonus : 0);
+        (prefixPolicy ? prefixPolicy->applyDamageBonus : 0) + callbackDamage;
     const int valueBonus = (hasItemPolicy ? policy->second.valueBonus : 0) +
-        (prefixPolicy ? prefixPolicy->applyValueBonus : 0);
+        (prefixPolicy ? prefixPolicy->applyValueBonus : 0) + callbackValue;
     if (!prefix || (damageBonus == 0 && valueBonus == 0)) {
         if (previous) previous->item = nullptr;
         return accepted;
@@ -771,12 +815,14 @@ bool hookStats(Il2CppObject* item, int32_t prefix, float* dmg, float* kb,
     if (g_hooksReady && item) {
         const auto list = managedPrefixView();
         if (const auto* p = byType(*list, prefix)) {
+            PrefixRpcScope prefixCallbacks;
             const bool restoring = g_restoreRoll.item == item &&
                 g_restoreRoll.prefix == prefix && restoreCompatible(item, *p);
             if (!dmg || !kb || !spd || !size || !shootSpeed || !mana ||
                 !crit || !tagDamage || !pen || !value ||
                 !ensurePrefixTables(*list) ||
-                (!restoring && !eligible(item, *p, true)))
+                (!restoring && !eligible(item, *p, true)) ||
+                (!restoring && queryPrefixWorker(item,*p,3)==0))
                 return false;
             *dmg = p->multipliers[0];
             *kb = p->multipliers[1];

@@ -887,12 +887,14 @@ string ExtraTooltip { get; set; }
 
 | Method | Execution |
 | --- | --- |
+| `bool AllStatChangesHaveEffectOn(BunnyPrefixItemSnapshot item)` | worker_callback_opt_in |
 | `bool CanRoll(BunnyPrefixItemSnapshot item)` | worker_callback_opt_in |
 | `int RollChance(BunnyPrefixItemSnapshot item)` | worker_callback_opt_in |
 | `string SerializeTooltipItemLines()` | compile_policy |
 | `string SerializeTooltipLines()` | compile_policy |
 | `void AddTooltipItemLine(string template)` | compile_policy |
 | `void AddTooltipLine(string text)` | compile_policy |
+| `void Apply(BunnyPrefixItemSnapshot item, ref BunnyPrefixApplyStats effects)` | worker_callback_opt_in |
 | `void Apply(ref BunnyPrefixApplyStats effects)` | compile_policy |
 | `void ApplyAccessoryEffects(ref int defenseBonus)` | compile_policy |
 | `void ConfigureItemConditions(BunnyPrefixItemConditions conditions)` | compile_policy |

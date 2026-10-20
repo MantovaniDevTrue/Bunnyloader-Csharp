@@ -43,6 +43,10 @@ assert "job.completion->cancelled||std::chrono::steady_clock::now()>=job.deadlin
 assert "BunnyPrefixItemSnapshot" in callbacks
 assert 'public static string Dispatch(string modId,string assemblyPath,string owner,' in callbacks
 assert "RuntimeHelpers.PrepareMethod(callback.MethodHandle)" in callbacks
+assert '("AllStatChangesHaveEffectOn", 4)' in worker
+assert "callbackMask |= 8" in worker
+assert "queryPrefixApply(item,*prefixPolicy" in game
+assert "queryPrefixWorker(item,*p,3)" in game
 assert "ManagedPrefixDiagnostics managedPrefixDiagnostics()" in game
 assert "g_prefixRestoredRolls.fetch_add" in game
 assert "g_prefixChosenRolls.fetch_add" in game

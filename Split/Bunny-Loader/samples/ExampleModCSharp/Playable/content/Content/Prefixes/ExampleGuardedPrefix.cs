@@ -25,6 +25,14 @@ public sealed class ExampleGuardedPrefix : BunnyPrefix
     public override int RollChance(BunnyPrefixItemSnapshot item)
         => item.Mana <= 8 ? 4 : 0;
 
+    public override bool AllStatChangesHaveEffectOn(BunnyPrefixItemSnapshot item)
+        => item.Stack > 0;
+
+    public override void Apply(BunnyPrefixItemSnapshot item, ref BunnyPrefixApplyStats effects)
+    {
+        effects.ValueBonus = item.Mana <= 8 ? 10 : 0;
+    }
+
     public override void ModifyValue(ref float valueMultiplier)
     {
         valueMultiplier *= 1.2f;

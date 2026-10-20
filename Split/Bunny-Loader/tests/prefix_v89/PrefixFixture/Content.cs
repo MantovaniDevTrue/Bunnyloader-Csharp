@@ -87,6 +87,12 @@ public sealed class TestMightyPrefix : BunnyPrefix
         effects.DamageBonus = 3;
         effects.ValueBonus = 40;
     }
+
+    public override void Apply(BunnyPrefixItemSnapshot item, ref BunnyPrefixApplyStats effects)
+    {
+        effects.DamageBonus = item.Damage >= 20 ? 2 : 0;
+        effects.ValueBonus = item.Damage >= 20 ? 10 : 0;
+    }
 }
 
 public sealed class TestCustomPrefix : BunnyPrefix
@@ -135,4 +141,7 @@ public sealed class TestGuardedPrefix : BunnyPrefix
 
     public override int RollChance(BunnyPrefixItemSnapshot item)
         => item.Mana <= 8 ? 4 : 0;
+
+    public override bool AllStatChangesHaveEffectOn(BunnyPrefixItemSnapshot item)
+        => item.Damage <= 25;
 }
