@@ -113,10 +113,12 @@ inline bool read(std::istream& stream, std::vector<SavedItem>& out, bool strict 
     if (!line.empty() && line.back() == '\r') line.pop_back();
     const bool version3 = line == "bunnyloader itens 3";
     if (!version3 && line != "bunnyloader itens 1" && line != "bunnyloader itens 2") return false;
+    if (version3 && stream.eof()) return false;
 
     std::vector<SavedItem> records;
 
     while (std::getline(stream, line)) {
+        if (version3 && stream.eof()) return false;
         if (!line.empty() && line.back() == '\r') line.pop_back();
         if (version3) {
             size_t delimiters = 0;
