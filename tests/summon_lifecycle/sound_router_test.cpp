@@ -75,5 +75,12 @@ int main() {
  widthGetter.type.cls=&floatClass;assert(!installNativeSoundRouter());widthGetter.type.cls=&integerClass;getterParams=1;assert(!installNativeSoundRouter());getterParams=0;
  width.type.cls=&integerClass;allowGetter=false;playMethod.instance=false;assert(!installNativeSoundRouter());playMethod.instance=true;
  assert(installNativeSoundRouter());
- std::cout<<"NATIVE_SOUND_ROUTER_PRODUCTION_TYPED_AUDIO_FIELDS_GETTERS_LEGACY_JS_TOKENS_NATIVE_BOUNDED_QUEUE_LIMITS_PAUSE_REJECTION_RELEASE_REUSE_AND_10000_COMPLETIONS_PASS\n";
+ int worldStyle=registerSoundStyle(11,1,0,0,3,1);
+ int worldA=playSoundStyle(worldStyle,-1,-1,1,0);
+ int worldB=playSoundStyle(worldStyle,-1,-1,1,0);
+ assert(worldA>0&&worldB>0&&worldA!=worldB);
+ int stoppedBefore=stopCalls;
+ stopAllSoundStyleInstances(worldStyle);
+ assert(stopCalls==stoppedBefore+2&&findActiveSoundStyle(worldStyle)==0);
+ std::cout<<"NATIVE_SOUND_ROUTER_PRODUCTION_TYPED_AUDIO_FIELDS_GETTERS_LEGACY_JS_TOKENS_NATIVE_BOUNDED_QUEUE_LIMITS_PAUSE_REJECTION_RELEASE_REUSE_WORLD_STOP_AND_10000_COMPLETIONS_PASS\n";
 }
