@@ -300,6 +300,11 @@ try {
   if(!identities.SetEquals(actual))throw new Exception("compiled types and native wire identities differ");
   File.Copy(Path.Combine(scratch,"source-runtime-values.txt"),"build/basic-items/full-source-runtime-values.txt",true);
   var minionRows=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt"));
+  // The native bootstrap defers SDK calls; verify the real managed defaults still apply every rarity.
+  foreach(var pair in new[]{("ExampleItem","ExampleModRarity"),("ExampleMeleeWeapon","ExampleModRarity"),
+      ("ExampleStatAccessory","ExampleHigherTierModRarity"),("ExampleWand","ExampleModRarity"),
+      ("ExampleBuffPotion","ExampleHigherTierModRarity")})
+    Equal(true,minionRows.Contains("ITEM_RARITY\t"+pair.Item1+"\t"+pair.Item2));
   var blockRows=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt"));
   var blockTile=blockRows.Single(row=>row.StartsWith("TILE\tExampleTile\t",StringComparison.Ordinal)).Split('\t');
   Equal("19968",blockTile[2]);Equal("0",blockTile[3]);Equal("Stone",blockTile[6]);

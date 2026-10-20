@@ -313,5 +313,10 @@
     "source": "combined integration",
     "name": "Compile actual shared tile draw cache and Dust emission bridges",
     "command": "g++ -std=c++20 -Wall -Wextra -Werror -Wno-unused-parameter -Wno-deprecated-declarations -DBL_HAVE_QUICKJS=0 -Itests/basic_items/include -Iapp/src/main/cpp -fsyntax-only app/src/main/cpp/content/tiles/ModTiles.cpp app/src/main/cpp/experiments/csharp/NativeDustEmission.cpp app/src/main/cpp/experiments/csharp/NativeInvasionNetwork.cpp"
+  },
+  {
+    "name": "Execute full ExampleMod native bootstrap and actual invasion HUD binding/drawing",
+    "source": "integration-regression",
+    "command": "bash tests/ready_prs/run.sh"
   }
 ]

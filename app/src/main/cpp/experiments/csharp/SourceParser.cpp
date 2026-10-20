@@ -150,18 +150,28 @@ bool contentDeclaration(const std::vector<Token>& tokens, size_t first, size_t l
 bool statements(const std::vector<Token>& ts, size_t first, size_t last,
                 ParsedSourceType* def, std::string* error) {
     for (size_t i = first; i < last;) {
+        // Bootstrap discovery is not a C# interpreter. Calls (including generic
+        // SDK helpers) run in the authoritative Mono SetDefaults invocation.
+        // Keep scanning afterwards: Shoot/Buff still reserve native dependencies.
+        size_t call = i;
+        while (call < last && (ts[call].value == "." || ts[call].value == "<" ||
+               ts[call].value == ">" || ts[call].value == "," ||
+               (!ts[call].literal && !ts[call].value.empty() &&
+                (std::isalnum(static_cast<unsigned char>(ts[call].value[0])) ||
+                 ts[call].value[0] == '_')))) ++call;
+        if (call < last && ts[call].value == "(") {
+            const size_t end = closing(ts, call, "(", ")");
+            if (end < last && end + 1 < last && ts[end + 1].value == ";") {
+                i = end + 2;
+                continue;
+            }
+        }
         // These optional descriptors are executed by Mono; legacy metadata
         // extraction must not try to interpret constructor/fluent-call syntax.
         if(ts[i].value=="NativeDefaults"||ts[i].value=="Holdout") {
             size_t end=i;int parentheses=0;
             for(;end<last;++end){if(ts[end].value=="(")++parentheses;if(ts[end].value==")")--parentheses;if(ts[end].value==";"&&parentheses==0)break;}
             if(end==last){*error="descritor C# sem termino";return false;}i=end+1;continue;
-        }
-        if (i + 5 < last && ts[i].value == "base" && ts[i + 1].value == "." &&
-            ts[i + 2].value == "SetDefaults" && ts[i + 3].value == "(" &&
-            ts[i + 4].value == ")" && ts[i + 5].value == ";") {
-            *error = "base.SetDefaults exige BunnyItem/BunnyTile; outras categorias usam defaults literais completos";
-            return false;
         }
         const std::string key = ts[i++].value;
         if (i >= last || ts[i++].value != "=") {

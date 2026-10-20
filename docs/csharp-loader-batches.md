@@ -146,3 +146,13 @@ sem substituir esta base nem declarar os loaders concluídos. Commits congelados
 correções e estados estão em [ready-prs-integration.json](ready-prs-integration.json).
 Procedimentos específicos do ExampleMod: [QA Android](ready-prs-android-qa.md).
 Regressões/fixtures de host não contam como validação Android.
+
+### QA 1.0.2 / ExampleMod 0.1.61 — parser e Color
+
+A revisão corrige o bootstrap que rejeitava helpers em SetDefaults de poções,
+armas e acessórios, mantendo a execução real no Mono e a reserva das dependências.
+O HUD liga Color a partir dos parâmetros nativos e verifica a mesma ABI nos
+dois overloads. Regressões agora incluem os 93 fontes reais no parser nativo,
+51 contratos de registro antecipado, as cinco raridades gerenciadas e desenho
+do HUD numa fixture IL2CPP. Não amplia nem certifica a conclusão dos loaders;
+validação Android desta revisão pendente. Instruções no documento de QA.

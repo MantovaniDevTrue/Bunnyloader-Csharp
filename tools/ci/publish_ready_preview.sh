@@ -28,7 +28,7 @@ PY
 mkdir -p build/ready-delivery
 cp "$APK" build/ready-delivery/BunnyLoader-CSharp-ReadyPRs-QA.apk
 python3 tools/mods/pack.py samples/ExampleModCSharp/Playable
-cp build/mods-packs/examplemodcsharp-0.1.60.bl build/ready-delivery/ExampleMod-CSharp-0.1.60.bl
+cp build/mods-packs/examplemodcsharp-0.1.61.bl build/ready-delivery/ExampleMod-CSharp-0.1.61.bl
 cp docs/ready-prs-android-qa.md build/ready-delivery/TESTES-ANDROID.md
 cp docs/ready-prs-integration.json build/ready-delivery/integration.json
 cp build/ready-pr-tests/results.json build/ready-delivery/host-tests.json

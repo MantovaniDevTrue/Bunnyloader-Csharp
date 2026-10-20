@@ -58,9 +58,8 @@ Refs& refs() {
     auto* utils = il2cpp::findClass({"Terraria", "Utils", {}});
     auto* textures = il2cpp::findClass({"Terraria.GameContent", "TextureAssets", {}});
     auto* batch = il2cpp::findClass({"Microsoft.Xna.Framework.Graphics", "SpriteBatch", {}});
-    auto* color = il2cpp::findClass({"Microsoft.Xna.Framework", "Color", {}});
     auto* rectangle = il2cpp::findClass({"Microsoft.Xna.Framework", "Rectangle", {}});
-    if (!main || !utils || !textures || !batch || !color || !rectangle) return r;
+    if (!main || !utils || !textures || !batch || !rectangle) return r;
 
     Refs next;
     next.spriteBatch = il2cpp::findField(main, "spriteBatch");
@@ -74,6 +73,14 @@ Refs& refs() {
         "int maxCharactersDisplayed)"));
     next.drawRect = il2cpp::findMethodBySignature(batch, il2cpp::parseSignature(
         "void Draw(Texture2D texture, Rectangle destinationRectangle, Color color)"));
+    auto& a = il2cpp::api();
+    if (!next.drawRect || !next.drawText || !a.method_get_param ||
+        !a.class_from_il2cpp_type) return r;
+    // Android exposes Graphics.Color; other runtimes use Framework.Color.
+    // Bind the actual parameter type of both resolved drawing overloads.
+    auto* color = a.class_from_il2cpp_type(a.method_get_param(next.drawRect, 2));
+    if (!color || color != a.class_from_il2cpp_type(a.method_get_param(next.drawText, 3)))
+        return r;
     std::string error;
     il2cpp::ValueLayout layout;
     if (!next.colors.bind(color, &error) ||

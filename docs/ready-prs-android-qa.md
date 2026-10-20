@@ -1,6 +1,6 @@
 # Cinco PRs integrados — QA experimental Android
 
-Bunny `1.0.1-ready-prs-qa` (versionCode 300), ExampleMod CSharp `0.1.60`.
+Bunny `1.0.2-ready-prs-qa` (versionCode 301), ExampleMod CSharp `0.1.61`.
 Base: `v1.0` em `cfbe784ee3cb`. Branch: `integration/ready-prs-20261020`.
 
 Este APK reúne os PRs #101 (Localization), #102 (Rarity), #114 (AnglerQuest),
@@ -11,7 +11,7 @@ Os commits congelados estão em `ready-prs-integration.json`.
 ## Instalação
 
 Instale o APK experimental assinado `Bunny Loader C# Test`, pacote
-`com.bunnyloader.csharptest`, e importe `ExampleMod-CSharp-0.1.60.bl`.
+`com.bunnyloader.csharptest`, e importe `ExampleMod-CSharp-0.1.61.bl`.
 Preserva o UID do ExampleMod e os identificadores das classes existentes.
 Não é necessário limpar caches ou apagar saves; a identidade do compilador mudou
 para reconstruir caches incompatíveis automaticamente. Faça cópia dos saves de
@@ -19,6 +19,20 @@ jogo usados para QA antes dos testes de invasão/persistência.
 
 O Dust é habilitado apenas nesta variante (`bl.dustPreview=true`). A compilação
 normal de `v1.0` mantém pacote, versão e flag de preview originais.
+
+## Correções desta revisão
+
+Corrige a recusa de `SetRarity<T>()` em `ExampleBuffPotion.SetDefaults` sem retirar
+raridades ou alterar o comportamento dos exemplos. O bootstrap reserva nomes,
+assets e referências; chamadas comuns/genéricas permanecem a cargo do Mono.
+O HUD obtém o tipo `Color` dos parâmetros dos overloads nativos, valida seu
+layout e não procura `Microsoft.Xna.Framework.Color` por suposição.
+
+Repetir primeiro o carregamento com o pacote `0.1.61`: nenhuma falha do parser
+na poção, arma ou acessório. Abrir os tooltips de Example Defense Potion,
+Example C# Wand e Example Stat Accessory e conferir suas cores. Depois iniciar
+a Example Invasion, conferir barra e texto sem erro de classe `Color`.
+Anotar versão, ação e relatório da mesma sessão; Android continua pendente.
 
 ## Testes no ExampleMod
 
@@ -64,7 +78,12 @@ fixtures IL2CPP executáveis, revogação de assemblies, prazos de Dust,
 integração de pesca e round trips C#/C++ da invasão. `tests/ready_prs/run.sh`
 executa a emissão de Dust de verdade contra uma fixture IL2CPP: argumentos de
 NewDust, recusa de tipo incompatível, limite de fila, sessão obsoleta e jogador
-inativo. As regressões gerais e a compilação ARM64 também bloqueiam publicação.
+inativo. O mesmo runner percorre os 93 fontes reais com o parser nativo e valida
+51 definições/contratos antecipados, assets e dependências. A fixture de HUD
+executa a resolução/instalação/desenho de retângulos e texto com layouts
+boxed/raw e byte order distinto; recusa tipos inconsistentes ou fora do contrato.
+A suíte Roslyn executa os defaults reais e verifica as cinco raridades de itens.
+As regressões gerais e a compilação ARM64 também bloqueiam publicação.
 
 São evidências de host/CI, não testes executados no aparelho. Android, qualidade
 visual, consumo de memória, 60 FPS, multiplayer e salvamento em nuvem continuam

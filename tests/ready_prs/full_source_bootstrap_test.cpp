@@ -1,0 +1,71 @@
+#include "experiments/csharp/SourceLoader.cpp"
+#include "experiments/csharp/ContentTexture.h"
+#include <cassert>
+#include <filesystem>
+#include <iostream>
+
+int main(int argc, char** argv) {
+    using namespace bl::csharp;
+    assert(argc == 2);
+    const std::filesystem::path root(argv[1]);
+    std::vector<ParsedSourceType> types;
+    std::string error;
+    size_t files = 0;
+    for (const auto& entry : std::filesystem::recursive_directory_iterator(root)) {
+        if (entry.path().extension() != ".cs") continue;
+        std::ifstream input(entry.path());
+        assert(input.good());
+        const std::string source((std::istreambuf_iterator<char>(input)), {});
+        if (!parseCSharpSource(source, &types, &error, false)) {
+            std::cerr << entry.path() << ": " << error << '\n';
+            return 1;
+        }
+        ++files;
+    }
+    assert(files >= 93);
+    size_t checked = 0;
+    std::map<std::string, std::string> targets;
+    for (const auto& type : types) {
+        if (type.base == "BunnyPlayer" || type.base == "BunnyScreenEffect" ||
+            type.base == "BunnyRarity" || type.base == "BunnyPrefix" ||
+            type.base == "BunnyDust") continue;
+        NativeContentSpec spec{};
+        std::string target, display, texture;
+        if (!fields(type, &spec, &target, &display, &texture, &error)) {
+            std::cerr << type.name << ": " << error << '\n';
+            return 1;
+        }
+        std::string normalized;
+        assert(normalizeContentTexture(texture.c_str(), &normalized, &error));
+        const auto asset = root / normalized;
+        if (!std::filesystem::is_regular_file(asset)) {
+            std::cerr << type.name << ": missing asset " << texture << "\n"; return 1;
+        }
+        assert(!display.empty());
+        if (!target.empty()) {
+            const std::string base = type.base == "BunnyBuffPotion" ? "BunnyBuff" : "BunnyProjectile";
+            assert(std::any_of(types.begin(), types.end(), [&](const auto& other) {
+                return other.base == base && other.name == target;
+            }));
+            targets.emplace(type.name, target);
+        }
+        ++checked;
+    }
+    assert(targets.at("ExampleBuffPotion") == "ExampleDefenseBuff");
+    assert(targets.at("ExampleWand") == "ExampleBolt");
+    // Calls on either side of native references must remain deferred to Mono.
+    types.clear();
+    assert(parseCSharpSource(R"cs(public sealed class IndependentPotion : BunnyBuffPotion {
+        public override void SetDefaults() {
+            base.SetDefaults(); DisplayName="Independent Potion"; Texture="independent.png";
+            SetRarity<MyRarity>(); Buff=nameof(MyBuff); Helpers.Configure(1, Math.Max(2,3)); Duration=600;
+        }
+    })cs", &types, &error));
+    NativeContentSpec spec{};
+    std::string target, display, texture;
+    assert(fields(types.at(0), &spec, &target, &display, &texture, &error));
+    assert(target == "MyBuff" && spec.timeLeft == 600);
+    assert(!types[0].properties.contains("SetRarity"));
+    std::cout << "FULL_EXAMPLE_NATIVE_BOOTSTRAP_PASS files=" << files << " registrations=" << checked
+              << " assets=Present dependencies=Resolved managedCalls=DeferredToMono\n";
+}
