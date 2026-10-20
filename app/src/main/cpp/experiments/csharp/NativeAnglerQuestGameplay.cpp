@@ -297,7 +297,7 @@ struct PendingArrayRoots {
         auto& a = il2cpp::api();
         if (!array || !a.gchandle_new || !a.gchandle_free ||
             count >= handles.size()) return false;
-        const uint32_t handle = a.gchandle_new(reinterpret_cast<Il2CppObject*>(array), false);
+        const uint32_t handle = a.gchandle_new(reinterpret_cast<Il2CppObject*>(array), true);
         if (!handle) return false;
         handles[count++] = handle;
         return true;
