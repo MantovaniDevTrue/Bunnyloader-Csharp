@@ -25,6 +25,7 @@ struct Quest {
     int catchRules = 0;
     std::map<std::string, std::pair<std::string, std::string>> locales{};
     bool catchEnabled = false;
+    int callbackMask = 0;
     bool operator==(const Quest&) const = default;
 };
 
@@ -113,6 +114,7 @@ public:
             if (quest.mod != mod || !validKey(quest.name) || quest.type < 0 || quest.type >= 65536 ||
                 (!quest.preHardmode && !quest.hardmode) ||
                 (quest.catchRules & ~3) != 0 ||
+                (quest.callbackMask & ~3) != 0 ||
                 !validText(quest.description) || !validText(quest.location) ||
                 quest.locales.size() > 8)
                 return fail(error, "InvalidQuestDescriptor");
