@@ -13,8 +13,9 @@ int main() {
     assert(resolver.resolve(nullptr, 7, &value[0]) == -1);
     assert(resolver.resolve(slots, 7, nullptr) == -1);
     assert(resolver.resolve(slots, 7, &value[4], 4) == 4);
-    assert(resolver.knownCount() == 6);
+    assert(resolver.knownCount() == 0);
     assert(resolver.resolve(slots, 7, &value[4], 0) == 4);
+    assert(resolver.knownCount() == 6);
     assert(resolver.resolve(slots, 7, &value[4], 500) == 4);
     assert(resolver.resolve(slots, 7, &value[6]) == -1);
     slots[4] = &value[6];
