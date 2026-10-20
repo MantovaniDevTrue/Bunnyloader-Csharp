@@ -84,7 +84,7 @@ gravar em `FishingAttempt` nem instalar código com assinatura incerta.
 O relatório usa o motivo do último teste e é emitido uma única vez por
 sequência de falhas; não há nova sondagem por frame. O fixture host inclui
 regressões de struct com tamanho incorreto, argumento de método incompatível
-e campo `questFish` com tipo divergente, além do campo `Main.netMode` ausente, não-estático ou com tipo incompatível. São verificações simuladas; a ABI
+e campo `questFish` com tipo divergente, além do campo `Main.netMode` ausente, não-estático ou com tipo incompatível. O fixture também rejeita exports IL2CPP ausentes, campos sobrepostos em `FishingAttempt` e `Main.player` com rank diferente de um. São verificações simuladas; a ABI
 do Terraria Android e o Mono embarcado continuam exigindo validação no
 dispositivo antes de qualquer pacote de instalação.
 

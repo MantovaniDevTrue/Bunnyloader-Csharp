@@ -67,11 +67,13 @@ using Roll = void (*)(Il2CppObject*,void*,const MethodInfo*);
 Roll hookedRoll=nullptr;
 int vanillaCalls=0;
 bool badPlayersStatic=false;
+bool badPlayersRank=false;
 bool badNetModeStatic=false;
 bool badNetModeType=false;
 bool badFishingSize=false;
 bool badFishingParameter=false;
 bool badQuestFieldType=false;
+bool badFieldOverlap=false;
 
 template<typename T>
 void put(std::array<unsigned char,92>* data,size_t offset,T value) {
@@ -130,7 +132,9 @@ void configure() {
         return ((badQuestFieldType && field==&fQuest) ||
                 (badNetModeType && field==&fNetMode)) ? &tBool : field->type;
     };
-    api.field_get_offset=[](FieldInfo* field){return field->offset;};
+    api.field_get_offset=[](FieldInfo* field){
+        return badFieldOverlap && field==&fRolled ? fQuest.offset : field->offset;
+    };
     api.class_from_il2cpp_type=[](const Il2CppType* type){return type->cls;};
     api.class_get_namespace=[](Il2CppClass* cls){return cls->ns;};
     api.class_get_name=[](Il2CppClass* cls){return cls->name;};
@@ -146,6 +150,7 @@ void configure() {
     api.object_get_class=[](Il2CppObject* object){return object->klass;};
     api.class_get_element_class=[](Il2CppClass* cls){return cls->element;};
     api.class_get_rank=[](const Il2CppClass* cls)->int {
+        if(badPlayersRank && cls==&kPlayersArray)return 2;
         return cls==&kPlayersArray || cls==&kFakePlayersArray ? 1 : 0;
     };
 }
@@ -227,6 +232,20 @@ int main() {
     badPlayersStatic=false;
     assert(std::strcmp(bl::csharp::angler::fishingInstallDiagnostic(),
                        "UnexpectedPlayerArrayContract")==0);
+    badPlayersRank=true;
+    assert(!bl::csharp::angler::installFishingOnGameThread(&quests));
+    assert(!hookedRoll);
+    assert(std::strcmp(bl::csharp::angler::fishingInstallDiagnostic(),
+                       "UnexpectedPlayerArrayContract")==0);
+    badPlayersRank=false;
+    auto& exports=bl::il2cpp::api();
+    const auto originalTypeName=exports.type_get_name;
+    exports.type_get_name=nullptr;
+    assert(!bl::csharp::angler::installFishingOnGameThread(&quests));
+    assert(!hookedRoll);
+    assert(std::strcmp(bl::csharp::angler::fishingInstallDiagnostic(),
+                       "MissingIL2CPPExports")==0);
+    exports.type_get_name=originalTypeName;
     badFishingSize=true;
     assert(!bl::csharp::angler::installFishingOnGameThread(&quests));
     assert(!hookedRoll);
@@ -245,6 +264,12 @@ int main() {
     assert(std::strcmp(bl::csharp::angler::fishingInstallDiagnostic(),
                        "UnexpectedFishingFieldLayout")==0);
     badQuestFieldType=false;
+    badFieldOverlap=true;
+    assert(!bl::csharp::angler::installFishingOnGameThread(&quests));
+    assert(!hookedRoll);
+    assert(std::strcmp(bl::csharp::angler::fishingInstallDiagnostic(),
+                       "UnexpectedFishingFieldLayout")==0);
+    badFieldOverlap=false;
     badNetModeStatic=true;
     assert(!bl::csharp::angler::installFishingOnGameThread(&quests));
     assert(!hookedRoll);

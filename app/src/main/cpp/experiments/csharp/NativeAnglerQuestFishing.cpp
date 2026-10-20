@@ -136,6 +136,8 @@ bool installFishingOnGameThread(const std::vector<Quest>* quests) {
         !a.field_static_get_value || !a.object_get_class ||
         !a.class_get_element_class || !a.class_get_name ||
         !a.class_get_namespace || !a.class_get_rank || !a.field_get_flags ||
+        !a.field_get_type || !a.field_get_offset || !a.class_instance_size ||
+        !a.class_from_il2cpp_type || !a.type_get_name || !a.il2cpp_free ||
         !a.method_is_instance) return false;
 
     g_installDiagnostic = "MissingTerrariaTypes";
@@ -166,6 +168,13 @@ bool installFishingOnGameThread(const std::vector<Quest>* quests) {
         !instanceField(projectile, "owner", "System.Int32", 4, &g_owner) ||
         !instanceField(player, "gravDir", "System.Single", 4, &g_gravity))
         return false;
+    const auto disjoint = [](size_t a, size_t aw, size_t b, size_t bw) {
+        return a + aw <= b || b + bw <= a;
+    };
+    if (!disjoint(g_questFish, 4, g_uncommon, 1) ||
+        !disjoint(g_questFish, 4, g_rolledItem, 4) ||
+        !disjoint(g_uncommon, 1, g_rolledItem, 4))
+        return false;
     g_installDiagnostic = "UnexpectedNetModeContract";
     g_netMode = il2cpp::findField(main, "netMode");
     if (!g_netMode || (a.field_get_flags(g_netMode) & 0x10u) == 0 ||
@@ -178,7 +187,7 @@ bool installFishingOnGameThread(const std::vector<Quest>* quests) {
         !a.field_static_get_value) return false;
     Il2CppClass* array = a.class_from_il2cpp_type(a.field_get_type(g_players));
     Il2CppClass* elements = array ? a.class_get_element_class(array) : nullptr;
-    if (!elements) return false;
+    if (!elements || a.class_get_rank(array) != 1) return false;
     const char* elementName = a.class_get_name(elements);
     const char* elementNs = a.class_get_namespace(elements);
     if (!elementName || !elementNs || std::strcmp(elementName, "Player") != 0 ||
