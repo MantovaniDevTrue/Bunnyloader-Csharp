@@ -278,6 +278,18 @@ try
         throw new InvalidOperationException("Item prefix worker warmup failed: " + itemWarmup);
     const string itemState = "6207,22,4,1,98,4";
     if (BunnyLoader.Source.BunnyItemPrefixRuntime.Dispatch(
+        "prefix-fixture", args[0], "TestWand", 0, 1, itemState + "|475063") != "011")
+        throw new InvalidOperationException("Item prefix batch veto and allow mismatch");
+    if (BunnyLoader.Source.BunnyItemPrefixRuntime.Dispatch(
+        "prefix-fixture", args[0], "TestWand", 0, 1, "6207,10,4,1,98,4|4750") != "00")
+        throw new InvalidOperationException("Item prefix batch state change ignored");
+    foreach (string invalidBatch in new[] { itemState + "|", itemState + "|47F",
+                                              itemState + "|0001", itemState + "|4747",
+                                              "bad|47" })
+        if (!BunnyLoader.Source.BunnyItemPrefixRuntime.Dispatch(
+            "prefix-fixture", args[0], "TestWand", 0, 1, invalidBatch).StartsWith("ERROR|"))
+            throw new InvalidOperationException("Malformed item prefix batch accepted");
+    if (BunnyLoader.Source.BunnyItemPrefixRuntime.Dispatch(
         "prefix-fixture", args[0], "TestWand", 71, 0, itemState) != "0")
         throw new InvalidOperationException("Item native prefix veto preview failed");
     if (BunnyLoader.Source.BunnyItemPrefixRuntime.Dispatch(
