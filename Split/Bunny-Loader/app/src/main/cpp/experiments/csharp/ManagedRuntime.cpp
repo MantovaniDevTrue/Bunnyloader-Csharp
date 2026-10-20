@@ -289,12 +289,14 @@ struct RecipeRpcJob {
     std::shared_ptr<RecipeRpcCompletion> completion;
     bool shooting=false;
     bool tile=false;
+    bool prefix=false;
 };
 std::deque<RecipeRpcJob> g_recipeRpcQueue;
 std::condition_variable g_recipeRpcWake;
 void* g_recipeDispatchMethod=nullptr;
 void* g_shootDispatchMethod=nullptr;
 void* g_tileDispatchMethod=nullptr;
+void* g_prefixDispatchMethod=nullptr;
 std::map<std::string,std::shared_ptr<RecipeRpcCompletion>> g_shootWarmups;
 std::map<std::string,std::shared_ptr<RecipeRpcCompletion>> g_tileWarmups;
 std::atomic<bool> g_recipeRuntimeReady{false};
@@ -1389,8 +1391,10 @@ std::string executeRecipeOnWorker(const RecipeRpcJob& job) {
     if(!g_domain||!g_status.methodExecuted||!g_api.attach||!g_api.openAssembly||!g_api.image||
        !g_api.findClass||!g_api.findMethod||!g_api.newString||!g_api.invoke)return "PENDING|Stage=Invoke Reason=MonoRuntimeOrRequiredExportsNotReady";
     if(!g_api.attach(g_domain))return "ERROR|Stage=AttachThread Reason=MonoAttachFailed";
-    void*& dispatcher=job.tile?g_tileDispatchMethod:(job.shooting?g_shootDispatchMethod:g_recipeDispatchMethod);
-    const char* endpoint=job.tile?"BunnyTileRuntime":(job.shooting?"BunnyShootRuntime":"BunnyRecipeRuntime");
+    void*& dispatcher=job.prefix?g_prefixDispatchMethod:
+        (job.tile?g_tileDispatchMethod:(job.shooting?g_shootDispatchMethod:g_recipeDispatchMethod));
+    const char* endpoint=job.prefix?"BunnyPrefixRuntime":
+        (job.tile?"BunnyTileRuntime":(job.shooting?"BunnyShootRuntime":"BunnyRecipeRuntime"));
     if(!dispatcher) {
         const auto slash=g_checkpointPath.find_last_of('/');
         if(slash==std::string::npos)return "ERROR|Stage=ResolveSdk Reason=InvalidCheckpointPath";
@@ -2324,7 +2328,8 @@ bool managedRecipeRuntimeReady(){return g_recipeRuntimeReady.load(std::memory_or
 
 static bool invokeManagedCallback(bool shooting,const std::string& mod,const std::string& assembly,
                          const std::string& owner,int index,int kind,const std::string& snapshot,
-                         std::string* output,int budgetMicroseconds,bool tile=false) {
+                         std::string* output,int budgetMicroseconds,
+                         bool tile=false,bool prefix=false) {
     if(!output)return false;
     if(budgetMicroseconds<1||budgetMicroseconds>3000||index<0||index>=16||kind<0||kind>3||
        snapshot.size()>(shooting?1024u:512u)||assembly.empty()||assembly.size()>4096){*output="ERROR|Stage=SubmitRecipeCallback Reason=InvalidTransportArguments";return false;}
@@ -2334,7 +2339,7 @@ static bool invokeManagedCallback(bool shooting,const std::string& mod,const std
     if(g_recipeRpcQueue.size()>=16){*output="PENDING|Stage=SubmitRecipeCallback Reason=QueueCapacityExceeded Expected=Below16";return false;}
     const auto until=std::chrono::steady_clock::now()+std::chrono::microseconds(budgetMicroseconds);
     auto completion=std::make_shared<RecipeRpcCompletion>();
-    g_recipeRpcQueue.push_back({mod,assembly,owner,snapshot,index,kind,until,completion,shooting,tile});g_pinnedWake.notify_one();
+    g_recipeRpcQueue.push_back({mod,assembly,owner,snapshot,index,kind,until,completion,shooting,tile,prefix});g_pinnedWake.notify_one();
     if(!g_recipeRpcWake.wait_until(lock,until,[&]{return completion->done;})) {
         completion->cancelled=true;*output="PENDING|Stage=WaitRecipeCallback Reason=DeadlineExceeded BudgetUs="+std::to_string(budgetMicroseconds);return false;
     }
@@ -2345,6 +2350,26 @@ bool invokeManagedRecipe(const std::string& mod,const std::string& assembly,
     const std::string& owner,int index,int kind,const std::string& snapshot,std::string* output,int budgetMicroseconds) {
     return invokeManagedCallback(false,mod,assembly,owner,index,kind,snapshot,output,budgetMicroseconds);
 }
+bool invokeManagedPrefix(const std::string& mod,const std::string& assembly,
+    const std::string& owner,int kind,const std::string& snapshot,
+    std::string* output,int budgetMicroseconds) {
+    if (!output || owner.empty() || owner.size() > 128 || kind < 0 || kind > 2 ||
+        (kind == 2 ? !snapshot.empty() : snapshot.empty())) {
+        if (output) *output = "ERROR|Stage=PrefixCallback Reason=InvalidArguments";
+        return false;
+    }
+    const bool success=invokeManagedCallback(
+        false,mod,assembly,owner,0,kind,snapshot,output,budgetMicroseconds,false,true);
+    if (output) {
+        size_t pos=0;
+        while ((pos=output->find("RecipeCallback",pos))!=std::string::npos) {
+            output->replace(pos,14,"PrefixCallback");
+            pos+=14;
+        }
+    }
+    return success;
+}
+
 bool invokeManagedShoot(const std::string& mod,const std::string& assembly,const std::string& owner,
     int kind,const std::string& snapshot,std::string* output) {
     if(kind<0||kind>1){if(output)*output="ERROR|Reason=InvalidShootCallbackKind";return false;}

@@ -33,8 +33,10 @@ class EquipmentContractSurfaceTests(unittest.TestCase):
     def test_sdk_overlap_is_lexical_not_parity(self):
         by_loader = {row["loader"]: {c["original"]: c for c in row["callbacks"]}
                      for row in surface.audit(ROOT)["loaders"]}
-        self.assertFalse(by_loader["PrefixLoader"]["RollChance"]["sdkNamePresent"])
-        self.assertFalse(by_loader["PrefixLoader"]["CanRoll"]["sdkNamePresent"])
+        self.assertTrue(by_loader["PrefixLoader"]["RollChance"]["sdkNamePresent"])
+        self.assertTrue(by_loader["PrefixLoader"]["CanRoll"]["sdkNamePresent"])
+        self.assertFalse(by_loader["PrefixLoader"]["RollChance"]["semanticParityConfirmed"])
+        self.assertFalse(by_loader["PrefixLoader"]["CanRoll"]["semanticParityConfirmed"])
         self.assertTrue(by_loader["PrefixLoader"]["SetStats"]["sdkNamePresent"])
         self.assertTrue(by_loader["PrefixLoader"]["ModifyValue"]["sdkNamePresent"])
         self.assertFalse(by_loader["WingLoader"]["WingUpdate"]["sdkNamePresent"])
