@@ -459,11 +459,11 @@ Test("managed-localization-callback-lifecycle", () =>
     Equal("OK|1\nBUNNY_DYNAMIC_LOCALES_V1", BunnyLocalizationRuntime.Dispatch("examplemod", assembly, "en-US"));
     Equal(1, HostLocalizationModule.CallbackCount);
     Equal("en-US", HostLocalizationModule.LastCulture);
-    Equal("", BunnyLocalizationRuntime.ActiveCultureName);
+    Equal("en-US", BunnyLocalizationRuntime.ActiveCultureName);
     Equal("OK|1\nBUNNY_DYNAMIC_LOCALES_V1", BunnyLocalizationRuntime.Dispatch("examplemod", assembly, "pt-BR"));
     Equal(2, HostLocalizationModule.CallbackCount);
     Equal("pt-BR", HostLocalizationModule.LastCulture);
-    Equal("", BunnyLocalizationRuntime.ActiveCultureName);
+    Equal("pt-BR", BunnyLocalizationRuntime.ActiveCultureName);
     Equal("ERROR|InvalidArguments", BunnyLocalizationRuntime.Dispatch("examplemod", assembly, "pt_BR"));
     Equal(2, HostLocalizationModule.CallbackCount);
     Equal("ERROR|InvalidArguments", BunnyLocalizationRuntime.Dispatch("../other", assembly, "en-US"));
@@ -471,7 +471,7 @@ Test("managed-localization-callback-lifecycle", () =>
     HostLocalizationModule.ShouldFail = true;
     Equal("ERROR|CallbackFaults=1",
         BunnyLocalizationRuntime.Dispatch("examplemod", assembly, "en-US"));
-    Equal("", BunnyLocalizationRuntime.ActiveCultureName);
+    Equal("pt-BR", BunnyLocalizationRuntime.ActiveCultureName);
     HostLocalizationModule.ShouldFail = false;
     Equal(true, BunnyLocalizationRuntime.Unload("examplemod"));
     Equal(false, BunnyLocalizationRuntime.Unload("examplemod"));
