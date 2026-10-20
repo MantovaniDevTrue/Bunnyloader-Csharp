@@ -460,7 +460,8 @@ int main() {
     assert((ids()==std::vector<int>{10,500,11}));
     assert(static_cast<const uint8_t*>(arrayData(gFlags))[850]==1);
     assert(static_cast<const uint8_t*>(arrayData(gRack))[850]==1);
-    assert(gSelected==0);
+    assert(gSelected==2);
+    assert(ids()[gSelected]==11);
     assert(stringAscii(hookedChat(0,&kChat))=="VANILLA");
     bl::csharp::angler::invalidateWorldSession();
     bl::csharp::angler::pumpOnGameThread();
