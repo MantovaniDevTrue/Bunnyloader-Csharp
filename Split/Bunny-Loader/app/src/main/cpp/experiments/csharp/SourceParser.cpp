@@ -215,7 +215,7 @@ bool parseClass(const std::vector<Token>& tokens, size_t begin, size_t end,
         base != "BunnyBuff" && base != "BunnyBuffPotion" &&
         base != "BunnyPlayer" && base != "BunnyAccessory" &&
         base != "BunnyNPC" && base != "BunnyPrefix" && base != "BunnyTile" &&
-        base != "BunnyScreenEffect") return true;
+        base != "BunnyScreenEffect" && base != "BunnyGlobalItem") return true;
     ParsedSourceType def;
     def.name = name;
     def.base = base;
@@ -332,7 +332,7 @@ bool parseClass(const std::vector<Token>& tokens, size_t begin, size_t end,
             return false;
         }
     }
-    if (!foundDefaults) {
+    if (!foundDefaults && base != "BunnyGlobalItem") {
         *error = name + ": precisa de void SetDefaults() com atribuicoes literais";
         return false;
     }
@@ -427,7 +427,7 @@ bool parseCSharpSource(const std::string& source,
         if (!contentDeclaration(tokens, declarationStart, i, &declaredBase,
                                 &declaredProperties, error,&localizedNames)) return false;
         if (!declaredBase.empty()) {
-            const std::string roots = "|BunnyItem|BunnyTile|BunnyWeapon|BunnyProjectile|BunnyBuff|BunnyBuffPotion|BunnyAccessory|BunnyPlayer|BunnyNPC|BunnyPrefix|";
+            const std::string roots = "|BunnyItem|BunnyTile|BunnyWeapon|BunnyProjectile|BunnyBuff|BunnyBuffPotion|BunnyAccessory|BunnyPlayer|BunnyNPC|BunnyPrefix|BunnyGlobalItem|";
             if (roots.find("|" + base + "|") != std::string::npos && base != declaredBase) {
                 *error = name + ": categoria BunnyContent difere da classe base";
                 return false;
@@ -438,7 +438,8 @@ bool parseCSharpSource(const std::string& source,
             base == "BunnyBuff" || base == "BunnyBuffPotion" ||
             base == "BunnyPlayer" || base == "BunnyAccessory" ||
             base == "BunnyNPC" || base == "BunnyPrefix" ||
-            base == "BunnyTile" || base == "BunnyScreenEffect")) {
+            base == "BunnyTile" || base == "BunnyScreenEffect" ||
+            base == "BunnyGlobalItem")) {
             std::string qualifiedNamespace = fileNamespace;
             for (const auto& scope : namespaces) {
                 if (!qualifiedNamespace.empty()) qualifiedNamespace += ".";
