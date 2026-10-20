@@ -15,6 +15,9 @@ int main() {
     sample.frameHeight = 10;
     assert(managedDustStateValid(sample));
     assert(managedDustSameInstance(sample, sample));
+    auto overflowType = sample;
+    overflowType.type = 32768;
+    assert(!managedDustStateValid(overflowType));
     ManagedDustState next = sample;
     next.generation++;
     assert(!managedDustSameInstance(sample, next));
