@@ -94,6 +94,8 @@ void onFishingRoll(Il2CppObject* bobber, void* attempt, const MethodInfo* mi) {
             uncommon != 0 ? 1 : 0, questId, &allowed, owner) || !allowed)
             return;
     }
+    if (activeGeneration().load(std::memory_order_acquire) != registry().generation())
+        return;
     const int32_t result = questId;
     std::memcpy(static_cast<char*>(attempt) + g_rolledItem, &result, sizeof(result));
 }
