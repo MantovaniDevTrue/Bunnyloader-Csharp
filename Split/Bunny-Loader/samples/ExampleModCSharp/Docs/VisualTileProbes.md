@@ -17,3 +17,12 @@ Os itens `ExampleCampfireVisualProbeItem` e `ExampleLampVisualProbeItem` têm re
 5. Salvar, sair, recarregar, remover os móveis, entrar no menu e retornar; registrar capturas do jogo, FPS e logs, principalmente erros de `TileObjectData`, `TileFrameImportant`, `GetTileDrawData` e MonoVM.
 
 O CI cobre política de layout 3×2/1×3, parsing, compilação C#, imagens originais, contratos nativos e regressões. Não executa Terraria Android nem valida layout real de IL2CPP, FPS ou fidelidade total. PR #98 permanece draft, sem APK/.bmod de release.
+
+
+## Buff nativo da fogueira
+
+A declaração `BunnyTileFlags.Campfire` publica `TileID.Sets.Campfires`, `InteractableByNPCs`, `Wiring.IsAMechanism` e `Wiring.IgnoreWhenValidatingTraps` por escrita conjunta validada em arrays `Boolean[]`. O indicador ocupa o bit 65536 sem acrescentar campos ao wire TILE de 22 colunas; o compilador rejeita bits acima de 131071.
+
+O hook nativo `SceneMetrics.Scan` executa a função original antes de consultar a área centrada em `BiomeScanCenterPositionInWorld`, usando `Main.buffScanAreaWidth` e `Main.buffScanAreaHeight` com limite de 256 células por dimensão. Para os tiles C# marcados como fogueira, o frame Y de 0 ou 18 ativa `HasCampfire` na instância de `SceneMetrics`; 36 ou 54 não ativam. A varredura é nativa e encerra no primeiro tile válido. A assinatura, o layout e os tipos dos campos IL2CPP são exigidos antes da instalação; um contrato incompatível recusa o registro em vez de executar com endereço presumido. Não chama JavaScript.
+
+Esse código ainda exige teste no Android real para confirmar compatibilidade ABI, aplicação e remoção do buff, funcionamento com fogueiras JavaScript simultâneas e comportamento em multiplayer. O som `SoundID.Mech` ainda não foi integrado ao clique C#. Nenhum desses resultados pode ser inferido somente pelo CI.
