@@ -2034,6 +2034,10 @@
           "execution": "managed_helper"
         },
         {
+          "signature": "bool HasSmartInteract(int x, int y, BunnyTileSmartInteractSettings settings)",
+          "execution": "managed_helper"
+        },
+        {
           "signature": "bool PreDraw(int x, int y)",
           "execution": "managed_helper"
         },
@@ -2232,6 +2236,22 @@
         "Style3x2",
         "Style1x3"
       ],
+      "methods": []
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyTileSmartInteractSettings",
+      "kind": "struct",
+      "baseType": "System.ValueType",
+      "constructors": [
+        "BunnyTileSmartInteractSettings(int lx, int ly, int hx, int hy)"
+      ],
+      "properties": [
+        "int HX { get; }",
+        "int HY { get; }",
+        "int LX { get; }",
+        "int LY { get; }"
+      ],
+      "values": [],
       "methods": []
     },
     {

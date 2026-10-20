@@ -1139,6 +1139,7 @@ string Texture { get; set; }
 | --- | --- |
 | `bool CanDrop(int x, int y)` | managed_helper |
 | `bool CanKillTile(int x, int y)` | managed_helper |
+| `bool HasSmartInteract(int x, int y, BunnyTileSmartInteractSettings settings)` | managed_helper |
 | `bool PreDraw(int x, int y)` | managed_helper |
 | `bool PreDraw(int x, int y, BunnyTileDrawContext draw)` | managed_helper |
 | `bool RightClick(int x, int y)` | managed_helper |
@@ -1207,6 +1208,19 @@ abstract class; base: `System.Object`.
 enum; base: `System.Enum`.
 
 Values: Single, Style2x1, Style3x2, Style1x3.
+
+## BunnyLoader.Source.BunnyTileSmartInteractSettings
+
+struct; base: `System.ValueType`.
+
+Constructors: `BunnyTileSmartInteractSettings(int lx, int ly, int hx, int hy)`.
+
+```csharp
+int HX { get; }
+int HY { get; }
+int LX { get; }
+int LY { get; }
+```
 
 ## BunnyLoader.Source.BunnyUniversalHookDispatcher
 

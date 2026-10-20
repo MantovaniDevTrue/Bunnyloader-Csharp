@@ -36,11 +36,12 @@
             "tests/world_loaders/tile_adjacency_test.cpp",
             "tests/world_loaders/tile_wire_test.cpp",
             "tests/world_loaders/tile_break_policy_test.cpp",
-            "tests/world_loaders/tile_scan_policy_test.cpp"
+            "tests/world_loaders/tile_scan_policy_test.cpp",
+            "tests/world_loaders/tile_smart_interact_policy_test.cpp"
           ],
           "missing": [
-            "Completar o contrato de desenho, smart-interact, frames e demais hooks originais; revisar paridade/contexto dos novos caminhos RGB e NearbyEffects.",
-            "Revisar limites/fairness de AnimateTile gerenciado e validar ABI, eventos, persistência e multiplayer no Android."
+            "Completar hooks originais ainda ausentes de TileLoader/TileWorldLoader: TileFrame, KillTile/KillMultiTile, NumDust/CreateDust/KillSound, drops customizáveis, GrowSapling, resting, baús e PlaceInWorld com item.",
+            "Completar paridade do contexto HasSmartInteract além de LX/LY/HX/HY e validar o orçamento de 8 callbacks por varredura, renderização, sincronização de frames, persistência e multiplayer no Terraria Android."
           ],
           "android": "pending",
           "contractSource": "app/src/main/cpp/script/js/mod/ModTile.js"
