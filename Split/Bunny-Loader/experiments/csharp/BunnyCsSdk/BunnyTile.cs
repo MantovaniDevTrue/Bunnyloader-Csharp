@@ -81,6 +81,8 @@ public abstract class BunnyTile {
     public bool AllowBreaking { get; set; } = true;
     public bool AllowDrops { get; set; } = true;
     public bool CacheDrawData { get; set; } = true;
+    public int MinPick { get; set; }
+    public float MineResist { get; set; } = 1f;
     private readonly SortedDictionary<int, string> _itemDrops = new();
     public void RegisterItemDrop(string itemName, params int[] styles) {
         if (string.IsNullOrEmpty(itemName) || itemName.Length > 72)

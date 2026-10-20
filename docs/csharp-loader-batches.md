@@ -231,3 +231,10 @@ A API `BunnyTile.RegisterItemDrop(string itemName, params int[] styles)` e o ove
 Em tiles com `TileObjectData`, a consulta de estilo usa a assinatura exata `GetTileStyle(Terraria.Tile)`, validada por IL2CPP apenas na instalação de regras por estilo; em tiles simples, o estilo padrão é 0, como no loader de origem. ABI ausente ou item não registrado rejeita a vinculação em vez de inventar ID/estilo. Há testes host para regras válidas e inválidas, sobreposições e serialization no smoke Roslyn.
 
 **Não certificado completo:** falta a validação do drop efetivo no Terraria Android, diferentes estilos de móveis e portas, multiplayer, save/reload e a bateria integral de TileLoader. Manter PR draft e sem distribuição APK/.bmod; Wall/Tree não liberados.
+
+
+## TileLoader C# — MinPick e MineResist nativos (20/10)
+
+`BunnyTile.MinPick` (0–1000) e `BunnyTile.MineResist` (0–128, valor inicial 1) acompanham o hook original `Player.GetPickaxeDamage(x,y,pickPower,hitBufferIndex,Tile)` do Bunny. O C# envia dois campos adicionais no protocolo TILE de 25 colunas; o leitor aceita todos os formatos anteriores, incluindo 23. O valor vanilla do dano é calculado primeiro; poder menor que MinPick anula a mineração, resistência positiva divide com piso e 0 não modifica dano. O hook somente é instalado se a configuração diferir do padrão e exige assinatura IL2CPP completa, parâmetro Terraria.Tile de 4 bytes e método de instância; ausência de ABI rejeita a vinculação. Nenhum QuickJS, varredura ou chamada MonoVM por golpe.
+
+A política numérica tem testes C++ para padrão, fração, veto, zero, saturação e valores inválidos. O teste de protocolo comprova compatibilidade, o smoke Roslyn valida o wire e a referência pública do SDK acompanha os novos membros. A CI deve ser conferida no SHA do commit antes de declarar a etapa aprovada. Não comprova mineração real no Terraria Android, nem certifica TileLoader/Wall/Tree/TileEntity/GlobalTile; PR segue draft e sem APK/.bmod.

@@ -1119,6 +1119,7 @@ BunnyTileShape Shape { get; set; }
 bool AllowBreaking { get; set; }
 bool AllowDrops { get; set; }
 bool CacheDrawData { get; set; }
+float MineResist { get; set; }
 int AdjacentTile { get; set; }
 int AnimationFrameHeight { get; set; }
 int AnimationFrameTicks { get; set; }
@@ -1127,6 +1128,7 @@ int CoordinateHeight { get; set; }
 int MapB { get; }
 int MapG { get; }
 int MapR { get; }
+int MinPick { get; set; }
 int TileCallbackMask { get; }
 int[] AdjacentTiles { get; set; }
 string DisplayName { get; set; }

@@ -8,6 +8,7 @@
 #include "experiments/csharp/NativeTileKillPolicy.h"
 #include "experiments/csharp/NativeTileDustPolicy.h"
 #include "experiments/csharp/NativeTileDropPolicy.h"
+#include "experiments/csharp/NativeTileMiningPolicy.h"
 #include "experiments/csharp/NativeTileAnimationPolicy.h"
 #include "experiments/csharp/NativeTileScanPolicy.h"
 #include "experiments/csharp/NativeTileDrawWire.h"
@@ -156,6 +157,9 @@ KillFn g_origKill = nullptr;
 DustFn g_origDust = nullptr;
 KillSoundFn g_origKillSound=nullptr;
 bool g_killSoundInstalled=false;
+using PickaxeDamageFn=int32_t (*)(Il2CppObject*,int32_t,int32_t,int32_t,int32_t,uint32_t,const MethodInfo*);
+PickaxeDamageFn g_origPickaxeDamage=nullptr;
+bool g_miningInstalled=false;
 FrameFn g_origFrame = nullptr;
 TileFrameFn g_originalTileFrame=nullptr;
 bool g_tileFrameCallbackInstalled=false;
@@ -1582,6 +1586,35 @@ void hkTileKillSound(int32_t x,int32_t y,bool fail,uint32_t tile,const MethodInf
     }
     g_origKillSound(x,y,fail,tile,method);
 }
+int32_t hkPickaxeDamage(Il2CppObject* player,int32_t x,int32_t y,
+                        int32_t pickPower,int32_t hitBufferIndex,
+                        uint32_t tile,const MethodInfo* method) {
+    const int32_t damage=g_origPickaxeDamage?
+        g_origPickaxeDamage(player,x,y,pickPower,hitBufferIndex,tile,method):0;
+    if(damage<=0)return damage;
+    const auto it=g_tiles.find(runtime::tileTypeAt(x,y));
+    if(it==g_tiles.end())return damage;
+    return tile_mining::apply(damage,pickPower,it->second.spec.minPick,
+                              it->second.spec.mineResist);
+}
+
+bool setupNativeTileMiningHook() {
+    if(g_miningInstalled)return true;
+    auto& a=il2cpp::api();
+    if(!a.method_is_instance||!a.method_get_param_count||
+       !a.method_get_param||!a.method_get_return_type)return false;
+    auto* player=il2cpp::findClass({"Terraria","Player",{}});
+    const auto* method=player?a.class_get_method_from_name(player,"GetPickaxeDamage",5):nullptr;
+    if(!method||!a.method_is_instance(method)||!safeTile(method,4,5)||
+       !nameOf(a.method_get_return_type(method),"System.Int32"))return false;
+    for(unsigned i=0;i<4;i++)
+        if(!nameOf(a.method_get_param(method,i),"System.Int32"))return false;
+    if(!il2cpp::methodPointer(method)||
+       !hook::install(method,hkPickaxeDamage,&g_origPickaxeDamage))return false;
+    g_miningInstalled=true;
+    return true;
+}
+
 bool setupNativeTileKillSoundHook() {
     if(g_killSoundInstalled)return true;
     auto& a=il2cpp::api();
@@ -1702,6 +1735,7 @@ bool registerNativeTileGameplay(const NativeTileGameplaySpec& spec) {
         spec.failDust < 0 || spec.failDust > 20 ||
         spec.normalDust < 0 || spec.normalDust > 20 ||
         !tile_policy::validCallbackMask(spec.callbackMask) ||
+         !tile_mining::valid(spec.minPick,spec.mineResist) ||
         !tile_animation::valid(spec.animationFrameHeight,
                                {spec.animationFrames, spec.animationFrameTicks})) return false;
     TileBehavior behavior{};
@@ -1728,6 +1762,11 @@ bool registerNativeTileGameplay(const NativeTileGameplaySpec& spec) {
         return false;
     }
     if (!setupHooks()) return false;
+    if((spec.minPick>0||spec.mineResist!=1.f)&&!setupNativeTileMiningHook()) {
+        BL_ERROR("[CSharp][TileMining] Mod=%s Class=%s Stage=BindGetPickaxeDamage Result=Rejected",
+                 spec.mod.c_str(),spec.name.c_str());
+        return false;
+    }
     if ((spec.animationFrames > 1 || (spec.callbackMask & ((1 << 6)|(1 << 11)|(1 << 12)))) &&
         !setupNativeTileAnimation()) return false;
     if((spec.callbackMask&((1<<6)|(1<<11))) &&

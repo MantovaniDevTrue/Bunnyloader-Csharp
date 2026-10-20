@@ -23,6 +23,8 @@ internal static class TileWriter {
         bool allowDrops = Get<bool>("AllowDrops");
         bool cacheDrawData = Get<bool>("CacheDrawData");
         string itemDrops = Get<string>("ItemDropDefinitions");
+        int minPick = Get<int>("MinPick");
+        float mineResist = Get<float>("MineResist");
         int callbackMask = Get<int>("TileCallbackMask");
         string dust = Get<string>("DustName");
         string map = Get<string>("MapName");
@@ -57,7 +59,8 @@ internal static class TileWriter {
             animationTicks < 0 || animationTicks > 600 ||
             (animationFrames > 1 && (animationHeight == 0 || animationTicks == 0)) ||
             (animationFrames == 1 && animationTicks != 0) ||
-            height != 18)
+            height != 18 || minPick < 0 || minPick > 1000 ||
+            !float.IsFinite(mineResist) || mineResist < 0f || mineResist > 128f)
             throw new InvalidOperationException(type.FullName + ": native tile defaults out of bounds");
         return string.Join("\t", "TILE", type.Name,
             flags.ToString(CultureInfo.InvariantCulture),
@@ -79,7 +82,9 @@ internal static class TileWriter {
             callbackMask.ToString(CultureInfo.InvariantCulture),
             cacheDrawData ? "1" : "0",
             toggle.ToString(CultureInfo.InvariantCulture),
-            itemDrops);
+            itemDrops,
+            minPick.ToString(CultureInfo.InvariantCulture),
+            mineResist.ToString("R", CultureInfo.InvariantCulture));
     }
 
     private static bool Safe(string value) {

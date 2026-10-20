@@ -86,6 +86,8 @@ struct ManagedTileEntry {
     int callbackMask = 0;
     bool cacheDrawData = true;
     std::vector<tile_drop::Rule> registeredDrops;
+    int minPick = 0;
+    float mineResist = 1.f;
 };
 
 bool applyManagedNativeTileDefaultsBatch(const std::string& modId,

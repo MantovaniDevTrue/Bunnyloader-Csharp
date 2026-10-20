@@ -24,6 +24,8 @@ struct NativeTileGameplaySpec {
     int frameToggle=0;
     bool campfire=false;
     std::vector<tile_drop::Rule> registeredDrops;
+    int minPick = 0;
+    float mineResist = 1.f;
 };
 
 bool registerNativeTileGameplay(const NativeTileGameplaySpec& spec);

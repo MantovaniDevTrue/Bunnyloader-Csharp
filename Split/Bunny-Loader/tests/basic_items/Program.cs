@@ -230,7 +230,7 @@ try {
   Equal(1,CompiledAssemblyProbe.Verify(assemblyPath,diagPath));
   var tileWire=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt"))
    .Single(line=>line.StartsWith("TILE\tAnimatedExampleTile\t",StringComparison.Ordinal)).Split('\t');
-  Equal(23,tileWire.Length);Equal("36",tileWire[13]);Equal("4",tileWire[14]);Equal("5",tileWire[15]);Equal("16,18",tileWire[16]);Equal("0",tileWire[17]);Equal("0",tileWire[18]);Equal("63599",tileWire[19]);Equal("0",tileWire[20]);
+  Equal(25,tileWire.Length);Equal("36",tileWire[13]);Equal("4",tileWire[14]);Equal("5",tileWire[15]);Equal("16,18",tileWire[16]);Equal("0",tileWire[17]);Equal("0",tileWire[18]);Equal("63599",tileWire[19]);Equal("0",tileWire[20]);Equal("0",tileWire[23]);Equal("1",tileWire[24]);
   Equal("READY",BunnyTileRuntime.Dispatch("tile-fixture",assemblyPath,"AnimatedExampleTile",0,2,""));
   Equal("0",BunnyTileRuntime.Dispatch("tile-fixture",assemblyPath,"AnimatedExampleTile",0,0,"3,4"));
   Equal("1",BunnyTileRuntime.Dispatch("tile-fixture",assemblyPath,"AnimatedExampleTile",1,0,"2,4"));
@@ -293,11 +293,11 @@ try {
   var blockTile=blockRows.Single(row=>row.StartsWith("TILE\tExampleTile\t",StringComparison.Ordinal)).Split('\t');
   Equal("19968",blockTile[2]);Equal("0",blockTile[3]);Equal("Stone",blockTile[6]);
   Equal("0",blockTile[7]);Equal("200",blockTile[8]);Equal("255",blockTile[9]);
-  Equal(23,blockTile.Length);Equal("0",blockTile[13]);Equal("1",blockTile[14]);Equal("0",blockTile[15]);Equal("-",blockTile[16]);Equal("1",blockTile[17]);Equal("1",blockTile[18]);Equal("0",blockTile[19]);Equal("1",blockTile[20]);
+  Equal(25,blockTile.Length);Equal("0",blockTile[13]);Equal("1",blockTile[14]);Equal("0",blockTile[15]);Equal("-",blockTile[16]);Equal("1",blockTile[17]);Equal("1",blockTile[18]);Equal("0",blockTile[19]);Equal("1",blockTile[20]);
   var campfireTile=blockRows.Single(row=>row.StartsWith("TILE\tExampleCampfireVisualProbe\t",StringComparison.Ordinal)).Split('\t');
   var lampTile=blockRows.Single(row=>row.StartsWith("TILE\tExampleLampVisualProbe\t",StringComparison.Ordinal)).Split('\t');
-  Equal(23,campfireTile.Length);Equal("2",campfireTile[3]);Equal("1",campfireTile[21]);
-  Equal(23,lampTile.Length);Equal("3",lampTile[3]);Equal("2",lampTile[21]);
+  Equal(25,campfireTile.Length);Equal("2",campfireTile[3]);Equal("1",campfireTile[21]);
+  Equal(25,lampTile.Length);Equal("3",lampTile[3]);Equal("2",lampTile[21]);
   if(int.Parse(campfireTile[19])<65536||int.Parse(lampTile[19])<65536)
     throw new Exception("C# tile visual callbacks were truncated to 16 bits");
   var blockItem=blockRows.Single(row=>row.StartsWith("ITEM\tExampleTileItem\t",StringComparison.Ordinal)).Split('\t');
@@ -461,7 +461,7 @@ try {
   Equal("ExampleItem",exampleMaterial[1]);
   var tile=rows.Single(row=>row.StartsWith("TILE\tExampleWorkbench\t")).Split('\t');
   var item=rows.Single(row=>row.StartsWith("ITEM\tExampleWorkbench\t")).Split('\t');
-  Equal(23,tile.Length);Equal("1",tile[20]); Equal("1",tile[3]);Equal("18",tile[4]);Equal("18",tile[5]);
+  Equal(25,tile.Length);Equal("1",tile[20]); Equal("1",tile[3]);Equal("18",tile[4]);Equal("18",tile[5]);
   Equal("Platinum",tile[6]);Equal("200",tile[7]);Equal("200",tile[8]);Equal("200",tile[9]);
   Equal("1",tile[11]);Equal("3",tile[12]);
   Equal(22,item.Length);Equal("mExampleWorkbench:0",item[21]);

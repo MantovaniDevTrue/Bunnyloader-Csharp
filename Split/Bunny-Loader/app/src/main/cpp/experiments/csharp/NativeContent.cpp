@@ -13,6 +13,7 @@
 #include "experiments/csharp/NativeTileFlags.h"
 #include "experiments/csharp/NativeTileAdjacencyPolicy.h"
 #include "experiments/csharp/NativeTilePolicy.h"
+#include "experiments/csharp/NativeTileMiningPolicy.h"
 #include "experiments/csharp/NativeBootEffects.h"
 
 #include "content/common/GameRefs.h"
@@ -2378,7 +2379,8 @@ void onManagedTilesInstalled(int first, int last) {
                                         entry.animationFrameTicks,
                                         entry.allowBreaking, entry.allowDrops, entry.callbackMask,
                                         entry.cacheDrawData, {},entry.frameToggle,
-                                        (entry.flags & 65536)!=0,entry.registeredDrops});
+                                        (entry.flags & 65536)!=0,entry.registeredDrops,
+                                         entry.minPick,entry.mineResist});
         if (gameplay && entry.animationFrameHeight > 0)
             runtime::setModTileAnimation(entry.type, entry.animationFrameHeight);
         if (!gameplay)
@@ -2417,6 +2419,7 @@ bool applyManagedNativeTileDefaultsBatch(const std::string& modId,
             entry.adjacentTile < -1 || entry.adjacentTile >= runtime::kVanillaTileCount ||
             entry.adjacentTiles.size() > 16 ||
             !tile_policy::validCallbackMask(entry.callbackMask) ||
+             !tile_mining::valid(entry.minPick,entry.mineResist) ||
             entry.mapR < 0 || entry.mapR > 255 ||
             entry.mapG < 0 || entry.mapG > 255 ||
             entry.mapB < 0 || entry.mapB > 255)

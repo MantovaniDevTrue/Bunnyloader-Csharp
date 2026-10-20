@@ -1,6 +1,7 @@
 #include "experiments/csharp/SourceLimits.h"
 #include "experiments/csharp/NativeTileWirePolicy.h"
 #include "experiments/csharp/NativeTilePolicy.h"
+#include "experiments/csharp/NativeTileMiningPolicy.h"
 #include "experiments/csharp/SourceLoader.h"
 
 #include "experiments/csharp/NativeContent.h"
@@ -855,6 +856,13 @@ bool applyManagedSourceDefaults(
             if (tile_wire::hasRegisteredDrops(fields.size()) &&
                 !tile_drop::parseRules(fields[22], &tile.registeredDrops)) {
                 *error = fields[1] + ": RegisterItemDrop invalido";
+                return false;
+            }
+            if (tile_wire::hasMiningPolicy(fields.size()) &&
+                (!integer(fields[23], &tile.minPick) ||
+                 !real(fields[24], &tile.mineResist) ||
+                 !tile_mining::valid(tile.minPick, tile.mineResist))) {
+                *error = fields[1] + ": MinPick/MineResist invalidos";
                 return false;
             }
             tiles.push_back(std::move(tile));
