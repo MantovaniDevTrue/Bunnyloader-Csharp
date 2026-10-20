@@ -7,6 +7,9 @@ on:
     paths:
       - experiments/csharp/BunnyCsSdk/BunnyInvasion.cs
       - experiments/csharp/BunnyCsSdk/BunnyInvasionWire.cs
+      - experiments/csharp/BunnyCsSdk/BunnyInvasionNativeNetwork.cs
+      - app/src/main/cpp/experiments/csharp/NativeInvasionNetwork.cpp
+      - app/src/main/cpp/experiments/csharp/NativeInvasionNetwork.h
       - experiments/csharp/BunnyCsSdk/BunnyInvasionNativeRewards.cs
       - app/src/main/cpp/experiments/csharp/NativeInvasionRewards.cpp
       - app/src/main/cpp/experiments/csharp/NativeInvasionRewards.h
@@ -136,6 +139,11 @@ jobs:
           "$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android34-clang++" -std=c++20 -Wall -Wextra -Werror -Iapp/src/main/cpp -fsyntax-only app/src/main/cpp/experiments/csharp/NativeCSharpItemUse.cpp
       - name: Audit native world persistence lifecycle and atomic saves
         run: python3 tests/invasion/check_world_save_contract.py
+      - name: Verify invasion host-to-client relay with Android NDK
+        run: |
+          NDK=$(find "${ANDROID_HOME}/ndk" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)
+          test -n "$NDK"
+          "$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android34-clang++" -std=c++20 -Wall -Wextra -Werror -Iapp/src/main/cpp -fsyntax-only app/src/main/cpp/experiments/csharp/NativeInvasionNetwork.cpp
       - name: Syntax-check native world path and save bridge with Android NDK
         run: |
           NDK=$(find "${ANDROID_HOME}/ndk" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)
