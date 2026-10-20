@@ -409,16 +409,17 @@ void pumpOnGameThread() {
             return;
         }
     }
-    const std::vector<Quest> quests = registry().snapshot();
+    const auto [appliedRevision, quests] = registry().snapshotVersion();
+    pending = pending || appliedRevision != g_appliedGeneration;
     if (!updateQuests(quests)) {
         if (++g_resolveFailures == 1 || g_resolveFailures == 120)
             BL_WARN("[CSharp][AnglerQuest] Stage=PublishArrays Result=Pending Reason=InvalidOrUnreadyTerrariaTables");
         return;
     }
     g_resolveFailures = 0;
-    g_appliedGeneration = revision;
+    g_appliedGeneration = appliedRevision;
     g_active = quests;
-    activeGeneration().store(revision, std::memory_order_release);
+    activeGeneration().store(appliedRevision, std::memory_order_release);
     if (!quests.empty() && !installFishingOnGameThread(&g_active)) {
         if (!g_fishingWarning)
             BL_WARN("[CSharp][AnglerQuest] Stage=FishingHook Result=Pending Reason=UnverifiedFishingAttemptABI");
