@@ -877,8 +877,8 @@ public static class CompiledAssemblyProbe
             {
                 MethodInfo callback = type.GetMethod(methodName,
                     BindingFlags.Public | BindingFlags.Instance,
-                    null, new[] { type.Assembly.GetType("BunnyLoader.Source.BunnyPrefixItemSnapshot")
-                        ?? throw new InvalidOperationException("Missing prefix item snapshot") }, null)
+                    null, new[] { type.BaseType?.Assembly.GetType("BunnyLoader.Source.BunnyPrefixItemSnapshot")
+                        ?? throw new InvalidOperationException("Missing SDK prefix item snapshot") }, null)
                     ?? throw new InvalidOperationException("Missing prefix callback: " + methodName);
                 if (callback.DeclaringType == type)
                     callbackMask |= bit;
