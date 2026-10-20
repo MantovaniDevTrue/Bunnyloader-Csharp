@@ -300,10 +300,10 @@ abstract class; base: `System.Object`.
 
 | Method | Execution |
 | --- | --- |
+| `Nullable<bool> DecidePrefixChance(BunnyPrefixItemSnapshot item, int request)` | worker_callback_isolated |
 | `bool AllowPrefix(BunnyPrefixItemSnapshot item, int prefix)` | worker_callback_isolated |
 | `bool AppliesTo(BunnyPrefixItemSnapshot item)` | worker_callback_isolated |
 | `int ChoosePrefix(BunnyPrefixItemSnapshot item)` | worker_callback_isolated |
-| `Nullable<bool> DecidePrefixChance(BunnyPrefixItemSnapshot item, int request)` | worker_callback_isolated |
 | `void ApplyPrefix(BunnyPrefixItemSnapshot item, int prefix, ref BunnyPrefixApplyStats effects)` | worker_callback_isolated |
 
 ## BunnyLoader.Source.BunnyHoldout
