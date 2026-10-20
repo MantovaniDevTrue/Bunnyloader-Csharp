@@ -196,6 +196,11 @@ public:
         retired_.fill(0);
     }
 
+    bool hasQueued() const {
+        std::lock_guard<std::mutex> lock(mutex_);
+        return !requests_.empty();
+    }
+
     std::uint64_t session() const {
         std::lock_guard<std::mutex> lock(mutex_);
         return session_;
