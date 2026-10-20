@@ -89,7 +89,7 @@ void onFishingRoll(Il2CppObject* bobber, void* attempt, const MethodInfo* mi) {
         bool allowed = false;
         if (!bl::csharp::invokeManagedAnglerQuestCallback(
             found->mod, found->name, 5, gravity < 0.f ? 1 : 0,
-            uncommon != 0 ? 1 : 0, questId, &allowed) || !allowed)
+            uncommon != 0 ? 1 : 0, questId, &allowed, owner) || !allowed)
             return;
     }
     const int32_t result = questId;
