@@ -360,7 +360,8 @@ bool parseClass(const std::vector<Token>& tokens, size_t begin, size_t end,
 
 bool parseCSharpSource(const std::string& source,
                        std::vector<ParsedSourceType>* definitions,
-                       std::string* error, bool requireContent) {
+                       std::string* error, bool requireContent,
+                       int* localizationModules) {
     if (!definitions || !error || source.size() > kSourceMaxFileBytes) return false;
     std::vector<Token> tokens;
     if (!tokenize(source, &tokens, error)) return false;
@@ -465,6 +466,8 @@ bool parseCSharpSource(const std::string& source,
             definitions->back().localizedNames=std::move(localizedNames);
             ++found;
         }
+        if (!abstract && base == "BunnyLocalizationModule" && localizationModules)
+            ++*localizationModules;
         i = end;
         declarationStart = end + 1;
     }
