@@ -26,6 +26,7 @@ std::map<uintptr_t,Policy> policies;
 std::map<int,uintptr_t> byIndex;
 std::mutex assemblyMutex;
 std::map<std::string,std::string> assemblies;
+std::map<std::string,uint64_t> assemblyRevisions;
 struct Slot {FieldInfo* field=nullptr;const MethodInfo* get=nullptr;const MethodInfo* set=nullptr;};
 struct BoolValue {int offset=-1;const MethodInfo* getter=nullptr;};
 struct Refs {
@@ -197,7 +198,14 @@ void hkCraft(Il2CppObject* recipe,Il2CppObject* result,bool quick,const MethodIn
         if(call(it->second,2,player,0,0,quick,&output)&&output.rfind("OK|",0)==0&&!output.substr(3).empty())grant(it->second,player,output.substr(3));}
 }
 } // namespace
-void bindNativeRecipeAssembly(const std::string& mod,const std::string& assembly){std::lock_guard lock(assemblyMutex);assemblies[mod]=assembly;}
+void bindNativeRecipeAssembly(const std::string& mod,const std::string& assembly){
+    std::lock_guard lock(assemblyMutex);
+    if(mod.empty()||assembly.empty())return;
+    uint64_t& revision=assemblyRevisions[mod];
+    ++revision;
+    if(revision==0)revision=1;
+    assemblies[mod]=assembly+"|bunny-revision="+std::to_string(revision);
+}
 void unbindNativeRecipeAssembly(const std::string& mod){std::lock_guard lock(assemblyMutex);assemblies.erase(mod);}
 bool hasManagedAnglerQuestCallbacks(const std::string& mod) {
     const auto quests=angler::registry().snapshot();
