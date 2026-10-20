@@ -67,7 +67,7 @@ bool resolve() {
     if(!positionClass||api.class_value_size(positionClass,&alignment)!=8||
        next.positionOffset<sizeof(Il2CppObject)||next.positionOffset+8>instanceSize||
        next.activeOffset<sizeof(Il2CppObject)||next.activeOffset+1>instanceSize)return false;
-    constexpr const char* parameters[]={"Microsoft.Xna.Framework.Vector2","System.Int32","System.Int32","System.Int32","System.Single","System.Single","System.Int32","Microsoft.Xna.Framework.Graphics.Color","System.Single"};
+    constexpr const char* parameters[]={"Microsoft.Xna.Framework.Vector2","System.Int32","System.Int32","System.Int32","System.Single","System.Single","System.Int32","Microsoft.Xna.Framework.Color","System.Single"};
     void* iterator=nullptr;
     while(const MethodInfo* method=api.class_get_methods(dust,&iterator)) {
         if(std::strcmp(api.method_get_name(method),"NewDust")||api.method_get_param_count(method)!=9)continue;
