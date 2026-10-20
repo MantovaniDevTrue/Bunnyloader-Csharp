@@ -141,13 +141,13 @@ try
     if (BunnyLoader.Source.BunnyUniversalHookDispatcher.Register("hook-alpha", assembly) != 1 ||
         BunnyLoader.Source.BunnyUniversalHookDispatcher.Register("hook-beta", assembly) != 1)
         throw new InvalidOperationException("Managed universal hook fixtures could not register");
-    if (BunnyLoader.Source.BunnyUniversalHookDispatcher.GetStatusSnapshot("hook-alpha") != "HookLifecycleFixture=active" ||
-        BunnyLoader.Source.BunnyUniversalHookDispatcher.GetStatusSnapshot("hook-beta") != "HookLifecycleFixture=active" ||
+    if (BunnyLoader.Source.BunnyUniversalHookDispatcher.GetStatusSnapshot("hook-alpha") != "UniversalHookLifecycleFixture=active" ||
+        BunnyLoader.Source.BunnyUniversalHookDispatcher.GetStatusSnapshot("hook-beta") != "UniversalHookLifecycleFixture=active" ||
         UniversalHookLifecycleFixture.Loads != 2)
         throw new InvalidOperationException("Independent managed universal hook contexts did not load");
     if (!BunnyLoader.Source.BunnyUniversalHookDispatcher.Unload("hook-alpha") ||
         BunnyLoader.Source.BunnyUniversalHookDispatcher.GetStatusSnapshot("hook-alpha") != "nao registrado" ||
-        BunnyLoader.Source.BunnyUniversalHookDispatcher.GetStatusSnapshot("hook-beta") != "HookLifecycleFixture=active" ||
+        BunnyLoader.Source.BunnyUniversalHookDispatcher.GetStatusSnapshot("hook-beta") != "UniversalHookLifecycleFixture=active" ||
         UniversalHookLifecycleFixture.Unloads != 1 ||
         BunnyLoader.Source.BunnyUniversalHookDispatcher.Unload("hook-alpha") ||
         BunnyLoader.Source.BunnyUniversalHookDispatcher.Unload(""))

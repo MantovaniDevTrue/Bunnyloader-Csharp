@@ -1345,7 +1345,7 @@ bool pollUniversalHooksOnWorker() {
         return false;
     }
     void* exception = nullptr;
-    UniversalMonoContext context(!unload);
+    UniversalMonoContext context(!unload && !targeted);
     if (unload) {
         std::vector<std::string> ids;
         {
@@ -1366,6 +1366,9 @@ bool pollUniversalHooksOnWorker() {
         if (!value) {
             writeUniversalRegistrationStatus(targetUnload, "unload-failed",
                 "SDK Unload(id) unavailable or threw; restart required");
+        } else if (*static_cast<uint8_t*>(value) == 0) {
+            writeUniversalRegistrationStatus(targetUnload, "already-unloaded",
+                "no active managed hook scope for this mod");
         } else {
             writeUniversalRegistrationStatus(targetUnload, "unloaded",
                 "native hook scope released; Mono assembly remains loaded");
