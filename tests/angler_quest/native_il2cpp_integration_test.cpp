@@ -61,6 +61,7 @@ int32_t gCorner=0;
 int32_t gNetMode=0;
 uint8_t gFinished=0, gHard=0;
 bool gBadStaticField=false;
+bool gBadNetMode=false;
 int gSwapCalls=0;
 std::string gCulture="en-US";
 FieldInfo fIds{"anglerQuestItemNetIDs",&kIntArrayType,&gIds,sizeof(gIds)};
@@ -104,6 +105,7 @@ const MethodInfo* findMethod(Il2CppClass* cls,const char* name,int count) {
     return nullptr;
 }
 FieldInfo* findField(Il2CppClass* cls,std::string_view name) {
+    if (cls == &kMain && name == "netMode" && gBadNetMode) return nullptr;
     FieldInfo* fields[]={&fIds,&fFlags,&fRack,&fIndex,&fCorner,&fFinished,&fHard,&fNetMode};
     for(auto* f:fields)if(name==f->name &&
         ((cls==&kMain && f!=&fFlags)||(cls==&kSets && (f==&fFlags || f==&fRack))))
@@ -226,6 +228,10 @@ int main() {
     assert(!bl::csharp::angler::hooksInstalled());
     assert((ids()==std::vector<int>{10,500,11}));
     gBadStaticField=false;
+    gBadNetMode=true;
+    bl::csharp::angler::pumpOnGameThread();
+    assert(!bl::csharp::angler::hooksInstalled());
+    gBadNetMode=false;
     bl::csharp::angler::pumpOnGameThread();
     assert(bl::csharp::angler::hooksInstalled());
     assert((ids()==std::vector<int>{10,500,11,850}));
