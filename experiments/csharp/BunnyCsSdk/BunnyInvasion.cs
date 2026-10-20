@@ -11,7 +11,8 @@ public enum BunnyInvasionPhase
     Completed
 }
 
-public readonly record struct BunnyInvasionEnemy(string NpcClass, int Weight, int Points);
+public readonly record struct BunnyInvasionEnemy(
+    string NpcClass, int Weight, int Points, int UnlockAtProgress = 0);
 
 public sealed class BunnyInvasionDefinition
 {
@@ -38,15 +39,20 @@ public sealed class BunnyInvasionDefinition
 
         var names = new HashSet<string>(StringComparer.Ordinal);
         int weight = 0;
+        bool hasFirstWave = false;
         foreach (BunnyInvasionEnemy enemy in enemies)
         {
             if (string.IsNullOrWhiteSpace(enemy.NpcClass) ||
                 enemy.NpcClass.Length > 128 || !names.Add(enemy.NpcClass) ||
                 enemy.Weight < 1 || enemy.Weight > 10000 ||
-                enemy.Points < 1 || enemy.Points > goal)
+                enemy.Points < 1 || enemy.Points > goal ||
+                enemy.UnlockAtProgress < 0 || enemy.UnlockAtProgress >= goal)
                 throw new ArgumentException("Invalid or duplicate invasion enemy", nameof(enemies));
             weight = checked(weight + enemy.Weight);
+            hasFirstWave |= enemy.UnlockAtProgress == 0;
         }
+        if (!hasFirstWave)
+            throw new ArgumentException("An invasion needs an enemy from wave one", nameof(enemies));
 
         Id = id;
         Goal = goal;
@@ -154,10 +160,16 @@ public sealed class BunnyInvasionController
     {
         spawn = default;
         if (!authoritative || !CanSpawn) return false;
-        int roll = (int)((uint)weightedRoll % (uint)Definition.TotalWeight);
+        int unlockedWeight = 0;
+        foreach (BunnyInvasionEnemy candidate in Definition.Enemies)
+            if (candidate.UnlockAtProgress <= progress)
+                unlockedWeight += candidate.Weight;
+        if (unlockedWeight <= 0) return false;
+        int roll = (int)((uint)weightedRoll % (uint)unlockedWeight);
         BunnyInvasionEnemy selected = default;
         foreach (BunnyInvasionEnemy candidate in Definition.Enemies)
         {
+            if (candidate.UnlockAtProgress > progress) continue;
             if (roll < candidate.Weight)
             {
                 selected = candidate;
