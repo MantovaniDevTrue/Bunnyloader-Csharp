@@ -2,6 +2,7 @@
 #include "experiments/csharp/ManagedRuntime.h"
 #include "experiments/csharp/ManagedDustLifecycle.h"
 #include "experiments/csharp/ManagedDustDecision.h"
+#include "experiments/csharp/ManagedDustFrameBudget.h"
 #include "experiments/csharp/ManagedDustSlotLookup.h"
 #include "content/common/ContentAssets.h"
 #include "content/common/GameRefs.h"
@@ -273,6 +274,7 @@ GetAlphaValueFn g_origGetAlphaValue = nullptr;
 int g_frame = 0;
 std::array<int, kDustSlots> g_dustGenerations{};
 csharp::ManagedDustLifecycle g_dustLifecycle;
+csharp::ManagedDustFrameBudget g_dustFrameBudget;
 csharp::ManagedDustSlotLookup<Il2CppObject, kDustSlots> g_dustSlotLookup;
 Scan g_scan;
 std::vector<Il2CppObject*> g_list;
@@ -467,9 +469,7 @@ bool managedDustPhase(Il2CppObject* dust, int phase, std::uint32_t* flags,
         csharp::ManagedDustMailbox::kPhases + static_cast<size_t>(phase)];
     if (cache.generation != generation || cache.type != typeOf(dust))
         cache = {};
-    csharp::ManagedDustMailbox::Response response{};
-    if (csharp::receiveManagedDustCallback(typeOf(dust), phase, slot, generation,
-                                            static_cast<uint64_t>(g_frame), &response)) {
+    auto applyResponse = [&](const csharp::ManagedDustMailbox::Response& response) {
         applyManagedDust(dust, response.before, response.state, phase != 3);
         cache.generation = generation;
         cache.type = response.state.type;
@@ -478,24 +478,48 @@ bool managedDustPhase(Il2CppObject* dust, int phase, std::uint32_t* flags,
         cache.color = response.state.color;
         cache.requestColor = response.before.color;
         cache.ready = true;
-    }
+    };
+    csharp::ManagedDustMailbox::Response response{};
+    if (csharp::receiveManagedDustCallback(typeOf(dust), phase, slot, generation,
+                                            static_cast<uint64_t>(g_frame), &response))
+        applyResponse(response);
     if (phase == 0 && cache.ready &&
         cache.generation == generation && cache.type == typeOf(dust)) {
         if (flags) *flags = cache.flags;
         return true;
     }
-    const bool valid = cache.ready &&
-        cache.generation == generation && cache.type == typeOf(dust) &&
-        csharp::managedDustDecisionCurrent(
-            phase, static_cast<std::uint64_t>(g_frame), cache.frame,
-            cache.requestColor, argColor ? *argColor : 0u);
+    const auto validDecision = [&]() {
+        return cache.ready &&
+            cache.generation == generation && cache.type == typeOf(dust) &&
+            csharp::managedDustDecisionCurrent(
+                phase, static_cast<std::uint64_t>(g_frame), cache.frame,
+                cache.requestColor, argColor ? *argColor : 0u);
+    };
+    bool valid = validDecision();
     if (activeOf(dust)) {
         auto state = captureManagedDust(dust, slot, generation);
         g_dustLifecycle.observe(state);
         if (!valid) {
             if (argColor) state.color = *argColor;
-            csharp::queueManagedDustCallback(state.type, phase, state,
-                                              static_cast<std::uint64_t>(g_frame));
+            const bool requiresSameFrame = phase >= 0 && phase <= 4;
+            std::chrono::steady_clock::time_point deadline{};
+            bool attempted = false;
+            if (requiresSameFrame &&
+                g_dustFrameBudget.deadline(static_cast<std::uint64_t>(g_frame), &deadline)) {
+                attempted = true;
+                csharp::ManagedDustMailbox::Response immediate{};
+                const bool ready = csharp::invokeManagedDustSameFrame(
+                    state.type, phase, state, static_cast<std::uint64_t>(g_frame),
+                    deadline, &immediate);
+                g_dustFrameBudget.finish();
+                if (ready) {
+                    applyResponse(immediate);
+                    valid = validDecision();
+                }
+            }
+            if (!attempted)
+                csharp::queueManagedDustCallback(state.type, phase, state,
+                                                  static_cast<std::uint64_t>(g_frame));
         }
     }
     if (valid) {
@@ -1000,6 +1024,7 @@ DustPoolStats dustPoolStats() {
 
 void resetManagedDustLifecycle() {
     g_dustLifecycle.reset();
+    g_dustFrameBudget.reset();
     g_dustSlotLookup.reset();
     g_dustGenerations.fill(0);
     g_dustCached.fill({});
