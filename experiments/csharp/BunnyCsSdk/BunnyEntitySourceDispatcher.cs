@@ -279,7 +279,7 @@ public static class BunnyEntitySourceDispatcher
                     system.OnNativeFailed(true, spawn.Epoch, spawn.Ticket);
                 return received + 1;
             }
-            return received;
+            return received + (used > 0 ? 1 : 0);
         }
         catch (Exception error)
         {
