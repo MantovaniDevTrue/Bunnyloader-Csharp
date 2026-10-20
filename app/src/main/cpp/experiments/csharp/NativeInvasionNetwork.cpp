@@ -13,7 +13,7 @@
 #include <deque>
 #include <map>
 #include <mutex>
-#include <sys/random.h>
+#include <cstdlib>
 #include <string>
 #include <utility>
 #include <vector>
@@ -212,8 +212,10 @@ void pumpNativeInvasionNetworkOnGameThread() {
             std::lock_guard<std::mutex> guard(g_mutex);
             if (g_nonce == 0) {
                 uint64_t next = 0;
-                if (getrandom(&next, sizeof(next), 0) !=
-                    static_cast<ssize_t>(sizeof(next)) || next == 0) return;
+                // Bionic exposes arc4random_buf since API 21; getrandom starts
+                // at API 28 and cannot be linked by our minimum-API-24 APK.
+                arc4random_buf(&next, sizeof(next));
+                if (next == 0) return;
                 g_nonce = next;
             }
             if (++g_joinTimer < 300) return;

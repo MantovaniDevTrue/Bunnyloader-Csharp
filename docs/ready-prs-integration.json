@@ -63,7 +63,8 @@
     "Rarity prefix lookup uses registered UID instead of manifest slug",
     "Bundled managed framework rebuilt from integrated sources",
     "Dust test item and bounded game-thread emission API; no QuickJS dependency",
-    "Fully qualify shared tile draw cache namespace in ModTiles (caught by actual ARM64 compile)"
+    "Fully qualify shared tile draw cache namespace in ModTiles (caught by actual ARM64 compile)",
+    "Use Bionic API-21 cryptographic nonce generation; getrandom is unavailable to Android minSdk 24"
   ],
   "manualInstructions": "docs/ready-prs-android-qa.md"
 }
