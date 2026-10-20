@@ -34,12 +34,29 @@ g++ -std=c++20 -O2 -Wall -Wextra -Werror -pedantic -pthread \
 
 Esses testes são executados pelo GitHub Actions em workflows **sem APK**.
 
+## Lote complementar: descoberta e transporte verificados
+
+- O `SourceParser` aceita `BunnyCommand` sem `SetDefaults`. O
+  `SourceLoader` aceita mods somente de comandos e contabiliza seus tipos.
+- `CommandManifestWriter` valida nomes, aliases e permissões a partir
+  da DLL compilada. O manifesto `.dll.commands` conserva SHA-256 da DLL e
+  é verificado no C++ antes de registrar nomes/aliases no mailbox.
+- Um cache de compilação que tenha manifesto ausente ou divergente é
+  rejeitado e recompilado, sem permitir registro de dados obsoletos.
+- `BunnyCommandWorker` oferece `RegisterAssembly`, `Execute`,
+  `Unregister` e `Clear` no SDK C#, devolvendo respostas limitadas em
+  hexadecimal UTF-8. `NativeCommandResult.h` valida essas respostas e
+  mantém o destinatário preso ao ticket do C++.
+- Testes C# verificam o assembly **somente de comandos** passando no
+  `CompiledAssemblyProbe.Verify`; testes C++ validam parser, fila,
+  hash da DLL, colisões e serialização. Nenhuma destas validações
+  instala um hook ou significa execução em Android.
+
 ## Encadeamento real que precisa ser implementado
 
-1. **Descoberta Roslyn:** instanciar todas as classes públicas
-   `BunnyCommand` da DLL, validar aliases, nomes e permissões e transmitir
-   descritores ao C++ sob a identidade real do mod; aceitar mods somente de
-   comandos, sem item/projétil artificial. Preservar cache e invalidação.
+1. **Descoberta Roslyn — IMPLEMENTADA NO HOST:** nomes, aliases, classes
+   exportadas, contagem e SHA256 passam pelo compilador e pelo registro
+   nativo. Falta ativar os comandos dentro do worker MonoVM do jogo.
 2. **Hook do chat:** mapear no Android as assinaturas do Bunny original
    `ChatCommandProcessor.ProcessIncomingMessage(ChatMessage,int)` e
    `ChatHelper.SendChatMessageFromClient(ChatMessage)`. Instalar hooks C++
@@ -47,10 +64,12 @@ Esses testes são executados pelo GitHub Actions em workflows **sem APK**.
    Se o mailbox devolver `Vanilla`, chamar o original inalterado.
    `Queued` significa consumir a mensagem; `Busy` significa consumir e
    responder que a fila está ocupada, sem mandar o comando ao vanilla.
-3. **MonoVM:** no worker proprietário da VM, pegar um lote limitado de
-   `takeRequests`, executar o registry C# correto e enfileirar respostas
-   tipadas usando `deliver(epoch, sequence, replies)`. Nunca bloquear o
-   desenho esperando `Action`; qualquer resultado com época antiga falha.
+3. **MonoVM — PENDENTE:** a API `BunnyCommandWorker` está pronta e testada
+   no host, mas falta ligá-la ao worker MonoVM proprietário em
+   `ManagedRuntime.cpp`. Ele deve pegar um lote limitado de
+   `takeRequests`, executar os comandos C# e devolver respostas via
+   `deliver(epoch, sequence, replies)`. Nunca bloquear o desenho; descartar
+   resultados da sessão antiga.
 4. **Game thread:** drenar `takeReplies` e usar as rotas reais
    `Main.NewText` ou `ChatHelper.SendChatMessageToClient`. Não chamar
    qualquer método Terraria através de C# no worker.
