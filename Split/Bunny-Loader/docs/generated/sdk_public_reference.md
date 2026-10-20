@@ -40,7 +40,10 @@ string VisualTexture { get; set; }
 
 | Method | Execution |
 | --- | --- |
+| `Nullable<bool> DecidePrefixChance(BunnyPrefixItemSnapshot item, int request)` | worker_callback_isolated |
 | `bool AllowPrefix(BunnyPrefixItemSnapshot item, int prefix)` | worker_callback_isolated |
+| `int ChoosePrefix(BunnyPrefixItemSnapshot item)` | worker_callback_isolated |
+| `void ApplyPrefix(BunnyPrefixItemSnapshot item, int prefix, ref BunnyPrefixApplyStats effects)` | worker_callback_isolated |
 | `void ApplyPrefix(ref BunnyPrefixApplyStats effects)` | compile_policy |
 | `void ConfigurePrefixRules(BunnyItemPrefixRules rules)` | managed_helper |
 | `void SetDefaults()` | compile_policy |
@@ -152,7 +155,10 @@ string Texture { get; set; }
 
 | Method | Execution |
 | --- | --- |
+| `Nullable<bool> DecidePrefixChance(BunnyPrefixItemSnapshot item, int request)` | worker_callback_isolated |
 | `bool AllowPrefix(BunnyPrefixItemSnapshot item, int prefix)` | worker_callback_isolated |
+| `int ChoosePrefix(BunnyPrefixItemSnapshot item)` | worker_callback_isolated |
+| `void ApplyPrefix(BunnyPrefixItemSnapshot item, int prefix, ref BunnyPrefixApplyStats effects)` | worker_callback_isolated |
 | `void ApplyPrefix(ref BunnyPrefixApplyStats effects)` | compile_policy |
 | `void ConfigurePrefixRules(BunnyItemPrefixRules rules)` | managed_helper |
 | `void SetDefaults()` | compile_policy |
@@ -577,9 +583,12 @@ string UseSound { get; set; }
 
 | Method | Execution |
 | --- | --- |
+| `Nullable<bool> DecidePrefixChance(BunnyPrefixItemSnapshot item, int request)` | worker_callback_isolated |
 | `bool AllowPrefix(BunnyPrefixItemSnapshot item, int prefix)` | worker_callback_isolated |
+| `int ChoosePrefix(BunnyPrefixItemSnapshot item)` | worker_callback_isolated |
 | `static int BuyPrice(int platinum, int gold, int silver, int copper)` | managed_helper |
 | `static int SellPrice(int platinum, int gold, int silver, int copper)` | managed_helper |
+| `void ApplyPrefix(BunnyPrefixItemSnapshot item, int prefix, ref BunnyPrefixApplyStats effects)` | worker_callback_isolated |
 | `void ApplyPrefix(ref BunnyPrefixApplyStats effects)` | compile_policy |
 | `void ConfigurePrefixRules(BunnyItemPrefixRules rules)` | managed_helper |
 | `void DefaultToPlaceableTile(int vanillaTileId, int style)` | managed_helper |
@@ -1512,7 +1521,10 @@ string Texture { get; set; }
 
 | Method | Execution |
 | --- | --- |
+| `Nullable<bool> DecidePrefixChance(BunnyPrefixItemSnapshot item, int request)` | worker_callback_isolated |
 | `bool AllowPrefix(BunnyPrefixItemSnapshot item, int prefix)` | worker_callback_isolated |
+| `int ChoosePrefix(BunnyPrefixItemSnapshot item)` | worker_callback_isolated |
+| `void ApplyPrefix(BunnyPrefixItemSnapshot item, int prefix, ref BunnyPrefixApplyStats effects)` | worker_callback_isolated |
 | `void ApplyPrefix(ref BunnyPrefixApplyStats effects)` | compile_policy |
 | `void ConfigurePrefixRules(BunnyItemPrefixRules rules)` | managed_helper |
 | `void SetDefaults()` | compile_policy |
