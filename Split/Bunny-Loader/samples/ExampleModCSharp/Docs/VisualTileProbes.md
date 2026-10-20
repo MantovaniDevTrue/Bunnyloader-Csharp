@@ -34,3 +34,7 @@ A fogueira 3×2 C# usa o `SoundID.Mech` original através de `SoundEngine.PlaySo
 ## Layout e tamanho da área de varredura
 
 Os limites são os mesmos do `ExampleModBunny` original: `centro - floor(tamanho/2)` até `centro + floor(tamanho/2)` (limite superior exclusivo). Para tamanho par, isso examina exatamente as células pedidas; para ímpar, preserva a fórmula do fonte original. Em `SceneMetricsScanSettings` struct, o host exige tamanho acima de 16 bytes e usa `il2cpp::resolveValueLayout` para converter offsets boxed/unboxed; em classe usa `nativeFieldContract`. Um layout ambíguo interrompe a instalação do hook. Não são inferidos offsets pelo tamanho do cabeçalho.
+
+## Smart-interact nativo
+
+O fallback de `ModTile.HasSmartInteract` da referência Bunny adiciona os tiles com `RightClick` sobrescrito à seleção inteligente. O núcleo C# agora tenta vincular `TileSmartInteractCandidateProvider.FillPotentialTargetTiles` com assinatura e campos validados, aceita candidatos com `RightClick` C# ou fogueira com clique nativo e registra alvos apenas uma vez (`JoinValue`/`Contains`/`Add`). A área LX/LY/HX/HY é inclusiva, como `bl.tiles.find`; o scanner é limitado a 64×64 células. A rotina original continua sendo executada primeiro. Falhas de ABI desativam somente o aprimoramento do smart-interact e preservam o cursor móvel anterior. Overrides arbitrários de `HasSmartInteract` ainda não estão implementados; falta verificar a ABI com Terraria Android e a combinação com outros mods.

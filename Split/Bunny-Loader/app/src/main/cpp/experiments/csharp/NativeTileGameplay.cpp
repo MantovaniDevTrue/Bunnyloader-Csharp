@@ -3,6 +3,7 @@
 #include "experiments/csharp/NativeTilePolicy.h"
 #include "experiments/csharp/NativeTileFrameTogglePolicy.h"
 #include "experiments/csharp/NativeTileCampfirePolicy.h"
+#include "experiments/csharp/NativeTileSmartInteractPolicy.h"
 #include "experiments/csharp/NativeTileAnimationPolicy.h"
 #include "experiments/csharp/NativeTileScanPolicy.h"
 #include "experiments/csharp/NativeTileDrawWire.h"
@@ -110,6 +111,18 @@ struct CampfireSoundBinding {
     bool ready=false;
 };
 CampfireSoundBinding g_campfireSound{};
+using SmartInteractFn=void(*)(Il2CppObject*,const void*,const MethodInfo*);
+SmartInteractFn g_originalSmartInteract=nullptr;
+struct SmartInteractBinding {
+    const MethodInfo* join=nullptr;
+    const MethodInfo* contains=nullptr;
+    const MethodInfo* add=nullptr;
+    int settingsOffsets[4]{};
+    int targetsOffset=-1;
+    bool ready=false;
+};
+SmartInteractBinding g_smartInteract{};
+bool g_smartInteractRejected=false;
 
 using AnimateFn = void (*)(const MethodInfo*);
 AnimateFn g_originalAnimate = nullptr;
@@ -1073,6 +1086,107 @@ void hkTileUse(Il2CppObject* player,int32_t x,int32_t y,const MethodInfo* method
     if(g_origUse)g_origUse(player,x,y,method);
 }
 
+void hkTileSmartInteract(Il2CppObject* provider,const void* settings,const MethodInfo* method) {
+    if(g_originalSmartInteract)g_originalSmartInteract(provider,settings,method);
+    if(!g_smartInteract.ready||!provider||!settings)return;
+    auto& a=il2cpp::api();
+    int32_t scan[4]{};
+    for(int i=0;i<4;++i)
+        std::memcpy(&scan[i],static_cast<const uint8_t*>(settings)+g_smartInteract.settingsOffsets[i],4);
+    runtime::TileArrays world{};
+    if(!runtime::tileArrays(&world)||!world.lookup||!world.type||!world.sHeader)return;
+    tile_smart::Bounds range{};
+    if(!tile_smart::bounds(scan[0],scan[1],scan[2],scan[3],world.width,world.height,&range))return;
+    auto* list=*reinterpret_cast<Il2CppObject* const*>(
+        reinterpret_cast<const uint8_t*>(provider)+g_smartInteract.targetsOffset);
+    if(!list)return;
+    for(int y=range.top;y<range.bottom;++y)for(int x=range.left;x<range.right;++x) {
+        const uint32_t def=world.lookup[static_cast<size_t>(y)*world.width+x];
+        if((world.sHeader[def]&runtime::kTileActiveBit)==0)continue;
+        const auto it=g_tiles.find(world.type[def]);
+        if(it==g_tiles.end()||
+           !tile_smart::eligible(it->second.spec.callbackMask,it->second.spec.frameToggle))
+            continue;
+        int32_t px=x,py=y;
+        void* joinArgs[]={&px,&py};
+        Il2CppObject* error=nullptr;
+        auto* joined=a.runtime_invoke(g_smartInteract.join,provider,joinArgs,&error);
+        if(error||!joined)return;
+        const int32_t key=*reinterpret_cast<int32_t*>(reinterpret_cast<uint8_t*>(joined)+sizeof(Il2CppObject));
+        void* keyArgs[]={const_cast<int32_t*>(&key)};
+        auto* exists=a.runtime_invoke(g_smartInteract.contains,list,keyArgs,&error);
+        if(error||!exists)return;
+        if(*reinterpret_cast<uint8_t*>(exists+1)!=0)continue;
+        a.runtime_invoke(g_smartInteract.add,list,keyArgs,&error);
+        if(error)return;
+    }
+}
+bool setupTileSmartInteractHook() {
+    if(g_smartInteract.ready)return true;
+    auto& a=il2cpp::api();
+    if(!a.runtime_invoke||!a.method_get_param_count||!a.method_get_param||
+       !a.method_get_return_type||!a.method_is_instance||!a.class_from_il2cpp_type||
+       !a.class_get_name||!a.class_get_namespace||!a.field_get_flags||
+       !a.field_get_type||!a.field_get_offset||!a.class_instance_size)return false;
+    auto* provider=il2cpp::findClass({"Terraria.GameContent.ObjectInteractions",
+                                     "TileSmartInteractCandidateProvider",{}});
+    const auto* scan=provider?a.class_get_method_from_name(provider,"FillPotentialTargetTiles",1):nullptr;
+    if(!scan||!a.method_is_instance(scan)||a.method_get_param_count(scan)!=1||
+       !nameOf(a.method_get_return_type(scan),"System.Void")||
+       !il2cpp::methodPointer(scan))return false;
+    auto* settings=a.class_from_il2cpp_type(a.method_get_param(scan,0));
+    const char* sn=settings?a.class_get_name(settings):nullptr;
+    if(!sn||std::strcmp(sn,"SmartInteractScanSettings")!=0)return false;
+    const bool value=a.class_is_valuetype&&a.class_is_valuetype(settings);
+    il2cpp::ValueLayout layout{};
+    std::string error;
+    if(value&&!il2cpp::resolveValueLayout(settings,&layout,&error))return false;
+    int offsets[4]{};
+    constexpr const char* names[]={"LX","LY","HX","HY"};
+    for(int i=0;i<4;++i) {
+        FieldInfo* f=nullptr;
+        if(value) {
+            f=il2cpp::findField(settings,names[i]);
+            size_t offset=0;
+            if(!f||(a.field_get_flags(f)&0x10u)!=0||
+               !nameOf(a.field_get_type(f),"System.Int32")||
+               !layout.offset(a.field_get_offset(f),4,&offset)||offset>INT32_MAX)
+                return false;
+            offsets[i]=static_cast<int>(offset);
+        } else if(!il2cpp::nativeFieldContract(settings,names[i],"System.Int32",
+                       false,4,&f,&offsets[i],&error))return false;
+    }
+    FieldInfo* targets=nullptr;
+    int targetOffset=-1;
+    if(!il2cpp::nativeFieldContract(provider,"targets",
+           "System.Collections.Generic.List`1",false,sizeof(void*),
+           &targets,&targetOffset,&error))return false;
+    auto* listClass=a.class_from_il2cpp_type(a.field_get_type(targets));
+    const auto* join=a.class_get_method_from_name(provider,"JoinValue",2);
+    const auto* add=listClass?a.class_get_method_from_name(listClass,"Add",1):nullptr;
+    const auto* contains=listClass?a.class_get_method_from_name(listClass,"Contains",1):nullptr;
+    if(!join||!add||!contains||
+       !a.method_is_instance(join)||!a.method_is_instance(add)||!a.method_is_instance(contains)||
+       a.method_get_param_count(join)!=2||a.method_get_param_count(add)!=1||
+       a.method_get_param_count(contains)!=1||
+       !nameOf(a.method_get_param(join,0),"System.Int32")||
+       !nameOf(a.method_get_param(join,1),"System.Int32")||
+       !nameOf(a.method_get_param(add,0),"System.Int32")||
+       !nameOf(a.method_get_param(contains,0),"System.Int32")||
+       !nameOf(a.method_get_return_type(join),"System.Int32")||
+       !nameOf(a.method_get_return_type(contains),"System.Boolean")||
+       !nameOf(a.method_get_return_type(add),"System.Void")||
+       !il2cpp::methodPointer(join)||!il2cpp::methodPointer(add)||
+       !il2cpp::methodPointer(contains))return false;
+    SmartInteractBinding binding{};
+    binding.join=join;binding.add=add;binding.contains=contains;
+    binding.targetsOffset=targetOffset;
+    for(int i=0;i<4;++i)binding.settingsOffsets[i]=offsets[i];
+    if(!hook::install(scan,hkTileSmartInteract,&g_originalSmartInteract))return false;
+    binding.ready=true;g_smartInteract=binding;
+    return true;
+}
+
 bool setupTileInteractHook() {
     if(g_interactInstalled)return true;
     auto& a=il2cpp::api();
@@ -1421,6 +1535,12 @@ bool registerNativeTileGameplay(const NativeTileGameplaySpec& spec) {
     if(spec.frameToggle&&!setupNativeFrameToggle())return false;
     if(((spec.callbackMask&(1<<4))||tile_toggle::allowsRightClick(spec.frameToggle))&&
        !setupTileInteractHook())return false;
+    if(tile_smart::eligible(spec.callbackMask,spec.frameToggle)&&
+       !g_smartInteract.ready&&!g_smartInteractRejected&&
+       !setupTileSmartInteractHook()) {
+        g_smartInteractRejected=true;
+        BL_WARN("[CSharp][TileSmart] Stage=Bind CandidateProviderABI=Unavailable Result=MobileCursorFallback");
+    }
     if((spec.callbackMask&(1<<8))&&!setupTileSlopeHooks())return false;
     if(!setupTileMouseOverHooks((spec.callbackMask&((1<<4)|(1<<9)))!=0||
                                  tile_toggle::allowsRightClick(spec.frameToggle),
