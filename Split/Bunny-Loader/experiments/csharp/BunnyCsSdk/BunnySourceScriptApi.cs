@@ -348,6 +348,40 @@ public sealed class BunnyItemPrefixRules
     private int chanceMinStack;
     private int chanceMaxStack;
     private bool chanceEnabled;
+    private bool hasStackChoice;
+    private string stackChoicePrefix = "";
+    private int stackChoiceMin;
+    private int stackChoiceMax;
+
+    public void ChooseWhenStackBetween(int prefixType, int minimum, int maximum)
+    {
+        if (prefixType < 1 || prefixType > 255)
+            throw new System.ArgumentOutOfRangeException(nameof(prefixType));
+        SetStackChoice(prefixType.ToString(System.Globalization.CultureInfo.InvariantCulture), minimum, maximum);
+    }
+
+    public void ChooseWhenStackBetween(string ownModPrefixName, int minimum, int maximum)
+        => SetStackChoice(AttributePrefixName(ownModPrefixName), minimum, maximum);
+
+    private void SetStackChoice(string prefix, int minimum, int maximum)
+    {
+        if (minimum < 0 || maximum < minimum || maximum > 999999)
+            throw new System.ArgumentOutOfRangeException(nameof(minimum));
+        if (hasStackChoice)
+            throw new System.InvalidOperationException("Only one conditional prefix choice is supported");
+        hasStackChoice = true;
+        stackChoicePrefix = prefix;
+        stackChoiceMin = minimum;
+        stackChoiceMax = maximum;
+    }
+
+    public string SerializeStackChoice()
+    {
+        if (!hasStackChoice) return "";
+        return stackChoicePrefix + ":" +
+            stackChoiceMin.ToString(System.Globalization.CultureInfo.InvariantCulture) + ":" +
+            stackChoiceMax.ToString(System.Globalization.CultureInfo.InvariantCulture);
+    }
 
     public void Deny(int prefixType)
     {

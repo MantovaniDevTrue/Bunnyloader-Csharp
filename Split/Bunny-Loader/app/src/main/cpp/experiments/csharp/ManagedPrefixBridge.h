@@ -114,6 +114,23 @@ bool applyManagedItemPrefixStackChances(
     const std::vector<std::pair<int, ManagedPrefixStackChance>>& policies);
 std::shared_ptr<const std::map<int, ManagedPrefixStackChance>> managedItemPrefixStackChanceView();
 
+struct ManagedPrefixChoiceToken {
+    int itemType = -1;
+    std::string prefix;
+    int minStack = 0;
+    int maxStack = 0;
+};
+
+struct ManagedPrefixChoice {
+    int prefix = 0;
+    int minStack = 0;
+    int maxStack = 0;
+};
+
+bool applyManagedItemPrefixChoices(
+    const std::string& modId, const std::vector<ManagedPrefixChoiceToken>& policies);
+std::shared_ptr<const std::map<int, ManagedPrefixChoice>> managedItemPrefixChoiceView();
+
 bool applyManagedPrefixDescriptors(const std::string& modId,
                                    const std::vector<ManagedPrefixEntry>& prefixes);
 void reserveManagedPrefixDescriptor(int type);

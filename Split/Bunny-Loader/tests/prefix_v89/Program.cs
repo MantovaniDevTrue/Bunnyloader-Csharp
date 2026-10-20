@@ -15,7 +15,7 @@ try
         throw new InvalidOperationException("Expected two content types and three managed prefixes, got " + classes);
 
     var data = File.ReadAllLines(Path.Combine(temp, "source-runtime-values.txt"));
-    if (data.Length != 18 || data[0] != "BUNNY_MANAGED_DEFAULTS_V2")
+    if (data.Length != 19 || data[0] != "BUNNY_MANAGED_DEFAULTS_V2")
         throw new InvalidOperationException("Unexpected MonoVM native handoff");
 
     if (data.Count(row => row == "PREFIX_DENY\tTestWand\t71,TestMightyPrefix") != 1)
@@ -24,6 +24,8 @@ try
         throw new InvalidOperationException("Dynamic item prefix stack denials missing");
     if (data.Count(row => row == "PREFIX_DENY_ATTRIBUTE\tTestWand\t73:D:10:25,TestCustomPrefix:M:2:8") != 1)
         throw new InvalidOperationException("Dynamic item damage/mana denials missing");
+    if (data.Count(row => row == "PREFIX_CHOOSE_STACK\tTestWand\tTestCustomPrefix:1:2") != 1)
+        throw new InvalidOperationException("Native item ChoosePrefix policy missing");
     if (data.Count(row => row == "PREFIX_CHANCE_STACK\tTestWand\t3:5:1") != 1)
         throw new InvalidOperationException("Managed per-instance PrefixChance missing");
     if (data.Count(row => row == "PREFIX_CHANCE\tTestWand\t0") != 1)
@@ -58,6 +60,7 @@ try
                                           !row.StartsWith("PREFIX_POST\t", StringComparison.Ordinal) &&
                                           !row.StartsWith("PREFIX_CHANCE\t", StringComparison.Ordinal) &&
                                           !row.StartsWith("PREFIX_CHANCE_STACK\t", StringComparison.Ordinal) &&
+                                          !row.StartsWith("PREFIX_CHOOSE_STACK\t", StringComparison.Ordinal) &&
                                           !row.StartsWith("PREFIX_APPLY\t", StringComparison.Ordinal))
         .Select(row => row.Split('\t'))
         .ToDictionary(fields => fields[1], StringComparer.Ordinal);
@@ -185,6 +188,28 @@ try
         predicates.MinMana != 0 || predicates.MaxMana != 8 ||
         predicates.MinStack != 1 || predicates.MaxStack != 10)
         throw new InvalidOperationException("Item condition assignment lost");
+    var choose = new BunnyLoader.Source.BunnyItemPrefixRules();
+    if (choose.SerializeStackChoice() != "")
+        throw new InvalidOperationException("Unset item prefix choice must not emit a row");
+    bool invalidChoice = false;
+    try { choose.ChooseWhenStackBetween(0, 1, 2); }
+    catch (ArgumentOutOfRangeException) { invalidChoice = true; }
+    if (!invalidChoice) throw new InvalidOperationException("Invalid chosen prefix ID accepted");
+    invalidChoice = false;
+    try { choose.ChooseWhenStackBetween("external/ForeignPrefix", 1, 2); }
+    catch (ArgumentOutOfRangeException) { invalidChoice = true; }
+    if (!invalidChoice) throw new InvalidOperationException("External chosen prefix accepted");
+    invalidChoice = false;
+    try { choose.ChooseWhenStackBetween(71, 3, 2); }
+    catch (ArgumentOutOfRangeException) { invalidChoice = true; }
+    if (!invalidChoice) throw new InvalidOperationException("Inverted prefix choice interval accepted");
+    choose.ChooseWhenStackBetween("TestCustomPrefix", 1, 2);
+    if (choose.SerializeStackChoice() != "TestCustomPrefix:1:2")
+        throw new InvalidOperationException("Native item prefix choice serialization changed");
+    bool repeatedChoice = false;
+    try { choose.ChooseWhenStackBetween(71, 1, 2); }
+    catch (InvalidOperationException) { repeatedChoice = true; }
+    if (!repeatedChoice) throw new InvalidOperationException("Duplicate prefix choice accepted");
     var denied = new BunnyLoader.Source.BunnyItemPrefixRules();
     denied.Deny("TestMightyPrefix");
     denied.Deny(71);

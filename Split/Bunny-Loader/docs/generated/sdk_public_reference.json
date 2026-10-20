@@ -1121,6 +1121,10 @@
           "execution": "compile_policy"
         },
         {
+          "signature": "string SerializeStackChoice()",
+          "execution": "compile_policy"
+        },
+        {
           "signature": "string SerializeStackDenials()",
           "execution": "compile_policy"
         },
@@ -1130,6 +1134,14 @@
         },
         {
           "signature": "void Deny(string ownModPrefixName)",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "void ChooseWhenStackBetween(int prefixType, int minimum, int maximum)",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "void ChooseWhenStackBetween(string ownModPrefixName, int minimum, int maximum)",
           "execution": "compile_policy"
         },
         {

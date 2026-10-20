@@ -32,6 +32,8 @@ std::shared_ptr<const std::vector<bl::csharp::ManagedPrefixEntry>> descriptorVie
 std::shared_ptr<const std::map<int, bool>> chanceView;
 std::shared_ptr<const std::map<int, bl::csharp::ManagedPrefixStackChance>> stackChanceView =
     std::make_shared<const std::map<int, bl::csharp::ManagedPrefixStackChance>>();
+std::shared_ptr<const std::map<int, bl::csharp::ManagedPrefixChoice>> choiceView =
+    std::make_shared<const std::map<int, bl::csharp::ManagedPrefixChoice>>();
 std::shared_ptr<const std::map<int, bl::csharp::ManagedItemPrefixApply>> effectView;
 std::shared_ptr<const std::map<int, std::set<int>>> deniedView =
     std::make_shared<const std::map<int, std::set<int>>>();
@@ -152,6 +154,9 @@ std::shared_ptr<const std::map<int, bool>> managedItemPrefixChanceView() { retur
 std::shared_ptr<const std::map<int, ManagedPrefixStackChance>> managedItemPrefixStackChanceView() {
     return stackChanceView;
 }
+std::shared_ptr<const std::map<int, ManagedPrefixChoice>> managedItemPrefixChoiceView() {
+    return choiceView;
+}
 std::shared_ptr<const std::map<int, ManagedItemPrefixApply>> managedItemPrefixApplyView() { return effectView; }
 std::shared_ptr<const std::map<int, std::set<int>>> managedItemPrefixDenyView() { return deniedView; }
 std::shared_ptr<const ManagedPrefixStackDenyTable> managedItemPrefixStackDenyView() { return stackDeniedView; }
@@ -249,6 +254,39 @@ int main() {
     assert(mixedIds[0] == 71 && mixedIds[1] == 100);
     for (int i = 2; i < 5; ++i) assert(mixedIds[i] == 98);
     const int priorNativeRolls = nativeRolls;
+    choiceView = std::make_shared<const std::map<int, ManagedPrefixChoice>>(
+        std::map<int, ManagedPrefixChoice>{{6196, {98, 3, 5}}});
+    int32_t selectedChoice = -1;
+    accessory.stack = 3;
+    randomDouble.value = std::numeric_limits<double>::quiet_NaN();
+    assert(hookRoll(&accessory.object, &randomObject, &selectedChoice, nullptr));
+    assert(selectedChoice == 98 && nativeRolls == priorNativeRolls);
+    accessory.stack = 5;
+    assert(hookRoll(&accessory.object, &randomObject, &selectedChoice, nullptr));
+    assert(selectedChoice == 98);
+    accessory.stack = 2;
+    randomDouble.value = 0.1;
+    assert(hookRoll(&accessory.object, &randomObject, &selectedChoice, nullptr));
+    assert(selectedChoice == 71);
+    accessory.stack = 4;
+    deniedView = std::make_shared<const std::map<int, std::set<int>>>(
+        std::map<int, std::set<int>>{{6196, {98}}});
+    assert(hookRoll(&accessory.object, &randomObject, &selectedChoice, nullptr));
+    assert(selectedChoice == 71);
+    deniedView = std::make_shared<const std::map<int, std::set<int>>>();
+    const int choiceStackOffset = g_refs.stack;
+    g_refs.stack = -1;
+    assert(hookRoll(&accessory.object, &randomObject, &selectedChoice, nullptr));
+    assert(selectedChoice == 71);
+    g_refs.stack = choiceStackOffset;
+    accessory.stack = 2;
+    g_restoreRoll = {&accessory.object, 98, false};
+    randomDouble.value = std::numeric_limits<double>::quiet_NaN();
+    assert(hookRoll(&accessory.object, &randomObject, &selectedChoice, nullptr));
+    assert(selectedChoice == 98 && g_restoreRoll.used);
+    g_restoreRoll = {};
+    choiceView = std::make_shared<const std::map<int, ManagedPrefixChoice>>();
+    accessory.stack = 1;
     int32_t selectedMixed = -1;
     randomDouble.value = 0.1;
     assert(hookRoll(&accessory.object, &randomObject, &selectedMixed, nullptr));

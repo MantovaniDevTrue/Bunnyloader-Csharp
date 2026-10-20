@@ -30,6 +30,9 @@ assert "PREFIX_DENY_ATTRIBUTE" in source
 assert "applyManagedItemPrefixAttributeDenials" in source
 assert "managedItemPrefixAttributeDenyView()" in game
 assert "PREFIX_CHANCE_STACK" in source
+assert "PREFIX_CHOOSE_STACK" in source
+assert "applyManagedItemPrefixChoices" in source
+assert "managedItemPrefixChoiceView()" in game
 assert "applyManagedItemPrefixStackChances" in source
 assert "managedItemPrefixStackChanceView()" in game
 assert "applyManagedItemPrefixStackDenials" in source

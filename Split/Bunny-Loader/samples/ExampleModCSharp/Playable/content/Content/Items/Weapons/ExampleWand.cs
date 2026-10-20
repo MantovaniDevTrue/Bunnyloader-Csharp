@@ -24,6 +24,7 @@ public sealed class ExampleWand : BunnyWeapon
         rules.DenyWhenDamageBetween(73, 10, 25);
         rules.DenyWhenManaBetween(nameof(ExampleGuardedPrefix), 2, 8);
         rules.SetPrefixChanceWhenStackBetween(3, 5, true);
+        rules.ChooseWhenStackBetween(nameof(ExampleMightyPrefix), 1, 2);
     }
 
     public override void AddRecipes()

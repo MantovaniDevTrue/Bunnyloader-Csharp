@@ -26,6 +26,8 @@ std::shared_ptr<const std::map<int, bool>> g_itemChanceView =
     std::make_shared<const std::map<int, bool>>();
 std::shared_ptr<const std::map<int, ManagedPrefixStackChance>> g_itemStackChanceView =
     std::make_shared<const std::map<int, ManagedPrefixStackChance>>();
+std::shared_ptr<const std::map<int, ManagedPrefixChoice>> g_itemChoiceView =
+    std::make_shared<const std::map<int, ManagedPrefixChoice>>();
 std::shared_ptr<const std::map<int, ManagedItemPrefixApply>> g_itemApplyView =
     std::make_shared<const std::map<int, ManagedItemPrefixApply>>();
 std::shared_ptr<const std::map<int, std::set<int>>> g_itemDenyView =
@@ -384,6 +386,59 @@ bool applyManagedItemPrefixStackChances(
 
 std::shared_ptr<const std::map<int, ManagedPrefixStackChance>> managedItemPrefixStackChanceView() {
     return std::atomic_load_explicit(&g_itemStackChanceView, std::memory_order_acquire);
+}
+
+bool applyManagedItemPrefixChoices(
+    const std::string& modId, const std::vector<ManagedPrefixChoiceToken>& policies) {
+    if (policies.size() > 4096) return false;
+    std::map<int, ManagedPrefixChoice> staged;
+    for (const auto& policy : policies) {
+        if (policy.itemType < 1 || policy.itemType > 32767 ||
+            policy.minStack < 0 || policy.maxStack < policy.minStack ||
+            policy.maxStack > 999999) return false;
+        const auto& token = policy.prefix;
+        int prefix = -1;
+        const bool numeric = !token.empty() &&
+            std::all_of(token.begin(), token.end(),
+                [](unsigned char ch) { return ch >= '0' && ch <= '9'; });
+        if (numeric) {
+            const char* begin = token.data();
+            const auto result = std::from_chars(begin, begin + token.size(), prefix);
+            if (result.ec != std::errc{} || result.ptr != begin + token.size())
+                return false;
+        } else {
+            if (token.empty() || token.size() > 64 ||
+                !((token[0] >= 'A' && token[0] <= 'Z') ||
+                  (token[0] >= 'a' && token[0] <= 'z') || token[0] == '_'))
+                return false;
+            for (unsigned char ch : token)
+                if (!((ch >= 'A' && ch <= 'Z') ||
+                      (ch >= 'a' && ch <= 'z') ||
+                      (ch >= '0' && ch <= '9') || ch == '_'))
+                    return false;
+            prefix = bl::runtime::modPrefixByKey(modId + "/" + token);
+        }
+        if (prefix < 1 || prefix > 255 ||
+            !staged.emplace(policy.itemType,
+                ManagedPrefixChoice{prefix, policy.minStack, policy.maxStack}).second)
+            return false;
+    }
+    if (staged.empty()) return true;
+    if (!installManagedPrefixGameplayHooks()) return false;
+    std::lock_guard<std::mutex> guard(g_prefixMutex);
+    auto previous = std::atomic_load_explicit(&g_itemChoiceView, std::memory_order_acquire);
+    for (const auto& [type, choice] : staged)
+        if (previous->contains(type)) return false;
+    auto updated = std::make_shared<std::map<int, ManagedPrefixChoice>>(*previous);
+    updated->insert(staged.begin(), staged.end());
+    std::shared_ptr<const std::map<int, ManagedPrefixChoice>> published = updated;
+    std::atomic_store_explicit(&g_itemChoiceView, std::move(published),
+                               std::memory_order_release);
+    return true;
+}
+
+std::shared_ptr<const std::map<int, ManagedPrefixChoice>> managedItemPrefixChoiceView() {
+    return std::atomic_load_explicit(&g_itemChoiceView, std::memory_order_acquire);
 }
 
 void reserveManagedPrefixDescriptor(int type) {

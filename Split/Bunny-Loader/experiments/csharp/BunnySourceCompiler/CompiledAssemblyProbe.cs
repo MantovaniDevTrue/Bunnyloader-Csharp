@@ -1106,6 +1106,11 @@ public static class CompiledAssemblyProbe
                 ?? throw new InvalidOperationException("BunnyItemPrefixRules stack chance serialization missing"));
             if (stackChance.Length != 0)
                 lines.Add(string.Join("\t", "PREFIX_CHANCE_STACK", item.GetType().Name, stackChance));
+            string stackChoice = (string)(rulesType.GetMethod("SerializeStackChoice",
+                BindingFlags.Public | BindingFlags.Instance)?.Invoke(rules, null)
+                ?? throw new InvalidOperationException("BunnyItemPrefixRules stack choice serialization missing"));
+            if (stackChoice.Length != 0)
+                lines.Add(string.Join("\t", "PREFIX_CHOOSE_STACK", item.GetType().Name, stackChoice));
         }
         foreach (var item in basicItems.Concat(weapons).Concat(potions).Concat(accessories))
         {

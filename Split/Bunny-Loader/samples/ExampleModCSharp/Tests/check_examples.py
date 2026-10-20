@@ -186,6 +186,7 @@ assert 'rules.DenyWhenStackBetween(72, 3, 5);' in item_deny_example
 assert 'rules.DenyWhenDamageBetween(73, 10, 25);' in item_deny_example
 assert 'rules.DenyWhenManaBetween(nameof(ExampleGuardedPrefix), 2, 8);' in item_deny_example
 assert 'rules.SetPrefixChanceWhenStackBetween(3, 5, true);' in item_deny_example
+assert 'rules.ChooseWhenStackBetween(nameof(ExampleMightyPrefix), 1, 2);' in item_deny_example
 wave_weapon = (playable / "content/Content/Items/Weapons/ExampleWaveWand.cs").read_text(encoding="utf-8")
 wave_projectile = (playable / "content/Content/Projectiles/ExampleWaveBolt.cs").read_text(encoding="utf-8")
 wave_motion = (playable / "content/ExampleWaveBoltMotion.cs").read_text(encoding="utf-8")

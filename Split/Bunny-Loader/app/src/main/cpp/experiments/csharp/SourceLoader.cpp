@@ -677,6 +677,8 @@ bool applyManagedSourceDefaults(
     std::set<int> seenPrefixChances;
     std::vector<std::pair<int, ManagedPrefixStackChance>> prefixStackChances;
     std::set<int> seenPrefixStackChances;
+    std::vector<ManagedPrefixChoiceToken> prefixChoices;
+    std::set<int> seenPrefixChoices;
     std::vector<std::pair<int, ManagedItemPrefixApply>> prefixEffects;
     std::set<int> seenPrefixEffects;
     std::vector<SourceRecipeOwner> recipeOwners;
@@ -817,6 +819,37 @@ bool applyManagedSourceDefaults(
                 return false;
             }
             prefixAttributeDenials.emplace_back(registered->second, std::move(denied));
+            continue;
+        }
+        if (!fields.empty() && fields[0] == "PREFIX_CHOOSE_STACK") {
+            const auto key = fields.size() > 1
+                ? sourceIdentityForWire("ITEM", fields[1]) : "";
+            const auto registered = mod->registeredKindTypes.find(key);
+            if (fields.size() != 3 || registered == mod->registeredKindTypes.end() ||
+                runtime::modItemTypeByKey(modId + "/" + fields[1]) != registered->second ||
+                fields[2].size() < 5 || fields[2].size() > 100 ||
+                prefixChoices.size() >= kSourceMaxCategory ||
+                !seenPrefixChoices.insert(registered->second).second) {
+                *error = "[CSharp][ERROR][PrefixChooseStack] InvalidItemOrPolicy";
+                return false;
+            }
+            const auto first = fields[2].find(':');
+            const auto second = first == std::string::npos
+                ? std::string::npos : fields[2].find(':', first + 1);
+            ManagedPrefixChoiceToken choice;
+            choice.itemType = registered->second;
+            if (first == 0 || second == std::string::npos ||
+                second == first + 1 || second + 1 >= fields[2].size() ||
+                fields[2].find(':', second + 1) != std::string::npos ||
+                !integer(fields[2].substr(first + 1, second - first - 1), &choice.minStack) ||
+                !integer(fields[2].substr(second + 1), &choice.maxStack) ||
+                choice.minStack < 0 || choice.maxStack < choice.minStack ||
+                choice.maxStack > 999999) {
+                *error = "[CSharp][ERROR][PrefixChooseStack] InvalidRange";
+                return false;
+            }
+            choice.prefix = fields[2].substr(0, first);
+            prefixChoices.push_back(std::move(choice));
             continue;
         }
         if (!fields.empty() && fields[0] == "PREFIX_CHANCE_STACK") {
@@ -1752,6 +1785,10 @@ bool applyManagedSourceDefaults(
     }
     if (!applyManagedItemPrefixStackChances(prefixStackChances)) {
         *error = "Politicas PrefixChance stack C# invalidas ou hook nativo indisponivel";
+        return false;
+    }
+    if (!applyManagedItemPrefixChoices(modId, prefixChoices)) {
+        *error = "Politicas ChoosePrefix stack C# invalidas ou hook nativo indisponivel";
         return false;
     }
     if (!applyManagedItemPrefixEffects(prefixEffects)) {

@@ -551,6 +551,27 @@ bool hookRoll(Il2CppObject* item, Il2CppObject* random, int32_t* rolled,
                     break;
                 }
     }
+    if (g_restoreRoll.item != item && currentItemType > 0) {
+        const auto choices = managedItemPrefixChoiceView();
+        const auto selected = choices->find(currentItemType);
+        if (selected != choices->end() && g_refs.stack >= 0) {
+            const int stack = bl::runtime::field<int32_t>(item, g_refs.stack);
+            if (stack >= selected->second.minStack &&
+                stack <= selected->second.maxStack) {
+                const int choice = selected->second.prefix;
+                if (!isPrefixDenied(item, choice)) {
+                    const auto* managed = byType(*descriptors, choice);
+                    const bool allowed = managed
+                        ? eligible(item, *managed, true) && ensurePrefixTables(*descriptors)
+                        : g_originalCanRoll && g_originalCanRoll(item, choice, nullptr);
+                    if (allowed) {
+                        *rolled = choice;
+                        return true;
+                    }
+                }
+            }
+        }
+    }
     if (descriptors->empty() && !hasDeny)
         return g_originalRoll ? g_originalRoll(item, random, rolled, method) : false;
     if (g_restoreRoll.item != item && g_refs.type >= 0) {

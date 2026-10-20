@@ -30,6 +30,7 @@ public sealed class TestWand : BunnyWeapon
         rules.DenyWhenDamageBetween(73, 10, 25);
         rules.DenyWhenManaBetween("TestCustomPrefix", 2, 8);
         rules.SetPrefixChanceWhenStackBetween(3, 5, true);
+        rules.ChooseWhenStackBetween("TestCustomPrefix", 1, 2);
     }
 
     public override void ApplyPrefix(ref BunnyPrefixApplyStats effects)

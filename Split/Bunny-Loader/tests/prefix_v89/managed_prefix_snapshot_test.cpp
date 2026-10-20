@@ -69,6 +69,32 @@ int main() {
     assert(applyManagedItemPrefixStackChances({{6208, {3, 5, false}}}));
     assert(!managedItemPrefixStackChanceView()->at(6208).allowed);
     assert(firstStackChances->size() == 1);
+    assert(managedItemPrefixChoiceView()->empty());
+    assert(!applyManagedItemPrefixChoices("test",
+        {{6207, "MissingPrefix", 1, 2}}));
+    assert(managedItemPrefixChoiceView()->empty());
+    assert(!applyManagedItemPrefixChoices("test",
+        {{6207, "71", 5, 3}}));
+    assert(managedItemPrefixChoiceView()->empty());
+    assert(!applyManagedItemPrefixChoices("test",
+        {{6207, "256", 1, 2}}));
+    assert(managedItemPrefixChoiceView()->empty());
+    assert(!applyManagedItemPrefixChoices("test",
+        {{6207, "Guarded", 1, 2}, {6207, "71", 1, 2}}));
+    assert(managedItemPrefixChoiceView()->empty());
+    assert(applyManagedItemPrefixChoices("test",
+        {{6207, "Guarded", 1, 2}}));
+    auto firstChoices = managedItemPrefixChoiceView();
+    assert(firstChoices->at(6207).prefix == 98);
+    assert(firstChoices->at(6207).minStack == 1);
+    assert(firstChoices->at(6207).maxStack == 2);
+    assert(!applyManagedItemPrefixChoices("test",
+        {{6207, "71", 1, 3}}));
+    assert(managedItemPrefixChoiceView() == firstChoices);
+    assert(applyManagedItemPrefixChoices("test",
+        {{6208, "71", 2, 4}}));
+    assert(managedItemPrefixChoiceView()->at(6208).prefix == 71);
+    assert(firstChoices->size() == 1);
     assert(managedItemPrefixApplyView()->empty());
     assert(!applyManagedItemPrefixEffects({{6207, {0, 0}}}));
     assert(!applyManagedItemPrefixEffects({{6207, {1001, 0}}}));
