@@ -33,6 +33,20 @@ struct NativeCommandRequest {
     NativeCommandRoute caller = NativeCommandRoute::Chat;
 };
 
+enum class NativeCommandActionKind : uint8_t {
+    Heal = 1,
+    AdvanceWorldTime = 2
+};
+
+struct NativeCommandAction {
+    NativeCommandActionKind kind = NativeCommandActionKind::Heal;
+    int amount = 0;
+    uint64_t epoch = 0;
+    int playerIndex = -1;
+    int networkMode = 0;
+    NativeCommandRoute caller = NativeCommandRoute::Chat;
+};
+
 struct NativeCommandReply {
     std::string text;
     int playerIndex = -1;
@@ -177,7 +191,7 @@ public:
         if (inFlight_.size() >= MaxPending)
             return NativeCommandSubmit::Busy;
         const uint64_t ticket = ++sequence_;
-        inFlight_.emplace(ticket, playerIndex);
+        inFlight_.emplace(ticket, Ticket{playerIndex, netMode, caller});
         requests_.push_back({epoch_, ticket, text, playerIndex, netMode, caller});
         return NativeCommandSubmit::Queued;
     }
@@ -210,11 +224,53 @@ public:
             return false;
         // Uma resposta nao pode redirecionar texto privado a outro jogador.
         for (const auto& message : messages)
-            if (message.playerIndex != pending->second) return false;
+            if (message.playerIndex != pending->second.playerIndex) return false;
         for (const auto& message : messages)
             replies_.push_back(message);
         inFlight_.erase(pending);
         return true;
+    }
+
+    // So o game thread pode aplicar Heal/AdvanceWorldTime; a confirmacao
+    // e criada APOS ler/escrever o estado real do Terraria.
+    bool deliverAction(const NativeCommandRequest& request, NativeCommandAction action) {
+        std::lock_guard<std::mutex> lock(mutex_);
+        const auto pending = inFlight_.find(request.sequence);
+        if (request.epoch != epoch_ || pending == inFlight_.end() ||
+            actions_.size() >= MaxPending ||
+            pending->second.playerIndex != request.playerIndex ||
+            pending->second.networkMode != request.networkMode ||
+            pending->second.caller != request.caller)
+            return false;
+        if (action.kind == NativeCommandActionKind::Heal) {
+            if (action.amount <= 0 || action.amount > 1000000 ||
+                request.caller != NativeCommandRoute::Chat)
+                return false;
+        } else if (action.kind == NativeCommandActionKind::AdvanceWorldTime) {
+            if (action.amount < -86400000 || action.amount > 86400000 ||
+                !(request.networkMode == 0 && request.caller == NativeCommandRoute::Chat) &&
+                !((request.networkMode & 2) != 0 &&
+                  request.caller == NativeCommandRoute::Server))
+                return false;
+        } else return false;
+        action.epoch = request.epoch;
+        action.playerIndex = request.playerIndex;
+        action.networkMode = request.networkMode;
+        action.caller = request.caller;
+        actions_.push_back(action);
+        inFlight_.erase(pending);
+        return true;
+    }
+
+    std::vector<NativeCommandAction> takeActions(size_t budget = 8) {
+        std::lock_guard<std::mutex> lock(mutex_);
+        std::vector<NativeCommandAction> result;
+        budget = std::min(budget, MaxPending);
+        while (budget-- && !actions_.empty()) {
+            result.push_back(actions_.front());
+            actions_.pop_front();
+        }
+        return result;
     }
 
     // Consumir no thread do jogo; ele decide entre NewText e mensagem de rede.
@@ -251,6 +307,11 @@ public:
     }
 
 private:
+    struct Ticket {
+        int playerIndex = -1;
+        int networkMode = 0;
+        NativeCommandRoute caller = NativeCommandRoute::Chat;
+    };
     struct Registered {
         std::string owner;
         std::string name;
@@ -287,6 +348,7 @@ private:
         ++epoch_;
         requests_.clear();
         replies_.clear();
+        actions_.clear();
         inFlight_.clear();
     }
 
@@ -299,7 +361,8 @@ private:
     std::set<std::string> readyOwners_;
     std::deque<NativeCommandRequest> requests_;
     std::deque<NativeCommandReply> replies_;
-    std::map<uint64_t, int> inFlight_;
+    std::deque<NativeCommandAction> actions_;
+    std::map<uint64_t, Ticket> inFlight_;
 };
 
 // Registro compartilhado entre o loader de fontes, os hooks e o worker Mono.
