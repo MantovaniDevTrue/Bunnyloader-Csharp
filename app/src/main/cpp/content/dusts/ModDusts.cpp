@@ -506,7 +506,7 @@ bool managedDustPhase(Il2CppObject* dust, int phase, std::uint32_t* flags,
             const bool requiresSameFrame = phase >= 0 && phase <= 4;
             std::chrono::steady_clock::time_point deadline{};
             bool attempted = false;
-            if (requiresSameFrame &&
+            if (requiresSameFrame && csharp::managedDustWorkerReady(state.type) &&
                 g_dustFrameBudget.deadline(static_cast<std::uint64_t>(g_frame), &deadline)) {
                 attempted = true;
                 csharp::ManagedDustMailbox::Response immediate{};
