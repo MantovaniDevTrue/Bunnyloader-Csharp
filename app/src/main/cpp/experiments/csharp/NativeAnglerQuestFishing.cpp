@@ -38,7 +38,9 @@ bool instanceField(Il2CppClass* cls, const char* name,
     auto& a = il2cpp::api();
     auto* field = cls ? il2cpp::findField(cls, name) : nullptr;
     if (!field || !a.class_instance_size || !a.field_get_type ||
-        !a.field_get_offset || !isType(a.field_get_type(field), typeName))
+        !a.field_get_offset || !a.field_get_flags ||
+        (a.field_get_flags(field) & 0x10u) != 0 ||
+        !isType(a.field_get_type(field), typeName))
         return false;
     const size_t at = a.field_get_offset(field), size = a.class_instance_size(cls);
     if (at < sizeof(Il2CppObject) || width > size ||
@@ -53,6 +55,7 @@ bool valueField(Il2CppClass* cls, const bl::il2cpp::ValueLayout& layout,
     auto& a = il2cpp::api();
     auto* field = cls ? il2cpp::findField(cls, name) : nullptr;
     return field && a.field_get_type && a.field_get_offset &&
+           a.field_get_flags && (a.field_get_flags(field) & 0x10u) == 0 &&
            isType(a.field_get_type(field), typeName) &&
            layout.offset(a.field_get_offset(field), width, offset);
 }
@@ -95,7 +98,8 @@ bool installFishingOnGameThread(const std::vector<Quest>* quests) {
         !a.method_get_param || !a.method_get_return_type ||
         !a.field_static_get_value || !a.object_get_class ||
         !a.class_get_element_class || !a.class_get_name ||
-        !a.class_get_namespace) return false;
+        !a.class_get_namespace || !a.field_get_flags ||
+        !a.method_is_instance) return false;
 
     Il2CppClass* projectile = il2cpp::findClass({"Terraria", "Projectile", {}});
     Il2CppClass* player = il2cpp::findClass({"Terraria", "Player", {}});
@@ -110,7 +114,7 @@ bool installFishingOnGameThread(const std::vector<Quest>* quests) {
     if (!method || a.method_get_param_count(method) != 1 ||
         !isType(a.method_get_return_type(method), "System.Void") ||
         !isType(a.method_get_param(method, 0), "Terraria.DataStructures.FishingAttempt&") ||
-        (a.method_is_instance && !a.method_is_instance(method))) return false;
+        !a.method_is_instance(method)) return false;
 
     bl::il2cpp::ValueLayout layout;
     std::string error;
@@ -122,7 +126,8 @@ bool installFishingOnGameThread(const std::vector<Quest>* quests) {
         !instanceField(player, "gravDir", "System.Single", 4, &g_gravity))
         return false;
     g_players = il2cpp::findField(main, "player");
-    if (!g_players || !a.field_get_type || !a.class_from_il2cpp_type ||
+    if (!g_players || (a.field_get_flags(g_players) & 0x10u) == 0 ||
+        !a.field_get_type || !a.class_from_il2cpp_type ||
         !a.field_static_get_value) return false;
     Il2CppClass* array = a.class_from_il2cpp_type(a.field_get_type(g_players));
     Il2CppClass* elements = array ? a.class_get_element_class(array) : nullptr;
