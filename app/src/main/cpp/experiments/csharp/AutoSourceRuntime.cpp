@@ -1193,6 +1193,7 @@ void retryWorldManagedPrefixesWhenReady() {
 
 void noteAutoWorldTilesLoaded() {
     std::lock_guard<std::mutex> sessionGuard(g_worldTransitionMutex);
+    gore::worldBoundary();
     clearManagedVisualCommands();
     resetNativeVisualRenderer();
     g_visualUpdateTick.store(0, std::memory_order_relaxed);
@@ -1223,6 +1224,7 @@ void flushDeferredWorldEntry();
 void noteAutoGameUpdate() {
     universalNativeService.store(pumpNativeAccessOnGameThread,std::memory_order_release);
     pumpNativeAccessOnGameThread();
+    gore::pumpOnGameThread();
     pumpUniversalHookInstallsOnGameThread();
     if (managedEntitySourceModsRegistered() &&
         runtime::modNpcsSettled() && runtime::modProjectilesSettled()) {
@@ -1273,6 +1275,7 @@ void noteAutoGameUpdate() {
         }
         std::lock_guard<std::mutex> sessionGuard(g_worldTransitionMutex);
         clearManagedVisualCommands();
+        gore::worldBoundary();
         graphics::clearCSharpScreenEffects();
         pauseManagedScreenSceneCallbacks();
         resetNativeVisualRenderer();
@@ -1311,6 +1314,7 @@ void noteAutoGameUpdate() {
         const ActivationContext context = readActivationContext();
         if (context.netMode != 0 || context.gameMenu == 1) return;
         g_worldSessionReady.store(true, std::memory_order_release);
+        gore::worldReady();
         requestBasicItemInstanceRefresh("WorldLoaded");
         enableUniversalHooks();
         resumeUniversalHookMods();
