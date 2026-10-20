@@ -4,6 +4,7 @@
 #include "experiments/csharp/SourceLimits.h"
 #include "experiments/csharp/NativeAccess.h"
 #include "experiments/csharp/NativeInvasionMailbox.h"
+#include "experiments/csharp/NativeInvasionRewards.h"
 #include "experiments/csharp/ReliableNpcKill.h"
 #include "experiments/csharp/NativeInvasionPersistence.h"
 #include "experiments/csharp/NativeCSharpItemUse.h"
@@ -1207,6 +1208,7 @@ void noteAutoWorldTilesLoaded() {
     g_worldEpoch.fetch_add(1, std::memory_order_acq_rel);
     g_worldSessionReady.store(false, std::memory_order_release);
     setNativeInvasionWorldState(false, g_worldEpoch.load(std::memory_order_acquire));
+    setNativeInvasionRewardWorldState(false, g_worldEpoch.load(std::memory_order_acquire));
     updateNativeInvasionWorldPath(false, g_worldEpoch.load(std::memory_order_acquire));
         setNativeItemUseWorldState(false, g_worldEpoch.load(std::memory_order_acquire));
     pauseManagedEntitySourceCallbacks();
@@ -1236,7 +1238,9 @@ void noteAutoGameUpdate() {
     const uint64_t invasionWorldEpoch = g_worldEpoch.load(std::memory_order_acquire);
     setNativeInvasionWorldState(invasionWorldReady, invasionWorldEpoch);
     setNativeItemUseWorldState(invasionWorldReady, invasionWorldEpoch);
+    setNativeInvasionRewardWorldState(invasionWorldReady, invasionWorldEpoch);
     pumpNativeInvasionSpawnsOnGameThread();
+    pumpNativeInvasionRewardsOnGameThread();
     pumpReliableNpcKillsOnGameThread();
     pumpNativeItemUseBindingsOnGameThread();
     static uint64_t lastSaveWorldSession = 0;
@@ -1357,6 +1361,7 @@ void noteAutoGameUpdate() {
         g_worldEpoch.fetch_add(1, std::memory_order_acq_rel);
         g_worldSessionReady.store(false, std::memory_order_release);
         setNativeInvasionWorldState(false, g_worldEpoch.load(std::memory_order_acquire));
+    setNativeInvasionRewardWorldState(false, g_worldEpoch.load(std::memory_order_acquire));
     updateNativeInvasionWorldPath(false, g_worldEpoch.load(std::memory_order_acquire));
         setNativeItemUseWorldState(false, g_worldEpoch.load(std::memory_order_acquire));
         g_worldTilesLoaded.store(false, std::memory_order_release);
