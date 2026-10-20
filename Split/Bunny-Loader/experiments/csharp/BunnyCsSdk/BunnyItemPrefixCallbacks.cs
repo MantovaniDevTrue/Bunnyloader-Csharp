@@ -29,6 +29,8 @@ public static class BunnyItemPrefixRuntime
                 assemblyPath.Length == 0 || assemblyPath.Length > 4096 ||
                 !((kind == 2 && index == 0 && snapshot.Length == 0) ||
                   (kind == 0 && index >= 1 && index <= 255 &&
+                   snapshot.Length > 0 && snapshot.Length <= 512) ||
+                  (kind == 1 && index == 0 &&
                    snapshot.Length > 0 && snapshot.Length <= 512)))
                 throw new ArgumentException("Invalid item prefix callback transport");
 
@@ -72,6 +74,36 @@ public static class BunnyItemPrefixRuntime
             }
 
             if (kind == 2) return "READY";
+            if (kind == 1)
+            {
+                int separator = snapshot.IndexOf('|');
+                if (separator <= 0 || separator == snapshot.Length - 1)
+                    throw new FormatException("Missing batch separator");
+                string hex = snapshot[(separator + 1)..];
+                if (hex.Length < 2 || hex.Length > 256 || (hex.Length & 1) != 0)
+                    throw new FormatException("Invalid batch candidate length");
+                var batchState = BunnyPrefixRuntime.ReadItem(snapshot[..separator]);
+                Span<bool> seen = stackalloc bool[256];
+                char[] results = new char[hex.Length / 2];
+                for (int i = 0; i < results.Length; i++)
+                {
+                    int candidate = int.Parse(hex.AsSpan(i * 2, 2),
+                        NumberStyles.HexNumber, CultureInfo.InvariantCulture);
+                    if (candidate == 0 || seen[candidate])
+                        throw new FormatException("Duplicate or zero prefix");
+                    seen[candidate] = true;
+                    bool allowed = item switch
+                    {
+                        BunnyItem basic => basic.AllowPrefix(batchState, candidate),
+                        BunnyWeapon weapon => weapon.AllowPrefix(batchState, candidate),
+                        BunnyAccessory accessory => accessory.AllowPrefix(batchState, candidate),
+                        BunnyBuffPotion potion => potion.AllowPrefix(batchState, candidate),
+                        _ => throw new InvalidOperationException("Invalid item prefix owner")
+                    };
+                    results[i] = allowed ? '1' : '0';
+                }
+                return new string(results);
+            }
             var state = BunnyPrefixRuntime.ReadItem(snapshot);
             bool allow = item switch
             {
