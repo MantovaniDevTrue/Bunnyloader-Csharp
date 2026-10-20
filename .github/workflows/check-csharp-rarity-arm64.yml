@@ -39,11 +39,24 @@ jobs:
         run: |
           set -euo pipefail
           NDK="$ANDROID_HOME/ndk/27.2.12479018"
-          if [ ! -x "$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/clang++" ]; then
+          CLANG="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/clang++"
+          if [ ! -x "$CLANG" ]; then
             SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -maxdepth 3 -type f -name sdkmanager | sort -V | tail -n 1)"
             test -n "$SDKMANAGER"
-            "$SDKMANAGER" --install "ndk;27.2.12479018"
+            for attempt in 1 2 3; do
+              if "$SDKMANAGER" --install "ndk;27.2.12479018" && [ -x "$CLANG" ]; then
+                break
+              fi
+              echo "Android NDK install attempt $attempt failed"
+              if [ "$attempt" -eq 3 ]; then
+                echo "::error::Android NDK unavailable after three attempts"
+                exit 1
+              fi
+              rm -rf "$NDK"
+              sleep $((attempt * 3))
+            done
           fi
+          test -x "$CLANG"
       - name: Compile real RarityLoader sources with Android ARM64 ABI
         shell: bash
         run: |
