@@ -81,3 +81,10 @@ extern "C" void bunny_item_use_test_inject(int playerIndex) {
 extern "C" void bunny_item_use_test_ready(int ready) {
     bindingReady.store(ready != 0 ? 1 : 0);
 }
+
+extern "C" int bunny_invasion_notice(int64_t session, const char* mod,
+                                      const char* id, int phase,
+                                      int progress, int goal) {
+    return session > 0 && mod && id && phase >= 0 && phase <= 2 &&
+        progress >= 0 && progress <= goal ? 1 : 0;
+}
