@@ -19,7 +19,7 @@ try
     if (data.Length != 22 || data[0] != "BUNNY_MANAGED_DEFAULTS_V2")
         throw new InvalidOperationException("Unexpected MonoVM native handoff");
 
-    if (data.Count(row => row == "ITEM_PREFIX_CALLBACK\tTestWand\t1") != 1)
+    if (data.Count(row => row == "ITEM_PREFIX_CALLBACK\tTestWand\t15") != 1)
         throw new InvalidOperationException("Overridden AllowPrefix callback descriptor missing");
     if (data.Count(row => row == "PREFIX_DENY\tTestWand\t71,TestMightyPrefix") != 1)
         throw new InvalidOperationException("Item-owned prefix denials missing from native wire");
