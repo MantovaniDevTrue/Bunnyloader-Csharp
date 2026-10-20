@@ -1,0 +1,65 @@
+name: CSharp RarityLoader ARM64 Native Compile
+
+on:
+  push:
+    branches:
+      - feat/csharp-rarity-loader-core-20261019
+    paths:
+      - 'Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeRarity*.cpp'
+      - 'Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeRarity*.h'
+      - 'Split/Bunny-Loader/app/src/main/cpp/content/items/ModItemSave.cpp'
+      - 'Split/Bunny-Loader/app/src/main/cpp/content/items/ModItemSave*.h'
+      - 'Split/Bunny-Loader/app/src/main/cpp/content/items/NativeRarityPending.h'
+      - 'Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/SourceLoader.cpp'
+      - 'Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp'
+      - '.github/workflows/check-csharp-rarity-arm64.yml'
+  pull_request:
+    paths:
+      - 'Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeRarity*.cpp'
+      - 'Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeRarity*.h'
+      - 'Split/Bunny-Loader/app/src/main/cpp/content/items/ModItemSave.cpp'
+      - 'Split/Bunny-Loader/app/src/main/cpp/content/items/ModItemSave*.h'
+      - 'Split/Bunny-Loader/app/src/main/cpp/content/items/NativeRarityPending.h'
+      - 'Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/SourceLoader.cpp'
+      - 'Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp'
+      - '.github/workflows/check-csharp-rarity-arm64.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  arm64-native:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Ensure pinned Android NDK is available
+        shell: bash
+        run: |
+          set -euo pipefail
+          NDK="$ANDROID_HOME/ndk/27.2.12479018"
+          if [ ! -x "$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/clang++" ]; then
+            SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -maxdepth 3 -type f -name sdkmanager | sort -V | tail -n 1)"
+            test -n "$SDKMANAGER"
+            "$SDKMANAGER" --install "ndk;27.2.12479018"
+          fi
+      - name: Compile real RarityLoader sources with Android ARM64 ABI
+        shell: bash
+        run: |
+          set -euo pipefail
+          NDK="$ANDROID_HOME/ndk/27.2.12479018"
+          CLANG="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/clang++"
+          SRC="Split/Bunny-Loader/app/src/main/cpp"
+          FLAGS=(--target=aarch64-linux-android26 -std=c++20 -Wall -Wextra -Werror -fsyntax-only
+            -DBL_HAVE_QUICKJS=0 -I"$SRC" -I"Split/Bunny-Loader/tests/basic_items/include")
+          test -x "$CLANG"
+          for file in \
+            "$SRC/experiments/csharp/NativeRarityGameplay.cpp" \
+            "$SRC/content/items/ModItemSave.cpp" \
+            "$SRC/experiments/csharp/SourceLoader.cpp" \
+            "$SRC/experiments/csharp/AutoSourceRuntime.cpp"; do
+            echo "ARM64_CHECK $file"
+            "$CLANG" "${FLAGS[@]}" "$file"
+          done
+          echo "CSHARP_RARITY_ARM64_NATIVE=PASS"

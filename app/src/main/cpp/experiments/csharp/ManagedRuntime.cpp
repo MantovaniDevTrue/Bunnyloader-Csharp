@@ -290,6 +290,7 @@ struct RecipeRpcJob {
     std::shared_ptr<RecipeRpcCompletion> completion;
     bool shooting=false;
     bool tile=false;
+    bool rarity=false;
 };
 struct LocalizationJob {
     std::string modId;
@@ -315,8 +316,10 @@ std::condition_variable g_recipeRpcWake;
 void* g_recipeDispatchMethod=nullptr;
 void* g_shootDispatchMethod=nullptr;
 void* g_tileDispatchMethod=nullptr;
+void* g_rarityDispatchMethod=nullptr;
 std::map<std::string,std::shared_ptr<RecipeRpcCompletion>> g_shootWarmups;
 std::map<std::string,std::shared_ptr<RecipeRpcCompletion>> g_tileWarmups;
+std::map<std::string,std::shared_ptr<RecipeRpcCompletion>> g_rarityWarmups;
 std::atomic<bool> g_recipeRuntimeReady{false};
 
 
@@ -1392,13 +1395,13 @@ bool processManagedRecipeRpc(std::unique_lock<std::mutex>& lock,Execute execute)
     if(g_recipeRpcQueue.empty())return false;
     auto job=std::move(g_recipeRpcQueue.front());g_recipeRpcQueue.pop_front();
     if(job.completion->cancelled||std::chrono::steady_clock::now()>=job.deadline){
-        if((job.shooting||job.tile)&&job.kind==2&&!job.completion->cancelled){job.completion->done=true;job.completion->output="ERROR|Stage=Warmup Reason=WarmupDeadlineExceeded";}
+        if((job.shooting||job.tile||job.rarity)&&job.kind==2&&!job.completion->cancelled){job.completion->done=true;job.completion->output="ERROR|Stage=Warmup Reason=WarmupDeadlineExceeded";}
         g_recipeRpcWake.notify_all();return true;
     }
     lock.unlock();auto output=execute(job);lock.lock();
     if(!job.completion->cancelled&&std::chrono::steady_clock::now()<job.deadline) {
         job.completion->output=std::move(output);job.completion->done=true;
-    } else if((job.shooting||job.tile)&&job.kind==2&&!job.completion->cancelled) {
+    } else if((job.shooting||job.tile||job.rarity)&&job.kind==2&&!job.completion->cancelled) {
         job.completion->output="ERROR|Stage=Warmup Reason=WarmupDeadlineExceeded";job.completion->done=true;
     }
     g_recipeRpcWake.notify_all();return true;
@@ -1409,8 +1412,8 @@ std::string executeRecipeOnWorker(const RecipeRpcJob& job) {
     if(!g_domain||!g_status.methodExecuted||!g_api.attach||!g_api.openAssembly||!g_api.image||
        !g_api.findClass||!g_api.findMethod||!g_api.newString||!g_api.invoke)return "PENDING|Stage=Invoke Reason=MonoRuntimeOrRequiredExportsNotReady";
     if(!g_api.attach(g_domain))return "ERROR|Stage=AttachThread Reason=MonoAttachFailed";
-    void*& dispatcher=job.tile?g_tileDispatchMethod:(job.shooting?g_shootDispatchMethod:g_recipeDispatchMethod);
-    const char* endpoint=job.tile?"BunnyTileRuntime":(job.shooting?"BunnyShootRuntime":"BunnyRecipeRuntime");
+    void*& dispatcher=job.rarity?g_rarityDispatchMethod:(job.tile?g_tileDispatchMethod:(job.shooting?g_shootDispatchMethod:g_recipeDispatchMethod));
+    const char* endpoint=job.rarity?"BunnyRarityRuntime":(job.tile?"BunnyTileRuntime":(job.shooting?"BunnyShootRuntime":"BunnyRecipeRuntime"));
     if(!dispatcher) {
         const auto slash=g_checkpointPath.find_last_of('/');
         if(slash==std::string::npos)return "ERROR|Stage=ResolveSdk Reason=InvalidCheckpointPath";
@@ -2519,17 +2522,17 @@ bool managedRecipeRuntimeReady(){return g_recipeRuntimeReady.load(std::memory_or
 
 static bool invokeManagedCallback(bool shooting,const std::string& mod,const std::string& assembly,
                          const std::string& owner,int index,int kind,const std::string& snapshot,
-                         std::string* output,int budgetMicroseconds,bool tile=false) {
+                         std::string* output,int budgetMicroseconds,bool tile=false,bool rarity=false) {
     if(!output)return false;
     if(budgetMicroseconds<1||budgetMicroseconds>3000||index<0||index>=16||kind<0||kind>3||
-       snapshot.size()>(shooting?1024u:512u)||assembly.empty()||assembly.size()>4096){*output="ERROR|Stage=SubmitRecipeCallback Reason=InvalidTransportArguments";return false;}
+       snapshot.size()>(rarity?32768u:(shooting?1024u:512u))||assembly.empty()||assembly.size()>4096){*output="ERROR|Stage=SubmitRecipeCallback Reason=InvalidTransportArguments";return false;}
     std::unique_lock<std::mutex> lock(g_pinnedMutex,std::try_to_lock);
     if(!lock.owns_lock()){*output="PENDING|Stage=SubmitRecipeCallback Reason=WorkerQueueBusy";return false;}
     if(!g_pinnedStarted){*output="PENDING|Stage=SubmitRecipeCallback Reason=WorkerNotStarted";return false;}
     if(g_recipeRpcQueue.size()>=16){*output="PENDING|Stage=SubmitRecipeCallback Reason=QueueCapacityExceeded Expected=Below16";return false;}
     const auto until=std::chrono::steady_clock::now()+std::chrono::microseconds(budgetMicroseconds);
     auto completion=std::make_shared<RecipeRpcCompletion>();
-    g_recipeRpcQueue.push_back({mod,assembly,owner,snapshot,index,kind,until,completion,shooting,tile});g_pinnedWake.notify_one();
+    g_recipeRpcQueue.push_back({mod,assembly,owner,snapshot,index,kind,until,completion,shooting,tile,rarity});g_pinnedWake.notify_one();
     if(!g_recipeRpcWake.wait_until(lock,until,[&]{return completion->done;})) {
         completion->cancelled=true;*output="PENDING|Stage=WaitRecipeCallback Reason=DeadlineExceeded BudgetUs="+std::to_string(budgetMicroseconds);return false;
     }
@@ -2567,6 +2570,45 @@ bool invokeManagedTileDraw(const std::string& mod,const std::string& assembly,
     }
     return invokeManagedCallback(false,mod,assembly,owner,13,0,
         snapshot,output,budgetMicroseconds,true);
+}
+bool queueManagedRarityWarmup(const std::string& mod,const std::string& assembly,
+    const std::string& identities) {
+    if(mod.empty()||mod.size()>96||assembly.empty()||assembly.size()>4096||
+       identities.empty()||identities.size()>32768)return false;
+    std::lock_guard lock(g_pinnedMutex);
+    const auto key=mod+"|"+assembly;
+    if(g_rarityWarmups.count(key))return false;
+    if(g_rarityWarmups.size()>=4096||g_recipeRpcQueue.size()>=4096)return false;
+    auto completion=std::make_shared<RecipeRpcCompletion>();
+    g_rarityWarmups.emplace(key,completion);
+    g_recipeRpcQueue.push_back({mod,assembly,"",identities,0,2,
+        std::chrono::steady_clock::now()+std::chrono::seconds(60),completion,false,false,true});
+    g_pinnedWake.notify_one();
+    return true;
+}
+int managedRarityWarmupState(const std::string& mod,const std::string& assembly,
+    std::string* error) {
+    std::unique_lock lock(g_pinnedMutex,std::try_to_lock);
+    if(!lock.owns_lock())return 0;
+    const auto found=g_rarityWarmups.find(mod+"|"+assembly);
+    if(found==g_rarityWarmups.end()){
+        if(error)*error="Stage=Warmup Reason=RarityModNotQueued";
+        return -1;
+    }
+    if(!found->second->done)return 0;
+    if(found->second->output.starts_with("READY|"))return 1;
+    if(error)*error=found->second->output;
+    return -1;
+}
+bool invokeManagedRarity(const std::string& mod,const std::string& assembly,
+    const std::string& owner,int kind,const std::string& snapshot,
+    std::string* output,int budgetMicroseconds) {
+    if(owner.empty()||owner.size()>72||kind<0||kind>1) {
+        if(output)*output="ERROR|Stage=RarityCallback Reason=InvalidOwnerOrKind";
+        return false;
+    }
+    return invokeManagedCallback(false,mod,assembly,owner,0,kind,
+        snapshot,output,budgetMicroseconds,false,true);
 }
 bool queueManagedTileEvent(const std::string& mod,const std::string& assembly,
     const std::string& owner,int callback,int x,int y) {

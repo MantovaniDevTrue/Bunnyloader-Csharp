@@ -231,7 +231,13 @@ class TooltipLoader {
             const c = RarityLoader.ColorOf(rare);
             return Color.new(c.R, c.G, c.B);
         }
-        return rare > 11 ? Color.new(180, 40, 255) : Color.White;
+        if (rare > 11) {
+            const cached = globalThis.bl?.csharp?.rarityColor?.(rare);
+            if (Array.isArray(cached) && cached.length === 3)
+                return Color.new(cached[0], cached[1], cached[2]);
+            return Color.new(180, 40, 255);
+        }
+        return Color.White;
     }
 
     // A cor de cada linha sai do papel dela (não do índice): linha que o mod

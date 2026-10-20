@@ -11,6 +11,7 @@ inline std::string_view sourceContentDomain(std::string_view base) {
     if (base == "BunnyBuff") return "BUFF";
     if (base == "BunnyNPC") return "NPC";
     if (base == "BunnyPrefix") return "PREFIX";
+    if (base == "BunnyRarity") return "RARITY";
     if (base == "BunnyPlayer") return "PLAYER";
     if (base == "BunnyTile") return "TILE";
     if (base == "BunnyWall") return "WALL";
@@ -26,7 +27,7 @@ inline bool sourceRequiresNativeRegistration(std::string_view base) {
 inline std::string_view sourceWireDomain(std::string_view kind) {
     if (kind == "WEAPON" || kind == "ACCESSORY" || kind == "POTION") return "ITEM";
     if (kind == "ITEM" || kind == "PROJECTILE" || kind == "BUFF" ||
-        kind == "NPC" || kind == "PREFIX" || kind == "PLAYER" ||
+        kind == "NPC" || kind == "PREFIX" || kind == "RARITY" || kind == "PLAYER" ||
         kind == "TILE" || kind == "WALL") return kind;
     return {};
 }

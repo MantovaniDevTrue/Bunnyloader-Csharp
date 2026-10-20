@@ -1,6 +1,7 @@
 #include "experiments/csharp/SourceLimits.h"
 #include "experiments/csharp/NativeTileWirePolicy.h"
 #include "experiments/csharp/SourceLoader.h"
+#include "experiments/csharp/NativeRarityRegistry.h"
 
 #include "experiments/csharp/NativeContent.h"
 #include "experiments/csharp/NativeDefaults.h"
@@ -377,14 +378,28 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
         return false;
     }
     NativeRegisterContext ctx{mod.id, mod.dir, 0, 0};
-    const std::array<std::string, 10> order = {
+    const std::array<std::string, 11> order = {
         "BunnyTile", "BunnyWall", "BunnyItem",
         "BunnyBuff", "BunnyProjectile", "BunnyAccessory",
-        "BunnyNPC", "BunnyBuffPotion", "BunnyWeapon", "BunnyPrefix"
+        "BunnyNPC", "BunnyBuffPotion", "BunnyWeapon", "BunnyPrefix", "BunnyRarity"
     };
     for (const auto& base : order) {
         for (const auto& def : defs) {
             if (def.base != base) continue;
+            if (base == "BunnyRarity") {
+                if (!def.properties.empty()) {
+                    status->error = def.name + ": BunnyRarity usa callbacks gerenciados, nao propriedades literais";
+                    return false;
+                }
+                const int type = nativeRarities().registerType(mod.id, def.name);
+                if (type < 0) {
+                    status->error = def.name + ": identidade C# de raridade duplicada ou invalida";
+                    return false;
+                }
+                typed[sourceIdentityForBase(def.base, def.name)] = type;
+                ++status->rarities;
+                continue;
+            }
             if (base == "BunnyPrefix") {
                 for (const auto& [key, value] : def.properties)
                     if (key != "DisplayName" && key != "Category" &&
@@ -587,7 +602,7 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
     }
     status->screenEffects = static_cast<int>(screenEffects.size());
     if (status->items+status->tiles+status->projectiles+status->buffs+
-        status->npcs+status->prefixes+status->players+status->screenEffects==0) {
+        status->npcs+status->prefixes+status->rarities+status->players+status->screenEffects==0) {
         status->error = "mod C# sem conteudo registrado";
         return false;
     }
@@ -663,6 +678,8 @@ bool applyManagedSourceDefaults(
     std::set<std::string> seenLocale;
     bool seenLocalizationModules = false;
     bool seenLocalizationRuntime = false;
+    size_t rarityCount = 0;
+    std::map<std::string, int> itemRarityOverrides;
     std::vector<SourceRecipeOwner> recipeOwners;
     std::map<std::string,bool> seenRecipeOwners;
     std::map<std::string, int> accessoryTypes;
@@ -701,6 +718,32 @@ bool applyManagedSourceDefaults(
                 return false;
             }
             localized.push_back(std::move(entry));
+            continue;
+        }
+        if (!fields.empty() && fields[0] == "ITEM_RARITY") {
+            if (fields.size() != 3) {
+                *error = "[CSharp][ERROR][RarityLoader] Mod=" + modId +
+                    " Stage=DecodeItemRarity Reason=InvalidFieldCount";
+                return false;
+            }
+            const auto itemKey = sourceIdentityForWire("ITEM", fields[1]);
+            const auto item = mod->registeredKindTypes.find(itemKey);
+            const auto base = mod->registeredBases.find(itemKey);
+            const auto rarity = mod->registeredKindTypes.find(sourceIdentityForWire("RARITY", fields[2]));
+            const bool validFamily = base != mod->registeredBases.end() &&
+                (base->second == "BunnyItem" || base->second == "BunnyWeapon" ||
+                 base->second == "BunnyAccessory" || base->second == "BunnyBuffPotion");
+            if (item == mod->registeredKindTypes.end() || !validFamily ||
+                rarity == mod->registeredKindTypes.end() ||
+                nativeRarities().findType(modId, fields[2]) != rarity->second ||
+                rarity->second < NativeRarityRegistry::kVanillaCount ||
+                rarity->second >= NativeRarityRegistry::kVanillaCount +
+                    NativeRarityRegistry::kMaximumCustom ||
+                !itemRarityOverrides.emplace(fields[1], rarity->second).second) {
+                *error = "[CSharp][ERROR][RarityLoader] Mod=" + modId +
+                    " Class=" + fields[1] + " Stage=ResolveItemRarity Reason=UnknownOrDuplicateOwnerOrRarity";
+                return false;
+            }
             continue;
         }
         if(!fields.empty()&&fields[0]=="RECIPES") {
@@ -966,7 +1009,14 @@ bool applyManagedSourceDefaults(
             *error = "Classe C# nao registrada no Terraria: " + fields[1];
             return false;
         }
-        if (fields[0] == "PROJECTILE" && (fields.size() == 8 || fields.size() == 12 || fields.size() == 13 || fields.size() == 14 ||
+        if (fields[0] == "RARITY" && fields.size() == 2) {
+            if (nativeRarities().findType(modId, fields[1]) != registered->second) {
+                *error = "[CSharp][ERROR][RarityLoader] Mod=" + modId + " Class=" + fields[1] +
+                    " Stage=BindIdentity Reason=NativeIdMismatch Result=Rejected";
+                return false;
+            }
+            ++rarityCount;
+        } else if (fields[0] == "PROJECTILE" && (fields.size() == 8 || fields.size() == 12 || fields.size() == 13 || fields.size() == 14 ||
                  fields.size() == 16 || fields.size() == 17 || fields.size() == 18)) {
             ManagedProjectileEntry record;
             record.name = fields[1];
@@ -1201,7 +1251,7 @@ bool applyManagedSourceDefaults(
         if (tiles.size() > kSourceMaxCategory || basicItems.size() > kSourceMaxCategory || projectiles.size() > kSourceMaxCategory || weapons.size() > kSourceMaxCategory ||
             buffs.size() > kSourceMaxCategory || potions.size() > kSourceMaxCategory ||
             accessories.size() > kSourceMaxCategory || players.size() > kSourceMaxCategory ||
-            npcs.size() > kSourceMaxCategory || prefixes.size() > kSourceMaxCategory) {
+            npcs.size() > kSourceMaxCategory || prefixes.size() > kSourceMaxCategory || rarityCount > kSourceMaxCategory) {
             *error = "Quantidade de conteudo C# excede 4096 por categoria";
             return false;
         }
@@ -1217,6 +1267,7 @@ bool applyManagedSourceDefaults(
         players.size() != static_cast<size_t>(mod->players) ||
         npcs.size() != static_cast<size_t>(mod->npcs) ||
         prefixes.size() != static_cast<size_t>(mod->prefixes) ||
+        rarityCount != static_cast<size_t>(mod->rarities) ||
         seen.size() != mod->registeredKindTypes.size() + mod->playerClasses.size()) {
         *error = "As classes compiladas nao correspondem ao conteudo registrado";
         return false;
@@ -1274,6 +1325,51 @@ bool applyManagedSourceDefaults(
         *error = "Falha ao aplicar os defaults nativos de BunnyTile"; return false;
     }
     if (!useSounds::publish(useSounds,error)) return false;
+    for (auto& item : basicItems) {
+        const auto overrideType = itemRarityOverrides.find(item.name);
+        if (overrideType != itemRarityOverrides.end())
+            item.values[BasicRare] = overrideType->second;
+    }
+    for (const auto& [name, rarity] : itemRarityOverrides) {
+        const auto itemKey = sourceIdentityForWire("ITEM", name);
+        const auto item = mod->registeredKindTypes.find(itemKey);
+        const auto base = mod->registeredBases.find(itemKey);
+        if (item == mod->registeredKindTypes.end() ||
+            base == mod->registeredBases.end()) {
+            *error = "[CSharp][ERROR][RarityLoader] Mod=" + modId +
+                " Class=" + name + " Stage=ApplyRarity Reason=MissingItemOwner";
+            return false;
+        }
+        auto native = std::find_if(nativeDefaults.begin(), nativeDefaults.end(),
+            [&](const NativeDefaultsRequest& request) {
+                return !request.projectile && request.name == name;
+            });
+        if (base->second == "BunnyItem") {
+            if (std::none_of(basicItems.begin(), basicItems.end(),
+                [&](const BasicItemEntry& basic) { return basic.name == name; })) {
+                *error = "[CSharp][ERROR][RarityLoader] Mod=" + modId +
+                    " Class=" + name + " Stage=ApplyRarity Reason=MissingBasicItem";
+                return false;
+            }
+            if (native == nativeDefaults.end()) continue;
+        } else if (native == nativeDefaults.end()) {
+            const auto source = mod->sourcePaths.find(itemKey);
+            nativeDefaults.push_back({name, modId,
+                source == mod->sourcePaths.end() ? "<unavailable>" : source->second,
+                "rare:i:" + std::to_string(rarity), item->second, false});
+            continue;
+        }
+        if (native->descriptor.starts_with("rare:") ||
+            native->descriptor.find(";rare:") != std::string::npos) {
+            *error = "[CSharp][ERROR][RarityLoader] Mod=" + modId +
+                " Class=" + name + " Stage=ApplyRarity Reason=ConflictingNativeRare";
+            return false;
+        }
+        if (base->second != "BunnyItem") {
+            if (!native->descriptor.empty()) native->descriptor += ";";
+            native->descriptor += "rare:i:" + std::to_string(rarity);
+        }
+    }
     if (!applyNativeBasicItemDefaults(modId,basicItems,error)) return false;
     for (const auto& item : basicItems) {
         if (item.defense>0 && !setBasicItemDefense(item.type,item.defense,error)) return false;

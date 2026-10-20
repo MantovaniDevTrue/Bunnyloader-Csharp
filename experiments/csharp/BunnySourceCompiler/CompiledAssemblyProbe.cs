@@ -194,15 +194,18 @@ public static class CompiledAssemblyProbe
                 .Where(type => type.IsClass && !type.IsAbstract && !type.ContainsGenericParameters &&
                     type.BaseType?.FullName == "BunnyLoader.Source.BunnyLocalizationModule")
                 .OrderBy(type => type.FullName, StringComparer.Ordinal).ToArray();
+            var rarityTypes = contentTypes
+                .Where(type => IsContentType(type, "BunnyRarity"))
+                .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
             var screenEffectTypes = contentTypes
                 .Where(type => IsContentType(type, "BunnyScreenEffect"))
                 .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
-            if (wallTypes.Length > 4096 || tileTypes.Length > 4096 || localizationTypes.Length > 32 || prefixTypes.Length > 4096 || npcTypes.Length > 4096 || accessoryTypes.Length > 4096 || playerTypes.Length > 4096 ||
+            if (wallTypes.Length > 4096 || tileTypes.Length > 4096 || rarityTypes.Length > 4096 || localizationTypes.Length > 32 || prefixTypes.Length > 4096 || npcTypes.Length > 4096 || accessoryTypes.Length > 4096 || playerTypes.Length > 4096 ||
                 projectileTypes.Length > 4096 ||
                 weaponTypes.Length > 4096 || basicItemTypes.Length > 4096 ||
                 buffTypes.Length > 4096 || potionTypes.Length > 4096 || screenEffectTypes.Length > 4096)
                 throw new InvalidOperationException("C# content class count out of bounds");
-            if (wallTypes.Length + tileTypes.Length + basicItemTypes.Length + projectileTypes.Length + weaponTypes.Length + buffTypes.Length + potionTypes.Length + accessoryTypes.Length + playerTypes.Length + npcTypes.Length + prefixTypes.Length + screenEffectTypes.Length + localizationTypes.Length == 0)
+            if (wallTypes.Length + tileTypes.Length + basicItemTypes.Length + projectileTypes.Length + weaponTypes.Length + buffTypes.Length + potionTypes.Length + accessoryTypes.Length + playerTypes.Length + npcTypes.Length + prefixTypes.Length + screenEffectTypes.Length + rarityTypes.Length + localizationTypes.Length == 0)
                 throw new InvalidOperationException("C# assembly has no supported content types");
             bool fixture = projectileTypes.Any(t => t.FullName == "SourceCSharpMod.SourceBolt") &&
                 weaponTypes.Any(t => t.FullName == "SourceCSharpMod.SourceWand");
@@ -232,7 +235,7 @@ public static class CompiledAssemblyProbe
                     throw new InvalidOperationException(effect.GetType().FullName + ": exactly one ShaderFile or PipelineFile required");
             }
             WriteRuntimeDefaults(projectiles, weapons, buffs, potions,
-                accessories, players, npcs, prefixes, basicItems, tiles, walls, diagnosticsPath);
+                accessories, players, npcs, prefixes, basicItems, tiles, walls, rarityTypes, diagnosticsPath);
             if (modRoot.Length != 0)
                 AppendManagedLocalization(modRoot, diagnosticsPath, localizationTypes,
                     UsesLiveLocalizationRegister(contentTypes));
@@ -248,17 +251,18 @@ public static class CompiledAssemblyProbe
                 WriteKillPolicy(primaryProjectile!, diagnosticsPath);
             }
             File.AppendAllText(diagnosticsPath,
-                "\nASSEMBLY_EXEC_OK classes=" + (walls.Length + tiles.Length + projectiles.Length + weapons.Length + buffs.Length + potions.Length + accessories.Length + players.Length + npcs.Length + prefixes.Length + basicItems.Length + screenEffects.Length) +
+                "\nASSEMBLY_EXEC_OK classes=" + (walls.Length + tiles.Length + projectiles.Length + weapons.Length + buffs.Length + potions.Length + accessories.Length + players.Length + npcs.Length + prefixes.Length + rarityTypes.Length + basicItems.Length + screenEffects.Length) +
                 " projectiles=" + projectiles.Length + " weapons=" + weapons.Length +
                 " buffs=" + buffs.Length + " potions=" + potions.Length +
                 " accessories=" + accessories.Length + " players=" + players.Length +
                 " npcs=" + npcs.Length + " tiles=" + tiles.Length + " prefixes=" + prefixes.Length +
+                " rarities=" + rarityTypes.Length +
                 " screenEffects=" + screenEffects.Length + " localizationModules=" + localizationTypes.Length +
                 (fixture
                     ? " projectile=SourceBolt width=10 weapon=SourceWand damage=22 shoot=SourceBolt"
                     : " policy=generic-managed-defaults"));
             return projectiles.Length + weapons.Length + buffs.Length + potions.Length +
-                accessories.Length + players.Length + npcs.Length + prefixes.Length + basicItems.Length + tiles.Length + walls.Length + screenEffects.Length + localizationTypes.Length;
+                accessories.Length + players.Length + npcs.Length + prefixes.Length + basicItems.Length + tiles.Length + walls.Length + screenEffects.Length + rarityTypes.Length + localizationTypes.Length;
         }
         catch (Exception exception)
         {
@@ -641,7 +645,7 @@ public static class CompiledAssemblyProbe
     private static void WriteRuntimeDefaults(object[] projectiles, object[] weapons,
         object[] buffs, object[] potions, object[] accessories,
         object[] players, object[] npcs, object[] prefixes, object[] basicItems,
-        object[] tiles, object[] walls, string diagnosticsPath)
+        object[] tiles, object[] walls, Type[] rarityTypes, string diagnosticsPath)
     {
         static T Value<T>(object instance, string name) =>
             (T)(instance.GetType().GetProperty(name)?.GetValue(instance)
@@ -661,7 +665,7 @@ public static class CompiledAssemblyProbe
         var projectileNames = new HashSet<string>(StringComparer.Ordinal);
         var buffNames = new HashSet<string>(StringComparer.Ordinal);
         var lines = new List<string>(projectiles.Length + weapons.Length + buffs.Length +
-            potions.Length + accessories.Length + players.Length + npcs.Length + prefixes.Length + tiles.Length + 1)
+            potions.Length + accessories.Length + players.Length + npcs.Length + prefixes.Length + rarityTypes.Length + tiles.Length + 1)
         {
             "BUNNY_MANAGED_DEFAULTS_V2"
         };
@@ -998,6 +1002,14 @@ public static class CompiledAssemblyProbe
                 frames.ToString(CultureInfo.InvariantCulture)));
         }
 
+        foreach (Type rarity in rarityTypes)
+        {
+            string name = rarity.Name;
+            CheckName(name);
+            if (!names.Add("RARITY:" + name))
+                throw new InvalidOperationException("Duplicate BunnyRarity: " + name);
+            lines.Add("RARITY\t" + name);
+        }
         foreach (object prefix in prefixes)
         {
             Type type = prefix.GetType();
@@ -1085,6 +1097,19 @@ public static class CompiledAssemblyProbe
             if(recipes.Count==0)continue;
             if(recipes.Count>16)throw new InvalidOperationException(type.FullName+": recipe capacity exceeded");
             lines.Add(string.Join("\t","RECIPES",type.Name,owner.Kind,string.Join(";",recipes)));
+        }
+        foreach (object item in basicItems.Concat(weapons).Concat(potions).Concat(accessories))
+        {
+            string owner = item.GetType().Name;
+            string rarity = Value<string>(item, "ModRarityClassName");
+            if (rarity.Length == 0) continue;
+            CheckName(owner);
+            CheckName(rarity);
+            Type[] matches = rarityTypes.Where(t => t.Name == rarity).ToArray();
+            if (matches.Length != 1)
+                throw new InvalidOperationException("[CSharp][ERROR][RarityLoader] Class=" +
+                    owner + " API=SetRarity Stage=Compile Reason=RarityNotRegisteredInSameAssembly");
+            lines.Add("ITEM_RARITY\t" + owner + "\t" + rarity);
         }
         foreach(var item in basicItems.Concat(weapons))
         {

@@ -21,6 +21,13 @@ bool queueManagedLocalizationLoaded(const std::string& modId,
                                    uint64_t generation);
 void unloadManagedLocalizationCallbacks(const std::string& modId);
 bool managedRecipeRuntimeReady();
+bool queueManagedRarityWarmup(const std::string& mod, const std::string& assembly,
+    const std::string& identities);
+int managedRarityWarmupState(const std::string& mod, const std::string& assembly,
+    std::string* error);
+bool invokeManagedRarity(const std::string& mod, const std::string& assembly,
+    const std::string& owner, int kind, const std::string& snapshot,
+    std::string* output, int budgetMicroseconds = 1200);
 bool invokeManagedTile(const std::string& mod,const std::string& assembly,
     const std::string& owner,int callback,int x,int y,std::string* output,int budgetMicroseconds=1800);
 bool invokeManagedTileDraw(const std::string& mod,const std::string& assembly,

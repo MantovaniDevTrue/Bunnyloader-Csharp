@@ -46,6 +46,9 @@ public abstract class BunnyItem : BunnyShootSource
     public int Value { get => wallValue; set { wallValue=value; OverrideInteger(3); } }
     private int wallRare=0;
     public int Rare { get => wallRare; set { wallRare=value; OverrideInteger(4); } }
+    public string ModRarityClassName { get; private set; } = "";
+    public void SetRarity<T>() where T : BunnyRarity
+        => ModRarityClassName = BunnyRarityReference.Resolve(GetType(), typeof(T));
     public int Defense { get => Behavior.Defense; set => Behavior.Defense=value; }
     private int wallDamage=0;
     public int Damage { get => wallDamage; set { wallDamage=value; OverrideInteger(5); } }

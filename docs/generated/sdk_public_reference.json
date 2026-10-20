@@ -53,6 +53,7 @@
         "float VisualScale { get; set; }",
         "int DefenseBonus { get; set; }",
         "string DisplayName { get; set; }",
+        "string ModRarityClassName { get; }",
         "string NativeDefaultsDefinition { get; }",
         "string Texture { get; set; }",
         "string Tooltip { get; set; }",
@@ -63,6 +64,10 @@
         {
           "signature": "void SetDefaults()",
           "execution": "compile_policy"
+        },
+        {
+          "signature": "void SetRarity\u003CT\u003E()",
+          "execution": "managed_helper"
         }
       ]
     },
@@ -233,6 +238,7 @@
         "int Duration { get; set; }",
         "string Buff { get; set; }",
         "string DisplayName { get; set; }",
+        "string ModRarityClassName { get; }",
         "string NativeDefaultsDefinition { get; }",
         "string Texture { get; set; }"
       ],
@@ -241,6 +247,10 @@
         {
           "signature": "void SetDefaults()",
           "execution": "compile_policy"
+        },
+        {
+          "signature": "void SetRarity\u003CT\u003E()",
+          "execution": "managed_helper"
         }
       ]
     },
@@ -981,6 +991,7 @@
         "int Width { get; set; }",
         "string BehaviorDefinition { get; }",
         "string DisplayName { get; set; }",
+        "string ModRarityClassName { get; }",
         "string NativeAccessoryEffectsDefinition { get; }",
         "string NativeArmorDefinition { get; }",
         "string NativeDefaultsDefinition { get; }",
@@ -1018,6 +1029,10 @@
         {
           "signature": "void SetDefaults()",
           "execution": "compile_policy"
+        },
+        {
+          "signature": "void SetRarity\u003CT\u003E()",
+          "execution": "managed_helper"
         }
       ]
     },
@@ -1746,6 +1761,122 @@
       ],
       "values": [],
       "methods": []
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyRarity",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [
+        "BunnyColor RarityColor { get; }",
+        "int Type { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "int GetPrefixedRarity(int offset, float valueMultiplier)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void SetStaticDefaults()",
+          "execution": "compile_policy"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyRarityEntry",
+      "kind": "struct",
+      "baseType": "System.ValueType",
+      "constructors": [
+        "BunnyRarityEntry(int Type, string ModId, string ClassName, BunnyRarity Instance)"
+      ],
+      "properties": [
+        "BunnyRarity Instance { get; set; }",
+        "int Type { get; set; }",
+        "string ClassName { get; set; }",
+        "string ModId { get; set; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "bool Equals(BunnyRarityEntry other)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool Equals(Object obj)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "int GetHashCode()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "string ToString()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void Deconstruct(out int Type, out string ModId, out string ClassName, out BunnyRarity Instance)",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyRarityRegistry",
+      "kind": "class",
+      "baseType": "System.Object",
+      "constructors": [
+        "BunnyRarityRegistry(int firstCustomType)"
+      ],
+      "properties": [
+        "int RarityCount { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "IReadOnlyList\u003CBunnyRarityEntry\u003E Seal()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool TryGetColor(int type, out BunnyColor color)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "int Register(string modId, BunnyRarity rarity)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "int ResolvePrefixedRarity(int originalType, float valueMultiplier, int nativeResult)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "int TypeOf\u003CT\u003E(string modId)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static int PrefixOffset(float valueMultiplier)",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyRarityRuntime",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [
+        "BunnyColor DiscoColor { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "static int TypeOf\u003CT\u003E(string modId)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static string Dispatch(string modId, string assemblyPath, string owner, int index, int kind, string snapshot)",
+          "execution": "managed_helper"
+        }
+      ]
     },
     {
       "name": "BunnyLoader.Source.BunnyRecipe",
@@ -2667,6 +2798,7 @@
         "int UseTime { get; set; }",
         "string DisplayName { get; set; }",
         "string MinionBuff { get; set; }",
+        "string ModRarityClassName { get; }",
         "string NativeDefaultsDefinition { get; }",
         "string Shoot { get; set; }",
         "string Texture { get; set; }"
@@ -2676,6 +2808,10 @@
         {
           "signature": "void SetDefaults()",
           "execution": "compile_policy"
+        },
+        {
+          "signature": "void SetRarity\u003CT\u003E()",
+          "execution": "managed_helper"
         }
       ]
     },

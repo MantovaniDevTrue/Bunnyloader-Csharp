@@ -74,6 +74,9 @@ public abstract class BunnyProjectile
 
 public abstract class BunnyWeapon : BunnyShootSource
 {
+    public string ModRarityClassName { get; private set; } = "";
+    public void SetRarity<T>() where T : BunnyRarity
+        => ModRarityClassName = BunnyRarityReference.Resolve(GetType(), typeof(T));
     public BunnyHoldout? Holdout { get; set; }
     /// <summary>Som próprio do mod; tem precedência sobre o SoundID vanilla.</summary>
     public BunnySoundStyle? CustomUseSound { get; set; }
@@ -115,6 +118,9 @@ public abstract class BunnyBuff
 
 public abstract class BunnyBuffPotion : BunnyRecipeSource
 {
+    public string ModRarityClassName { get; private set; } = "";
+    public void SetRarity<T>() where T : BunnyRarity
+        => ModRarityClassName = BunnyRarityReference.Resolve(GetType(), typeof(T));
     public BunnyNativeDefaults NativeDefaults { get; } = new();
     public string NativeDefaultsDefinition => NativeDefaults.Definition;
     public string DisplayName { get; set; } = "";
@@ -134,6 +140,9 @@ public enum BunnyAccessoryVisualMode
 
 public abstract class BunnyAccessory : BunnyRecipeSource
 {
+    public string ModRarityClassName { get; private set; } = "";
+    public void SetRarity<T>() where T : BunnyRarity
+        => ModRarityClassName = BunnyRarityReference.Resolve(GetType(), typeof(T));
     public BunnyNativeDefaults NativeDefaults { get; } = new();
     public string NativeDefaultsDefinition => NativeDefaults.Definition;
     public string DisplayName { get; set; } = "";

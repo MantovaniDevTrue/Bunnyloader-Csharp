@@ -31,6 +31,7 @@ float VisualOpacity { get; set; }
 float VisualScale { get; set; }
 int DefenseBonus { get; set; }
 string DisplayName { get; set; }
+string ModRarityClassName { get; }
 string NativeDefaultsDefinition { get; }
 string Texture { get; set; }
 string Tooltip { get; set; }
@@ -40,6 +41,7 @@ string VisualTexture { get; set; }
 | Method | Execution |
 | --- | --- |
 | `void SetDefaults()` | compile_policy |
+| `void SetRarity<T>()` | managed_helper |
 
 ## BunnyLoader.Source.BunnyAccessoryVisualMode
 
@@ -141,6 +143,7 @@ BunnyNativeDefaults NativeDefaults { get; }
 int Duration { get; set; }
 string Buff { get; set; }
 string DisplayName { get; set; }
+string ModRarityClassName { get; }
 string NativeDefaultsDefinition { get; }
 string Texture { get; set; }
 ```
@@ -148,6 +151,7 @@ string Texture { get; set; }
 | Method | Execution |
 | --- | --- |
 | `void SetDefaults()` | compile_policy |
+| `void SetRarity<T>()` | managed_helper |
 
 ## BunnyLoader.Source.BunnyColor
 
@@ -557,6 +561,7 @@ int Value { get; set; }
 int Width { get; set; }
 string BehaviorDefinition { get; }
 string DisplayName { get; set; }
+string ModRarityClassName { get; }
 string NativeAccessoryEffectsDefinition { get; }
 string NativeArmorDefinition { get; }
 string NativeDefaultsDefinition { get; }
@@ -575,6 +580,7 @@ string UseSound { get; set; }
 | `void DefaultToPlaceableWall(int vanillaWallId)` | managed_helper |
 | `void DefaultToPlaceableWall(string modWallName)` | managed_helper |
 | `void SetDefaults()` | compile_policy |
+| `void SetRarity<T>()` | managed_helper |
 
 ## BunnyLoader.Source.BunnyItemBehavior
 
@@ -956,6 +962,71 @@ struct; base: `System.ValueType`.
 ```csharp
 bool HasTarget { get; }
 ```
+
+## BunnyLoader.Source.BunnyRarity
+
+abstract class; base: `System.Object`.
+
+```csharp
+BunnyColor RarityColor { get; }
+int Type { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `int GetPrefixedRarity(int offset, float valueMultiplier)` | managed_helper |
+| `void SetStaticDefaults()` | compile_policy |
+
+## BunnyLoader.Source.BunnyRarityEntry
+
+struct; base: `System.ValueType`.
+
+```csharp
+BunnyRarityEntry(int Type, string ModId, string ClassName, BunnyRarity Instance)
+BunnyRarity Instance { get; set; }
+int Type { get; set; }
+string ClassName { get; set; }
+string ModId { get; set; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `bool Equals(BunnyRarityEntry other)` | managed_helper |
+| `bool Equals(Object obj)` | managed_helper |
+| `int GetHashCode()` | managed_helper |
+| `string ToString()` | managed_helper |
+| `void Deconstruct(out int Type, out string ModId, out string ClassName, out BunnyRarity Instance)` | managed_helper |
+
+## BunnyLoader.Source.BunnyRarityRegistry
+
+class; base: `System.Object`.
+
+```csharp
+BunnyRarityRegistry(int firstCustomType)
+int RarityCount { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `IReadOnlyList<BunnyRarityEntry> Seal()` | managed_helper |
+| `bool TryGetColor(int type, out BunnyColor color)` | managed_helper |
+| `int Register(string modId, BunnyRarity rarity)` | managed_helper |
+| `int ResolvePrefixedRarity(int originalType, float valueMultiplier, int nativeResult)` | managed_helper |
+| `int TypeOf<T>(string modId)` | managed_helper |
+| `static int PrefixOffset(float valueMultiplier)` | managed_helper |
+
+## BunnyLoader.Source.BunnyRarityRuntime
+
+abstract class; base: `System.Object`.
+
+```csharp
+BunnyColor DiscoColor { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `static int TypeOf<T>(string modId)` | managed_helper |
+| `static string Dispatch(string modId, string assemblyPath, string owner, int index, int kind, string snapshot)` | managed_helper |
 
 ## BunnyLoader.Source.BunnyRecipe
 
@@ -1424,6 +1495,7 @@ int MinionBuffTime { get; set; }
 int UseTime { get; set; }
 string DisplayName { get; set; }
 string MinionBuff { get; set; }
+string ModRarityClassName { get; }
 string NativeDefaultsDefinition { get; }
 string Shoot { get; set; }
 string Texture { get; set; }
@@ -1432,6 +1504,7 @@ string Texture { get; set; }
 | Method | Execution |
 | --- | --- |
 | `void SetDefaults()` | compile_policy |
+| `void SetRarity<T>()` | managed_helper |
 
 ## BunnyLoader.Source.BunnyWorldLight
 

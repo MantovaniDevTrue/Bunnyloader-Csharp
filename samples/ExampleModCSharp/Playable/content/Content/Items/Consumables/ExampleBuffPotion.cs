@@ -11,6 +11,7 @@ public sealed class ExampleBuffPotion : BunnyBuffPotion
     {
         DisplayName = "Example Defense Potion";
         Texture = "Content/Items/Consumables/ExampleBuffPotion.png";
+        SetRarity<ExampleHigherTierModRarity>();
         Buff = nameof(ExampleDefenseBuff);
         Duration = 600;
     }
