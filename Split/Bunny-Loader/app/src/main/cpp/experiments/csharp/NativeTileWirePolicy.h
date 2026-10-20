@@ -10,6 +10,6 @@ inline constexpr bool hasAdjacencies(std::size_t n) {return n==17||n==19||n==20|
 inline constexpr bool hasBreakPolicy(std::size_t n) {return n==19||n==20||n==21||n==22||n==23;}
 inline constexpr bool hasCallbacks(std::size_t n) {return n==20||n==21||n==22||n==23;}
 inline constexpr bool hasDrawCachePolicy(std::size_t n) {return n==21||n==22||n==23;}
-inline constexpr bool hasFrameToggle(std::size_t n) {return n==22;}
+inline constexpr bool hasFrameToggle(std::size_t n) {return n==22||n==23;}
 inline constexpr bool hasRegisteredDrops(std::size_t n) {return n==23;}
 }
