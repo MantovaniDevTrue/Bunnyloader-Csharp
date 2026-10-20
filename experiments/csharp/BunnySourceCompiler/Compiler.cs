@@ -136,10 +136,10 @@ public static class Compiler
                 name))
             .Where(File.Exists).ToArray();
         int expectedReferences = ReferenceNames.Length;
-        if (framework.Length != expectedReferences ||
-            !framework.Contains(sdkFile) ||
-            !framework.Contains(Path.Combine(runtimeDir, "System.Private.CoreLib.dll")) ||
-            (!compactReferences && !framework.Contains(Path.Combine(runtimeDir, "System.Runtime.dll"))))
+        if ((compactReferences && framework.Length != expectedReferences) ||
+            (!compactReferences && (!framework.Contains(sdkFile) ||
+                !framework.Contains(Path.Combine(runtimeDir, "System.Private.CoreLib.dll")) ||
+                !framework.Contains(Path.Combine(runtimeDir, "System.Runtime.dll")))))
         {
             WriteDiagnostic(diagnosticsFile, "FRAMEWORK_REFERENCES_INCOMPLETE Expected=" +
                 expectedReferences + " Actual=" + framework.Length + " Directory=" +
