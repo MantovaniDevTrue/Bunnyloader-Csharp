@@ -64,6 +64,8 @@ inline bool parseNativeCommandManifest(const std::string& wire,
     struct Command {
         unsigned routes = 0;
         unsigned aliases = 0;
+        size_t index = 0;
+        bool described = false;
     };
     std::map<std::string, Command> entries;
     while (std::getline(input, line)) {
@@ -81,8 +83,34 @@ inline bool parseNativeCommandManifest(const std::string& wire,
         unsigned flags = 0;
         if (!parseNumber(route, &flags) || flags == 0 || (flags & ~7u))
             return fail("CommandManifestInvalidRoutes");
+        if (kind == "DESC") {
+            auto owner = entries.find(className);
+            if (owner == entries.end() || owner->second.described ||
+                owner->second.routes != flags || name.size() > 384 ||
+                name.size() % 2 != 0)
+                return fail("CommandManifestDescriptionInvalid");
+            std::string decoded;
+            decoded.reserve(name.size() / 2);
+            auto nibble = [](char c) -> int {
+                if (c >= '0' && c <= '9') return c - '0';
+                if (c >= 'A' && c <= 'F') return c - 'A' + 10;
+                return -1;
+            };
+            for (size_t pos = 0; pos < name.size(); pos += 2) {
+                const int high = nibble(name[pos]), low = nibble(name[pos + 1]);
+                if (high < 0 || low < 0)
+                    return fail("CommandManifestDescriptionHex");
+                const unsigned char byte = static_cast<unsigned char>((high << 4) | low);
+                if (byte < 32 || byte == 127)
+                    return fail("CommandManifestDescriptionControl");
+                decoded.push_back(static_cast<char>(byte));
+            }
+            specs->at(owner->second.index).description = std::move(decoded);
+            owner->second.described = true;
+            continue;
+        }
         if (kind == "CMD") {
-            if (!entries.emplace(className, Command{flags, 0}).second)
+            if (!entries.emplace(className, Command{flags, 0, specs->size(), false}).second)
                 return fail("CommandManifestDuplicateCommandClass");
         } else if (kind == "ALIAS") {
             auto owner = entries.find(className);
@@ -100,7 +128,7 @@ inline bool parseNativeCommandManifest(const std::string& wire,
         }
         if (!names.insert(lowered).second)
             return fail("CommandManifestDuplicateName");
-        specs->push_back({name, static_cast<uint8_t>(flags)});
+        specs->push_back({name, static_cast<uint8_t>(flags), "", kind == "CMD"});
         if (specs->size() > NativeCommandMailbox::MaxAliasesPerMod)
             return fail("CommandManifestTooManyNames");
     }
