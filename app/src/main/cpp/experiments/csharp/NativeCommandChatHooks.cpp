@@ -449,7 +449,7 @@ Il2CppObject* hkHelp(Il2CppObject* aliases, const MethodInfo* method) {
 
 void installNativeCommandHelpHook() {
     if (g_helpInstalled.load(std::memory_order_acquire) ||
-        ++g_helpAttempts > 8 || !g_networkLiteral) return;
+        (++g_helpAttempts - 1) % 120 != 0 || !g_networkLiteral) return;
     auto& api = il2cpp::api();
     auto* help = il2cpp::findClassQuiet("Terraria.Chat.Commands", "HelpCommand");
     auto* networkText = il2cpp::findClassQuiet("Terraria.Localization", "NetworkText");
@@ -481,7 +481,7 @@ bool installNativeCommandChatHooks() {
         installNativeCommandHelpHook();
         return true;
     }
-    if (++g_installAttempts > 16) return false;
+    if ((++g_installAttempts - 1) % 60 != 0) return false;
     auto& api = il2cpp::api();
     if (!api.runtime_invoke || !api.string_new || !api.field_static_get_value ||
         !api.class_get_method_from_name) return false;
