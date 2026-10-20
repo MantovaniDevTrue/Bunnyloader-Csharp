@@ -1,5 +1,7 @@
 #pragma once
 #include <string>
+#include <vector>
+#include "experiments/csharp/NativeTileDropPolicy.h"
 
 namespace bl::csharp {
 
@@ -21,6 +23,7 @@ struct NativeTileGameplaySpec {
     std::string assembly;
     int frameToggle=0;
     bool campfire=false;
+    std::vector<tile_drop::Rule> registeredDrops;
 };
 
 bool registerNativeTileGameplay(const NativeTileGameplaySpec& spec);
