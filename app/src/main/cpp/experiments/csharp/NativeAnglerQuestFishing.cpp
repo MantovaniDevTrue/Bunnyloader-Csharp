@@ -106,6 +106,14 @@ void onFishingRoll(Il2CppObject* bobber, void* attempt, const MethodInfo* mi) {
     }
     if (activeGeneration().load(std::memory_order_acquire) != registry().generation())
         return;
+    int32_t currentOwner = -1;
+    std::memcpy(&currentOwner, reinterpret_cast<const char*>(bobber) + g_owner,
+                sizeof(currentOwner));
+    Il2CppArray* currentPlayers = nullptr;
+    a.field_static_get_value(g_players, &currentPlayers);
+    if (currentOwner != owner || currentPlayers != players ||
+        static_cast<Il2CppObject**>(arrayData(players))[owner] != player)
+        return;
     const int32_t result = questId;
     std::memcpy(static_cast<char*>(attempt) + g_rolledItem, &result, sizeof(result));
 }
