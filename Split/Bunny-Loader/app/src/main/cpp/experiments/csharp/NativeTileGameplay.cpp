@@ -1,6 +1,7 @@
 #include "experiments/csharp/NativeTileGameplay.h"
 #include "experiments/csharp/ManagedRuntime.h"
 #include "experiments/csharp/NativeTilePolicy.h"
+#include "experiments/csharp/NativeTileFrameTogglePolicy.h"
 #include "experiments/csharp/NativeTileAnimationPolicy.h"
 #include "experiments/csharp/NativeTileScanPolicy.h"
 #include "experiments/csharp/NativeTileDrawWire.h"
@@ -130,6 +131,16 @@ FieldInfo* g_solidField = nullptr;
 FieldInfo* g_solidTopField = nullptr;
 const MethodInfo* g_killMethod = nullptr;
 const MethodInfo* g_newDust = nullptr;
+using FrameSetter=void (*)(int32_t*,int16_t,const MethodInfo*);
+using SkipWireFn=void (*)(int32_t,int32_t,const MethodInfo*);
+struct FrameToggleBinding {
+    FrameSetter setX=nullptr,setY=nullptr;
+    SkipWireFn skip=nullptr;
+    const MethodInfo *x=nullptr,*y=nullptr,*skipMethod=nullptr;
+    FieldInfo *running=nullptr,*netMode=nullptr;
+    bool ready=false;
+};
+FrameToggleBinding g_frameToggle{};
 
 bool nameOf(const Il2CppType* type, const char* expected) {
     auto& a = il2cpp::api();
@@ -709,10 +720,93 @@ bool setupCanKillTileHook() {
     return true;
 }
 
+bool setupNativeFrameToggle() {
+    if(g_frameToggle.ready)return true;
+    auto& a=il2cpp::api();
+    if(!a.method_get_param_count||!a.method_get_param||
+       !a.method_get_return_type||!a.method_is_instance||
+       !a.class_is_valuetype||!a.class_value_size)return false;
+    auto* tile=il2cpp::findClass({"Terraria","Tile",{}});
+    auto* wiring=il2cpp::findClass({"Terraria","Wiring",{}});
+    auto* main=il2cpp::findClass({"Terraria","Main",{}});
+    if(!tile||!wiring||!main)return false;
+    uint32_t align=0;
+    if(!a.class_is_valuetype(tile)||a.class_value_size(tile,&align)!=4)
+        return false;
+    const auto validate=[&](const MethodInfo* m,bool instance,const char* type,unsigned count) {
+        return m&&il2cpp::methodPointer(m)&&
+            bool(a.method_is_instance(m))==instance&&
+            a.method_get_param_count(m)==count&&
+            nameOf(a.method_get_return_type(m),"System.Void")&&
+            (count!=1||nameOf(a.method_get_param(m,0),type));
+    };
+    FrameToggleBinding binding{};
+    binding.x=a.class_get_method_from_name(tile,"set_frameX",1);
+    binding.y=a.class_get_method_from_name(tile,"set_frameY",1);
+    binding.skipMethod=a.class_get_method_from_name(wiring,"SkipWire",2);
+    if(!validate(binding.x,true,"System.Int16",1)||
+       !validate(binding.y,true,"System.Int16",1)||
+       !validate(binding.skipMethod,false,"",2)||
+       !nameOf(a.method_get_param(binding.skipMethod,0),"System.Int32")||
+       !nameOf(a.method_get_param(binding.skipMethod,1),"System.Int32"))
+        return false;
+    std::string error;
+    if(!il2cpp::nativeFieldContract(wiring,"running","System.Boolean",true,1,
+                                    &binding.running,nullptr,&error)||
+       !il2cpp::nativeFieldContract(main,"netMode","System.Int32",true,4,
+                                    &binding.netMode,nullptr,&error))return false;
+    binding.setX=reinterpret_cast<FrameSetter>(il2cpp::methodPointer(binding.x));
+    binding.setY=reinterpret_cast<FrameSetter>(il2cpp::methodPointer(binding.y));
+    binding.skip=reinterpret_cast<SkipWireFn>(il2cpp::methodPointer(binding.skipMethod));
+    binding.ready=true;
+    g_frameToggle=binding;
+    return true;
+}
+bool toggleNativeFrame(const NativeTileGameplaySpec& spec,int x,int y) {
+    if(spec.frameToggle==0||!g_frameToggle.ready)return false;
+    auto& a=il2cpp::api();
+    int32_t netMode=-1;
+    a.field_static_get_value(g_frameToggle.netMode,&netMode);
+    if(netMode!=0)return false;
+    runtime::TileArrays world{};
+    if(!runtime::tileArrays(&world)||!world.lookup||!world.frameX||!world.frameY||
+       x<0||y<0||x>=world.width||y>=world.height)return false;
+    const uint32_t at=world.lookup[static_cast<size_t>(y)*world.width+x];
+    tile_toggle::Plan plan{};
+    if(!tile_toggle::plan(spec.shape,spec.frameToggle,x,y,
+                          world.frameX[at],world.frameY[at],&plan)||
+       plan.left+plan.width>world.width||plan.top+plan.height>world.height)
+        return false;
+    for(int i=0;i<plan.count;++i) {
+        const auto& cell=plan.cells[i];
+        if(!cellIs(cell.x,cell.y,spec.type,world))return false;
+        const uint32_t id=world.lookup[static_cast<size_t>(cell.y)*world.width+cell.x];
+        if(world.frameX[id]!=cell.fromX||world.frameY[id]!=cell.fromY)return false;
+    }
+    const int64_t last=static_cast<int64_t>(plan.top+plan.height-1)*world.width+
+                       plan.left+plan.width-1;
+    if(last>INT32_MAX)return false;
+    bool running=false;
+    a.field_static_get_value(g_frameToggle.running,&running);
+    for(int i=0;i<plan.count;++i) {
+        const auto& cell=plan.cells[i];
+        if(running)g_frameToggle.skip(cell.x,cell.y,g_frameToggle.skipMethod);
+        int32_t offset=static_cast<int32_t>(static_cast<int64_t>(cell.y)*world.width+cell.x);
+        if(spec.frameToggle==1)
+            g_frameToggle.setY(&offset,static_cast<int16_t>(cell.toY),g_frameToggle.y);
+        else
+            g_frameToggle.setX(&offset,static_cast<int16_t>(cell.toX),g_frameToggle.x);
+    }
+    runtime::invalidateManagedTileDrawCache();
+    return true;
+}
 void hkTileWire(int32_t x,int32_t y,const MethodInfo* method) {
     if(g_origWire)g_origWire(x,y,method);
     const auto it=g_tiles.find(runtime::tileTypeAt(x,y));
-    if(it!=g_tiles.end())dispatchTileEvent(it->second.spec,2,x,y);
+    if(it!=g_tiles.end()) {
+        if(it->second.spec.frameToggle)toggleNativeFrame(it->second.spec,x,y);
+        dispatchTileEvent(it->second.spec,2,x,y);
+    }
 }
 void hkOverground(int32_t x,int32_t y,bool npc,int32_t wallDist,const MethodInfo* method) {
     if(g_origOverground)g_origOverground(x,y,npc,wallDist,method);
@@ -765,7 +859,7 @@ bool setupTileWorldHooks(bool wire,bool random) {
 void hkTileUse(Il2CppObject* player,int32_t x,int32_t y,const MethodInfo* method) {
     const auto it=g_tiles.find(runtime::tileTypeAt(x,y));
     if(!player||!g_interactInstalled||it==g_tiles.end()||
-       (it->second.spec.callbackMask&(1<<4))==0) {
+       ((it->second.spec.callbackMask&(1<<4))==0&&it->second.spec.frameToggle==0)) {
         if(g_origUse)g_origUse(player,x,y,method);
         return;
     }
@@ -782,6 +876,10 @@ void hkTileUse(Il2CppObject* player,int32_t x,int32_t y,const MethodInfo* method
         (frame>old->second&&frame-old->second>1);
     g_lastUseFrames[player]=frame;
     if(!fresh)return;
+    if(it->second.spec.frameToggle&&toggleNativeFrame(it->second.spec,x,y)) {
+        reinterpret_cast<uint8_t*>(player)[g_useHappened]=1;
+        return;
+    }
     bool handled=false;
     if(invokeTileBool(it->second.spec,4,x,y,&handled)&&handled) {
         reinterpret_cast<uint8_t*>(player)[g_useHappened]=1;
@@ -1123,12 +1221,13 @@ bool registerNativeTileGameplay(const NativeTileGameplaySpec& spec) {
                  spec.mod.c_str(), spec.name.c_str());
         return false;
     }
-    if((spec.callbackMask&(1<<4))&&!setupTileInteractHook())return false;
+    if(spec.frameToggle&&!setupNativeFrameToggle())return false;
+    if(((spec.callbackMask&(1<<4))||spec.frameToggle)&&!setupTileInteractHook())return false;
     if((spec.callbackMask&(1<<8))&&!setupTileSlopeHooks())return false;
     if(!setupTileMouseOverHooks((spec.callbackMask&((1<<4)|(1<<9)))!=0,
                                 (spec.callbackMask&(1<<10))!=0))return false;
     if((spec.callbackMask&(1<<7))&&!setupTilePlacementHooks())return false;
-    if(!setupTileWorldHooks((spec.callbackMask&4)!=0,(spec.callbackMask&8)!=0)) {
+    if(!setupTileWorldHooks(((spec.callbackMask&4)!=0)||spec.frameToggle,(spec.callbackMask&8)!=0)) {
         BL_ERROR("[CSharp][Tile] World hook ABI incompatível Mod=%s Class=%s",
                  spec.mod.c_str(),spec.name.c_str());
         return false;
