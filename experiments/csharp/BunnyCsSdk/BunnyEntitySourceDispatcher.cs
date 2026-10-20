@@ -244,6 +244,13 @@ public static class BunnyEntitySourceDispatcher
             BunnyInvasionController controller = system.Pipeline.Controller;
             BunnyInvasionSnapshot state = controller.Snapshot();
             bool hasSaved = context.SavedInvasions.TryGetValue(system.Id, out var saved);
+            int previousPercentStep = hasSaved ?
+                saved.Progress * 10 / controller.Definition.Goal : -1;
+            int nextPercentStep = state.Progress * 10 / controller.Definition.Goal;
+            if (!hasSaved || state.Phase != saved.Phase ||
+                nextPercentStep != previousPercentStep)
+                BunnyInvasionNotifications.Publish(context.NativeWorldSession,
+                    context.Mod, controller);
             if (state.Phase == BunnyInvasionPhase.Completed &&
                 (!hasSaved || saved.Phase != BunnyInvasionPhase.Completed) &&
                 system.RewardStack > 0 && system.RewardItemClass.Length > 0)
