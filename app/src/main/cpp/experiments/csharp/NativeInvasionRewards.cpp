@@ -65,21 +65,26 @@ void pumpNativeInvasionRewardsOnGameThread() {
         !(runtime::netMode() == 0 || runtime::isNetHost()) ||
         !runtime::modItemsSettled()) return;
     for (int i = 0; i < 2; ++i) {
-        std::lock_guard<std::mutex> guard(g_mutex);
-        if (g_requests.empty()) return;
-        Reward reward = g_requests.front();
-        if (reward.session != g_session.load(std::memory_order_acquire)) {
-            g_requests.pop_front();
-            continue;
+        Reward reward;
+        {
+            std::lock_guard<std::mutex> guard(g_mutex);
+            if (g_requests.empty()) return;
+            reward = g_requests.front();
         }
         const int type = runtime::modItemTypeByKey(reward.mod + "/" + reward.item);
-        if (type < runtime::kVanillaItemCount || type >= runtime::itemTypeCount() ||
-            runtime::modItemKey(type) != reward.mod + "/" + reward.item) {
+        bool validType = type >= runtime::kVanillaItemCount &&
+            type < runtime::itemTypeCount() &&
+            runtime::modItemKey(type) == reward.mod + "/" + reward.item;
+        {
+            std::lock_guard<std::mutex> guard(g_mutex);
+            if (g_requests.empty() ||
+                g_session.load(std::memory_order_acquire) != reward.session)
+                return;
+            if (key(g_requests.front()) != key(reward)) continue;
             g_requests.pop_front();
-            continue;
+            if (!validType) continue;
+            g_processed.insert(key(reward));
         }
-        g_processed.insert(key(reward));
-        g_requests.pop_front();
         runtime::giveItem(type, reward.amount, reward.player);
     }
 }
