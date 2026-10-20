@@ -28,8 +28,8 @@ for start, end in checks:
 
 checkactive = body("void hookCheckActive(", "void hookLoot(")
 loot = body("void hookLoot(", "\n}\n\n}")
-assert "queueManagedEntityCombatEvent(3" in checkactive
-assert "queueManagedEntityCombatEvent(3" in loot
+assert "queueReliableNpcKill(" in checkactive
+assert "queueReliableNpcKill(" in loot
 assert "queueManagedEntityCombatEvent(2" in checkactive
 assert "queueManagedEntityCombatEvent(2" in loot
 
