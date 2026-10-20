@@ -56,7 +56,10 @@ public sealed class BunnyInvasionDefinition
     }
 }
 
-public readonly record struct BunnyInvasionSpawn(int Ticket, string NpcClass);
+public readonly record struct BunnyInvasionSpawn(int Ticket, string NpcClass)
+{
+    public int Epoch { get; init; }
+}
 public readonly record struct BunnyInvasionSnapshot(
     int Epoch, int Revision, BunnyInvasionPhase Phase, int Progress,
     int Active, int Pending, int Cooldown);
@@ -169,7 +172,7 @@ public sealed class BunnyInvasionController
         pending.Add(ticket, selected);
         cooldown = Definition.SpawnInterval;
         revision = NextPositive(revision);
-        spawn = new BunnyInvasionSpawn(ticket, selected.NpcClass);
+        spawn = new BunnyInvasionSpawn(ticket, selected.NpcClass) { Epoch = epoch };
         return true;
     }
 
