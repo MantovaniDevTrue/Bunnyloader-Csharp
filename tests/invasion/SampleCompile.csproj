@@ -1,12 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="../../experiments/csharp/BunnyCsSdk/BunnyInvasion.cs" Link="BunnyInvasion.cs" />
+    <ProjectReference Include="../../experiments/csharp/BunnyCsSdk/BunnyCsSdk.csproj" />
     <Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/Systems/ExampleInvasion.cs" Link="ExampleInvasion.cs" />
     <Compile Include="SampleNpcStub.cs" />
   </ItemGroup>
