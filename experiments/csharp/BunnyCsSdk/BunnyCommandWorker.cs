@@ -52,6 +52,7 @@ public static class BunnyCommandWorker
     public static string Execute(string input, int playerIndex, int netMode, int callerKind)
     {
         var responses = new List<BunnyCommandReply>();
+        BunnyCommandAction? action = null;
         var caller = new BunnyCommandCaller(playerIndex, netMode,
             (BunnyCommandCallerKind)callerKind, reply =>
             {
@@ -67,11 +68,28 @@ public static class BunnyCommandWorker
                     while (count > 0 && (bytes[count] & 0xC0) == 0x80) --count;
                     responses.Add(reply with { Text = Encoding.UTF8.GetString(bytes, 0, count) });
                 }
+            }, requested =>
+            {
+                if (action.HasValue || responses.Count != 0)
+                    throw new InvalidOperationException("Uma acao nao pode compartilhar resposta antecipada");
+                action = requested;
             });
         bool handled;
         lock (Gate) handled = registry.TryHandle(input, caller);
         var output = new StringBuilder(64 + responses.Count * 128);
         output.Append("BUNNY_COMMAND_RESULT_V1\nHANDLED\t").Append(handled ? '1' : '0').Append('\n');
+        // A confirmacao de cura somente pode ser enviada pelo C++ depois
+        // de alterar statLife. Rejeitar resposta antecipada de outros comandos.
+        if (action.HasValue && responses.Count != 0)
+        {
+            action = null;
+            responses.Clear();
+            responses.Add(new BunnyCommandReply("Comando: efeito invalido", 255, 25, 25));
+        }
+        if (handled && action.HasValue)
+            output.Append("ACTION\t").Append(action.Value.Kind == BunnyCommandActionKind.Heal
+                ? "HEAL" : "ADDTIME").Append('\t')
+                .Append(action.Value.Amount).Append('\n');
         foreach (var reply in responses)
         {
             output.Append("REPLY\t").Append(reply.Red).Append('\t').Append(reply.Green)
