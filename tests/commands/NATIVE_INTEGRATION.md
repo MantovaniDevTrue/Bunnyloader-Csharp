@@ -47,41 +47,49 @@ Esses testes são executados pelo GitHub Actions em workflows **sem APK**.
   `Unregister` e `Clear` no SDK C#, devolvendo respostas limitadas em
   hexadecimal UTF-8. `NativeCommandResult.h` valida essas respostas e
   mantém o destinatário preso ao ticket do C++.
-- Testes C# verificam o assembly **somente de comandos** passando no
-  `CompiledAssemblyProbe.Verify`; testes C++ validam parser, fila,
-  hash da DLL, colisões e serialização. Nenhuma destas validações
-  instala um hook ou significa execução em Android.
+- O `ManagedRuntime.cpp` conecta o SDK C# à thread proprietária do Mono:
+  registra assemblies e despacha lotes de até oito pedidos por ciclo.
+  O mailbox só passa a reconhecer comandos depois de esse registro
+  retornar sucesso. Isso evita roubar entradas do chat vanilla no boot.
+- `NativeCommandChatHooks.cpp` resolve métodos de
+  `ChatCommandProcessor`, `ChatHelper`, `ChatMessage`, `Main`,
+  `NetworkText` e `Color`, verificando cada assinatura e retorno antes
+  de instalar hooks. Suporta caminhos Chat/Server/World para
+  netMode 0, 1, 2 e 3, com mensagens locais e destinadas a clientes.
+  Se os metadados não conferirem, o hook fica desarmado.
+- Testes host C# e C++ verificam parser, fila, hash, aliases,
+  conflitos e transporte de respostas; o NDK faz compilação de sintaxe
+  ARM64 das unidades nativas, **sem APK**. Isso não substitui prova
+  funcional com o Terraria real.
 
 ## Encadeamento real que precisa ser implementado
 
 1. **Descoberta Roslyn — IMPLEMENTADA NO HOST:** nomes, aliases, classes
    exportadas, contagem e SHA256 passam pelo compilador e pelo registro
-   nativo. Falta ativar os comandos dentro do worker MonoVM do jogo.
-2. **Hook do chat:** mapear no Android as assinaturas do Bunny original
-   `ChatCommandProcessor.ProcessIncomingMessage(ChatMessage,int)` e
-   `ChatHelper.SendChatMessageFromClient(ChatMessage)`. Instalar hooks C++
-   uma vez, na thread do jogo, somente depois de confirmar o método IL2CPP.
-   Se o mailbox devolver `Vanilla`, chamar o original inalterado.
-   `Queued` significa consumir a mensagem; `Busy` significa consumir e
-   responder que a fila está ocupada, sem mandar o comando ao vanilla.
-3. **MonoVM — PENDENTE:** a API `BunnyCommandWorker` está pronta e testada
-   no host, mas falta ligá-la ao worker MonoVM proprietário em
-   `ManagedRuntime.cpp`. Ele deve pegar um lote limitado de
-   `takeRequests`, executar os comandos C# e devolver respostas via
-   `deliver(epoch, sequence, replies)`. Nunca bloquear o desenho; descartar
-   resultados da sessão antiga.
-4. **Game thread:** drenar `takeReplies` e usar as rotas reais
-   `Main.NewText` ou `ChatHelper.SendChatMessageToClient`. Não chamar
-   qualquer método Terraria através de C# no worker.
+   nativo. Execução no Android real ainda não foi validada.
+2. **Hooks de chat — IMPLEMENTADOS NO CÓDIGO, NÃO VALIDADOS EM JOGO:**
+   as duas rotas IL2CPP são instaladas somente após validação de assinatura.
+   Comandos desconhecidos seguem ao original; os registrados e prontos
+   são consumidos. Falta ensaio no Terraria Android em netMode 0/1/2/3,
+   inclusive interação com comandos dos mods JS.
+3. **MonoVM — IMPLEMENTADO NO CÓDIGO, NÃO VALIDADO EM JOGO:** o worker
+   gerencia `RegisterAssembly` e `Execute` no processo que executa
+   `ManagedRuntime`, processa lotes de oito e rejeita tickets de época
+   antiga. Falta QA de attach/lookup real, troca rápida de mundos e
+   concorrência com callbacks de NPC/projétil.
+4. **Respostas na thread do jogo — IMPLEMENTADAS NO CÓDIGO, NÃO VALIDADAS
+   EM JOGO:** `Main.NewText` ou `ChatHelper.SendChatMessageToClient`
+   executam no game thread, nunca no MonoVM; verificar o ABI do `Color`
+   e o formato real de `NetworkText` no dispositivo.
 5. **Ações que mudam o mundo:** portar `/heal` e `/addtime` com pedidos
    tipados de alteração aplicados exclusivamente na thread do jogo. Uma
    confirmação de cura precisa refletir a vida realmente curada; `WorldData`
    deve ser transmitido pelo servidor em netMode 2 e 3.
 6. **Ajuda:** consultar o registry do mod para compor `/help` junto à
    implementação vanilla, como faz o Bunny original, sem duplicar entradas.
-7. **Sessões:** ao descarregar mod ou trocar mundo, invalidar tanto as filas
-   nativas quanto bindings e objetos da sessão Mono. Não reaplicar respostas
-   ou ações da sessão anterior.
+7. **Sessões:** a fila nativa já invalida tickets na troca de mundo;
+   ainda falta validar descarregamento real, limpeza das instâncias do
+   registry Mono e atualização de metadados de hooks sem reinicialização.
 8. **Android:** testar solo, cliente, servidor hospedado no telefone
    (netMode 3), duas instâncias, colisões entre mods, chat vanilla,
    save/reload, 60 FPS, cancelamento e troca rápida de mundo.
