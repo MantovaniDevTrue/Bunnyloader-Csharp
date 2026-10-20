@@ -55,7 +55,7 @@ public static class BunnyLocalizationRuntime
                 foreach (ModState state in Mods.Values)
                 {
                     if (!ReferenceEquals(state.Assembly, caller)) continue;
-                    if (culture != null && culture != state.Culture) return "";
+                    if (culture != null) return "";
                     culture = state.Culture;
                 }
                 return culture ?? "";
