@@ -28,7 +28,8 @@ inline bool parseReply(std::string_view s,Drops* result) {
     Drops temp{};temp.custom=true;
     if(n=='0'){if(s.size()!=7)return false;*result=temp;return true;}
     if(s.size()<10||s[7]!='|')return false;
-    const auto rem=s.substr(8),separator=rem.find('|');
+    const auto rem=s.substr(8);
+    const size_t separator=rem.find('|');
     if(n=='1') {
         if(separator!=std::string_view::npos||!readItem(rem,&temp.first))return false;
     } else {
