@@ -23,6 +23,17 @@ if (!registry.TryHandle("/curar 7", new BunnyCommandCaller(0, 0, BunnyCommandCal
     output.Count != 1 || output[0].Text != "ok:7")
     throw new Exception("Alias nao executou");
 
+if (BunnyCommandWorker.RegisterAssembly("worker", assembly.Location) != 1)
+    throw new Exception("worker nao registrou o comando");
+string wire = BunnyCommandWorker.Execute("/curar 7", 0, 0, 1);
+if (!wire.StartsWith("BUNNY_COMMAND_RESULT_V1\nHANDLED\t1\n", StringComparison.Ordinal) ||
+    !wire.Contains("REPLY\t255\t240\t20\t6F6B3A37\n", StringComparison.Ordinal))
+    throw new Exception("worker serializou resposta incorretamente: " + wire);
+BunnyCommandWorker.Unregister("worker");
+if (!BunnyCommandWorker.Execute("/curar 7", 0, 0, 1)
+      .StartsWith("BUNNY_COMMAND_RESULT_V1\nHANDLED\t0\n", StringComparison.Ordinal))
+    throw new Exception("worker nao descarregou comando");
+BunnyCommandWorker.Clear();
 string temp = Path.Combine(Path.GetTempPath(), "command-smoke-" + Guid.NewGuid().ToString("N"));
 Directory.CreateDirectory(temp);
 try
