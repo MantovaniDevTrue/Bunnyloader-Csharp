@@ -1,5 +1,7 @@
 #include "experiments/csharp/NativeAnglerQuestRegistry.h"
 #include <cassert>
+#include <atomic>
+#include <thread>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -143,6 +145,30 @@ int main() {
     auto [clearedRevision, clearedQuests] = registry.snapshotVersion();
     assert(clearedRevision == registry.generation());
     assert(clearedRevision > capturedRevision && clearedQuests.empty());
+
+    Registry concurrent;
+    std::atomic<bool> published{false};
+    std::thread writer([&] {
+        for (int i=1;i<=1000;++i) {
+            const std::string name="Q"+std::to_string(i);
+            std::string message;
+            assert(concurrent.publish("parallel",
+                {Quest{"parallel",name,910,true,true,"",""}},&message));
+        }
+        published.store(true,std::memory_order_release);
+    });
+    do {
+        const auto [generation, values]=concurrent.snapshotVersion();
+        if (!generation) {
+            assert(values.empty());
+        } else {
+            assert(values.size()==1);
+            assert(values.front().name=="Q"+std::to_string(generation));
+        }
+    } while (!published.load(std::memory_order_acquire));
+    writer.join();
+    const auto [finalGeneration, finalValues]=concurrent.snapshotVersion();
+    assert(finalGeneration==1000 && finalValues.front().name=="Q1000");
 
     std::string decoded = "unchanged";
     assert(decodeHex("48656C6C6F20C3A9", &decoded));
