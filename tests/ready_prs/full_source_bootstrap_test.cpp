@@ -41,7 +41,7 @@ int main(int argc, char** argv) {
     for (const auto& type : types) {
         if (type.base == "BunnyPlayer" || type.base == "BunnyScreenEffect" ||
             type.base == "BunnyRarity" || type.base == "BunnyPrefix" ||
-            type.base == "BunnyDust") continue;
+            type.base == "BunnyDust" || type.base == "BunnyCommand") continue;
         NativeContentSpec spec{};
         std::string target, display, texture;
         if (!fields(type, &spec, &target, &display, &texture, &error)) {
