@@ -170,11 +170,17 @@ public static class BunnyEntitySourceDispatcher
                     if (!context.Invasions.ContainsKey(state.InvasionId)) continue;
                     if (!context.ClientViews.TryGetValue(state.InvasionId, out var view))
                         context.ClientViews[state.InvasionId] = view = new BunnyInvasionClientView();
+                    bool hadState = view.HasState;
+                    BunnyInvasionWireState previous = view.Current;
                     if (view.ReceiveRemoteFromHost(state, worldSession, context.Mod,
                         state.InvasionId))
                     {
-                        BunnyInvasionNotifications.Publish(worldSession, context.Mod,
-                            state);
+                        bool significant = !hadState || previous.Phase != state.Phase ||
+                            previous.Progress * 10 / previous.Goal !=
+                            state.Progress * 10 / state.Goal;
+                        if (significant)
+                            BunnyInvasionNotifications.Publish(worldSession,
+                                context.Mod, state);
                     }
                 }
                 return updates;
