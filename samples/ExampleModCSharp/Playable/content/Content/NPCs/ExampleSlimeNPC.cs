@@ -19,14 +19,8 @@ public sealed class ExampleSlimeNPC : BunnyNPC
         Frames = 2;
     }
 
-    public override void OnSpawn(ref BunnyNpcAiState state)
-    {
-        ExampleInvasion.ConfirmFirstTick(true, ref state);
-    }
-
     public override bool AI(ref BunnyNpcAiState state)
     {
-        ExampleInvasion.ConfirmFirstTick(true, ref state);
         float direction = state.PlayerX - state.X;
         if (!float.IsFinite(direction) || MathF.Abs(direction) < 12f)
             return false;
@@ -46,12 +40,7 @@ public sealed class ExampleSlimeNPC : BunnyNPC
     public override void OnKill(ref BunnyNpcAiState state)
     {
         KillEvents++;
-        ExampleInvasion.EnemyKilled(true, state.Slot, state.Generation);
     }
 
-    public override void OnDespawn(ref BunnyNpcAiState state)
-    {
-        ExampleInvasion.EnemyDespawned(true, state.Slot, state.Generation);
-    }
 }
 
