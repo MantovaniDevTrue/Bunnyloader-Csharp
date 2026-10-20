@@ -15,7 +15,7 @@ try
         throw new InvalidOperationException("Expected two content types and three managed prefixes, got " + classes);
 
     var data = File.ReadAllLines(Path.Combine(temp, "source-runtime-values.txt"));
-    if (data.Length != 17 || data[0] != "BUNNY_MANAGED_DEFAULTS_V2")
+    if (data.Length != 18 || data[0] != "BUNNY_MANAGED_DEFAULTS_V2")
         throw new InvalidOperationException("Unexpected MonoVM native handoff");
 
     if (data.Count(row => row == "PREFIX_DENY\tTestWand\t71,TestMightyPrefix") != 1)
@@ -34,6 +34,8 @@ try
         throw new InvalidOperationException("Per-instance item condition descriptor missing");
     if (data.Count(row => row == "PREFIX_STACK_WEIGHT\tTestMightyPrefix\t3\t5\t6") != 1)
         throw new InvalidOperationException("Dynamic per-instance roll weight descriptor missing");
+    if (data.Count(row => row == "PREFIX_ATTRIBUTE_WEIGHT\tTestGuardedPrefix\tM\t0\t8\t4") != 1)
+        throw new InvalidOperationException("Per-instance mana RollChance descriptor missing");
     if (data.Count(row => row == "PREFIX_POST\tTestMightyPrefix\t3\t40\t0\tBonus adicional do prefixo") != 1)
         throw new InvalidOperationException("Managed BunnyPrefix.Apply, tooltip and stat efficacy missing");
     string tipsHex = string.Join(",",
@@ -52,6 +54,7 @@ try
                                           !row.StartsWith("PREFIX_DENY_ATTRIBUTE\t", StringComparison.Ordinal) &&
                                           !row.StartsWith("PREFIX_CONDITION\t", StringComparison.Ordinal) &&
                                           !row.StartsWith("PREFIX_STACK_WEIGHT\t", StringComparison.Ordinal) &&
+                                          !row.StartsWith("PREFIX_ATTRIBUTE_WEIGHT\t", StringComparison.Ordinal) &&
                                           !row.StartsWith("PREFIX_POST\t", StringComparison.Ordinal) &&
                                           !row.StartsWith("PREFIX_CHANCE\t", StringComparison.Ordinal) &&
                                           !row.StartsWith("PREFIX_CHANCE_STACK\t", StringComparison.Ordinal) &&
@@ -151,6 +154,30 @@ try
     try { predicates.OverrideRollWeightWhenStackBetween(3, 5, 2); }
     catch (InvalidOperationException) { duplicateWeight = true; }
     if (!duplicateWeight) throw new InvalidOperationException("Duplicate stack weight policy accepted");
+    bool conflictingDynamicWeight = false;
+    try { predicates.OverrideRollWeightWhenManaBetween(0, 8, 4); }
+    catch (InvalidOperationException) { conflictingDynamicWeight = true; }
+    if (!conflictingDynamicWeight) throw new InvalidOperationException("Conflicting stack/attribute dynamic weight accepted");
+    var attributeWeight = new BunnyLoader.Source.BunnyPrefixItemConditions();
+    bool invalidAttributeWeight = false;
+    try { attributeWeight.OverrideRollWeightWhenDamageBetween(25, 10, 4); }
+    catch (ArgumentOutOfRangeException) { invalidAttributeWeight = true; }
+    if (!invalidAttributeWeight) throw new InvalidOperationException("Inverted damage weight interval accepted");
+    invalidAttributeWeight = false;
+    try { attributeWeight.OverrideRollWeightWhenManaBetween(0, 10001, 4); }
+    catch (ArgumentOutOfRangeException) { invalidAttributeWeight = true; }
+    if (!invalidAttributeWeight) throw new InvalidOperationException("Excessive mana weight interval accepted");
+    attributeWeight.OverrideRollWeightWhenDamageBetween(10, 25, 0);
+    if (!attributeWeight.HasAttributeRollWeight ||
+        attributeWeight.AttributeRollWeightKind != 'D' ||
+        attributeWeight.AttributeRollWeightMinimum != 10 ||
+        attributeWeight.AttributeRollWeightMaximum != 25 ||
+        attributeWeight.AttributeRollWeightValue != 0)
+        throw new InvalidOperationException("Damage weight state not retained");
+    conflictingDynamicWeight = false;
+    try { attributeWeight.OverrideRollWeightWhenStackBetween(1, 10, 6); }
+    catch (InvalidOperationException) { conflictingDynamicWeight = true; }
+    if (!conflictingDynamicWeight) throw new InvalidOperationException("Conflicting attribute/stack weight accepted");
     if (!predicates.HasStackRollWeight || predicates.RollWeightMinStack != 3 ||
         predicates.RollWeightMaxStack != 5 || predicates.RollWeightInRange != 6)
         throw new InvalidOperationException("Dynamic stack weight was not kept");

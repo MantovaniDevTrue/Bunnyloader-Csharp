@@ -19,6 +19,10 @@ assert "installManagedPrefixGameplayHooks()" in bridge
 assert "snapshotManagedPrefixes()" in game
 assert "std::nearbyint" in game
 assert "PREFIX_STACK_WEIGHT" in source
+assert "PREFIX_ATTRIBUTE_WEIGHT" in source
+assert "prefix.hasAttributeRollWeight = true;" in source
+assert "p.hasAttributeRollWeight" in game
+assert "OverrideRollWeightWhenManaBetween" in (root / "experiments/csharp/BunnyCsSdk/BunnySourceScriptApi.cs").read_text()
 assert "PREFIX_DENY_STACK" in source
 assert "PREFIX_TOOLTIP_ITEM" in source
 assert "renderPrefixItemTooltip(itemLine, damage, mana, stack)" in game

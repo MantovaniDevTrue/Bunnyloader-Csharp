@@ -177,6 +177,8 @@ assert 'conditions.RequireDamageBetween(10, 25);' in prefix_example
 assert 'conditions.RequireManaBetween(0, 8);' in prefix_example
 assert 'conditions.RequireStackBetween(1, 10);' in prefix_example
 assert 'conditions.OverrideRollWeightWhenStackBetween(3, 5, 6);' in prefix_example
+guarded_prefix_example = (playable / "content/Content/Prefixes/ExampleGuardedPrefix.cs").read_text(encoding="utf-8")
+assert 'conditions.OverrideRollWeightWhenManaBetween(0, 8, 4);' in guarded_prefix_example
 item_deny_example = (playable / "content/Content/Items/Weapons/ExampleWand.cs").read_text(encoding="utf-8")
 assert 'rules.Deny(71);' in item_deny_example
 assert 'rules.Deny(nameof(ExampleGuardedPrefix));' in item_deny_example

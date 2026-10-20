@@ -911,6 +911,11 @@ class; base: `System.Object`.
 
 ```csharp
 BunnyPrefixItemConditions()
+bool HasAttributeRollWeight { get; }
+char AttributeRollWeightKind { get; }
+int AttributeRollWeightMinimum { get; }
+int AttributeRollWeightMaximum { get; }
+int AttributeRollWeightValue { get; }
 bool HasStackRollWeight { get; }
 int MaxDamage { get; }
 int MaxMana { get; }
@@ -925,6 +930,8 @@ int RollWeightMinStack { get; }
 
 | Method | Execution |
 | --- | --- |
+| `void OverrideRollWeightWhenDamageBetween(int minimum, int maximum, int weight)` | compile_policy |
+| `void OverrideRollWeightWhenManaBetween(int minimum, int maximum, int weight)` | compile_policy |
 | `void OverrideRollWeightWhenStackBetween(int minimum, int maximum, int weight)` | compile_policy |
 | `void RequireDamageBetween(int minimum, int maximum)` | compile_policy |
 | `void RequireManaBetween(int minimum, int maximum)` | compile_policy |

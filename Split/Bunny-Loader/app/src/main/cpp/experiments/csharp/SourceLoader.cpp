@@ -666,6 +666,7 @@ bool applyManagedSourceDefaults(
     std::map<std::string, std::vector<std::string>> prefixItemTooltipPolicies;
     std::map<std::string, ManagedPrefixEntry> prefixItemConditions;
     std::map<std::string, ManagedPrefixEntry> prefixStackWeights;
+    std::map<std::string, ManagedPrefixEntry> prefixAttributeWeights;
     std::vector<std::pair<int, std::vector<std::string>>> prefixDenials;
     std::set<int> seenPrefixDenials;
     std::vector<std::pair<int, std::vector<ManagedPrefixStackDenyToken>>> prefixStackDenials;
@@ -891,6 +892,33 @@ bool applyManagedSourceDefaults(
                 rule.weightInsideStackRange > 20 ||
                 !prefixStackWeights.emplace(fields[1], rule).second) {
                 *error = "[CSharp][ERROR][PrefixStackWeight] InvalidPrefixOrBounds";
+                return false;
+            }
+            continue;
+        }
+        if (!fields.empty() && fields[0] == "PREFIX_ATTRIBUTE_WEIGHT") {
+            const auto key = fields.size() > 1
+                ? sourceIdentityForWire("PREFIX", fields[1]) : "";
+            const auto registered = mod->registeredKindTypes.find(key);
+            ManagedPrefixEntry weight;
+            if (fields.size() != 6 || registered == mod->registeredKindTypes.end() ||
+                runtime::modPrefixByKey(modId + "/" + fields[1]) != registered->second ||
+                fields[2].size() != 1 ||
+                (fields[2][0] != 'D' && fields[2][0] != 'M') ||
+                !integer(fields[3], &weight.minWeightAttribute) ||
+                !integer(fields[4], &weight.maxWeightAttribute) ||
+                !integer(fields[5], &weight.weightInsideAttributeRange)) {
+                *error = "[CSharp][ERROR][PrefixAttributeWeight] InvalidPrefixOrWire";
+                return false;
+            }
+            weight.attributeWeightKind = fields[2][0];
+            if (weight.minWeightAttribute < 0 ||
+                weight.maxWeightAttribute < weight.minWeightAttribute ||
+                weight.maxWeightAttribute > (weight.attributeWeightKind == 'D' ? 100000 : 10000) ||
+                weight.weightInsideAttributeRange < 0 ||
+                weight.weightInsideAttributeRange > 20 ||
+                !prefixAttributeWeights.emplace(fields[1], weight).second) {
+                *error = "[CSharp][ERROR][PrefixAttributeWeight] InvalidBoundsOrDuplicate";
                 return false;
             }
             continue;
@@ -1613,6 +1641,19 @@ bool applyManagedSourceDefaults(
             prefix.weightInsideStackRange = stackWeight->second.weightInsideStackRange;
             prefixStackWeights.erase(stackWeight);
         }
+        const auto attributeWeight = prefixAttributeWeights.find(prefix.name);
+        if (attributeWeight != prefixAttributeWeights.end()) {
+            if (prefix.hasStackRollWeight) {
+                *error = "[CSharp][ERROR][PrefixAttributeWeight] MultipleDynamicWeightRules";
+                return false;
+            }
+            prefix.hasAttributeRollWeight = true;
+            prefix.attributeWeightKind = attributeWeight->second.attributeWeightKind;
+            prefix.minWeightAttribute = attributeWeight->second.minWeightAttribute;
+            prefix.maxWeightAttribute = attributeWeight->second.maxWeightAttribute;
+            prefix.weightInsideAttributeRange = attributeWeight->second.weightInsideAttributeRange;
+            prefixAttributeWeights.erase(attributeWeight);
+        }
         const auto post = prefixPostPolicies.find(prefix.name);
         if (post == prefixPostPolicies.end()) continue;
         prefix.applyDamageBonus = post->second.applyDamageBonus;
@@ -1631,6 +1672,10 @@ bool applyManagedSourceDefaults(
     }
     if (!prefixStackWeights.empty()) {
         *error = "PREFIX_STACK_WEIGHT sem descritor de prefixo correspondente";
+        return false;
+    }
+    if (!prefixAttributeWeights.empty()) {
+        *error = "PREFIX_ATTRIBUTE_WEIGHT sem descritor de prefixo correspondente";
         return false;
     }
     if (!prefixTooltipPolicies.empty()) {

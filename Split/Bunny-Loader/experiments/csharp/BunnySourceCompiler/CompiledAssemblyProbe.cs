@@ -968,6 +968,19 @@ public static class CompiledAssemblyProbe
             int minWeightStack = Value<int>(conditions, "RollWeightMinStack");
             int maxWeightStack = Value<int>(conditions, "RollWeightMaxStack");
             int weightInRange = Value<int>(conditions, "RollWeightInRange");
+            bool hasAttributeRollWeight = Value<bool>(conditions, "HasAttributeRollWeight");
+            char attributeKind = Value<char>(conditions, "AttributeRollWeightKind");
+            int attributeMin = Value<int>(conditions, "AttributeRollWeightMinimum");
+            int attributeMax = Value<int>(conditions, "AttributeRollWeightMaximum");
+            int attributeWeight = Value<int>(conditions, "AttributeRollWeightValue");
+            int attributeLimit = attributeKind == 'D' ? 100000 :
+                                 attributeKind == 'M' ? 10000 : -1;
+            if (hasAttributeRollWeight &&
+                (hasStackRollWeight || attributeLimit < 0 ||
+                 attributeMin < 0 || attributeMax < attributeMin ||
+                 attributeMax > attributeLimit || attributeWeight < 0 ||
+                 attributeWeight > 20))
+                throw new InvalidOperationException("Invalid attribute roll weight: " + name);
             if (hasStackRollWeight &&
                 (minWeightStack < 0 || maxWeightStack < minWeightStack ||
                  maxWeightStack > 999999 || weightInRange < 0 || weightInRange > 20))
@@ -991,6 +1004,12 @@ public static class CompiledAssemblyProbe
                     minWeightStack.ToString(CultureInfo.InvariantCulture),
                     maxWeightStack.ToString(CultureInfo.InvariantCulture),
                     weightInRange.ToString(CultureInfo.InvariantCulture)));
+            if (hasAttributeRollWeight)
+                lines.Add(string.Join("\t", "PREFIX_ATTRIBUTE_WEIGHT", name,
+                    attributeKind.ToString(),
+                    attributeMin.ToString(CultureInfo.InvariantCulture),
+                    attributeMax.ToString(CultureInfo.InvariantCulture),
+                    attributeWeight.ToString(CultureInfo.InvariantCulture)));
             MethodInfo applyPrefix = type.GetMethod("Apply",
                 BindingFlags.Public | BindingFlags.Instance)
                 ?? throw new InvalidOperationException("Missing BunnyPrefix.Apply");

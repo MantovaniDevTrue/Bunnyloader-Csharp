@@ -635,6 +635,11 @@ public sealed class BunnyPrefixItemConditions
     public int RollWeightMinStack { get; private set; }
     public int RollWeightMaxStack { get; private set; }
     public int RollWeightInRange { get; private set; }
+    public bool HasAttributeRollWeight { get; private set; }
+    public char AttributeRollWeightKind { get; private set; }
+    public int AttributeRollWeightMinimum { get; private set; }
+    public int AttributeRollWeightMaximum { get; private set; }
+    public int AttributeRollWeightValue { get; private set; }
 
     public void RequireDamageBetween(int minimum, int maximum)
     {
@@ -665,13 +670,34 @@ public sealed class BunnyPrefixItemConditions
         if (minimum < 0 || maximum < minimum || maximum > 999999 ||
             weight < 0 || weight > 20)
             throw new System.ArgumentOutOfRangeException(nameof(minimum));
-        if (HasStackRollWeight)
-            throw new System.InvalidOperationException("Only one stack-weight rule is supported");
+        if (HasStackRollWeight || HasAttributeRollWeight)
+            throw new System.InvalidOperationException("Only one dynamic roll weight rule is supported");
         HasStackRollWeight = true;
         RollWeightMinStack = minimum;
         RollWeightMaxStack = maximum;
         RollWeightInRange = weight;
     }
+
+    private void OverrideAttributeRollWeight(char attribute, int minimum, int maximum, int weight)
+    {
+        int limit = attribute == 'D' ? 100000 : 10000;
+        if (minimum < 0 || maximum < minimum || maximum > limit ||
+            weight < 0 || weight > 20)
+            throw new System.ArgumentOutOfRangeException(nameof(minimum));
+        if (HasStackRollWeight || HasAttributeRollWeight)
+            throw new System.InvalidOperationException("Only one dynamic roll weight rule is supported");
+        HasAttributeRollWeight = true;
+        AttributeRollWeightKind = attribute;
+        AttributeRollWeightMinimum = minimum;
+        AttributeRollWeightMaximum = maximum;
+        AttributeRollWeightValue = weight;
+    }
+
+    public void OverrideRollWeightWhenDamageBetween(int minimum, int maximum, int weight)
+        => OverrideAttributeRollWeight('D', minimum, maximum, weight);
+
+    public void OverrideRollWeightWhenManaBetween(int minimum, int maximum, int weight)
+        => OverrideAttributeRollWeight('M', minimum, maximum, weight);
 }
 
 public abstract class BunnyPrefix

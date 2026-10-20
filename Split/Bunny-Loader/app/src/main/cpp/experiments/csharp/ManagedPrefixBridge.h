@@ -38,6 +38,11 @@ struct ManagedPrefixEntry {
     int minWeightStack = 0;
     int maxWeightStack = 0;
     int weightInsideStackRange = 0;
+    bool hasAttributeRollWeight = false;
+    char attributeWeightKind = 'D';
+    int minWeightAttribute = 0;
+    int maxWeightAttribute = 0;
+    int weightInsideAttributeRange = 0;
     bool requireEffectiveStats = true;
     std::string extraTooltip;
     std::vector<std::string> tooltipLines;

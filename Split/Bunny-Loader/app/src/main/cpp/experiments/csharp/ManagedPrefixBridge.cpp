@@ -56,6 +56,14 @@ bool valid(const ManagedPrefixEntry& p) {
             (p.minWeightStack < 0 || p.maxWeightStack < p.minWeightStack ||
              p.maxWeightStack > 999999 || p.weightInsideStackRange < 0 ||
              p.weightInsideStackRange > 20)) ||
+        (p.hasAttributeRollWeight &&
+            (p.hasStackRollWeight ||
+             (p.attributeWeightKind != 'D' && p.attributeWeightKind != 'M') ||
+             p.minWeightAttribute < 0 ||
+             p.maxWeightAttribute < p.minWeightAttribute ||
+             p.maxWeightAttribute > (p.attributeWeightKind == 'D' ? 100000 : 10000) ||
+             p.weightInsideAttributeRange < 0 ||
+             p.weightInsideAttributeRange > 20)) ||
         p.applyDamageBonus < 0 || p.applyDamageBonus > 1000 ||
         p.applyValueBonus < 0 || p.applyValueBonus > 100000 ||
         p.extraTooltip.size() > 120 ||

@@ -123,4 +123,9 @@ public sealed class TestGuardedPrefix : BunnyPrefix
     {
         defenseBonus += 4;
     }
+
+    public override void ConfigureItemConditions(BunnyPrefixItemConditions conditions)
+    {
+        conditions.OverrideRollWeightWhenManaBetween(0, 8, 4);
+    }
 }

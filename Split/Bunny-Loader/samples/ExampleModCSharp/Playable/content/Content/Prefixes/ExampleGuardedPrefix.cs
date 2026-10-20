@@ -14,6 +14,11 @@ public sealed class ExampleGuardedPrefix : BunnyPrefix
         RollWeight = 1f;
     }
 
+    public override void ConfigureItemConditions(BunnyPrefixItemConditions conditions)
+    {
+        conditions.OverrideRollWeightWhenManaBetween(0, 8, 4);
+    }
+
     public override void ModifyValue(ref float valueMultiplier)
     {
         valueMultiplier *= 1.2f;

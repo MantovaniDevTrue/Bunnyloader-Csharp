@@ -160,11 +160,35 @@ int main() {
     guarded.category = 5;
     guarded.rollWeight = 1.f;
     guarded.accessoryDefense = 4;
+    guarded.hasAttributeRollWeight = true;
+    guarded.attributeWeightKind = 'M';
+    guarded.minWeightAttribute = 0;
+    guarded.maxWeightAttribute = 8;
+    guarded.weightInsideAttributeRange = 4;
+    auto invalidAttribute = guarded;
+    invalidAttribute.attributeWeightKind = 'X';
+    assert(!applyManagedPrefixDescriptors("test", {invalidAttribute}));
+    assert(managedPrefixView() == first);
+    invalidAttribute = guarded;
+    invalidAttribute.maxWeightAttribute = 10001;
+    assert(!applyManagedPrefixDescriptors("test", {invalidAttribute}));
+    assert(managedPrefixView() == first);
+    invalidAttribute = guarded;
+    invalidAttribute.weightInsideAttributeRange = 21;
+    assert(!applyManagedPrefixDescriptors("test", {invalidAttribute}));
+    assert(managedPrefixView() == first);
+    invalidAttribute = guarded;
+    invalidAttribute.hasStackRollWeight = true;
+    assert(!applyManagedPrefixDescriptors("test", {invalidAttribute}));
+    assert(managedPrefixView() == first);
 
     assert(applyManagedPrefixDescriptors("test", {guarded}));
     auto second = managedPrefixView();
     assert(second && second != first && first->empty());
     assert(second->size() == 1 && second->front().type == 98);
+    assert(second->front().hasAttributeRollWeight);
+    assert(second->front().attributeWeightKind == 'M');
+    assert(second->front().weightInsideAttributeRange == 4);
     assert(!managedPrefixDescriptorPending(98));
     assert(managedPrefixDescriptorReady(98));
 
