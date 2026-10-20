@@ -29,6 +29,11 @@ quadro e sem exigir que o modder informe um tipo numérico global.
 - `SourceLoader.cpp`: executa a descoberta antes do registro dos
   conteúdos C#. O campo `SourceModStatus.goreSourcesDiscovered` informa
   quantos arquivos foram encontrados, **não** quantos tipos foram instalados.
+- `ManagedGoreCatalog.h`: prepara a reserva atomica dos tipos por
+  par `(mod UID, nome)`, aceita gores homonimos de mods diferentes e
+  proibe realocar IDs durante a sessao. Ainda nao publica os IDs no jogo.
+- `tests/csharp_gore_catalog_test.cpp`: testa a separacao entre mods,
+  falhas de capacidade, indices estaveis e limpeza do catalogo.
 - `tests/csharp_gore_discovery_test.cpp`: testa subpastas, nomes,
   ordenação, dimensões, PNG inválido, duplicatas, link simbólico,
   limite por mod e os PNGs originais do ExampleMod C#.
@@ -66,8 +71,10 @@ etapa de instalação por `content::loadTextureAsset`.
    a textura, a física, o desaparecimento, troca de mundo e estabilidade
    de 60 FPS. Não declarar sucesso Android com base em compilação.
 
-**Bloqueio de release:** sem APK, sem merge e sem declaração de loader
-completo enquanto qualquer etapa acima estiver pendente.
+**Bloqueio de APK:** a primeira compilacao Android so pode ocorrer **depois**
+de finalizar o registro, a API de spawn, os exemplos e os testes estaticos.
+O APK subsequente sera exclusivamente para QA no aparelho, nao uma release.
+Sem merge nem versao publica antes de validar o QA real.
 
 ## Executar os testes desta etapa (somente fonte)
 
@@ -80,6 +87,13 @@ c++ -std=c++20 -O2 -Wall -Wextra -Werror -pedantic \
   app/src/main/cpp/experiments/csharp/ManagedGoreDiscovery.cpp \
   -o /tmp/bunny_gore_discovery_test
 /tmp/bunny_gore_discovery_test
+c++ -std=c++20 -O2 -Wall -Wextra -Werror -pedantic \
+  -Iapp/src/main/cpp \
+  tests/csharp_gore_catalog_test.cpp \
+  -o /tmp/bunny_gore_catalog_test
+/tmp/bunny_gore_catalog_test
 ```
 
-Saída esperada: `CSHARP_GORE_DISCOVERY_PASS`. Isso valida somente a descoberta.
+Saídas esperadas: `CSHARP_GORE_DISCOVERY_PASS` e
+`CSHARP_GORE_CATALOG_PASS`. Isso valida somente a descoberta e o catalogo;
+nao prova o registro IL2CPP ou os efeitos no jogo.
