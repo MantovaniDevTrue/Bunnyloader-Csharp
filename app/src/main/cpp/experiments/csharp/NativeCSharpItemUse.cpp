@@ -305,7 +305,10 @@ int bunny_item_use_bind(int64_t session, const char* mod, const char* itemName) 
         if (sameBinding(entry.second, request)) return 1;
     for (const auto& other : g_requests)
         if (sameBinding(other, request)) return 1;
+    const bool firstBinding = g_requests.empty() && g_installed.empty();
     g_requests.push_back(std::move(request));
+    if (firstBinding)
+        BL_INFO("[CSharp][ItemUse] Stage=BindRequest Mod=%s Class=%s Result=Queued", mod, itemName);
     return 1;
 }
 

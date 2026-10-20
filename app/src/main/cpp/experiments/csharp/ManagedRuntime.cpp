@@ -1217,6 +1217,12 @@ int64_t executeManagedEntityOnWorker(const ManagedEntityJob& job) {
         if (!raw) return -1;
         int32_t count = -1;
         std::memcpy(&count, raw, sizeof(count));
+        static std::atomic<unsigned> worldTickDiagnostics{0};
+        const unsigned diagnostic = worldTickDiagnostics.fetch_add(1, std::memory_order_relaxed);
+        if (diagnostic < 4 || (count < 0 && diagnostic < 10))
+            BL_INFO("[CSharp][ItemUse] Stage=WorldTick Mod=%s Result=%d Player=%d Mode=%d Session=%llu",
+                    binding.modId.c_str(), count, player, mode,
+                    static_cast<unsigned long long>(worldSession));
         return count;
     }
     int type = job.type, slot = job.slot, generation = job.generation;
