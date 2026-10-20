@@ -77,6 +77,27 @@ public static class BunnyItemPrefixRuntime
                 if (method == null)
                     throw new MissingMethodException(type.FullName, "AllowPrefix");
                 RuntimeHelpers.PrepareMethod(method.MethodHandle);
+                var snapshotType=typeof(BunnyPrefixItemSnapshot);
+                var dynamicMethods=new (string Name, Type[] Parameters)[] {
+                    ("ChoosePrefix", new[] { snapshotType }),
+                    ("DecidePrefixChance", new[] { snapshotType, typeof(int) }),
+                    ("ApplyPrefix", new[] {
+                        snapshotType, typeof(int), typeof(BunnyPrefixApplyStats).MakeByRefType()
+                    })
+                };
+                foreach (var entry in dynamicMethods)
+                {
+                    MethodInfo? callback=type.GetMethod(entry.Name,entry.Parameters);
+                    if (callback == null)
+                        throw new MissingMethodException(type.FullName,entry.Name);
+                    RuntimeHelpers.PrepareMethod(callback.MethodHandle);
+                }
+                if (item is BunnyGlobalItem)
+                {
+                    MethodInfo applies=type.GetMethod("AppliesTo",new[] { snapshotType })
+                        ?? throw new MissingMethodException(type.FullName,"AppliesTo");
+                    RuntimeHelpers.PrepareMethod(applies.MethodHandle);
+                }
                 mod.Items.Add(owner, item);
             }
 
