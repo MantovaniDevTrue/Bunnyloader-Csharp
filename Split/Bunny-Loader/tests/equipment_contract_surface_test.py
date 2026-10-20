@@ -311,6 +311,8 @@ class EquipmentContractSurfaceTests(unittest.TestCase):
         self.assertIn('if (!success) return false;', runtime)
         self.assertIn("invokeManagedPrefix(", gameplay)
         self.assertIn("PrefixRpcScope prefixCallbacks;", gameplay)
+        supported = (ROOT / "samples/ExampleModCSharp/Docs/SupportedAPI.md").read_text(encoding="utf-8")
+        self.assertIn("worker ligado aos hooks (experimental)", supported)
         self.assertIn("managedPrefixWarmupState(", gameplay)
         self.assertIn("prefix.callbackMask = callback->second;", (
             ROOT / "app/src/main/cpp/experiments/csharp/SourceLoader.cpp"

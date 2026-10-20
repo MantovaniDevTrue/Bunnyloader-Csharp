@@ -356,3 +356,9 @@ O loader JS original mantém prefixos vanilla e de outros mods na lista de candi
 O teste C++ injeta uma lista `vanilla 71, externo 100, C# 98` com peso C# de 3; a seleção nativa percorre `71,100,98,98,98` por valores determinísticos de `NextDouble()`. Quando `Deny(71)` está ativo, a lista passa a `100,98,98,98`; nenhuma das seleções volta ao sorteio vanilla original. A rota original ainda é preservada para listas sem prefixo C# e sem filtro de item.
 
 Este comportamento foi testado em host, não garante paridade com hooks dinâmicos `GlobalItem` de mods terceiros, não executa C# por reforja e não foi validado em Android com mods externos reais.
+
+## AllowPrefix por instância via worker (20 de outubro)
+
+A PR #100 agora integra `BunnyItemPrefixRuntime.Dispatch` aos hooks nativos para os quatro tipos de item C#, somente quando a classe sobrescreve o método de snapshot. `ITEM_PREFIX_CALLBACK` é validado por owner/tipo/máscara, publicado como mapa imutável e vinculado ao assembly depois dos defaults. O worker é aquecido antes do uso, com protocolo de prazo e descarte de resposta atrasada. O hook observa veto declarativo primeiro e, após isso, permite até quatro RPCs de 650 µs cada dentro do orçamento total de 2500 µs por transação; os resultados são cacheados por prefixo e campos atuais do item. A regra de restauração gerenciada existente bypassa esses filtros.
+
+O caminho vanilla não usa o seletor ponderado quando não há veto real nem prefixo gerenciado na lista, preservando o RNG original. A fixture de hooks em C++ valida aceitação, veto, alteração de estado, repetição de consulta, falha do worker, limite de chamadas, tentativa explícita, restauração e rolagem vanilla. O CI verifica SDK/host e objetos ARM64, não uma build Android assinada ou gameplay. A PR permanece draft, sem merge com Tile #98 e sem publicação.
