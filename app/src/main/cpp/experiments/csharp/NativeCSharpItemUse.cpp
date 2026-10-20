@@ -7,7 +7,7 @@
 #include "il2cpp/Resolver.h"
 #include "il2cpp/Signature.h"
 #include "menu/NetRequests.h"
-#include "content/common/GameRefs.h"
+#include "core/Log.h"
 
 #include <algorithm>
 #include <cmath>
@@ -17,6 +17,7 @@
 #include <deque>
 #include <map>
 #include <mutex>
+#include <set>
 #include <string>
 #include <utility>
 
@@ -43,6 +44,8 @@ std::mutex g_mutex;
 std::deque<ItemBinding> g_requests;
 std::deque<ItemUseEvent> g_events;
 std::map<int, ItemBinding> g_installed;
+std::set<int> g_loggedUse;
+std::atomic<unsigned> g_bindFailures{0};
 std::atomic<uint64_t> g_session{0};
 std::atomic<bool> g_ready{false};
 std::atomic<unsigned> g_dropped{0};
@@ -145,6 +148,9 @@ void onActualUse(Il2CppObject* player, Il2CppObject* item, const MethodInfo* met
     }
     g_events.push_back({binding->second.session, binding->second.mod,
                         binding->second.name, playerIndex, flags});
+    if (g_loggedUse.insert(itemType).second)
+        BL_INFO("[CSharp][ItemUse] Stage=ActualUse Class=%s Player=%d Flags=%d Result=Queued",
+                binding->second.name.c_str(), playerIndex, flags);
 }
 
 bool installItemUseHook() {
@@ -155,8 +161,29 @@ bool installItemUseHook() {
     const int itemTypeOffset = il2cpp::fieldOffset(item, "type");
     const int playerIndexOffset = il2cpp::fieldOffset(player, "whoAmI");
     if (itemTypeOffset < 0 || playerIndexOffset < 0) return false;
-    const auto* method = il2cpp::findMethodBySignature(player,
+    const MethodInfo* method = il2cpp::findMethodBySignature(player,
         il2cpp::parseSignature("void ItemCheck_StartActualUse(Item sItem)"));
+    if (!method) {
+        auto& api = il2cpp::api();
+        void* iterator = nullptr;
+        for (const MethodInfo* candidate = api.class_get_methods(player, &iterator);
+             candidate; candidate = api.class_get_methods(player, &iterator)) {
+            if (std::strcmp(api.method_get_name(candidate), "ItemCheck_StartActualUse") != 0 ||
+                api.method_get_param_count(candidate) != 1) continue;
+            auto matches = [&](const Il2CppType* value, const char* expected) {
+                if (!value) return false;
+                char* name = api.type_get_name(value);
+                const bool ok = name && std::strcmp(name, expected) == 0;
+                if (name) api.il2cpp_free(name);
+                return ok;
+            };
+            if (!matches(api.method_get_param(candidate, 0), "Terraria.Item") ||
+                !matches(api.method_get_return_type(candidate), "System.Void"))
+                continue;
+            if (method) return false;
+            method = candidate;
+        }
+    }
     if (!method || !hook::install(method, onActualUse, &g_originalUse))
         return false;
     g_itemTypeOffset = itemTypeOffset;
@@ -215,6 +242,8 @@ void setNativeItemUseWorldState(bool ready, uint64_t session) {
         g_requests.clear();
         g_events.clear();
         g_installed.clear();
+        g_loggedUse.clear();
+        g_bindFailures.store(0, std::memory_order_relaxed);
     }
     g_session.store(session, std::memory_order_release);
     g_ready.store(ready && session > 0, std::memory_order_release);
@@ -237,11 +266,26 @@ void pumpNativeItemUseBindingsOnGameThread() {
             return;
         }
         const int type = runtime::modItemTypeByKey(binding.mod + "/" + binding.name);
-        if (type < runtime::kVanillaItemCount || !installItemUseHook()) continue;
+        if (type < runtime::kVanillaItemCount || !installItemUseHook()) {
+            const unsigned failures = 1 + g_bindFailures.fetch_add(1, std::memory_order_relaxed);
+            if (failures == 1 || failures % 600u == 0)
+                BL_WARN("[CSharp][ItemUse] Stage=Bind Class=%s Type=%d Result=Retry Reason=%s",
+                        binding.name.c_str(), type,
+                        type < runtime::kVanillaItemCount ? "ItemTypeNotResolved" : "ActualUseHookUnavailable");
+            std::lock_guard<std::mutex> guard(g_mutex);
+            if (g_ready.load(std::memory_order_acquire) &&
+                binding.session == g_session.load(std::memory_order_acquire))
+                g_requests.push_back(std::move(binding));
+            continue;
+        }
         std::lock_guard<std::mutex> guard(g_mutex);
         if (g_ready.load(std::memory_order_acquire) &&
             binding.session == g_session.load(std::memory_order_acquire))
+        {
+            BL_INFO("[CSharp][ItemUse] Stage=Bind Class=%s Type=%d Result=Ready",
+                    binding.name.c_str(), type);
             g_installed[type] = std::move(binding);
+        }
     }
 }
 
