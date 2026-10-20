@@ -6,7 +6,7 @@
 #include <fstream>
 #include <iostream>
 
-int initialized=0,jsLoaded=0,csLoaded=0,builtinLoaded=0;
+int initialized=0,jsLoaded=0,csLoaded=0,builtinLoaded=0,sourceResets=0;
 bool failJs=false;
 namespace bl::script {
 ScriptEngine& engine(){static ScriptEngine value;return value;}
@@ -15,7 +15,7 @@ bool ScriptEngine::loadMod(const std::string&,const std::vector<std::string>& fi
 bool ScriptEngine::loadBuiltinMod(const std::string&,const std::string&){assert(ready_);++builtinLoaded;return true;}
 }
 namespace bl::runtime {void configureTexturePacks(const std::string&,const std::vector<ModSpec>&){}}
-namespace bl::csharp {bool loadCSharpSourceMod(const mods::LoadedMod& mod){assert(mod.entry.ends_with(".cs"));++csLoaded;return true;}}
+namespace bl::csharp {void resetCSharpSourceModSession(){++sourceResets;} bool loadCSharpSourceMod(const mods::LoadedMod& mod){assert(mod.entry.ends_with(".cs"));++csLoaded;return true;}}
 namespace bl::log {void write(int,const char*,...) {}}
 int main(int argc,char** argv) {
     assert(argc==3);const std::string mode=argv[2];failJs=mode=="--js-fails";
@@ -31,7 +31,7 @@ int main(int argc,char** argv) {
     std::vector<bl::ModSpec> specs={{"cs1","main.cs"},{"cs2","main.cs"}};
     if(mode!="--only-csharp")specs={{"cs1","main.cs"},{"js1","main.js"},{"cs2","main.cs"},{"js2","main.js"}};
     bl::mods::loadAll(root.string(),specs);
-    assert(csLoaded==2);
+    assert(csLoaded==2&&sourceResets==1);
     if(mode=="--only-csharp")assert(initialized==0&&jsLoaded==0&&!bl::script::engine().ready());
     else if(failJs)assert(initialized==2&&jsLoaded==0);
     else assert(initialized==1&&jsLoaded==2);
