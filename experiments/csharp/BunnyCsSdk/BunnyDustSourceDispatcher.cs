@@ -89,6 +89,7 @@ public static class BunnyDustSourceDispatcher
         ref BunnyDustState state = ref *(BunnyDustState*)statePointer.ToPointer();
         if ((uint)state.Slot >= BunnyDustRegistry.MaxDustSlots ||
             state.Generation <= 0 || state.Type < BunnyDustRegistry.VanillaDustCount ||
+            state.Type >= 32768 ||
             (state.Active != 0 && state.Active != 1))
             return 0;
         Context context = Contexts[modSlot];
