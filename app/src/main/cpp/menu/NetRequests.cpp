@@ -9,7 +9,10 @@
 #include "content/items/ModItems.h"
 #include "content/npcs/ModNpcs.h"
 #include "menu/Powers.h"
+#include "experiments/csharp/NativeCSharpItemUse.h"
 #include <cstdio>
+#include <array>
+#include <chrono>
 #include <deque>
 #include <mutex>
 
@@ -73,6 +76,23 @@ void hkProcessIncomingMessage(Il2CppObject* self, Il2CppObject* message, int32_t
  * conferido contra a contagem real (jogo + mods) antes de chegar ao jogo.
  */
 void run(const Request& r) {
+    if (r.command.rfind("invuse ", 0) == 0) {
+        char mod[129] = {}, itemName[129] = {}, extra[2] = {};
+        const int count = std::sscanf(r.command.c_str(),
+                                      "invuse %128s %128s %1s",
+                                      mod, itemName, extra);
+        if (count != 2 || r.client < 0 || r.client >= 255) return;
+        using Clock = std::chrono::steady_clock;
+        static std::array<Clock::time_point, 255> lastRequest{};
+        const auto now = Clock::now();
+        if (lastRequest[static_cast<size_t>(r.client)] != Clock::time_point{} &&
+            now - lastRequest[static_cast<size_t>(r.client)] <
+                std::chrono::milliseconds(300))
+            return;
+        if (bl::csharp::enqueueVerifiedRemoteItemUse(r.client, mod, itemName))
+            lastRequest[static_cast<size_t>(r.client)] = now;
+        return;
+    }
     int type = 0, amount = 0;
     char verb[16] = {};
     if (std::sscanf(r.command.c_str(), "%15s %d %d", verb, &type, &amount) < 2) {
