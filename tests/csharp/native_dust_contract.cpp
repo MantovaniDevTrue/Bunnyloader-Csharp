@@ -5,6 +5,11 @@
 
 int main() {
     using namespace bl::csharp;
+#if defined(BUNNY_CSHARP_DUST_PREVIEW) && BUNNY_CSHARP_DUST_PREVIEW == 1
+    static_assert(managedDustCallbacksConnected());
+#else
+    static_assert(!managedDustCallbacksConnected());
+#endif
     ManagedDustState sample{};
     sample.slot = 10;
     sample.type = 332;
