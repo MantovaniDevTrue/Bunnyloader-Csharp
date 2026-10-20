@@ -668,6 +668,8 @@ bool applyManagedSourceDefaults(
     std::set<int> seenPrefixDenials;
     std::vector<std::pair<int, std::vector<ManagedPrefixStackDenyToken>>> prefixStackDenials;
     std::set<int> seenPrefixStackDenials;
+    std::vector<std::pair<int, std::vector<ManagedPrefixAttributeDenyToken>>> prefixAttributeDenials;
+    std::set<int> seenPrefixAttributeDenials;
     std::vector<std::pair<int, bool>> prefixChances;
     std::set<int> seenPrefixChances;
     std::vector<std::pair<int, ManagedPrefixStackChance>> prefixStackChances;
@@ -761,6 +763,57 @@ bool applyManagedSourceDefaults(
                 return false;
             }
             prefixStackDenials.emplace_back(registered->second, std::move(denied));
+            continue;
+        }
+        if (!fields.empty() && fields[0] == "PREFIX_DENY_ATTRIBUTE") {
+            const auto key = fields.size() > 1
+                ? sourceIdentityForWire("ITEM", fields[1]) : "";
+            const auto registered = mod->registeredKindTypes.find(key);
+            if (fields.size() != 3 || registered == mod->registeredKindTypes.end() ||
+                runtime::modItemTypeByKey(modId + "/" + fields[1]) != registered->second ||
+                fields[2].empty() || fields[2].size() > 800 ||
+                prefixAttributeDenials.size() >= kSourceMaxCategory ||
+                !seenPrefixAttributeDenials.insert(registered->second).second) {
+                *error = "[CSharp][ERROR][PrefixDenyAttribute] InvalidItemOrPolicy";
+                return false;
+            }
+            std::vector<ManagedPrefixAttributeDenyToken> denied;
+            std::istringstream values(fields[2]);
+            std::string entry;
+            while (std::getline(values, entry, ',')) {
+                const auto first = entry.find(':');
+                const auto second = first == std::string::npos
+                    ? std::string::npos : entry.find(':', first + 1);
+                const auto third = second == std::string::npos
+                    ? std::string::npos : entry.find(':', second + 1);
+                if (entry.empty() || denied.size() >= 32 ||
+                    first == 0 || second == std::string::npos ||
+                    second != first + 2 || third == std::string::npos ||
+                    third == second + 1 || third + 1 >= entry.size() ||
+                    entry.find(':', third + 1) != std::string::npos) {
+                    *error = "[CSharp][ERROR][PrefixDenyAttribute] InvalidRule";
+                    return false;
+                }
+                ManagedPrefixAttributeDenyToken token;
+                token.prefix = entry.substr(0, first);
+                token.attribute = entry[first + 1];
+                const int limit = token.attribute == 'D' ? 100000 :
+                                  token.attribute == 'M' ? 10000 : -1;
+                if (limit < 0 ||
+                    !integer(entry.substr(second + 1, third - second - 1), &token.minimum) ||
+                    !integer(entry.substr(third + 1), &token.maximum) ||
+                    token.minimum < 0 || token.maximum < token.minimum ||
+                    token.maximum > limit) {
+                    *error = "[CSharp][ERROR][PrefixDenyAttribute] InvalidBounds";
+                    return false;
+                }
+                denied.push_back(std::move(token));
+            }
+            if (denied.empty() || fields[2].back() == ',') {
+                *error = "[CSharp][ERROR][PrefixDenyAttribute] InvalidRule";
+                return false;
+            }
+            prefixAttributeDenials.emplace_back(registered->second, std::move(denied));
             continue;
         }
         if (!fields.empty() && fields[0] == "PREFIX_CHANCE_STACK") {
@@ -1620,6 +1673,10 @@ bool applyManagedSourceDefaults(
     }
     if (!applyManagedItemPrefixStackDenials(modId, prefixStackDenials)) {
         *error = "Politicas AllowPrefix stack C# invalidas ou hook nativo indisponivel";
+        return false;
+    }
+    if (!applyManagedItemPrefixAttributeDenials(modId, prefixAttributeDenials)) {
+        *error = "Politicas AllowPrefix atributos C# invalidas ou hook nativo indisponivel";
         return false;
     }
     if (!applyManagedItemPrefixChances(prefixChances)) {

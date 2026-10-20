@@ -1113,6 +1113,10 @@
           "execution": "compile_policy"
         },
         {
+          "signature": "string SerializeAttributeDenials()",
+          "execution": "compile_policy"
+        },
+        {
           "signature": "string SerializeStackChance()",
           "execution": "compile_policy"
         },
@@ -1126,6 +1130,22 @@
         },
         {
           "signature": "void Deny(string ownModPrefixName)",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "void DenyWhenDamageBetween(int prefixType, int minimum, int maximum)",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "void DenyWhenDamageBetween(string ownModPrefixName, int minimum, int maximum)",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "void DenyWhenManaBetween(int prefixType, int minimum, int maximum)",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "void DenyWhenManaBetween(string ownModPrefixName, int minimum, int maximum)",
           "execution": "compile_policy"
         },
         {

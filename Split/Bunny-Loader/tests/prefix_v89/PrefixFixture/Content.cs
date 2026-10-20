@@ -27,6 +27,8 @@ public sealed class TestWand : BunnyWeapon
         rules.Deny("TestMightyPrefix");
         rules.DenyWhenStackBetween(72, 3, 5);
         rules.DenyWhenStackBetween("TestCustomPrefix", 4, 6);
+        rules.DenyWhenDamageBetween(73, 10, 25);
+        rules.DenyWhenManaBetween("TestCustomPrefix", 2, 8);
         rules.SetPrefixChanceWhenStackBetween(3, 5, true);
     }
 

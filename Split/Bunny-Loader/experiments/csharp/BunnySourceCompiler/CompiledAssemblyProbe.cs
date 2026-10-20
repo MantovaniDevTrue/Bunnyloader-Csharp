@@ -1070,6 +1070,13 @@ public static class CompiledAssemblyProbe
                 throw new InvalidOperationException("Prefix stack deny policy too long");
             if (stackDenies.Length != 0)
                 lines.Add(string.Join("\t", "PREFIX_DENY_STACK", item.GetType().Name, stackDenies));
+            string attributeDenies = (string)(rulesType.GetMethod("SerializeAttributeDenials",
+                BindingFlags.Public | BindingFlags.Instance)?.Invoke(rules, null)
+                ?? throw new InvalidOperationException("BunnyItemPrefixRules attribute serialization missing"));
+            if (attributeDenies.Length > 800)
+                throw new InvalidOperationException("Prefix attribute deny policy too long");
+            if (attributeDenies.Length != 0)
+                lines.Add(string.Join("\t", "PREFIX_DENY_ATTRIBUTE", item.GetType().Name, attributeDenies));
             string stackChance = (string)(rulesType.GetMethod("SerializeStackChance",
                 BindingFlags.Public | BindingFlags.Instance)?.Invoke(rules, null)
                 ?? throw new InvalidOperationException("BunnyItemPrefixRules stack chance serialization missing"));

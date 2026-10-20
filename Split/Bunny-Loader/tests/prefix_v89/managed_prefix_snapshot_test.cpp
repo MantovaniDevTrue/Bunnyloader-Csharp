@@ -121,6 +121,33 @@ int main() {
         {{6208, {{"74", {1, 2}}}}}));
     assert(managedItemPrefixStackDenyView()->at(6208).contains(74));
     assert(firstStackBans->size() == 1);
+    assert(managedItemPrefixAttributeDenyView()->empty());
+    assert(!applyManagedItemPrefixAttributeDenials("test",
+        {{6207, {{"Unknown", 'D', 10, 25}}}}));
+    assert(managedItemPrefixAttributeDenyView()->empty());
+    assert(!applyManagedItemPrefixAttributeDenials("test",
+        {{6207, {{"71", 'M', 0, 10001}}}}));
+    assert(managedItemPrefixAttributeDenyView()->empty());
+    assert(!applyManagedItemPrefixAttributeDenials("test",
+        {{6207, {{"71", 'X', 0, 8}}}}));
+    assert(managedItemPrefixAttributeDenyView()->empty());
+    assert(!applyManagedItemPrefixAttributeDenials("test",
+        {{6207, {{"71", 'D', 10, 25}, {"71", 'D', 11, 24}}}}));
+    assert(managedItemPrefixAttributeDenyView()->empty());
+    assert(applyManagedItemPrefixAttributeDenials("test",
+        {{6207, {{"71", 'D', 10, 25},
+                  {"71", 'M', 2, 8},
+                  {"Guarded", 'M', 0, 4}}}}));
+    auto firstAttributes = managedItemPrefixAttributeDenyView();
+    assert(firstAttributes->at(6207).at(71).size() == 2);
+    assert(firstAttributes->at(6207).at(98).front().attribute == 'M');
+    assert(!applyManagedItemPrefixAttributeDenials("test",
+        {{6207, {{"72", 'D', 1, 2}}}}));
+    assert(managedItemPrefixAttributeDenyView() == firstAttributes);
+    assert(applyManagedItemPrefixAttributeDenials("test",
+        {{6208, {{"72", 'D', 1, 2}}}}));
+    assert(managedItemPrefixAttributeDenyView()->at(6208).contains(72));
+    assert(firstAttributes->size() == 1);
 
     reserveManagedPrefixDescriptor(98);
     assert(managedPrefixDescriptorPending(98));

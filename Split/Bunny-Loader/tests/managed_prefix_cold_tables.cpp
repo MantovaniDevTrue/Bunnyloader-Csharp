@@ -37,6 +37,8 @@ std::shared_ptr<const std::map<int, std::set<int>>> deniedView =
     std::make_shared<const std::map<int, std::set<int>>>();
 std::shared_ptr<const bl::csharp::ManagedPrefixStackDenyTable> stackDeniedView =
     std::make_shared<const bl::csharp::ManagedPrefixStackDenyTable>();
+std::shared_ptr<const bl::csharp::ManagedPrefixAttributeDenyTable> attributeDeniedView =
+    std::make_shared<const bl::csharp::ManagedPrefixAttributeDenyTable>();
 struct Item {
     Il2CppObject object{};
     int type = 6199, damage = 12, useAnimation = 20, mana = 0, stack = 1, ammo = 0, value = 100;
@@ -153,6 +155,9 @@ std::shared_ptr<const std::map<int, ManagedPrefixStackChance>> managedItemPrefix
 std::shared_ptr<const std::map<int, ManagedItemPrefixApply>> managedItemPrefixApplyView() { return effectView; }
 std::shared_ptr<const std::map<int, std::set<int>>> managedItemPrefixDenyView() { return deniedView; }
 std::shared_ptr<const ManagedPrefixStackDenyTable> managedItemPrefixStackDenyView() { return stackDeniedView; }
+std::shared_ptr<const ManagedPrefixAttributeDenyTable> managedItemPrefixAttributeDenyView() {
+    return attributeDeniedView;
+}
 int managedNativeAccessoryDefense(int type) { return type == 6196 ? 7 : 0; }
 int managedNativeAccessoryMoveSpeedPercent(int type) { return type == 6200 ? 8 : 0; }
 }
@@ -303,6 +308,34 @@ int main() {
     g_refs.stack = conditionalStackOffset;
     accessory.stack = 1;
     stackDeniedView = std::make_shared<const ManagedPrefixStackDenyTable>();
+    attributeDeniedView = std::make_shared<const ManagedPrefixAttributeDenyTable>(
+        ManagedPrefixAttributeDenyTable{
+            {6196, {{71, {{'D', 10, 25}, {'M', 3, 5}}}}}});
+    accessory.damage = 9;
+    accessory.mana = 0;
+    assert(!isPrefixDenied(&accessory.object, 71));
+    assert(hookRollable(&accessory.object, nullptr)->length == 5);
+    accessory.damage = 10;
+    assert(isPrefixDenied(&accessory.object, 71));
+    assert(hookRollable(&accessory.object, nullptr)->length == 4);
+    accessory.damage = 26;
+    assert(!isPrefixDenied(&accessory.object, 71));
+    accessory.mana = 3;
+    assert(isPrefixDenied(&accessory.object, 71));
+    accessory.mana = 6;
+    assert(!isPrefixDenied(&accessory.object, 71));
+    const int savedManaOffset = g_refs.mana;
+    g_refs.mana = -1;
+    assert(isPrefixDenied(&accessory.object, 71));
+    g_refs.mana = savedManaOffset;
+    accessory.damage = 12;
+    accessory.mana = 0;
+    assert(isPrefixDenied(&accessory.object, 71));
+    int32_t attributeSelected = -1;
+    randomDouble.value = 0.1;
+    assert(hookRoll(&accessory.object, &randomObject, &attributeSelected, nullptr));
+    assert(attributeSelected == 100);
+    attributeDeniedView = std::make_shared<const ManagedPrefixAttributeDenyTable>();
     mixedPrefixCandidates = false;
     guarded.rollWeight = 1;
     descriptorView = std::make_shared<const std::vector<ManagedPrefixEntry>>(

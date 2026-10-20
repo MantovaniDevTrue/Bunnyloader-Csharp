@@ -21,6 +21,8 @@ public sealed class ExampleWand : BunnyWeapon
         rules.Deny(71);
         rules.Deny(nameof(ExampleGuardedPrefix));
         rules.DenyWhenStackBetween(72, 3, 5);
+        rules.DenyWhenDamageBetween(73, 10, 25);
+        rules.DenyWhenManaBetween(nameof(ExampleGuardedPrefix), 2, 8);
         rules.SetPrefixChanceWhenStackBetween(3, 5, true);
     }
 

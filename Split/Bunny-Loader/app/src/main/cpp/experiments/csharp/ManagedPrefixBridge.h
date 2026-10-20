@@ -74,6 +74,27 @@ bool applyManagedItemPrefixStackDenials(
     const std::vector<std::pair<int, std::vector<ManagedPrefixStackDenyToken>>>& policies);
 std::shared_ptr<const ManagedPrefixStackDenyTable> managedItemPrefixStackDenyView();
 
+struct ManagedPrefixAttributeDenyToken {
+    std::string prefix;
+    char attribute = 'D';
+    int minimum = 0;
+    int maximum = 0;
+};
+
+struct ManagedPrefixAttributeDenyRange {
+    char attribute = 'D';
+    int minimum = 0;
+    int maximum = 0;
+};
+
+using ManagedPrefixAttributeDenyTable =
+    std::map<int, std::map<int, std::vector<ManagedPrefixAttributeDenyRange>>>;
+
+bool applyManagedItemPrefixAttributeDenials(
+    const std::string& modId,
+    const std::vector<std::pair<int, std::vector<ManagedPrefixAttributeDenyToken>>>& policies);
+std::shared_ptr<const ManagedPrefixAttributeDenyTable> managedItemPrefixAttributeDenyView();
+
 bool applyManagedItemPrefixChances(const std::vector<std::pair<int, bool>>& policies);
 std::shared_ptr<const std::map<int, bool>> managedItemPrefixChanceView();
 

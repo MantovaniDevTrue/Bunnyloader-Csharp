@@ -15,13 +15,15 @@ try
         throw new InvalidOperationException("Expected two content types and three managed prefixes, got " + classes);
 
     var data = File.ReadAllLines(Path.Combine(temp, "source-runtime-values.txt"));
-    if (data.Length != 15 || data[0] != "BUNNY_MANAGED_DEFAULTS_V2")
+    if (data.Length != 16 || data[0] != "BUNNY_MANAGED_DEFAULTS_V2")
         throw new InvalidOperationException("Unexpected MonoVM native handoff");
 
     if (data.Count(row => row == "PREFIX_DENY\tTestWand\t71,TestMightyPrefix") != 1)
         throw new InvalidOperationException("Item-owned prefix denials missing from native wire");
     if (data.Count(row => row == "PREFIX_DENY_STACK\tTestWand\t72:3:5,TestCustomPrefix:4:6") != 1)
         throw new InvalidOperationException("Dynamic item prefix stack denials missing");
+    if (data.Count(row => row == "PREFIX_DENY_ATTRIBUTE\tTestWand\t73:D:10:25,TestCustomPrefix:M:2:8") != 1)
+        throw new InvalidOperationException("Dynamic item damage/mana denials missing");
     if (data.Count(row => row == "PREFIX_CHANCE_STACK\tTestWand\t3:5:1") != 1)
         throw new InvalidOperationException("Managed per-instance PrefixChance missing");
     if (data.Count(row => row == "PREFIX_CHANCE\tTestWand\t0") != 1)
@@ -42,6 +44,7 @@ try
     var byName = data.Skip(1).Where(row => !row.StartsWith("PREFIX_TOOLTIP\t", StringComparison.Ordinal) &&
                                           !row.StartsWith("PREFIX_DENY\t", StringComparison.Ordinal) &&
                                           !row.StartsWith("PREFIX_DENY_STACK\t", StringComparison.Ordinal) &&
+                                          !row.StartsWith("PREFIX_DENY_ATTRIBUTE\t", StringComparison.Ordinal) &&
                                           !row.StartsWith("PREFIX_CONDITION\t", StringComparison.Ordinal) &&
                                           !row.StartsWith("PREFIX_STACK_WEIGHT\t", StringComparison.Ordinal) &&
                                           !row.StartsWith("PREFIX_POST\t", StringComparison.Ordinal) &&
@@ -175,6 +178,22 @@ try
     try { denied.DenyWhenStackBetween(73, 6, 5); }
     catch (ArgumentOutOfRangeException) { invalidDynamic = true; }
     if (!invalidDynamic) throw new InvalidOperationException("Invalid conditional deny range accepted");
+    denied.DenyWhenDamageBetween(73, 10, 25);
+    denied.DenyWhenManaBetween("TestCustomPrefix", 2, 8);
+    if (denied.SerializeAttributeDenials() != "73:D:10:25,TestCustomPrefix:M:2:8")
+        throw new InvalidOperationException("Damage/mana prefix deny serialization changed");
+    bool invalidAttribute = false;
+    try { denied.DenyWhenManaBetween(74, 0, 10001); }
+    catch (ArgumentOutOfRangeException) { invalidAttribute = true; }
+    if (!invalidAttribute) throw new InvalidOperationException("Invalid mana bounds accepted");
+    bool duplicateAttribute = false;
+    try { denied.DenyWhenDamageBetween(73, 12, 24); }
+    catch (InvalidOperationException) { duplicateAttribute = true; }
+    if (!duplicateAttribute) throw new InvalidOperationException("Duplicate damage condition accepted");
+    bool externalAttribute = false;
+    try { denied.DenyWhenDamageBetween("foreign/Other", 10, 20); }
+    catch (ArgumentOutOfRangeException) { externalAttribute = true; }
+    if (!externalAttribute) throw new InvalidOperationException("External prefix accepted as local");
     if (denied.SerializeStackChance() != "")
         throw new InvalidOperationException("Unset conditional PrefixChance must be empty");
     bool badChanceRange = false;

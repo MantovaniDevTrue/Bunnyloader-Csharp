@@ -342,6 +342,8 @@ public sealed class BunnyItemPrefixRules
     private readonly System.Collections.Generic.SortedDictionary<int, (int Min, int Max)> stackBlocked = new();
     private readonly System.Collections.Generic.SortedDictionary<string, (int Min, int Max)> namedStackBlocked =
         new(System.StringComparer.Ordinal);
+    private readonly System.Collections.Generic.SortedDictionary<string, (string Prefix, char Attribute, int Min, int Max)> attributeDenials =
+        new(System.StringComparer.Ordinal);
     private bool hasStackPrefixChance;
     private int chanceMinStack;
     private int chanceMaxStack;
@@ -351,7 +353,7 @@ public sealed class BunnyItemPrefixRules
     {
         if (prefixType < 1 || prefixType > 255)
             throw new System.ArgumentOutOfRangeException(nameof(prefixType));
-        if (!blocked.Contains(prefixType) && blocked.Count + named.Count + stackBlocked.Count + namedStackBlocked.Count >= 32)
+        if (!blocked.Contains(prefixType) && blocked.Count + named.Count + stackBlocked.Count + namedStackBlocked.Count + attributeDenials.Count >= 32)
             throw new System.InvalidOperationException("At most 32 denied prefixes per item");
         blocked.Add(prefixType);
     }
@@ -364,7 +366,7 @@ public sealed class BunnyItemPrefixRules
         foreach (char ch in ownModPrefixName)
             if (!(ch is >= 'A' and <= 'Z' or >= 'a' and <= 'z' or >= '0' and <= '9' or '_'))
                 throw new System.ArgumentOutOfRangeException(nameof(ownModPrefixName));
-        if (!named.Contains(ownModPrefixName) && blocked.Count + named.Count + stackBlocked.Count + namedStackBlocked.Count >= 32)
+        if (!named.Contains(ownModPrefixName) && blocked.Count + named.Count + stackBlocked.Count + namedStackBlocked.Count + attributeDenials.Count >= 32)
             throw new System.InvalidOperationException("At most 32 denied prefixes per item");
         named.Add(ownModPrefixName);
     }
@@ -376,7 +378,7 @@ public sealed class BunnyItemPrefixRules
             throw new System.ArgumentOutOfRangeException(nameof(prefixType));
         if (blocked.Contains(prefixType) || stackBlocked.ContainsKey(prefixType))
             throw new System.InvalidOperationException("Duplicate prefix deny rule");
-        if (blocked.Count + named.Count + stackBlocked.Count + namedStackBlocked.Count >= 32)
+        if (blocked.Count + named.Count + stackBlocked.Count + namedStackBlocked.Count + attributeDenials.Count >= 32)
             throw new System.InvalidOperationException("At most 32 denied prefixes per item");
         stackBlocked.Add(prefixType, (minimum, maximum));
     }
@@ -392,9 +394,62 @@ public sealed class BunnyItemPrefixRules
                 throw new System.ArgumentOutOfRangeException(nameof(ownModPrefixName));
         if (named.Contains(ownModPrefixName) || namedStackBlocked.ContainsKey(ownModPrefixName))
             throw new System.InvalidOperationException("Duplicate prefix deny rule");
-        if (blocked.Count + named.Count + stackBlocked.Count + namedStackBlocked.Count >= 32)
+        if (blocked.Count + named.Count + stackBlocked.Count + namedStackBlocked.Count + attributeDenials.Count >= 32)
             throw new System.InvalidOperationException("At most 32 denied prefixes per item");
         namedStackBlocked.Add(ownModPrefixName, (minimum, maximum));
+    }
+
+    private void AddAttributeDeny(string prefix, char attribute, int minimum, int maximum)
+    {
+        int limit = attribute == 'D' ? 100000 : 10000;
+        if (minimum < 0 || maximum < minimum || maximum > limit)
+            throw new System.ArgumentOutOfRangeException(nameof(minimum));
+        string key = prefix + ":" + attribute;
+        if (attributeDenials.ContainsKey(key))
+            throw new System.InvalidOperationException("Duplicate prefix attribute deny rule");
+        if (blocked.Count + named.Count + stackBlocked.Count + namedStackBlocked.Count + attributeDenials.Count >= 32)
+            throw new System.InvalidOperationException("At most 32 denied prefixes per item");
+        attributeDenials.Add(key, (prefix, attribute, minimum, maximum));
+    }
+
+    private static string AttributePrefixName(string name)
+    {
+        if (string.IsNullOrEmpty(name) || name.Length > 64 ||
+            !(name[0] is >= 'A' and <= 'Z' or >= 'a' and <= 'z' or '_'))
+            throw new System.ArgumentOutOfRangeException(nameof(name));
+        foreach (char c in name)
+            if (!(c is >= 'A' and <= 'Z' or >= 'a' and <= 'z' or >= '0' and <= '9' or '_'))
+                throw new System.ArgumentOutOfRangeException(nameof(name));
+        return name;
+    }
+
+    private static string AttributePrefixId(int prefixType)
+    {
+        if (prefixType < 1 || prefixType > 255)
+            throw new System.ArgumentOutOfRangeException(nameof(prefixType));
+        return prefixType.ToString(System.Globalization.CultureInfo.InvariantCulture);
+    }
+
+    public void DenyWhenDamageBetween(int prefixType, int minimum, int maximum)
+        => AddAttributeDeny(AttributePrefixId(prefixType), 'D', minimum, maximum);
+
+    public void DenyWhenDamageBetween(string ownModPrefixName, int minimum, int maximum)
+        => AddAttributeDeny(AttributePrefixName(ownModPrefixName), 'D', minimum, maximum);
+
+    public void DenyWhenManaBetween(int prefixType, int minimum, int maximum)
+        => AddAttributeDeny(AttributePrefixId(prefixType), 'M', minimum, maximum);
+
+    public void DenyWhenManaBetween(string ownModPrefixName, int minimum, int maximum)
+        => AddAttributeDeny(AttributePrefixName(ownModPrefixName), 'M', minimum, maximum);
+
+    public string SerializeAttributeDenials()
+    {
+        var result = new System.Collections.Generic.List<string>(attributeDenials.Count);
+        foreach (var entry in attributeDenials.Values)
+            result.Add(entry.Prefix + ":" + entry.Attribute + ":" +
+                entry.Min.ToString(System.Globalization.CultureInfo.InvariantCulture) + ":" +
+                entry.Max.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        return string.Join(",", result);
     }
 
     public void SetPrefixChanceWhenStackBetween(int minimum, int maximum, bool allowed)
