@@ -45,7 +45,7 @@ int main() {
     api.method_get_flags=[](const MethodInfo*,uint32_t*){return uint32_t{0x10};};
     api.method_get_return_type=[](const MethodInfo*)->const Il2CppType*{static Il2CppType t{"System.Int32"};return &t;};
     api.method_get_param=[](const MethodInfo*,uint32_t i)->const Il2CppType*{
-        static Il2CppType types[]={{"Microsoft.Xna.Framework.Vector2"},{"System.Int32"},{"System.Int32"},{"System.Int32"},{"System.Single"},{"System.Single"},{"System.Int32"},{"Microsoft.Xna.Framework.Graphics.Color"},{"System.Single"}};
+        static Il2CppType types[]={{"Microsoft.Xna.Framework.Vector2"},{"System.Int32"},{"System.Int32"},{"System.Int32"},{"System.Single"},{"System.Single"},{"System.Int32"},{"Microsoft.Xna.Framework.Color"},{"System.Single"}};
         return &types[i];
     };
     api.field_static_get_value=[](FieldInfo*,void* out){*static_cast<Il2CppArray**>(out)=&players.array;};
@@ -67,6 +67,10 @@ int main() {
     setNativeDustEmissionWorld(true,2);assert(!bunny_dust_emit(1,"example-uid","ExampleSparkDust",0,1));
     assert(bunny_dust_emit(2,"example-uid","MissingDust",0,1));pumpNativeDustEmission();assert(calls==8);
     player.active=0;assert(bunny_dust_emit(2,"example-uid","ExampleSparkDust",0,1));pumpNativeDustEmission();assert(calls==8);
+    refs={};
+    assert(bunny_dust_emit(2,"example-uid","ExampleSparkDust",0,1));
+    static Il2CppType incorrectColor{"Microsoft.Xna.Framework.Graphics.Color"};
+    (void)incorrectColor;
     player.active=1;positionField.type.name="System.Int64";refs={};
     assert(bunny_dust_emit(2,"example-uid","ExampleSparkDust",0,1));pumpNativeDustEmission();assert(calls==8);
     puts("DUST_EMISSION_GAME_THREAD_CONTRACT=PASS bounded=32 count=16 stale=Rejected typeMismatch=Rejected noQuickJS=1");
