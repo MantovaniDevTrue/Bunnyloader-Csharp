@@ -1155,7 +1155,20 @@ public static class CompiledAssemblyProbe
                 BindingFlags.Public | BindingFlags.Instance, null,
                 new[] { snapshotType, typeof(int) }, null)
                 ?? throw new InvalidOperationException("Missing item AllowPrefix callback");
-            if (callback.DeclaringType == itemType)
+            var snapshotAndPrefix = new[] { snapshotType, typeof(int) };
+            var snapshotOnly = new[] { snapshotType };
+            var snapshotPrefixAndStats = new[] {
+                snapshotType, typeof(int),
+                itemType.BaseType!.Assembly.GetType("BunnyLoader.Source.BunnyPrefixApplyStats")!.MakeByRefType()
+            };
+            MethodInfo choose = itemType.GetMethod("ChoosePrefix", snapshotOnly)
+                ?? throw new InvalidOperationException("Missing ChoosePrefix callback");
+            MethodInfo chance = itemType.GetMethod("DecidePrefixChance", snapshotAndPrefix)
+                ?? throw new InvalidOperationException("Missing DecidePrefixChance callback");
+            MethodInfo dynamicApply = itemType.GetMethod("ApplyPrefix", snapshotPrefixAndStats)
+                ?? throw new InvalidOperationException("Missing dynamic ApplyPrefix callback");
+            if (callback.DeclaringType == itemType || choose.DeclaringType == itemType ||
+                chance.DeclaringType == itemType || dynamicApply.DeclaringType == itemType)
                 lines.Add(string.Join("\t", "ITEM_PREFIX_CALLBACK", itemType.Name, "1"));
         }
         foreach (var item in basicItems.Concat(weapons).Concat(potions).Concat(accessories))
