@@ -11,6 +11,7 @@
 #include "experiments/csharp/NativeTileMiningPolicy.h"
 #include "experiments/csharp/NativeTileSaplingPolicy.h"
 #include "experiments/csharp/NativeTileSaplingSwapPolicy.h"
+#include "experiments/csharp/NativeTreeSoilPolicy.h"
 #include "experiments/csharp/NativeTileAnimationPolicy.h"
 #include "experiments/csharp/NativeTileScanPolicy.h"
 #include "experiments/csharp/NativeTileDrawWire.h"
@@ -173,6 +174,13 @@ using SaplingSetTypeFn=void (*)(int32_t,uint16_t,const MethodInfo*);
 SaplingSetTypeFn g_saplingSetType=nullptr;
 const MethodInfo* g_saplingSetTypeMethod=nullptr;
 thread_local bool g_saplingSwapActive=false;
+std::map<int,int> g_nativeTreeSoils;
+using TreeSoilFitFn=bool (*)(uint16_t,const MethodInfo*);
+using TreeSoilKindFn=int32_t (*)(int32_t,const MethodInfo*);
+TreeSoilFitFn g_origSoilFit=nullptr;
+TreeSoilKindFn g_origSoilKind=nullptr;
+bool g_treeSoilFitInstalled=false;
+bool g_treeSoilKindInstalled=false;
 FrameFn g_origFrame = nullptr;
 TileFrameFn g_originalTileFrame=nullptr;
 bool g_tileFrameCallbackInstalled=false;
@@ -1638,6 +1646,50 @@ bool saplingInvokeBool(const MethodInfo* method,void** args,bool* value) {
     return true;
 }
 
+bool hkIsTreeSoil(uint16_t type,const MethodInfo* method) {
+    if(tree_soil::owns(g_nativeTreeSoils,type))return true;
+    return g_origSoilFit?g_origSoilFit(type,method):false;
+}
+int32_t hkGetTreeSoilKind(int32_t type,const MethodInfo* method) {
+    if(tree_soil::owns(g_nativeTreeSoils,type))
+        return tree_soil::customTreeType;
+    return g_origSoilKind?g_origSoilKind(type,method):0;
+}
+bool setupNativeTreeSoilHooks() {
+    if(g_treeSoilFitInstalled&&g_treeSoilKindInstalled)return true;
+    auto& a=il2cpp::api();
+    if(!a.method_get_param||!a.method_get_param_count||
+       !a.method_get_return_type||!a.method_is_instance||
+       !a.class_from_il2cpp_type||!a.class_is_valuetype||
+       !a.class_value_size||!a.type_get_name||!a.il2cpp_free)return false;
+    auto* world=il2cpp::findClass({"Terraria","WorldGen",{}});
+    const auto* fit=world?a.class_get_method_from_name(world,"IsTileTypeFitForTree",1):nullptr;
+    const auto* kind=world?a.class_get_method_from_name(world,"GetTreeType",1):nullptr;
+    if(!fit||!kind||a.method_is_instance(fit)||a.method_is_instance(kind)||
+       a.method_get_param_count(fit)!=1||a.method_get_param_count(kind)!=1||
+       !nameOf(a.method_get_param(fit,0),"System.UInt16")||
+       !nameOf(a.method_get_return_type(fit),"System.Boolean")||
+       !nameOf(a.method_get_param(kind,0),"System.Int32")||
+       !il2cpp::methodPointer(fit)||!il2cpp::methodPointer(kind))return false;
+    const auto* kindType=a.method_get_return_type(kind);
+    char* enumName=a.type_get_name(kindType);
+    const std::string kindName=enumName?enumName:"";
+    if(enumName)a.il2cpp_free(enumName);
+    auto* cls=a.class_from_il2cpp_type(kindType);
+    uint32_t alignment=0;
+    if(!kindName.ends_with("TreeTypes")||!cls||
+       !a.class_is_valuetype(cls)||a.class_value_size(cls,&alignment)!=4)return false;
+    if(!g_treeSoilFitInstalled) {
+        if(!hook::install(fit,hkIsTreeSoil,&g_origSoilFit))return false;
+        g_treeSoilFitInstalled=true;
+    }
+    if(!g_treeSoilKindInstalled) {
+        if(!hook::install(kind,hkGetTreeSoilKind,&g_origSoilKind))return false;
+        g_treeSoilKindInstalled=true;
+    }
+    return true;
+}
+
 bool bindSaplingSetType() {
     if(g_saplingSetType&&g_saplingSetTypeMethod)return true;
     auto& a=il2cpp::api();
@@ -1946,6 +1998,15 @@ bool registerNativeTileGameplay(const NativeTileGameplaySpec& spec) {
         return false;
     }
     if (!setupHooks()) return false;
+    if(spec.shape==4&&spec.saplingGroundType>=runtime::kVanillaTileCount) {
+        if(!tree_soil::canRegister(g_nativeTreeSoils,spec.saplingGroundType,spec.type)||
+           !setupNativeTreeSoilHooks()) {
+            BL_ERROR("[CSharp][TreeLoader] Mod=%s Class=%s Stage=RegisterSoil Result=Rejected",
+                     spec.mod.c_str(),spec.name.c_str());
+            return false;
+        }
+    }
+
     if((spec.minPick>0||spec.mineResist!=1.f)&&!setupNativeTileMiningHook()) {
         BL_ERROR("[CSharp][TileMining] Mod=%s Class=%s Stage=BindGetPickaxeDamage Result=Rejected",
                  spec.mod.c_str(),spec.name.c_str());
@@ -2029,6 +2090,8 @@ bool registerNativeTileGameplay(const NativeTileGameplaySpec& spec) {
         }
     }
     g_tiles[spec.type] = behavior;
+    if(spec.shape==4&&spec.saplingGroundType>=runtime::kVanillaTileCount)
+        g_nativeTreeSoils[spec.saplingGroundType]=spec.type;
     if(spec.campfire)g_campfireTiles.insert(spec.type);
     if(spec.callbackMask&((1<<5)|(1<<16)))
         runtime::requestModTileOverlays(spec.type);

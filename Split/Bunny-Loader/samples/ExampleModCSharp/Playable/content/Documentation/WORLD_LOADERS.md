@@ -32,3 +32,8 @@ Esse formato de objeto **ainda não** torna o `ExampleTree` jogável em C#: falt
 ## Crescimento do `Sapling1x2` (etapa de troca nativa)
 
 A tentativa de crescimento valida duas células e solo antes de chamar `WorldGen.GrowTree`. A muda é convertida **temporariamente** no tipo vanilla 20 por `TileData.SetType` (não por escrita direta no array internado); em falha, restaura as células. Um override `BunnyTile.GrowSapling` pode vetar; sem override, a autorização padrão é verdadeira. Ainda depende dos futuros hooks de terreno e do registro completo do `TreeLoader` para realmente produzir a árvore do ExampleModBunny no Android.
+
+
+## Terreno de árvore — hooks nativos condicionais
+
+O terreno definido por `SaplingGroundTile` agora pode ser reconhecido como válido por `WorldGen.IsTileTypeFitForTree` e `TreeTypes.Custom=13` pelo `WorldGen.GetTreeType`. O comportamento original permanece para terrenos não registrados. Ainda não registra as texturas, copa ou galhos da árvore; não confundir este suporte de terreno com `TreeLoader` completo.

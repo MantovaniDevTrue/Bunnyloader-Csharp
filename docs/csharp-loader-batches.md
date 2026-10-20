@@ -272,3 +272,10 @@ A ponte `GrowSapling` passou a aceitar o perfil `BunnyTileShape.Sapling1x2` mesm
 O código inclui teste C++ de geometria 1x2, origem superior/inferior, alinhamento de frames e limites, mais análise sintática de `NativeTileGameplay.cpp`. `GrowSapling` com override continua podendo vetar a tentativa; sem override aplica o padrão verdadeiro da API nativa. Em ambos os casos, a geração final pertence a `WorldGen.GrowTree`.
 
 **Ainda não é um TreeLoader completo**: terreno C# de mod continua precisando da equivalência dos hooks `IsTileTypeFitForTree` / `GetTreeType`, registro visual de tronco/copa/galhos, bolota, madeira e folhas. O teste Android é necessário para saber se `TileData.SetType` funciona junto às demais modificações no runtime. PR draft e sem APK/.bmod.
+
+
+## TreeLoader C# — associação nativa do solo (20/10)
+
+A partir da `SaplingGroundTile` resolvida no registro de `Sapling1x2`, a ponte mantém `groundType -> saplingType` nativos. Um hook **opt-in** de `WorldGen.IsTileTypeFitForTree(ushort)` devolve verdadeiro para esses solos; o de `WorldGen.GetTreeType(int)` devolve `TreeTypes.Custom=13`, valor obtido de `script/js/mod/Enums/TreeTypes.js` do próprio Bunny, sem adivinhar enum de outro loader. Terrenos vanilla e outros tiles continuam executando o método original. Não existem scans por frame: busca `std::map` apenas na chamada original do jogo. As duas assinaturas IL2CPP são verificadas antes do uso, incluindo `ushort`, `int`, retorno booleano e enum de quatro bytes. As instalações são idempotentes, mesmo se um dos dois hooks falhar inicialmente. Uma segunda muda tentando registrar o mesmo solo com tipo diferente é rejeitada.
+
+A configuração de solo não carrega texturas automaticamente nem define drops/bolotas. `BunnyTree`, `TextureAssets.TreeTop`, `TreeBranch`, troca de madeira e folhas, e `TileObject.CanPlace` para acorn continuam pendentes. Também falta validar interação com o hook JS do `TreeLoader` quando ambos os mods usam o mesmo terreno. A CI cobre binding e políticas estáticas, não substitui execução no Android. **PR draft e sem APK/.bmod.**
