@@ -16,6 +16,7 @@ on:
       - app/src/main/cpp/experiments/csharp/ManagedDustDecision.h
       - app/src/main/cpp/experiments/csharp/ManagedDustFlagMask.h
       - app/src/main/cpp/experiments/csharp/ManagedDustMailbox.h
+      - app/src/main/cpp/experiments/csharp/ManagedDustFrameBudget.h
       - app/src/main/cpp/experiments/csharp/ManagedDustLifecycle.h
       - app/src/main/cpp/experiments/csharp/ManagedDustSlotLookup.h
       - app/src/main/cpp/experiments/csharp/ManagedDustBindingSelection.h
@@ -35,6 +36,7 @@ on:
       - app/src/main/cpp/experiments/csharp/ManagedDustDecision.h
       - app/src/main/cpp/experiments/csharp/ManagedDustFlagMask.h
       - app/src/main/cpp/experiments/csharp/ManagedDustMailbox.h
+      - app/src/main/cpp/experiments/csharp/ManagedDustFrameBudget.h
       - app/src/main/cpp/experiments/csharp/ManagedDustLifecycle.h
       - app/src/main/cpp/experiments/csharp/ManagedDustSlotLookup.h
       - app/src/main/cpp/experiments/csharp/ManagedDustBindingSelection.h
