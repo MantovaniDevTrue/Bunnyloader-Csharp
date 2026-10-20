@@ -197,6 +197,9 @@ struct PrefixRpcScope {
     PrefixRpcScope* previous = nullptr;
     std::chrono::steady_clock::time_point end;
     std::array<int,256> can{}, weight{}, efficacy{};
+    std::array<int8_t,256> itemAllowed{};
+    Il2CppObject* cachedItem = nullptr;
+    std::array<int,6> cachedFields{};
     int requests = 0;
     static thread_local PrefixRpcScope* current;
     PrefixRpcScope() {
@@ -205,6 +208,7 @@ struct PrefixRpcScope {
             can.fill(-1);
             weight.fill(-1);
             efficacy.fill(-1);
+            itemAllowed.fill(-1);
             end=std::chrono::steady_clock::now()+std::chrono::microseconds(2500);
             current=this;
         }
@@ -267,6 +271,66 @@ int queryPrefixWorker(Il2CppObject* item,const ManagedPrefixEntry& p,int kind) {
         if (value<=20) cache=value;
     }
     return cache;
+}
+
+bool itemPrefixWorkerReady(int itemType) {
+    const auto owners=managedItemPrefixCallbackView();
+    const auto found=owners->find(itemType);
+    if (found==owners->end()) return false;
+    const auto assemblies=managedItemPrefixCallbackAssemblies();
+    const auto assembly=assemblies->find(found->second.modId);
+    return assembly!=assemblies->end() &&
+        managedItemPrefixWarmupState(found->second.modId,assembly->second,
+                                     found->second.owner)==1;
+}
+
+bool itemAllowsPrefix(Il2CppObject* item,int prefix) {
+    if (!item || prefix<1 || prefix>255 || g_restoreRoll.item==item ||
+        g_refs.type<0 || g_refs.damage<0 || g_refs.mana<0 ||
+        g_refs.stack<0 || g_refs.prefix<0) return true;
+    PrefixRpcScope* scope=PrefixRpcScope::current;
+    if (!scope) return true;
+    const int type=bl::runtime::field<int32_t>(item,g_refs.type);
+    const auto bindings=managedItemPrefixCallbackView();
+    const auto binding=bindings->find(type);
+    if (binding==bindings->end()) return true;
+    const std::array<int,6> signature{
+        type,bl::runtime::field<int32_t>(item,g_refs.damage),
+        bl::runtime::field<int32_t>(item,g_refs.mana),
+        bl::runtime::field<int32_t>(item,g_refs.stack),
+        bl::runtime::field<uint8_t>(item,g_refs.prefix),
+        (g_refs.accessory>=0 && bl::runtime::field<uint8_t>(item,g_refs.accessory)?1:0) |
+        (g_refs.consumable>=0 && bl::runtime::field<uint8_t>(item,g_refs.consumable)?2:0) |
+        (g_refs.ranged>=0 && bl::runtime::field<uint8_t>(item,g_refs.ranged)?4:0)
+    };
+    if (scope->cachedItem!=item || scope->cachedFields!=signature) {
+        scope->cachedItem=item;
+        scope->cachedFields=signature;
+        scope->itemAllowed.fill(-1);
+    }
+    int8_t& cached=scope->itemAllowed[static_cast<size_t>(prefix)];
+    if (cached!=-1) return cached!=0;
+    cached=-2;
+    const auto assemblies=managedItemPrefixCallbackAssemblies();
+    const auto assembly=assemblies->find(binding->second.modId);
+    if (assembly==assemblies->end() ||
+        managedItemPrefixWarmupState(binding->second.modId,assembly->second,
+                                     binding->second.owner)!=1 ||
+        scope->requests>=4) return true;
+    const auto now=std::chrono::steady_clock::now();
+    if (now>=scope->end) return true;
+    const int micros=static_cast<int>(
+        std::chrono::duration_cast<std::chrono::microseconds>(scope->end-now).count());
+    if (micros<1) return true;
+    const std::string snapshot=prefixItemSnapshot(item);
+    if (snapshot.empty()) return true;
+    ++scope->requests;
+    std::string answer;
+    if (invokeManagedItemPrefix(binding->second.modId,assembly->second,
+                                binding->second.owner,prefix,snapshot,
+                                &answer,std::min(micros,650)))
+        cached=answer=="1" ? 1 : answer=="0" ? 0 : -2;
+    return cached!=0;
 }
 
 bool queryPrefixApply(Il2CppObject* item,const ManagedPrefixEntry& p,
@@ -538,8 +602,10 @@ bool hookItemPrefixChance(Il2CppObject* item, int32_t want, uint8_t* topTier,
     const int type = ready
         ? bl::runtime::field<int32_t>(item, g_chanceItemTypeOffset) : 0;
 
-    if (ready && want > 0 && g_restoreRoll.item != item &&
-        isPrefixDenied(item, want)) return false;
+    if (ready && want > 0 && g_restoreRoll.item != item) {
+        PrefixRpcScope prefixCallbacks;
+        if (isPrefixDenied(item,want) || !itemAllowsPrefix(item,want)) return false;
+    }
 
     if (ready && g_restoreRoll.item != item && (want == -1 || want == -2)) {
         const auto stackPolicies = managedItemPrefixStackChanceView();
@@ -652,6 +718,7 @@ bool hookItemPrefixChance(Il2CppObject* item, int32_t want, uint8_t* topTier,
 Il2CppArray* hookRollable(Il2CppObject* item, const MethodInfo* method) {
     Il2CppArray* base = g_originalRollable ? g_originalRollable(item, method) : nullptr;
     if (!g_hooksReady || !item) return base;
+    PrefixRpcScope prefixCallbacks;
     const auto descriptors = managedPrefixView();
     const auto bans = managedItemPrefixDenyView();
     const int itemType = g_refs.type >= 0 ?
@@ -668,6 +735,7 @@ Il2CppArray* hookRollable(Il2CppObject* item, const MethodInfo* method) {
     const auto attributeBan = attributeBans->find(itemType);
     const std::map<int, std::vector<ManagedPrefixAttributeDenyRange>>* attributes =
         attributeBan == attributeBans->end() ? nullptr : &attributeBan->second;
+    const bool dynamicItemCallback=itemPrefixWorkerReady(itemType);
     const auto allowed = [denied, conditional, currentStack, attributes, item](int prefix) {
         if (denied && denied->contains(prefix)) return false;
         if (conditional) {
@@ -677,7 +745,7 @@ Il2CppArray* hookRollable(Il2CppObject* item, const MethodInfo* method) {
                  (currentStack >= found->second.minStack &&
                   currentStack <= found->second.maxStack))) return false;
         }
-        return !attributeDenied(item, prefix, attributes);
+        return !attributeDenied(item, prefix, attributes) && itemAllowsPrefix(item,prefix);
     };
     const bool tablesReady = descriptors->empty() || ensurePrefixTables(*descriptors);
     const bool vanillaHasRollable = base && base->length > 0;
@@ -703,7 +771,11 @@ Il2CppArray* hookRollable(Il2CppObject* item, const MethodInfo* method) {
             extra += itemRollWeight(item, p);
     if (retained == oldCount && extra == 0) return base;
     const uintptr_t total = retained + static_cast<uintptr_t>(extra);
-    if (total == 0) return nullptr;
+    if (total == 0) {
+        if (dynamicItemCallback && (oldCount>0 || !descriptors->empty()))
+            g_failedRollableItem=item;
+        return nullptr;
+    }
     if (total > 512 || !g_refs.intClass) {
         g_failedRollableItem = item;
         return nullptr;
@@ -749,6 +821,7 @@ bool hookRoll(Il2CppObject* item, Il2CppObject* random, int32_t* rolled,
     const int currentItemType = g_refs.type >= 0 ?
         bl::runtime::field<int32_t>(item, g_refs.type) : -1;
     bool hasDeny = banView->contains(currentItemType);
+    const bool hasItemWorker = itemPrefixWorkerReady(currentItemType);
     if (!hasDeny) {
         const auto stackBans = managedItemPrefixStackDenyView();
         const auto found = stackBans->find(currentItemType);
@@ -778,7 +851,7 @@ bool hookRoll(Il2CppObject* item, Il2CppObject* random, int32_t* rolled,
             if (stack >= selected->second.minStack &&
                 stack <= selected->second.maxStack) {
                 const int choice = selected->second.prefix;
-                if (!isPrefixDenied(item, choice)) {
+                if (!isPrefixDenied(item, choice) && itemAllowsPrefix(item,choice)) {
                     const auto* managed = byType(*descriptors, choice);
                     const bool allowed = managed
                         ? eligible(item, *managed, true) && ensurePrefixTables(*descriptors)
@@ -792,12 +865,13 @@ bool hookRoll(Il2CppObject* item, Il2CppObject* random, int32_t* rolled,
             }
         }
     }
-    if (descriptors->empty() && !hasDeny)
+    if (descriptors->empty() && !hasDeny && !hasItemWorker)
         return nativeRollFallback(item, random, rolled, method);
     if (g_restoreRoll.item != item && g_refs.type >= 0) {
         const int type = bl::runtime::field<int32_t>(item, g_refs.type);
         for (const auto& policy : *descriptors) {
             if (policy.preferredTypes.contains(type) && !isPrefixDenied(item, policy.type) &&
+                itemAllowsPrefix(item,policy.type) &&
                 eligible(item, policy, true) &&
                 ensurePrefixTables(*descriptors)) {
                 *rolled = policy.type;
@@ -825,7 +899,7 @@ bool hookRoll(Il2CppObject* item, Il2CppObject* random, int32_t* rolled,
             hasManaged = true;
             break;
         }
-    if (!hasManaged && !hasDeny)
+    if (!hasManaged && !hasDeny && !hasItemWorker)
         return nativeRollFallback(item, random, rolled, method);
 
     error = nullptr;
@@ -864,9 +938,11 @@ bool hookCanRoll(Il2CppObject* item, int32_t prefix, const MethodInfo* method) {
             if (g_restoreRoll.item == item && g_restoreRoll.prefix == prefix)
                 return restoreCompatible(item,*p) && ensurePrefixTables(*list);
             PrefixRpcScope prefixCallbacks;
-            return eligible(item,*p,true) && ensurePrefixTables(*list);
+            return eligible(item,*p,true) && itemAllowsPrefix(item,prefix) && ensurePrefixTables(*list);
         }
     }
+    PrefixRpcScope prefixCallbacks;
+    if (g_restoreRoll.item != item && !itemAllowsPrefix(item,prefix)) return false;
     return g_originalCanRoll ? g_originalCanRoll(item, prefix, method) : false;
 }
 
@@ -883,7 +959,7 @@ bool hookStats(Il2CppObject* item, int32_t prefix, float* dmg, float* kb,
             if (!dmg || !kb || !spd || !size || !shootSpeed || !mana ||
                 !crit || !tagDamage || !pen || !value ||
                 !ensurePrefixTables(*list) ||
-                (!restoring && !eligible(item, *p, true)) ||
+                (!restoring && (!eligible(item,*p,true) || !itemAllowsPrefix(item,prefix))) ||
                 (!restoring && queryPrefixWorker(item,*p,3)==0))
                 return false;
             *dmg = p->multipliers[0];

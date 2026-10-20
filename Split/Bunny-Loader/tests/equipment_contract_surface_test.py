@@ -299,7 +299,8 @@ class EquipmentContractSurfaceTests(unittest.TestCase):
         self.assertIn('p.callbackMask<0 || p.callbackMask>63', (
             ROOT / "app/src/main/cpp/experiments/csharp/ManagedPrefixBridge.cpp"
         ).read_text(encoding="utf-8"))
-        self.assertIn('kind<0||kind>(prefix?6:3)))||', runtime)
+        self.assertIn('kind>(prefix?6:3)', runtime)
+        self.assertIn('itemPrefix ? ', runtime)
         self.assertNotIn('kind<0||kind>3||', runtime)
         self.assertIn('queryPrefixTooltip(item,*selected)', gameplay)
         self.assertIn('queryPrefixTooltip(item,*p)', gameplay)
@@ -337,7 +338,12 @@ class EquipmentContractSurfaceTests(unittest.TestCase):
         self.assertIn('string.Join("\\t", "ITEM_PREFIX_CALLBACK", itemType.Name, "1")', compiler)
         self.assertIn('fields[0] == "ITEM_PREFIX_CALLBACK"', loader)
         self.assertIn('seenItemPrefixCallbacks.insert(registered->second).second', loader)
-        self.assertNotIn('invokeManagedItemPrefix(', gameplay)
+        self.assertIn('invokeManagedItemPrefix(', gameplay)
+        self.assertIn('managedItemPrefixWarmupState(', gameplay)
+        self.assertIn('g_restoreRoll.item==item', gameplay)
+        self.assertIn('scope->requests>=4', gameplay)
+        self.assertIn('itemAllowsPrefix(item,choice)', gameplay)
+        self.assertIn('itemAllowsPrefix(item,prefix)', gameplay)
 
     def test_report_render_is_stable_and_honest(self):
         markdown = surface.render_markdown(surface.audit(ROOT))

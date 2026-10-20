@@ -27,6 +27,9 @@ public sealed class ExampleWand : BunnyWeapon
         rules.ChooseWhenStackBetween(nameof(ExampleMightyPrefix), 1, 2);
     }
 
+    public override bool AllowPrefix(BunnyPrefixItemSnapshot item, int prefix)
+        => prefix != 74 || item.Damage >= 20;
+
     public override void AddRecipes()
     {
         // A mesma API atende armas, acessórios e poções. O tipo resolve a bancada
