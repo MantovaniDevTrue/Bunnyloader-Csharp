@@ -15,13 +15,15 @@ try
         throw new InvalidOperationException("Expected two content types and three managed prefixes, got " + classes);
 
     var data = File.ReadAllLines(Path.Combine(temp, "source-runtime-values.txt"));
-    if (data.Length != 14 || data[0] != "BUNNY_MANAGED_DEFAULTS_V2")
+    if (data.Length != 15 || data[0] != "BUNNY_MANAGED_DEFAULTS_V2")
         throw new InvalidOperationException("Unexpected MonoVM native handoff");
 
     if (data.Count(row => row == "PREFIX_DENY\tTestWand\t71,TestMightyPrefix") != 1)
         throw new InvalidOperationException("Item-owned prefix denials missing from native wire");
     if (data.Count(row => row == "PREFIX_DENY_STACK\tTestWand\t72:3:5,TestCustomPrefix:4:6") != 1)
         throw new InvalidOperationException("Dynamic item prefix stack denials missing");
+    if (data.Count(row => row == "PREFIX_CHANCE_STACK\tTestWand\t3:5:1") != 1)
+        throw new InvalidOperationException("Managed per-instance PrefixChance missing");
     if (data.Count(row => row == "PREFIX_CHANCE\tTestWand\t0") != 1)
         throw new InvalidOperationException("Managed item PrefixChance policy missing");
     if (data.Count(row => row == "PREFIX_APPLY\tTestWand\t4\t125") != 1)
@@ -44,6 +46,7 @@ try
                                           !row.StartsWith("PREFIX_STACK_WEIGHT\t", StringComparison.Ordinal) &&
                                           !row.StartsWith("PREFIX_POST\t", StringComparison.Ordinal) &&
                                           !row.StartsWith("PREFIX_CHANCE\t", StringComparison.Ordinal) &&
+                                          !row.StartsWith("PREFIX_CHANCE_STACK\t", StringComparison.Ordinal) &&
                                           !row.StartsWith("PREFIX_APPLY\t", StringComparison.Ordinal))
         .Select(row => row.Split('\t'))
         .ToDictionary(fields => fields[1], StringComparer.Ordinal);
@@ -172,6 +175,19 @@ try
     try { denied.DenyWhenStackBetween(73, 6, 5); }
     catch (ArgumentOutOfRangeException) { invalidDynamic = true; }
     if (!invalidDynamic) throw new InvalidOperationException("Invalid conditional deny range accepted");
+    if (denied.SerializeStackChance() != "")
+        throw new InvalidOperationException("Unset conditional PrefixChance must be empty");
+    bool badChanceRange = false;
+    try { denied.SetPrefixChanceWhenStackBetween(6, 5, true); }
+    catch (ArgumentOutOfRangeException) { badChanceRange = true; }
+    if (!badChanceRange) throw new InvalidOperationException("Invalid chance range accepted");
+    denied.SetPrefixChanceWhenStackBetween(3, 5, false);
+    if (denied.SerializeStackChance() != "3:5:0")
+        throw new InvalidOperationException("Conditional false PrefixChance serialization failed");
+    bool repeatedChance = false;
+    try { denied.SetPrefixChanceWhenStackBetween(3, 5, true); }
+    catch (InvalidOperationException) { repeatedChance = true; }
+    if (!repeatedChance) throw new InvalidOperationException("Duplicate PrefixChance policy accepted");
     Console.WriteLine("BUNNY_CSHARP_PREFIX_NATIVE_CONTRACT=PASS prefixes=3 callbacks=5 content=2");
 }
 finally

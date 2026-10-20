@@ -1113,6 +1113,10 @@
           "execution": "compile_policy"
         },
         {
+          "signature": "string SerializeStackChance()",
+          "execution": "compile_policy"
+        },
+        {
           "signature": "string SerializeStackDenials()",
           "execution": "compile_policy"
         },
@@ -1130,6 +1134,10 @@
         },
         {
           "signature": "void DenyWhenStackBetween(string ownModPrefixName, int minimum, int maximum)",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "void SetPrefixChanceWhenStackBetween(int minimum, int maximum, bool allowed)",
           "execution": "compile_policy"
         }
       ]

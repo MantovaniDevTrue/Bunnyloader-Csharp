@@ -51,6 +51,24 @@ int main() {
     assert(applyManagedItemPrefixChances({{6208, true}}));
     assert(managedItemPrefixChanceView()->at(6208));
     assert(firstChances->size() == 1);
+    assert(managedItemPrefixStackChanceView()->empty());
+    assert(!applyManagedItemPrefixStackChances({{6207, {5, 3, true}}}));
+    assert(managedItemPrefixStackChanceView()->empty());
+    assert(!applyManagedItemPrefixStackChances({{6207, {0, 1000000, true}}}));
+    assert(managedItemPrefixStackChanceView()->empty());
+    assert(!applyManagedItemPrefixStackChances({{6207, {3, 5, true}},
+                                                {6207, {4, 6, false}}}));
+    assert(managedItemPrefixStackChanceView()->empty());
+    assert(applyManagedItemPrefixStackChances({{6207, {3, 5, true}}}));
+    auto firstStackChances = managedItemPrefixStackChanceView();
+    assert(firstStackChances->at(6207).minStack == 3);
+    assert(firstStackChances->at(6207).maxStack == 5);
+    assert(firstStackChances->at(6207).allowed);
+    assert(!applyManagedItemPrefixStackChances({{6207, {1, 2, false}}}));
+    assert(managedItemPrefixStackChanceView() == firstStackChances);
+    assert(applyManagedItemPrefixStackChances({{6208, {3, 5, false}}}));
+    assert(!managedItemPrefixStackChanceView()->at(6208).allowed);
+    assert(firstStackChances->size() == 1);
     assert(managedItemPrefixApplyView()->empty());
     assert(!applyManagedItemPrefixEffects({{6207, {0, 0}}}));
     assert(!applyManagedItemPrefixEffects({{6207, {1001, 0}}}));

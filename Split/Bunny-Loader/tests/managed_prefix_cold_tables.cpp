@@ -30,6 +30,8 @@ Il2CppObject localized{}, randomObject{};
 std::vector<bl::csharp::ManagedPrefixEntry> descriptors;
 std::shared_ptr<const std::vector<bl::csharp::ManagedPrefixEntry>> descriptorView;
 std::shared_ptr<const std::map<int, bool>> chanceView;
+std::shared_ptr<const std::map<int, bl::csharp::ManagedPrefixStackChance>> stackChanceView =
+    std::make_shared<const std::map<int, bl::csharp::ManagedPrefixStackChance>>();
 std::shared_ptr<const std::map<int, bl::csharp::ManagedItemPrefixApply>> effectView;
 std::shared_ptr<const std::map<int, std::set<int>>> deniedView =
     std::make_shared<const std::map<int, std::set<int>>>();
@@ -145,6 +147,9 @@ namespace bl::csharp {
 std::vector<ManagedPrefixEntry> snapshotManagedPrefixes() { return descriptors; }
 std::shared_ptr<const std::vector<ManagedPrefixEntry>> managedPrefixView() { return descriptorView; }
 std::shared_ptr<const std::map<int, bool>> managedItemPrefixChanceView() { return chanceView; }
+std::shared_ptr<const std::map<int, ManagedPrefixStackChance>> managedItemPrefixStackChanceView() {
+    return stackChanceView;
+}
 std::shared_ptr<const std::map<int, ManagedItemPrefixApply>> managedItemPrefixApplyView() { return effectView; }
 std::shared_ptr<const std::map<int, std::set<int>>> managedItemPrefixDenyView() { return deniedView; }
 std::shared_ptr<const ManagedPrefixStackDenyTable> managedItemPrefixStackDenyView() { return stackDeniedView; }
@@ -552,6 +557,38 @@ int main() {
     chanceView = std::make_shared<const std::map<int, bool>>();
     assert(hookItemPrefixChance(&weapon.object, -1, &chanceTier, nullptr));
     assert(receivedChanceWant == -1);
+    stackChanceView = std::make_shared<const std::map<int, ManagedPrefixStackChance>>(
+        std::map<int, ManagedPrefixStackChance>{{6199, {3, 5, true}},
+                                                {6198, {3, 5, false}}});
+    Item stackChanceItem{};
+    stackChanceItem.type = 6199;
+    stackChanceItem.stack = 2;
+    assert(hookItemPrefixChance(&stackChanceItem.object, -1, &chanceTier, nullptr));
+    assert(receivedChanceWant == -1);
+    stackChanceItem.stack = 3;
+    assert(hookItemPrefixChance(&stackChanceItem.object, -1, &chanceTier, nullptr));
+    assert(receivedChanceWant == -2);
+    stackChanceItem.stack = 5;
+    assert(hookItemPrefixChance(&stackChanceItem.object, -2, &chanceTier, nullptr));
+    assert(receivedChanceWant == -2);
+    stackChanceItem.stack = 6;
+    assert(hookItemPrefixChance(&stackChanceItem.object, -1, &chanceTier, nullptr));
+    assert(receivedChanceWant == -1);
+    stackChanceItem.stack = 4;
+    stackChanceItem.type = 6198;
+    const int beforeReject = chanceOriginalCalls;
+    assert(!hookItemPrefixChance(&stackChanceItem.object, -1, &chanceTier, nullptr));
+    assert(chanceOriginalCalls == beforeReject);
+    stackChanceItem.type = 6199;
+    const int stackChanceField = g_refs.stack;
+    g_refs.stack = -1;
+    assert(!hookItemPrefixChance(&stackChanceItem.object, -1, &chanceTier, nullptr));
+    assert(chanceOriginalCalls == beforeReject);
+    g_restoreRoll = {&stackChanceItem.object, 99, false};
+    assert(hookItemPrefixChance(&stackChanceItem.object, -2, &chanceTier, nullptr));
+    g_restoreRoll = {};
+    g_refs.stack = stackChanceField;
+    stackChanceView = std::make_shared<const std::map<int, ManagedPrefixStackChance>>();
     weapon.type = 6199;
     nativePrefixAccept = false;
     weapon.damage = 42;

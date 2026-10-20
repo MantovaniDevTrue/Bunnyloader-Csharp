@@ -20,6 +20,9 @@ assert "snapshotManagedPrefixes()" in game
 assert "std::nearbyint" in game
 assert "PREFIX_STACK_WEIGHT" in source
 assert "PREFIX_DENY_STACK" in source
+assert "PREFIX_CHANCE_STACK" in source
+assert "applyManagedItemPrefixStackChances" in source
+assert "managedItemPrefixStackChanceView()" in game
 assert "applyManagedItemPrefixStackDenials" in source
 assert "managedItemPrefixStackDenyView()" in game
 assert "prefix.hasStackRollWeight = true;" in source

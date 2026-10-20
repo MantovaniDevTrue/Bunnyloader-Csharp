@@ -297,10 +297,29 @@ bool hookItemPrefixChance(Il2CppObject* item, int32_t want, uint8_t* topTier,
         isPrefixDenied(item, want)) return false;
 
     if (ready && g_restoreRoll.item != item && (want == -1 || want == -2)) {
-        const auto chances = managedItemPrefixChanceView();
-        const auto decision = chances->find(type);
-        if (decision != chances->end()) {
-            if (!decision->second) return false;
+        const auto stackPolicies = managedItemPrefixStackChanceView();
+        const auto stackRule = stackPolicies->find(type);
+        bool useStackDecision = false;
+        bool allow = false;
+        if (stackRule != stackPolicies->end()) {
+            if (g_refs.stack < 0) return false;
+            const int stack = bl::runtime::field<int32_t>(item, g_refs.stack);
+            if (stack >= stackRule->second.minStack &&
+                stack <= stackRule->second.maxStack) {
+                useStackDecision = true;
+                allow = stackRule->second.allowed;
+            }
+        }
+        if (!useStackDecision) {
+            const auto chances = managedItemPrefixChanceView();
+            const auto decision = chances->find(type);
+            if (decision != chances->end()) {
+                useStackDecision = true;
+                allow = decision->second;
+            }
+        }
+        if (useStackDecision) {
+            if (!allow) return false;
             if (want == -1) request = -2;
         }
     }

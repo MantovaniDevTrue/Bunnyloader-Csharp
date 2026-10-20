@@ -342,6 +342,10 @@ public sealed class BunnyItemPrefixRules
     private readonly System.Collections.Generic.SortedDictionary<int, (int Min, int Max)> stackBlocked = new();
     private readonly System.Collections.Generic.SortedDictionary<string, (int Min, int Max)> namedStackBlocked =
         new(System.StringComparer.Ordinal);
+    private bool hasStackPrefixChance;
+    private int chanceMinStack;
+    private int chanceMaxStack;
+    private bool chanceEnabled;
 
     public void Deny(int prefixType)
     {
@@ -391,6 +395,26 @@ public sealed class BunnyItemPrefixRules
         if (blocked.Count + named.Count + stackBlocked.Count + namedStackBlocked.Count >= 32)
             throw new System.InvalidOperationException("At most 32 denied prefixes per item");
         namedStackBlocked.Add(ownModPrefixName, (minimum, maximum));
+    }
+
+    public void SetPrefixChanceWhenStackBetween(int minimum, int maximum, bool allowed)
+    {
+        if (minimum < 0 || maximum < minimum || maximum > 999999)
+            throw new System.ArgumentOutOfRangeException(nameof(minimum));
+        if (hasStackPrefixChance)
+            throw new System.InvalidOperationException("Only one stack prefix chance rule is supported");
+        hasStackPrefixChance = true;
+        chanceMinStack = minimum;
+        chanceMaxStack = maximum;
+        chanceEnabled = allowed;
+    }
+
+    public string SerializeStackChance()
+    {
+        if (!hasStackPrefixChance) return "";
+        return chanceMinStack.ToString(System.Globalization.CultureInfo.InvariantCulture) + ":" +
+            chanceMaxStack.ToString(System.Globalization.CultureInfo.InvariantCulture) + ":" +
+            (chanceEnabled ? "1" : "0");
     }
 
     public string SerializeStackDenials()

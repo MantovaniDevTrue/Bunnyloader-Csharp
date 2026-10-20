@@ -23,6 +23,8 @@ std::shared_ptr<const std::vector<ManagedPrefixEntry>> g_prefixView =
     std::make_shared<const std::vector<ManagedPrefixEntry>>();
 std::shared_ptr<const std::map<int, bool>> g_itemChanceView =
     std::make_shared<const std::map<int, bool>>();
+std::shared_ptr<const std::map<int, ManagedPrefixStackChance>> g_itemStackChanceView =
+    std::make_shared<const std::map<int, ManagedPrefixStackChance>>();
 std::shared_ptr<const std::map<int, ManagedItemPrefixApply>> g_itemApplyView =
     std::make_shared<const std::map<int, ManagedItemPrefixApply>>();
 std::shared_ptr<const std::map<int, std::set<int>>> g_itemDenyView =
@@ -276,6 +278,35 @@ bool applyManagedItemPrefixChances(const std::vector<std::pair<int, bool>>& poli
 
 std::shared_ptr<const std::map<int, bool>> managedItemPrefixChanceView() {
     return std::atomic_load_explicit(&g_itemChanceView, std::memory_order_acquire);
+}
+
+bool applyManagedItemPrefixStackChances(
+    const std::vector<std::pair<int, ManagedPrefixStackChance>>& policies) {
+    if (policies.size() > 4096) return false;
+    std::map<int, ManagedPrefixStackChance> staged;
+    for (const auto& [type, rule] : policies)
+        if (type < 1 || type > 32767 ||
+            rule.minStack < 0 || rule.maxStack < rule.minStack ||
+            rule.maxStack > 999999 || !staged.emplace(type, rule).second)
+            return false;
+    if (staged.empty()) return true;
+    if (!installManagedPrefixGameplayHooks() || !installManagedPrefixChanceHook())
+        return false;
+    std::lock_guard<std::mutex> guard(g_prefixMutex);
+    auto previous = std::atomic_load_explicit(&g_itemStackChanceView,
+                                               std::memory_order_acquire);
+    for (const auto& [type, rule] : staged)
+        if (previous->contains(type)) return false;
+    auto updated = std::make_shared<std::map<int, ManagedPrefixStackChance>>(*previous);
+    updated->insert(staged.begin(), staged.end());
+    std::shared_ptr<const std::map<int, ManagedPrefixStackChance>> published = updated;
+    std::atomic_store_explicit(&g_itemStackChanceView, std::move(published),
+                               std::memory_order_release);
+    return true;
+}
+
+std::shared_ptr<const std::map<int, ManagedPrefixStackChance>> managedItemPrefixStackChanceView() {
+    return std::atomic_load_explicit(&g_itemStackChanceView, std::memory_order_acquire);
 }
 
 void reserveManagedPrefixDescriptor(int type) {

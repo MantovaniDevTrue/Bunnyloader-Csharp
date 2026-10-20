@@ -38,6 +38,10 @@ O `ExampleMightyPrefix` também demonstra `OverrideRollWeightWhenStackBetween(3,
 
 O `ExampleWand` usa `BunnyItemPrefixRules.DenyWhenStackBetween(72, 3, 5)`: o prefixo 72 é vetado apenas quando a pilha contém entre 3 e 5 unidades. A mesma API aceita um nome de prefixo do próprio mod; nomes externos não são resolvidos por atalhos. O compilador emite `PREFIX_DENY_STACK` somente quando há regras desse tipo. `ManagedPrefixBridge` valida o mapeamento de cada prefixo e publica um snapshot imutável; os hooks de `GetRollablePrefixes`, `CanRollPrefix`, `RollAPrefix` e `Item.Prefix` verificam o estado atual do item em C++ sem MonoVM. Bloqueios permanentes existentes continuam ativos. Prefixos salvos previamente não são invalidados por essa condição mutável. O contrato é declarativo, não o callback arbitrário `GlobalItem.AllowPrefix(item,prefix)` do JS.
 
+## PrefixChance conforme o estado da pilha
+
+A configuração existente `BunnyItem.ConfigurePrefixRules` agora permite `SetPrefixChanceWhenStackBetween(3, 5, true)`. O compilador emite a linha opcional `PREFIX_CHANCE_STACK`; o host publica o descritor imutável e só consulta `Item.stack` no hook nativo de tentativa automática (`Item.Prefix(-1/-2)`). Dentro do intervalo, `true` força a tentativa que antes dependeria do acaso; `false` impede a tentativa. Fora dele, `BunnyItem.PrefixChance` segue valendo, ou a lógica vanilla quando a propriedade é `null`. O callback não intervém em prefixos explicitamente escolhidos nem na restauração de saves. Se o offset de `stack` estiver indisponível, o item com essa regra falha com segurança para tentativas automáticas. É uma política nativa declarativa, não `PrefixChance(item, rand)` arbitrário em MonoVM.
+
 ## Diferença entre três rotas
 
 1. **Definição do conteúdo:** classes BunnyWeapon e BunnyProjectile declaram sprites, dano, Shoot, TimeLeft e demais propriedades através de SetDefaults.

@@ -621,11 +621,13 @@ BunnyItemPrefixRules()
 | Method | Execution |
 | --- | --- |
 | `string Serialize()` | compile_policy |
+| `string SerializeStackChance()` | compile_policy |
 | `string SerializeStackDenials()` | compile_policy |
 | `void Deny(int prefixType)` | compile_policy |
 | `void Deny(string ownModPrefixName)` | compile_policy |
 | `void DenyWhenStackBetween(int prefixType, int minimum, int maximum)` | compile_policy |
 | `void DenyWhenStackBetween(string ownModPrefixName, int minimum, int maximum)` | compile_policy |
+| `void SetPrefixChanceWhenStackBetween(int minimum, int maximum, bool allowed)` | compile_policy |
 
 ## BunnyLoader.Source.BunnyMethodHook
 
