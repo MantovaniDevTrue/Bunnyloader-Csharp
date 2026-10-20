@@ -65,8 +65,10 @@ inline bool clear(const InvasionTileView& view, int x, int groundY) {
 
 }
 
-inline InvasionSpawnSite findInvasionSpawnSite(
-    const InvasionTileView& view, int preferredX, int preferredY) {
+template <class Validator>
+inline InvasionSpawnSite findInvasionSpawnSiteChecked(
+    const InvasionTileView& view, int preferredX, int preferredY,
+    Validator&& validator) {
     if (view.width < invasion_site::margin * 2 + 4 ||
         view.height < invasion_site::margin * 2 + 4 ||
         !view.lookup || !view.type || !view.headers ||
@@ -82,10 +84,17 @@ inline InvasionSpawnSite findInvasionSpawnSite(
         const int yStart = std::max(invasion_site::margin, centerY - 12);
         const int yEnd = std::min(view.height - invasion_site::margin - 1, centerY + 40);
         for (int y = yStart; y <= yEnd; ++y)
-            if (invasion_site::clear(view, x, y))
+            if (invasion_site::clear(view, x, y) &&
+                validator(x * 16, y * 16))
                 return {x * 16, y * 16, true};
     }
     return {};
+}
+
+inline InvasionSpawnSite findInvasionSpawnSite(
+    const InvasionTileView& view, int preferredX, int preferredY) {
+    return findInvasionSpawnSiteChecked(
+        view, preferredX, preferredY, [](int, int) { return true; });
 }
 
 bool findNativeInvasionSpawnSite(int preferredX, int preferredY,
