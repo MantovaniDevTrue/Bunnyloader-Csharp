@@ -1,0 +1,82 @@
+name: Stage Native Gore CSharp SDK (NO APK)
+
+on:
+  push:
+    branches:
+      - feature/csharp-gore-loader
+    paths:
+      - '.github/workflows/stage-csharp-gore-sdk-no-apk.yml'
+      - 'experiments/csharp/BunnyCsSdk/BunnyGore.cs'
+      - 'experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: csharp-gore-sdk-stage
+  cancel-in-progress: false
+
+jobs:
+  stage-sdk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/csharp-gore-loader
+          persist-credentials: true
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Compile SDK and actual Gore examples, no APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet build experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj -c Release --nologo
+          dotnet build tests/csharp_gore_examples/GoreExamples.csproj -c Release --nologo
+          test -s experiments/csharp/BunnySourceSdk/bin/Release/net8.0/BunnySourceSdk.dll
+          test ! -f app/build/outputs/apk/debug/app-debug.apk
+      - name: Stage managed SDK assembly and exact checksum
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp experiments/csharp/BunnySourceSdk/bin/Release/net8.0/BunnySourceSdk.dll app/src/main/assets/managed/BunnySourceSdk.dll
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+          root=Path("app/src/main/assets/managed")
+          assembly=root/"BunnySourceSdk.dll"
+          manifest=root/"framework.sha256"
+          records=[]
+          replaced=0
+          for line in manifest.read_text().splitlines():
+              if not line.strip():
+                  continue
+              name, digest=line.split("\t",1)
+              if name=="BunnySourceSdk.dll":
+                  digest=hashlib.sha256(assembly.read_bytes()).hexdigest()
+                  replaced+=1
+              records.append((name,digest))
+          assert replaced==1, "BunnySourceSdk.dll must exist exactly once in manifest"
+          assert len(records)==len(set(name for name,_ in records))
+          manifest.write_text("".join(f"{name}\t{digest}\n" for name,digest in records))
+          assert hashlib.sha256(assembly.read_bytes()).hexdigest()==next(d for n,d in records if n=="BunnySourceSdk.dll")
+          print("BUNNY_GORE_CSHARP_SDK_STAGED=YES APK=NO")
+          PY
+      - name: Commit only CSharp SDK and manifest into feature branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin feature/csharp-gore-loader
+          test "$(git rev-parse HEAD)" = "$(git rev-parse origin/feature/csharp-gore-loader)" ||
+            { echo "Feature branch advanced; retry only on a fresh workflow checkout"; exit 1; }
+          git add app/src/main/assets/managed/BunnySourceSdk.dll app/src/main/assets/managed/framework.sha256
+          test -z "$(git diff --cached --name-only | grep -v -E '^app/src/main/assets/managed/(BunnySourceSdk.dll|framework.sha256)$' || true)"
+          if git diff --cached --quiet; then
+            echo "BUNNY_GORE_SDK_ALREADY_CURRENT=YES"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "runtime(csharp): stage native Gore SDK DLL and exact hash (no APK)"
+          git push origin HEAD:feature/csharp-gore-loader
