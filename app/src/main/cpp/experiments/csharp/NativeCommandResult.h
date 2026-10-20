@@ -2,6 +2,7 @@
 
 #include "experiments/csharp/NativeCommandMailbox.h"
 
+#include <charconv>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -12,7 +13,8 @@ namespace bl::csharp {
 // O destino e obtido do ticket nativo, nunca de texto controlado pelo mod.
 inline bool decodeNativeCommandResult(const std::string& wire, int playerIndex,
                                       bool* handled, std::vector<NativeCommandReply>* replies,
-                                      std::string* error = nullptr) {
+                                      std::string* error = nullptr,
+                                      NativeCommandAction* action = nullptr) {
     auto fail = [&](const char* reason) {
         if (error) *error = reason;
         return false;
@@ -21,6 +23,8 @@ inline bool decodeNativeCommandResult(const std::string& wire, int playerIndex,
         wire.empty() || wire.size() > 20 * 1024 || wire.back() != '\n')
         return fail("CommandResultInvalidSize");
     replies->clear();
+    if (action) *action = {};
+    bool receivedAction = false;
     std::istringstream input(wire);
     std::string line;
     if (!std::getline(input, line) || line != "BUNNY_COMMAND_RESULT_V1")
@@ -42,6 +46,31 @@ inline bool decodeNativeCommandResult(const std::string& wire, int playerIndex,
     while (std::getline(input, line)) {
         if (!*handled || replies->size() >= NativeCommandMailbox::MaxReplyLines)
             return fail("CommandResultUnexpectedReply");
+        if (line.starts_with("ACTION\t")) {
+            if (!action || receivedAction || !replies->empty())
+                return fail("CommandResultMultipleActions");
+            const auto separator = line.find('\t', 7);
+            if (separator == std::string::npos ||
+                line.find('\t', separator + 1) != std::string::npos)
+                return fail("CommandResultInvalidAction");
+            const std::string kind = line.substr(7, separator - 7);
+            const std::string amount = line.substr(separator + 1);
+            int number = 0;
+            const auto parsed = std::from_chars(amount.data(), amount.data() + amount.size(), number);
+            if (parsed.ec != std::errc{} ||
+                parsed.ptr != amount.data() + amount.size())
+                return fail("CommandResultInvalidActionAmount");
+            if (kind == "HEAL" && number > 0 && number <= 1000000)
+                action->kind = NativeCommandActionKind::Heal;
+            else if (kind == "ADDTIME" && number >= -86400000 && number <= 86400000)
+                action->kind = NativeCommandActionKind::AdvanceWorldTime;
+            else
+                return fail("CommandResultInvalidActionKindOrAmount");
+            action->amount = number;
+            receivedAction = true;
+            continue;
+        }
+        if (receivedAction) return fail("CommandResultReplyAfterAction");
         std::istringstream record(line);
         std::string prefix, red, green, blue, encoded;
         if (!std::getline(record, prefix, '\t') ||
