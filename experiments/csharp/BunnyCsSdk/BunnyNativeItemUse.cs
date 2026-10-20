@@ -25,6 +25,19 @@ public static class BunnyNativeItemUse
             playerIndex >= 0 && playerIndex < 255;
     }
 
+    public static bool TryPollContext(long worldSession, string modId,
+        string itemName, out int playerIndex, out BunnyUseContext context)
+    {
+        playerIndex = -1;
+        context = default;
+        if (worldSession <= 0 || string.IsNullOrWhiteSpace(modId) ||
+            string.IsNullOrWhiteSpace(itemName)) return false;
+        int ok = Native.PollContext(worldSession, modId, itemName,
+            out playerIndex, out int flags);
+        context = new BunnyUseContext(flags);
+        return ok == 1 && playerIndex >= 0 && playerIndex < 255;
+    }
+
     private static class Native
     {
         [DllImport("bunny", EntryPoint = "bunny_item_use_bind",
@@ -38,6 +51,13 @@ public static class BunnyNativeItemUse
         internal static extern int Ready(long session,
             [MarshalAs(UnmanagedType.LPUTF8Str)] string mod,
             [MarshalAs(UnmanagedType.LPUTF8Str)] string name);
+
+        [DllImport("bunny", EntryPoint = "bunny_item_use_poll_context",
+            CallingConvention = CallingConvention.Cdecl)]
+        internal static extern int PollContext(long session,
+            [MarshalAs(UnmanagedType.LPUTF8Str)] string mod,
+            [MarshalAs(UnmanagedType.LPUTF8Str)] string name,
+            out int playerIndex, out int flags);
 
         [DllImport("bunny", EntryPoint = "bunny_item_use_poll",
             CallingConvention = CallingConvention.Cdecl)]
