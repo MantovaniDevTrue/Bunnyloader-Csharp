@@ -605,6 +605,21 @@ Test("live-register-outside-callback-drains-with-assembly-ownership", () =>
     Equal("UNCHANGED", BunnyLocalizationRuntime.Drain("examplemod", assembly, "en-US"));
 });
 
+Test("assembly-identity-ambiguity-denies-live-registration", () =>
+{
+    string assembly = System.Reflection.Assembly.GetExecutingAssembly().Location;
+    Equal("OK|1", BunnyLocalizationRuntime.Dispatch("one", assembly, "en-US").Split('\n')[0]);
+    Equal("OK|1", BunnyLocalizationRuntime.Dispatch("two", assembly, "en-US").Split('\n')[0]);
+    Reject(() => BunnyLocalizationRuntime.Register("LegacyInterface.28", "en-US", "Ambiguous"));
+    Equal("UNCHANGED", BunnyLocalizationRuntime.Drain("one", assembly, "en-US"));
+    Equal("UNCHANGED", BunnyLocalizationRuntime.Drain("two", assembly, "en-US"));
+    Equal(true, BunnyLocalizationRuntime.Unload("one"));
+    BunnyLocalizationRuntime.Register("Mods.two.Common.Safe", "en-US", "Safe");
+    Equal(true, BunnyLocalizationRuntime.Drain("two", assembly, "en-US")
+        .Contains(Convert.ToHexString(System.Text.Encoding.UTF8.GetBytes("Mods.two.Common.Safe")), StringComparison.Ordinal));
+    Equal(true, BunnyLocalizationRuntime.Unload("two"));
+});
+
 Console.WriteLine("LOCALIZATION_HOST_PASS cases=" + passed);
 
 public sealed class HostLocalizationModule : BunnyLocalizationModule
