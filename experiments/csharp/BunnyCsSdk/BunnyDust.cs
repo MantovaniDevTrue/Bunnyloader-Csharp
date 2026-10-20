@@ -87,7 +87,7 @@ public sealed class BunnyDustRegistry
 
     public BunnyDustRegistry(string modId)
     {
-        ValidateIdentifier(modId, nameof(modId));
+        ValidateModIdentifier(modId);
         _modId = modId;
         Array.Fill(_slotTypes, -1);
     }
@@ -357,6 +357,15 @@ public sealed class BunnyDustRegistry
         type.GetMethod(method, BindingFlags.Public | BindingFlags.Instance,
             binder: null, types: args, modifiers: null) is MethodInfo info &&
         info.DeclaringType != typeof(BunnyDust);
+
+    private static void ValidateModIdentifier(string id)
+    {
+        if (string.IsNullOrEmpty(id) || id.Length > 128)
+            throw new ArgumentException("ID de mod C# invalido", nameof(id));
+        foreach (char c in id)
+            if (!char.IsAsciiLetterOrDigit(c) && c != '_' && c != '-')
+                throw new ArgumentException("ID de mod C# invalido", nameof(id));
+    }
 
     private static void ValidateIdentifier(string name, string param)
     {
