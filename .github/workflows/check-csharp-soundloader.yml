@@ -9,6 +9,7 @@ on:
       - app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp
       - app/src/main/cpp/content/sounds/NativeSoundRouter.*
       - experiments/csharp/BunnyCsSdk/**
+      - experiments/csharp/BunnySourceSdk/**
       - samples/ExampleModCSharp/Playable/content/**
       - tests/summon_lifecycle/managed_sound_loader_test.cpp
       - tests/summon_lifecycle/sound_router_test.cpp
@@ -52,12 +53,15 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 10.0.x
+          dotnet-version: |
+            8.0.x
+            10.0.x
       - name: Compile entire Bunny Source SDK, including new native SoundLoader bindings
         shell: bash
         run: |
           set -euo pipefail
-          dotnet build experiments/csharp/BunnyCsSdk/BunnyCsSdk.csproj -c Release             -p:AssemblyName=BunnySourceSdk -o /tmp/bunny-csharp-sound-sdk
+          dotnet build experiments/csharp/BunnyCsSdk/BunnyCsSdk.csproj -c Release
+          dotnet build experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj -c Release -o /tmp/bunny-csharp-sound-sdk
           test -s /tmp/bunny-csharp-sound-sdk/BunnySourceSdk.dll
           grep -a -q BunnySounds /tmp/bunny-csharp-sound-sdk/BunnySourceSdk.dll
           grep -a -q BunnySoundPlayback /tmp/bunny-csharp-sound-sdk/BunnySourceSdk.dll
@@ -67,3 +71,41 @@ jobs:
           name: BunnySourceSdk-SoundLoader-verified-no-apk
           path: /tmp/bunny-csharp-sound-sdk/BunnySourceSdk.dll
           retention-days: 7
+
+  stage-managed-sdk:
+    needs: [native-host, managed-sdk]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/download-artifact@v4
+        with:
+          name: BunnySourceSdk-SoundLoader-verified-no-apk
+          path: /tmp/bunny-csharp-sound-sdk
+      - name: Embed verified real BunnySourceSdk and refresh hash catalog
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s /tmp/bunny-csharp-sound-sdk/BunnySourceSdk.dll
+          cp /tmp/bunny-csharp-sound-sdk/BunnySourceSdk.dll app/src/main/assets/managed/BunnySourceSdk.dll
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+          root=Path('app/src/main/assets/managed')
+          manifest=''.join(f'{p.name}\t{hashlib.sha256(p.read_bytes()).hexdigest()}\n'
+                           for p in sorted(root.glob('*.dll')))
+          (root/'framework.sha256').write_text(manifest,encoding='utf-8')
+          assert 'BunnySourceSdk.dll\t' in manifest
+          PY
+          git add app/src/main/assets/managed/BunnySourceSdk.dll app/src/main/assets/managed/framework.sha256
+          git diff --cached --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if ! git diff --cached --quiet; then
+            git commit -m "runtime(sound): embed verified managed BunnySourceSdk without APK"
+            git push origin HEAD:refs/heads/feat/csharp-soundloader-native-complete
+          fi
