@@ -117,6 +117,15 @@ public sealed class BunnyInvasionSpawnPipeline
         return true;
     }
 
+    public bool MatchesPendingNpc(string npcClass, int slot, long nativeIdentity)
+    {
+        SyncEpoch();
+        return nativeIdentity != 0 && slots.TryGetValue(slot, out int ticket) &&
+            pending.TryGetValue(ticket, out Pending claim) &&
+            claim.Slot == slot && claim.Identity == nativeIdentity &&
+            claim.NpcClass == npcClass;
+    }
+
     public bool ConfirmFirstTick(bool authoritative, int epoch, string npcClass,
         int slot, int generation, long nativeIdentity)
     {
