@@ -18,6 +18,8 @@ on:
       - app/src/main/cpp/experiments/csharp/ManagedDustMailbox.h
       - app/src/main/cpp/experiments/csharp/ManagedDustBindingSelection.h
       - tests/csharp/native_dust_binding_selection.cpp
+      - app/src/main/cpp/experiments/csharp/ManagedDustSlotLookup.h
+      - tests/csharp/native_dust_slot_lookup.cpp
       - tests/csharp/native_dust_parser.cpp
       - app/src/main/cpp/experiments/csharp/SourceParser.cpp
       - app/src/main/cpp/experiments/csharp/SourceContentIdentity.h
@@ -73,3 +75,7 @@ jobs:
         run: |
           c++ -std=c++20 -Wall -Wextra -Werror -Iapp/src/main/cpp tests/csharp/native_dust_binding_selection.cpp -o "$RUNNER_TEMP/dust_bindings"
           "$RUNNER_TEMP/dust_bindings"
+      - name: Verify checked Dust index with fast native hint and stable Main.dust fallback
+        run: |
+          c++ -std=c++20 -Wall -Wextra -Werror -Iapp/src/main/cpp tests/csharp/native_dust_slot_lookup.cpp -o "$RUNNER_TEMP/dust_slot_lookup"
+          "$RUNNER_TEMP/dust_slot_lookup"
