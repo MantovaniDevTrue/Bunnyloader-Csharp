@@ -185,6 +185,7 @@ FieldInfo* findField(Il2CppClass* cls,std::string_view name){return ::findField(
 namespace bl::csharp {
 bool gManagedAllowed = true;
 bool gManagedReady = true;
+bool gUnloadDuringCallback = false;
 int gManagedCalls = 0;
 int gLastPlayerIndex = -999;
 bool invokeManagedAnglerQuestCallback(const std::string&,const std::string&,
@@ -192,6 +193,7 @@ bool invokeManagedAnglerQuestCallback(const std::string&,const std::string&,
     ++gManagedCalls;
     gLastPlayerIndex = playerIndex;
     if (!gManagedReady) return false;
+    if (gUnloadDuringCallback) bl::csharp::angler::registry().unload("examplemodcsharp");
     *allowed = gManagedAllowed;
     return true;
 }
@@ -305,6 +307,15 @@ int main() {
     bl::csharp::gManagedReady=true;
     assert(bl::csharp::gManagedCalls>=3);
     assert(bl::csharp::gLastPlayerIndex==-1);
+    bl::csharp::gUnloadDuringCallback=true;
+    gSelected=2;
+    gSwapCalls=0;
+    hookedSwap(&kSwap);
+    assert(gSwapCalls==1 && gSelected==3);
+    assert(stringAscii(hookedChat(0,&kChat))=="VANILLA");
+    bl::csharp::gUnloadDuringCallback=false;
+    assert(reg.publish("examplemodcsharp",{dynamic},&error));
+    bl::csharp::angler::pumpOnGameThread();
     std::vector<Quest> many;
     for (int i=0;i<6;++i) {
         Quest candidate=quest;
