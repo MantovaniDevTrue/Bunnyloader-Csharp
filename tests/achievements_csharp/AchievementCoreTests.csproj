@@ -9,5 +9,6 @@
     <ProjectReference Include="../../experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj" />
     <ProjectReference Include="../../experiments/csharp/BunnySourceCompiler/BunnySourceCompiler.csproj" />
     <ProjectReference Include="Fixtures/AchievementFixtures.csproj" />
+    <ProjectReference Include="PlayableFixtures/PlayableFixtures.csproj" />
   </ItemGroup>
 </Project>
