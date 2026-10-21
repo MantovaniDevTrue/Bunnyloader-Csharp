@@ -1,0 +1,23 @@
+name: Verify CSharp Achievements Core
+
+on:
+  push:
+    branches:
+      - feat/csharp-achievement-loader-20261021
+    paths:
+      - experiments/csharp/BunnyCsSdk/BunnyAchievement.cs
+      - tests/achievements_csharp/**
+      - samples/ExampleModCSharp/Examples/Achievements/**
+      - .github/workflows/verify-csharp-achievements.yml
+  workflow_dispatch:
+
+jobs:
+  managed-core-only:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Test achievements without Android or APK
+        run: dotnet run --configuration Release --project tests/achievements_csharp/AchievementCoreTests.csproj
