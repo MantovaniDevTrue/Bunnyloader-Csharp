@@ -43,6 +43,33 @@ try
         throw new InvalidOperationException("Full ExampleMod managed validation returned " +
             verified + "\n" + File.ReadAllText(diagnostics));
 
+    string modId = "full-example-dust-validation";
+    int entitySlot = BunnyEntitySourceDispatcher.Register(modId, output);
+    if (entitySlot < 0)
+        throw new InvalidOperationException("Full Example entity registration failed: " +
+            BunnyEntitySourceDispatcher.LastRegistrationError);
+    var dustOwner = typeof(BunnyDustSourceDispatcher).GetMethod("ModForAssembly",
+        System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)
+        ?? throw new InvalidOperationException("BunnyDust owner lookup missing");
+    var exampleAssembly = System.Reflection.Assembly.LoadFrom(output);
+    var dustClass = exampleAssembly.GetTypes().Single(t => t.Name == "ExampleSparkDust");
+    string dustMod;
+    try
+    {
+        dustMod = (string)(dustOwner.Invoke(null, new object[] { dustClass.Assembly })
+            ?? throw new InvalidOperationException("BunnyDust owner is null"));
+    }
+    catch (System.Reflection.TargetInvocationException error)
+    {
+        throw new InvalidOperationException(
+            "Full Example BunnyDust ownership failed. EntityStatus=" +
+            BunnyEntitySourceDispatcher.Status(entitySlot) + " DustRegister=" +
+            BunnyDustSourceDispatcher.LastRegistrationError, error.InnerException ?? error);
+    }
+    if (dustMod != modId)
+        throw new InvalidOperationException("BunnyDust resolved wrong owner: " + dustMod);
+    Console.WriteLine("FULL_EXAMPLE_DUST_ASSEMBLY_OWNERSHIP=PASS");
+
     var defaults = File.ReadAllText(Path.Combine(work, "source-runtime-values.txt"));
     if (!defaults.StartsWith("BUNNY_MANAGED_DEFAULTS_V2\n", StringComparison.Ordinal) ||
         !defaults.Contains("RARITY\tExampleHigherTierModRarity\n", StringComparison.Ordinal) ||
