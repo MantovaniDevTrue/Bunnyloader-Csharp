@@ -616,6 +616,7 @@ public static class BunnyUniversalHookDispatcher
 
     private static void Close(Context context)
     {
+        BunnyWorldUpdateRegistry.DetachScope(context.Scope);
         context.Scope.Dispose();
         foreach (BunnyHookModule module in context.Modules)
             try { module.Unload(); }
