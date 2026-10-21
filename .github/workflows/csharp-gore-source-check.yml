@@ -54,8 +54,8 @@ jobs:
           MANAGER="$(find "$SDK/cmdline-tools" -name sdkmanager -type f | sort -V | tail -1)"
           test -x "$MANAGER"
           echo y | "$MANAGER" --licenses >/dev/null || true
-          "$MANAGER" --install "ndk;27.2.12479018" >/dev/null
-          NDK="$SDK/ndk/27.2.12479018"
+          "$MANAGER" --install "ndk;30.0.16248370" >/dev/null
+          NDK="$SDK/ndk/30.0.16248370"
           CXX="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang++"
           test -x "$CXX"
           mkdir -p /tmp/bunny-gore-android-objects
