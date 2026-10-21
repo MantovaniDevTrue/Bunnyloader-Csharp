@@ -89,6 +89,8 @@ public:
         rareType_ = selectedModType > 0 ? selectedModType : 0;
         rareSlot_ = freeRareSlot;
     }
+    int candidateSlot() const { return rareRolled_ ? rareSlot_ : commonSlot_; }
+    bool wasRareRolled() const { return rareRolled_; }
     struct Spawn { int type; int slot; bool replaceType; };
     // The hook must additionally ensure Main.cloud[slot] is active before
     // calling this method, and must verify actualRareType after the original.
