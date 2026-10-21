@@ -4,7 +4,8 @@ using BunnyLoader.Source;
 public sealed class ManagedProbeNpc : BunnyNPC
 {
     public static int Spawns, Despawns, Hits, Kills, Calls;
-    public override void SetDefaults() { }
+    public static readonly List<string> Owners = new();
+    public override void SetDefaults() { Owners.Add(ModId); Width=47; }
 
     public override void OnSpawn(ref BunnyNpcAiState state) => Spawns++;
     public override bool AI(ref BunnyNpcAiState state)
@@ -22,7 +23,8 @@ public sealed class ManagedProbeProjectile : BunnyProjectile
 {
     public static int Spawns, Despawns, Hits, Calls, Kills, SeenTarget = -1;
     public static float LastHitX, LastHitY, LastKillX, LastKillY;
-    public override void SetDefaults() { }
+    public static readonly List<string> Owners = new();
+    public override void SetDefaults() { Owners.Add(ModId); Width=13; }
 
     public override void OnSpawn(ref BunnyProjectileAiState state) => Spawns++;
     public override bool AI(ref BunnyProjectileAiState state)
@@ -87,6 +89,9 @@ public static class Program
         int first = BunnyEntitySourceDispatcher.Register("source-mod-a", dll);
         int second = BunnyEntitySourceDispatcher.Register("source-mod-b", dll);
         Check(first == 0 && second == 1, "mod registration");
+        Check(ManagedProbeNpc.Owners.SequenceEqual(new[]{"source-mod-a","source-mod-b"}) &&
+            ManagedProbeProjectile.Owners.SequenceEqual(new[]{"source-mod-a","source-mod-b"}),
+            "NPC/projectile defaults must receive each real package UID before callbacks");
         Check(BunnyEntitySourceDispatcher.Register("source-mod-a", dll) == first, "registration idempotent");
         var dustResolver = typeof(BunnyDustSourceDispatcher).GetMethod(
             "ModForAssembly", BindingFlags.NonPublic | BindingFlags.Static);

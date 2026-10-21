@@ -60,7 +60,8 @@ load = saved[saved.index("Il2CppObject* hkLoadPlayer("):saved.index("bool rehydr
 assert 'if (slotItem && slotType == type)' in load
 assert 'if (restored > 0)' in load and 'bl::csharp::requestBasicItemInstanceRefresh();' in load
 world = auto[auto.index("void noteAutoGameUpdate()"):auto.index("bool preWorldCSharpContentReady()")]
-assert 'g_worldSessionReady.store(true, std::memory_order_release);\n        requestBasicItemInstanceRefresh("WorldLoaded");' in world
+ready = world.index('g_worldSessionReady.store(true, std::memory_order_release);')
+assert world.index('requestBasicItemInstanceRefresh("WorldLoaded");',ready)>ready
 assert 'bool finishPreWorldCSharpPlayer() {\n    requestBasicItemInstanceRefresh("BeforeWorld");' in auto
 print("CSHARP_SAVED_WINGS_AND_INACTIVE_LOADOUT_REHYDRATION_GUARD=PASS")
 

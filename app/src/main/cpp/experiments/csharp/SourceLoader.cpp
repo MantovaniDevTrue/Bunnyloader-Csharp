@@ -1,5 +1,7 @@
 #include "experiments/csharp/SourceLimits.h"
 #include "experiments/csharp/NativeTileWirePolicy.h"
+#include "experiments/csharp/ManagedGoreDiscovery.h"
+#include "experiments/csharp/ManagedGoreRuntime.h"
 #include "experiments/csharp/SourceLoader.h"
 #include "experiments/csharp/NativeRarityRegistry.h"
 #include "experiments/csharp/ManagedDustContract.h"
@@ -336,6 +338,13 @@ bool fields(const ParsedSourceType& type, NativeContentSpec* spec,
 
 bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
     const std::string folder = mod.dir + "/content";
+    std::vector<gore::Source> goreSources;
+    if (!gore::discover(mod.dir, &goreSources, &status->error)) {
+        status->error = "[CSharp][ERROR][GoreLoader] Mod=" + mod.id +
+            " Stage=Discover Result=Rejected Detail=" + status->error;
+        return false;
+    }
+    status->goreSourcesDiscovered = static_cast<int>(goreSources.size());
     std::vector<std::string> paths;
     if (!collect(folder, "", &paths, &status->error, 0)) return false;
     if (paths.empty() || paths.size() > kSourceMaxFiles) {
@@ -372,7 +381,13 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
     if (!bl::runtime::backgrounds::autoload(mod.id, folder, &status->error)) return false;
     // A pure managed hook/localization module needs no native content IDs.
     // Roslyn's verifier must still prove at least one supported class.
-    if (defs.empty()) return true;
+    if (defs.empty()) {
+        if (!goreSources.empty() && !gore::install(mod.id,goreSources,&status->error)) {
+            status->error="[CSharp][ERROR][GoreLoader] Mod="+mod.id+" Stage=NativeInstall Result=Rejected Detail="+status->error;
+            return false;
+        }
+        return true;
+    }
     if (defs.size() > kSourceMaxTypes) { status->error = "tipos C# demais"; return false; }
     std::map<std::string, int> typed;
     for (const auto& def : defs) {
@@ -707,6 +722,11 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
     if (!screenEffects.empty() &&
         !bl::graphics::registerCSharpScreenEffects(mod.id, folder, screenEffects, &status->error))
         return false;
+    if (!goreSources.empty() && !gore::install(mod.id, goreSources, &status->error)) {
+        status->error = "[CSharp][ERROR][GoreLoader] Mod=" + mod.id +
+            " Stage=NativeInstall Result=Rejected Detail=" + status->error;
+        return false;
+    }
     return true;
 }
 
@@ -738,6 +758,9 @@ bool loadCSharpSourceMod(const bl::mods::LoadedMod& mod) {
     status.directory = mod.dir;
     status.loaded = load(mod, &status);
     if (status.loaded) {
+        if (status.goreSourcesDiscovered > 0)
+            BL_INFO("C# GoreLoader %s: %d PNGs registrados em arrays nativos",
+                    mod.id.c_str(), status.goreSourcesDiscovered);
         BL_INFO("C# source %s: %d arquivo(s), %d item(ns), %d projetil(is), %d buff(s), %d pocao(oes), %d NPC(s), %d Dust(s)",
                 mod.id.c_str(), status.sourceFiles, status.items,
                 status.projectiles, status.buffs, status.potions, status.npcs, status.dusts);

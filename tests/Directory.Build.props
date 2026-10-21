@@ -1,0 +1,8 @@
+<Project>
+  <PropertyGroup>
+    <!-- Several host test projects share a directory. The SDK's default
+         obj/.../apphost would otherwise embed another test's assembly name. -->
+    <BaseIntermediateOutputPath>obj/$(MSBuildProjectName)/</BaseIntermediateOutputPath>
+    <DefaultItemExcludes>$(DefaultItemExcludes);obj/**;bin/**</DefaultItemExcludes>
+  </PropertyGroup>
+</Project>

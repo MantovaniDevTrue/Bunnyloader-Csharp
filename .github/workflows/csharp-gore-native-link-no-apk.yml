@@ -1,0 +1,66 @@
+name: Gore CSharp Complete Native Link (NO APK)
+
+on:
+  push:
+    branches:
+      - feature/csharp-gore-loader
+    paths:
+      - '.github/workflows/csharp-gore-native-link-no-apk.yml'
+      - 'app/src/main/cpp/experiments/csharp/ManagedGoreRuntime.cpp'
+      - 'app/src/main/cpp/experiments/csharp/ManagedGoreDiscovery.cpp'
+      - 'app/src/main/cpp/experiments/csharp/SourceLoader.cpp'
+      - 'app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  link-lib-bunny-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Install pinned NDK and CMake for the existing Android project
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          MANAGER="$(find "$SDK/cmdline-tools" -name sdkmanager -type f | sort -V | tail -1)"
+          test -x "$MANAGER"
+          echo y | "$MANAGER" --licenses >/dev/null || true
+          "$MANAGER" --install "ndk;30.0.16248370" "cmake;3.22.1" >/dev/null
+          test -x "$SDK/ndk/30.0.16248370/toolchains/llvm/prebuilt/linux-x86_64/bin/clang++"
+      - name: Link JNI native library only, NEVER assemble an APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -d app/build/outputs/apk
+          gradle :app:externalNativeBuildDebug --no-daemon --stacktrace \
+            -Pbl.nativeBuild=true -Pbl.uiOnly=true
+          LIB="$(find app/build/intermediates/cxx -path '*/obj/arm64-v8a/libbunny.so' -type f | head -1)"
+          test -n "$LIB" && test -s "$LIB"
+          file "$LIB"
+          NDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}/ndk/30.0.16248370"
+          NM="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-nm"
+          test -x "$NM"
+          "$NM" -D --defined-only "$LIB" > /tmp/bunny-gore-native-symbols.txt
+          for symbol in \
+            bunny_csharp_gore_type \
+            bunny_csharp_gore_type_any \
+            bunny_csharp_gore_spawn \
+            bunny_csharp_gore_configure
+          do
+            grep -Eq "[[:space:]][TW][[:space:]]+${symbol}$" /tmp/bunny-gore-native-symbols.txt
+          done
+          test ! -d app/build/outputs/apk
+          echo "GORE_CSHARP_NATIVE_LINK_AND_EXPORTS_PASS=YES APK=NO"

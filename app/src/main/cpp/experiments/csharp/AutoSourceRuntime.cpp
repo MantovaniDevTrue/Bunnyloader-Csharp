@@ -25,6 +25,7 @@
 #include "content/backgrounds/BackgroundTextures.h"
 #include "experiments/csharp/NativeVisualRenderer.h"
 #include "experiments/csharp/NativeRarityGameplay.h"
+#include "experiments/csharp/ManagedGoreRuntime.h"
 #include "graphics/CSharpScreenEffects.h"
 #include "experiments/csharp/NativeContent.h"
 #include "experiments/csharp/NativeBasicItems.h"
@@ -1340,6 +1341,7 @@ void noteAutoWorldTilesLoaded() {
     resetManagedCommandSession();
     managedSound::worldExit();
     resetNativeTileSessionState();
+    gore::worldBoundary();
     clearManagedVisualCommands();
     resetNativeVisualRenderer();
     g_visualUpdateTick.store(0, std::memory_order_relaxed);
@@ -1420,6 +1422,7 @@ void noteAutoGameUpdate() {
     pumpNativeAccessOnGameThread();
     managedSound::pump();
     localization::pumpOnGameThread();
+    gore::pumpOnGameThread();
     pumpUniversalHookInstallsOnGameThread();
     if (managedEntitySourceModsRegistered() &&
         runtime::modNpcsSettled() && runtime::modProjectilesSettled()) {
@@ -1529,6 +1532,7 @@ void noteAutoGameUpdate() {
         resetManagedCommandSession();
         managedSound::worldExit();
         clearManagedVisualCommands();
+        gore::worldBoundary();
         graphics::clearCSharpScreenEffects();
         pauseManagedScreenSceneCallbacks();
         resetNativeVisualRenderer();
@@ -1580,6 +1584,7 @@ void noteAutoGameUpdate() {
         if (context.netMode < 0 || context.netMode > 3 ||
             context.gameMenu == 1) return;
         g_worldSessionReady.store(true, std::memory_order_release);
+        gore::worldReady();
         requestBasicItemInstanceRefresh("WorldLoaded");
         enableUniversalHooks();
         resumeUniversalHookMods();

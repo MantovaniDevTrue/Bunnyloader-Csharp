@@ -31,6 +31,7 @@ struct SourceModStatus {
     int screenEffects = 0;
     int commands = 0;
     std::vector<std::string> commandClasses;
+    int goreSourcesDiscovered = 0;
     std::vector<std::string> playerClasses;
     bool loaded = false;
     bool runtimeApplied = false;

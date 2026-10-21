@@ -641,5 +641,40 @@
       "pr": 126,
       "scope": "SystemUpdate"
     }
+  ],
+  "additionalIntegrations": [
+    {
+      "loader": "SystemUpdateLoader",
+      "pullRequest": 126,
+      "implementation": "implemented",
+      "android": "not-tested",
+      "publicApi": [
+        "experiments/csharp/BunnyCsSdk/BunnyWorldUpdateLoader.cs"
+      ],
+      "tests": [
+        "tests/world_update_loader/Program.cs",
+        "tests/world_update_loader/native_contract_test.cpp",
+        "tests/world_update_loader/time_rate_mailbox_test.cpp"
+      ],
+      "note": "Conclusao de lote existente; nao contado como dezenove loaders nem como substituicao de um alvo da lista."
+    },
+    {
+      "loader": "GoreLoader",
+      "pullRequest": 121,
+      "implementation": "implemented-awaiting-ci",
+      "android": "not-tested",
+      "publicApi": [
+        "experiments/csharp/BunnyCsSdk/BunnyGore.cs"
+      ],
+      "example": [
+        "samples/ExampleModCSharp/Playable/content/Content/NPCs/ExampleGoreSlime.cs"
+      ],
+      "tests": [
+        "tests/gore/native_gore_runtime_test.cpp",
+        "tests/gore/Program.cs",
+        "tests/gore/mixed_js_gore_test.cjs"
+      ],
+      "note": "Integracao adicional de PR existente; nao remove pendencias dos quinze alvos."
+    }
   ]
 }

@@ -72,3 +72,34 @@ no workflow source-only; registrar o SHA e o resultado do CI quando terminar.
 
 Nenhum APK foi gerado e nenhuma validação no aparelho foi atribuída a este
 trabalho. As versões publicadas permanecem inalteradas.
+
+## Integração adicional de GoreLoader
+
+A PR #121 foi integrada sobre a base atual, com o código explicado em
+`docs/csharp/GORE_LOADER_IMPLEMENTATION.md`. Um NPC próprio, **Example Gore Slime**,
+exercita a API; não foi necessário alterar os exemplos de invasões/armas.
+O serviço de produção recebeu testes de transação, contratos IL2CPP, GC,
+layout de Vector2, configuração de floats e P/Invoke com dois UIDs reais.
+O inventário do ExampleMod passa a 85 tipos gerenciados (75 entradas do
+contrato de conteúdo + 10 módulos de hooks) e 104 arquivos C# (53 registros de bootstrap verificados).
+
+A revisão com `script/bridge/Bindings.cpp` também corrigiu o contrato de
+`field_static_set_value` do novo serviço de fundos: referências passam o
+objeto diretamente; valores numéricos passam endereço. O fixture anterior
+reproduzia a chamada incorreta e foi corrigido. A aprovação anterior do CI
+não era prova desse contrato no aparelho. Nenhum APK com esta mudança foi gerado.
+
+Os testes de host agora têm diretório `obj` por projeto. Vários executáveis
+na mesma pasta podiam reaproveitar o apphost de outro teste. Os arquivos de
+persistência das invasões também são isolados por processo, conservando o
+save/reload real dentro de cada execução.
+
+CI anterior à integração Gore: [39673760844](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39673760844),
+commit `34247fd5`, quatro jobs aprovados, incluindo ARM64/linkagem sem APK.
+As mudanças posteriores exigem CI próprio; não herdam essa aprovação.
+
+Regressão combinada após a integração Gore: 65/65 verificações locais aprovadas.
+O teste JS original também confirma que o registro de Gore preserva os assets e
+valores C# anteriores. O fixture nativo confirma a direção inversa: reconstruir
+as tabelas C# preserva uma entrada externa adicionada depois.
+O ExampleMod está em **0.1.64 nos fontes**, sem pacote de entrega ou APK.

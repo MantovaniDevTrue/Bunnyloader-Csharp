@@ -216,7 +216,9 @@ bool publish(std::string* error, const std::string& modFilter) {
     const std::array<FieldInfo*, 3> fields{tables.assets, tables.widths, tables.heights};
     for (size_t i = 0; i < fields.size(); ++i) {
         auto* value = a.gchandle_get_target(roots.handles[i]);
-        a.field_static_set_value(fields[i], &value);
+        // IL2CPP StaticSetValue takes a reference object directly. Value-type
+        // fields take a pointer to their bytes (see bridge/Bindings.cpp).
+        a.field_static_set_value(fields[i], value);
     }
     dirty = false;
     for (auto& [key, entry] : entries) { (void)key; entry.published = entry.asset && !entry.failed; }

@@ -66,7 +66,11 @@ void initializeExports() {
     exports.class_get_name=[](Il2CppClass* c){return c->name;};
     exports.class_get_namespace=[](Il2CppClass* c){return c->ns;};
     exports.field_static_get_value=[](FieldInfo* f,void* p){if(f==&fieldCount)*static_cast<int*>(p)=3;else *static_cast<Il2CppArray**>(p)=f->array;};
-    exports.field_static_set_value=[](FieldInfo* f,void* p){++writes;f->array=*static_cast<Il2CppArray**>(p);};
+    exports.field_static_set_value=[](FieldInfo* f,void* p){
+        auto* array=static_cast<Il2CppArray*>(p);
+        assert(array && array->obj.klass==f->type.cls);
+        ++writes;f->array=array;
+    };
     exports.gchandle_new=[](Il2CppObject* p,bool){uint32_t id=nextRoot++;roots[id]=p;return id;};
     exports.gchandle_free=[](uint32_t id){roots.erase(id);};
     exports.gchandle_get_target=[](uint32_t id){return roots.at(id);};

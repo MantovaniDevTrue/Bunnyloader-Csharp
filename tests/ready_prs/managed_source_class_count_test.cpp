@@ -47,16 +47,16 @@ int main(int argc, char** argv) {
             return 1;
         }
     }
-    assert(types.size() == 73);
+    assert(types.size() == 74);
     assert(mod.dusts == 1);
     assert(mod.walls == 1);
     assert(mod.rarities == 2);
     assert(mod.localizationModules == 1);
     assert(mod.commands == 4);
-    assert(expectedManagedSourceTypes(mod) == 74);
+    assert(expectedManagedSourceTypes(mod) == 75);
     const std::string status =
         "state=finished\nmodId=full-example\nphase=compile-verified\n"
-        "assemblyReady=1\nexecutedTypes=74\n";
+        "assemblyReady=1\nexecutedTypes=75\n";
     assert(managedSourceCompileFinished(status, mod.id, mod));
     if (argc == 3) {
         std::ifstream inventory(argv[2]);
@@ -73,6 +73,6 @@ int main(int argc, char** argv) {
     assert(!managedSourceCompileFinished("state=finished\nmodId=pure\nphase=compile-verified\nassemblyReady=1\nexecutedTypes=0\n","pure",pure));
     --mod.dusts;
     assert(!managedSourceCompileFinished(status, mod.id, mod));
-    std::cout << "FULL_EXAMPLE_NATIVE_MANAGED_COUNT=PASS expected=74"
+    std::cout << "FULL_EXAMPLE_NATIVE_MANAGED_COUNT=PASS expected=75"
               << " rarities=2 dust=1 wall=1 localization=1 commands=4 backgrounds=1\n";
 }

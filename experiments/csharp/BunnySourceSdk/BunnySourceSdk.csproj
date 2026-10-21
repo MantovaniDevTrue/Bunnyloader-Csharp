@@ -32,6 +32,7 @@
     <Compile Include="../BunnyCsSdk/BunnySoundStyle.cs" Link="BunnySoundStyle.cs" />
     <Compile Include="../BunnyCsSdk/BunnySounds.cs" Link="BunnySounds.cs" />
     <Compile Include="../BunnyCsSdk/BunnyWall.cs" Link="BunnyWall.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyGore.cs" Link="BunnyGore.cs" />
     <Compile Include="../BunnyCsSdk/BunnyTile.cs" Link="BunnyTile.cs" />
     <Compile Include="../BunnyCsSdk/BunnyTileRuntime.cs" Link="BunnyTileRuntime.cs" />
     <Compile Include="../BunnyCsSdk/BunnyDustEffects.cs" Link="BunnyDustEffects.cs" />

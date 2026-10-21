@@ -66,6 +66,8 @@ jobs:
           done
       - name: Background texture registry CSharp native round trip and JS interoperability
         run: bash tests/backgrounds/run.sh
+      - name: Gore actual ExampleMod callbacks to production native registry
+        run: bash tests/gore/run.sh
       - name: APK source completeness gate must reject this unfinished scope
         run: python3 -m unittest discover -s tests/loader_delivery -p "test_*.py"
       - name: Existing five-loader combined regression suite
@@ -118,7 +120,7 @@ jobs:
             "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "ndk;$NDK_VERSION"
           fi
           CXX="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android34-clang++"
-          for file in SourceParser SourceLoader AutoSourceRuntime ManagedRuntime NativeCommandChatHooks ManagedSoundLoader NativeRarityGameplay NativeDustEmission NativeCSharpItemUse UniversalSystemStages UniversalHooks; do
+          for file in SourceParser SourceLoader AutoSourceRuntime ManagedRuntime NativeCommandChatHooks ManagedSoundLoader NativeRarityGameplay NativeDustEmission NativeCSharpItemUse UniversalSystemStages UniversalHooks ManagedGoreDiscovery ManagedGoreRuntime; do
             "$CXX" -std=c++20 -fsyntax-only -fexceptions -frtti -D__ANDROID__ -DANDROID -D_GNU_SOURCE -Iapp/src/main/cpp -Iapp/src/main/cpp/third_party/quickjs "app/src/main/cpp/experiments/csharp/$file.cpp"
           done
           "$CXX" -std=c++20 -fsyntax-only -fexceptions -frtti -D__ANDROID__ -DANDROID -D_GNU_SOURCE -Iapp/src/main/cpp app/src/main/cpp/content/backgrounds/BackgroundTextures.cpp
@@ -146,7 +148,7 @@ jobs:
           test -n "$LIB"
           NM="$ANDROID_HOME/ndk/30.0.16248370/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-nm"
           "$NM" -D --defined-only "$LIB" > "$RUNNER_TEMP/bunny-native-symbols.txt"
-          for symbol in bunny_csharp_sound_register bunny_csharp_sound_play bunny_item_use_bind bunny_item_use_poll_context bunny_dust_emit bunny_background_texture_slot; do
+          for symbol in bunny_csharp_sound_register bunny_csharp_sound_play bunny_item_use_bind bunny_item_use_poll_context bunny_dust_emit bunny_background_texture_slot bunny_csharp_gore_type bunny_csharp_gore_type_any bunny_csharp_gore_spawn bunny_csharp_gore_configure bunny_csharp_gore_configure_v2 bunny_csharp_gore_last_error; do
             if ! grep -F -q "$symbol" "$RUNNER_TEMP/bunny-native-symbols.txt"; then
               echo "Missing native export: $symbol" >&2
               exit 1

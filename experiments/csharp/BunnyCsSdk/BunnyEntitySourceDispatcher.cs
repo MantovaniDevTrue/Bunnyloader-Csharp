@@ -13,6 +13,9 @@ public static class BunnyEntitySourceDispatcher
         public int Generation;
         public int Age;
         public bool Blocked;
+        public float X, Y, VelocityX, VelocityY;
+        public int Life, LifeMax;
+        public long NativeIdentity;
     }
 
     private struct ProjectileInstance
@@ -82,14 +85,18 @@ public static class BunnyEntitySourceDispatcher
                 if (!type.IsClass || type.IsAbstract || type.ContainsGenericParameters) continue;
                 if (typeof(BunnyNPC).IsAssignableFrom(type))
                 {
-                    if (Activator.CreateInstance(type) is BunnyNPC npc &&
-                        !context.NamedNpcs.TryAdd(type.Name, npc))
+                    var npc = (BunnyNPC)Activator.CreateInstance(type)!;
+                    npc.ModId = modId;
+                    npc.SetDefaults();
+                    if (!context.NamedNpcs.TryAdd(type.Name, npc))
                         throw new InvalidOperationException("Duplicated NPC class " + type.Name);
                 }
                 else if (typeof(BunnyProjectile).IsAssignableFrom(type))
                 {
-                    if (Activator.CreateInstance(type) is BunnyProjectile projectile &&
-                        !context.NamedProjectiles.TryAdd(type.Name, projectile))
+                    var projectile = (BunnyProjectile)Activator.CreateInstance(type)!;
+                    projectile.ModId = modId;
+                    projectile.SetDefaults();
+                    if (!context.NamedProjectiles.TryAdd(type.Name, projectile))
                         throw new InvalidOperationException("Duplicated projectile class " + type.Name);
                 }
                 else if (typeof(BunnyItem).IsAssignableFrom(type))
@@ -414,7 +421,9 @@ public static class BunnyEntitySourceDispatcher
     private static void Fault(Context context, string phase, Exception error)
     {
         context.Faults++;
-        context.LastError = phase + ": " + error.GetType().Name + ": " + error.Message;
+        context.LastError = "[CSharp][ERROR][Callback] Mod=" + context.Mod +
+            " Assembly=" + context.Path + " Callback=" + phase +
+            " Stage=Invoke Result=InstanceCallbackBlocked Reason=ManagedException Exception=" + error;
     }
 
     public static long TickNpc(int modSlot, int type, int slot, int generation,
@@ -449,6 +458,8 @@ public static class BunnyEntitySourceDispatcher
             instance = new NpcInstance { Generation = generation, Type = type };
         }
         if (instance.Blocked) return -1;
+        instance.X=x;instance.Y=y;instance.VelocityX=vx;instance.VelocityY=vy;
+        instance.Life=life;instance.LifeMax=lifeMax;instance.NativeIdentity=nativeIdentity;
         var state = new BunnyNpcAiState {
             Slot = slot, Type = type, Generation = generation, Life = life, LifeMax = lifeMax,
             Age = instance.Age, X = x, Y = y, VelocityX = vx, VelocityY = vy,
@@ -540,7 +551,11 @@ public static class BunnyEntitySourceDispatcher
         ref NpcInstance instance = ref context.NpcSlots[slot];
         if (instance.Type != type || instance.Generation != generation || instance.Blocked ||
             !context.Npcs.TryGetValue(type, out BunnyNPC? npc)) return false;
-        var state = new BunnyNpcAiState { Slot = slot, Type = type, Generation = generation, Age = instance.Age };
+        var state = new BunnyNpcAiState {
+            Slot=slot,Type=type,Generation=generation,Age=instance.Age,
+            X=instance.X,Y=instance.Y,VelocityX=instance.VelocityX,VelocityY=instance.VelocityY,
+            Life=instance.Life,LifeMax=instance.LifeMax,NativeIdentity=instance.NativeIdentity
+        };
         try
         {
             npc.OnHit(ref state, damage);
@@ -548,6 +563,7 @@ public static class BunnyEntitySourceDispatcher
             if (killed)
             {
                 instance.Blocked = true;
+                state.Life=0;
                 npc.OnKill(ref state);
                 foreach (BunnyInvasionSystem invasion in context.Invasions.Values)
                     invasion.Pipeline.Controller.ReportKill(true, slot, generation, npc.GetType().Name);
@@ -603,7 +619,9 @@ public static class BunnyEntitySourceDispatcher
             !context.Npcs.TryGetValue(type, out BunnyNPC? npc)) return false;
         instance.Blocked = true;
         var state = new BunnyNpcAiState {
-            Slot = slot, Type = type, Generation = generation, Age = instance.Age
+            Slot = slot, Type = type, Generation = generation, Age = instance.Age,
+            X=instance.X,Y=instance.Y,VelocityX=instance.VelocityX,VelocityY=instance.VelocityY,
+            Life=0,LifeMax=instance.LifeMax,NativeIdentity=instance.NativeIdentity
         };
         try
         {
