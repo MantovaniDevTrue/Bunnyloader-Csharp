@@ -25,6 +25,8 @@ struct Registration {
     std::string icon;
     bool active = false;
     bool pendingTap = false;
+    bool visible = true;
+    bool enabled = true;
     uint32_t state = 0;
 };
 
@@ -35,6 +37,9 @@ public:
             std::string_view label, std::string_view icon);
     // Pressões registradas entre dois GameUpdateCount sobrevivem ao próximo frame.
     bool tap(int id);
+    bool policies(int id, bool visible, bool enabled);
+    bool visible(int id) const;
+    bool enabled(int id) const;
     // IDs referem-se às ações desta sessão, não a enums do Terraria.
     // Nenhum acesso IL2CPP acontece nesta classe.
     int frame(int64_t tick, bool inGame, bool chat, bool npc, bool sign,
@@ -71,6 +76,7 @@ extern "C" {
 __attribute__((visibility("default"))) int bunny_csharp_touch_register(
     const char* owner, const char* name, const char* label, const char* icon);
 __attribute__((visibility("default"))) int bunny_csharp_touch_tap(int id);
+__attribute__((visibility("default"))) int bunny_csharp_touch_policies(int id, int visible, int enabled);
 __attribute__((visibility("default"))) int bunny_csharp_touch_frame(
     int64_t tick, int inGame, int chat, int npc, int sign,
     const int* held, int heldCount, const int* bound, int boundCount);
