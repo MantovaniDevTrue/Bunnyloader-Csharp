@@ -661,7 +661,7 @@
     {
       "loader": "GoreLoader",
       "pullRequest": 121,
-      "implementation": "implemented-awaiting-ci",
+      "implementation": "implemented",
       "android": "not-tested",
       "publicApi": [
         "experiments/csharp/BunnyCsSdk/BunnyGore.cs"
@@ -674,7 +674,13 @@
         "tests/gore/Program.cs",
         "tests/gore/mixed_js_gore_test.cjs"
       ],
-      "note": "Integracao adicional de PR existente; nao remove pendencias dos quinze alvos."
+      "note": "Integracao adicional de PR existente; nao remove pendencias dos quinze alvos.",
+      "automatedValidation": {
+        "commit": "c5946f82324d01ffdacdf6f30079397cff013ef1",
+        "runId": 39680627977,
+        "result": "passed",
+        "scope": "Host contracts, ARM64 syntax and full native library link; subsequent bounded-exception diagnostic hardening requires its own CI."
+      }
     }
   ]
 }

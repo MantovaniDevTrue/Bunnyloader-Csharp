@@ -38,6 +38,7 @@ Il2CppType parameters[]={{&vectorClass},{&vectorClass},{&integer},{&real}}, retu
 struct Box {Il2CppObject header;int value; } result{{&integer,nullptr},1};
 int gameTid=gettid(),writes=0,reads=0,resizes=0,failResize=-1,loads=0,destroys=0,failLoad=-1,spawns=0;
 int lastType=0;float lastX=0,lastY=0;
+bool failInvocation=false;
 std::map<uint32_t,Il2CppObject*> roots;
 uint32_t nextRoot=1;
 std::vector<void*> buffers;
@@ -116,6 +117,7 @@ void initialize(){
    static_cast<Il2CppObject**>(arrayData(arr))[index]=static_cast<Il2CppObject*>(args[0]);return nullptr;
   }
   assert(m==&newGore && self==nullptr && gettid()==gameTid);
+  if(failInvocation){*error=&result.header;return nullptr;}
   ++spawns;lastType=*static_cast<int*>(args[2]);
   std::memcpy(&lastX,static_cast<unsigned char*>(args[0])+4,4);
   std::memcpy(&lastY,args[0],4);
@@ -186,6 +188,11 @@ int main(){
  assert(static_cast<int32_t*>(arrayData(goreFields[2].array))[externalType]==7);
  assert(bunny_csharp_gore_spawn("a",name.c_str(),120,240,2,-1,1)==1);pumpOnGameThread();
  assert(spawns==1 && lastType==type && lastX==120 && lastY==240);
+ failInvocation=true;
+ fixture.format_exception=[](Il2CppObject*,char* out,int size){std::memset(out,'X',size);};
+ assert(bunny_csharp_gore_spawn("a",name.c_str(),120,240,2,-1,1));pumpOnGameThread();
+ assert(spawns==1 && lastRequestError.find("Reason=NativeException")!=std::string::npos && lastRequestError.size()<4096);
+ failInvocation=false;
  assert(bunny_csharp_gore_spawn("b",name.c_str(),1,2,0,0,1));worldBoundary();worldReady();pumpOnGameThread();assert(spawns==1);
  for(int i=0;i<128;++i)assert(bunny_csharp_gore_spawn("b",name.c_str(),1,2,0,0,1));
  assert(!bunny_csharp_gore_spawn("b",name.c_str(),1,2,0,0,1));pumpOnGameThread();assert(spawns==33);

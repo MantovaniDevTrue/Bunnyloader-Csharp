@@ -394,20 +394,22 @@ bool repairOnGameThread(std::string* error=nullptr) {
 
 bool callSpawn(const Spawn& request,std::string* error) {
     if (!g_tables.ready || !g_tables.newGore) return false;
-    std::array<unsigned char,sizeof(Vec2)> position{},velocity{};
+    alignas(Vec2) std::array<unsigned char,sizeof(Vec2)> position{},velocity{};
     std::memcpy(position.data()+g_tables.vectorX,&request.position.x,4);
     std::memcpy(position.data()+g_tables.vectorY,&request.position.y,4);
     std::memcpy(velocity.data()+g_tables.vectorX,&request.velocity.x,4);
     std::memcpy(velocity.data()+g_tables.vectorY,&request.velocity.y,4);
     int type = request.type;
     float scale = request.scale;
-    void* args[] = {&position, &velocity, &type, &scale};
+    void* args[] = {position.data(), velocity.data(), &type, &scale};
     Il2CppObject* exception = nullptr;
     auto& a=il2cpp::api();
     auto* boxed=a.runtime_invoke(g_tables.newGore, nullptr, args, &exception);
     if(exception) {
         std::array<char,2048> text{};
         if(a.format_exception)a.format_exception(exception,text.data(),int(text.size()));
+        // il2cpp_format_exception may fill the entire buffer without a NUL.
+        text.back()=0;
         return failure(error,"Invoke","Gore.NewGore","NativeInt32Result",a.format_exception ? text.data() : "NativeException,FormatterUnavailable","NativeException");
     }
     if(!boxed || !primitive(a.object_get_class(boxed),"Int32",4))

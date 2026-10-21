@@ -131,3 +131,20 @@ e liberar registros, texturas e estados no descarregamento.
 PR #122, head `bcaa1322`, ainda usa `Split/Bunny-Loader`: adaptar os novos arquivos
 e as integrações de WorldSave à raiz atual; não mesclar as remoções de layout.
 Não há integração parcial de Keybind/WorldSave nesta branch.
+
+## Evidência de CI da correção de ABI
+
+[CI #39680627977](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39680627977)
+foi aprovada no commit `c5946f82`: testes gerenciados/contratos, host nativo,
+sintaxe ARM64 e linkagem completa de `libbunny.so`, sem APK.
+Os workflows de localização, raridades, Dust/ARM64, invasões, comandos,
+SystemUpdate e Gore também passaram nessa revisão.
+
+O complemento posterior alinha os buffers Vector2 e limita explicitamente a
+terminação do texto de `il2cpp_format_exception`, cujo contrato permite saída
+sem NUL. O fixture reproduz esse caso. A suíte Gore passou com `-fno-exceptions`,
+`-fno-rtti`, ASan e UBSan (o leak detector fica desligado neste fixture de heap
+IL2CPP; a quantidade de raízes residentes é verificada por asserts). O SDK
+público gerado continua em 155 tipos; os quatro testes do bloqueio de APK passam.
+Os quinze alvos continuam com 14 pendências, além das integrações adicionais.
+Não há teste Android nem APK deste trabalho.
