@@ -2395,6 +2395,127 @@ void resumeUniversalHookMods() {
 // Registration queues one job per mod, then each cloud's type IDs are
 // bound on the pinned MonoVM worker. This is intentionally not called by the
 // source loader until native CloudMasks and hooks are proven safe.
+bool registerManagedBiomeSourceMod(
+    const std::string& modId, const std::string& assemblyPath,
+    const std::vector<std::string>& biomeClasses) {
+    if (!validNativeBiomeIdentifier(modId, true) ||
+        assemblyPath.empty() || assemblyPath.size() > 2048 ||
+        assemblyPath.find("..") != std::string::npos ||
+        biomeClasses.empty() || biomeClasses.size() > 64)
+        return false;
+
+    std::set<std::string> uniqueClasses;
+    for (const auto& name : biomeClasses)
+        if (!validNativeBiomeIdentifier(name, false) ||
+            !uniqueClasses.insert(name).second)
+            return false;
+
+    std::lock_guard<std::mutex> lock(g_pinnedMutex);
+    if (!g_cloudDispatcherHealthy || g_cloudQueue.size() >= 64)
+        return false;
+
+    size_t index = g_cloudBindings.size();
+    for (size_t i = 0; i < g_cloudBindings.size(); ++i) {
+        if (g_cloudBindings[i].modId != modId) continue;
+        if (g_cloudBindings[i].assemblyPath != assemblyPath ||
+            !g_cloudBindings[i].biomeNames.empty())
+            return false;
+        index = i;
+        break;
+    }
+    if (index == g_cloudBindings.size()) {
+        if (g_cloudBindings.size() >= 16) return false;
+        g_cloudBindings.push_back({modId, assemblyPath, {}, false, false});
+    }
+    g_cloudBindings[index].biomeNames = biomeClasses;
+    CloudWorkerJob job{};
+    job.kind = 4;
+    job.binding = static_cast<int>(index);
+    job.session = g_cloudSession;
+    g_cloudQueue.push_back(std::move(job));
+    g_pinnedWake.notify_one();
+    return true;
+}
+
+bool managedBiomeRegistrationReady(const std::string& modId) {
+    std::unique_lock<std::mutex> lock(g_pinnedMutex, std::try_to_lock);
+    if (!lock.owns_lock() || !g_cloudDispatcherHealthy) return false;
+    for (const auto& binding : g_cloudBindings)
+        if (binding.modId == modId)
+            return binding.biomeReady && !binding.biomeFailed;
+    return false;
+}
+
+bool takeManagedBiomeManifest(const std::string& modId,
+                              std::string* result) {
+    if (!result) return false;
+    std::unique_lock<std::mutex> lock(g_pinnedMutex, std::try_to_lock);
+    if (!lock.owns_lock()) return false;
+    auto found = g_biomeManifestReplies.find(modId);
+    if (found == g_biomeManifestReplies.end()) return false;
+    *result = std::move(found->second);
+    g_biomeManifestReplies.erase(found);
+    return true;
+}
+
+bool requestManagedBiomeSnapshot(const std::string& modId,
+    bool gameMenu, bool playerActive, float positionX, int maxTilesX,
+    bool zoneSkyHeight, bool zoneOverworldHeight,
+    const std::string& tileCountsWire, uint64_t generation) {
+    if (generation == 0 || tileCountsWire.size() > 4096 ||
+        !std::isfinite(positionX) ||
+        maxTilesX < 0 || maxTilesX > 100000 ||
+        (!gameMenu && !playerActive) ||
+        tileCountsWire.find_first_not_of(
+            "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_=;-") !=
+            std::string::npos)
+        return false;
+
+    std::unique_lock<std::mutex> lock(g_pinnedMutex, std::try_to_lock);
+    if (!lock.owns_lock() || !g_cloudDispatcherHealthy ||
+        !g_pinnedStarted || g_pinnedPending || g_cloudQueue.size() >= 64 ||
+        g_biomeSnapshotsPending.count(modId) ||
+        g_biomeActiveReplies.count(modId))
+        return false;
+    for (size_t i = 0; i < g_cloudBindings.size(); ++i) {
+        const auto& binding = g_cloudBindings[i];
+        if (binding.modId != modId ||
+            !binding.biomeReady || binding.biomeFailed)
+            continue;
+
+        CloudWorkerJob job{};
+        job.kind = 5;
+        job.binding = static_cast<int>(i);
+        job.session = g_cloudSession;
+        job.weightGeneration = generation;
+        job.gameMenu = gameMenu;
+        job.playerActive = playerActive;
+        job.positionX = positionX;
+        job.maxTilesX = maxTilesX;
+        job.skyHeight = zoneSkyHeight;
+        job.overworldHeight = zoneOverworldHeight;
+        job.tileCounts = tileCountsWire;
+        g_cloudQueue.push_back(std::move(job));
+        g_biomeSnapshotsPending.insert(modId);
+        g_pinnedWake.notify_one();
+        return true;
+    }
+    return false;
+}
+
+bool takeManagedBiomeSnapshot(const std::string& modId,
+    uint64_t generation, std::string* result) {
+    if (!result || generation == 0) return false;
+    std::unique_lock<std::mutex> lock(g_pinnedMutex, std::try_to_lock);
+    if (!lock.owns_lock()) return false;
+    auto found = g_biomeActiveReplies.find(modId);
+    if (found == g_biomeActiveReplies.end()) return false;
+    const bool current = found->second.first == generation;
+    if (current) *result = std::move(found->second.second);
+    g_biomeActiveReplies.erase(found);
+    return current;
+}
+
 bool registerManagedCloudSourceMod(
     const std::string& modId, const std::string& assemblyPath,
     const std::vector<std::pair<int, std::string>>& clouds) {
