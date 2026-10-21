@@ -426,6 +426,7 @@ struct ManagedEntityBinding {
     bool invasionSupported = true;
     bool firstWorldTickReported = false;
     bool firstWorldErrorReported = false;
+    bool firstWorldUseReported = false;
 };
 
 struct ManagedEntityJob {
@@ -1222,6 +1223,46 @@ int64_t executeManagedEntityOnWorker(const ManagedEntityJob& job) {
         if (!raw) return -1;
         int32_t count = -1;
         std::memcpy(&count, raw, sizeof(count));
+        if (count > 0 && g_entityStatusMethod) {
+            bool needsUseStatus = false;
+            {
+                std::lock_guard<std::mutex> guard(g_pinnedMutex);
+                if (job.session == g_entitySession && job.binding >= 0 &&
+                    static_cast<size_t>(job.binding) < g_entityBindings.size())
+                    needsUseStatus = !g_entityBindings[static_cast<size_t>(job.binding)].firstWorldUseReported;
+            }
+            if (needsUseStatus) {
+                void* statusArgs[] = {&managedSlot};
+                void* statusError = nullptr;
+                void* status = g_api.invoke(g_entityStatusMethod, nullptr, statusArgs, &statusError);
+                if (status && !statusError) {
+                    auto utf8 = resolve<char* (*)(void*)>("mono_string_to_utf8");
+                    auto release = resolve<void (*)(void*)>("mono_free");
+                    if (utf8 && release) {
+                        char* message = utf8(status);
+                        if (message) {
+                            std::string details(message, strnlen(message, 384));
+                            release(message);
+                            const auto use = details.find("lastUse=");
+                            if (use != std::string::npos &&
+                                details.compare(use + 8, 4, "None") != 0) {
+                                {
+                                    std::lock_guard<std::mutex> guard(g_pinnedMutex);
+                                    if (job.session == g_entitySession && job.binding >= 0 &&
+                                        static_cast<size_t>(job.binding) < g_entityBindings.size())
+                                        g_entityBindings[static_cast<size_t>(job.binding)].firstWorldUseReported = true;
+                                }
+#ifdef __ANDROID__
+                                __android_log_print(ANDROID_LOG_INFO, "BunnyCSharp",
+                                    "[CSharp][ItemUse] Mod=%s Stage=OnUseResult %s",
+                                    binding.modId.c_str(), details.substr(use).c_str());
+#endif
+                            }
+                        }
+                    }
+                }
+            }
+        }
         bool reportError = false;
         if (count < 0) {
             std::lock_guard<std::mutex> guard(g_pinnedMutex);
