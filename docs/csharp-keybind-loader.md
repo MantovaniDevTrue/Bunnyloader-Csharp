@@ -192,3 +192,25 @@ repositório. Não valida offsets ou assinaturas no libil2cpp do telefone.
 
 **Segurança:** bunny_csharp_touch_host_ready() permanece zero.
 A PR continua draft; nenhum APK ou pacote de mod foi produzido.
+
+
+## Retomada de 21/10/2026 — sincronização de perfis e preflight
+
+- NativeTouchProfiles reutiliza a instância do perfil e a matriz Controls
+  ao construir IsBound/actionSlots. O scan não repete descoberta IL2CPP
+  do perfil em cada slot.
+- NativeTouchController invalida o snapshot ao sair para o menu e na
+  mudança de identidade do perfil ativo. Alterações internas no mesmo
+  perfil continuam com rechecagem limitada a 30 updates.
+- AutoSourceRuntime ganhou declaração antecipada de
+  compiledSourceHasTouchEntry, necessária para compilar a integração com
+  o worker MonoVM.
+- Source-only CI passou em 39603907421: contratos .NET, ASan/UBSan,
+  compilação dos hooks e integração nativa do worker. Não houve teste
+  real no Terraria Android, nem pacote APK ou .bmod nesta etapa.
+
+Pendências: validar ABI IL2CPP ARM64 em dispositivo, ciclos reais de
+pressionar/soltar, editor com imagens e grupos, layout ao reiniciar e trocar
+perfil, coexistência JS/C#, multiplayer, save/load/share e estabilidade
+sustentada a 60 FPS. A PR permanece draft; nenhuma build de gameplay
+deve ser publicada antes da validação completa.
