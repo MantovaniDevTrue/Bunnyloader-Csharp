@@ -25,7 +25,7 @@ jobs:
       - name: Compile the real source SDK without Android
         run: dotnet build Split/Bunny-Loader/experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj -c Release --nologo
       - name: Test deterministic world codec and rejection cases
-        run: dotnet run --project Split/Bunny-Loader/tests/world_save/BunnyWorldData.Smoke.csproj -c Release --nologo
+        run: dotnet run --project Split/Bunny-Loader/tests/world_save/BunnyWorldData.Smoke.csproj -c Release
       - name: Generate BWC1 fixture from real CSharp SDK
         run: dotnet run --project Split/Bunny-Loader/tests/world_save/BunnyWorldData.Smoke.csproj -c Release -- --emit-fixture /tmp/bunny_worldsave_interop.bwc
       - name: Compile native store with strict diagnostics
