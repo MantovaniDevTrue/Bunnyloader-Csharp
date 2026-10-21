@@ -43,6 +43,7 @@ static class Program
         protected override void PostUpdateProjectiles() => Sequence.Add("A-projectiles-post");
         protected override void PreUpdateItems() => Sequence.Add("A-items-pre");
         protected override void PostUpdateItems() => Sequence.Add("A-items-post");
+        protected override void UpdateUI(nint gameTime) => Sequence.Add("A-ui");
     }
 
     private sealed class B : BunnyWorldUpdateLoader
@@ -105,7 +106,7 @@ static class Program
             "PostUpdateInvasions", "PostUpdateInput",
             "PreUpdatePlayers", "PostUpdatePlayers", "PreUpdateNPCs",
             "PostUpdateNPCs", "PreUpdateGores", "PostUpdateGores",
-            "PostUpdateProjectiles", "PreUpdateItems", "PostUpdateItems"
+            "PostUpdateProjectiles", "PreUpdateItems", "PostUpdateItems", "UpdateUI"
         };
         foreach (string name in events)
         {
@@ -135,11 +136,11 @@ static class Program
         var b = new B();
         var c = new C();
         a.Load(scopeA);
-        Check(BunnyWorldUpdateRegistry.ActiveHookCount == 13, "Faltam hooks dos treze estágios");
-        Check(installs == 13, "Quantidade inicial de hooks");
+        Check(BunnyWorldUpdateRegistry.ActiveHookCount == 14, "Faltam hooks dos catorze estágios");
+        Check(installs == 14, "Quantidade inicial de hooks");
         b.Load(scopeA);
         c.Load(scopeB);
-        Check(installs == 13, "Dois mods instalaram hooks duplicados");
+        Check(installs == 14, "Dois mods instalaram hooks duplicados");
         Check(a.IsRegistered && b.IsRegistered && c.IsRegistered,
             "Inscrições ativas não registradas");
 
@@ -167,6 +168,8 @@ static class Program
         Order("A-projectiles-post,A-items-pre,vanilla");
         Fire("ItemsEnd", "vanilla");
         Order("A-items-post,vanilla");
+        Fire("UIEnd", "vanilla");
+        Order("A-ui,vanilla");
 
         a.ThrowOnBefore = true;
         Fire("DoUpdateInWorld", "vanilla");
@@ -193,7 +196,7 @@ static class Program
         BunnyWorldUpdateRegistry.DetachScope(scopeA);
         Check(BunnyWorldUpdateRegistry.ActiveHookCount == 2,
             "A saída do mod A manteve hooks sem listeners");
-        Check(installs == 15, "Os hooks não migraram para o escopo do mod C");
+        Check(installs == 16, "Os hooks não migraram para o escopo do mod C");
         a.Unload();
         b.Unload();
         empty.Unload();
@@ -261,6 +264,6 @@ static class Program
         BunnyWorldUpdateRegistry.TestHookFactory = null;
 
         Console.WriteLine("SystemUpdateLoader C#: " + assertions +
-            " verificações aprovadas; treze estágios e múltiplos módulos simulados, sem APK.");
+            " verificações aprovadas; catorze estágios e múltiplos módulos simulados, sem APK.");
     }
 }
