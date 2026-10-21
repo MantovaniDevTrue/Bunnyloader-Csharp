@@ -238,7 +238,6 @@ void pumpNativeTouchQuickDrawHookOnGameThread() {
         !nativeTouchIconFrameHooksInstalled()) return;
     static uint32_t probes = 0;
     if (++probes != 1 && probes % 120 != 0) return;
-    auto& api = il2cpp::api();
     Il2CppClass* quick = il2cpp::findClassQuiet("", "GUIQuickActionButton");
     const MethodInfo* full = quick ? il2cpp::findMethodBySignature(
         quick, il2cpp::parseSignature(
