@@ -57,7 +57,7 @@ g++ -std=c++20 -O2 -Iapp/src/main/cpp tests/achievements_csharp/source_parser_te
 dotnet run -c Release --project tests/achievements_csharp/AchievementCoreTests.csproj
 ```
 
-Validação de 21/10/2026: GitHub Actions [39645940498](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39645940498) — parser, fila, metadados e progresso C++ passaram; verificação de sintaxe do registro nativo, GUI e MonoVM passou; **65 verificações .NET** passaram. Isso **não** valida o comportamento dentro do Terraria Android.
+Validação de 21/10/2026: GitHub Actions [39652266785](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39652266785) — parser, fila, metadados V1/V2 e progresso C++ passaram; verificação de sintaxe do registro nativo, GUI e MonoVM passou; **69 verificações .NET** passaram. Isso **não** valida o comportamento dentro do Terraria Android.
 
 ## Pendências que impedem concluir ou gerar APK
 
