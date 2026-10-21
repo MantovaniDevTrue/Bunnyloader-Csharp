@@ -26,31 +26,42 @@ namespace {
 struct NativeMethods {
     Il2CppClass* achievement = nullptr;
     Il2CppClass* condition = nullptr;
+    Il2CppClass* floatCondition = nullptr;
     Il2CppClass* localizedText = nullptr;
     Il2CppObject* manager = nullptr;
     const MethodInfo* achievementCtor = nullptr;
     const MethodInfo* localizedCtor = nullptr;
     const MethodInfo* conditionFactory = nullptr;
+    const MethodInfo* floatFactory = nullptr;
     const MethodInfo* addCondition = nullptr;
     const MethodInfo* trackCondition = nullptr;
+    const MethodInfo* trackMultiple = nullptr;
     const MethodInfo* registerAchievement = nullptr;
     const MethodInfo* registerIcon = nullptr;
     const MethodInfo* registerCategory = nullptr;
     const MethodInfo* setProgress = nullptr;
+    const MethodInfo* setFloatProgress = nullptr;
     const MethodInfo* setTitle = nullptr;
     const MethodInfo* setDescription = nullptr;
     int titleOffset = -1;
     int descriptionOffset = -1;
 };
 
+struct NativeCondition {
+    uint32_t root = 0;
+    std::string key;
+    int kind = 0;
+    double maximum = 1;
+    double applied = -1;
+};
+
 struct NativeEntry {
     uint32_t achievementRoot = 0;
-    uint32_t conditionRoot = 0;
+    std::vector<NativeCondition> conditions;
     uint32_t titleRoot = 0;
     uint32_t descriptionRoot = 0;
     uint32_t hiddenRoot = 0;
     uint32_t assetRoot = 0;
-    int applied = -1;
     bool hiddenApplied = false;
     bool managerRegistered = false;
     bool iconRegistered = false;
@@ -139,10 +150,12 @@ bool preflight(std::string* error) {
     methods.achievement = il2cpp::findClass({"Terraria.Achievements", "Achievement", {}});
     methods.condition = il2cpp::findClass({
         "Terraria.GameContent.Achievements", "CustomIntCondition", {}});
+    methods.floatCondition = il2cpp::findClass({
+        "Terraria.GameContent.Achievements", "CustomFloatCondition", {}});
     methods.localizedText = il2cpp::findClass({
         "Terraria.Localization", "LocalizedText", {}});
     if (!mainClass || !methods.achievement || !methods.condition ||
-        !methods.localizedText) {
+        !methods.floatCondition || !methods.localizedText) {
         *error = "Native achievement classes unavailable";
         return false;
     }
@@ -172,6 +185,7 @@ bool preflight(std::string* error) {
     NativeMethods resolved{};
     resolved.achievement = methods.achievement;
     resolved.condition = methods.condition;
+    resolved.floatCondition = methods.floatCondition;
     resolved.localizedText = methods.localizedText;
     resolved.manager = manager;
     resolved.achievementCtor = require(resolved.achievement,
@@ -180,10 +194,14 @@ bool preflight(std::string* error) {
         "void .ctor(string key, string text)", true, error);
     resolved.conditionFactory = require(resolved.condition,
         "AchievementCondition Create(string name, int maxValue)", false, error);
+    resolved.floatFactory = require(resolved.floatCondition,
+        "AchievementCondition Create(string name, float maxValue)", false, error);
     resolved.addCondition = require(resolved.achievement,
         "void AddCondition(AchievementCondition condition)", true, error);
     resolved.trackCondition = require(resolved.achievement,
         "void UseTrackerFromCondition(string conditionName)", true, error);
+    resolved.trackMultiple = require(resolved.achievement,
+        "void UseConditionsCompletedTracker()", true, error);
     resolved.registerAchievement = require(managerClass,
         "void Register(Achievement achievement)", true, error);
     resolved.registerIcon = require(managerClass,
@@ -193,11 +211,14 @@ bool preflight(std::string* error) {
         true, error);
     resolved.setProgress = require(resolved.condition,
         "void set_Value(int value)", true, error);
+    resolved.setFloatProgress = require(resolved.floatCondition,
+        "void set_Value(float value)", true, error);
     if (!resolved.achievementCtor || !resolved.localizedCtor ||
-        !resolved.conditionFactory || !resolved.addCondition ||
-        !resolved.trackCondition || !resolved.registerAchievement ||
+        !resolved.conditionFactory || !resolved.floatFactory ||
+        !resolved.addCondition || !resolved.trackCondition ||
+        !resolved.trackMultiple || !resolved.registerAchievement ||
         !resolved.registerIcon || !resolved.registerCategory ||
-        !resolved.setProgress)
+        !resolved.setProgress || !resolved.setFloatProgress)
         return false;
 
     // FriendlyName/Description são propriedades no Bunny. Aceitar setter
