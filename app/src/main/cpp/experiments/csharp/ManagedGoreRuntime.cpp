@@ -193,12 +193,20 @@ bool spawnSignature(Tables& next,std::string* error) {
 bool init(std::string* error) {
     if (g_tables.ready) return true;
     auto& a = il2cpp::api();
-    if(!a.field_get_flags || !a.field_get_type || !a.class_from_il2cpp_type || !a.object_get_class ||
-       !a.class_get_rank || !a.class_get_element_class || !a.class_get_name || !a.class_get_namespace ||
-       !a.class_is_valuetype || !a.class_value_size || !a.field_static_get_value || !a.field_static_set_value ||
-       !a.gchandle_new || !a.gchandle_get_target || !a.gchandle_free || !a.runtime_invoke ||
-       !a.method_is_instance || !a.method_get_param || !a.method_get_return_type)
-        return failure(error,"BindExports","IL2CPP","TypedArrays,GC,Invocation","MissingExports","MetadataUnavailable");
+    std::string missing;
+#define REQUIRE_GORE_EXPORT(name) if(!a.name) { if(!missing.empty()) missing+=','; missing+=#name; }
+    REQUIRE_GORE_EXPORT(field_get_flags) REQUIRE_GORE_EXPORT(field_get_type)
+    REQUIRE_GORE_EXPORT(class_from_il2cpp_type) REQUIRE_GORE_EXPORT(object_get_class)
+    REQUIRE_GORE_EXPORT(class_get_rank) REQUIRE_GORE_EXPORT(class_get_element_class)
+    REQUIRE_GORE_EXPORT(class_get_name) REQUIRE_GORE_EXPORT(class_get_namespace)
+    REQUIRE_GORE_EXPORT(class_is_valuetype) REQUIRE_GORE_EXPORT(class_value_size)
+    REQUIRE_GORE_EXPORT(field_static_get_value) REQUIRE_GORE_EXPORT(field_static_set_value)
+    REQUIRE_GORE_EXPORT(gchandle_new) REQUIRE_GORE_EXPORT(gchandle_get_target)
+    REQUIRE_GORE_EXPORT(gchandle_free) REQUIRE_GORE_EXPORT(runtime_invoke)
+    REQUIRE_GORE_EXPORT(method_is_instance) REQUIRE_GORE_EXPORT(method_get_param)
+    REQUIRE_GORE_EXPORT(method_get_return_type)
+#undef REQUIRE_GORE_EXPORT
+    if(!missing.empty()) return failure(error,"BindExports","IL2CPP","TypedArrays,GC,Invocation",missing,"RequiredExportMissing");
     auto* assets = il2cpp::findClass({"Terraria.GameContent", "TextureAssets", {}});
     auto* goreId = il2cpp::findClass({"Terraria.ID", "GoreID", {}});
     auto* sets = goreId ? il2cpp::findNested(goreId, "Sets") : nullptr;
@@ -509,20 +517,16 @@ bool install(const std::string& modId, const std::vector<Source>& sources,
     }
     // Prepare C++ ownership/index allocations too, before exposing any native
     // arrays. A failed index allocation must not leave half-registered types.
-    std::shared_ptr<TypeIndex> next;
-    std::vector<NativeEntry> combined;
-    try {
-        next=std::make_shared<TypeIndex>(*current);combined=g_entries;
-        combined.reserve(combined.size()+batch.entries().size());
-        for (size_t i = 0; i < batch.entries().size(); ++i) {
-            const auto& entry = batch.entries()[i];
-            combined.emplace_back(entry, roots[i]);
-            next->emplace(Key{entry.modId, entry.source.name}, entry.type);
-            next->try_emplace(Key{"", entry.source.name}, entry.type);
-        }
-    } catch(const std::exception& exception) {
-        destroyUncommitted(roots);
-        return failure(error,"PrepareCommit","GoreIndex","AllocatedOwnershipIndex",exception.what(),"AllocationFailed");
+    // Keep the core's -fno-exceptions ABI: no C++ catch/unwind may cross an
+    // IL2CPP frame. Runtime-invoke reports managed exceptions via its out slot.
+    auto next=std::make_shared<TypeIndex>(*current);
+    auto combined=g_entries;
+    combined.reserve(combined.size()+batch.entries().size());
+    for (size_t i = 0; i < batch.entries().size(); ++i) {
+        const auto& entry = batch.entries()[i];
+        combined.emplace_back(entry, roots[i]);
+        next->emplace(Key{entry.modId, entry.source.name}, entry.type);
+        next->try_emplace(Key{"", entry.source.name}, entry.type);
     }
     // All assets, array roots, values and C++ ownership are now ready.
     publishTables(expanded,pins);

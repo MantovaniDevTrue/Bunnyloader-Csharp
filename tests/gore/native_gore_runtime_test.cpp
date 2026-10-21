@@ -142,6 +142,9 @@ int main(){
  using namespace bl::csharp::gore;
  initialize();std::vector<Source> sources;std::string error;
  assert(discover("samples/ExampleModCSharp/Playable",&sources,&error) && sources.size()==3);
+ auto savedInvoke=fixture.runtime_invoke;fixture.runtime_invoke=nullptr;
+ assert(!install("a",sources,&error) && error.find("Actual=runtime_invoke")!=error.npos);
+ fixture.runtime_invoke=savedInvoke;
  goreFields[0].flags=0;assert(!install("a",sources,&error) && reads==0 && writes==0);
  assert(error.find("Field=TextureAssets.Gore")!=error.npos);goreFields[0].flags=0x10;
  goreFields[0].type.cls=&integer;assert(!install("a",sources,&error) && reads==0);goreFields[0].type.cls=&textureArray;

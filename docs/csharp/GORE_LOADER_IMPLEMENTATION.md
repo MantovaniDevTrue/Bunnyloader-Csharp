@@ -3,7 +3,7 @@
 Integração atual: `feat/csharp-loader-completion-15-20261021`, sobre `5a18a678`.
 O histórico da PR #121 foi preservado. Estado: implementado em fonte,
 testado automaticamente; aguardando CI desta integração e QA Android.
-Esta implementação **não substitui o GoreLoader JavaScript** e não usa APIs do tModLoader. 
+Esta implementação **não substitui o GoreLoader JavaScript** e não usa APIs do tModLoader.
 Os PNGs presentes em `samples/ExampleModCSharp/Playable/content/Content/Gores/`
 foram reaproveitados integralmente do ExampleModBunny do próprio repositório.
 

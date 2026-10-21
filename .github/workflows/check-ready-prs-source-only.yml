@@ -27,6 +27,8 @@ jobs:
           dotnet build experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj -c Release --nologo
           dotnet build experiments/csharp/BunnySourceCompiler/BunnySourceCompiler.csproj -c Release --nologo
           dotnet build tests/ready_prs/FullExampleManaged.csproj -c Release --nologo
+      - name: Check generated reference for the complete public SDK
+        run: dotnet run --project tools/sdk_reference/SdkReference.csproj -c Release -- --check
       - name: Bunny JS tooltip renderer and managed activation regression
         run: |
           node --check app/src/main/cpp/script/js/mod/Loaders/TooltipLoader.js
@@ -121,9 +123,9 @@ jobs:
           fi
           CXX="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android34-clang++"
           for file in SourceParser SourceLoader AutoSourceRuntime ManagedRuntime NativeCommandChatHooks ManagedSoundLoader NativeRarityGameplay NativeDustEmission NativeCSharpItemUse UniversalSystemStages UniversalHooks ManagedGoreDiscovery ManagedGoreRuntime; do
-            "$CXX" -std=c++20 -fsyntax-only -fexceptions -frtti -D__ANDROID__ -DANDROID -D_GNU_SOURCE -Iapp/src/main/cpp -Iapp/src/main/cpp/third_party/quickjs "app/src/main/cpp/experiments/csharp/$file.cpp"
+            "$CXX" -std=c++20 -fsyntax-only -fno-exceptions -fno-rtti -D__ANDROID__ -DANDROID -D_GNU_SOURCE -Iapp/src/main/cpp -Iapp/src/main/cpp/third_party/quickjs "app/src/main/cpp/experiments/csharp/$file.cpp"
           done
-          "$CXX" -std=c++20 -fsyntax-only -fexceptions -frtti -D__ANDROID__ -DANDROID -D_GNU_SOURCE -Iapp/src/main/cpp app/src/main/cpp/content/backgrounds/BackgroundTextures.cpp
+          "$CXX" -std=c++20 -fsyntax-only -fno-exceptions -fno-rtti -D__ANDROID__ -DANDROID -D_GNU_SOURCE -Iapp/src/main/cpp app/src/main/cpp/content/backgrounds/BackgroundTextures.cpp
           echo CSHARP_SOURCE_COMBINED_ANDROID_ARM64_SYNTAX_PASS_NO_APK
   native-android-link-no-apk:
     runs-on: ubuntu-latest

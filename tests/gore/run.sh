@@ -3,7 +3,7 @@ set -euo pipefail
 cd "$(dirname "$0")/../.."
 output="${RUNNER_TEMP:-/tmp}/bunny-gore-contracts"
 mkdir -p "$output"
-flags=(-std=c++20 -Wall -Wextra -Werror -Wno-deprecated-declarations -pthread -DBL_HAVE_QUICKJS=0 -Itests/basic_items/include -Iapp/src/main/cpp)
+flags=(-std=c++20 -fno-exceptions -fno-rtti -Wall -Wextra -Werror -Wno-deprecated-declarations -pthread -DBL_HAVE_QUICKJS=0 -Itests/basic_items/include -Iapp/src/main/cpp)
 "${CXX:-g++}" "${flags[@]}" tests/csharp_gore_discovery_test.cpp app/src/main/cpp/experiments/csharp/ManagedGoreDiscovery.cpp -o "$output/discovery"
 "$output/discovery"
 "${CXX:-g++}" "${flags[@]}" tests/csharp_gore_catalog_test.cpp -o "$output/catalog"

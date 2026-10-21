@@ -103,3 +103,31 @@ O teste JS original também confirma que o registro de Gore preserva os assets e
 valores C# anteriores. O fixture nativo confirma a direção inversa: reconstruir
 as tabelas C# preserva uma entrada externa adicionada depois.
 O ExampleMod está em **0.1.64 nos fontes**, sem pacote de entrega ou APK.
+
+## Correção do CI após `5566d944`
+
+O teste de referência pública detectou documentação gerada desatualizada;
+`tools/sdk_reference` regenerou os 155 tipos públicos e o modo `--check` passou.
+A compilação NDK detectou um `try/catch` novo incompatível com o contrato
+`-fno-exceptions` do núcleo. O catch foi removido; a preparação do índice
+continua ocorrendo antes da publicação. Não foi habilitado desenrolamento C++
+em nenhum arquivo. As falhas de API/textura/raiz GC continuam retornando erro;
+OOM fatal do alocador C++ segue a política existente do processo, sem promessa
+de recuperação. Os testes Gore e o preflight agora usam as flags de produção.
+O CI completo deve passar novamente no SHA desta correção.
+
+## Revisão do próximo lote existente
+
+PR #120, head `6bbc27f5`, foi revisada e **não integrada** neste checkpoint.
+Antes de considerá-la completa, substituir a descoberta por classe fixa
+`BunnyLoader.Source.BunnyTouchEntry` por módulo genérico com UID fornecido pelo
+host; `GetAssignedKeys` não pode retornar apenas o rótulo do botão como se
+fosse o binding real. O exemplo atual registra contadores, mas ainda precisa
+executar a ação original e incluir os ícones. Aproveitar a descoberta genérica
+já implementada e testar dois módulos/UIDs, sem consumir eventos do segundo
+mod ao preparar o snapshot do primeiro. Usar um snapshot por estágio de input,
+e liberar registros, texturas e estados no descarregamento.
+
+PR #122, head `bcaa1322`, ainda usa `Split/Bunny-Loader`: adaptar os novos arquivos
+e as integrações de WorldSave à raiz atual; não mesclar as remoções de layout.
+Não há integração parcial de Keybind/WorldSave nesta branch.
