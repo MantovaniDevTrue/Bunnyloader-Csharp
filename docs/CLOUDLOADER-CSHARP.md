@@ -2,7 +2,7 @@
 
 Base do lote: `v1.0`, commit `cfbe784ee3cbc0ba2fabafce56c59e6eac41b67b`.
 Branch: `feature/csharp-cloudloader-source-only-20261021`.
-**Estado: seleção, registro, contratos C#, dispatcher de callbacks, parser e extração Roslyn codificados; hooks do Terraria ainda NÃO integrados.**
+**Estado: hooks nativos, pesos em cache, descoberta de PNGs, registro, parser e contratos MonoVM codificados; chamadas ao worker e ativação Android ainda NÃO conectadas.**
 
 ## Fontes de referência obrigatórias
 
@@ -37,9 +37,30 @@ o comportamento correto e suas regras já validadas.
 - `NativeCloudSpawnLedger.h`: fila limitada de eventos `OnSpawn` para
   MonoVM, com gerações por slot; bloqueia resultados atrasados depois
   que o Terraria reutiliza um slot ou troca de mundo.
-- `NativeCloudHookBindings.cpp`: valida em tempo de execução as assinaturas
-  `void addCloud()` e `int RollRareCloud()`, offsets tipados e
-  `Main.cloud`, mas **ainda não instala hooks**.
+- `NativeCloudHookBindings.cpp`: valida as assinaturas exatas
+  `void addCloud()` e `int RollRareCloud()` com offsets tipados.
+  O campo de espelhamento confirmado pelo ExampleModBunny é
+  **`Cloud.spriteDir`**, não `Cloud.spriteEffects`.
+- `NativeCloudHooks.cpp`: implementa hooks ShadowHook encadeáveis com
+  chamada ao original; só permite ativação mediante confirmação de
+  máscaras prontas **e MonoVM**. Nenhum caminho do loader chama o
+  instalador ainda. Quando desligado, usa integralmente o original.
+  O hook usa cache de pesos e produz apenas eventos simples para o
+  worker, sem invocar C# a cada frame.
+- `NativeCloudRollCoordinator.h`: combina pesos recebidos do worker,
+  preserva os pesos vanilla (22/18/15), requisição de refresh a cada 60
+  tentativas e rejeição transacional de snapshots inválidos.
+- `NativeCloudWeightWire.h`: leitura com validação por tipo e mod das
+  respostas `BUNNY_CLOUD_WEIGHTS_V1`; rejeita IDs desconhecidos, pesos
+  inválidos e atualizações parcialmente preenchidas.
+- `BunnyCloudDispatcher.cs`: novos entrypoints
+  `RegisterFromPath`, `WeightsWire` e `OnSpawnWire` para execução no
+  worker MonoVM existente; o agendamento nativo ainda falta.
+- `NativeCloudAutoload.cpp`: descoberta única de PNGs em qualquer
+  `Clouds/` dentro de `content/`, com limite de profundidade e arquivos,
+  ignorando links simbólicos e duplicatas de classes, igual ao
+  `ModFiles.ListTextures('Clouds')` do Bunny original.
+
 
 - `SourceParser.cpp` / `SourceContentIdentity.h`: reconhecimento explícito de `BunnyCloud` e domínio `CLOUD`; `SourceLoader.cpp` recusa nuvens antes de registrar itens enquanto não houver máscaras e hooks nativos.
 - `CompiledAssemblyProbe.cs`: reconhecimento por reflexão e geração do catálogo isolado `source-clouds-v1.txt`, sem alterar o formato V2 dos demais itens.
@@ -110,22 +131,33 @@ metadado, não uma ponte para QuickJS.
       e validar as classes e máscaras reais em Android; na falha,
       bloquear aquele tipo sem afetar nuvens vanilla.
 - [x] Codificar a resolução estrita das assinaturas IL2CPP e offsets tipados.
-- [ ] Validar esses contratos contra Terraria Mobile em execução e
-      instalar os hooks preservando a rolagem vanilla.
+- [x] Codificar hooks nativos encadeáveis que preservam a chamada vanilla
+      e as dimensões do sprite; bloqueados enquanto não existir ponte MonoVM.
+- [ ] Validar as assinaturas e offsets em Terraria Mobile rodando e
+      instalar/ativar os hooks no ciclo de vida real.
 - [x] Implementar dispatch C# de `SpawnChance` e `OnSpawn` com identificação por mod, limites e isolamento de exceções.
-- [ ] Conectar o dispatcher ao worker MonoVM e ao hook IL2CPP, com cache e nenhuma RPC por frame.
+- [x] Implementar cache C++ e entrypoints C# de snapshot por mod e
+      callback de espelhamento. Testados sem Android.
+- [ ] Agendar efetivamente esses entrypoints no worker MonoVM do runtime e
+      transmitir pesos/resultados ao host pelo protocolo nativo.
 - [x] Preparar fila `OnSpawn` por slot/geração com limites e testes
       para ignorar resultados de callbacks atrasados.
-- [ ] Atualizar o tamanho real pelo PNG, preservar `spriteEffects`,
-      impedir callback em slot inativo e ligar a ordem rara/comum aos hooks.
-- [ ] Cobrir múltiplos mods, mundo de aniversário, recarga de mundo,
-      desconexão, recompilação, assets ausentes e fechamento sem leak.
+- [x] Codificar atualização de tamanho de nuvem pelo PNG, seleção rara
+      sobrepondo a comum, checagem de slot ativo e resposta `spriteDir`.
+- [ ] Confirmar esse comportamento rodando no Terraria Android e corrigir
+      eventuais diferenças de layout IL2CPP.
+- [x] Cobrir em testes sem Android: múltiplos mods, mundo de aniversário,
+      PNG simples, colisões de ID, pesos inválidos e gerações de slots.
+- [ ] Cobrir no Terraria real: recarga de mundo, desconexão,
+      recompilação, assets ausentes, desinstalação e ausência de leaks.
 - [x] Criar classes C# de nuvem comum e avançada comentadas e testes de
       contrato fora da pasta Playable, evitando distribuição prematura.
 - [ ] Integrar essas classes ao ExampleModCSharp jogável com os PNGs originais
       e testar a geração real das nuvens na versão Android.
-- [ ] Validar todos os testes no CI e, só depois, abrir a fase de QA visual
-      Android (céu, máscara, horizonte, chance, OnSpawn e FPS).
+- [x] Validar suíte de código-fonte em CI, com C#, GCC, Clang,
+      sanitizers e simulações dos contratos.
+- [ ] Abrir QA visual Android somente quando os pontos de integração
+      estiverem fechados (céu, máscara, horizonte, chance, OnSpawn e FPS).
 
 **Regra de entrega:** nenhuma build Android, nenhum APK, nenhum `.bmod`,
 nenhum merge e nenhuma classificação como `device_verified` antes da
