@@ -2455,7 +2455,7 @@ void* pinnedMonoWorker(void*) {
                     const int index = g_dustBootstrap.front();
                     g_dustBootstrap.pop_front();
                     lock.unlock();
-                    const bool bound = executeManagedDustOnWorker(index, nullptr, nullptr, nullptr);
+                    [[maybe_unused]] const bool bound = executeManagedDustOnWorker(index, nullptr, nullptr, nullptr);
 #ifdef __ANDROID__
                     if (!bound)
                         reportManagedItemUse(ANDROID_LOG_WARN,
