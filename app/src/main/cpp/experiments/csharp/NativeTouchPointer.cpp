@@ -107,6 +107,7 @@ void onTouch(void* controller, int32_t slot, Vec2 position, Il2CppObject* cursor
         if (original) original(controller, slot, position, cursor, method);
         return;
     }
+    if (!registry().visible(id) || !registry().enabled(id)) return;
     const int control = nativeTouchControlOf(id);
     Il2CppArray* pressed = inputArray(controller, pressedOffset);
     Il2CppArray* wasPressed = inputArray(controller, wasOffset);
