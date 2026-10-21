@@ -28,6 +28,7 @@ struct NativeTileGameplaySpec {
     float mineResist = 1.f;
     int saplingGroundType = -1;
     int saplingVanillaGroundType = -1;
+    int saplingGrowthChance = 0;
 };
 
 bool registerNativeTileGameplay(const NativeTileGameplaySpec& spec);

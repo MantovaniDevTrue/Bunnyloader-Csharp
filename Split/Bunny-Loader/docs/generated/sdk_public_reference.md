@@ -1143,6 +1143,7 @@ int MapB { get; }
 int MapG { get; }
 int MapR { get; }
 int MinPick { get; set; }
+int SaplingGrowthChance { get; set; }
 int SaplingStyleRange { get; set; }
 int SaplingVanillaGroundTile { get; set; }
 int TileCallbackMask { get; }

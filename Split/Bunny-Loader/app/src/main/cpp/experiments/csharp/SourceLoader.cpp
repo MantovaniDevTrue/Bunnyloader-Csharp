@@ -2,6 +2,7 @@
 #include "experiments/csharp/NativeTileWirePolicy.h"
 #include "experiments/csharp/NativeTilePolicy.h"
 #include "experiments/csharp/NativeTileMiningPolicy.h"
+#include "experiments/csharp/NativeSaplingGrowthPolicy.h"
 #include "experiments/csharp/NativeTreeTexturePolicy.h"
 #include "experiments/csharp/NativeTreeEffectsPolicy.h"
 #include "experiments/csharp/SourceLoader.h"
@@ -964,6 +965,10 @@ bool applyManagedSourceDefaults(
                     *error=fields[1]+": descriptor Sapling1x2 invalido";return false;
                 }
             }
+            if (tile_wire::hasSaplingGrowth(fields.size()) &&
+                !integer(fields[28],&tile.saplingGrowthChance)) {
+                *error=fields[1]+": SaplingGrowthChance invalido";return false;
+            }
             if (tile.shape==4 && !tile_wire::hasSaplingShape(fields.size())) {
                 *error=fields[1]+": Sapling1x2 requer campos de ancora";return false;
             }
@@ -973,6 +978,7 @@ bool applyManagedSourceDefaults(
                         (ch>='A'&&ch<='Z')||(ch>='0'&&ch<='9')||ch=='_';}) ||
                 tile.saplingVanillaGroundTile< -1 || tile.saplingVanillaGroundTile>=754 ||
                 tile.saplingStyleRange<1 || tile.saplingStyleRange>12 ||
+                !tile_growth::valid(tile.shape,tile.saplingGrowthChance) ||
                 (tile.shape==4 && ((tile.flags&(131072|262144|524288))!=(131072|262144|524288) ||
                     (tile.saplingGroundTile.empty() && tile.saplingVanillaGroundTile<0))) ||
                 (tile.shape!=4 && (!tile.saplingGroundTile.empty() || tile.saplingVanillaGroundTile>=0))) {

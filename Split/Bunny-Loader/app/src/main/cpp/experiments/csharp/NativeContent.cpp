@@ -13,6 +13,7 @@
 #include "experiments/csharp/NativeTileFlags.h"
 #include "experiments/csharp/NativeTileAdjacencyPolicy.h"
 #include "experiments/csharp/NativeTilePolicy.h"
+#include "experiments/csharp/NativeSaplingGrowthPolicy.h"
 #include "experiments/csharp/NativeTileMiningPolicy.h"
 #include "experiments/csharp/NativeTreeTexturePolicy.h"
 #include "experiments/csharp/NativeGorePolicy.h"
@@ -2390,7 +2391,8 @@ void onManagedTilesInstalled(int first, int last) {
                                          entry.minPick,entry.mineResist,
                                          entry.saplingGroundTile.empty()?-1:
                                            runtime::modTileTypeByKey(mod+"/"+entry.saplingGroundTile),
-                                         entry.saplingVanillaGroundTile});
+                                         entry.saplingVanillaGroundTile,
+                                         entry.saplingGrowthChance});
         if (gameplay && entry.animationFrameHeight > 0)
             runtime::setModTileAnimation(entry.type, entry.animationFrameHeight);
         if (!gameplay)
@@ -2430,6 +2432,7 @@ bool applyManagedNativeTileDefaultsBatch(const std::string& modId,
             entry.adjacentTiles.size() > 16 ||
             !tile_policy::validCallbackMask(entry.callbackMask) ||
              !tile_mining::valid(entry.minPick,entry.mineResist) ||
+            !tile_growth::valid(entry.shape,entry.saplingGrowthChance) ||
             entry.mapR < 0 || entry.mapR > 255 ||
             entry.mapG < 0 || entry.mapG > 255 ||
             entry.mapB < 0 || entry.mapB > 255)

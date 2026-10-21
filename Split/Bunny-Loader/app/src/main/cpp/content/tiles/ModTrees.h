@@ -24,6 +24,8 @@ void setModTree(int groundType, Il2CppObject* trunk, int topStyle);
 bool registerModTreeChecked(int groundType, Il2CppObject* trunk, int topStyle);
 bool hasModTree(int groundType);
 bool prepareModTreeDrops(bool needAcorn);
+bool prepareModTreeGrowthRandom();
+bool rollModTreeGrowth(int chance);
 bool configureModTreeDrops(int groundType,int woodItem,bool allowAcorn);
 bool prepareModTreePlanting();
 bool prepareModTreeEffects();

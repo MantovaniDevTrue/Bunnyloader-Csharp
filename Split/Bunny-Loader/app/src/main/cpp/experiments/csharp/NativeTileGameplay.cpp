@@ -11,6 +11,7 @@
 #include "experiments/csharp/NativeTileMiningPolicy.h"
 #include "experiments/csharp/NativeTileSaplingPolicy.h"
 #include "experiments/csharp/NativeTileSaplingSwapPolicy.h"
+#include "experiments/csharp/NativeSaplingGrowthPolicy.h"
 #include "experiments/csharp/NativeTreeSoilPolicy.h"
 #include "experiments/csharp/NativeTileAnimationPolicy.h"
 #include "experiments/csharp/NativeTileScanPolicy.h"
@@ -166,6 +167,8 @@ PickaxeDamageFn g_origPickaxeDamage=nullptr;
 bool g_miningInstalled=false;
 using SaplingAttemptFn=bool (*)(int32_t,int32_t,bool,int32_t,bool,const MethodInfo*);
 SaplingAttemptFn g_origSaplingAttempt=nullptr;
+const MethodInfo* g_saplingAttemptMethod=nullptr;
+FieldInfo* g_saplingSurface=nullptr;
 const MethodInfo* g_saplingGrow=nullptr;
 const MethodInfo* g_saplingLos=nullptr;
 const MethodInfo* g_saplingFx=nullptr;
@@ -1144,15 +1147,32 @@ void hkTileWire(int32_t x,int32_t y,const MethodInfo* method) {
         dispatchTileEvent(it->second.spec,2,x,y);
     }
 }
+bool hkGrowSapling(int32_t x,int32_t y,bool underground,int32_t addon,
+                   bool ignoreWalls,const MethodInfo* method);
+void runSaplingRandomGrowth(const NativeTileGameplaySpec& spec,int x,int y) {
+    if(spec.shape!=4||spec.saplingGrowthChance==0||
+       !g_saplingAttemptMethod||!g_saplingSurface||
+       !runtime::rollModTreeGrowth(spec.saplingGrowthChance))return;
+    double surface=0;
+    il2cpp::api().field_static_get_value(g_saplingSurface,&surface);
+    if(!std::isfinite(surface)||surface<0)return;
+    hkGrowSapling(x,y,static_cast<double>(y)>surface,0,false,g_saplingAttemptMethod);
+}
 void hkOverground(int32_t x,int32_t y,bool npc,int32_t wallDist,const MethodInfo* method) {
     if(g_origOverground)g_origOverground(x,y,npc,wallDist,method);
     const auto it=g_tiles.find(runtime::tileTypeAt(x,y));
-    if(it!=g_tiles.end())dispatchTileEvent(it->second.spec,3,x,y);
+    if(it!=g_tiles.end()) {
+        dispatchTileEvent(it->second.spec,3,x,y);
+        runSaplingRandomGrowth(it->second.spec,x,y);
+    }
 }
 void hkUnderground(int32_t x,int32_t y,bool npc,int32_t wallDist,const MethodInfo* method) {
     if(g_origUnderground)g_origUnderground(x,y,npc,wallDist,method);
     const auto it=g_tiles.find(runtime::tileTypeAt(x,y));
-    if(it!=g_tiles.end())dispatchTileEvent(it->second.spec,3,x,y);
+    if(it!=g_tiles.end()) {
+        dispatchTileEvent(it->second.spec,3,x,y);
+        runSaplingRandomGrowth(it->second.spec,x,y);
+    }
 }
 bool validTileWorldMethod(const MethodInfo* method,int count,bool withRandomArgs) {
     auto& a=il2cpp::api();
@@ -1856,6 +1876,19 @@ bool setupNativeTileSaplingHook() {
     g_saplingGrow=grow;g_saplingLos=los;g_saplingFx=fx;g_saplingNetMode=net;
     if(!hook::install(attempt,hkGrowSapling,&g_origSaplingAttempt))return false;
     g_saplingInstalled=true;
+    g_saplingAttemptMethod=attempt;
+    return true;
+}
+
+bool bindSaplingGrowthSurface() {
+    if(g_saplingSurface)return true;
+    auto* main=il2cpp::findClass({"Terraria","Main",{}});
+    if(!main)return false;
+    std::string error;
+    FieldInfo* surface=nullptr;
+    if(!il2cpp::nativeFieldContract(main,"worldSurface","System.Double",true,8,
+                                    &surface,nullptr,&error))return false;
+    g_saplingSurface=surface;
     return true;
 }
 
@@ -1980,6 +2013,7 @@ bool registerNativeTileGameplay(const NativeTileGameplaySpec& spec) {
         spec.normalDust < 0 || spec.normalDust > 20 ||
         !tile_policy::validCallbackMask(spec.callbackMask) ||
          !tile_mining::valid(spec.minPick,spec.mineResist) ||
+         !tile_growth::valid(spec.shape,spec.saplingGrowthChance) ||
         !tile_animation::valid(spec.animationFrameHeight,
                                {spec.animationFrames, spec.animationFrameTicks})) return false;
     TileBehavior behavior{};
@@ -2063,11 +2097,18 @@ bool registerNativeTileGameplay(const NativeTileGameplaySpec& spec) {
                  spec.mod.c_str(),spec.name.c_str());
         return false;
     }
+    if(spec.saplingGrowthChance>0 &&
+       (!bindSaplingGrowthSurface()||!runtime::prepareModTreeGrowthRandom())) {
+        BL_ERROR("[CSharp][TreeLoader] Mod=%s Class=%s Stage=BindSaplingRandom Result=Rejected",
+                 spec.mod.c_str(),spec.name.c_str());
+        return false;
+    }
     if(!setupTileMouseOverHooks((spec.callbackMask&((1<<4)|(1<<9)))!=0||
                                  tile_toggle::allowsRightClick(spec.frameToggle),
                                 (spec.callbackMask&(1<<10))!=0))return false;
     if((spec.callbackMask&(1<<7))&&!setupTilePlacementHooks())return false;
-    if(!setupTileWorldHooks(((spec.callbackMask&4)!=0)||spec.frameToggle,(spec.callbackMask&8)!=0)) {
+    if(!setupTileWorldHooks(((spec.callbackMask&4)!=0)||spec.frameToggle,
+                            (spec.callbackMask&8)!=0||spec.saplingGrowthChance>0)) {
         BL_ERROR("[CSharp][Tile] World hook ABI incompatível Mod=%s Class=%s",
                  spec.mod.c_str(),spec.name.c_str());
         return false;

@@ -15,6 +15,7 @@ public sealed class ExampleSapling : BunnyTile
         SaplingGroundTile = "ExampleTile";
         SaplingVanillaGroundTile = 8;
         SaplingStyleRange = 3;
+        SaplingGrowthChance = 20;
         AdjacentTile = 20;
         AddMapEntry(200, 200, 200, "Sapling");
     }

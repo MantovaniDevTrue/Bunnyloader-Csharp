@@ -92,6 +92,7 @@ struct ManagedTileEntry {
     std::string saplingGroundTile;
     int saplingVanillaGroundTile = -1;
     int saplingStyleRange = 3;
+    int saplingGrowthChance = 0;
 };
 
 struct ManagedTreeEntry {

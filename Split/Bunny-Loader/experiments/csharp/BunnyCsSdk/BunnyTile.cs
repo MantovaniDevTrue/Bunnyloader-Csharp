@@ -90,6 +90,7 @@ public abstract class BunnyTile {
     public string SaplingGroundTile { get; set; } = "";
     public int SaplingVanillaGroundTile { get; set; } = -1;
     public int SaplingStyleRange { get; set; } = 3;
+    public int SaplingGrowthChance { get; set; } = 0;
     private readonly SortedDictionary<int, string> _itemDrops = new();
     public void RegisterItemDrop(string itemName, params int[] styles) {
         if (string.IsNullOrEmpty(itemName) || itemName.Length > 72)

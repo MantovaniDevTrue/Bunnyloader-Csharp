@@ -18,3 +18,9 @@ Exemplo C# baseado exclusivamente nos arquivos originais do ExampleModBunny: `Ex
 A entrada do mapa da muda usa `Sapling` em vez da chave localizada `MapObject.Sapling` do JS, pois a API `BunnyTile.AddMapEntry` aceita apenas nomes simples. A cor original (200,200,200) foi preservada. Essa diferença de localização continua pendente.
 
 O `ExampleSapling.js` original possui uma verificação `Rand.NextBool(20)` no `RandomUpdate`; a frequência efetiva do crescimento e a passagem automática ao hook nativo precisam de confirmação no Terraria Android. A presença das classes e testes da CI não valida esse comportamento. Não publicar o mod/Loader em APK, não mesclar a PR #98 e não declarar `TreeLoader` completo antes do teste de jogo.
+
+## Crescimento aleatório nativo C#
+
+`ExampleSapling` declara `SaplingGrowthChance = 20`, equivalente à chance de 1 em 20 do `RandomUpdate` do `ExampleSapling.js`. Valor zero desliga a tentativa automática para outros tiles; uma chance positiva exige `Sapling1x2`. A atualização nativa deve usar `Main.rand`, conferir `Main.worldSurface` e chamar a ponte existente `AttemptToGrowTreeFromSapling`, sem passagem por Mono/QuickJS por célula. A poeira 1/3 já é o padrão do `BunnyTile`. O espelhamento visual por coluna ainda requer conferência no dispositivo.
+
+No Android, testar crescimento normal/subterrâneo, restauração da muda em tentativas falhas, aleatoriedade após vários ciclos, coexistência C#/JS, save/reload, multiplayer e FPS. Compilação e políticas isoladas não validam jogabilidade.

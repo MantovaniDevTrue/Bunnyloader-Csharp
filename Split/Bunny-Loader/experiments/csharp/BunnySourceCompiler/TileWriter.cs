@@ -28,6 +28,7 @@ internal static class TileWriter {
         string saplingGround = Get<string>("SaplingGroundTile");
         int saplingVanilla = Get<int>("SaplingVanillaGroundTile");
         int saplingStyles = Get<int>("SaplingStyleRange");
+        int saplingChance = Get<int>("SaplingGrowthChance");
         if (saplingGround == null || saplingGround.Length > 72 ||
             saplingGround.Length > 0 && !SafeIdentifier(saplingGround))
             throw new InvalidOperationException(type.FullName + ": invalid sapling ground tile");
@@ -68,6 +69,8 @@ internal static class TileWriter {
             height != 18 || minPick < 0 || minPick > 1000 ||
             saplingVanilla < -1 || saplingVanilla >= 754 ||
             saplingStyles < 1 || saplingStyles > 12 ||
+            (saplingChance < 0 || saplingChance > 1024 ||
+             (saplingChance > 0 && shape != 4)) ||
             (shape == 4 && (flags & (131072 | 262144 | 524288)) != (131072 | 262144 | 524288)) ||
             (shape == 4 && saplingGround.Length == 0 && saplingVanilla < 0) ||
             (shape != 4 && (saplingGround.Length > 0 || saplingVanilla >= 0)) ||
@@ -98,7 +101,8 @@ internal static class TileWriter {
             mineResist.ToString("R", CultureInfo.InvariantCulture),
             saplingGround.Length == 0 ? "-" : saplingGround,
             saplingVanilla.ToString(CultureInfo.InvariantCulture),
-            saplingStyles.ToString(CultureInfo.InvariantCulture));
+            saplingStyles.ToString(CultureInfo.InvariantCulture),
+            saplingChance.ToString(CultureInfo.InvariantCulture));
     }
 
     private static bool SafeIdentifier(string name) {

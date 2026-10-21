@@ -3,6 +3,7 @@
 #include "content/tiles/TileAccess.h"
 #include "experiments/csharp/NativeTreeDropPolicy.h"
 #include "experiments/csharp/NativeTreePlantPolicy.h"
+#include "experiments/csharp/NativeSaplingGrowthPolicy.h"
 #include "experiments/csharp/NativeTreeEffectsPolicy.h"
 #include "experiments/csharp/NativeTreeShakePolicy.h"
 #include "content/common/GameRefs.h"
@@ -414,6 +415,22 @@ void noteTreeDrawTile(int x, int y, int type, int frameX, int frameY) {
     TileArrays t;
     const Tree* tree = tileArrays(&t) ? treeOfGround(groundBelow(t, trunkColumn(x, frameX, frameY), y, nullptr)) : nullptr;
     t_trunk = tree ? il2cpp::api().gchandle_get_target(tree->trunk) : nullptr;
+}
+
+bool prepareModTreeGrowthRandom() {return bindTreeRandom();}
+bool rollModTreeGrowth(int chance) {
+    if(!bl::csharp::tile_growth::valid(4,chance)||chance==0||
+       !g_treeRandField||!g_treeNextDouble)return false;
+    auto& a=il2cpp::api();
+    Il2CppObject* random=nullptr;
+    a.field_static_get_value(g_treeRandField,&random);
+    if(!random)return false;
+    Il2CppObject* error=nullptr;
+    Il2CppObject* result=a.runtime_invoke(g_treeNextDouble,random,nullptr,&error);
+    if(error||!result)return false;
+    double sample=-1;
+    std::memcpy(&sample,reinterpret_cast<const char*>(result)+sizeof(Il2CppObject),sizeof(sample));
+    return bl::csharp::tile_growth::hit(chance,sample);
 }
 
 bool prepareModTreeDrops(bool needAcorn) {
