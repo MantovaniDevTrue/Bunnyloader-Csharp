@@ -20,7 +20,7 @@ complete = {
 }
 
 implemented = set(re.findall(r"\bprotected virtual void (\w+)\s*\(", sdk)) - {"OnUnloaded"}
-expected = complete - {"ModifyTimeRate"}
+expected = complete
 assert implemented == expected, f"Escopo C# alterado sem auditoria: {implemented ^ expected}"
 assert len(complete) == 19
 for callback in complete:
@@ -51,6 +51,12 @@ assert 'new("Bunny.SystemStage", "EntitiesBegin", false,' in sdk
 assert 'new("Bunny.SystemStage", "EntitiesEnd", false,' in sdk
 assert 'new("Bunny.SystemStage", "UIEnd", false,' in sdk
 assert '{"UIEnd", 0,' in native
+assert '{"TimeRate", 0,' in native
+assert '{"ClockAdvance", 0xb8c,' in native
+assert 'new("Bunny.SystemStage", "TimeRate", false,' in sdk
+assert 'bunny_system_time_rate_read' in native
+assert 'bunny_system_time_rate_write' in native
+assert 'tileRemainder = tilesWithFraction - std::floor(tilesWithFraction)' in native
 assert 'UpdateUIStates(GameTime gameTime)' in native
 assert 'field_static_get_value(gameMenuField' in native
 for stage in ("PlayersBegin", "PlayersEnd", "NPCsBegin", "NPCsEnd", "GoresEnd", "ItemsBegin", "ItemsEnd"):
