@@ -11,7 +11,7 @@ FieldInfo* playersField = nullptr;
 FieldInfo* indexField = nullptr;
 size_t npcOffset = 0;
 size_t signOffset = 0;
-bool attempted = false;
+uint32_t failedAttempts = 0;
 bool bound = false;
 
 template<typename T> T load(const void* object, size_t offset) {
@@ -65,11 +65,17 @@ bool prepare() {
 
 FocusState readNativeTouchFocus() {
     FocusState focus;
-    if (!attempted) {
-        attempted = true;
+    if (!bound) {
+        if (failedAttempts != 0 && failedAttempts % 120 != 0) {
+            ++failedAttempts;
+            return focus;
+        }
         bound = prepare();
+        if (!bound) {
+            ++failedAttempts;
+            return focus;
+        }
     }
-    if (!bound) return focus;
     auto& a = il2cpp::api();
     uint8_t chat = 1;
     int32_t index = -1;
