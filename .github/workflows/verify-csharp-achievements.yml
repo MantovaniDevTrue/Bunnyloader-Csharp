@@ -25,6 +25,10 @@ on:
       - app/src/main/cpp/experiments/csharp/NativeAchievementProgress.h
       - app/src/main/cpp/experiments/csharp/NativeAchievementHooks.h
       - app/src/main/cpp/experiments/csharp/NativeAchievementHooks.cpp
+      - app/src/main/cpp/experiments/csharp/NativeAchievementProfile.h
+      - app/src/main/cpp/experiments/csharp/NativeAchievementProfile.cpp
+      - app/src/main/cpp/experiments/csharp/NativeAchievementProfileLifecycle.h
+      - app/src/main/cpp/experiments/csharp/NativeAchievementProfileLifecycle.cpp
       - app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp
       - tests/achievements_csharp/**
       - samples/ExampleModCSharp/Examples/Achievements/**
@@ -66,6 +70,11 @@ jobs:
             tests/achievements_csharp/native_progress_test.cpp \
             -o /tmp/csharp-achievement-progress
           /tmp/csharp-achievement-progress
+      - name: Verify isolated character identity
+        run: |
+          g++ -std=c++20 -O2 -Wall -Wextra -Werror -Iapp/src/main/cpp \
+            tests/achievements_csharp/profile_test.cpp -o /tmp/csharp-achievement-profile
+          /tmp/csharp-achievement-profile
       - name: Syntax-check actual native MonoVM integration without APK
         run: |
           g++ -std=c++20 -O0 -fsyntax-only -Itests/basic_items/include -Iapp/src/main/cpp \
@@ -74,6 +83,10 @@ jobs:
             app/src/main/cpp/experiments/csharp/NativeAchievementHooks.cpp
           g++ -std=c++20 -O0 -fsyntax-only -Itests/basic_items/include -Iapp/src/main/cpp \
             app/src/main/cpp/experiments/csharp/NativeAchievementRegistry.cpp
+          g++ -std=c++20 -O0 -fsyntax-only -Itests/basic_items/include -Iapp/src/main/cpp \
+            app/src/main/cpp/experiments/csharp/NativeAchievementProfile.cpp
+          g++ -std=c++20 -O0 -fsyntax-only -Itests/basic_items/include -Iapp/src/main/cpp \
+            app/src/main/cpp/experiments/csharp/NativeAchievementProfileLifecycle.cpp
           g++ -std=c++20 -O0 -fsyntax-only -Itests/basic_items/include -Iapp/src/main/cpp \
             app/src/main/cpp/experiments/csharp/NativeAchievementVisualHooks.cpp
           g++ -std=c++20 -O0 -fsyntax-only -Itests/basic_items/include \
