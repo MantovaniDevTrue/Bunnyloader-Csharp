@@ -14,6 +14,7 @@
 #include "experiments/csharp/NativeTouchIcons.h"
 #include "experiments/csharp/NativeTouchIconHooks.h"
 #include "experiments/csharp/NativeTouchPointer.h"
+#include "experiments/csharp/NativeTouchLayoutHooks.h"
 #include "experiments/csharp/NativeTouchInput.h"
 #include "graphics/CSharpScreenEffects.h"
 #include "experiments/csharp/NativeContent.h"
@@ -1238,6 +1239,7 @@ void noteAutoGameUpdate() {
     touch::pumpNativeTouchIconFrameHooksOnGameThread();
     touch::pumpNativeTouchQuickDrawHookOnGameThread();
     touch::pumpNativeTouchPointerHookOnGameThread();
+    touch::pumpNativeTouchLayoutHooksOnGameThread();
     if (managedEntitySourceModsRegistered() &&
         runtime::modNpcsSettled() && runtime::modProjectilesSettled()) {
         installNpcAiHost();
