@@ -98,6 +98,7 @@ jobs:
           assert 'request.action = worldsave::MonoWorldAction::Register' in auto
           assert 'requestManagedWorldOnMono(request, &reply, 1500)' in auto
           assert 'g_worldRegistrationReady.load(std::memory_order_acquire)' in auto
+          assert 'pendingWorldModules.size() == expectedWorldModules' in auto
           assert 'status->worldSystemClasses.push_back(fullName)' in loader
           assert 'worldTypes.Length == 0' in probe
           print("WORLD_ONLY_MOD_REGISTER_GATE_PASS")

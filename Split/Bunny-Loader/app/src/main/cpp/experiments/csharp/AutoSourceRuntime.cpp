@@ -716,7 +716,13 @@ void run() {
     std::vector<Curve> pending;
     std::vector<Combat> pendingCombat;
     std::vector<std::pair<std::string, std::string>> pendingWorldModules;
-    for (const auto& mod : sourceModStatuses()) {
+    const auto sourceStatuses = sourceModStatuses();
+    size_t expectedWorldModules = 0;
+    for (const auto& status : sourceStatuses)
+        if (status.loaded && status.worldSystems > 0) ++expectedWorldModules;
+    if (expectedWorldModules > 0)
+        g_worldRegistrationReady.store(false, std::memory_order_release);
+    for (const auto& mod : sourceStatuses) {
         if (!mod.loaded || !mod.sourceFiles) continue;
         AutoSourceStatus status;
         status.modId = mod.id;
@@ -872,7 +878,7 @@ void run() {
         pendingCombat.insert(pendingCombat.end(), effects.begin(), effects.end());
         note(&status, entries.empty() && effects.empty() ? "ready" : "waiting-world");
     }
-    bool worldModulesReady = true;
+    bool worldModulesReady = pendingWorldModules.size() == expectedWorldModules;
     for (const auto& [id, assembly] : pendingWorldModules) {
         worldsave::MonoWorldRequest request{};
         request.action = worldsave::MonoWorldAction::Register;

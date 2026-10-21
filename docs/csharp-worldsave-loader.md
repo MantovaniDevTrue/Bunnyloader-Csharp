@@ -58,7 +58,7 @@ O registro efetivo no MonoVM depende de agendar `MonoWorldAction::Register` com 
 
 ## Etapa 9 — registro efetivo de sistemas compilados
 
-O `AutoSourceRuntime::run()` coleta módulos C# que possuem `BunnyWorldSystem`, inclui esses módulos no prewarm do MonoVM, e envia pedidos `Register` ao worker pinado depois da compilação Roslyn. Se qualquer módulo falhar, guarda o erro de diagnóstico por mod e impede `preWorldCSharpContentReady()` de liberar a entrada no mundo: nenhum mundo entra em execução supondo incorretamente que suas flags foram carregadas.
+O `AutoSourceRuntime::run()` coleta módulos C# que possuem `BunnyWorldSystem`, inclui esses módulos no prewarm do MonoVM, e envia pedidos `Register` ao worker pinado depois da compilação Roslyn. Se qualquer módulo falhar na compilação ou no registro, mantém o gate fechado, guarda o erro de diagnóstico por mod e impede `preWorldCSharpContentReady()` de liberar a entrada no mundo: nenhum mundo entra em execução supondo incorretamente que suas flags foram carregadas.
 
 Isso completa a **descoberta e o registro do módulo no worker**, ainda sem execução de `Enter/Prepare/Confirm/Leave` ligada aos hooks reais de salvamento e carregamento.
 
