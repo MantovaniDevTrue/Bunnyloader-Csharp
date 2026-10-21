@@ -28,6 +28,12 @@ internal static class BunnyTouchNativeHost
     [DllImport("bunny", EntryPoint = "bunny_csharp_touch_mod_unload", CallingConvention = CallingConvention.Cdecl)]
     private static extern void UnloadNative([MarshalAs(UnmanagedType.LPUTF8Str)] string owner);
 
+    [DllImport("bunny", EntryPoint = "bunny_csharp_touch_policies", CallingConvention = CallingConvention.Cdecl)]
+    private static extern int SetNativePolicies(int id, int visible, int enabled);
+
+    internal static bool SetPolicies(int id, bool visible, bool enabled) =>
+        SetNativePolicies(id, visible ? 1 : 0, enabled ? 1 : 0) == 1;
+
     internal static bool Ready() => HostReady() == 1;
 
     internal static int Register(BunnyTouchButton button) =>
