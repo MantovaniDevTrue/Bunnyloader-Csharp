@@ -124,8 +124,12 @@ jobs:
           LIB="$(find app/build -type f -name libbunny.so -size +0c -print -quit)"
           test -n "$LIB"
           NM="$ANDROID_HOME/ndk/30.0.16248370/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-nm"
+          "$NM" -D --defined-only "$LIB" > "$RUNNER_TEMP/bunny-native-symbols.txt"
           for symbol in bunny_csharp_sound_register bunny_csharp_sound_play bunny_item_use_bind bunny_item_use_poll_context bunny_dust_emit; do
-            "$NM" -D --defined-only "$LIB" | grep -q "$symbol"
+            if ! grep -F -q "$symbol" "$RUNNER_TEMP/bunny-native-symbols.txt"; then
+              echo "Missing native export: $symbol" >&2
+              exit 1
+            fi
           done
           if find app/build -type f -name '*.apk' -print | grep -q .; then
             echo 'APK created during no-APK link gate' >&2
