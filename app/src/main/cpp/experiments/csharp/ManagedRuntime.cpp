@@ -2,6 +2,7 @@
 #include "experiments/csharp/UniversalHookMailbox.h"
 #include "experiments/csharp/UniversalHooks.h"
 #include "experiments/csharp/ManagedRuntime.h"
+#include "experiments/csharp/ManagedAchievementTransport.h"
 #include "graphics/ScreenScene.h"
 #include "experiments/csharp/ManagedVisualMonoPump.h"
 #include "experiments/csharp/ManagedVisualState.h"
@@ -292,6 +293,9 @@ std::deque<RecipeRpcJob> g_recipeRpcQueue;
 std::condition_variable g_recipeRpcWake;
 void* g_recipeDispatchMethod=nullptr;
 std::atomic<bool> g_recipeRuntimeReady{false};
+ManagedAchievementQueue g_achievementRpcQueue;
+std::condition_variable g_achievementRpcWake;
+void* g_achievementDispatchMethod = nullptr;
 
 
 struct SceneLightBinding {
@@ -1405,6 +1409,84 @@ std::string executeRecipeOnWorker(const RecipeRpcJob& job) {
     release(value);return output;
 }
 
+// Cada evento/conteudo é processado somente no worker MonoVM existente.
+// A fila é serial com os controles; a invocação nunca atravessa a thread GL.
+std::string executeAchievementOnWorker(const AchievementJob& job) {
+    std::lock_guard<std::mutex> monoGuard(g_mutex);
+    if (!g_domain || !g_status.methodExecuted || !g_api.attach || !g_api.openAssembly ||
+        !g_api.image || !g_api.findClass || !g_api.findMethod ||
+        !g_api.newString || !g_api.invoke)
+        return "PENDING|AchievementRuntimeNotReady";
+    if (!g_api.attach(g_domain)) return "ERROR|AchievementMonoAttachFailed";
+
+    if (!g_achievementDispatchMethod) {
+        const auto slash = g_checkpointPath.find_last_of('/');
+        if (slash == std::string::npos) return "ERROR|AchievementSdkPathInvalid";
+        const std::string sdk = g_checkpointPath.substr(0, slash + 1) + "BunnySourceSdk.dll";
+        if (!validAssembly(sdk)) return "ERROR|AchievementSdkUnavailable";
+        void* assembly = g_api.openAssembly(g_domain, sdk.c_str());
+        void* image = assembly ? g_api.image(assembly) : nullptr;
+        void* klass = image ? g_api.findClass(
+            image, "BunnyLoader.Source", "BunnyAchievementRuntime") : nullptr;
+        g_achievementDispatchMethod = klass ? g_api.findMethod(klass, "Dispatch", 6) : nullptr;
+        if (!g_achievementDispatchMethod)
+            return "ERROR|AchievementDispatchSignatureMissing";
+    }
+
+    int operation = job.operation, value = job.value, count = job.count;
+    void* args[] = {
+        g_api.newString(g_domain, job.mod.c_str()),
+        g_api.newString(g_domain, job.assembly.c_str()),
+        &operation, &value, &count,
+        g_api.newString(g_domain, job.payload.c_str())
+    };
+    if (!args[0] || !args[1] || !args[5])
+        return "ERROR|AchievementMonoStringAllocationFailed";
+    void* exception = nullptr;
+    void* response = g_api.invoke(g_achievementDispatchMethod, nullptr, args, &exception);
+    if (exception || !response) return "ERROR|AchievementMonoDispatchException";
+
+    using Utf8 = char* (*)(void*);
+    using Release = void (*)(void*);
+    static auto utf8 = resolve<Utf8>("mono_string_to_utf8");
+    static auto release = resolve<Release>("mono_free");
+    if (!utf8 || !release) return "ERROR|AchievementMonoUtf8ExportsMissing";
+    char* raw = utf8(response);
+    if (!raw) return "ERROR|AchievementMonoUtf8AllocationFailed";
+    const std::size_t max = ManagedAchievementQueue::MaxResponseBytes;
+    const std::size_t length = strnlen(raw, max + 1);
+    std::string result = length <= max
+        ? std::string(raw, length)
+        : "ERROR|AchievementResponseTooLarge";
+    release(raw);
+    return result;
+}
+
+bool processManagedAchievementRpc(std::unique_lock<std::mutex>& lock) {
+    AchievementJob job;
+    if (!g_achievementRpcQueue.pop(&job)) return false;
+    if (job.reply && job.reply->cancelled) {
+        g_achievementRpcWake.notify_all();
+        return true;
+    }
+    if (job.reply) job.reply->started = true;
+    lock.unlock();
+    std::string output = executeAchievementOnWorker(job);
+    lock.lock();
+    if (job.reply) {
+        job.reply->output = std::move(output);
+        job.reply->done = true;
+        g_achievementRpcWake.notify_all();
+    } else if (output.starts_with("ERROR|") || output.starts_with("PENDING|")) {
+#ifdef __ANDROID__
+        __android_log_print(ANDROID_LOG_WARN, "BunnyCSharp",
+            "AchievementLoader event failed mod=%s operation=%d result=%.300s",
+            job.mod.c_str(), job.operation, output.c_str());
+#endif
+    }
+    return true;
+}
+
 bool executeManagedSceneOnWorker(const SceneLightRequest& request,
                                 ManagedScreenLightResult* result) {
     if (!result) return false;
@@ -1797,6 +1879,7 @@ void* pinnedMonoWorker(void*) {
                 }
                 // Recipe UI has a 3ms deadline; do not queue it behind an AI backlog.
                 if(processManagedRecipeRpc(lock,executeRecipeOnWorker))continue;
+                if (processManagedAchievementRpc(lock)) continue;
                 if (!g_entityQueue.empty()) {
                     ManagedEntityJob job = std::move(g_entityQueue.front());
                     g_entityQueue.pop_front();
@@ -1912,7 +1995,8 @@ void* pinnedMonoWorker(void*) {
                 if (g_pinnedWake.wait_until(lock, deadline, [] {
                     return g_pinnedPending || g_vmComparePending ||
                         !g_liveHitQueue.empty() || g_liveIngress.depth() != 0 ||
-                        !g_entityQueue.empty() || !g_recipeRpcQueue.empty();
+                        !g_entityQueue.empty() || !g_recipeRpcQueue.empty() ||
+                        !g_achievementRpcQueue.empty();
                 }))
                     continue;
                 if (std::chrono::steady_clock::now() < until) continue;
@@ -2304,6 +2388,81 @@ ManagedHurtSchedulerStatus managedHurtSchedulerStatus() {
     auto status = g_hurtScheduler;
     status.pending = static_cast<int>(g_managedHurtQueue.size());
     return status;
+}
+
+bool queueManagedAchievementEvent(const std::string& modId,
+                                  const std::string& assemblyPath,
+                                  int operation, int type, int count,
+                                  bool localPlayer) {
+    if (operation < 1 || operation > 4 ||
+        !g_recipeRuntimeReady.load(std::memory_order_acquire)) return false;
+    AchievementJob job;
+    job.mod = modId;
+    job.assembly = assemblyPath;
+    job.operation = operation;
+    job.value = type;
+    job.count = count;
+    job.payload = localPlayer ? "1" : "0";
+    if (!ManagedAchievementQueue::valid(job)) return false;
+
+    // O hook só copia dados. A execução acontece posteriormente no worker.
+    std::lock_guard<std::mutex> lock(g_pinnedMutex);
+    if (!g_pinnedStarted || !g_achievementRpcQueue.push(std::move(job)))
+        return false;
+    g_pinnedWake.notify_one();
+    return true;
+}
+
+bool invokeManagedAchievementControl(const std::string& modId,
+                                     const std::string& assemblyPath,
+                                     int operation, const std::string& payload,
+                                     std::string* output, int timeoutMilliseconds) {
+    if (!output) return false;
+    output->clear();
+    if ((operation != 0 && (operation < 5 || operation > 8)) ||
+        timeoutMilliseconds < 1 || timeoutMilliseconds > 30000 ||
+        !g_recipeRuntimeReady.load(std::memory_order_acquire)) {
+        *output = "PENDING|AchievementInvalidControlOrRuntimeNotReady";
+        return false;
+    }
+    AchievementJob job;
+    job.mod = modId;
+    job.assembly = assemblyPath;
+    job.operation = operation;
+    job.payload = payload;
+    job.reply = std::make_shared<AchievementReply>();
+    if (!ManagedAchievementQueue::valid(job)) {
+        *output = "ERROR|AchievementInvalidControlArguments";
+        return false;
+    }
+    auto reply = job.reply;
+    std::unique_lock<std::mutex> lock(g_pinnedMutex);
+    if (!g_pinnedStarted) {
+        *output = "PENDING|AchievementWorkerNotStarted";
+        return false;
+    }
+    if (!g_achievementRpcQueue.push(std::move(job))) {
+        *output = "PENDING|AchievementQueueFull";
+        return false;
+    }
+    g_pinnedWake.notify_one();
+    // Bind/Save/Load/Unload nunca são executados em hooks por quadro.
+    // A espera libera o mutex, permitindo que o worker processe o pedido.
+    const bool ready = g_achievementRpcWake.wait_for(
+        lock, std::chrono::milliseconds(timeoutMilliseconds),
+        [&] { return reply->done; });
+    if (!ready) {
+        const bool started = reply->started;
+        // Cancela apenas o trabalho que ainda não começou. Caso o Mono já
+        // tenha iniciado, responder erro ambíguo em vez de repetir o comando.
+        if (!started) reply->cancelled = true;
+        *output = started ? "PENDING|AchievementResultUnknownDoNotRetry" :
+                            "PENDING|AchievementCancelledBeforeExecution";
+        return false;
+    }
+    *output = std::move(reply->output);
+    return !output->empty() && !output->starts_with("ERROR|") &&
+           !output->starts_with("PENDING|");
 }
 
 bool managedRecipeRuntimeReady(){return g_recipeRuntimeReady.load(std::memory_order_acquire);}
