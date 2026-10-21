@@ -1,8 +1,8 @@
-name: Build five ready PRs — experimental Android QA
+name: Build seven ready PRs — experimental Android QA
 'on':
   push:
     branches:
-    - integration/ready-prs-20261020
+    - integration/ready-prs-source-fixes-20261020
   workflow_dispatch: {}
 permissions:
   contents: read
@@ -31,7 +31,7 @@ jobs:
       with:
         distribution: temurin
         java-version: '17'
-    - name: Compile all 93 playable CSharp example sources with the current SDK
+    - name: Compile all 96 playable CSharp example sources with the current SDK
       run: dotnet build tests/ready_prs/FullExampleManaged.csproj -c Release --nologo
     - name: Run full ExampleMod through real Roslyn and DLL verifier
       run: dotnet run --project tests/ready_prs/FullExampleRuntime/FullExampleRuntime.csproj -c Release -- samples/ExampleModCSharp/Playable
