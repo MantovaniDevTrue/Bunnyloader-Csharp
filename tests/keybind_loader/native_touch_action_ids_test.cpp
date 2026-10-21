@@ -27,6 +27,7 @@ int main() {
     assert(!resolveActionIds(28, 33, -1, 128).valid());
     assert(!resolveActionIds(28, 33, 35, 0).valid());
     assert(!resolveActionIds(28, 33, 35, 129).valid());
-    assert(!resolveActionIds(3000, 3000, 3000, 128).valid());
+    assert(resolveActionIds(3000, 3000, 3000, 128).valid());
+    assert(!resolveActionIds(3001, 3000, 3000, 128).valid());
     std::puts("native touch action ID namespace PASS");
 }
