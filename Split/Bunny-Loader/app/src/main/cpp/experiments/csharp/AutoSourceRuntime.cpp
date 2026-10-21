@@ -75,6 +75,7 @@ using PlayWorldFn=void (*)(const MethodInfo*);
 PlayWorldFn g_originalPlayWorld=nullptr;
 std::atomic<bool> g_worldTilesLoaded{false};
 std::atomic<bool> g_worldSessionReady{false};
+std::atomic<bool> g_worldRegistrationReady{true};
 std::atomic<int> g_worldReadyFrames{0};
 std::atomic<bool> g_worldPrefixesRestored{false};
 std::atomic<bool> g_worldPlayerMessagesShown{false};
@@ -714,6 +715,7 @@ void run() {
     bool runtimeChecked=false;
     std::vector<Curve> pending;
     std::vector<Combat> pendingCombat;
+    std::vector<std::pair<std::string, std::string>> pendingWorldModules;
     for (const auto& mod : sourceModStatuses()) {
         if (!mod.loaded || !mod.sourceFiles) continue;
         AutoSourceStatus status;
@@ -786,7 +788,7 @@ void run() {
                 continue;
             }
         }
-        if ((mod.projectiles > 0 || mod.npcs > 0) &&
+        if ((mod.projectiles > 0 || mod.npcs > 0 || mod.worldSystems > 0) &&
             !g_runtimeWarmStarted.exchange(true, std::memory_order_acq_rel)) {
             const std::string probe = work + "BunnyManagedProbe.dll";
             struct stat probeStat{};
@@ -837,6 +839,10 @@ void run() {
                 mod.id.c_str(),status.cached?"Hit":"Miss",cacheReason.c_str(),cacheWrite.c_str(),
                 tablesMs,cacheMs,compileMs,elapsedMilliseconds(applyStarted));
         status.applied = true;
+        if (mod.worldSystems > 0) {
+            g_worldRegistrationReady.store(false, std::memory_order_release);
+            pendingWorldModules.emplace_back(mod.id, assembly);
+        }
         if (mod.npcs > 0 || mod.projectiles > 0) {
             const auto npcs = runtime::registeredNpcsForMod(mod.id);
             const auto projectiles = runtime::registeredProjectilesForMod(mod.id);
@@ -866,6 +872,45 @@ void run() {
         pendingCombat.insert(pendingCombat.end(), effects.begin(), effects.end());
         note(&status, entries.empty() && effects.empty() ? "ready" : "waiting-world");
     }
+    bool worldModulesReady = true;
+    for (const auto& [id, assembly] : pendingWorldModules) {
+        worldsave::MonoWorldRequest request{};
+        request.action = worldsave::MonoWorldAction::Register;
+        request.modUid = id;
+        request.assemblyPath = assembly;
+        std::string lastReason = "MonoVM registration unavailable";
+        bool registered = false;
+        for (int attempt = 0; attempt < 30; ++attempt) {
+            if (!managedRuntimeStatus().methodExecuted) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                continue;
+            }
+            worldsave::MonoWorldReply reply;
+            const bool arrived = requestManagedWorldOnMono(request, &reply, 1500);
+            if (arrived && reply.success) {
+                registered = true;
+                break;
+            }
+            lastReason = arrived ? reply.error : "MonoVM world registration deadline";
+            if (arrived && reply.error.find("MonoVM not ready") == std::string::npos)
+                break;
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+        if (!registered) {
+            worldModulesReady = false;
+            std::lock_guard<std::mutex> guard(g_lock);
+            for (auto& status : g_statuses) {
+                if (status.modId == id) {
+                    status.phase = "failed";
+                    status.error = "WorldSystem registration: " + lastReason;
+                    break;
+                }
+            }
+            BL_WARN("csharp WorldSystem %s: registro bloqueado (%s)",
+                    id.c_str(), lastReason.c_str());
+        }
+    }
+    g_worldRegistrationReady.store(worldModulesReady, std::memory_order_release);
     if (pending.empty() && pendingCombat.empty()) {
         g_initialCSharpRegistrationFinished.store(true, std::memory_order_release);
         schedulePreWorldBindings();
@@ -1277,7 +1322,8 @@ bool preWorldCSharpContentReady() {
         std::lock_guard<std::mutex> lock(g_lock);
         needsNpcDispatcher = !g_pendingLiveSpecs.empty();
     }
-    return content.pendingBehaviors == 0 && content.pendingRecipes == 0 &&
+    return g_worldRegistrationReady.load(std::memory_order_acquire) &&
+           content.pendingBehaviors == 0 && content.pendingRecipes == 0 &&
            content.pendingPlacements == 0 && pendingNativeVisualRenderer() == 0 &&
            (!needsNpcDispatcher || managedNpcBuffEffectStatus().gameHookInstalled);
 }

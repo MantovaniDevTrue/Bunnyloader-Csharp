@@ -86,5 +86,21 @@ jobs:
           g++ -std=c++20 -Wall -Wextra -Werror -fsyntax-only \
             -I Split/Bunny-Loader/app/src/main/cpp \
             Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp
+      - name: Guard native world-only preload and registration
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root = Path("Split/Bunny-Loader/app/src/main/cpp/experiments/csharp")
+          auto = (root / "AutoSourceRuntime.cpp").read_text()
+          loader = (root / "SourceLoader.cpp").read_text()
+          probe = Path("Split/Bunny-Loader/experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs").read_text()
+          assert 'mod.worldSystems > 0) &&' in auto
+          assert 'request.action = worldsave::MonoWorldAction::Register' in auto
+          assert 'requestManagedWorldOnMono(request, &reply, 1500)' in auto
+          assert 'g_worldRegistrationReady.load(std::memory_order_acquire)' in auto
+          assert 'status->worldSystemClasses.push_back(fullName)' in loader
+          assert 'worldTypes.Length == 0' in probe
+          print("WORLD_ONLY_MOD_REGISTER_GATE_PASS")
+          PY
       - name: Keep this job host-only
         run: echo "SOURCE_ONLY_NO_ANDROID_PACKAGING"
