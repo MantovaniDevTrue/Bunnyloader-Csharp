@@ -18,6 +18,8 @@ Object.assign(globalThis, {
 
 ArmorSetLoader.InstallHairSettings();
 ItemLoader.InstallResearch();
+if (typeof bl?.csharp?.tooltipPlan === 'function')
+    Hooks.Once('item.Tooltips', TooltipLoader.Install);
 
 // Sempre ligado, com ou sem mod: o "Config. dos Mods" do menu de pausa.
 ModConfigMenu.Install();

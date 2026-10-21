@@ -77,6 +77,11 @@ jobs:
           /tmp/bunny-rarity-save
       - name: Verify shared JS/CSharp rarity allocation
         run: node tests/rarity_loader/check_shared_rarity_js.cjs
+      - name: Verify CSharp tooltip plan hook and native glyph drawing
+        run: |
+          node --check app/src/main/cpp/script/js/mod/Exports.js
+          node --check app/src/main/cpp/script/js/mod/Loaders/TooltipLoader.js
+          python3 tests/basic_items/check_csharp_tooltip_refresh.py
       - name: Verify original JS tooltip interop with CSharp native rarity cache
         run: node tests/rarity_loader/check_rarity_tooltip_js.cjs
       - name: Compile rarity native host integration and lifecycle regressions
