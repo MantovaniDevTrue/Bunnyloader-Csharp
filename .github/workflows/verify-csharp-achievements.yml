@@ -7,6 +7,7 @@ on:
     paths:
       - experiments/csharp/BunnyCsSdk/BunnyAchievement.cs
       - experiments/csharp/BunnyCsSdk/BunnyAchievementRuntime.cs
+      - experiments/csharp/BunnyCsSdk/BunnyAchievementStore.cs
       - experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj
       - experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs
       - app/src/main/cpp/experiments/csharp/SourceParser.cpp
@@ -16,6 +17,7 @@ on:
       - app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp
       - app/src/main/cpp/experiments/csharp/ManagedRuntime.h
       - app/src/main/cpp/experiments/csharp/ManagedAchievementTransport.h
+      - app/src/main/cpp/experiments/csharp/ManagedAchievementMetadata.h
       - app/src/main/cpp/experiments/csharp/NativeAchievementHooks.h
       - app/src/main/cpp/experiments/csharp/NativeAchievementHooks.cpp
       - app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp
@@ -46,6 +48,12 @@ jobs:
             tests/achievements_csharp/transport_test.cpp \
             -o /tmp/csharp-achievement-transport
           /tmp/csharp-achievement-transport
+      - name: Test strict native metadata protocol
+        run: |
+          g++ -std=c++20 -O2 -Wall -Wextra -Werror -Iapp/src/main/cpp \
+            tests/achievements_csharp/metadata_test.cpp \
+            -o /tmp/csharp-achievement-metadata
+          /tmp/csharp-achievement-metadata
       - name: Syntax-check actual native MonoVM integration without APK
         run: |
           g++ -std=c++20 -O0 -fsyntax-only -Itests/basic_items/include -Iapp/src/main/cpp \
