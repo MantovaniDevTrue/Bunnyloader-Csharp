@@ -28,7 +28,8 @@ internal enum BunnyUpdateStageFlags
     PostUpdateGores = 8192,
     PostUpdateProjectiles = 16384,
     PreUpdateItems = 32768,
-    PostUpdateItems = 65536
+    PostUpdateItems = 65536,
+    UpdateUI = 131072
 }
 
 /// <summary>
@@ -93,6 +94,9 @@ public abstract class BunnyWorldUpdateLoader : BunnyHookModule
     /// <summary>Após Main.UpdateInvasion.</summary>
     protected virtual void PostUpdateInvasions() { }
 
+    /// <summary>Após Main.UpdateUIStates, somente durante o mundo. Handle GameTime válido neste callback.</summary>
+    protected virtual void UpdateUI(nint gameTime) { }
+
     /// <summary>Após Main.DoUpdate_HandleInput, para ler o input já processado.</summary>
     protected virtual void PostUpdateInput() { }
 
@@ -151,7 +155,7 @@ public abstract class BunnyWorldUpdateLoader : BunnyHookModule
 
     internal void Deactivate() => Volatile.Write(ref registered, 0);
 
-    internal void Invoke(BunnyUpdateStageFlags flag)
+    internal void Invoke(BunnyUpdateStageFlags flag, nint context = default)
     {
         if (!IsRegistered) return;
         try
@@ -175,6 +179,7 @@ public abstract class BunnyWorldUpdateLoader : BunnyHookModule
                 case BunnyUpdateStageFlags.PreUpdateInvasions: PreUpdateInvasions(); break;
                 case BunnyUpdateStageFlags.PostUpdateInvasions: PostUpdateInvasions(); break;
                 case BunnyUpdateStageFlags.PostUpdateInput: PostUpdateInput(); break;
+                case BunnyUpdateStageFlags.UpdateUI: UpdateUI(context); break;
             }
             Interlocked.Increment(ref callbacks);
         }
@@ -255,6 +260,8 @@ internal static class BunnyWorldUpdateRegistry
             BunnyUpdateStageFlags.PostUpdateItems, BunnyUpdateStageFlags.None),
         new("Bunny.SystemStage", "EntitiesEnd", false,
             BunnyUpdateStageFlags.PostUpdateEverything, BunnyUpdateStageFlags.None),
+        new("Bunny.SystemStage", "UIEnd", false,
+            BunnyUpdateStageFlags.UpdateUI, BunnyUpdateStageFlags.None),
         new("Terraria.Main", "PreUpdateAllProjectiles", false,
             BunnyUpdateStageFlags.PreUpdateProjectiles, BunnyUpdateStageFlags.None),
         new("Terraria.Dust", "UpdateDust", true,
@@ -353,7 +360,7 @@ internal static class BunnyWorldUpdateRegistry
                 if (owner is not null)
                 {
                     Stage captured = stage;
-                    BunnyVoidHook handler = (original, self) => Dispatch(captured, original.Invoke);
+                    BunnyVoidHook handler = (original, self) => Dispatch(captured, original.Invoke, self);
                     try
                     {
                         BunnyMethodHook hook = TestHookFactory is not null
@@ -382,10 +389,10 @@ internal static class BunnyWorldUpdateRegistry
         }
     }
 
-    private static void Dispatch(Stage stage, Action original)
+    private static void Dispatch(Stage stage, Action original, nint context = default)
     {
         foreach (BunnyWorldUpdateLoader loader in Volatile.Read(ref stage.BeforeListeners))
-            loader.Invoke(stage.Before);
+            loader.Invoke(stage.Before, context);
 
         if (stage.Type == "Bunny.SystemStage")
         {
@@ -393,7 +400,7 @@ internal static class BunnyWorldUpdateRegistry
             // método a executar pelo Mono. Ambos os callbacks acontecem
             // antes de liberar o trampolim ARM64 para o código seguinte.
             foreach (BunnyWorldUpdateLoader loader in Volatile.Read(ref stage.AfterListeners))
-                loader.Invoke(stage.After);
+                loader.Invoke(stage.After, context);
             original();
             return;
         }
@@ -402,7 +409,7 @@ internal static class BunnyWorldUpdateRegistry
         finally
         {
             foreach (BunnyWorldUpdateLoader loader in Volatile.Read(ref stage.AfterListeners))
-                loader.Invoke(stage.After);
+                loader.Invoke(stage.After, context);
         }
     }
 
