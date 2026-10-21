@@ -67,7 +67,10 @@ public sealed class BunnyAchievementCondition
 
     internal void SetProgress(double progress, bool notify)
     {
-        value = Math.Min(Maximum, Math.Max(0, progress));
+        double adjusted = Math.Min(Maximum, Math.Max(0, progress));
+        if (notify && adjusted != value)
+            owner.ReportProgressChanged();
+        value = adjusted;
         if (notify) owner.CheckCompleted();
     }
 
@@ -92,6 +95,7 @@ public abstract class BunnyAchievement
     private readonly Dictionary<string, BunnyAchievementCondition> byKey = new(StringComparer.Ordinal);
     private bool registered;
     private bool completed;
+    internal Action? ProgressChanged;
 
     public string Name { get; internal set; } = "";
     public string FriendlyName { get; protected set; } = "";
@@ -194,6 +198,8 @@ public abstract class BunnyAchievement
         }
     }
 
+    internal void ReportProgressChanged() => ProgressChanged?.Invoke();
+
     internal void CheckCompleted(bool notify = true)
     {
         if (completed || conditions.Count == 0 || conditions.Any(c => !c.IsCompleted))
@@ -228,6 +234,7 @@ public sealed class BunnyAchievementRegistry
 
     public IReadOnlyCollection<BunnyAchievement> Achievements => registered.Values;
     public long Notifications { get; private set; }
+    public long ProgressChanges { get; private set; }
     public long CallbackFaults { get; private set; }
     public string LastError { get; private set; } = "";
 
@@ -239,6 +246,7 @@ public sealed class BunnyAchievementRegistry
         if (registered.Count >= MaxAchievements || registered.ContainsKey(key))
             throw new InvalidOperationException("Conquista duplicada ou limite de 256 atingido: " + key);
         achievement.Initialize(key);
+        achievement.ProgressChanged = () => ProgressChanges++;
         if (stored.TryGetValue(key, out var progress))
             achievement.Restore(progress);
         registered.Add(key, achievement);
@@ -359,6 +367,7 @@ public sealed class BunnyAchievementRegistry
         registered.Clear();
         stored.Clear();
         Notifications = 0;
+        ProgressChanges = 0;
         CallbackFaults = 0;
         LastError = "";
     }
