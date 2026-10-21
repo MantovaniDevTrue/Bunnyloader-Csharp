@@ -128,3 +128,8 @@ O workflow check-csharp-worldsave-source executa esses dois comandos apenas na b
 - `BunnyWorldDispatcher` desfaz uma entrada mal sucedida e permite sessão posterior mesmo se `ClearWorld`, `OnWorldLoad`, `LoadWorldData` ou `PostWorldLoad` falhar; nenhum sidecar corrompido pode ser salvo.
 - `ManagedRuntime` agora aplica o limite correto de 80 KB Base64 a retornos `NetSend`, não o limite de 1,4 MB dos saves.
 - A CI exercita cancelamento por geração, fila limitada, callbacks e retorno ao mundo, além de compilação estrita C++/C# host-only. Continua pendente QA Android/ABI real.
+
+
+### Etapa 21 — ABI Android (compilação apenas)
+
+O job android-arm64-source-only valida os módulos nativos com NDK v30, produzindo apenas objetos ELF AArch64, sem APK ou .bmod. A compilação não comprova link final ou ABI Terraria em jogo. O cliente normaliza a origem do NetManager.Read para 256, como o ExampleModBunny, mantendo o gate netMode=1.

@@ -119,7 +119,7 @@ void hkWorldNetRead(Il2CppObject* self, Il2CppObject* reader, int userId,
     if (bytes->length != static_cast<uintptr_t>(remaining)) return;
     const auto* memory = reinterpret_cast<const uint8_t*>(arrayData(bytes));
     if (!validWorldNetworkPacket(memory, remaining)) return;
-    bl::csharp::onNativeWorldNetReceived(memory, remaining, userId);
+    bl::csharp::onNativeWorldNetReceived(memory, remaining, 256);
 }
 
 void hkWorldNetSendData(int message, int remote, int ignore, Il2CppObject* text,

@@ -216,3 +216,31 @@ jobs:
           PY
       - name: Keep this job host-only
         run: echo "SOURCE_ONLY_NO_ANDROID_PACKAGING"
+
+  android-arm64-source-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: android-actions/setup-android@v3
+      - name: Install Android NDK without packaging an APK
+        run: sdkmanager --install "ndk;30.0.16248370"
+      - name: Compile native WorldSave and WorldNet objects for arm64-v8a
+        run: |
+          set -euo pipefail
+          NDK="$ANDROID_HOME/ndk/30.0.16248370/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          JAVA_ROOT="$(dirname "$(dirname "$(readlink -f "$(command -v javac)")")")"
+          ROOT="Split/Bunny-Loader/app/src/main/cpp"
+          mkdir -p /tmp/bunny-worldsave-arm64
+          for src in NativeWorldStore NativeWorldCoordinator NativeWorldNetwork \
+                     NativeWorldNetTransport AutoSourceRuntime ManagedRuntime; do
+            "$NDK/clang++" --target=aarch64-linux-android24 -std=c++20 \
+              -O2 -fno-exceptions -fno-rtti -fPIC -Wall -Wextra -Werror -pthread \
+              -I "$ROOT" -I "$JAVA_ROOT/include" -I "$JAVA_ROOT/include/linux" \
+              -c "$ROOT/experiments/csharp/$src.cpp" \
+              -o "/tmp/bunny-worldsave-arm64/$src.o"
+            "$NDK/llvm-readelf" -h "/tmp/bunny-worldsave-arm64/$src.o" |
+              grep -q 'Machine:.*AArch64'
+          done
+          echo "WORLD_ARM64_ANDROID_NDK_OBJECTS_PASS_NO_APK"
+
