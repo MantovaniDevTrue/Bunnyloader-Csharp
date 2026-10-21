@@ -32,6 +32,10 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
       - name: Test native CSharp source parsing without Android
         run: |
           g++ -std=c++20 -O2 -Iapp/src/main/cpp             tests/achievements_csharp/source_parser_test.cpp             app/src/main/cpp/experiments/csharp/SourceParser.cpp             -o /tmp/csharp-achievement-source-parser
@@ -48,7 +52,9 @@ jobs:
             app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp
           g++ -std=c++20 -O0 -fsyntax-only -Itests/basic_items/include -Iapp/src/main/cpp \
             app/src/main/cpp/experiments/csharp/NativeAchievementHooks.cpp
-          g++ -std=c++20 -O0 -fsyntax-only -Itests/basic_items/include -Iapp/src/main/cpp \
+          g++ -std=c++20 -O0 -fsyntax-only -Itests/basic_items/include \
+            -I"$JAVA_HOME/include" -I"$JAVA_HOME/include/linux" \
+            -Iapp/src/main/cpp \
             app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp
       - name: Test achievements without Android or APK
         run: dotnet run --configuration Release --project tests/achievements_csharp/AchievementCoreTests.csproj
