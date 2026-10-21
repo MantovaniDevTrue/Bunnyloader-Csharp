@@ -295,6 +295,14 @@ bool make(const AchievementMetadata& definition, NativeEntry* out,
     if (!invoke(methods.trackCondition, achievement, trackerArgs, nullptr, error))
         return false;
 
+    // Recuperar o progresso ANTES do Register(Achievement). Conquistas de
+    // sessões anteriores não devem parecer novos desbloqueios no menu.
+    int initialProgress = scaled(definition.progress);
+    void* initialArgs[]{&initialProgress};
+    if (!invoke(methods.setProgress, condition, initialArgs, nullptr, error))
+        return false;
+    out->applied = initialProgress;
+
     out->achievementRoot = a.gchandle_new(achievement, false);
     out->conditionRoot = a.gchandle_new(condition, false);
     if (!out->achievementRoot || !out->conditionRoot) {
