@@ -11,6 +11,12 @@
 namespace bl::graphics { struct ScreenSceneRaw; }
 
 namespace bl::csharp {
+// A biblioteca auxiliar MonoVM não liga com os hooks do jogo; o host
+// instala um publicador opcional no runtime principal.
+using AchievementMetadataPublisher = bool (*)(
+    const std::string&, const std::string&, std::string*);
+void setManagedAchievementMetadataPublisher(AchievementMetadataPublisher callback);
+
 // Eventos: enqueue sem executar Mono na thread do Terraria; false requer
 // diagnóstico no chamador (fila cheia, ciclo de vida inativo ou argumento inválido).
 bool queueManagedAchievementFlush(const std::string& modId,
