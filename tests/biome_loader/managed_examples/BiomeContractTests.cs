@@ -60,7 +60,7 @@ static class BiomeContractTests
             typeof(BiomeContractTests).Assembly.Location),
             "Cannot register same mod twice");
         string deps = BunnyBiomeDispatcher.TilesWire("example-mod");
-        Require(deps.StartsWith("BUNNY_BIOME_TILES_V1\n", StringComparison.Ordinal),
+        Require(deps.StartsWith("BUNNY_BIOMES_V1\n", StringComparison.Ordinal),
             "Biome dependency protocol");
         Require(deps.Contains("BIOME\tExampleSurfaceBiome\tExampleTile\n",
             StringComparison.Ordinal), "Biome tile dependency matches ExampleModBunny");
