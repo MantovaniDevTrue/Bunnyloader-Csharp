@@ -22,7 +22,7 @@ int main(int argc, char** argv) {
         }
         ++files;
     }
-    assert(files >= 93);
+    assert(files >= 96);
     assert(std::any_of(types.begin(), types.end(), [](const auto& type) {
         return type.name == "ExampleHigherTierModRarity" && type.base == "BunnyRarity";
     }));
