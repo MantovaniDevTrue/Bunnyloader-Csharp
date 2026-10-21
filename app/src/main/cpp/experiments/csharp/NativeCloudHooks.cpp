@@ -264,6 +264,113 @@ bool applyNativeCloudSpriteResultOnGameThread(
     return true;
 }
 
+// Called from Terraria's game UPDATE, never from Cloud.addCloud or a
+// rendering hook. Mono callbacks are dispatched asynchronously through
+// ManagedRuntime's already-existing pinned worker and never block frames.
+void pumpNativeCloudManagedCallbacksOnGameThread(
+    bool gameMenu, bool tenthAnniversaryWorld, const std::string& biomeKeys) {
+    if (!g_enabled || !gameThread() || !g_registry ||
+        !nativeCloudAssetsInstalled()) return;
+
+    // A typical frame has zero cloud events. Drain at most eight each frame
+    // to keep a pathological mod from monopolizing the update budget.
+    NativeCloudSpawnLedger::Event event{};
+    for (int i = 0; i < 8 && g_spawn.take(&event); ++i) {
+        const auto* entry = g_registry->find(event.type);
+        if (!entry || !cloudIsValid(entry)) continue;
+        queueManagedCloudOnSpawn(entry->modId, event.type, event.slot,
+                                 event.generation, event.scale,
+                                 event.spriteEffects);
+    }
+
+    ManagedCloudSpawnReply reply{};
+    for (int i = 0; i < 8 && takeManagedCloudOnSpawnReply(&reply); ++i) {
+        const NativeCloudSpawnLedger::Event original{
+            reply.type, reply.slot, reply.generation, reply.scale,
+            reply.originalSpriteDir
+        };
+        applyNativeCloudSpriteResultOnGameThread(original, reply.spriteDir);
+    }
+
+    // SpawnChance is sampled away from addCloud. A pending batch is collected
+    // from ALL mods before replacing the active weighted pools; a partial
+    // or malformed response can never change another mod's probabilities.
+    if (!g_collectingWeights) {
+        if (!g_roll.refreshRequested() || biomeKeys.size() > 4096)
+            return;
+        if (g_weightRetryCooldown > 0) {
+            --g_weightRetryCooldown;
+            return;
+        }
+
+        // Do not assume a class has been registered merely because its
+        // source was compiled. Every binding must be ACKed by Mono first.
+        for (const auto& [mod, ids] : g_managedCloudTypes)
+            if (!managedCloudRegistrationReady(mod)) return;
+
+        g_stagedWeights.clear();
+        g_pendingWeightMods.clear();
+        for (int i = 0; i < static_cast<int>(g_registry->count()); ++i) {
+            const auto* entry = g_registry->find(g_registry->firstType() + i);
+            if (!entry) continue;
+            const auto classes = g_managedCloudTypes.find(entry->modId);
+            const bool managed = classes != g_managedCloudTypes.end() &&
+                std::find(classes->second.begin(), classes->second.end(),
+                          entry->type) != classes->second.end();
+            // A PNG-only cloud is exactly SimpleModCloud with weight 1.
+            if (!managed) g_stagedWeights.push_back({entry->type, 1});
+        }
+        for (const auto& [mod, ids] : g_managedCloudTypes)
+            g_pendingWeightMods.insert(mod);
+        g_collectingWeights = true;
+        g_weightAge = 0;
+    }
+
+    // A worker may be busy; re-asking is cheap and nonblocking, and the
+    // ManagedRuntime coalesces repeated requests per mod.
+    std::vector<std::string> received;
+    for (const std::string& mod : g_pendingWeightMods) {
+        std::string payload;
+        if (!takeManagedCloudWeights(mod, &payload)) {
+            requestManagedCloudWeights(mod, gameMenu,
+                                       tenthAnniversaryWorld, biomeKeys);
+            continue;
+        }
+        std::string error;
+        if (!appendNativeCloudWeightWire(
+                *g_registry, mod, payload, &g_stagedWeights, &error)) {
+            // Keep the previous complete pool. No partial publication.
+            g_collectingWeights = false;
+            g_pendingWeightMods.clear();
+            g_stagedWeights.clear();
+            g_weightRetryCooldown = 120;
+            return;
+        }
+        received.push_back(mod);
+    }
+    for (const auto& mod : received) g_pendingWeightMods.erase(mod);
+    if (!g_pendingWeightMods.empty()) {
+        // A timed-out batch must not keep the game thread waiting and must
+        // never publish incomplete weights. Vanilla remains available.
+        if (++g_weightAge > 180) {
+            g_collectingWeights = false;
+            g_pendingWeightMods.clear();
+            g_stagedWeights.clear();
+            g_weightRetryCooldown = 120;
+        }
+        return;
+    }
+
+    std::sort(g_stagedWeights.begin(), g_stagedWeights.end(),
+              [](const NativeCloudWeight& a, const NativeCloudWeight& b) {
+                  return a.type < b.type;
+              });
+    if (!g_roll.publish(*g_registry, g_stagedWeights))
+        g_weightRetryCooldown = 120;
+    g_stagedWeights.clear();
+    g_collectingWeights = false;
+}
+
 void pauseNativeCloudHooks() {
     g_enabled = false;
     g_insideAdd = false;
