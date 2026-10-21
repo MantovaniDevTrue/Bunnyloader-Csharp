@@ -82,6 +82,12 @@ BunnyWorldSystem agora inclui NetSend(BinaryWriter) e NetReceive(BinaryReader), 
 
 `NativeWorldNetwork` valida integralmente o envelope BWN1 antes de entregá-lo ao MonoVM (magic, versão, contador, ordenação, UUID, nomes, tamanho por sistema, CRC32). Usa `MonoWorldAction::NetSend/NetReceive` na thread dedicada, limita o payload a 60 KB e reserva o id de módulo 0xB17F, distinto do módulo JavaScript 0xB17E. A fixture binária vem da implementação C# real, e o teste C++ compara byte-a-byte e verifica corrupções. Este componente **não instala sozinho NetManager.Read / SendData**; esses hooks dependem da ABI IL2CPP nativa e devem ser checados antes de qualquer envio de jogo.
 
+## Etapa 15 — interface IL2CPP de transporte da rede
+
+`NativeWorldNetTransport` instala hooks exatos de `NetManager.Read(BinaryReader,int,int)` e `NetMessage.SendData(...)` (mensagem 7), utilizando `NetPacket(ushort,int)`, `BinaryWriter.Write(byte[])` e `SendToClient/Broadcast`. Módulos desconhecidos têm sua posição original restaurada e passam ao jogo; somente id `0xB17F` é consumido. No cliente, pacotes de servidor entram em `onNativeWorldNetReceived`. No servidor, após a mensagem 7, chama-se `onNativeWorldSyncSent`. A resolução falha fechada quando a API é incompatível, sem substituir o tráfego `0xB17E` de mods JavaScript.
+
+Estes callbacks de sessão ainda precisam ser ligados ao `AutoSourceRuntime` para sincronização real; o compilador host valida sintaxe, mas não substitui o teste de ABI no Android.
+
 ## Requisitos ainda bloqueantes
 
 1. Host nativo C++ deve capturar a identidade real do arquivo de mundo após a seleção; não confiar em nome de mundo ou caminho informado por um mod.

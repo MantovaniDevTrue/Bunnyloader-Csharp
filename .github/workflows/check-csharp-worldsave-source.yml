@@ -134,6 +134,14 @@ jobs:
           assert 'worldTypes.Length == 0' in probe
           print("WORLD_ONLY_MOD_REGISTER_GATE_PASS")
           PY
+      - name: Native Terraria NetManager hooks host-only syntax compile
+        run: |
+          JAVA_ROOT="$(dirname "$(dirname "$(readlink -f "$(command -v javac)")")")"
+          g++ -std=c++20 -Wall -Wextra -Werror -fsyntax-only \
+            -I "$JAVA_ROOT/include" -I "$JAVA_ROOT/include/linux" \
+            -I Split/Bunny-Loader/tests/world_save/host_include \
+            -I Split/Bunny-Loader/app/src/main/cpp \
+            Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeWorldNetTransport.cpp
       - name: Compile CSharp Terraria hook translation unit in host-only syntax mode
         run: |
           JAVA_ROOT="$(dirname "$(dirname "$(readlink -f "$(command -v javac)")")")"
