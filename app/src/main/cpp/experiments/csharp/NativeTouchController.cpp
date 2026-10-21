@@ -23,6 +23,7 @@ bool attempted = false;
 
 struct RuntimeFields {
     std::array<size_t, 3> offsets{};
+    std::array<Il2CppClass*, 3> arrayTypes{};
     FieldInfo* gameMenu = nullptr;
     Il2CppClass* controller = nullptr;
     ActionIds ids;
@@ -94,7 +95,6 @@ bool ensureControllerArrays(void* self) {
             if (root) api.gchandle_free(root);
     };
     constexpr std::array<size_t, 3> widths{1, 1, 4};
-    constexpr std::array<const char*, 3> typeNames{"Boolean", "Boolean", "Single"};
 
     for (size_t i = 0; i < arrays.size(); ++i) {
         std::memcpy(&arrays[i], static_cast<const char*>(self) + refs.offsets[i],
@@ -105,14 +105,13 @@ bool ensureControllerArrays(void* self) {
         }
         Il2CppClass* arrayType =
             api.object_get_class(reinterpret_cast<Il2CppObject*>(arrays[i]));
-        Il2CppClass* element = arrayType ?
-            api.class_get_element_class(arrayType) : nullptr;
-        if (!element || !api.class_get_name(element) ||
-            std::strcmp(api.class_get_name(element), typeNames[i]) != 0) {
+        if (!refs.arrayTypes[i] || arrayType != refs.arrayTypes[i]) {
             release();
             return false;
         }
         if (arrays[i]->length >= static_cast<uintptr_t>(required)) continue;
+        Il2CppClass* element = api.class_get_element_class(refs.arrayTypes[i]);
+        if (!element) { release(); return false; }
         Il2CppArray* resized = api.array_new(element, static_cast<uintptr_t>(required));
         if (!resized || resized->length != static_cast<uintptr_t>(required)) {
             release();
@@ -264,6 +263,17 @@ void pumpNativeTouchObserverOnGameThread() {
         if (offset < sizeof(Il2CppObject) ||
             offset + sizeof(void*) > api.class_instance_size(controller)) return;
         refs.offsets[i] = offset;
+        const Il2CppType* type = api.field_get_type(field);
+        Il2CppClass* arrayType = type ? api.class_from_il2cpp_type(type) : nullptr;
+        if (!arrayType || !api.class_get_rank ||
+            api.class_get_rank(arrayType) != 1 ||
+            !api.class_get_element_class || !api.class_get_name)
+            return;
+        Il2CppClass* element = api.class_get_element_class(arrayType);
+        const char* expected = i == 2 ? "Single" : "Boolean";
+        if (!element || std::strcmp(api.class_get_name(element), expected) != 0)
+            return;
+        refs.arrayTypes[i] = arrayType;
     }
     refs.controller = controller;
     if (!bl::hook::install(update, onControllerUpdate, &originalUpdate) ||
