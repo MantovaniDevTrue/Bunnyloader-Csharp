@@ -47,7 +47,7 @@ int main() {
 
     NativeCloudRollCoordinator rolls;
     assert(rolls.publish(registry, weights));
-    assert(rolls.chooseCommon(22.5 / 24.0) == 200);
+    assert(rolls.chooseCommon(22.5 / 23.0) == 200);
     assert(rolls.chooseRare(.8, false) == 201);
     std::cout << "CloudLoader C#: managed weights ownership and native roll OK\n";
 }
