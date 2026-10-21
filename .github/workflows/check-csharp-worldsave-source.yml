@@ -139,6 +139,9 @@ jobs:
           assert "worldsave::enterManagedWorld(epoch, true, &error)" in x
           assert "worldsave::saveManagedWorld(epoch, true, &error)" in x
           assert "worldsave::leaveManagedWorld(departingEpoch, &unloadError)" in x
+          assert "void SaveAndQuitCallBack(object threadContext)" in x
+          assert "g_origNativeQuitCallback(context, method);" in x
+          assert "hkNativeCSharpWorldQuitCallback" in x
           assert "g_worldDataEnteredEpoch.load(std::memory_order_acquire) != epoch" in x
           print("BUNNY_WORLD_IL2CPP_HOOK_SOURCE_PASS")
           PY

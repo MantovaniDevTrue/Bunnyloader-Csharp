@@ -72,7 +72,7 @@ Esta transação ainda precisa ser chamada por hooks reais de LoadWorld e Intern
 
 A integração de Terraria.IO.WorldFile.LoadWorld(bool) chama Enter apenas após o carregamento original. O hook InternalSaveWorld(bool, bool) aguarda o salvamento original e então executa Prepare → BWC1 → sidecar atômico → Confirm. O epoch carregado também é verificado para bloquear gravações antigas, nuvem e clientes. No caminho de saída, Leave é chamado antes de invalidar o sidecar da sessão. A instalação requer assinatura exata por nome, tipo e nome de parâmetros, e método estático confirmado pela API IL2CPP. Caso a assinatura não exista, os sistemas de mundo não devem liberar a entrada.
 
-O teste de sintaxe C++ no Linux ainda não valida a ABI efetiva do Terraria Android; isso requer QA nativo. Também falta suporte real de rede para o multiplayer.
+A saída via WorldGen.SaveAndQuitCallBack(object) também chama OnWorldUnload no MonoVM e invalida o sidecar após o callback original, com limpeza adicional pelo monitor do menu para casos sem callback. O teste de sintaxe C++ no Linux ainda não valida a ABI efetiva do Terraria Android; isso requer QA nativo. Também falta suporte real de rede para o multiplayer.
 
 ## Requisitos ainda bloqueantes
 
