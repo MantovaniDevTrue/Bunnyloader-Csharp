@@ -283,3 +283,35 @@ Nenhum APK/.bmod gerado nesta PR.
 
 PR continua draft. Sem merge, sem APK e sem .bmod até o loader estar
 completo e passar no dispositivo.
+
+
+## Lote de 21/10/2026 — segurança do save e manutenção do editor
+
+- `SaveConfiguration` não grava IDs reservados do mod no arquivo vanilla se
+  não puder enumerar os layouts, carregar o JSON separado ou concluir sua
+  escrita. Em vez de apagar ou sobrescrever dados antigos, recusa a operação
+  e registra o motivo no log.
+- `GetShareCode` também não exporta uma configuração cuja enumeração não
+  pode ser validada. Após a execução guardada das funções originais, os
+  bindings do layout são restaurados.
+- `storedTouchActionIdentity` mantém nomes de controles de mods ausentes
+  quando ainda ocupam um índice reservado ou foram convertidos em unbound.
+  Uma nova ação vanilla ou um botão removido manualmente não reaproveita
+  essa identidade indevidamente.
+- `NativeTouchEditorOptions` pode ajustar ItemCount e ItemLineCount da
+  grade mesmo quando a lista ButtonControls não mudou. Evita criar outro
+  array gerenciado nesse caso.
+- Com o host ativo, o editor verifica a integridade das opções no máximo
+  uma vez a cada 60 updates, para reparar a recriação nativa do seletor.
+  A restauração dos bindings continua condicionada à revisão do registry.
+- Regression tests incluem identidade preservada, remoção explícita,
+  respeito a ações vanilla e rejeição de identificador incompatível.
+- CI source-only <https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39625635908>
+  aprovada (contratos C# e C++, ASan/UBSan e preflight IL2CPP).
+  O preflight Linux agora fornece o stub do android/log.h para compilar
+  diagnósticos usados no Android real, sem fabricar APK.
+
+**Limite de validação:** os testes não executam os hooks no Terraria.
+Ainda faltam QA ARM64 no aparelho, chat/NPC/placas, editor e imagens,
+grupos, perfis, convivência JS/C#, multiplayer e FPS sustentados.
+A PR permanece em draft, sem merge nem APK/.bmod.
