@@ -55,6 +55,19 @@ static class Program
 
     private sealed class B : BunnyWorldUpdateLoader
     {
+        internal bool ThrowOnTime;
+        protected override void ModifyTimeRate(ref BunnyTimeRateValues rates)
+        {
+            if (ThrowOnTime)
+            {
+                rates.TimeRate = double.NaN;
+                throw new InvalidOperationException("Falha isolada em ModifyTimeRate");
+            }
+            rates.TimeRate += 0.25;
+            rates.TileUpdateRate += 0.25;
+            rates.EventUpdateRate += 0.25;
+            Sequence.Add("B-time");
+        }
         protected override void PreUpdateEntities() => Sequence.Add("B-pre");
         protected override void PostUpdateEverything() => Sequence.Add("B-post");
         protected override void PostUpdateInput() => Sequence.Add("B-input");
@@ -188,10 +201,19 @@ static class Program
             return true;
         };
         Fire("TimeRate", "vanilla");
-        Order("A-time,vanilla");
-        Check(appliedSession == 42 && applied.TimeRate == 0.5 &&
-              applied.TileUpdateRate == 1.25 && applied.EventUpdateRate == 0.75,
+        Order("A-time,B-time,vanilla");
+        Check(appliedSession == 42 && applied.TimeRate == 0.75 &&
+              applied.TileUpdateRate == 1.5 && applied.EventUpdateRate == 1.0,
               "Valores de relógio não preservados entre nativo e CSharp");
+        b.ThrowOnTime = true;
+        long beforeFaults = b.ErrorCount;
+        Fire("TimeRate", "vanilla");
+        Order("A-time,vanilla");
+        Check(b.ErrorCount == beforeFaults + 1 &&
+              applied.TimeRate == 0.5 && applied.TileUpdateRate == 1.25 &&
+              applied.EventUpdateRate == 0.75,
+              "Exceção em ModifyTimeRate alterou o relógio de outro mod");
+        b.ThrowOnTime = false;
         BunnyWorldUpdateRegistry.TestTimeRead = null;
         BunnyWorldUpdateRegistry.TestTimeWrite = null;
 
