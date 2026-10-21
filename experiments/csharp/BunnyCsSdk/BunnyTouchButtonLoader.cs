@@ -82,6 +82,9 @@ public static class BunnyTouchButtonLoader
     private static bool nativeBound;
     private static bool nativeStagePending = true;
     private static bool inTriggerFrame;
+    private static bool batchAvailable = true;
+    private static readonly uint[] nativeStates = new uint[MaxButtons];
+    private static readonly ulong[] nativeTokens = new ulong[MaxButtons];
     public static string LastHostError { get; private set; } = "HostNotConnected";
 
     public static int Count { get { lock (Gate) return ByName.Count; } }
@@ -329,6 +332,12 @@ public static class BunnyTouchButtonLoader
         {
             if (!nativeBound && ByName.Count != 0)
                 TryBindNativeHost();
+            bool batched = false;
+            if (nativeBound && batchAvailable)
+            {
+                try { batched = BunnyTouchNativeHost.Snapshot(nativeStates, nativeTokens); }
+                catch (EntryPointNotFoundException) { batchAvailable = false; }
+            }
             foreach (Entry? entry in Entries)
             {
                 if (entry is null) continue;
@@ -337,8 +346,11 @@ public static class BunnyTouchButtonLoader
                     entry.TriggerSnapshot = entry.State;
                     continue;
                 }
-                BunnyTouchButtonState current = BunnyTouchNativeHost.Read(entry.NativeId);
-                ulong token = BunnyTouchNativeHost.PressToken(entry.NativeId);
+                BunnyTouchButtonState current = batched
+                    ? BunnyTouchNativeHost.Decode(nativeStates[entry.NativeId])
+                    : BunnyTouchNativeHost.Read(entry.NativeId);
+                ulong token = batched ? nativeTokens[entry.NativeId]
+                    : BunnyTouchNativeHost.PressToken(entry.NativeId);
                 uint epoch = (uint)(token >> 32);
                 uint sequence = (uint)token;
                 if (epoch != entry.LastEpoch)
