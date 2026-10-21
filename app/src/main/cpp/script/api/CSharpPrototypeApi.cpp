@@ -165,6 +165,14 @@ JSValue jsNativeItemPolicies(JSContext* ctx,JSValueConst,int argc,JSValueConst*)
     }
     return array;
 }
+JSValue jsManagedTooltipPlan(JSContext* ctx,JSValueConst,int argc,JSValueConst* argv) {
+    if(argc!=1)return JS_ThrowTypeError(ctx,"tooltipPlan(type)");
+    int32_t type=-1;
+    if(JS_ToInt32(ctx,&type,argv[0])<0)return JS_EXCEPTION;
+    const std::string plan=bl::csharp::basicItemTooltipPlan(type);
+    return JS_NewStringLen(ctx,plan.c_str(),plan.size());
+}
+
 JSValue jsPendingItemBehaviors(JSContext* ctx,JSValueConst,int argc,JSValueConst*) {
     if(argc)return JS_ThrowTypeError(ctx,"pendingItemBehaviors()");
     JSValue array=JS_NewArray(ctx);uint32_t i=0;
@@ -2921,6 +2929,7 @@ void installCSharpPrototypeApi(JSContext* ctx, JSValueConst bl) {
     JS_SetPropertyStr(ctx, api, "reserveRarityId", JS_NewCFunction(ctx, jsReserveRarityId, "reserveRarityId", 0));
     JS_SetPropertyStr(ctx, api, "rarityCount", JS_NewCFunction(ctx, jsRarityCount, "rarityCount", 0));
     JS_SetPropertyStr(ctx, api, "rarityColor", JS_NewCFunction(ctx, jsManagedRarityColor, "rarityColor", 1));
+    JS_SetPropertyStr(ctx, api, "tooltipPlan", JS_NewCFunction(ctx, jsManagedTooltipPlan, "tooltipPlan", 1));
     JS_SetPropertyStr(ctx, api, "managedAvailable",
                       JS_NewCFunction(ctx, jsManagedAvailable, "managedAvailable", 0));
     JS_SetPropertyStr(ctx, api, "hostInfo", JS_NewCFunction(ctx, jsHostInfo, "hostInfo", 0));
