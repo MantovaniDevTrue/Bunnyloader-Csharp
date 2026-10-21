@@ -51,8 +51,10 @@ bool registerManagedCloudSourceMod(
     const std::vector<std::pair<int, std::string>>& clouds);
 bool managedCloudRegistrationReady(const std::string& modId);
 bool requestManagedCloudWeights(const std::string& modId, bool gameMenu,
-    bool tenthAnniversaryWorld, const std::string& biomeKeys);
-bool takeManagedCloudWeights(const std::string& modId, std::string* payload);
+    bool tenthAnniversaryWorld, const std::string& biomeKeys,
+    uint64_t batchGeneration);
+bool takeManagedCloudWeights(const std::string& modId,
+    uint64_t batchGeneration, std::string* payload);
 bool queueManagedCloudOnSpawn(const std::string& modId, int type, int slot,
     uint32_t generation, float scale, int spriteDir);
 bool takeManagedCloudOnSpawnReply(ManagedCloudSpawnReply* reply);
