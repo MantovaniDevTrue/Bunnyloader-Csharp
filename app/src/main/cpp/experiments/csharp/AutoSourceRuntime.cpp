@@ -1339,7 +1339,7 @@ void noteAutoGameUpdate() {
         }
         std::lock_guard<std::mutex> sessionGuard(g_worldTransitionMutex);
         clearManagedVisualCommands();
-        setNativeAchievementWorldActive(false);
+        flushNativeAchievementProgressOnExit();
         graphics::clearCSharpScreenEffects();
         pauseManagedScreenSceneCallbacks();
         resetNativeVisualRenderer();
