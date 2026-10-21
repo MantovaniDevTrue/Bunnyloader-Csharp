@@ -201,8 +201,8 @@ Registry& registry() {
 }
 
 void setHostReady(bool ready) {
-    g_hostReady.store(ready, std::memory_order_release);
-    if (!ready) registry().resetWorld();
+    const bool previous = g_hostReady.exchange(ready, std::memory_order_acq_rel);
+    if (previous && !ready) registry().resetWorld();
 }
 
 bool hostReady() { return g_hostReady.load(std::memory_order_acquire); }
