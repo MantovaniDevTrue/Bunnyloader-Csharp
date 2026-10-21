@@ -14,6 +14,7 @@ namespace {
 
 struct Group {
     uint32_t slotRoot = 0;
+    std::string slotId;
     std::array<int32_t, 16> actions{};
     int count = 0;
     int before = -1;
@@ -21,6 +22,7 @@ struct Group {
 std::array<Group, 16> groups;
 int count = 0;
 uint64_t frames = 0;
+const void* cachedProfile = nullptr;
 uint64_t discoveryAttempts = 0;
 bool available = false;
 
@@ -105,10 +107,14 @@ int indexOf(void* controller, const Group& group) {
     return index;
 }
 void refresh() {
-    clear();
     const int activeSlots = nativeTouchActiveSlotCount();
-    if (activeSlots < 0) return;
-    for (int slot = 0; slot < activeSlots && count < 16; ++slot) {
+    if (activeSlots < 0) {
+        clear();
+        return;
+    }
+    std::array<Group, 16> pending{};
+    int pendingCount = 0;
+    for (int slot = 0; slot < activeSlots && pendingCount < 16; ++slot) {
         SlotAction button;
         if (!nativeTouchSlot(slot, &button) || button.style != 2 ||
             button.groupCount < 1) continue;
@@ -119,17 +125,32 @@ void refresh() {
         if (!containsMod) continue;
         std::string hardwareId;
         if (!nativeTouchSlotId(slot, &hardwareId)) continue;
-        auto& api = il2cpp::api();
-        Il2CppString* name = api.string_new(hardwareId.c_str());
-        if (!name) continue;
-        uint32_t handle = api.gchandle_new(
-            reinterpret_cast<Il2CppObject*>(name), false);
-        if (!handle) continue;
-        Group& group = groups[static_cast<size_t>(count++)];
-        group.slotRoot = handle;
+        Group& group = pending[static_cast<size_t>(pendingCount++)];
+        group.slotId = std::move(hardwareId);
         group.count = button.groupCount;
         for (int i = 0; i < button.groupCount; ++i)
-            group.actions[i] = button.group[static_cast<size_t>(i)];
+            group.actions[static_cast<size_t>(i)] = button.group[static_cast<size_t>(i)];
+    }
+    bool changed = pendingCount != count;
+    for (int i = 0; !changed && i < count; ++i) {
+        const Group& previous = groups[static_cast<size_t>(i)];
+        const Group& next = pending[static_cast<size_t>(i)];
+        changed = previous.slotId != next.slotId ||
+                  previous.count != next.count ||
+                  previous.actions != next.actions;
+    }
+    if (!changed) return;
+    clear();
+    auto& api = il2cpp::api();
+    for (int i = 0; i < pendingCount; ++i) {
+        Group& next = pending[static_cast<size_t>(i)];
+        Il2CppString* name = api.string_new(next.slotId.c_str());
+        if (!name) continue;
+        const uint32_t handle = api.gchandle_new(
+            reinterpret_cast<Il2CppObject*>(name), false);
+        if (!handle) continue;
+        next.slotRoot = handle;
+        groups[static_cast<size_t>(count++)] = std::move(next);
     }
 }
 }
@@ -140,7 +161,12 @@ void nativeTouchGroupBefore(void* controller) {
                        discoveryAttempts % 120 == 0))
         available = discover(controller);
     if (!available) return;
-    if (++frames == 1 || frames % 30 == 0) refresh();
+    const void* profile = nativeTouchActiveProfileIdentity();
+    if (++frames == 1 || frames % 30 == 0 || cachedProfile != profile) {
+        refresh();
+        cachedProfile = profile;
+    }
+    if (!hostReady()) return;
     for (int i = 0; i < count; ++i)
         groups[static_cast<size_t>(i)].before =
             indexOf(controller, groups[static_cast<size_t>(i)]);
@@ -160,6 +186,7 @@ void nativeTouchGroupAfter(void* controller) {
 void resetNativeTouchGroupSession() {
     clear();
     frames = 0;
+    cachedProfile = nullptr;
     discoveryAttempts = 0;
     available = false;
 }
