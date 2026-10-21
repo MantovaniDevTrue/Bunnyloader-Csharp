@@ -42,6 +42,7 @@ public:
               const int* bound, size_t boundCount);
     uint32_t read(int id) const;
     std::string fullName(int id) const;
+    int find(std::string_view fullName) const;
     std::string displayName(int id) const;
     std::string iconPath(int id) const;
     std::string ownerId(int id) const;
