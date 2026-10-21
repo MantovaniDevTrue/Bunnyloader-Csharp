@@ -659,10 +659,10 @@ public static class BunnyEntitySourceDispatcher
     {
         if ((uint)modSlot >= (uint)Contexts.Count) return LastRegistrationError;
         Context context = Contexts[modSlot];
-        return "npc=" + context.NpcCalls + " projectile=" + context.ProjectileCalls +
+        return "lastUse=" + context.LastUse +
+            " npc=" + context.NpcCalls + " projectile=" + context.ProjectileCalls +
             " npcHits=" + context.NpcHits + " npcKills=" + context.NpcKills +
             " projectileHits=" + context.ProjectileHits + " projectileKills=" + context.ProjectileKills +
-            " faults=" + context.Faults + " last=" + context.LastError +
-            " lastUse=" + context.LastUse;
+            " faults=" + context.Faults + " last=" + context.LastError;
     }
 }
