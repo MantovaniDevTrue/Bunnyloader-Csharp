@@ -2,6 +2,7 @@
 #include "experiments/csharp/SourceLoader.h"
 
 #include "experiments/csharp/NativeContent.h"
+#include "experiments/csharp/NativeCloudAutoload.h"
 #include "experiments/csharp/NativeDefaults.h"
 #include "experiments/csharp/NativeHoldout.h"
 #include "content/projectiles/ModProjectiles.h"
@@ -365,14 +366,41 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
             return false;
         }
     }
-    // Fail closed before allocating any native content IDs. Merely declaring a
-    // BunnyCloud does not install TextureAssets.Cloud or the mobile CloudMasks.
-    // The backend must explicitly provide the full game-thread installer first.
-    status->clouds = static_cast<int>(std::count_if(defs.begin(), defs.end(),
-        [](const ParsedSourceType& def) { return def.base == "BunnyCloud"; }));
+    // The original ExampleModBunny autoloads any PNG in Clouds/, even
+    // without a BunnyCloud class. Detect BOTH forms before registering any
+    // native item ID. This prevents a source mod from loading successfully
+    // but silently losing PNG-only clouds.
+    NativeCloudRegistry cloudProbe;
+    if (!cloudProbe.start(1)) {
+        status->error = "[CSharp][CloudLoader] Stage=PreRegister Reason=ProbeInvalid";
+        return false;
+    }
+    int declaredClouds = 0;
+    for (const auto& def : defs) {
+        if (def.base != "BunnyCloud") continue;
+        ++declaredClouds;
+        if (cloudProbe.add(mod.id, def.name, "Content/Clouds/" + def.name,
+                           false) < 0) {
+            status->error = "[CSharp][CloudLoader] Stage=PreRegister Class=" +
+                def.name + " Reason=InvalidCloudClassName";
+            return false;
+        }
+    }
+    std::string cloudScanError;
+    if (!appendNativeCloudAutoload(&cloudProbe, mod.id, mod.dir,
+                                   &cloudScanError)) {
+        status->error = "[CSharp][CloudLoader] Stage=PreRegister Reason=" +
+            cloudScanError;
+        return false;
+    }
+    const int imageClouds =
+        static_cast<int>(cloudProbe.count()) - declaredClouds;
+    status->clouds = declaredClouds + imageClouds;
     if (status->clouds > 0) {
         status->error = "[CSharp][CloudLoader] Mod=" + mod.id +
             " Stage=PreRegister Result=Blocked Reason=NativeCloudHooksAndMasksNotInstalled" +
+            " Classes=" + std::to_string(declaredClouds) +
+            " PNGOnly=" + std::to_string(imageClouds) +
             " Clouds=" + std::to_string(status->clouds);
         return false;
     }
