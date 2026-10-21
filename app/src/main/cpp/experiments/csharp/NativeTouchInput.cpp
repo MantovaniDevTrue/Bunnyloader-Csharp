@@ -197,6 +197,22 @@ std::string Registry::ownerId(int id) const {
     return active(id) ? entries_[static_cast<size_t>(id)].owner : std::string{};
 }
 
+int Registry::iconSources(std::array<TouchIconSource, kMaxButtons>* output) const {
+    if (!output) return -1;
+    std::lock_guard lock(mutex_);
+    for (int i = 0; i < nextId_; ++i) {
+        const Registration& entry = entries_[static_cast<size_t>(i)];
+        TouchIconSource& source = (*output)[static_cast<size_t>(i)];
+        if (entry.active) {
+            source.owner = entry.owner;
+            source.path = entry.icon;
+        } else {
+            source = {};
+        }
+    }
+    return nextId_;
+}
+
 int Registry::count() const {
     std::lock_guard lock(mutex_);
     int result = 0;
