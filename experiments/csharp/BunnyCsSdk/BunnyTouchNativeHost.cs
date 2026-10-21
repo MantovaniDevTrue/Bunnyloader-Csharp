@@ -25,6 +25,14 @@ internal static class BunnyTouchNativeHost
     [DllImport("bunny", EntryPoint = "bunny_csharp_touch_press_token", CallingConvention = CallingConvention.Cdecl)]
     private static extern ulong ReadPressToken(int id);
 
+    [DllImport("bunny", EntryPoint = "bunny_csharp_touch_snapshot", CallingConvention = CallingConvention.Cdecl)]
+    private static extern int ReadSnapshot([Out] uint[] states,
+        [Out] ulong[] tokens, int capacity);
+
+    internal static bool Snapshot(uint[] states, ulong[] tokens) =>
+        states.Length == 128 && tokens.Length == 128 &&
+        ReadSnapshot(states, tokens, states.Length) >= 0;
+
     internal static ulong PressToken(int id) => ReadPressToken(id);
 
     [DllImport("bunny", EntryPoint = "bunny_csharp_touch_world_reset", CallingConvention = CallingConvention.Cdecl)]
@@ -44,10 +52,11 @@ internal static class BunnyTouchNativeHost
     internal static int Register(BunnyTouchButton button) =>
         RegisterNative(button.ModId, button.Name, button.DisplayName, button.Icon);
 
-    internal static BunnyTouchButtonState Read(int id)
-    {
-        uint flags = ReadNative(id);
-        return new BunnyTouchButtonState(
+    internal static BunnyTouchButtonState Read(int id) =>
+        Decode(ReadNative(id));
+
+    internal static BunnyTouchButtonState Decode(uint flags) =>
+        new BunnyTouchButtonState(
             (flags & 1u) != 0,
             (flags & 2u) != 0,
             (flags & 4u) != 0,
