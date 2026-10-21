@@ -6,6 +6,8 @@ original = (ROOT / "app/src/main/cpp/script/js/mod/Loaders/SystemUpdateHooks.js"
 sdk = (ROOT / "experiments/csharp/BunnyCsSdk/BunnyWorldUpdateLoader.cs").read_text()
 docs = (ROOT / "samples/ExampleModCSharp/Playable/content/Documentation/SYSTEM_UPDATE_LOADER.md").read_text()
 lifecycle = (ROOT / "experiments/csharp/BunnyCsSdk/BunnyUniversalHooks.cs").read_text()
+native = (ROOT / "app/src/main/cpp/experiments/csharp/UniversalSystemStages.cpp").read_text()
+original_hooks = (ROOT / "app/src/main/cpp/script/api/SystemHooks.cpp").read_text()
 
 complete = {
     "PreUpdatePlayers", "PostUpdatePlayers", "PreUpdateNPCs",
@@ -18,11 +20,7 @@ complete = {
 }
 
 implemented = set(re.findall(r"\bprotected virtual void (\w+)\s*\(", sdk)) - {"OnUnloaded"}
-expected = {
-    "PreUpdateEntities", "PostUpdateEverything", "PreUpdateProjectiles",
-    "PreUpdateDusts", "PostUpdateDusts", "PreUpdateInvasions",
-    "PostUpdateInvasions", "PostUpdateInput",
-}
+expected = complete - {"UpdateUI", "ModifyTimeRate"}
 assert implemented == expected, f"Escopo C# alterado sem auditoria: {implemented ^ expected}"
 assert len(complete) == 19
 for callback in complete:
@@ -35,9 +33,24 @@ for stage in (
     "GoresEnd", "ItemsBegin", "ItemsEnd", "ClockAdvance"
 ):
     assert stage in original, f"Referencia de estagio ausente: {stage}"
+# Cada âncora nativa deve preservar os 4 opcodes originais, não só o nome.
+for stage, offset in (
+    ("PlayersBegin", "0x1b8"), ("PlayersEnd", "0x57c"),
+    ("NPCsBegin", "0x884"), ("NPCsEnd", "0xf40"),
+    ("GoresEnd", "0x114c"), ("ItemsBegin", "0x1740"),
+    ("ItemsEnd", "0x1a14")
+):
+    assert f'{{"{stage}", {offset},' in native, f"Sem âncora {stage}"
+    assert f'{{"{stage}", "void DoUpdateInWorld()", {offset},' in original_hooks, stage
+assert 'std::memcmp(code + stage.offset, stage.expected' in native
+assert 'originalWorldUpdate(self, info);' in native
+assert 'installUniversalSystemStageOnGameThread' in native
 assert "UpdateUIStates(GameTime gameTime)" in original
 assert "Main['void DoUpdateInWorld()']" in original
-assert 'new("Terraria.Main", "DoUpdateInWorld", false,' in sdk
+assert 'new("Bunny.SystemStage", "EntitiesBegin", false,' in sdk
+assert 'new("Bunny.SystemStage", "EntitiesEnd", false,' in sdk
+for stage in ("PlayersBegin", "PlayersEnd", "NPCsBegin", "NPCsEnd", "GoresEnd", "ItemsBegin", "ItemsEnd"):
+    assert f'new("Bunny.SystemStage", "{stage}", false,' in sdk
 assert 'new("Terraria.Main", "PreUpdateAllProjectiles", false,' in sdk
 assert 'new("Terraria.Dust", "UpdateDust", true,' in sdk
 assert 'new("Terraria.Main", "UpdateInvasion", true,' in sdk
