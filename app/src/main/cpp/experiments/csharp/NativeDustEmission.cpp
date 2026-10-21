@@ -17,6 +17,8 @@ std::mutex mutex;
 std::deque<Request> requests;
 uint64_t session = 0;
 bool ready = false;
+bool firstEmitReported = false;
+bool firstEmitRejected = false;
 bool valid(const char* text, size_t limit) {
     if (!text) return false;
     const size_t size = strnlen(text, limit + 1);
@@ -83,7 +85,11 @@ bool resolve() {
 }
 void setNativeDustEmissionWorld(bool value,uint64_t epoch) {
     std::lock_guard lock(mutex);
-    if(epoch!=session||!value)requests.clear();
+    if(epoch!=session||!value) {
+        requests.clear();
+        firstEmitReported = false;
+        firstEmitRejected = false;
+    }
     session=epoch;ready=value&&epoch!=0;
 }
 void pumpNativeDustEmission() {
@@ -133,7 +139,20 @@ int bunny_dust_emit(int64_t epoch,const char* mod,const char* name,int player,in
     using namespace bl::csharp;
     if(epoch<=0||!valid(mod,128)||!valid(name,72)||player<0||player>=255||count<1||count>16)return 0;
     std::lock_guard lock(mutex);
-    if(!ready||session!=static_cast<uint64_t>(epoch)||requests.size()>=32)return 0;
+    if(!ready||session!=static_cast<uint64_t>(epoch)||requests.size()>=32) {
+        if(!firstEmitRejected) {
+            firstEmitRejected = true;
+            BL_WARN("[CSharp][DustEmission] Stage=EmitRequest Class=%s Result=Rejected Reason=%s",
+                name, !ready ? "WorldInactive" :
+                session!=static_cast<uint64_t>(epoch) ? "StaleSession" : "QueueFull");
+        }
+        return 0;
+    }
     requests.push_back({session,mod,name,player,count});
+    if(!firstEmitReported) {
+        firstEmitReported = true;
+        BL_INFO("[CSharp][DustEmission] Stage=EmitRequest Class=%s Player=%d Count=%d Result=Queued",
+            name, player, count);
+    }
     return 1;
 }
