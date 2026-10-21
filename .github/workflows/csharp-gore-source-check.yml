@@ -46,6 +46,31 @@ jobs:
             app/src/main/cpp/experiments/csharp/ManagedGoreRuntime.cpp
           test ! -f app/build/outputs/apk/debug/app-debug.apk
 
+      - name: Set up Android NDK for ARM64 object checks
+        uses: android-actions/setup-android@v3
+      - name: Compile the native Gore integration for Android ARM64 without linking or APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          yes | sdkmanager --licenses >/dev/null 2>&1 || true
+          sdkmanager --install "ndk;27.2.12479018" >/dev/null
+          NDK="$ANDROID_HOME/ndk/27.2.12479018"
+          CXX="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang++"
+          test -x "$CXX"
+          mkdir -p /tmp/bunny-gore-android-objects
+          for file in \
+            app/src/main/cpp/experiments/csharp/ManagedGoreDiscovery.cpp \
+            app/src/main/cpp/experiments/csharp/ManagedGoreRuntime.cpp \
+            app/src/main/cpp/experiments/csharp/SourceLoader.cpp \
+            app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp
+          do
+            "$CXX" -std=c++20 -O2 -fno-exceptions -fno-rtti -fPIC \
+              -DANDROID -Iapp/src/main/cpp \
+              -c "$file" -o "/tmp/bunny-gore-android-objects/$(basename "$file").o"
+          done
+          test "$(find /tmp/bunny-gore-android-objects -name '*.o' | wc -l)" -eq 4
+          test ! -d app/build/outputs/apk
+
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
