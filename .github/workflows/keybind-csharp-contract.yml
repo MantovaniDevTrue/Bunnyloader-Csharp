@@ -11,6 +11,10 @@ on:
       - app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp
       - app/src/main/cpp/experiments/csharp/NativeTouchController.cpp
       - app/src/main/cpp/experiments/csharp/NativeTouchController.h
+      - app/src/main/cpp/experiments/csharp/NativeTouchActionIds.h
+      - app/src/main/cpp/experiments/csharp/NativeTouchActionIds.cpp
+      - app/src/main/cpp/experiments/csharp/NativeTouchEditor.h
+      - app/src/main/cpp/experiments/csharp/NativeTouchEditor.cpp
       - app/src/main/cpp/experiments/csharp/NativeTouchInput.cpp
       - app/src/main/cpp/experiments/csharp/NativeTouchInput.h
       - app/src/main/cpp/experiments/csharp/NativeTouchGameAbi.h
@@ -52,6 +56,18 @@ jobs:
           set -euo pipefail
           g++ -std=c++20 -Wall -Wextra -Werror -pedantic -O1 -g -pthread             -fsanitize=address,undefined -fno-omit-frame-pointer             -Iapp/src/main/cpp             app/src/main/cpp/experiments/csharp/NativeTouchInput.cpp             tests/keybind_loader/native_touch_input_test.cpp             -o "$RUNNER_TEMP/native-touch-tests"
           ASAN_OPTIONS=detect_leaks=1 UBSAN_OPTIONS=halt_on_error=1             "$RUNNER_TEMP/native-touch-tests"
+      - name: Native action namespaces with ASan/UBSan
+        shell: bash
+        run: |
+          set -euo pipefail
+          g++ -std=c++20 -Wall -Wextra -Werror -pedantic -O1 -g \
+            -fsanitize=address,undefined -fno-omit-frame-pointer \
+            -Iapp/src/main/cpp \
+            app/src/main/cpp/experiments/csharp/NativeTouchActionIds.cpp \
+            tests/keybind_loader/native_touch_action_ids_test.cpp \
+            -o "$RUNNER_TEMP/native-touch-ids"
+          ASAN_OPTIONS=detect_leaks=1 UBSAN_OPTIONS=halt_on_error=1 \
+            "$RUNNER_TEMP/native-touch-ids"
       - name: Compile-only Terraria native ABI preflight (no APK)
         shell: bash
         run: |
@@ -59,7 +75,8 @@ jobs:
           g++ -std=c++20 -Wall -Wextra -Werror -pedantic -fsyntax-only \
             -Iapp/src/main/cpp \
             app/src/main/cpp/experiments/csharp/NativeTouchGameAbi.cpp \
-            app/src/main/cpp/experiments/csharp/NativeTouchController.cpp
+            app/src/main/cpp/experiments/csharp/NativeTouchController.cpp \
+            app/src/main/cpp/experiments/csharp/NativeTouchEditor.cpp
       - name: Android ABI compilation (no APK)
         shell: bash
         run: |
