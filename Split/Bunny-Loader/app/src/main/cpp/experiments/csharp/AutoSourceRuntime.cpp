@@ -57,6 +57,7 @@
 #include <vector>
 
 namespace bl::csharp {
+worldsave::WorldNetAsync& worldNetQueue();
 namespace {
 
 constexpr const char* kFixtureId = "57a98f20-7a35-4d19-8ce8-079e25bb36a1";
@@ -90,7 +91,6 @@ std::atomic<uint64_t> g_worldEpoch{0};
 std::atomic<uint64_t> g_worldDataEnteredEpoch{0};
 std::atomic<int> g_worldSystemModules{0};
 std::atomic<bool> g_nativeWorldSaveHooksReady{false};
-worldsave::WorldNetAsync& worldNetQueue();
 std::atomic<bool> g_nativeWorldNetHooksReady{false};
 std::atomic<uint64_t> g_visualUpdateTick{0};
 std::atomic<uint64_t> g_liveBoundEpoch{0};
