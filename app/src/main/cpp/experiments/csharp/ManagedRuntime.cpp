@@ -2545,15 +2545,25 @@ bool registerManagedCloudSourceMod(
             return false;
     }
     std::lock_guard<std::mutex> lock(g_pinnedMutex);
-    if (g_cloudBindings.size() >= 16 || g_cloudQueue.size() >= 64)
-        return false;
-    for (const auto& existing : g_cloudBindings) {
-        if (existing.modId == modId) return false;
+    if (g_cloudQueue.size() >= 64) return false;
+    size_t index = g_cloudBindings.size();
+    for (size_t i = 0; i < g_cloudBindings.size(); ++i) {
+        const auto& existing = g_cloudBindings[i];
+        if (existing.modId == modId) {
+            if (existing.assemblyPath != assemblyPath ||
+                !existing.types.empty()) return false;
+            index = i;
+        }
         for (const auto& [type, unused] : existing.types)
             if (uniqueTypes.count(type)) return false;
     }
-    const int binding = static_cast<int>(g_cloudBindings.size());
-    g_cloudBindings.push_back({modId, assemblyPath, clouds, false, false});
+    if (index == g_cloudBindings.size()) {
+        if (g_cloudBindings.size() >= 16) return false;
+        g_cloudBindings.push_back({modId, assemblyPath, clouds, false, false});
+    } else {
+        g_cloudBindings[index].types = clouds;
+    }
+    const int binding = static_cast<int>(index);
     CloudWorkerJob job{};
     job.kind = 0;
     job.binding = binding;
