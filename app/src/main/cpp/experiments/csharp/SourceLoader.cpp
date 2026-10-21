@@ -588,7 +588,8 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
     }
     status->screenEffects = static_cast<int>(screenEffects.size());
     if (status->items+status->tiles+status->projectiles+status->buffs+
-        status->npcs+status->prefixes+status->players+status->screenEffects==0) {
+        status->npcs+status->prefixes+status->players+status->screenEffects+
+        status->goreSourcesDiscovered==0) {
         status->error = "mod C# sem conteudo registrado";
         return false;
     }
