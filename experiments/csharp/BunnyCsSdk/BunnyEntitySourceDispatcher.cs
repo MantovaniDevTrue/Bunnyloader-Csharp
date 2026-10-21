@@ -119,7 +119,7 @@ public static class BunnyEntitySourceDispatcher
                     context.InvasionOrder.Add(system);
                 }
             }
-            if (hasDust && BunnyDustSourceDispatcher.Register(modId, assemblyPath) < 0)
+            if (hasDust && BunnyDustSourceDispatcher.RegisterLoaded(modId, assembly) < 0)
                 context.LastError = "BunnyDust registration: " +
                     BunnyDustSourceDispatcher.LastRegistrationError;
             Contexts.Add(context);
@@ -130,6 +130,21 @@ public static class BunnyEntitySourceDispatcher
             LastRegistrationError = error.GetType().Name + ": " + error.Message;
             return -1;
         }
+    }
+
+    internal static bool TryRegisterDustAssembly(Assembly assembly)
+    {
+        string path = assembly.Location;
+        foreach (Context context in Contexts)
+        {
+            if (context.Path != path) continue;
+            int slot = BunnyDustSourceDispatcher.RegisterLoaded(context.Mod, assembly);
+            if (slot >= 0) return true;
+            context.LastError = "BunnyDust registration: " +
+                BunnyDustSourceDispatcher.LastRegistrationError;
+            return false;
+        }
+        return false;
     }
 
     public static bool Bind(int modSlot, int kind, int type, string name)
