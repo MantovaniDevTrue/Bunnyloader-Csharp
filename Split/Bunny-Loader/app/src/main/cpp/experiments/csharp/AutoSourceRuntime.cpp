@@ -1458,8 +1458,10 @@ void flushDeferredWorldEntry() {
 
 using NativeLoadWorldFn = void (*)(bool, const MethodInfo*);
 using NativeSaveWorldFn = void (*)(bool, bool, const MethodInfo*);
+using NativeQuitCallbackFn = void (*)(Il2CppObject*, const MethodInfo*);
 NativeLoadWorldFn g_origNativeWorldLoad = nullptr;
 NativeSaveWorldFn g_origNativeWorldSave = nullptr;
+NativeQuitCallbackFn g_origNativeQuitCallback = nullptr;
 
 void hkNativeCSharpWorldLoad(bool check, const MethodInfo* method) {
     if (!g_origNativeWorldLoad) return;
@@ -1498,6 +1500,18 @@ void hkNativeCSharpWorldSave(bool cloud, bool reset, const MethodInfo* method) {
         BL_ERROR("CSharp WorldSave commit not confirmed: %s", error.c_str());
 }
 
+
+void hkNativeCSharpWorldQuitCallback(Il2CppObject* context, const MethodInfo* method) {
+    if (!g_origNativeQuitCallback) return;
+    g_origNativeQuitCallback(context, method);
+    const uint64_t epoch = g_worldDataEnteredEpoch.exchange(
+        0, std::memory_order_acq_rel);
+    if (epoch == 0) return;
+    std::string error;
+    if (!worldsave::leaveManagedWorld(epoch, &error))
+        BL_WARN("CSharp WorldSave quit unload: %s", error.c_str());
+}
+
 bool installNativeCSharpWorldSaveHooks() {
     Il2CppClass* worldFile = il2cpp::findClass({"Terraria.IO", "WorldFile", {}});
     if (!worldFile) return false;
@@ -1506,11 +1520,17 @@ bool installNativeCSharpWorldSaveHooks() {
         "void LoadWorld(bool canCheckFileState)");
     const auto saveSig = il2cpp::parseSignature(
         "void InternalSaveWorld(bool useCloudSaving, bool resetTime)");
-    if (!loadSig.valid || !saveSig.valid) return false;
+    const auto quitSig = il2cpp::parseSignature(
+        "void SaveAndQuitCallBack(object threadContext)");
+    if (!loadSig.valid || !saveSig.valid || !quitSig.valid) return false;
     const MethodInfo* load = il2cpp::findMethodBySignature(worldFile, loadSig);
     const MethodInfo* save = il2cpp::findMethodBySignature(worldFile, saveSig);
-    if (!load || !save || !api.method_is_instance ||
-        api.method_is_instance(load) || api.method_is_instance(save)) {
+    Il2CppClass* worldGen = il2cpp::findClass({"Terraria", "WorldGen", {}});
+    const MethodInfo* quit = worldGen
+        ? il2cpp::findMethodBySignature(worldGen, quitSig) : nullptr;
+    if (!load || !save || !quit || !api.method_is_instance ||
+        api.method_is_instance(load) || api.method_is_instance(save) ||
+        api.method_is_instance(quit)) {
         BL_WARN("CSharp WorldSave: assinatura IL2CPP nao encontrada para hooks estaticos");
         return false;
     }
@@ -1518,6 +1538,8 @@ bool installNativeCSharpWorldSaveHooks() {
         return false;
     if (!bl::hook::install(save, hkNativeCSharpWorldSave, &g_origNativeWorldSave))
         return false;
+    if (!bl::hook::install(quit, hkNativeCSharpWorldQuitCallback,
+                           &g_origNativeQuitCallback)) return false;
     return true;
 }
 
