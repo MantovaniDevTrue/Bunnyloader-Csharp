@@ -101,6 +101,7 @@ public abstract class BunnyWorldUpdateLoader : BunnyHookModule
     {
         return "SystemUpdate C#: hooks=" + BunnyWorldUpdateRegistry.ActiveHookCount +
             " eventos=" + CallbackCount + " falhas=" + ErrorCount +
+            " falhasInstalacao=" + BunnyWorldUpdateRegistry.InstallFaultCount +
             (LastError.Length == 0 ? "" : " ultimo=" + LastError);
     }
 
@@ -192,6 +193,11 @@ internal static class BunnyWorldUpdateRegistry
 
     private static readonly object Gate = new();
     private static readonly List<Subscription> Subscribers = new();
+    private static long installFaults;
+    private static string lastInstallError = "";
+
+    internal static long InstallFaultCount => Interlocked.Read(ref installFaults);
+    internal static string LastInstallError => Volatile.Read(ref lastInstallError);
     private static readonly Stage[] Stages =
     {
         new("Terraria.Main", "DoUpdateInWorld", false,
@@ -247,7 +253,7 @@ internal static class BunnyWorldUpdateRegistry
         {
             loader.Deactivate();
             if (Subscribers.RemoveAll(entry => ReferenceEquals(entry.Loader, loader)) != 0)
-                Rebuild();
+                Rebuild(tolerateInstallFailure: true);
         }
     }
 
@@ -261,11 +267,11 @@ internal static class BunnyWorldUpdateRegistry
             foreach (Subscription entry in Subscribers)
                 if (ReferenceEquals(entry.Scope, scope)) entry.Loader.Deactivate();
             if (Subscribers.RemoveAll(entry => ReferenceEquals(entry.Scope, scope)) != 0)
-                Rebuild();
+                Rebuild(tolerateInstallFailure: true);
         }
     }
 
-    private static void Rebuild()
+    private static void Rebuild(bool tolerateInstallFailure = false)
     {
         foreach (Stage stage in Stages)
         {
@@ -295,11 +301,22 @@ internal static class BunnyWorldUpdateRegistry
                 {
                     Stage captured = stage;
                     BunnyVoidHook handler = (original, self) => Dispatch(captured, original.Invoke);
-                    BunnyMethodHook hook = TestHookFactory is null
-                        ? owner.HookVoid(stage.Type, stage.Method, handler, stage.IsStatic)
-                        : TestHookFactory(owner, stage.Type, stage.Method, handler, stage.IsStatic);
-                    stage.Hook = hook;
-                    stage.Owner = owner;
+                    try
+                    {
+                        BunnyMethodHook hook = TestHookFactory is null
+                            ? owner.HookVoid(stage.Type, stage.Method, handler, stage.IsStatic)
+                            : TestHookFactory(owner, stage.Type, stage.Method, handler, stage.IsStatic);
+                        stage.Hook = hook;
+                        stage.Owner = owner;
+                    }
+                    catch (Exception error)
+                    {
+                        string message = stage.Method + ":" + error.GetType().Name + ":" + error.Message;
+                        Volatile.Write(ref lastInstallError,
+                            message.Length <= 180 ? message : message.Substring(0, 180));
+                        Interlocked.Increment(ref installFaults);
+                        if (!tolerateInstallFailure) throw;
+                    }
                 }
             }
 
