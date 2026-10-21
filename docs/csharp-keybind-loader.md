@@ -315,3 +315,33 @@ completo e passar no dispositivo.
 Ainda faltam QA ARM64 no aparelho, chat/NPC/placas, editor e imagens,
 grupos, perfis, convivência JS/C#, multiplayer e FPS sustentados.
 A PR permanece em draft, sem merge nem APK/.bmod.
+
+
+## Lote de 21/10/2026 — verificação das assinaturas ARM64 e desenho
+
+- `NativeTouchIconHooks` passa a verificar as formas de chamada nativas
+  dos dois métodos `GUIQuickActionButton.Draw`, além da descoberta textual:
+  enum QuickActionControl, referência QuickActionButton_Layout, bool, float
+  por referência, enum InteractionState, retorno void e Texture2D. Falhas
+  de metadata mantêm o desenho C# inativo em vez de instalar função ABI
+  não verificada.
+- A descoberta de metadados de `HandleTouchCursorDown`, desenhos,
+  nome de controle e visibilidade tenta novamente em intervalo limitado
+  de 120 atualizações. Após uma tentativa de instalar um hook, não ocorre
+  reinstalação automática insegura.
+- O enum usado em `DetermineButtonVisible` verifica também o tipo base
+  System.Int32 antes de chamar a função original.
+- `NativeTouchActivation` registra uma única linha com estados dos hooks
+  se continuar bloqueado ao completar 600 updates. Isso ajuda a diagnosticar
+  qual peça impediu a ativação no celular, sem logs por frame.
+- Novo teste source-only `check_native_touch_signatures.py` verifica
+  a igualdade textual de 11 assinaturas entre as fontes do
+  `TouchButtonHooks.js` (ExampleModBunny) e a implementação C++ nativa.
+- CI <https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39627083185>:
+  managed-contract e native-contract aprovados, incluindo teste de paridade,
+  ASan/UBSan e preflight C++20.
+
+O teste de paridade compara assinaturas declaradas nas fontes, não a
+ABI efetiva do jogo. Ainda é necessário validar o hook com IL2CPP
+real em ARM64, imagem de ícones, grupos, salvamento/compartilhamento,
+coexistência JS/C#, FPS e dispositivos. PR draft, sem merge ou APK/.bmod.
