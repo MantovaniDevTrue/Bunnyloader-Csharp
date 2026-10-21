@@ -38,6 +38,7 @@ on:
       - app/src/main/cpp/experiments/csharp/NativeTouchLayoutAccess.cpp
       - app/src/main/cpp/experiments/csharp/NativeTouchLayoutHooks.h
       - app/src/main/cpp/experiments/csharp/NativeTouchLayoutHooks.cpp
+      - app/src/main/cpp/experiments/csharp/NativeTouchLayoutIdentity.h
       - app/src/main/cpp/experiments/csharp/NativeTouchGroups.h
       - app/src/main/cpp/experiments/csharp/NativeTouchGroups.cpp
       - app/src/main/cpp/experiments/csharp/NativeTouchVisibility.cpp
@@ -109,6 +110,17 @@ jobs:
             -o "$RUNNER_TEMP/native-touch-layout-json"
           ASAN_OPTIONS=detect_leaks=1 UBSAN_OPTIONS=halt_on_error=1 \
             "$RUNNER_TEMP/native-touch-layout-json"
+      - name: Native stored touch action identities
+        shell: bash
+        run: |
+          set -euo pipefail
+          g++ -std=c++20 -Wall -Wextra -Werror -pedantic -O1 -g \
+            -fsanitize=address,undefined -fno-omit-frame-pointer \
+            -Iapp/src/main/cpp \
+            tests/keybind_loader/native_touch_layout_identity_test.cpp \
+            -o "$RUNNER_TEMP/native-touch-identity"
+          ASAN_OPTIONS=detect_leaks=1 UBSAN_OPTIONS=halt_on_error=1 \
+            "$RUNNER_TEMP/native-touch-identity"
       - name: Compile-only Terraria native ABI preflight (no APK)
         shell: bash
         run: |
