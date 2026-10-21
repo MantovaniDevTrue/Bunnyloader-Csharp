@@ -48,7 +48,8 @@ public:
             job.operation < 0 || job.operation > 8 ||
             job.payload.size() > MaxPayloadBytes) return false;
         if (job.operation >= 1 && job.operation <= 4)
-            return job.value >= 0 && job.count >= 1 && job.count <= 9999 &&
+            return job.value >= (job.operation == 1 ? -32768 : 0) &&
+                   job.count >= 1 && job.count <= 9999 &&
                    (job.payload == "0" || job.payload == "1");
         if (job.operation == 6) return true;
         return job.payload.empty();
