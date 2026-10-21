@@ -43,6 +43,8 @@ public:
     uint32_t read(int id) const;
     std::string fullName(int id) const;
     std::string displayName(int id) const;
+    std::string iconPath(int id) const;
+    std::string ownerId(int id) const;
     int count() const;
     void resetWorld();
     void unloadMod(std::string_view owner);
