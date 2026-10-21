@@ -1,6 +1,6 @@
 # Sete PRs integrados — QA experimental Android
 
-Bunny `1.0.10-dust-registration-qa` (versionCode 309), ExampleMod CSharp `0.1.63`.
+Bunny `1.0.11-dust-invasion-qa` (versionCode 310), ExampleMod CSharp `0.1.63`.
 Base: `v1.0` em `cfbe784ee3cb`. Branch: `integration/ready-prs-20261020`.
 
 Este APK reúne os PRs #101 (Localization), #102 (Rarity), #114 (AnglerQuest),
@@ -149,3 +149,11 @@ A sessão Android 1.0.9 confirmou `ExampleDustCharm Flags=62 Applied=0`, com `In
 O registro gerenciado existente `BunnyEntitySourceDispatcher.Register` agora reconhece classes `BunnyDust` e registra o assembly usando `BunnyDustSourceDispatcher.Register`, que já é idempotente. O bootstrap normal do Dust continua responsável pelos vínculos nativos. Caso ele falhe, um único aviso `Stage=MonoBind Result=Rejected` aparece no logger, sem travar os demais conteúdos C#. A física, a cor e as oito partículas do ExampleSparkDust não foram alteradas.
 
 Teste no Android: entrar no mundo, esperar o carregamento, usar `Example Dust Charm` e procurar `Stage=OnUseResult lastUse=ExampleDustCharm ... Applied=1` e `Stage=EmitRequest Class=ExampleSparkDust ... Result=Queued`. Confirmar oito partículas douradas e FPS, e salvar relatório. Se houver `Stage=MonoBind Result=Rejected`, `DustNotRegistered` ou `NativeContractUnavailable`, não considerar o sistema corrigido. O tooltip da 1.0.8 permanece baseline validada.
+
+## QA 1.0.11: Dust + Example Invasion em uma só rodada
+
+Dust: no Android 1.0.10 `ExampleDustCharm` registrou `BunnyDust assembly has not been registered in MonoVM`. O registro agora usa o objeto Assembly já reconhecido pelo despacho de entidades e recupera a associação apenas para aquele assembly já autorizado. `RegistrationError=` e `DustLoader Stage=BindingPlan` identificam falhas posteriores. Não altera sprites nem as oito partículas originais.
+
+Invasion: `ExampleInvasionBeacon Flags=62` na 1.0.10 é uma recusa esperada à noite. A regra diurna e de superfície permanece. O Beacon passa a declarar `Reason=Nighttime`, `NotAtSurface`, `VanillaInvasionActive`, `PlayerDead`, `WorldNotReady`, `AlreadyRunning` ou `StartRejected` quando aplicável. O log publica agora até 12 resultados distintos de uso por mod e sessão, detectando o Beacon depois do Dust, sem fazer o status do MonoVM rodar por quadro sem evento.
+
+Testes Android: primeiro usar o Dust Charm, verificar `Applied=1` e `DustEmission EmitRequest ... Queued`, além das oito partículas douradas. Em seguida, tentar o Beacon à noite e confirmar `Reason=Nighttime`; usar novamente de dia, na superfície, sem invasão vanilla, esperando flags=63, `Applied=1`, HUD/progresso, NPCs de invasão, conclusão aos 30 pontos, recompensa, persistência e FPS. Depois do término, testar repetição e troca de mundo. Nenhum dos dois loaders deve ser marcado como validado antes do teste Android.

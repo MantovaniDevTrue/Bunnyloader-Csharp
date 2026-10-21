@@ -77,7 +77,7 @@ assert 'reportManagedItemUse(ANDROID_LOG_WARN,' in managed
 assert 'reportManagedItemUse(ANDROID_LOG_INFO,' in managed
 assert 'core/Log.h' not in managed
 assert 'bunny_native_forward_log' in (root / 'app/src/main/cpp/core/Log.cpp').read_text()
-assert 'g_entityBindings[static_cast<size_t>(job.binding)].firstWorldUseReported = true;' in managed
+assert 'owner.firstWorldUseReported = true;' in managed
 assert 'owner.firstWorldErrorReported = true;' in managed
 assert 'catch (Exception error)' in dispatcher
 assert 'context.LastError = "OnUse(" + pair.Key + "): "' in dispatcher
@@ -91,10 +91,38 @@ print("CSHARP_ITEM_USE_SESSION_LOG_GUARD=PASS")
 
 assert 'bool hasDust = false;' in dispatcher
 assert 'typeof(BunnyDust).IsAssignableFrom(type)' in dispatcher
-assert 'BunnyDustSourceDispatcher.Register(modId, assemblyPath) < 0' in dispatcher
-assert dispatcher.index('BunnyDustSourceDispatcher.Register(modId, assemblyPath)') < dispatcher.index('Contexts.Add(context);')
+assert 'BunnyDustSourceDispatcher.RegisterLoaded(modId, assembly) < 0' in dispatcher
+assert dispatcher.index('BunnyDustSourceDispatcher.RegisterLoaded(modId, assembly)') < dispatcher.index('Contexts.Add(context);')
 assert 'Stage=MonoBind Result=Rejected Reason=ManagedRegisterOrBindFailed' in managed
 entity_test = (root / "tests/entity_source/Program.cs").read_text()
 assert 'BunnyDust assembly registered before item use' in entity_test
 assert 'Dust registration remains idempotent' in entity_test
 print("CSHARP_DUST_EARLY_REGISTRATION_GUARD=PASS")
+
+assert 'public virtual string OnUseRejectionReason(int playerIndex, BunnyUseContext context)' in sdk
+assert 'pair.Value.OnUseRejectionReason(usingPlayer, useContext)' in dispatcher
+assert '" Reason=" + reason' in dispatcher
+assert '"Nighttime"' in beacon and '"NotAtSurface"' in beacon
+assert '"VanillaInvasionActive"' in beacon and '"AlreadyRunning"' in beacon
+assert 'std::string lastUseOutcome;' in managed
+assert 'int useReports = 0;' in managed
+assert 'needsUseStatus = g_entityBindings[static_cast<size_t>(job.binding)].useReports < 12;' in managed
+assert 'owner.lastUseOutcome != outcome' in managed
+assert 'const size_t end = details.find(" npc=", use);' in managed
+assert 'binding.lastUseOutcome.clear();' in managed
+assert 'binding.useReports = 0;' in managed
+host = (root / "tests/invasion/DispatcherIntegration.cs").read_text()
+assert '"nighttime prevents start with explicit reason"' in host
+assert '"valid daytime surface use starts invasion"' in host
+assert '"duplicate use refuses without resetting progress"' in host
+print("CSHARP_INVASION_BEACON_USE_FEEDBACK_GUARD=PASS")
+
+dust = (root / "experiments/csharp/BunnyCsSdk/BunnyDustSourceDispatcher.cs").read_text()
+assert "RegisterLoaded(modId, Assembly.LoadFrom(assemblyPath))" in dust
+assert "BunnyEntitySourceDispatcher.TryRegisterDustAssembly(assembly)" in dust
+assert "RegistrationError=" in dust
+assert "BunnyDustSourceDispatcher.RegisterLoaded(modId, assembly)" in dispatcher
+assert "internal static bool TryRegisterDustAssembly(Assembly assembly)" in dispatcher
+source_runtime = (root / "app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp").read_text()
+assert "Stage=BindingPlan Mod=%s Registered=%d ManagedHooks=%zu" in source_runtime
+print("CSHARP_DUST_ASSEMBLY_RECOVERY_GUARD=PASS")
