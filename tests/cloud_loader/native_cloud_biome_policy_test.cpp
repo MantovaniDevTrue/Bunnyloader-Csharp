@@ -23,6 +23,10 @@ int main() {
     facts.exampleBiomeTileCount = 39;
     assert(!exampleSurfaceCloudBiomeActive(facts));
     facts.exampleBiomeTileCount = 40;
+    // A matching C# tile can exist without a registered C# ModBiome.
+    // Never use tile count alone to claim that biome exists.
+    assert(!exampleSurfaceCloudBiomeActive(facts));
+    facts.exampleBiomeRegistered = true;
     assert(exampleSurfaceCloudBiomeActive(facts));
     assert(nativeCloudBiomeKeys(facts) ==
         "Terraria/ZoneOverworldHeight;ExampleModCSharp/ExampleSurfaceBiome");
