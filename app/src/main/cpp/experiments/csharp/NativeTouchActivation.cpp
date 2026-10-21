@@ -22,9 +22,10 @@ void pumpNativeTouchActivationOnGameThread() {
     }
     const uint64_t version = registry().registrationVersion();
     if (hostReady()) {
-        if (version != appliedVersion && ++tick % 30 == 0 &&
-            reapplyNativeTouchLayoutsOnGameThread() &&
-            ensureNativeTouchEditorOptionsOnGameThread())
+        if (++tick % 60 != 0) return;
+        if (!ensureNativeTouchEditorOptionsOnGameThread()) return;
+        if (version != appliedVersion &&
+            reapplyNativeTouchLayoutsOnGameThread())
             appliedVersion = version;
         return;
     }
