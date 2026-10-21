@@ -377,3 +377,35 @@ Os testes source-only comprovam compilação e contratos, não desenho nem
 performance reais. A confirmação de ARM64 e 60 FPS requer a execução
 do Terraria Android e validação visual do editor, grupos e sprites.
 Não houve APK, .bmod ou merge; PR continua em draft.
+
+
+## Lote de 21/10/2026 — vida útil de texturas e seleção segura dos grupos
+
+- `NativeTouchIcons` mantém handles GC separados para o
+  `Asset<Texture2D>` e para o `Texture2D` do Terraria; depois do
+  carregamento, `Draw` obtém diretamente a textura pelo segundo handle,
+  sem resolver o valor a partir do asset a cada desenho.
+- Os dois handles são liberados quando o mod é descarregado, o caminho
+  muda ou o recurso precisa ser descartado. O descarregamento da textura
+  Unity continua no caminho existente `destroyTextureAsset`.
+- A mudança de composição do registro C# provoca uma atualização imediata
+  do cache de ícones no próximo pump da thread de jogo, em vez de esperar
+  pelas 10 atualizações periódicas. As atualizações periódicas continuam
+  existindo para recuperar imagens ainda indisponíveis.
+- O leitor `GroupStates` distingue falha de acesso/reflexão (`-2`) de
+  grupo validamente fechado (`-1`). Somente uma transição entre índice
+  válido anterior e estado atual `-1` conta como seleção. Os grupos
+  não disparam em caso de erro de metadata, ausência de tabela ou
+  exceção ao consultar o dicionário.
+- O teste `native_touch_group_selection_test.cpp` cobre seleção normal,
+  centro, índice fora da faixa, grupo vazio, manutenção da seleção e
+  falhas nativas, com AddressSanitizer/UndefinedBehaviorSanitizer.
+- [CI source-only #39630503570](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39630503570):
+  `managed-contract` e `native-contract` aprovados; verificação de
+  assinaturas, preflight dos hooks e testes nativos concluídos.
+
+Esta CI não executa o Terraria nem mede FPS. A validação da ABI IL2CPP
+ARM64 real, editor visual, toque/soltura, grupos, descarregamento de PNG,
+perfis persistidos, coexistência com JS, multiplayer e desempenho ainda
+precisa ser feita em dispositivo antes de publicar. PR draft, sem
+merge, APK ou .bmod.
