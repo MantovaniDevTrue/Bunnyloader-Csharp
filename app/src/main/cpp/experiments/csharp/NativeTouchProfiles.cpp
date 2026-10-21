@@ -158,13 +158,13 @@ bool styleOf(Il2CppObject* profile, int slot, int* style) {
 }
 }
 
-bool nativeTouchSlot(int slot, SlotAction* result) {
-    if (!result || slot < 0 || slot >= 256) return false;
+namespace {
+bool slotFromProfile(Il2CppObject* profile, Il2CppArray* controls,
+                     int slot, SlotAction* result) {
+    if (!profile || !controls || !result || slot < 0 ||
+        static_cast<uintptr_t>(slot) >= controls->length) return false;
     auto& a = il2cpp::api();
     if (!a.object_get_class || !a.class_from_il2cpp_type) return false;
-    Il2CppObject* profile = activeProfile();
-    Il2CppArray* controls = nullptr;
-    if (!profile || !objectArray(profile, "Controls", &controls)) return false;
     Il2CppObject* binding = arrayAt(controls, slot);
     if (!binding) return false;
     size_t actionOffset = 0;
@@ -173,10 +173,22 @@ bool nativeTouchSlot(int slot, SlotAction* result) {
     SlotAction temp;
     temp.action = read<int32_t>(binding, actionOffset);
     if (!styleOf(profile, slot, &temp.style)) return false;
-    // Style 2 é o grupo, de acordo com o ExampleModBunny.
     if (temp.style == 2 && !numericGroup(binding, &temp)) return false;
     *result = temp;
     return true;
+}
+}
+
+const void* nativeTouchActiveProfileIdentity() {
+    return activeProfile();
+}
+
+bool nativeTouchSlot(int slot, SlotAction* result) {
+    if (!result || slot < 0 || slot >= 256) return false;
+    Il2CppObject* profile = activeProfile();
+    Il2CppArray* controls = nullptr;
+    if (!profile || !objectArray(profile, "Controls", &controls)) return false;
+    return slotFromProfile(profile, controls, slot, result);
 }
 bool nativeTouchSlotId(int slot, std::string* result) {
     if (!result || slot < 0 || slot >= 256) return false;
@@ -216,7 +228,7 @@ bool nativeTouchActiveSnapshot(ActiveTouchSnapshot* result) {
     const int count = static_cast<int>(controls->length);
     for (int slot = 0; slot < count; ++slot) {
         SlotAction action;
-        if (!nativeTouchSlot(slot, &action)) continue;
+        if (!slotFromProfile(profile, controls, slot, &action)) continue;
         int id = nativeTouchIndexByAction(action.action);
         if (id >= 0 && id < kMaxButtons) {
             snapshot.bound[static_cast<size_t>(id)] = true;
