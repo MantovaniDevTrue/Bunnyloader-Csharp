@@ -10,6 +10,12 @@ Base canônica: Split/Bunny-Loader/samples/ExampleMod/content/Common/Systems/Dow
 - Exemplo comentado ExampleDownedBossWorldSystem; testes reais de codec em .NET 8; workflow exclusivo de compilação de código-fonte.
 - Nenhum APK, .bmod, asset proprietário, pacote de release ou integração QuickJS.
 
+## Etapa 2 — sidecar nativo
+
+O NativeWorldStore agora tem implementação compilável para leitura e escrita de `.wld.csharp.bwc`, sem modificar o `.wld`. Exige caminho absoluto fornecido pelo host, rejeita nuvem, travessia de diretório e links simbólicos no arquivo; usa openat(O_NOFOLLOW), tamanhos limitados, CRC32 e validação de campos do BWC1. Serializa operações por sessão e por epoch, preserva o arquivo prévio se inválido, grava em arquivo temporário com fsync + rename e força sincronização do diretório. Testes C++ verificam corrupção, sessões, multi-mundo, symlink e concorrência.
+
+O serviço está **deliberadamente desligado**: o caminho real do mundo e os callbacks gerenciados não estão vinculados ao IL2CPP/MonoVM. A compilação nativa de host prova apenas o componente POSIX, não o hook Android. A estrutura deste módulo fica isolada do QuickJS.
+
 ## Requisitos ainda bloqueantes
 
 1. Host nativo C++ deve capturar a identidade real do arquivo de mundo após a seleção; não confiar em nome de mundo ou caminho informado por um mod.
