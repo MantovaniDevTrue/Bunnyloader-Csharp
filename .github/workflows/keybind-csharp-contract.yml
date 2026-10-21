@@ -7,6 +7,10 @@ on:
     paths:
       - experiments/csharp/BunnyCsSdk/BunnyTouchButtonLoader.cs
       - experiments/csharp/BunnyCsSdk/BunnyTouchNativeHost.cs
+      - experiments/csharp/BunnyCsSdk/BunnyTouchLayoutStore.cs
+      - app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp
+      - app/src/main/cpp/experiments/csharp/NativeTouchController.cpp
+      - app/src/main/cpp/experiments/csharp/NativeTouchController.h
       - app/src/main/cpp/experiments/csharp/NativeTouchInput.cpp
       - app/src/main/cpp/experiments/csharp/NativeTouchInput.h
       - app/src/main/cpp/experiments/csharp/NativeTouchGameAbi.h
@@ -52,7 +56,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          g++ -std=c++20 -Wall -Wextra -Werror -pedantic -fsyntax-only             -Iapp/src/main/cpp             app/src/main/cpp/experiments/csharp/NativeTouchGameAbi.cpp
+          g++ -std=c++20 -Wall -Wextra -Werror -pedantic -fsyntax-only \
+            -Iapp/src/main/cpp \
+            app/src/main/cpp/experiments/csharp/NativeTouchGameAbi.cpp \
+            app/src/main/cpp/experiments/csharp/NativeTouchController.cpp
       - name: Android ABI compilation (no APK)
         shell: bash
         run: |
