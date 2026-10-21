@@ -74,7 +74,12 @@ public:
     void clear() {
         first_ = 0;
         count_ = 0;
-        generations_.fill(0);
+        // Do not reset to zero: an old Mono result could otherwise match
+        // the same slot/type after a world reload and a fresh generation 1.
+        for (uint32_t& generation : generations_) {
+            ++generation;
+            if (generation == 0) ++generation;
+        }
     }
 
     std::size_t pending() const { return count_; }
