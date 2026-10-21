@@ -1,6 +1,7 @@
 #include "experiments/csharp/NativeTouchLayoutJson.h"
 #include <cassert>
 #include <cstdio>
+#include <fstream>
 #include <string>
 #include <unistd.h>
 #include <sys/stat.h>
@@ -53,6 +54,26 @@ int main() {
     assert(!saveTouchLayoutFile("../unsafe", profiles));
     const std::string path = std::string(dir) + "/BunnyLoader.touchbuttons.csharp.json";
     assert(unlink(path.c_str()) == 0);
+    const std::string guard = std::string(dir) + "/guard.txt";
+    {
+        std::ofstream stream(guard);
+        assert(stream.good());
+        stream << "preserve";
+    }
+    assert(symlink(guard.c_str(), path.c_str()) == 0);
+    assert(!saveTouchLayoutFile(dir, profiles));
+    assert(unlink(path.c_str()) == 0);
+    const std::string staging = path + ".tmp";
+    assert(symlink(guard.c_str(), staging.c_str()) == 0);
+    assert(!saveTouchLayoutFile(dir, profiles));
+    assert(unlink(staging.c_str()) == 0);
+    {
+        std::ifstream stream(guard);
+        std::string original;
+        assert(stream >> original);
+        assert(original == "preserve");
+    }
+    assert(unlink(guard.c_str()) == 0);
     assert(rmdir(dir) == 0);
     puts("native touch JSON layout PASS");
 }
