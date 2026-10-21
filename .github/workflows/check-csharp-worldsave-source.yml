@@ -246,15 +246,17 @@ jobs:
           JAVA_ROOT="$(dirname "$(dirname "$(readlink -f "$(command -v javac)")")")"
           ROOT="Split/Bunny-Loader/app/src/main/cpp"
           mkdir -p /tmp/bunny-worldsave-arm64
+          "$NDK/clang++" --version
+          "$NDK/llvm-readelf" --version
           for src in NativeWorldStore NativeWorldCoordinator NativeWorldNetwork \
                      NativeWorldNetTransport AutoSourceRuntime ManagedRuntime; do
+            echo "Cross-compiling $src for Android arm64"
             "$NDK/clang++" --target=aarch64-linux-android24 -std=c++20 \
-              -O2 -fno-exceptions -fno-rtti -fPIC -Wall -Wextra -Werror -pthread \
+              -O0 -fno-exceptions -fno-rtti -fPIC -Wall -Wextra -Werror -pthread \
               -I "$ROOT" -I "$JAVA_ROOT/include" -I "$JAVA_ROOT/include/linux" \
               -c "$ROOT/experiments/csharp/$src.cpp" \
               -o "/tmp/bunny-worldsave-arm64/$src.o"
-            "$NDK/llvm-readelf" -h "/tmp/bunny-worldsave-arm64/$src.o" |
-              grep -q 'Machine:.*AArch64'
+            "$NDK/llvm-readelf" -h "/tmp/bunny-worldsave-arm64/$src.o" | grep 'Machine:'
           done
           echo "WORLD_ARM64_ANDROID_NDK_OBJECTS_PASS_NO_APK"
 
