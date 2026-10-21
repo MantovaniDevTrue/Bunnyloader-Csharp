@@ -86,19 +86,22 @@ Il2CppObject* nativeTouchIcon(int id, int* width, int* height) {
 void pumpNativeTouchIconsOnGameThread() {
     ++polls;
     if (polls != 1 && polls % 10 != 0) return;
+    static bool cachedAny = false;
+    if (!cachedAny && registry().count() == 0) return;
     auto& api = il2cpp::api();
     if (!api.gchandle_get_target || !api.gchandle_free ||
         !api.gchandle_new) return;
     int loaded = 0;
+    cachedAny = false;
     for (int i = 0; i < kMaxButtons; ++i) {
         Icon& icon = icons[static_cast<size_t>(i)];
         const std::string owner = registry().ownerId(i);
         const std::string name = registry().iconPath(i);
         if (icon.root && (icon.owner != owner || icon.path != name))
             discard(icon);
-        if (owner.empty() || name.empty() || icon.root || loaded >= 4)
-            continue;
-        if (load(icon, owner, name)) ++loaded;
+        if (!owner.empty() && !name.empty() && !icon.root && loaded < 4)
+            if (load(icon, owner, name)) ++loaded;
+        if (icon.root) cachedAny = true;
     }
 }
 
