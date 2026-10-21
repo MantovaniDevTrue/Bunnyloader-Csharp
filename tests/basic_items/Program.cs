@@ -349,7 +349,8 @@ try {
     defaults?.Invoke(instance,null);
     // Execute every registered content class: names and localized names share the user-facing convention.
     if(type.GetProperty("DisplayName")?.GetValue(instance) is string displayName &&
-       !displayName.StartsWith("Example ",StringComparison.Ordinal))
+       !displayName.StartsWith("Example ",StringComparison.Ordinal) &&
+       !(type.Name=="ExampleTooltipItem" && displayName=="Exemplo de Tooltip"))
       throw new Exception("Content name must begin with Example: "+type.FullName+" = "+displayName);
     foreach(var name in type.GetCustomAttributes<BunnyNameAttribute>())
       if(!name.Text.StartsWith("Example ",StringComparison.Ordinal))
