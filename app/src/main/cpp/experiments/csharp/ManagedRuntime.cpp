@@ -311,6 +311,41 @@ struct SceneLightReply {
     std::chrono::steady_clock::time_point updated{};
     uint64_t generation = 0;
 };
+
+// Dedicated jobs for the existing pinned MonoVM worker. The game thread
+// queues snapshots only; Unity/IL2CPP pointers never leave that thread.
+// Cloud jobs are lower priority than player damage, entity AI and recipes.
+struct CloudWorkerBinding {
+    std::string modId, assemblyPath;
+    std::vector<std::pair<int, std::string>> types;
+    bool ready = false;
+    bool failed = false;
+};
+struct CloudWorkerJob {
+    int kind = 0; // 0 Register+Bind; 1 Weight snapshot; 2 OnSpawn; 3 Clear
+    int binding = -1;
+    uint64_t session = 0;
+    bool gameMenu = false;
+    bool anniversary = false;
+    std::string biomes;
+    int type = -1, slot = -1, spriteDir = 0;
+    uint32_t cloudGeneration = 0;
+    float scale = 1.f;
+};
+std::vector<CloudWorkerBinding> g_cloudBindings;
+std::deque<CloudWorkerJob> g_cloudQueue;
+std::map<std::string, std::string> g_cloudWeightReplies;
+std::set<std::string> g_cloudWeightsPending;
+std::deque<ManagedCloudSpawnReply> g_cloudSpawnReplies;
+uint64_t g_cloudSession = 1;
+bool g_cloudClearPending = false;
+void* g_cloudRegisterMethod = nullptr;
+void* g_cloudBindMethod = nullptr;
+void* g_cloudWeightsMethod = nullptr;
+void* g_cloudSpawnMethod = nullptr;
+void* g_cloudUnregisterMethod = nullptr;
+void* g_cloudClearMethod = nullptr;
+
 std::vector<SceneLightBinding> g_sceneLightBindings;
 std::deque<SceneLightRequest> g_sceneLightQueue;
 std::map<std::string, SceneLightReply> g_sceneLightResults;
