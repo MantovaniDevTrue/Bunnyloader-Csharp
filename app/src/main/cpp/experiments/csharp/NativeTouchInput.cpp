@@ -69,6 +69,7 @@ int Registry::add(std::string_view owner, std::string_view name,
     entry.enabled = true;
     entry.state = 0;
     entry.pressSequence = 0;
+    ++registrationVersion_;
     return id;
 }
 
@@ -204,6 +205,11 @@ int Registry::count() const {
     return result;
 }
 
+uint64_t Registry::registrationVersion() const {
+    std::lock_guard lock(mutex_);
+    return registrationVersion_;
+}
+
 void Registry::resetWorld() {
     std::lock_guard lock(mutex_);
     lastTick_ = -1;
@@ -218,13 +224,16 @@ void Registry::resetWorld() {
 
 void Registry::unloadMod(std::string_view owner) {
     std::lock_guard lock(mutex_);
+    bool changed = false;
     for (int i = 0; i < nextId_; ++i) {
         Registration& e = entries_[static_cast<size_t>(i)];
         if (e.owner != owner || !e.active) continue;
         e.active = false;
         e.pendingTap = false;
         e.state = 0;
+        changed = true;
     }
+    if (changed) ++registrationVersion_;
 }
 
 Registry& registry() {
