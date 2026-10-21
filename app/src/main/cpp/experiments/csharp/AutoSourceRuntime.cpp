@@ -904,6 +904,28 @@ void run() {
                      manifest.substr(0, 200));
                 continue;
             }
+            // Área interna e persistente do Bunny, sem tocar no save vanilla.
+            // Antes de registrar hooks, recuperar BACH1 da execução anterior.
+            const std::string achievementDir = work + "csharp-achievements";
+            if (mkdir(achievementDir.c_str(), 0700) != 0 && errno != EEXIST) {
+                note(&status, "failed",
+                     "AchievementLoader: diretorio persistente indisponivel");
+                continue;
+            }
+            struct stat achievementDirStat{};
+            if (stat(achievementDir.c_str(), &achievementDirStat) != 0 ||
+                !S_ISDIR(achievementDirStat.st_mode)) {
+                note(&status, "failed", "AchievementLoader: diretorio nao e pasta");
+                continue;
+            }
+            std::string storageState;
+            if (!invokeManagedAchievementControl(mod.id, assembly, 9,
+                     achievementDir, &storageState, 15000) ||
+                storageState != "READY") {
+                note(&status, "failed", "AchievementLoader: restore persistente falhou: " +
+                     storageState.substr(0, 200));
+                continue;
+            }
             if (!registerNativeAchievementMod(mod.id, assembly)) {
                 note(&status, "failed",
                      "AchievementLoader: vinculo nativo de mod duplicado ou cheio");
