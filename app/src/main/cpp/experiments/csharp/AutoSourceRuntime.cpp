@@ -871,6 +871,21 @@ void run() {
             }
         }
         if (defaultsApplied) {
+            if (compiledSourceHasTouchEntry(assembly)) {
+                registerManagedTouchEntry(mod.id, assembly);
+                if (!g_runtimeWarmStarted.exchange(true, std::memory_order_acq_rel)) {
+                    const auto probe = work + "BunnyManagedProbe.dll";
+                    g_runtimeWarming.store(true, std::memory_order_release);
+                    std::thread([probe] {
+                        const auto state = probeManagedRuntimePinnedThread(
+                            probe, "PINNED_MONO");
+                        if (!state.methodExecuted || state.result != 42)
+                            BL_ERROR("[CSharp][Touch] Managed worker unavailable phase=%s",
+                                     state.phase.c_str());
+                        g_runtimeWarming.store(false, std::memory_order_release);
+                    }).detach();
+                }
+            }
             bindNativeRecipeAssembly(mod.id,assembly);
             static const runtime::RecipeCallbackProvider provider{prepareNativeRecipeCallbackProvider,trackNativeRecipeCallbacks};
             runtime::setRecipeCallbackProvider(&provider);
@@ -1232,6 +1247,31 @@ void noteAutoWorldTilesLoaded() {
 
 void flushDeferredWorldEntry();
 
+bool compiledSourceHasTouchEntry(const std::string& assembly) {
+    // Class names are stored as UTF-8 metadata in a Mono DLL.
+    // This bounded one-time probe avoids loading a MonoVM for C# mods
+    // which do not declare any touch input callbacks.
+    struct stat info{};
+    if (stat(assembly.c_str(), &info) != 0 || !S_ISREG(info.st_mode) ||
+        info.st_size <= 0 || info.st_size > 8 * 1024 * 1024) return false;
+    std::ifstream file(assembly, std::ios::binary);
+    if (!file) return false;
+    constexpr std::string_view token = "BunnyTouchEntry";
+    std::string block;
+    block.reserve(8192 + token.size());
+    char buffer[8192];
+    while (file) {
+        file.read(buffer, sizeof(buffer));
+        const std::streamsize length = file.gcount();
+        if (length <= 0) break;
+        block.append(buffer, static_cast<size_t>(length));
+        if (block.find(token) != std::string::npos) return true;
+        if (block.size() > token.size())
+            block.erase(0, block.size() - token.size());
+    }
+    return false;
+}
+
 void noteAutoGameUpdate() {
     universalNativeService.store(pumpNativeAccessOnGameThread,std::memory_order_release);
     pumpNativeAccessOnGameThread();
@@ -1246,6 +1286,11 @@ void noteAutoGameUpdate() {
     touch::pumpNativeTouchLayoutHooksOnGameThread();
     touch::pumpNativeTouchVisibilityHookOnGameThread();
     touch::pumpNativeTouchActivationOnGameThread();
+    if (g_worldSessionReady.load(std::memory_order_acquire) &&
+        touch::hostReady()) {
+        static uint64_t touchTick = 0;
+        queueManagedTouchTriggerTick(++touchTick);
+    }
     if (managedEntitySourceModsRegistered() &&
         runtime::modNpcsSettled() && runtime::modProjectilesSettled()) {
         installNpcAiHost();
