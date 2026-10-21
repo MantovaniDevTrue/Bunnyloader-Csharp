@@ -63,6 +63,13 @@ duplicate.Load(save);
 var duoRestored = duplicate.Register("multi", new TwoConditions());
 Check(duoRestored.IsCompleted && duoRestored.CompletedCalls == 0, "restore does not display unlock twice");
 
+var negatives = new BunnyAchievementRegistry();
+var negativeNpc = negatives.Register("variants", new NegativeNpcAchievement());
+negatives.NotifyNPCKilled(-4);
+Check(negativeNpc.IsCompleted, "negative vanilla NPC netID dispatch preserves variants");
+negatives.NotifyItemPickup(-4, 1);
+Check(negativeNpc.IsCompleted, "negative item type ignored");
+
 var faultRegistry = new BunnyAchievementRegistry();
 faultRegistry.Register("fault", new FailingAchievement());
 var independent = faultRegistry.Register("independent", new ExampleBossKilled());
@@ -137,6 +144,15 @@ sealed class TwoConditions : BunnyAchievement
     }
 
     public override void OnCompleted() => CompletedCalls++;
+}
+
+sealed class NegativeNpcAchievement : BunnyAchievement
+{
+    public override void SetStaticDefaults()
+    {
+        Texture = "Content/Achievements/Variant.png";
+        AddNPCKilledCondition(-4);
+    }
 }
 
 sealed class FailingAchievement : BunnyAchievement
