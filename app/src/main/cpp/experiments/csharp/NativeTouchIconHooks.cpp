@@ -72,6 +72,75 @@ bool validateMethod(const MethodInfo* method, bool instance,
     return shape;
 }
 
+bool namedArgument(const MethodInfo* method, uint32_t index,
+                   const char* expected) {
+    auto& api = il2cpp::api();
+    if (!api.method_get_param || !api.type_get_name || !api.il2cpp_free)
+        return false;
+    const Il2CppType* type = api.method_get_param(method, index);
+    char* name = type ? api.type_get_name(type) : nullptr;
+    const bool valid = name && std::strcmp(name, expected) == 0;
+    if (name) api.il2cpp_free(name);
+    return valid;
+}
+
+bool layoutArgument(const MethodInfo* method, uint32_t index) {
+    auto& api = il2cpp::api();
+    if (!api.method_get_param || !api.class_from_il2cpp_type ||
+        !api.class_is_valuetype) return false;
+    Il2CppClass* expected = il2cpp::findClassQuiet("", "QuickActionButton_Layout");
+    const Il2CppType* type = api.method_get_param(method, index);
+    Il2CppClass* actual = type ? api.class_from_il2cpp_type(type) : nullptr;
+    return expected && actual == expected && !api.class_is_valuetype(actual);
+}
+
+bool interactionState(const MethodInfo* method, uint32_t index) {
+    auto& api = il2cpp::api();
+    if (!api.method_get_param || !api.class_from_il2cpp_type ||
+        !api.class_is_enum || !api.class_get_declaring_type ||
+        !api.class_get_name || !api.class_enum_basetype ||
+        !api.type_get_name || !api.il2cpp_free) return false;
+    const Il2CppType* type = api.method_get_param(method, index);
+    Il2CppClass* state = type ? api.class_from_il2cpp_type(type) : nullptr;
+    Il2CppClass* owner = il2cpp::findClassQuiet("", "GUIQuickActionButton");
+    if (!state || !owner || !api.class_is_enum(state) ||
+        api.class_get_declaring_type(state) != owner ||
+        std::strcmp(api.class_get_name(state), "InteractionState") != 0)
+        return false;
+    char* base = api.type_get_name(api.class_enum_basetype(state));
+    bool valid = base && std::strcmp(base, "System.Int32") == 0;
+    if (base) api.il2cpp_free(base);
+    return valid;
+}
+
+bool drawMethodShape(const MethodInfo* method, bool icon) {
+    auto& api = il2cpp::api();
+    if (!method || !api.method_is_instance ||
+        !api.method_get_param_count || !api.method_get_return_type ||
+        !api.type_get_name || !api.il2cpp_free ||
+        api.method_is_instance(method) ||
+        api.method_get_param_count(method) != (icon ? 4u : 6u) ||
+        !il2cpp::methodPointer(method)) return false;
+    char* result = api.type_get_name(api.method_get_return_type(method));
+    bool returnsVoid = result && std::strcmp(result, "System.Void") == 0;
+    if (result) api.il2cpp_free(result);
+    if (!returnsVoid || !layoutArgument(method, icon ? 0 : 1) ||
+        !namedArgument(method, 3, "System.Single&")) return false;
+    if (icon) {
+        if (!interactionState(method, 2) ||
+            !api.method_get_param) return false;
+        char* texture = api.type_get_name(api.method_get_param(method, 1));
+        bool valid = texture && std::strstr(texture, "Texture2D") &&
+                     !std::strchr(texture, '&');
+        if (texture) api.il2cpp_free(texture);
+        return valid;
+    }
+    return enumParam(method, "QuickActionButton_Layout", "QuickActionControl") &&
+           namedArgument(method, 2, "System.Boolean") &&
+           namedArgument(method, 4, "System.Boolean") &&
+           namedArgument(method, 5, "System.Boolean");
+}
+
 bool rectangleLayout() {
     auto& api = il2cpp::api();
     Il2CppClass* rect = il2cpp::findClass({"Microsoft.Xna.Framework", "Rectangle", {}});
@@ -167,7 +236,8 @@ bool nativeTouchQuickDrawHookInstalled() {
 void pumpNativeTouchQuickDrawHookOnGameThread() {
     if (drawAttempted || nativeTouchQuickDrawHookInstalled() ||
         !nativeTouchIconFrameHooksInstalled()) return;
-    drawAttempted = true;
+    static uint32_t probes = 0;
+    if (++probes != 1 && probes % 120 != 0) return;
     auto& api = il2cpp::api();
     Il2CppClass* quick = il2cpp::findClassQuiet("", "GUIQuickActionButton");
     const MethodInfo* full = quick ? il2cpp::findMethodBySignature(
@@ -176,26 +246,21 @@ void pumpNativeTouchQuickDrawHookOnGameThread() {
     const MethodInfo* icon = quick ? il2cpp::findMethodBySignature(
         quick, il2cpp::parseSignature(
             "void Draw(QuickActionButton_Layout layout, Texture2D buttonTexture, GUIQuickActionButton.InteractionState state, ref float scale)")) : nullptr;
-    if (!full || !icon || !api.method_is_instance ||
-        api.method_is_instance(full) || api.method_is_instance(icon) ||
-        !api.method_get_param_count ||
-        api.method_get_param_count(full) != 6 ||
-        api.method_get_param_count(icon) != 4 ||
-        !il2cpp::methodPointer(full) || !il2cpp::methodPointer(icon))
+    if (!drawMethodShape(full, false) || !drawMethodShape(icon, true))
         return;
-    // As duas assinaturas são resolvidas integralmente pelo Resolver.
-    // Não encaminhar outro tipo de Draw nem presumir enum no jogo.
-    drawIcon = reinterpret_cast<DrawIconFn>(il2cpp::methodPointer(icon));
-    drawIconMethod = icon;
+    drawAttempted = true;
     if (!bl::hook::install(full, quickDraw, &originalDraw) ||
         !originalDraw) return;
+    drawIcon = reinterpret_cast<DrawIconFn>(il2cpp::methodPointer(icon));
+    drawIconMethod = icon;
     drawInstalled.store(true, std::memory_order_release);
 }
 void pumpNativeTouchIconFrameHooksOnGameThread() {
     if (attempted || nativeTouchIconFrameHooksInstalled() ||
-        !nativeTouchObserverInstalled() || !rectangleLayout())
-        return;
-    attempted = true;
+        !nativeTouchObserverInstalled()) return;
+    static uint32_t probes = 0;
+    if (++probes != 1 && probes % 120 != 0) return;
+    if (!rectangleLayout()) return;
     auto& api = il2cpp::api();
     if (!api.method_get_return_type || !api.type_get_name ||
         !api.il2cpp_free || !api.class_get_declaring_type) return;
@@ -211,6 +276,7 @@ void pumpNativeTouchIconFrameHooksOnGameThread() {
                         "VirtualControlsHardwareConfigurationMapping_Layout", "ContolType") ||
         !validateMethod(icon, false, "QuickActionButton_Layout", "QuickActionControl"))
         return;
+    attempted = true;
     if (!bl::hook::install(edit, editorFrame, &originalEditorFrame) ||
         !originalEditorFrame) return;
     if (!bl::hook::install(icon, quickFrame, &originalQuickFrame) ||
