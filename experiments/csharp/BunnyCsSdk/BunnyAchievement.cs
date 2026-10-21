@@ -150,7 +150,8 @@ public abstract class BunnyAchievement
             throw new InvalidOperationException("Condição repetida: " + key);
         if (source != BunnyAchievementEvent.Manual &&
             (ids == null || ids.Length == 0 || ids.Length > 256 ||
-             ids.Any(id => id < 0) || ids.Distinct().Count() != ids.Length))
+             ids.Any(id => id < (source == BunnyAchievementEvent.NpcKilled ? -32768 : 0)) ||
+             ids.Distinct().Count() != ids.Length))
             throw new ArgumentException("Tipos do evento ausentes, inválidos ou repetidos.", nameof(ids));
 
         var condition = new BunnyAchievementCondition(this, key, maximum, source, ids);
@@ -265,7 +266,8 @@ public sealed class BunnyAchievementRegistry
 
     private void Notify(BunnyAchievementEvent source, int type, int count, bool localPlayer)
     {
-        if (!localPlayer || type < 0 || count <= 0) return;
+        if (!localPlayer || type < (source == BunnyAchievementEvent.NpcKilled ? -32768 : 0) ||
+            count <= 0) return;
         Notifications++;
         foreach (var achievement in registered.Values.ToArray())
         {
