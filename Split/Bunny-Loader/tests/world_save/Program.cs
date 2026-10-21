@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using BunnyLoader.Source;
 
 internal static class Program
@@ -12,8 +13,20 @@ internal static class Program
         Console.WriteLine("PASS " + name);
     }
 
-    private static void Main()
+    private static void Main(string[] args)
     {
+        if (args.Length == 2 && args[0] == "--emit-fixture")
+        {
+            // Interoperabilidade real: fixture gerada pelo SDK C#, lida pelo POSIX C++.
+            var fixture = new BunnyWorldDocument();
+            var tag = new BunnyWorldTag();
+            tag.SetInt32("count", 42);
+            fixture.Replace("00000000-0000-4000-8000-000000000001",
+                            "Example.Progression", tag);
+            File.WriteAllBytes(args[1], fixture.Encode());
+            return;
+        }
+        if (args.Length != 0) throw new ArgumentException("Unsupported test argument");
         var document = new BunnyWorldDocument();
         var boss = new BunnyWorldTag();
         boss.SetBoolean("downedExampleBoss", true);

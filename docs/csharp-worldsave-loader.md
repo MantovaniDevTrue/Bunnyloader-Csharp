@@ -28,6 +28,10 @@ O novo `BunnyWorldDispatcher` descobre e registra sistemas por UUID/classe, reje
 
 Estes são métodos executáveis no SDK; **a chamada entre o MonoVM e os hooks reais ainda não está implementada**. O teste .NET usa as próprias classes do SDK e o ExampleDownedBossWorldSystem de exemplo.
 
+## Prova de interoperabilidade
+
+A CI gera um `BWC1` diretamente com `BunnyWorldDocument.Encode()` em .NET 8 e passa o arquivo para o teste C++ POSIX. Os bytes devem coincidir exatamente com o documento nativo `document(42)`, e o validador C++ precisa aceitar o payload. O fixture temporário não é publicado nem instalado.
+
 ## Requisitos ainda bloqueantes
 
 1. Host nativo C++ deve capturar a identidade real do arquivo de mundo após a seleção; não confiar em nome de mundo ou caminho informado por um mod.

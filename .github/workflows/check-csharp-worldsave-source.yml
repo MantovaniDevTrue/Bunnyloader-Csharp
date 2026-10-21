@@ -26,6 +26,8 @@ jobs:
         run: dotnet build Split/Bunny-Loader/experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj -c Release --nologo
       - name: Test deterministic world codec and rejection cases
         run: dotnet run --project Split/Bunny-Loader/tests/world_save/BunnyWorldData.Smoke.csproj -c Release --nologo
+      - name: Generate BWC1 fixture from real CSharp SDK
+        run: dotnet run --project Split/Bunny-Loader/tests/world_save/BunnyWorldData.Smoke.csproj -c Release -- --emit-fixture /tmp/bunny_worldsave_interop.bwc
       - name: Compile native store with strict diagnostics
         run: |
           g++ -std=c++20 -O2 -Wall -Wextra -Werror -pedantic -pthread \
@@ -33,7 +35,7 @@ jobs:
             Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeWorldStore.cpp \
             Split/Bunny-Loader/tests/world_save/native_world_store_test.cpp \
             -o /tmp/bunny_world_store_test
-          /tmp/bunny_world_store_test
+          /tmp/bunny_world_store_test /tmp/bunny_worldsave_interop.bwc
       - name: Native sanitizer regression (no APK)
         run: |
           g++ -std=c++20 -O1 -g -Wall -Wextra -Werror -pedantic -pthread \
@@ -42,7 +44,7 @@ jobs:
             Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeWorldStore.cpp \
             Split/Bunny-Loader/tests/world_save/native_world_store_test.cpp \
             -o /tmp/bunny_world_store_sanitized
-          ASAN_OPTIONS=detect_leaks=1 /tmp/bunny_world_store_sanitized
+          ASAN_OPTIONS=detect_leaks=1 /tmp/bunny_world_store_sanitized /tmp/bunny_worldsave_interop.bwc
       - name: Ensure native game lifecycle binds trusted world and epoch
         run: |
           python3 - <<'PY'

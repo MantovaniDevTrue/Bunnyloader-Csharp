@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <fstream>
+#include <iterator>
 #include <string>
 #include <thread>
 #include <vector>
@@ -45,7 +46,18 @@ static std::vector<uint8_t> document(int value) {
     return data;
 }
 
-int main() {
+int main(int argc, char** argv) {
+    if (argc == 2) {
+        std::ifstream fixture(argv[1], std::ios::binary);
+        assert(fixture);
+        std::vector<uint8_t> fromManaged(
+            (std::istreambuf_iterator<char>(fixture)), std::istreambuf_iterator<char>());
+        assert(fromManaged == document(42));
+        assert(NativeWorldStore::validDocument(fromManaged.data(), fromManaged.size()));
+        std::puts("BWC1_CSHARP_NATIVE_INTEROP_PASS");
+    } else {
+        assert(argc == 1);
+    }
     char folder[] = "/tmp/bunny-worldsave-XXXXXX";
     const char* root = ::mkdtemp(folder);
     assert(root);
