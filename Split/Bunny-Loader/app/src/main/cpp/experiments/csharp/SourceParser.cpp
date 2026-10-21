@@ -192,6 +192,14 @@ bool parseClass(const std::vector<Token>& tokens, size_t begin, size_t end,
                 const std::string& namespaceName,
                 std::vector<ParsedSourceType>* definitions, std::string* error,
                 const std::map<std::string, std::string>& declaredProperties = {}) {
+    if (base == "BunnyWorldSystem") {
+        if (!declaredProperties.empty()) {
+            *error = name + ": BunnyWorldSystem nao usa BunnyContent";
+            return false;
+        }
+        definitions->push_back({name, base, namespaceName, {}});
+        return true;
+    }
     if (base != "BunnyItem" && base != "BunnyProjectile" && base != "BunnyWeapon" &&
         base != "BunnyBuff" && base != "BunnyBuffPotion" &&
         base != "BunnyPlayer" && base != "BunnyAccessory" &&
@@ -417,7 +425,7 @@ bool parseCSharpSource(const std::string& source,
             base == "BunnyBuff" || base == "BunnyBuffPotion" ||
             base == "BunnyPlayer" || base == "BunnyAccessory" ||
             base == "BunnyNPC" || base == "BunnyPrefix" ||
-            base == "BunnyTile")) {
+            base == "BunnyTile" || base == "BunnyWorldSystem")) {
             std::string qualifiedNamespace = fileNamespace;
             for (const auto& scope : namespaces) {
                 if (!qualifiedNamespace.empty()) qualifiedNamespace += ".";

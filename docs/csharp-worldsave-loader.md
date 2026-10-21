@@ -50,6 +50,12 @@ O loop existente de `pinnedMonoWorker` lê agora a fila `MonoWorldMailbox` com p
 
 O host já expõe `requestManagedWorldOnMono` para os futuros pontos de save/load. **Ainda não há chamada a essa função pelos hooks de salvamento do Terraria**: a conexão com o jogo depende de validar a ABI Android e as regras de gravação/autoridade.
 
+## Etapa 8 — admissão de mod C# contendo apenas BunnyWorldSystem
+
+O `SourceParser` e `SourceLoader` agora reconhecem `BunnyWorldSystem` como tipo gerenciado, sem exigir `SetDefaults` ou um item artificial. Cada classe é registrada pelo namespace completo, sem identificador numérico do Terraria. A verificação Roslyn `CompiledAssemblyProbe` permite assemblies que tenham exclusivamente sistemas de mundo, exige construtor público vazio e aplica limite de 512 sistemas. A CI inclui teste de parser C++ sanitizado.
+
+O registro efetivo no MonoVM depende de agendar `MonoWorldAction::Register` com o caminho compilado e a ativação em `Enter`; não considerar isso concluído ainda.
+
 ## Requisitos ainda bloqueantes
 
 1. Host nativo C++ deve capturar a identidade real do arquivo de mundo após a seleção; não confiar em nome de mundo ou caminho informado por um mod.
