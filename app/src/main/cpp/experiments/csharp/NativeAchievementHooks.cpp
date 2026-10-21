@@ -32,6 +32,7 @@ TileDestroyedFn originalTileDestroyed = nullptr;
 std::array<bool, 4> installed{};
 std::atomic<bool> hooksReady{false};
 std::atomic<bool> worldActive{false};
+std::atomic<bool> bindingsReady{false};
 std::mutex bindingMutex;
 std::map<std::string, std::string> bindings;
 FieldInfo* playersField = nullptr;
@@ -193,7 +194,16 @@ bool registerNativeAchievementMod(const std::string& modId,
     if (found != bindings.end()) return found->second == assemblyPath;
     if (bindings.size() >= 64) return false;
     bindings.emplace(modId, assemblyPath);
+    bindingsReady.store(true, std::memory_order_release);
     return true;
+}
+
+bool nativeAchievementBindingsReady() {
+    return bindingsReady.load(std::memory_order_acquire);
+}
+
+bool nativeAchievementHooksReady() {
+    return hooksReady.load(std::memory_order_acquire);
 }
 
 void setNativeAchievementWorldActive(bool active) {
