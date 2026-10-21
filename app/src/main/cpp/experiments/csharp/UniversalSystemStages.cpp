@@ -90,6 +90,102 @@ void hkDoUpdateInWorld(void* self, const MethodInfo* info) {
 }
 }
 
+#define BL_CSHARP_SYSTEM_SAVE_FRAME \
+"sub sp, sp, #768\n" \
+"stp x0, x1, [sp, #0]\n" \
+"stp x2, x3, [sp, #16]\n" \
+"stp x4, x5, [sp, #32]\n" \
+"stp x6, x7, [sp, #48]\n" \
+"stp x8, x9, [sp, #64]\n" \
+"stp x10, x11, [sp, #80]\n" \
+"stp x12, x13, [sp, #96]\n" \
+"stp x14, x15, [sp, #112]\n" \
+"stp x16, x17, [sp, #128]\n" \
+"stp x18, x19, [sp, #144]\n" \
+"stp x20, x21, [sp, #160]\n" \
+"stp x22, x23, [sp, #176]\n" \
+"stp x24, x25, [sp, #192]\n" \
+"stp x26, x27, [sp, #208]\n" \
+"stp x28, x29, [sp, #224]\n" \
+"str x30, [sp, #240]\n" \
+"mrs x9, nzcv\n" \
+"str x9, [sp, #248]\n" \
+"stp q0, q1, [sp, #256]\n" \
+"stp q2, q3, [sp, #288]\n" \
+"stp q4, q5, [sp, #320]\n" \
+"stp q6, q7, [sp, #352]\n" \
+"stp q8, q9, [sp, #384]\n" \
+"stp q10, q11, [sp, #416]\n" \
+"stp q12, q13, [sp, #448]\n" \
+"stp q14, q15, [sp, #480]\n" \
+"stp q16, q17, [sp, #512]\n" \
+"stp q18, q19, [sp, #544]\n" \
+"stp q20, q21, [sp, #576]\n" \
+"stp q22, q23, [sp, #608]\n" \
+"stp q24, q25, [sp, #640]\n" \
+"stp q26, q27, [sp, #672]\n" \
+"stp q28, q29, [sp, #704]\n" \
+"stp q30, q31, [sp, #736]\n"
+
+#define BL_CSHARP_SYSTEM_RESTORE_FRAME \
+"ldp q0, q1, [sp, #256]\n" \
+"ldp q2, q3, [sp, #288]\n" \
+"ldp q4, q5, [sp, #320]\n" \
+"ldp q6, q7, [sp, #352]\n" \
+"ldp q8, q9, [sp, #384]\n" \
+"ldp q10, q11, [sp, #416]\n" \
+"ldp q12, q13, [sp, #448]\n" \
+"ldp q14, q15, [sp, #480]\n" \
+"ldp q16, q17, [sp, #512]\n" \
+"ldp q18, q19, [sp, #544]\n" \
+"ldp q20, q21, [sp, #576]\n" \
+"ldp q22, q23, [sp, #608]\n" \
+"ldp q24, q25, [sp, #640]\n" \
+"ldp q26, q27, [sp, #672]\n" \
+"ldp q28, q29, [sp, #704]\n" \
+"ldp q30, q31, [sp, #736]\n" \
+"ldr x9, [sp, #248]\n" \
+"msr nzcv, x9\n" \
+"ldp x0, x1, [sp, #0]\n" \
+"ldp x2, x3, [sp, #16]\n" \
+"ldp x4, x5, [sp, #32]\n" \
+"ldp x6, x7, [sp, #48]\n" \
+"ldp x8, x9, [sp, #64]\n" \
+"ldp x10, x11, [sp, #80]\n" \
+"ldp x12, x13, [sp, #96]\n" \
+"ldp x14, x15, [sp, #112]\n" \
+"ldp x16, x17, [sp, #128]\n" \
+"ldp x18, x19, [sp, #144]\n" \
+"ldp x20, x21, [sp, #160]\n" \
+"ldp x22, x23, [sp, #176]\n" \
+"ldp x24, x25, [sp, #192]\n" \
+"ldp x26, x27, [sp, #208]\n" \
+"ldp x28, x29, [sp, #224]\n" \
+"ldr x30, [sp, #240]\n" \
+"add sp, sp, #768\n"
+
+#define BL_CSHARP_SYSTEM_BRIDGE(name, stage, target) \
+__attribute__((naked)) void name() { \
+    __asm__ volatile(BL_CSHARP_SYSTEM_SAVE_FRAME \
+        "mov x1, sp\n" "mov w0, #" #stage "\n" "bl blCSharpSystemStageDispatch\n" \
+        BL_CSHARP_SYSTEM_RESTORE_FRAME \
+        "adrp x16, " #target "\n" "ldr x16, [x16, :lo12:" #target "]\n" "br x16\n"); \
+}
+
+BL_CSHARP_SYSTEM_BRIDGE(csBridge0, 0, g_blCSharpSystemOriginal0)
+BL_CSHARP_SYSTEM_BRIDGE(csBridge1, 1, g_blCSharpSystemOriginal1)
+BL_CSHARP_SYSTEM_BRIDGE(csBridge2, 2, g_blCSharpSystemOriginal2)
+BL_CSHARP_SYSTEM_BRIDGE(csBridge3, 3, g_blCSharpSystemOriginal3)
+BL_CSHARP_SYSTEM_BRIDGE(csBridge4, 4, g_blCSharpSystemOriginal4)
+BL_CSHARP_SYSTEM_BRIDGE(csBridge5, 5, g_blCSharpSystemOriginal5)
+BL_CSHARP_SYSTEM_BRIDGE(csBridge6, 6, g_blCSharpSystemOriginal6)
+BL_CSHARP_SYSTEM_BRIDGE(csBridge7, 7, g_blCSharpSystemOriginal7)
+BL_CSHARP_SYSTEM_BRIDGE(csBridge8, 8, g_blCSharpSystemOriginal8)
+
+#undef BL_CSHARP_SYSTEM_BRIDGE
+#undef BL_CSHARP_SYSTEM_RESTORE_FRAME
+#undef BL_CSHARP_SYSTEM_SAVE_FRAME
+
 namespace {
 Stage stages[kCount] = {
     {"PlayersBegin", 0x1b8, {0xd00100bd, 0xd001011a, 0xf00100f9, 0xd000ffdc}, csBridge0, &g_blCSharpSystemOriginal0},
