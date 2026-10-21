@@ -37,6 +37,9 @@ public abstract class BunnyWorldUpdateLoader : BunnyHookModule
     public string LastError => Volatile.Read(ref lastError);
     public bool IsRegistered => attached;
 
+    /// <summary>Exemplos podem desligar o loader sem instalar nenhum hook.</summary>
+    protected virtual bool EnableUpdates => true;
+
     /// <summary>Antes de Main.DoUpdateInWorld, para preparar lógica do mundo.</summary>
     protected virtual void PreUpdateEntities() { }
 
@@ -69,6 +72,7 @@ public abstract class BunnyWorldUpdateLoader : BunnyHookModule
     {
         if (hooks is null) throw new ArgumentNullException(nameof(hooks));
         if (attached) throw new InvalidOperationException("Loader de mundo registrado duas vezes");
+        if (!EnableUpdates) return;
         flags = FindOverrides();
         if (flags == BunnyUpdateStageFlags.None) return;
         BunnyWorldUpdateRegistry.Attach(this, hooks);
