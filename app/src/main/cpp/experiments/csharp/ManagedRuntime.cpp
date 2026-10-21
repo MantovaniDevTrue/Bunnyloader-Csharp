@@ -3,6 +3,7 @@
 #include "experiments/csharp/UniversalHooks.h"
 #include "experiments/csharp/ManagedRuntime.h"
 #include "experiments/csharp/ManagedAchievementTransport.h"
+#include "experiments/csharp/NativeAchievementHooks.h"
 #include "graphics/ScreenScene.h"
 #include "experiments/csharp/ManagedVisualMonoPump.h"
 #include "experiments/csharp/ManagedVisualState.h"
@@ -1472,6 +1473,14 @@ bool processManagedAchievementRpc(std::unique_lock<std::mutex>& lock) {
     if (job.reply) job.reply->started = true;
     lock.unlock();
     std::string output = executeAchievementOnWorker(job);
+    if (job.operation >= 1 && job.operation <= 4 &&
+        output.starts_with("BACH_META_V1\n")) {
+        std::string error;
+        if (updateNativeAchievementProgress(job.mod, output, &error))
+            output = "OK|AchievementMetadataPublished";
+        else
+            output = "ERROR|AchievementMetadataUpdateRejected " + error;
+    }
     lock.lock();
     if (job.reply) {
         job.reply->output = std::move(output);
