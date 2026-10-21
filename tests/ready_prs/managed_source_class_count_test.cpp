@@ -46,7 +46,7 @@ int main(int argc, char** argv) {
             return 1;
         }
     }
-    assert(types.size() == 70);
+    assert(types.size() == 72);
     assert(mod.dusts == 1);
     assert(mod.walls == 1);
     assert(mod.rarities == 2);
@@ -55,10 +55,10 @@ int main(int argc, char** argv) {
     assert(expectedManagedSourceTypes(mod) == 71);
     const std::string status =
         "state=finished\nmodId=full-example\nphase=compile-verified\n"
-        "assemblyReady=1\nexecutedTypes=71\n";
+        "assemblyReady=1\nexecutedTypes=72\n";
     assert(managedSourceCompileFinished(status, mod.id, mod));
     --mod.dusts;
     assert(!managedSourceCompileFinished(status, mod.id, mod));
-    std::cout << "FULL_EXAMPLE_NATIVE_MANAGED_COUNT=PASS expected=71"
+    std::cout << "FULL_EXAMPLE_NATIVE_MANAGED_COUNT=PASS expected=72"
               << " rarities=2 dust=1 wall=1 localization=1 commands=3\n";
 }
