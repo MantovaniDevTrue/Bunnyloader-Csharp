@@ -76,4 +76,11 @@ assert 'BL_WARN("[CSharp][ItemUse] Mod=%s Stage=WorldTick Result=Error' in manag
 assert 'BL_INFO("[CSharp][ItemUse] Mod=%s Stage=FirstWorldTick' in managed
 assert 'g_entityBindings[static_cast<size_t>(job.binding)].firstWorldUseReported = true;' in managed
 assert 'owner.firstWorldErrorReported = true;' in managed
+assert 'catch (Exception error)' in dispatcher
+assert 'context.LastError = "OnUse(" + pair.Key + "): "' in dispatcher
+assert '" Applied=0 Error=" + error.GetType().Name' in dispatcher
+assert 'context.Faults++;' in dispatcher
+assert dispatcher.index('SaveInvasionIfChanged(context);', dispatcher.index('bool applied = pair.Value.OnUse')) > dispatcher.index('catch (Exception error)', dispatcher.index('bool applied = pair.Value.OnUse'))
+assert 'outcome.find(" Error=")' in managed
+assert 'BL_WARN("[CSharp][ItemUse] Mod=%s Stage=OnUseResult' in managed
 print("CSHARP_ITEM_USE_SESSION_LOG_GUARD=PASS")
