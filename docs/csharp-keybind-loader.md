@@ -214,3 +214,25 @@ pressionar/soltar, editor com imagens e grupos, layout ao reiniciar e trocar
 perfil, coexistência JS/C#, multiplayer, save/load/share e estabilidade
 sustentada a 60 FPS. A PR permanece draft; nenhuma build de gameplay
 deve ser publicada antes da validação completa.
+
+
+## Lote de 21/10/2026 — gatilho tardio e leitura nativa em lote
+
+- `BunnyTouchButtonLoader.BeginTriggerFrame` tenta finalizar a ponte com o host
+  antes de formar o snapshot que cada mod lê em `ProcessTriggers`; os casos
+  sem libbunny mantêm o caminho gerenciado de teste.
+- `ReleaseAll` limpa estado gerenciado, snapshots e sequência de pressão.
+- `NativeTouchPointer` não insere toques no registro de C# antes de
+  `hostReady`. Botões vanilla continuam no comportamento original.
+- `NativeTouchFocus` refaz descoberta de campos transitórios no máximo
+  uma vez a cada 120 chamadas após falha; não reflete cada frame.
+- `Registry::snapshot` entrega estados e press tokens sob uma única trava,
+  sem misturar ticks entre botões. A ponte C# usa um único P/Invoke por tick,
+  no lugar de duas consultas por ação, reaproveitando arrays de 128 posições;
+  conserva o caminho individual para host sem o símbolo novo.
+- CI source-only: <https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39614373254>.
+  Contrato gerenciado e nativo aprovados, com ASan/UBSan e syntax-preflight.
+
+Continua faltando validar input, editor, grupos, restauração real,
+multi-mod, troca de perfil e FPS no Terraria Android ARM64. Os testes de CI
+não validam os offsets/ABI do dispositivo. Nenhum APK ou .bmod foi gerado.
