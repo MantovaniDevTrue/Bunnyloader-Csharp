@@ -386,6 +386,8 @@ native_static::Value g_hoverItem;
 thread_local Il2CppString* g_rarityTextTarget = nullptr;
 thread_local uint32_t g_rarityTextColor = 0;
 thread_local bool g_rarityTextMatchByContent = false;
+thread_local std::u16string g_hoverFallbackName;
+thread_local uint32_t g_hoverFallbackColor = 0;
 
 bool rarityTextMatches(Il2CppString* text) {
     const auto* target = g_rarityTextTarget;
@@ -408,12 +410,16 @@ uint32_t nativeRarityToArgb(uint32_t native) {
 void rarityDrawString(Il2CppObject* batch, Il2CppObject* font, Il2CppString* text,
     RarityTextVec2 position, uint32_t color, float rotation, RarityTextVec2 origin,
     float scale, int32_t effects, float depth, const MethodInfo* method) {
-    if (rarityTextMatches(text)) {
+    const bool scopedMatch = rarityTextMatches(text);
+    const bool hoverMatch = !scopedMatch && text && !g_hoverFallbackName.empty() &&
+        sameNativeRarityName(text->chars, text->length,
+            g_hoverFallbackName.data(), static_cast<int>(g_hoverFallbackName.size()));
+    if (scopedMatch || hoverMatch) {
         const uint32_t original = nativeRarityToArgb(color);
         const uint8_t opacity = static_cast<uint8_t>(original >> 24);
         if (shouldTintNativeRarityText(original, opacity))
             color = g_rarityDrawColor.fromArgb(
-                tintNativeRarityText(g_rarityTextColor, opacity));
+                tintNativeRarityText(scopedMatch ? g_rarityTextColor : g_hoverFallbackColor, opacity));
     }
     if (g_originalRarityDrawString)
         g_originalRarityDrawString(batch, font, text, position, color, rotation,
@@ -657,6 +663,11 @@ const MethodInfo* g_rarityAffixMethod = nullptr;
 RarityAffixNameFn g_rarityAffixName = nullptr;
 int g_rarityTooltipExpertOffset = -1;
 std::atomic<bool> g_tooltipHookReady{false};
+std::atomic<bool> g_hoverFallbackReady{false};
+native_static::Value g_fallbackHoverItem;
+int g_fallbackItemType = -1;
+int g_fallbackItemRare = -1;
+int g_fallbackItemExpert = -1;
 
 template <typename F>
 void rarityTooltipScope(int32_t rare, uint8_t diff, F&& original) {
@@ -709,6 +720,9 @@ void rarityTooltipInstance(Il2CppObject* self, Il2CppObject* cache,
     });
 }
 
+bool installRarityHoverFallback(std::string* error);
+void refreshRarityHoverFallback();
+
 bool installRarityTooltipHook(std::string* error) {
     using namespace bl::il2cpp;
     if (g_tooltipHookReady.load(std::memory_order_acquire)) return true;
@@ -735,7 +749,8 @@ bool installRarityTooltipHook(std::string* error) {
         !parameterIs(nullptr, method, 2, "System", "Byte") ||
         !parameterIs(nullptr, method, 3, "System", "Int32") ||
         !parameterIs(nullptr, method, 4, "System", "Int32")) {
-        *error = "Reason=RarityTooltipSignatureMismatch";
+        if (installRarityHoverFallback(error)) return true;
+        *error = "Reason=RarityTooltipSignatureMismatch;FallbackUnavailable";
         return false;
     }
     int expert = -1;
@@ -770,6 +785,56 @@ bool installRarityTooltipHook(std::string* error) {
     g_tooltipHookReady.store(true, std::memory_order_release);
     BL_INFO("[CSharp][RarityLoader] Stage=InstallHook API=Main.MouseText_DrawItemTooltip Result=Ready");
     return true;
+}
+
+bool installRarityHoverFallback(std::string* error) {
+    using namespace bl::il2cpp;
+    if (g_hoverFallbackReady.load(std::memory_order_acquire)) return true;
+    auto& a = api();
+    auto* main = findClass({"Terraria", "Main", {}});
+    auto* item = findClass({"Terraria", "Item", {}});
+    auto* integer = findClass({"System", "Int32", {}});
+    auto* boolean = findClass({"System", "Boolean", {}});
+    auto hover = main ? native_static::resolve(main, "HoverItem") : native_static::Value{};
+    const auto* affix = item ? findMethodBySignature(item, parseSignature("string AffixName()")) : nullptr;
+    int type = -1, rare = -1, expert = -1;
+    if (!item || !integer || !boolean || !hover || hover.type != item ||
+        native_static::size(hover) != sizeof(Il2CppObject*) ||
+        !validateRarityTextField(item, "type", integer, &type) ||
+        !validateRarityTextField(item, "rare", integer, &rare) ||
+        !validateRarityTextField(item, "expert", boolean, &expert) ||
+        !affix || !a.method_is_instance || !a.method_is_instance(affix) ||
+        !isReturn(affix, "System", "String") || !methodPointer(affix)) {
+        *error = "Reason=RarityHoverFallbackFieldsUnavailable";
+        return false;
+    }
+    g_fallbackHoverItem = hover;
+    g_fallbackItemType = type;
+    g_fallbackItemRare = rare;
+    g_fallbackItemExpert = expert;
+    g_rarityAffixMethod = affix;
+    g_rarityAffixName = reinterpret_cast<RarityAffixNameFn>(methodPointer(affix));
+    g_hoverFallbackReady.store(true, std::memory_order_release);
+    BL_INFO("[CSharp][RarityLoader] Stage=InstallTooltipFallback API=SpriteBatch.DrawString Result=Ready");
+    return true;
+}
+
+void refreshRarityHoverFallback() {
+    g_hoverFallbackName.clear();
+    if (!g_hoverFallbackReady.load(std::memory_order_acquire) || !g_rarityAffixName)
+        return;
+    Il2CppObject* item = nullptr;
+    if (!native_static::read(g_fallbackHoverItem, &item, sizeof(item)) || !item ||
+        bl::runtime::field<int32_t>(item, g_fallbackItemType) < 1 ||
+        bl::runtime::field<uint8_t>(item, g_fallbackItemExpert) != 0)
+        return;
+    const int rarity = bl::runtime::field<int32_t>(item, g_fallbackItemRare);
+    uint32_t color = 0;
+    if (!g_palette.read(rarity, &color)) return;
+    Il2CppString* text = g_rarityAffixName(item, g_rarityAffixMethod);
+    if (!text || text->length <= 0 || text->length > 256) return;
+    g_hoverFallbackName.assign(text->chars, text->chars + text->length);
+    g_hoverFallbackColor = color;
 }
 
 struct DiscoField {
@@ -847,6 +912,8 @@ bool registerNativeRaritySampling(const std::string& mod, const std::string& ass
 
 void pumpNativeRarityGameplay() {
     ++g_tick;
+    if (g_hoverFallbackReady.load(std::memory_order_acquire))
+        refreshRarityHoverFallback();
     if ((g_tick & 1u) != 0) return;
     RarityMod current;
     {
@@ -929,7 +996,8 @@ void pumpNativeRarityGameplay() {
             previousGroundTextError.clear();
         }
     }
-    if (!g_tooltipHookReady.load(std::memory_order_acquire) && (g_tick % 60u == 0)) {
+    if (!g_tooltipHookReady.load(std::memory_order_acquire) &&
+        !g_hoverFallbackReady.load(std::memory_order_acquire) && (g_tick % 60u == 0)) {
         std::string error;
         if (!installRarityTooltipHook(&error) && g_tick % 600u == 0)
             BL_WARN("[CSharp][RarityLoader] Stage=InstallTooltip Result=Pending Detail=%s",
