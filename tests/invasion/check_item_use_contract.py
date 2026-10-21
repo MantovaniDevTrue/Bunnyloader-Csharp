@@ -53,10 +53,17 @@ assert 'api.method_get_return_type(candidate), "System.Void"' in native
 assert 'g_requests.push_back(std::move(binding));' in native
 assert 'Stage=Bind Class=%s Type=%d Result=Ready' in native
 assert 'Stage=ActualUse Class=%s Player=%d Flags=%d Result=Queued' in native
+assert 'Stage=Consumed Class=%s Player=%d Flags=%d Result=DeliveredToMonoVM' in native
+assert 'int flags = g_ready.load(std::memory_order_acquire)' in native
+assert 'if (health >= 0 && runtime::field<int32_t>(player, health) > 0)' in native
+assert 'isStaticType(surface, "System.Single")' in native
+assert 'isStaticType(surface, "System.Double")' in native
+assert 'if (!day || !surface || !invasion || !menu || health < 0) return 0;' not in native
 assert 'BunnyDustEffects.EmitAtPlayer<ExampleSparkDust>' in (
     root / "samples/ExampleModCSharp/Playable/content/Content/Items/ExampleDustCharm.cs"
 ).read_text()
 dust = (root / "app/src/main/cpp/experiments/csharp/NativeDustEmission.cpp").read_text()
 assert '"Microsoft.Xna.Framework.Color"' in dust
+assert 'Stage=EmitRequest Class=%s Player=%d Count=%d Result=Queued' in dust
 assert '"Microsoft.Xna.Framework.Graphics.Color"' not in dust
 print("Native CSharp item-use hook, dust emission and invasion invoker: OK")
