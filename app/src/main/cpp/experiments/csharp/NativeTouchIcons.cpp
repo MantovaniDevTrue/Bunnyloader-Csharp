@@ -41,7 +41,17 @@ bool load(Icon& icon, const std::string& owner, const std::string& name) {
     auto& api = il2cpp::api();
     if (polls < icon.retryAfter) return false;
     icon.retryAfter = polls + 120;
-    const std::string root = mods::rootOf(owner);
+    std::string root = mods::rootOf(owner);
+    if (root.empty()) {
+        // C# também pode usar o id textual do manifesto em vez do UID.
+        // Fazemos o lookup apenas no carregamento do PNG, nunca em Draw.
+        for (size_t i = 0; i < mods::loadedCount() && i <= UINT16_MAX; ++i) {
+            const mods::LoadedMod* mod = mods::get(static_cast<uint16_t>(i));
+            if (!mod || mod->internalName != owner) continue;
+            if (!root.empty()) return false; // identidade ambígua
+            root = mod->dir;
+        }
+    }
     if (root.empty()) return false;
     std::string image = root + "/content/" + name;
     if (!validFile(image)) {
