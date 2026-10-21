@@ -424,6 +424,7 @@ struct ManagedEntityBinding {
     int managedSlot = -1;
     bool armed = true;
     bool invasionSupported = true;
+    bool firstWorldTickReported = false;
 };
 
 struct ManagedEntityJob {
@@ -2394,9 +2395,16 @@ void* pinnedMonoWorker(void*) {
                     const int64_t result = executeManagedEntityOnWorker(job);
                     lock.lock();
                     if (job.kind == 6 && job.session == g_entitySession &&
-                        result == -2 && job.binding >= 0 &&
-                        static_cast<size_t>(job.binding) < g_entityBindings.size())
-                        g_entityBindings[static_cast<size_t>(job.binding)].invasionSupported = false;
+                        job.binding >= 0 &&
+                        static_cast<size_t>(job.binding) < g_entityBindings.size()) {
+                        auto& source = g_entityBindings[static_cast<size_t>(job.binding)];
+                        if (!source.firstWorldTickReported) {
+                            source.firstWorldTickReported = true;
+                            BL_INFO("[CSharp][ItemUse] Mod=%s Stage=FirstWorldTick Result=%lld",
+                                source.modId.c_str(), static_cast<long long>(result));
+                        }
+                        if (result == -2) source.invasionSupported = false;
+                    }
                     const bool stillArmed = job.binding >= 0 &&
                         static_cast<size_t>(job.binding) < g_entityBindings.size() &&
                         g_entityBindings[static_cast<size_t>(job.binding)].armed;
