@@ -341,55 +341,92 @@ bool make(const AchievementMetadata& definition, NativeEntry* out,
             definition.hidden && !definition.completed ? obscured : description,
             error)) return false;
 
-    auto* key = a.string_new("BunnyProgress");
-    int maximum = kNativeAchievementTrackerMaximum;
-    if (!key) { *error = "Condition key allocation failed"; return false; }
-    void* conditionArgs[]{key, &maximum};
-    Il2CppObject* condition = nullptr;
-    if (!invoke(methods.conditionFactory, nullptr,
-                conditionArgs, &condition, error) || !condition) {
-        if (error->empty()) *error = "CustomIntCondition factory returned null";
-        return false;
-    }
-    // Como a fonte gerenciada mantém a semântica das condições, a condição
-    // nativa é um espelho para o menu/trackers. Não duplicar eventos nativos.
-    void* addArgs[]{condition};
-    if (!invoke(methods.addCondition, achievement, addArgs, nullptr, error))
-        return false;
-    void* trackerArgs[]{key};
-    if (!invoke(methods.trackCondition, achievement, trackerArgs, nullptr, error))
-        return false;
-
-    // Recuperar o progresso ANTES do Register(Achievement). Conquistas de
-    // sessões anteriores não devem parecer novos desbloqueios no menu.
-    int initialProgress = nativeAchievementProgress(definition.progress, definition.completed);
-    void* initialArgs[]{&initialProgress};
-    if (!invoke(methods.setProgress, condition, initialArgs, nullptr, error))
-        return false;
-    out->applied = initialProgress;
     out->hiddenApplied = definition.hidden && !definition.completed;
     out->achievementRoot = a.gchandle_new(achievement, false);
-    out->conditionRoot = a.gchandle_new(condition, false);
     out->titleRoot = a.gchandle_new(title, false);
     out->descriptionRoot = a.gchandle_new(description, false);
     out->hiddenRoot = a.gchandle_new(obscured, false);
     const auto releaseRoots = [&]() {
-        for (uint32_t handle : {out->achievementRoot, out->conditionRoot,
-                                out->titleRoot, out->descriptionRoot,
-                                out->hiddenRoot, out->assetRoot}) {
+        for (uint32_t handle : {out->achievementRoot, out->titleRoot,
+                                out->descriptionRoot, out->hiddenRoot,
+                                out->assetRoot}) {
             if (handle) a.gchandle_free(handle);
         }
+        for (const auto& condition : out->conditions)
+            if (condition.root) a.gchandle_free(condition.root);
         *out = {};
     };
-    if (!out->achievementRoot || !out->conditionRoot ||
-        !out->titleRoot || !out->descriptionRoot || !out->hiddenRoot) {
-        *error = "Achievement GC root allocation failed";
+    if (!out->achievementRoot || !out->titleRoot ||
+        !out->descriptionRoot || !out->hiddenRoot) {
+        *error = "Native achievement GC root allocation failed";
+        releaseRoots();
+        return false;
+    }
+    if (definition.conditions.empty() || definition.conditions.size() > 32) {
+        *error = "Native achievement condition list unavailable";
         releaseRoots();
         return false;
     }
 
-    // A Unity pode disparar GC enquanto decodifica PNG. Todas as referências
-    // nativas já estão enraizadas ANTES dessa alocação potencialmente grande.
+    for (const auto& definitionCondition : definition.conditions) {
+        const bool isFloat = definitionCondition.kind == 2;
+        const auto* factory = isFloat ? methods.floatFactory : methods.conditionFactory;
+        auto* key = a.string_new(definitionCondition.key.c_str());
+        if (!key) {
+            *error = "Native condition name allocation failed";
+            releaseRoots();
+            return false;
+        }
+        int intMaximum = static_cast<int>(definitionCondition.maximum);
+        float floatMaximum = static_cast<float>(definitionCondition.maximum);
+        void* args[]{key, isFloat ? static_cast<void*>(&floatMaximum)
+                                  : static_cast<void*>(&intMaximum)};
+        Il2CppObject* nativeCondition = nullptr;
+        if (!invoke(factory, nullptr, args, &nativeCondition, error) ||
+            !nativeCondition) {
+            if (error->empty()) *error = "Native condition factory returned null";
+            releaseRoots();
+            return false;
+        }
+        NativeCondition record;
+        record.root = a.gchandle_new(nativeCondition, false);
+        record.key = definitionCondition.key;
+        record.kind = definitionCondition.kind;
+        record.maximum = definitionCondition.maximum;
+        if (!record.root) {
+            *error = "Native condition GC root allocation failed";
+            releaseRoots();
+            return false;
+        }
+        out->conditions.push_back(std::move(record));
+        void* addArgs[]{nativeCondition};
+        if (!invoke(methods.addCondition, achievement, addArgs, nullptr, error) ||
+            !setConditionValue(out->conditions.back(), definitionCondition.value, error)) {
+            releaseRoots();
+            return false;
+        }
+        out->conditions.back().applied = definitionCondition.value;
+    }
+    if (definition.conditions.size() > 1) {
+        if (!invoke(methods.trackMultiple, achievement, nullptr, nullptr, error)) {
+            releaseRoots();
+            return false;
+        }
+    } else if (definition.conditions[0].kind == 1 ||
+               definition.conditions[0].kind == 2) {
+        auto* key = a.string_new(definition.conditions[0].key.c_str());
+        if (!key) {
+            *error = "Native tracker name allocation failed";
+            releaseRoots();
+            return false;
+        }
+        void* args[]{key};
+        if (!invoke(methods.trackCondition, achievement, args, nullptr, error)) {
+            releaseRoots();
+            return false;
+        }
+    }
+
     const std::size_t uidEnd = definition.name.find('/');
     const std::string uid = definition.name.substr(0, uidEnd);
     const std::string root = bl::mods::rootOf(uid);
