@@ -70,6 +70,7 @@ struct Tables {
 Tables g_tables;
 std::mutex g_writer;
 std::vector<NativeEntry> g_entries;
+std::array<Il2CppArray*, 6> g_publishedArrays{};
 std::shared_ptr<const TypeIndex> g_types = std::make_shared<const TypeIndex>();
 std::mutex g_queueMutex;
 std::deque<Spawn> g_queue;
@@ -242,16 +243,20 @@ bool repairOnGameThread() {
     bool changed = false;
     for (size_t i = 0; i < f.size(); ++i) {
         previous[i] = staticArray(f[i]);
-        if (!previous[i]) return false;
-        candidate[i] = previous[i];
-        if (previous[i]->length < static_cast<uintptr_t>(g_highWater)) {
-            candidate[i] = runtime::TypeTables::resizedCopy(
-                previous[i], static_cast<uintptr_t>(g_highWater));
-            if (!candidate[i] || !pins.pin(i, candidate[i])) return false;
+        if (!previous[i] || previous[i]->length > kMaxTypeExclusive) return false;
+        if (previous[i] != g_publishedArrays[i] ||
+            previous[i]->length < static_cast<uintptr_t>(g_highWater))
             changed = true;
-        }
     }
     if (!changed) return true;
+    // Copiar o lote inteiro evita expor parcialmente tabelas refeitas e
+    // preserva registros de outros mods que possuam arrays maiores.
+    for (size_t i = 0; i < f.size(); ++i) {
+        const auto length = std::max(previous[i]->length,
+            static_cast<uintptr_t>(g_highWater));
+        candidate[i] = runtime::TypeTables::resizedCopy(previous[i], length);
+        if (!candidate[i] || !pins.pin(i, candidate[i])) return false;
+    }
     for (const auto& record : g_entries) {
         const int type = record.entry.type;
         if (!setObject(candidate[0], type,
@@ -260,8 +265,8 @@ bool repairOnGameThread() {
             return false;
     }
     for (size_t i = 0; i < f.size(); ++i)
-        if (candidate[i] != previous[i])
-            il2cpp::api().field_static_set_value(f[i], candidate[i]);
+        il2cpp::api().field_static_set_value(f[i], candidate[i]);
+    g_publishedArrays = candidate;
     BL_INFO("csharp GoreLoader: tabelas nativas refeitas; %zu gores preservadas", g_entries.size());
     return true;
 }
@@ -371,6 +376,7 @@ bool install(const std::string& modId, const std::vector<Source>& sources,
         next->emplace(Key{entry.modId, entry.source.name}, entry.type);
     }
     g_highWater = end;
+    g_publishedArrays = expanded;
     std::atomic_store_explicit(&g_types,
         std::shared_ptr<const TypeIndex>(next), std::memory_order_release);
     BL_INFO("csharp GoreLoader %s: %zu gores nativas registradas (%d..%d)",
@@ -397,6 +403,19 @@ void worldReady() {
 
 void pumpOnGameThread() {
     if (!g_tables.ready) return;
+    // Nao retirar configuracoes enquanto os arrays estiverem invalidos:
+    // uma tentativa de recuperacao malsucedida nao pode perder settings.
+    bool pending = false;
+    {
+        std::lock_guard lock(g_queueMutex);
+        pending = !g_configs.empty();
+    }
+    if (pending && !repairOnGameThread()) {
+        static unsigned failedConfigRepair = 0;
+        if (failedConfigRepair++ < 3)
+            BL_WARN("csharp GoreLoader: aguardando restauracao das tabelas");
+        return;
+    }
     std::array<ConfigRequest, 32> configs{};
     size_t configured = 0;
     {
@@ -406,9 +425,7 @@ void pumpOnGameThread() {
             g_configs.pop_front();
         }
     }
-    if (configured && !repairOnGameThread())
-        BL_WARN("csharp GoreLoader: tabelas indisponiveis para configurar gore");
-    else if (configured) {
+    if (configured) {
         const auto f = fields();
         std::array<Il2CppArray*, 6> arrays{};
         for (size_t i = 0; i < f.size(); ++i)
