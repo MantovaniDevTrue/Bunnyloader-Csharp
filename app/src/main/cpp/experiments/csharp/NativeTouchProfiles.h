@@ -1,6 +1,7 @@
 #pragma once
 #include <array>
 #include <cstdint>
+#include <string>
 #include "experiments/csharp/NativeTouchInput.h"
 
 namespace bl::csharp::touch {
@@ -21,6 +22,7 @@ struct ActiveTouchSnapshot {
 // Lê somente estruturas existentes do jogo. Falha fechada quando uma
 // propriedade/campo muda na versão do Terraria ou usa layout não validado.
 bool nativeTouchSlot(int slot, SlotAction* result);
+bool nativeTouchSlotId(int slot, std::string* id);
 bool nativeTouchActiveSnapshot(ActiveTouchSnapshot* result);
 
 } // namespace bl::csharp::touch
