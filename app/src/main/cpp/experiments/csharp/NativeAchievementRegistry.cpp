@@ -43,7 +43,11 @@ struct NativeMethods {
 struct NativeEntry {
     uint32_t achievementRoot = 0;
     uint32_t conditionRoot = 0;
+    uint32_t titleRoot = 0;
+    uint32_t descriptionRoot = 0;
+    uint32_t hiddenRoot = 0;
     int applied = -1;
+    bool hiddenApplied = false;
     bool managerRegistered = false;
     bool iconRegistered = false;
     bool registered = false;
@@ -245,6 +249,17 @@ bool apply(NativeEntry& entry, const AchievementMetadata& definition,
     Il2CppObject* condition = a.gchandle_get_target(entry.conditionRoot);
     if (!condition) { *error = "Native condition GC root lost"; return false; }
     const int progress = nativeAchievementProgress(definition.progress, definition.completed);
+    const bool hidden = definition.hidden && !definition.completed;
+    if (entry.hiddenApplied != hidden) {
+        auto* achievement = a.gchandle_get_target(entry.achievementRoot);
+        auto* title = a.gchandle_get_target(hidden ? entry.hiddenRoot : entry.titleRoot);
+        auto* description = a.gchandle_get_target(
+            hidden ? entry.hiddenRoot : entry.descriptionRoot);
+        if (!achievement || !title || !description ||
+            !setLocalized(achievement, title, description, error))
+            return false;
+        entry.hiddenApplied = hidden;
+    }
     if (entry.applied == progress) return true;
     int value = progress;
     void* args[]{&value};
@@ -269,8 +284,13 @@ bool make(const AchievementMetadata& definition, NativeEntry* out,
                              definition.title, error);
     auto* description = textObject("Achievements." + definition.name + "_Description",
                                    definition.description, error);
-    if (!title || !description ||
-        !setLocalized(achievement, title, description, error)) return false;
+    auto* obscured = textObject(
+        "Bunny.Achievement.Hidden." + definition.name, "???", error);
+    if (!title || !description || !obscured ||
+        !setLocalized(achievement,
+            definition.hidden && !definition.completed ? obscured : title,
+            definition.hidden && !definition.completed ? obscured : description,
+            error)) return false;
 
     auto* key = a.string_new("BunnyProgress");
     int maximum = kNativeAchievementTrackerMaximum;
@@ -299,12 +319,20 @@ bool make(const AchievementMetadata& definition, NativeEntry* out,
         return false;
     out->applied = initialProgress;
 
+    out->hiddenApplied = definition.hidden && !definition.completed;
     out->achievementRoot = a.gchandle_new(achievement, false);
     out->conditionRoot = a.gchandle_new(condition, false);
-    if (!out->achievementRoot || !out->conditionRoot) {
+    out->titleRoot = a.gchandle_new(title, false);
+    out->descriptionRoot = a.gchandle_new(description, false);
+    out->hiddenRoot = a.gchandle_new(obscured, false);
+    if (!out->achievementRoot || !out->conditionRoot ||
+        !out->titleRoot || !out->descriptionRoot || !out->hiddenRoot) {
         *error = "Achievement GC root allocation failed";
-        if (out->achievementRoot) a.gchandle_free(out->achievementRoot);
-        if (out->conditionRoot) a.gchandle_free(out->conditionRoot);
+        for (uint32_t root : {out->achievementRoot, out->conditionRoot,
+                              out->titleRoot, out->descriptionRoot,
+                              out->hiddenRoot}) {
+            if (root) a.gchandle_free(root);
+        }
         *out = {};
         return false;
     }
