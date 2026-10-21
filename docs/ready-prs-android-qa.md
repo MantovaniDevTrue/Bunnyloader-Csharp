@@ -1,6 +1,6 @@
 # Sete PRs integrados — QA experimental Android
 
-Bunny `1.0.8-tooltip-wave-qa` (versionCode 307), ExampleMod CSharp `0.1.63`.
+Bunny `1.0.9-item-use-diagnostics-qa` (versionCode 308), ExampleMod CSharp `0.1.63`.
 Base: `v1.0` em `cfbe784ee3cb`. Branch: `integration/ready-prs-20261020`.
 
 Este APK reúne os PRs #101 (Localization), #102 (Rarity), #114 (AnglerQuest),
@@ -133,3 +133,11 @@ O relatório 1.0.6 mostrou o item `Exemplo de Tooltip` renderizado como vanilla,
 A ativação C# introduzida na QA 1.0.7 foi mantida sem alterações; a chamada de `SpriteBatch.DrawString` na animação agora usa diretamente o receptor `spriteBatch` do renderizador do ExampleModBunny, sem separar a referência ao método. Esse ajuste corrige um possível problema de contexto no desenho dos glifos. O plano C# continua compilado uma vez, sem executar callbacks Mono por quadro, e o hook só desenha itens com plano visual ativo.
 
 Repetir com `ExampleTooltipItem`: três linhas, `Bunny Loader` com onda arco-íris e `Tooltip0` dourado; comparar com o tooltip JS e um item vanilla. Registrar FPS em movimento e parado, trocar de mundo, abrir/fechar inventário e exportar relatório em caso de falha. Os testes automatizados não substituem a validação visual Android. Os loaders Dust, Invasion e AnglerQuest não receberam alterações nesta revisão.
+
+## QA 1.0.9: resultado de ItemUse, sem novos efeitos
+
+O teste Android 1.0.8 confirmou o tooltip animado, mas o Example Dust Charm não apresentou partículas. No console, o evento `ActualUse` foi registrado e `Consumed` confirmou entrega ao MonoVM; não apareceu `DustEmission Stage=EmitRequest` no trecho enviado. Isso não é evidência de conclusão de `OnUse`.
+
+Esta build isola exceções de `OnUse` por item para que outros itens não fiquem bloqueados. `ManagedRuntime` envia `Stage=OnUseResult` ou `Stage=WorldTick Result=Error` para o logger do jogo apenas uma vez por mod e coloca `lastUse` no começo do status limitado a 384 bytes. Mensagens com `Error=` são avisos. Não modifica `BunnyDustEffects`, o emissor nativo, física, quantidade ou desenho das partículas.
+
+Teste: usar `Example Dust Charm` e `Example Invasion Beacon` em sessão limpa; exportar o relatório depois de usar ambos. Procurar `OnUseResult lastUse=ExampleDustCharm` com `Applied=1` ou `Error=`, assim como `DustEmission Stage=EmitRequest`. A invasão deve ser testada de dia, na superfície; flags esperadas `63`. Não considerar Dust ou Invasion corrigidos antes da validação visual Android. A versão 1.0.8 continua sendo baseline do tooltip.
