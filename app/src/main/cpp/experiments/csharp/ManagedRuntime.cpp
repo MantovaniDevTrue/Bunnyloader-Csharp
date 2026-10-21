@@ -341,6 +341,7 @@ std::deque<ManagedCloudSpawnReply> g_cloudSpawnReplies;
 uint64_t g_cloudSession = 1;
 bool g_cloudClearPending = false;
 bool g_cloudDispatcherHealthy = true;
+std::chrono::steady_clock::time_point g_cloudClearRetryAt{};
 void* g_cloudRegisterMethod = nullptr;
 void* g_cloudBindMethod = nullptr;
 void* g_cloudWeightsMethod = nullptr;
@@ -2062,7 +2063,13 @@ void* pinnedMonoWorker(void*) {
                 // hurt, recipe and entity jobs have already been serviced.
                 // Never hold g_pinnedMutex while invoking Mono methods.
                 if (g_cloudClearPending) {
-                    g_cloudClearPending = false;
+                    const auto now = std::chrono::steady_clock::now();
+                    if (now < g_cloudClearRetryAt) {
+                        // Avoid a busy MonoVM retry loop when the pinned
+                        // worker starts before its managed domain is ready.
+                        g_pinnedWake.wait_until(lock, g_cloudClearRetryAt);
+                        continue;
+                    }
                     CloudWorkerJob reset{};
                     reset.kind = 3;
                     lock.unlock();
@@ -2070,6 +2077,16 @@ void* pinnedMonoWorker(void*) {
                         executeManagedCloudOnWorker(reset, nullptr, nullptr);
                     lock.lock();
                     g_cloudDispatcherHealthy = cleared;
+                    if (cleared) {
+                        g_cloudClearPending = false;
+                    } else {
+                        // A failed early reset must not permanently disable
+                        // every later registration. Retry after Mono starts;
+                        // keep all cloud jobs blocked until Clear succeeds.
+                        g_cloudClearRetryAt =
+                            std::chrono::steady_clock::now() +
+                            std::chrono::milliseconds(250);
+                    }
                     continue;
                 }
                 if (!g_cloudQueue.empty()) {
@@ -2445,6 +2462,7 @@ void pauseManagedCloudCallbacks() {
     // Reset the SDK static dispatcher on the worker, including registrations
     // from an in-flight old-world job, before accepting new registrations.
     g_cloudClearPending = true;
+    g_cloudClearRetryAt = {};
     g_cloudDispatcherHealthy = false;
     g_pinnedWake.notify_one();
 }
