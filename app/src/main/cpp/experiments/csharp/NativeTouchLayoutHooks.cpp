@@ -10,6 +10,7 @@
 #include "il2cpp/Signature.h"
 #include <algorithm>
 #include <atomic>
+#include <cstring>
 #include <cstdint>
 #include <map>
 #include <set>
@@ -95,7 +96,7 @@ void capture(const std::vector<NativeLayoutBinding>& bindings,
         if (!present.contains(profile)) captured.emplace(profile, std::move(rows));
     *result = std::move(captured);
 }
-void apply(const std::vector<NativeLayoutBinding>& bindings,
+void restoreBindings(const std::vector<NativeLayoutBinding>& bindings,
            const SavedProfiles& saved) {
     const int unbound = nativeTouchActionUnbound();
     if (unbound < 0) return;
@@ -148,6 +149,10 @@ bool validateMethod(const MethodInfo* method, bool instance,
 void onSave(Il2CppObject* styles, Il2CppObject* prefs, const MethodInfo* method) {
     SaveFn original = __atomic_load_n(&originalSave, __ATOMIC_ACQUIRE);
     if (!original) return;
+    if (!installed.load(std::memory_order_acquire)) {
+        original(styles, prefs, method);
+        return;
+    }
     std::vector<NativeLayoutBinding> bindings;
     if (!collect(styles, &bindings)) {
         original(styles, prefs, method);
@@ -170,18 +175,21 @@ void onLoad(Il2CppObject* styles, Il2CppObject* prefs, const MethodInfo* method)
     SaveFn original = __atomic_load_n(&originalLoad, __ATOMIC_ACQUIRE);
     if (!original) return;
     original(styles, prefs, method);
+    if (!installed.load(std::memory_order_acquire)) return;
     std::vector<NativeLayoutBinding> bindings;
     if (!collect(styles, &bindings)) return;
     const std::string directory = nativeTouchSaveDirectory();
     SavedProfiles profiles;
     if (!directory.empty() && loadTouchLayoutFile(directory, &profiles)) {
-        apply(bindings, profiles);
+        restoreBindings(bindings, profiles);
         restored.store(true, std::memory_order_release);
     }
 }
 Il2CppString* onShare(Il2CppObject* profile, const MethodInfo* method) {
     ShareFn original = __atomic_load_n(&originalShare, __ATOMIC_ACQUIRE);
     if (!original) return nullptr;
+    if (!installed.load(std::memory_order_acquire))
+        return original(profile, method);
     std::vector<NativeLayoutBinding> bindings;
     if (!enumerateNativeTouchShareProfile(profile, &bindings))
         return original(profile, method);
@@ -207,7 +215,6 @@ void pumpNativeTouchLayoutHooksOnGameThread() {
         !nativeTouchObserverInstalled() || registry().count() == 0)
         return;
     attempted = true;
-    auto& api = il2cpp::api();
     Il2CppClass* styles = il2cpp::findClassQuiet("", "VirtualControlsStyles_Layout");
     const MethodInfo* save = styles ? il2cpp::findMethodBySignature(
         styles, il2cpp::parseSignature("void SaveConfiguration(Preferences preferences)"))
