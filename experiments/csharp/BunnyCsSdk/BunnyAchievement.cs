@@ -67,6 +67,9 @@ public sealed class BunnyAchievementCondition
 
     internal void SetProgress(double progress, bool notify)
     {
+        // Após a conclusão o jogo mantém a conquista desbloqueada.
+        // Restore (notify=false) continua podendo reconstruir um perfil salvo.
+        if (notify && owner.IsCompleted) return;
         double adjusted = Math.Min(Maximum, Math.Max(0, progress));
         if (notify && adjusted != value)
             owner.ReportProgressChanged();
