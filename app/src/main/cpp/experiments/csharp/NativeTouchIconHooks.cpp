@@ -216,7 +216,7 @@ void quickDraw(int32_t action, Il2CppObject* layout, uint8_t pressed,
     Il2CppObject* texture = !ignoreIcon && layout && scale
         ? nativeTouchIcon(id, &width, &height) : nullptr;
     if (texture && drawIcon && drawIconMethod) {
-        const int32_t state = !registry().enabled(id) ? 0 : pressed ? 1 : 2;
+        const int32_t state = pressed ? 1 : registry().enabled(id) ? 2 : 0;
         drawIcon(layout, texture, state, scale, drawIconMethod);
         return;
     }
