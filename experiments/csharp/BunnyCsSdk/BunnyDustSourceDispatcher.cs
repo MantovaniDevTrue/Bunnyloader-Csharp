@@ -31,11 +31,31 @@ public static class BunnyDustSourceDispatcher
         string path = assembly.Location;
         foreach (Context context in Contexts)
             if (context.AssemblyPath == path) return context.ModId;
-        throw new InvalidOperationException("BunnyDust assembly has not been registered in MonoVM: " + path);
+        if (BunnyEntitySourceDispatcher.TryRegisterDustAssembly(assembly))
+            foreach (Context context in Contexts)
+                if (context.AssemblyPath == path) return context.ModId;
+        throw new InvalidOperationException("BunnyDust assembly has not been registered in MonoVM: " +
+            path + " RegistrationError=" + LastRegistrationError);
     }
 
     public static int Register(string modId, string assemblyPath)
     {
+        if (string.IsNullOrWhiteSpace(modId) || string.IsNullOrWhiteSpace(assemblyPath))
+            return -1;
+        try
+        {
+            return RegisterLoaded(modId, Assembly.LoadFrom(assemblyPath));
+        }
+        catch (Exception error)
+        {
+            LastRegistrationError = error.GetType().Name + ": " + error.Message;
+            return -1;
+        }
+    }
+
+    internal static int RegisterLoaded(string modId, Assembly assembly)
+    {
+        string assemblyPath = assembly.Location;
         if (string.IsNullOrWhiteSpace(modId) || string.IsNullOrWhiteSpace(assemblyPath))
             return -1;
         for (int i = 0; i < Contexts.Count; i++)
@@ -46,7 +66,6 @@ public static class BunnyDustSourceDispatcher
         try
         {
             var registry = new BunnyDustRegistry(modId);
-            Assembly assembly = Assembly.LoadFrom(assemblyPath);
             foreach (Type type in assembly.GetTypes().OrderBy(type => type.FullName, StringComparer.Ordinal))
             {
                 if (!type.IsClass || type.IsAbstract || type.ContainsGenericParameters ||
