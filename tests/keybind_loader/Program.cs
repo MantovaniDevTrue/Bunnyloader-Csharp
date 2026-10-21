@@ -40,6 +40,10 @@ static class KeybindContract
         Check(dash.Current && dash.JustPressed && !dash.JustReleased && !dash.Old, "first press");
         Check(dash.RetroCurrent && dash.IsBound && dash.GetAssignedKeys().Length == 1, "bound key and retro");
         Check(!second.Current && !second.IsBound, "isolated other mod");
+        BunnyTouchButtonLoader.BeginTriggerFrame();
+        Check(dash.Current && dash.JustPressed && dash.IsBound,
+            "managed trigger fallback retains state before native activation");
+        BunnyTouchButtonLoader.EndTriggerFrame();
 
         Check(BunnyTouchButtonLoader.ApplyHostFrame(1, true, false, false, false,
             Array.Empty<int>(), Array.Empty<int>(), Array.Empty<int>()) == 0, "dedup tick");
@@ -95,6 +99,10 @@ static class KeybindContract
         BunnyTouchButtonLoader.ApplyHostFrame(1, true, false, false, false,
             new[] { second.Id }, Array.Empty<int>(), new[] { second.Id });
         Check(second.JustPressed, "new world with fresh tick epoch");
+        BunnyTouchButtonLoader.BeginTriggerFrame();
+        Check(second.JustPressed && second.Current,
+            "world reset does not suppress the first managed trigger");
+        BunnyTouchButtonLoader.EndTriggerFrame();
 
         BunnyTouchButtonLoader.UnregisterMod("example");
         Check(!BunnyTouchButtonLoader.TryGet("example/Dash", out _), "unloaded mod removed");
@@ -112,14 +120,20 @@ static class KeybindContract
         BunnyTouchButtonLoader.ApplyHostFrame(1, true, false, false, false,
             Array.Empty<int>(), new[] { random!.Id, learning!.Id },
             new[] { random.Id, learning.Id });
+        BunnyTouchButtonLoader.BeginTriggerFrame();
         BunnyTouchEntry.ProcessTriggers();
+        BunnyTouchButtonLoader.EndTriggerFrame();
         Check(BunnyTouchEntry.RandomBuffPresses == 1, "playable ProcessTriggers uses JustPressed");
         BunnyTouchButtonLoader.ApplyHostFrame(2, true, false, false, false,
             Array.Empty<int>(), Array.Empty<int>(), new[] { random.Id, learning.Id });
+        BunnyTouchButtonLoader.BeginTriggerFrame();
         BunnyTouchEntry.ProcessTriggers();
+        BunnyTouchButtonLoader.EndTriggerFrame();
         BunnyTouchButtonLoader.ApplyHostFrame(3, true, false, false, false,
             Array.Empty<int>(), new[] { learning.Id }, new[] { random.Id, learning.Id });
+        BunnyTouchButtonLoader.BeginTriggerFrame();
         BunnyTouchEntry.ProcessTriggers();
+        BunnyTouchButtonLoader.EndTriggerFrame();
         Check(BunnyTouchEntry.DoubleTaps == 1, "playable ProcessTriggers recognizes double tap");
         BunnyTouchButtonLoader.UnregisterMod("examplemodcsharp");
 
