@@ -20,6 +20,8 @@ static class CloudContractTests
     {
         var common = new ExampleCommonCloud();
         var rare = new ExampleAdvancedCloud();
+        common.SetDefaults();
+        rare.SetDefaults();
         common.Validate();
         rare.Validate();
         Require(!common.RareCloud && rare.RareCloud, "Rare versus common");
