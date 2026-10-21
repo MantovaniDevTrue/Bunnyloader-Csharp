@@ -4,6 +4,7 @@
 #include "experiments/csharp/NativeTouchInput.h"
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
+#include <algorithm>
 #include <array>
 #include <cstdint>
 #include <cstring>
@@ -24,7 +25,7 @@ constexpr std::array<Table, 5> tables{{
 }};
 
 bool initialized = false;
-int failures = 0;
+uint64_t pollCounter = 0;
 
 struct Prepared {
     FieldInfo* field = nullptr;
@@ -113,8 +114,9 @@ bool compileArray(Prepared* item, int required, int unbound) {
     Il2CppClass* arrayType = api.object_get_class(
         reinterpret_cast<Il2CppObject*>(source));
     auto* element = api.class_get_element_class(arrayType);
-    auto* resized = api.array_new(element, static_cast<uintptr_t>(required));
-    if (!resized || resized->length != static_cast<uintptr_t>(required))
+    const int targetLength = std::max(required, static_cast<int>(source->length));
+    auto* resized = api.array_new(element, static_cast<uintptr_t>(targetLength));
+    if (!resized || resized->length != static_cast<uintptr_t>(targetLength))
         return false;
     item->root = api.gchandle_new(
         reinterpret_cast<Il2CppObject*>(resized), false);
@@ -137,12 +139,13 @@ void resetNativeTouchStaticMappingSession() {
     // Não limpar arrays vanilla no unload: os layouts do jogo são
     // proprietários deles e podem manter os IDs de mods desativados.
     initialized = false;
-    failures = 0;
+    pollCounter = 0;
 }
 
 bool ensureNativeTouchStaticMappingsOnGameThread() {
     if (!nativeTouchObserverInstalled() || registry().count() == 0) return false;
-    if (++failures > 4 && !initialized) return false;
+    // Uma tentativa por segundo após a primeira; sem varreduras caras por frame.
+    if (++pollCounter != 1 && pollCounter % 60 != 0) return initialized;
     auto& api = il2cpp::api();
     if (!api.field_static_get_value || !api.field_static_set_value ||
         !api.field_get_flags || !api.field_get_type ||
@@ -195,7 +198,6 @@ bool ensureNativeTouchStaticMappingsOnGameThread() {
     }
     release();
     initialized = true;
-    failures = 0;
     return true;
 }
 } // namespace bl::csharp::touch
