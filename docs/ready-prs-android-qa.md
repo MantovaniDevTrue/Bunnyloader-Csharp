@@ -1,6 +1,6 @@
 # Sete PRs integrados — QA experimental Android
 
-Bunny `1.0.6-tooltip-callbacks-qa` (versionCode 305), ExampleMod CSharp `0.1.63`.
+Bunny `1.0.7-tooltip-hook-qa` (versionCode 306), ExampleMod CSharp `0.1.63`.
 Base: `v1.0` em `cfbe784ee3cb`. Branch: `integration/ready-prs-20261020`.
 
 Este APK reúne os PRs #101 (Localization), #102 (Rarity), #114 (AnglerQuest),
@@ -123,3 +123,7 @@ O relatório Android 1.0.4 confirmou `WorldTickSnapshot Ready=1 Mode=0`, `Stage=
 O SDK usa `BunnyItem.ModifyTooltips(List<BunnyTooltipLine>)` e `BunnyItem.PreDrawTooltipLine(BunnyDrawableTooltipLine)`. São callbacks de configuração executados ao compilar os defaults, não hooks gerenciados por quadro. A configuração fica no registro nativo do item, exposta via `bl.csharp.tooltipPlan(type)` ao mesmo `TooltipLoader` de Bunny JS. O próprio renderizador executa a onda e o arco-íris no `SpriteBatch`. Códigos arbitrários de desenho C# em tempo real ainda não são suportados.
 
 Ative **ExampleMod CSharp 0.1.63** e use o `ExampleTooltipItem`, que contém as mesmas três linhas do exemplo JS: `Exemplo de Tooltip`, `Bunny Loader` em arco-íris com onda e a descrição dourada. Conferir também um item vanilla e um item JS, para garantir ausência de alterações indevidas, e observar o FPS. As condições de AnglerQuest agora relatam especificamente qual contrato falhou. Dust e Invasion ainda exigem validação dos callbacks de uso no dispositivo.
+
+## QA 1.0.7: correção da ativação do tooltip C#
+
+O relatório 1.0.6 mostrou o item `Exemplo de Tooltip` renderizado como vanilla, sem a linha `Bunny Loader`. Causa identificada nas fontes: `TooltipLoader.Install` era chamado por callbacks JS de `ModItem`, `GlobalItem` e outros, mas nunca por mods exclusivamente C#. Agora `Exports.js` registra esse hook uma vez pelo mecanismo `Hooks.Once` quando a API `bl.csharp.tooltipPlan` está presente, mantendo a decisão de desenhar somente itens com plano C# e o caminho vanilla para os demais. O log nativo `[CSharp][Tooltip] Stage=PlanStored` confirma a instalação do plano no tipo do item. Verifique o mesmo `ExampleMod CSharp 0.1.63` e reporte se as três linhas (nome, arco-íris ondulado, descrição dourada) aparecem sem alterar itens vanilla. O áudio validado não foi modificado.

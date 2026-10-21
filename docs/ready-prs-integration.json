@@ -2,10 +2,10 @@
   "schema": 1,
   "base": "cfbe784ee3cb",
   "branch": "integration/ready-prs-source-fixes-20261020",
-  "apkVersion": "1.0.6-tooltip-callbacks-qa",
+  "apkVersion": "1.0.7-tooltip-hook-qa",
   "exampleVersion": "0.1.63",
   "experimental": true,
-  "androidValidation": "Pending Android QA on 1.0.6 for tooltip drawing, Dust, Invasion and AnglerQuest",
+  "androidValidation": "Pending manual Android QA for JS tooltip hook activated by CSharp callbacks; previous QA 1.0.6 displayed vanilla tooltip",
   "selectedPullRequests": [
     {
       "number": 101,
@@ -94,7 +94,9 @@
     "Independent safe native item-use context flags: support Main.gameMenu property and Single/Double worldSurface without dropping PlayerAlive and WorldReady",
     "Confirm first native item event consumption by MonoVM and first Dust emission acceptance/rejection with bounded game logs",
     "Bounded hovered tooltip text tint after title match using the existing verified SpriteBatch.DrawString hook; preserve all unrelated UI",
-    "BunnyItem virtual ModifyTooltips(List<BunnyTooltipLine>) and PreDrawTooltipLine(BunnyDrawableTooltipLine) compile validated line plans, later rendered through the original Bunny JS TooltipLoader with no per-frame MonoVM"
+    "BunnyItem virtual ModifyTooltips(List<BunnyTooltipLine>) and PreDrawTooltipLine(BunnyDrawableTooltipLine) compile validated line plans, later rendered through the original Bunny JS TooltipLoader with no per-frame MonoVM",
+    "Install existing TooltipLoader JS hook even without a JS ModItem overriding tooltip callbacks; native managed plan stays cached and only matching CSharp item uses custom drawing",
+    "Log first native tooltip plan registration as Stage=PlanStored for precise on-device diagnosis"
   ],
   "manualInstructions": "docs/ready-prs-android-qa.md"
 }
