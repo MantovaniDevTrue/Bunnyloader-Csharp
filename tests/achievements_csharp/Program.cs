@@ -68,6 +68,19 @@ duplicate.Load(save);
 var duoRestored = duplicate.Register("multi", new TwoConditions());
 Check(duoRestored.IsCompleted && duoRestored.CompletedCalls == 0, "restore does not display unlock twice");
 
+var flags = new BunnyAchievementRegistry();
+var flag = flags.Register("flagtest", new FlagCondition());
+Check(flag.Conditions[0].Kind == BunnyAchievementConditionKind.Flag &&
+    flag.Conditions[0].Maximum == 1,
+    "manual flag retains original CustomFlagCondition kind");
+flag.Activate();
+Check(flag.IsCompleted && flag.Conditions[0].Value == 1,
+    "manual flag completes on first activation");
+long flagRevision = flags.ProgressChanges;
+flag.Activate();
+Check(flags.ProgressChanges == flagRevision,
+    "completed flag remains immutable without spurious progress events");
+
 var typed = new BunnyAchievementRegistry();
 var typedEntry = typed.Register("conditions", new TwoConditions());
 Check(typedEntry.Conditions.Count == 2 &&
@@ -268,6 +281,17 @@ sealed class TwoConditions : BunnyAchievement
     }
 
     public override void OnCompleted() => CompletedCalls++;
+}
+
+sealed class FlagCondition : BunnyAchievement
+{
+    public override void SetStaticDefaults()
+    {
+        Texture = "Content/Achievements/Flag.png";
+        AddCondition("ManualFlag");
+    }
+
+    public void Activate() => Conditions[0].Complete();
 }
 
 sealed class FloatCondition : BunnyAchievement
