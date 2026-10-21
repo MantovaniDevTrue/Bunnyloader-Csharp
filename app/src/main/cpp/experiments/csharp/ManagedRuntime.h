@@ -58,6 +58,7 @@ bool takeManagedCloudWeights(const std::string& modId,
 bool queueManagedCloudOnSpawn(const std::string& modId, int type, int slot,
     uint32_t generation, float scale, int spriteDir);
 bool takeManagedCloudOnSpawnReply(ManagedCloudSpawnReply* reply);
+void resetManagedCloudWorldSession();
 void pauseManagedCloudCallbacks();
 
 
