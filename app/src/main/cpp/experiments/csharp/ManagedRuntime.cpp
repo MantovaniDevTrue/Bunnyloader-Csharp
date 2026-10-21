@@ -339,6 +339,7 @@ std::set<std::string> g_cloudWeightsPending;
 std::deque<ManagedCloudSpawnReply> g_cloudSpawnReplies;
 uint64_t g_cloudSession = 1;
 bool g_cloudClearPending = false;
+bool g_cloudDispatcherHealthy = true;
 void* g_cloudRegisterMethod = nullptr;
 void* g_cloudBindMethod = nullptr;
 void* g_cloudWeightsMethod = nullptr;
@@ -2056,10 +2057,61 @@ void* pinnedMonoWorker(void*) {
                     }
                     continue;
                 }
+                // Cloud work has a bounded FIFO. By this point urgent
+                // hurt, recipe and entity jobs have already been serviced.
+                // Never hold g_pinnedMutex while invoking Mono methods.
+                if (g_cloudClearPending) {
+                    g_cloudClearPending = false;
+                    CloudWorkerJob reset{};
+                    reset.kind = 3;
+                    lock.unlock();
+                    const bool cleared =
+                        executeManagedCloudOnWorker(reset, nullptr, nullptr);
+                    lock.lock();
+                    g_cloudDispatcherHealthy = cleared;
+                    continue;
+                }
+                if (!g_cloudQueue.empty()) {
+                    CloudWorkerJob job = std::move(g_cloudQueue.front());
+                    g_cloudQueue.pop_front();
+                    const std::string mod = job.binding >= 0 &&
+                        static_cast<size_t>(job.binding) < g_cloudBindings.size()
+                        ? g_cloudBindings[static_cast<size_t>(job.binding)].modId
+                        : std::string{};
+                    const bool backendReady = g_cloudDispatcherHealthy;
+                    lock.unlock();
+                    std::string wire;
+                    int spriteDir = -1;
+                    const bool ok = backendReady &&
+                        executeManagedCloudOnWorker(job, &wire, &spriteDir);
+                    lock.lock();
+                    if (job.session != g_cloudSession || job.binding < 0 ||
+                        static_cast<size_t>(job.binding) >= g_cloudBindings.size() ||
+                        g_cloudBindings[static_cast<size_t>(job.binding)].modId != mod)
+                        continue;
+                    CloudWorkerBinding& binding =
+                        g_cloudBindings[static_cast<size_t>(job.binding)];
+                    if (job.kind == 0) {
+                        binding.ready = ok;
+                        binding.failed = !ok;
+                    } else if (job.kind == 1) {
+                        g_cloudWeightsPending.erase(mod);
+                        if (ok && binding.ready)
+                            g_cloudWeightReplies[mod] = std::move(wire);
+                    } else if (job.kind == 2 && ok && binding.ready &&
+                               g_cloudSpawnReplies.size() < 128) {
+                        g_cloudSpawnReplies.push_back({
+                            job.type, job.slot, job.cloudGeneration,
+                            job.scale, job.spriteDir, spriteDir
+                        });
+                    }
+                    continue;
+                }
                 if (!g_auditEnabled) {
                     if (g_universalPolling.load(std::memory_order_acquire) ||
                         g_liveHitStatus.enabled || g_liveIngress.depth() != 0 ||
-                        !g_managedHurtQueue.empty() || !g_entityQueue.empty())
+                        !g_managedHurtQueue.empty() || !g_entityQueue.empty() ||
+                        !g_cloudQueue.empty() || g_cloudClearPending)
                         g_pinnedWake.wait_for(lock, std::chrono::milliseconds(2));
                     else
                         g_pinnedWake.wait(lock);
@@ -2073,7 +2125,8 @@ void* pinnedMonoWorker(void*) {
                 if (g_pinnedWake.wait_until(lock, deadline, [] {
                     return g_pinnedPending || g_vmComparePending ||
                         !g_liveHitQueue.empty() || g_liveIngress.depth() != 0 ||
-                        !g_entityQueue.empty() || !g_recipeRpcQueue.empty();
+                        !g_entityQueue.empty() || !g_recipeRpcQueue.empty() ||
+                        !g_cloudQueue.empty() || g_cloudClearPending;
                 }))
                     continue;
                 if (std::chrono::steady_clock::now() < until) continue;
