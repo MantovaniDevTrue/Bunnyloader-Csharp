@@ -13,5 +13,8 @@ int nativeTouchActionOf(int id);
 int nativeTouchControlOf(int id);
 int nativeTouchQuickOf(int id);
 int nativeTouchIndexByAction(int raw);
+int nativeTouchIndexByQuick(int raw);
+int nativeTouchActionUnbound();
+int nativeTouchQuickUnbound();
 
 } // namespace bl::csharp::touch
