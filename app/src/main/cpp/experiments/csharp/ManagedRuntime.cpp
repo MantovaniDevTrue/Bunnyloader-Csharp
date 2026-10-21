@@ -1545,7 +1545,12 @@ bool executeManagedCloudOnWorker(const CloudWorkerJob& job,
         !g_api.unbox || !g_api.newString) return false;
     if (!g_api.attach(g_domain)) return false;
 
-    if (!g_cloudRegisterMethod) {
+    if (!g_cloudRegisterMethod || !g_cloudBindMethod ||
+        !g_cloudWeightsMethod || !g_cloudSpawnMethod ||
+        !g_cloudUnregisterMethod || !g_cloudClearMethod ||
+        !g_biomeRegisterMethod || !g_biomeTilesMethod ||
+        !g_biomeEvaluateMethod || !g_biomeUnregisterMethod ||
+        !g_biomeClearMethod) {
         const size_t slash = g_checkpointPath.find_last_of('/');
         if (slash == std::string::npos) return false;
         const std::string sdk =
