@@ -12,6 +12,8 @@ on:
       - "Split/Bunny-Loader/app/src/main/cpp/content/tiles/ModTileSave.cpp"
       - "Split/Bunny-Loader/experiments/csharp/BunnyCsSdk/BunnyWorldMonoHost.cs"
       - "Split/Bunny-Loader/experiments/csharp/BunnyCsSdk/BunnyWorldNetworkCodec.cs"
+      - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeWorldNetwork.cpp"
+      - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeWorldNetwork.h"
       - "Split/Bunny-Loader/experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj"
       - "Split/Bunny-Loader/tests/world_save/**"
       - ".github/workflows/check-csharp-worldsave-source.yml"
@@ -97,6 +99,19 @@ jobs:
             Split/Bunny-Loader/tests/world_save/native_world_coordinator_test.cpp \
             -o /tmp/native_world_coordinator_test
           ASAN_OPTIONS=detect_leaks=1 /tmp/native_world_coordinator_test /tmp/bunny_worldsave_interop.bwc
+      - name: Generate native BWN1 fixture from the managed SDK
+        run: dotnet run --project Split/Bunny-Loader/tests/world_save/BunnyWorldData.Smoke.csproj -c Release -- --emit-network-fixture /tmp/bunny_worldnet_interop.bwn
+      - name: Native BWN1 wire validator and MonoVM transport simulation
+        run: |
+          g++ -std=c++20 -O1 -g -Wall -Wextra -Werror -pedantic -pthread \
+            -fsanitize=address,undefined -fno-omit-frame-pointer \
+            -I Split/Bunny-Loader/app/src/main/cpp \
+            Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeWorldNetwork.cpp \
+            Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeWorldCoordinator.cpp \
+            Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeWorldStore.cpp \
+            Split/Bunny-Loader/tests/world_save/native_world_network_test.cpp \
+            -o /tmp/native_world_network_test
+          ASAN_OPTIONS=detect_leaks=1 /tmp/native_world_network_test /tmp/bunny_worldnet_interop.bwn
       - name: Native MonoVM runtime syntax compilation (no Android package)
         run: |
           g++ -std=c++20 -Wall -Wextra -Werror -fsyntax-only \

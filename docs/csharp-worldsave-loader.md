@@ -78,6 +78,10 @@ A saída via WorldGen.SaveAndQuitCallBack(object) também chama OnWorldUnload no
 
 BunnyWorldSystem agora inclui NetSend(BinaryWriter) e NetReceive(BinaryReader), usando apenas System.IO do C# nativo. ExampleDownedBossWorldSystem demonstra a flag de progresso enviada pelo servidor e lida pelo cliente, como o ExampleModBunny. BunnyWorldNetworkCodec serializa o envelope BWN1 com revisão, UUID/classe, payload por sistema, limite de 60000 bytes e checksum CRC32. Valida integralmente antes de entregar bytes aos callbacks. Os testes .NET exercitam roundtrip, corrupção, truncamento e pacote excedente. **Ainda não há transporte de rede instalado no Terraria**; não anunciar multiplayer como pronto.
 
+## Etapa 14 — transporte nativo BWN1 isolado
+
+`NativeWorldNetwork` valida integralmente o envelope BWN1 antes de entregá-lo ao MonoVM (magic, versão, contador, ordenação, UUID, nomes, tamanho por sistema, CRC32). Usa `MonoWorldAction::NetSend/NetReceive` na thread dedicada, limita o payload a 60 KB e reserva o id de módulo 0xB17F, distinto do módulo JavaScript 0xB17E. A fixture binária vem da implementação C# real, e o teste C++ compara byte-a-byte e verifica corrupções. Este componente **não instala sozinho NetManager.Read / SendData**; esses hooks dependem da ABI IL2CPP nativa e devem ser checados antes de qualquer envio de jogo.
+
 ## Requisitos ainda bloqueantes
 
 1. Host nativo C++ deve capturar a identidade real do arquivo de mundo após a seleção; não confiar em nome de mundo ou caminho informado por um mod.
