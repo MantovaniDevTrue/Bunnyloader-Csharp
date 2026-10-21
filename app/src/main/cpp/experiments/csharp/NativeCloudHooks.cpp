@@ -2,12 +2,19 @@
 
 #include "experiments/csharp/NativeCloudAssets.h"
 #include "experiments/csharp/NativeCloudHookBindings.h"
+#include "experiments/csharp/NativeCloudWeightWire.h"
+#include "experiments/csharp/ManagedRuntime.h"
 #include "hook/HookManager.h"
 #include "il2cpp/Api.h"
 
+#include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <cstdint>
+#include <map>
+#include <set>
+#include <string>
+#include <vector>
 #include <thread>
 
 namespace bl::csharp {
@@ -26,6 +33,13 @@ RollRareFn g_originalRare = nullptr;
 std::thread::id g_gameThread;
 bool g_enabled = false;
 bool g_insideAdd = false;
+std::map<std::string, std::vector<int>> g_managedCloudTypes;
+std::set<std::string> g_pendingWeightMods;
+std::vector<NativeCloudWeight> g_stagedWeights;
+bool g_collectingWeights = false;
+int g_weightAge = 0;
+int g_weightRetryCooldown = 0;
+
 
 // Cheap native PRNG. Each roll consumes one 53-bit fraction in [0,1).
 // This never calls MonoVM, JNI or JS from Terraria's Cloud.addCloud hook.
@@ -145,10 +159,15 @@ void hkAddCloud(const MethodInfo* method) {
             static_cast<int32_t>(entry->height * scale);
     }
 
-    const int sprite = field<int32_t>(cloud, g_fields.spriteEffects);
-    // If the queue is full, preserve default visuals instead of blocking the
-    // frame to wait for the MonoVM callback worker.
-    g_spawn.push(spawned.type, spawned.slot, scale, sprite);
+    // Texture-only clouds do not declare OnSpawn, so they do not need
+    // MonoVM jobs. Avoid even the queue write for those clouds.
+    const auto owner = g_managedCloudTypes.find(entry->modId);
+    if (owner != g_managedCloudTypes.end() &&
+        std::find(owner->second.begin(), owner->second.end(), spawned.type)
+            != owner->second.end()) {
+        const int sprite = field<int32_t>(cloud, g_fields.spriteEffects);
+        g_spawn.push(spawned.type, spawned.slot, scale, sprite);
+    }
 }
 
 bool fail(std::string* error, const char* detail) {
@@ -158,8 +177,10 @@ bool fail(std::string* error, const char* detail) {
 
 } // namespace
 
-bool installNativeCloudHooks(const NativeCloudRegistry* registry,
-                             bool monoWorkerConfirmed, std::string* error) {
+bool installNativeCloudHooks(
+    const NativeCloudRegistry* registry,
+    const std::map<std::string, std::vector<int>>& managedCloudIds,
+    bool monoWorkerConfirmed, std::string* error) {
     if (error) error->clear();
     if (!registry || registry->count() == 0 || !monoWorkerConfirmed ||
         !nativeCloudAssetsInstalled())
@@ -171,6 +192,19 @@ bool installNativeCloudHooks(const NativeCloudRegistry* registry,
         if (!cloudIsValid(registry->find(type)))
             return fail(error, "Stage=Install Reason=CloudEntryNotDrawable");
 
+    // Reject an incomplete C# registration map before touching any hook.
+    // Texture-only IDs must NOT be included in the managed ID set.
+    std::set<int> seen;
+    for (const auto& [mod, ids] : managedCloudIds) {
+        if (ids.empty()) return fail(error, "Stage=Install Reason=EmptyManagedCloudOwner");
+        if (!managedCloudRegistrationReady(mod))
+            return fail(error, "Stage=Install Reason=MonoCloudClassNotBound");
+        for (int type : ids) {
+            const auto* entry = registry->find(type);
+            if (!entry || entry->modId != mod || !seen.insert(type).second)
+                return fail(error, "Stage=Install Reason=CloudIdOwnerMismatch");
+        }
+    }
     NativeCloudHookBindings bindings{};
     if (!resolveNativeCloudHookBindings(&bindings, error)) return false;
     if (!g_originalRare &&
@@ -183,6 +217,12 @@ bool installNativeCloudHooks(const NativeCloudRegistry* registry,
     // A partial hook installation is safe because the callbacks above
     // always delegate to vanilla while g_enabled is false.
     g_registry = registry;
+    g_managedCloudTypes = managedCloudIds;
+    g_pendingWeightMods.clear();
+    g_stagedWeights.clear();
+    g_collectingWeights = false;
+    g_weightAge = 0;
+    g_weightRetryCooldown = 0;
     g_fields = bindings;
     g_gameThread = std::this_thread::get_id();
     g_insideAdd = false;
@@ -214,7 +254,10 @@ bool applyNativeCloudSpriteResultOnGameThread(
     const bool active = field<uint8_t>(cloud, g_fields.active) != 0;
     const int type = field<int32_t>(cloud, g_fields.type);
     const float scale = field<float>(cloud, g_fields.scale);
-    if (!g_spawn.stillCurrent(event, active, type, scale, spriteDir))
+    // A mod's OnSpawn response must not overwrite a newer game-owned
+    // sprite direction, even when type and scale still match.
+    if (field<int32_t>(cloud, g_fields.spriteEffects) != event.spriteEffects ||
+        !g_spawn.stillCurrent(event, active, type, scale, spriteDir))
         return false;
     // The original ExampleAdvancedCloud.OnSpawn writes cloud.spriteDir.
     field<int32_t>(cloud, g_fields.spriteEffects) = spriteDir;
@@ -225,6 +268,12 @@ void pauseNativeCloudHooks() {
     g_enabled = false;
     g_insideAdd = false;
     g_registry = nullptr;
+    g_managedCloudTypes.clear();
+    g_pendingWeightMods.clear();
+    g_stagedWeights.clear();
+    g_collectingWeights = false;
+    g_weightAge = 0;
+    g_weightRetryCooldown = 0;
     g_roll.clear();
     g_spawn.clear();
 }
