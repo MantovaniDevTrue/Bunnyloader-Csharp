@@ -22,6 +22,22 @@ static class InvasionDispatcherTest
             Check(modSlot >= 0, "assembly registered");
             Check(BunnyEntitySourceDispatcher.Bind(modSlot, 0, npcType,
                 nameof(ExampleSlimeNPC)), "NPC bound");
+            var beacon = new ExampleInvasionBeacon();
+            Check(!beacon.OnUse(0, new BunnyUseContext(62)) &&
+                beacon.OnUseRejectionReason(0, new BunnyUseContext(62)) == "Nighttime",
+                "nighttime prevents start with explicit reason");
+            Check(!beacon.OnUse(0, new BunnyUseContext(61)) &&
+                beacon.OnUseRejectionReason(0, new BunnyUseContext(61)) == "NotAtSurface",
+                "underground prevents start");
+            Check(!beacon.OnUse(0, new BunnyUseContext(59)) &&
+                beacon.OnUseRejectionReason(0, new BunnyUseContext(59)) == "VanillaInvasionActive",
+                "vanilla invasion prevents start");
+            Check(beacon.OnUse(0, new BunnyUseContext(63)),
+                "valid daytime surface use starts invasion");
+            Check(!beacon.OnUse(0, new BunnyUseContext(63)) &&
+                beacon.OnUseRejectionReason(0, new BunnyUseContext(63)) == "AlreadyRunning",
+                "duplicate use refuses without resetting progress");
+            ExampleInvasion.WorldExit();
             Check(ExampleInvasion.Start(true), "invasion started");
 
             Check(ExampleInvasion.TrySpawn(true, 0, out var requested),

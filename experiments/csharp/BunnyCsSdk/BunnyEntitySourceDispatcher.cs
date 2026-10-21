@@ -250,6 +250,12 @@ public static class BunnyEntitySourceDispatcher
                         bool applied = pair.Value.OnUse(usingPlayer, useContext);
                         context.LastUse = pair.Key + " Flags=" + useContext.Flags +
                             " Applied=" + (applied ? "1" : "0");
+                        if (!applied)
+                        {
+                            string reason = pair.Value.OnUseRejectionReason(usingPlayer, useContext);
+                            if (!string.IsNullOrWhiteSpace(reason))
+                                context.LastUse += " Reason=" + reason;
+                        }
                     }
                     catch (Exception error)
                     {

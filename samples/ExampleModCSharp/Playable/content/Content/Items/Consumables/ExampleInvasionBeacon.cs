@@ -26,6 +26,15 @@ public sealed class ExampleInvasionBeacon : BunnyItem
     public override bool OnUse(int playerIndex, BunnyUseContext context) =>
         context.CanStartSurfaceInvasion && ExampleInvasion.Start(true);
 
+    public override string OnUseRejectionReason(int playerIndex, BunnyUseContext context) =>
+        !context.Daytime ? "Nighttime" :
+        !context.OnSurface ? "NotAtSurface" :
+        !context.NoVanillaInvasion ? "VanillaInvasionActive" :
+        !context.PlayerAlive ? "PlayerDead" :
+        !context.WorldReady ? "WorldNotReady" :
+        ExampleInvasion.Controller.Phase == BunnyInvasionPhase.Running ?
+            "AlreadyRunning" : "StartRejected";
+
     public override void AddRecipes()
     {
         CreateRecipe()
