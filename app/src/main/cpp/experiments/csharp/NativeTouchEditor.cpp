@@ -101,7 +101,8 @@ bool nativeTouchEditorLabelsInstalled() {
 void pumpNativeTouchEditorLabelsOnGameThread() {
     if (attempted || nativeTouchEditorLabelsInstalled() ||
         !nativeTouchObserverInstalled() || registry().count() == 0) return;
-    attempted = true;
+    static uint32_t probes = 0;
+    if (++probes != 1 && probes % 120 != 0) return;
     auto& api = il2cpp::api();
     if (!api.string_new || !api.gchandle_new || !api.gchandle_free ||
         !api.gchandle_get_target) return;
@@ -111,6 +112,7 @@ void pumpNativeTouchEditorLabelsOnGameThread() {
             "string GetControlName(VirtualControlsHardwareConfigurationMapping_Layout.ContolType control)"))
         : nullptr;
     if (!validSignature(method)) return;
+    attempted = true;
     if (!bl::hook::install(method, onGetControlName, &originalName) ||
         !originalName) return;
     installed.store(true, std::memory_order_release);
