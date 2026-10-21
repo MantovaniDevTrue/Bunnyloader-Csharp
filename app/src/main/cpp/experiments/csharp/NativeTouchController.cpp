@@ -18,8 +18,9 @@ std::atomic<bool> installed{false};
 bool attempted = false;
 
 struct RuntimeFields {
-    size_t pressed = 0;
+    std::array<size_t, 3> offsets{};
     FieldInfo* gameMenu = nullptr;
+    Il2CppClass* controller = nullptr;
     int controlBase = -1;
 };
 RuntimeFields refs;
@@ -64,13 +65,62 @@ bool menuField(FieldInfo** output) {
     return valid;
 }
 
+// Cresce os três arrays em conjunto, sem apagar os estados vanilla.
+// Nunca grava um array novo sem a barreira do GC incremental do IL2CPP.
+// Só é chamado na thread do jogo, quando existem ações C# nativas.
+bool ensureControllerArrays(void* self) {
+    auto& api = il2cpp::api();
+    if (!api.array_new || !api.object_get_class ||
+        !api.class_get_element_class || !api.gc_wbarrier_set_field ||
+        !api.class_is_assignable_from || !refs.controller ||
+        !api.class_is_assignable_from(refs.controller,
+            api.object_get_class(reinterpret_cast<Il2CppObject*>(self))))
+        return false;
+
+    const int required = refs.controlBase + kMaxButtons;
+    if (required <= 0 || required > 512) return false;
+    std::array<Il2CppArray*, 3> arrays{};
+    std::array<Il2CppArray*, 3> next{};
+    constexpr std::array<size_t, 3> widths{1, 1, 4};
+    constexpr std::array<const char*, 3> typeNames{"Boolean", "Boolean", "Single"};
+
+    for (size_t i = 0; i < arrays.size(); ++i) {
+        std::memcpy(&arrays[i], static_cast<const char*>(self) + refs.offsets[i],
+                    sizeof(Il2CppArray*));
+        if (!arrays[i] || arrays[i]->length > 4096) return false;
+        Il2CppClass* arrayType =
+            api.object_get_class(reinterpret_cast<Il2CppObject*>(arrays[i]));
+        Il2CppClass* element = arrayType ?
+            api.class_get_element_class(arrayType) : nullptr;
+        if (!element || !api.class_get_name(element) ||
+            std::strcmp(api.class_get_name(element), typeNames[i]) != 0)
+            return false;
+        if (arrays[i]->length >= static_cast<uintptr_t>(required)) continue;
+        next[i] = api.array_new(element, static_cast<uintptr_t>(required));
+        if (!next[i] || next[i]->length != static_cast<uintptr_t>(required))
+            return false;
+        std::memcpy(arrayData(next[i]), arrayData(arrays[i]),
+                    static_cast<size_t>(arrays[i]->length) * widths[i]);
+    }
+    for (size_t i = 0; i < next.size(); ++i) {
+        if (!next[i]) continue;
+        auto* destination = reinterpret_cast<void**>(
+            static_cast<char*>(self) + refs.offsets[i]);
+        api.gc_wbarrier_set_field(reinterpret_cast<Il2CppObject*>(self),
+                                 destination, next[i]);
+    }
+    return true;
+}
+
 // O método possui apenas (float), cuja ABI AArch64 é estável. Nunca
 // chamamos a assinatura HandleTouchCursorDown sem confirmar seu Vector2.
 void onControllerUpdate(void* self, float elapsedTime, const MethodInfo* method) {
     UpdateFn original = __atomic_load_n(&originalUpdate, __ATOMIC_ACQUIRE);
+    const bool observe = self && installed.load(std::memory_order_acquire) &&
+                         registry().count() > 0;
+    const bool arraysReady = observe && ensureControllerArrays(self);
     if (original) original(self, elapsedTime, method);
-    if (!self || !installed.load(std::memory_order_acquire) ||
-        registry().count() == 0) return;
+    if (!arraysReady) return;
 
     auto& api = il2cpp::api();
     bool menu = true;
@@ -81,7 +131,7 @@ void onControllerUpdate(void* self, float elapsedTime, const MethodInfo* method)
         return;
     }
     Il2CppArray* pressed = nullptr;
-    std::memcpy(&pressed, static_cast<const char*>(self) + refs.pressed,
+    std::memcpy(&pressed, static_cast<const char*>(self) + refs.offsets[0],
                 sizeof(pressed));
     if (!pressed || pressed->length > 2048) return;
 
@@ -120,13 +170,18 @@ void pumpNativeTouchObserverOnGameThread() {
     Il2CppClass* controller = il2cpp::findClassQuiet("", "GUIVirtualInputController");
     const auto* update = controller ? il2cpp::findMethodBySignature(
         controller, il2cpp::parseSignature("void Update(float elapsedTime)")) : nullptr;
-    FieldInfo* pressed = controller ? il2cpp::findField(controller, "Pressed") : nullptr;
-    if (!update || !pressed || !menuField(&refs.gameMenu) ||
+    if (!update || !menuField(&refs.gameMenu) ||
         !enumCount(controller, "ControlType", &refs.controlBase)) return;
-    const size_t offset = api.field_get_offset(pressed);
-    if (offset < sizeof(Il2CppObject) ||
-        offset + sizeof(void*) > api.class_instance_size(controller)) return;
-    refs.pressed = offset;
+    constexpr std::array<const char*, 3> fields{"Pressed", "WasPressed", "Scale"};
+    for (size_t i = 0; i < fields.size(); ++i) {
+        FieldInfo* field = controller ? il2cpp::findField(controller, fields[i]) : nullptr;
+        if (!field) return;
+        const size_t offset = api.field_get_offset(field);
+        if (offset < sizeof(Il2CppObject) ||
+            offset + sizeof(void*) > api.class_instance_size(controller)) return;
+        refs.offsets[i] = offset;
+    }
+    refs.controller = controller;
     if (!bl::hook::install(update, onControllerUpdate, &originalUpdate) ||
         !originalUpdate) return;
     installed.store(true, std::memory_order_release);
