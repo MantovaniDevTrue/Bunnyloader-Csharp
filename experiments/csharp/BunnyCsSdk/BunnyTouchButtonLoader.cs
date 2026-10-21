@@ -122,7 +122,14 @@ public static class BunnyTouchButtonLoader
             }
             Entries.Add(entry);
             ByName.Add(key, entry);
-            if (!nativeBound) nativeStagePending = true;
+            if (!nativeBound)
+            {
+                nativeStagePending = true;
+                // Quem registra uma ação não precisa conhecer o ciclo de vida
+                // da ponte: prepara o ID nativo, mas mantém gameplay bloqueado
+                // enquanto os hooks ainda não estiverem completos.
+                TryBindNativeHost();
+            }
             return button;
         }
     }
@@ -173,6 +180,8 @@ public static class BunnyTouchButtonLoader
         {
             if (id < 0 || id >= Entries.Count || Entries[id] is not { } entry)
                 return default;
+            if (!nativeBound && entry.NativeId >= 0)
+                TryBindNativeHost();
             return nativeBound && entry.NativeId >= 0
                 ? BunnyTouchNativeHost.Read(entry.NativeId) : entry.State;
         }
