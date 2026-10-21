@@ -901,7 +901,7 @@ void run() {
             std::string manifest;
             if (!invokeManagedAchievementControl(mod.id, assembly, 0, "",
                                                  &manifest, 15000) ||
-                !manifest.starts_with("BACH_META_V1\n")) {
+                !manifest.starts_with("BACH_META_V2\n")) {
                 note(&status, "failed", "AchievementLoader: Bind C# falhou: " +
                      manifest.substr(0, 200));
                 continue;
