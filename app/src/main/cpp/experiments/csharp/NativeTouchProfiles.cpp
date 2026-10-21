@@ -183,6 +183,14 @@ const void* nativeTouchActiveProfileIdentity() {
     return activeProfile();
 }
 
+int nativeTouchActiveSlotCount() {
+    Il2CppObject* profile = activeProfile();
+    Il2CppArray* controls = nullptr;
+    if (!profile || !objectArray(profile, "Controls", &controls))
+        return -1;
+    return static_cast<int>(controls->length);
+}
+
 bool nativeTouchSlot(int slot, SlotAction* result) {
     if (!result || slot < 0 || slot >= 256) return false;
     Il2CppObject* profile = activeProfile();
