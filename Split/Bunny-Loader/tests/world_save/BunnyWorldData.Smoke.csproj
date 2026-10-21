@@ -8,9 +8,7 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="../../experiments/csharp/BunnyCsSdk/BunnyWorldData.cs" Link="BunnyWorldData.cs" />
-    <Compile Include="../../experiments/csharp/BunnyCsSdk/BunnyWorldDispatcher.cs" Link="BunnyWorldDispatcher.cs" />
-    <Compile Include="../../experiments/csharp/BunnyCsSdk/BunnyWorldMonoHost.cs" Link="BunnyWorldMonoHost.cs" />
+    <ProjectReference Include="../../experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj" />
     <Compile Include="../../samples/ExampleModCSharp/Examples/Systems/ExampleDownedBossWorldSystem.cs" Link="ExampleDownedBossWorldSystem.cs" />
   </ItemGroup>
 </Project>
