@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.Text;
 using System.Linq;
 using System.Reflection;
 
@@ -107,6 +109,64 @@ public static class BunnyCloudDispatcher
     /// instalados e validados. Não reutilizar IDs de outro mod nem reatribuir
     /// o mesmo ID para outra classe.
     /// </summary>
+    /// <summary>
+    /// MonoVM recebe somente o caminho do DLL compilado pelo Roslyn. Ele
+    /// executa Assembly.LoadFrom no próprio worker; a thread do Terraria
+    /// nunca precisa criar objetos do assembly gerenciado.
+    /// </summary>
+    public static bool RegisterFromPath(string modId, string assemblyPath)
+    {
+        if (string.IsNullOrWhiteSpace(assemblyPath) ||
+            assemblyPath.Length > 2048) return Fail("Caminho do assembly inválido");
+        try { return Register(modId, Assembly.LoadFrom(assemblyPath)); }
+        catch (Exception ex) { return Fail(ex.GetType().Name + ": " + ex.Message); }
+    }
+
+    /// <summary>
+    /// Resposta simples ao host nativo no período de refresh. Zero desliga
+    /// a nuvem; as entradas são ordenadas por ID e produzidas fora do frame.
+    /// Não retornar JSON ou nomes traduzidos em cada tentativa de spawn.
+    /// </summary>
+    public static string WeightsWire(string modId, bool gameMenu,
+        bool tenthAnniversary, string activeBiomes)
+    {
+        if (!Mods.TryGetValue(modId, out Context? context) ||
+            activeBiomes is null || activeBiomes.Length > 4096)
+            return "";
+        try
+        {
+            string[] biomeKeys = activeBiomes.Length == 0 ? Array.Empty<string>() :
+                activeBiomes.Split(';', StringSplitOptions.RemoveEmptyEntries |
+                    StringSplitOptions.TrimEntries);
+            if (biomeKeys.Length > 32) return "";
+            BunnyCloudEnvironment environment = new(gameMenu,
+                tenthAnniversary, biomeKeys);
+            var rows = new StringBuilder("BUNNY_CLOUD_WEIGHTS_V1\n");
+            foreach (var pair in context.Bound.OrderBy(p => p.Key))
+            {
+                float weight = SpawnChance(modId, pair.Key, environment);
+                rows.Append(pair.Key.ToString(CultureInfo.InvariantCulture))
+                    .Append('\t')
+                    .Append(weight.ToString("R", CultureInfo.InvariantCulture))
+                    .Append('\n');
+            }
+            return rows.ToString();
+        }
+        catch (Exception) { return ""; }
+    }
+
+    /// <summary>
+    /// O worker retorna somente o valor de SpriteEffects. O hook nativo
+    /// confere slot, tipo, escala e geração na thread do jogo antes de gravar
+    /// cloud.spriteDir. -1 indica falha ou nuvem desregistrada.
+    /// </summary>
+    public static int OnSpawnWire(string modId, int nativeType, int slot,
+        float scale, int spriteEffects)
+    {
+        return TryOnSpawn(modId, nativeType, slot, scale,
+            spriteEffects, out int result) ? result : -1;
+    }
+
     public static bool Bind(string modId, string className, int nativeType)
     {
         if (nativeType < 0 || !Mods.TryGetValue(modId, out Context? context) ||
