@@ -46,7 +46,7 @@ int main(int argc, char** argv) {
             return 1;
         }
     }
-    assert(types.size() == 72);
+    assert(types.size() == 71);
     assert(mod.dusts == 1);
     assert(mod.walls == 1);
     assert(mod.rarities == 2);
