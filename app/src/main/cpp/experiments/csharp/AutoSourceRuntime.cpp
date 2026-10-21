@@ -1446,11 +1446,15 @@ void noteAutoGameUpdate() {
         if (++invasionFrames % 30 == 0 && managedEntitySourceModsRegistered()) {
             const TerrariaSnapshot snapshot = captureTerrariaSnapshot(false, false);
             const int mode = bl::runtime::netMode();
+            if (invasionFrames == 30)
+                BL_INFO("[CSharp][ItemUse] Stage=WorldTickSnapshot Ready=%d Player=%d Life=%d Mode=%d Result=%s",
+                    snapshot.ready ? 1 : 0, snapshot.player.index, snapshot.player.life,
+                    mode, snapshot.ready && snapshot.player.life > 0 ? "Snapshot" : "NativePlayerFallback");
             if (snapshot.ready && snapshot.player.life > 0 &&
                 snapshot.player.index >= 0 && snapshot.player.index < 255) {
                 scheduleManagedInvasionWorldTicks(worldSession, mode,
                     snapshot.player.index, snapshot.player.x, snapshot.player.y);
-            } else if (mode == 2 && runtime::resolveGameRefs()) {
+            } else if ((mode == 0 || mode == 2) && runtime::resolveGameRefs()) {
                 struct Point { float x, y; };
                 static FieldInfo* playerArray = nullptr;
                 static int activeOffset = -1;
