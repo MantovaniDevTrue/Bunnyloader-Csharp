@@ -1,4 +1,5 @@
 #include "experiments/csharp/NativeCloudAssets.h"
+#include "experiments/csharp/NativeCloudHooks.h"
 
 #include "content/common/ContentAssets.h"
 #include "content/common/TypeTables.h"
@@ -23,6 +24,8 @@ using bl::runtime::content::destroyTextureAsset;
 struct Session {
     FieldInfo* textureTable = nullptr;
     FieldInfo* maskTable = nullptr;
+    int firstType = 0;
+    int lastExclusive = 0;
     uint32_t oldTextures = 0, oldMasks = 0;
     uint32_t newTextures = 0, newMasks = 0;
     std::vector<uint32_t> loadedAssets;
@@ -209,6 +212,8 @@ bool installNativeCloudAssets(NativeCloudRegistry* registry,
     auto stage = std::make_unique<Session>();
     stage->textureTable = textureTable;
     stage->maskTable = maskTable;
+    stage->firstType = firstType;
+    stage->lastExclusive = newLength;
     stage->oldTextures = stage->pin(reinterpret_cast<Il2CppObject*>(existingTextures));
     stage->oldMasks = stage->pin(reinterpret_cast<Il2CppObject*>(existingMasks));
     if (!stage->oldTextures || !stage->oldMasks) {
@@ -357,6 +362,51 @@ bool installNativeCloudAssets(NativeCloudRegistry* registry,
     return true;
 }
 
+// Read-only check performed on the Terraria game thread immediately
+// before the old cloud tables are restored. Even one active mod cloud
+// must prevent destroying the Texture2D it is still rendering.
+bool hasActiveNativeClouds(const Session& session, bool* trustworthy) {
+    if (trustworthy) *trustworthy = false;
+    auto& a = il2cpp::api();
+    if (!a.field_static_get_value || !a.class_get_rank ||
+        !a.class_get_element_class)
+        return true;
+    Il2CppClass* main = il2cpp::findClass({"Terraria", "Main", {}});
+    Il2CppClass* cloud = il2cpp::findClass({"Terraria", "Cloud", {}});
+    if (!main || !cloud) return true;
+    FieldInfo* cloudsField = il2cpp::findField(main, "cloud");
+    if (!cloudsField) return true;
+    int activeOffset = -1, typeOffset = -1;
+    std::string unused;
+    if (!il2cpp::nativeFieldContract(
+            cloud, "active", "System.Boolean", false, 1,
+            nullptr, &activeOffset, &unused) ||
+        !il2cpp::nativeFieldContract(
+            cloud, "type", "System.Int32", false, 4,
+            nullptr, &typeOffset, &unused))
+        return true;
+    Il2CppArray* clouds = nullptr;
+    a.field_static_get_value(cloudsField, &clouds);
+    if (!clouds || clouds->length < 200 || clouds->length > 2000 ||
+        a.class_get_rank(clouds->obj.klass) != 1 ||
+        a.class_get_element_class(clouds->obj.klass) != cloud)
+        return true;
+    Il2CppObject** items = static_cast<Il2CppObject**>(arrayData(clouds));
+    for (uintptr_t i = 0; i < clouds->length; ++i) {
+        Il2CppObject* item = items[i];
+        if (!item) continue;
+        bool active = *reinterpret_cast<uint8_t*>(
+            reinterpret_cast<char*>(item) + activeOffset) != 0;
+        if (!active) continue;
+        int type = *reinterpret_cast<int32_t*>(
+            reinterpret_cast<char*>(item) + typeOffset);
+        if (type >= session.firstType && type < session.lastExclusive)
+            return true;
+    }
+    if (trustworthy) *trustworthy = true;
+    return false;
+}
+
 bool uninstallNativeCloudAssets(std::string* error) {
     if (error) error->clear();
     if (!g_installed) return true;
@@ -365,6 +415,12 @@ bool uninstallNativeCloudAssets(std::string* error) {
 
     auto& a = il2cpp::api();
     auto* session = g_installed;
+    if (nativeCloudHooksEnabled())
+        return fail(error, "Stage=Uninstall Reason=CloudSelectionHooksStillRunning");
+    bool cloudStateVerified = false;
+    const bool activeModCloud = hasActiveNativeClouds(*session, &cloudStateVerified);
+    if (!cloudStateVerified || activeModCloud)
+        return fail(error, "Stage=Uninstall Reason=ModCloudActiveOrStateUnverified");
     if (!sameArray(session->textureTable, session->array(session->newTextures)) ||
         !sameArray(session->maskTable, session->array(session->newMasks)))
         return fail(error, "Stage=Uninstall Reason=ArraysChangedByAnotherLoader");
