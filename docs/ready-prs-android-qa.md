@@ -1,6 +1,6 @@
 # Sete PRs integrados — QA experimental Android
 
-Bunny `1.0.3-seven-prs-qa` (versionCode 302), ExampleMod CSharp `0.1.62`.
+Bunny `1.0.4-seven-prs-qa` (versionCode 303), ExampleMod CSharp `0.1.62`.
 Base: `v1.0` em `cfbe784ee3cb`. Branch: `integration/ready-prs-20261020`.
 
 Este APK reúne os PRs #101 (Localization), #102 (Rarity), #114 (AnglerQuest),
@@ -109,3 +109,7 @@ Registrar qual exemplo, passo, idioma, estado do mundo e mods ligados.
 O SoundLoader e o CommandLoader foram integrados a partir das fontes originais das PRs #117 e #118, sem substituir os callbacks das cinco PRs anteriores. O arquivo `BunnySourceSdk.dll` e o compilador são recompilados na execução do APK; o manifesto `framework.sha256` é validado dentro do pacote.
 
 A pipeline da branch executa compilação de sintaxe ARM64 para os nove arquivos nativos compartilhados, ligação nativa completa sem gerar APK, testes Roslyn para todos os exemplos, ações dos comandos, invariantes dos sons e regressões anteriores. O APK só é produzido na pipeline de QA depois da aprovação dos gates; sucesso de CI não substitui teste Android real.
+
+## Correções de QA após relatório 21/10
+
+A execução de OnHitNPC já estava confirmada no relatório Android, mas o estado de impacto não incluía X/Y; a posição agora vem do último TickProjectile do mesmo slot, geração e owner. A tela de tooltip reportava `RarityTooltipSignatureMismatch`; esta revisão instala um fallback restrito ao nome do item em `SpriteBatch.DrawString` quando a ABI de MouseText não corresponde, em vez de forçar hook incompatível. Para o Dust Charm e Invasion Beacon, a atualização de mundo solo pode usar o jogador nativo caso o snapshot esteja indisponível; a primeira execução registra `[CSharp][ItemUse] Stage=FirstWorldTick` somente uma vez por mod. Nenhum dos três reparos foi confirmado no dispositivo até novo relatório.

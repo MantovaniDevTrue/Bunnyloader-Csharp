@@ -2,7 +2,7 @@
   "schema": 1,
   "base": "cfbe784ee3cb",
   "branch": "integration/ready-prs-source-fixes-20261020",
-  "apkVersion": "1.0.3-seven-prs-qa",
+  "apkVersion": "1.0.4-seven-prs-qa",
   "exampleVersion": "0.1.62",
   "experimental": true,
   "androidValidation": "Pending manual QA on Android",
@@ -87,7 +87,10 @@
     "Three BunnyCommand example classes registered without native content allocation; managed MonoVM command worker integrated with world epochs",
     "BunnySounds native bridge, audio cache, 8 exported sound ABI endpoints and stop all on world exit",
     "Independent Rarity tooltip hook and animated Disco RGB sampling from updated PR #102",
-    "Full seven-PR combined ARM64 native syntax, native linking and managed SDK staged before APK QA"
+    "Full seven-PR combined ARM64 native syntax, native linking and managed SDK staged before APK QA",
+    "Preserve live Projectile AI coordinates on OnHitNPC/OnKill to prevent positional audio from playing at world origin",
+    "Hover-specific SpriteBatch rarity text tint fallback when Terraria 1.4.5 MouseText tooltip signature differs; the invalid hook is not forced",
+    "Permit native active-player fallback for solo item-use world ticks and log first per-mod result without spamming"
   ],
   "manualInstructions": "docs/ready-prs-android-qa.md"
 }
