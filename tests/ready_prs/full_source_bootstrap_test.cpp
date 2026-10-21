@@ -37,8 +37,13 @@ int main(int argc, char** argv) {
     assert(nextStatement != std::string::npos);
     assert(registrationText.compare(nextStatement, 9, "continue;") == 0);
     size_t checked = 0;
+    size_t commands = 0;
     std::map<std::string, std::string> targets;
     for (const auto& type : types) {
+        if (type.base == "BunnyCommand") {
+            ++commands;
+            continue;
+        }
         if (type.base == "BunnyPlayer" || type.base == "BunnyScreenEffect" ||
             type.base == "BunnyRarity" || type.base == "BunnyPrefix" ||
             type.base == "BunnyDust") continue;
@@ -64,6 +69,7 @@ int main(int argc, char** argv) {
         }
         ++checked;
     }
+    assert(commands == 3);
     assert(targets.at("ExampleBuffPotion") == "ExampleDefenseBuff");
     assert(targets.at("ExampleWand") == "ExampleBolt");
     // Calls on either side of native references must remain deferred to Mono.
