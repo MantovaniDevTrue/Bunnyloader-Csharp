@@ -1,0 +1,24 @@
+name: CSharp World Update SDK Check
+on:
+  pull_request:
+    paths:
+      - 'experiments/csharp/BunnyCsSdk/BunnyWorldUpdateLoader.cs'
+      - 'experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj'
+      - 'samples/ExampleModCSharp/Playable/content/Content/Systems/**'
+      - 'tests/world_update_loader/**'
+      - '.github/workflows/check-csharp-world-update-loader.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  sdk-only:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Verificar compilacao do BunnySourceSdk
+        run: dotnet build experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj -c Release --nologo
+      - name: Verificar os exemplos e o contrato em desktop
+        run: dotnet run --project tests/world_update_loader/WorldUpdateLoader.csproj -c Release --nologo
