@@ -214,6 +214,46 @@ playable.NotifyNPCKilled(50);
 Check(playableBoss.IsCompleted,
     "playable KingSlime NPC ID50 completes boss achievement");
 
+string profileRoot = Path.Combine(Path.GetTempPath(),
+    "bunny-profile-tests-" + Guid.NewGuid().ToString("N"));
+string aliceDir = Path.Combine(profileRoot, "alice");
+string bobDir = Path.Combine(profileRoot, "bob");
+Directory.CreateDirectory(aliceDir);
+Directory.CreateDirectory(bobDir);
+try
+{
+    var aliceRegistry = new BunnyAchievementRegistry();
+    var aliceEntry = aliceRegistry.Register("same_mod", new NegativeNpcAchievement());
+    var aliceStore = new BunnyAchievementStore(aliceRegistry);
+    aliceStore.Configure(aliceDir, "same_mod");
+    aliceRegistry.NotifyNPCKilled(-4);
+    Check(aliceEntry.IsCompleted, "Alice completes same-mod achievement");
+    Check(aliceStore.Flush(force: true), "Alice profile saved on its own path");
+
+    var bobRegistry = new BunnyAchievementRegistry();
+    var bobEntry = bobRegistry.Register("same_mod", new NegativeNpcAchievement());
+    var bobStore = new BunnyAchievementStore(bobRegistry);
+    bobStore.Configure(bobDir, "same_mod");
+    Check(!bobEntry.IsCompleted &&
+        !File.Exists(Path.Combine(bobDir, "same_mod.bach")),
+        "Bob profile starts empty despite Alice completion");
+    bobStore.Flush(force: true);
+
+    var restored = new BunnyAchievementRegistry();
+    var restoredEntry = restored.Register("same_mod", new NegativeNpcAchievement());
+    var restoredStore = new BunnyAchievementStore(restored);
+    restoredStore.Configure(aliceDir, "same_mod");
+    Check(restoredEntry.IsCompleted && !bobEntry.IsCompleted,
+        "profile restore retains Alice completion without touching Bob");
+    Check(File.Exists(Path.Combine(aliceDir, "same_mod.bach")) &&
+        File.Exists(Path.Combine(bobDir, "same_mod.bach")),
+        "player saves remain in independent files");
+}
+finally
+{
+    Directory.Delete(profileRoot, true);
+}
+
 Console.WriteLine("BUNNY_CSHARP_ACHIEVEMENTS_CORE=PASS checks=" + checkedCases);
 
 sealed class TwoConditions : BunnyAchievement
