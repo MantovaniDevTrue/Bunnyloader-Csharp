@@ -121,6 +121,10 @@ std::string Registry::fullName(int id) const {
     const auto& e = entries_[static_cast<size_t>(id)];
     return e.owner + "/" + e.name;
 }
+std::string Registry::displayName(int id) const {
+    std::lock_guard lock(mutex_);
+    return active(id) ? entries_[static_cast<size_t>(id)].label : std::string{};
+}
 
 int Registry::count() const {
     std::lock_guard lock(mutex_);
