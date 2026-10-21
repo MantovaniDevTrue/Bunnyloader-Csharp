@@ -13,6 +13,8 @@ namespace bl::graphics { struct ScreenSceneRaw; }
 namespace bl::csharp {
 // Eventos: enqueue sem executar Mono na thread do Terraria; false requer
 // diagnóstico no chamador (fila cheia, ciclo de vida inativo ou argumento inválido).
+bool queueManagedAchievementFlush(const std::string& modId,
+                                  const std::string& assemblyPath);
 bool queueManagedAchievementEvent(const std::string& modId,
                                   const std::string& assemblyPath,
                                   int operation, int type, int count,
