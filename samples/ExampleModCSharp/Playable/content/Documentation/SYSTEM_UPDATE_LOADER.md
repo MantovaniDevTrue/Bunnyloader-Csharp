@@ -18,10 +18,30 @@ Os nomes dos métodos Terraria foram conferidos no `SystemUpdateHooks.js` da pr�
 | PostUpdateInvasions | Main.UpdateInvasion | Depois do original |
 | PostUpdateInput | Main.DoUpdate_HandleInput | Depois do original |
 
-Os oito métodos formam o escopo **integral deste lote de atualização de mundo**.
-Eles não pretendem substituir todos os métodos de `ModSystem` do tModLoader.
-Outros loaders (`SystemWorldHooks`, `SystemDrawHooks`, etc.) não são declarados
-implementados por esta PR.
+Os oito métodos acima estão implementados no **núcleo C# do lote atual**, mas
+o SystemUpdateHooks.js da base implementa também mais onze callbacks. A
+PR **não está completa** enquanto estes onze não tiverem um contrato nativo
+equivalente, teste e documentação.
+
+| Ainda faltando no C# | Contrato do Bunny original |
+| --- | --- |
+| PreUpdatePlayers | estágio nativo PlayersBegin |
+| PostUpdatePlayers | estágio nativo PlayersEnd |
+| PreUpdateNPCs | estágio nativo NPCsBegin |
+| PostUpdateNPCs, PreUpdateGores | estágio nativo NPCsEnd |
+| PostUpdateGores | estágio nativo GoresEnd |
+| PostUpdateProjectiles, PreUpdateItems | estágio nativo ItemsBegin |
+| PostUpdateItems | estágio nativo ItemsEnd |
+| UpdateUI | Main.UpdateUIStates(GameTime), pós-original e fora do menu |
+| ModifyTimeRate | Main.UpdateTimeRate e estágio nativo ClockAdvance |
+
+Os sete estágios estão embutidos em pontos precisos do método nativo
+`Main.DoUpdateInWorld`: não podem ser substituídos por callbacks arbitrários
+antes/depois da função inteira. `UpdateUI` exige uma assinatura GameTime ainda
+não exposta pelo BunnyHooks C#, e `ModifyTimeRate` exige acesso tipado à
+taxa e ao retorno do estágio ClockAdvance. Não inventar assinaturas C# para
+marcar estes casos como prontos; a futura ponte será C++/MonoVM própria,
+sem execução de JavaScript por trás do C#.
 
 ## Como escrever o mod
 
@@ -59,13 +79,18 @@ Troque para `true` apenas no pacote de QA, sem alterar a versão estável.
   são executados no `finally`, inclusive se o original lançar exceção.
 - O cadastro é realizado durante `Load`, não em cada frame; os listeners são arrays
   imutáveis trocados apenas quando um mod entra ou sai.
-- Ao descarregar o dono do hook, o registro migra para o próximo mod ativo.
+- O registry controla o dono **por estágio**, não pelo primeiro mod global.
+- Ao sair um mod, todas as inscrições daquele BunnyHookScope são removidas
+  antes do Dispose. O próximo mod assume só os estágios que de fato usa.
+- Callbacks de escopos já desativados não são mais executados, mesmo caso um
+  snapshot antigo ainda esteja em voo; a rotina OnUnloaded executa uma vez.
 - Não varra itens, NPCs ou projéteis inteiros dentro destes callbacks.
 
 ## Critérios antes de qualquer APK
 
 1. Compilar o `BunnySourceSdk` e os dois exemplos com o .NET 8, sem warnings ou erros.
-2. Passar o projeto `tests/world_update_loader`, sem carregar biblioteca Android no desktop.
+2. Passar o projeto `tests/world_update_loader`, incluindo três sistemas
+   simulados, ordem dos eventos, exceções, partilha de hooks e unload/rebind.
 3. Verificar em revisão os nomes e assinaturas dos cinco alvos nativos (os nomes
    vêm de `SystemUpdateHooks.js`, mas o ABI real depende do Terraria Mobile).
 4. Verificar integração dos hooks com **dois mods ativos**, desligar um durante a
@@ -73,6 +98,6 @@ Troque para `true` apenas no pacote de QA, sem alterar a versão estável.
 5. Confirmar ordem dos oito callbacks, quarentena de exceções, estabilidade em
    mundo/menu, ausência de erro de MonoVM, FPS e unload/reload.
 
-**Estado:** implementação do SDK feita; validação CI e QA Android pendentes.
-Não gerar APK, não declarar o loader validado no jogo e não mesclar antes de concluir
-os itens de verificação relevantes. CI desta PR só compila/executa testes desktop.
+**Estado:** primeira implementação C# feita; os outros onze callbacks do
+SystemUpdateHooks continuam em aberto. CI desktop e QA Android não substituem
+essa implementação. Não gerar APK nem mesclar enquanto faltar API, ABI ou teste. CI desta PR só compila/executa testes desktop.
