@@ -557,6 +557,9 @@ bool applyNativeBasicItemDefaults(const std::string& modId,const std::vector<Bas
         if(!entry.behavior.empty())behaviorsPending.store(true,std::memory_order_release);
         if(entry.placeable&&!entry.placeTileKey.empty()&&entry.placeTile<0)
             placementsPending.store(true,std::memory_order_release);
+        if(!entry.tooltipPlan.empty())
+            BL_INFO("[CSharp][Tooltip] Stage=PlanStored Class=%s Type=%d Bytes=%zu Result=Ready",
+                entry.name.c_str(),entry.type,entry.tooltipPlan.size());
         if(!entry.tooltip.empty()||!entry.localizedTooltips.empty()) {
             std::vector<std::pair<std::string,std::string>> tooltipLanguages{{"",entry.tooltip}};
             for(const auto& [culture,text]:entry.localizedTooltips)
