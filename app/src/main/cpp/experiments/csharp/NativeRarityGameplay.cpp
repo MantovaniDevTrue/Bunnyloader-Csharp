@@ -388,6 +388,15 @@ thread_local uint32_t g_rarityTextColor = 0;
 thread_local bool g_rarityTextMatchByContent = false;
 thread_local std::u16string g_hoverFallbackName;
 thread_local uint32_t g_hoverFallbackColor = 0;
+struct HoverTooltipRegion {
+    Il2CppObject* batch = nullptr;
+    Il2CppObject* font = nullptr;
+    float x = 0;
+    float y = 0;
+    int lines = 0;
+    bool active = false;
+};
+thread_local HoverTooltipRegion g_hoverTooltipRegion;
 
 bool rarityTextMatches(Il2CppString* text) {
     const auto* target = g_rarityTextTarget;
@@ -414,7 +423,19 @@ void rarityDrawString(Il2CppObject* batch, Il2CppObject* font, Il2CppString* tex
     const bool hoverMatch = !scopedMatch && text && !g_hoverFallbackName.empty() &&
         sameNativeRarityName(text->chars, text->length,
             g_hoverFallbackName.data(), static_cast<int>(g_hoverFallbackName.size()));
-    if (scopedMatch || hoverMatch) {
+    if (hoverMatch && std::isfinite(position.x) && std::isfinite(position.y)) {
+        g_hoverTooltipRegion = {batch, font, position.x, position.y, 0, true};
+    }
+    bool tooltipLine = !scopedMatch && !hoverMatch && text && text->length > 0 &&
+        text->length <= 512 && g_hoverTooltipRegion.active &&
+        g_hoverTooltipRegion.batch == batch && g_hoverTooltipRegion.font == font &&
+        std::isfinite(position.x) && std::isfinite(position.y) &&
+        std::abs(position.x - g_hoverTooltipRegion.x) <= 28.f &&
+        position.y > g_hoverTooltipRegion.y + 6.f &&
+        position.y < g_hoverTooltipRegion.y + 320.f &&
+        g_hoverTooltipRegion.lines < 24;
+    if (tooltipLine) ++g_hoverTooltipRegion.lines;
+    if (scopedMatch || hoverMatch || tooltipLine) {
         const uint32_t original = nativeRarityToArgb(color);
         const uint8_t opacity = static_cast<uint8_t>(original >> 24);
         if (shouldTintNativeRarityText(original, opacity))
@@ -821,6 +842,7 @@ bool installRarityHoverFallback(std::string* error) {
 
 void refreshRarityHoverFallback() {
     g_hoverFallbackName.clear();
+    g_hoverTooltipRegion = {};
     if (!g_hoverFallbackReady.load(std::memory_order_acquire) || !g_rarityAffixName)
         return;
     Il2CppObject* item = nullptr;
