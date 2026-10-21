@@ -10,7 +10,7 @@
 
 namespace bl::csharp::worldsave {
 namespace {
-constexpr size_t kMaxBytes = NativeWorldStore::MaxDocumentBytes;
+constexpr size_t kMaxBytes = 1024 * 1024;
 constexpr char kAlphabet[] =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
