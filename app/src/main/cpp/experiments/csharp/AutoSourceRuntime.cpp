@@ -1200,6 +1200,7 @@ void noteAutoWorldTilesLoaded() {
     g_worldSessionReady.store(false, std::memory_order_release);
     pauseManagedEntitySourceCallbacks();
     pauseManagedScreenSceneCallbacks();
+    resetManagedCloudWorldSession();
     resetManagedSourceNpcSlots();
     resetManagedSourceProjectileSlots();
     g_worldReadyFrames.store(0, std::memory_order_relaxed);
@@ -1274,6 +1275,7 @@ void noteAutoGameUpdate() {
         clearManagedVisualCommands();
         graphics::clearCSharpScreenEffects();
         pauseManagedScreenSceneCallbacks();
+    resetManagedCloudWorldSession();
         resetNativeVisualRenderer();
         g_visualUpdateTick.store(0, std::memory_order_relaxed);
         g_worldExits.fetch_add(1, std::memory_order_relaxed);
