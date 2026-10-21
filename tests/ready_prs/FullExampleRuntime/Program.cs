@@ -68,6 +68,23 @@ try
     }
     if (dustMod != modId)
         throw new InvalidOperationException("BunnyDust resolved wrong owner: " + dustMod);
+    BunnyDustSourceDispatcher.Unload();
+    string restored = (string)(dustOwner.Invoke(null, new object[] { dustClass.Assembly })
+        ?? throw new InvalidOperationException("BunnyDust recovery returned null"));
+    if (restored != modId)
+        throw new InvalidOperationException("Trusted assembly Dust retry failed");
+    bool untrustedFailed = false;
+    try
+    {
+        dustOwner.Invoke(null, new object[] { typeof(BunnyDust).Assembly });
+    }
+    catch (System.Reflection.TargetInvocationException error)
+        when (error.InnerException is InvalidOperationException)
+    {
+        untrustedFailed = true;
+    }
+    if (!untrustedFailed)
+        throw new InvalidOperationException("Unregistered assemblies cannot claim a Dust mod");
     Console.WriteLine("FULL_EXAMPLE_DUST_ASSEMBLY_OWNERSHIP=PASS");
 
     var defaults = File.ReadAllText(Path.Combine(work, "source-runtime-values.txt"));
