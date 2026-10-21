@@ -95,6 +95,20 @@ bool setValue(const MethodInfo* method, Il2CppArray* array, int index,
     return invoke(method, array, args);
 }
 
+bool validStaticArrayField(FieldInfo* field, Il2CppClass* elementType) {
+    auto& a = il2cpp::api();
+    if (!field || !elementType || !a.field_get_flags ||
+        !a.field_get_type || !a.class_from_il2cpp_type ||
+        !a.class_get_rank || !a.class_get_element_class)
+        return false;
+    if (!(a.field_get_flags(field) & 0x10u)) return false;
+    Il2CppClass* fieldType = a.class_from_il2cpp_type(a.field_get_type(field));
+    return fieldType && a.class_get_rank(fieldType) == 1 &&
+        a.class_get_element_class(fieldType) == elementType;
+}
+
+// The original JS CloudLoader accesses the two arrays by their exact typed
+// static fields. Reject renamed or mismatched fields before staging handles.
 bool preflight(FieldInfo** textureTable, FieldInfo** maskTable,
                Il2CppClass** maskClass, const MethodInfo** maskCtor,
                int* srcWidth, int* srcHeight, int* outputWidth,
@@ -116,8 +130,11 @@ bool preflight(FieldInfo** textureTable, FieldInfo** maskTable,
     *maskCtor = *maskClass
         ? a.class_get_method_from_name(*maskClass, ".ctor", 0) : nullptr;
     if (!*textureTable || !*maskTable || !*maskClass || !*maskCtor ||
-        !setValueMethod())
-        return fail(error, "Stage=Resolve Reason=CloudTextureOrMaskMissing");
+        !setValueMethod() ||
+        !validStaticArrayField(*textureTable,
+            bl::runtime::content::textureAssetClass()) ||
+        !validStaticArrayField(*maskTable, *maskClass))
+        return fail(error, "Stage=Resolve Reason=CloudTextureOrMaskFieldContractInvalid");
 
     if (!il2cpp::nativeFieldContract(*maskClass, "srcWidth", "System.Int32",
             false, 4, nullptr, srcWidth, error) ||
@@ -127,8 +144,9 @@ bool preflight(FieldInfo** textureTable, FieldInfo** maskTable,
 
     // On Android, the mask generated with outputWidth==0 is intentionally
     // empty. The new cloud still renders; it simply does not occlude the sun.
-    FieldInfo* output = il2cpp::findField(*maskClass, "outputWidth");
-    if (output && !il2cpp::nativeFieldContract(*maskClass, "outputWidth",
+    // Must be able to prove that this mask cannot occlude the sun.
+    // An absent outputWidth field is not an invitation to assume zero.
+    if (!il2cpp::nativeFieldContract(*maskClass, "outputWidth",
             "System.Int32", false, 4, nullptr, outputWidth, error))
         return false;
     return true;
