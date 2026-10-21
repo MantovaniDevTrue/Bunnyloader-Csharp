@@ -18,6 +18,8 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
+      - name: Auditar fidelidade do SystemUpdateHooks original
+        run: python3 tests/world_update_loader/check_contract.py
       - name: Verificar compilacao do BunnySourceSdk
         run: dotnet build experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj -c Release --nologo
       - name: Verificar os exemplos e o contrato em desktop
