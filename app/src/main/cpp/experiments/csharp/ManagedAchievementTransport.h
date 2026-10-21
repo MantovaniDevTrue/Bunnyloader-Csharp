@@ -32,6 +32,7 @@ public:
     static constexpr std::size_t Capacity = 256;
     static constexpr std::size_t MaxPayloadBytes = 1024 * 1024;
     static constexpr std::size_t MaxResponseBytes = 1024 * 1024;
+    static constexpr std::size_t MaxBufferedPayloadBytes = 2 * 1024 * 1024;
 
     static bool validModId(const std::string& name) {
         if (name.empty() || name.size() > 96) return false;
@@ -59,7 +60,10 @@ public:
     // Chamador detém g_pinnedMutex. Falha explícita ao atingir a capacidade:
     // eventos não são silenciosamente descartados nem fundidos.
     bool push(AchievementJob job) {
-        if (!valid(job) || pending.size() >= Capacity) return false;
+        if (!valid(job) || pending.size() >= Capacity ||
+            job.payload.size() > MaxBufferedPayloadBytes - bufferedBytes)
+            return false;
+        bufferedBytes += job.payload.size();
         pending.push_back(std::move(job));
         return true;
     }
@@ -67,6 +71,7 @@ public:
     bool pop(AchievementJob* job) {
         if (!job || pending.empty()) return false;
         *job = std::move(pending.front());
+        bufferedBytes -= job->payload.size();
         pending.pop_front();
         return true;
     }
@@ -76,6 +81,7 @@ public:
 
 private:
     std::deque<AchievementJob> pending;
+    std::size_t bufferedBytes = 0;
 };
 
 }
