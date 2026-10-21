@@ -2,7 +2,7 @@
 
 Base do lote: `v1.0`, commit `cfbe784ee3cbc0ba2fabafce56c59e6eac41b67b`.
 Branch: `feature/csharp-cloudloader-source-only-20261021`.
-**Estado: núcleo de seleção, registro e API C# experimental codificados; loader jogável NÃO implementado.**
+**Estado: seleção, registro, contratos C#, dispatcher de callbacks, parser e extração Roslyn codificados; hooks do Terraria ainda NÃO integrados.**
 
 ## Fontes de referência obrigatórias
 
@@ -26,6 +26,9 @@ o comportamento correto e suas regras já validadas.
 - `NativeCloudRegistry.h`: identidade por mod e classe, IDs desde o
   `CloudID.Count` fornecido pelo Terraria, rejeição de caminhos perigosos,
   segurança transacional de disponibilidade de textura/máscara e limpeza.
+- `BunnyCloudDispatcher.cs`: registro C# por assembly, vínculo de IDs nativos, peso por bioma, `OnSpawn`, isolamento de exceções, várias instâncias e descarregamento.
+- `SourceParser.cpp` / `SourceContentIdentity.h`: reconhecimento explícito de `BunnyCloud` e domínio `CLOUD`; `SourceLoader.cpp` recusa nuvens antes de registrar itens enquanto não houver máscaras e hooks nativos.
+- `CompiledAssemblyProbe.cs`: reconhecimento por reflexão e geração do catálogo isolado `source-clouds-v1.txt`, sem alterar o formato V2 dos demais itens.
 - `tests/cloud_loader/`: exemplos executáveis das duas classes de nuvens,
   casos de PNG ausente, peso inválido, duplicação, mundo de aniversário,
   isolamento de `OnSpawn`, vazamento de estado entre tentativas e tamanho
@@ -53,12 +56,11 @@ Duas implementações comentadas e testes compiláveis estão em:
   removendo o espelhamento de seu PNG com letras.
 - `tests/cloud_loader/managed_examples/CloudContractTests.cs`:
   testes das chances, contextos, parâmetros, proteção de desenho e tipo.
-- `tests/cloud_loader/CloudContractTests.csproj`: compilação .NET 8
-  independente e **sem build de Android**.
+- `tests/cloud_loader/CloudContractTests.csproj`: testes .NET 8 do dispatcher e da inspeção real do compilador Roslyn, **sem build de Android**.
+- `tests/cloud_loader/source_parser_cloud_test.cpp`: teste do parser com classe C# real e sem hooks de Terraria.
 
 A estrutura original do Bunny Loader é usada como comportamento de referência.
-**Essas classes ainda NÃO são instanciadas automaticamente nem registradas
-pelo runtime do Terraria.** Seus testes não comprovam carregamento no jogo.
+**As classes já são reconhecidas pelo parser e compilador, mas ainda NÃO são registradas como nuvens visíveis no Terraria.** Seus testes não comprovam carregamento no jogo.
 O bioma `ExampleModCSharp/ExampleSurfaceBiome` é uma chave de referência
 para o teste, não um bioma já implementado no C#.
 
@@ -67,21 +69,34 @@ dotnet run --project tests/cloud_loader/CloudContractTests.csproj -c Release
 dotnet build experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj -c Release
 ```
 
+## Bloqueio de ativação confirmado
+
+A checagem `SourceLoader.cpp` retorna
+`Reason=NativeCloudHooksAndMasksNotInstalled` para qualquer mod C# que
+declare uma classe `BunnyCloud`. O compilador já pode descobrir as
+classes e gerar o manifesto `source-clouds-v1.txt` em testes isolados,
+mas o runtime nunca deve anunciá-las como conteúdo registrado.
+
+Isto é intencional: o céu mobile exige máscaras válidas em
+`TextureMaskManager.CloudMasks` para cada tipo, e a ausência desse
+passo pode causar interrupção do renderizador. O manifesto é apenas
+metadado, não uma ponte para QuickJS.
+
 ## O que falta para finalizar o CloudLoader inteiro
 
 - [x] Criar `BunnyCloud` experimental, contrato gerenciado, exemplos
       anotados e testes de compilação C# no BunnySourceSdk.
-- [ ] Confirmar compilação e testes C# no CI; estabilizar a API com o host
-      nativo antes de classificá-la como utilizável em jogo.
-- [ ] Atualizar parser de fontes, reconhecimento de conteúdo, identidade
-      e instalação automática C# antes da entrada no mundo.
+- [x] Compilar SDK, exemplos C#, código C++ e o manifesto do Roslyn no CI sem APK.
+- [ ] Estabilizar a API com o host nativo e validar em aparelho antes de classificá-la como utilizável em jogo.
+- [x] Reconhecer `BunnyCloud` no parser, reservar domínio `CLOUD` e exportar catálogo Roslyn separado.
+- [ ] Completar registro nativo real e instalação automática de texturas e máscaras antes da entrada no mundo.
 - [ ] Instalar texturas em `TextureAssets.Cloud` e máscaras seguras em
       `TextureMaskManager.CloudMasks` na thread de jogo. Se a máscara
       falhar, bloquear aquele tipo sem afetar nuvens vanilla.
 - [ ] Conectar nativamente `Cloud.addCloud` e `RollRareCloud` usando as
       assinaturas verificadas no Terraria Mobile; preservar a rolagem vanilla.
-- [ ] Vincular os callbacks `SpawnChance` e `OnSpawn` ao worker MonoVM,
-      com limites, exceções isoladas, cache e nenhuma RPC por frame.
+- [x] Implementar dispatch C# de `SpawnChance` e `OnSpawn` com identificação por mod, limites e isolamento de exceções.
+- [ ] Conectar o dispatcher ao worker MonoVM e ao hook IL2CPP, com cache e nenhuma RPC por frame.
 - [ ] Atualizar tamanho de nuvem pelo PNG, preservar `spriteDir`, impedir
       callback em slot inativo e garantir ordem correta de rara/comum.
 - [ ] Cobrir múltiplos mods, mundo de aniversário, recarga de mundo,
@@ -103,5 +118,5 @@ implementação e validação completa. O branch é apenas fonte em andamento.
 bash tests/cloud_loader/run_native.sh
 ```
 
-O runner compila com C++17, `-Wall -Wextra -Werror -pedantic`. A Action
+O runner compila com C++20, `-Wall -Wextra -Werror -pedantic`. A Action
 específica também executa AddressSanitizer e UndefinedBehaviorSanitizer.
