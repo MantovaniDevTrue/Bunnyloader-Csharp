@@ -39,6 +39,7 @@ std::vector<NativeCloudWeight> g_stagedWeights;
 bool g_collectingWeights = false;
 int g_weightAge = 0;
 int g_weightRetryCooldown = 0;
+uint64_t g_weightGeneration = 0;
 
 
 // Cheap native PRNG. Each roll consumes one 53-bit fraction in [0,1).
@@ -223,6 +224,8 @@ bool installNativeCloudHooks(
     g_collectingWeights = false;
     g_weightAge = 0;
     g_weightRetryCooldown = 0;
+    ++g_weightGeneration;
+    if (g_weightGeneration == 0) ++g_weightGeneration;
     g_fields = bindings;
     g_gameThread = std::this_thread::get_id();
     g_insideAdd = false;
@@ -324,6 +327,8 @@ void pumpNativeCloudManagedCallbacksOnGameThread(
             g_pendingWeightMods.insert(mod);
         g_collectingWeights = true;
         g_weightAge = 0;
+        ++g_weightGeneration;
+        if (g_weightGeneration == 0) ++g_weightGeneration;
     }
 
     // A worker may be busy; re-asking is cheap and nonblocking, and the
@@ -331,9 +336,10 @@ void pumpNativeCloudManagedCallbacksOnGameThread(
     std::vector<std::string> received;
     for (const std::string& mod : g_pendingWeightMods) {
         std::string payload;
-        if (!takeManagedCloudWeights(mod, &payload)) {
+        if (!takeManagedCloudWeights(mod, g_weightGeneration, &payload)) {
             requestManagedCloudWeights(mod, gameMenu,
-                                       tenthAnniversaryWorld, biomeKeys);
+                                       tenthAnniversaryWorld, biomeKeys,
+                                       g_weightGeneration);
             continue;
         }
         std::string error;
@@ -381,6 +387,8 @@ void pauseNativeCloudHooks() {
     g_collectingWeights = false;
     g_weightAge = 0;
     g_weightRetryCooldown = 0;
+    ++g_weightGeneration;
+    if (g_weightGeneration == 0) ++g_weightGeneration;
     g_roll.clear();
     g_spawn.clear();
 }
