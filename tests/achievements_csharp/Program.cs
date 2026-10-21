@@ -32,6 +32,11 @@ for (int i = 0; i < 4; i++) registry.NotifyNPCKilled(10);
 Check(worms.IsCompleted && worms.Progress == 1, "custom counter completes exactly at five");
 registry.NotifyNPCKilled(10);
 Check(worms.Conditions[0].Value == 5, "no overflow on completed conditions");
+long completionRevision = registry.ProgressChanges;
+worms.Conditions[0].Value = 0;
+Check(worms.IsCompleted && worms.Conditions[0].Value == 5 &&
+    registry.ProgressChanges == completionRevision,
+    "unlocked achievement cannot regress or publish spurious progress");
 
 string snapshot = registry.Save();
 var restored = new BunnyAchievementRegistry();
@@ -112,8 +117,8 @@ Check(loaded.StartsWith("BACH_META_V1\n", StringComparison.Ordinal) &&
     loaded.Split('\n').Length == 4, "Mono dispatcher discovers both classes from fixture DLL");
 Check(Bind("transport", 0) == loaded, "repeated bind does not recreate achievements");
 Check(Bind("transport", 1, 10, 1, "0") == "OK|0", "remote NPC event routed without credit");
-Check(Bind("transport", 1, 10, 1, "1") == "OK|0", "local NPC event accepted");
-Check(Bind("transport", 1, 1234, 1, "1") == "OK|0", "local boss kill accepted");
+Check(Bind("transport", 1, 10, 1, "1").StartsWith("BACH_META_V1\n"), "local NPC progress publishes native metadata");
+Check(Bind("transport", 1, 1234, 1, "1").StartsWith("BACH_META_V1\n"), "local boss completion publishes native metadata");
 string metadata = Bind("transport", 8);
 Check(metadata.Contains("|0|0|1|") && metadata.Contains("|1|0|0|"),
     "native-ready metadata includes category hidden completion and progress");
@@ -139,12 +144,12 @@ try
     Check(Bind("diskcase", 9, payload: saveRoot) == "READY", "configure native data directory");
     Check(!File.Exists(Path.Combine(saveRoot, "diskcase.bach")),
         "configuration does not create unnecessary save");
-    Check(Bind("diskcase", 1, 10, 1, "1") == "OK|0", "partial progress accepted");
+    Check(Bind("diskcase", 1, 10, 1, "1").StartsWith("BACH_META_V1\n"), "partial progress publishes metadata");
     Check(Bind("diskcase", 10) == "OK", "explicit flush succeeds");
     string diskPath = Path.Combine(saveRoot, "diskcase.bach");
     Check(File.Exists(diskPath) && File.ReadAllText(diskPath).Contains("BACH1\n"),
         "atomic flush produces versioned save file");
-    Check(Bind("diskcase", 1, 1234, 1, "1") == "OK|0",
+    Check(Bind("diskcase", 1, 1234, 1, "1").StartsWith("BACH_META_V1\n"),
         "completion fires immediate autosave");
     string diskData = File.ReadAllText(diskPath);
     Check(diskData.Contains("BACH1\n") && diskData.Length > 20, "completion persisted");
