@@ -68,6 +68,12 @@ O novo NativeWorldCoordinator chama a fila tipada no worker MonoVM: Enter lê o 
 
 Esta transação ainda precisa ser chamada por hooks reais de LoadWorld e InternalSaveWorld; nenhuma gravação de jogo foi ativada neste ponto.
 
+## Etapa 11 — hooks nativos estritos
+
+A integração de Terraria.IO.WorldFile.LoadWorld(bool) chama Enter apenas após o carregamento original. O hook InternalSaveWorld(bool, bool) aguarda o salvamento original e então executa Prepare → BWC1 → sidecar atômico → Confirm. O epoch carregado também é verificado para bloquear gravações antigas, nuvem e clientes. No caminho de saída, Leave é chamado antes de invalidar o sidecar da sessão. A instalação requer assinatura exata por nome, tipo e nome de parâmetros, e método estático confirmado pela API IL2CPP. Caso a assinatura não exista, os sistemas de mundo não devem liberar a entrada.
+
+O teste de sintaxe C++ no Linux ainda não valida a ABI efetiva do Terraria Android; isso requer QA nativo. Também falta suporte real de rede para o multiplayer.
+
 ## Requisitos ainda bloqueantes
 
 1. Host nativo C++ deve capturar a identidade real do arquivo de mundo após a seleção; não confiar em nome de mundo ou caminho informado por um mod.
