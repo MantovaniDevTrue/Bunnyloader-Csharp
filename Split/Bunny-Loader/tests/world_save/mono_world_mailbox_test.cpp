@@ -46,5 +46,21 @@ int main() {
     assert(fresh && mailbox.take(&running) && mailbox.current(running));
     mailbox.finish(running, {true, "newworld", ""});
     assert(mailbox.wait(fresh, 10ms, &response) && response.payload == "newworld");
+    MonoWorldRequest network{};
+    network.action = MonoWorldAction::NetSend;
+    network.epoch = 5;
+    auto outbound = mailbox.submit(network);
+    assert(outbound && mailbox.take(&running));
+    mailbox.finish(running, {true, "QldOMQ==", ""});
+    assert(mailbox.wait(outbound, 10ms, &response));
+    network.action = MonoWorldAction::NetReceive;
+    network.payload = "QldOMQ==";
+    auto inbound = mailbox.submit(network);
+    assert(inbound && mailbox.take(&running));
+    mailbox.finish(running, {true, "", ""});
+    assert(mailbox.wait(inbound, 10ms, &response));
+    network.payload = std::string(MonoWorldMailbox::MaxNetPayload + 1, 'A');
+    assert(!mailbox.submit(network));
+
     std::puts("WORLD_MONO_MAILBOX_PASS");
 }

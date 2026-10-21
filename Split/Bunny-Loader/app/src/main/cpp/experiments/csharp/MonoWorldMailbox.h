@@ -8,7 +8,7 @@
 #include <string>
 
 namespace bl::csharp::worldsave {
-enum class MonoWorldAction : uint8_t { Register = 1, Enter, Prepare, Confirm, Leave };
+enum class MonoWorldAction : uint8_t { Register = 1, Enter, Prepare, Confirm, Leave, NetSend, NetReceive };
 struct MonoWorldRequest {
     MonoWorldAction action = MonoWorldAction::Register;
     uint64_t epoch = 0;
@@ -31,6 +31,7 @@ class MonoWorldMailbox {
 public:
     static constexpr size_t Limit = 8;
     static constexpr size_t MaxPayload = 4 * ((1024 * 1024 + 2) / 3);
+    static constexpr size_t MaxNetPayload = 4 * ((60000 + 2) / 3);
 
     std::shared_ptr<MonoWorldTicket> submit(MonoWorldRequest request) {
         if (!valid(request)) return {};
@@ -119,7 +120,11 @@ private:
             case MonoWorldAction::Confirm:
                 return request.epoch > 0 && !request.payload.empty() &&
                        request.payload.size() <= MaxPayload;
+            case MonoWorldAction::NetReceive:
+                return request.epoch > 0 && !request.payload.empty() &&
+                       request.payload.size() <= MaxNetPayload;
             case MonoWorldAction::Prepare:
+            case MonoWorldAction::NetSend:
             case MonoWorldAction::Leave:
                 return request.epoch > 0 && request.payload.empty();
         }

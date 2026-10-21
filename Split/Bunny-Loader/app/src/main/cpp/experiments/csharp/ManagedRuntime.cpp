@@ -1174,6 +1174,10 @@ worldsave::MonoWorldReply invokeManagedWorldOnPinnedMono(
             methodName = "Confirm"; argsCount = 2; break;
         case worldsave::MonoWorldAction::Leave:
             methodName = "Leave"; argsCount = 1; break;
+        case worldsave::MonoWorldAction::NetSend:
+            methodName = "NetSend"; argsCount = 1; break;
+        case worldsave::MonoWorldAction::NetReceive:
+            methodName = "NetReceive"; argsCount = 2; break;
     }
     void* method = g_api.findMethod(klass, methodName, argsCount);
     if (!method) {
@@ -1204,7 +1208,9 @@ worldsave::MonoWorldReply invokeManagedWorldOnPinnedMono(
     void** chosen = request.action == worldsave::MonoWorldAction::Register ? registerArgs :
                     request.action == worldsave::MonoWorldAction::Enter ? enterArgs :
                     request.action == worldsave::MonoWorldAction::Prepare ? prepareArgs :
-                    request.action == worldsave::MonoWorldAction::Confirm ? confirmArgs :
+                    request.action == worldsave::MonoWorldAction::Confirm ||
+                    request.action == worldsave::MonoWorldAction::NetReceive ? confirmArgs :
+                    request.action == worldsave::MonoWorldAction::NetSend ? prepareArgs :
                     leaveArgs;
     void* exception = nullptr;
     void* boxed = g_api.invoke(method, nullptr, chosen, &exception);
@@ -1212,7 +1218,8 @@ worldsave::MonoWorldReply invokeManagedWorldOnPinnedMono(
         reply.error = "World MonoVM callback raised managed exception";
         return reply;
     }
-    if (request.action == worldsave::MonoWorldAction::Prepare) {
+    if (request.action == worldsave::MonoWorldAction::Prepare ||
+        request.action == worldsave::MonoWorldAction::NetSend) {
         if (boxed) {
             reply.payload = getString(boxed);
             reply.success = !reply.payload.empty() &&
