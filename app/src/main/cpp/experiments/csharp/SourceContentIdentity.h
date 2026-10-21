@@ -14,12 +14,14 @@ inline std::string_view sourceContentDomain(std::string_view base) {
     if (base == "BunnyPlayer") return "PLAYER";
     if (base == "BunnyTile") return "TILE";
     if (base == "BunnyScreenEffect") return "SCREEN_EFFECT";
+    if (base == "BunnyAchievement") return "ACHIEVEMENT";
     return {};
 }
 
 
 inline bool sourceRequiresNativeRegistration(std::string_view base) {
-    return base != "BunnyPlayer" && base != "BunnyScreenEffect";
+    return base != "BunnyPlayer" && base != "BunnyScreenEffect" &&
+           base != "BunnyAchievement";
 }
 
 inline std::string_view sourceWireDomain(std::string_view kind) {
