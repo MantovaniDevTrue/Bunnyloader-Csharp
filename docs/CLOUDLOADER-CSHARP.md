@@ -11,7 +11,7 @@ Somente Bunny Loader / ExampleModBunny, sem copiar tModLoader:
 - `app/src/main/cpp/script/js/mod/Loaders/CloudLoader.js`
 - `app/src/main/cpp/script/js/mod/ModCloud.js`
 - `samples/ExampleMod/content/Content/Clouds/ExampleAdvancedCloud.js`
-- `samples/ExampleMod/content/Assets/Textures/Clouds/` (verificar caminho no pacote atual)
+- `samples/ExampleMod/content/Content/Clouds/ExampleCloud.png` e `ExampleAdvancedCloud.png`
 
 A implementação C# deve usar MonoVM e o núcleo C++ nativo, sem qualquer execução
 indireta de código JavaScript. O ExampleModBunny é usado apenas para determinar
@@ -24,9 +24,17 @@ o comportamento correto e suas regras já validadas.
   raras em mundo de aniversário, janela de 60 tentativas, prioridade da
   rolagem rara e bloqueio de tipo sem máscara.
 - `NativeCloudRegistry.h`: identidade por mod e classe, IDs desde o
-  `CloudID.Count` fornecido pelo Terraria, rejeição de caminhos perigosos,
+  tipo fornecido pelo plano que respeita `CloudID.Count` **e** os IDs
+  já ocupados pelo JS, rejeição de caminhos perigosos,
   segurança transacional de disponibilidade de textura/máscara e limpeza.
 - `BunnyCloudDispatcher.cs`: registro C# por assembly, vínculo de IDs nativos, peso por bioma, `OnSpawn`, isolamento de exceções, várias instâncias e descarregamento.
+- `NativeCloudIdPlan.h` / `NativeCloudIdProbe.cpp`:
+  inspecionam `Terraria.ID.CloudID.Count`, o tipo e o tamanho real de
+  `TextureAssets.Cloud` e `TextureMaskManager.CloudMasks`.
+  A primeira ID C# fica **depois das duas tabelas**. Se o `Ready/setup`
+  dos mods JS ou o `LoadMasks` ainda não estiverem comprovadamente
+  concluídos, a reserva é negada em vez de disputar IDs. O probe não
+  modifica nada no Terraria; a ativação real ainda não foi conectada.
 - `NativeCloudManifest.h`: leitura estrita e transacional do protocolo
   `BUNNY_CLOUDS_V1` gerado pelo Roslyn. Duplicações ou entradas inválidas
   não deixam classes parcialmente registradas.
@@ -34,6 +42,8 @@ o comportamento correto e suas regras já validadas.
   Prepara PNGs, duas tabelas IL2CPP separadas, máscaras do horizonte e
   seus handles GC. Publica máscaras antes das texturas e reverte ambas
   se qualquer verificação falhar. Rejeita IDs já ocupados por outro loader.
+  A desinstalação também recusa apagar texturas enquanto os hooks ainda
+  sorteiam nuvens ou existe alguma nuvem do mod ativa na tela.
 - `NativeCloudSpawnLedger.h`: fila limitada de eventos `OnSpawn` para
   MonoVM, com gerações por slot; bloqueia resultados atrasados depois
   que o Terraria reutiliza um slot ou troca de mundo.
@@ -58,7 +68,8 @@ o comportamento correto e suas regras já validadas.
 - `ManagedRuntime.cpp`: integrado à thread MonoVM fixada existente,
   com jobs limitados de registro, vinculação de IDs, pesos e `OnSpawn`.
   Os retornos incluem a geração da sessão e dos lotes de pesos;
-  callbacks atrasados são descartados.
+  callbacks atrasados são descartados. A troca de mundo invalida os
+  callbacks em voo sem perder os assemblies e IDs registrados.
 - `NativeCloudHooks.cpp`: `pumpNativeCloudManagedCallbacksOnGameThread`
   drena resultados de `OnSpawn` e publica pesos somente depois das
   respostas de todos os mods. Nuvens autoload recebem peso 1 sem
@@ -71,7 +82,7 @@ o comportamento correto e suas regras já validadas.
   `ModFiles.ListTextures('Clouds')` do Bunny original.
 
 
-- `SourceParser.cpp` / `SourceContentIdentity.h`: reconhecimento explícito de `BunnyCloud` e domínio `CLOUD`; `SourceLoader.cpp` recusa nuvens antes de registrar itens enquanto não houver máscaras e hooks nativos.
+- `SourceParser.cpp` / `SourceContentIdentity.h`: reconhecimento explícito de `BunnyCloud` e domínio `CLOUD`; `SourceLoader.cpp` recusa nuvens antes de registrar itens enquanto não houver máscaras e hooks nativos. O bloqueio vale tanto para classes `BunnyCloud` quanto para **PNGs autoload sem classe**, para que o mod não perca conteúdo silenciosamente.
 - `CompiledAssemblyProbe.cs`: reconhecimento por reflexão e geração do catálogo isolado `source-clouds-v1.txt`, sem alterar o formato V2 dos demais itens.
 - `tests/cloud_loader/`: exemplos executáveis das duas classes de nuvens,
   casos de PNG ausente, peso inválido, duplicação, mundo de aniversário,
@@ -126,6 +137,31 @@ Isto é intencional: o céu mobile exige máscaras válidas em
 passo pode causar interrupção do renderizador. O manifesto é apenas
 metadado, não uma ponte para QuickJS.
 
+## Segurança de coexistência e troca de mundo
+
+O registro original JS usa `CloudID.Count + ByType.size`, e
+cresce suas tabelas somente na etapa `Ready.Add(..., 'setup')`.
+Reservar `CloudID.Count` diretamente em C# poderia sobrepor uma
+nuvem JS. O plano novo considera o maior tamanho das duas tabelas
+já estabilizadas. **Ele não considera seguro um estado intermediário.**
+
+Na transição de mundo, `AutoSourceRuntime.cpp` invalida
+as solicitações pendentes do MonoVM; `resetManagedCloudWorldSession`
+mantém os assemblies e IDs do mod carregados para reutilização
+posterior. O unload completo usa uma função diferente.
+
+No teardown gráfico, `uninstallNativeCloudAssets` verifica
+os hooks e as nuvens ainda ativas em `Main.cloud` antes de liberar os
+`Texture2D`. Qualquer falha de inspeção mantém os recursos vivos
+e recusa a restauração, para não deixar o renderizador com ponteiros
+para texturas destruídas.
+
+O CI executa `native_cloud_id_plan_test.cpp`, casos com
+`CloudID.Count`, IDs JS existentes, máscaras maiores que texturas,
+setup incompleto e UUIDs com hífens. `SourceLoader.cpp` também é
+analisado pelo Clang/GCC em desktop com um cabeçalho `android/log.h`
+restrito aos testes, **sem alterar o código Android real**.
+
 ## O que falta para finalizar o CloudLoader inteiro
 
 - [x] Criar `BunnyCloud` experimental, contrato gerenciado, exemplos
@@ -133,6 +169,8 @@ metadado, não uma ponte para QuickJS.
 - [x] Compilar SDK, exemplos C#, código C++ e o manifesto do Roslyn no CI sem APK.
 - [ ] Estabilizar a API com o host nativo e validar em aparelho antes de classificá-la como utilizável em jogo.
 - [x] Reconhecer `BunnyCloud` no parser, reservar domínio `CLOUD` e exportar catálogo Roslyn separado.
+- [x] Implementar planejamento seguro de IDs após JS e validação nativa das duas tabelas, somente leitura.
+- [x] Detectar nuvens PNG-only sem classes e bloquear carregamento incompleto antes de registrar outros conteúdos.
 - [ ] Completar registro nativo real e instalação automática de texturas e máscaras antes da entrada no mundo.
 - [x] Codificar instalador transacional nativo e verificação de máscaras,
       com rollback e preservação das tabelas vanilla.
@@ -161,6 +199,8 @@ metadado, não uma ponte para QuickJS.
       eventuais diferenças de layout IL2CPP.
 - [x] Cobrir em testes sem Android: múltiplos mods, mundo de aniversário,
       PNG simples, colisões de ID, pesos inválidos e gerações de slots.
+- [x] Codificar limpeza de jobs por época do mundo, preservando classes/IDs,
+      e recusa de desinstalação com nuvens ativas.
 - [ ] Cobrir no Terraria real: recarga de mundo, desconexão,
       recompilação, assets ausentes, desinstalação e ausência de leaks.
 - [x] Criar classes C# de nuvem comum e avançada comentadas e testes de
