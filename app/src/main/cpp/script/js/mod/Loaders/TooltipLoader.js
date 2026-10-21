@@ -494,6 +494,7 @@ class TooltipLoader {
         // que desenha a linha com ela sai do tamanho das outras.
         const drawables = tooltips.map((line, i) => {
             const dl = new DrawableTooltipLine(line, i, 0, 0, TooltipLoader.#LineColor(line, ctx));
+            dl.__bunnyManagedDraw = line.__bunnyManagedDraw;
             dl.BaseScale = Vector2.new(scale, scale);
             return dl;
         });
