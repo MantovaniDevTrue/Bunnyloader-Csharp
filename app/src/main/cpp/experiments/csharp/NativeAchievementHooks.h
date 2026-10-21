@@ -8,6 +8,9 @@ namespace bl::csharp {
 bool registerNativeAchievementMod(const std::string& modId,
                                   const std::string& assemblyPath);
 
+bool nativeAchievementBindingsReady();
+bool nativeAchievementHooksReady();
+
 // Deve ser chamado apenas na thread do Terraria, depois de resolver GameRefs.
 // Falha fechada se qualquer uma das quatro assinaturas IL2CPP divergir.
 bool installNativeAchievementHooks(std::string* error);
