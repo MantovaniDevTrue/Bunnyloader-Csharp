@@ -2455,7 +2455,12 @@ void* pinnedMonoWorker(void*) {
                     const int index = g_dustBootstrap.front();
                     g_dustBootstrap.pop_front();
                     lock.unlock();
-                    executeManagedDustOnWorker(index, nullptr, nullptr, nullptr);
+                    const bool bound = executeManagedDustOnWorker(index, nullptr, nullptr, nullptr);
+#ifdef __ANDROID__
+                    if (!bound)
+                        reportManagedItemUse(ANDROID_LOG_WARN,
+                            "[CSharp][DustLoader] Stage=MonoBind Result=Rejected Reason=ManagedRegisterOrBindFailed");
+#endif
                     lock.lock();
                     continue;
                 }
