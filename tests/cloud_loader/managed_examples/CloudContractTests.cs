@@ -1,4 +1,6 @@
 using System;
+using System.IO;
+using BunnyLoader.SourceCompiler;
 using BunnyLoader.Source;
 using ExampleModCSharp.CloudExamples;
 
@@ -106,6 +108,35 @@ static class CloudContractTests
         BunnyCloudDispatcher.Clear();
         Require(BunnyCloudDispatcher.ModCount == 0 &&
             BunnyCloudDispatcher.BoundCloudCount == 0, "Worker reset removes registrations");
+        // Exercita a inspeção real do compilador Roslyn sobre um assembly
+        // contendo apenas BunnyClouds, sem instalar textura, DLL de mod ou APK.
+        string probeFolder = Path.Combine(Path.GetTempPath(),
+            "bunny-cloud-probe-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(probeFolder);
+        try
+        {
+            string diag = Path.Combine(probeFolder, "source-diagnostics.txt");
+            string assemblyPath = typeof(CloudContractTests).Assembly.Location;
+            Require(CompiledAssemblyProbe.Verify(assemblyPath, diag) == 3,
+                "Compiler probe recognizes three BunnyCloud types");
+            string[] lines = File.ReadAllLines(Path.Combine(
+                probeFolder, "source-clouds-v1.txt"));
+            Require(lines.Length == 4 && lines[0] == "BUNNY_CLOUDS_V1",
+                "Compiler emits exactly three cloud metadata rows");
+            Require(Array.Exists(lines, line => line ==
+                "CLOUD\\tExampleAdvancedCloud\\tContent/Clouds/ExampleAdvancedCloud\\t1".Replace("\\t", "\t")),
+                "Compiler preserves rare cloud and texture");
+            Require(Array.Exists(lines, line => line ==
+                "CLOUD\\tExampleCommonCloud\\tContent/Clouds/ExampleCloud\\t0".Replace("\\t", "\t")),
+                "Compiler preserves common cloud and texture");
+            Require(File.ReadAllText(diag).Contains("activation=NativeCloudHooksAndMasksNotInstalled"),
+                "Compiler never claims the cloud runtime is playable");
+        }
+        finally
+        {
+            Directory.Delete(probeFolder, true);
+        }
+
         Console.WriteLine("BunnyCloud C# source-only contract and two examples OK (no APK)");
         return 0;
     }
