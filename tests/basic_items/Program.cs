@@ -322,6 +322,16 @@ try {
   Equal(true,minionRows.Contains("RECIPES\tExampleMinionItem\tWEAPON\t1,mExampleWorkbench,mExampleItem:1"));
   var sword=minionRows.Single(row=>row.StartsWith("ITEM\tExampleMeleeWeapon\t",StringComparison.Ordinal)).Split('\t');Equal("50000",sword[5]);
   var bulletItem=minionRows.Single(row=>row.StartsWith("ITEM\tExampleBullet\t",StringComparison.Ordinal)).Split('\t');Equal("5000",bulletItem[5]);
+  var tooltipItem=minionRows.Single(row=>row.StartsWith("ITEM\tExampleTooltipItem\t",StringComparison.Ordinal)).Split('\t');
+  Equal(27,tooltipItem.Length);
+  using(var document=JsonDocument.Parse(Convert.FromHexString(tooltipItem[26]))) {
+   var lines=document.RootElement;
+   Equal(3,lines.GetArrayLength());
+   Equal("BunnyLoader",lines[1].GetProperty("name").GetString());
+   Equal("Bunny Loader",lines[1].GetProperty("text").GetString());
+   Equal(true,lines[1].GetProperty("rainbow").GetBoolean());
+   Equal("FFD75A",lines[2].GetProperty("color").GetString());
+  }
   var bullet=minionRows.Single(row=>row.StartsWith("NATIVE_ITEM\tExampleBullet\t",StringComparison.Ordinal));
   Equal(true,bullet.Contains("ammo:d:AmmoID:Bullet")&&bullet.Contains("shoot:p:ExampleBulletProjectile")&&bullet.Contains("shootSpeed:f:4.5"));
   var projectile=minionRows.Single(row=>row.StartsWith("NATIVE_PROJECTILE\tExampleBulletProjectile\t",StringComparison.Ordinal));
