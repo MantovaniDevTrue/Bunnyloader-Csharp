@@ -323,7 +323,29 @@ bool make(const AchievementMetadata& definition, NativeEntry* out,
     if (!invoke(methods.setProgress, condition, initialArgs, nullptr, error))
         return false;
     out->applied = initialProgress;
+    out->hiddenApplied = definition.hidden && !definition.completed;
+    out->achievementRoot = a.gchandle_new(achievement, false);
+    out->conditionRoot = a.gchandle_new(condition, false);
+    out->titleRoot = a.gchandle_new(title, false);
+    out->descriptionRoot = a.gchandle_new(description, false);
+    out->hiddenRoot = a.gchandle_new(obscured, false);
+    const auto releaseRoots = [&]() {
+        for (uint32_t handle : {out->achievementRoot, out->conditionRoot,
+                                out->titleRoot, out->descriptionRoot,
+                                out->hiddenRoot, out->assetRoot}) {
+            if (handle) a.gchandle_free(handle);
+        }
+        *out = {};
+    };
+    if (!out->achievementRoot || !out->conditionRoot ||
+        !out->titleRoot || !out->descriptionRoot || !out->hiddenRoot) {
+        *error = "Achievement GC root allocation failed";
+        releaseRoots();
+        return false;
+    }
 
+    // A Unity pode disparar GC enquanto decodifica PNG. Todas as referências
+    // nativas já estão enraizadas ANTES dessa alocação potencialmente grande.
     const std::size_t uidEnd = definition.name.find('/');
     const std::string uid = definition.name.substr(0, uidEnd);
     const std::string root = bl::mods::rootOf(uid);
@@ -332,6 +354,7 @@ bool make(const AchievementMetadata& definition, NativeEntry* out,
         !normalizeContentTexture(definition.texture.c_str(), &texture, &reason)) {
         *error = "Achievement atlas missing or invalid: " + definition.name +
                  " Reason=" + (root.empty() ? "UnknownModRoot" : reason);
+        releaseRoots();
         return false;
     }
     int atlasWidth = 0, atlasHeight = 0;
@@ -340,36 +363,22 @@ bool make(const AchievementMetadata& definition, NativeEntry* out,
         &atlasWidth, &atlasHeight);
     if (!atlas) {
         *error = "Achievement atlas failed to decode: " + definition.name;
+        releaseRoots();
         return false;
     }
-    // A interface Terraria mobile busca x=528 para o estado bloqueado.
-    // A textura de PC 130x64 desloca o ícone para fora do atlas.
     if (atlasWidth != 592 || atlasHeight != 64) {
         bl::runtime::content::destroyTextureAsset(atlas);
         *error = "Achievement atlas must be 592x64: " + definition.name +
                  " got " + std::to_string(atlasWidth) + "x" +
                  std::to_string(atlasHeight);
+        releaseRoots();
         return false;
     }
-
-    out->hiddenApplied = definition.hidden && !definition.completed;
-    out->achievementRoot = a.gchandle_new(achievement, false);
-    out->conditionRoot = a.gchandle_new(condition, false);
-    out->titleRoot = a.gchandle_new(title, false);
-    out->descriptionRoot = a.gchandle_new(description, false);
-    out->hiddenRoot = a.gchandle_new(obscured, false);
     out->assetRoot = a.gchandle_new(atlas, false);
-    if (!out->achievementRoot || !out->conditionRoot ||
-        !out->titleRoot || !out->descriptionRoot || !out->hiddenRoot ||
-        !out->assetRoot) {
-        *error = "Achievement GC root allocation failed";
-        for (uint32_t root : {out->achievementRoot, out->conditionRoot,
-                              out->titleRoot, out->descriptionRoot,
-                              out->hiddenRoot, out->assetRoot}) {
-            if (root) a.gchandle_free(root);
-        }
+    if (!out->assetRoot) {
+        *error = "Achievement texture GC root allocation failed";
         bl::runtime::content::destroyTextureAsset(atlas);
-        *out = {};
+        releaseRoots();
         return false;
     }
     return true;
