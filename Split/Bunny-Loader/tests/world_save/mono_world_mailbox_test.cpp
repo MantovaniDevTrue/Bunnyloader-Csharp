@@ -18,7 +18,9 @@ int main() {
     mailbox.finish(running, {true, "ok", ""});
     assert(mailbox.wait(first, 10ms, &response) && response.payload == "ok");
 
-    MonoWorldRequest save{MonoWorldAction::Prepare, 1};
+    MonoWorldRequest save{};
+    save.action = MonoWorldAction::Prepare;
+    save.epoch = 1;
     for (size_t i = 0; i < MonoWorldMailbox::Limit; ++i)
         assert(mailbox.submit(save));
     assert(!mailbox.submit(save));
