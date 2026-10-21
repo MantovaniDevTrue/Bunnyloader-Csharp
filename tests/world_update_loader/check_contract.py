@@ -20,7 +20,7 @@ complete = {
 }
 
 implemented = set(re.findall(r"\bprotected virtual void (\w+)\s*\(", sdk)) - {"OnUnloaded"}
-expected = complete - {"UpdateUI", "ModifyTimeRate"}
+expected = complete - {"ModifyTimeRate"}
 assert implemented == expected, f"Escopo C# alterado sem auditoria: {implemented ^ expected}"
 assert len(complete) == 19
 for callback in complete:
@@ -49,6 +49,10 @@ assert "UpdateUIStates(GameTime gameTime)" in original
 assert "Main['void DoUpdateInWorld()']" in original
 assert 'new("Bunny.SystemStage", "EntitiesBegin", false,' in sdk
 assert 'new("Bunny.SystemStage", "EntitiesEnd", false,' in sdk
+assert 'new("Bunny.SystemStage", "UIEnd", false,' in sdk
+assert '{"UIEnd", 0,' in native
+assert 'UpdateUIStates(GameTime gameTime)' in native
+assert 'field_static_get_value(gameMenuField' in native
 for stage in ("PlayersBegin", "PlayersEnd", "NPCsBegin", "NPCsEnd", "GoresEnd", "ItemsBegin", "ItemsEnd"):
     assert f'new("Bunny.SystemStage", "{stage}", false,' in sdk
 assert 'new("Terraria.Main", "PreUpdateAllProjectiles", false,' in sdk
