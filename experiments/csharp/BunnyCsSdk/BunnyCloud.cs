@@ -86,6 +86,10 @@ public abstract class BunnyCloud
     public string Texture { get; protected set; } = "";
     public virtual bool RareCloud => false;
 
+    /// <summary>Define os valores da instância antes de registrar a textura.</summary>
+    public abstract void SetDefaults();
+
+    /// <summary>Hook opcional, executado na carga após SetDefaults e Validate.</summary>
     public virtual void SetStaticDefaults() { }
 
     /// <summary>
