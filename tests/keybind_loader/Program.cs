@@ -85,6 +85,7 @@ static class KeybindContract
         BunnyTouchButtonLoader.ApplyHostFrame(2, true, false, false, false,
             new[] { dash.Id, 127, -1 }, Array.Empty<int>(), Array.Empty<int>());
         Check(!second.Current && !dash.Current, "invalid/stale IDs discarded");
+        LayoutStoreTests.Run();
         Console.WriteLine("KEYBIND CONTRACT PASS (" + checks + " checks)");
     }
 }
