@@ -112,7 +112,7 @@ size_t closing(const std::vector<Token>& tokens, size_t open, const std::string&
 bool contentDeclaration(const std::vector<Token>& tokens, size_t first, size_t last,
                         std::string* base, std::map<std::string, std::string>* properties,
                         std::string* error,std::vector<std::pair<std::string,std::string>>* localizedNames) {
-    const std::string kinds = "|Item|Tile|Weapon|Projectile|Buff|BuffPotion|Accessory|Player|NPC|Prefix|Cloud|";
+    const std::string kinds = "|Item|Tile|Weapon|Projectile|Buff|BuffPotion|Accessory|Player|NPC|Prefix|";
     for (size_t i = first; i < last; ++i) {
         if(!tokens[i].literal&&(tokens[i].value=="BunnyName"||tokens[i].value=="BunnyNameAttribute")) {
             if(i+6>=last||tokens[i+1].value!="("||!tokens[i+2].literal||tokens[i+3].value!=","||!tokens[i+4].literal||tokens[i+5].value!=")"||tokens[i+6].value!="]") {
