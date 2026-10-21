@@ -24,6 +24,7 @@
     <Compile Include="../BunnyCsSdk/BunnyWorldData.cs" Link="BunnyWorldData.cs" />
     <Compile Include="../BunnyCsSdk/BunnyWorldDispatcher.cs" Link="BunnyWorldDispatcher.cs" />
     <Compile Include="../BunnyCsSdk/BunnyWorldMonoHost.cs" Link="BunnyWorldMonoHost.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyWorldNetworkCodec.cs" Link="BunnyWorldNetworkCodec.cs" />
   </ItemGroup>
 </Project>
 

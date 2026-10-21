@@ -74,6 +74,10 @@ A integração de Terraria.IO.WorldFile.LoadWorld(bool) chama Enter apenas após
 
 A saída via WorldGen.SaveAndQuitCallBack(object) também chama OnWorldUnload no MonoVM e invalida o sidecar após o callback original, com limpeza adicional pelo monitor do menu para casos sem callback. O teste de sintaxe C++ no Linux ainda não valida a ABI efetiva do Terraria Android; isso requer QA nativo. Também falta suporte real de rede para o multiplayer.
 
+## Etapa 12 — formato gerenciado de rede BWN1
+
+BunnyWorldSystem agora inclui NetSend(BinaryWriter) e NetReceive(BinaryReader), usando apenas System.IO do C# nativo. ExampleDownedBossWorldSystem demonstra a flag de progresso enviada pelo servidor e lida pelo cliente, como o ExampleModBunny. BunnyWorldNetworkCodec serializa o envelope BWN1 com revisão, UUID/classe, payload por sistema, limite de 60000 bytes e checksum CRC32. Valida integralmente antes de entregar bytes aos callbacks. Os testes .NET exercitam roundtrip, corrupção, truncamento e pacote excedente. **Ainda não há transporte de rede instalado no Terraria**; não anunciar multiplayer como pronto.
+
 ## Requisitos ainda bloqueantes
 
 1. Host nativo C++ deve capturar a identidade real do arquivo de mundo após a seleção; não confiar em nome de mundo ou caminho informado por um mod.

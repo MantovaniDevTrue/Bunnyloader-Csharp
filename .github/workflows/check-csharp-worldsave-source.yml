@@ -11,6 +11,7 @@ on:
       - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp"
       - "Split/Bunny-Loader/app/src/main/cpp/content/tiles/ModTileSave.cpp"
       - "Split/Bunny-Loader/experiments/csharp/BunnyCsSdk/BunnyWorldMonoHost.cs"
+      - "Split/Bunny-Loader/experiments/csharp/BunnyCsSdk/BunnyWorldNetworkCodec.cs"
       - "Split/Bunny-Loader/experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj"
       - "Split/Bunny-Loader/tests/world_save/**"
       - ".github/workflows/check-csharp-worldsave-source.yml"
