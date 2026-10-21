@@ -105,6 +105,20 @@ static class CloudContractTests
         Require(BunnyCloudDispatcher.Unregister("cloud-test-a"), "Unregister mod A");
         Require(BunnyCloudDispatcher.Bind("cloud-test-b", nameof(ExampleCommonCloud), 200),
             "Native ID reusable after mod A unloads");
+        // Contrato invocado pelo worker MonoVM: arquivo DLL, pesos V1 e
+        // resposta de espelhamento em inteiro. Nenhum objeto Terraria passa.
+        Require(BunnyCloudDispatcher.RegisterFromPath("cloud-wire",
+            typeof(CloudContractTests).Assembly.Location), "Worker register from DLL");
+        Require(BunnyCloudDispatcher.Bind("cloud-wire",
+            nameof(ExampleAdvancedCloud), 204), "Worker cloud bind");
+        string wire = BunnyCloudDispatcher.WeightsWire("cloud-wire", false,
+            false, "ExampleModCSharp/ExampleSurfaceBiome");
+        Require(wire == "BUNNY_CLOUD_WEIGHTS_V1\\n204\\t10\\n".Replace("\\n", "\n").Replace("\\t", "\t"),
+            "Worker weight wire in example biome");
+        Require(BunnyCloudDispatcher.OnSpawnWire("cloud-wire", 204, 8, .75f, 1)
+            == 0, "Worker advanced cloud does not flip");
+        Require(BunnyCloudDispatcher.OnSpawnWire("cloud-wire", 204, 200, .75f, 1)
+            == -1, "Worker rejects stale/bad slot");
         BunnyCloudDispatcher.Clear();
         Require(BunnyCloudDispatcher.ModCount == 0 &&
             BunnyCloudDispatcher.BoundCloudCount == 0, "Worker reset removes registrations");
