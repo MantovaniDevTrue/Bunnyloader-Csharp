@@ -63,7 +63,6 @@ internal static class BunnyTouchNativeHost
             (flags & 8u) != 0,
             (flags & 16u) != 0,
             (flags & 32u) != 0);
-    }
 
     internal static void Unload(string owner) => UnloadNative(owner);
 }
