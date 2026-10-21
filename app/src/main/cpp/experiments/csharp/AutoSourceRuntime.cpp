@@ -28,6 +28,7 @@
 #include "experiments/csharp/NpcAiHost.h"
 #include "experiments/csharp/ManagedRuntime.h"
 #include "experiments/csharp/NativeAchievementHooks.h"
+#include "experiments/csharp/NativeAchievementRegistry.h"
 #include "experiments/csharp/MonoServiceDispatch.h"
 #include "experiments/csharp/SourceLoader.h"
 #include "experiments/csharp/ManagedSourceClassCount.h"
@@ -1293,6 +1294,28 @@ void noteAutoGameUpdate() {
     pumpInteractiveConsoleOnGameThread();
     pumpBasicRecipesOnGameThread();
     pumpNativeVisualRendererOnGameThread();
+    if (nativeAchievementBindingsReady() &&
+        g_initialCSharpRegistrationFinished.load(std::memory_order_acquire)) {
+        const uint64_t currentRevision = nativeAchievementMetadataRevision();
+        static uint64_t appliedRevision = 0;
+        static unsigned int attempt = 0;
+        if (currentRevision != appliedRevision && currentRevision != 0 &&
+            ++attempt % 60u == 1u) {
+            // O MonoVM publica dados; somente a thread Terraria manipula
+            // AchievementManager e objetos IL2CPP. Nunca executar por quadro.
+            const auto definitions = nativeAchievementMetadataSnapshot();
+            std::string error;
+            if (registerNativeAchievementObjects(definitions, &error)) {
+                appliedRevision = currentRevision;
+                BL_INFO("[CSharp][AchievementLoader] Registry=Ready Count=%zu Revision=%llu",
+                        definitions.size(),
+                        static_cast<unsigned long long>(currentRevision));
+            } else {
+                BL_WARN("[CSharp][AchievementLoader] Registry=Pending Detail=%s",
+                        error.c_str());
+            }
+        }
+    }
     if (!g_worldTilesLoaded.load(std::memory_order_acquire))
         updateManagedNpcBuffDispatcherOnGameThread();
     if (!g_worldTilesLoaded.load(std::memory_order_acquire) &&
