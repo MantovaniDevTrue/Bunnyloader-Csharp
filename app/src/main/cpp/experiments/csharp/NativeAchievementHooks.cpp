@@ -206,6 +206,16 @@ bool nativeAchievementHooksReady() {
     return hooksReady.load(std::memory_order_acquire);
 }
 
+void flushNativeAchievementProgressOnExit() {
+    worldActive.store(false, std::memory_order_release);
+    std::lock_guard<std::mutex> lock(bindingMutex);
+    for (const auto& [mod, assembly] : bindings) {
+        if (!queueManagedAchievementFlush(mod, assembly))
+            BL_WARN("[CSharp][AchievementLoader] Flush enfileirado recusado mod=%s",
+                    mod.c_str());
+    }
+}
+
 void setNativeAchievementWorldActive(bool active) {
     worldActive.store(active, std::memory_order_release);
 }
