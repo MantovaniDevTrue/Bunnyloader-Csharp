@@ -89,3 +89,41 @@ funcionamento dos controles dentro do Terraria.
 "Native ABI compile PASS" valida que o C++ compila contra os headers do
 repositório. Não valida offsets ou assinaturas no libil2cpp do telefone.
 "Managed test PASS" valida lógica de snapshots simulados, não um botão real.
+
+
+## Lote nativo/editor e perfis — 20/10/2026
+
+- NativeTouchController.h/.cpp: hook OBSERVADOR do método exato
+  GUIVirtualInputController.Update(float elapsedTime), instalado uma vez na
+  thread do jogo por noteAutoGameUpdate(), apenas depois de conferir
+  Controller, arrays e Main.gameMenu. Ação original é preservada.
+- Os campos Pressed, WasPressed e Scale são ampliados juntos, apenas quando
+  necessário, respeitando o tamanho de cada elemento, com barreira GC.
+  O código verifica classe, tamanho, enum ControlType.Count, capacidade máxima
+  e método original. Falhas deixam as ações C# desativadas.
+- O ciclo de vida da AutoSourceRuntime reinicia os estados de toque ao
+  entrar/sair de mundo, sem reciclar IDs da sessão.
+- BunnyTouchLayoutStore.cs implementa o esquema JSON compatível com os
+  campos version, profiles, slot, index, action e group do loader de
+  referência, com captura/restauração sem sobrescrever ações vanilla,
+  preservação de mods removidos, limite de dados, serialização e escrita
+  atômica. Testes em tests/keybind_loader/LayoutStoreTests.cs.
+- Para convivência com o loader JS, cada runtime usa o **seu próprio
+  arquivo**: BunnyLoader.touchbuttons.csharp.json. O C# jamais grava
+  BunnyLoader.touchbuttons.json, que continua exclusivo dos layouts JS.
+- A CI de 8b5076b (https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39519017377)
+  aprovou testes gerenciados, testes nativos ASan/UBSan e compilação do
+  observador e do auditor de ABI. Isso ainda NÃO é teste in-game.
+
+### Bloqueios restantes e segurança
+
+- O observador ainda não injeta ações no editor nem interpreta botões de
+  grupos. A captura real dos slots do Terraria precisa ligar o formato JSON
+  gerenciado ao SaveConfiguration/LoadConfiguration, com stripping vanilla.
+- HandleTouchCursorDown possui struct Vector2 no ABI ARM64; não se instala
+  hook especulativo. Falta validar seu protótipo por metadata e amostras nativas.
+- IsBound, chat/placa/NPC em runtime, textura e labels de editor ainda
+  não estão ligados à reflexão nativa.
+- host_ready segue **false** deliberadamente. O observador da atualização
+  não libera a API C# para gameplay até TODO o conjunto estar validado.
+- Nenhum APK foi gerado. PR #120 permanece draft.
