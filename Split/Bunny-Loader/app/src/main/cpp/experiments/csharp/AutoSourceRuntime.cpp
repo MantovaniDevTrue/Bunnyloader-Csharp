@@ -3,6 +3,8 @@
 #include "experiments/csharp/AutoSourceRuntime.h"
 #include "experiments/csharp/NativeWorldStore.h"
 #include "experiments/csharp/NativeWorldCoordinator.h"
+#include "experiments/csharp/NativeWorldNetwork.h"
+#include "experiments/csharp/NativeWorldNetTransport.h"
 #include "il2cpp/Signature.h"
 #include "experiments/csharp/NativeVisualRenderer.h"
 #include "experiments/csharp/NativeContent.h"
@@ -86,6 +88,7 @@ std::atomic<uint64_t> g_worldEpoch{0};
 std::atomic<uint64_t> g_worldDataEnteredEpoch{0};
 std::atomic<int> g_worldSystemModules{0};
 std::atomic<bool> g_nativeWorldSaveHooksReady{false};
+std::atomic<bool> g_nativeWorldNetHooksReady{false};
 std::atomic<uint64_t> g_visualUpdateTick{0};
 std::atomic<uint64_t> g_liveBoundEpoch{0};
 std::atomic<int> g_worldLoads{0};
@@ -1349,9 +1352,13 @@ bool preWorldCSharpContentReady() {
         std::lock_guard<std::mutex> lock(g_lock);
         needsNpcDispatcher = !g_pendingLiveSpecs.empty();
     }
+    const auto context = readActivationContext();
+    const bool networkReady = context.netMode <= 0 ||
+        g_nativeWorldNetHooksReady.load(std::memory_order_acquire);
     return g_worldRegistrationReady.load(std::memory_order_acquire) &&
            (g_worldSystemModules.load(std::memory_order_acquire) == 0 ||
-            g_nativeWorldSaveHooksReady.load(std::memory_order_acquire)) &&
+            (g_nativeWorldSaveHooksReady.load(std::memory_order_acquire) &&
+             networkReady)) &&
            content.pendingBehaviors == 0 && content.pendingRecipes == 0 &&
            content.pendingPlacements == 0 && pendingNativeVisualRenderer() == 0 &&
            (!needsNpcDispatcher || managedNpcBuffEffectStatus().gameHookInstalled);
@@ -1423,7 +1430,9 @@ void flushDeferredWorldEntry() {
         g_preWorldBindingsArmed.load(std::memory_order_acquire)&&
         g_worldRegistrationReady.load(std::memory_order_acquire)&&
         (g_worldSystemModules.load(std::memory_order_acquire)==0 ||
-         g_nativeWorldSaveHooksReady.load(std::memory_order_acquire))&&
+         (g_nativeWorldSaveHooksReady.load(std::memory_order_acquire)&&
+          (readActivationContext().netMode<=0 ||
+           g_nativeWorldNetHooksReady.load(std::memory_order_acquire))))&&
         bl::runtime::modItemsSettled()) {
         BL_WARN("[CSharp][WorldLoading] Stage=BeforeWorld Result=ContinueWithDeferredNativeAssets PendingNativePolicies=%zu PendingArmorSets=%d PendingEquipmentTextures=%d PendingRecipes=%d PendingVisuals=%zu",
                 pendingNativePolicies,pendingArmor,pendingEquipment,content.pendingRecipes,pendingNativeVisualRenderer());
@@ -1469,7 +1478,8 @@ void hkNativeCSharpWorldLoad(bool check, const MethodInfo* method) {
     if (g_worldSystemModules.load(std::memory_order_acquire) == 0 ||
         !g_worldRegistrationReady.load(std::memory_order_acquire) ||
         !g_worldTilesLoaded.load(std::memory_order_acquire) ||
-        readActivationContext().netMode != 0) return;
+        (readActivationContext().netMode != 0 &&
+         readActivationContext().netMode != 2)) return;
     const uint64_t epoch = g_worldEpoch.load(std::memory_order_acquire);
     if (!worldsave::activeWorldStore().active(epoch)) return;
     std::string error;
@@ -1553,6 +1563,8 @@ bool installCSharpWorldEntryGate() {
         return false;
     }
     const bool worldSaveReady = installNativeCSharpWorldSaveHooks();
+    const bool worldNetReady = worldsave::installNativeWorldNetHooks();
+    g_nativeWorldNetHooksReady.store(worldNetReady, std::memory_order_release);
     g_nativeWorldSaveHooksReady.store(worldSaveReady, std::memory_order_release);
     if (!worldSaveReady)
         BL_WARN("CSharp WorldSave hooks unavailable; world system gate remains closed");
