@@ -9,11 +9,11 @@ Referência exclusiva para Bunny: código original de `ModAchievement.js`, `Achi
 - Progresso estável por UID/classe/chave, combinação de condições, contagem numérica, Hidden, Category e callback OnCompleted.
 - Persistência `BACH1` por mod em área interna do Bunny, com limite de 1 MiB, UTF-8 estrito, escrita em `.tmp`, `Flush(true)` e rename atômico. O progresso anterior é lido antes do vínculo nativo. Save corrompido é recusado sem ser sobrescrito; conquistas vanilla não são modificadas.
 - Autosave limitado por alterações reais (até três segundos nos eventos seguintes), imediato na conclusão e flush assíncrono em ordem FIFO ao sair do mundo.
-- Metadados `BACH_META_V1` enviados apenas quando o progresso muda: a camada nativa valida UID, campos, estados, índices, caminhos e atualização de conclusão/visibilidade.
+- Metadados `BACH_META_V2` enviados somente quando uma condição muda: linhas `A` registram a conquista; linhas `C` preservam chave, tipo, limite e valor individual. O parser continua aceitando V1 para compatibilidade, sem mudar o `BACH1` persistido.
 - Endpoint `BunnyAchievementRuntime.Dispatch` no worker MonoVM: bind, eventos, save/load, unload, metadata, configuração de pasta e flush. A fila nativa tem até 256 comandos, **2 MiB de payloads acumulados**, resposta limitada e diagnóstico de saturação com logs reduzidos.
 - Descoberta de `BunnyAchievement` no parser do Bunny e no verificador das assemblies compiladas, incluindo assemblies que contenham apenas conquistas.
 - Metadados gerenciados exportados em `source-achievement-values.txt`, separados de `source-runtime-values.txt` para não interferir em registros de itens.
-- Registro nativo `NativeAchievementRegistry`: instancia `Terraria.Achievements.Achievement`, `CustomIntCondition`, `LocalizedText`, adiciona tracker, índice e categoria no `Main.Achievements` pela API IL2CPP com validação dos overloads antes da criação.
+- Registro nativo `NativeAchievementRegistry`: instancia `Terraria.Achievements.Achievement`, uma condição nativa por condição C# (`CustomIntCondition` ou `CustomFloatCondition`), `LocalizedText`, tracker apropriado, índice e categoria no `Main.Achievements` pela API IL2CPP com validação dos overloads antes da criação.
 - Integração visual `NativeAchievementVisualHooks`: usa `ContentAssets::loadTextureAsset`, a mesma API nativa de imagens do Bunny, e exige os atlas 592 × 64 de Terraria Mobile; controla o `GUIAchievementsMenu.AchievementDraw`, a atualização do cache ao abrir e o `AchievementUnlockedPopup`. As trocas de nomes ocultos usam `LocalizedText` enraizado pelo GC.
 - Callback entre worker MonoVM e parte nativa registrado por função ponte opcional; `libbunnymonoprobe` não depende diretamente de hooks de conteúdo IL2CPP. Registro/visualização só no thread do jogo.
 
@@ -31,11 +31,11 @@ Referência exclusiva para Bunny: código original de `ModAchievement.js`, `Achi
 | Save | 5 | Exporta BACH1 |
 | Load | 6 | Importa BACH1 |
 | Unload | 7 | Devolve snapshot e libera registro |
-| Metadata | 8 | Retorna BACH_META_V1 |
+| Metadata | 8 | Retorna BACH_META_V2 com condições individuais |
 | ConfigureStorage | 9 | Recebe pasta interna já criada e recupera BACH1 |
 | Flush | 10 | Grava progresso atômico imediatamente |
 
-Para eventos (1–4), `payload` deve ser `1` se for o jogador local ou `0` nos demais casos. Quando nada mudou, retorna `OK|...`. Se alguma condição progrediu, retorna `BACH_META_V1` para o lado nativo atualizar a UI sem polling. Erros retornam `ERROR|...`; eventos não são executados na thread GL.
+Para eventos (1–4), `payload` deve ser `1` se for o jogador local ou `0` nos demais casos. Quando nada mudou, retorna `OK|...`. Se alguma condição progrediu, retorna `BACH_META_V2` para o lado nativo atualizar a UI sem polling. Erros retornam `ERROR|...`; eventos não são executados na thread GL.
 
 ## Exemplos e testes
 
@@ -46,7 +46,7 @@ Para eventos (1–4), `payload` deve ser `1` se for o jogador local ou `0` nos d
 - `tests/achievements_csharp/Program.cs` testa isolamento de callbacks, limites, restore, DLL real, metadata, bind, unload e eventos.
 - `tests/achievements_csharp/source_parser_test.cpp` testa o parser Bunny nativo (classe única e mod misto).
 - `tests/achievements_csharp/transport_test.cpp` valida fila FIFO, limites de memória e sobrecarga.
-- `tests/achievements_csharp/metadata_test.cpp` valida protocolo nativo e rejeição de estados/identidades inválidos.
+- `tests/achievements_csharp/metadata_test.cpp` valida V1/V2, múltiplas condições, tipos, limites e rejeição de metadados malformados.
 - `tests/achievements_csharp/native_progress_test.cpp` valida a conversão do progresso C# para o tracker inteiro utilizado na visualização; o tracker permanece um espelho, não substitui as condições C#.
 
 Comandos de CI que não geram APK:
@@ -63,9 +63,9 @@ Validação de 21/10/2026: GitHub Actions [39645940498](https://github.com/Manto
 
 1. **Implementado em fonte, pendente QA Android:** despacho por fila FIFO limitada de 256 comandos no worker MonoVM já existente, com limite de resposta de 1 MiB, eventos assíncronos e controles com timeout/resultado desconhecido explícito.
 2. **Implementado em fonte, pendente QA Android:** resolução tipada das quatro assinaturas IL2CPP do AchievementsHelper (NotifyNPCKilledDirect, NotifyItemPickup, NotifyItemCraft e NotifyTileDestroyed). Os ganchos só ficam ativos no mundo e entregam dados do jogador local a cada mod registrado. Ainda falta conferir antiduplificação por sessão e rejeição de eventos atrasados em transições de mundo.
-3. **Implementado em fonte, pendente QA Android:** criação de `Achievement` + uma `CustomIntCondition` espelhando o progresso gerenciado em 1.000.000 etapas, `Register`, `RegisterIconIndex`, `RegisterAchievementCategory` e tracker no `Main.Achievements`. **Falta** representar cada condição nativa individualmente com os valores máximos exatos (o tracker atual é de apresentação), conferir sincronização e não duplicar conquistas vanilla.
+3. **Implementado em fonte, pendente QA Android:** criação de `Achievement` + condições nativas individuais, limites e valores próprios para inteiro/float, `Register`, `RegisterIconIndex`, `RegisterAchievementCategory` e tracker adequado para conquistas de condição única ou múltiplas no `Main.Achievements`. Condições de eventos usam espelhos numéricos para evitar contagem duplicada. **Falta** verificar o comportamento Android de `CustomIntCondition`/`CustomFloatCondition`, tracking, callbacks e preservação das conquistas vanilla.
 4. **Implementado em fonte, pendente QA Android:** atlas do Bunny 592 × 64 e `Asset<Texture2D>`, ícones de menu/popup, categorias, nomes e descrições, placeholders `???` ocultos, renovação do menu. **Falta** testar assinaturas/ABI do draw/popup no aparelho e sincronizar traduções na troca de idioma.
 5. **Implementado para armazenamento próprio C#:** `BACH1` atômico, restauração pré-evento, autosave e flush na saída; **pendente** integrar à identidade do perfil Terraria/nuvem, sem conflito com conquistas vanilla.
-6. **Pendente:** lifecycle completo na desativação/recarregamento dos mods, deduplicação e geração de mundo, integração de perfil/nuvem, sincronização com `LanguageManager` na troca de idioma, qualidade de imagens/ABI ARM64, verificações de progresso e popups no menu e multiplayer, testes de carga e QA Android.
+6. **Pendente:** lifecycle completo na desativação/recarregamento dos mods, deduplicação e geração de mundo, isolamento do save por personagem (`Main.ActivePlayerFileData` + `_path` do Bunny já confirmados na fonte, ainda não ligados ao AchievementLoader), compatibilidade com nuvem, sincronização com `LanguageManager` na troca de idioma, qualidade de imagens/ABI ARM64, verificações de progresso e popups no menu e multiplayer, testes de carga e QA Android.
 
 **ESTADO: WIP — SEM APK, SEM MERGE.** A branch permite avançar com CI estática e gerenciada, mas ainda não é loader jogável.
