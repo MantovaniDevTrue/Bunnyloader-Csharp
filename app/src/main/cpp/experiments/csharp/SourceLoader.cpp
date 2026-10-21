@@ -379,7 +379,9 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
             return false;
         }
     }
-    if (!prepareNativeContent()) {
+    const bool hasNativeContent = std::any_of(defs.begin(), defs.end(),
+        [](const ParsedSourceType& def) { return def.base != "BunnyCommand"; });
+    if (hasNativeContent && !prepareNativeContent()) {
         status->error = "Host API de conteudo nativo indisponivel";
         return false;
     }
@@ -673,8 +675,17 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
         screenEffects.push_back(std::move(effect));
     }
     status->screenEffects = static_cast<int>(screenEffects.size());
+    for (const auto& def : defs)
+        if (def.base == "BunnyCommand")
+            status->commandClasses.push_back(def.namespaceName.empty() ? def.name :
+                def.namespaceName + "." + def.name);
+    status->commands = static_cast<int>(status->commandClasses.size());
+    if (status->commands > 128) {
+        status->error = "ModCommand: maximo de 128 classes por mod";
+        return false;
+    }
     if (status->dusts+status->items+status->tiles+status->projectiles+status->buffs+
-        status->npcs+status->prefixes+status->rarities+status->players+status->screenEffects==0) {
+        status->npcs+status->prefixes+status->rarities+status->players+status->screenEffects+status->commands==0) {
         status->error = "mod C# sem conteudo registrado";
         return false;
     }
