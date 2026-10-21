@@ -156,7 +156,7 @@ public static class BunnyAchievementRuntime
 
     private static string Manifest(BunnyAchievementRegistry achievements)
     {
-        var output = new StringBuilder("BACH_META_V1\n");
+        var output = new StringBuilder("BACH_META_V2\n");
         foreach (BunnyAchievement achievement in achievements.Achievements)
         {
             // Hex mantém nomes, descrições e caminhos com Unicode fora do protocolo.
@@ -166,7 +166,7 @@ public static class BunnyAchievementRuntime
                 achievement.Description.Length > 1000 ||
                 achievement.Texture.Length > 200)
                 throw new InvalidOperationException("Metadados de conquista grandes demais");
-            output.Append(Hex(achievement.Name)).Append('|')
+            output.Append("A|").Append(Hex(achievement.Name)).Append('|')
                 .Append(Hex(achievement.FriendlyName)).Append('|')
                 .Append(Hex(achievement.Description)).Append('|')
                 .Append(Hex(achievement.Texture)).Append('|')
@@ -176,6 +176,16 @@ public static class BunnyAchievementRuntime
                 .Append(achievement.IsCompleted ? '1' : '0').Append('|')
                 .Append(achievement.Progress.ToString("R", CultureInfo.InvariantCulture))
                 .Append('\n');
+            foreach (BunnyAchievementCondition condition in achievement.Conditions)
+            {
+                output.Append("C|")
+                    .Append(Hex(achievement.Name)).Append('|')
+                    .Append(Hex(condition.Key)).Append('|')
+                    .Append((int)condition.Kind).Append('|')
+                    .Append(condition.Maximum.ToString("R", CultureInfo.InvariantCulture)).Append('|')
+                    .Append(condition.Value.ToString("R", CultureInfo.InvariantCulture))
+                    .Append('\n');
+            }
         }
         if (output.Length > 512 * 1024)
             throw new InvalidOperationException("Metadata de conquistas excede 512 KiB");
