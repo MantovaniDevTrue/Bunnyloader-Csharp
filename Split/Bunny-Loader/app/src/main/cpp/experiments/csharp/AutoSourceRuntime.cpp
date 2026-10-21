@@ -2,6 +2,8 @@
 #include "experiments/csharp/AutoSourceCache.h"
 #include "experiments/csharp/AutoSourceRuntime.h"
 #include "experiments/csharp/NativeWorldStore.h"
+#include "experiments/csharp/NativeWorldCoordinator.h"
+#include "il2cpp/Signature.h"
 #include "experiments/csharp/NativeVisualRenderer.h"
 #include "experiments/csharp/NativeContent.h"
 #include "experiments/csharp/NativeBasicItems.h"
@@ -81,6 +83,9 @@ std::atomic<bool> g_worldPrefixesRestored{false};
 std::atomic<bool> g_worldPlayerMessagesShown{false};
 std::atomic<int> g_worldMenuPollFrames{0};
 std::atomic<uint64_t> g_worldEpoch{0};
+std::atomic<uint64_t> g_worldDataEnteredEpoch{0};
+std::atomic<int> g_worldSystemModules{0};
+std::atomic<bool> g_nativeWorldSaveHooksReady{false};
 std::atomic<uint64_t> g_visualUpdateTick{0};
 std::atomic<uint64_t> g_liveBoundEpoch{0};
 std::atomic<int> g_worldLoads{0};
@@ -916,6 +921,8 @@ void run() {
                     id.c_str(), lastReason.c_str());
         }
     }
+    g_worldSystemModules.store(worldModulesReady
+        ? static_cast<int>(pendingWorldModules.size()) : 0, std::memory_order_release);
     g_worldRegistrationReady.store(worldModulesReady, std::memory_order_release);
     if (pending.empty() && pendingCombat.empty()) {
         g_initialCSharpRegistrationFinished.store(true, std::memory_order_release);
@@ -1187,6 +1194,13 @@ void noteAutoWorldTilesLoaded(const std::string& worldPath) {
     resetNativeVisualRenderer();
     g_visualUpdateTick.store(0, std::memory_order_relaxed);
     g_worldLoads.fetch_add(1, std::memory_order_relaxed);
+    const uint64_t previousEpoch = g_worldDataEnteredEpoch.exchange(
+        0, std::memory_order_acq_rel);
+    if (previousEpoch != 0) {
+        std::string unloadError;
+        if (!worldsave::leaveManagedWorld(previousEpoch, &unloadError))
+            BL_WARN("CSharp WorldSave previous world unload: %s", unloadError.c_str());
+    }
     const uint64_t epoch = g_worldEpoch.fetch_add(1, std::memory_order_acq_rel) + 1;
     invalidateManagedWorldMonoRequests();
     // O caminho foi extraído de Main.ActiveWorldFileData pelo hook nativo dos tiles.
@@ -1270,6 +1284,13 @@ void noteAutoGameUpdate() {
         g_worldExits.fetch_add(1, std::memory_order_relaxed);
         const uint64_t departingEpoch = g_worldEpoch.fetch_add(
             1, std::memory_order_acq_rel);
+        const uint64_t loadedEpoch = g_worldDataEnteredEpoch.exchange(
+            0, std::memory_order_acq_rel);
+        if (loadedEpoch == departingEpoch) {
+            std::string unloadError;
+            if (!worldsave::leaveManagedWorld(departingEpoch, &unloadError))
+                BL_WARN("CSharp WorldSave unload: %s", unloadError.c_str());
+        }
         worldsave::activeWorldStore().endWorld(departingEpoch);
         invalidateManagedWorldMonoRequests();
         g_worldSessionReady.store(false, std::memory_order_release);
@@ -1329,6 +1350,8 @@ bool preWorldCSharpContentReady() {
         needsNpcDispatcher = !g_pendingLiveSpecs.empty();
     }
     return g_worldRegistrationReady.load(std::memory_order_acquire) &&
+           (g_worldSystemModules.load(std::memory_order_acquire) == 0 ||
+            g_nativeWorldSaveHooksReady.load(std::memory_order_acquire)) &&
            content.pendingBehaviors == 0 && content.pendingRecipes == 0 &&
            content.pendingPlacements == 0 && pendingNativeVisualRenderer() == 0 &&
            (!needsNpcDispatcher || managedNpcBuffEffectStatus().gameHookInstalled);
@@ -1397,7 +1420,11 @@ void flushDeferredWorldEntry() {
     }
     if (elapsed>=6&&(pendingCore==0||deferredNativePolicies)&&content.pendingPlacements==0&&
         g_initialCSharpRegistrationFinished.load(std::memory_order_acquire)&&
-        g_preWorldBindingsArmed.load(std::memory_order_acquire)&&bl::runtime::modItemsSettled()) {
+        g_preWorldBindingsArmed.load(std::memory_order_acquire)&&
+        g_worldRegistrationReady.load(std::memory_order_acquire)&&
+        (g_worldSystemModules.load(std::memory_order_acquire)==0 ||
+         g_nativeWorldSaveHooksReady.load(std::memory_order_acquire))&&
+        bl::runtime::modItemsSettled()) {
         BL_WARN("[CSharp][WorldLoading] Stage=BeforeWorld Result=ContinueWithDeferredNativeAssets PendingNativePolicies=%zu PendingArmorSets=%d PendingEquipmentTextures=%d PendingRecipes=%d PendingVisuals=%zu",
                 pendingNativePolicies,pendingArmor,pendingEquipment,content.pendingRecipes,pendingNativeVisualRenderer());
         if (finishPreWorldCSharpPlayer()) {
@@ -1428,6 +1455,72 @@ void flushDeferredWorldEntry() {
     }
 }
 
+
+using NativeLoadWorldFn = void (*)(bool, const MethodInfo*);
+using NativeSaveWorldFn = void (*)(bool, bool, const MethodInfo*);
+NativeLoadWorldFn g_origNativeWorldLoad = nullptr;
+NativeSaveWorldFn g_origNativeWorldSave = nullptr;
+
+void hkNativeCSharpWorldLoad(bool check, const MethodInfo* method) {
+    if (!g_origNativeWorldLoad) return;
+    g_origNativeWorldLoad(check, method);
+    if (g_worldSystemModules.load(std::memory_order_acquire) == 0 ||
+        !g_worldRegistrationReady.load(std::memory_order_acquire) ||
+        !g_worldTilesLoaded.load(std::memory_order_acquire) ||
+        readActivationContext().netMode != 0) return;
+    const uint64_t epoch = g_worldEpoch.load(std::memory_order_acquire);
+    if (!worldsave::activeWorldStore().active(epoch)) return;
+    std::string error;
+    if (!worldsave::enterManagedWorld(epoch, true, &error)) {
+        g_worldDataEnteredEpoch.store(0, std::memory_order_release);
+        BL_ERROR("CSharp WorldSave load blocked: %s", error.c_str());
+        return;
+    }
+    if (g_worldEpoch.load(std::memory_order_acquire) != epoch) {
+        std::string ignored;
+        worldsave::leaveManagedWorld(epoch, &ignored);
+        return;
+    }
+    g_worldDataEnteredEpoch.store(epoch, std::memory_order_release);
+}
+
+void hkNativeCSharpWorldSave(bool cloud, bool reset, const MethodInfo* method) {
+    if (!g_origNativeWorldSave) return;
+    // Save do Terraria primeiro, sidecar apenas depois de retornar normalmente.
+    g_origNativeWorldSave(cloud, reset, method);
+    if (cloud || g_worldSystemModules.load(std::memory_order_acquire) == 0 ||
+        readActivationContext().netMode != 0) return;
+    const uint64_t epoch = g_worldEpoch.load(std::memory_order_acquire);
+    if (g_worldDataEnteredEpoch.load(std::memory_order_acquire) != epoch ||
+        !worldsave::activeWorldStore().active(epoch)) return;
+    std::string error;
+    if (!worldsave::saveManagedWorld(epoch, true, &error))
+        BL_ERROR("CSharp WorldSave commit not confirmed: %s", error.c_str());
+}
+
+bool installNativeCSharpWorldSaveHooks() {
+    Il2CppClass* worldFile = il2cpp::findClass({"Terraria.IO", "WorldFile", {}});
+    if (!worldFile) return false;
+    auto& api = il2cpp::api();
+    const auto loadSig = il2cpp::parseSignature(
+        "void LoadWorld(bool canCheckFileState)");
+    const auto saveSig = il2cpp::parseSignature(
+        "void InternalSaveWorld(bool useCloudSaving, bool resetTime)");
+    if (!loadSig.valid || !saveSig.valid) return false;
+    const MethodInfo* load = il2cpp::findMethodBySignature(worldFile, loadSig);
+    const MethodInfo* save = il2cpp::findMethodBySignature(worldFile, saveSig);
+    if (!load || !save || !api.method_is_instance ||
+        api.method_is_instance(load) || api.method_is_instance(save)) {
+        BL_WARN("CSharp WorldSave: assinatura IL2CPP nao encontrada para hooks estaticos");
+        return false;
+    }
+    if (!bl::hook::install(load, hkNativeCSharpWorldLoad, &g_origNativeWorldLoad))
+        return false;
+    if (!bl::hook::install(save, hkNativeCSharpWorldSave, &g_origNativeWorldSave))
+        return false;
+    return true;
+}
+
 bool installCSharpWorldEntryGate() {
     Il2CppClass* worldGen = il2cpp::findClass({"Terraria", "WorldGen", {}});
     const MethodInfo* playWorld = worldGen
@@ -1437,6 +1530,10 @@ bool installCSharpWorldEntryGate() {
         BL_ERROR("[CSharp][ERROR][WorldLoading] Stage=InstallEntryHook Reason=WorldGenPlayWorldUnavailable");
         return false;
     }
+    const bool worldSaveReady = installNativeCSharpWorldSaveHooks();
+    g_nativeWorldSaveHooksReady.store(worldSaveReady, std::memory_order_release);
+    if (!worldSaveReady)
+        BL_WARN("CSharp WorldSave hooks unavailable; world system gate remains closed");
     return true;
 }
 
