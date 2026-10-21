@@ -58,6 +58,18 @@ bool takeManagedCloudWeights(const std::string& modId,
 bool queueManagedCloudOnSpawn(const std::string& modId, int type, int slot,
     uint32_t generation, float scale, int spriteDir);
 bool takeManagedCloudOnSpawnReply(ManagedCloudSpawnReply* reply);
+bool registerManagedBiomeSourceMod(
+    const std::string& modId, const std::string& assemblyPath,
+    const std::vector<std::string>& biomeClasses);
+bool managedBiomeRegistrationReady(const std::string& modId);
+bool takeManagedBiomeManifest(const std::string& modId, std::string* result);
+bool requestManagedBiomeSnapshot(const std::string& modId,
+    bool gameMenu, bool playerActive, float positionX, int maxTilesX,
+    bool zoneSkyHeight, bool zoneOverworldHeight,
+    const std::string& tileCountsWire, uint64_t generation);
+bool takeManagedBiomeSnapshot(
+    const std::string& modId, uint64_t generation, std::string* result);
+
 void resetManagedCloudWorldSession();
 void pauseManagedCloudCallbacks();
 
