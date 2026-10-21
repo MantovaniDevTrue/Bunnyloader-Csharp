@@ -40,7 +40,7 @@ public:
             std::string_view texture, bool rare) {
         if (firstType_ <= 0 ||
             entries_.size() >= NativeCloudWeightedPool::kMaxModClouds ||
-            !validName(modId) || !validName(name) || !validTexture(texture))
+            !validOwner(modId) || !validName(name) || !validTexture(texture))
             return -1;
         for (const auto& entry : entries_)
             if (entry.modId == modId && entry.name == name) return -1;
@@ -86,10 +86,24 @@ private:
     Entry* mutableEntry(int type) {
         return const_cast<Entry*>(static_cast<const NativeCloudRegistry*>(this)->find(type));
     }
+    // A mod's identity may be a UUID with '-', while class identifiers may
+    // not contain a hyphen. Keep those two contracts separate.
+    static bool validOwner(std::string_view value) {
+        if (value.empty() || value.size() > 72) return false;
+        for (char c : value)
+            if (!(c >= 'a' && c <= 'z') &&
+                !(c >= 'A' && c <= 'Z') &&
+                !(c >= '0' && c <= '9') &&
+                c != '_' && c != '-') return false;
+        return true;
+    }
     static bool validName(std::string_view value) {
         if (value.empty() || value.size() > 72) return false;
-        for (unsigned char c : value)
-            if (!(std::isalnum(c) || c == '_')) return false;
+        for (char c : value)
+            if (!(c >= 'a' && c <= 'z') &&
+                !(c >= 'A' && c <= 'Z') &&
+                !(c >= '0' && c <= '9') &&
+                c != '_') return false;
         return true;
     }
     static bool validTexture(std::string_view value) {
