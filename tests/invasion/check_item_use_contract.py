@@ -88,3 +88,13 @@ assert 'return "lastUse=" + context.LastUse +' in dispatcher
 assert 'outcome.find(" Error=")' in managed
 assert 'outcome.find(" Error=") != std::string::npos' in managed
 print("CSHARP_ITEM_USE_SESSION_LOG_GUARD=PASS")
+
+assert 'bool hasDust = false;' in dispatcher
+assert 'typeof(BunnyDust).IsAssignableFrom(type)' in dispatcher
+assert 'BunnyDustSourceDispatcher.Register(modId, assemblyPath) < 0' in dispatcher
+assert dispatcher.index('BunnyDustSourceDispatcher.Register(modId, assemblyPath)') < dispatcher.index('Contexts.Add(context);')
+assert 'Stage=MonoBind Result=Rejected Reason=ManagedRegisterOrBindFailed' in managed
+entity_test = (root / "tests/entity_source/Program.cs").read_text()
+assert 'BunnyDust assembly registered before item use' in entity_test
+assert 'Dust registration remains idempotent' in entity_test
+print("CSHARP_DUST_EARLY_REGISTRATION_GUARD=PASS")
