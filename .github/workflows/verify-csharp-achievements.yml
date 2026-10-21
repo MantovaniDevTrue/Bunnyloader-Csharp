@@ -18,6 +18,8 @@ on:
       - app/src/main/cpp/experiments/csharp/ManagedRuntime.h
       - app/src/main/cpp/experiments/csharp/ManagedAchievementTransport.h
       - app/src/main/cpp/experiments/csharp/ManagedAchievementMetadata.h
+      - app/src/main/cpp/experiments/csharp/NativeAchievementRegistry.h
+      - app/src/main/cpp/experiments/csharp/NativeAchievementRegistry.cpp
       - app/src/main/cpp/experiments/csharp/NativeAchievementHooks.h
       - app/src/main/cpp/experiments/csharp/NativeAchievementHooks.cpp
       - app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp
@@ -60,6 +62,8 @@ jobs:
             app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp
           g++ -std=c++20 -O0 -fsyntax-only -Itests/basic_items/include -Iapp/src/main/cpp \
             app/src/main/cpp/experiments/csharp/NativeAchievementHooks.cpp
+          g++ -std=c++20 -O0 -fsyntax-only -Itests/basic_items/include -Iapp/src/main/cpp \
+            app/src/main/cpp/experiments/csharp/NativeAchievementRegistry.cpp
           g++ -std=c++20 -O0 -fsyntax-only -Itests/basic_items/include \
             -I"$JAVA_HOME/include" -I"$JAVA_HOME/include/linux" \
             -Iapp/src/main/cpp \
