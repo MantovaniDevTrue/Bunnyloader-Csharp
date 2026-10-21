@@ -19,6 +19,7 @@ public static class BunnyAchievementRuntime
     {
         public string Path = "";
         public BunnyAchievementRegistry Registry = null!;
+        public BunnyAchievementStore Store = null!;
     }
 
     private static readonly Dictionary<string, ModState> mods = new(StringComparer.Ordinal);
@@ -77,7 +78,10 @@ public static class BunnyAchievementRuntime
                     BunnyAchievement instance = (BunnyAchievement)Activator.CreateInstance(type)!;
                     registry.Register(modId, instance);
                 }
-                var state = new ModState { Path = assemblyPath, Registry = registry };
+                var state = new ModState {
+                    Path = assemblyPath, Registry = registry,
+                    Store = new BunnyAchievementStore(registry)
+                };
                 string manifest = Manifest(registry);
                 mods.Add(modId, state);
                 return manifest;
@@ -89,6 +93,7 @@ public static class BunnyAchievementRuntime
 
             if (operation is >= 1 and <= 4)
             {
+                long completedBefore = achievements.CompletionChanges;
                 if (value < (operation == 1 ? -32768 : 0) || count < 1 || count > 9999 ||
                     (payload != "0" && payload != "1"))
                     throw new ArgumentException("Evento fora do contrato");
@@ -100,6 +105,7 @@ public static class BunnyAchievementRuntime
                     case 3: achievements.NotifyItemCraft(value, count, localPlayer); break;
                     case 4: achievements.NotifyTileDestroyed(value, localPlayer); break;
                 }
+                mod.Store.Autosave(achievements.CompletionChanges != completedBefore);
                 return "OK|" + achievements.CallbackFaults.ToString(CultureInfo.InvariantCulture);
             }
             if (operation == 5)
@@ -109,16 +115,28 @@ public static class BunnyAchievementRuntime
                 if (Encoding.UTF8.GetByteCount(payload) > MaxSaveBytes)
                     throw new ArgumentException("Save excede o limite de 1 MiB");
                 achievements.Load(payload);
+                mod.Store.MarkExternalRestore();
                 return "OK";
             }
             if (operation == 7)
             {
+                if (mod.Store.IsConfigured) mod.Store.Flush(force: true);
                 string saved = achievements.Save();
                 mods.Remove(modId);
                 return saved;
             }
             if (operation == 8)
                 return Manifest(achievements);
+            if (operation == 9)
+            {
+                mod.Store.Configure(payload, modId);
+                return "READY";
+            }
+            if (operation == 10)
+            {
+                mod.Store.Flush(force: true);
+                return "OK";
+            }
 
             throw new InvalidOperationException("Operação não implementada");
         }
@@ -170,5 +188,7 @@ public enum BunnyAchievementOperation
     Save = 5,
     Load = 6,
     Unload = 7,
-    Metadata = 8
+    Metadata = 8,
+    ConfigureStorage = 9,
+    Flush = 10
 }
