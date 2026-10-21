@@ -119,12 +119,15 @@ public static class CompiledAssemblyProbe
             var screenEffectTypes = contentTypes
                 .Where(type => IsContentType(type, "BunnyScreenEffect"))
                 .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
+            var achievementTypes = contentTypes
+                .Where(type => IsContentType(type, "BunnyAchievement"))
+                .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
             if (tileTypes.Length > 4096 || prefixTypes.Length > 4096 || npcTypes.Length > 4096 || accessoryTypes.Length > 4096 || playerTypes.Length > 4096 ||
                 projectileTypes.Length > 4096 ||
                 weaponTypes.Length > 4096 || basicItemTypes.Length > 4096 ||
-                buffTypes.Length > 4096 || potionTypes.Length > 4096 || screenEffectTypes.Length > 4096)
+                buffTypes.Length > 4096 || potionTypes.Length > 4096 || screenEffectTypes.Length > 4096 || achievementTypes.Length > 256)
                 throw new InvalidOperationException("C# content class count out of bounds");
-            if (tileTypes.Length + basicItemTypes.Length + projectileTypes.Length + weaponTypes.Length + buffTypes.Length + potionTypes.Length + accessoryTypes.Length + playerTypes.Length + npcTypes.Length + prefixTypes.Length + screenEffectTypes.Length == 0)
+            if (tileTypes.Length + basicItemTypes.Length + projectileTypes.Length + weaponTypes.Length + buffTypes.Length + potionTypes.Length + accessoryTypes.Length + playerTypes.Length + npcTypes.Length + prefixTypes.Length + screenEffectTypes.Length + achievementTypes.Length == 0)
                 throw new InvalidOperationException("C# assembly has no supported content types");
             bool fixture = projectileTypes.Any(t => t.FullName == "SourceCSharpMod.SourceBolt") &&
                 weaponTypes.Any(t => t.FullName == "SourceCSharpMod.SourceWand");
@@ -145,6 +148,7 @@ public static class CompiledAssemblyProbe
             object[] npcs = npcTypes.Select(CreateContent).ToArray();
             object[] prefixes = prefixTypes.Select(CreateContent).ToArray();
             object[] screenEffects = screenEffectTypes.Select(CreateContent).ToArray();
+            object[] achievements = achievementTypes.Select(CreateAchievement).ToArray();
             foreach (object effect in screenEffects)
             {
                 string shader = (string)effect.GetType().GetProperty("ShaderFile")!.GetValue(effect)!;
@@ -154,6 +158,7 @@ public static class CompiledAssemblyProbe
             }
             WriteRuntimeDefaults(projectiles, weapons, buffs, potions,
                 accessories, players, npcs, prefixes, basicItems, tiles, diagnosticsPath);
+            WriteAchievementManifest(achievements, diagnosticsPath);
             WriteProjectileMotionPolicies(assembly, projectileTypes, diagnosticsPath);
             WriteAutomaticCombatPolicies(projectiles, diagnosticsPath);
             if (fixture)
@@ -165,17 +170,17 @@ public static class CompiledAssemblyProbe
                 WriteKillPolicy(primaryProjectile!, diagnosticsPath);
             }
             File.AppendAllText(diagnosticsPath,
-                "\nASSEMBLY_EXEC_OK classes=" + (tiles.Length + projectiles.Length + weapons.Length + buffs.Length + potions.Length + accessories.Length + players.Length + npcs.Length + prefixes.Length + basicItems.Length + screenEffects.Length) +
+                "\nASSEMBLY_EXEC_OK classes=" + (tiles.Length + projectiles.Length + weapons.Length + buffs.Length + potions.Length + accessories.Length + players.Length + npcs.Length + prefixes.Length + basicItems.Length + screenEffects.Length + achievements.Length) +
                 " projectiles=" + projectiles.Length + " weapons=" + weapons.Length +
                 " buffs=" + buffs.Length + " potions=" + potions.Length +
                 " accessories=" + accessories.Length + " players=" + players.Length +
                 " npcs=" + npcs.Length + " tiles=" + tiles.Length + " prefixes=" + prefixes.Length +
-                " screenEffects=" + screenEffects.Length +
+                " screenEffects=" + screenEffects.Length + " achievements=" + achievements.Length +
                 (fixture
                     ? " projectile=SourceBolt width=10 weapon=SourceWand damage=22 shoot=SourceBolt"
                     : " policy=generic-managed-defaults"));
             return projectiles.Length + weapons.Length + buffs.Length + potions.Length +
-                accessories.Length + players.Length + npcs.Length + prefixes.Length + basicItems.Length + tiles.Length + screenEffects.Length;
+                accessories.Length + players.Length + npcs.Length + prefixes.Length + basicItems.Length + tiles.Length + screenEffects.Length + achievements.Length;
         }
         catch (Exception exception)
         {
@@ -183,6 +188,47 @@ public static class CompiledAssemblyProbe
                 "\nASSEMBLY_EXEC_FAILED " + exception.ToString()[..Math.Min(3000, exception.ToString().Length)]);
             return -1;
         }
+    }
+
+    private static object CreateAchievement(Type type)
+    {
+        object instance = Activator.CreateInstance(type)
+            ?? throw new InvalidOperationException("Cannot instantiate achievement " + type.FullName);
+        MethodInfo? initialize = type.GetMethod(
+            "Initialize", BindingFlags.Instance | BindingFlags.NonPublic);
+        if (initialize == null)
+            throw new InvalidOperationException(type.FullName + ": BunnyAchievement.Initialize missing");
+        initialize.Invoke(instance, new object[] { "probe/" + type.Name });
+        return instance;
+    }
+
+    private static void WriteAchievementManifest(object[] achievements, string diagnosticsPath)
+    {
+        string folder = Path.GetDirectoryName(diagnosticsPath)
+            ?? throw new InvalidOperationException("Missing diagnostics directory");
+        string destination = Path.Combine(folder, "source-achievement-values.txt");
+        string temporary = destination + ".tmp";
+        var lines = new List<string> { "BACH_SOURCE_V1" };
+        foreach (object achievement in achievements)
+        {
+            Type type = achievement.GetType();
+            object Read(string name) => type.GetProperty(name)!.GetValue(achievement)!;
+            string friendly = (string)Read("FriendlyName");
+            string description = (string)Read("Description");
+            string texture = (string)Read("Texture");
+            int index = (int)Read("Index");
+            int category = Convert.ToInt32(Read("Category"), CultureInfo.InvariantCulture);
+            if (category < 0 || category > 3)
+                throw new InvalidOperationException(type.FullName + ": category out of range");
+            if (friendly.Length > 200 || description.Length > 1000 || texture.Length > 200)
+                throw new InvalidOperationException(type.FullName + ": invalid metadata lengths");
+            string Hex(string value) => Convert.ToHexString(System.Text.Encoding.UTF8.GetBytes(value));
+            lines.Add(string.Join("\t", type.Name, Hex(friendly), Hex(description),
+                Hex(texture), index.ToString(CultureInfo.InvariantCulture),
+                category.ToString(CultureInfo.InvariantCulture)));
+        }
+        File.WriteAllText(temporary, string.Join("\n", lines) + "\n");
+        File.Move(temporary, destination, true);
     }
 
     private static object CreateContent(Type type)
