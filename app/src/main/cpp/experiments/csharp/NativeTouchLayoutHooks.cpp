@@ -210,6 +210,21 @@ bool nativeTouchLayoutsRestored() {
     return restored.load(std::memory_order_acquire);
 }
 
+bool reapplyNativeTouchLayoutsOnGameThread() {
+    if (!nativeTouchLayoutHooksInstalled()) return false;
+    if (restored.load(std::memory_order_acquire)) return true;
+    Il2CppObject* styles = currentNativeTouchStyles();
+    std::vector<NativeLayoutBinding> bindings;
+    if (!collect(styles, &bindings)) return false;
+    SavedProfiles saved;
+    const std::string directory = nativeTouchSaveDirectory();
+    if (directory.empty() || !loadTouchLayoutFile(directory, &saved))
+        return false;
+    restoreBindings(bindings, saved);
+    restored.store(true, std::memory_order_release);
+    return true;
+}
+
 void pumpNativeTouchLayoutHooksOnGameThread() {
     if (nativeTouchLayoutHooksInstalled() || attempted ||
         !nativeTouchObserverInstalled() || registry().count() == 0)
