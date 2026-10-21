@@ -51,6 +51,16 @@ int main() {
 
     control.payload = std::string(ManagedAchievementQueue::MaxPayloadBytes + 1, 'A');
     assert(!queue.push(control));
+    control.payload = std::string(900000, 'Z');
+    assert(queue.push(control));
+    assert(queue.push(control));
+    assert(!queue.push(control));
+    assert(queue.pop(&out) && out.payload.size() == 900000);
+    assert(queue.push(control));
+    assert(queue.pop(&out) && out.payload.size() == 900000);
+    assert(queue.pop(&out) && out.payload.size() == 900000);
+    assert(queue.empty());
+
     control.payload = "BACH1\n";
     control.operation = 5;
     assert(!queue.push(control));
