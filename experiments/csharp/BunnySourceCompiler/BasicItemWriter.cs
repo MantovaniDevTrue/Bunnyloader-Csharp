@@ -118,6 +118,7 @@ internal static class BasicItemWriter
         }
         bool active = options.Count!=2 ||
             lines[0].OverrideColor!=null||lines[1].OverrideColor!=null||
+            managed.GetType().GetMethod(nameof(BunnyItem.ModifyTooltips))?.DeclaringType != typeof(BunnyItem)||
             managed.GetType().GetMethod(nameof(BunnyItem.PreDrawTooltipLine))?.DeclaringType != typeof(BunnyItem);
         if(active) {
             string plan = JsonSerializer.Serialize(options);
