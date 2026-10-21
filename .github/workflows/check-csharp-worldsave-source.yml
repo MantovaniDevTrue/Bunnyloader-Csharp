@@ -50,6 +50,14 @@ jobs:
             Split/Bunny-Loader/tests/world_save/native_world_store_test.cpp \
             -o /tmp/bunny_world_store_sanitized
           ASAN_OPTIONS=detect_leaks=1 /tmp/bunny_world_store_sanitized /tmp/bunny_worldsave_interop.bwc
+      - name: Native MonoVM mailbox with ASan and UBSan
+        run: |
+          g++ -std=c++20 -O1 -g -Wall -Wextra -Werror -pedantic -pthread \
+            -fsanitize=address,undefined -fno-omit-frame-pointer \
+            -I Split/Bunny-Loader/app/src/main/cpp \
+            Split/Bunny-Loader/tests/world_save/mono_world_mailbox_test.cpp \
+            -o /tmp/mono_world_mailbox_test
+          ASAN_OPTIONS=detect_leaks=1 /tmp/mono_world_mailbox_test
       - name: Ensure native game lifecycle binds trusted world and epoch
         run: |
           python3 - <<'PY'

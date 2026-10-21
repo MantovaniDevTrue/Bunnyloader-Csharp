@@ -38,6 +38,12 @@ A CI gera um `BWC1` diretamente com `BunnyWorldDocument.Encode()` em .NET 8 e pa
 
 O código pode agora ser invocado pelo worker MonoVM, mas o **dispatcher nativo de pedidos para este worker ainda falta**: nenhuma função IL2CPP ou save real é chamada por esta fachada isolada.
 
+## Etapa 6 — fila limitada para o MonoVM
+
+O `MonoWorldMailbox` agora define os pedidos tipados de registro, entrada, preparação, confirmação e saída do mundo. Limite de 8 pedidos, tamanho máximo de payload, prazo de resposta, invalidação por geração e descarte de callbacks tardios. O teste com sanitizadores cobre cancelamento, fila cheia, timeout e troca de mundo.
+
+A fila ainda não foi ligada à execução do worker fixo; **não há hooks de save ativos nem APK**.
+
 ## Requisitos ainda bloqueantes
 
 1. Host nativo C++ deve capturar a identidade real do arquivo de mundo após a seleção; não confiar em nome de mundo ou caminho informado por um mod.
