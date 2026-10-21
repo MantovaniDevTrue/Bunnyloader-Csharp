@@ -1312,7 +1312,8 @@ void noteAutoGameUpdate() {
         if (g_worldMenuPollFrames.fetch_add(
                 1, std::memory_order_relaxed) % 30 != 0) return;
         const ActivationContext context = readActivationContext();
-        if (context.gameMenu != 1 && context.netMode == 0) {
+        if (context.gameMenu != 1) {
+            if (context.netMode != 0) return;
             retryWorldManagedPrefixesWhenReady();
             showWorldPlayerMessagesWhenReady();
             updateManagedNpcBuffDispatcherOnGameThread();
@@ -1595,6 +1596,9 @@ void hkNativeCSharpWorldQuitCallback(Il2CppObject* context, const MethodInfo* me
     std::string error;
     if (!worldsave::leaveManagedWorld(epoch, &error))
         BL_WARN("CSharp WorldSave quit unload: %s", error.c_str());
+    if (g_worldSystemModules.load(std::memory_order_acquire) > 0)
+        worldNetQueue().invalidate();
+    invalidateManagedWorldMonoRequests();
 }
 
 bool installNativeCSharpWorldSaveHooks() {

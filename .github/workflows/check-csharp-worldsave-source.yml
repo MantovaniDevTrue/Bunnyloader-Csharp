@@ -214,6 +214,18 @@ jobs:
           assert 'ignoreClient < -1' in n
           print("WORLD_NATIVE_NET_WORLD7_SECURITY_PERFORMANCE_PASS")
           PY
+      - name: Check multiplayer world remains active outside main menu
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          s=Path("Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp").read_text()
+          assert 'if (context.gameMenu != 1) {' in s
+          assert 'if (context.netMode != 0) return;' in s
+          assert 'worldNetQueue().invalidate();' in s
+          assert 'invalidateManagedWorldMonoRequests();' in s
+          assert 'g_worldDataEnteredEpoch.exchange(' in s
+          print("WORLD_MULTIPLAYER_SESSION_RETENTION_PASS")
+          PY
       - name: Keep this job host-only
         run: echo "SOURCE_ONLY_NO_ANDROID_PACKAGING"
 
