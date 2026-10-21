@@ -113,6 +113,33 @@ Saídas esperadas: `CSHARP_GORE_DISCOVERY_PASS` e
 `CSHARP_GORE_CATALOG_PASS`. Isso valida somente a descoberta e o catalogo;
 nao prova o registro IL2CPP ou os efeitos no jogo.
 
+## Auditoria de codigo e teste nativo ARM64
+
+- Os mods C# que têm apenas PNGs de Gore, mais seu ponto de entrada
+  `main.cs`, agora passam pelo contador de conteúdo do SourceLoader.
+- A restauração compara a **identidade** das seis tabelas de Gore:
+  uma substituição por um array de comprimento igual também reaplica
+  sprites e configurações. A cópia preserva registros de outros mods.
+- As opções pendentes não são retiradas da fila quando a restauração
+  falha; serão reaplicadas na próxima atualização válida. O limite de
+  fila permanece fixo.
+- O workflow `csharp-gore-source-check.yml` compila Discovery,
+  Runtime, SourceLoader e AutoSourceRuntime para **ARM64 Android**
+  com Clang do NDK 27, produzindo somente objetos `.o`, além
+  dos testes nativos de host e do SDK C# e exemplos.
+- O workflow `csharp-gore-native-link-no-apk.yml` tenta fazer a
+  **linkagem de toda a libbunny.so** com o NDK/CMake 30 fixado pelo projeto,
+  chamando somente `:app:externalNativeBuildDebug`. Não chama
+  `assembleDebug` ou `assembleRelease`, e proíbe saída APK.
+- A aprovação do compilador e da linkagem **não comprova** que os
+  métodos IL2CPP e texturas funcionem no Terraria; isso requer QA real.
+
+A biblioteca nativa deve respeitar o ciclo de vida já usado pelo
+GoreLoader JavaScript: registros pertencem à sessão do processo e
+a troca de mundo limpa os spawns pendentes. Hot-unload de um mod
+individual no meio da sessão não é um contrato suportado pelo
+GoreLoader original e não deve ser anunciado como funcional.
+
 ## Artefato SDK sem APK
 
 O workflow `.github/workflows/stage-csharp-gore-sdk-no-apk.yml`
