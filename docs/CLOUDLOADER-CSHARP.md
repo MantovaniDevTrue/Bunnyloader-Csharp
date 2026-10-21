@@ -124,6 +124,27 @@ dotnet run --project tests/cloud_loader/CloudContractTests.csproj -c Release
 dotnet build experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj -c Release
 ```
 
+## Fidelidade de biomas: dependência ainda não implementada
+
+O exemplo original `ExampleAdvancedCloud.js` consulta
+`Main.LocalPlayer.InModBiome(ExampleSurfaceBiome)`. Esse bioma é
+definido em `samples/ExampleMod/content/Content/Biomes/ExampleSurfaceBiome.js`
+e depende de três condições simultâneas:
+
+- Contagem `ExampleBiomeTileCount.exampleBlockCount >= 40`;
+- Jogador na região central do mundo, segundo `maxTilesX`;
+- `ZoneSkyHeight` **ou** `ZoneOverworldHeight`.
+
+Esses três dados NÃO equivalem simplesmente a `ZoneOverworldHeight`.
+O Bunny JavaScript mantém flags de `ModBiome` por jogador em
+`BiomeLoader.UpdateBiomes`, mas o C# puro ainda não implementa
+`BunnyBiome` nem recebe flags válidas desse host nativamente.
+Não vamos copiar a API tModLoader, consumir o worker JavaScript, nem
+afirmar que o teste com uma string simulada reproduz o bioma real.
+Será necessário um snapshot de bioma gerenciado próprio no
+`BunnySourceSdk`, com coleta fiel de blocos e posição, antes de
+considerar o exemplo raro 100% funcional no jogo.
+
 ## Bloqueio de ativação confirmado
 
 A checagem `SourceLoader.cpp` retorna
