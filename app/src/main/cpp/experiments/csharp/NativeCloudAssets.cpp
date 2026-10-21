@@ -7,6 +7,7 @@
 #include "il2cpp/Resolver.h"
 #include "il2cpp/Signature.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <memory>
 #include <thread>
@@ -203,9 +204,14 @@ bool installNativeCloudAssets(NativeCloudRegistry* registry,
         std::max(static_cast<uintptr_t>(newLength), existingMasks->length);
     Il2CppArray* enlargedTextures =
         bl::runtime::TypeTables::resizedCopy(existingTextures, textureSize);
+    stage->newTextures = stage->pin(reinterpret_cast<Il2CppObject*>(enlargedTextures));
+    if (!stage->newTextures) {
+        stage->cleanup();
+        return fail(error, "Stage=Reserve Reason=CannotPinNewTextureArray");
+    }
+    // Pin immediately before another managed allocation can trigger a GC.
     Il2CppArray* enlargedMasks =
         bl::runtime::TypeTables::resizedCopy(existingMasks, maskSize);
-    stage->newTextures = stage->pin(reinterpret_cast<Il2CppObject*>(enlargedTextures));
     stage->newMasks = stage->pin(reinterpret_cast<Il2CppObject*>(enlargedMasks));
     if (!stage->newTextures || !stage->newMasks) {
         stage->cleanup();
