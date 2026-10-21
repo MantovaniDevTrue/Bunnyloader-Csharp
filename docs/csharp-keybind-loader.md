@@ -236,3 +236,25 @@ deve ser publicada antes da validação completa.
 Continua faltando validar input, editor, grupos, restauração real,
 multi-mod, troca de perfil e FPS no Terraria Android ARM64. Os testes de CI
 não validam os offsets/ABI do dispositivo. Nenhum APK ou .bmod foi gerado.
+
+
+## Lote de 21/10/2026 — grupos e persistência reforçada
+
+- `nativeTouchActiveSlotCount` usa o número real de posições do perfil
+  atual para escanear grupos; deixa de sondar todas as 256 posições fixas.
+- NativeTouchGroups pode refazer uma descoberta transitória a cada 120
+  atualizações e limpa seu estado ao trocar de mundo; bloqueia eventos antes
+  de `hostReady`, assim como os botões individuais.
+- `saveTouchLayoutFile` recusa destino não regular e utiliza
+  `O_NOFOLLOW` no arquivo temporário antes de `fsync` e `rename`.
+  Testes C++ garantem que symlinks de destino/temporário não sobrescrevem
+  arquivos externos.
+- `NativeTouchPointer` não encaminha IDs C# reservados, descarregados ou
+  sem arrays válidos ao manipulador original vanilla. Ações vanilla
+  não reservadas seguem delegadas como antes.
+- Testes source-only, ainda sem execução no telefone:
+  <https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39622647781>.
+
+A disponibilidade real dos grupos, editor, perfis e operações de
+save/load/share continua pendente de QA no Terraria Android ARM64.
+Nenhum APK/.bmod gerado nesta PR.
