@@ -41,6 +41,7 @@ on:
       - app/src/main/cpp/experiments/csharp/NativeTouchLayoutIdentity.h
       - app/src/main/cpp/experiments/csharp/NativeTouchGroups.h
       - app/src/main/cpp/experiments/csharp/NativeTouchGroups.cpp
+      - app/src/main/cpp/experiments/csharp/NativeTouchGroupSelection.h
       - app/src/main/cpp/experiments/csharp/NativeTouchVisibility.cpp
       - app/src/main/cpp/experiments/csharp/NativeTouchVisibility.h
       - app/src/main/cpp/experiments/csharp/NativeTouchActivation.cpp
@@ -124,6 +125,17 @@ jobs:
       - name: Verify Terraria hook signatures match Bunny reference
         shell: bash
         run: python3 tests/keybind_loader/check_native_touch_signatures.py
+      - name: Native grouped touch release regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          g++ -std=c++20 -Wall -Wextra -Werror -pedantic -O1 -g \
+            -fsanitize=address,undefined -fno-omit-frame-pointer \
+            -Iapp/src/main/cpp \
+            tests/keybind_loader/native_touch_group_selection_test.cpp \
+            -o "$RUNNER_TEMP/native-touch-groups"
+          ASAN_OPTIONS=detect_leaks=1 UBSAN_OPTIONS=halt_on_error=1 \
+            "$RUNNER_TEMP/native-touch-groups"
       - name: Compile-only Terraria native ABI preflight (no APK)
         shell: bash
         run: |
