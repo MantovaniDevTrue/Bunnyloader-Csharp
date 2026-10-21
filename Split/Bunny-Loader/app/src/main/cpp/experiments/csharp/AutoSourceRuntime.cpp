@@ -1547,7 +1547,8 @@ void hkNativeCSharpWorldSave(bool cloud, bool reset, const MethodInfo* method) {
     // Save do Terraria primeiro, sidecar apenas depois de retornar normalmente.
     g_origNativeWorldSave(cloud, reset, method);
     if (cloud || g_worldSystemModules.load(std::memory_order_acquire) == 0 ||
-        readActivationContext().netMode != 0) return;
+        (readActivationContext().netMode != 0 &&
+         readActivationContext().netMode != 2)) return;
     const uint64_t epoch = g_worldEpoch.load(std::memory_order_acquire);
     if (g_worldDataEnteredEpoch.load(std::memory_order_acquire) != epoch ||
         !worldsave::activeWorldStore().active(epoch)) return;
