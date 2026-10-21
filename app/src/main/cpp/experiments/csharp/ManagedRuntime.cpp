@@ -305,6 +305,8 @@ std::vector<TouchSourceEntry> g_touchSourceEntries;
 bool g_touchSourceNeedsLoad = false;
 uint64_t g_touchSourcePendingTick = 0;
 uint64_t g_touchSourceProcessedTick = 0;
+void* g_touchFrameBegin = nullptr;
+void* g_touchFrameEnd = nullptr;
 
 
 
@@ -1521,9 +1523,32 @@ void loadTouchSourceEntriesOnWorker(std::vector<TouchSourceEntry>* entries) {
         entry.initialized = true;
     }
 }
+bool bindTouchFrameMethodsOnWorker() {
+    if (g_touchFrameBegin && g_touchFrameEnd) return true;
+    if (!g_domain || !g_api.openAssembly || !g_api.image ||
+        !g_api.findClass || !g_api.findMethod || g_checkpointPath.empty())
+        return false;
+    const auto slash = g_checkpointPath.find_last_of('/');
+    if (slash == std::string::npos) return false;
+    const std::string path =
+        g_checkpointPath.substr(0, slash + 1) + "BunnySourceSdk.dll";
+    if (!validAssembly(path)) return false;
+    void* assembly = g_api.openAssembly(g_domain, path.c_str());
+    void* image = assembly ? g_api.image(assembly) : nullptr;
+    void* klass = image ? g_api.findClass(
+        image, "BunnyLoader.Source", "BunnyTouchButtonLoader") : nullptr;
+    if (!klass) return false;
+    g_touchFrameBegin = g_api.findMethod(klass, "BeginTriggerFrame", 0);
+    g_touchFrameEnd = g_api.findMethod(klass, "EndTriggerFrame", 0);
+    return g_touchFrameBegin && g_touchFrameEnd;
+}
 void processTouchSourceEntriesOnWorker(std::vector<TouchSourceEntry>* entries) {
     if (!entries || !g_domain || !g_api.attach || !g_api.invoke ||
         !g_api.attach(g_domain)) return;
+    if (!bindTouchFrameMethodsOnWorker()) return;
+    void* frameException = nullptr;
+    g_api.invoke(g_touchFrameBegin, nullptr, nullptr, &frameException);
+    if (frameException) return;
     for (auto& entry : *entries) {
         if (!entry.initialized || !entry.callback ||
             entry.failures >= 3) continue;
@@ -1531,6 +1556,8 @@ void processTouchSourceEntriesOnWorker(std::vector<TouchSourceEntry>* entries) {
         g_api.invoke(entry.callback, nullptr, nullptr, &exception);
         if (exception) ++entry.failures;
     }
+    frameException = nullptr;
+    g_api.invoke(g_touchFrameEnd, nullptr, nullptr, &frameException);
 }
 
 void* pinnedMonoWorker(void*) {
