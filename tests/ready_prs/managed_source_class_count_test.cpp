@@ -9,7 +9,7 @@
 
 int main(int argc, char** argv) {
     using namespace bl::csharp;
-    assert(argc == 2);
+    assert(argc == 2 || argc == 3);
     SourceModStatus mod;
     mod.id = "full-example";
     std::vector<ParsedSourceType> types;
@@ -58,6 +58,19 @@ int main(int argc, char** argv) {
         "state=finished\nmodId=full-example\nphase=compile-verified\n"
         "assemblyReady=1\nexecutedTypes=74\n";
     assert(managedSourceCompileFinished(status, mod.id, mod));
+    if (argc == 3) {
+        std::ifstream inventory(argv[2]);
+        assert(inventory.good());
+        std::string managed((std::istreambuf_iterator<char>(inventory)),{});
+        const std::string actual = "state=finished\nmodId=full-example\nphase=compile-verified\nassemblyReady=1\n" + managed;
+        assert(managedSourceCompileFinished(actual,mod.id,mod));
+        assert(verifiedHookModuleCount(actual)>0);
+    }
+    SourceModStatus pure;
+    const std::string moduleStatus="state=finished\nmodId=pure\nphase=compile-verified\nassemblyReady=1\nexecutedTypes=1\nhookModules=1\n";
+    assert(managedSourceCompileFinished(moduleStatus,"pure",pure));
+    assert(!managedSourceCompileFinished(moduleStatus+"hookModules=1\n","pure",pure));
+    assert(!managedSourceCompileFinished("state=finished\nmodId=pure\nphase=compile-verified\nassemblyReady=1\nexecutedTypes=0\n","pure",pure));
     --mod.dusts;
     assert(!managedSourceCompileFinished(status, mod.id, mod));
     std::cout << "FULL_EXAMPLE_NATIVE_MANAGED_COUNT=PASS expected=74"

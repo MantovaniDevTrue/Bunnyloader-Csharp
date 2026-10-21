@@ -10,6 +10,7 @@ namespace BunnyLoader.SourceCompiler;
 
 public static class CompiledAssemblyProbe
 {
+    public static int LastVerifiedHookModules { get; private set; }
     private static bool IsContentType(Type type, string baseName)
     {
         if (!type.IsClass || type.IsAbstract || type.ContainsGenericParameters ||
@@ -140,6 +141,7 @@ public static class CompiledAssemblyProbe
 
     public static int Verify(string assemblyPath, string diagnosticsPath, string modRoot)
     {
+        LastVerifiedHookModules = 0;
         try
         {
             if (!File.Exists(assemblyPath) || new FileInfo(assemblyPath).Length > 32 * 1024 * 1024)
@@ -207,12 +209,18 @@ public static class CompiledAssemblyProbe
                 .Where(type => IsContentType(type, "BunnyScreenEffect"))
                 .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
             int commandCount = CommandManifestWriter.CountCommands(assembly);
+            var hookModuleTypes = contentTypes.Where(type => type.IsClass && !type.IsAbstract && !type.ContainsGenericParameters &&
+                Ancestors(type).Any(baseType => baseType.FullName == "BunnyLoader.Source.BunnyHookModule")).ToArray();
+            foreach (var moduleType in hookModuleTypes)
+                if (moduleType.GetConstructor(Type.EmptyTypes) == null)
+                    throw new InvalidOperationException(moduleType.FullName + ": hook module requires a public parameterless constructor");
+            if (hookModuleTypes.Length > 4096) throw new InvalidOperationException("Hook module count exceeds 4096");
             if (dustTypes.Length > 4096 || wallTypes.Length > 4096 || tileTypes.Length > 4096 || rarityTypes.Length > 4096 || localizationTypes.Length > 32 || prefixTypes.Length > 4096 || npcTypes.Length > 4096 || accessoryTypes.Length > 4096 || playerTypes.Length > 4096 ||
                 projectileTypes.Length > 4096 ||
                 weaponTypes.Length > 4096 || basicItemTypes.Length > 4096 ||
                 buffTypes.Length > 4096 || potionTypes.Length > 4096 || screenEffectTypes.Length > 4096)
                 throw new InvalidOperationException("C# content class count out of bounds");
-            if (backgroundTypes.Length + dustTypes.Length + wallTypes.Length + tileTypes.Length + basicItemTypes.Length + projectileTypes.Length + weaponTypes.Length + buffTypes.Length + potionTypes.Length + accessoryTypes.Length + playerTypes.Length + npcTypes.Length + prefixTypes.Length + screenEffectTypes.Length + rarityTypes.Length + localizationTypes.Length + commandCount == 0)
+            if (backgroundTypes.Length + dustTypes.Length + wallTypes.Length + tileTypes.Length + basicItemTypes.Length + projectileTypes.Length + weaponTypes.Length + buffTypes.Length + potionTypes.Length + accessoryTypes.Length + playerTypes.Length + npcTypes.Length + prefixTypes.Length + screenEffectTypes.Length + rarityTypes.Length + localizationTypes.Length + commandCount + hookModuleTypes.Length == 0)
                 throw new InvalidOperationException("C# assembly has no supported content types");
             bool fixture = projectileTypes.Any(t => t.FullName == "SourceCSharpMod.SourceBolt") &&
                 weaponTypes.Any(t => t.FullName == "SourceCSharpMod.SourceWand");
@@ -245,6 +253,9 @@ public static class CompiledAssemblyProbe
             WriteRuntimeDefaults(projectiles, weapons, buffs, potions,
                 accessories, players, npcs, prefixes, basicItems, tiles, walls, dusts, rarityTypes, diagnosticsPath);
             commandCount = CommandManifestWriter.Write(assembly, diagnosticsPath, assemblyPath);
+            if (hookModuleTypes.Length != 0)
+                File.AppendAllText(Path.Combine(Path.GetDirectoryName(diagnosticsPath)!, "source-runtime-values.txt"),
+                    "HOOK_MODULES\t" + hookModuleTypes.Length.ToString(CultureInfo.InvariantCulture) + "\n");
             var backgroundRows = new List<string>();
             foreach (var type in backgroundTypes)
             {
@@ -274,7 +285,7 @@ public static class CompiledAssemblyProbe
                 WriteKillPolicy(primaryProjectile!, diagnosticsPath);
             }
             int verifiedTypes = projectiles.Length + weapons.Length + buffs.Length + potions.Length +
-                accessories.Length + players.Length + npcs.Length + prefixes.Length + basicItems.Length + tiles.Length + dusts.Length + walls.Length + screenEffects.Length + rarityTypes.Length + localizationTypes.Length + commandCount + backgroundTypes.Length;
+                accessories.Length + players.Length + npcs.Length + prefixes.Length + basicItems.Length + tiles.Length + dusts.Length + walls.Length + screenEffects.Length + rarityTypes.Length + localizationTypes.Length + commandCount + backgroundTypes.Length + hookModuleTypes.Length;
             File.AppendAllText(diagnosticsPath,
                 "\nASSEMBLY_EXEC_OK classes=" + verifiedTypes +
                 " projectiles=" + projectiles.Length + " weapons=" + weapons.Length +
@@ -286,6 +297,7 @@ public static class CompiledAssemblyProbe
                 (fixture
                     ? " projectile=SourceBolt width=10 weapon=SourceWand damage=22 shoot=SourceBolt"
                     : " policy=generic-managed-defaults"));
+            LastVerifiedHookModules = hookModuleTypes.Length;
             return verifiedTypes;
         }
         catch (Exception exception)

@@ -4942,6 +4942,22 @@ ManagedSourceCompileResult compileManagedSource(
         trace(out.phase.c_str(), out.error.c_str());
         return out;
     }
+    if (void* moduleGetter = g_api.findMethod(verifierClass, "get_LastVerifiedHookModules", 0)) {
+        void* moduleException = nullptr;
+        void* modulesBoxed = g_api.invoke(moduleGetter, nullptr, nullptr, &moduleException);
+        if (moduleException || !modulesBoxed || !g_api.unbox(modulesBoxed)) {
+            out.phase = "compiled-module-inventory-failed";
+            out.error = "[CSharp][ERROR][CompileVerify] Stage=ReadHookModuleInventory Result=Rejected Reason=ManagedInventoryUnavailable";
+            return out;
+        }
+        std::memcpy(&out.hookModules, g_api.unbox(modulesBoxed), sizeof(out.hookModules));
+        if (out.hookModules < 0 || out.hookModules > 4096 || out.hookModules > out.executedTypes) {
+            out.phase = "compiled-module-inventory-failed";
+            out.error = "[CSharp][ERROR][CompileVerify] Stage=ReadHookModuleInventory Expected=0..4096WithinExecutedTypes Actual=" +
+                std::to_string(out.hookModules) + " Result=Rejected Reason=ManagedInventoryOutOfBounds";
+            return out;
+        }
+    }
     trace("compiled-assembly-execution-verified");
     out.phase = "compile-verified";
     trace(out.phase.c_str());

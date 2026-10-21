@@ -13,6 +13,7 @@ struct Token {
     std::string value;
     int line;
     bool literal;
+    bool constant = true;
 };
 
 bool tokenize(const std::string& source, std::vector<Token>* out, std::string* error) {
@@ -65,45 +66,92 @@ bool tokenize(const std::string& source, std::vector<Token>* out, std::string* e
             out->push_back({source.substr(start, i - start), line, false});
             continue;
         }
-        if (c == '"') {
-            const int at = line;
-            ++i;
-            std::string value;
-            bool closed = false;
-            while (i < source.size()) {
-                const char ch = source[i++];
-                if (ch == '"') { closed = true; break; }
-                if (ch == '\n') { *error = "string C# multilinha nao suportada"; return false; }
-                if (ch == '\\') {
-                    if (i >= source.size()) break;
-                    const char escaped = source[i++];
-                    if (escaped != '"' && escaped != '\\' && escaped != 'n') {
-                        *error = "escape C# nao suportado";
-                        return false;
-                    }
-                    value += escaped == 'n' ? '\n' : escaped;
-                } else value += ch;
+        if (c == '"' || c == '\'' || c == '@' || c == '$') {
+            size_t quote = i;
+            bool verbatim = false, interpolated = false;
+            while (quote < source.size() && (source[quote] == '@' || source[quote] == '$')) {
+                verbatim |= source[quote] == '@'; interpolated |= source[quote] == '$'; ++quote;
             }
-            if (!closed) { *error = "string C# nao terminada"; return false; }
-            out->push_back({value, at, true});
-            continue;
+            if (c == '\'') quote = i;
+            if (quote < source.size() && (source[quote] == '"' || source[quote] == '\'')) {
+                const int at = line;
+                const char delimiter = source[quote];
+                size_t quotes = 1;
+                while (delimiter == '"' && quote + quotes < source.size() && source[quote + quotes] == '"') ++quotes;
+                if (quotes >= 3) {
+                    // Raw string indentation/interpolation belongs to Roslyn.
+                    // Discovery keeps it opaque and never treats it as a bootstrap path.
+                    const std::string end(quotes, '"');
+                    const auto finish = source.find(end, quote + quotes);
+                    if (finish == std::string::npos) { *error = "string C# nao terminada na linha " + std::to_string(at); return false; }
+                    for (size_t j = i; j < finish + quotes; ++j) if (source[j] == '\n') ++line;
+                    i = finish + quotes; out->push_back({"", at, true, false}); continue;
+                }
+                i = quote + 1;
+                std::string value;
+                bool closed = false;
+                int expression = 0;
+                while (i < source.size()) {
+                    const char ch = source[i++];
+                    if (ch == '\n') ++line;
+                    if (interpolated && ch == '{') {
+                        if (!expression && i < source.size() && source[i] == '{') { ++i; continue; }
+                        ++expression; continue;
+                    }
+                    if (interpolated && expression && ch == '}') { --expression; continue; }
+                    if (expression && (ch == '"' || ch == '\'')) {
+                        const char inner = ch;
+                        while (i < source.size()) {
+                            char part = source[i++]; if (part == '\n') ++line;
+                            if (part == '\\' && i < source.size()) { ++i; continue; }
+                            if (part == inner) break;
+                        }
+                        continue;
+                    }
+                    if (ch == delimiter && !expression) {
+                        if (verbatim && i < source.size() && source[i] == '"') { ++i; value += '"'; continue; }
+                        closed = true; break;
+                    }
+                    if (!verbatim && ch == '\\' && i < source.size()) {
+                        const char escaped = source[i++];
+                        switch (escaped) {
+                            case 'n': value += '\n'; break; case 'r': value += '\r'; break;
+                            case 't': value += '\t'; break; case '0': value += '\0'; break;
+                            case 'b': value += '\b'; break; case 'f': value += '\f'; break;
+                            case 'v': value += '\v'; break; case 'a': value += '\a'; break;
+                            case '\\': value += '\\'; break; case '"': value += '"'; break;
+                            case '\'': value += '\''; break;
+                            default:
+                                // Non-bootstrap escapes are validated/executed by Roslyn.
+                                interpolated = true; value += escaped; break;
+                        }
+                    } else value += ch;
+                }
+                if (!closed) { *error = "string C# nao terminada na linha " + std::to_string(at); return false; }
+                out->push_back({value, at, true, !interpolated && delimiter == '"'});
+                continue;
+            }
+            if (c == '@' && quote < source.size() && (std::isalpha(static_cast<unsigned char>(source[quote])) || source[quote] == '_')) {
+                i = quote; continue; // escaped C# identifier: @class -> class
+            }
         }
         if (std::string("{}()[]=;:.,-*+/%<>!&|?~^").find(static_cast<char>(c)) != std::string::npos) {
             out->push_back({std::string(1, static_cast<char>(c)), line, false});
             ++i;
             continue;
         }
-        *error = "token C# ainda nao suportado na linha " + std::to_string(line);
-        return false;
+        out->push_back({std::string(1, static_cast<char>(c)), line, false});
+        ++i;
     }
     return true;
 }
 
 size_t closing(const std::vector<Token>& tokens, size_t open, const std::string& begin,
                const std::string& end) {
-    if (open >= tokens.size() || tokens[open].value != begin) return tokens.size();
+    if (open >= tokens.size() || tokens[open].literal || tokens[open].value != begin) return tokens.size();
     int level = 0;
     for (size_t i = open; i < tokens.size(); ++i) {
+        if (tokens[i].literal) continue;
         if (tokens[i].value == begin) ++level;
         if (tokens[i].value == end && --level == 0) return i;
     }
@@ -116,7 +164,7 @@ bool contentDeclaration(const std::vector<Token>& tokens, size_t first, size_t l
     const std::string kinds = "|Item|Dust|Tile|Wall|Weapon|Projectile|Buff|BuffPotion|Accessory|Player|NPC|Prefix|BackgroundTexture|";
     for (size_t i = first; i < last; ++i) {
         if(!tokens[i].literal&&(tokens[i].value=="BunnyName"||tokens[i].value=="BunnyNameAttribute")) {
-            if(i+6>=last||tokens[i+1].value!="("||!tokens[i+2].literal||tokens[i+3].value!=","||!tokens[i+4].literal||tokens[i+5].value!=")"||tokens[i+6].value!="]") {
+            if(i+6>=last||tokens[i+1].value!="("||!tokens[i+2].literal||!tokens[i+2].constant||tokens[i+3].value!=","||!tokens[i+4].literal||!tokens[i+4].constant||tokens[i+5].value!=")"||tokens[i+6].value!="]") {
                 *error="BunnyName exige cultura e texto literais";return false;
             }
             const auto& culture=tokens[i+2].value;const auto& text=tokens[i+4].value;
@@ -132,8 +180,8 @@ bool contentDeclaration(const std::vector<Token>& tokens, size_t first, size_t l
         if (i + 10 >= last || tokens[i + 1].value != "(" ||
             tokens[i + 2].value != "BunnyContentKind" || tokens[i + 3].value != "." ||
             kinds.find("|" + tokens[i + 4].value + "|") == std::string::npos ||
-            tokens[i + 5].value != "," || !tokens[i + 6].literal ||
-            tokens[i + 7].value != "," || !tokens[i + 8].literal ||
+            tokens[i + 5].value != "," || !tokens[i + 6].literal || !tokens[i + 6].constant ||
+            tokens[i + 7].value != "," || !tokens[i + 8].literal || !tokens[i + 8].constant ||
             tokens[i + 9].value != ")" || tokens[i + 10].value != "]" || !base->empty()) {
             *error = "BunnyContent exige categoria, nome e textura literais e uma unica declaracao";
             return false;
@@ -242,6 +290,7 @@ bool parseClass(const std::vector<Token>& tokens, size_t begin, size_t end,
     while (member < end) {
         bool advanced = false;
         for (size_t i = member; i < end;) {
+            if (tokens[i].literal) { ++i; continue; }
             const auto& value = tokens[i].value;
             if (value == "(") {
                 const size_t parametersEnd = closing(tokens, i, "(", ")");
@@ -268,10 +317,11 @@ bool parseClass(const std::vector<Token>& tokens, size_t begin, size_t end,
                         // os defaults numericos e receitas sao executados em C#;
                         // nao adivinhar expressoes nem descartar a sua funcionalidade.
                         for (size_t j=parametersEnd+2;j<bodyEnd;++j) {
+                            if (tokens[j].literal) continue;
                             const auto& key=tokens[j].value;
                             if (key!="Texture" && key!="DisplayName") continue;
                             if (j+3>=bodyEnd || tokens[j+1].value!="=" ||
-                                !tokens[j+2].literal || tokens[j+3].value!=";") {
+                                (!tokens[j+2].literal || !tokens[j+2].constant) || tokens[j+3].value!=";") {
                                 *error=name+": "+key+" precisa de string literal para registro antecipado (linha "+std::to_string(tokens[j].line)+")";
                                 return false;
                             }
@@ -312,8 +362,8 @@ bool parseClass(const std::vector<Token>& tokens, size_t begin, size_t end,
                 if (next < end && tokens[next].value == "=") {
                     ++next;
                     while (next < end && tokens[next].value != ";") {
-                        if (tokens[next].value == "(" || tokens[next].value == "{" ||
-                            tokens[next].value == "[") {
+                        if (!tokens[next].literal && (tokens[next].value == "(" || tokens[next].value == "{" ||
+                            tokens[next].value == "[")) {
                             const std::string closer = tokens[next].value == "(" ? ")" :
                                 tokens[next].value == "{" ? "}" : "]";
                             const size_t endOfValue = closing(tokens, next, tokens[next].value, closer);

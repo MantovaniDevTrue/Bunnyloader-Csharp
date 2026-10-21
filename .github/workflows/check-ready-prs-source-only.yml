@@ -55,6 +55,15 @@ jobs:
           dotnet run --project tests/commands/Commands.HostTests.csproj -c Release
           dotnet run --project tests/commands/CommandManifest.HostTests.csproj -c Release
           dotnet run --project tests/commands/Actions.HostTests.csproj -c Release
+      - name: World update full contract, standalone module discovery and ARM64 trampoline
+        run: |
+          dotnet run --project tests/world_update_loader/WorldUpdateLoader.csproj -c Release
+          python3 tests/world_update_loader/check_contract.py
+          python3 tests/world_update_loader/check_arm64_assembly.py
+          for test in native_contract_test time_rate_mailbox_test; do
+            g++ -std=c++20 -Wall -Wextra -Werror -pthread -Iapp/src/main/cpp "tests/world_update_loader/$test.cpp" -o "/tmp/bunny-$test"
+            "/tmp/bunny-$test"
+          done
       - name: Background texture registry CSharp native round trip and JS interoperability
         run: bash tests/backgrounds/run.sh
       - name: APK source completeness gate must reject this unfinished scope
@@ -109,7 +118,7 @@ jobs:
             "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "ndk;$NDK_VERSION"
           fi
           CXX="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android34-clang++"
-          for file in SourceParser SourceLoader AutoSourceRuntime ManagedRuntime NativeCommandChatHooks ManagedSoundLoader NativeRarityGameplay NativeDustEmission NativeCSharpItemUse; do
+          for file in SourceParser SourceLoader AutoSourceRuntime ManagedRuntime NativeCommandChatHooks ManagedSoundLoader NativeRarityGameplay NativeDustEmission NativeCSharpItemUse UniversalSystemStages UniversalHooks; do
             "$CXX" -std=c++20 -fsyntax-only -fexceptions -frtti -D__ANDROID__ -DANDROID -D_GNU_SOURCE -Iapp/src/main/cpp -Iapp/src/main/cpp/third_party/quickjs "app/src/main/cpp/experiments/csharp/$file.cpp"
           done
           "$CXX" -std=c++20 -fsyntax-only -fexceptions -frtti -D__ANDROID__ -DANDROID -D_GNU_SOURCE -Iapp/src/main/cpp app/src/main/cpp/content/backgrounds/BackgroundTextures.cpp

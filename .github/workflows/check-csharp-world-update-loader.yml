@@ -1,0 +1,46 @@
+name: CSharp World Update SDK Check
+on:
+  pull_request:
+    paths:
+      - 'experiments/csharp/BunnyCsSdk/BunnyWorldUpdateLoader.cs'
+      - 'experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj'
+      - 'samples/ExampleModCSharp/Playable/content/Content/Systems/**'
+      - 'tests/world_update_loader/**'
+      - 'app/src/main/cpp/experiments/csharp/UniversalSystemStages*'
+      - 'app/src/main/cpp/experiments/csharp/SystemStageContracts.h'
+      - 'app/src/main/cpp/experiments/csharp/SystemTimeRateMailbox.h'
+      - '.github/workflows/check-csharp-world-update-loader.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  sdk-only:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Auditar fidelidade do SystemUpdateHooks original
+        run: python3 tests/world_update_loader/check_contract.py
+      - name: Validar sintaxe do host C++ e dos registradores ARM64
+        run: |
+          export CPLUS_INCLUDE_PATH="$JAVA_HOME/include:$JAVA_HOME/include/linux"
+          clang++ -std=c++20 -fsyntax-only -D__aarch64__ -Itests/basic_items/include -Iapp/src/main/cpp app/src/main/cpp/experiments/csharp/UniversalSystemStages.cpp
+          clang++ -std=c++20 -fsyntax-only -D__aarch64__ -Itests/basic_items/include -Iapp/src/main/cpp app/src/main/cpp/experiments/csharp/UniversalHooks.cpp
+      - name: Executar contratos IL2CPP e transacoes nativas de taxas
+        run: |
+          for test in native_contract_test time_rate_mailbox_test; do
+            g++ -std=c++20 -Wall -Wextra -Werror -pthread -Iapp/src/main/cpp "tests/world_update_loader/$test.cpp" -o "/tmp/bunny-$test"
+            "/tmp/bunny-$test"
+          done
+      - name: Montar trampolim ARM64 em objeto temporario (sem APK)
+        run: python3 tests/world_update_loader/check_arm64_assembly.py
+      - name: Verificar compilacao do BunnySourceSdk
+        run: dotnet build experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj -c Release --nologo
+      - name: Verificar os exemplos e o contrato em desktop
+        run: dotnet run --project tests/world_update_loader/WorldUpdateLoader.csproj -c Release --nologo

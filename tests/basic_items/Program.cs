@@ -285,8 +285,8 @@ try {
    typeof(BunnyLocalizationModule).IsAssignableFrom(t));
   int commands=compiled.GetTypes().Count(t=>t.IsClass&&!t.IsAbstract&&
    typeof(BunnyCommand).IsAssignableFrom(t));
-  Equal(3,commands);
-  if(CompiledAssemblyProbe.Verify(output,diag,root)!=identities.Count+localizationModules+commands)
+  Equal(4,commands);
+  if(CompiledAssemblyProbe.Verify(output,diag,root)!=identities.Count+localizationModules+commands+compiled.GetTypes().Count(t=>t.IsClass&&!t.IsAbstract&&!t.ContainsGenericParameters&&typeof(BunnyHookModule).IsAssignableFrom(t)))
    throw new Exception(File.ReadAllText(diag));
   var contentKinds=new HashSet<string>{"ITEM","WEAPON","ACCESSORY","POTION","TILE","WALL","DUST","RARITY","BACKGROUND_TEXTURE","BUFF","PLAYER","PROJECTILE","NPC","PREFIX"};
   string localizationUid="68c3115f-62f4-49f2-a56b-388256781d5f";

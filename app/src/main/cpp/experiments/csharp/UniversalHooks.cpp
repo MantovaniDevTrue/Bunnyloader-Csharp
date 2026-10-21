@@ -1,4 +1,5 @@
 #include "experiments/csharp/UniversalHooks.h"
+#include "experiments/csharp/UniversalSystemStages.h"
 #include "experiments/csharp/UniversalHookMailbox.h"
 #include "hook/HookManager.h"
 #include "il2cpp/Resolver.h"
@@ -43,6 +44,7 @@ struct Install {
     std::string type, method;
     int slot = -1, result = -1;
     bool isStatic = false, int32Mode = false, int32PairMode = false;
+    bool systemStage = false;
     int extendedMode = 0;
 } install;
 std::atomic<uint64_t> epoch{1};
@@ -346,6 +348,8 @@ int installOnGameThread() {
 #if !defined(__aarch64__) && !defined(BUNNY_UNIVERSAL_HOOK_HOST_TEST)
     return -2;
 #else
+    if (install.systemStage)
+        return installUniversalSystemStageOnGameThread(install.method, install.slot);
     auto& api = il2cpp::api();
     const size_t dot = install.type.rfind('.');
     if (dot == std::string::npos || install.type.rfind("Terraria.", 0) != 0 ||
@@ -442,6 +446,11 @@ int installOnGameThread() {
 #endif
 }
 }
+bool isUniversalHookGameThread() {
+    return accepting.load(std::memory_order_acquire) && !inOriginal &&
+        !universalNativeAccessInProgress &&
+        static_cast<long>(syscall(__NR_gettid)) == gameThread.load(std::memory_order_acquire);
+}
 void pumpUniversalHookInstallsOnGameThread() {
     gameThread.store(static_cast<long>(syscall(__NR_gettid)), std::memory_order_release);
     std::unique_lock<std::mutex> lock(install.mutex, std::try_to_lock);
@@ -457,6 +466,7 @@ void disableUniversalHooks() {
     epoch.fetch_add(1, std::memory_order_acq_rel);
     universalHookMailbox().cancel();
     for (auto& entry : entries) entry.active.store(false, std::memory_order_release);
+    disableAllUniversalSystemStages();
     install.pending = false;
     install.result = -10;
     install.done = true;
@@ -465,7 +475,8 @@ void disableUniversalHooks() {
 void enableUniversalHooks() { accepting.store(true, std::memory_order_release); }
 
 int requestInstall(const char* type, const char* method, int slot, int isStatic,
-                   bool int32Mode, bool int32PairMode = false, int extendedMode = 0) {
+                   bool int32Mode, bool int32PairMode = false, int extendedMode = 0,
+                   bool systemStage = false) {
     if (!accepting.load(std::memory_order_acquire) || !type || !method || strnlen(type, 257) > 256 || strnlen(method, 129) > 128 ||
         slot < 0 || slot >= MaxHooks || (isStatic != 0 && isStatic != 1) || extendedMode < 0 || extendedMode > 5) return -1;
     if (!universalCanInstall || !universalLeaveMono || !universalResumeMono) return -12;
@@ -479,6 +490,7 @@ int requestInstall(const char* type, const char* method, int slot, int isStatic,
     install.int32Mode = int32Mode;
     install.int32PairMode = int32PairMode;
     install.extendedMode = extendedMode;
+    install.systemStage = systemStage;
     install.epoch = epoch.load(std::memory_order_acquire);
     install.pending = true;
     install.done = false;
@@ -487,6 +499,10 @@ int requestInstall(const char* type, const char* method, int slot, int isStatic,
         return -11;
     }
     return install.result;
+}
+extern "C" __attribute__((visibility("default"))) int bunny_universal_hook_install_stage(
+    const char* name, int slot) {
+    return requestInstall("Terraria.Main", name, slot, 0, false, false, 0, true);
 }
 extern "C" __attribute__((visibility("default"))) int bunny_universal_hook_install(
     const char* type, const char* method, int slot, int isStatic) {
@@ -514,7 +530,8 @@ extern "C" __attribute__((visibility("default"))) int bunny_universal_hook_origi
     return ok ? 1 : 0;
 }
 extern "C" __attribute__((visibility("default"))) void bunny_universal_hook_remove(int index) {
-    if (index >= 0 && index < MaxHooks) entries[index].active.store(false, std::memory_order_release);
+    if (index >= 1000 && index < 1011) removeUniversalSystemStage(index);
+    else if (index >= 0 && index < MaxHooks) entries[index].active.store(false, std::memory_order_release);
 }
 extern "C" __attribute__((visibility("default"))) int64_t bunny_universal_hook_stat(int key) {
     if (key == 6) return universalHookLateCompletionCount();

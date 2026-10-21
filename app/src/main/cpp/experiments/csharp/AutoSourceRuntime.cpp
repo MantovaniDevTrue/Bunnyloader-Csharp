@@ -339,7 +339,7 @@ bool compile(const std::string& root, const std::string& id,
         if (status.find("state=finished\n") != std::string::npos &&
             status.find("modId=" + id + "\n") != std::string::npos &&
             !validCompileStatus(status, id, mod)) {
-            const int expected = expectedManagedSourceTypes(mod);
+            const int expected = expectedManagedSourceTypes(mod) + std::max(0, verifiedHookModuleCount(status));
             std::string actual = "desconhecido";
             const std::string marker = "executedTypes=";
             const size_t start = status.find(marker);
@@ -864,6 +864,7 @@ void run() {
                 continue;
             }
         }
+        hasUniversalHooks = hasUniversalHooks || defaults.find("HOOK_MODULES\t") != std::string::npos;
         note(&status, "waiting-content");
         bool ready = false;
         const auto tablesStarted = std::chrono::steady_clock::now();

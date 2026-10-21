@@ -443,6 +443,7 @@ ManagedLiveBenchmarkStatus stopManagedLiveBenchmark();
 struct ManagedSourceCompileResult {
     int result = 0;
     int executedTypes = 0;
+    int hookModules = 0;
     int64_t monoProbeMs = 0;
     int64_t roslynInvokeMs = 0;
     int64_t verifyInvokeMs = 0;

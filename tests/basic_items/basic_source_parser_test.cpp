@@ -20,5 +20,39 @@ int main(){
  namespace Items {public sealed class IndependentWall:BunnyItem {public override void SetDefaults(){Texture="Content/Items/IndependentWall.png";DisplayName="Example Wall";DefaultToPlaceableWall("IndependentWall");}}}
  )",&types,&error));assert(types.size()==2&&types[0].base=="BunnyWall"&&types[1].base=="BunnyItem");
  assert(types[0].properties.size()==2&&types[1].properties.size()==2);
+ types.clear();assert(bl::csharp::parseCSharpSource(R"CSharp(
+ using BunnyLoader.Source;
+ public abstract class SharedWorld : BunnyWorldUpdateLoader {
+  protected override void PostUpdateEverything() {
+   char open='{', close='}', quote='\'';
+   string verbatim=@"""} { """, interpolated=$"{new string('}', 1)}";
+   string raw=""" } " unbalanced { """;
+   int @class=3; var value=@class switch { > 2 => 1, _ => 0 };
+   System.Action callback=()=>{ if(value!=0) System.Console.WriteLine(interpolated); };
+   callback();
+  }
+ }
+ public sealed class IndependentWorld : SharedWorld { }
+ public sealed class AfterLiteral : BunnyItem {
+  private const string Open="{", Close="}", Namespace="namespace", Class="class";
+  public override void SetDefaults(){
+   string harmless="Texture"; char brace='}';
+   Texture=@"Content/Items/Example.png"; DisplayName="Example literal }";
+  }
+ }
+ )CSharp",&types,&error,false));
+ assert(types.size()==1&&types[0].name=="AfterLiteral");
+ assert(types[0].properties.at("Texture")=="Content/Items/Example.png");
+ types.clear();assert(!bl::csharp::parseCSharpSource(R"CSharp(
+ public sealed class Ambiguous : BunnyItem {
+  public override void SetDefaults(){Texture=$"Content/{Name}.png";}
+ }
+ )CSharp",&types,&error));
+ assert(error.find("Texture precisa de string literal")!=std::string::npos);
+ types.clear();assert(!bl::csharp::parseCSharpSource(R"CSharp(
+ [BunnyContent(BunnyContentKind.Item, $"Example{Name}", "Content/Example.png")]
+ public sealed class Ambiguous : CustomBase { }
+ )CSharp",&types,&error));
+ assert(error.find("BunnyContent exige categoria")!=std::string::npos);
  std::cout<<"BASIC_ITEM_RESOURCE_PARSER_PASS=YES\n";
 }

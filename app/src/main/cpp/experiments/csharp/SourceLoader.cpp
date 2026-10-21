@@ -367,10 +367,12 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
             return false;
         }
     }
-    if (defs.empty()) {
-        status->error = "mod C# sem conteudo concreto registrado; use uma base publica Bunny ou [BunnyContent] com override de defaults para heranca propria";
-        return false;
-    }
+    // Assets are independent of item/content classes. A mod with only a world
+    // module and Backgrounds PNGs must receive the same autoload as item mods.
+    if (!bl::runtime::backgrounds::autoload(mod.id, folder, &status->error)) return false;
+    // A pure managed hook/localization module needs no native content IDs.
+    // Roslyn's verifier must still prove at least one supported class.
+    if (defs.empty()) return true;
     if (defs.size() > kSourceMaxTypes) { status->error = "tipos C# demais"; return false; }
     std::map<std::string, int> typed;
     for (const auto& def : defs) {
@@ -388,7 +390,6 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
         status->error = "Host API de conteudo nativo indisponivel";
         return false;
     }
-    if (!bl::runtime::backgrounds::autoload(mod.id, folder, &status->error)) return false;
     NativeRegisterContext ctx{mod.id, mod.dir, 0, 0};
     const std::array<std::string, 13> order = {
         "BunnyBackgroundTexture", "BunnyDust", "BunnyTile", "BunnyWall", "BunnyItem",
@@ -703,11 +704,6 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
         status->error = "ModCommand: maximo de 128 classes por mod";
         return false;
     }
-    if (status->dusts+status->items+status->tiles+status->projectiles+status->buffs+
-        status->npcs+status->prefixes+status->rarities+status->players+status->screenEffects+status->commands+status->backgroundTextures==0) {
-        status->error = "mod C# sem conteudo registrado";
-        return false;
-    }
     if (!screenEffects.empty() &&
         !bl::graphics::registerCSharpScreenEffects(mod.id, folder, screenEffects, &status->error))
         return false;
@@ -807,6 +803,7 @@ bool applyManagedSourceDefaults(
     std::vector<localization::Entry> localized;
     std::set<std::string> seenLocale;
     bool seenLocalizationModules = false;
+    bool seenHookModules = false;
     bool seenLocalizationRuntime = false;
     size_t rarityCount = 0;
     std::set<std::string> backgroundRows;
@@ -824,6 +821,15 @@ bool applyManagedSourceDefaults(
         while (std::getline(parts, part, '\t')) fields.push_back(part);
         if (!fields.empty() && fields[0] == "BACKGROUND_TEXTURE") {
             if (!validateBackgroundTextureWire(fields, modId, mod->registeredKindTypes, &seen, &backgroundRows, error)) return false;
+            continue;
+        }
+        if (!fields.empty() && fields[0] == "HOOK_MODULES") {
+            int count = 0;
+            if (seenHookModules || fields.size() != 2 || !integer(fields[1], &count) || count < 1 || count > 4096) {
+                *error = "[CSharp][ERROR][ModuleDiscovery] Mod=" + modId + " Stage=DecodeHookInventory Result=Rejected Reason=InvalidOrDuplicateModuleCount";
+                return false;
+            }
+            seenHookModules = true;
             continue;
         }
         if(!fields.empty()&&fields[0]=="LOCALE_MODULES") {
