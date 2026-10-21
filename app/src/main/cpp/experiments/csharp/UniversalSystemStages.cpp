@@ -3,10 +3,13 @@
 #include "experiments/csharp/UniversalHooks.h"
 #include "hook/HookManager.h"
 #include "il2cpp/Resolver.h"
+#include "il2cpp/Api.h"
 #include "il2cpp/Signature.h"
 #include <array>
 #include <atomic>
 #include <chrono>
+#include <cmath>
+#include <algorithm>
 #include <cstdint>
 #include <cstring>
 #include <string_view>
@@ -15,7 +18,7 @@ namespace bl::csharp {
 #if defined(__aarch64__)
 namespace {
 using Clock = std::chrono::steady_clock;
-constexpr int kCount = 10;
+constexpr int kCount = 12;
 struct alignas(16) RegisterFrame {
     uint64_t general[31];
     uint64_t flags;
@@ -41,6 +44,55 @@ using UiUpdateFn = void (*)(void*, const MethodInfo*);
 UiUpdateFn originalUiUpdate = nullptr;
 FieldInfo* gameMenuField = nullptr;
 std::atomic<bool> rootInstalled{false};
+using TimeRateFn = void (*)(const MethodInfo*);
+TimeRateFn originalTimeRate = nullptr;
+struct NumericField { FieldInfo* field = nullptr; bool isDouble = false; };
+NumericField dayRateField, tileRateField;
+std::atomic<double> clockRate{1.0};
+std::atomic<double> timeSnapshot{1.0}, tileSnapshot{1.0};
+std::atomic<double> proposedTime{1.0}, proposedTiles{1.0}, proposedEvents{1.0};
+std::atomic<int64_t> timeSession{0};
+std::atomic<bool> timeLive{false}, timeModified{false};
+double tileRemainder = 0, eventRemainder = 0;
+
+bool validRate(double value) {
+    return std::isfinite(value) && value >= 0 && value <= 2147483647.0;
+}
+bool numericField(Il2CppClass* parent, const char* name, NumericField& out) {
+    auto& api = il2cpp::api();
+    if (!api.field_get_type || !api.type_get_name || !api.il2cpp_free ||
+        !api.field_static_get_value || !api.field_static_set_value) return false;
+    FieldInfo* field = il2cpp::findField(parent, name);
+    const Il2CppType* type = field ? api.field_get_type(field) : nullptr;
+    char* text = type ? api.type_get_name(type) : nullptr;
+    bool match = text && (!std::strcmp(text, "System.Double") ||
+                          !std::strcmp(text, "System.Single"));
+    const bool isDouble = text && !std::strcmp(text, "System.Double");
+    if (text) api.il2cpp_free(text);
+    if (!match) return false;
+    out = {field, isDouble};
+    return true;
+}
+double readRate(const NumericField& field) {
+    auto& api = il2cpp::api();
+    if (field.isDouble) {
+        double rate = 0;
+        api.field_static_get_value(field.field, &rate);
+        return rate;
+    }
+    float rate = 0;
+    api.field_static_get_value(field.field, &rate);
+    return rate;
+}
+void writeRate(const NumericField& field, double rate) {
+    auto& api = il2cpp::api();
+    if (field.isDouble) {
+        api.field_static_set_value(field.field, &rate);
+    } else {
+        float single = static_cast<float>(rate);
+        api.field_static_set_value(field.field, &single);
+    }
+}
 
 extern "C" {
 __attribute__((visibility("hidden"))) void* g_blCSharpSystemOriginal0 = nullptr;
@@ -52,6 +104,7 @@ __attribute__((visibility("hidden"))) void* g_blCSharpSystemOriginal5 = nullptr;
 __attribute__((visibility("hidden"))) void* g_blCSharpSystemOriginal6 = nullptr;
 __attribute__((visibility("hidden"))) void* g_blCSharpSystemOriginal7 = nullptr;
 __attribute__((visibility("hidden"))) void* g_blCSharpSystemOriginal8 = nullptr;
+__attribute__((visibility("hidden"))) void* g_blCSharpSystemOriginal9 = nullptr;
 }
 
 void invokeStage(int index, uintptr_t context = 0) {
@@ -80,8 +133,54 @@ void invokeStage(int index, uintptr_t context = 0) {
 }
 
 extern "C" __attribute__((visibility("hidden"))) void blCSharpSystemStageDispatch(
-    unsigned index, RegisterFrame*) {
+    unsigned index, RegisterFrame* frame) {
+    if (index == 11) {
+        if (!stages[11].active.load(std::memory_order_acquire) || !frame) return;
+        const double rate = clockRate.load(std::memory_order_acquire);
+        if (validRate(rate)) std::memcpy(frame->vectors[0], &rate, sizeof(rate));
+        return;
+    }
     if (index < kCount) invokeStage(static_cast<int>(index));
+}
+
+void hkUpdateTimeRate(const MethodInfo* info) {
+    originalTimeRate(info);
+    if (!dayRateField.field || !tileRateField.field) return;
+    const double time = readRate(dayRateField);
+    const double tiles = readRate(tileRateField);
+    if (!validRate(time) || !validRate(tiles)) return;
+
+    timeSnapshot.store(time, std::memory_order_relaxed);
+    tileSnapshot.store(tiles, std::memory_order_relaxed);
+    proposedTime.store(time, std::memory_order_relaxed);
+    proposedTiles.store(tiles, std::memory_order_relaxed);
+    proposedEvents.store(time, std::memory_order_relaxed);
+    timeModified.store(false, std::memory_order_release);
+    timeSession.fetch_add(1, std::memory_order_acq_rel);
+    timeLive.store(true, std::memory_order_release);
+    invokeStage(10);
+    timeLive.store(false, std::memory_order_release);
+
+    double requestedTime = time;
+    double requestedTiles = tiles;
+    double requestedEvents = time;
+    if (timeModified.exchange(false, std::memory_order_acq_rel)) {
+        requestedTime = proposedTime.load(std::memory_order_acquire);
+        requestedTiles = proposedTiles.load(std::memory_order_acquire);
+        requestedEvents = proposedEvents.load(std::memory_order_acquire);
+    }
+    if (!validRate(requestedTime)) requestedTime = time;
+    if (!validRate(requestedTiles)) requestedTiles = tiles;
+    if (!validRate(requestedEvents)) requestedEvents = time;
+    clockRate.store(requestedTime, std::memory_order_release);
+    double tilesWithFraction = requestedTiles + tileRemainder;
+    double eventsWithFraction = requestedEvents + eventRemainder;
+    tilesWithFraction = std::min(2147483647.0, tilesWithFraction);
+    eventsWithFraction = std::min(2147483647.0, eventsWithFraction);
+    writeRate(tileRateField, std::floor(tilesWithFraction));
+    writeRate(dayRateField, std::floor(eventsWithFraction));
+    tileRemainder = tilesWithFraction - std::floor(tilesWithFraction);
+    eventRemainder = eventsWithFraction - std::floor(eventsWithFraction);
 }
 
 void hkUpdateUIStates(void* gameTime, const MethodInfo* info) {
@@ -192,6 +291,7 @@ BL_CSHARP_SYSTEM_BRIDGE(csBridge5, 5, g_blCSharpSystemOriginal5)
 BL_CSHARP_SYSTEM_BRIDGE(csBridge6, 6, g_blCSharpSystemOriginal6)
 BL_CSHARP_SYSTEM_BRIDGE(csBridge7, 7, g_blCSharpSystemOriginal7)
 BL_CSHARP_SYSTEM_BRIDGE(csBridge8, 8, g_blCSharpSystemOriginal8)
+BL_CSHARP_SYSTEM_BRIDGE(csBridge9, 11, g_blCSharpSystemOriginal9)
 
 #undef BL_CSHARP_SYSTEM_BRIDGE
 #undef BL_CSHARP_SYSTEM_RESTORE_FRAME
@@ -208,7 +308,9 @@ Stage stages[kCount] = {
     {"ItemsEnd", 0x1a14, {0x9000ffc8, 0xf9437908, 0xb0010037, 0xd00100b6}, csBridge6, &g_blCSharpSystemOriginal6},
     {"EntitiesBegin", 0, {0, 0, 0, 0}, nullptr, nullptr},
     {"EntitiesEnd", 0, {0, 0, 0, 0}, nullptr, nullptr},
-    {"UIEnd", 0, {0, 0, 0, 0}, nullptr, nullptr}
+    {"UIEnd", 0, {0, 0, 0, 0}, nullptr, nullptr},
+    {"TimeRate", 0, {0, 0, 0, 0}, nullptr, nullptr},
+    {"ClockAdvance", 0xb8c, {0x1e602960, 0xfd024500, 0x97efb85d, 0xf94002e0}, csBridge9, &g_blCSharpSystemOriginal9}
 };
 
 const MethodInfo* worldMethod() {
@@ -249,6 +351,32 @@ int installUniversalSystemStageOnGameThread(const std::string& name, int slot) {
         if (!hook::install(method, hkUpdateUIStates, &originalUiUpdate)) return -9;
         gameMenuField = menu;
     }
+    if (index == 10 && !originalTimeRate) {
+        auto* main = il2cpp::findClassQuiet("Terraria", "Main");
+        const MethodInfo* method = main ? il2cpp::findMethodBySignature(
+            main, il2cpp::parseSignature("void UpdateTimeRate()")) : nullptr;
+        NumericField day, tiles;
+        if (!method || !il2cpp::methodPointer(method) || !main ||
+            !numericField(main, "dayRate", day) ||
+            !numericField(main, "desiredWorldTilesUpdateRate", tiles)) return -7;
+
+        auto* update = il2cpp::findMethodBySignature(main,
+            il2cpp::parseSignature("void UpdateTime()"));
+        const auto* code = update ?
+            static_cast<const uint8_t*>(il2cpp::methodPointer(update)) : nullptr;
+        auto& clock = stages[11];
+        if (!code) return -7;
+        if (!*clock.original) {
+            if (std::memcmp(code + clock.offset, clock.expected,
+                            sizeof(clock.expected)) != 0) return -6;
+            if (!hook::install(const_cast<uint8_t*>(code + clock.offset),
+                               reinterpret_cast<void*>(clock.bridge),
+                               clock.original)) return -9;
+        }
+        dayRateField = day;
+        tileRateField = tiles;
+        if (!hook::install(method, hkUpdateTimeRate, &originalTimeRate)) return -9;
+    }
     if (index < 7 && !*stage.original) {
         // Os quatro opcodes originais do Bunny validam exatamente a build
         // Terraria Android 301720. Falha segura para versões incompatíveis.
@@ -265,6 +393,7 @@ int installUniversalSystemStageOnGameThread(const std::string& name, int slot) {
     stage.faults.store(0, std::memory_order_relaxed);
     stage.slot.store(slot, std::memory_order_release);
     stage.active.store(true, std::memory_order_release);
+    if (index == 10) stages[11].active.store(true, std::memory_order_release);
     return 1000 + index;
 #endif
 }
@@ -275,9 +404,43 @@ void removeUniversalSystemStage(int handle) {
     if (index >= 0 && index < kCount) {
         stages[index].active.store(false, std::memory_order_release);
         stages[index].slot.store(-1, std::memory_order_release);
+        if (index == 10) { stages[11].active.store(false, std::memory_order_release); timeLive.store(false, std::memory_order_release); }
     }
 #else
     (void)handle;
+#endif
+}
+
+extern "C" __attribute__((visibility("default"))) int bunny_system_time_rate_read(
+    int64_t* session, double* time, double* tiles, double* events) {
+#if defined(__aarch64__)
+    if (!session || !time || !tiles || !events ||
+        !timeLive.load(std::memory_order_acquire)) return 0;
+    *session = timeSession.load(std::memory_order_acquire);
+    *time = timeSnapshot.load(std::memory_order_acquire);
+    *tiles = tileSnapshot.load(std::memory_order_acquire);
+    *events = *time;
+    return 1;
+#else
+    (void)session; (void)time; (void)tiles; (void)events;
+    return 0;
+#endif
+}
+
+extern "C" __attribute__((visibility("default"))) int bunny_system_time_rate_write(
+    int64_t session, double time, double tiles, double events) {
+#if defined(__aarch64__)
+    if (!validRate(time) || !validRate(tiles) || !validRate(events) ||
+        !timeLive.load(std::memory_order_acquire) ||
+        session != timeSession.load(std::memory_order_acquire)) return 0;
+    proposedTime.store(time, std::memory_order_relaxed);
+    proposedTiles.store(tiles, std::memory_order_relaxed);
+    proposedEvents.store(events, std::memory_order_relaxed);
+    timeModified.store(true, std::memory_order_release);
+    return 1;
+#else
+    (void)session; (void)time; (void)tiles; (void)events;
+    return 0;
 #endif
 }
 
