@@ -72,6 +72,24 @@ static class KeybindContract
             new[] { second.Id }, Array.Empty<int>(), new[] { second.Id });
         Check(second.Current && !second.RetroCurrent, "sign blocks retro");
 
+        second.SetVisible(false);
+        Check(!second.Visible && second.Enabled, "visibility policy update");
+        BunnyTouchButtonLoader.ApplyHostFrame(10, true, false, false, false,
+            new[] { second.Id }, new[] { second.Id }, new[] { second.Id });
+        Check(!second.Current && !second.JustPressed && second.IsBound,
+            "invisible button cannot be activated");
+        second.SetVisible(true);
+        second.SetEnabled(false);
+        BunnyTouchButtonLoader.ApplyHostFrame(11, true, false, false, false,
+            new[] { second.Id }, new[] { second.Id }, new[] { second.Id });
+        Check(!second.Current && !second.JustPressed,
+            "disabled button cannot be activated");
+        second.SetEnabled(true);
+        BunnyTouchButtonLoader.ApplyHostFrame(12, true, false, false, false,
+            new[] { second.Id }, Array.Empty<int>(), new[] { second.Id });
+        Check(second.Current && second.JustPressed && second.Visible && second.Enabled,
+            "re-enabled button resumes without stale latch");
+
         BunnyTouchButtonLoader.ReleaseAll();
         Check(!second.Current && !second.JustPressed && !second.IsBound, "world reset");
         BunnyTouchButtonLoader.ApplyHostFrame(1, true, false, false, false,
