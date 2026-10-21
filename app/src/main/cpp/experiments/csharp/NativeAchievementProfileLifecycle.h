@@ -10,4 +10,5 @@ bool queueAchievementProfileMod(const std::string& modId,
 
 void pumpAchievementProfileOnGameThread(bool inWorld);
 bool achievementProfileReady();
+void pauseAchievementProfileOnWorldExit();
 }
