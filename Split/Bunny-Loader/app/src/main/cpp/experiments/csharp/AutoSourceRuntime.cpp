@@ -90,6 +90,7 @@ std::atomic<uint64_t> g_worldEpoch{0};
 std::atomic<uint64_t> g_worldDataEnteredEpoch{0};
 std::atomic<int> g_worldSystemModules{0};
 std::atomic<bool> g_nativeWorldSaveHooksReady{false};
+worldsave::WorldNetAsync& worldNetQueue();
 std::atomic<bool> g_nativeWorldNetHooksReady{false};
 std::atomic<uint64_t> g_visualUpdateTick{0};
 std::atomic<uint64_t> g_liveBoundEpoch{0};
@@ -1236,7 +1237,6 @@ void noteAutoWorldTilesLoaded(const std::string& worldPath) {
 }
 
 void flushDeferredWorldEntry();
-worldsave::WorldNetAsync& worldNetQueue();
 
 void noteAutoGameUpdate() {
     if (nativeWorldNetActive()) {
