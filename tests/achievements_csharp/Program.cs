@@ -177,6 +177,23 @@ finally
     Directory.Delete(saveRoot, true);
 }
 
+var playable = new BunnyAchievementRegistry();
+var playableBoss = playable.Register("playable",
+    new ExampleModCSharp.Content.Achievements.ExampleBossKilled());
+var playableWorms = playable.Register("playable",
+    new ExampleModCSharp.Content.Achievements.ManyWormsKilled());
+Check(playable.Achievements.Count == 2 && playableWorms.Hidden,
+    "playable CSharp achievements register from real source files");
+playable.NotifyNPCKilled(10);
+Check(!playableWorms.Hidden && playableWorms.Conditions[0].Value == 1,
+    "playable GiantWormHead NPC ID10 removes hidden title after first kill");
+for (int i = 0; i < 4; i++) playable.NotifyNPCKilled(10);
+Check(playableWorms.IsCompleted && playableWorms.Progress == 1,
+    "playable five giant worms achievement reaches completion");
+playable.NotifyNPCKilled(50);
+Check(playableBoss.IsCompleted,
+    "playable KingSlime NPC ID50 completes boss achievement");
+
 Console.WriteLine("BUNNY_CSHARP_ACHIEVEMENTS_CORE=PASS checks=" + checkedCases);
 
 sealed class TwoConditions : BunnyAchievement
