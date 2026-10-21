@@ -106,12 +106,15 @@ public sealed class BunnyCommandCaller
 
 public sealed class BunnyCommandContext
 {
+    /// <summary>UID assigned by the registry, independent of manifest display name or load order.</summary>
+    public string ModId { get; }
     public BunnyCommandCaller Caller { get; }
     public string Input { get; }
     public IReadOnlyList<string> Arguments { get; }
 
-    internal BunnyCommandContext(BunnyCommandCaller caller, string input, string[] arguments)
+    internal BunnyCommandContext(BunnyCommandCaller caller, string input, string[] arguments, string modId = "")
     {
+        ModId = modId;
         Caller = caller;
         Input = input;
         Arguments = Array.AsReadOnly(arguments);
@@ -295,7 +298,7 @@ public sealed class BunnyCommandRegistry
         string[] arguments = parts.Skip(1).ToArray();
         try
         {
-            selected.Command.Action(new BunnyCommandContext(caller, line, arguments));
+            selected.Command.Action(new BunnyCommandContext(caller, line, arguments, selected.Owner));
         }
         catch (BunnyUsageException exception)
         {

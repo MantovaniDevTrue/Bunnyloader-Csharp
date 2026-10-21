@@ -17,6 +17,13 @@ void Throws<T>(Action action) where T : Exception
     throw new Exception("Excecao esperada: " + typeof(T).Name);
 }
 
+Check("command context carries registered UID", () => {
+    var owned = new BunnyCommandRegistry();
+    var replies = new List<BunnyCommandReply>();
+    owned.Register("different-uid", new[] { new OwnerCommand() });
+    Is(owned.TryHandle("/owner", new BunnyCommandCaller(0,0,BunnyCommandCallerKind.Chat,replies.Add)), "owner not handled");
+    Is(replies.Single().Text == "different-uid", "caller supplied or hardcoded mod identity");
+});
 var output = new List<BunnyCommandReply>();
 BunnyCommandCaller Caller(int mode = 0, BunnyCommandCallerKind kind = BunnyCommandCallerKind.Chat)
     => new(0, mode, kind, output.Add);
@@ -199,4 +206,9 @@ public sealed class SamplePublicCommand : BunnyCommand
 {
     public override string Command => "auto";
     public override void Action(BunnyCommandContext context) => context.Caller.Reply("registrado");
+}
+
+sealed class OwnerCommand : BunnyCommand {
+    public override string Command => "owner";
+    public override void Action(BunnyCommandContext context) => context.Caller.Reply(context.ModId);
 }

@@ -40,25 +40,26 @@ int main(int argc, char** argv) {
         else if (base == "BunnyPrefix") ++mod.prefixes;
         else if (base == "BunnyRarity") ++mod.rarities;
         else if (base == "BunnyScreenEffect") ++mod.screenEffects;
+        else if (base == "BunnyBackgroundTexture") ++mod.backgroundTextures;
         else if (base == "BunnyCommand") ++mod.commands;
         else {
             std::cerr << "Unrecognized content base: " << base << '\n';
             return 1;
         }
     }
-    assert(types.size() == 71);
+    assert(types.size() == 73);
     assert(mod.dusts == 1);
     assert(mod.walls == 1);
     assert(mod.rarities == 2);
     assert(mod.localizationModules == 1);
-    assert(mod.commands == 3);
-    assert(expectedManagedSourceTypes(mod) == 72);
+    assert(mod.commands == 4);
+    assert(expectedManagedSourceTypes(mod) == 74);
     const std::string status =
         "state=finished\nmodId=full-example\nphase=compile-verified\n"
-        "assemblyReady=1\nexecutedTypes=72\n";
+        "assemblyReady=1\nexecutedTypes=74\n";
     assert(managedSourceCompileFinished(status, mod.id, mod));
     --mod.dusts;
     assert(!managedSourceCompileFinished(status, mod.id, mod));
-    std::cout << "FULL_EXAMPLE_NATIVE_MANAGED_COUNT=PASS expected=72"
-              << " rarities=2 dust=1 wall=1 localization=1 commands=3\n";
+    std::cout << "FULL_EXAMPLE_NATIVE_MANAGED_COUNT=PASS expected=74"
+              << " rarities=2 dust=1 wall=1 localization=1 commands=4 backgrounds=1\n";
 }

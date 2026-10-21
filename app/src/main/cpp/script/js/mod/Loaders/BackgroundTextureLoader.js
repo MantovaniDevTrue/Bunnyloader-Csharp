@@ -15,7 +15,7 @@ class BackgroundTextureLoader {
     static #installed = false;
 
     static get VanillaCount() { return Terraria.Main.maxBackgrounds; }
-    static get TotalCount() { return BackgroundTextureLoader.VanillaCount + BackgroundTextureLoader.#count; }
+    static get TotalCount() { return Math.max(BackgroundTextureLoader.VanillaCount, bl.backgroundTextureCount()); }
 
     // Na carga de cada mod, com o mod na pilha.
     static Autoload() {
@@ -39,7 +39,8 @@ class BackgroundTextureLoader {
         const rel = BackgroundTextureLoader.#Relative(mod, texture);
         if (map.has(rel)) return map.get(rel);
 
-        const slot = BackgroundTextureLoader.VanillaCount + BackgroundTextureLoader.#count++;
+        const slot = bl.reserveBackgroundTexture(mod.uuid, rel, mod.path + "/" + rel + ".png");
+        BackgroundTextureLoader.#count++;
         map.set(rel, slot);
         BackgroundTextureLoader.#pending.push({ slot, rel, file: mod.path + '/' + rel + '.png' });
         if (BackgroundTextureLoader.#pending.length === 1) Ready.Add(() => BackgroundTextureLoader.#Install());
@@ -86,7 +87,7 @@ class BackgroundTextureLoader {
         }
         const map = mod && BackgroundTextureLoader.#byMod.get(mod.uuid);
         const slot = map && map.get(rel);
-        return slot === undefined ? -1 : slot;
+        return slot === undefined ? (mod ? bl.backgroundTextureSlot(mod.uuid, rel) : -1) : slot;
     }
 
     // O nome do mod como o tModLoader escreve ('ExampleMod'): o id, o uuid
@@ -115,25 +116,9 @@ class BackgroundTextureLoader {
     // Na thread do jogo, com o conteúdo pronto (a textura só nasce lá).
     static #Install() {
         if (BackgroundTextureLoader.#installed) return;
+        // Both languages publish through the same typed native service. This
+        // prevents a JS texture from reusing a slot already reserved by C#.
+        bl.publishBackgroundTextures();
         BackgroundTextureLoader.#installed = true;
-
-        const pending = BackgroundTextureLoader.#pending;
-        const Textures = Terraria.GameContent.TextureAssets;
-        const Main = Terraria.Main;
-        const total = BackgroundTextureLoader.TotalCount;
-        Textures.Background = Textures.Background.cloneResized(total);
-        Main.backgroundWidth = Main.backgroundWidth.cloneResized(total);
-        Main.backgroundHeight = Main.backgroundHeight.cloneResized(total);
-
-        for (const bg of pending) {
-            Safe.Run('fundo ' + bg.rel, () => {
-                const asset = bl.loadTextureAsset(bg.file);
-                const texture = asset.Value;
-                Textures.Background[bg.slot] = asset;
-                Main.backgroundWidth[bg.slot] = texture.Width;
-                Main.backgroundHeight[bg.slot] = texture.Height;
-            });
-        }
-        bl.log('fundos de mod: ' + pending.length + ' (números ' + BackgroundTextureLoader.VanillaCount + '..' + (total - 1) + ')');
     }
 }

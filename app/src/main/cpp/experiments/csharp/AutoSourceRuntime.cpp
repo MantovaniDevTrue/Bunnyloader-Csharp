@@ -22,6 +22,7 @@
 #include "experiments/csharp/AutoSourceCache.h"
 #include "experiments/csharp/AutoSourceRuntime.h"
 #include "content/dusts/ModDusts.h"
+#include "content/backgrounds/BackgroundTextures.h"
 #include "experiments/csharp/NativeVisualRenderer.h"
 #include "experiments/csharp/NativeRarityGameplay.h"
 #include "graphics/CSharpScreenEffects.h"
@@ -1376,6 +1377,16 @@ void noteAutoWorldTilesLoaded() {
 void flushDeferredWorldEntry();
 
 void noteAutoGameUpdate() {
+    static unsigned backgroundRetryFrames = 0;
+    const bool pendingBackgrounds = runtime::backgrounds::pending();
+    if (!pendingBackgrounds) backgroundRetryFrames = 0;
+    if (pendingBackgrounds && (backgroundRetryFrames++ % 30 == 0)) {
+        std::string error;
+        if (!runtime::backgrounds::publish(&error)) {
+            static std::string previousError;
+            if (error != previousError) { BL_ERROR("%s", error.c_str()); previousError = error; }
+        }
+    }
     if (nativeCommandMailbox().hasCommands())
         installNativeCommandChatHooks();
     pumpNativeCommandRepliesOnGameThread();

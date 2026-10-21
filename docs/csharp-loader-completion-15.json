@@ -1,0 +1,645 @@
+{
+  "schema": 1,
+  "targetCount": 15,
+  "apkPolicy": "Forbidden until every listed original contract is implemented, examples/assets are present and mandatory CI passes. Android validation must be recorded separately.",
+  "base": "5a18a67899c1f6ee88a34097be3adb6e7877edd4",
+  "branch": "feat/csharp-loader-completion-15-20261021",
+  "referenceArchive": {
+    "name": "examplemod.bl",
+    "version": "1.9.0",
+    "javascriptFiles": 206,
+    "sha256": "1a8986992aac4744e4d1c925e0cf582b58d113d48c26ff3d3bb4726c321e521e"
+  },
+  "loaders": [
+    {
+      "loader": "BackgroundTextureLoader",
+      "reference": "app/src/main/cpp/script/js/mod/Loaders/BackgroundTextureLoader.js",
+      "referenceSha256": "492850e03518e1a0f0836eb253d4585dfade99fba57cae455d0f20914b6e2599",
+      "implementation": "implemented",
+      "android": "not-tested",
+      "publicApi": [
+        "experiments/csharp/BunnyCsSdk/BunnyBackgroundTexture.cs"
+      ],
+      "nativeBridge": [
+        "app/src/main/cpp/content/backgrounds/BackgroundTextures.cpp"
+      ],
+      "example": [
+        "samples/ExampleModCSharp/Playable/content/Common/Backgrounds/ExampleBackgroundTexture.cs",
+        "samples/ExampleModCSharp/Playable/content/Common/Commands/ExampleBackgroundCommand.cs"
+      ],
+      "contracts": [
+        {
+          "name": "VanillaCount",
+          "implemented": true,
+          "tests": [
+            "tests/backgrounds/native_background_test.cpp",
+            "tests/backgrounds/Program.cs",
+            "tests/backgrounds/shared_background_js_test.cjs"
+          ]
+        },
+        {
+          "name": "TotalCount",
+          "implemented": true,
+          "tests": [
+            "tests/backgrounds/native_background_test.cpp",
+            "tests/backgrounds/Program.cs",
+            "tests/backgrounds/shared_background_js_test.cjs"
+          ]
+        },
+        {
+          "name": "Autoload",
+          "implemented": true,
+          "tests": [
+            "tests/backgrounds/native_background_test.cpp",
+            "tests/backgrounds/Program.cs",
+            "tests/backgrounds/shared_background_js_test.cjs"
+          ]
+        },
+        {
+          "name": "AddBackgroundTexture",
+          "implemented": true,
+          "tests": [
+            "tests/backgrounds/native_background_test.cpp",
+            "tests/backgrounds/Program.cs",
+            "tests/backgrounds/shared_background_js_test.cjs"
+          ]
+        },
+        {
+          "name": "GetBackgroundSlot",
+          "implemented": true,
+          "tests": [
+            "tests/backgrounds/native_background_test.cpp",
+            "tests/backgrounds/Program.cs",
+            "tests/backgrounds/shared_background_js_test.cjs"
+          ]
+        },
+        {
+          "name": "TryGetBackgroundSlot",
+          "implemented": true,
+          "tests": [
+            "tests/backgrounds/native_background_test.cpp",
+            "tests/backgrounds/Program.cs",
+            "tests/backgrounds/shared_background_js_test.cjs"
+          ]
+        }
+      ],
+      "missing": []
+    },
+    {
+      "loader": "SurfaceBackgroundLoader",
+      "reference": "app/src/main/cpp/script/js/mod/Loaders/SurfaceBackgroundLoader.js",
+      "referenceSha256": "4538e3d819e0d0c6a0b5be387fd0d2b10b306e8d44c09c9ef71b1a56c620c2a0",
+      "implementation": "pending",
+      "android": "not-tested",
+      "publicApi": [],
+      "nativeBridge": [],
+      "example": [],
+      "contracts": [
+        {
+          "name": "VanillaCount",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Add",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Get",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Wake",
+          "implemented": false,
+          "tests": []
+        }
+      ],
+      "missing": [
+        "Audit full behavior and native dependencies; implement and validate every original contract"
+      ]
+    },
+    {
+      "loader": "UndergroundBackgroundLoader",
+      "reference": "app/src/main/cpp/script/js/mod/Loaders/UndergroundBackgroundLoader.js",
+      "referenceSha256": "ee5adbbb735d221655a205af721a413ab27b18283d552b70bfcd0a7a74d195dd",
+      "implementation": "pending",
+      "android": "not-tested",
+      "publicApi": [],
+      "nativeBridge": [],
+      "example": [],
+      "contracts": [
+        {
+          "name": "Add",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Get",
+          "implemented": false,
+          "tests": []
+        }
+      ],
+      "missing": [
+        "Audit full behavior and native dependencies; implement and validate every original contract"
+      ]
+    },
+    {
+      "loader": "WaterStyleLoader",
+      "reference": "app/src/main/cpp/script/js/mod/Loaders/WaterStyleLoader.js",
+      "referenceSha256": "a6d6b854c04f5642f9f05e1b699619de8ece59eeae8e155a429b72b1cc6a790c",
+      "implementation": "pending",
+      "android": "not-tested",
+      "publicApi": [],
+      "nativeBridge": [],
+      "example": [],
+      "contracts": [
+        {
+          "name": "TotalCount",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Add",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Get",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Current",
+          "implemented": false,
+          "tests": []
+        }
+      ],
+      "missing": [
+        "Audit full behavior and native dependencies; implement and validate every original contract"
+      ]
+    },
+    {
+      "loader": "WaterfallStyleLoader",
+      "reference": "app/src/main/cpp/script/js/mod/Loaders/WaterfallStyleLoader.js",
+      "referenceSha256": "cb9243465c3baf8a471019e7f9edf0cc0a5234d3fc8931f6a9e4226552b34c5a",
+      "implementation": "pending",
+      "android": "not-tested",
+      "publicApi": [],
+      "nativeBridge": [],
+      "example": [],
+      "contracts": [
+        {
+          "name": "TotalCount",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Add",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Get",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Light",
+          "implemented": false,
+          "tests": []
+        }
+      ],
+      "missing": [
+        "Audit full behavior and native dependencies; implement and validate every original contract"
+      ]
+    },
+    {
+      "loader": "MapBackgroundLoader",
+      "reference": "app/src/main/cpp/script/js/mod/Loaders/MapBackgroundLoader.js",
+      "referenceSha256": "88786ea7af6a8d6e9325972ffda234db564b6e330d0fd4747f022a2398652def",
+      "implementation": "pending",
+      "android": "not-tested",
+      "publicApi": [],
+      "nativeBridge": [],
+      "example": [],
+      "contracts": [
+        {
+          "name": "Install",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Texture",
+          "implemented": false,
+          "tests": []
+        }
+      ],
+      "missing": [
+        "Audit full behavior and native dependencies; implement and validate every original contract"
+      ]
+    },
+    {
+      "loader": "SceneEffectLoader",
+      "reference": "app/src/main/cpp/script/js/mod/Loaders/SceneEffectLoader.js",
+      "referenceSha256": "af69f2968036c4620c43673c3dbdb5c29ae671666d05a6a277364561214ac370",
+      "implementation": "pending",
+      "android": "not-tested",
+      "publicApi": [],
+      "nativeBridge": [],
+      "example": [],
+      "contracts": [
+        {
+          "name": "Add",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "KeyOf",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Empty",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "UpdateSceneEffect",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Of",
+          "implemented": false,
+          "tests": []
+        }
+      ],
+      "missing": [
+        "Audit full behavior and native dependencies; implement and validate every original contract"
+      ]
+    },
+    {
+      "loader": "BiomeLoader",
+      "reference": "app/src/main/cpp/script/js/mod/Loaders/BiomeLoader.js",
+      "referenceSha256": "bf4ccc2f9b9b9d736de5fadfe554b545f93a78333c7f2182ab3fd9a6564023f2",
+      "implementation": "pending",
+      "android": "not-tested",
+      "publicApi": [],
+      "nativeBridge": [],
+      "example": [],
+      "contracts": [
+        {
+          "name": "Add",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Install",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "LeaveWorld",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Receive",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Resolve",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "InBiome",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "UpdateBiomes",
+          "implemented": false,
+          "tests": []
+        }
+      ],
+      "missing": [
+        "Audit full behavior and native dependencies; implement and validate every original contract"
+      ]
+    },
+    {
+      "loader": "BiomeShoppingLoader",
+      "reference": "app/src/main/cpp/script/js/mod/Loaders/BiomeShoppingLoader.js",
+      "referenceSha256": "ee6c088bb1e9d08f667e63e65ef56d51f897cd4c1126f335cc28aad8a032bf9a",
+      "implementation": "pending",
+      "android": "not-tested",
+      "publicApi": [],
+      "nativeBridge": [],
+      "example": [],
+      "contracts": [
+        {
+          "name": "Of",
+          "implemented": false,
+          "tests": []
+        }
+      ],
+      "missing": [
+        "Audit full behavior and native dependencies; implement and validate every original contract"
+      ]
+    },
+    {
+      "loader": "BiomeBestiaryLoader",
+      "reference": "app/src/main/cpp/script/js/mod/Loaders/BiomeBestiaryLoader.js",
+      "referenceSha256": "faee17950c8db0ae1ed009076a0b7b328b13f3ec87a729393ff7e9f380956d94",
+      "implementation": "pending",
+      "android": "not-tested",
+      "publicApi": [],
+      "nativeBridge": [],
+      "example": [],
+      "contracts": [
+        {
+          "name": "Of",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Biomes",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Finish",
+          "implemented": false,
+          "tests": []
+        }
+      ],
+      "missing": [
+        "Audit full behavior and native dependencies; implement and validate every original contract"
+      ]
+    },
+    {
+      "loader": "SpawnLoader",
+      "reference": "app/src/main/cpp/script/js/mod/Loaders/SpawnLoader.js",
+      "referenceSha256": "a0e3629f55b3e07dd54de3782d603a79fdc4fa93e7f4248fe5a418c82abf64a5",
+      "implementation": "pending",
+      "android": "not-tested",
+      "publicApi": [],
+      "nativeBridge": [],
+      "example": [],
+      "contracts": [
+        {
+          "name": "InstallPool",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "SpawnNPC",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "InstallFlags",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "InstallRate",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "InstallRange",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "InstallInfo",
+          "implemented": false,
+          "tests": []
+        }
+      ],
+      "missing": [
+        "Audit full behavior and native dependencies; implement and validate every original contract"
+      ]
+    },
+    {
+      "loader": "BossBarLoader",
+      "reference": "app/src/main/cpp/script/js/mod/Loaders/BossBarLoader.js",
+      "referenceSha256": "9a2132989f29d86d4ed031ef7c1d2e08daa177bf278f3e6ba9b152ddb751dc9b",
+      "implementation": "pending",
+      "android": "not-tested",
+      "publicApi": [],
+      "nativeBridge": [],
+      "example": [],
+      "contracts": [
+        {
+          "name": "Add",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "WantGlobals",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Of",
+          "implemented": false,
+          "tests": []
+        }
+      ],
+      "missing": [
+        "Audit full behavior and native dependencies; implement and validate every original contract"
+      ]
+    },
+    {
+      "loader": "DamageClassLoader",
+      "reference": "app/src/main/cpp/script/js/mod/Loaders/DamageClassLoader.js",
+      "referenceSha256": "14449eeeabe7c325884c0d4ca6251806416f97d51bcd2e19452f7aac26e55996",
+      "implementation": "pending",
+      "android": "not-tested",
+      "publicApi": [],
+      "nativeBridge": [],
+      "example": [],
+      "contracts": [
+        {
+          "name": "Vanilla",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "DamageClassCount",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "GetDamageClass",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "NameOf",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Add",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Resolve",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "IsHooked",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "CountsAs",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Defaulting",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "ItemClass",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "SetItemClass",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "ProjectileClass",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "SetProjectileClass",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Data",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Stats",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Total",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Activate",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "UsesCrit",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Install",
+          "implemented": false,
+          "tests": []
+        }
+      ],
+      "missing": [
+        "Audit full behavior and native dependencies; implement and validate every original contract"
+      ]
+    },
+    {
+      "loader": "GlobalLootLoader",
+      "reference": "app/src/main/cpp/script/js/mod/Loaders/GlobalLootLoader.js",
+      "referenceSha256": "599936db516b6291a59aaeaa63b9d5ba7db3b31197d7af5f23ad2ef244f8e60b",
+      "implementation": "pending",
+      "android": "not-tested",
+      "publicApi": [],
+      "nativeBridge": [],
+      "example": [],
+      "contracts": [
+        {
+          "name": "Schedule",
+          "implemented": false,
+          "tests": []
+        }
+      ],
+      "missing": [
+        "Audit full behavior and native dependencies; implement and validate every original contract"
+      ]
+    },
+    {
+      "loader": "BestiaryLoader",
+      "reference": "app/src/main/cpp/script/js/mod/Loaders/BestiaryLoader.js",
+      "referenceSha256": "062cf707ce6002ac6b45b40b11142740890d7adfeb9fa8e6d68496825f7d3bdb",
+      "implementation": "pending",
+      "android": "not-tested",
+      "publicApi": [],
+      "nativeBridge": [],
+      "example": [],
+      "contracts": [
+        {
+          "name": "Register",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Finish",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "RefreshDrops",
+          "implemented": false,
+          "tests": []
+        }
+      ],
+      "missing": [
+        "Audit full behavior and native dependencies; implement and validate every original contract"
+      ]
+    }
+  ],
+  "existingWorkPreserved": [
+    {
+      "pr": 98,
+      "scope": "Tree/Tile/Wall/TileEntity/GlobalTile"
+    },
+    {
+      "pr": 120,
+      "scope": "Keybind"
+    },
+    {
+      "pr": 121,
+      "scope": "Gore"
+    },
+    {
+      "pr": 122,
+      "scope": "WorldSave"
+    },
+    {
+      "pr": 125,
+      "scope": "Cloud"
+    },
+    {
+      "pr": 126,
+      "scope": "SystemUpdate"
+    }
+  ]
+}

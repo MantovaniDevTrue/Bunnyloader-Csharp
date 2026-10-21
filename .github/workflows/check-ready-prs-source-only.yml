@@ -3,6 +3,7 @@ name: CSharp combined source-only integration checks (no APK)
   push:
     branches:
       - integration/ready-prs-source-fixes-20261020
+      - feat/csharp-loader-completion-15-20261021
   workflow_dispatch: {}
 permissions:
   contents: read
@@ -54,6 +55,10 @@ jobs:
           dotnet run --project tests/commands/Commands.HostTests.csproj -c Release
           dotnet run --project tests/commands/CommandManifest.HostTests.csproj -c Release
           dotnet run --project tests/commands/Actions.HostTests.csproj -c Release
+      - name: Background texture registry CSharp native round trip and JS interoperability
+        run: bash tests/backgrounds/run.sh
+      - name: APK source completeness gate must reject this unfinished scope
+        run: python3 -m unittest discover -s tests/loader_delivery -p "test_*.py"
       - name: Existing five-loader combined regression suite
         run: |
           python3 tools/ci/test_ready_prs.py
@@ -107,6 +112,7 @@ jobs:
           for file in SourceParser SourceLoader AutoSourceRuntime ManagedRuntime NativeCommandChatHooks ManagedSoundLoader NativeRarityGameplay NativeDustEmission NativeCSharpItemUse; do
             "$CXX" -std=c++20 -fsyntax-only -fexceptions -frtti -D__ANDROID__ -DANDROID -D_GNU_SOURCE -Iapp/src/main/cpp -Iapp/src/main/cpp/third_party/quickjs "app/src/main/cpp/experiments/csharp/$file.cpp"
           done
+          "$CXX" -std=c++20 -fsyntax-only -fexceptions -frtti -D__ANDROID__ -DANDROID -D_GNU_SOURCE -Iapp/src/main/cpp app/src/main/cpp/content/backgrounds/BackgroundTextures.cpp
           echo CSHARP_SOURCE_COMBINED_ANDROID_ARM64_SYNTAX_PASS_NO_APK
   native-android-link-no-apk:
     runs-on: ubuntu-latest
@@ -131,7 +137,7 @@ jobs:
           test -n "$LIB"
           NM="$ANDROID_HOME/ndk/30.0.16248370/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-nm"
           "$NM" -D --defined-only "$LIB" > "$RUNNER_TEMP/bunny-native-symbols.txt"
-          for symbol in bunny_csharp_sound_register bunny_csharp_sound_play bunny_item_use_bind bunny_item_use_poll_context bunny_dust_emit; do
+          for symbol in bunny_csharp_sound_register bunny_csharp_sound_play bunny_item_use_bind bunny_item_use_poll_context bunny_dust_emit bunny_background_texture_slot; do
             if ! grep -F -q "$symbol" "$RUNNER_TEMP/bunny-native-symbols.txt"; then
               echo "Missing native export: $symbol" >&2
               exit 1

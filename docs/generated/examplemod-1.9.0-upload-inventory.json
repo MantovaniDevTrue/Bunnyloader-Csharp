@@ -1,0 +1,1035 @@
+{
+  "javascriptFiles": 206,
+  "files": [
+    {
+      "path": "content/Common/Commands/ExampleTimeCommand.js",
+      "sha256": "b552423adce7890b44ef928d387f8ed12b04a6a14ef0d7ee69273162d07058c8",
+      "bytes": 1507
+    },
+    {
+      "path": "content/Common/Commands/HealCommand.js",
+      "sha256": "1793a16aac1bfcd63a7301ef82c2a2ff7d3edf52d3616219569b7dd88519f1f7",
+      "bytes": 1082
+    },
+    {
+      "path": "content/Common/Configs/ExampleConfig.js",
+      "sha256": "55b3e2a9d62c8ecf8e7c0ad44258cc74d25d3a41824d7240b33d0f5fbde4fb02",
+      "bytes": 2361
+    },
+    {
+      "path": "content/Common/GlobalBossBars/ExampleGlobalBossBar.js",
+      "sha256": "8f85e0d50058867169c715121947aed2a65eb4e3d70dbdf8e8b5dfa80e518f31",
+      "bytes": 1442
+    },
+    {
+      "path": "content/Common/GlobalBuffs/ExampleGlobalBuff.js",
+      "sha256": "7c0d88ed60570291b0fc59ab70aaf283da9d52fdffbe00f4f213a0fd3e469484",
+      "bytes": 4169
+    },
+    {
+      "path": "content/Common/GlobalNPCs/ExampleNPCLoot.js",
+      "sha256": "1e99da891e65a0ee5f484d5c0f9b0b4099eee5be824048ad01b2271477e5998a",
+      "bytes": 475
+    },
+    {
+      "path": "content/Common/GlobalNPCs/ExamplePickupGlobalNPC.js",
+      "sha256": "ffecbf0d519260f2f62935b1e4da415bf95feebedf522f337d4e785f265dd9b2",
+      "bytes": 1419
+    },
+    {
+      "path": "content/Common/GlobalNPCs/ExamplePylonShop.js",
+      "sha256": "de74bb99e343fcaeb7153fe8ed4944a969019962e6282023b8e16bd657c9da30",
+      "bytes": 1469
+    },
+    {
+      "path": "content/Common/GlobalRecipes/ExampleGlobalRecipe.js",
+      "sha256": "6b817b770a7a812efecbf316c37743f5247015d944d85f795675ec5c62333cdf",
+      "bytes": 1498
+    },
+    {
+      "path": "content/Common/GlobalTiles/ShakeTrees.js",
+      "sha256": "0cfbaae90167cc3e37ed276854bc11130ed29561dac67dc421f5dd36ace8aebb",
+      "bytes": 4033
+    },
+    {
+      "path": "content/Common/GlobalTiles/SunflowerChanges.js",
+      "sha256": "4717acbb2805cafcb61324110a973fc1e5647ebb4ff8b25ec55363b35c5d8415",
+      "bytes": 656
+    },
+    {
+      "path": "content/Common/Players/ExampleCostumePlayer.js",
+      "sha256": "ac0439e3b84129e16744ae62921a02f12ed31430d0879220bfa2e3403eb3b6e9",
+      "bytes": 1369
+    },
+    {
+      "path": "content/Common/Players/ExampleDashPlayer.js",
+      "sha256": "9bef0a655648bfc78247a96aaa94ec0a7bbd48cfee57185f6bd006d7befe758a",
+      "bytes": 3630
+    },
+    {
+      "path": "content/Common/Players/ExampleFishingPlayer.js",
+      "sha256": "be4c5bea74c4d4b896674e1334841ec50d34d82dfb889fac967159979ed37987",
+      "bytes": 623
+    },
+    {
+      "path": "content/Common/Players/ExampleLowLifePlayer.js",
+      "sha256": "3ca77913a9956151610d430407d91621772f0f3d99cead4e744d228ed968cc36",
+      "bytes": 1298
+    },
+    {
+      "path": "content/Common/Players/ExamplePlayer.js",
+      "sha256": "3b59a541215803d3c6eb3594be379e6535f48fbce12b2dbf61bf1a6e96f8eb28",
+      "bytes": 756
+    },
+    {
+      "path": "content/Common/Players/ExampleTouchButtonPlayer.js",
+      "sha256": "2c25c36c6da64c550b0f1db5f8d834d290c298c212373e6c6fdf4bc0c58d8309",
+      "bytes": 2113
+    },
+    {
+      "path": "content/Common/Players/WingsGlowmask.js",
+      "sha256": "e30f5b80dce078ab0419cd9c1f591095f0f5482f73801889a0a1fa4eef37e1db",
+      "bytes": 3108
+    },
+    {
+      "path": "content/Common/Systems/DownedBossSystem.js",
+      "sha256": "6f1fec3d5acb472850f471b00adc4a194e5ab7f08013456e9a55b4d79e7cc616",
+      "bytes": 584
+    },
+    {
+      "path": "content/Common/Systems/ExampleBiomeTileCount.js",
+      "sha256": "328099daf16a4b9fe747fd9838510dc95f2704962f2b40a95d4bdeb7c433e294",
+      "bytes": 289
+    },
+    {
+      "path": "content/Common/Systems/TouchButtonSystem.js",
+      "sha256": "17f650e93a74f8797d0ccefc8e7c44dbac21e9e31236ec120f54dfe2ba80d083",
+      "bytes": 1058
+    },
+    {
+      "path": "content/Content/Achievements/ExampleBossKilled.js",
+      "sha256": "2b0791f1c3719cb5fe650949663a9e36c7c213a2f9639244872bfa0e5fb57a93",
+      "bytes": 303
+    },
+    {
+      "path": "content/Content/Achievements/ManyWormsKilled.js",
+      "sha256": "66d14365964276734a027c519218e4a308f8bdb13351f27d47833294860688d9",
+      "bytes": 804
+    },
+    {
+      "path": "content/Content/Biomes/ExampleSurfaceBackgroundStyle.js",
+      "sha256": "271dba01fd03f2938ee75017e5598328ef4584eaa01e0e4cdbdcdf83cde6a237",
+      "bytes": 1671
+    },
+    {
+      "path": "content/Content/Biomes/ExampleSurfaceBiome.js",
+      "sha256": "39be3b25669d88421fd312d15331de702aba134821b7c0dfbed2aa5b03779004",
+      "bytes": 1050
+    },
+    {
+      "path": "content/Content/Biomes/ExampleUndergroundBackgroundStyle.js",
+      "sha256": "2fcb66d417c00f9002ca9f6df1978ef7422fd968f393c24be440ac3e68467108",
+      "bytes": 413
+    },
+    {
+      "path": "content/Content/Biomes/ExampleUndergroundBiome.js",
+      "sha256": "2caa4436d550ef7d7a3ab70eb1e88eec52d2e6feadbaa23112fd8749c28b7308",
+      "bytes": 912
+    },
+    {
+      "path": "content/Content/Biomes/ExampleWaterStyle.js",
+      "sha256": "d582c4f60bcc5172a2e53fb7d66ccb87bd84df695941037aa2b0bf5ab4e6a134",
+      "bytes": 968
+    },
+    {
+      "path": "content/Content/Biomes/ExampleWaterfallStyle.js",
+      "sha256": "b71251053d361956c8b357db32ab87d6791598d46657d580a43deb65d02f8f72",
+      "bytes": 329
+    },
+    {
+      "path": "content/Content/BossBars/ExampleBossBar.js",
+      "sha256": "78f6477b50d44bf15ff7632bac92288d3a1bfacb1facd9cff215c1a13330c6d4",
+      "bytes": 1369
+    },
+    {
+      "path": "content/Content/Buffs/Blocky.js",
+      "sha256": "ee9c3350a6d73c0be127f074c5bcb15f91445638c31028b020a25d926ef22b4d",
+      "bytes": 896
+    },
+    {
+      "path": "content/Content/Buffs/ExampleDefenseBuff.js",
+      "sha256": "d17753f7479a159241b8d24829e8de746d96e8891174c5e33f88e5f0f922d029",
+      "bytes": 1175
+    },
+    {
+      "path": "content/Content/Buffs/ExampleDefenseDebuff.js",
+      "sha256": "1f575a3ff24e2907028f2320dc5bcd1e6c8911883cf22389ec3f5fc843a91438",
+      "bytes": 711
+    },
+    {
+      "path": "content/Content/Buffs/ExampleMinecartBuff.js",
+      "sha256": "fd41df1eafa9f726d137bf4af18515248ded543e23c08bef2e2de182a2b4f4e8",
+      "bytes": 438
+    },
+    {
+      "path": "content/Content/Buffs/ExampleMinionBuff.js",
+      "sha256": "9754fc8c11ebd8934966906be9779f434dbadab303ff911c15dcde9845aaffc5",
+      "bytes": 680
+    },
+    {
+      "path": "content/Content/Buffs/ExampleMountBuff.js",
+      "sha256": "541ddc40a585536813029551626ede69842b41f1c63bdfa382264f7eb1029d03",
+      "bytes": 574
+    },
+    {
+      "path": "content/Content/Clouds/ExampleAdvancedCloud.js",
+      "sha256": "a7d68af575f948846b94634346fa2c937d183a00b485ce77b03496208d95418a",
+      "bytes": 794
+    },
+    {
+      "path": "content/Content/DamageClasses/ExampleDamageClass.js",
+      "sha256": "a6ad716e365293d9b9b02fdd3c1dc76683506173b5839b183973327e2712eb2e",
+      "bytes": 1037
+    },
+    {
+      "path": "content/Content/Effects/ExampleRiftEffect.js",
+      "sha256": "879d7ffd47d3338f4356322005356624e1b2be7cfe81a0a6f27025142802318c",
+      "bytes": 987
+    },
+    {
+      "path": "content/Content/EmoteBubbles/ExampleAnimatedEmote.js",
+      "sha256": "10dc091e3cb0495b6fe743b7f5dffe4fded93826b23cf2776902ba64073cfad3",
+      "bytes": 1120
+    },
+    {
+      "path": "content/Content/EmoteBubbles/ExampleItemEmote.js",
+      "sha256": "a2bfdfb0c062294ad9412407ee1a4adade312e245994aeff9f283fe0dd2956c7",
+      "bytes": 280
+    },
+    {
+      "path": "content/Content/ExampleModMenu.js",
+      "sha256": "192745aa66ac9bdc08ee87a077399d0892142caa80a172606ffeedfd871ab8f8",
+      "bytes": 832
+    },
+    {
+      "path": "content/Content/ExampleRecipes.js",
+      "sha256": "bad2b4511da2d87ede42bbafe5c03ccbdcfe633d004db5eeb5ccb6507e8a837b",
+      "bytes": 4018
+    },
+    {
+      "path": "content/Content/Hairs/ExampleHair.js",
+      "sha256": "21b9d38ef2b69bc7de00dc424eb5b871d0d7946aa89ef358e147388a44ff3d73",
+      "bytes": 467
+    },
+    {
+      "path": "content/Content/Items/Accessories/ExampleBeard.js",
+      "sha256": "08605b8a69b2019cd4927e6a9ab4188d6c61505cd89a0b4348618652eeda61c2",
+      "bytes": 528
+    },
+    {
+      "path": "content/Content/Items/Accessories/ExampleBoots.js",
+      "sha256": "d6be06b09fd30c6f6fb58d87e399aa1bfa758bbe09ae97dcd81e4a907011132c",
+      "bytes": 2008
+    },
+    {
+      "path": "content/Content/Items/Accessories/ExampleShield.js",
+      "sha256": "274eca06c293f676ba8dab31007669f8f1927eac5f55d29104ec45dfb88420fb",
+      "bytes": 833
+    },
+    {
+      "path": "content/Content/Items/Accessories/ExampleStatAccessory.js",
+      "sha256": "0014f64a570ac93497cca7cf6935e91881028caca812f144968856a107ee4c8c",
+      "bytes": 907
+    },
+    {
+      "path": "content/Content/Items/Accessories/ExampleStatBonusAccessory.js",
+      "sha256": "d759f9c826eb6c3f8ca5305e73f9f1e7a4b11f76fe8f312b2bb0f769f58a3768",
+      "bytes": 1438
+    },
+    {
+      "path": "content/Content/Items/Accessories/ExampleWings.js",
+      "sha256": "11b7a20f51ea57b29b2edd0649d993a05bb6f4db9784539a475bbc12219b98ba",
+      "bytes": 962
+    },
+    {
+      "path": "content/Content/Items/Accessories/WaspNest.js",
+      "sha256": "09cb1b853a027bba7f02659054e54d90b412f4421375f89c83e6165df504dc7e",
+      "bytes": 398
+    },
+    {
+      "path": "content/Content/Items/Ammo/ExampleBullet.js",
+      "sha256": "5565fdc8468912272ebc492c89a4d1b5e6e44931865380b0c04c851c20e218cf",
+      "bytes": 562
+    },
+    {
+      "path": "content/Content/Items/Armor/ExampleBreastplate.js",
+      "sha256": "25a3d9e38dc82758a1a79d7300d562669f09f22f79a5dca6eb2155d19c3a730a",
+      "bytes": 1107
+    },
+    {
+      "path": "content/Content/Items/Armor/ExampleCostume.js",
+      "sha256": "e90188f6aa3e184e270f1985acd1d481239d13252c29ea9a2ac4bc047d6036f0",
+      "bytes": 3029
+    },
+    {
+      "path": "content/Content/Items/Armor/ExampleHelmet.js",
+      "sha256": "f716ab8461c2ff4fe1fe092c01d24aa8fbc91cafcec09f89fe0e6cd799dbe95b",
+      "bytes": 1418
+    },
+    {
+      "path": "content/Content/Items/Armor/ExampleLeggings.js",
+      "sha256": "d522abc59e1c843b5cba958771a5e4ef9851e899b105f50e5c3dbad8f4561538",
+      "bytes": 827
+    },
+    {
+      "path": "content/Content/Items/Armor/Vanity/ExampleBossMask.js",
+      "sha256": "669d0fa38a6bd20d6ea82a63f9f747541a00da987956caebe1d451f9569e13fc",
+      "bytes": 387
+    },
+    {
+      "path": "content/Content/Items/Armor/Vanity/ExampleRobe.js",
+      "sha256": "f5fa8dae191af05f478e53f31482bb23fe87d944ae835b18d22c514bf8e547cb",
+      "bytes": 782
+    },
+    {
+      "path": "content/Content/Items/Consumables/ExampleBossBag.js",
+      "sha256": "8ff7601cd34e1f10d67dd3522c3f5967fa53b606146461eb9e98fa0effa6627b",
+      "bytes": 1271
+    },
+    {
+      "path": "content/Content/Items/Consumables/ExampleBossSummonItem.js",
+      "sha256": "e5776ba496c517ee352fe5d1aaa91ba2a972971f9a947bb900ebbb25ce7353d9",
+      "bytes": 1917
+    },
+    {
+      "path": "content/Content/Items/Consumables/ExampleBuffPotion.js",
+      "sha256": "dafdf3f8b07063eb59e2bf0bb56d5b815a171507ce93f8e87ad585acd269cfe3",
+      "bytes": 921
+    },
+    {
+      "path": "content/Content/Items/ExampleGolfBall.js",
+      "sha256": "b8d8ab6bcf944478b1c2979b8100d59b54f6f4f412d72b4faac3b028f540b2e7",
+      "bytes": 165
+    },
+    {
+      "path": "content/Content/Items/ExampleItem.js",
+      "sha256": "7398f4059d000bc861d79041a97d212d5214999d98a6f7ad0705ddb51802944b",
+      "bytes": 1104
+    },
+    {
+      "path": "content/Content/Items/ExamplePickup.js",
+      "sha256": "e1c02c018bd9143db016dc4c4b192803aaeac67f173f54f9adbdf64e3b1022a3",
+      "bytes": 1672
+    },
+    {
+      "path": "content/Content/Items/ExampleTooltipItem.js",
+      "sha256": "685cdfb82a56aae16b5b01dc0a7fba66dcaa908a088580f4eaacae5d85b2a811",
+      "bytes": 3358
+    },
+    {
+      "path": "content/Content/Items/Materials/ExampleSoul.js",
+      "sha256": "1a0e7a6af1f09e64801da9cdaa0389efff5e3e864597a36efedb3ba462c453d1",
+      "bytes": 895
+    },
+    {
+      "path": "content/Content/Items/Mounts/ExampleMinecart.js",
+      "sha256": "237e1e10933e15e6d77fe643023af529dfe5842f681a01a5cc1ebfc0b4823dc6",
+      "bytes": 730
+    },
+    {
+      "path": "content/Content/Items/Mounts/ExampleMountItem.js",
+      "sha256": "62707bf51f123aa41559c1e8897baf3e7e37085d60da85fa3a03e72ed827f4b8",
+      "bytes": 901
+    },
+    {
+      "path": "content/Content/Items/Placeable/Banners/ExampleSlimeBanner.js",
+      "sha256": "5524c05cb989348d6484c4eb42892ffab535441be21c5db084d92fd186e99afd",
+      "bytes": 355
+    },
+    {
+      "path": "content/Content/Items/Placeable/ExampleAnimatedGlowmaskTileItem.js",
+      "sha256": "955c354c4b51102d730aa450705f3b3b861b373ba51fd2006b5227716d5a4c4d",
+      "bytes": 527
+    },
+    {
+      "path": "content/Content/Items/Placeable/ExampleAnimatedTileItem.js",
+      "sha256": "9276f98db73eb8b661411ee46644885f11a8d1e06bafb79e410fa646296124d3",
+      "bytes": 517
+    },
+    {
+      "path": "content/Content/Items/Placeable/ExampleBar.js",
+      "sha256": "d1d5a5ac7eba5783e763e21c596c813e1ab28fe6b769ecced9c972790fd00bdb",
+      "bytes": 593
+    },
+    {
+      "path": "content/Content/Items/Placeable/ExampleCampfire.js",
+      "sha256": "2df388a0900bdbc8d5a56b89f5a08c405a4ffccc51d4f57bf87a62dcafb2fccb",
+      "bytes": 341
+    },
+    {
+      "path": "content/Content/Items/Placeable/ExampleCutTile.js",
+      "sha256": "01a292386e7cd4a48f02da9c2a9854e7ddb9ef97995300cbfb60a4ec2ffe9418",
+      "bytes": 465
+    },
+    {
+      "path": "content/Content/Items/Placeable/ExampleGemsparkBlock.js",
+      "sha256": "3cb74884417d005cec83012674330706da9955f9c280d623304e6a79e837a651",
+      "bytes": 483
+    },
+    {
+      "path": "content/Content/Items/Placeable/ExampleHerbSeeds.js",
+      "sha256": "ea55fd0057db5b8b33b583dfecb02d119d2ac96bd8993d01b644783346a7724a",
+      "bytes": 467
+    },
+    {
+      "path": "content/Content/Items/Placeable/ExampleLamp.js",
+      "sha256": "45aec0b12dfa6e8f3c93c393e637200668d25833af1cdc560b32f5b1968f1071",
+      "bytes": 440
+    },
+    {
+      "path": "content/Content/Items/Placeable/ExampleLivingFire.js",
+      "sha256": "c60c6c0c35fd52b94ba5f4ebf8409f0a0042104a6424a0fb06f84d0058b04f9d",
+      "bytes": 678
+    },
+    {
+      "path": "content/Content/Items/Placeable/ExampleMusicBox.js",
+      "sha256": "6b4190245fffb157676e16f91f71221f5d04cc2489ba35b3428619da085ea88b",
+      "bytes": 855
+    },
+    {
+      "path": "content/Content/Items/Placeable/ExampleOreItem.js",
+      "sha256": "629769720216b482487bd8b9ecd6b91dbfd3c0974dbbd0b7ffdb27d498ec049b",
+      "bytes": 425
+    },
+    {
+      "path": "content/Content/Items/Placeable/ExamplePylonItem.js",
+      "sha256": "c4de8750bba4c0a6502f6fdd393fca30783dcd66a8ba18b4cf5358998d73c18f",
+      "bytes": 394
+    },
+    {
+      "path": "content/Content/Items/Placeable/ExampleSignItem.js",
+      "sha256": "3ad76a045c12bb9b1862d37726c68bf8a0f65b09f622cc6e14f44aca1df2bef1",
+      "bytes": 461
+    },
+    {
+      "path": "content/Content/Items/Placeable/ExampleSinkItem.js",
+      "sha256": "5f9370e5c524f2ae62001074d5e0a90cd865b5b0393cb1e1b4fff0553b0bf219",
+      "bytes": 440
+    },
+    {
+      "path": "content/Content/Items/Placeable/ExampleStatue.js",
+      "sha256": "ac9f5aaf7be983a2b18a7b9cbdf1df4f461acf9ff4f69844bb6814f8bda06279",
+      "bytes": 529
+    },
+    {
+      "path": "content/Content/Items/Placeable/ExampleTileItem.js",
+      "sha256": "c8c44286535a32ceb2c67ae2e53fa5f4e1c7e2bbfd725f16949284f53fcfb5b3",
+      "bytes": 410
+    },
+    {
+      "path": "content/Content/Items/Placeable/ExampleTorch.js",
+      "sha256": "a65cdaf20f56c10e4c05c89c928ceedda4e638109249c7cc50c1568d6ac03664",
+      "bytes": 1143
+    },
+    {
+      "path": "content/Content/Items/Placeable/ExampleTransparentShapedTileItem.js",
+      "sha256": "5f8032a01a96fe5ccc4716d5985a1436a4ba40a33ff3ed23092322598b19cc30",
+      "bytes": 328
+    },
+    {
+      "path": "content/Content/Items/Placeable/ExampleTrap.js",
+      "sha256": "14d06fda18776fb4ae8e9407957e7a6d37d53b634b4a74995c33c035a3bfa33e",
+      "bytes": 869
+    },
+    {
+      "path": "content/Content/Items/Placeable/ExampleWall.js",
+      "sha256": "e5cc046ebacb6c218c89f8ec0d95588585c1dafc9f67d4d77cabf0af89517af6",
+      "bytes": 349
+    },
+    {
+      "path": "content/Content/Items/Placeable/ExampleWallAdvanced.js",
+      "sha256": "773d34bdbbd8d1394729efb2c05004ba05c8cb5335a42e0178aca184a0f57164",
+      "bytes": 365
+    },
+    {
+      "path": "content/Content/Items/Placeable/Furniture/ExampleBed.js",
+      "sha256": "725c77b9750db937e4fb99f384a4936a85221ed59b6b59f1ef866611703336ea",
+      "bytes": 439
+    },
+    {
+      "path": "content/Content/Items/Placeable/Furniture/ExampleChair.js",
+      "sha256": "50513adc23eb73e6887f1eacb0510b176d5fe116a684cbf1e84b96c7520bff8c",
+      "bytes": 442
+    },
+    {
+      "path": "content/Content/Items/Placeable/Furniture/ExampleChandelier.js",
+      "sha256": "a2245df835ddd1f13b6d4aa4cfcb1eacb1f755fca9d2579ef7f59a0dcdaee1ba",
+      "bytes": 417
+    },
+    {
+      "path": "content/Content/Items/Placeable/Furniture/ExampleChest.js",
+      "sha256": "2742870eb1a86c55c6a2747046dc56dc920cf310ae71c7e287944be9e29c755c",
+      "bytes": 849
+    },
+    {
+      "path": "content/Content/Items/Placeable/Furniture/ExampleClock.js",
+      "sha256": "80036d9cd0167caad2fd7563c396d1e863322be88f75f59a719f61b50dd31a52",
+      "bytes": 442
+    },
+    {
+      "path": "content/Content/Items/Placeable/Furniture/ExampleDoor.js",
+      "sha256": "37a0d977275002929e04a7ee578847edc38c514ce96b589d68fc07a69ae7fa05",
+      "bytes": 496
+    },
+    {
+      "path": "content/Content/Items/Placeable/Furniture/ExampleDresser.js",
+      "sha256": "ee2d96c18fafe37071488d69942ef912a60cf82b2e4daa1876109262157a0dee",
+      "bytes": 530
+    },
+    {
+      "path": "content/Content/Items/Placeable/Furniture/ExamplePlatform.js",
+      "sha256": "475a0a7cf752556c81d896d72e5b82cd2807c77552796efbf2a95b7d88c384e8",
+      "bytes": 421
+    },
+    {
+      "path": "content/Content/Items/Placeable/Furniture/ExampleTable.js",
+      "sha256": "bee75e048bdb0e9db8729eded0bb863badca2e54a88af35a5ead536b6435878c",
+      "bytes": 464
+    },
+    {
+      "path": "content/Content/Items/Placeable/Furniture/ExampleToilet.js",
+      "sha256": "1a0d2e1068dcafa2ef3330478d9d8a270df006d2be3c046d5e6c7b78ab4a10d3",
+      "bytes": 505
+    },
+    {
+      "path": "content/Content/Items/Placeable/Furniture/ExampleWideBanner.js",
+      "sha256": "c5f7f33bc3c8f5018d9dd2bce024a697fd90a4b33ce76446310b7627f8f9ba2d",
+      "bytes": 421
+    },
+    {
+      "path": "content/Content/Items/Placeable/Furniture/ExampleWorkbench.js",
+      "sha256": "f8738911dbe65b0c2ce90eadb3b6dcd2600b22307c4b11271bade9a4c09f1c76",
+      "bytes": 470
+    },
+    {
+      "path": "content/Content/Items/Placeable/Furniture/MinionBossRelic.js",
+      "sha256": "de3259770e679e77ff596b90a9704ac04ea2d019ad3c96a5f29c6160bb3c0a19",
+      "bytes": 375
+    },
+    {
+      "path": "content/Content/Items/Placeable/Furniture/MinionBossTrophy.js",
+      "sha256": "70492a60ff6605992d16434a14c6ea61fc88d0d746e6bb949f13e5566662c864",
+      "bytes": 364
+    },
+    {
+      "path": "content/Content/Items/Quests/ExampleQuestFish.js",
+      "sha256": "686060311a5359343c17bf931e4b7ca1c3040e70de815e982274309d5774ed74",
+      "bytes": 889
+    },
+    {
+      "path": "content/Content/Items/Tools/ExampleDrill.js",
+      "sha256": "0b0ab04c52c4b5d31b237c800bb1ecb25ea4ff6db490e7cc0f6570c197486085",
+      "bytes": 830
+    },
+    {
+      "path": "content/Content/Items/Tools/ExampleFishingRod.js",
+      "sha256": "19d99b6a5e2d84ec57a95b77ecac18e94a71724111d90368743b3a480cd0c9a6",
+      "bytes": 942
+    },
+    {
+      "path": "content/Content/Items/Tools/ExampleHamaxe.js",
+      "sha256": "9edc2f8f3b3e6a4bc4bae70df770bf891ad924b3fc018370bb5a9f6963bfb7c6",
+      "bytes": 616
+    },
+    {
+      "path": "content/Content/Items/Tools/ExampleHookItem.js",
+      "sha256": "13c9c9736cb6ec99348b7cb849551978c41985ab35061bbbcef1380cc1419b1e",
+      "bytes": 272
+    },
+    {
+      "path": "content/Content/Items/Tools/ExamplePickaxe.js",
+      "sha256": "aa6a12cba05fc70cccffc2bd568e56c353872ede82c7fff14ffc4cfe1d608895",
+      "bytes": 587
+    },
+    {
+      "path": "content/Content/Items/Weapons/ExampleCustomDamageWeapon.js",
+      "sha256": "59be5ded55b863a0defeca734f4e454c051979a8770c309ee15bd9f78ad21396",
+      "bytes": 1086
+    },
+    {
+      "path": "content/Content/Items/Weapons/ExampleMultiplePrefixCategoryWeapon.js",
+      "sha256": "fe38459de67ccf39f79b5fc001278d14d5b0a363b51aa801031357c8351e5c5d",
+      "bytes": 1298
+    },
+    {
+      "path": "content/Content/Items/Weapons/Magic/ExampleLaserWeapon.js",
+      "sha256": "4bf710299f56b40028b3950e07dfda03af20b66b6f3d42824d79b7f4fad1715a",
+      "bytes": 466
+    },
+    {
+      "path": "content/Content/Items/Weapons/Magic/ExampleLastPrism.js",
+      "sha256": "a6eb1e9384deb81b6b7c6928e675f8722fba9d4650df94c2cb5b8a7af9fc1775",
+      "bytes": 888
+    },
+    {
+      "path": "content/Content/Items/Weapons/Magic/ExampleMagicWeapon.js",
+      "sha256": "b896ebdecf043894264d0eb5e7bfbccfee064bc9a35ce6aa80a43465c18dd4a5",
+      "bytes": 541
+    },
+    {
+      "path": "content/Content/Items/Weapons/Magic/ExampleRiftStaff.js",
+      "sha256": "62a427b2074ef557671458425a252fddab90ad23165db6b73ad6a4f0026a63a1",
+      "bytes": 1016
+    },
+    {
+      "path": "content/Content/Items/Weapons/Melee/ExampleFlail.js",
+      "sha256": "f95048e0ca2c2cffd2d6d9756be9eaf2a61fc5995087ba3e021c4a44b3d9e97e",
+      "bytes": 865
+    },
+    {
+      "path": "content/Content/Items/Weapons/Melee/ExampleMeleeWeapon.js",
+      "sha256": "33184b5ac47e4645bb88c22c55b96a3edd13438d3951ea903ec3773b7e45646f",
+      "bytes": 519
+    },
+    {
+      "path": "content/Content/Items/Weapons/Melee/ExampleShortsword.js",
+      "sha256": "d4e11738d93ec7bc4450333f082361f22ebd4a110e8bcfe96b31f97c21dfdbcf",
+      "bytes": 1577
+    },
+    {
+      "path": "content/Content/Items/Weapons/Melee/ExampleSpear.js",
+      "sha256": "3cbc8be0f372c472e43da0a8b520d08cc6ffc68a6a7830065fed29083b2e4f49",
+      "bytes": 1205
+    },
+    {
+      "path": "content/Content/Items/Weapons/Melee/ExampleSwingingEnergySword.js",
+      "sha256": "f3b40a64d40ace7c976d4a39cb3e0a9501163dae6a15c1687060314e4dd6c5b7",
+      "bytes": 1275
+    },
+    {
+      "path": "content/Content/Items/Weapons/Melee/ExampleWhip.js",
+      "sha256": "a26a2aeb93ea87e3979b3b70f9c52ab54c3dcbd3b1a2adcf93efc240389d639b",
+      "bytes": 1422
+    },
+    {
+      "path": "content/Content/Items/Weapons/Melee/ExampleYoyo.js",
+      "sha256": "dadb48e519be38f8b8cadfb47fc40de75c0f50945659a0638e645c9bf27936f8",
+      "bytes": 1099
+    },
+    {
+      "path": "content/Content/Items/Weapons/Ranged/ExampleGun.js",
+      "sha256": "fa4aa6f7e7d439683fcef77d6e35a2facc930087cd4a0a4ef98e7e363a57055b",
+      "bytes": 1027
+    },
+    {
+      "path": "content/Content/Items/Weapons/Ranged/ExampleRocketLauncher.js",
+      "sha256": "c60f0f9ba49837c73ac427a37c233937873ec6e934b44fee02d0f7631b539859",
+      "bytes": 631
+    },
+    {
+      "path": "content/Content/Items/Weapons/Ranged/ExampleShotgun.js",
+      "sha256": "3a698ed9c3c2f9a132df049d5de27b367c7415851a5e4ac73aa05d335e26bd61",
+      "bytes": 1603
+    },
+    {
+      "path": "content/Content/Items/Weapons/Summon/ExampleMinionItem.js",
+      "sha256": "9973647ff50ae5a09114dc429858e30c9348b8fb698ce6eaa69e9d92868e3b9a",
+      "bytes": 1502
+    },
+    {
+      "path": "content/Content/Items/Weapons/Summon/ExampleSentryItem.js",
+      "sha256": "eef2d2f792b778c09c2ccdfebb16f4404c7bc14440279c79b22feb3246a7e960",
+      "bytes": 2186
+    },
+    {
+      "path": "content/Content/Mounts/ExampleMinecartMount.js",
+      "sha256": "b26c4ae9fc4474f881fe379b3508e4644227876d7b764c06181e35ace53513e5",
+      "bytes": 2261
+    },
+    {
+      "path": "content/Content/Mounts/ExampleMount.js",
+      "sha256": "8e4824616407cc1fc6e0a2c8a645d32fcd78a845ea792564a74b14291f1efef6",
+      "bytes": 5386
+    },
+    {
+      "path": "content/Content/NPCs/ExampleBoss/ExampleBoss.js",
+      "sha256": "288f138c91163225499082b1595a8b4fe91e885e31290a2b98a90d345ef2b21b",
+      "bytes": 5590
+    },
+    {
+      "path": "content/Content/NPCs/ExamplePerson/ExamplePerson.js",
+      "sha256": "1a9c47ac6999a356ad0efe65b781851c7e1422b936c4e8c96e318e59292d3265",
+      "bytes": 5800
+    },
+    {
+      "path": "content/Content/NPCs/ExampleSlimeNPC.js",
+      "sha256": "cda0b7c30e6d98ffafbdc61ba6fda2cd78ee8d31a96ae569624ff946aaac29dc",
+      "bytes": 3699
+    },
+    {
+      "path": "content/Content/Pets/ExampleLightPet/ExampleLightPetBuff.js",
+      "sha256": "95f478f8706973bacb3d2b6b87137991d3e1c9afaed07f40289f2ce205aae04a",
+      "bytes": 506
+    },
+    {
+      "path": "content/Content/Pets/ExampleLightPet/ExampleLightPetItem.js",
+      "sha256": "b8f1fb6bcbe39529cca2ac0848ae5cdae8aebbf029c46e0acd52b8484f3df787",
+      "bytes": 1039
+    },
+    {
+      "path": "content/Content/Pets/ExampleLightPet/ExampleLightPetProjectile.js",
+      "sha256": "f269c4d3bb85f42c97b325e1f1c0fefa7269b46b9ff66774d8bc98086ef5be51",
+      "bytes": 4619
+    },
+    {
+      "path": "content/Content/Pets/ExamplePet/ExamplePetBuff.js",
+      "sha256": "9a1e1d3d21b8edb433c92d3d02c227971a780d5e31b8e91350e6b64deeb84821",
+      "bytes": 497
+    },
+    {
+      "path": "content/Content/Pets/ExamplePet/ExamplePetItem.js",
+      "sha256": "10674f7d17bcab01bc4d42aea238f83dfcf36ae9a6b7b1becfd435c5723f364b",
+      "bytes": 629
+    },
+    {
+      "path": "content/Content/Pets/ExamplePet/ExamplePetProjectile.js",
+      "sha256": "5031991ff81fb2ae0c44a1067b4c7c8ce10d4e1db2c2249f37d557d91915f64a",
+      "bytes": 889
+    },
+    {
+      "path": "content/Content/Prefixes/ExampleAccessoryPrefix.js",
+      "sha256": "58e7b1e75c25ea6e95986bc91e12e6421cbd55c92685c9dbacdbec3852941d76",
+      "bytes": 722
+    },
+    {
+      "path": "content/Content/Prefixes/ExampleDerivedPrefix.js",
+      "sha256": "0bb9cfa65947ea1b2a1db19e256a66a5967389516ea94d3394d53a1fadc63544",
+      "bytes": 298
+    },
+    {
+      "path": "content/Content/Prefixes/ExamplePrefix.js",
+      "sha256": "420783d4f36f7d8423211612c915de570dab278050e3e810f705c518c205b632",
+      "bytes": 1679
+    },
+    {
+      "path": "content/Content/Projectiles/ExampleAdvancedAnimatedProjectile.js",
+      "sha256": "735584910ef10aad087edc7c7f611af52e1bfdce6074b6e93e6232e09573d2d9",
+      "bytes": 2672
+    },
+    {
+      "path": "content/Content/Projectiles/ExampleBobber.js",
+      "sha256": "dde1d3e68aa130c699a145ce84937802c4bf76e316b8213303a20a18d1655dd7",
+      "bytes": 740
+    },
+    {
+      "path": "content/Content/Projectiles/ExampleBulletProjectile.js",
+      "sha256": "932555edd58f838b37017d2cf49f4f7f59e1b9bba3a3c6a91059d23fa3d2986d",
+      "bytes": 702
+    },
+    {
+      "path": "content/Content/Projectiles/ExampleDrillProjectile.js",
+      "sha256": "7609f14181e2904f8699c1da07c61ecea1b997cdb320385041b8dbf00e191b6d",
+      "bytes": 2514
+    },
+    {
+      "path": "content/Content/Projectiles/ExampleFlailProjectile.js",
+      "sha256": "a7e490954ae635204bb3fa07cbe3de510daa868ad115458e1c65fb10ae96f843",
+      "bytes": 2147
+    },
+    {
+      "path": "content/Content/Projectiles/ExampleGolfBallProjectile.js",
+      "sha256": "bf78d62d8550f3fc4b1c6615ed7ebd36ae9085c0abaf12149b44099bba24d8ea",
+      "bytes": 635
+    },
+    {
+      "path": "content/Content/Projectiles/ExampleHookProjectile.js",
+      "sha256": "a88aa3ac7912e9306021dd2b6da90edfb60ac2c89b64f0d6f07bbd7f0a13f250",
+      "bytes": 3503
+    },
+    {
+      "path": "content/Content/Projectiles/ExampleLaserBeam.js",
+      "sha256": "ef641ea8d25fff949d5fe9aa764688f0a68264359ceb9e9595eb5e4867d70bc5",
+      "bytes": 6115
+    },
+    {
+      "path": "content/Content/Projectiles/ExampleLaserHoldout.js",
+      "sha256": "9b6eaebd646c4ff63ef330ebb92109ef8d23836fa56b9e53f45c344b29dc5d35",
+      "bytes": 3472
+    },
+    {
+      "path": "content/Content/Projectiles/ExampleLastPrismBeam.js",
+      "sha256": "1d85e46db2ba65930376cbe36f686b7566201b6eeab6bc2398819940ef63d56b",
+      "bytes": 12239
+    },
+    {
+      "path": "content/Content/Projectiles/ExampleLastPrismHoldout.js",
+      "sha256": "94338863842ca29f5d3da8653d0ed64c15816a7f98d31f190228b8805e2056dc",
+      "bytes": 6114
+    },
+    {
+      "path": "content/Content/Projectiles/ExampleMinion.js",
+      "sha256": "480e058a82a2048412644901d2d835adba403a31988e7cb95db2231ae96f7142",
+      "bytes": 5959
+    },
+    {
+      "path": "content/Content/Projectiles/ExampleRiftProjectile.js",
+      "sha256": "656aa458090595b956482eb2a2d2d940eb193c9fa08efd9ba16fee5508a6cd72",
+      "bytes": 2240
+    },
+    {
+      "path": "content/Content/Projectiles/ExampleSentry.js",
+      "sha256": "2c7cf6c27da7de1b242c1184b883cc7392da7ddda2949866b9e6ffcce5ad34d4",
+      "bytes": 5074
+    },
+    {
+      "path": "content/Content/Projectiles/ExampleSentryShot.js",
+      "sha256": "f5828220749337bf6078f49961c51009751f3071aea05b92829bd5a0b559740d",
+      "bytes": 1303
+    },
+    {
+      "path": "content/Content/Projectiles/ExampleShortswordProjectile.js",
+      "sha256": "d8ffc4215e2284c46b44667ac562282b2534f3d2486fa5a88176581b9fc7921e",
+      "bytes": 4118
+    },
+    {
+      "path": "content/Content/Projectiles/ExampleSpearProjectile.js",
+      "sha256": "40c69050505541583a9489d24b18c08a55e701de6677634ad834e9203aa9f32d",
+      "bytes": 1077
+    },
+    {
+      "path": "content/Content/Projectiles/ExampleSwingingEnergySwordProjectile.js",
+      "sha256": "29ec15333f787720cf8c4df6ffc452b7f9debaaad1b71e7afca1f0e1437bd377",
+      "bytes": 8484
+    },
+    {
+      "path": "content/Content/Projectiles/ExampleWhipProjectile.js",
+      "sha256": "02ed93fac9b98d1e3dcf9699a51b52a1ed5bcd56c57465b5d5694f38e34bfc57",
+      "bytes": 2850
+    },
+    {
+      "path": "content/Content/Projectiles/ExampleYoyoProjectile.js",
+      "sha256": "d6d2e92ac77a83337f27c9c50d4e040d1e936c90599dafd9a0cd17e6f7d45d56",
+      "bytes": 631
+    },
+    {
+      "path": "content/Content/Rarities/ExampleHigherTierModRarity.js",
+      "sha256": "aaec75c912a7cc49a83ca668432eaaf1493c3f1b28a521986c6d7b6ccd6a52cd",
+      "bytes": 603
+    },
+    {
+      "path": "content/Content/Rarities/ExampleModRarity.js",
+      "sha256": "169710db73c6c18bafc921c97c6117a100ade24677d9f7c74ddfc09427d47a44",
+      "bytes": 554
+    },
+    {
+      "path": "content/Content/TileEntities/BasicTileEntity.js",
+      "sha256": "7bf02c3a2c0c77278deaef9c49288d246d8aae039a8ca14ebc673481c3cdd617",
+      "bytes": 7429
+    },
+    {
+      "path": "content/Content/TileEntities/SimplePylonTileEntity.js",
+      "sha256": "9c8cbffb619cf6f4cf208e7f5bbae71b7c1b0ae053001849d98873505aa07bd9",
+      "bytes": 310
+    },
+    {
+      "path": "content/Content/Tiles/Banners/ExampleEnemyBannerTile.js",
+      "sha256": "de03593268d27ab9ea918577f100edeaeb09f5eda530cfda09fc820703b06bb9",
+      "bytes": 199
+    },
+    {
+      "path": "content/Content/Tiles/ExampleAnimatedGlowmaskTile.js",
+      "sha256": "a4c5c7755e132840fd9c6fea91b29fbfdfb4547b9a6423d780ea792e647ef161",
+      "bytes": 2038
+    },
+    {
+      "path": "content/Content/Tiles/ExampleAnimatedTile.js",
+      "sha256": "39062275f423c5acab11f1175c810708de384e332860d482ad036042d1637d99",
+      "bytes": 1750
+    },
+    {
+      "path": "content/Content/Tiles/ExampleBar.js",
+      "sha256": "ca7b12d0cefd744606cd91ae3d625d1c1a77ded0f71f203580f9cc2e7bfe6f48",
+      "bytes": 1020
+    },
+    {
+      "path": "content/Content/Tiles/ExampleCampfire.js",
+      "sha256": "7cdd0698065e96ebd6cd4f3f27feec673df622194d041e749497b3c5a7ac8ef1",
+      "bytes": 5064
+    },
+    {
+      "path": "content/Content/Tiles/ExampleCutTile.js",
+      "sha256": "c116d616a5c0333b1c18fb5f92158eea295fe8d184d953c83879e80c48615c5f",
+      "bytes": 1468
+    },
+    {
+      "path": "content/Content/Tiles/ExampleGemsparkBlock.js",
+      "sha256": "e1e866df936b4be5d93e672dac31ae154ac964f993d63dbc1c879e1d68a820b1",
+      "bytes": 2072
+    },
+    {
+      "path": "content/Content/Tiles/ExampleHerb.js",
+      "sha256": "5901c5d2595fdbaa163061e3b7f7a296630017f4e512671f2528169b58737abf",
+      "bytes": 3125
+    },
+    {
+      "path": "content/Content/Tiles/ExampleLamp.js",
+      "sha256": "67cbb38f89fba75653c201bc6ca90fd7365d0a6a10a4531a689d985d9dc1bfba",
+      "bytes": 4652
+    },
+    {
+      "path": "content/Content/Tiles/ExampleLivingFireTile.js",
+      "sha256": "3b5b456150485b53fd5666189ee93a543f4149689123e2da9259692b1099993f",
+      "bytes": 1056
+    },
+    {
+      "path": "content/Content/Tiles/ExampleMusicBoxTile.js",
+      "sha256": "1f946a04aff0f53342ebe82fce5a495acb36dc0ac64cf9d0e8bf32c6972e9d5e",
+      "bytes": 1852
+    },
+    {
+      "path": "content/Content/Tiles/ExampleOre.js",
+      "sha256": "6c6a2bee59e6f6e6d5555589e1f103c43494fdf672aadf7893eef3a851811581",
+      "bytes": 896
+    },
+    {
+      "path": "content/Content/Tiles/ExamplePylonTile.js",
+      "sha256": "7aadf0a2a2412fcc3cb0911e06019e1bdcc8490248f9556e575ad818e344987e",
+      "bytes": 3361
+    },
+    {
+      "path": "content/Content/Tiles/ExampleSign.js",
+      "sha256": "a4ff8b95c5ca6335310a5cc540477b2b7bf4b658941125f4c58da22f8468f049",
+      "bytes": 2538
+    },
+    {
+      "path": "content/Content/Tiles/ExampleSink.js",
+      "sha256": "227bea09692e1ff089c95e2c7d23a43ee1d83e877379ec22071f60926e73ab91",
+      "bytes": 956
+    },
+    {
+      "path": "content/Content/Tiles/ExampleStatue.js",
+      "sha256": "ad14c688372ba8508f15d243968ebb2b24cd04fdd4d6f4bc6f077f54e9793549",
+      "bytes": 3087
+    },
+    {
+      "path": "content/Content/Tiles/ExampleTile.js",
+      "sha256": "001cece5ecdb61d6fac480af1673ccc533340f623077823aafd7ce1ae6e4605f",
+      "bytes": 490
+    },
+    {
+      "path": "content/Content/Tiles/ExampleTorch.js",
+      "sha256": "b321bfa59a9fb63a903025a169fa628ae6e45d23cdc29e59656be49b387528c2",
+      "bytes": 3902
+    },
+    {
+      "path": "content/Content/Tiles/ExampleTransparentShapedTile.js",
+      "sha256": "45a5e72cd1bde2f425dc2ba2d1bc7541aafac879aac8e9d4bdfc7e6eb764ad77",
+      "bytes": 754
+    },
+    {
+      "path": "content/Content/Tiles/ExampleTrap.js",
+      "sha256": "6b4bc27a9902c55b9391968cd547a60d24b21804e98e25564d73c9b68fcba760",
+      "bytes": 3302
+    },
+    {
+      "path": "content/Content/Tiles/Furniture/ExampleBed.js",
+      "sha256": "fe61a36bb946633e7c1d48773afeea53e9d651a7136c942ba606bf5e8e7014ad",
+      "bytes": 3328
+    },
+    {
+      "path": "content/Content/Tiles/Furniture/ExampleChair.js",
+      "sha256": "9cfad8478a1cdf61b1f98b7f03c39372f1af1bab3d262a1e7d6724ddcb74a021",
+      "bytes": 3028
+    },
+    {
+      "path": "content/Content/Tiles/Furniture/ExampleChandelier.js",
+      "sha256": "43f830bd7a3405dad716c15c35cc56b56d1958d4c42239bdd1f1f461cf7cb2bc",
+      "bytes": 4057
+    },
+    {
+      "path": "content/Content/Tiles/Furniture/ExampleChest.js",
+      "sha256": "8ad861d16607f6efeba1fa093a07e592f89a024fa41ef226068210fb2ebb3eab",
+      "bytes": 5950
+    },
+    {
+      "path": "content/Content/Tiles/Furniture/ExampleClock.js",
+      "sha256": "48130d2f33fb0e2aa982f789f469d31ee2524c794d7be81cd5c89987d8015eb4",
+      "bytes": 1905
+    },
+    {
+      "path": "content/Content/Tiles/Furniture/ExampleDoorClosed.js",
+      "sha256": "8f44147a8382c805a299dda9493381815aaaf4167001ce6a9b7aea14bac665fb",
+      "bytes": 1577
+    },
+    {
+      "path": "content/Content/Tiles/Furniture/ExampleDoorOpen.js",
+      "sha256": "50a676671f3df987b8de2df31155733efd993dd2fa188af5baa41591d0f234ad",
+      "bytes": 3015
+    },
+    {
+      "path": "content/Content/Tiles/Furniture/ExampleDresser.js",
+      "sha256": "64bb6b5b7719208911ba7e3fd46235f120fc01efc99629994d18258188aead77",
+      "bytes": 4694
+    },
+    {
+      "path": "content/Content/Tiles/Furniture/ExamplePlatform.js",
+      "sha256": "019925a4ee3a3eafdf4918824cabcd272cd3c15dc1b12533e1006d0e6325a6a8",
+      "bytes": 1505
+    },
+    {
+      "path": "content/Content/Tiles/Furniture/ExampleTable.js",
+      "sha256": "e018b9af79df9ad92dd3e36c3cdcc00079826185ee957640cea31a9a81bc4395",
+      "bytes": 1056
+    },
+    {
+      "path": "content/Content/Tiles/Furniture/ExampleToilet.js",
+      "sha256": "b93a59bc0fdb15830f84cb4759febdd1acf85cce4099d1d0d98014e143fdae58",
+      "bytes": 3755
+    },
+    {
+      "path": "content/Content/Tiles/Furniture/ExampleWideBannerTile.js",
+      "sha256": "66ff5a1b47583ef1f13f084a201c9e2c944d7f8e85e861d31d3dbfe8c1843b89",
+      "bytes": 1428
+    },
+    {
+      "path": "content/Content/Tiles/Furniture/ExampleWorkbench.js",
+      "sha256": "7e9b5d9d27ab0af97ddea93a41af73ffd8e5271dc6a5245fec94c64728d3d8de",
+      "bytes": 1190
+    },
+    {
+      "path": "content/Content/Tiles/Furniture/MinionBossRelic.js",
+      "sha256": "1fbd5936764d57f49d02168501368b1787206975ecdd9d0394b91116a5bf27ee",
+      "bytes": 3986
+    },
+    {
+      "path": "content/Content/Tiles/Furniture/MinionBossTrophy.js",
+      "sha256": "041736f0ec7f4cbeab52d7bb5eff68a3cdae7357a0058e6431f42a5f519499c0",
+      "bytes": 609
+    },
+    {
+      "path": "content/Content/Tiles/Plants/ExampleSapling.js",
+      "sha256": "4c1465b6e99c43aa22f961b74d0d2b58dfb922201038b719c83315c2101f8fda",
+      "bytes": 2303
+    },
+    {
+      "path": "content/Content/Tiles/Plants/ExampleTree.js",
+      "sha256": "4c7363c17d18fdcaecc273c051d897a27ca5d1d5c9e1fc310e1e894e6b354962",
+      "bytes": 1775
+    },
+    {
+      "path": "content/Content/Walls/ExampleWall.js",
+      "sha256": "d734653a11cddc4d181cf90bad15f4831d0bd148b3e3627db268cdc6693840d3",
+      "bytes": 419
+    },
+    {
+      "path": "content/Content/Walls/ExampleWallAdvanced.js",
+      "sha256": "9c708f6550ae21a0245879c7dab7fe5e0218a868675f31e32ae411ff6c3a3c93",
+      "bytes": 1239
+    },
+    {
+      "path": "content/main.js",
+      "sha256": "a215a722f0ec8771b31f40434288a43d9746597b1941fa6c0d12b778e0c6ca7b",
+      "bytes": 1585
+    }
+  ]
+}

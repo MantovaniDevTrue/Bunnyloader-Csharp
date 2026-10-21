@@ -1,5 +1,6 @@
 #include "experiments/csharp/SourceParser.h"
 #include "experiments/csharp/SourceLimits.h"
+#include "experiments/csharp/SourceContentIdentity.h"
 
 #include <cctype>
 #include <string>
@@ -112,7 +113,7 @@ size_t closing(const std::vector<Token>& tokens, size_t open, const std::string&
 bool contentDeclaration(const std::vector<Token>& tokens, size_t first, size_t last,
                         std::string* base, std::map<std::string, std::string>* properties,
                         std::string* error,std::vector<std::pair<std::string,std::string>>* localizedNames) {
-    const std::string kinds = "|Item|Dust|Tile|Wall|Weapon|Projectile|Buff|BuffPotion|Accessory|Player|NPC|Prefix|";
+    const std::string kinds = "|Item|Dust|Tile|Wall|Weapon|Projectile|Buff|BuffPotion|Accessory|Player|NPC|Prefix|BackgroundTexture|";
     for (size_t i = first; i < last; ++i) {
         if(!tokens[i].literal&&(tokens[i].value=="BunnyName"||tokens[i].value=="BunnyNameAttribute")) {
             if(i+6>=last||tokens[i+1].value!="("||!tokens[i+2].literal||tokens[i+3].value!=","||!tokens[i+4].literal||tokens[i+5].value!=")"||tokens[i+6].value!="]") {
@@ -226,11 +227,7 @@ bool parseClass(const std::vector<Token>& tokens, size_t begin, size_t end,
                 const std::string& namespaceName,
                 std::vector<ParsedSourceType>* definitions, std::string* error,
                 const std::map<std::string, std::string>& declaredProperties = {}) {
-    if (base != "BunnyItem" && base != "BunnyProjectile" && base != "BunnyWeapon" &&
-        base != "BunnyBuff" && base != "BunnyBuffPotion" &&
-        base != "BunnyPlayer" && base != "BunnyAccessory" &&
-        base != "BunnyNPC" && base != "BunnyPrefix" && base != "BunnyTile" && base != "BunnyDust" && base != "BunnyWall" &&
-        base != "BunnyScreenEffect" && base != "BunnyRarity" && base != "BunnyCommand") return true;
+    if (sourceContentDomain(base).empty()) return true;
     ParsedSourceType def;
     def.name = name;
     def.base = base;
@@ -253,7 +250,7 @@ bool parseClass(const std::vector<Token>& tokens, size_t begin, size_t end,
                     return false;
                 }
                 if (i > member && (tokens[i - 1].value == "SetDefaults" ||
-                    ((base == "BunnyTile" || base == "BunnyDust" || base == "BunnyWall" || base == "BunnyRarity") && tokens[i - 1].value == "SetStaticDefaults")) &&
+                    ((base == "BunnyTile" || base == "BunnyDust" || base == "BunnyWall" || base == "BunnyRarity" || base == "BunnyBackgroundTexture") && tokens[i - 1].value == "SetStaticDefaults")) &&
                     parametersEnd == i + 1 && parametersEnd + 1 < end &&
                     tokens[parametersEnd + 1].value == "{") {
                     if (foundDefaults && base != "BunnyRarity") {
@@ -266,7 +263,7 @@ bool parseClass(const std::vector<Token>& tokens, size_t begin, size_t end,
                         return false;
                     }
                     if (base == "BunnyRarity") {
-                    } else if (base == "BunnyItem" || base == "BunnyTile" || base == "BunnyDust" || base == "BunnyWall" || base == "BunnyProjectile") {
+                    } else if (base == "BunnyItem" || base == "BunnyTile" || base == "BunnyDust" || base == "BunnyWall" || base == "BunnyProjectile" || base == "BunnyBackgroundTexture") {
                         // So recursos/nomes sao necessarios ANTES do Mono. Todos
                         // os defaults numericos e receitas sao executados em C#;
                         // nao adivinhar expressoes nem descartar a sua funcionalidade.
@@ -455,11 +452,7 @@ bool parseCSharpSource(const std::string& source,
             }
             base = declaredBase;
         }
-        if (!abstract && (base == "BunnyItem" || base == "BunnyProjectile" || base == "BunnyWeapon" ||
-            base == "BunnyBuff" || base == "BunnyBuffPotion" ||
-            base == "BunnyPlayer" || base == "BunnyAccessory" ||
-            base == "BunnyNPC" || base == "BunnyPrefix" ||
-            base == "BunnyTile" || base == "BunnyDust" || base == "BunnyWall" || base == "BunnyRarity" || base == "BunnyScreenEffect" || base == "BunnyCommand")) {
+        if (!abstract && !sourceContentDomain(base).empty()) {
             std::string qualifiedNamespace = fileNamespace;
             for (const auto& scope : namespaces) {
                 if (!qualifiedNamespace.empty()) qualifiedNamespace += ".";

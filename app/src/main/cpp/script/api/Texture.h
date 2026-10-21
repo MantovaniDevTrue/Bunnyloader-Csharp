@@ -24,6 +24,10 @@ JSValue loadTexture(JSContext* ctx, int argc, JSValueConst* argv);
  * Thread do jogo.
  */
 JSValue loadTextureAsset(JSContext* ctx, int argc, JSValueConst* argv);
+JSValue reserveBackgroundTexture(JSContext* ctx, int argc, JSValueConst* argv);
+JSValue publishBackgroundTextures(JSContext* ctx, int argc, JSValueConst* argv);
+JSValue backgroundTextureSlot(JSContext* ctx, int argc, JSValueConst* argv);
+JSValue backgroundTextureCount(JSContext* ctx, int argc, JSValueConst* argv);
 
 /**
  * bl.builtinTexture(nome) -> Asset<Texture2D> de uma imagem embutida na
