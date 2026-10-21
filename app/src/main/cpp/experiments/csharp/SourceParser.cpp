@@ -215,12 +215,18 @@ bool parseClass(const std::vector<Token>& tokens, size_t begin, size_t end,
         base != "BunnyBuff" && base != "BunnyBuffPotion" &&
         base != "BunnyPlayer" && base != "BunnyAccessory" &&
         base != "BunnyNPC" && base != "BunnyPrefix" && base != "BunnyTile" &&
-        base != "BunnyScreenEffect") return true;
+        base != "BunnyScreenEffect" && base != "BunnyAchievement") return true;
     ParsedSourceType def;
     def.name = name;
     def.base = base;
     def.namespaceName = namespaceName;
     def.properties = declaredProperties;
+    if (base == "BunnyAchievement") {
+        // O SetStaticDefaults da conquista define condições dinâmicas em C#.
+        // O parser nativo registra apenas a identidade; não interpreta callbacks.
+        definitions->push_back(std::move(def));
+        return true;
+    }
     bool foundDefaults = false;
     size_t member = begin + 1;
     while (member < end) {
@@ -438,7 +444,8 @@ bool parseCSharpSource(const std::string& source,
             base == "BunnyBuff" || base == "BunnyBuffPotion" ||
             base == "BunnyPlayer" || base == "BunnyAccessory" ||
             base == "BunnyNPC" || base == "BunnyPrefix" ||
-            base == "BunnyTile" || base == "BunnyScreenEffect")) {
+            base == "BunnyTile" || base == "BunnyScreenEffect" ||
+            base == "BunnyAchievement")) {
             std::string qualifiedNamespace = fileNamespace;
             for (const auto& scope : namespaces) {
                 if (!qualifiedNamespace.empty()) qualifiedNamespace += ".";
