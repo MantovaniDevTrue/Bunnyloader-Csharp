@@ -178,6 +178,34 @@ bool nativeTouchSlot(int slot, SlotAction* result) {
     *result = temp;
     return true;
 }
+bool nativeTouchSlotId(int slot, std::string* result) {
+    if (!result || slot < 0 || slot >= 256) return false;
+    auto& api = il2cpp::api();
+    if (!api.object_get_class) return false;
+    Il2CppObject* profile = activeProfile();
+    if (!profile) return false;
+    size_t offsetField = 0;
+    if (!offset(api.object_get_class(profile), "HardwareConfig",
+                sizeof(void*), true, &offsetField)) return false;
+    Il2CppObject* hardware = read<Il2CppObject*>(profile, offsetField);
+    Il2CppArray* slots = nullptr;
+    if (!hardware || !objectArray(hardware, "Slots", &slots)) return false;
+    Il2CppObject* entry = arrayAt(slots, slot);
+    if (!entry || !offset(api.object_get_class(entry), "SlotId",
+                          sizeof(void*), true, &offsetField)) return false;
+    Il2CppString* id = read<Il2CppString*>(entry, offsetField);
+    if (!id || id->length < 1 || id->length > 100) return false;
+    std::string value;
+    value.reserve(id->length);
+    for (int i = 0; i < id->length; ++i) {
+        char16_t character = id->chars[i];
+        if (character < 32 || character >= 127) return false;
+        value.push_back(static_cast<char>(character));
+    }
+    *result = std::move(value);
+    return true;
+}
+
 bool nativeTouchActiveSnapshot(ActiveTouchSnapshot* result) {
     if (!result) return false;
     ActiveTouchSnapshot snapshot;
