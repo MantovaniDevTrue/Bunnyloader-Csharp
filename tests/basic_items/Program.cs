@@ -283,7 +283,10 @@ try {
   if(identities.Count==0)throw new Exception("full package has no content");
   int localizationModules=compiled.GetTypes().Count(t=>t.IsClass&&!t.IsAbstract&&
    typeof(BunnyLocalizationModule).IsAssignableFrom(t));
-  if(CompiledAssemblyProbe.Verify(output,diag,root)!=identities.Count+localizationModules)
+  int commands=compiled.GetTypes().Count(t=>t.IsClass&&!t.IsAbstract&&
+   typeof(BunnyCommand).IsAssignableFrom(t));
+  Equal(3,commands);
+  if(CompiledAssemblyProbe.Verify(output,diag,root)!=identities.Count+localizationModules+commands)
    throw new Exception(File.ReadAllText(diag));
   var contentKinds=new HashSet<string>{"ITEM","WEAPON","ACCESSORY","POTION","TILE","WALL","DUST","RARITY","BUFF","PLAYER","PROJECTILE","NPC","PREFIX"};
   string localizationUid="68c3115f-62f4-49f2-a56b-388256781d5f";
