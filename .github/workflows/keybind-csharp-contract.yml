@@ -15,6 +15,8 @@ on:
       - app/src/main/cpp/experiments/csharp/NativeTouchActionIds.cpp
       - app/src/main/cpp/experiments/csharp/NativeTouchEditor.h
       - app/src/main/cpp/experiments/csharp/NativeTouchEditor.cpp
+      - app/src/main/cpp/experiments/csharp/NativeTouchStaticMappings.cpp
+      - app/src/main/cpp/experiments/csharp/NativeTouchStaticMappings.h
       - app/src/main/cpp/experiments/csharp/NativeTouchInput.cpp
       - app/src/main/cpp/experiments/csharp/NativeTouchInput.h
       - app/src/main/cpp/experiments/csharp/NativeTouchGameAbi.h
@@ -76,7 +78,8 @@ jobs:
             -Iapp/src/main/cpp \
             app/src/main/cpp/experiments/csharp/NativeTouchGameAbi.cpp \
             app/src/main/cpp/experiments/csharp/NativeTouchController.cpp \
-            app/src/main/cpp/experiments/csharp/NativeTouchEditor.cpp
+            app/src/main/cpp/experiments/csharp/NativeTouchEditor.cpp \
+            app/src/main/cpp/experiments/csharp/NativeTouchStaticMappings.cpp
       - name: Android ABI compilation (no APK)
         shell: bash
         run: |
