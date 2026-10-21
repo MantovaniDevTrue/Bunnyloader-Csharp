@@ -242,8 +242,7 @@ bool updateNativeAchievementProgress(const std::string& modId,
         if (old.name != entry.name || old.title != entry.title ||
             old.description != entry.description ||
             old.texture != entry.texture || old.index != entry.index ||
-            old.category != entry.category || (old.completed && !entry.completed) ||
-            entry.progress < old.progress) {
+            old.category != entry.category || (old.completed && !entry.completed)) {
             *error = "Achievement static metadata changed or progress regressed";
             return false;
         }
