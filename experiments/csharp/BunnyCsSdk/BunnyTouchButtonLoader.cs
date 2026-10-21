@@ -69,6 +69,7 @@ public static class BunnyTouchButtonLoader
     private static readonly Dictionary<string, Entry> ByName = new(StringComparer.Ordinal);
     private static long lastTick = -1;
     private static bool nativeBound;
+    private static bool nativeStagePending = true;
     public static string LastHostError { get; private set; } = "HostNotConnected";
 
     public static int Count { get { lock (Gate) return ByName.Count; } }
@@ -106,6 +107,7 @@ public static class BunnyTouchButtonLoader
             }
             Entries.Add(entry);
             ByName.Add(key, entry);
+            if (!nativeBound) nativeStagePending = true;
             return button;
         }
     }
@@ -147,21 +149,27 @@ public static class BunnyTouchButtonLoader
             if (nativeBound) return true;
             try
             {
+                // Registra os IDs antes dos hooks: sem este passo, os hooks
+                // nunca enxergariam os botões C# para inicializar o editor.
+                if (nativeStagePending)
+                {
+                    foreach (Entry? entry in Entries)
+                    {
+                        if (entry is null || entry.NativeId >= 0) continue;
+                        int remoteId = BunnyTouchNativeHost.Register(entry.Button);
+                        if (remoteId < 0)
+                        {
+                            LastHostError = "RegisterFailed:" + entry.Button.FullName;
+                            return false;
+                        }
+                        entry.NativeId = remoteId;
+                    }
+                    nativeStagePending = false;
+                }
                 if (!BunnyTouchNativeHost.Ready())
                 {
                     LastHostError = "NativeHooksNotReady";
                     return false;
-                }
-                foreach (Entry? entry in Entries)
-                {
-                    if (entry is null) continue;
-                    int remoteId = BunnyTouchNativeHost.Register(entry.Button);
-                    if (remoteId < 0)
-                    {
-                        LastHostError = "RegisterFailed:" + entry.Button.FullName;
-                        return false;
-                    }
-                    entry.NativeId = remoteId;
                 }
                 nativeBound = true;
                 LastHostError = "Ready";
@@ -242,7 +250,8 @@ public static class BunnyTouchButtonLoader
                 ByName.Remove(entry.Button.FullName);
                 Entries[i] = null;
             }
-            if (nativeBound) BunnyTouchNativeHost.Unload(modId);
+            if (nativeBound || !nativeStagePending)
+                BunnyTouchNativeHost.Unload(modId);
         }
     }
 
