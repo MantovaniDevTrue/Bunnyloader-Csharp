@@ -25,6 +25,12 @@ int main() {
     assert(state.registrationVersion() == 2);
     assert(state.fullName(dash) == "demo/Dash");
     assert(state.count() == 2);
+    std::array<bits::TouchIconSource, bits::kMaxButtons> iconSources{};
+    assert(state.iconSources(nullptr) == -1);
+    assert(state.iconSources(&iconSources) == 2);
+    assert(iconSources[dash].owner == "demo" &&
+           iconSources[dash].path == "Assets/Dash.png");
+    assert(iconSources[other].owner == "other");
 
     const int held[] = {dash};
     const int bound[] = {dash};
@@ -96,10 +102,15 @@ int main() {
     assert(state.registrationVersion() == 3);
     assert(state.read(dash) == 0 && !state.tap(dash));
     assert(state.count() == 1 && state.fullName(dash).empty());
+    assert(state.iconSources(&iconSources) == 2);
+    assert(iconSources[dash].owner.empty() && iconSources[dash].path.empty());
+    assert(iconSources[other].owner == "other");
     assert(state.snapshot(states.data(), tokens.data(), bits::kMaxButtons) == 2);
     assert(states[dash] == 0 && tokens[dash] == 0);
     assert(state.add("demo", "Dash", "Dash", "Assets/Dash.png") == 2);
     assert(state.registrationVersion() == 4);
+    assert(state.iconSources(&iconSources) == 3);
+    assert(iconSources[2].owner == "demo");
     assert(state.read(2) == 0);
 
     for (int i = 3; i < bits::kMaxButtons; ++i) {
