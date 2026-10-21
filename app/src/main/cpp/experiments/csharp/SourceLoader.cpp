@@ -365,6 +365,17 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
             return false;
         }
     }
+    // Fail closed before allocating any native content IDs. Merely declaring a
+    // BunnyCloud does not install TextureAssets.Cloud or the mobile CloudMasks.
+    // The backend must explicitly provide the full game-thread installer first.
+    status->clouds = static_cast<int>(std::count_if(defs.begin(), defs.end(),
+        [](const ParsedSourceType& def) { return def.base == "BunnyCloud"; }));
+    if (status->clouds > 0) {
+        status->error = "[CSharp][CloudLoader] Mod=" + mod.id +
+            " Stage=PreRegister Result=Blocked Reason=NativeCloudHooksAndMasksNotInstalled" +
+            " Clouds=" + std::to_string(status->clouds);
+        return false;
+    }
     if (!prepareNativeContent()) {
         status->error = "Host API de conteudo nativo indisponivel";
         return false;
