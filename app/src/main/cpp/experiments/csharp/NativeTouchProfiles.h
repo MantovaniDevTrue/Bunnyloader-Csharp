@@ -21,6 +21,7 @@ struct ActiveTouchSnapshot {
 
 // Lê somente estruturas existentes do jogo. Falha fechada quando uma
 // propriedade/campo muda na versão do Terraria ou usa layout não validado.
+int nativeTouchActiveSlotCount();
 bool nativeTouchSlot(int slot, SlotAction* result);
 bool nativeTouchSlotId(int slot, std::string* id);
 const void* nativeTouchActiveProfileIdentity();
