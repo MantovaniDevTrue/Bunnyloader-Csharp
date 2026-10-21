@@ -93,8 +93,7 @@ class TooltipLoader {
             const colors = [[255, u, 0], [q, 255, 0], [0, 255, u],
                 [0, q, 255], [u, 0, 255], [255, 0, q]];
             const rgb = colors[Math.min(index, 5)];
-            return Color.new(rgb[0] * alpha / 255, rgb[1] * alpha / 255,
-                rgb[2] * alpha / 255, alpha);
+            return Color.new(rgb[0], rgb[1], rgb[2], alpha);
         };
         const draw = batch[TooltipLoader.#DRAW_STRING];
         for (let i = 0; i < text.length; i++) {
