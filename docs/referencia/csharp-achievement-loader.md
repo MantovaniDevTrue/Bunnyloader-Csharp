@@ -13,6 +13,9 @@ Referência exclusiva para Bunny: código original de `ModAchievement.js`, `Achi
 - Endpoint `BunnyAchievementRuntime.Dispatch` no worker MonoVM: bind, eventos, save/load, unload, metadata, configuração de pasta e flush. A fila nativa tem até 256 comandos, **2 MiB de payloads acumulados**, resposta limitada e diagnóstico de saturação com logs reduzidos.
 - Descoberta de `BunnyAchievement` no parser do Bunny e no verificador das assemblies compiladas, incluindo assemblies que contenham apenas conquistas.
 - Metadados gerenciados exportados em `source-achievement-values.txt`, separados de `source-runtime-values.txt` para não interferir em registros de itens.
+- Registro nativo `NativeAchievementRegistry`: instancia `Terraria.Achievements.Achievement`, `CustomIntCondition`, `LocalizedText`, adiciona tracker, índice e categoria no `Main.Achievements` pela API IL2CPP com validação dos overloads antes da criação.
+- Integração visual `NativeAchievementVisualHooks`: usa `ContentAssets::loadTextureAsset`, a mesma API nativa de imagens do Bunny, e exige os atlas 592 × 64 de Terraria Mobile; controla o `GUIAchievementsMenu.AchievementDraw`, a atualização do cache ao abrir e o `AchievementUnlockedPopup`. As trocas de nomes ocultos usam `LocalizedText` enraizado pelo GC.
+- Callback entre worker MonoVM e parte nativa registrado por função ponte opcional; `libbunnymonoprobe` não depende diretamente de hooks de conteúdo IL2CPP. Registro/visualização só no thread do jogo.
 
 ## API do bridge gerenciado
 
@@ -38,10 +41,13 @@ Para eventos (1–4), `payload` deve ser `1` se for o jogador local ou `0` nos d
 
 - `samples/ExampleModCSharp/Examples/Achievements/ExampleBossKilled.cs`
 - `samples/ExampleModCSharp/Examples/Achievements/ManyWormsKilled.cs`
+- `samples/ExampleModCSharp/Playable/content/Content/Achievements/ExampleBossKilled.cs` usa o NPC vanilla King Slime (50).
+- `samples/ExampleModCSharp/Playable/content/Content/Achievements/ManyWormsKilled.cs` usa Giant Worm Head (10), com o contador original. Ambos possuem os PNGs 592 × 64 reaproveitados do ExampleModBunny, sem recriar imagens.
 - `tests/achievements_csharp/Program.cs` testa isolamento de callbacks, limites, restore, DLL real, metadata, bind, unload e eventos.
 - `tests/achievements_csharp/source_parser_test.cpp` testa o parser Bunny nativo (classe única e mod misto).
 - `tests/achievements_csharp/transport_test.cpp` valida fila FIFO, limites de memória e sobrecarga.
 - `tests/achievements_csharp/metadata_test.cpp` valida protocolo nativo e rejeição de estados/identidades inválidos.
+- `tests/achievements_csharp/native_progress_test.cpp` valida a conversão do progresso C# para o tracker inteiro utilizado na visualização; o tracker permanece um espelho, não substitui as condições C#.
 
 Comandos de CI que não geram APK:
 
@@ -51,15 +57,15 @@ g++ -std=c++20 -O2 -Iapp/src/main/cpp tests/achievements_csharp/source_parser_te
 dotnet run -c Release --project tests/achievements_csharp/AchievementCoreTests.csproj
 ```
 
-Validação de 21/10/2026: GitHub Actions [39640816557](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39640816557) — parser C++, fila C++, decoder de metadados e sintaxe nativa passaram; **61 verificações .NET** passaram. Isso **não** valida o comportamento dentro do Terraria Android.
+Validação de 21/10/2026: GitHub Actions [39645940498](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39645940498) — parser, fila, metadados e progresso C++ passaram; verificação de sintaxe do registro nativo, GUI e MonoVM passou; **65 verificações .NET** passaram. Isso **não** valida o comportamento dentro do Terraria Android.
 
 ## Pendências que impedem concluir ou gerar APK
 
 1. **Implementado em fonte, pendente QA Android:** despacho por fila FIFO limitada de 256 comandos no worker MonoVM já existente, com limite de resposta de 1 MiB, eventos assíncronos e controles com timeout/resultado desconhecido explícito.
 2. **Implementado em fonte, pendente QA Android:** resolução tipada das quatro assinaturas IL2CPP do AchievementsHelper (NotifyNPCKilledDirect, NotifyItemPickup, NotifyItemCraft e NotifyTileDestroyed). Os ganchos só ficam ativos no mundo e entregam dados do jogador local a cada mod registrado. Ainda falta conferir antiduplificação por sessão e rejeição de eventos atrasados em transições de mundo.
-3. **Pendente:** registrar conquistas e conditions/trackers no `Terraria.Main.Achievements`, incluindo reload seguro e preservação do progresso vanilla.
-4. **Pendente:** implementar textura de ícones no layout mobile, categorias, nome e descrição localizados, conquistas ocultas, menu e popup nativos.
+3. **Implementado em fonte, pendente QA Android:** criação de `Achievement` + uma `CustomIntCondition` espelhando o progresso gerenciado em 1.000.000 etapas, `Register`, `RegisterIconIndex`, `RegisterAchievementCategory` e tracker no `Main.Achievements`. **Falta** representar cada condição nativa individualmente com os valores máximos exatos (o tracker atual é de apresentação), conferir sincronização e não duplicar conquistas vanilla.
+4. **Implementado em fonte, pendente QA Android:** atlas do Bunny 592 × 64 e `Asset<Texture2D>`, ícones de menu/popup, categorias, nomes e descrições, placeholders `???` ocultos, renovação do menu. **Falta** testar assinaturas/ABI do draw/popup no aparelho e sincronizar traduções na troca de idioma.
 5. **Implementado para armazenamento próprio C#:** `BACH1` atômico, restauração pré-evento, autosave e flush na saída; **pendente** integrar à identidade do perfil Terraria/nuvem, sem conflito com conquistas vanilla.
-6. **Pendente:** registrar os metadados validados como objetos `Terraria.Achievements.Achievement` e condições reais, icon atlas 592×64, categorias, textos localizados, menu e popup; completar desativação de mods, deduplicação/geração de mundo, multiplayer, testes de carga e QA Android.
+6. **Pendente:** lifecycle completo na desativação/recarregamento dos mods, deduplicação e geração de mundo, integração de perfil/nuvem, sincronização com `LanguageManager` na troca de idioma, qualidade de imagens/ABI ARM64, verificações de progresso e popups no menu e multiplayer, testes de carga e QA Android.
 
 **ESTADO: WIP — SEM APK, SEM MERGE.** A branch permite avançar com CI estática e gerenciada, mas ainda não é loader jogável.
