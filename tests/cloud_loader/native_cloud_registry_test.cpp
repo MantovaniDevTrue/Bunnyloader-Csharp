@@ -18,12 +18,15 @@ int main() {
         false) == 66);
     assert(registry.add("ExampleModCSharp", "ExampleCloud", "Clouds/Duplicate",
         false) == -1);
+    assert(registry.add("4a30c8f0-97c9-4d38-a4a7-731c58e0d43d",
+        "GuidCloud", "Content/Clouds/GuidCloud", false) == 67);
+    assert(registry.add("Bad-Mod", "Bad-Cloud", "Clouds/C", false) == -1);
     assert(registry.add("Bad/Mod", "Cloud", "Clouds/C", false) == -1);
     assert(registry.add("ExampleModCSharp", "BadCloud", "../Bad", false) == -1);
     assert(registry.add("ExampleModCSharp", "BadCloud", "/absolute", false) == -1);
-    assert(registry.count() == 3);
+    assert(registry.count() == 4);
     assert(registry.find(63) == nullptr);
-    assert(registry.find(67) == nullptr);
+    assert(registry.find(68) == nullptr);
 
     NativeCloudWeightedPool common, rare;
     assert(common.reset(22));
