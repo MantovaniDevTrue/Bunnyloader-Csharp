@@ -73,7 +73,9 @@ bool ensureControllerArrays(void* self) {
     auto& api = il2cpp::api();
     if (!api.array_new || !api.object_get_class ||
         !api.class_get_element_class || !api.gc_wbarrier_set_field ||
-        !api.class_is_assignable_from || !refs.controller ||
+        !api.gchandle_new || !api.gchandle_get_target ||
+        !api.gchandle_free || !api.class_is_assignable_from ||
+        !refs.controller ||
         !api.class_is_assignable_from(refs.controller,
             api.object_get_class(reinterpret_cast<Il2CppObject*>(self))))
         return false;
@@ -81,35 +83,58 @@ bool ensureControllerArrays(void* self) {
     const int required = refs.ids.control(kMaxButtons - 1) + 1;
     if (!refs.ids.valid() || required <= 0 || required > kMaxGameActionId) return false;
     std::array<Il2CppArray*, 3> arrays{};
-    std::array<Il2CppArray*, 3> next{};
+    std::array<uint32_t, 3> roots{};
+    const auto release = [&] {
+        for (uint32_t root : roots)
+            if (root) api.gchandle_free(root);
+    };
     constexpr std::array<size_t, 3> widths{1, 1, 4};
     constexpr std::array<const char*, 3> typeNames{"Boolean", "Boolean", "Single"};
 
     for (size_t i = 0; i < arrays.size(); ++i) {
         std::memcpy(&arrays[i], static_cast<const char*>(self) + refs.offsets[i],
                     sizeof(Il2CppArray*));
-        if (!arrays[i] || arrays[i]->length > 4096) return false;
+        if (!arrays[i] || arrays[i]->length > 4096) {
+            release();
+            return false;
+        }
         Il2CppClass* arrayType =
             api.object_get_class(reinterpret_cast<Il2CppObject*>(arrays[i]));
         Il2CppClass* element = arrayType ?
             api.class_get_element_class(arrayType) : nullptr;
         if (!element || !api.class_get_name(element) ||
-            std::strcmp(api.class_get_name(element), typeNames[i]) != 0)
+            std::strcmp(api.class_get_name(element), typeNames[i]) != 0) {
+            release();
             return false;
+        }
         if (arrays[i]->length >= static_cast<uintptr_t>(required)) continue;
-        next[i] = api.array_new(element, static_cast<uintptr_t>(required));
-        if (!next[i] || next[i]->length != static_cast<uintptr_t>(required))
+        Il2CppArray* resized = api.array_new(element, static_cast<uintptr_t>(required));
+        if (!resized || resized->length != static_cast<uintptr_t>(required)) {
+            release();
             return false;
-        std::memcpy(arrayData(next[i]), arrayData(arrays[i]),
+        }
+        roots[i] = api.gchandle_new(
+            reinterpret_cast<Il2CppObject*>(resized), false);
+        if (!roots[i]) {
+            release();
+            return false;
+        }
+        std::memcpy(arrayData(resized), arrayData(arrays[i]),
                     static_cast<size_t>(arrays[i]->length) * widths[i]);
     }
-    for (size_t i = 0; i < next.size(); ++i) {
-        if (!next[i]) continue;
+    for (size_t i = 0; i < roots.size(); ++i) {
+        if (!roots[i]) continue;
+        auto* value = api.gchandle_get_target(roots[i]);
+        if (!value) {
+            release();
+            return false;
+        }
         auto* destination = reinterpret_cast<void**>(
             static_cast<char*>(self) + refs.offsets[i]);
         api.gc_wbarrier_set_field(reinterpret_cast<Il2CppObject*>(self),
-                                 destination, next[i]);
+                                 destination, value);
     }
+    release();
     return true;
 }
 
