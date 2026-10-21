@@ -11,6 +11,8 @@ public sealed class BunnyTouchButtonOptions
 {
     public string? Label { get; init; }
     public string? Icon { get; init; }
+    public bool Visible { get; init; } = true;
+    public bool Enabled { get; init; } = true;
 }
 
 /// <summary>Estado imutável de um botão em um GameUpdateCount.</summary>
@@ -40,6 +42,10 @@ public sealed class BunnyTouchButton
     public string FullName { get; }
     public string DisplayName { get; }
     public string Icon { get; }
+    public bool Visible => BunnyTouchButtonLoader.GetPolicies(Id).visible;
+    public bool Enabled => BunnyTouchButtonLoader.GetPolicies(Id).enabled;
+    public void SetVisible(bool visible) => BunnyTouchButtonLoader.SetPolicies(this, visible, Enabled);
+    public void SetEnabled(bool enabled) => BunnyTouchButtonLoader.SetPolicies(this, Visible, enabled);
     public BunnyTouchButtonState State => BunnyTouchButtonLoader.Read(Id);
     public bool Current => State.Current;
     public bool Old => State.Old;
@@ -61,6 +67,8 @@ public static class BunnyTouchButtonLoader
         public BunnyTouchButton Button = null!;
         public BunnyTouchButtonState State;
         public int NativeId = -1;
+        public bool Visible = true;
+        public bool Enabled = true;
     }
 
     private const int MaxButtons = 128;
@@ -98,10 +106,17 @@ public static class BunnyTouchButtonLoader
                 throw new ArgumentException("Caminho de ícone inválido", nameof(options));
 
             var button = new BunnyTouchButton(Entries.Count, modId, name, label, icon);
-            var entry = new Entry { Button = button };
+            var entry = new Entry
+            {
+                Button = button,
+                Visible = options?.Visible ?? true,
+                Enabled = options?.Enabled ?? true
+            };
             if (nativeBound)
             {
                 entry.NativeId = BunnyTouchNativeHost.Register(button);
+                if (entry.NativeId >= 0)
+                    BunnyTouchNativeHost.SetPolicies(entry.NativeId, entry.Visible, entry.Enabled);
                 if (entry.NativeId < 0)
                     throw new InvalidOperationException("Host nativo recusou o novo botão: " + key);
             }
@@ -109,6 +124,32 @@ public static class BunnyTouchButtonLoader
             ByName.Add(key, entry);
             if (!nativeBound) nativeStagePending = true;
             return button;
+        }
+    }
+
+    public static (bool visible, bool enabled) GetPolicies(int id)
+    {
+        lock (Gate)
+        {
+            if (id < 0 || id >= Entries.Count || Entries[id] is not { } entry)
+                return (false, false);
+            return (entry.Visible, entry.Enabled);
+        }
+    }
+
+    public static void SetPolicies(BunnyTouchButton button, bool visible, bool enabled)
+    {
+        ArgumentNullException.ThrowIfNull(button);
+        lock (Gate)
+        {
+            if (button.Id < 0 || button.Id >= Entries.Count ||
+                Entries[button.Id] is not { } entry ||
+                !ReferenceEquals(entry.Button, button))
+                throw new InvalidOperationException("Botão de mod descarregado");
+            entry.Visible = visible;
+            entry.Enabled = enabled;
+            if (entry.NativeId >= 0)
+                BunnyTouchNativeHost.SetPolicies(entry.NativeId, visible, enabled);
         }
     }
 
@@ -163,6 +204,7 @@ public static class BunnyTouchButtonLoader
                             return false;
                         }
                         entry.NativeId = remoteId;
+                        BunnyTouchNativeHost.SetPolicies(remoteId, entry.Visible, entry.Enabled);
                     }
                     nativeStagePending = false;
                 }
@@ -213,7 +255,7 @@ public static class BunnyTouchButtonLoader
                 Entry? entry = Entries[i];
                 if (entry is null) continue;
                 bool old = entry.State.Current;
-                bool now = inGame && (heldMap[i] || tapMap[i]);
+                bool now = inGame && entry.Visible && entry.Enabled && (heldMap[i] || tapMap[i]);
                 bool justPressed = now && !old;
                 bool justReleased = !now && old;
                 entry.State = new BunnyTouchButtonState(
