@@ -28,6 +28,7 @@ on:
       - app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp
       - tests/achievements_csharp/**
       - samples/ExampleModCSharp/Examples/Achievements/**
+      - samples/ExampleModCSharp/Playable/content/Content/Achievements/**
       - .github/workflows/verify-csharp-achievements.yml
   workflow_dispatch:
 
