@@ -9,6 +9,10 @@ on:
       - app/src/main/cpp/experiments/csharp/NativeCloudRegistry.h
       - tests/cloud_loader/**
       - experiments/csharp/BunnyCsSdk/BunnyCloud.cs
+      - experiments/csharp/BunnyCsSdk/BunnyCloudDispatcher.cs
+      - app/src/main/cpp/experiments/csharp/SourceParser.cpp
+      - app/src/main/cpp/experiments/csharp/SourceLoader.cpp
+      - app/src/main/cpp/experiments/csharp/SourceContentIdentity.h
       - experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj
       - .github/workflows/check-csharp-cloudloader-source.yml
   workflow_dispatch:
@@ -30,6 +34,12 @@ jobs:
         run: dotnet run --project tests/cloud_loader/CloudContractTests.csproj -c Release
       - name: Build integrated source-only BunnySourceSdk project
         run: dotnet build experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj -c Release
+      - name: Cloud runtime must fail closed until Android hooks are installed
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'Reason=NativeCloudHooksAndMasksNotInstalled' app/src/main/cpp/experiments/csharp/SourceLoader.cpp
+          grep -q 'base == "BunnyCloud"' app/src/main/cpp/experiments/csharp/SourceParser.cpp
       - name: GCC strict regression (no Android SDK or APK)
         run: bash tests/cloud_loader/run_native.sh
       - name: Clang ASan and UBSan regression
@@ -39,8 +49,12 @@ jobs:
           tmp="$(mktemp -d)"
           trap 'rm -rf "$tmp"' EXIT
           for file in tests/cloud_loader/*_test.cpp; do
-            clang++ -std=c++17 -g -O1 -Wall -Wextra -Werror -pedantic \
+            extras=()
+            if [[ "${file##*/}" == "source_parser_cloud_test.cpp" ]]; then
+              extras+=(app/src/main/cpp/experiments/csharp/SourceParser.cpp)
+            fi
+            clang++ -std=c++20 -g -O1 -Wall -Wextra -Werror -pedantic \
               -fsanitize=address,undefined -fno-omit-frame-pointer \
-              -Iapp/src/main/cpp "$file" -o "$tmp/test"
+              -Iapp/src/main/cpp "$file" "${extras[@]}" -o "$tmp/test"
             "$tmp/test"
           done
