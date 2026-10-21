@@ -374,6 +374,9 @@ bool install(const std::string& modId, const std::vector<Source>& sources,
         const auto& entry = batch.entries()[i];
         g_entries.emplace_back(entry, roots[i]);
         next->emplace(Key{entry.modId, entry.source.name}, entry.type);
+        // Paridade com ModGore.getTypeByName fora da pilha de mods:
+        // o primeiro gore registrado com este nome continua sendo o padrão.
+        next->try_emplace(Key{"", entry.source.name}, entry.type);
     }
     g_highWater = end;
     g_publishedArrays = expanded;
@@ -469,6 +472,12 @@ extern "C" __attribute__((visibility("default")))
 int bunny_csharp_gore_type(const char* modId, const char* name) {
     if (!validText(modId, 128) || !validText(name, 180)) return 0;
     return typeOf(modId, name);
+}
+
+extern "C" __attribute__((visibility("default")))
+int bunny_csharp_gore_type_any(const char* name) {
+    if (!validText(name, 180)) return 0;
+    return typeOf("", name);
 }
 
 extern "C" __attribute__((visibility("default")))
