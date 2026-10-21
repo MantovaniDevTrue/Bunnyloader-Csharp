@@ -30,7 +30,7 @@ uint32_t crc32(const uint8_t* bytes, size_t length) {
     return ~crc;
 }
 bool validKey(const uint8_t* data, size_t length) {
-    if (length < 39 || length > 240) return false;
+    if (length < 38 || length > 160) return false;
     if (data[36] != '/') return false;
     for (size_t i = 0; i < 36; ++i) {
         const char c = static_cast<char>(data[i]);
@@ -41,8 +41,7 @@ bool validKey(const uint8_t* data, size_t length) {
     }
     for (size_t i = 37; i < length; ++i) {
         const char c = static_cast<char>(data[i]);
-        if (!((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') ||
-              (c >= '0' && c <= '9') || c == '.' || c == '_'))
+        if (c == '/' || c == '\\' || c == '\r' || c == '\n' || c == '\0')
             return false;
     }
     return true;

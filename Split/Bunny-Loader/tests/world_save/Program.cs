@@ -1,5 +1,7 @@
 using System;
 using System.IO;
+using System.Collections.Generic;
+using ExampleModCSharp;
 using BunnyLoader.Source;
 
 internal static class Program
@@ -15,6 +17,18 @@ internal static class Program
 
     private static void Main(string[] args)
     {
+        if (args.Length == 2 && args[0] == "--emit-network-fixture")
+        {
+            var progress = new ExampleDownedBossWorldSystem();
+            progress.MarkExampleBossDefeated();
+            var systems = new Dictionary<string, BunnyWorldSystem>
+            {
+                [BunnyWorldDocument.MakeKey(ModA,
+                    typeof(ExampleDownedBossWorldSystem).FullName!)] = progress
+            };
+            File.WriteAllBytes(args[1], BunnyWorldNetworkCodec.Encode(systems, 1));
+            return;
+        }
         if (args.Length == 2 && args[0] == "--emit-fixture")
         {
             // Interoperabilidade real: fixture gerada pelo SDK C#, lida pelo POSIX C++.
