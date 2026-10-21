@@ -220,6 +220,43 @@ bool registerNativeAchievementMod(const std::string& modId,
     return true;
 }
 
+bool updateNativeAchievementProgress(const std::string& modId,
+                                     const std::string& snapshot,
+                                     std::string* error) {
+    if (!error) return false;
+    std::vector<AchievementMetadata> entries;
+    if (!parseAchievementMetadata(snapshot, modId, &entries, error))
+        return false;
+    std::lock_guard<std::mutex> lock(bindingMutex);
+    auto it = bindings.find(modId);
+    if (it == bindings.end() || it->second.metadata.size() != entries.size()) {
+        *error = "Achievement identity set changed after native registration";
+        return false;
+    }
+
+    // Impedir que callbacks modifiquem identidade, categoria ou assets depois
+    // de registrados; só a conclusão/progresso/visibilidade são dinâmicos.
+    for (std::size_t i = 0; i < entries.size(); ++i) {
+        const auto& old = it->second.metadata[i];
+        const auto& entry = entries[i];
+        if (old.name != entry.name || old.title != entry.title ||
+            old.description != entry.description ||
+            old.texture != entry.texture || old.index != entry.index ||
+            old.category != entry.category || (old.completed && !entry.completed) ||
+            entry.progress < old.progress) {
+            *error = "Achievement static metadata changed or progress regressed";
+            return false;
+        }
+    }
+    for (std::size_t i = 0; i < entries.size(); ++i) {
+        auto& old = it->second.metadata[i];
+        old.completed = entries[i].completed;
+        old.hidden = entries[i].hidden;
+        old.progress = entries[i].progress;
+    }
+    return true;
+}
+
 std::vector<AchievementMetadata> nativeAchievementMetadataSnapshot() {
     std::lock_guard<std::mutex> lock(bindingMutex);
     std::vector<AchievementMetadata> all;
