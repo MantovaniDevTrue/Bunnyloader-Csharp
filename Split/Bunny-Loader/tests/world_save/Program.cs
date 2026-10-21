@@ -26,6 +26,11 @@ internal static class Program
             File.WriteAllBytes(args[1], fixture.Encode());
             return;
         }
+        if (args.Length == 2 && args[0] == "--mono-host-tests")
+        {
+            MonoHostTests.Run(args[1]);
+            return;
+        }
         if (args.Length != 0) throw new ArgumentException("Unsupported test argument");
         var document = new BunnyWorldDocument();
         var boss = new BunnyWorldTag();

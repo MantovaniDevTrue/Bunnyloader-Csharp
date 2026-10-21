@@ -5,6 +5,7 @@ on:
       - feature/csharp-worldsave-source-only-20261020
     paths:
       - "Split/Bunny-Loader/experiments/csharp/BunnyCsSdk/BunnyWorldData.cs"
+      - "Split/Bunny-Loader/experiments/csharp/BunnyCsSdk/BunnyWorldMonoHost.cs"
       - "Split/Bunny-Loader/experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj"
       - "Split/Bunny-Loader/tests/world_save/**"
       - ".github/workflows/check-csharp-worldsave-source.yml"
@@ -26,6 +27,10 @@ jobs:
         run: dotnet build Split/Bunny-Loader/experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj -c Release --nologo
       - name: Test deterministic world codec and rejection cases
         run: dotnet run --project Split/Bunny-Loader/tests/world_save/BunnyWorldData.Smoke.csproj -c Release
+      - name: Compile isolated ExampleModBunny world system assembly
+        run: dotnet build Split/Bunny-Loader/tests/world_save/WorldSaveExampleMod.csproj -c Release --nologo
+      - name: Exercise managed MonoVM entrypoint against compiled example mod
+        run: dotnet run --project Split/Bunny-Loader/tests/world_save/BunnyWorldData.Smoke.csproj -c Release -- --mono-host-tests "$PWD/Split/Bunny-Loader/tests/world_save/bin/Release/net8.0/WorldSaveExampleMod.dll"
       - name: Generate BWC1 fixture from real CSharp SDK
         run: dotnet run --project Split/Bunny-Loader/tests/world_save/BunnyWorldData.Smoke.csproj -c Release -- --emit-fixture /tmp/bunny_worldsave_interop.bwc
       - name: Compile native store with strict diagnostics

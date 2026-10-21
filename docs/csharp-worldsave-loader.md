@@ -32,6 +32,12 @@ Estes são métodos executáveis no SDK; **a chamada entre o MonoVM e os hooks r
 
 A CI gera um `BWC1` diretamente com `BunnyWorldDocument.Encode()` em .NET 8 e passa o arquivo para o teste C++ POSIX. Os bytes devem coincidir exatamente com o documento nativo `document(42)`, e o validador C++ precisa aceitar o payload. O fixture temporário não é publicado nem instalado.
 
+## Etapa 5 — fachada para o MonoVM
+
+`BunnyWorldMonoHost` encapsula `RegisterMod`, `Enter`, `Prepare`, `Confirm`, `Leave` e `ResetRegistrations`. O `RegisterMod` usa a mesma descoberta por `Assembly.LoadFrom` do `BunnyEntitySourceDispatcher` já existente. Base64 limita-se às operações raras de mundo, com tamanho máximo fixo e rejeição de payload inválido. A fachada nunca grava arquivo, não oferece path a mods e só confirma snapshot quando o host mandar. Registros tardios e épocas antigas são recusados. Teste adicional compila uma DLL de mod C# independente e a carrega dinamicamente para validar o caminho real de descoberta/execução.
+
+O código pode agora ser invocado pelo worker MonoVM, mas o **dispatcher nativo de pedidos para este worker ainda falta**: nenhuma função IL2CPP ou save real é chamada por esta fachada isolada.
+
 ## Requisitos ainda bloqueantes
 
 1. Host nativo C++ deve capturar a identidade real do arquivo de mundo após a seleção; não confiar em nome de mundo ou caminho informado por um mod.
