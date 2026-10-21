@@ -48,10 +48,10 @@ inline FieldInfo* systemStageField(Il2CppClass* owner, const char* name,
 }
 
 inline bool systemStageMethodStorage(const MethodInfo* method, bool isStatic, const char* name,
-                                     std::string* error) {
+                                     std::string* error,const char* apiName = "BunnyWorldUpdateLoader") {
     auto& a = il2cpp::api();
     if (method && a.method_get_flags && bool(a.method_get_flags(method,nullptr) & 0x10u) == isStatic) return true;
-    *error = "[CSharp][ERROR][NativeBridge] API=BunnyWorldUpdateLoader Method=" + std::string(name) +
+    *error = "[Native][ERROR][NativeBridge] API=" + std::string(apiName) + " Method=" + std::string(name) +
         " Stage=BindSystemMethod Expected=" + (isStatic ? "Static" : "Instance") + " Actual=" +
         (!method ? "Missing" : !a.method_get_flags ? "MissingMetadataExports" :
          (a.method_get_flags(method,nullptr) & 0x10u) ? "Static" : "Instance") +

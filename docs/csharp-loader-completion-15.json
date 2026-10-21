@@ -657,14 +657,21 @@
         "tests/world_update_loader/time_rate_mailbox_test.cpp",
         "tests/world_update_loader/shared_time_rates_test.cpp",
         "tests/world_update_loader/verified_hook_chain_test.cpp",
-        "tools/tests/modsystemhooks/check.mjs"
+        "tools/tests/modsystemhooks/check.mjs",
+        "tests/world_update_loader/quickjs_shared_time_rates_test.cpp"
       ],
       "note": "Conclusao de lote existente; nao contado como dezenove loaders nem como substituicao de um alvo da lista. Compatibilidade JS/C# reforcada com provas originais de opcodes e transacao nativa unica de taxas; Android pendente.",
       "nativeBridge": [
         "app/src/main/cpp/experiments/csharp/UniversalSystemStages.cpp",
         "app/src/main/cpp/content/systems/SystemTimeRates.cpp",
         "app/src/main/cpp/hook/HookManager.cpp"
-      ]
+      ],
+      "automatedValidation": {
+        "commit": "1ce4c19b8288c35dd708915d422ddb8ba1e18860",
+        "runId": 39684504809,
+        "result": "passed",
+        "scope": "65 host regressions, 115 managed checks, ARM64 syntax and complete native link; next bridge extraction and real QuickJS test require their own CI. No APK."
+      }
     },
     {
       "loader": "GoreLoader",

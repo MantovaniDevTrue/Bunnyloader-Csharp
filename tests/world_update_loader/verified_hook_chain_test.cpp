@@ -5,9 +5,11 @@
 #include <iostream>
 #include <map>
 #include <cstdarg>
+#include <cstdio>
+#include <string>
 #include <thread>
 #include <vector>
-namespace { int installs=0;std::map<void*,void*> entries;bool failHook=false; }
+namespace { int installs=0;std::map<void*,void*> entries;bool failHook=false;std::vector<std::string> logs; }
 void* shadowhook_hook_func_addr(void* address,void* replacement,void** original) {
  ++installs;if(failHook)return nullptr;
  entries[address]=replacement;*original=address;
@@ -15,7 +17,7 @@ void* shadowhook_hook_func_addr(void* address,void* replacement,void** original)
 }
 const char* shadowhook_to_errmsg(int){return "fixture failed install";}
 int shadowhook_get_errno(){return 7;}
-namespace bl::log {void write(int,const char*,...) {}}
+namespace bl::log {void write(int,const char* format,...) {char out[2048];va_list args;va_start(args,format);vsnprintf(out,sizeof(out),format,args);va_end(args);logs.emplace_back(out);}}
 int main(){
  // Real production HookManager; fake ShadowHook patches bytes exactly where
  // the second language used to compare patched code with vanilla opcodes.
@@ -58,5 +60,11 @@ int main(){
   assert(i<hooks.size() && ++count<=hooks.size());current=links[i];
  }
  assert(count==hooks.size());
+ bool mismatch=false,missing=false;
+ for(const auto& line:logs){
+  mismatch|=line.find("API=HookManager.installVerified")!=line.npos && line.find("Reason=OriginalProofMismatch")!=line.npos && line.find("Expected=4d020304")!=line.npos && line.find("Actual=01020304")!=line.npos;
+  missing|=line.find("Actual=UnverifiedExistingChain")!=line.npos && line.find("Reason=OriginalProofUnavailable")!=line.npos;
+ }
+ assert(mismatch && missing);
  std::cout<<"PRODUCTION_HOOK_MANAGER_JS_CS_BOTH_ORDERS_ORIGINAL_OPCODE_PROOF_AND_REJECTIONS=PASS\n";
 }

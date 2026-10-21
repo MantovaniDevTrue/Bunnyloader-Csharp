@@ -4,7 +4,8 @@
 #include "il2cpp/Resolver.h"
 #include "il2cpp/Signature.h"
 #include "hook/HookManager.h"
-#include "content/systems/SystemTimeRates.h"
+#include "script/api/SystemTimeRates.h"
+#include "content/systems/SystemContracts.h"
 #include "core/Log.h"
 #include "quickjs.h"
 #include <cmath>
@@ -181,53 +182,23 @@ JSValue installSystemStage(JSContext* context, JSValueConst, int argc, JSValueCo
         auto* main = bl::il2cpp::findClass({"Terraria", "Main", ""});
         const MethodInfo* method = main ? bl::il2cpp::findMethodBySignature(main, bl::il2cpp::parseSignature(selected->signature)) : nullptr;
         const auto* entry = method ? static_cast<const uint8_t*>(bl::il2cpp::methodPointer(method)) : nullptr;
-        if (!entry) {
-            return JS_ThrowInternalError(context, "%s: corpo nativo incompativel", selected->name);
-        }
+        std::string error;
+        if (!bl::runtime::systems::systemStageMethodStorage(method,selected==&stages[8],selected->signature,&error,"JS.ModSystem"))
+            return JS_ThrowInternalError(context,"%s",error.c_str());
+        if (!entry) return JS_ThrowInternalError(context,
+            "[JavaScript][ERROR][SystemStage] Stage=%s Method=%s Result=Rejected Reason=NativeMethodBodyMissing",
+            selected->name,selected->signature);
         if (!bl::hook::installVerified(const_cast<uint8_t*>(entry + selected->offset),selected->expected,sizeof(selected->expected), reinterpret_cast<void*>(selected->bridge), selected->original)) {
-            return JS_ThrowInternalError(context, "%s: hook nativo recusado", selected->name);
+            return JS_ThrowInternalError(context,
+                "[JavaScript][ERROR][SystemStage] Stage=%s Method=%s Offset=%zu Result=Rejected Reason=OriginalProofOrHookRejected Detail=SeePreviousNativeHookDiagnostic",
+                selected->name,selected->signature,selected->offset);
         }
     }
     selected->callback = JS_DupValue(context, argv[1]);
     selected->context = context;
     return JS_UNDEFINED;
 }
-namespace timeRates = bl::runtime::systems;
-JSValue timeRatePrepare(JSContext* ctx,JSValueConst,int,JSValueConst*) {
-    std::string error;
-    return timeRates::prepareTimeRates(&error) ? JS_UNDEFINED : JS_ThrowInternalError(ctx,"%s",error.c_str());
-}
-JSValue timeRateBegin(JSContext* ctx,JSValueConst,int,JSValueConst*) {
-    std::string error;
-    const bool entered=timeRates::beginTimeRates(&error);
-    // Returning false keeps the native original running even on a rejected
-    // transaction. Repeated native failures are bounded in the session log.
-    if(!entered) {
-        static unsigned failures=0;
-        if((++failures & (failures-1))==0) BL_ERROR("%s SuppressedTotal=%u",error.c_str(),failures-1);
-    }
-    return JS_NewBool(ctx,entered);
-}
-JSValue timeRateRead(JSContext* ctx,JSValueConst,int,JSValueConst*) {
-    timeRates::TimeRates rates;std::string error;
-    if(!timeRates::readTimeRates(&rates,&error)) return JS_ThrowInternalError(ctx,"%s",error.c_str());
-    JSValue values=JS_NewArray(ctx);
-    JS_SetPropertyUint32(ctx,values,0,JS_NewFloat64(ctx,rates.time));
-    JS_SetPropertyUint32(ctx,values,1,JS_NewFloat64(ctx,rates.tiles));
-    JS_SetPropertyUint32(ctx,values,2,JS_NewFloat64(ctx,rates.events));
-    return values;
-}
-JSValue timeRatePublish(JSContext* ctx,JSValueConst,int argc,JSValueConst* argv) {
-    timeRates::TimeRates rates;std::string error;
-    if(argc!=3) return JS_ThrowTypeError(ctx,"systemTimeRatePublish(time,tiles,events): Expected=3Numbers Actual=%dArguments",argc);
-    if(JS_ToFloat64(ctx,&rates.time,argv[0]) || JS_ToFloat64(ctx,&rates.tiles,argv[1]) || JS_ToFloat64(ctx,&rates.events,argv[2])) return JS_EXCEPTION;
-    return timeRates::publishTimeRates(rates,&error) ? JS_UNDEFINED : JS_ThrowInternalError(ctx,"%s",error.c_str());
-}
-JSValue timeRateEnd(JSContext* ctx,JSValueConst,int,JSValueConst*) {
-    std::string error;
-    return timeRates::endTimeRates(&error) ? JS_UNDEFINED : JS_ThrowInternalError(ctx,"%s",error.c_str());
-}
-JSValue timeRateClock(JSContext* ctx,JSValueConst,int,JSValueConst*) { return JS_NewFloat64(ctx,timeRates::clockRate()); }
+
 }
 namespace bl::script {
 void installSystemBindings(void* context) {
@@ -235,12 +206,7 @@ void installSystemBindings(void* context) {
     JSValue global = JS_GetGlobalObject(ctx);
     JSValue api = JS_GetPropertyStr(ctx, global, "bl");
     JS_SetPropertyStr(ctx, api, "installSystemStage", JS_NewCFunction(ctx, installSystemStage, "installSystemStage", 2));
-    JS_SetPropertyStr(ctx,api,"systemTimeRatePrepare",JS_NewCFunction(ctx,timeRatePrepare,"systemTimeRatePrepare",0));
-    JS_SetPropertyStr(ctx,api,"systemTimeRateBegin",JS_NewCFunction(ctx,timeRateBegin,"systemTimeRateBegin",0));
-    JS_SetPropertyStr(ctx,api,"systemTimeRateRead",JS_NewCFunction(ctx,timeRateRead,"systemTimeRateRead",0));
-    JS_SetPropertyStr(ctx,api,"systemTimeRatePublish",JS_NewCFunction(ctx,timeRatePublish,"systemTimeRatePublish",3));
-    JS_SetPropertyStr(ctx,api,"systemTimeRateEnd",JS_NewCFunction(ctx,timeRateEnd,"systemTimeRateEnd",0));
-    JS_SetPropertyStr(ctx,api,"systemTimeRateClock",JS_NewCFunction(ctx,timeRateClock,"systemTimeRateClock",0));
+    installSystemTimeRateBindings(context);
     JS_FreeValue(ctx, api);
     JS_FreeValue(ctx, global);
 }

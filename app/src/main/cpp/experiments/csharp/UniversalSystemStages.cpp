@@ -55,7 +55,8 @@ bool validRate(double value) { return validSystemTimeRate(value); }
 void rateFailure(const std::string& error) {
     static unsigned failures=0;
     // Log the first failure and powers of two, never format healthy frames.
-    if((++failures & (failures-1))==0)
+    ++failures;
+    if((failures & (failures-1))==0)
         BL_ERROR("%s SuppressedTotal=%u",error.c_str(),failures-1);
 }
 

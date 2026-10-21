@@ -184,3 +184,29 @@ o check dos 155 tipos públicos também passaram novamente. A aprovação do SHA
 Próximos loaders: estilos de fundos continuam pendentes na lista de quinze;
 Keybind e WorldSave precisam das adaptações descritas acima. Não há APK,
 release, garantia de FPS ou validação Android neste checkpoint.
+
+
+## Prova de interoperabilidade com QuickJS real
+
+[CI 39684504809](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39684504809)
+passou nos quatro jobs do SHA `1ce4c19b`, incluindo ARM64 e linkagem completa.
+O complemento seguinte separa a bridge em `script/api/SystemTimeRates.cpp`;
+o serviço continua em `content/systems/`, sem referências a QuickJS ou Mono.
+
+`run_quickjs.sh` compila o QuickJS do próprio repositório, executa o
+`SystemUpdateHooks.js` real e chama as bindings C++ de produção. O teste
+confirma composição nas duas ordens, frações, relógio, fallback de NaN/infinito
+e fechamento da transação após exceção no original. O lado C# é representado
+pelo protocolo nativo equivalente, pois o trampoline ARM64/MonoVM exige o
+aparelho; a suíte C# continua testando o dispatcher gerenciado separadamente.
+Esse resultado não é apresentado como execução Android.
+
+O build rigoroso também detectou incremento/leitura sem sequenciamento no
+contador de logs. O incremento foi separado antes do cálculo, tanto na bridge
+JS quanto no caminho C#. Os testes verificam o conteúdo real do diagnóstico
+de opcodes rejeitados e passam com ASan/UBSan. A bridge JS valida ainda o
+storage estático/instância do método antes de instalar as âncoras.
+
+Continuam vigentes o bloqueio de APK, as 14 pendências do escopo de quinze e
+as adaptações de Keybind/WorldSave descritas acima. Nenhuma aprovação anterior
+foi reutilizada como aprovação do novo SHA.

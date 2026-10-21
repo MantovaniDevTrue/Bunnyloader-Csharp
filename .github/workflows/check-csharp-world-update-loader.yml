@@ -12,6 +12,7 @@ on:
       - 'app/src/main/cpp/content/systems/**'
       - 'app/src/main/cpp/hook/HookManager*'
       - 'app/src/main/cpp/script/api/SystemHooks.cpp'
+      - 'app/src/main/cpp/script/api/SystemTimeRates*'
       - 'app/src/main/cpp/script/js/mod/Loaders/SystemUpdateHooks.js'
       - 'tools/tests/modsystemhooks/check.mjs'
       - '.github/workflows/check-csharp-world-update-loader.yml'
@@ -41,6 +42,7 @@ jobs:
         run: |
           bash tests/world_update_loader/run_native.sh
           BUNNY_MODSYSTEM_BEHAVIOR_ONLY=1 node tools/tests/modsystemhooks/check.mjs
+          bash tests/world_update_loader/run_quickjs.sh
       - name: Montar trampolim ARM64 em objeto temporario (sem APK)
         run: python3 tests/world_update_loader/check_arm64_assembly.py
       - name: Verificar compilacao do BunnySourceSdk

@@ -157,3 +157,10 @@ ExampleMod, junto de um ModSystem JS com ModifyTimeRate. Inverta a ordem de
 carregamento, confira que o relógio fica mais lento, saia/reentre no mundo e
 repita com apenas ExampleMod C# habilitado. Não use um item vanilla como prova
 de execução do loader; acompanhe os callbacks do ExampleMod no diagnóstico.
+
+
+Há também `run_quickjs.sh`: ele compila o motor do repositório e executa este
+loader JS com as bindings nativas reais, sem mock do serviço. Simula somente
+o elo nativo C# e a metadata do Terraria, para testar as duas ordens e o
+cleanup de exceções. Não confundir esse teste de integração com execução dos
+trampolins ARM64 no celular.
