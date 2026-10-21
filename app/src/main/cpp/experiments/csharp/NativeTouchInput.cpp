@@ -68,6 +68,7 @@ int Registry::add(std::string_view owner, std::string_view name,
     entry.visible = true;
     entry.enabled = true;
     entry.state = 0;
+    entry.pressSequence = 0;
     return id;
 }
 
@@ -118,7 +119,10 @@ int Registry::frame(int64_t tick, bool inGame, bool chat, bool npc, bool sign,
         bool down = inGame && entry.visible && entry.enabled &&
             (heldMask[static_cast<size_t>(i)] || entry.pendingTap);
         uint32_t state = (down ? Current : 0u) | (previous ? Old : 0u);
-        if (down && !previous) state |= JustPressed;
+        if (down && !previous) {
+            state |= JustPressed;
+            if (++entry.pressSequence == 0) entry.pressSequence = 1;
+        }
         if (previous && !down) state |= JustReleased;
         if (down && retro) state |= RetroCurrent;
         if (boundMask[static_cast<size_t>(i)]) state |= IsBound;
@@ -128,6 +132,13 @@ int Registry::frame(int64_t tick, bool inGame, bool chat, bool npc, bool sign,
     }
     lastTick_ = tick;
     return changes;
+}
+
+uint64_t Registry::pressToken(int id) const {
+    std::lock_guard lock(mutex_);
+    if (!active(id)) return 0;
+    return (static_cast<uint64_t>(worldEpoch_) << 32) |
+           entries_[static_cast<size_t>(id)].pressSequence;
 }
 
 uint32_t Registry::read(int id) const {
@@ -177,10 +188,12 @@ int Registry::count() const {
 void Registry::resetWorld() {
     std::lock_guard lock(mutex_);
     lastTick_ = -1;
+    if (++worldEpoch_ == 0) worldEpoch_ = 1;
     for (int i = 0; i < nextId_; ++i) {
         Registration& e = entries_[static_cast<size_t>(i)];
         e.pendingTap = false;
         e.state = 0;
+        e.pressSequence = 0;
     }
 }
 
@@ -231,6 +244,9 @@ extern "C" __attribute__((visibility("default"))) int bunny_csharp_touch_frame(
 }
 extern "C" __attribute__((visibility("default"))) uint32_t bunny_csharp_touch_read(int id) {
     return bl::csharp::touch::registry().read(id);
+}
+extern "C" __attribute__((visibility("default"))) uint64_t bunny_csharp_touch_press_token(int id) {
+    return bl::csharp::touch::registry().pressToken(id);
 }
 extern "C" __attribute__((visibility("default"))) int bunny_csharp_touch_host_ready() {
     return bl::csharp::touch::hostReady() ? 1 : 0;
