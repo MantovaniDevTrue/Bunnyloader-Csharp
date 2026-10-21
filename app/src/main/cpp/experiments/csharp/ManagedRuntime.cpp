@@ -1475,7 +1475,7 @@ bool processManagedAchievementRpc(std::unique_lock<std::mutex>& lock) {
     lock.unlock();
     std::string output = executeAchievementOnWorker(job);
     if (job.operation >= 1 && job.operation <= 4 &&
-        output.starts_with("BACH_META_V1\n")) {
+        output.starts_with("BACH_META_V2\n")) {
         std::string error;
         const auto publish = g_achievementPublisher.load(std::memory_order_acquire);
         if (publish && publish(job.mod, output, &error))
