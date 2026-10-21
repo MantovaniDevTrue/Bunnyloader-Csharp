@@ -11,7 +11,8 @@
 namespace bl::csharp::touch {
 namespace {
 struct Icon {
-    uint32_t root = 0;
+    uint32_t assetRoot = 0;
+    uint32_t textureRoot = 0;
     std::string owner;
     std::string path;
     int width = 0;
@@ -23,11 +24,12 @@ uint64_t polls = 0;
 
 void discard(Icon& icon) {
     auto& api = il2cpp::api();
-    if (icon.root) {
-        Il2CppObject* asset = api.gchandle_get_target(icon.root);
+    if (icon.assetRoot) {
+        Il2CppObject* asset = api.gchandle_get_target(icon.assetRoot);
         if (asset) runtime::content::destroyTextureAsset(asset);
-        api.gchandle_free(icon.root);
     }
+    if (icon.textureRoot) api.gchandle_free(icon.textureRoot);
+    if (icon.assetRoot) api.gchandle_free(icon.assetRoot);
     icon = {};
 }
 
@@ -66,12 +68,19 @@ bool load(Icon& icon, const std::string& owner, const std::string& name) {
         runtime::content::destroyTextureAsset(asset);
         return false;
     }
-    uint32_t handle = api.gchandle_new(asset, false);
-    if (!handle) {
+    uint32_t assetRoot = api.gchandle_new(asset, false);
+    if (!assetRoot) {
         runtime::content::destroyTextureAsset(asset);
         return false;
     }
-    icon = {handle, owner, name, w, h, 0};
+    Il2CppObject* texture = runtime::content::textureAssetValue(asset);
+    const uint32_t textureRoot = texture ? api.gchandle_new(texture, false) : 0;
+    if (!textureRoot) {
+        runtime::content::destroyTextureAsset(asset);
+        api.gchandle_free(assetRoot);
+        return false;
+    }
+    icon = {assetRoot, textureRoot, owner, name, w, h, 0};
     return true;
 }
 }
@@ -83,9 +92,8 @@ Il2CppObject* nativeTouchIcon(int id, int* width, int* height) {
     auto& api = il2cpp::api();
     if (!api.gchandle_get_target) return nullptr;
     const Icon& icon = icons[static_cast<size_t>(id)];
-    if (!icon.root) return nullptr;
-    Il2CppObject* asset = api.gchandle_get_target(icon.root);
-    Il2CppObject* texture = asset ? runtime::content::textureAssetValue(asset) : nullptr;
+    if (!icon.textureRoot) return nullptr;
+    Il2CppObject* texture = api.gchandle_get_target(icon.textureRoot);
     if (texture) {
         if (width) *width = icon.width;
         if (height) *height = icon.height;
@@ -95,7 +103,11 @@ Il2CppObject* nativeTouchIcon(int id, int* width, int* height) {
 
 void pumpNativeTouchIconsOnGameThread() {
     ++polls;
-    if (polls != 1 && polls % 10 != 0) return;
+    static uint64_t observedVersion = 0;
+    const uint64_t version = registry().registrationVersion();
+    if (version == observedVersion && polls != 1 && polls % 10 != 0)
+        return;
+    observedVersion = version;
     static bool cachedAny = false;
     if (!cachedAny && registry().count() == 0) return;
     auto& api = il2cpp::api();
@@ -110,11 +122,11 @@ void pumpNativeTouchIconsOnGameThread() {
         Icon& icon = icons[static_cast<size_t>(i)];
         const std::string& owner = sources[static_cast<size_t>(i)].owner;
         const std::string& name = sources[static_cast<size_t>(i)].path;
-        if (icon.root && (icon.owner != owner || icon.path != name))
+        if (icon.assetRoot && (icon.owner != owner || icon.path != name))
             discard(icon);
-        if (!owner.empty() && !name.empty() && !icon.root && loaded < 4)
+        if (!owner.empty() && !name.empty() && !icon.assetRoot && loaded < 4)
             if (load(icon, owner, name)) ++loaded;
-        if (icon.root) cachedAny = true;
+        if (icon.assetRoot) cachedAny = true;
     }
 }
 
