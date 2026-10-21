@@ -52,7 +52,7 @@ std::atomic<double> clockRate{1.0};
 std::atomic<double> timeSnapshot{1.0}, tileSnapshot{1.0};
 std::atomic<double> proposedTime{1.0}, proposedTiles{1.0}, proposedEvents{1.0};
 std::atomic<int64_t> timeSession{0};
-std::atomic<bool> timeLive{false}, timeModified{false};
+std::atomic<bool> timeLive{false}, timeModified{false}, resetTimeFractions{false};
 double tileRemainder = 0, eventRemainder = 0;
 
 bool validRate(double value) {
@@ -145,6 +145,10 @@ extern "C" __attribute__((visibility("hidden"))) void blCSharpSystemStageDispatc
 
 void hkUpdateTimeRate(const MethodInfo* info) {
     originalTimeRate(info);
+    if (resetTimeFractions.exchange(false, std::memory_order_acq_rel)) {
+        tileRemainder = 0;
+        eventRemainder = 0;
+    }
     if (!dayRateField.field || !tileRateField.field) return;
     const double time = readRate(dayRateField);
     const double tiles = readRate(tileRateField);
@@ -404,7 +408,11 @@ void removeUniversalSystemStage(int handle) {
     if (index >= 0 && index < kCount) {
         stages[index].active.store(false, std::memory_order_release);
         stages[index].slot.store(-1, std::memory_order_release);
-        if (index == 10) { stages[11].active.store(false, std::memory_order_release); timeLive.store(false, std::memory_order_release); }
+        if (index == 10) {
+            stages[11].active.store(false, std::memory_order_release);
+            timeLive.store(false, std::memory_order_release);
+            resetTimeFractions.store(true, std::memory_order_release);
+        }
     }
 #else
     (void)handle;
@@ -450,6 +458,8 @@ void disableAllUniversalSystemStages() {
         stage.active.store(false, std::memory_order_release);
         stage.slot.store(-1, std::memory_order_release);
     }
+    timeLive.store(false, std::memory_order_release);
+    resetTimeFractions.store(true, std::memory_order_release);
 #endif
 }
 }
