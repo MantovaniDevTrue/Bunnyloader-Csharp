@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include <cstdint>
 #include <vector>
 #include "experiments/csharp/ManagedAchievementMetadata.h"
 
@@ -12,6 +13,7 @@ bool registerNativeAchievementMod(const std::string& modId,
                                   const std::string& metadata,
                                   std::string* error);
 std::vector<AchievementMetadata> nativeAchievementMetadataSnapshot();
+std::uint64_t nativeAchievementMetadataRevision();
 // Chamado no worker após um evento; atualiza apenas estado mutável da UI.
 bool updateNativeAchievementProgress(const std::string& modId,
                                      const std::string& snapshot,
