@@ -95,7 +95,6 @@ class TooltipLoader {
             const rgb = colors[Math.min(index, 5)];
             return Color.new(rgb[0], rgb[1], rgb[2], alpha);
         };
-        const draw = batch[TooltipLoader.#DRAW_STRING];
         for (let i = 0; i < text.length; i++) {
             const ch = text[i];
             if (ch === ' ') continue;
@@ -106,7 +105,7 @@ class TooltipLoader {
             for (let pass = 0; pass < 5; pass++) {
                 const px = x + (pass === 0 ? -spread : pass === 1 ? spread : 0);
                 const py = y + (pass === 2 ? -spread : pass === 3 ? spread : 0);
-                draw(font, ch, Vector2.new(px, py), pass === 4 ? shade : darkness,
+                batch[TooltipLoader.#DRAW_STRING](font, ch, Vector2.new(px, py), pass === 4 ? shade : darkness,
                     line.Rotation, line.Origin, scale, 0, 0);
             }
         }
