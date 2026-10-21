@@ -2419,6 +2419,20 @@ bool takeManagedCloudOnSpawnReply(ManagedCloudSpawnReply* reply) {
     return true;
 }
 
+// A world change cancels only in-flight cloud calculations. Keep the
+// registered C# assemblies and class/ID bindings: a world reload should not
+// require recompiling DLLs or losing already-registered BunnyCloud types.
+void resetManagedCloudWorldSession() {
+    std::lock_guard<std::mutex> lock(g_pinnedMutex);
+    ++g_cloudSession;
+    if (g_cloudSession == 0) ++g_cloudSession;
+    g_cloudQueue.clear();
+    g_cloudWeightsPending.clear();
+    g_cloudWeightReplies.clear();
+    g_cloudSpawnReplies.clear();
+    g_pinnedWake.notify_one();
+}
+
 void pauseManagedCloudCallbacks() {
     std::lock_guard<std::mutex> lock(g_pinnedMutex);
     ++g_cloudSession;
