@@ -4,6 +4,7 @@
 #include "experiments/csharp/NativeTouchController.h"
 #include "experiments/csharp/NativeTouchInput.h"
 #include "hook/HookManager.h"
+#include "core/Log.h"
 #include "il2cpp/Api.h"
 #include "il2cpp/GuardedCall.h"
 #include "il2cpp/Resolver.h"
@@ -57,8 +58,11 @@ void restore(Edits* undo) {
 }
 std::string identity(int32_t raw, const std::string& previous, int unbound) {
     const int id = nativeTouchIndexByAction(raw);
-    if (id >= 0) return registry().fullName(id);
-    if (raw == unbound && !previous.empty() &&
+    if (id >= 0) {
+        const std::string live = registry().fullName(id);
+        if (!live.empty()) return live;
+    }
+    if ((raw == unbound || id >= 0) && !previous.empty() &&
         registry().find(previous) < 0) return previous;
     return {};
 }
@@ -156,21 +160,27 @@ void onSave(Il2CppObject* styles, Il2CppObject* prefs, const MethodInfo* method)
     }
     std::vector<NativeLayoutBinding> bindings;
     if (!collect(styles, &bindings)) {
-        original(styles, prefs, method);
+        BL_WARN("[CSharp][Touch] SaveConfiguration blocked: layout enumeration failed");
         return;
     }
     const std::string directory = nativeTouchSaveDirectory();
     SavedProfiles profiles;
-    // Arquivo corrompido não deve ser substituído por um novo arquivo vazio.
-    if (!directory.empty() && loadTouchLayoutFile(directory, &profiles)) {
-        capture(bindings, &profiles);
-        saveTouchLayoutFile(directory, profiles);
+    if (directory.empty() || !loadTouchLayoutFile(directory, &profiles)) {
+        BL_WARN("[CSharp][Touch] SaveConfiguration blocked: sidecar unavailable");
+        return;
+    }
+    capture(bindings, &profiles);
+    if (!saveTouchLayoutFile(directory, profiles)) {
+        BL_WARN("[CSharp][Touch] SaveConfiguration blocked: sidecar write failed");
+        return;
     }
     Edits undo;
     strip(bindings, &undo);
     auto call = [&] { original(styles, prefs, method); };
-    il2cpp::guarded(call);
+    const bool saved = il2cpp::guarded(call);
     restore(&undo);
+    if (!saved)
+        BL_WARN("[CSharp][Touch] SaveConfiguration raised an IL2CPP exception");
 }
 void onLoad(Il2CppObject* styles, Il2CppObject* prefs, const MethodInfo* method) {
     SaveFn original = __atomic_load_n(&originalLoad, __ATOMIC_ACQUIRE);
@@ -193,14 +203,20 @@ Il2CppString* onShare(Il2CppObject* profile, const MethodInfo* method) {
     if (!installed.load(std::memory_order_acquire))
         return original(profile, method);
     std::vector<NativeLayoutBinding> bindings;
-    if (!enumerateNativeTouchShareProfile(profile, &bindings))
-        return original(profile, method);
+    if (!enumerateNativeTouchShareProfile(profile, &bindings)) {
+        BL_WARN("[CSharp][Touch] GetShareCode blocked: profile enumeration failed");
+        return nullptr;
+    }
     Edits undo;
     strip(bindings, &undo);
     Il2CppString* code = nullptr;
     auto call = [&] { code = original(profile, method); };
-    il2cpp::guarded(call);
+    const bool shared = il2cpp::guarded(call);
     restore(&undo);
+    if (!shared) {
+        BL_WARN("[CSharp][Touch] GetShareCode raised an IL2CPP exception");
+        return nullptr;
+    }
     return code;
 }
 }
