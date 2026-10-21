@@ -125,7 +125,20 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/native-headers/android"
+          cat > "$RUNNER_TEMP/native-headers/android/log.h" <<'ANDROID_STUB'
+          #pragma once
+          #define ANDROID_LOG_VERBOSE 2
+          #define ANDROID_LOG_DEBUG 3
+          #define ANDROID_LOG_INFO 4
+          #define ANDROID_LOG_WARN 5
+          #define ANDROID_LOG_ERROR 6
+          #define ANDROID_LOG_FATAL 7
+          extern "C" int __android_log_print(int, const char*, const char*, ...);
+          extern "C" int __android_log_write(int, const char*, const char*);
+          ANDROID_STUB
           g++ -std=c++20 -Wall -Wextra -Werror -pedantic -fsyntax-only \
+            -I"$RUNNER_TEMP/native-headers" \
             -Iapp/src/main/cpp \
             app/src/main/cpp/experiments/csharp/NativeTouchGameAbi.cpp \
             app/src/main/cpp/experiments/csharp/NativeTouchController.cpp \
