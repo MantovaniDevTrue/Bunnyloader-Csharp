@@ -222,9 +222,11 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
-      - uses: android-actions/setup-android@v3
       - name: Install Android NDK without packaging an APK
-        run: sdkmanager --install "ndk;30.0.16248370"
+        run: |
+          SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | sort -V | tail -n 1)"
+          test -x "$SDKMANAGER"
+          "$SDKMANAGER" --install "ndk;30.0.16248370"
       - name: Compile native WorldSave and WorldNet objects for arm64-v8a
         run: |
           set -euo pipefail
