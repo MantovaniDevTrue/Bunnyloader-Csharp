@@ -286,6 +286,10 @@ Check("runtime.original-example-colors-prefixes-and-full-bind", () =>
         BunnyRarityRuntime.Dispatch("examplemodcsharp", assembly, "ExampleModRarity", 0, 0, "200,125,150"));
     Equal("COLOR|100|100|100|255",
         BunnyRarityRuntime.Dispatch("examplemodcsharp", assembly, "ExampleHigherTierModRarity", 0, 0, "200,125,150"));
+    Equal("COLOR|40|160|20|255",
+        BunnyRarityRuntime.Dispatch("examplemodcsharp", assembly, "ExampleHigherTierModRarity", 0, 0, "80,200,30"));
+    Equal("COLOR|100|100|100|255",
+        BunnyRarityRuntime.Dispatch("examplemodcsharp", assembly, "ExampleHigherTierModRarity", 0, 0, "200,125,150"));
     Equal("RARITY|15",
         BunnyRarityRuntime.Dispatch("examplemodcsharp", assembly, "ExampleModRarity", 0, 1, "1.2,11"));
     Equal("RARITY|14",
