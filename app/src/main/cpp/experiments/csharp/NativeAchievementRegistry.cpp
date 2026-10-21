@@ -269,12 +269,28 @@ Il2CppObject* textObject(const std::string& key, const std::string& value,
     return result;
 }
 
+bool setConditionValue(const NativeCondition& condition, double value,
+                       std::string* error) {
+    auto& a = il2cpp::api();
+    Il2CppObject* target = a.gchandle_get_target(condition.root);
+    if (!target) { *error = "Native achievement condition GC root lost"; return false; }
+    if (condition.kind == 2) {
+        float native = static_cast<float>(value);
+        void* args[]{&native};
+        return invoke(methods.setFloatProgress, target, args, nullptr, error);
+    }
+    int native = static_cast<int>(value);
+    void* args[]{&native};
+    return invoke(methods.setProgress, target, args, nullptr, error);
+}
+
 bool apply(NativeEntry& entry, const AchievementMetadata& definition,
            std::string* error) {
     auto& a = il2cpp::api();
-    Il2CppObject* condition = a.gchandle_get_target(entry.conditionRoot);
-    if (!condition) { *error = "Native condition GC root lost"; return false; }
-    const int progress = nativeAchievementProgress(definition.progress, definition.completed);
+    if (entry.conditions.size() != definition.conditions.size()) {
+        *error = "Native achievement condition count mismatch";
+        return false;
+    }
     const bool hidden = definition.hidden && !definition.completed;
     if (entry.hiddenApplied != hidden) {
         auto* achievement = a.gchandle_get_target(entry.achievementRoot);
@@ -286,12 +302,19 @@ bool apply(NativeEntry& entry, const AchievementMetadata& definition,
             return false;
         entry.hiddenApplied = hidden;
     }
-    if (entry.applied == progress) return true;
-    int value = progress;
-    void* args[]{&value};
-    if (!invoke(methods.setProgress, condition, args, nullptr, error)) return false;
-    entry.applied = progress;
-    ++revisions;
+    for (std::size_t i = 0; i < entry.conditions.size(); ++i) {
+        auto& native = entry.conditions[i];
+        const auto& wanted = definition.conditions[i];
+        if (native.key != wanted.key || native.kind != wanted.kind ||
+            native.maximum != wanted.maximum) {
+            *error = "Native achievement condition identity changed";
+            return false;
+        }
+        if (native.applied == wanted.value) continue;
+        if (!setConditionValue(native, wanted.value, error)) return false;
+        native.applied = wanted.value;
+        ++revisions;
+    }
     return true;
 }
 
