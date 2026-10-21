@@ -26,12 +26,15 @@ namespace {
 struct NativeMethods {
     Il2CppClass* achievement = nullptr;
     Il2CppClass* condition = nullptr;
+    Il2CppClass* flagCondition = nullptr;
     Il2CppClass* floatCondition = nullptr;
     Il2CppClass* localizedText = nullptr;
     Il2CppObject* manager = nullptr;
     const MethodInfo* achievementCtor = nullptr;
     const MethodInfo* localizedCtor = nullptr;
     const MethodInfo* conditionFactory = nullptr;
+    const MethodInfo* flagFactory = nullptr;
+    const MethodInfo* completeFlag = nullptr;
     const MethodInfo* floatFactory = nullptr;
     const MethodInfo* addCondition = nullptr;
     const MethodInfo* trackCondition = nullptr;
@@ -150,12 +153,14 @@ bool preflight(std::string* error) {
     methods.achievement = il2cpp::findClass({"Terraria.Achievements", "Achievement", {}});
     methods.condition = il2cpp::findClass({
         "Terraria.GameContent.Achievements", "CustomIntCondition", {}});
+    methods.flagCondition = il2cpp::findClass({
+        "Terraria.GameContent.Achievements", "CustomFlagCondition", {}});
     methods.floatCondition = il2cpp::findClass({
         "Terraria.GameContent.Achievements", "CustomFloatCondition", {}});
     methods.localizedText = il2cpp::findClass({
         "Terraria.Localization", "LocalizedText", {}});
     if (!mainClass || !methods.achievement || !methods.condition ||
-        !methods.floatCondition || !methods.localizedText) {
+        !methods.flagCondition || !methods.floatCondition || !methods.localizedText) {
         *error = "Native achievement classes unavailable";
         return false;
     }
@@ -185,6 +190,7 @@ bool preflight(std::string* error) {
     NativeMethods resolved{};
     resolved.achievement = methods.achievement;
     resolved.condition = methods.condition;
+    resolved.flagCondition = methods.flagCondition;
     resolved.floatCondition = methods.floatCondition;
     resolved.localizedText = methods.localizedText;
     resolved.manager = manager;
@@ -194,6 +200,11 @@ bool preflight(std::string* error) {
         "void .ctor(string key, string text)", true, error);
     resolved.conditionFactory = require(resolved.condition,
         "AchievementCondition Create(string name, int maxValue)", false, error);
+    resolved.flagFactory = require(resolved.flagCondition,
+        "AchievementCondition Create(string name)", false, error);
+    auto* baseCondition = il2cpp::findClass({
+        "Terraria.Achievements", "AchievementCondition", {}});
+    resolved.completeFlag = require(baseCondition, "void Complete()", true, error);
     resolved.floatFactory = require(resolved.floatCondition,
         "AchievementCondition Create(string name, float maxValue)", false, error);
     resolved.addCondition = require(resolved.achievement,
@@ -215,6 +226,7 @@ bool preflight(std::string* error) {
         "void set_Value(float value)", true, error);
     if (!resolved.achievementCtor || !resolved.localizedCtor ||
         !resolved.conditionFactory || !resolved.floatFactory ||
+        !resolved.flagFactory || !resolved.completeFlag ||
         !resolved.addCondition || !resolved.trackCondition ||
         !resolved.trackMultiple || !resolved.registerAchievement ||
         !resolved.registerIcon || !resolved.registerCategory ||
@@ -274,6 +286,16 @@ bool setConditionValue(const NativeCondition& condition, double value,
     auto& a = il2cpp::api();
     Il2CppObject* target = a.gchandle_get_target(condition.root);
     if (!target) { *error = "Native achievement condition GC root lost"; return false; }
+    if (condition.kind == 0) {
+        if (value < 1) {
+            if (condition.applied > 0) {
+                *error = "Native flag cannot be revoked within the same profile";
+                return false;
+            }
+            return true;
+        }
+        return invoke(methods.completeFlag, target, nullptr, nullptr, error);
+    }
     if (condition.kind == 2) {
         float native = static_cast<float>(value);
         void* args[]{&native};
@@ -370,7 +392,9 @@ bool make(const AchievementMetadata& definition, NativeEntry* out,
 
     for (const auto& definitionCondition : definition.conditions) {
         const bool isFloat = definitionCondition.kind == 2;
-        const auto* factory = isFloat ? methods.floatFactory : methods.conditionFactory;
+        const bool isFlag = definitionCondition.kind == 0;
+        const auto* factory = isFlag ? methods.flagFactory :
+                              isFloat ? methods.floatFactory : methods.conditionFactory;
         auto* key = a.string_new(definitionCondition.key.c_str());
         if (!key) {
             *error = "Native condition name allocation failed";
