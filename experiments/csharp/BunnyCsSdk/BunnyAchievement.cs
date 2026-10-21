@@ -96,6 +96,7 @@ public abstract class BunnyAchievement
     private bool registered;
     private bool completed;
     internal Action? ProgressChanged;
+    internal Action? CompletionChanged;
 
     public string Name { get; internal set; } = "";
     public string FriendlyName { get; protected set; } = "";
@@ -205,7 +206,11 @@ public abstract class BunnyAchievement
         if (completed || conditions.Count == 0 || conditions.Any(c => !c.IsCompleted))
             return;
         completed = true;
-        if (notify && registered) OnCompleted();
+        if (notify && registered)
+        {
+            CompletionChanged?.Invoke();
+            OnCompleted();
+        }
     }
 
     internal void Restore(Dictionary<string, double> progress)
@@ -235,6 +240,7 @@ public sealed class BunnyAchievementRegistry
     public IReadOnlyCollection<BunnyAchievement> Achievements => registered.Values;
     public long Notifications { get; private set; }
     public long ProgressChanges { get; private set; }
+    public long CompletionChanges { get; private set; }
     public long CallbackFaults { get; private set; }
     public string LastError { get; private set; } = "";
 
@@ -247,6 +253,7 @@ public sealed class BunnyAchievementRegistry
             throw new InvalidOperationException("Conquista duplicada ou limite de 256 atingido: " + key);
         achievement.Initialize(key);
         achievement.ProgressChanged = () => ProgressChanges++;
+        achievement.CompletionChanged = () => CompletionChanges++;
         if (stored.TryGetValue(key, out var progress))
             achievement.Restore(progress);
         registered.Add(key, achievement);
@@ -368,6 +375,7 @@ public sealed class BunnyAchievementRegistry
         stored.Clear();
         Notifications = 0;
         ProgressChanges = 0;
+        CompletionChanges = 0;
         CallbackFaults = 0;
         LastError = "";
     }
