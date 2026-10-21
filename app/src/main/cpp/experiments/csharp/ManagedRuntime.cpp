@@ -3,7 +3,7 @@
 #include "experiments/csharp/UniversalHooks.h"
 #include "experiments/csharp/ManagedRuntime.h"
 #include "experiments/csharp/ManagedAchievementTransport.h"
-#include "experiments/csharp/NativeAchievementHooks.h"
+
 #include "graphics/ScreenScene.h"
 #include "experiments/csharp/ManagedVisualMonoPump.h"
 #include "experiments/csharp/ManagedVisualState.h"
@@ -296,6 +296,7 @@ void* g_recipeDispatchMethod=nullptr;
 std::atomic<bool> g_recipeRuntimeReady{false};
 ManagedAchievementQueue g_achievementRpcQueue;
 std::condition_variable g_achievementRpcWake;
+std::atomic<AchievementMetadataPublisher> g_achievementPublisher{nullptr};
 void* g_achievementDispatchMethod = nullptr;
 
 
@@ -1476,10 +1477,12 @@ bool processManagedAchievementRpc(std::unique_lock<std::mutex>& lock) {
     if (job.operation >= 1 && job.operation <= 4 &&
         output.starts_with("BACH_META_V1\n")) {
         std::string error;
-        if (updateNativeAchievementProgress(job.mod, output, &error))
+        const auto publish = g_achievementPublisher.load(std::memory_order_acquire);
+        if (publish && publish(job.mod, output, &error))
             output = "OK|AchievementMetadataPublished";
         else
-            output = "ERROR|AchievementMetadataUpdateRejected " + error;
+            output = "ERROR|AchievementMetadataUpdateRejected " +
+                     (publish ? error : "NativePublisherNotBound");
     }
     lock.lock();
     if (job.reply) {
@@ -2397,6 +2400,11 @@ ManagedHurtSchedulerStatus managedHurtSchedulerStatus() {
     auto status = g_hurtScheduler;
     status.pending = static_cast<int>(g_managedHurtQueue.size());
     return status;
+}
+
+void setManagedAchievementMetadataPublisher(
+    AchievementMetadataPublisher callback) {
+    g_achievementPublisher.store(callback, std::memory_order_release);
 }
 
 bool queueManagedAchievementFlush(const std::string& modId,
