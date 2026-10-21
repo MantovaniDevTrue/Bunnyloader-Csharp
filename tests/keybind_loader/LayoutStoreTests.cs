@@ -108,7 +108,7 @@ internal static class LayoutStoreTests
             doc.Save(directory);
             doc = BunnyTouchLayoutStore.Load(directory);
             Check(doc.HasProfile("alternate"), "atomic save and reload");
-            File.WriteAllText(Path.Combine(directory, "BunnyLoader.touchbuttons.json"),
+            File.WriteAllText(Path.Combine(directory, "BunnyLoader.touchbuttons.csharp.json"),
                               "{\"version\":2,\"profiles\":{}}");
             bool corrupted = false;
             try { BunnyTouchLayoutStore.Load(directory); }
