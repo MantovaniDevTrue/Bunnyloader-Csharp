@@ -121,6 +121,18 @@ std::string Registry::fullName(int id) const {
     const auto& e = entries_[static_cast<size_t>(id)];
     return e.owner + "/" + e.name;
 }
+int Registry::find(std::string_view fullName) const {
+    std::lock_guard lock(mutex_);
+    for (int i = 0; i < nextId_; ++i) {
+        const auto& e = entries_[static_cast<size_t>(i)];
+        if (!e.active) continue;
+        const size_t slash = fullName.find('/');
+        if (slash == std::string_view::npos) return -1;
+        if (fullName.substr(0, slash) == e.owner &&
+            fullName.substr(slash + 1) == e.name) return i;
+    }
+    return -1;
+}
 std::string Registry::displayName(int id) const {
     std::lock_guard lock(mutex_);
     return active(id) ? entries_[static_cast<size_t>(id)].label : std::string{};
