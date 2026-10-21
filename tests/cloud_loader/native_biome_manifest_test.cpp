@@ -25,7 +25,7 @@ int main() {
 
     auto rejectManifest = [&](std::string wire) {
         auto before = registry;
-        assert(!appendNativeBiomeManifest("alpha", wire, &registry, &error));
+        assert(!appendNativeBiomeManifest(alpha, wire, &registry, &error));
         assert(registry.size() == before.size() && !error.empty());
         for (size_t i = 0; i < registry.size(); ++i)
             assert(registry[i].className == before[i].className);
