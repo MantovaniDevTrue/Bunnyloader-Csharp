@@ -68,6 +68,16 @@ duplicate.Load(save);
 var duoRestored = duplicate.Register("multi", new TwoConditions());
 Check(duoRestored.IsCompleted && duoRestored.CompletedCalls == 0, "restore does not display unlock twice");
 
+var typed = new BunnyAchievementRegistry();
+var typedEntry = typed.Register("conditions", new TwoConditions());
+Check(typedEntry.Conditions.Count == 2 &&
+    typedEntry.Conditions[0].Kind == BunnyAchievementConditionKind.ItemPickup &&
+    typedEntry.Conditions[1].Kind == BunnyAchievementConditionKind.ItemCraft,
+    "individual event condition kinds preserved");
+var floatEntry = typed.Register("conditions", new FloatCondition());
+Check(floatEntry.Conditions[0].Kind == BunnyAchievementConditionKind.Float &&
+    floatEntry.Conditions[0].Maximum == 4.5,
+    "float condition native maximum and kind retained");
 var negatives = new BunnyAchievementRegistry();
 var negativeNpc = negatives.Register("variants", new NegativeNpcAchievement());
 negatives.NotifyNPCKilled(-4);
@@ -113,12 +123,12 @@ string fixturePath = typeof(ExampleBossKilled).Assembly.Location;
 string Bind(string uid, int operation, int type = 0, int count = 1, string payload = "")
     => BunnyAchievementRuntime.Dispatch(uid, fixturePath, operation, type, count, payload);
 string loaded = Bind("transport", 0);
-Check(loaded.StartsWith("BACH_META_V1\n", StringComparison.Ordinal) &&
-    loaded.Split('\n').Length == 4, "Mono dispatcher discovers both classes from fixture DLL");
+Check(loaded.StartsWith("BACH_META_V2\n", StringComparison.Ordinal) &&
+    loaded.Split('\n').Length == 6, "Mono dispatcher discovers both classes from fixture DLL");
 Check(Bind("transport", 0) == loaded, "repeated bind does not recreate achievements");
 Check(Bind("transport", 1, 10, 1, "0") == "OK|0", "remote NPC event routed without credit");
-Check(Bind("transport", 1, 10, 1, "1").StartsWith("BACH_META_V1\n"), "local NPC progress publishes native metadata");
-Check(Bind("transport", 1, 1234, 1, "1").StartsWith("BACH_META_V1\n"), "local boss completion publishes native metadata");
+Check(Bind("transport", 1, 10, 1, "1").StartsWith("BACH_META_V2\n"), "local NPC progress publishes native metadata");
+Check(Bind("transport", 1, 1234, 1, "1").StartsWith("BACH_META_V2\n"), "local boss completion publishes native metadata");
 string metadata = Bind("transport", 8);
 Check(metadata.Contains("|0|0|1|") && metadata.Contains("|1|0|0|"),
     "native-ready metadata includes category hidden completion and progress");
@@ -132,7 +142,7 @@ Check(Bind("transport", 1, -32769, 1, "1").StartsWith("ERROR|"),
     "invalid native event rejected");
 Check(Bind("transport", 7) == transportSave, "unload returns the last saved snapshot");
 Check(Bind("transport", 8).StartsWith("ERROR|"), "unloaded mod cannot receive callbacks");
-Check(Bind("transport", 0).StartsWith("BACH_META_V1\n"), "mod can bind after unload");
+Check(Bind("transport", 0).StartsWith("BACH_META_V2\n"), "mod can bind after unload");
 Check(Bind("transport", 7).StartsWith("BACH1\n"), "second unload succeeds");
 
 string saveRoot = Path.Combine(Path.GetTempPath(),
@@ -140,22 +150,22 @@ string saveRoot = Path.Combine(Path.GetTempPath(),
 Directory.CreateDirectory(saveRoot);
 try
 {
-    Check(Bind("diskcase", 0).StartsWith("BACH_META_V1\n"), "disk storage fixture bound");
+    Check(Bind("diskcase", 0).StartsWith("BACH_META_V2\n"), "disk storage fixture bound");
     Check(Bind("diskcase", 9, payload: saveRoot) == "READY", "configure native data directory");
     Check(!File.Exists(Path.Combine(saveRoot, "diskcase.bach")),
         "configuration does not create unnecessary save");
-    Check(Bind("diskcase", 1, 10, 1, "1").StartsWith("BACH_META_V1\n"), "partial progress publishes metadata");
+    Check(Bind("diskcase", 1, 10, 1, "1").StartsWith("BACH_META_V2\n"), "partial progress publishes metadata");
     Check(Bind("diskcase", 10) == "OK", "explicit flush succeeds");
     string diskPath = Path.Combine(saveRoot, "diskcase.bach");
     Check(File.Exists(diskPath) && File.ReadAllText(diskPath).Contains("BACH1\n"),
         "atomic flush produces versioned save file");
-    Check(Bind("diskcase", 1, 1234, 1, "1").StartsWith("BACH_META_V1\n"),
+    Check(Bind("diskcase", 1, 1234, 1, "1").StartsWith("BACH_META_V2\n"),
         "completion fires immediate autosave");
     string diskData = File.ReadAllText(diskPath);
     Check(diskData.Contains("BACH1\n") && diskData.Length > 20, "completion persisted");
     Check(Bind("diskcase", 7) == diskData, "unload flush preserves final disk state");
 
-    Check(Bind("diskcase", 0).StartsWith("BACH_META_V1\n"), "fresh assembly binding");
+    Check(Bind("diskcase", 0).StartsWith("BACH_META_V2\n"), "fresh assembly binding");
     Check(Bind("diskcase", 9, payload: saveRoot) == "READY", "restore prior game session");
     Check(Bind("diskcase", 8).Contains("|0|0|1|"),
         "restored completion visible without replaying unlock");
@@ -165,7 +175,7 @@ try
 
     string corruptPath = Path.Combine(saveRoot, "broken.bach");
     File.WriteAllText(corruptPath, "BACH1\nBAD|BAD|NaN\n");
-    Check(Bind("broken", 0).StartsWith("BACH_META_V1\n"), "corruption fixture bound");
+    Check(Bind("broken", 0).StartsWith("BACH_META_V2\n"), "corruption fixture bound");
     Check(Bind("broken", 9, payload: saveRoot).StartsWith("ERROR|"),
         "corrupt on-disk save rejected before activation");
     Check(File.ReadAllText(corruptPath).Contains("NaN"),
@@ -208,6 +218,15 @@ sealed class TwoConditions : BunnyAchievement
     }
 
     public override void OnCompleted() => CompletedCalls++;
+}
+
+sealed class FloatCondition : BunnyAchievement
+{
+    public override void SetStaticDefaults()
+    {
+        Texture = "Content/Achievements/Float.png";
+        AddFloatCondition("FloatProgress", 4.5f);
+    }
 }
 
 sealed class NegativeNpcAchievement : BunnyAchievement
