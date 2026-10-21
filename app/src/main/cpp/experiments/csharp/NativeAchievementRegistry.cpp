@@ -1,5 +1,8 @@
 #include "experiments/csharp/NativeAchievementRegistry.h"
 #include "experiments/csharp/NativeAchievementProgress.h"
+#include "experiments/csharp/ContentTexture.h"
+#include "content/common/ContentAssets.h"
+#include "mods/ModLoader.h"
 
 #include "il2cpp/Api.h"
 #include "il2cpp/FieldContract.h"
@@ -46,6 +49,7 @@ struct NativeEntry {
     uint32_t titleRoot = 0;
     uint32_t descriptionRoot = 0;
     uint32_t hiddenRoot = 0;
+    uint32_t assetRoot = 0;
     int applied = -1;
     bool hiddenApplied = false;
     bool managerRegistered = false;
@@ -55,6 +59,7 @@ struct NativeEntry {
 
 NativeMethods methods{};
 std::map<std::string, NativeEntry> entries;
+std::map<const Il2CppObject*, uint32_t> iconsByAchievement;
 std::string lastError;
 std::uint64_t revisions = 0;
 bool prepared = false;
@@ -319,20 +324,51 @@ bool make(const AchievementMetadata& definition, NativeEntry* out,
         return false;
     out->applied = initialProgress;
 
+    const std::size_t uidEnd = definition.name.find('/');
+    const std::string uid = definition.name.substr(0, uidEnd);
+    const std::string root = bl::mods::rootOf(uid);
+    std::string texture, reason;
+    if (root.empty() ||
+        !normalizeContentTexture(definition.texture.c_str(), &texture, &reason)) {
+        *error = "Achievement atlas missing or invalid: " + definition.name +
+                 " Reason=" + (root.empty() ? "UnknownModRoot" : reason);
+        return false;
+    }
+    int atlasWidth = 0, atlasHeight = 0;
+    Il2CppObject* atlas = bl::runtime::content::loadTextureAsset(
+        root + "/content/" + texture, nullptr, 0, "Achievement:" + definition.name,
+        &atlasWidth, &atlasHeight);
+    if (!atlas) {
+        *error = "Achievement atlas failed to decode: " + definition.name;
+        return false;
+    }
+    // A interface Terraria mobile busca x=528 para o estado bloqueado.
+    // A textura de PC 130x64 desloca o ícone para fora do atlas.
+    if (atlasWidth != 592 || atlasHeight != 64) {
+        bl::runtime::content::destroyTextureAsset(atlas);
+        *error = "Achievement atlas must be 592x64: " + definition.name +
+                 " got " + std::to_string(atlasWidth) + "x" +
+                 std::to_string(atlasHeight);
+        return false;
+    }
+
     out->hiddenApplied = definition.hidden && !definition.completed;
     out->achievementRoot = a.gchandle_new(achievement, false);
     out->conditionRoot = a.gchandle_new(condition, false);
     out->titleRoot = a.gchandle_new(title, false);
     out->descriptionRoot = a.gchandle_new(description, false);
     out->hiddenRoot = a.gchandle_new(obscured, false);
+    out->assetRoot = a.gchandle_new(atlas, false);
     if (!out->achievementRoot || !out->conditionRoot ||
-        !out->titleRoot || !out->descriptionRoot || !out->hiddenRoot) {
+        !out->titleRoot || !out->descriptionRoot || !out->hiddenRoot ||
+        !out->assetRoot) {
         *error = "Achievement GC root allocation failed";
         for (uint32_t root : {out->achievementRoot, out->conditionRoot,
                               out->titleRoot, out->descriptionRoot,
-                              out->hiddenRoot}) {
+                              out->hiddenRoot, out->assetRoot}) {
             if (root) a.gchandle_free(root);
         }
+        bl::runtime::content::destroyTextureAsset(atlas);
         *out = {};
         return false;
     }
@@ -366,6 +402,8 @@ bool commit(const AchievementMetadata& definition, NativeEntry* entry,
     if (!invoke(methods.registerCategory, methods.manager, args, nullptr, error))
         return false;
     entry->registered = true;
+    if (auto* target = a.gchandle_get_target(entry->achievementRoot))
+        iconsByAchievement[target] = entry->assetRoot;
     return true;
 }
 }
@@ -431,6 +469,13 @@ bool reconcileNativeAchievementObjects(
     }
     error->clear();
     return true;
+}
+
+Il2CppObject* nativeAchievementIconAsset(const Il2CppObject* achievement) {
+    if (!achievement) return nullptr;
+    const auto it = iconsByAchievement.find(achievement);
+    if (it == iconsByAchievement.end()) return nullptr;
+    return il2cpp::api().gchandle_get_target(it->second);
 }
 
 NativeAchievementRegistryStatus nativeAchievementRegistryStatus() {
