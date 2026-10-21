@@ -138,6 +138,25 @@ int main() {
     bunny_csharp_touch_mod_unload("api");
     assert(bunny_csharp_touch_count() == 0);
 
+    Registry transitions;
+    const int pause = transitions.add("life", "Pause", "Pause", "Assets/Pause.png");
+    assert(pause == 0);
+    assert(transitions.tap(pause));
+    assert(transitions.frame(1, false, true, true, true, nullptr, 0,
+                             nullptr, 0) == 0);
+    assert(transitions.frame(2, true, false, false, false, nullptr, 0,
+                             nullptr, 0) == 0);
+    assert(!(transitions.read(pause) & bits::JustPressed));
+    assert(transitions.frame(3, true, false, false, false, &pause, 1,
+                             &pause, 1) == 1);
+    assert(transitions.read(pause) & bits::Current);
+    assert(transitions.frame(4, false, true, true, true, nullptr, 0,
+                             nullptr, 0) == 1);
+    assert(transitions.read(pause) & bits::JustReleased);
+    assert(transitions.frame(5, true, false, false, false, nullptr, 0,
+                             nullptr, 0) == 0);
+    assert(!(transitions.read(pause) & bits::Current));
+
     // A mutex evita dados rasgados entre o ingresso de touch e a leitura MonoVM.
     Registry concurrent;
     int spin = concurrent.add("demo", "Spin", "Spin", "Assets/Spin.png");
