@@ -123,6 +123,7 @@ string fixturePath = typeof(ExampleBossKilled).Assembly.Location;
 string Bind(string uid, int operation, int type = 0, int count = 1, string payload = "")
     => BunnyAchievementRuntime.Dispatch(uid, fixturePath, operation, type, count, payload);
 string loaded = Bind("transport", 0);
+Console.WriteLine("ACHIEVEMENT_V2_BIND_DIAGNOSTIC " + loaded.Replace("\n", "\\n"));
 Check(loaded.StartsWith("BACH_META_V2\n", StringComparison.Ordinal) &&
     loaded.Split('\n').Length == 6, "Mono dispatcher discovers both classes from fixture DLL");
 Check(Bind("transport", 0) == loaded, "repeated bind does not recreate achievements");
