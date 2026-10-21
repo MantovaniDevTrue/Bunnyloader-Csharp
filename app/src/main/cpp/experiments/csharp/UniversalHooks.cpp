@@ -530,7 +530,7 @@ extern "C" __attribute__((visibility("default"))) int bunny_universal_hook_origi
     return ok ? 1 : 0;
 }
 extern "C" __attribute__((visibility("default"))) void bunny_universal_hook_remove(int index) {
-    if (index >= 1000 && index < 1009) removeUniversalSystemStage(index);
+    if (index >= 1000 && index < 1010) removeUniversalSystemStage(index);
     else if (index >= 0 && index < MaxHooks) entries[index].active.store(false, std::memory_order_release);
 }
 extern "C" __attribute__((visibility("default"))) int64_t bunny_universal_hook_stat(int key) {
