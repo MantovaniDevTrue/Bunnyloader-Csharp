@@ -101,12 +101,15 @@ void pumpNativeTouchIconsOnGameThread() {
     auto& api = il2cpp::api();
     if (!api.gchandle_get_target || !api.gchandle_free ||
         !api.gchandle_new) return;
+    static std::array<TouchIconSource, kMaxButtons> sources{};
+    const int allocated = registry().iconSources(&sources);
+    if (allocated < 0) return;
     int loaded = 0;
     cachedAny = false;
-    for (int i = 0; i < kMaxButtons; ++i) {
+    for (int i = 0; i < allocated; ++i) {
         Icon& icon = icons[static_cast<size_t>(i)];
-        const std::string owner = registry().ownerId(i);
-        const std::string name = registry().iconPath(i);
+        const std::string& owner = sources[static_cast<size_t>(i)].owner;
+        const std::string& name = sources[static_cast<size_t>(i)].path;
         if (icon.root && (icon.owner != owner || icon.path != name))
             discard(icon);
         if (!owner.empty() && !name.empty() && !icon.root && loaded < 4)
