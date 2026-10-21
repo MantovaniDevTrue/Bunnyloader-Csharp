@@ -21,7 +21,7 @@ struct Group {
 std::array<Group, 16> groups;
 int count = 0;
 uint64_t frames = 0;
-bool tried = false;
+uint64_t discoveryAttempts = 0;
 bool available = false;
 
 size_t statesOffset = 0;
@@ -106,7 +106,9 @@ int indexOf(void* controller, const Group& group) {
 }
 void refresh() {
     clear();
-    for (int slot = 0; slot < 256 && count < 16; ++slot) {
+    const int activeSlots = nativeTouchActiveSlotCount();
+    if (activeSlots < 0) return;
+    for (int slot = 0; slot < activeSlots && count < 16; ++slot) {
         SlotAction button;
         if (!nativeTouchSlot(slot, &button) || button.style != 2 ||
             button.groupCount < 1) continue;
@@ -134,10 +136,9 @@ void refresh() {
 
 void nativeTouchGroupBefore(void* controller) {
     if (!controller || registry().count() == 0) return;
-    if (!tried) {
-        tried = true;
+    if (!available && (++discoveryAttempts == 1 ||
+                       discoveryAttempts % 120 == 0))
         available = discover(controller);
-    }
     if (!available) return;
     if (++frames == 1 || frames % 30 == 0) refresh();
     for (int i = 0; i < count; ++i)
@@ -145,7 +146,7 @@ void nativeTouchGroupBefore(void* controller) {
             indexOf(controller, groups[static_cast<size_t>(i)]);
 }
 void nativeTouchGroupAfter(void* controller) {
-    if (!controller || !available) return;
+    if (!controller || !available || !hostReady()) return;
     for (int i = 0; i < count; ++i) {
         auto& group = groups[static_cast<size_t>(i)];
         const int was = group.before;
@@ -159,6 +160,8 @@ void nativeTouchGroupAfter(void* controller) {
 void resetNativeTouchGroupSession() {
     clear();
     frames = 0;
+    discoveryAttempts = 0;
+    available = false;
 }
 bool nativeTouchGroupBridgeReady() { return available; }
 
