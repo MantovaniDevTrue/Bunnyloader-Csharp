@@ -69,6 +69,9 @@ public static class BunnyTouchButtonLoader
         public int NativeId = -1;
         public bool Visible = true;
         public bool Enabled = true;
+        public uint LastEpoch;
+        public uint DeliveredPressSequence;
+        public BunnyTouchButtonState TriggerSnapshot;
     }
 
     private const int MaxButtons = 128;
@@ -78,6 +81,7 @@ public static class BunnyTouchButtonLoader
     private static long lastTick = -1;
     private static bool nativeBound;
     private static bool nativeStagePending = true;
+    private static bool inTriggerFrame;
     public static string LastHostError { get; private set; } = "HostNotConnected";
 
     public static int Count { get { lock (Gate) return ByName.Count; } }
@@ -182,6 +186,7 @@ public static class BunnyTouchButtonLoader
                 return default;
             if (!nativeBound && entry.NativeId >= 0)
                 TryBindNativeHost();
+            if (inTriggerFrame) return entry.TriggerSnapshot;
             return nativeBound && entry.NativeId >= 0
                 ? BunnyTouchNativeHost.Read(entry.NativeId) : entry.State;
         }
@@ -285,6 +290,7 @@ public static class BunnyTouchButtonLoader
                 if (Entries[i] is { } entry)
                     entry.State = new BunnyTouchButtonState(false, false, false, false, false, false);
             lastTick = -1;
+            inTriggerFrame = false;
             if (nativeBound) BunnyTouchNativeHost.ResetWorld();
         }
     }
@@ -307,6 +313,49 @@ public static class BunnyTouchButtonLoader
             // quando já há uma identidade realmente registrada no host.
             if (stagedNative) BunnyTouchNativeHost.Unload(modId);
         }
+    }
+
+    // Chamados exclusivamente pelo trabalhador MonoVM no começo/fim de
+    // ProcessTriggers. O contador de toques impede perder eventos muito
+    // curtos quando outro callback ocupa o trabalhador durante alguns ticks.
+    internal static void BeginTriggerFrame()
+    {
+        lock (Gate)
+        {
+            foreach (Entry? entry in Entries)
+            {
+                if (entry is null) continue;
+                if (!nativeBound || entry.NativeId < 0)
+                {
+                    entry.TriggerSnapshot = entry.State;
+                    continue;
+                }
+                BunnyTouchButtonState current = BunnyTouchNativeHost.Read(entry.NativeId);
+                ulong token = BunnyTouchNativeHost.PressToken(entry.NativeId);
+                uint epoch = (uint)(token >> 32);
+                uint sequence = (uint)token;
+                if (epoch != entry.LastEpoch)
+                {
+                    entry.LastEpoch = epoch;
+                    entry.DeliveredPressSequence = 0;
+                }
+                bool pending = sequence > entry.DeliveredPressSequence;
+                if (pending) entry.DeliveredPressSequence++;
+                entry.TriggerSnapshot = new BunnyTouchButtonState(
+                    current.Current || pending,
+                    current.Old,
+                    pending || current.JustPressed,
+                    current.JustReleased && !pending,
+                    current.RetroCurrent,
+                    current.IsBound);
+            }
+            inTriggerFrame = true;
+        }
+    }
+
+    internal static void EndTriggerFrame()
+    {
+        lock (Gate) inTriggerFrame = false;
     }
 
     private static void ToMap(int[] indices, Span<bool> map)
