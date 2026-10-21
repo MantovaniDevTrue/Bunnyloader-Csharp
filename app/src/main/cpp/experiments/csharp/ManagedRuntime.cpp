@@ -440,6 +440,8 @@ struct ManagedEntityBinding {
     bool firstWorldTickReported = false;
     bool firstWorldErrorReported = false;
     bool firstWorldUseReported = false;
+    std::string lastUseOutcome;
+    int useReports = 0;
 };
 
 struct ManagedEntityJob {
@@ -1242,7 +1244,7 @@ int64_t executeManagedEntityOnWorker(const ManagedEntityJob& job) {
                 std::lock_guard<std::mutex> guard(g_pinnedMutex);
                 if (job.session == g_entitySession && job.binding >= 0 &&
                     static_cast<size_t>(job.binding) < g_entityBindings.size())
-                    needsUseStatus = !g_entityBindings[static_cast<size_t>(job.binding)].firstWorldUseReported;
+                    needsUseStatus = g_entityBindings[static_cast<size_t>(job.binding)].useReports < 12;
             }
             if (needsUseStatus) {
                 void* statusArgs[] = {&managedSlot};
@@ -1259,19 +1261,30 @@ int64_t executeManagedEntityOnWorker(const ManagedEntityJob& job) {
                             const auto use = details.find("lastUse=");
                             if (use != std::string::npos &&
                                 details.compare(use + 8, 4, "None") != 0) {
+                                const size_t end = details.find(" npc=", use);
+                                const std::string outcome = details.substr(use,
+                                    end == std::string::npos ? end : end - use);
+                                bool report = false;
                                 {
                                     std::lock_guard<std::mutex> guard(g_pinnedMutex);
                                     if (job.session == g_entitySession && job.binding >= 0 &&
-                                        static_cast<size_t>(job.binding) < g_entityBindings.size())
-                                        g_entityBindings[static_cast<size_t>(job.binding)].firstWorldUseReported = true;
+                                        static_cast<size_t>(job.binding) < g_entityBindings.size()) {
+                                        auto& owner = g_entityBindings[static_cast<size_t>(job.binding)];
+                                        if (owner.useReports < 12 && owner.lastUseOutcome != outcome) {
+                                            owner.firstWorldUseReported = true;
+                                            owner.lastUseOutcome = outcome;
+                                            ++owner.useReports;
+                                            report = true;
+                                        }
+                                    }
                                 }
 #ifdef __ANDROID__
-                                const std::string outcome = details.substr(use);
-                                reportManagedItemUse(
-                                    outcome.find(" Error=") != std::string::npos
-                                        ? ANDROID_LOG_WARN : ANDROID_LOG_INFO,
-                                    "[CSharp][ItemUse] Mod=" + binding.modId +
-                                        " Stage=OnUseResult " + outcome);
+                                if (report)
+                                    reportManagedItemUse(
+                                        outcome.find(" Error=") != std::string::npos
+                                            ? ANDROID_LOG_WARN : ANDROID_LOG_INFO,
+                                        "[CSharp][ItemUse] Mod=" + binding.modId +
+                                            " Stage=OnUseResult " + outcome);
 #endif
                             }
                         }
@@ -3028,8 +3041,12 @@ bool hasManagedEntityProjectileType(int type) {
 void pauseManagedEntitySourceCallbacks() {
     std::lock_guard<std::mutex> guard(g_pinnedMutex);
     ++g_entitySession;
-    for (auto& binding : g_entityBindings)
+    for (auto& binding : g_entityBindings) {
         binding.firstWorldErrorReported = false;
+        binding.firstWorldUseReported = false;
+        binding.useReports = 0;
+        binding.lastUseOutcome.clear();
+    }
     g_entityQueue.clear();
     g_entityNpcPending.fill(false);
     g_entityProjectilePending.fill(false);
