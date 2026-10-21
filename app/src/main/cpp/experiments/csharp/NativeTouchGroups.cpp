@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <cstring>
 #include <string>
+#include <utility>
 
 namespace bl::csharp::touch {
 namespace {
@@ -29,6 +30,8 @@ bool available = false;
 size_t statesOffset = 0;
 const MethodInfo* containsMethod = nullptr;
 const MethodInfo* itemMethod = nullptr;
+Il2CppClass* pressedIndexClass = nullptr;
+size_t pressedIndexOffset = 0;
 
 void clear() {
     auto& api = il2cpp::api();
@@ -44,7 +47,9 @@ bool discover(void* controller) {
         !api.class_instance_size || !api.field_get_flags ||
         !api.field_get_type || !api.class_from_il2cpp_type ||
         !api.class_is_valuetype || !api.class_get_method_from_name ||
-        !api.method_get_param_count || !api.method_is_instance ||
+        !api.method_get_param_count || !api.method_get_param ||
+        !api.method_get_return_type || !api.type_get_name ||
+        !api.il2cpp_free || !api.method_is_instance ||
         !api.runtime_invoke || !api.gchandle_new ||
         !api.gchandle_free || !api.gchandle_get_target || !api.string_new)
         return false;
@@ -64,11 +69,26 @@ bool discover(void* controller) {
     statesOffset = off;
     containsMethod = api.class_get_method_from_name(fieldType, "ContainsKey", 1);
     itemMethod = api.class_get_method_from_name(fieldType, "get_Item", 1);
-    return containsMethod && itemMethod &&
-           api.method_is_instance(containsMethod) &&
-           api.method_is_instance(itemMethod) &&
-           api.method_get_param_count(containsMethod) == 1 &&
-           api.method_get_param_count(itemMethod) == 1;
+    if (!containsMethod || !itemMethod ||
+        !api.method_is_instance(containsMethod) ||
+        !api.method_is_instance(itemMethod) ||
+        api.method_get_param_count(containsMethod) != 1 ||
+        api.method_get_param_count(itemMethod) != 1 ||
+        !il2cpp::methodPointer(containsMethod) ||
+        !il2cpp::methodPointer(itemMethod)) return false;
+    for (const MethodInfo* method : {containsMethod, itemMethod}) {
+        const Il2CppType* argument = api.method_get_param(method, 0);
+        char* name = argument ? api.type_get_name(argument) : nullptr;
+        const bool valid = name && std::strcmp(name, "System.String") == 0;
+        if (name) api.il2cpp_free(name);
+        if (!valid) return false;
+    }
+    const Il2CppType* result = api.method_get_return_type(containsMethod);
+    char* returnName = result ? api.type_get_name(result) : nullptr;
+    const bool validReturn = returnName &&
+                             std::strcmp(returnName, "System.Boolean") == 0;
+    if (returnName) api.il2cpp_free(returnName);
+    return validReturn;
 }
 int indexOf(void* controller, const Group& group) {
     auto& api = il2cpp::api();
@@ -93,16 +113,27 @@ int indexOf(void* controller, const Group& group) {
     Il2CppObject* state = api.runtime_invoke(itemMethod, table, args, &ex);
     if (ex || !state) return -1;
     cls = api.object_get_class(state);
-    FieldInfo* field = cls ? il2cpp::findField(cls, "pressedIndex") : nullptr;
-    if (!field) field = cls ? il2cpp::findField(cls, "<pressedIndex>k__BackingField") : nullptr;
-    if (!field || !api.field_get_flags ||
-        (api.field_get_flags(field) & 0x10u)) return -1;
-    const size_t position = api.field_get_offset(field);
-    if (position < sizeof(Il2CppObject) ||
-        position + sizeof(int32_t) > api.class_instance_size(cls))
-        return -1;
+    if (!cls) return -1;
+    if (cls != pressedIndexClass) {
+        FieldInfo* field = il2cpp::findField(cls, "pressedIndex");
+        if (!field)
+            field = il2cpp::findField(cls, "<pressedIndex>k__BackingField");
+        if (!field || !api.field_get_flags ||
+            (api.field_get_flags(field) & 0x10u)) return -1;
+        const Il2CppType* type = api.field_get_type(field);
+        char* name = type ? api.type_get_name(type) : nullptr;
+        const bool valid = name && std::strcmp(name, "System.Int32") == 0;
+        if (name) api.il2cpp_free(name);
+        if (!valid) return -1;
+        const size_t position = api.field_get_offset(field);
+        if (position < sizeof(Il2CppObject) ||
+            position + sizeof(int32_t) > api.class_instance_size(cls))
+            return -1;
+        pressedIndexClass = cls;
+        pressedIndexOffset = position;
+    }
     int32_t index = -1;
-    std::memcpy(&index, reinterpret_cast<char*>(state) + position,
+    std::memcpy(&index, reinterpret_cast<char*>(state) + pressedIndexOffset,
                 sizeof(index));
     return index;
 }
@@ -187,6 +218,8 @@ void resetNativeTouchGroupSession() {
     clear();
     frames = 0;
     cachedProfile = nullptr;
+    pressedIndexClass = nullptr;
+    pressedIndexOffset = 0;
     discoveryAttempts = 0;
     available = false;
 }
