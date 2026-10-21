@@ -1,12 +1,17 @@
 #pragma once
 #include <string>
+#include <vector>
+#include "experiments/csharp/ManagedAchievementMetadata.h"
 
 namespace bl::csharp {
 
 // Chamado após BunnyAchievementRuntime.Bind confirmar os metadados.
 // Não registra tipos de item e não instala hooks no worker de compilação.
 bool registerNativeAchievementMod(const std::string& modId,
-                                  const std::string& assemblyPath);
+                                  const std::string& assemblyPath,
+                                  const std::string& metadata,
+                                  std::string* error);
+std::vector<AchievementMetadata> nativeAchievementMetadataSnapshot();
 
 bool nativeAchievementBindingsReady();
 bool nativeAchievementHooksReady();
