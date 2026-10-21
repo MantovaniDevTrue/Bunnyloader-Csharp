@@ -9,6 +9,7 @@
 #include "experiments/csharp/NativeTouchIconHooks.h"
 #include "experiments/csharp/NativeTouchLayoutHooks.h"
 #include "experiments/csharp/NativeTouchStaticMappings.h"
+#include "core/Log.h"
 #include <cstdint>
 
 namespace bl::csharp::touch {
@@ -30,6 +31,13 @@ void pumpNativeTouchActivationOnGameThread() {
         return;
     }
     if (++tick != 1 && tick % 30 != 0) return;
+    if (tick == 600) {
+        BL_WARN("[CSharp][Touch] ActivationPending Observer=%d Pointer=%d Groups=%d Visibility=%d EditorLabels=%d IconFrames=%d QuickDraw=%d LayoutHooks=%d; profiles/mappings/editor may still be pending",
+                nativeTouchObserverInstalled(), nativeTouchPointerInstalled(),
+                nativeTouchGroupBridgeReady(), nativeTouchVisibilityHookInstalled(),
+                nativeTouchEditorLabelsInstalled(), nativeTouchIconFrameHooksInstalled(),
+                nativeTouchQuickDrawHookInstalled(), nativeTouchLayoutHooksInstalled());
+    }
 
     // Nenhuma ação chega a ProcessTriggers enquanto faltar qualquer peça.
     // O editor não anuncia controles acionáveis se o hook de toque, o
