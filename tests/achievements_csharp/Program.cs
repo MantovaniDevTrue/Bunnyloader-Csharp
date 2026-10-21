@@ -130,6 +130,48 @@ Check(Bind("transport", 8).StartsWith("ERROR|"), "unloaded mod cannot receive ca
 Check(Bind("transport", 0).StartsWith("BACH_META_V1\n"), "mod can bind after unload");
 Check(Bind("transport", 7).StartsWith("BACH1\n"), "second unload succeeds");
 
+string saveRoot = Path.Combine(Path.GetTempPath(),
+    "bunny-achievement-storage-" + Guid.NewGuid().ToString("N"));
+Directory.CreateDirectory(saveRoot);
+try
+{
+    Check(Bind("diskcase", 0).StartsWith("BACH_META_V1\n"), "disk storage fixture bound");
+    Check(Bind("diskcase", 9, payload: saveRoot) == "READY", "configure native data directory");
+    Check(!File.Exists(Path.Combine(saveRoot, "diskcase.bach")),
+        "configuration does not create unnecessary save");
+    Check(Bind("diskcase", 1, 10, 1, "1") == "OK|0", "partial progress accepted");
+    Check(Bind("diskcase", 10) == "OK", "explicit flush succeeds");
+    string diskPath = Path.Combine(saveRoot, "diskcase.bach");
+    Check(File.Exists(diskPath) && File.ReadAllText(diskPath).Contains("BACH1\n"),
+        "atomic flush produces versioned save file");
+    Check(Bind("diskcase", 1, 1234, 1, "1") == "OK|0",
+        "completion fires immediate autosave");
+    string diskData = File.ReadAllText(diskPath);
+    Check(diskData.Contains("BACH1\n") && diskData.Length > 20, "completion persisted");
+    Check(Bind("diskcase", 7) == diskData, "unload flush preserves final disk state");
+
+    Check(Bind("diskcase", 0).StartsWith("BACH_META_V1\n"), "fresh assembly binding");
+    Check(Bind("diskcase", 9, payload: saveRoot) == "READY", "restore prior game session");
+    Check(Bind("diskcase", 8).Contains("|0|0|1|"),
+        "restored completion visible without replaying unlock");
+    Check(Bind("diskcase", 9, payload: saveRoot).StartsWith("ERROR|"),
+        "store cannot configure twice");
+    Check(Bind("diskcase", 7).StartsWith("BACH1\n"), "restored game session unload");
+
+    string corruptPath = Path.Combine(saveRoot, "broken.bach");
+    File.WriteAllText(corruptPath, "BACH1\nBAD|BAD|NaN\n");
+    Check(Bind("broken", 0).StartsWith("BACH_META_V1\n"), "corruption fixture bound");
+    Check(Bind("broken", 9, payload: saveRoot).StartsWith("ERROR|"),
+        "corrupt on-disk save rejected before activation");
+    Check(File.ReadAllText(corruptPath).Contains("NaN"),
+        "corrupted save not silently overwritten");
+    Check(Bind("broken", 7).StartsWith("BACH1\n"), "unconfigured mod clean unload");
+}
+finally
+{
+    Directory.Delete(saveRoot, true);
+}
+
 Console.WriteLine("BUNNY_CSHARP_ACHIEVEMENTS_CORE=PASS checks=" + checkedCases);
 
 sealed class TwoConditions : BunnyAchievement
