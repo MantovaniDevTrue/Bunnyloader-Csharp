@@ -30,6 +30,7 @@
 #include "experiments/csharp/NativeAchievementHooks.h"
 #include "experiments/csharp/NativeAchievementRegistry.h"
 #include "experiments/csharp/NativeAchievementVisualHooks.h"
+#include "experiments/csharp/NativeAchievementProfileLifecycle.h"
 #include "experiments/csharp/MonoServiceDispatch.h"
 #include "experiments/csharp/SourceLoader.h"
 #include "experiments/csharp/ManagedSourceClassCount.h"
@@ -906,39 +907,12 @@ void run() {
                      manifest.substr(0, 200));
                 continue;
             }
-            // Área interna e persistente do Bunny, sem tocar no save vanilla.
-            // Antes de registrar hooks, recuperar BACH1 da execução anterior.
-            const std::string achievementDir = work + "csharp-achievements";
-            if (mkdir(achievementDir.c_str(), 0700) != 0 && errno != EEXIST) {
+            // Somente a DLL é validada no bootstrap. Nenhum save é lido
+            // antes de Main.ActivePlayerFileData identificar o personagem.
+            if (!queueAchievementProfileMod(
+                    mod.id, assembly, work + "csharp-achievements")) {
                 note(&status, "failed",
-                     "AchievementLoader: diretorio persistente indisponivel");
-                continue;
-            }
-            struct stat achievementDirStat{};
-            if (stat(achievementDir.c_str(), &achievementDirStat) != 0 ||
-                !S_ISDIR(achievementDirStat.st_mode)) {
-                note(&status, "failed", "AchievementLoader: diretorio nao e pasta");
-                continue;
-            }
-            std::string storageState;
-            if (!invokeManagedAchievementControl(mod.id, assembly, 9,
-                     achievementDir, &storageState, 15000) ||
-                storageState != "READY") {
-                note(&status, "failed", "AchievementLoader: restore persistente falhou: " +
-                     storageState.substr(0, 200));
-                continue;
-            }
-            // Os metadados definitivos precisam refletir o progresso restaurado.
-            if (!invokeManagedAchievementControl(mod.id, assembly, 8, "",
-                                                 &manifest, 15000)) {
-                note(&status, "failed", "AchievementLoader: metadata invalida: " +
-                     manifest.substr(0, 200));
-                continue;
-            }
-            std::string nativeError;
-            if (!registerNativeAchievementMod(mod.id, assembly, manifest, &nativeError)) {
-                note(&status, "failed",
-                     "AchievementLoader: registro de metadata recusado: " + nativeError);
+                     "AchievementLoader: fila de mod/perfil nao aceitou registro");
                 continue;
             }
             BL_INFO("[CSharp][AchievementLoader] Mod=%s Conquistas=%d Bind=Ready",
@@ -1254,6 +1228,7 @@ void retryWorldManagedPrefixesWhenReady() {
 
 void noteAutoWorldTilesLoaded() {
     std::lock_guard<std::mutex> sessionGuard(g_worldTransitionMutex);
+    pauseAchievementProfileOnWorldExit();
     clearManagedVisualCommands();
     resetNativeVisualRenderer();
     g_visualUpdateTick.store(0, std::memory_order_relaxed);
@@ -1338,6 +1313,8 @@ void noteAutoGameUpdate() {
             bl::runtime::retryPendingManagedPrefixesOnWorldReady();
     }
     flushDeferredWorldEntry();
+    pumpAchievementProfileOnGameThread(
+        g_worldSessionReady.load(std::memory_order_acquire));
     if (!g_worldTilesLoaded.load(std::memory_order_acquire)) {
         static unsigned retries = 0;
         if (++retries % 12u == 0) schedulePreWorldBindings();
@@ -1357,7 +1334,8 @@ void noteAutoGameUpdate() {
                             error.c_str());
             }
         }
-        setNativeAchievementWorldActive(inWorld && nativeAchievementHooksReady());
+        setNativeAchievementWorldActive(inWorld && achievementProfileReady() &&
+                                           nativeAchievementHooksReady());
     }
     if (g_worldSessionReady.load(std::memory_order_acquire)) {
         graphics::pumpCSharpScreenEffects();
@@ -1382,6 +1360,7 @@ void noteAutoGameUpdate() {
         std::lock_guard<std::mutex> sessionGuard(g_worldTransitionMutex);
         clearManagedVisualCommands();
         flushNativeAchievementProgressOnExit();
+        pauseAchievementProfileOnWorldExit();
         graphics::clearCSharpScreenEffects();
         pauseManagedScreenSceneCallbacks();
         resetNativeVisualRenderer();
