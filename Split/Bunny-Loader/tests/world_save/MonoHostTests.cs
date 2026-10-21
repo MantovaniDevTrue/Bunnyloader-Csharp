@@ -76,7 +76,8 @@ internal static class MonoHostTests
         var corrupted = Convert.ToBase64String(new byte[] { 1, 2, 3, 4 });
         Check(!BunnyWorldMonoHost.Enter(15, corrupted, true), "invalid BWC1 rejected");
         Check(BunnyWorldMonoHost.Prepare(15) == null, "corruption disables save");
-        Check(BunnyWorldMonoHost.Leave(15), "invalid session cleaned");
+        Check(!BunnyWorldMonoHost.WorldActive && !BunnyWorldMonoHost.Leave(15),
+              "invalid session automatically cleaned");
         Check(BunnyWorldMonoHost.ResetRegistrations() &&
               BunnyWorldMonoHost.RegisteredSystems == 0, "unload clears registrations");
         Console.WriteLine("WORLD_MONO_HOST_TESTS_PASS");
