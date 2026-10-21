@@ -252,9 +252,9 @@ try
         "Bob profile starts empty despite Alice completion");
     bobStore.Flush(force: true);
 
-    var restored = new BunnyAchievementRegistry();
-    var restoredEntry = restored.Register("same_mod", new NegativeNpcAchievement());
-    var restoredStore = new BunnyAchievementStore(restored);
+    var aliceRecovered = new BunnyAchievementRegistry();
+    var restoredEntry = aliceRecovered.Register("same_mod", new NegativeNpcAchievement());
+    var restoredStore = new BunnyAchievementStore(aliceRecovered);
     restoredStore.Configure(aliceDir, "same_mod");
     Check(restoredEntry.IsCompleted && !bobEntry.IsCompleted,
         "profile restore retains Alice completion without touching Bob");
