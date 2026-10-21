@@ -23,6 +23,12 @@ on:
       - app/src/main/cpp/experiments/csharp/NativeTouchIcons.cpp
       - app/src/main/cpp/experiments/csharp/NativeTouchIconHooks.h
       - app/src/main/cpp/experiments/csharp/NativeTouchIconHooks.cpp
+      - app/src/main/cpp/experiments/csharp/NativeTouchProfiles.h
+      - app/src/main/cpp/experiments/csharp/NativeTouchProfiles.cpp
+      - app/src/main/cpp/experiments/csharp/NativeTouchPointer.h
+      - app/src/main/cpp/experiments/csharp/NativeTouchPointer.cpp
+      - app/src/main/cpp/experiments/csharp/NativeTouchFocus.h
+      - app/src/main/cpp/experiments/csharp/NativeTouchFocus.cpp
       - app/src/main/cpp/experiments/csharp/NativeTouchInput.cpp
       - app/src/main/cpp/experiments/csharp/NativeTouchInput.h
       - app/src/main/cpp/experiments/csharp/NativeTouchGameAbi.h
@@ -88,7 +94,10 @@ jobs:
             app/src/main/cpp/experiments/csharp/NativeTouchStaticMappings.cpp \
             app/src/main/cpp/experiments/csharp/NativeTouchEditorOptions.cpp \
             app/src/main/cpp/experiments/csharp/NativeTouchIcons.cpp \
-            app/src/main/cpp/experiments/csharp/NativeTouchIconHooks.cpp
+            app/src/main/cpp/experiments/csharp/NativeTouchIconHooks.cpp \
+            app/src/main/cpp/experiments/csharp/NativeTouchProfiles.cpp \
+            app/src/main/cpp/experiments/csharp/NativeTouchPointer.cpp \
+            app/src/main/cpp/experiments/csharp/NativeTouchFocus.cpp
       - name: Android ABI compilation (no APK)
         shell: bash
         run: |
