@@ -55,6 +55,7 @@ public:
     std::string iconPath(int id) const;
     std::string ownerId(int id) const;
     int count() const;
+    uint64_t registrationVersion() const;
     void resetWorld();
     void unloadMod(std::string_view owner);
 
@@ -68,6 +69,7 @@ private:
     int nextId_ = 0;
     int64_t lastTick_ = -1;
     uint32_t worldEpoch_ = 1;
+    uint64_t registrationVersion_ = 0;
 };
 
 Registry& registry();
