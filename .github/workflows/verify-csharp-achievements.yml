@@ -20,6 +20,7 @@ on:
       - app/src/main/cpp/experiments/csharp/ManagedAchievementMetadata.h
       - app/src/main/cpp/experiments/csharp/NativeAchievementRegistry.h
       - app/src/main/cpp/experiments/csharp/NativeAchievementRegistry.cpp
+      - app/src/main/cpp/experiments/csharp/NativeAchievementProgress.h
       - app/src/main/cpp/experiments/csharp/NativeAchievementHooks.h
       - app/src/main/cpp/experiments/csharp/NativeAchievementHooks.cpp
       - app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp
@@ -56,6 +57,12 @@ jobs:
             tests/achievements_csharp/metadata_test.cpp \
             -o /tmp/csharp-achievement-metadata
           /tmp/csharp-achievement-metadata
+      - name: Test native achievement progress conversion
+        run: |
+          g++ -std=c++20 -O2 -Wall -Wextra -Werror -Iapp/src/main/cpp \
+            tests/achievements_csharp/native_progress_test.cpp \
+            -o /tmp/csharp-achievement-progress
+          /tmp/csharp-achievement-progress
       - name: Syntax-check actual native MonoVM integration without APK
         run: |
           g++ -std=c++20 -O0 -fsyntax-only -Itests/basic_items/include -Iapp/src/main/cpp \
