@@ -2207,6 +2207,15 @@ void* pinnedMonoWorker(void*) {
                             job.type, job.slot, job.cloudGeneration,
                             job.scale, job.spriteDir, spriteDir
                         });
+                    } else if (job.kind == 4) {
+                        binding.biomeReady = ok;
+                        binding.biomeFailed = !ok;
+                        if (ok) g_biomeManifestReplies[mod] = std::move(wire);
+                    } else if (job.kind == 5) {
+                        g_biomeSnapshotsPending.erase(mod);
+                        if (ok && binding.biomeReady)
+                            g_biomeActiveReplies[mod] =
+                                {job.weightGeneration, std::move(wire)};
                     }
                     continue;
                 }
@@ -2532,6 +2541,8 @@ void resetManagedCloudWorldSession() {
     g_cloudWeightsPending.clear();
     g_cloudWeightReplies.clear();
     g_cloudSpawnReplies.clear();
+    g_biomeActiveReplies.clear();
+    g_biomeSnapshotsPending.clear();
     g_pinnedWake.notify_one();
 }
 
@@ -2544,6 +2555,9 @@ void pauseManagedCloudCallbacks() {
     g_cloudWeightsPending.clear();
     g_cloudWeightReplies.clear();
     g_cloudSpawnReplies.clear();
+    g_biomeManifestReplies.clear();
+    g_biomeActiveReplies.clear();
+    g_biomeSnapshotsPending.clear();
     // Reset the SDK static dispatcher on the worker, including registrations
     // from an in-flight old-world job, before accepting new registrations.
     g_cloudClearPending = true;
