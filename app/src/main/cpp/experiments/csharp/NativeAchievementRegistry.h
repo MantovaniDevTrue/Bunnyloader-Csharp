@@ -27,6 +27,11 @@ bool reconcileNativeAchievementObjects(
     const std::vector<AchievementMetadata>& definitions,
     std::string* error);
 
+// Retorna o mesmo Asset<Texture2D> nativo que o Bunny usa no menu JS.
+// Chamado apenas na thread Terraria; ponteiro permanece enraizado até unload.
+struct Il2CppObject; 
+Il2CppObject* nativeAchievementIconAsset(const Il2CppObject* achievement);
+
 NativeAchievementRegistryStatus nativeAchievementRegistryStatus();
 
 }
