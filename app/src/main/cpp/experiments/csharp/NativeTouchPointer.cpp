@@ -103,21 +103,20 @@ void onTouch(void* controller, int32_t slot, Vec2 position, Il2CppObject* cursor
         return;
     }
     const int id = nativeTouchIndexByAction(action.action);
-    if (id < 0 || id >= kMaxButtons || registry().ownerId(id).empty()) {
+    if (id < 0 || id >= kMaxButtons) {
         if (original) original(controller, slot, position, cursor, method);
         return;
     }
-    if (!hostReady() || !registry().visible(id) || !registry().enabled(id))
+    if (!hostReady() || registry().ownerId(id).empty() ||
+        !registry().visible(id) || !registry().enabled(id))
         return;
     const int control = nativeTouchControlOf(id);
     Il2CppArray* pressed = inputArray(controller, pressedOffset);
     Il2CppArray* wasPressed = inputArray(controller, wasOffset);
     if (control < 0 || !pressed || !wasPressed ||
         static_cast<uintptr_t>(control) >= pressed->length ||
-        static_cast<uintptr_t>(control) >= wasPressed->length) {
-        if (original) original(controller, slot, position, cursor, method);
+        static_cast<uintptr_t>(control) >= wasPressed->length)
         return;
-    }
     auto* current = static_cast<uint8_t*>(arrayData(pressed));
     auto* old = static_cast<const uint8_t*>(arrayData(wasPressed));
     current[control] = 1;
