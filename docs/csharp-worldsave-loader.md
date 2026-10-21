@@ -44,6 +44,12 @@ O `MonoWorldMailbox` agora define os pedidos tipados de registro, entrada, prepa
 
 A fila ainda não foi ligada à execução do worker fixo; **não há hooks de save ativos nem APK**.
 
+## Etapa 7 — mailbox integrada ao worker MonoVM
+
+O loop existente de `pinnedMonoWorker` lê agora a fila `MonoWorldMailbox` com prioridade antes dos jobs de hit/entidades. A execução ocorre no mesmo worker dedicado, sob o mutex de API Mono, abrindo `BunnySourceSdk.dll` e chamando `BunnyWorldMonoHost.RegisterMod / Enter / Prepare / Confirm / Leave` por nomes e parâmetros tipados reais. Strings retornadas são copiadas por `mono_string_to_utf8` e liberadas por `mono_free`. Os pedidos são limitados, têm prazo de até cinco segundos, não atravessam ponteiros IL2CPP, e são cancelados nas mudanças do `g_worldEpoch`.
+
+O host já expõe `requestManagedWorldOnMono` para os futuros pontos de save/load. **Ainda não há chamada a essa função pelos hooks de salvamento do Terraria**: a conexão com o jogo depende de validar a ABI Android e as regras de gravação/autoridade.
+
 ## Requisitos ainda bloqueantes
 
 1. Host nativo C++ deve capturar a identidade real do arquivo de mundo após a seleção; não confiar em nome de mundo ou caminho informado por um mod.

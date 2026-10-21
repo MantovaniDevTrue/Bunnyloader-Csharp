@@ -1,5 +1,6 @@
 #pragma once
 #include "experiments/csharp/ManagedHitContextStats.h"
+#include "experiments/csharp/MonoWorldMailbox.h"
 #include "experiments/csharp/ManagedVisualQueue.h"
 #include "experiments/csharp/ManagedLiveEventQueue.h"
 #include "experiments/csharp/ManagedNpcBuffEffects.h"
@@ -9,6 +10,11 @@
 #include <vector>
 
 namespace bl::csharp {
+
+// Apenas chamadas internas do host; mods C# não acessam esta fila.
+bool requestManagedWorldOnMono(const worldsave::MonoWorldRequest& request,
+                               worldsave::MonoWorldReply* reply, int timeoutMs);
+void invalidateManagedWorldMonoRequests();
 
 struct ManagedHurtResult {
     int damage = 0;

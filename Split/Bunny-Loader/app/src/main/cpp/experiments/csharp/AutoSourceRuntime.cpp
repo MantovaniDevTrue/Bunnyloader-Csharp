@@ -1137,6 +1137,7 @@ void noteAutoWorldTilesLoaded(const std::string& worldPath) {
     g_visualUpdateTick.store(0, std::memory_order_relaxed);
     g_worldLoads.fetch_add(1, std::memory_order_relaxed);
     const uint64_t epoch = g_worldEpoch.fetch_add(1, std::memory_order_acq_rel) + 1;
+    invalidateManagedWorldMonoRequests();
     // O caminho foi extraído de Main.ActiveWorldFileData pelo hook nativo dos tiles.
     // Cloud e caminhos inválidos deixam o sidecar C# explicitamente desabilitado.
     const bool localWorld = worldsave::activeWorldStore().beginWorld(
@@ -1219,6 +1220,7 @@ void noteAutoGameUpdate() {
         const uint64_t departingEpoch = g_worldEpoch.fetch_add(
             1, std::memory_order_acq_rel);
         worldsave::activeWorldStore().endWorld(departingEpoch);
+        invalidateManagedWorldMonoRequests();
         g_worldSessionReady.store(false, std::memory_order_release);
         g_worldTilesLoaded.store(false, std::memory_order_release);
         g_worldReadyFrames.store(0, std::memory_order_relaxed);
