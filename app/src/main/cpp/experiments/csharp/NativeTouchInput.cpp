@@ -125,6 +125,14 @@ std::string Registry::displayName(int id) const {
     std::lock_guard lock(mutex_);
     return active(id) ? entries_[static_cast<size_t>(id)].label : std::string{};
 }
+std::string Registry::iconPath(int id) const {
+    std::lock_guard lock(mutex_);
+    return active(id) ? entries_[static_cast<size_t>(id)].icon : std::string{};
+}
+std::string Registry::ownerId(int id) const {
+    std::lock_guard lock(mutex_);
+    return active(id) ? entries_[static_cast<size_t>(id)].owner : std::string{};
+}
 
 int Registry::count() const {
     std::lock_guard lock(mutex_);
