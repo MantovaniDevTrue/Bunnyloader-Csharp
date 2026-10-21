@@ -15,11 +15,19 @@ namespace bl::csharp::touch {
 
 void pumpNativeTouchActivationOnGameThread() {
     static uint64_t tick = 0;
+    static uint64_t appliedVersion = 0;
     if (registry().count() == 0) {
         if (hostReady()) setHostReady(false);
         return;
     }
-    if (hostReady()) return;
+    const uint64_t version = registry().registrationVersion();
+    if (hostReady()) {
+        if (version != appliedVersion && ++tick % 30 == 0 &&
+            reapplyNativeTouchLayoutsOnGameThread() &&
+            ensureNativeTouchEditorOptionsOnGameThread())
+            appliedVersion = version;
+        return;
+    }
     if (++tick != 1 && tick % 30 != 0) return;
 
     // Nenhuma ação chega a ProcessTriggers enquanto faltar qualquer peça.
@@ -38,6 +46,7 @@ void pumpNativeTouchActivationOnGameThread() {
     if (!ensureNativeTouchStaticMappingsOnGameThread()) return;
     if (!ensureNativeTouchEditorOptionsOnGameThread()) return;
     setHostReady(true);
+    appliedVersion = version;
 }
 
 } // namespace bl::csharp::touch
