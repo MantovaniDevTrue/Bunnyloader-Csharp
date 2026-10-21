@@ -8,6 +8,8 @@ on:
       - app/src/main/cpp/experiments/csharp/NativeCloudSelection.h
       - app/src/main/cpp/experiments/csharp/NativeCloudRegistry.h
       - tests/cloud_loader/**
+      - experiments/csharp/BunnyCsSdk/BunnyCloud.cs
+      - experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj
       - .github/workflows/check-csharp-cloudloader-source.yml
   workflow_dispatch:
 
@@ -20,6 +22,14 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+      - name: Install .NET 8 for managed cloud API test (no Android SDK)
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Compile and execute managed CSharp cloud examples
+        run: dotnet run --project tests/cloud_loader/CloudContractTests.csproj -c Release
+      - name: Build integrated source-only BunnySourceSdk project
+        run: dotnet build experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj -c Release
       - name: GCC strict regression (no Android SDK or APK)
         run: bash tests/cloud_loader/run_native.sh
       - name: Clang ASan and UBSan regression
