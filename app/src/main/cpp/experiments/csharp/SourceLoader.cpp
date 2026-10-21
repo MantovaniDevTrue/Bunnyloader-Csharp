@@ -1,4 +1,6 @@
 #include "experiments/csharp/SourceLimits.h"
+#include "experiments/csharp/ManagedGoreDiscovery.h"
+#include "experiments/csharp/ManagedGoreRuntime.h"
 #include "experiments/csharp/SourceLoader.h"
 
 #include "experiments/csharp/NativeContent.h"
@@ -320,6 +322,13 @@ bool fields(const ParsedSourceType& type, NativeContentSpec* spec,
 
 bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
     const std::string folder = mod.dir + "/content";
+    std::vector<gore::Source> goreSources;
+    if (!gore::discover(mod.dir, &goreSources, &status->error)) {
+        status->error = "[CSharp][ERROR][GoreLoader] Mod=" + mod.id +
+            " Stage=Discover Result=Rejected Detail=" + status->error;
+        return false;
+    }
+    status->goreSourcesDiscovered = static_cast<int>(goreSources.size());
     std::vector<std::string> paths;
     if (!collect(folder, "", &paths, &status->error, 0)) return false;
     if (paths.empty() || paths.size() > kSourceMaxFiles) {
@@ -579,13 +588,19 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
     }
     status->screenEffects = static_cast<int>(screenEffects.size());
     if (status->items+status->tiles+status->projectiles+status->buffs+
-        status->npcs+status->prefixes+status->players+status->screenEffects==0) {
+        status->npcs+status->prefixes+status->players+status->screenEffects+
+        status->goreSourcesDiscovered==0) {
         status->error = "mod C# sem conteudo registrado";
         return false;
     }
     if (!screenEffects.empty() &&
         !bl::graphics::registerCSharpScreenEffects(mod.id, folder, screenEffects, &status->error))
         return false;
+    if (!goreSources.empty() && !gore::install(mod.id, goreSources, &status->error)) {
+        status->error = "[CSharp][ERROR][GoreLoader] Mod=" + mod.id +
+            " Stage=NativeInstall Result=Rejected Detail=" + status->error;
+        return false;
+    }
     return true;
 }
 
@@ -597,6 +612,9 @@ bool loadCSharpSourceMod(const bl::mods::LoadedMod& mod) {
     status.directory = mod.dir;
     status.loaded = load(mod, &status);
     if (status.loaded) {
+        if (status.goreSourcesDiscovered > 0)
+            BL_INFO("C# GoreLoader %s: %d PNGs registrados em arrays nativos",
+                    mod.id.c_str(), status.goreSourcesDiscovered);
         BL_INFO("C# source %s: %d arquivo(s), %d item(ns), %d projetil(is), %d buff(s), %d pocao(oes), %d NPC(s)",
                 mod.id.c_str(), status.sourceFiles, status.items,
                 status.projectiles, status.buffs, status.potions, status.npcs);
