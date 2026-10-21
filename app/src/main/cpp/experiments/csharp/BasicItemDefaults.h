@@ -26,7 +26,7 @@ struct BasicItemEntry {
     std::string name; int type=-1; int defense=0;
     std::array<int,BasicFieldCount> values{0,0,1,0,0,0,0,0,0,0,0,0,0,0};
     float knockBack=0;
-    std::string useSound,tooltip,behavior,modDir,modId,sourceFile;
+    std::string useSound,tooltip,behavior,modDir,modId,sourceFile,tooltipPlan;
     std::map<std::string,std::string> localizedTooltips;
     std::vector<BasicAccessoryEffect> accessoryEffects;
     BasicArmorPolicy armor;
@@ -166,7 +166,7 @@ inline bool parseBasicAccessoryEffects(const std::string& wire,BasicItemEntry* i
     return true;
 }
 inline bool parseBasicItemWire(const std::vector<std::string>& fields,BasicItemEntry* item,std::string* error) {
-    if((fields.size()<20||fields.size()>26)||fields[0]!="ITEM") {*error="ITEM requer 20 a 26 campos";return false;}
+    if((fields.size()<20||fields.size()>27)||fields[0]!="ITEM") {*error="ITEM requer 20 a 27 campos";return false;}
     BasicItemEntry out;out.name=fields[1];
     for(size_t i=0;i<BasicFieldCount;++i)if(!basicInteger(fields[i+2],&out.values[i])) {*error=out.name+": inteiro invalido em "+kBasicFieldNames[i];return false;}
     if (out.values[BasicRare] > 11) {
@@ -261,8 +261,30 @@ inline bool parseBasicItemWire(const std::vector<std::string>& fields,BasicItemE
         *error=out.name+": defesa nativa fora do limite";return false;
     }
     if(fields.size()>=25&&!parseBasicAccessoryEffects(fields[24],&out,error))return false;
-    if(fields.size()==26&&!parseBasicArmorPolicy(fields[25],&out.armor)) {
+    if(fields.size()>=26&&fields[25]!="-"&&!parseBasicArmorPolicy(fields[25],&out.armor)) {
         *error=out.name+": politica nativa de armadura invalida";return false;
+    }
+    if(fields.size()==27&&fields[26]!="-") {
+        const std::string& hex=fields[26];
+        if(hex.size()>8192||hex.empty()||hex.size()%2) {
+            *error=out.name+": tooltip draw plan oversized";return false;
+        }
+        auto nibble=[](char value)->int{
+            return value>='0'&&value<='9'?value-'0':
+                value>='A'&&value<='F'?value-'A'+10:
+                value>='a'&&value<='f'?value-'a'+10:-1;
+        };
+        for(size_t i=0;i<hex.size();i+=2) {
+            const int a=nibble(hex[i]),b=nibble(hex[i+1]);
+            if(a<0||b<0||((a<<4)|b)<32) {
+                *error=out.name+": invalid tooltip plan hex";return false;
+            }
+            out.tooltipPlan.push_back(static_cast<char>((a<<4)|b));
+        }
+        if(out.tooltipPlan.size()<2||out.tooltipPlan.front()!='['||
+           out.tooltipPlan.back()!=']') {
+            *error=out.name+": invalid tooltip plan envelope";return false;
+        }
     }
     if(!validateBasicItem(out,error)||!parseBasicRecipes(fields[19],&out,error))return false;
     *item=std::move(out);return true;
