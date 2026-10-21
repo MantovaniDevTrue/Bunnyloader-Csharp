@@ -15,6 +15,7 @@
 #include "experiments/csharp/NativeTouchIconHooks.h"
 #include "experiments/csharp/NativeTouchPointer.h"
 #include "experiments/csharp/NativeTouchLayoutHooks.h"
+#include "experiments/csharp/NativeTouchGroups.h"
 #include "experiments/csharp/NativeTouchInput.h"
 #include "graphics/CSharpScreenEffects.h"
 #include "experiments/csharp/NativeContent.h"
@@ -1201,6 +1202,7 @@ void retryWorldManagedPrefixesWhenReady() {
 void noteAutoWorldTilesLoaded() {
     std::lock_guard<std::mutex> sessionGuard(g_worldTransitionMutex);
     touch::registry().resetWorld();
+    touch::resetNativeTouchGroupSession();
     clearManagedVisualCommands();
     resetNativeVisualRenderer();
     g_visualUpdateTick.store(0, std::memory_order_relaxed);
@@ -1294,6 +1296,7 @@ void noteAutoGameUpdate() {
         resetNativeVisualRenderer();
         g_visualUpdateTick.store(0, std::memory_order_relaxed);
         touch::registry().resetWorld();
+    touch::resetNativeTouchGroupSession();
         g_worldExits.fetch_add(1, std::memory_order_relaxed);
         g_worldEpoch.fetch_add(1, std::memory_order_acq_rel);
         g_worldSessionReady.store(false, std::memory_order_release);
