@@ -45,6 +45,7 @@ std::deque<ItemBinding> g_requests;
 std::deque<ItemUseEvent> g_events;
 std::map<int, ItemBinding> g_installed;
 std::set<int> g_loggedUse;
+std::set<std::string> g_loggedConsumed;
 std::atomic<unsigned> g_bindFailures{0};
 std::atomic<uint64_t> g_session{0};
 std::atomic<bool> g_ready{false};
@@ -74,47 +75,66 @@ bool sameBinding(const ItemBinding& a, const ItemBinding& b) {
 }
 
 int startFlags(Il2CppObject* player) {
-    if (!player || !runtime::resolveGameRefs()) return 0;
-    static FieldInfo* day = nullptr;
-    static FieldInfo* surface = nullptr;
-    static FieldInfo* invasion = nullptr;
-    static FieldInfo* menu = nullptr;
-    static FieldInfo* firstBoss = nullptr;
-    static int health = -1;
-    if (!day || !surface || !invasion || !menu || !firstBoss || health < 0) {
-        auto* main = il2cpp::findClass({"Terraria", "Main", {}});
-        auto* klass = il2cpp::findClass({"Terraria", "Player", {}});
-        if (!main || !klass) return 0;
-        day = il2cpp::findField(main, "dayTime");
-        surface = il2cpp::findField(main, "worldSurface");
-        invasion = il2cpp::findField(main, "invasionType");
-        menu = il2cpp::findField(main, "gameMenu");
-        auto* npc = il2cpp::findClass({"Terraria", "NPC", {}});
-        firstBoss = npc ? il2cpp::findField(npc, "downedBoss1") : nullptr;
-        health = il2cpp::fieldOffset(klass, "statLife");
-    }
-    if (!day || !surface || !invasion || !menu || health < 0) return 0;
+    if (!player) return 0;
+    int flags = g_ready.load(std::memory_order_acquire) &&
+        g_session.load(std::memory_order_acquire) != 0 ? 16 : 0;
+    auto* main = il2cpp::findClass({"Terraria", "Main", {}});
+    auto* klass = il2cpp::findClass({"Terraria", "Player", {}});
+    if (!klass) return flags;
+    const int health = il2cpp::fieldOffset(klass, "statLife");
+    if (health >= 0 && runtime::field<int32_t>(player, health) > 0)
+        flags |= 8;
+    if (!main) return flags;
     auto& api = il2cpp::api();
-    uint8_t daytime = 0, gameMenu = 1, boss1 = 0;
+    auto* day = il2cpp::findField(main, "dayTime");
+    auto* surface = il2cpp::findField(main, "worldSurface");
+    auto* invasion = il2cpp::findField(main, "invasionType");
+    auto* npc = il2cpp::findClass({"Terraria", "NPC", {}});
+    auto* firstBoss = npc ? il2cpp::findField(npc, "downedBoss1") : nullptr;
+    auto isStaticType = [&](FieldInfo* field, const char* expected) {
+        if (!field || !api.field_get_type || !api.type_get_name ||
+            !api.field_get_flags || !api.il2cpp_free ||
+            (api.field_get_flags(field) & 0x10u) == 0) return false;
+        char* value = api.type_get_name(api.field_get_type(field));
+        const bool matched = value && std::strcmp(value, expected) == 0;
+        if (value) api.il2cpp_free(value);
+        return matched;
+    };
+    if (isStaticType(day, "System.Boolean")) {
+        uint8_t daytime = 0;
+        api.field_static_get_value(day, &daytime);
+        if (daytime) flags |= 1;
+    }
+    if (isStaticType(invasion, "System.Int32")) {
+        int invasionType = -1;
+        api.field_static_get_value(invasion, &invasionType);
+        if (invasionType == 0) flags |= 4;
+    }
+    if (isStaticType(firstBoss, "System.Boolean")) {
+        uint8_t downed = 0;
+        api.field_static_get_value(firstBoss, &downed);
+        if (downed) flags |= 32;
+    }
     double surfaceY = 0;
-    int invasionType = -1;
-    api.field_static_get_value(day, &daytime);
-    api.field_static_get_value(surface, &surfaceY);
-    api.field_static_get_value(invasion, &invasionType);
-    api.field_static_get_value(menu, &gameMenu);
-    if (firstBoss) api.field_static_get_value(firstBoss, &boss1);
-    struct Point {float x, y;};
-    const Point playerPos = runtime::field<Point>(
-        player, runtime::game().entity.position);
-    int flags = 0;
-    if (daytime != 0) flags |= 1;
-    if (std::isfinite(surfaceY) && std::isfinite(playerPos.y) &&
-        playerPos.y < static_cast<float>(surfaceY * 16.0 + 32.0))
-        flags |= 2;
-    if (invasionType == 0) flags |= 4;
-    if (runtime::field<int32_t>(player, health) > 0) flags |= 8;
-    if (gameMenu == 0) flags |= 16;
-    if (boss1 != 0) flags |= 32;
+    bool surfaceReady = false;
+    if (isStaticType(surface, "System.Single")) {
+        float value = 0;
+        api.field_static_get_value(surface, &value);
+        surfaceY = value;
+        surfaceReady = std::isfinite(value);
+    } else if (isStaticType(surface, "System.Double")) {
+        api.field_static_get_value(surface, &surfaceY);
+        surfaceReady = std::isfinite(surfaceY);
+    }
+    if (surfaceReady && surfaceY > 0.0 && surfaceY < 100000.0 &&
+        runtime::resolveGameRefs()) {
+        struct Point { float x, y; };
+        const Point position = runtime::field<Point>(
+            player, runtime::game().entity.position);
+        if (std::isfinite(position.y) &&
+            position.y < static_cast<float>(surfaceY * 16.0 + 32.0))
+            flags |= 2;
+    }
     return flags;
 }
 
@@ -243,6 +263,7 @@ void setNativeItemUseWorldState(bool ready, uint64_t session) {
         g_events.clear();
         g_installed.clear();
         g_loggedUse.clear();
+        g_loggedConsumed.clear();
         g_bindFailures.store(0, std::memory_order_relaxed);
     }
     g_session.store(session, std::memory_order_release);
@@ -343,6 +364,9 @@ int bunny_item_use_poll_context(int64_t session, const char* mod,
     if (it == g_events.end()) return 0;
     *playerIndex = it->player;
     *flags = it->flags;
+    if (g_loggedConsumed.insert(it->name).second)
+        BL_INFO("[CSharp][ItemUse] Stage=Consumed Class=%s Player=%d Flags=%d Result=DeliveredToMonoVM",
+                it->name.c_str(), it->player, it->flags);
     g_events.erase(it);
     return 1;
 }
