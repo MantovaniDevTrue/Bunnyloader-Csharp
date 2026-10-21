@@ -345,3 +345,35 @@ O teste de paridade compara assinaturas declaradas nas fontes, não a
 ABI efetiva do jogo. Ainda é necessário validar o hook com IL2CPP
 real em ARM64, imagem de ícones, grupos, salvamento/compartilhamento,
 coexistência JS/C#, FPS e dispositivos. PR draft, sem merge ou APK/.bmod.
+
+
+## Lote de 21/10/2026 — cache dos grupos e ícones
+
+- `NativeTouchIconHooks` usa a mesma prioridade de estados do
+  `TouchButtonHooks.js` do Bunny Loader: pressionado, normal,
+  desabilitado; o efeito de pressão não desaparece no desenho nativo.
+- A varredura de grupos continua limitada a 30 atualizações ou mudança
+  imediata da identidade do perfil, mas compara SlotId e 16 ações antes de
+  invalidar os GCHandles. Strings IL2CPP e handles são reutilizados enquanto
+  o grupo permanece igual; ao trocar de perfil ou alterar botões, o cache
+  é reconstruído. Isso evita churn de memória gerenciada a cada scan.
+- `GroupStates.ContainsKey` e `get_Item` validam o argumento
+  System.String e o retorno booleano; o tipo e offset Int32 de
+  `pressedIndex` são descobertos apenas quando a classe muda.
+  Nenhuma nova reflexão é executada durante Draw.
+- `Registry::iconSources` lê todas as fontes de ícone com uma trava
+  compartilhada em vez de chamar individualmente `ownerId` e
+  `iconPath` 256 vezes a cada varredura. O gerenciador de ícones
+  percorre apenas a quantidade monotônica de IDs alocados;
+  IDs descarregados retornam origem vazia e têm o recurso liberado.
+- Testes nativos verificam o snapshot de nomes e paths em dois mods,
+  descarregamento e retorno sem reutilização do ID. Preservados PNG
+  originais e fallback ao ícone do mod quando o arquivo específico faltar.
+- [CI #39629077419](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39629077419):
+  `native-contract` e `managed-contract` passaram, com ASan/UBSan,
+  compile-only do Terraria ABI e teste de assinaturas JS/C++.
+
+Os testes source-only comprovam compilação e contratos, não desenho nem
+performance reais. A confirmação de ARM64 e 60 FPS requer a execução
+do Terraria Android e validação visual do editor, grupos e sprites.
+Não houve APK, .bmod ou merge; PR continua em draft.
