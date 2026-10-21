@@ -808,6 +808,12 @@ void applyBasicItemAccessoryEffects(Il2CppObject* player,int itemType) {
         else std::memcpy(target,&results[i],sizeof(float));
     }
 }
+std::string basicItemTooltipPlan(int type) {
+    std::lock_guard lock(mutex);
+    const auto it=definitions.find(type);
+    return it==definitions.end()?std::string{}:it->second.tooltipPlan;
+}
+
 bool basicItemIsAccessory(int type) {std::lock_guard lock(mutex);auto it=definitions.find(type);return it!=definitions.end()&&(it->second.values[BasicFlags]&32);}
 std::vector<BasicItemEntry> pendingBasicItemBehaviors() {
     std::lock_guard lock(mutex);std::vector<BasicItemEntry> out;
