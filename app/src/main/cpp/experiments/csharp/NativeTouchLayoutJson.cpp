@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <fcntl.h>
 #include <fstream>
 #include <iterator>
 #include <set>
@@ -299,9 +300,23 @@ bool saveTouchLayoutFile(const std::string& dir, const SavedProfiles& data) {
     if (!pathFor(dir, &path)) return false;
     const std::string json = writeTouchLayoutJson(data);
     if (json.empty()) return false;
+    struct stat current{};
+    if (lstat(path.c_str(), &current) == 0) {
+        if (!S_ISREG(current.st_mode)) return false;
+    } else if (errno != ENOENT) {
+        return false;
+    }
     const std::string temp = path + ".tmp";
-    FILE* output = fopen(temp.c_str(), "wb");
-    if (!output) return false;
+    const int fd = open(temp.c_str(),
+                        O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC | O_NOFOLLOW,
+                        0600);
+    if (fd < 0) return false;
+    FILE* output = fdopen(fd, "wb");
+    if (!output) {
+        close(fd);
+        unlink(temp.c_str());
+        return false;
+    }
     bool ok = fwrite(json.data(), 1, json.size(), output) == json.size();
     if (fflush(output) != 0) ok = false;
     if (fsync(fileno(output)) != 0) ok = false;
