@@ -1232,6 +1232,7 @@ void noteAutoGameUpdate() {
     touch::pumpNativeTouchObserverOnGameThread();
     touch::pumpNativeTouchEditorLabelsOnGameThread();
     touch::ensureNativeTouchStaticMappingsOnGameThread();
+    touch::pumpNativeTouchIconsOnGameThread();
     if (managedEntitySourceModsRegistered() &&
         runtime::modNpcsSettled() && runtime::modProjectilesSettled()) {
         installNpcAiHost();
