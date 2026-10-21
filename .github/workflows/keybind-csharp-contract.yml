@@ -121,6 +121,9 @@ jobs:
             -o "$RUNNER_TEMP/native-touch-identity"
           ASAN_OPTIONS=detect_leaks=1 UBSAN_OPTIONS=halt_on_error=1 \
             "$RUNNER_TEMP/native-touch-identity"
+      - name: Verify Terraria hook signatures match Bunny reference
+        shell: bash
+        run: python3 tests/keybind_loader/check_native_touch_signatures.py
       - name: Compile-only Terraria native ABI preflight (no APK)
         shell: bash
         run: |
