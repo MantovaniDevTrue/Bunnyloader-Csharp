@@ -63,6 +63,8 @@ bool readNativeCloudVanillaBiomeFacts(bool gameMenu,
 
     FieldInfo *playersField = nullptr, *localIndexField = nullptr;
     FieldInfo* tilesXField = nullptr;
+    FieldInfo* menuField = nullptr;
+    FieldInfo* anniversaryField = nullptr;
     int activeOffset = -1, skyOffset = -1;
     int surfaceOffset = -1, positionOffset = -1;
     if (!fieldArrayIsPlayer(main, player, &playersField) ||
@@ -70,6 +72,10 @@ bool readNativeCloudVanillaBiomeFacts(bool gameMenu,
             true, sizeof(int32_t), &localIndexField, nullptr, error) ||
         !il2cpp::nativeFieldContract(main, "maxTilesX", "System.Int32",
             true, sizeof(int32_t), &tilesXField, nullptr, error) ||
+        !il2cpp::nativeFieldContract(main, "gameMenu", "System.Boolean",
+            true, sizeof(uint8_t), &menuField, nullptr, error) ||
+        !il2cpp::nativeFieldContract(main, "tenthAnniversaryWorld", "System.Boolean",
+            true, sizeof(uint8_t), &anniversaryField, nullptr, error) ||
         !il2cpp::nativeFieldContract(player, "active", "System.Boolean",
             false, sizeof(uint8_t), nullptr, &activeOffset, error) ||
         !il2cpp::nativeFieldContract(player, "ZoneSkyHeight", "System.Boolean",
@@ -81,7 +87,11 @@ bool readNativeCloudVanillaBiomeFacts(bool gameMenu,
         return false;
 
     int32_t index = -1, maxTilesX = 0;
+    uint8_t inMenu = 1, anniversary = 0;
     Il2CppArray* players = nullptr;
+    api.field_static_get_value(menuField, &inMenu);
+    api.field_static_get_value(anniversaryField, &anniversary);
+    if (inMenu) return fail(error, "CloudBiome: main menu is active");
     api.field_static_get_value(localIndexField, &index);
     api.field_static_get_value(tilesXField, &maxTilesX);
     api.field_static_get_value(playersField, &players);
@@ -108,6 +118,7 @@ bool readNativeCloudVanillaBiomeFacts(bool gameMenu,
 
     facts->playerActive = true;
     facts->gameMenu = false;
+    facts->tenthAnniversaryWorld = anniversary != 0;
     facts->zoneSkyHeight = sky;
     facts->zoneOverworldHeight = surface;
     facts->playerPositionX = pos.x;
