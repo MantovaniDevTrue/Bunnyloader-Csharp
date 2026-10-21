@@ -40,6 +40,7 @@ bool applyNativeCloudSpriteResultOnGameThread(
 
 // Never uninstall chained ShadowHook trampolines in world transitions.
 // Pausing must precede any texture/mask cleanup.
+bool nativeCloudHooksEnabled();
 void pauseNativeCloudHooks();
 
 } // namespace bl::csharp
