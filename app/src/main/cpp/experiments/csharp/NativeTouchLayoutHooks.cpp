@@ -27,6 +27,7 @@ SaveFn originalLoad = nullptr;
 ShareFn originalShare = nullptr;
 std::atomic<bool> installed{false};
 std::atomic<bool> restored{false};
+uint64_t restoredVersion = 0;
 bool attempted = false;
 
 struct Changed {
@@ -182,6 +183,7 @@ void onLoad(Il2CppObject* styles, Il2CppObject* prefs, const MethodInfo* method)
     SavedProfiles profiles;
     if (!directory.empty() && loadTouchLayoutFile(directory, &profiles)) {
         restoreBindings(bindings, profiles);
+        restoredVersion = registry().registrationVersion();
         restored.store(true, std::memory_order_release);
     }
 }
@@ -212,7 +214,9 @@ bool nativeTouchLayoutsRestored() {
 
 bool reapplyNativeTouchLayoutsOnGameThread() {
     if (!nativeTouchLayoutHooksInstalled()) return false;
-    if (restored.load(std::memory_order_acquire)) return true;
+    const uint64_t version = registry().registrationVersion();
+    if (restored.load(std::memory_order_acquire) &&
+        restoredVersion == version) return true;
     Il2CppObject* styles = currentNativeTouchStyles();
     std::vector<NativeLayoutBinding> bindings;
     if (!collect(styles, &bindings)) return false;
@@ -221,6 +225,7 @@ bool reapplyNativeTouchLayoutsOnGameThread() {
     if (directory.empty() || !loadTouchLayoutFile(directory, &saved))
         return false;
     restoreBindings(bindings, saved);
+    restoredVersion = version;
     restored.store(true, std::memory_order_release);
     return true;
 }
