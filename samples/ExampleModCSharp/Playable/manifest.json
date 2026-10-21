@@ -2,7 +2,7 @@
   "uid": "68c3115f-62f4-49f2-a56b-388256781d5f",
   "id": "examplemodcsharp",
   "name": "ExampleMod CSharp",
-  "version": "0.1.62",
+  "version": "0.1.63",
   "authors": [
     {
       "name": "Bunny Loader",
@@ -10,7 +10,7 @@
     }
   ],
   "category": "Example",
-  "summary": "QA experimental: Localization, Rarity, AnglerQuest, Dust, Invasion, CommandLoader e SoundLoader C#; exemplos editáveis e validação Android pendente.",
+  "summary": "Exemplos C# editáveis incluindo ModifyTooltips e PreDrawTooltipLine, linha arco-íris animada e coloração dourada pelo renderizador Bunny",
   "license": "MIT",
   "blVersion": 2,
   "gameVersion": [

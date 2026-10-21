@@ -2,10 +2,10 @@
   "schema": 1,
   "base": "cfbe784ee3cb",
   "branch": "integration/ready-prs-source-fixes-20261020",
-  "apkVersion": "1.0.5-seven-prs-qa",
-  "exampleVersion": "0.1.62",
+  "apkVersion": "1.0.6-tooltip-callbacks-qa",
+  "exampleVersion": "0.1.63",
   "experimental": true,
-  "androidValidation": "Pending manual QA on Android: flags, event consumption, dust emission, entire hovered Disco tooltip",
+  "androidValidation": "Pending Android QA on 1.0.6 for tooltip drawing, Dust, Invasion and AnglerQuest",
   "selectedPullRequests": [
     {
       "number": 101,
@@ -93,7 +93,8 @@
     "Permit native active-player fallback for solo item-use world ticks and log first per-mod result without spamming",
     "Independent safe native item-use context flags: support Main.gameMenu property and Single/Double worldSurface without dropping PlayerAlive and WorldReady",
     "Confirm first native item event consumption by MonoVM and first Dust emission acceptance/rejection with bounded game logs",
-    "Bounded hovered tooltip text tint after title match using the existing verified SpriteBatch.DrawString hook; preserve all unrelated UI"
+    "Bounded hovered tooltip text tint after title match using the existing verified SpriteBatch.DrawString hook; preserve all unrelated UI",
+    "BunnyItem virtual ModifyTooltips(List<BunnyTooltipLine>) and PreDrawTooltipLine(BunnyDrawableTooltipLine) compile validated line plans, later rendered through the original Bunny JS TooltipLoader with no per-frame MonoVM"
   ],
   "manualInstructions": "docs/ready-prs-android-qa.md"
 }

@@ -1,6 +1,6 @@
 # Sete PRs integrados — QA experimental Android
 
-Bunny `1.0.5-seven-prs-qa` (versionCode 304), ExampleMod CSharp `0.1.62`.
+Bunny `1.0.6-tooltip-callbacks-qa` (versionCode 305), ExampleMod CSharp `0.1.63`.
 Base: `v1.0` em `cfbe784ee3cb`. Branch: `integration/ready-prs-20261020`.
 
 Este APK reúne os PRs #101 (Localization), #102 (Rarity), #114 (AnglerQuest),
@@ -12,7 +12,7 @@ Os commits congelados estão em `ready-prs-integration.json`.
 ## Instalação
 
 Instale o APK experimental assinado `Bunny Loader C# Test`, pacote
-`com.bunnyloader.csharptest`, e importe `ExampleMod-CSharp-0.1.62.bl`.
+`com.bunnyloader.csharptest`, e importe `ExampleMod-CSharp-0.1.63.bl`.
 Preserva o UID do ExampleMod e os identificadores das classes existentes.
 Não é necessário limpar caches ou apagar saves; a identidade do compilador mudou
 para reconstruir caches incompatíveis automaticamente. Faça cópia dos saves de
@@ -29,7 +29,7 @@ assets e referências; chamadas comuns/genéricas permanecem a cargo do Mono.
 O HUD obtém o tipo `Color` dos parâmetros dos overloads nativos, valida seu
 layout e não procura `Microsoft.Xna.Framework.Color` por suposição.
 
-Repetir primeiro o carregamento com o pacote `0.1.62`: nenhuma falha do parser
+Repetir primeiro o carregamento com o pacote `0.1.63`: nenhuma falha do parser
 na poção, arma ou acessório. Abrir os tooltips de Example Defense Potion,
 Example C# Wand e Example Stat Accessory e conferir suas cores. Depois iniciar
 a Example Invasion, conferir barra e texto sem erro de classe `Color`.
@@ -117,3 +117,9 @@ A execução de OnHitNPC já estava confirmada no relatório Android, mas o esta
 ## QA 1.0.5: após o relatório do ItemUse
 
 O relatório Android 1.0.4 confirmou `WorldTickSnapshot Ready=1 Mode=0`, `Stage=Bind Result=Ready` para Charm e Beacon, além de `Stage=ActualUse Result=Queued Flags=0`. Nesta revisão os indicadores são lidos independentemente, evitando zerar `PlayerAlive` e `WorldReady` se `Main.gameMenu` for propriedade ou `worldSurface` tiver outro tipo numérico. O contrato Surface exige coordenada verificada, e multiplayer continua sob autoridade do host. O relatório deverá mostrar, nessa ordem: `ActualUse`, `Consumed`, e, no Dust Charm, `DustEmission Stage=EmitRequest`; resultado do callback ainda depende de validação no Android. Para a raridade Disco, conferir não só o nome mas as linhas do tooltip; o fallback é limitado à região visual abaixo do nome e não altera as cores fora dela.
+
+## QA 1.0.6: callbacks de tooltip C#
+
+O SDK usa `BunnyItem.ModifyTooltips(List<BunnyTooltipLine>)` e `BunnyItem.PreDrawTooltipLine(BunnyDrawableTooltipLine)`. São callbacks de configuração executados ao compilar os defaults, não hooks gerenciados por quadro. A configuração fica no registro nativo do item, exposta via `bl.csharp.tooltipPlan(type)` ao mesmo `TooltipLoader` de Bunny JS. O próprio renderizador executa a onda e o arco-íris no `SpriteBatch`. Códigos arbitrários de desenho C# em tempo real ainda não são suportados.
+
+Ative **ExampleMod CSharp 0.1.63** e use o `ExampleTooltipItem`, que contém as mesmas três linhas do exemplo JS: `Exemplo de Tooltip`, `Bunny Loader` em arco-íris com onda e a descrição dourada. Conferir também um item vanilla e um item JS, para garantir ausência de alterações indevidas, e observar o FPS. As condições de AnglerQuest agora relatam especificamente qual contrato falhou. Dust e Invasion ainda exigem validação dos callbacks de uso no dispositivo.
