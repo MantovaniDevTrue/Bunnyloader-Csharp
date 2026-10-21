@@ -42,6 +42,7 @@ public:
               const int* bound, size_t boundCount);
     uint32_t read(int id) const;
     std::string fullName(int id) const;
+    std::string displayName(int id) const;
     int count() const;
     void resetWorld();
     void unloadMod(std::string_view owner);
