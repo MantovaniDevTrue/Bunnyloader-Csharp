@@ -27,6 +27,7 @@
 #include "experiments/csharp/ManagedProjectileHook.h"
 #include "experiments/csharp/NpcAiHost.h"
 #include "experiments/csharp/ManagedRuntime.h"
+#include "experiments/csharp/NativeAchievementHooks.h"
 #include "experiments/csharp/MonoServiceDispatch.h"
 #include "experiments/csharp/SourceLoader.h"
 #include "experiments/csharp/ManagedSourceClassCount.h"
@@ -816,7 +817,8 @@ void run() {
             note(&status, "failed", "Tabelas de projetil nao ficaram prontas");
             continue;
         }
-        if ((mod.projectiles > 0 || mod.npcs > 0 || hasUniversalHooks || mod.screenEffects > 0) &&
+        if ((mod.projectiles > 0 || mod.npcs > 0 || hasUniversalHooks ||
+             mod.screenEffects > 0 || mod.achievements > 0) &&
             !g_runtimeWarmStarted.exchange(true, std::memory_order_acq_rel)) {
             const std::string probe = work + "BunnyManagedProbe.dll";
             struct stat probeStat{};
@@ -882,6 +884,34 @@ void run() {
                 mod.id.c_str(),status.cached?"Hit":"Miss",cacheReason.c_str(),cacheWrite.c_str(),
                 tablesMs,cacheMs,compileMs,elapsedMilliseconds(applyStarted));
         status.applied = true;
+        if (mod.achievements > 0) {
+            // O compilador já executou SetStaticDefaults e verificou a assembly.
+            // Agora a MESMA assembly é vinculada ao worker antes do mundo abrir.
+            const auto deadline = std::chrono::steady_clock::now() + 15s;
+            while (!managedRecipeRuntimeReady() &&
+                   std::chrono::steady_clock::now() < deadline)
+                std::this_thread::sleep_for(50ms);
+            if (!managedRecipeRuntimeReady()) {
+                note(&status, "failed",
+                     "AchievementLoader: MonoVM nao ficou pronto antes da entrada no mundo");
+                continue;
+            }
+            std::string manifest;
+            if (!invokeManagedAchievementControl(mod.id, assembly, 0, "",
+                                                 &manifest, 15000) ||
+                !manifest.starts_with("BACH_META_V1\n")) {
+                note(&status, "failed", "AchievementLoader: Bind C# falhou: " +
+                     manifest.substr(0, 200));
+                continue;
+            }
+            if (!registerNativeAchievementMod(mod.id, assembly)) {
+                note(&status, "failed",
+                     "AchievementLoader: vinculo nativo de mod duplicado ou cheio");
+                continue;
+            }
+            BL_INFO("[CSharp][AchievementLoader] Mod=%s Conquistas=%d Bind=Ready",
+                    mod.id.c_str(), mod.achievements);
+        }
         if (mod.screenEffects > 0) {
             graphics::CSharpScreenSceneCallback sceneCallback;
             if (graphics::findCSharpScreenSceneCallback(mod.id, &sceneCallback)) {
@@ -1250,6 +1280,21 @@ void noteAutoGameUpdate() {
         reportCSharpLoadSummary();
         return;
     }
+    if (nativeAchievementBindingsReady()) {
+        const bool inWorld = g_worldSessionReady.load(std::memory_order_acquire);
+        if (inWorld && !nativeAchievementHooksReady()) {
+            static unsigned attempt = 0;
+            // Falhas de ABI continuam desativadas e são diagnosticadas com
+            // limite de uma tentativa por segundo, não a cada quadro.
+            if (attempt++ % 60u == 0u) {
+                std::string error;
+                if (!installNativeAchievementHooks(&error))
+                    BL_WARN("[CSharp][AchievementLoader] Hooks indisponiveis: %s",
+                            error.c_str());
+            }
+        }
+        setNativeAchievementWorldActive(inWorld && nativeAchievementHooksReady());
+    }
     if (g_worldSessionReady.load(std::memory_order_acquire)) {
         graphics::pumpCSharpScreenEffects();
         const uint64_t tick = g_visualUpdateTick.fetch_add(1, std::memory_order_relaxed) + 1;
@@ -1272,6 +1317,7 @@ void noteAutoGameUpdate() {
         }
         std::lock_guard<std::mutex> sessionGuard(g_worldTransitionMutex);
         clearManagedVisualCommands();
+        setNativeAchievementWorldActive(false);
         graphics::clearCSharpScreenEffects();
         pauseManagedScreenSceneCallbacks();
         resetNativeVisualRenderer();
