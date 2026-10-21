@@ -9,39 +9,49 @@ Os nomes dos métodos Terraria foram conferidos no `SystemUpdateHooks.js` da pr�
 
 | Método C# (`protected override`) | Hook Terraria | Ordem |
 | --- | --- | --- |
-| PreUpdateEntities | Main.DoUpdateInWorld | Antes do original |
-| PostUpdateEverything | Main.DoUpdateInWorld | Depois do original |
+| PreUpdateEntities | estágio nativo EntitiesBegin | Antes de Main.DoUpdateInWorld |
+| PostUpdateEverything | estágio nativo EntitiesEnd | Depois de Main.DoUpdateInWorld |
 | PreUpdateProjectiles | Main.PreUpdateAllProjectiles | Antes do original |
 | PreUpdateDusts | Dust.UpdateDust | Antes do original |
 | PostUpdateDusts | Dust.UpdateDust | Depois do original |
 | PreUpdateInvasions | Main.UpdateInvasion | Antes do original |
 | PostUpdateInvasions | Main.UpdateInvasion | Depois do original |
 | PostUpdateInput | Main.DoUpdate_HandleInput | Depois do original |
+| PreUpdatePlayers | estágio nativo PlayersBegin | Antes da atualização dos jogadores |
+| PostUpdatePlayers | estágio nativo PlayersEnd | Depois dos jogadores |
+| PreUpdateNPCs | estágio nativo NPCsBegin | Antes dos NPCs |
+| PostUpdateNPCs | estágio nativo NPCsEnd | Antes dos gores |
+| PreUpdateGores | estágio nativo NPCsEnd | Após PostUpdateNPCs, antes dos gores |
+| PostUpdateGores | estágio nativo GoresEnd | Depois dos gores |
+| PostUpdateProjectiles | estágio nativo ItemsBegin | Após projéteis, antes dos itens |
+| PreUpdateItems | estágio nativo ItemsBegin | Após PostUpdateProjectiles |
+| PostUpdateItems | estágio nativo ItemsEnd | Depois dos itens |
 
-Os oito métodos acima estão implementados no **núcleo C# do lote atual**, mas
-o SystemUpdateHooks.js da base implementa também mais onze callbacks. A
-PR **não está completa** enquanto estes onze não tiverem um contrato nativo
-equivalente, teste e documentação.
+Os **17 métodos acima** já possuem declaração C# e ponte nativa projetada.
+O estágio C# usa as sete âncoras ARM64 da própria implementação do Bunny,
+com validação exata dos quatro opcodes originais antes de instalar um hook.
+Uma incompatibilidade na versão do Terraria aborta a instalação.
 
-| Ainda faltando no C# | Contrato do Bunny original |
+A ponte C++ mantém um método raiz `DoUpdateInWorld` e duas fases
+(`EntitiesBegin` / `EntitiesEnd`) para evitar espera circular no MonoVM.
+Os eventos intermediários correm antes de liberar o trampolim original.
+A execução entra pelo dispatcher C# existente; o JavaScript não despacha
+esses callbacks.
+
+**Ainda não implementados (2 de 19):**
+
+| Callback restante | Requisito |
 | --- | --- |
-| PreUpdatePlayers | estágio nativo PlayersBegin |
-| PostUpdatePlayers | estágio nativo PlayersEnd |
-| PreUpdateNPCs | estágio nativo NPCsBegin |
-| PostUpdateNPCs, PreUpdateGores | estágio nativo NPCsEnd |
-| PostUpdateGores | estágio nativo GoresEnd |
-| PostUpdateProjectiles, PreUpdateItems | estágio nativo ItemsBegin |
-| PostUpdateItems | estágio nativo ItemsEnd |
-| UpdateUI | Main.UpdateUIStates(GameTime), pós-original e fora do menu |
-| ModifyTimeRate | Main.UpdateTimeRate e estágio nativo ClockAdvance |
+| UpdateUI | Main.UpdateUIStates(GameTime), após o original e com filtro fora do menu |
+| ModifyTimeRate | Main.UpdateTimeRate, taxa de mundo/tile/eventos e etapa ClockAdvance |
 
-Os sete estágios estão embutidos em pontos precisos do método nativo
-`Main.DoUpdateInWorld`: não podem ser substituídos por callbacks arbitrários
-antes/depois da função inteira. `UpdateUI` exige uma assinatura GameTime ainda
-não exposta pelo BunnyHooks C#, e `ModifyTimeRate` exige acesso tipado à
-taxa e ao retorno do estágio ClockAdvance. Não inventar assinaturas C# para
-marcar estes casos como prontos; a futura ponte será C++/MonoVM própria,
-sem execução de JavaScript por trás do C#.
+O UI exige assinatura `GameTime` que a ABI universal atual não oferece.
+Alterar o tempo exige preservar frações e a taxa do relógio nativo;
+nenhuma substituição aproximada por evento de frame será aceita.
+
+**Validação até agora:** os testes no desktop não comprovam a ponte ARM64,
+os registradores no aparelho, os pontos de interceptação na libil2cpp nem o
+desempenho com mods concorrentes. APK e merge permanecem proibidos.
 
 ## Como escrever o mod
 
@@ -75,8 +85,10 @@ Troque para `true` apenas no pacote de QA, sem alterar a versão estável.
 - Apenas métodos sobrescritos recebem hook; um mod sem override custa zero chamadas extras.
 - Existe um hook físico por método, mesmo que dois mods C# usem o mesmo estágio.
 - Cada callback tem isolamento de exceção, contadores e erro resumido em `DiagnosticStatus()`.
-- O original do Terraria é solicitado uma só vez por estágio e os eventos depois dele
-  são executados no `finally`, inclusive se o original lançar exceção.
+- Nos estágios nativos internos, os callbacks ocorrem antes do retorno ao
+  trampolim ARM64; o método vanilla inteiro só é chamado uma vez.
+- Nos hooks universais de método, o original é chamado uma vez, e os
+  callbacks pós-original seguem protegidos por `finally`.
 - O cadastro é realizado durante `Load`, não em cada frame; os listeners são arrays
   imutáveis trocados apenas quando um mod entra ou sai.
 - O registry controla o dono **por estágio**, não pelo primeiro mod global.
@@ -91,13 +103,12 @@ Troque para `true` apenas no pacote de QA, sem alterar a versão estável.
 1. Compilar o `BunnySourceSdk` e os dois exemplos com o .NET 8, sem warnings ou erros.
 2. Passar o projeto `tests/world_update_loader`, incluindo três sistemas
    simulados, ordem dos eventos, exceções, partilha de hooks e unload/rebind.
-3. Verificar em revisão os nomes e assinaturas dos cinco alvos nativos (os nomes
-   vêm de `SystemUpdateHooks.js`, mas o ABI real depende do Terraria Mobile).
+3. Verificar os 4 métodos universais, 7 âncoras internas e o método raiz
+   comparando a ABI no Terraria Android 301720; conferir registradores ARM64.
 4. Verificar integração dos hooks com **dois mods ativos**, desligar um durante a
    sessão e confirmar o outro ainda ativo (sem duplo update do mundo).
-5. Confirmar ordem dos oito callbacks, quarentena de exceções, estabilidade em
+5. Confirmar ordem dos 17 callbacks, quarentena de exceções, estabilidade em
    mundo/menu, ausência de erro de MonoVM, FPS e unload/reload.
 
-**Estado:** primeira implementação C# feita; os outros onze callbacks do
-SystemUpdateHooks continuam em aberto. CI desktop e QA Android não substituem
-essa implementação. Não gerar APK nem mesclar enquanto faltar API, ABI ou teste. CI desta PR só compila/executa testes desktop.
+**Estado:** 17/19 APIs ligadas na fonte. `UpdateUI` e `ModifyTimeRate` ainda
+pendentes. CI não substitui QA Android nem libera APK/merge.
