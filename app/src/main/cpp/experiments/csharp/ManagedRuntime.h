@@ -34,6 +34,31 @@ bool readManagedScreenScene(const std::string& modId,
                             ManagedScreenLightResult* result);
 void pauseManagedScreenSceneCallbacks();
 
+struct ManagedCloudSpawnReply {
+    int type = -1;
+    int slot = -1;
+    uint32_t generation = 0;
+    float scale = 1.f;
+    int originalSpriteDir = 0;
+    int spriteDir = -1;
+};
+
+// Worker MonoVM reutilizado: registra classes e executa os métodos
+// BunnyCloudDispatcher na thread fixada, jamais dentro de Cloud.addCloud.
+// Chamadas do Terraria recebem apenas snapshots de dados primitivos.
+bool registerManagedCloudSourceMod(
+    const std::string& modId, const std::string& assemblyPath,
+    const std::vector<std::pair<int, std::string>>& clouds);
+bool managedCloudRegistrationReady(const std::string& modId);
+bool requestManagedCloudWeights(const std::string& modId, bool gameMenu,
+    bool tenthAnniversaryWorld, const std::string& biomeKeys);
+bool takeManagedCloudWeights(const std::string& modId, std::string* payload);
+bool queueManagedCloudOnSpawn(const std::string& modId, int type, int slot,
+    uint32_t generation, float scale, int spriteDir);
+bool takeManagedCloudOnSpawnReply(ManagedCloudSpawnReply* reply);
+void pauseManagedCloudCallbacks();
+
+
 
 struct ManagedHurtResult {
     int damage = 0;
