@@ -127,3 +127,68 @@ repositório. Não valida offsets ou assinaturas no libil2cpp do telefone.
 - host_ready segue **false** deliberadamente. O observador da atualização
   não libera a API C# para gameplay até TODO o conjunto estar validado.
 - Nenhum APK foi gerado. PR #120 permanece draft.
+
+
+## Lote adicional — namespaces de ações, editor e ícones (20–21/10/2026)
+
+### Implementação direta no repositório
+
+- NativeTouchActionIds: reserva separada de 512 posições entre os enums vanilla
+  e as ações C# para reduzir colisões com o TouchButtonLoader JS existente.
+  O offset não é um ID vanilla presumido: é calculado a partir dos três
+  enums refletidos no jogo; os limites são validados e há testes C++ dedicados.
+  Ainda é necessário confirmar a coexistência com múltiplos mods JS/C# na
+  build Android, especialmente quando outros loaders ultrapassarem a reserva.
+- NativeTouchEditor: hook de GetControlName para ações C# com cache de
+  Il2CppString enraizada em GCHandle, sem alocação em cada desenho, mantendo
+  o GetControlName original para os comandos vanilla.
+- NativeTouchStaticMappings: extensão das cinco tabelas estáticas
+  ButtonStyles, QuickActionControlFromLayoutControl,
+  ButtonControlFromLayoutControl, DefaultMode e RemappedMode.
+  As cinco são validadas antes de publicar alterações, preservando
+  bytes/valores originais e barrando conflitos com ações de outros mods.
+  O trabalho de reflexão é limitado a no máximo uma vez a cada 60 updates.
+- NativeTouchEditorOptions: adaptador C++ para acrescentar ações C# ativas
+  ao PulldownOptionGrid do editor, com validação do enum e proteção das
+  opções vanilla. **Ainda não é chamado no gameplay**, pois falta
+  concluir a cadeia de input, configuração e renderização antes de expor
+  botões selecionáveis.
+- NativeTouchIcons: carrega até quatro PNGs por lote de dez updates usando
+  ContentAssets e o diretório de mod conhecido pelo loader. Valida até 1 MiB,
+  restringe dimensões, mantém asset em GCHandle e impede acesso a disco no
+  caminho Draw; usa icon.png como fallback e libera recursos no unload.
+- NativeTouchIconHooks: intercepta GetControlTextureFrame e GetIconFrame
+  somente depois de validar enums, tipos out e layout da Rectangle.
+  Também prepara QuickActionButton.Draw com o overload nativo que recebe
+  Texture2D, redirecionando ações C# sem alterar o comportamento vanilla.
+  A ativação real no telefone **não foi verificada**.
+- BunnyTouchButtonLoader.TryBindNativeHost: registro dos botões é feito
+  **antes** de exigir host_ready. A ação permanece indisponível para
+  gameplay enquanto os hooks não estiverem completos; chamadas posteriores
+  podem finalizar a ligação sem travar a inicialização.
+- A expansão de arrays do Controller ganhou raízes temporárias de GCHandle
+  durante a alocação de Pressed/WasPressed/Scale, evitando que objetos
+  temporários sejam perdidos antes da barreira de escrita.
+- CI executa .NET 10, C++20 com -Wall -Wextra -Werror, ASan/UBSan,
+  testes de IDs e compilação sintática de cada nova unidade.
+  Não compila APK nem prova a ABI real do Android.
+
+### Por que a PR ainda não é release
+
+- Falta interceptar HandleTouchCursorDown com a ABI AArch64 correta de
+  Vector2/Cursor e resolver a ação por SlotId do perfil ativo.
+- Falta interpretar os grupos virtuais, saída do toque e visibilidade,
+  inclusive na transição entre chat, placa e diálogo.
+- Falta ligar NativeTouchEditorOptions ao editor somente quando todos
+  os caminhos de input e draw forem seguros.
+- Falta conectar BunnyTouchLayoutStore ao SaveConfiguration,
+  LoadConfiguration e GetShareCode do Terraria, impedindo que IDs C#
+  sejam gravados diretamente no arquivo vanilla.
+- Falta leitura real de IsBound, controles atribuídos e atualização
+  MonoVM ao longo do frame, incluindo o lifecycle dos mods C#.
+- Necessário validar as assinaturas IL2CPP no Terraria 1.4.5.8.6,
+  os assets dos mods C#, retorno dos mods, múltiplos mundos,
+  multiplayer e FPS sustentado.
+
+**Segurança:** bunny_csharp_touch_host_ready() permanece zero.
+A PR continua draft; nenhum APK ou pacote de mod foi produzido.
