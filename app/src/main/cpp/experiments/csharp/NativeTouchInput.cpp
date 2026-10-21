@@ -65,15 +65,35 @@ int Registry::add(std::string_view owner, std::string_view name,
     entry.icon = icon;
     entry.active = true;
     entry.pendingTap = false;
+    entry.visible = true;
+    entry.enabled = true;
     entry.state = 0;
     return id;
 }
 
 bool Registry::tap(int id) {
     std::lock_guard lock(mutex_);
-    if (!active(id)) return false;
+    if (!active(id) || !entries_[static_cast<size_t>(id)].visible ||
+        !entries_[static_cast<size_t>(id)].enabled) return false;
     entries_[static_cast<size_t>(id)].pendingTap = true;
     return true;
+}
+bool Registry::policies(int id, bool visible, bool enabled) {
+    std::lock_guard lock(mutex_);
+    if (!active(id)) return false;
+    auto& item = entries_[static_cast<size_t>(id)];
+    item.visible = visible;
+    item.enabled = enabled;
+    if (!visible || !enabled) item.pendingTap = false;
+    return true;
+}
+bool Registry::visible(int id) const {
+    std::lock_guard lock(mutex_);
+    return active(id) && entries_[static_cast<size_t>(id)].visible;
+}
+bool Registry::enabled(int id) const {
+    std::lock_guard lock(mutex_);
+    return active(id) && entries_[static_cast<size_t>(id)].enabled;
 }
 
 int Registry::frame(int64_t tick, bool inGame, bool chat, bool npc, bool sign,
@@ -95,7 +115,7 @@ int Registry::frame(int64_t tick, bool inGame, bool chat, bool npc, bool sign,
         Registration& entry = entries_[static_cast<size_t>(i)];
         if (!entry.active) continue;
         bool previous = (entry.state & Current) != 0;
-        bool down = inGame &&
+        bool down = inGame && entry.visible && entry.enabled &&
             (heldMask[static_cast<size_t>(i)] || entry.pendingTap);
         uint32_t state = (down ? Current : 0u) | (previous ? Old : 0u);
         if (down && !previous) state |= JustPressed;
@@ -196,6 +216,10 @@ extern "C" __attribute__((visibility("default"))) int bunny_csharp_touch_registe
 }
 extern "C" __attribute__((visibility("default"))) int bunny_csharp_touch_tap(int id) {
     return bl::csharp::touch::registry().tap(id) ? 1 : 0;
+}
+extern "C" __attribute__((visibility("default"))) int bunny_csharp_touch_policies(
+    int id, int visible, int enabled) {
+    return bl::csharp::touch::registry().policies(id, visible != 0, enabled != 0) ? 1 : 0;
 }
 extern "C" __attribute__((visibility("default"))) int bunny_csharp_touch_frame(
     int64_t tick, int inGame, int chat, int npc, int sign,
