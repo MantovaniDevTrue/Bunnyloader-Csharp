@@ -67,3 +67,13 @@ assert '"Microsoft.Xna.Framework.Color"' in dust
 assert 'Stage=EmitRequest Class=%s Player=%d Count=%d Result=Queued' in dust
 assert '"Microsoft.Xna.Framework.Graphics.Color"' not in dust
 print("Native CSharp item-use hook, dust emission and invasion invoker: OK")
+
+managed = (root / "app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp").read_text()
+for label in ("FirstWorldTick", "OnUseResult", "WorldTick Result=Error"):
+    assert "Stage=" + label in managed, label
+assert 'BL_INFO("[CSharp][ItemUse] Mod=%s Stage=OnUseResult' in managed
+assert 'BL_WARN("[CSharp][ItemUse] Mod=%s Stage=WorldTick Result=Error' in managed
+assert 'BL_INFO("[CSharp][ItemUse] Mod=%s Stage=FirstWorldTick' in managed
+assert 'g_entityBindings[static_cast<size_t>(job.binding)].firstWorldUseReported = true;' in managed
+assert 'owner.firstWorldErrorReported = true;' in managed
+print("CSHARP_ITEM_USE_SESSION_LOG_GUARD=PASS")
