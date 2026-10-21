@@ -85,8 +85,9 @@ public static class BunnyWorldMonoHost
     public static string? Prepare(long epoch)
     {
         LastError = "";
+        string error = "";
         if (epoch > 0 && _dispatcher.TryPrepareSave(
-                (ulong)epoch, out byte[] snapshot, out var error))
+                (ulong)epoch, out byte[] snapshot, out error))
             return Convert.ToBase64String(snapshot);
         LastError = epoch <= 0 ? "Invalid world epoch" : error;
         return null;
@@ -114,7 +115,8 @@ public static class BunnyWorldMonoHost
     public static bool Leave(long epoch)
     {
         LastError = "";
-        if (epoch > 0 && _dispatcher.TryLeaveWorld((ulong)epoch, out var error))
+        string error = "";
+        if (epoch > 0 && _dispatcher.TryLeaveWorld((ulong)epoch, out error))
             return true;
         LastError = epoch <= 0 ? "Invalid world epoch" : error;
         return false;

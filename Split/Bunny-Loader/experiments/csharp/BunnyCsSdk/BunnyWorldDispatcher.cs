@@ -90,7 +90,7 @@ public sealed class BunnyWorldDispatcher
                 }
                 var key = BunnyWorldDocument.MakeKey(modUid, type.FullName ?? type.Name);
                 if (_systems.ContainsKey(key) || pending.ContainsKey(key) ||
-                    _systems.Count + pending.Count >= BunnyWorldDocument.MaxSystems)
+                    _systems.Count + pending.Count + 1 > BunnyWorldDocument.MaxSystems)
                 {
                     error = "Duplicate or excessive world systems: " + key;
                     return false;
