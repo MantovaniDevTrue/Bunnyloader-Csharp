@@ -59,7 +59,7 @@ g++ -std=c++20 -O2 -Iapp/src/main/cpp tests/achievements_csharp/source_parser_te
 dotnet run -c Release --project tests/achievements_csharp/AchievementCoreTests.csproj
 ```
 
-Validação de 21/10/2026: GitHub Actions [39663416019](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39663416019) — parser, fila, metadados V1/V2, progresso, isolamento de perfil SHA-256 e sintaxe nativa passaram; **77 verificações .NET** passaram. Isso **não** valida o comportamento dentro do Terraria Android.
+Validação de 21/10/2026: GitHub Actions [39663799642](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39663799642) — parser, fila, metadados V1/V2, progresso, isolamento de perfil SHA-256 e sintaxe nativa passaram; **77 verificações .NET** passaram. A restauração agora inicia quando os tiles do mundo estão carregados, antes dos hooks de gameplay; a saída e a próxima carga de mundo enfileiram flush de BACH1. Isso **não** valida o comportamento dentro do Terraria Android.
 
 ## Pendências que impedem concluir ou gerar APK
 
