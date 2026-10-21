@@ -43,7 +43,10 @@ bool requestManagedWorldOnMono(const worldsave::MonoWorldRequest& request,
         case MonoWorldAction::Leave:
             ++exited;
             return true;
-        case MonoWorldAction::Register: return false;
+        case MonoWorldAction::Register:
+        case MonoWorldAction::NetSend:
+        case MonoWorldAction::NetReceive:
+            return false;
     }
     return false;
 }
