@@ -1,0 +1,247 @@
+name: CSharp SoundLoader native and managed checks (no APK)
+
+on:
+  push:
+    branches:
+      - feat/csharp-soundloader-native-complete
+    paths:
+      - app/src/main/cpp/experiments/csharp/ManagedSoundLoader.h
+      - app/src/main/cpp/experiments/csharp/ManagedSoundLoader.cpp
+      - app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp
+      - app/src/main/cpp/content/sounds/NativeSoundRouter.*
+      - experiments/csharp/BunnyCsSdk/**
+      - experiments/csharp/BunnySourceSdk/**
+      - samples/ExampleModCSharp/Playable/content/**
+      - tests/summon_lifecycle/managed_sound_loader_test.cpp
+      - tests/summon_lifecycle/managed_sound_pinvoke_mock.cpp
+      - tests/summon_lifecycle/ManagedSoundPInvokeTest.cs
+      - tests/summon_lifecycle/sound_router_test.cpp
+      - .github/workflows/check-csharp-soundloader.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  native-host:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: SoundLoader source and exported ABI
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'bunny_csharp_sound_register' app/src/main/cpp/experiments/csharp/ManagedSoundLoader.cpp
+          grep -q 'managedSound::pump()' app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp
+          grep -q 'managedSound::worldExit()' app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp
+          grep -q 'stopAllSoundStyleInstances' app/src/main/cpp/content/sounds/NativeSoundRouter.cpp
+          test -s samples/ExampleModCSharp/Playable/content/Assets/Sounds/Items/Guns/ExampleGun.ogg
+      - name: Compile and execute production native audio bridge host test
+        shell: bash
+        run: |
+          set -euo pipefail
+          g++ -std=c++20 -O1 -Wall -Wextra -pthread             -Iapp/src/main/cpp -Itests/basic_items/include             tests/summon_lifecycle/managed_sound_loader_test.cpp             -o /tmp/bunny_csharp_soundloader_test
+          /tmp/bunny_csharp_soundloader_test
+      - name: Verify native SoundLoader with ASan and UBSan
+        shell: bash
+        run: |
+          set -euo pipefail
+          g++ -std=c++20 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -pthread \
+            -Iapp/src/main/cpp -Itests/basic_items/include \
+            tests/summon_lifecycle/managed_sound_loader_test.cpp \
+            -o /tmp/bunny_sound_sanitizers
+          ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 \
+            UBSAN_OPTIONS=halt_on_error=1 /tmp/bunny_sound_sanitizers
+
+      - name: Existing native sound router test (no Android)
+        shell: bash
+        run: |
+          set -euo pipefail
+          g++ -std=c++20 -O1 -Wall -Wextra -pthread             -Iapp/src/main/cpp -Itests/basic_items/include             tests/summon_lifecycle/sound_router_test.cpp             -o /tmp/bunny_csharp_soundrouter_test
+          /tmp/bunny_csharp_soundrouter_test
+      - name: Confirm exported C ABI for all MonoVM audio entrypoints
+        shell: bash
+        run: |
+          set -euo pipefail
+          g++ -std=c++20 -fPIC -shared -fvisibility=hidden \
+            -Iapp/src/main/cpp -Itests/basic_items/include \
+            app/src/main/cpp/experiments/csharp/ManagedSoundLoader.cpp \
+            -o /tmp/libbunny_sound_exports.so
+          for api in register state play playback find_active stop duration unload; do
+            nm -D --defined-only /tmp/libbunny_sound_exports.so | grep -q "bunny_csharp_sound_${api}$"
+          done
+          echo 'CSHARP_SOUNDLOADER_EIGHT_EXPORTED_P_INVOKE_SYMBOLS_PASS'
+  native-arm64-object:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile production SoundLoader integration for Android ARM64 without APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          NDK_VERSION=27.2.12479018
+          NDK_DIR="$ANDROID_HOME/ndk/$NDK_VERSION"
+          if test ! -x "$NDK_DIR/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android34-clang++"; then
+            yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+            "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "ndk;$NDK_VERSION"
+          fi
+          CXX="$NDK_DIR/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android34-clang++"
+          test -x "$CXX"
+          mkdir -p /tmp/bunny-sound-arm64
+          for mode in 0 1; do
+            for name in AutoSourceRuntime NativeSoundRouter ManagedSoundLoader; do
+              if test "$name" = AutoSourceRuntime || test "$name" = ManagedSoundLoader; then
+                SRC="app/src/main/cpp/experiments/csharp/${name}.cpp"
+              else
+                SRC=app/src/main/cpp/content/sounds/NativeSoundRouter.cpp
+              fi
+              "$CXX" -std=c++20 -O0 -fPIC -fno-exceptions -fno-rtti \
+                -DBL_HAVE_QUICKJS=$mode \
+                -Iapp/src/main/cpp -Iapp/src/main/cpp/third_party/quickjs \
+                -c "$SRC" -o "/tmp/bunny-sound-arm64/${name}-qjs${mode}.o"
+              test -s "/tmp/bunny-sound-arm64/${name}-qjs${mode}.o"
+            done
+          done
+          "$NDK_DIR/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-nm" -g \
+            /tmp/bunny-sound-arm64/ManagedSoundLoader-qjs0.o | grep 'bunny_csharp_sound_register'
+          echo 'CSHARP_SOUNDLOADER_ANDROID_ARM64_NATIVE_OBJECT_COMPILE_PASS_NO_APK'
+
+  native-android-link:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+      - name: Link complete production native Android binaries only
+        shell: bash
+        run: |
+          set -euo pipefail
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install \
+            "ndk;30.0.16248370" "cmake;3.22.1" "platforms;android-34"
+          gradle :app:externalNativeBuildDebug --no-daemon -Pbl.uiOnly=true
+          find app/build -type f -name libbunny.so -size +0c | grep -q libbunny.so
+          if find app/build -name '*.apk' -print | grep -q .; then
+            echo "BLOQUEADO: build de APK detectado" >&2
+            exit 1
+          fi
+          echo 'CSHARP_SOUNDLOADER_FULL_ANDROID_NATIVE_LINK_PASS_NO_APK'
+
+  managed-sdk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+      - name: Compile entire Bunny Source SDK, including new native SoundLoader bindings
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet build experiments/csharp/BunnyCsSdk/BunnyCsSdk.csproj -c Release
+          dotnet build experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj -c Release -o /tmp/bunny-csharp-sound-sdk
+          test -s /tmp/bunny-csharp-sound-sdk/BunnySourceSdk.dll
+          grep -a -q BunnySounds /tmp/bunny-csharp-sound-sdk/BunnySourceSdk.dll
+          grep -a -q BunnySoundPlayback /tmp/bunny-csharp-sound-sdk/BunnySourceSdk.dll
+          mkdir -p /tmp/bunny-sound-example
+          cat > /tmp/bunny-sound-example/SoundExample.csproj <<EOF
+          <Project Sdk="Microsoft.NET.Sdk">
+            <PropertyGroup>
+              <TargetFramework>net8.0</TargetFramework>
+              <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+              <Nullable>enable</Nullable>
+            </PropertyGroup>
+            <ItemGroup>
+              <Reference Include="BunnySourceSdk">
+                <HintPath>/tmp/bunny-csharp-sound-sdk/BunnySourceSdk.dll</HintPath>
+              </Reference>
+              <Compile Include="$GITHUB_WORKSPACE/samples/ExampleModCSharp/Playable/content/Common/Audio/ExampleSoundEffects.cs" />
+              <Compile Include="$GITHUB_WORKSPACE/samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleWaveBolt.cs" />
+            </ItemGroup>
+          </Project>
+          EOF
+          dotnet build /tmp/bunny-sound-example/SoundExample.csproj -c Release
+          mkdir -p /tmp/bunny-sound-pinvoke
+          g++ -std=c++20 -O1 -fPIC -shared -fvisibility=hidden -pthread \
+            -Iapp/src/main/cpp -Itests/basic_items/include \
+            tests/summon_lifecycle/managed_sound_pinvoke_mock.cpp \
+            -o /tmp/bunny-sound-pinvoke/libbunny.so
+          cat > /tmp/bunny-sound-pinvoke/PInvokeTest.csproj <<EOF
+          <Project Sdk="Microsoft.NET.Sdk">
+            <PropertyGroup>
+              <OutputType>Exe</OutputType>
+              <TargetFramework>net8.0</TargetFramework>
+              <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+              <Nullable>enable</Nullable>
+            </PropertyGroup>
+            <ItemGroup>
+              <Reference Include="BunnySourceSdk">
+                <HintPath>/tmp/bunny-csharp-sound-sdk/BunnySourceSdk.dll</HintPath>
+              </Reference>
+              <Compile Include="$GITHUB_WORKSPACE/tests/summon_lifecycle/ManagedSoundPInvokeTest.cs" />
+            </ItemGroup>
+          </Project>
+          EOF
+          dotnet build /tmp/bunny-sound-pinvoke/PInvokeTest.csproj -c Release
+          LD_LIBRARY_PATH=/tmp/bunny-sound-pinvoke \
+            dotnet /tmp/bunny-sound-pinvoke/bin/Release/net8.0/PInvokeTest.dll
+          echo 'CSHARP_SOUNDLOADER_MANAGED_SDK_COMPILE_PASS'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: BunnySourceSdk-SoundLoader-verified-no-apk
+          path: /tmp/bunny-csharp-sound-sdk/BunnySourceSdk.dll
+          retention-days: 7
+
+  stage-managed-sdk:
+    needs: [native-host, native-arm64-object, native-android-link, managed-sdk]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/download-artifact@v4
+        with:
+          name: BunnySourceSdk-SoundLoader-verified-no-apk
+          path: /tmp/bunny-csharp-sound-sdk
+      - name: Embed verified real BunnySourceSdk and refresh hash catalog
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s /tmp/bunny-csharp-sound-sdk/BunnySourceSdk.dll
+          CURRENT=$(git ls-remote origin refs/heads/feat/csharp-soundloader-native-complete | cut -f1)
+          if test "$CURRENT" != "$GITHUB_SHA"; then
+            echo "Outra revisão foi enviada; não publicar DLL de commit antigo."
+            exit 0
+          fi
+          cp /tmp/bunny-csharp-sound-sdk/BunnySourceSdk.dll app/src/main/assets/managed/BunnySourceSdk.dll
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+          root=Path('app/src/main/assets/managed')
+          manifest=''.join(f'{p.name}\t{hashlib.sha256(p.read_bytes()).hexdigest()}\n'
+                           for p in sorted(root.glob('*.dll')))
+          (root/'framework.sha256').write_text(manifest,encoding='utf-8')
+          assert 'BunnySourceSdk.dll\t' in manifest
+          PY
+          git add app/src/main/assets/managed/BunnySourceSdk.dll app/src/main/assets/managed/framework.sha256
+          git diff --cached --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if ! git diff --cached --quiet; then
+            git commit -m "runtime(sound): embed verified managed BunnySourceSdk without APK"
+            git push origin HEAD:refs/heads/feat/csharp-soundloader-native-complete
+          fi
