@@ -926,9 +926,17 @@ void run() {
                      storageState.substr(0, 200));
                 continue;
             }
-            if (!registerNativeAchievementMod(mod.id, assembly)) {
+            // Os metadados definitivos precisam refletir o progresso restaurado.
+            if (!invokeManagedAchievementControl(mod.id, assembly, 8, "",
+                                                 &manifest, 15000)) {
+                note(&status, "failed", "AchievementLoader: metadata invalida: " +
+                     manifest.substr(0, 200));
+                continue;
+            }
+            std::string nativeError;
+            if (!registerNativeAchievementMod(mod.id, assembly, manifest, &nativeError)) {
                 note(&status, "failed",
-                     "AchievementLoader: vinculo nativo de mod duplicado ou cheio");
+                     "AchievementLoader: registro de metadata recusado: " + nativeError);
                 continue;
             }
             BL_INFO("[CSharp][AchievementLoader] Mod=%s Conquistas=%d Bind=Ready",
