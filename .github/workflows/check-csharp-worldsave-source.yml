@@ -188,6 +188,20 @@ jobs:
           assert "g_worldDataEnteredEpoch.load(std::memory_order_acquire) != epoch" in x
           print("BUNNY_WORLD_IL2CPP_HOOK_SOURCE_PASS")
           PY
+      - name: Audit world network IL2CPP method static and instance contracts
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          n=Path("Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeWorldNetTransport.cpp").read_text()
+          assert "api.method_is_instance(read)" in n
+          assert "api.method_is_instance(send)" in n
+          assert "!api.method_is_instance(g_packetCtor)" in n
+          assert "!api.method_is_instance(g_writeBytes)" in n
+          assert "!api.method_is_instance(g_getPosition)" in n
+          assert "g_getInstance && api.method_is_instance(g_getInstance)" in n
+          assert "!api.runtime_invoke" in n and "!api.array_new" in n
+          print("WORLD_NATIVE_NET_METHOD_CONTRACT_PASS")
+          PY
       - name: Native multiplayer lifecycle and hot path source gate
         run: |
           python3 - <<'PY'

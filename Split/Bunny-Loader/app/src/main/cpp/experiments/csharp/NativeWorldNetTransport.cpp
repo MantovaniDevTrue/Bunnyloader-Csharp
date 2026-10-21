@@ -177,8 +177,21 @@ bool resolve() {
         !g_shrink || !g_readUInt16 || !g_readBytes || !g_getBaseStream ||
         !g_getPosition || !g_setPosition || !g_sendClient || !g_broadcast ||
         (!g_getInstance && !g_instanceField) || !g_modeField ||
-        !api.method_is_instance || !api.method_is_instance(read) ||
-        api.method_is_instance(send)) return false;
+        !api.method_is_instance || !api.runtime_invoke ||
+        !api.object_new || !api.array_new || !api.field_static_get_value ||
+        !api.method_is_instance(read) || api.method_is_instance(send) ||
+        !api.method_is_instance(g_packetCtor) ||
+        !api.method_is_instance(g_readUInt16) ||
+        !api.method_is_instance(g_readBytes) ||
+        !api.method_is_instance(g_getBaseStream) ||
+        !api.method_is_instance(g_getPosition) ||
+        !api.method_is_instance(g_setPosition) ||
+        !api.method_is_instance(g_writeBytes) ||
+        !api.method_is_instance(g_shrink) ||
+        !api.method_is_instance(g_sendClient) ||
+        !api.method_is_instance(g_broadcast) ||
+        (g_getWriter && !api.method_is_instance(g_getWriter)) ||
+        (g_getInstance && api.method_is_instance(g_getInstance))) return false;
     if (!bl::hook::install(read, hkWorldNetRead, &g_originalRead)) return false;
     if (!bl::hook::install(send, hkWorldNetSendData, &g_originalSendData)) return false;
     return true;
