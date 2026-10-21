@@ -44,6 +44,8 @@ struct NativeEntry {
     uint32_t achievementRoot = 0;
     uint32_t conditionRoot = 0;
     int applied = -1;
+    bool managerRegistered = false;
+    bool iconRegistered = false;
     bool registered = false;
 };
 
@@ -314,20 +316,28 @@ bool commit(const AchievementMetadata& definition, NativeEntry* entry,
     auto& a = il2cpp::api();
     auto* achievement = a.gchandle_get_target(entry->achievementRoot);
     if (!achievement) { *error = "Native achievement root unavailable"; return false; }
-    void* args[]{achievement};
-    if (!invoke(methods.registerAchievement, methods.manager, args, nullptr, error))
+    if (!entry->managerRegistered) {
+        void* args[]{achievement};
+        if (!invoke(methods.registerAchievement, methods.manager, args, nullptr, error))
+            return false;
+        entry->managerRegistered = true;
+    }
+    if (!entry->iconRegistered) {
+        auto* name = a.string_new(definition.name.c_str());
+        if (!name) { *error = "RegisterIconIndex name allocation failed"; return false; }
+        int index = definition.index;
+        void* args[]{name, &index};
+        if (!invoke(methods.registerIcon, methods.manager, args, nullptr, error))
+            return false;
+        entry->iconRegistered = true;
+    }
+    auto* name = a.string_new(definition.name.c_str());
+    if (!name) { *error = "RegisterAchievementCategory name allocation failed"; return false; }
+    int category = definition.category;
+    void* args[]{name, &category};
+    if (!invoke(methods.registerCategory, methods.manager, args, nullptr, error))
         return false;
     entry->registered = true;
-    auto* name = a.string_new(definition.name.c_str());
-    if (!name) { *error = "RegisterIconIndex string allocation failed"; return false; }
-    int index = definition.index;
-    int category = definition.category;
-    void* iconArgs[]{name, &index};
-    if (!invoke(methods.registerIcon, methods.manager, iconArgs, nullptr, error))
-        return false;
-    void* categoryArgs[]{name, &category};
-    if (!invoke(methods.registerCategory, methods.manager, categoryArgs, nullptr, error))
-        return false;
     return true;
 }
 }
@@ -348,7 +358,13 @@ bool registerNativeAchievementObjects(
     // callbacks do jogo podem ser reentrantes.
     for (const auto& definition : definitions) {
         auto it = entries.find(definition.name);
-        if (it != entries.end()) continue;
+        if (it != entries.end()) {
+            if (!it->second.registered && !commit(definition, &it->second, error)) {
+                lastError = *error;
+                return false;
+            }
+            continue;
+        }
         NativeEntry entry{};
         if (!make(definition, &entry, error)) {
             lastError = *error;
