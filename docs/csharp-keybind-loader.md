@@ -409,3 +409,39 @@ ARM64 real, editor visual, toque/soltura, grupos, descarregamento de PNG,
 perfis persistidos, coexistência com JS, multiplayer e desempenho ainda
 precisa ser feita em dispositivo antes de publicar. PR draft, sem
 merge, APK ou .bmod.
+
+
+## Lote de 21/10/2026 — troca de mundo, perfil e estado de toque
+
+- `GUIVirtualInputController.Update` lê o estado do menu antes e depois
+  da chamada original do Terraria. O grupo só interpreta uma seleção se
+  ambos os estados estiverem em jogo; transições para/de menu não
+  produzem toque C#.
+- `NativeTouchGroups` conserva a descoberta da ABI mesmo no menu,
+  mas não percorre os perfis nem lê GroupStates até voltar ao jogo.
+  O primeiro frame de gameplay refaz o cache dos grupos.
+- A seleção de um grupo é descartada se o perfil ativo mudar durante o
+  mesmo Update; as amostras anterior e posterior pertencem ao mesmo
+  perfil somente quando a identidade coincide.
+- Quando os arrays Pressed/WasPressed/Scale ficam temporariamente
+  inacessíveis, o registry registra um frame sem entrada, liberando
+  os estados mantidos e cancelando toques pendentes.
+- A restauração de bindings agora compara versão do registry, identidade
+  do perfil e sinal de invalidação por mudança de mundo, no lugar de
+  depender apenas do número de registros C#.
+- `LoadConfiguration` atualiza essa identidade e os dados capturados,
+  enquanto a entrada/saída de mundos marca a restauração como pendente.
+  O perfil ativo recebe o layout salvo no primeiro Update que detecta
+  sua mudança; o editor mantém a revisão de segurança a cada 60 updates.
+- O teste `native_touch_layout_refresh_test.cpp` cobre composição
+  inalterada, nova versão, troca de perfil, perfil ausente e invalidação
+  por novo mundo. O contrato do Registry cobre menu, falta de entrada e
+  retomada sem disparos pendentes.
+- [CI source-only #39639806047](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39639806047):
+  contratos gerenciado/nativo, ASan/UBSan, teste de assinaturas e preflight
+  C++20 aprovados.
+
+Ainda faltam os testes reais de troca de perfil, carregamento de mundos,
+toque/soltura, editor, grupos, compatibilidade JS/C#, multiplayer e FPS
+em Terraria Android ARM64. Não foi criado APK nem .bmod e a PR segue
+draft sem merge.
