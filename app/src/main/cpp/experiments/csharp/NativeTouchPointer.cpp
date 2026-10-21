@@ -134,7 +134,8 @@ void pumpNativeTouchPointerHookOnGameThread() {
 #if !defined(__aarch64__)
     return;
 #else
-    tried = true;
+    static uint32_t probes = 0;
+    if (++probes != 1 && probes % 120 != 0) return;
     Il2CppClass* controller = il2cpp::findClassQuiet("", "GUIVirtualInputController");
     const MethodInfo* method = controller ? il2cpp::findMethodBySignature(
         controller, il2cpp::parseSignature(
@@ -143,6 +144,7 @@ void pumpNativeTouchPointerHookOnGameThread() {
     if (!nativeTouchShape(method) ||
         !arrayField(controller, "Pressed", &pressedOffset) ||
         !arrayField(controller, "WasPressed", &wasOffset)) return;
+    tried = true;
     if (!bl::hook::install(method, onTouch, &originalTouch) || !originalTouch) return;
     hooked.store(true, std::memory_order_release);
 #endif
