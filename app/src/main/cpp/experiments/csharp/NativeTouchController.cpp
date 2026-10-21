@@ -4,6 +4,7 @@
 #include "experiments/csharp/NativeTouchActionIds.h"
 #include "experiments/csharp/NativeTouchProfiles.h"
 #include "experiments/csharp/NativeTouchFocus.h"
+#include "experiments/csharp/NativeTouchGroups.h"
 #include "hook/HookManager.h"
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
@@ -149,8 +150,10 @@ void onControllerUpdate(void* self, float elapsedTime, const MethodInfo* method)
     const bool observe = self && installed.load(std::memory_order_acquire) &&
                          registry().count() > 0;
     const bool arraysReady = observe && ensureControllerArrays(self);
+    if (arraysReady) nativeTouchGroupBefore(self);
     if (original) original(self, elapsedTime, method);
     if (!arraysReady) return;
+    nativeTouchGroupAfter(self);
 
     auto& api = il2cpp::api();
     bool menu = true;
