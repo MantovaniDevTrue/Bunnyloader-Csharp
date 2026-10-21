@@ -19,7 +19,16 @@ internal enum BunnyUpdateStageFlags
     PostUpdateDusts = 16,
     PreUpdateInvasions = 32,
     PostUpdateInvasions = 64,
-    PostUpdateInput = 128
+    PostUpdateInput = 128,
+    PreUpdatePlayers = 256,
+    PostUpdatePlayers = 512,
+    PreUpdateNPCs = 1024,
+    PostUpdateNPCs = 2048,
+    PreUpdateGores = 4096,
+    PostUpdateGores = 8192,
+    PostUpdateProjectiles = 16384,
+    PreUpdateItems = 32768,
+    PostUpdateItems = 65536
 }
 
 /// <summary>
@@ -43,6 +52,25 @@ public abstract class BunnyWorldUpdateLoader : BunnyHookModule
 
     /// <summary>Exemplos podem desligar o loader sem instalar nenhum hook.</summary>
     protected virtual bool EnableUpdates => true;
+
+    /// <summary>Antes do estágio PlayersBegin original.</summary>
+    protected virtual void PreUpdatePlayers() { }
+    /// <summary>Depois da rotina de jogadores, em PlayersEnd.</summary>
+    protected virtual void PostUpdatePlayers() { }
+    /// <summary>Antes do estágio NPCsBegin original.</summary>
+    protected virtual void PreUpdateNPCs() { }
+    /// <summary>Depois dos NPCs, antes dos gores, no estágio NPCsEnd.</summary>
+    protected virtual void PostUpdateNPCs() { }
+    /// <summary>No mesmo ponto NPCsEnd, antes da atualização de gores.</summary>
+    protected virtual void PreUpdateGores() { }
+    /// <summary>Depois da atualização de gores, no estágio GoresEnd.</summary>
+    protected virtual void PostUpdateGores() { }
+    /// <summary>No estágio ItemsBegin, após os projéteis e antes dos itens.</summary>
+    protected virtual void PostUpdateProjectiles() { }
+    /// <summary>No estágio ItemsBegin, imediatamente após PostUpdateProjectiles.</summary>
+    protected virtual void PreUpdateItems() { }
+    /// <summary>Depois dos itens, no estágio ItemsEnd.</summary>
+    protected virtual void PostUpdateItems() { }
 
     /// <summary>Antes de Main.DoUpdateInWorld, para preparar lógica do mundo.</summary>
     protected virtual void PreUpdateEntities() { }
@@ -130,6 +158,15 @@ public abstract class BunnyWorldUpdateLoader : BunnyHookModule
         {
             switch (flag)
             {
+                case BunnyUpdateStageFlags.PreUpdatePlayers: PreUpdatePlayers(); break;
+                case BunnyUpdateStageFlags.PostUpdatePlayers: PostUpdatePlayers(); break;
+                case BunnyUpdateStageFlags.PreUpdateNPCs: PreUpdateNPCs(); break;
+                case BunnyUpdateStageFlags.PostUpdateNPCs: PostUpdateNPCs(); break;
+                case BunnyUpdateStageFlags.PreUpdateGores: PreUpdateGores(); break;
+                case BunnyUpdateStageFlags.PostUpdateGores: PostUpdateGores(); break;
+                case BunnyUpdateStageFlags.PostUpdateProjectiles: PostUpdateProjectiles(); break;
+                case BunnyUpdateStageFlags.PreUpdateItems: PreUpdateItems(); break;
+                case BunnyUpdateStageFlags.PostUpdateItems: PostUpdateItems(); break;
                 case BunnyUpdateStageFlags.PreUpdateEntities: PreUpdateEntities(); break;
                 case BunnyUpdateStageFlags.PostUpdateEverything: PostUpdateEverything(); break;
                 case BunnyUpdateStageFlags.PreUpdateProjectiles: PreUpdateProjectiles(); break;
@@ -200,8 +237,24 @@ internal static class BunnyWorldUpdateRegistry
     internal static string LastInstallError => Volatile.Read(ref lastInstallError);
     private static readonly Stage[] Stages =
     {
-        new("Terraria.Main", "DoUpdateInWorld", false,
-            BunnyUpdateStageFlags.PreUpdateEntities, BunnyUpdateStageFlags.PostUpdateEverything),
+        new("Bunny.SystemStage", "EntitiesBegin", false,
+            BunnyUpdateStageFlags.PreUpdateEntities, BunnyUpdateStageFlags.None),
+        new("Bunny.SystemStage", "PlayersBegin", false,
+            BunnyUpdateStageFlags.PreUpdatePlayers, BunnyUpdateStageFlags.None),
+        new("Bunny.SystemStage", "PlayersEnd", false,
+            BunnyUpdateStageFlags.PostUpdatePlayers, BunnyUpdateStageFlags.None),
+        new("Bunny.SystemStage", "NPCsBegin", false,
+            BunnyUpdateStageFlags.PreUpdateNPCs, BunnyUpdateStageFlags.None),
+        new("Bunny.SystemStage", "NPCsEnd", false,
+            BunnyUpdateStageFlags.PostUpdateNPCs, BunnyUpdateStageFlags.PreUpdateGores),
+        new("Bunny.SystemStage", "GoresEnd", false,
+            BunnyUpdateStageFlags.PostUpdateGores, BunnyUpdateStageFlags.None),
+        new("Bunny.SystemStage", "ItemsBegin", false,
+            BunnyUpdateStageFlags.PostUpdateProjectiles, BunnyUpdateStageFlags.PreUpdateItems),
+        new("Bunny.SystemStage", "ItemsEnd", false,
+            BunnyUpdateStageFlags.PostUpdateItems, BunnyUpdateStageFlags.None),
+        new("Bunny.SystemStage", "EntitiesEnd", false,
+            BunnyUpdateStageFlags.PostUpdateEverything, BunnyUpdateStageFlags.None),
         new("Terraria.Main", "PreUpdateAllProjectiles", false,
             BunnyUpdateStageFlags.PreUpdateProjectiles, BunnyUpdateStageFlags.None),
         new("Terraria.Dust", "UpdateDust", true,
@@ -303,9 +356,11 @@ internal static class BunnyWorldUpdateRegistry
                     BunnyVoidHook handler = (original, self) => Dispatch(captured, original.Invoke);
                     try
                     {
-                        BunnyMethodHook hook = TestHookFactory is null
-                            ? owner.HookVoid(stage.Type, stage.Method, handler, stage.IsStatic)
-                            : TestHookFactory(owner, stage.Type, stage.Method, handler, stage.IsStatic);
+                        BunnyMethodHook hook = TestHookFactory is not null
+                            ? TestHookFactory(owner, stage.Type, stage.Method, handler, stage.IsStatic)
+                            : stage.Type == "Bunny.SystemStage"
+                                ? owner.HookSystemStage(stage.Method, handler)
+                                : owner.HookVoid(stage.Type, stage.Method, handler, stage.IsStatic);
                         stage.Hook = hook;
                         stage.Owner = owner;
                     }
@@ -344,6 +399,13 @@ internal static class BunnyWorldUpdateRegistry
     // com um original simulado. Nunca é chamado pelo jogo.
     internal static void TestFire(string method, Action original)
     {
+        if (method == "DoUpdateInWorld")
+        {
+            TestFire("EntitiesBegin", () => { });
+            original();
+            TestFire("EntitiesEnd", () => { });
+            return;
+        }
         foreach (Stage stage in Stages)
             if (stage.Method == method)
             {
