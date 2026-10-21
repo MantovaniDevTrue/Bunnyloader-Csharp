@@ -46,6 +46,13 @@ internal static class MonoHostTests
             "other mod preserved");
         Check(!BunnyWorldMonoHost.Confirm(11, snapshot!), "stale acknowledgment rejected");
         Check(BunnyWorldMonoHost.Confirm(12, snapshot!), "save acknowledged");
+        string? network = BunnyWorldMonoHost.NetSend(12);
+        Check(network != null && BunnyWorldNetworkCodec.TryDecode(
+            Convert.FromBase64String(network), out _, out _),
+            "managed MonoVM network export");
+        Check(!BunnyWorldMonoHost.NetReceive(12, network),
+            "server rejects network import");
+
         Check(!BunnyWorldMonoHost.ResetRegistrations(), "no live reset");
         Check(BunnyWorldMonoHost.Leave(12), "world unload");
         Check(BunnyWorldMonoHost.Enter(13, null, true), "enter fresh world");
@@ -57,6 +64,12 @@ internal static class MonoHostTests
         Check(BunnyWorldMonoHost.Leave(13), "leave fresh world");
 
         Check(BunnyWorldMonoHost.Enter(14, null, false), "client entry");
+        Check(network != null && BunnyWorldMonoHost.NetReceive(14, network),
+              "client imported network world state");
+        Check(BunnyWorldMonoHost.NetSend(14) == null, "client cannot export authority");
+        Check(!BunnyWorldMonoHost.NetReceive(14, network),
+              "duplicate network revision rejected");
+
         Check(BunnyWorldMonoHost.Prepare(14) == null, "multiplayer client cannot write");
         Check(BunnyWorldMonoHost.Leave(14), "client exit");
 

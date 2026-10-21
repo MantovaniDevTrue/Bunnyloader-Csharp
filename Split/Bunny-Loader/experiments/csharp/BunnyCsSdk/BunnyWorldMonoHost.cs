@@ -112,6 +112,47 @@ public static class BunnyWorldMonoHost
         return false;
     }
 
+    /// <summary>
+    /// Chamado pelo host nativo apenas no servidor; o transporte real do
+    /// Terraria deve autenticar o destinatário antes de enviar o BWN1.
+    /// </summary>
+    public static string? NetSend(long epoch)
+    {
+        LastError = "";
+        string error = "";
+        if (epoch > 0 && _dispatcher.TryBuildNetworkState(
+            (ulong)epoch, out byte[] packet, out error))
+            return Convert.ToBase64String(packet);
+        LastError = epoch <= 0 ? "Invalid network epoch" : error;
+        return null;
+    }
+
+    /// <summary>
+    /// Só o cliente recebe. Não aceitar pacotes de clientes no servidor.
+    /// </summary>
+    public static bool NetReceive(long epoch, string? base64)
+    {
+        LastError = "";
+        if (epoch <= 0 || base64 == null || base64.Length >
+            4 * ((BunnyWorldNetworkCodec.MaxPacketBytes + 2) / 3))
+        {
+            LastError = "Invalid network packet bounds";
+            return false;
+        }
+        try
+        {
+            if (_dispatcher.TryApplyNetworkState((ulong)epoch,
+                Convert.FromBase64String(base64), out var error)) return true;
+            LastError = error;
+            return false;
+        }
+        catch (FormatException)
+        {
+            LastError = "Malformed network packet";
+            return false;
+        }
+    }
+
     public static bool Leave(long epoch)
     {
         LastError = "";
