@@ -14,6 +14,8 @@ on:
       - "Split/Bunny-Loader/experiments/csharp/BunnyCsSdk/BunnyWorldNetworkCodec.cs"
       - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeWorldNetwork.cpp"
       - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeWorldNetwork.h"
+      - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeWorldNetTransport.cpp"
+      - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeWorldNetTransport.h"
       - "Split/Bunny-Loader/experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj"
       - "Split/Bunny-Loader/tests/world_save/**"
       - ".github/workflows/check-csharp-worldsave-source.yml"
@@ -168,6 +170,29 @@ jobs:
           assert "hkNativeCSharpWorldQuitCallback" in x
           assert "g_worldDataEnteredEpoch.load(std::memory_order_acquire) != epoch" in x
           print("BUNNY_WORLD_IL2CPP_HOOK_SOURCE_PASS")
+          PY
+      - name: Native multiplayer lifecycle and hot path source gate
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          r = Path("Split/Bunny-Loader/app/src/main/cpp/experiments/csharp")
+          a = (r/"AutoSourceRuntime.cpp").read_text()
+          n = (r/"NativeWorldNetTransport.cpp").read_text()
+          assert "void clearWorld()" in a
+          assert "hkNativeCSharpWorldClear" in a
+          assert "request.authoritative = false" in a
+          assert "void onNativeWorldNetReceived" in a
+          assert "void onNativeWorldSyncSent" in a
+          assert "g_worldDataEnteredEpoch.load(std::memory_order_acquire) != epoch" in a
+          assert "readActivationContext().netMode != 2" in a
+          assert "g_nativeWorldNetHooksReady.load(std::memory_order_acquire)" in a
+          assert "bool nativeWorldNetActive()" in a
+          assert "if (!bl::csharp::nativeWorldNetActive() || !reader || readLength < 2)" in n
+          assert 'message == 7 && netMode() == 2' in n
+          assert 'kWorldNetworkModuleId' in n
+          assert 'remoteClient < -1' in n
+          assert 'ignoreClient < -1' in n
+          print("WORLD_NATIVE_NET_WORLD7_SECURITY_PERFORMANCE_PASS")
           PY
       - name: Keep this job host-only
         run: echo "SOURCE_ONLY_NO_ANDROID_PACKAGING"

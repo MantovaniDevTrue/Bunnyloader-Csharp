@@ -88,6 +88,12 @@ BunnyWorldSystem agora inclui NetSend(BinaryWriter) e NetReceive(BinaryReader), 
 
 Estes callbacks de sessão ainda precisam ser ligados ao `AutoSourceRuntime` para sincronização real; o compilador host valida sintaxe, mas não substitui o teste de ABI no Android.
 
+## Etapa 17 — guarda de desempenho na rede
+
+Os dois hooks de NetManager verificam `nativeWorldNetActive()` antes de inspecionar o pacote ou de executar a chamada C#. Quando nenhum mod possui BunnyWorldSystem, os pacotes continuam pelo callback original sem reflexão IL2CPP adicional. Para um sistema ativo, só a mensagem 7 (servidor) dispara NetSend; o cliente apenas recebe BWN1 da conexão com o servidor. Gravação nativa em mundo local também é autorizada no netMode 2 (servidor).
+
+O caminho quente não tem varreduras por entidade. A validação em dispositivo Android continua obrigatória.
+
 ## Requisitos ainda bloqueantes
 
 1. Host nativo C++ deve capturar a identidade real do arquivo de mundo após a seleção; não confiar em nome de mundo ou caminho informado por um mod.

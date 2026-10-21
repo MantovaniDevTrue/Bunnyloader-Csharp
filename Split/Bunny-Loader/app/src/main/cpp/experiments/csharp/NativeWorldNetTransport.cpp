@@ -84,7 +84,7 @@ Il2CppObject* manager() {
 void hkWorldNetRead(Il2CppObject* self, Il2CppObject* reader, int userId,
                     int readLength, const MethodInfo* method) {
     if (!g_originalRead) return;
-    if (!reader || readLength < 2) {
+    if (!bl::csharp::nativeWorldNetActive() || !reader || readLength < 2) {
         g_originalRead(self, reader, userId, readLength, method);
         return;
     }
@@ -128,7 +128,8 @@ void hkWorldNetSendData(int message, int remote, int ignore, Il2CppObject* text,
     if (!g_originalSendData) return;
     g_originalSendData(message, remote, ignore, text, number, number2, number3,
                        number4, number5, number6, number7, method);
-    if (message == 7 && netMode() == 2)
+    if (message == 7 && netMode() == 2 &&
+        bl::csharp::nativeWorldNetActive())
         bl::csharp::onNativeWorldSyncSent(remote, ignore);
 }
 

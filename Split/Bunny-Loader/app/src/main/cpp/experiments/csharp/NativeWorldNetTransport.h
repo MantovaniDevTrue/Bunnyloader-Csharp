@@ -11,6 +11,7 @@ bool sendNativeWorldNetPacket(const std::vector<uint8_t>& packet,
                               std::string* error);
 }
 namespace bl::csharp {
+bool nativeWorldNetActive();
 void onNativeWorldSyncSent(int remoteClient, int ignoreClient);
 void onNativeWorldNetReceived(const uint8_t* bytes, size_t length, int from);
 }

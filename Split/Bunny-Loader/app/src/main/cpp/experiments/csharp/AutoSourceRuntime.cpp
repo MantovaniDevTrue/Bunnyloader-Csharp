@@ -1624,6 +1624,11 @@ bool installCSharpWorldEntryGate() {
 }
 
 
+bool nativeWorldNetActive() {
+    return g_worldSystemModules.load(std::memory_order_acquire) > 0 &&
+        g_nativeWorldNetHooksReady.load(std::memory_order_acquire);
+}
+
 void onNativeWorldSyncSent(int remoteClient, int ignoreClient) {
     if (g_worldSystemModules.load(std::memory_order_acquire) == 0 ||
         !g_nativeWorldNetHooksReady.load(std::memory_order_acquire) ||
