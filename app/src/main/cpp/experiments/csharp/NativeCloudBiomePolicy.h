@@ -16,12 +16,13 @@ struct NativeCloudBiomeFacts {
     bool zoneOverworldHeight = false;
     float playerPositionX = 0;
     int maxTilesX = 0;
-    int exampleBiomeTileCount = -1; // Unknown until a native C# tile counter exists.
+    int exampleBiomeTileCount = -1;
+    bool exampleBiomeRegistered = false;
 };
 
 inline bool exampleSurfaceCloudBiomeActive(const NativeCloudBiomeFacts& facts) {
     if (!facts.playerActive || facts.gameMenu ||
-        facts.exampleBiomeTileCount < 40 ||
+        !facts.exampleBiomeRegistered || facts.exampleBiomeTileCount < 40 ||
         facts.maxTilesX <= 0 || facts.maxTilesX > 100000 ||
         !std::isfinite(facts.playerPositionX) ||
         !(facts.zoneSkyHeight || facts.zoneOverworldHeight))
