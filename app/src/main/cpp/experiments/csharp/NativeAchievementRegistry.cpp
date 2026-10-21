@@ -1,4 +1,5 @@
 #include "experiments/csharp/NativeAchievementRegistry.h"
+#include "experiments/csharp/NativeAchievementProgress.h"
 
 #include "il2cpp/Api.h"
 #include "il2cpp/FieldContract.h"
@@ -236,19 +237,12 @@ Il2CppObject* textObject(const std::string& key, const std::string& value,
     return result;
 }
 
-constexpr int kScaledTrackerMax = 1000000;
-
-int scaled(double fraction) {
-    return static_cast<int>(std::clamp(std::llround(fraction * kScaledTrackerMax),
-                                      0LL, static_cast<long long>(kScaledTrackerMax)));
-}
-
 bool apply(NativeEntry& entry, const AchievementMetadata& definition,
            std::string* error) {
     auto& a = il2cpp::api();
     Il2CppObject* condition = a.gchandle_get_target(entry.conditionRoot);
     if (!condition) { *error = "Native condition GC root lost"; return false; }
-    const int progress = scaled(definition.progress);
+    const int progress = nativeAchievementProgress(definition.progress, definition.completed);
     if (entry.applied == progress) return true;
     int value = progress;
     void* args[]{&value};
@@ -277,7 +271,7 @@ bool make(const AchievementMetadata& definition, NativeEntry* out,
         !setLocalized(achievement, title, description, error)) return false;
 
     auto* key = a.string_new("BunnyProgress");
-    int maximum = kScaledTrackerMax;
+    int maximum = kNativeAchievementTrackerMaximum;
     if (!key) { *error = "Condition key allocation failed"; return false; }
     void* conditionArgs[]{key, &maximum};
     Il2CppObject* condition = nullptr;
@@ -297,7 +291,7 @@ bool make(const AchievementMetadata& definition, NativeEntry* out,
 
     // Recuperar o progresso ANTES do Register(Achievement). Conquistas de
     // sessões anteriores não devem parecer novos desbloqueios no menu.
-    int initialProgress = scaled(definition.progress);
+    int initialProgress = nativeAchievementProgress(definition.progress, definition.completed);
     void* initialArgs[]{&initialProgress};
     if (!invoke(methods.setProgress, condition, initialArgs, nullptr, error))
         return false;
