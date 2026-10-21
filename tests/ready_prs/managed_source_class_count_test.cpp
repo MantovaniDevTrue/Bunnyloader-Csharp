@@ -52,7 +52,7 @@ int main(int argc, char** argv) {
     assert(mod.rarities == 2);
     assert(mod.localizationModules == 1);
     assert(mod.commands == 3);
-    assert(expectedManagedSourceTypes(mod) == 71);
+    assert(expectedManagedSourceTypes(mod) == 72);
     const std::string status =
         "state=finished\nmodId=full-example\nphase=compile-verified\n"
         "assemblyReady=1\nexecutedTypes=72\n";
