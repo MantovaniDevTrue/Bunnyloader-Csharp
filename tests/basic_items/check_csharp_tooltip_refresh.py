@@ -63,3 +63,16 @@ world = auto[auto.index("void noteAutoGameUpdate()"):auto.index("bool preWorldCS
 assert 'g_worldSessionReady.store(true, std::memory_order_release);\n        requestBasicItemInstanceRefresh("WorldLoaded");' in world
 assert 'bool finishPreWorldCSharpPlayer() {\n    requestBasicItemInstanceRefresh("BeforeWorld");' in auto
 print("CSHARP_SAVED_WINGS_AND_INACTIVE_LOADOUT_REHYDRATION_GUARD=PASS")
+
+exports = (Path(__file__).resolve().parents[2] / "app/src/main/cpp/script/js/mod/Exports.js").read_text()
+tooltip = (Path(__file__).resolve().parents[2] / "app/src/main/cpp/script/js/mod/Loaders/TooltipLoader.js").read_text()
+api = (Path(__file__).resolve().parents[2] / "app/src/main/cpp/script/api/CSharpPrototypeApi.cpp").read_text()
+assert "typeof bl?.csharp?.tooltipPlan === 'function'" in exports
+assert "Hooks.Once('item.Tooltips', TooltipLoader.Install);" in exports
+assert "JS_SetPropertyStr(ctx, api, \"tooltipPlan\"" in api
+assert "bl::csharp::basicItemTooltipPlan(type)" in api
+assert "TooltipLoader.#ModifyManaged(item, lines);" in tooltip
+assert "TooltipLoader.#DrawManagedWave(line, def);" in tooltip
+assert "batch[TooltipLoader.#DRAW_STRING](font, ch," in tooltip
+assert "const draw = batch[TooltipLoader.#DRAW_STRING];" not in tooltip
+print("CSHARP_TOOLTIP_PLAN_NATIVE_ACTIVATION_GUARD=PASS")
