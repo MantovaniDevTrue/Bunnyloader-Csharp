@@ -11,6 +11,20 @@
 namespace bl::graphics { struct ScreenSceneRaw; }
 
 namespace bl::csharp {
+// Eventos: enqueue sem executar Mono na thread do Terraria; false requer
+// diagnóstico no chamador (fila cheia, ciclo de vida inativo ou argumento inválido).
+bool queueManagedAchievementEvent(const std::string& modId,
+                                  const std::string& assemblyPath,
+                                  int operation, int type, int count,
+                                  bool localPlayer);
+
+// Bind, Save, Load, Unload e Metadata são operações de controle que retornam
+// o resultado do worker existente. Não chamar por quadro nem dentro de hooks.
+bool invokeManagedAchievementControl(const std::string& modId,
+                                     const std::string& assemblyPath,
+                                     int operation, const std::string& payload,
+                                     std::string* output,
+                                     int timeoutMilliseconds = 15000);
 bool managedRecipeRuntimeReady();
 // Bounded request to the existing pinned Mono worker. No live IL2CPP objects cross threads.
 bool invokeManagedRecipe(const std::string& mod,const std::string& assembly,
