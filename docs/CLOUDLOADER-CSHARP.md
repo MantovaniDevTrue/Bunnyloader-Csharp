@@ -2,7 +2,7 @@
 
 Base do lote: `v1.0`, commit `cfbe784ee3cbc0ba2fabafce56c59e6eac41b67b`.
 Branch: `feature/csharp-cloudloader-source-only-20261021`.
-**Estado: núcleo de seleção e registro testados; loader jogável NÃO implementado.**
+**Estado: núcleo de seleção, registro e API C# experimental codificados; loader jogável NÃO implementado.**
 
 ## Fontes de referência obrigatórias
 
@@ -33,48 +33,46 @@ o comportamento correto e suas regras já validadas.
 - `.github/workflows/check-csharp-cloudloader-source.yml`: **somente**
   testes de código-fonte C++ estritos e sanitizers; sem Gradle, APK ou `.bmod`.
 
-Os testes do núcleo NÃO provam renderização no Terraria Android.
+Os testes do núcleo e dos exemplos C# NÃO provam renderização no Terraria Android.
 
-## Contrato C# previsto (não ativar antes do runtime nativo)
+## API C# compilável e exemplos no código
 
-Este trecho descreve a futura API; **não é um exemplo jogável ainda**.
-A implementação definitiva deve declarar `BunnyCloud` no SDK,
-registrá-lo pelo parser de fontes e enviar eventos apenas pelo MonoVM.
+Foi adicionado `experiments/csharp/BunnyCsSdk/BunnyCloud.cs` ao
+`BunnySourceSdk.csproj`. Ele define o contrato **experimental**:
+`BunnyCloud`, `BunnyCloudEnvironment`, `BunnyCloudSpawn` e
+`BunnyCloudSpriteEffects`. A chance é normalizada por
+`BunnyCloud.SafeSpawnChance`; nomes de biomas são identificadores internos,
+não nomes traduzidos.
 
-```csharp
-using BunnyLoader.Source;
+Duas implementações comentadas e testes compiláveis estão em:
 
-namespace ExampleModCSharp;
+- `tests/cloud_loader/managed_examples/ExampleCommonCloud.cs`:
+  nuvem comum de peso 1, como o exemplo de textura do Bunny original.
+- `tests/cloud_loader/managed_examples/ExampleAdvancedCloud.cs`:
+  nuvem rara, peso 10 dentro do bioma do exemplo, 1 fora, `OnSpawn`
+  removendo o espelhamento de seu PNG com letras.
+- `tests/cloud_loader/managed_examples/CloudContractTests.cs`:
+  testes das chances, contextos, parâmetros, proteção de desenho e tipo.
+- `tests/cloud_loader/CloudContractTests.csproj`: compilação .NET 8
+  independente e **sem build de Android**.
 
-// Baseado em ExampleAdvancedCloud.js do ExampleModBunny.
-// A implementação final precisará vincular a condição ao bioma real.
-public sealed class ExampleAdvancedCloud : BunnyCloud
-{
-    public override void SetDefaults()
-    {
-        Texture = "Content/Clouds/ExampleAdvancedCloud";
-        RareCloud = true;
-    }
+A estrutura original do Bunny Loader é usada como comportamento de referência.
+**Essas classes ainda NÃO são instanciadas automaticamente nem registradas
+pelo runtime do Terraria.** Seus testes não comprovam carregamento no jogo.
+O bioma `ExampleModCSharp/ExampleSurfaceBiome` é uma chave de referência
+para o teste, não um bioma já implementado no C#.
 
-    // Peso: 10 dentro do bioma de exemplo, 1 nos demais.
-    // Não executar a cada frame: apenas quando a pool for atualizada.
-    public override float SpawnChance(BunnyCloudSpawnContext context)
-        => context.InExampleBiome ? 10f : 1f;
-
-    // Chamado somente depois de Terraria confirmar uma nova nuvem ativa.
-    // A textura possui letras e não deve nascer espelhada.
-    public override void OnSpawn(BunnyCloudSpawnContext context)
-        => context.SpriteDirection = 0;
-}
+```bash
+dotnet run --project tests/cloud_loader/CloudContractTests.csproj -c Release
+dotnet build experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj -c Release
 ```
-
-`BunnyCloud`, `BunnyCloudSpawnContext` e `InExampleBiome` ainda são
-**nomes planejados, não APIs disponíveis**. Não usar em mods de distribuição.
 
 ## O que falta para finalizar o CloudLoader inteiro
 
-- [ ] Implementar `BunnyCloud` no BunnySourceSdk, com contratos estáveis,
-      validação de dados, comentários e testes Roslyn sem JS.
+- [x] Criar `BunnyCloud` experimental, contrato gerenciado, exemplos
+      anotados e testes de compilação C# no BunnySourceSdk.
+- [ ] Confirmar compilação e testes C# no CI; estabilizar a API com o host
+      nativo antes de classificá-la como utilizável em jogo.
 - [ ] Atualizar parser de fontes, reconhecimento de conteúdo, identidade
       e instalação automática C# antes da entrada no mundo.
 - [ ] Instalar texturas em `TextureAssets.Cloud` e máscaras seguras em
@@ -88,8 +86,10 @@ public sealed class ExampleAdvancedCloud : BunnyCloud
       callback em slot inativo e garantir ordem correta de rara/comum.
 - [ ] Cobrir múltiplos mods, mundo de aniversário, recarga de mundo,
       desconexão, recompilação, assets ausentes e fechamento sem leak.
-- [ ] Colocar as duas classes originais em `ExampleModCSharp`, com sprites,
-      documentação dentro dos arquivos e testes de compilação C#.
+- [x] Criar classes C# de nuvem comum e avançada comentadas e testes de
+      contrato fora da pasta Playable, evitando distribuição prematura.
+- [ ] Integrar essas classes ao ExampleModCSharp jogável com os PNGs originais
+      e testar a geração real das nuvens na versão Android.
 - [ ] Validar todos os testes no CI e, só depois, abrir a fase de QA visual
       Android (céu, máscara, horizonte, chance, OnSpawn e FPS).
 
