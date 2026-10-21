@@ -21,6 +21,10 @@ public static class BunnyEntitySourceDispatcher
         public int Generation;
         public int Owner;
         public int Age;
+        public float X;
+        public float Y;
+        public float VelocityX;
+        public float VelocityY;
         public bool Blocked;
     }
 
@@ -457,6 +461,10 @@ public static class BunnyEntitySourceDispatcher
             instance = new ProjectileInstance { Generation = generation, Type = type, Owner = owner };
         }
         if (instance.Blocked) return -1;
+        instance.X = x;
+        instance.Y = y;
+        instance.VelocityX = vx;
+        instance.VelocityY = vy;
         var state = new BunnyProjectileAiState {
             Slot = slot, Type = type, Generation = generation, Owner = owner, Age = instance.Age,
             X = x, Y = y, VelocityX = vx, VelocityY = vy, PlayerX = playerX, PlayerY = playerY,
@@ -522,7 +530,9 @@ public static class BunnyEntitySourceDispatcher
             instance.Owner != owner || instance.Blocked ||
             !context.Projectiles.TryGetValue(type, out BunnyProjectile? projectile)) return false;
         var state = new BunnyProjectileAiState {
-            Slot = slot, Type = type, Generation = generation, Owner = owner, Age = instance.Age
+            Slot = slot, Type = type, Generation = generation, Owner = owner, Age = instance.Age,
+            X = instance.X, Y = instance.Y, VelocityX = instance.VelocityX,
+            VelocityY = instance.VelocityY
         };
         try
         {
@@ -577,7 +587,9 @@ public static class BunnyEntitySourceDispatcher
             return false;
         instance.Blocked = true;
         var state = new BunnyProjectileAiState {
-            Slot = slot, Type = type, Generation = generation, Owner = owner, Age = instance.Age
+            Slot = slot, Type = type, Generation = generation, Owner = owner, Age = instance.Age,
+            X = instance.X, Y = instance.Y, VelocityX = instance.VelocityX,
+            VelocityY = instance.VelocityY
         };
         try
         {
