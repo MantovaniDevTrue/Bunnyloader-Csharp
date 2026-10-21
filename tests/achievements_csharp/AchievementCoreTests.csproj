@@ -6,7 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="../../experiments/csharp/BunnyCsSdk/BunnyCsSdk.csproj" />
+    <ProjectReference Include="../../experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj" />
     <Compile Include="../../samples/ExampleModCSharp/Examples/Achievements/ExampleBossKilled.cs" Link="Examples/ExampleBossKilled.cs" />
     <Compile Include="../../samples/ExampleModCSharp/Examples/Achievements/ManyWormsKilled.cs" Link="Examples/ManyWormsKilled.cs" />
   </ItemGroup>
