@@ -44,6 +44,13 @@ static class Program
         protected override void PreUpdateItems() => Sequence.Add("A-items-pre");
         protected override void PostUpdateItems() => Sequence.Add("A-items-post");
         protected override void UpdateUI(nint gameTime) => Sequence.Add("A-ui");
+        protected override void ModifyTimeRate(ref BunnyTimeRateValues rates)
+        {
+            Sequence.Add("A-time");
+            rates.TimeRate = 0.5;
+            rates.TileUpdateRate = 1.25;
+            rates.EventUpdateRate = 0.75;
+        }
     }
 
     private sealed class B : BunnyWorldUpdateLoader
@@ -106,7 +113,7 @@ static class Program
             "PostUpdateInvasions", "PostUpdateInput",
             "PreUpdatePlayers", "PostUpdatePlayers", "PreUpdateNPCs",
             "PostUpdateNPCs", "PreUpdateGores", "PostUpdateGores",
-            "PostUpdateProjectiles", "PreUpdateItems", "PostUpdateItems", "UpdateUI"
+            "PostUpdateProjectiles", "PreUpdateItems", "PostUpdateItems", "UpdateUI", "ModifyTimeRate"
         };
         foreach (string name in events)
         {
@@ -136,11 +143,11 @@ static class Program
         var b = new B();
         var c = new C();
         a.Load(scopeA);
-        Check(BunnyWorldUpdateRegistry.ActiveHookCount == 14, "Faltam hooks dos catorze estágios");
-        Check(installs == 14, "Quantidade inicial de hooks");
+        Check(BunnyWorldUpdateRegistry.ActiveHookCount == 15, "Faltam hooks dos quinze estágios");
+        Check(installs == 15, "Quantidade inicial de hooks");
         b.Load(scopeA);
         c.Load(scopeB);
-        Check(installs == 14, "Dois mods instalaram hooks duplicados");
+        Check(installs == 15, "Dois mods instalaram hooks duplicados");
         Check(a.IsRegistered && b.IsRegistered && c.IsRegistered,
             "Inscrições ativas não registradas");
 
@@ -170,6 +177,23 @@ static class Program
         Order("A-items-post,vanilla");
         Fire("UIEnd", "vanilla");
         Order("A-ui,vanilla");
+        BunnyTimeRateValues applied = default;
+        long appliedSession = 0;
+        BunnyWorldUpdateRegistry.TestTimeRead = () =>
+            (42, new BunnyTimeRateValues(1, 1, 1));
+        BunnyWorldUpdateRegistry.TestTimeWrite = (session, rates) =>
+        {
+            appliedSession = session;
+            applied = rates;
+            return true;
+        };
+        Fire("TimeRate", "vanilla");
+        Order("A-time,vanilla");
+        Check(appliedSession == 42 && applied.TimeRate == 0.5 &&
+              applied.TileUpdateRate == 1.25 && applied.EventUpdateRate == 0.75,
+              "Valores de relógio não preservados entre nativo e CSharp");
+        BunnyWorldUpdateRegistry.TestTimeRead = null;
+        BunnyWorldUpdateRegistry.TestTimeWrite = null;
 
         a.ThrowOnBefore = true;
         Fire("DoUpdateInWorld", "vanilla");
@@ -196,7 +220,7 @@ static class Program
         BunnyWorldUpdateRegistry.DetachScope(scopeA);
         Check(BunnyWorldUpdateRegistry.ActiveHookCount == 2,
             "A saída do mod A manteve hooks sem listeners");
-        Check(installs == 16, "Os hooks não migraram para o escopo do mod C");
+        Check(installs == 17, "Os hooks não migraram para o escopo do mod C");
         a.Unload();
         b.Unload();
         empty.Unload();
@@ -264,6 +288,6 @@ static class Program
         BunnyWorldUpdateRegistry.TestHookFactory = null;
 
         Console.WriteLine("SystemUpdateLoader C#: " + assertions +
-            " verificações aprovadas; catorze estágios e múltiplos módulos simulados, sem APK.");
+            " verificações aprovadas; quinze estágios, três taxas e múltiplos módulos simulados, sem APK.");
     }
 }
