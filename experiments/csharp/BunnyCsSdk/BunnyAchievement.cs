@@ -164,7 +164,8 @@ public abstract class BunnyAchievement
         if (string.IsNullOrWhiteSpace(key) || key.Length > 96 ||
             key.Any(c => !char.IsAsciiLetterOrDigit(c) && c != '_' && c != '-'))
             throw new ArgumentException("A chave da condição deve conter letras, números, _ ou -.", nameof(key));
-        if (!(maximum > 0) || double.IsNaN(maximum) || double.IsInfinity(maximum))
+        if (!(maximum > 0) || maximum > 1000000000 ||
+            double.IsNaN(maximum) || double.IsInfinity(maximum))
             throw new ArgumentOutOfRangeException(nameof(maximum));
         if (conditions.Count >= 32)
             throw new InvalidOperationException("Limite de 32 condições por conquista.");
