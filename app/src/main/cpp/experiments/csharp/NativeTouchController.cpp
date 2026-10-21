@@ -149,14 +149,17 @@ void onControllerUpdate(void* self, float elapsedTime, const MethodInfo* method)
     const bool observe = self && installed.load(std::memory_order_acquire) &&
                          registry().count() > 0;
     const bool arraysReady = observe && ensureControllerArrays(self);
-    if (arraysReady) nativeTouchGroupBefore(self);
+    auto& api = il2cpp::api();
+    bool menuBefore = true;
+    if (arraysReady) {
+        api.field_static_get_value(refs.gameMenu, &menuBefore);
+        nativeTouchGroupBefore(self, !menuBefore);
+    }
     if (original) original(self, elapsedTime, method);
     if (!arraysReady) return;
-    nativeTouchGroupAfter(self);
-
-    auto& api = il2cpp::api();
     bool menu = true;
     api.field_static_get_value(refs.gameMenu, &menu);
+    if (!menuBefore && !menu) nativeTouchGroupAfter(self);
     static ActiveTouchSnapshot snapshot;
     static const void* scannedProfile = nullptr;
     static uint64_t previousScan = 0;
