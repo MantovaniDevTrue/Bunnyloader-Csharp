@@ -16,6 +16,9 @@ on:
       - app/src/main/cpp/experiments/csharp/NativeCloudHooks.h
       - app/src/main/cpp/experiments/csharp/NativeCloudHooks.cpp
       - app/src/main/cpp/experiments/csharp/NativeCloudRollCoordinator.h
+      - app/src/main/cpp/experiments/csharp/NativeCloudWeightWire.h
+      - app/src/main/cpp/experiments/csharp/NativeCloudAutoload.h
+      - app/src/main/cpp/experiments/csharp/NativeCloudAutoload.cpp
       - tests/cloud_loader/**
       - experiments/csharp/BunnyCsSdk/BunnyCloud.cs
       - experiments/csharp/BunnyCsSdk/BunnyCloudDispatcher.cs
@@ -84,6 +87,9 @@ jobs:
             extras=()
             if [[ "${file##*/}" == "source_parser_cloud_test.cpp" ]]; then
               extras+=(app/src/main/cpp/experiments/csharp/SourceParser.cpp)
+            fi
+            if [[ "${file##*/}" == "native_cloud_autoload_test.cpp" ]]; then
+              extras+=(app/src/main/cpp/experiments/csharp/NativeCloudAutoload.cpp)
             fi
             clang++ -std=c++20 -g -O1 -Wall -Wextra -Werror -pedantic \
               -fsanitize=address,undefined -fno-omit-frame-pointer \
