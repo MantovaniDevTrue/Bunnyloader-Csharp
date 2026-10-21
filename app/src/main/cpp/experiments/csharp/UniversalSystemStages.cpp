@@ -3,6 +3,7 @@
 #include "experiments/csharp/UniversalHooks.h"
 #include "experiments/csharp/SystemStageContracts.h"
 #include "experiments/csharp/SystemTimeRateMailbox.h"
+#include "content/systems/SystemTimeRates.h"
 #include "core/Log.h"
 #include "hook/HookManager.h"
 #include "il2cpp/Resolver.h"
@@ -49,48 +50,13 @@ FieldInfo* gameMenuField = nullptr;
 std::atomic<bool> rootInstalled{false};
 using TimeRateFn = void (*)(const MethodInfo*);
 TimeRateFn originalTimeRate = nullptr;
-struct NumericField { FieldInfo* field = nullptr; SystemStageFieldKind kind = SystemStageFieldKind::Single; };
-NumericField dayRateField, tileRateField;
-std::atomic<double> clockRate{1.0};
 SystemTimeRateMailbox timeMailbox;
-std::atomic<bool> resetTimeFractions{false};
-double tileRemainder = 0, eventRemainder = 0;
-
-bool validRate(double value) {
-    return validSystemTimeRate(value);
-}
-bool numericField(Il2CppClass* parent, const char* name, NumericField& out) {
-    std::string error;
-    SystemStageFieldKind kind = SystemStageFieldKind::Single;
-    auto* field = systemStageField(parent,name,true,&kind,&error);
-    if (!field) { BL_ERROR("%s",error.c_str()); return false; }
-    out = {field, kind};
-    return true;
-}
-double readRate(const NumericField& field) {
-    auto& api = il2cpp::api();
-    if (field.kind == SystemStageFieldKind::Double) {
-        double rate = 0;
-        api.field_static_get_value(field.field, &rate);
-        return rate;
-    }
-    if (field.kind == SystemStageFieldKind::Int32) {
-        int32_t integer = 0; api.field_static_get_value(field.field,&integer); return integer;
-    }
-    float rate = 0;
-    api.field_static_get_value(field.field, &rate);
-    return rate;
-}
-void writeRate(const NumericField& field, double rate) {
-    auto& api = il2cpp::api();
-    if (field.kind == SystemStageFieldKind::Double) {
-        api.field_static_set_value(field.field, &rate);
-    } else if (field.kind == SystemStageFieldKind::Int32) {
-        int32_t integer=static_cast<int32_t>(rate); api.field_static_set_value(field.field,&integer);
-    } else {
-        float single = static_cast<float>(rate);
-        api.field_static_set_value(field.field, &single);
-    }
+bool validRate(double value) { return validSystemTimeRate(value); }
+void rateFailure(const std::string& error) {
+    static unsigned failures=0;
+    // Log the first failure and powers of two, never format healthy frames.
+    if((++failures & (failures-1))==0)
+        BL_ERROR("%s SuppressedTotal=%u",error.c_str(),failures-1);
 }
 
 extern "C" {
@@ -135,7 +101,7 @@ extern "C" __attribute__((visibility("hidden"))) void blCSharpSystemStageDispatc
     unsigned index, RegisterFrame* frame) {
     if (index == 11) {
         if (!stages[11].active.load(std::memory_order_acquire) || !frame) return;
-        const double rate = clockRate.load(std::memory_order_acquire);
+        const double rate = runtime::systems::clockRate();
         if (validRate(rate)) std::memcpy(frame->vectors[0], &rate, sizeof(rate));
         return;
     }
@@ -143,32 +109,19 @@ extern "C" __attribute__((visibility("hidden"))) void blCSharpSystemStageDispatc
 }
 
 void hkUpdateTimeRate(const MethodInfo* info) {
+    if(!stages[10].active.load(std::memory_order_acquire)) { originalTimeRate(info);return; }
+    std::string error;
+    const bool entered=runtime::systems::beginTimeRates(&error);
     originalTimeRate(info);
-    if (resetTimeFractions.exchange(false, std::memory_order_acq_rel)) {
-        tileRemainder = 0;
-        eventRemainder = 0;
-    }
-    if (!dayRateField.field || !tileRateField.field) return;
-    const double time = readRate(dayRateField);
-    const double tiles = readRate(tileRateField);
-    if (!validRate(time) || !validRate(tiles)) return;
-
-    timeMailbox.begin(time,tiles);
-    invokeStage(10);
-    const auto requested=timeMailbox.finish();
-    double requestedTime=requested.time, requestedTiles=requested.tiles, requestedEvents=requested.events;
-    if (!validRate(requestedTime)) requestedTime = time;
-    if (!validRate(requestedTiles)) requestedTiles = tiles;
-    if (!validRate(requestedEvents)) requestedEvents = time;
-    clockRate.store(requestedTime, std::memory_order_release);
-    double tilesWithFraction = requestedTiles + tileRemainder;
-    double eventsWithFraction = requestedEvents + eventRemainder;
-    tilesWithFraction = std::min(2147483647.0, tilesWithFraction);
-    eventsWithFraction = std::min(2147483647.0, eventsWithFraction);
-    writeRate(tileRateField, std::floor(tilesWithFraction));
-    writeRate(dayRateField, std::floor(eventsWithFraction));
-    tileRemainder = tilesWithFraction - std::floor(tilesWithFraction);
-    eventRemainder = eventsWithFraction - std::floor(eventsWithFraction);
+    if(!entered) { rateFailure(error);return; }
+    runtime::systems::TimeRates baseline;
+    if(runtime::systems::readTimeRates(&baseline,&error)) {
+        timeMailbox.begin(baseline.time,baseline.tiles,baseline.events);
+        invokeStage(10);
+        const auto requested=timeMailbox.finish();
+        if(!runtime::systems::publishTimeRates({requested.time,requested.tiles,requested.events},&error)) rateFailure(error);
+    } else rateFailure(error);
+    if(!runtime::systems::endTimeRates(&error)) rateFailure(error);
 }
 
 void hkUpdateUIStates(void* gameTime, const MethodInfo* info) {
@@ -350,14 +303,12 @@ int installUniversalSystemStageOnGameThread(const std::string& name, int slot) {
         auto* main = il2cpp::findClassQuiet("Terraria", "Main");
         const MethodInfo* method = main ? il2cpp::findMethodBySignature(
             main, il2cpp::parseSignature("void UpdateTimeRate()")) : nullptr;
-        NumericField day, tiles;
         std::string error;
         if (!systemStageMethodStorage(method,true,"Main.UpdateTimeRate",&error)) {
             BL_ERROR("%s",error.c_str()); return -7;
         }
         if (!method || !il2cpp::methodPointer(method) || !main ||
-            !numericField(main, "dayRate", day) ||
-            !numericField(main, "desiredWorldTilesUpdateRate", tiles)) return -7;
+            !runtime::systems::prepareTimeRates(&error)) { if(!error.empty()) BL_ERROR("%s",error.c_str());return -7; }
 
         auto* update = il2cpp::findMethodBySignature(main,
             il2cpp::parseSignature("void UpdateTime()"));
@@ -369,14 +320,10 @@ int installUniversalSystemStageOnGameThread(const std::string& name, int slot) {
         }
         if (!code) return -7;
         if (!*clock.original) {
-            if (std::memcmp(code + clock.offset, clock.expected,
-                            sizeof(clock.expected)) != 0) return -6;
-            if (!hook::install(const_cast<uint8_t*>(code + clock.offset),
+            if (!hook::installVerified(const_cast<uint8_t*>(code + clock.offset),clock.expected,sizeof(clock.expected),
                                reinterpret_cast<void*>(clock.bridge),
                                clock.original)) return -9;
         }
-        dayRateField = day;
-        tileRateField = tiles;
         if (!hook::install(method, hkUpdateTimeRate, &originalTimeRate)) return -9;
     }
     if (index < 7 && !*stage.original) {
@@ -385,9 +332,8 @@ int installUniversalSystemStageOnGameThread(const std::string& name, int slot) {
         const MethodInfo* method = worldMethod();
         const auto* code = method ?
             static_cast<const uint8_t*>(il2cpp::methodPointer(method)) : nullptr;
-        if (!code || std::memcmp(code + stage.offset, stage.expected,
-                                 sizeof(stage.expected)) != 0) return -6;
-        if (!hook::install(const_cast<uint8_t*>(code + stage.offset),
+        if (!code) return -6;
+        if (!hook::installVerified(const_cast<uint8_t*>(code + stage.offset),stage.expected,sizeof(stage.expected),
                            reinterpret_cast<void*>(stage.bridge),
                            stage.original)) return -9;
     }
@@ -409,7 +355,6 @@ void removeUniversalSystemStage(int handle) {
         if (index == 10) {
             stages[11].active.store(false, std::memory_order_release);
             timeMailbox.cancel();
-            resetTimeFractions.store(true, std::memory_order_release);
         }
     }
 #else
@@ -444,7 +389,6 @@ void disableAllUniversalSystemStages() {
         stage.slot.store(-1, std::memory_order_release);
     }
     timeMailbox.cancel();
-    resetTimeFractions.store(true, std::memory_order_release);
 #endif
 }
 }

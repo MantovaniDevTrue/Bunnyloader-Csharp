@@ -17,9 +17,10 @@ class SystemTimeRateMailbox {
     bool live=false, modified=false;
     SystemTimeRates baseline{}, proposed{};
 public:
-    void begin(double time,double tiles) {
+    void begin(double time,double tiles) { begin(time,tiles,time); }
+    void begin(double time,double tiles,double events) {
         std::lock_guard lock(mutex);
-        baseline={time,tiles,time}; proposed=baseline;
+        baseline={time,tiles,events}; proposed=baseline;
         ++revision; modified=false; live=true;
     }
     bool read(int64_t* session,double* time,double* tiles,double* events) {

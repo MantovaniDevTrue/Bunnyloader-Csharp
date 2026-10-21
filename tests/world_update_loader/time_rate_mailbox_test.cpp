@@ -21,6 +21,9 @@ int main(){
  mailbox.begin(2,3);
  assert(!mailbox.write(session,1,1,1));
  result=mailbox.finish();assert(result.time==2 && result.tiles==3 && result.events==2);
+ mailbox.begin(.25,.5,.75);
+ assert(mailbox.read(&session,&time,&tiles,&events) && time==.25 && tiles==.5 && events==.75);
+ mailbox.finish();
  mailbox.begin(1,1);mailbox.cancel();
  assert(!mailbox.read(&session,&time,&tiles,&events));
  std::atomic<bool> done=false;std::atomic<int> accepted=0;

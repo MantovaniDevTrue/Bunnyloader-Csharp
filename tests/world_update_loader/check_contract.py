@@ -42,7 +42,7 @@ for stage, offset in (
 ):
     assert f'{{"{stage}", {offset},' in native, f"Sem âncora {stage}"
     assert f'{{"{stage}", "void DoUpdateInWorld()", {offset},' in original_hooks, stage
-assert 'std::memcmp(code + stage.offset, stage.expected' in native
+assert 'hook::installVerified(' in native and 'bl::hook::installVerified(' in original_hooks
 assert 'originalWorldUpdate(self, info);' in native
 assert 'installUniversalSystemStageOnGameThread' in native
 assert "UpdateUIStates(GameTime gameTime)" in original
@@ -56,7 +56,10 @@ assert '{"ClockAdvance", 0xb8c,' in native
 assert 'new("Bunny.SystemStage", "TimeRate", false,' in sdk
 assert 'bunny_system_time_rate_read' in native
 assert 'bunny_system_time_rate_write' in native
-assert 'tileRemainder = tilesWithFraction - std::floor(tilesWithFraction)' in native
+shared = (ROOT / 'app/src/main/cpp/content/systems/SystemTimeRates.cpp').read_text()
+assert 'tileRemainder=tiles-std::floor(tiles)' in shared
+assert 'runtime::systems::beginTimeRates' in native
+assert 'bl.systemTimeRateBegin()' in original
 assert 'UpdateUIStates(GameTime gameTime)' in native
 assert 'field_static_get_value(gameMenuField' in native
 for stage in ("PlayersBegin", "PlayersEnd", "NPCsBegin", "NPCsEnd", "GoresEnd", "ItemsBegin", "ItemsEnd"):

@@ -654,9 +654,17 @@
       "tests": [
         "tests/world_update_loader/Program.cs",
         "tests/world_update_loader/native_contract_test.cpp",
-        "tests/world_update_loader/time_rate_mailbox_test.cpp"
+        "tests/world_update_loader/time_rate_mailbox_test.cpp",
+        "tests/world_update_loader/shared_time_rates_test.cpp",
+        "tests/world_update_loader/verified_hook_chain_test.cpp",
+        "tools/tests/modsystemhooks/check.mjs"
       ],
-      "note": "Conclusao de lote existente; nao contado como dezenove loaders nem como substituicao de um alvo da lista."
+      "note": "Conclusao de lote existente; nao contado como dezenove loaders nem como substituicao de um alvo da lista. Compatibilidade JS/C# reforcada com provas originais de opcodes e transacao nativa unica de taxas; Android pendente.",
+      "nativeBridge": [
+        "app/src/main/cpp/experiments/csharp/UniversalSystemStages.cpp",
+        "app/src/main/cpp/content/systems/SystemTimeRates.cpp",
+        "app/src/main/cpp/hook/HookManager.cpp"
+      ]
     },
     {
       "loader": "GoreLoader",
@@ -676,10 +684,10 @@
       ],
       "note": "Integracao adicional de PR existente; nao remove pendencias dos quinze alvos.",
       "automatedValidation": {
-        "commit": "c5946f82324d01ffdacdf6f30079397cff013ef1",
-        "runId": 39680627977,
+        "commit": "d2d901bfea307f46e6096c7f51341fe11dabb054",
+        "runId": 39682216237,
         "result": "passed",
-        "scope": "Host contracts, ARM64 syntax and full native library link; subsequent bounded-exception diagnostic hardening requires its own CI."
+        "scope": "Host contracts, managed examples, ARM64 syntax and complete libbunny.so link. No APK or Android execution."
       }
     }
   ]

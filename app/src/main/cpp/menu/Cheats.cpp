@@ -13,6 +13,7 @@
 #include "il2cpp/Resolver.h"
 #include "il2cpp/Signature.h"
 #include "content/common/GameRefs.h"
+#include "content/systems/SystemTimeRates.h"
 #include "content/common/ModContent.h"
 #include "content/textures/TexturePacks.h"
 #include "content/items/ModItems.h"
@@ -204,6 +205,7 @@ void updateInWorld() {
     if (exc || !r) return;
     const bool menu = *(reinterpret_cast<uint8_t*>(r) + sizeof(Il2CppObject)) != 0;
     g_inWorld.store(!menu, std::memory_order_relaxed);
+    systems::observeTimeRateMenu(menu);
 }
 
 // DoUpdate hook: le o arquivo de comando a cada frame e despacha.

@@ -59,7 +59,7 @@ Esses resultados não comprovam hooks, renderização, estabilidade ou FPS no
 Android. A montagem das instruções ARM64 e a linkagem NDK têm passos próprios
 no workflow source-only; registrar o SHA e o resultado do CI quando terminar.
 
-## Ponto de retomada
+## Ponto de retomada do primeiro checkpoint
 
 1. Confirmar o CI source-only desta branch; corrigir a integração antes de
    anunciar qualquer grupo como pronto.
@@ -148,3 +148,39 @@ IL2CPP; a quantidade de raízes residentes é verificada por asserts). O SDK
 público gerado continua em 155 tipos; os quatro testes do bloqueio de APK passam.
 Os quinze alvos continuam com 14 pendências, além das integrações adicionais.
 Não há teste Android nem APK deste trabalho.
+
+## Compatibilidade SystemUpdate C# e JavaScript — complemento
+
+O CI do SHA `d2d901bf` passou em todos os onze workflows, incluindo
+[39682216237](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39682216237)
+com sintaxe ARM64 e linkagem da biblioteca nativa sem APK.
+
+A revisão seguinte encontrou dois problemas que esses testes ainda não
+cobriam: validar opcodes depois que a outra linguagem já instalou seu hook,
+e arredondar as taxas duas vezes em dois loaders independentes. Foram criados:
+
+- `HookManager.installVerified`, com prova dos bytes anteriores ao primeiro
+  patch, instalação/validação sob a mesma trava e diagnóstico esperado/real.
+- `content/systems/SystemTimeRates`, serviço sem Mono/QuickJS que compõe as
+  três taxas em uma transação aninhada. Apenas o limite externo grava os
+  campos nativos. As frações não se perdem entre linguagens.
+- Resolução de metadata em thread de carregamento, sem ler/gravar valores;
+  execução e troca de menu/mundo limitadas à thread do jogo. Campos Single,
+  Double e Int32 recebem exatamente o número de bytes validado. Int32.MaxValue
+  não pode arredondar para cima ao ser representado como Single.
+- Reset independente no ciclo nativo menu/mundo; remover apenas o módulo C#
+  não interfere no estado JS. O mailbox mantém sua proteção contra respostas
+  MonoVM atrasadas e agora preserva o evento independente recebido do núcleo.
+
+Os quatro testes em `tests/world_update_loader/run_native.sh` executam código
+nativo de produção e cobrem os dois sentidos de integração, 16 instalações
+concorrentes, falhas sem escrita, exceção/cleanup no wrapper JS e os contratos
+de tipos/thread. O Node passou 34 testes de comportamento; seu modo explícito
+behavior-only **não** afirma validação de assinaturas do dump ausente.
+A suíte gerenciada mantém 115 verificações. As 65 verificações combinadas e
+o check dos 155 tipos públicos também passaram novamente. A aprovação do SHA anterior não
+é atribuída automaticamente a estas mudanças; o CI precisa passar novamente.
+
+Próximos loaders: estilos de fundos continuam pendentes na lista de quinze;
+Keybind e WorldSave precisam das adaptações descritas acima. Não há APK,
+release, garantia de FPS ou validação Android neste checkpoint.

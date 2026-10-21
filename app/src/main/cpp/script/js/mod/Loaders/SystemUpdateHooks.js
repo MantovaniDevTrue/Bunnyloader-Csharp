@@ -1,8 +1,4 @@
 class SystemUpdateHooks {
-    static #clockRate = 1;
-    static #tileRemainder = 0;
-    static #eventRemainder = 0;
-
     static Install(cls) {
         const has = name => Hooks.Overrides(cls, ModSystem, name);
         const Main = Terraria.Main;
@@ -63,21 +59,23 @@ class SystemUpdateHooks {
             });
         });
         if (has('ModifyTimeRate')) Hooks.Once('system.TimeRate', () => {
-            bl.installSystemStage('ClockAdvance', () => SystemUpdateHooks.#clockRate);
+            bl.systemTimeRatePrepare();
+            bl.installSystemStage('ClockAdvance', () => bl.systemTimeRateClock());
             Main['void UpdateTimeRate()'].hook(original => {
-                original();
-                const time = new Ref(Main.dayRate);
-                const tiles = new Ref(Main.desiredWorldTilesUpdateRate);
-                const events = new Ref(Main.dayRate);
-                const initialTime = time.value, initialTiles = tiles.value;
-                call('ModifyTimeRate', time, tiles, events);
-                SystemUpdateHooks.#clockRate = SystemUpdateHooks.#Rate(time.value, initialTime);
-                const tileRate = SystemUpdateHooks.#Rate(tiles.value, initialTiles) + SystemUpdateHooks.#tileRemainder;
-                const eventRate = SystemUpdateHooks.#Rate(events.value, initialTime) + SystemUpdateHooks.#eventRemainder;
-                Main.desiredWorldTilesUpdateRate = Math.floor(tileRate);
-                Main.dayRate = Math.floor(eventRate);
-                SystemUpdateHooks.#tileRemainder = tileRate % 1;
-                SystemUpdateHooks.#eventRemainder = eventRate % 1;
+                const entered = bl.systemTimeRateBegin();
+                try {
+                    original();
+                    if (!entered) return;
+                    const initial = bl.systemTimeRateRead();
+                    const time = new Ref(initial[0]), tiles = new Ref(initial[1]), events = new Ref(initial[2]);
+                    call('ModifyTimeRate', time, tiles, events);
+                    bl.systemTimeRatePublish(
+                        SystemUpdateHooks.#Rate(time.value, initial[0]),
+                        SystemUpdateHooks.#Rate(tiles.value, initial[1]),
+                        SystemUpdateHooks.#Rate(events.value, initial[2]));
+                } finally {
+                    if (entered) bl.systemTimeRateEnd();
+                }
             });
         });
     }

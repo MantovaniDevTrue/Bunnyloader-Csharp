@@ -93,8 +93,9 @@ public sealed class MeuSistema : BunnyWorldUpdateLoader
 
 Para testes, existem `ExampleWorldUpdateCounter.cs` e
 `ExampleDustAndInvasionSystem.cs` no ExampleModCSharp.
-**Os dois estão desligados por padrão** (`EnableUpdates => false`).
-Troque para `true` apenas no pacote de QA, sem alterar a versão estável.
+O contador está ativo e instala dois callbacks. O exemplo de Dust/invasões e
+o `ExampleTimeRateSystem` permanecem desligados (`EnableUpdates => false`);
+ative-os apenas no pacote de QA, sem alterar a versão estável.
 
 ## Regras de segurança e desempenho
 
@@ -128,3 +129,31 @@ Troque para `true` apenas no pacote de QA, sem alterar a versão estável.
 
 **Estado:** 19/19 APIs no fonte; CI desktop não valida execução nativa Android.
 Ainda não está autorizada a criação de APK. PR em rascunho.
+
+## Coexistência com sistemas JavaScript
+
+C# e JS utilizam o mesmo serviço nativo `content/systems/SystemTimeRates`.
+Não há execução de JS a partir do MonoVM. Os hooks encadeados recebem as taxas
+completas produzidas pela linguagem anterior, inclusive frações e a separação
+entre relógio e eventos. Somente o último retorno ao Terraria aplica Floor e
+acumula o resto. Ao atravessar menu/mundo, os restos são zerados; descarregar
+um módulo C# não zera o estado pertencente aos módulos JS ainda ativos.
+
+As âncoras compartilham `HookManager.installVerified`: a primeira instalação
+valida e guarda os opcodes originais; as seguintes conferem essa prova, pois
+os bytes no jogo já foram alterados pelo hook anterior. Uma cadeia sem prova
+ou com opcodes divergentes é recusada com o esperado/encontrado no log.
+
+`run_native.sh` executa o serviço e o gerenciador de hooks de produção, com
+metadata/ShadowHook controlados no host. Testa ambas as ordens de linguagens,
+16 instalações concorrentes, frações, tipos/tamanhos/storage, thread, limite
+de taxas e troca de mundo. O teste Node executa o loader JS verdadeiro com
+serviço controlado; não substitui execução no celular. O modo behavior-only
+não valida as assinaturas contra `refs/dump.cs`, pois esse dump não está
+incluído no repositório. O CI verifica sintaxe/linkagem ARM64 separadamente.
+
+No futuro APK autorizado, teste **ExampleTimeRateSystem** em uma cópia do
+ExampleMod, junto de um ModSystem JS com ModifyTimeRate. Inverta a ordem de
+carregamento, confira que o relógio fica mais lento, saia/reentre no mundo e
+repita com apenas ExampleMod C# habilitado. Não use um item vanilla como prova
+de execução do loader; acompanhe os callbacks do ExampleMod no diagnóstico.
