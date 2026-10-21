@@ -293,6 +293,22 @@ std::condition_variable g_recipeRpcWake;
 void* g_recipeDispatchMethod=nullptr;
 std::atomic<bool> g_recipeRuntimeReady{false};
 
+// BunnyTouchEntry vive na montagem de cada mod; o registro é independente
+// dos callbacks de combate e não bloqueia a game thread.
+struct TouchSourceEntry {
+    std::string modId, assembly;
+    void* callback = nullptr;
+    bool initialized = false, skipped = false;
+    int failures = 0;
+};
+std::vector<TouchSourceEntry> g_touchSourceEntries;
+bool g_touchSourceNeedsLoad = false;
+uint64_t g_touchSourcePendingTick = 0;
+uint64_t g_touchSourceProcessedTick = 0;
+void* g_touchFrameBegin = nullptr;
+void* g_touchFrameEnd = nullptr;
+
+
 
 struct SceneLightBinding {
     std::string modId, assemblyPath, nameSpace, className, methodName;
@@ -1476,6 +1492,74 @@ bool executeManagedSceneOnWorker(const SceneLightRequest& request,
     return true;
 }
 
+void loadTouchSourceEntriesOnWorker(std::vector<TouchSourceEntry>* entries) {
+    if (!entries || !g_domain || !g_api.attach || !g_api.openAssembly ||
+        !g_api.image || !g_api.findClass || !g_api.findMethod || !g_api.invoke ||
+        !g_api.attach(g_domain)) return;
+    for (auto& entry : *entries) {
+        if (entry.initialized || entry.skipped || entry.failures >= 3) continue;
+        if (!validAssembly(entry.assembly)) { ++entry.failures; continue; }
+        void* assembly = g_api.openAssembly(g_domain, entry.assembly.c_str());
+        void* image = assembly ? g_api.image(assembly) : nullptr;
+        void* klass = image ? g_api.findClass(
+            image, "BunnyLoader.Source", "BunnyTouchEntry") : nullptr;
+        if (!klass) {
+            entry.skipped = true;
+            continue;
+        }
+        void* load = g_api.findMethod(klass, "Load", 0);
+        entry.callback = g_api.findMethod(klass, "ProcessTriggers", 0);
+        if (!load || !entry.callback) {
+            entry.skipped = true;
+            continue;
+        }
+        void* exception = nullptr;
+        g_api.invoke(load, nullptr, nullptr, &exception);
+        if (exception) {
+            ++entry.failures;
+            entry.callback = nullptr;
+            continue;
+        }
+        entry.initialized = true;
+    }
+}
+bool bindTouchFrameMethodsOnWorker() {
+    if (g_touchFrameBegin && g_touchFrameEnd) return true;
+    if (!g_domain || !g_api.openAssembly || !g_api.image ||
+        !g_api.findClass || !g_api.findMethod || g_checkpointPath.empty())
+        return false;
+    const auto slash = g_checkpointPath.find_last_of('/');
+    if (slash == std::string::npos) return false;
+    const std::string path =
+        g_checkpointPath.substr(0, slash + 1) + "BunnySourceSdk.dll";
+    if (!validAssembly(path)) return false;
+    void* assembly = g_api.openAssembly(g_domain, path.c_str());
+    void* image = assembly ? g_api.image(assembly) : nullptr;
+    void* klass = image ? g_api.findClass(
+        image, "BunnyLoader.Source", "BunnyTouchButtonLoader") : nullptr;
+    if (!klass) return false;
+    g_touchFrameBegin = g_api.findMethod(klass, "BeginTriggerFrame", 0);
+    g_touchFrameEnd = g_api.findMethod(klass, "EndTriggerFrame", 0);
+    return g_touchFrameBegin && g_touchFrameEnd;
+}
+void processTouchSourceEntriesOnWorker(std::vector<TouchSourceEntry>* entries) {
+    if (!entries || !g_domain || !g_api.attach || !g_api.invoke ||
+        !g_api.attach(g_domain)) return;
+    if (!bindTouchFrameMethodsOnWorker()) return;
+    void* frameException = nullptr;
+    g_api.invoke(g_touchFrameBegin, nullptr, nullptr, &frameException);
+    if (frameException) return;
+    for (auto& entry : *entries) {
+        if (!entry.initialized || !entry.callback ||
+            entry.failures >= 3) continue;
+        void* exception = nullptr;
+        g_api.invoke(entry.callback, nullptr, nullptr, &exception);
+        if (exception) ++entry.failures;
+    }
+    frameException = nullptr;
+    g_api.invoke(g_touchFrameEnd, nullptr, nullptr, &frameException);
+}
+
 void* pinnedMonoWorker(void*) {
     {
         std::lock_guard<std::mutex> lock(g_pinnedMutex);
@@ -1491,6 +1575,33 @@ void* pinnedMonoWorker(void*) {
         {
             std::unique_lock<std::mutex> lock(g_pinnedMutex);
             while (!g_pinnedPending) {
+                if ((g_touchSourceNeedsLoad ||
+                     g_touchSourcePendingTick > g_touchSourceProcessedTick) &&
+                    g_domain && g_status.domainInitialized && g_api.attach) {
+                    std::vector<TouchSourceEntry> snapshot = g_touchSourceEntries;
+                    const bool tickPending =
+                        g_touchSourcePendingTick > g_touchSourceProcessedTick;
+                    const uint64_t current = g_touchSourcePendingTick;
+                    g_touchSourceNeedsLoad = false;
+                    g_touchSourceProcessedTick = current;
+                    lock.unlock();
+                    loadTouchSourceEntriesOnWorker(&snapshot);
+                    if (tickPending)
+                        processTouchSourceEntriesOnWorker(&snapshot);
+                    lock.lock();
+                    for (const auto& updated : snapshot) {
+                        for (auto& entry : g_touchSourceEntries)
+                            if (entry.modId == updated.modId &&
+                                entry.assembly == updated.assembly) {
+                                entry.callback = updated.callback;
+                                entry.initialized = updated.initialized;
+                                entry.skipped = updated.skipped;
+                                entry.failures = updated.failures;
+                                break;
+                            }
+                    }
+                    continue;
+                }
                 if (g_universalPolling.load(std::memory_order_acquire)) {
                     lock.unlock();
                     const bool handled = pollUniversalHooksOnWorker();
@@ -1955,6 +2066,30 @@ void* pinnedMonoWorker(void*) {
 
 }
 
+
+bool registerManagedTouchEntry(const std::string& modId,
+                               const std::string& assemblyPath) {
+    if (modId.empty() || modId.size() > 128 ||
+        assemblyPath.empty() || assemblyPath.size() > 2048 ||
+        assemblyPath.find("..") != std::string::npos)
+        return false;
+    std::lock_guard<std::mutex> lock(g_pinnedMutex);
+    for (const auto& entry : g_touchSourceEntries)
+        if (entry.modId == modId)
+            return entry.assembly == assemblyPath;
+    if (g_touchSourceEntries.size() >= 32) return false;
+    g_touchSourceEntries.push_back({modId, assemblyPath});
+    g_touchSourceNeedsLoad = true;
+    g_pinnedWake.notify_one();
+    return true;
+}
+void queueManagedTouchTriggerTick(uint64_t tick) {
+    if (!tick) return;
+    std::lock_guard<std::mutex> lock(g_pinnedMutex);
+    if (g_touchSourceEntries.empty() || tick <= g_touchSourcePendingTick) return;
+    g_touchSourcePendingTick = tick;
+    g_pinnedWake.notify_one();
+}
 
 bool registerManagedScreenSceneMod(const std::string& id,
                                    const std::string& assembly,

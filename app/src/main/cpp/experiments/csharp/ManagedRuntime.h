@@ -11,6 +11,11 @@
 namespace bl::graphics { struct ScreenSceneRaw; }
 
 namespace bl::csharp {
+// Um mod C# pode expor BunnyLoader.Source.BunnyTouchEntry.Load() e
+// ProcessTriggers(). O trabalhador MonoVM executa ambos fora da game thread.
+bool registerManagedTouchEntry(const std::string& modId,
+                               const std::string& assemblyPath);
+void queueManagedTouchTriggerTick(uint64_t tick);
 bool managedRecipeRuntimeReady();
 // Bounded request to the existing pinned Mono worker. No live IL2CPP objects cross threads.
 bool invokeManagedRecipe(const std::string& mod,const std::string& assembly,
