@@ -1,4 +1,5 @@
 #include "experiments/csharp/NativeCloudBiomeSampler.h"
+#include "experiments/csharp/NativeBiomeManifest.h"
 
 #include "il2cpp/Api.h"
 #include "content/tiles/ModTiles.h"
@@ -8,6 +9,9 @@
 #include <cmath>
 #include <cstdint>
 #include <cstring>
+#include <algorithm>
+#include <set>
+#include <string>
 
 namespace bl::csharp {
 namespace {
@@ -81,6 +85,71 @@ int sampleExampleTileCount(Il2CppClass* main) {
 }
 
 } // namespace
+
+bool readNativeBiomeTileCountsWire(const std::string& owner,
+    const std::vector<std::string>& countedTiles,
+    std::string* output, std::string* error) {
+    if (error) error->clear();
+    if (!output || !validNativeBiomeIdentifier(owner, true) ||
+        countedTiles.size() > 32)
+        return fail(error, "BiomeTiles: invalid owner or tile list");
+
+    std::set<std::string> names;
+    for (const auto& name : countedTiles)
+        if (!validNativeBiomeIdentifier(name, false) ||
+            !names.insert(name).second)
+            return fail(error, "BiomeTiles: duplicate or unsafe tile name");
+
+    output->clear();
+    if (countedTiles.empty()) return true;
+    if (!bl::runtime::modTilesSettled())
+        return fail(error, "BiomeTiles: native tile tables not settled");
+
+    auto* main = il2cpp::findClass({"Terraria", "Main", {}});
+    auto* metrics = il2cpp::findClass({"Terraria", "SceneMetrics", {}});
+    if (!main || !metrics)
+        return fail(error, "BiomeTiles: missing SceneMetrics");
+
+    FieldInfo* sceneField = nullptr;
+    int countsOffset = -1;
+    if (!il2cpp::nativeFieldContract(main, "PlayerSceneMetrics",
+            "Terraria.SceneMetrics", true, sizeof(void*),
+            &sceneField, nullptr, error) ||
+        !il2cpp::nativeFieldContract(metrics, "_tileCounts",
+            "System.Int32[]", false, sizeof(void*),
+            nullptr, &countsOffset, error))
+        return false;
+
+    auto& a = il2cpp::api();
+    if (!a.field_static_get_value || !a.object_get_class)
+        return fail(error, "BiomeTiles: missing runtime exports");
+    Il2CppObject* scene = nullptr;
+    a.field_static_get_value(sceneField, &scene);
+    if (!scene || a.object_get_class(scene) != metrics)
+        return fail(error, "BiomeTiles: player metrics not available");
+
+    auto* tileCounts = *reinterpret_cast<Il2CppArray**>(
+        reinterpret_cast<char*>(scene) + countsOffset);
+    if (!il2cpp::nativeArrayContract(tileCounts, "Int32",
+                                    sizeof(int32_t), 65536))
+        return fail(error, "BiomeTiles: invalid native count table");
+
+    std::string staged;
+    for (const auto& name : countedTiles) {
+        const int type = bl::runtime::modTileTypeByName(owner, name);
+        if (type < 0 || static_cast<uintptr_t>(type) >= tileCounts->length)
+            return fail(error, "BiomeTiles: missing registered native tile");
+        const int count = static_cast<int32_t*>(arrayData(tileCounts))[type];
+        if (count < 0 || count > 1000000)
+            return fail(error, "BiomeTiles: invalid tile count");
+        if (!staged.empty()) staged.push_back(';');
+        staged += name + "=" + std::to_string(count);
+        if (staged.size() > 4096)
+            return fail(error, "BiomeTiles: snapshot too large");
+    }
+    *output = std::move(staged);
+    return true;
+}
 
 bool readNativeCloudVanillaBiomeFacts(bool gameMenu,
                                      NativeCloudBiomeFacts* facts,
