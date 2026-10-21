@@ -25,8 +25,7 @@ void pumpNativeTouchActivationOnGameThread() {
     if (hostReady()) {
         if (++tick % 60 != 0) return;
         if (!ensureNativeTouchEditorOptionsOnGameThread()) return;
-        if (version != appliedVersion &&
-            reapplyNativeTouchLayoutsOnGameThread())
+        if (reapplyNativeTouchLayoutsOnGameThread())
             appliedVersion = version;
         return;
     }
