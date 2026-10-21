@@ -93,6 +93,7 @@ public static class BunnyAchievementRuntime
 
             if (operation is >= 1 and <= 4)
             {
+                long progressBefore = achievements.ProgressChanges;
                 long completedBefore = achievements.CompletionChanges;
                 if (value < (operation == 1 ? -32768 : 0) || count < 1 || count > 9999 ||
                     (payload != "0" && payload != "1"))
@@ -106,7 +107,11 @@ public static class BunnyAchievementRuntime
                     case 4: achievements.NotifyTileDestroyed(value, localPlayer); break;
                 }
                 mod.Store.Autosave(achievements.CompletionChanges != completedBefore);
-                return "OK|" + achievements.CallbackFaults.ToString(CultureInfo.InvariantCulture);
+                // Sem alterações: resposta pequena. Com progresso: publicar
+                // um snapshot para o menu nativo, sem polling por quadro.
+                return achievements.ProgressChanges != progressBefore
+                    ? Manifest(achievements)
+                    : "OK|" + achievements.CallbackFaults.ToString(CultureInfo.InvariantCulture);
             }
             if (operation == 5)
                 return achievements.Save();
