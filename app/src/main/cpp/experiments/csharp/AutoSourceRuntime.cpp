@@ -1228,6 +1228,7 @@ void retryWorldManagedPrefixesWhenReady() {
 
 void noteAutoWorldTilesLoaded() {
     std::lock_guard<std::mutex> sessionGuard(g_worldTransitionMutex);
+    flushNativeAchievementProgressOnExit();
     pauseAchievementProfileOnWorldExit();
     clearManagedVisualCommands();
     resetNativeVisualRenderer();
@@ -1314,7 +1315,7 @@ void noteAutoGameUpdate() {
     }
     flushDeferredWorldEntry();
     pumpAchievementProfileOnGameThread(
-        g_worldSessionReady.load(std::memory_order_acquire));
+        g_worldTilesLoaded.load(std::memory_order_acquire));
     if (!g_worldTilesLoaded.load(std::memory_order_acquire)) {
         static unsigned retries = 0;
         if (++retries % 12u == 0) schedulePreWorldBindings();
