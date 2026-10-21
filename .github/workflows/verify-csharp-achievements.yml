@@ -13,6 +13,9 @@ on:
       - app/src/main/cpp/experiments/csharp/SourceContentIdentity.h
       - app/src/main/cpp/experiments/csharp/SourceLoader.cpp
       - app/src/main/cpp/experiments/csharp/SourceLoader.h
+      - app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp
+      - app/src/main/cpp/experiments/csharp/ManagedRuntime.h
+      - app/src/main/cpp/experiments/csharp/ManagedAchievementTransport.h
       - tests/achievements_csharp/**
       - samples/ExampleModCSharp/Examples/Achievements/**
       - .github/workflows/verify-csharp-achievements.yml
@@ -30,5 +33,11 @@ jobs:
         run: |
           g++ -std=c++20 -O2 -Iapp/src/main/cpp             tests/achievements_csharp/source_parser_test.cpp             app/src/main/cpp/experiments/csharp/SourceParser.cpp             -o /tmp/csharp-achievement-source-parser
           /tmp/csharp-achievement-source-parser
+      - name: Test bounded MonoVM achievement transport without Android
+        run: |
+          g++ -std=c++20 -O2 -Wall -Wextra -Werror -Iapp/src/main/cpp \
+            tests/achievements_csharp/transport_test.cpp \
+            -o /tmp/csharp-achievement-transport
+          /tmp/csharp-achievement-transport
       - name: Test achievements without Android or APK
         run: dotnet run --configuration Release --project tests/achievements_csharp/AchievementCoreTests.csproj
