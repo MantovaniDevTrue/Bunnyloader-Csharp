@@ -53,6 +53,15 @@ on:
       - samples/ExampleModCSharp/Playable/content/Content/Systems/ExampleInvasionSystem.cs
       - tests/invasion/**
       - .github/workflows/test-csharp-invasion.yml
+  pull_request:
+    paths:
+      - experiments/csharp/BunnyCsSdk/BunnyItem.cs
+      - experiments/csharp/BunnyCsSdk/BunnyEntitySourceDispatcher.cs
+      - experiments/csharp/BunnyCsSdk/BunnyUseContext.cs
+      - samples/ExampleModCSharp/Playable/content/Content/Items/Consumables/ExampleInvasionBeacon.cs
+      - app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp
+      - tests/invasion/**
+      - .github/workflows/test-csharp-invasion.yml
   workflow_dispatch:
 
 permissions:
