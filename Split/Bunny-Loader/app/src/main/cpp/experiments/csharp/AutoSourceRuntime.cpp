@@ -1236,6 +1236,7 @@ void noteAutoWorldTilesLoaded(const std::string& worldPath) {
 }
 
 void flushDeferredWorldEntry();
+worldsave::WorldNetAsync& worldNetQueue();
 
 void noteAutoGameUpdate() {
     if (nativeWorldNetActive()) {
