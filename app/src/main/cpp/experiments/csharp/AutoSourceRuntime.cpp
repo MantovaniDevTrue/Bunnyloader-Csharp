@@ -29,6 +29,7 @@
 #include "experiments/csharp/ManagedRuntime.h"
 #include "experiments/csharp/NativeAchievementHooks.h"
 #include "experiments/csharp/NativeAchievementRegistry.h"
+#include "experiments/csharp/NativeAchievementVisualHooks.h"
 #include "experiments/csharp/MonoServiceDispatch.h"
 #include "experiments/csharp/SourceLoader.h"
 #include "experiments/csharp/ManagedSourceClassCount.h"
@@ -1314,6 +1315,16 @@ void noteAutoGameUpdate() {
                 BL_WARN("[CSharp][AchievementLoader] Registry=Pending Detail=%s",
                         error.c_str());
             }
+        }
+    }
+    if (!nativeAchievementVisualHooksReady() &&
+        nativeAchievementRegistryStatus().registered > 0) {
+        static unsigned int visualAttempt = 0;
+        if (++visualAttempt % 120u == 1u) {
+            std::string error;
+            if (!installNativeAchievementVisualHooks(&error))
+                BL_WARN("[CSharp][AchievementLoader] Visuals=Pending Detail=%s",
+                        error.c_str());
         }
     }
     if (!g_worldTilesLoaded.load(std::memory_order_acquire))
