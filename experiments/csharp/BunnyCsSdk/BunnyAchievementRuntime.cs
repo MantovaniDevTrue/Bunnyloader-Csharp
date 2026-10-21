@@ -89,7 +89,7 @@ public static class BunnyAchievementRuntime
 
             if (operation is >= 1 and <= 4)
             {
-                if (value < 0 || count < 1 || count > 9999 ||
+                if (value < (operation == 1 ? -32768 : 0) || count < 1 || count > 9999 ||
                     (payload != "0" && payload != "1"))
                     throw new ArgumentException("Evento fora do contrato");
                 bool localPlayer = payload == "1";
