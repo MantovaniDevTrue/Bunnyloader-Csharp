@@ -50,6 +50,17 @@ public static class BunnyGore
     }
 
     /// <summary>
+    /// Equivalente a ModGore.getTypeByName sem mod na pilha do ExampleModBunny.
+    /// Quando dois mods usam o mesmo nome, retorna o primeiro registrado.
+    /// Para evitar ambiguidades entre mods, prefira GetType(modId, name).
+    /// </summary>
+    public static int GetTypeAny(string name)
+    {
+        Validate("gorelookup", name);
+        return NativeTypeAny(name);
+    }
+
+    /// <summary>
     /// Enfileira um gore com posicao/velocidade em pixels do mundo.
     /// A funcao nativa chama Terraria.Gore.NewGore na thread do jogo;
     /// true significa que o pedido foi aceito na fila, nao que ele ja
@@ -100,6 +111,11 @@ public static class BunnyGore
         CallingConvention = CallingConvention.Cdecl)]
     private static extern int NativeType(
         [MarshalAs(UnmanagedType.LPUTF8Str)] string modId,
+        [MarshalAs(UnmanagedType.LPUTF8Str)] string name);
+
+    [DllImport("bunny", EntryPoint = "bunny_csharp_gore_type_any",
+        CallingConvention = CallingConvention.Cdecl)]
+    private static extern int NativeTypeAny(
         [MarshalAs(UnmanagedType.LPUTF8Str)] string name);
 
     [DllImport("bunny", EntryPoint = "bunny_csharp_gore_configure",
