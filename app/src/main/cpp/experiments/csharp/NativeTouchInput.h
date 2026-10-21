@@ -69,6 +69,7 @@ private:
 Registry& registry();
 // Somente o instalador IL2CPP validado pode liberar a leitura C# no jogo.
 void setHostReady(bool ready);
+bool hostReady();
 
 } // namespace bl::csharp::touch
 
