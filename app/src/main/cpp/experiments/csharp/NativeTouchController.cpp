@@ -23,6 +23,8 @@ struct RuntimeFields {
     FieldInfo* gameMenu = nullptr;
     Il2CppClass* controller = nullptr;
     ActionIds ids;
+    int actionUnbound = -1;
+    int quickUnbound = -1;
 };
 RuntimeFields refs;
 uint64_t ticks = 0;
@@ -193,6 +195,15 @@ int nativeTouchQuickOf(int id) {
 int nativeTouchIndexByAction(int value) {
     return nativeTouchObserverInstalled() ? refs.ids.byAction(value) : -1;
 }
+int nativeTouchIndexByQuick(int value) {
+    return nativeTouchObserverInstalled() ? refs.ids.byQuick(value) : -1;
+}
+int nativeTouchActionUnbound() {
+    return nativeTouchObserverInstalled() ? refs.actionUnbound : -1;
+}
+int nativeTouchQuickUnbound() {
+    return nativeTouchObserverInstalled() ? refs.quickUnbound : -1;
+}
 
 void pumpNativeTouchObserverOnGameThread() {
     if (installed.load(std::memory_order_acquire) || attempted) return;
@@ -219,6 +230,8 @@ void pumpNativeTouchObserverOnGameThread() {
         return;
     refs.ids = resolveActionIds(unbound, controllerCount, quickUnbound, kMaxButtons);
     if (!refs.ids.valid()) return;
+    refs.actionUnbound = unbound;
+    refs.quickUnbound = quickUnbound;
     constexpr std::array<const char*, 3> fields{"Pressed", "WasPressed", "Scale"};
     for (size_t i = 0; i < fields.size(); ++i) {
         FieldInfo* field = controller ? il2cpp::findField(controller, fields[i]) : nullptr;
