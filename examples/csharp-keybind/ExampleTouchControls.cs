@@ -17,12 +17,17 @@ public static class ExampleTouchControls
         // botão de toque com identidade persistente "examplemodcsharp/RandomBuff".
         randomBuff = BunnyTouchButtonLoader.RegisterKeybind(
             "examplemodcsharp", "RandomBuff", "P");
+        // O registro nativo acontece antes do editor ficar pronto.
+        // O método não libera gameplay enquanto todos os hooks faltantes
+        // não passarem na validação de ABI.
+        BunnyTouchButtonLoader.TryBindNativeHost();
     }
 
     public static bool WantsRandomBuff()
     {
-        // Uma leitura por atualização: não dispara repetidamente
-        // enquanto o botão estiver segurado.
+        // Chamado pelo ProcessTriggers do ModPlayer. Após o hook ficar
+        // pronto, a ponte é ativada sem depender de JavaScript.
+        BunnyTouchButtonLoader.TryBindNativeHost();
         return randomBuff?.JustPressed == true;
     }
 
