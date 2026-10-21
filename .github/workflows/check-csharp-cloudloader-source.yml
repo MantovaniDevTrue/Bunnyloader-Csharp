@@ -1,0 +1,36 @@
+name: CloudLoader CSharp source-only tests (NO APK)
+
+on:
+  push:
+    branches:
+      - feature/csharp-cloudloader-source-only-20261021
+    paths:
+      - app/src/main/cpp/experiments/csharp/NativeCloudSelection.h
+      - app/src/main/cpp/experiments/csharp/NativeCloudRegistry.h
+      - tests/cloud_loader/**
+      - .github/workflows/check-csharp-cloudloader-source.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  native-policy-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: GCC strict regression (no Android SDK or APK)
+        run: bash tests/cloud_loader/run_native.sh
+      - name: Clang ASan and UBSan regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          tmp="$(mktemp -d)"
+          trap 'rm -rf "$tmp"' EXIT
+          for file in tests/cloud_loader/*_test.cpp; do
+            clang++ -std=c++17 -g -O1 -Wall -Wextra -Werror -pedantic \
+              -fsanitize=address,undefined -fno-omit-frame-pointer \
+              -Iapp/src/main/cpp "$file" -o "$tmp/test"
+            "$tmp/test"
+          done
