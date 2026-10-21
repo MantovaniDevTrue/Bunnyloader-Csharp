@@ -12,4 +12,7 @@
     <Compile Include="../../experiments/csharp/BunnyCsSdk/BunnyCloudDispatcher.cs" Link="BunnyCloudDispatcher.cs" />
     <Compile Include="managed_examples/*.cs" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../experiments/csharp/BunnySourceCompiler/BunnySourceCompiler.csproj" />
+  </ItemGroup>
 </Project>
