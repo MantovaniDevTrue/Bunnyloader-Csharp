@@ -1,6 +1,7 @@
 #include "experiments/csharp/NativeTouchLayoutHooks.h"
 #include "experiments/csharp/NativeTouchLayoutAccess.h"
 #include "experiments/csharp/NativeTouchLayoutJson.h"
+#include "experiments/csharp/NativeTouchLayoutIdentity.h"
 #include "experiments/csharp/NativeTouchController.h"
 #include "experiments/csharp/NativeTouchInput.h"
 #include "hook/HookManager.h"
@@ -58,13 +59,9 @@ void restore(Edits* undo) {
 }
 std::string identity(int32_t raw, const std::string& previous, int unbound) {
     const int id = nativeTouchIndexByAction(raw);
-    if (id >= 0) {
-        const std::string live = registry().fullName(id);
-        if (!live.empty()) return live;
-    }
-    if ((raw == unbound || id >= 0) && !previous.empty() &&
-        registry().find(previous) < 0) return previous;
-    return {};
+    const std::string current = id >= 0 ? registry().fullName(id) : std::string{};
+    return storedTouchActionIdentity(raw, unbound, id, current, previous,
+                                     registry().find(previous) >= 0);
 }
 
 void capture(const std::vector<NativeLayoutBinding>& bindings,
