@@ -1,4 +1,3 @@
-#include "core/Log.h"
 #include "experiments/csharp/SourceLimits.h"
 #include "experiments/csharp/UniversalHookMailbox.h"
 #include "experiments/csharp/UniversalHooks.h"
@@ -2401,8 +2400,11 @@ void* pinnedMonoWorker(void*) {
                         auto& source = g_entityBindings[static_cast<size_t>(job.binding)];
                         if (!source.firstWorldTickReported) {
                             source.firstWorldTickReported = true;
-                            BL_INFO("[CSharp][ItemUse] Mod=%s Stage=FirstWorldTick Result=%lld",
+#ifdef __ANDROID__
+                            __android_log_print(ANDROID_LOG_INFO, "BunnyCSharp",
+                                "[CSharp][ItemUse] Mod=%s Stage=FirstWorldTick Result=%lld",
                                 source.modId.c_str(), static_cast<long long>(result));
+#endif
                         }
                         if (result == -2) source.invasionSupported = false;
                     }
