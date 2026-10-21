@@ -8,6 +8,8 @@
 #include "experiments/csharp/AutoSourceCache.h"
 #include "experiments/csharp/AutoSourceRuntime.h"
 #include "experiments/csharp/NativeVisualRenderer.h"
+#include "experiments/csharp/NativeCloudHooks.h"
+#include "experiments/csharp/NativeCloudBiomeSampler.h"
 #include "graphics/CSharpScreenEffects.h"
 #include "experiments/csharp/NativeContent.h"
 #include "experiments/csharp/NativeBasicItems.h"
@@ -1200,6 +1202,7 @@ void noteAutoWorldTilesLoaded() {
     g_worldSessionReady.store(false, std::memory_order_release);
     pauseManagedEntitySourceCallbacks();
     pauseManagedScreenSceneCallbacks();
+    pauseNativeCloudHooks();
     resetManagedCloudWorldSession();
     resetManagedSourceNpcSlots();
     resetManagedSourceProjectileSlots();
@@ -1234,6 +1237,44 @@ void noteAutoGameUpdate() {
     pumpInteractiveConsoleOnGameThread();
     pumpBasicRecipesOnGameThread();
     pumpNativeVisualRendererOnGameThread();
+    if (nativeCloudHooksEnabled() &&
+        g_worldSessionReady.load(std::memory_order_acquire)) {
+        // Never inspect the local player in either cloud hook. Cache one
+        // validated snapshot for up to 20 game updates; drain Mono results
+        // every frame without invoking MonoVM from the Terraria renderer.
+        static uint64_t cloudSnapshotEpoch = ~uint64_t(0);
+        static uint32_t cloudSnapshotTicks = 0;
+        static std::string cloudBiomeKeys;
+        static bool cloudSnapshotReady = false;
+        static bool cloudAnniversary = false;
+        const uint64_t epoch = g_worldEpoch.load(std::memory_order_acquire);
+        if (cloudSnapshotEpoch != epoch) {
+            cloudSnapshotEpoch = epoch;
+            cloudSnapshotTicks = 0;
+            cloudSnapshotReady = false;
+            cloudBiomeKeys.clear();
+        }
+        if (!cloudSnapshotReady || ++cloudSnapshotTicks % 20u == 0) {
+            NativeCloudBiomeFacts facts{};
+            std::string error;
+            if (!readNativeCloudVanillaBiomeFacts(false, &facts, &error)) {
+                // Unknown native fields are NOT a reason to invent a
+                // biome. Disable only the C# cloud hook; vanilla continues.
+                pauseNativeCloudHooks();
+                resetManagedCloudWorldSession();
+                cloudSnapshotReady = false;
+                BL_WARN("[CSharp][CloudLoader] Stage=BiomeSnapshot Result=Paused Detail=%s",
+                        error.c_str());
+            } else {
+                cloudBiomeKeys = nativeCloudBiomeKeys(facts);
+                cloudAnniversary = facts.tenthAnniversaryWorld;
+                cloudSnapshotReady = true;
+            }
+        }
+        if (cloudSnapshotReady && nativeCloudHooksEnabled())
+            pumpNativeCloudManagedCallbacksOnGameThread(
+                false, cloudAnniversary, cloudBiomeKeys);
+    }
     if (!g_worldTilesLoaded.load(std::memory_order_acquire))
         updateManagedNpcBuffDispatcherOnGameThread();
     if (!g_worldTilesLoaded.load(std::memory_order_acquire) &&
@@ -1275,7 +1316,8 @@ void noteAutoGameUpdate() {
         clearManagedVisualCommands();
         graphics::clearCSharpScreenEffects();
         pauseManagedScreenSceneCallbacks();
-    resetManagedCloudWorldSession();
+        pauseNativeCloudHooks();
+        resetManagedCloudWorldSession();
         resetNativeVisualRenderer();
         g_visualUpdateTick.store(0, std::memory_order_relaxed);
         g_worldExits.fetch_add(1, std::memory_order_relaxed);
