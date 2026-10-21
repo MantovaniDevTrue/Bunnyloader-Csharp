@@ -31,7 +31,6 @@
 #include <cstring>
 #ifdef __ANDROID__
 #include <android/log.h>
-#include "core/Log.h"
 #endif
 #include <dlfcn.h>
 #include <mutex>
@@ -71,6 +70,19 @@ ManagedRuntimeStatus probeManagedRuntimeStartupStage(
     const std::string& assemblyPath, const std::string& stage);
 
 namespace {
+
+#ifdef __ANDROID__
+void reportManagedItemUse(int level, const std::string& message) {
+    using LogBridge = void (*)(int, const char*);
+    void* bunny = dlopen("libbunny.so", RTLD_NOW | RTLD_NOLOAD);
+    auto forward = bunny
+        ? reinterpret_cast<LogBridge>(dlsym(bunny, "bunny_native_forward_log"))
+        : nullptr;
+    if (forward) forward(level, message.c_str());
+    else __android_log_write(level, "BunnyCSharp", message.c_str());
+    if (bunny) dlclose(bunny);
+}
+#endif
 
 using InitFn = void* (*)(const char*);
 using AssemblyPathFn = void (*)(const char*);
@@ -1255,12 +1267,11 @@ int64_t executeManagedEntityOnWorker(const ManagedEntityJob& job) {
                                 }
 #ifdef __ANDROID__
                                 const std::string outcome = details.substr(use);
-                                if (outcome.find(" Error=") != std::string::npos)
-                                    BL_WARN("[CSharp][ItemUse] Mod=%s Stage=OnUseResult %s",
-                                            binding.modId.c_str(), outcome.c_str());
-                                else
-                                    BL_INFO("[CSharp][ItemUse] Mod=%s Stage=OnUseResult %s",
-                                            binding.modId.c_str(), outcome.c_str());
+                                reportManagedItemUse(
+                                    outcome.find(" Error=") != std::string::npos
+                                        ? ANDROID_LOG_WARN : ANDROID_LOG_INFO,
+                                    "[CSharp][ItemUse] Mod=" + binding.modId +
+                                        " Stage=OnUseResult " + outcome);
 #endif
                             }
                         }
@@ -1300,8 +1311,9 @@ int64_t executeManagedEntityOnWorker(const ManagedEntityJob& job) {
                 }
             }
 #ifdef __ANDROID__
-            BL_WARN("[CSharp][ItemUse] Mod=%s Stage=WorldTick Result=Error Detail=%s",
-                    binding.modId.c_str(), detail.c_str());
+            reportManagedItemUse(ANDROID_LOG_WARN,
+                "[CSharp][ItemUse] Mod=" + binding.modId +
+                " Stage=WorldTick Result=Error Detail=" + detail);
 #endif
         }
         return count;
@@ -2486,8 +2498,9 @@ void* pinnedMonoWorker(void*) {
                         if (!source.firstWorldTickReported) {
                             source.firstWorldTickReported = true;
 #ifdef __ANDROID__
-                            BL_INFO("[CSharp][ItemUse] Mod=%s Stage=FirstWorldTick Result=%lld",
-                                    source.modId.c_str(), static_cast<long long>(result));
+                            reportManagedItemUse(ANDROID_LOG_INFO,
+                                "[CSharp][ItemUse] Mod=" + source.modId +
+                                " Stage=FirstWorldTick Result=" + std::to_string(result));
 #endif
                         }
                         if (result == -2) source.invasionSupported = false;

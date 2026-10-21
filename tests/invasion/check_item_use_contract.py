@@ -71,9 +71,12 @@ print("Native CSharp item-use hook, dust emission and invasion invoker: OK")
 managed = (root / "app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp").read_text()
 for label in ("FirstWorldTick", "OnUseResult", "WorldTick Result=Error"):
     assert "Stage=" + label in managed, label
-assert 'BL_INFO("[CSharp][ItemUse] Mod=%s Stage=OnUseResult' in managed
-assert 'BL_WARN("[CSharp][ItemUse] Mod=%s Stage=WorldTick Result=Error' in managed
-assert 'BL_INFO("[CSharp][ItemUse] Mod=%s Stage=FirstWorldTick' in managed
+assert 'void reportManagedItemUse(int level, const std::string& message)' in managed
+assert 'dlsym(bunny, "bunny_native_forward_log")' in managed
+assert 'reportManagedItemUse(ANDROID_LOG_WARN,' in managed
+assert 'reportManagedItemUse(ANDROID_LOG_INFO,' in managed
+assert 'core/Log.h' not in managed
+assert 'bunny_native_forward_log' in (root / 'app/src/main/cpp/core/Log.cpp').read_text()
 assert 'g_entityBindings[static_cast<size_t>(job.binding)].firstWorldUseReported = true;' in managed
 assert 'owner.firstWorldErrorReported = true;' in managed
 assert 'catch (Exception error)' in dispatcher
@@ -83,5 +86,5 @@ assert 'context.Faults++;' in dispatcher
 assert dispatcher.index('SaveInvasionIfChanged(context);', dispatcher.index('bool applied = pair.Value.OnUse')) > dispatcher.index('catch (Exception error)', dispatcher.index('bool applied = pair.Value.OnUse'))
 assert 'return "lastUse=" + context.LastUse +' in dispatcher
 assert 'outcome.find(" Error=")' in managed
-assert 'BL_WARN("[CSharp][ItemUse] Mod=%s Stage=OnUseResult' in managed
+assert 'outcome.find(" Error=") != std::string::npos' in managed
 print("CSHARP_ITEM_USE_SESSION_LOG_GUARD=PASS")

@@ -158,3 +158,8 @@ void onError(void (*fn)(const char*)) {
 }
 
 } // namespace bl::log
+
+extern "C" __attribute__((visibility("default")))
+void bunny_native_forward_log(int level, const char* line) {
+    if (line && *line) bl::log::write(level, "%s", line);
+}
