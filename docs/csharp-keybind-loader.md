@@ -258,3 +258,28 @@ não validam os offsets/ABI do dispositivo. Nenhum APK ou .bmod foi gerado.
 A disponibilidade real dos grupos, editor, perfis e operações de
 save/load/share continua pendente de QA no Terraria Android ARM64.
 Nenhum APK/.bmod gerado nesta PR.
+
+
+## Lote de 21/10/2026 — restauração de mods C# carregados depois
+
+- O registro nativo passou a manter uma versão monotônica de adições e
+  descarregamentos, distinta do número de ações ativas. IDs de sessão não
+  são reutilizados. Registros repetidos, alterações de política e reset
+  de mundo não incrementam a versão.
+- A restauração dos controles lembra a última versão processada. Quando
+  o carregamento inicial ocorreu sem todos os mods C#, a inclusão posterior
+  de um mod refaz somente a ligação de seus slots salvos que ainda estejam
+  vazios; não sobrescreve ações vanilla do jogador.
+- Após ativação, o editor compara a versão do registro com a última versão
+  sincronizada e, quando necessário, atualiza opções e bindings. A tentativa
+  é limitada a uma vez a cada 30 GameUpdates enquanto houver mudança,
+  sem scans adicionais durante toques ou desenhos.
+- Testes native-contract verificam versionamento sob carregamento,
+  descarregamento duplicado, idempotência e mudança de mundo.
+- [CI #39623648747](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39623648747):
+  native-contract e managed-contract aprovados, além dos preflights
+  nativos do próprio workflow. Ainda não é validação de ABI ARM64
+  nem de salvamento, editor ou FPS no Terraria real.
+
+PR continua draft. Sem merge, sem APK e sem .bmod até o loader estar
+completo e passar no dispositivo.
