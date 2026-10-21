@@ -18,6 +18,101 @@ class TooltipLoader {
     static #DRAW_RIGHT = 'void DrawStringMultiLineRight(SpriteFont spriteFont, string text, Vector2 position, Color color, float rotation, Vector2 origin, Vector2 scale, SpriteEffects effects, float layerDepth)';
     static #MEASURE = 'Vector2 MeasureString(string text)';
     static #broken = false;
+    static #managedPlans = new Map();
+    static #glyphWidths = new Map();
+
+    static #ManagedPlan(type) {
+        const old = TooltipLoader.#managedPlans.get(type);
+        if (old) return old;
+        const native = globalThis.bl?.csharp?.tooltipPlan;
+        if (typeof native !== 'function') return null;
+        const wire = native(type);
+        if (!wire) return null;
+        try {
+            const plan = JSON.parse(wire);
+            if (!Array.isArray(plan) || plan.length > 24) return null;
+            if (!plan.every(p => p && typeof p.name === 'string' &&
+                typeof p.text === 'string' && p.name.length <= 72 &&
+                p.text.length <= 512)) return null;
+            if (TooltipLoader.#managedPlans.size >= 128)
+                TooltipLoader.#managedPlans.clear();
+            TooltipLoader.#managedPlans.set(type, plan);
+            return plan;
+        } catch (_) {
+            return null;
+        }
+    }
+
+    static #ModifyManaged(item, lines) {
+        const plan = TooltipLoader.#ManagedPlan(item.type);
+        if (!plan) return;
+        let cursor = 0;
+        for (const def of plan) {
+            if (!def.name || !def.name.match(/^[A-Za-z0-9_]+$/)) continue;
+            let index = lines.findIndex(line => line.Name === def.name);
+            if (index === -1) {
+                index = Math.min(cursor, lines.length);
+                lines.splice(index, 0, new TooltipLine('CSharp', def.name, def.text));
+            } else if (def.name !== 'ItemName') {
+                lines[index].Text = def.text;
+            }
+            const line = lines[index];
+            if (/^[0-9a-fA-F]{6}$/.test(def.color || '')) {
+                const rgb = parseInt(def.color, 16);
+                line.OverrideColor = Color.new((rgb >> 16) & 255,
+                    (rgb >> 8) & 255, rgb & 255);
+            }
+            line.__bunnyManagedDraw = def;
+            cursor = index + 1;
+        }
+    }
+
+    static #DrawManagedWave(line, def) {
+        const font = line.Font;
+        const text = line.Text;
+        const scale = line.BaseScale.X;
+        const batch = Terraria.Main.spriteBatch;
+        const clock = Terraria.Main.GlobalTimeWrappedHourly;
+        const alpha = line.Color.A;
+        const darkness = Color.Multiply(Color.Black, alpha / 255);
+        const measure = TooltipLoader.#MEASURE;
+        let offsets = TooltipLoader.#glyphWidths.get(text);
+        if (!offsets) {
+            offsets = [];
+            for (let i = 0; i < text.length; i++)
+                offsets.push(font[measure](text.substring(0, i)).X);
+            if (TooltipLoader.#glyphWidths.size >= 48)
+                TooltipLoader.#glyphWidths.clear();
+            TooltipLoader.#glyphWidths.set(text, offsets);
+        }
+        const spread = line.Spread;
+        const getColor = (hue) => {
+            hue = ((hue % 1) + 1) % 1;
+            const index = Math.floor(hue * 6), f = hue * 6 - index;
+            const q = Math.round((1 - f) * 255), u = Math.round(f * 255);
+            const colors = [[255, u, 0], [q, 255, 0], [0, 255, u],
+                [0, q, 255], [u, 0, 255], [255, 0, q]];
+            const rgb = colors[Math.min(index, 5)];
+            return Color.new(rgb[0] * alpha / 255, rgb[1] * alpha / 255,
+                rgb[2] * alpha / 255, alpha);
+        };
+        const draw = batch[TooltipLoader.#DRAW_STRING];
+        for (let i = 0; i < text.length; i++) {
+            const ch = text[i];
+            if (ch === ' ') continue;
+            const x = line.X + offsets[i] * scale;
+            const y = line.Y + Math.sin(clock * def.speed + i * def.letterStep) *
+                def.amplitude;
+            const shade = getColor(clock * def.hueSpeed + i * def.hueStep);
+            for (let pass = 0; pass < 5; pass++) {
+                const px = x + (pass === 0 ? -spread : pass === 1 ? spread : 0);
+                const py = y + (pass === 2 ? -spread : pass === 3 ? spread : 0);
+                draw(font, ch, Vector2.new(px, py), pass === 4 ? shade : darkness,
+                    line.Rotation, line.Origin, scale, 0, 0);
+            }
+        }
+    }
+
 
     static Hex(color) {
         if (typeof color === 'string') return color.replace(/^#/, '').slice(0, 6).toUpperCase();
@@ -134,6 +229,7 @@ class TooltipLoader {
     static #Wants(item) {
         if (!item || item.type < 1) return false;
         if (RarityLoader.ByType.has(item.rare)) return true;
+        if (TooltipLoader.#ManagedPlan(item.type)) return true;
         // Moeda própria na loja: o jogo do celular pinta o preço com uma cor
         // fixa (246, 100, 120) e ignora o CurrencyTextColor; aqui ele vale.
         if (item.shopSpecialCurrency !== -1 && Terraria.Main.npcShop > 0) return true;
@@ -160,6 +256,7 @@ class TooltipLoader {
             Safe.Run(m.constructor.name + '.ModifyTooltips', () => m.ModifyTooltips(item, lines));
         }
         if (!item.IsAir) globalItems.Each(item, 'ModifyTooltips', (g) => g.ModifyTooltips(item, lines));
+        TooltipLoader.#ModifyManaged(item, lines);
 
         return lines.filter((l) => l instanceof TooltipLine && l.Visible !== false);
     }
@@ -193,6 +290,12 @@ class TooltipLoader {
         globalItems.Each(item, 'PreDrawTooltipLine', (g) => {
             if (g.PreDrawTooltipLine(item, line, yOffset) === false) ok = false;
         });
+        const def = line.__bunnyManagedDraw;
+        if (def && def.rainbow && ok) {
+            TooltipLoader.#DrawManagedWave(line, def);
+            return false;
+        }
+        if (def && def.draw === false) return false;
         return ok;
     }
 
