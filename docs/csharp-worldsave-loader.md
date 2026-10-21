@@ -62,6 +62,12 @@ O `AutoSourceRuntime::run()` coleta módulos C# que possuem `BunnyWorldSystem`, 
 
 Isso completa a **descoberta e o registro do módulo no worker**, ainda sem execução de `Enter/Prepare/Confirm/Leave` ligada aos hooks reais de salvamento e carregamento.
 
+## Etapa 10 — transação C# / nativo, com validação do arquivo
+
+O novo NativeWorldCoordinator chama a fila tipada no worker MonoVM: Enter lê o BWC1 existente (ou indica mundo novo), Prepare captura um snapshot sem confirmar, o validador rejeita Base64 não-canônico/BWC1 inválido e NativeWorldStore escreve com fsync/rename. Só depois disso ocorre Confirm. Leave invalida o sidecar da sessão. Saves de clientes, sessões antigas e dados corrompidos falham fechados. Testes C++ de produção, com worker gerenciado simulado e fixture BWC1 gerada pelo SDK C#, exercitam as fases e asseguram que o arquivo original do Terraria não é modificado.
+
+Esta transação ainda precisa ser chamada por hooks reais de LoadWorld e InternalSaveWorld; nenhuma gravação de jogo foi ativada neste ponto.
+
 ## Requisitos ainda bloqueantes
 
 1. Host nativo C++ deve capturar a identidade real do arquivo de mundo após a seleção; não confiar em nome de mundo ou caminho informado por um mod.

@@ -81,6 +81,16 @@ jobs:
           assert 'if (world) bl::csharp::noteAutoWorldTilesLoaded(path);' in tile
           print("WORLD_TRUSTED_PATH_EPOCH_LIFECYCLE_PASS")
           PY
+      - name: Native atomic world transaction with worker mock
+        run: |
+          g++ -std=c++20 -O1 -g -Wall -Wextra -Werror -pedantic -pthread \
+            -fsanitize=address,undefined -fno-omit-frame-pointer \
+            -I Split/Bunny-Loader/app/src/main/cpp \
+            Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeWorldStore.cpp \
+            Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeWorldCoordinator.cpp \
+            Split/Bunny-Loader/tests/world_save/native_world_coordinator_test.cpp \
+            -o /tmp/native_world_coordinator_test
+          ASAN_OPTIONS=detect_leaks=1 /tmp/native_world_coordinator_test /tmp/bunny_worldsave_interop.bwc
       - name: Native MonoVM runtime syntax compilation (no Android package)
         run: |
           g++ -std=c++20 -Wall -Wextra -Werror -fsyntax-only \
