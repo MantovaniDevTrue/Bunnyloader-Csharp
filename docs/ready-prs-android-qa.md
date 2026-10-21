@@ -1,6 +1,6 @@
 # Sete PRs integrados — QA experimental Android
 
-Bunny `1.0.9-item-use-diagnostics-qa` (versionCode 308), ExampleMod CSharp `0.1.63`.
+Bunny `1.0.10-dust-registration-qa` (versionCode 309), ExampleMod CSharp `0.1.63`.
 Base: `v1.0` em `cfbe784ee3cb`. Branch: `integration/ready-prs-20261020`.
 
 Este APK reúne os PRs #101 (Localization), #102 (Rarity), #114 (AnglerQuest),
@@ -141,3 +141,11 @@ O teste Android 1.0.8 confirmou o tooltip animado, mas o Example Dust Charm não
 Esta build isola exceções de `OnUse` por item para que outros itens não fiquem bloqueados. `ManagedRuntime` envia `Stage=OnUseResult` ou `Stage=WorldTick Result=Error` para o logger do jogo apenas uma vez por mod e coloca `lastUse` no começo do status limitado a 384 bytes. Mensagens com `Error=` são avisos. Não modifica `BunnyDustEffects`, o emissor nativo, física, quantidade ou desenho das partículas.
 
 Teste: usar `Example Dust Charm` e `Example Invasion Beacon` em sessão limpa; exportar o relatório depois de usar ambos. Procurar `OnUseResult lastUse=ExampleDustCharm` com `Applied=1` ou `Error=`, assim como `DustEmission Stage=EmitRequest`. A invasão deve ser testada de dia, na superfície; flags esperadas `63`. Não considerar Dust ou Invasion corrigidos antes da validação visual Android. A versão 1.0.8 continua sendo baseline do tooltip.
+
+## QA 1.0.10: registro BunnyDust antes de OnUse
+
+A sessão Android 1.0.9 confirmou `ExampleDustCharm Flags=62 Applied=0`, com `InvalidOperationException: BunnyDust assembly has not been registered in MonoVM`. O erro ocorre dentro de `BunnyDustEffects.EmitAtPlayer`, antes da fila de emissão nativa.
+
+O registro gerenciado existente `BunnyEntitySourceDispatcher.Register` agora reconhece classes `BunnyDust` e registra o assembly usando `BunnyDustSourceDispatcher.Register`, que já é idempotente. O bootstrap normal do Dust continua responsável pelos vínculos nativos. Caso ele falhe, um único aviso `Stage=MonoBind Result=Rejected` aparece no logger, sem travar os demais conteúdos C#. A física, a cor e as oito partículas do ExampleSparkDust não foram alteradas.
+
+Teste no Android: entrar no mundo, esperar o carregamento, usar `Example Dust Charm` e procurar `Stage=OnUseResult lastUse=ExampleDustCharm ... Applied=1` e `Stage=EmitRequest Class=ExampleSparkDust ... Result=Queued`. Confirmar oito partículas douradas e FPS, e salvar relatório. Se houver `Stage=MonoBind Result=Rejected`, `DustNotRegistered` ou `NativeContractUnavailable`, não considerar o sistema corrigido. O tooltip da 1.0.8 permanece baseline validada.
