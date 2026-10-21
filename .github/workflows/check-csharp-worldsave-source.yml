@@ -43,5 +43,19 @@ jobs:
             Split/Bunny-Loader/tests/world_save/native_world_store_test.cpp \
             -o /tmp/bunny_world_store_sanitized
           ASAN_OPTIONS=detect_leaks=1 /tmp/bunny_world_store_sanitized
+      - name: Ensure native game lifecycle binds trusted world and epoch
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root = Path("Split/Bunny-Loader/app/src/main/cpp")
+          auto = (root / "experiments/csharp/AutoSourceRuntime.cpp").read_text()
+          tile = (root / "content/tiles/ModTileSave.cpp").read_text()
+          assert "noteAutoWorldTilesLoaded(path)" in tile
+          assert "worldsave::activeWorldStore().beginWorld(" in auto
+          assert "worldsave::activeWorldStore().endWorld(departingEpoch)" in auto
+          assert "g_worldEpoch.fetch_add(1, std::memory_order_acq_rel) + 1" in auto
+          assert 'if (world) bl::csharp::noteAutoWorldTilesLoaded(path);' in tile
+          print("WORLD_TRUSTED_PATH_EPOCH_LIFECYCLE_PASS")
+          PY
       - name: Keep this job host-only
         run: echo "SOURCE_ONLY_NO_ANDROID_PACKAGING"

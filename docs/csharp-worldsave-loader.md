@@ -16,6 +16,12 @@ O NativeWorldStore agora tem implementação compilável para leitura e escrita 
 
 O serviço está **deliberadamente desligado**: o caminho real do mundo e os callbacks gerenciados não estão vinculados ao IL2CPP/MonoVM. A compilação nativa de host prova apenas o componente POSIX, não o hook Android. A estrutura deste módulo fica isolada do QuickJS.
 
+## Etapa 3 — ciclo de vida nativo (sem ativar persistência gerenciada)
+
+O hook já existente em `ModTileSave.cpp` passa o caminho local vindo de `ActiveWorldFileData` para `noteAutoWorldTilesLoaded`, na mesma ordem da restauração das tiles. O `AutoSourceRuntime` inicia o `NativeWorldStore` usando o `g_worldEpoch` atualizado; ao detectar saída do mundo, invalida a sessão anterior. Nuvem, diretório inacessível e caminhos inválidos falham de forma fechada. A referência global ao armazenamento só existe em C++ e não cria uma API para o mod definir caminhos.
+
+Este passo **não registra** os callbacks `BunnyWorldSystem`, não lê/escreve dados via Mono e não afirma que os hooks de save do Terraria estão integrados. O teste do workflow verifica os pontos de conexão em fonte; assinatura e offsets reais ainda exigem QA Android.
+
 ## Requisitos ainda bloqueantes
 
 1. Host nativo C++ deve capturar a identidade real do arquivo de mundo após a seleção; não confiar em nome de mundo ou caminho informado por um mod.

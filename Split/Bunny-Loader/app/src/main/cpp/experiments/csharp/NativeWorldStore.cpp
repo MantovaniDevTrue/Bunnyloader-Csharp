@@ -297,4 +297,9 @@ Result NativeWorldStore::write(uint64_t epoch, const std::vector<uint8_t>& docum
     return good ? Result::Ok : Result::IoError;
 }
 
+NativeWorldStore& activeWorldStore() {
+    static NativeWorldStore store;
+    return store;
+}
+
 } // namespace bl::csharp::worldsave

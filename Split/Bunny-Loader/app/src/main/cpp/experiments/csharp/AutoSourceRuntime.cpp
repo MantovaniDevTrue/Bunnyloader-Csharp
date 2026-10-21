@@ -1,6 +1,7 @@
 #include "experiments/csharp/SourceLimits.h"
 #include "experiments/csharp/AutoSourceCache.h"
 #include "experiments/csharp/AutoSourceRuntime.h"
+#include "experiments/csharp/NativeWorldStore.h"
 #include "experiments/csharp/NativeVisualRenderer.h"
 #include "experiments/csharp/NativeContent.h"
 #include "experiments/csharp/NativeBasicItems.h"
@@ -1129,13 +1130,19 @@ void retryWorldManagedPrefixesWhenReady() {
     bl::runtime::retryPendingManagedPrefixesOnWorldReady();
 }
 
-void noteAutoWorldTilesLoaded() {
+void noteAutoWorldTilesLoaded(const std::string& worldPath) {
     std::lock_guard<std::mutex> sessionGuard(g_worldTransitionMutex);
     clearManagedVisualCommands();
     resetNativeVisualRenderer();
     g_visualUpdateTick.store(0, std::memory_order_relaxed);
     g_worldLoads.fetch_add(1, std::memory_order_relaxed);
-    g_worldEpoch.fetch_add(1, std::memory_order_acq_rel);
+    const uint64_t epoch = g_worldEpoch.fetch_add(1, std::memory_order_acq_rel) + 1;
+    // O caminho foi extraído de Main.ActiveWorldFileData pelo hook nativo dos tiles.
+    // Cloud e caminhos inválidos deixam o sidecar C# explicitamente desabilitado.
+    const bool localWorld = worldsave::activeWorldStore().beginWorld(
+        epoch, worldPath, worldPath.empty());
+    if (!localWorld)
+        BL_DEBUG("csharp world save: sidecar desativado para esta sessão");
     g_worldSessionReady.store(false, std::memory_order_release);
     pauseManagedEntitySourceCallbacks();
     resetManagedSourceNpcSlots();
@@ -1209,7 +1216,9 @@ void noteAutoGameUpdate() {
         resetNativeVisualRenderer();
         g_visualUpdateTick.store(0, std::memory_order_relaxed);
         g_worldExits.fetch_add(1, std::memory_order_relaxed);
-        g_worldEpoch.fetch_add(1, std::memory_order_acq_rel);
+        const uint64_t departingEpoch = g_worldEpoch.fetch_add(
+            1, std::memory_order_acq_rel);
+        worldsave::activeWorldStore().endWorld(departingEpoch);
         g_worldSessionReady.store(false, std::memory_order_release);
         g_worldTilesLoaded.store(false, std::memory_order_release);
         g_worldReadyFrames.store(0, std::memory_order_relaxed);

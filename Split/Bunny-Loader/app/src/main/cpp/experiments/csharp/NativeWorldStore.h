@@ -39,4 +39,7 @@ private:
     bool active_ = false;
 };
 
+// Instância usada apenas pelo host C++; mods não controlam a seleção do mundo.
+NativeWorldStore& activeWorldStore();
+
 } // namespace bl::csharp::worldsave
