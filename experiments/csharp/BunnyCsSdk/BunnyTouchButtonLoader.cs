@@ -287,8 +287,13 @@ public static class BunnyTouchButtonLoader
         lock (Gate)
         {
             for (int i = 0; i < Entries.Count; i++)
-                if (Entries[i] is { } entry)
-                    entry.State = new BunnyTouchButtonState(false, false, false, false, false, false);
+            {
+                if (Entries[i] is not { } entry) continue;
+                entry.State = default;
+                entry.TriggerSnapshot = default;
+                entry.LastEpoch = 0;
+                entry.DeliveredPressSequence = 0;
+            }
             lastTick = -1;
             inTriggerFrame = false;
             if (nativeBound) BunnyTouchNativeHost.ResetWorld();
@@ -322,6 +327,8 @@ public static class BunnyTouchButtonLoader
     {
         lock (Gate)
         {
+            if (!nativeBound && ByName.Count != 0)
+                TryBindNativeHost();
             foreach (Entry? entry in Entries)
             {
                 if (entry is null) continue;
