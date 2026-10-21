@@ -1254,8 +1254,13 @@ int64_t executeManagedEntityOnWorker(const ManagedEntityJob& job) {
                                         g_entityBindings[static_cast<size_t>(job.binding)].firstWorldUseReported = true;
                                 }
 #ifdef __ANDROID__
-                                BL_INFO("[CSharp][ItemUse] Mod=%s Stage=OnUseResult %s",
-                                        binding.modId.c_str(), details.substr(use).c_str());
+                                const std::string outcome = details.substr(use);
+                                if (outcome.find(" Error=") != std::string::npos)
+                                    BL_WARN("[CSharp][ItemUse] Mod=%s Stage=OnUseResult %s",
+                                            binding.modId.c_str(), outcome.c_str());
+                                else
+                                    BL_INFO("[CSharp][ItemUse] Mod=%s Stage=OnUseResult %s",
+                                            binding.modId.c_str(), outcome.c_str());
 #endif
                             }
                         }
