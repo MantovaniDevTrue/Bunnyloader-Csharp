@@ -4,10 +4,14 @@ import pathlib
 import sys
 
 expected = {
+    "SHOOT": {3}, "USE_SOUND": {8}, "HOLDOUT": {4}, "NATIVE_ITEM": {3}, "NATIVE_PROJECTILE": {3},
     "RECIPES": {4},
     "ITEM": {20, 21, 22, 23, 24, 25, 26},
-    "TILE": {13},
-    "PROJECTILE": {8, 12, 13, 14, 16, 17},
+    "TILE": {13, 14, 16, 17, 19, 20, 21, 22, 23, 25, 28, 29},
+    "TREE": {5, 7, 9, 11, 12},
+    "GORE": {5},
+    "WALL": {16},
+    "PROJECTILE": {8, 12, 13, 14, 16, 17, 18},
     "WEAPON": {6, 9},
     "BUFF": {3, 4, 6, 7},
     "POTION": {4},

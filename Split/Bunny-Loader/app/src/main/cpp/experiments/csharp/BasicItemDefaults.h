@@ -30,7 +30,8 @@ struct BasicItemEntry {
     std::map<std::string,std::string> localizedTooltips;
     std::vector<BasicAccessoryEffect> accessoryEffects;
     BasicArmorPolicy armor;
-    std::string placeTileKey; int placeTile=-1,placeStyle=0; bool placeable=false;
+    std::string placeTileKey; int placeTile=-1,placeStyle=0; bool placeable=false,wallPlaceable=false;
+    int wallIntegerOverrides=8191,wallFlagOverrides=127;
     bool behaviorInstalled=false;
     std::string behaviorError;
     std::vector<BasicRecipe> recipes;
@@ -100,7 +101,7 @@ inline bool parseBasicRecipes(const std::string& text,BasicItemEntry* item,std::
                 *error="[CSharp][ERROR][Recipe] Class="+item->name+" API=BunnyRecipe Stage=ParseIngredient Expected=TypedKey:Count(1..9999) Actual="+parts[i]+" Result=Rejected Reason=InvalidIngredientDescriptor";return false;
             }
             ingredient.key=pair[0];
-            if(pair[0][0]=='v') {
+                    if(pair[0][0]=='v') {
                 if(!basicInteger(pair[0].substr(1),&ingredient.type)||ingredient.type<1||ingredient.type>=6196) {*error=item->name+": ItemID vanilla invalido";return false;}
             } else if(pair[0][0]=='m') {
                 for(unsigned char c:pair[0].substr(1))if(!((c>='A'&&c<='Z')||(c>='a'&&c<='z')||(c>='0'&&c<='9')||c=='_'||c=='-'||c=='/')) {*error=item->name+": chave de item invalida";return false;}
@@ -189,11 +190,21 @@ inline bool parseBasicItemWire(const std::vector<std::string>& fields,BasicItemE
     }
     if(fields.size()>=22 && fields[21]!="-") {
         auto pair=basicSplit(fields[21],':');
-        if(pair.size()!=2||pair[0].size()<2||!basicInteger(pair[1],&out.placeStyle)||out.placeStyle<0||out.placeStyle>32767) {
+        if((pair.size()!=2&&pair.size()!=4)||pair[0].size()<2||!basicInteger(pair[1],&out.placeStyle)||out.placeStyle<0||out.placeStyle>32767) {
             *error=out.name+": Stage=ParsePlacement Field=placeStyle Expected=0..32767 Actual="+fields[21]+" Reason=InvalidPlacement";return false;
         }
+        if(pair[0].starts_with("w")) {
+            out.wallPlaceable=true;pair[0].erase(0,1);
+            if(pair[0].size()<2||out.placeStyle!=0){*error=out.name+": Stage=ParsePlacement Reason=InvalidWallTokenOrStyle";return false;}
+        }
+        if(pair.size()==4) {
+            if(!out.wallPlaceable||!basicInteger(pair[2],&out.wallIntegerOverrides)||out.wallIntegerOverrides<0||out.wallIntegerOverrides>8191||
+               !basicInteger(pair[3],&out.wallFlagOverrides)||out.wallFlagOverrides<0||out.wallFlagOverrides>127) {
+                *error=out.name+": Stage=ParsePlacement Reason=InvalidWallOverrideMask Expected=Integers0..8191:Flags0..127 Actual="+fields[21];return false;
+            }
+        }
         if(pair[0][0]=='v') {
-            if(!basicInteger(pair[0].substr(1),&out.placeTile)||out.placeTile<0||out.placeTile>=754) {
+            if(!basicInteger(pair[0].substr(1),&out.placeTile)||out.placeTile<(out.wallPlaceable?1:0)||out.placeTile>=(out.wallPlaceable?367:754)) {
                 *error=out.name+": Stage=ParsePlacement Field=createTile Expected=VanillaTileId Actual="+pair[0]+" Reason=InvalidTileId";return false;
             }
         } else if(pair[0][0]=='m') {

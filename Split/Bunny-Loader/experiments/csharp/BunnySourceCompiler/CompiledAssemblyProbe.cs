@@ -89,8 +89,15 @@ public static class CompiledAssemblyProbe
             var projectileTypes = contentTypes
                 .Where(type => IsContentType(type, "BunnyProjectile"))
                 .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
+            var wallTypes = contentTypes.Where(type => IsContentType(type, "BunnyWall")).OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
             var tileTypes = contentTypes
                 .Where(type => IsContentType(type, "BunnyTile"))
+                .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
+            var treeTypes = contentTypes
+                .Where(type => IsContentType(type, "BunnyTree"))
+                .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
+            var goreTypes = contentTypes
+                .Where(type => IsContentType(type, "BunnyGore"))
                 .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
             var basicItemTypes = contentTypes
                 .Where(type => IsContentType(type, "BunnyItem"))
@@ -119,12 +126,12 @@ public static class CompiledAssemblyProbe
             var screenEffectTypes = contentTypes
                 .Where(type => IsContentType(type, "BunnyScreenEffect"))
                 .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
-            if (tileTypes.Length > 4096 || prefixTypes.Length > 4096 || npcTypes.Length > 4096 || accessoryTypes.Length > 4096 || playerTypes.Length > 4096 ||
+            if (wallTypes.Length > 4096 || tileTypes.Length > 4096 || treeTypes.Length > 255 || goreTypes.Length > 256 || prefixTypes.Length > 4096 || npcTypes.Length > 4096 || accessoryTypes.Length > 4096 || playerTypes.Length > 4096 ||
                 projectileTypes.Length > 4096 ||
                 weaponTypes.Length > 4096 || basicItemTypes.Length > 4096 ||
                 buffTypes.Length > 4096 || potionTypes.Length > 4096 || screenEffectTypes.Length > 4096)
                 throw new InvalidOperationException("C# content class count out of bounds");
-            if (tileTypes.Length + basicItemTypes.Length + projectileTypes.Length + weaponTypes.Length + buffTypes.Length + potionTypes.Length + accessoryTypes.Length + playerTypes.Length + npcTypes.Length + prefixTypes.Length + screenEffectTypes.Length == 0)
+            if (wallTypes.Length + tileTypes.Length + treeTypes.Length + goreTypes.Length + basicItemTypes.Length + projectileTypes.Length + weaponTypes.Length + buffTypes.Length + potionTypes.Length + accessoryTypes.Length + playerTypes.Length + npcTypes.Length + prefixTypes.Length + screenEffectTypes.Length == 0)
                 throw new InvalidOperationException("C# assembly has no supported content types");
             bool fixture = projectileTypes.Any(t => t.FullName == "SourceCSharpMod.SourceBolt") &&
                 weaponTypes.Any(t => t.FullName == "SourceCSharpMod.SourceWand");
@@ -138,6 +145,9 @@ public static class CompiledAssemblyProbe
                     ? primaryWeapon! : CreateContent(type)).ToArray();
             object[] basicItems = basicItemTypes.Select(CreateContent).ToArray();
             object[] tiles = tileTypes.Select(CreateTileContent).ToArray();
+            object[] trees = treeTypes.Select(CreateContent).ToArray();
+            object[] gores = goreTypes.Select(CreateContent).ToArray();
+            object[] walls = wallTypes.Select(CreateTileContent).ToArray();
             object[] buffs = buffTypes.Select(CreateContent).ToArray();
             object[] potions = potionTypes.Select(CreateContent).ToArray();
             object[] accessories = accessoryTypes.Select(CreateContent).ToArray();
@@ -153,7 +163,7 @@ public static class CompiledAssemblyProbe
                     throw new InvalidOperationException(effect.GetType().FullName + ": exactly one ShaderFile or PipelineFile required");
             }
             WriteRuntimeDefaults(projectiles, weapons, buffs, potions,
-                accessories, players, npcs, prefixes, basicItems, tiles, diagnosticsPath);
+                accessories, players, npcs, prefixes, basicItems, tiles, walls, trees, gores, diagnosticsPath);
             WriteProjectileMotionPolicies(assembly, projectileTypes, diagnosticsPath);
             WriteAutomaticCombatPolicies(projectiles, diagnosticsPath);
             if (fixture)
@@ -165,17 +175,17 @@ public static class CompiledAssemblyProbe
                 WriteKillPolicy(primaryProjectile!, diagnosticsPath);
             }
             File.AppendAllText(diagnosticsPath,
-                "\nASSEMBLY_EXEC_OK classes=" + (tiles.Length + projectiles.Length + weapons.Length + buffs.Length + potions.Length + accessories.Length + players.Length + npcs.Length + prefixes.Length + basicItems.Length + screenEffects.Length) +
+                "\nASSEMBLY_EXEC_OK classes=" + (walls.Length + tiles.Length + trees.Length + projectiles.Length + weapons.Length + buffs.Length + potions.Length + accessories.Length + players.Length + npcs.Length + prefixes.Length + basicItems.Length + screenEffects.Length) +
                 " projectiles=" + projectiles.Length + " weapons=" + weapons.Length +
                 " buffs=" + buffs.Length + " potions=" + potions.Length +
                 " accessories=" + accessories.Length + " players=" + players.Length +
-                " npcs=" + npcs.Length + " tiles=" + tiles.Length + " prefixes=" + prefixes.Length +
+                " npcs=" + npcs.Length + " tiles=" + tiles.Length + " trees=" + trees.Length + " prefixes=" + prefixes.Length +
                 " screenEffects=" + screenEffects.Length +
                 (fixture
                     ? " projectile=SourceBolt width=10 weapon=SourceWand damage=22 shoot=SourceBolt"
                     : " policy=generic-managed-defaults"));
             return projectiles.Length + weapons.Length + buffs.Length + potions.Length +
-                accessories.Length + players.Length + npcs.Length + prefixes.Length + basicItems.Length + tiles.Length + screenEffects.Length;
+                accessories.Length + players.Length + npcs.Length + prefixes.Length + basicItems.Length + tiles.Length + walls.Length + trees.Length + gores.Length + screenEffects.Length;
         }
         catch (Exception exception)
         {
@@ -511,10 +521,18 @@ public static class CompiledAssemblyProbe
             retarget.ToString(CultureInfo.InvariantCulture));
     }
 
+    private static bool ValidTreeName(string text) => text.Length>0&&text.Length<=72&&
+        text.All(c=>char.IsAsciiLetterOrDigit(c)||c=='_');
+
+    private static bool ValidTreeStem(string stem) => stem.Length>0&&stem.Length<=160&&
+        stem[0]!='/'&&stem[^1]!='/'&&
+        stem.Split('/').All(segment=>segment.Length>0&&
+            segment.All(c=>char.IsAsciiLetterOrDigit(c)||c=='_'||c=='-'));
+
     private static void WriteRuntimeDefaults(object[] projectiles, object[] weapons,
         object[] buffs, object[] potions, object[] accessories,
         object[] players, object[] npcs, object[] prefixes, object[] basicItems,
-        object[] tiles, string diagnosticsPath)
+        object[] tiles, object[] walls, object[] trees, object[] gores, string diagnosticsPath)
     {
         static T Value<T>(object instance, string name) =>
             (T)(instance.GetType().GetProperty(name)?.GetValue(instance)
@@ -538,6 +556,51 @@ public static class CompiledAssemblyProbe
         {
             "BUNNY_MANAGED_DEFAULTS_V2"
         };
+        foreach (object wall in walls) {
+            string name = wall.GetType().Name;
+            CheckName(name);
+            if (!names.Add("WALL:" + name)) throw new InvalidOperationException("Duplicate BunnyWall: " + name);
+            lines.Add(Value<string>(wall, "NativeDefinition"));
+        }
+        foreach (object gore in gores)
+        {
+            string name=gore.GetType().Name;
+            CheckName(name);
+            if(!names.Add("GORE:"+name))
+                throw new InvalidOperationException("Duplicate BunnyGore: "+name);
+            string texture=Value<string>(gore,"Texture");
+            int ai=Value<int>(gore,"SpecialAI");
+            bool safe=Value<bool>(gore,"SafeGore");
+            if(!ValidTreeStem(texture)||ai<0||ai>255)
+                throw new InvalidOperationException(name+": invalid BunnyGore descriptor");
+            lines.Add(string.Join("\t","GORE",name,texture,ai,safe?"1":"0"));
+        }
+        foreach (object tree in trees)
+        {
+            string name=tree.GetType().Name;
+            CheckName(name);
+            if(!names.Add("TREE:"+name))throw new InvalidOperationException("Duplicate BunnyTree: "+name);
+            string texture=Value<string>(tree,"Texture");
+            string ground=Value<string>(tree,"GrowsOnTile");
+            string sapling=Value<string>(tree,"SaplingTile");
+            string wood=Value<string>(tree,"WoodItem");
+            bool acorns=Value<bool>(tree,"CanDropAcorn");
+            int leaf=Value<int>(tree,"LeafGoreType");
+            string leafName=Value<string>(tree,"LeafGoreName");
+            int dust=Value<int>(tree,"DustType");
+            string shake=Value<string>(tree,"ShakeItem");
+            bool shakeLeaves=Value<bool>(tree,"ShakeLeaves");
+            if(!ValidTreeStem(texture)||!ValidTreeName(ground)||!ValidTreeName(sapling)||
+               (wood.Length>0&&!ValidTreeName(wood))||
+               leaf< -1||leaf>=32768||dust<0||dust>1999||
+               (leafName.Length>0&&(!ValidTreeName(leafName)||leaf>=0))||
+               (shake.Length>0&&!ValidTreeName(shake)))
+                throw new InvalidOperationException(name+": invalid BunnyTree descriptor");
+            lines.Add(string.Join("\t","TREE",name,ground,sapling,texture,
+                wood.Length==0?"-":wood,acorns?"1":"0",leaf,dust,
+                shake.Length==0?"-":shake,shakeLeaves?"1":"0",
+                leafName.Length==0?"-":leafName));
+        }
         foreach (object tile in tiles)
         {
             string name = tile.GetType().Name;
@@ -562,6 +625,14 @@ public static class CompiledAssemblyProbe
             projectileNames.Add(name);
             bool minion = Value<bool>(projectile, "Minion");
             bool contactDamage = Value<bool>(projectile, "MinionContactDamage");
+            object? motion = projectile.GetType().GetProperty("MinionMovement")!.GetValue(projectile);
+            if(motion!=null&&projectile.GetType().Assembly.GetType(projectile.GetType().FullName+"Motion")!=null)
+                throw new InvalidOperationException("[CSharp][ERROR][ProjectilePolicy] Class="+projectile.GetType().FullName+" API=MinionMovement Reason=ConflictingMotionCurve Result=Rejected");
+            if(motion!=null&&Value<int>(projectile,"AiStyle")!=0)
+                throw new InvalidOperationException("[CSharp][ERROR][ProjectilePolicy] Class="+projectile.GetType().FullName+" API=MinionMovement Expected=AiStyle0 Reason=ConflictingVanillaAI Result=Rejected");
+            if(motion!=null && projectile.GetType().GetMethod("AI")!.DeclaringType!.FullName!="BunnyLoader.Source.BunnyProjectile")
+                throw new InvalidOperationException("[CSharp][ERROR][ProjectilePolicy] Class="+projectile.GetType().FullName+" API=MinionMovement Stage=Validate Reason=ConflictingMovementControllers Expected=NativeMovementOrOverrideAI Result=Rejected");
+            if(motion!=null&&!minion)throw new InvalidOperationException("MinionMovement requires Minion=true: "+name);
             if (contactDamage && !minion)
                 throw new InvalidOperationException("MinionContactDamage requires Minion=true: " + name);
             int frames = Value<int>(projectile, "Frames");
@@ -570,7 +641,7 @@ public static class CompiledAssemblyProbe
             int frameTicks=Value<int>(projectile,"AnimationFrameTicks");
             int scanTicks=Value<int>(projectile,"MinionScanTicks");
             float range=Value<float>(projectile,"MinionTargetRange");
-            bool customPolicy=frameTicks!=6||scanTicks!=8||range!=700f;
+            bool customPolicy=frameTicks!=6||scanTicks!=8||range!=700f||motion!=null;
             if(frameTicks<1||frameTicks>120||scanTicks<1||scanTicks>120||!float.IsFinite(range)||range<1||range>4000)
                 throw new InvalidOperationException("[CSharp][ERROR][ProjectilePolicy] Class="+projectile.GetType().FullName+" Stage=SetDefaults Expected=AnimationFrameTicks1..120,MinionScanTicks1..120,MinionTargetRange1..4000 Actual="+frameTicks+","+scanTicks+","+range+" Reason=OutOfRange");
             float minionSlots = Value<float>(projectile, "MinionSlots");
@@ -594,7 +665,8 @@ public static class CompiledAssemblyProbe
                 if (frames > 1 || customPolicy || contactDamage) entry += "\t" + frames.ToString(CultureInfo.InvariantCulture);
                 if(customPolicy || contactDamage)
                     entry+="\t"+frameTicks.ToString(CultureInfo.InvariantCulture)+"\t"+scanTicks.ToString(CultureInfo.InvariantCulture)+"\t"+range.ToString("R",CultureInfo.InvariantCulture);
-                if (contactDamage) entry += "\t1";
+                if (contactDamage || motion!=null) entry += "\t"+(contactDamage?"1":"0");
+                if(motion!=null)entry+="\t"+string.Join(",",new[]{"FollowSpeed","AttackSpeed","CatchUpSpeed","FollowInertia","AttackInertia","FollowOffsetX","FollowOffsetY","CatchUpDistance","IdleDistance","IdleDamping","CatchUpInertia","TeleportDistance","FormationSpacing","AttackStopDistance","OwnerLeashDistance","RotationFactor","Separation"}.Select(property=>Value<float>(motion,property).ToString("R",CultureInfo.InvariantCulture)));
             }
             lines.Add(entry);
         }
@@ -943,6 +1015,24 @@ public static class CompiledAssemblyProbe
             if(recipes.Count==0)continue;
             if(recipes.Count>16)throw new InvalidOperationException(type.FullName+": recipe capacity exceeded");
             lines.Add(string.Join("\t","RECIPES",type.Name,owner.Kind,string.Join(";",recipes)));
+        }
+        foreach(var item in basicItems.Concat(weapons))
+        {
+            int shootMask=Value<int>(item,"ShootCallbackMask");
+            if(shootMask!=0)lines.Add("SHOOT\t"+item.GetType().Name+"\t"+shootMask.ToString(CultureInfo.InvariantCulture));
+            object? sound=item.GetType().GetProperty("CustomUseSound")!.GetValue(item);
+            if(sound!=null)lines.Add("USE_SOUND\t"+item.GetType().Name+"\t"+Value<string>(sound,"Definition"));
+            object? holdout=item.GetType().GetProperty("Holdout")!.GetValue(item);
+            if(holdout!=null)lines.Add(string.Join("\t","HOLDOUT",item.GetType().Name,
+                Value<float>(holdout,"X").ToString("R",CultureInfo.InvariantCulture),Value<float>(holdout,"Y").ToString("R",CultureInfo.InvariantCulture)));
+        }
+        // A single public typed bridge serves all item families and projectiles.
+        foreach(var definition in basicItems.Concat(weapons).Concat(potions).Concat(accessories)
+            .Select(value=>(Value:value,Kind:"NATIVE_ITEM"))
+            .Concat(projectiles.Select(value=>(Value:value,Kind:"NATIVE_PROJECTILE"))))
+        {
+            string native=Value<string>(definition.Value,"NativeDefaultsDefinition");
+            if(native.Length!=0)lines.Add(string.Join("\t",definition.Kind,definition.Value.GetType().Name,native));
         }
         File.WriteAllText(temporary, string.Join("\n", lines) + "\n");
         File.Move(temporary, destination, true);

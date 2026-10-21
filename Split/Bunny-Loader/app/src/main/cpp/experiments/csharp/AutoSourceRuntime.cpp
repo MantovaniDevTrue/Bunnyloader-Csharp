@@ -1,4 +1,7 @@
 #include "experiments/csharp/NativeRecipeCallbacks.h"
+#include "experiments/csharp/NativeShooting.h"
+#include "experiments/csharp/NativeTileGameplay.h"
+#include "experiments/csharp/NativeWallRuntime.h"
 #include "content/recipes/RecipeCallbackProvider.h"
 #include "experiments/csharp/WorldEntryReadiness.h"
 #include "experiments/csharp/SourceLimits.h"
@@ -861,9 +864,11 @@ void run() {
         }
         if (defaultsApplied) {
             bindNativeRecipeAssembly(mod.id,assembly);
+            bindNativeTileAssembly(mod.id,assembly);
+            if(!shooting::bindAssembly(mod.id,assembly,&error))defaultsApplied=false;
             static const runtime::RecipeCallbackProvider provider{prepareNativeRecipeCallbackProvider,trackNativeRecipeCallbacks};
             runtime::setRecipeCallbackProvider(&provider);
-            if(hasManagedRecipeCallbacks(mod.id)&&!g_runtimeWarmStarted.exchange(true,std::memory_order_acq_rel)) {
+            if((hasManagedRecipeCallbacks(mod.id)||shooting::hasPolicies(mod.id)||mod.tiles>0)&&!g_runtimeWarmStarted.exchange(true,std::memory_order_acq_rel)) {
                 const auto probe=work+"BunnyManagedProbe.dll";
                 g_runtimeWarming.store(true,std::memory_order_release);
                 std::thread([probe]{
@@ -1155,7 +1160,9 @@ void reportCSharpLoadSummary() {
         if (!g_pendingLiveSpecs.empty() &&
             !managedNpcBuffEffectStatus().gameHookInstalled) ++pendingCallbacks;
     }
-    const int pending = basic.pendingBehaviors + basic.pendingRecipes +
+    const auto wallStatus=walls::loadStatus();
+    failed+=wallStatus.failed;
+    const int pending = wallStatus.pending + basic.pendingBehaviors + basic.pendingRecipes +
         basic.pendingPlacements + pendingCallbacks + static_cast<int>(pendingNativeVisualRenderer());
     if (pending) return;
     if (g_initialCSharpSummaryShown.exchange(true, std::memory_order_acq_rel))
@@ -1192,6 +1199,7 @@ void retryWorldManagedPrefixesWhenReady() {
 
 void noteAutoWorldTilesLoaded() {
     std::lock_guard<std::mutex> sessionGuard(g_worldTransitionMutex);
+    resetNativeTileSessionState();
     clearManagedVisualCommands();
     resetNativeVisualRenderer();
     g_visualUpdateTick.store(0, std::memory_order_relaxed);
@@ -1277,6 +1285,7 @@ void noteAutoGameUpdate() {
         resetNativeVisualRenderer();
         g_visualUpdateTick.store(0, std::memory_order_relaxed);
         g_worldExits.fetch_add(1, std::memory_order_relaxed);
+        resetNativeTileSessionState();
         g_worldEpoch.fetch_add(1, std::memory_order_acq_rel);
         g_worldSessionReady.store(false, std::memory_order_release);
         g_worldTilesLoaded.store(false, std::memory_order_release);

@@ -42,7 +42,7 @@ for mirror, source in MIRRORS.items():
 manifest = json.loads((FIXTURE / "manifest.json").read_text(encoding="utf-8"))
 catalog = json.loads((EXAMPLE / "compatibility.json").read_text(encoding="utf-8"))
 assert catalog["schemaVersion"] == 1
-assert catalog["exampleModCSharpVersion"] == "0.1.53"
+assert catalog["exampleModCSharpVersion"] == "0.1.59"
 assert catalog["fixtureMod"] == manifest["id"] == "sourcecsharp"
 assert catalog["fixtureModVersion"] == manifest["version"] == "0.1.5"
 assert catalog["supportedModId"] == manifest["uid"]
@@ -89,7 +89,7 @@ manifest2 = json.loads((playable / "manifest.json").read_text(encoding="utf-8"))
 assert manifest2["uid"] != manifest["uid"]
 assert manifest2["id"] == "examplemodcsharp"
 assert manifest2["entry"] == "main.cs"
-assert manifest2["version"] == "0.1.53"
+assert manifest2["version"] == catalog["exampleModCSharpVersion"]
 playable_files = list((playable / "content").rglob("*.cs"))
 assert 0 < len(playable_files) <= 512
 hook_dir = playable / "content/Common/Hooks"
@@ -187,7 +187,7 @@ assert "playerHealthPercent" in wave_events
 assert "return 1000000 + buffId * 1000 + durationTicks;" in wave_events
 assert "return 2000000 + direction * 100 + strengthTenths;" in wave_events
 welcome = (playable / "content/Common/Players/ExampleWelcomePlayer.cs").read_text(encoding="utf-8")
-assert "C# Hook QA 0.1.53:" in welcome
+assert f"C# Hook QA {catalog['exampleModCSharpVersion']}:" in welcome
 assert "consulte os estados H1-H5 no relatorio" in welcome
 for name in hook_examples:
     example = (hook_dir / (name + ".cs")).read_text(encoding="utf-8")
@@ -205,7 +205,7 @@ summon_source = (playable / "content/Content/Projectiles/ExampleMinion.cs").read
 staff_source = (playable / "content/Content/Items/Weapons/Summon/ExampleMinionItem.cs").read_text(encoding="utf-8")
 buff_source = (playable / "content/Content/Buffs/ExampleMinionBuff.cs").read_text(encoding="utf-8")
 assert "MinionContactDamage = true;" in summon_source
-assert "BunnyMinionSteering.FollowOrAttack" in summon_source
+assert "MinionMovement = movement;" in summon_source
 assert "Summon = true;" in staff_source
 assert "MinionBuff = nameof(ExampleMinionBuff);" in staff_source
 assert "MinionProjectile = nameof(ExampleMinion);" in buff_source

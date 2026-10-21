@@ -34,13 +34,20 @@ class PackageAssetTests(unittest.TestCase):
     def test_each_previously_copied_asset_is_mandatory(self):
         for relative in ('Buffs/ExampleDefenseBuff','Projectiles/SourceBolt','Items/Weapons/SourceWand',
                          'Items/Consumables/ExampleBuffPotion','Items/Accessories/ExampleFocusAccessory',
-                         'NPCs/ExampleSlimeNPC'):
+                         'NPCs/ExampleSlimeNPC','Walls/ExampleWallAdvanced','Items/Placeable/ExampleWallAdvanced'):
             member='content/Content/'+relative+'.png'
             with self.subTest(asset=member), self.assertRaises(ValueError) as error:
                 validate(self.altered(omit=member))
             self.assertIn('Reason=AssetMissing',str(error.exception))
             self.assertIn('Path='+member,str(error.exception))
             self.assertIn('Result=PublicationRejected',str(error.exception))
+
+    def test_original_gun_audio_is_required(self):
+        member='content/Assets/Sounds/Items/Guns/ExampleGun.ogg'
+        with self.assertRaisesRegex(ValueError,'Reason=AssetMissing'):
+            validate(self.altered(omit=member))
+        with self.assertRaisesRegex(ValueError,'Reason=InvalidAudioHeader'):
+            validate(self.altered(replace=(member,b'not ogg')))
 
     def test_corrupt_png_is_not_accepted_as_an_asset(self):
         member='content/Content/Buffs/ExampleDefenseBuff.png'

@@ -1,4 +1,35 @@
+> Continuidade .98 WIP: BunnyShootSource/Context/Shot → worker MonoVM e NativeShooting → fábrica Terraria diretamente. Fonte/dono/modifier ficam na thread do jogo; resolução de referências usa o registro nativo compartilhado. Nenhuma invocação QuickJS. Testes executam o C# e os hooks/contratos C++ de produção com providers; gameplay Android pendente. Nenhum loader inteiro certificado.
+
+> Port integral em desenvolvimento: CustomUseSound usa NativeUseSounds → NativeSoundRouter → AndroidAudio/SfxQueue, sem QuickJS. SDK e binding próprios; serviço de áudio independente compartilhado com JS. Testes de host não certificam áudio Android. Publicação suspensa.
+
+> .96: NativeDefaults e NativeHoldout usam serviços C++ próprios com metadata IL2CPP validada; constantes e referências vêm do registro nativo compartilhado. BunnyName alimenta nomes dos conteúdos no núcleo. Nenhuma chamada QuickJS nesses caminhos. Fixtures BL_HAVE_QUICKJS=0; isto não certifica o desacoplamento dos88 loaders legados.
+
+> .95.2: removido contrato incorreto de identity constatado no Android .95.1. A geração é rastreada no hook nativo SetDefaults compartilhado, sem QuickJS. Binding e reutilização testados com providers controlados; Android da correção pendente.
+
+## Continuidade .95 — ciclo de vida e movimento de summons
+
+`BunnyProjectile.MinionMovement`, buff/dono/geração própria por SetDefaults e ApplyStatsFromSource seguem C# → descritores/MonoVM → núcleo C++ → Terraria, sem executar QuickJS. Tests/summon_lifecycle executa os hooks de produção com providers IL2CPP controlados e BL_HAVE_QUICKJS=0; não comprova a ABI real no Android. C# custom AI continua alternativa explícita ao controlador nativo. Nenhuma independência global nova é inferida para os módulos legados. Ver [csharp-summon-v95.md](csharp-summon-v95.md).
+
 # Independencia C# — auditoria e checkpoint .90.29.1
+
+## Continuidade .93 — política própria de projéteis
+
+Base .90.5/PR94 integrada com .92/PR93 sem reverter commits. A seleção de alvo,
+a animação e a aplicação de velocidade usam NativeContent/ManagedProjectileHook
+→ serviços de conteúdo/Terraria; AI executa no worker MonoVM. Esta expansão não
+executa JS para o novo percurso. O registro compartilhado de quadros é atualizado
+na aplicação do lote, conservando contagem/medidas nas reconstruções de tabelas.
+
+Políticas públicas AnimationFrameTicks/MinionScanTicks/MinionTargetRange são
+validadas pelo compilador e decoder, cacheadas por instância e aplicadas nativamente.
+BunnyMinionMovement é um algoritmo C# reutilizável, não uma ponte simulada.
+Os contratos dos campos novos e da tabela de frames são verificados antes de uso;
+o scanner valida NPC.active/friendly/life, dontTakeDamage quando presente, e o
+rank/tipo da tabela NPC. Os testes usam metadata controlada no host e não comprovam
+execução Android. Nenhuma certificação nova de independência dos equipamentos ou
+de todos os demais módulos é inferida disso. Seguem as lacunas de fidelidade do
+minion e dos demais loaders em [csharp-loaders-v93.md](csharp-loaders-v93.md).
+
 
 ## Continuidade .90.29.92 — loaders próprios
 
@@ -198,3 +229,14 @@ ainda precisa de contratos adicionais; nao foi exposta uma falsa BunnyTile nem
 foi promovido ExampleWorkbench. Policies de equipamento continuam dependendo
 do caminho JS existente. Eight suites e Android build 38617948804 aprovados;
 validacao da nova API no Android pendente.
+
+
+## Grupo de mundo .99
+
+BunnyTile.Flags → TILE → SourceLoader → NativeTileFlags/NativeContent → arrays Terraria. API C# com bridge nativa própria; registro/persistência usam serviços nativos independentes compartilhados. O teste world_loaders/tile_flags_test.cpp executa o publicador de produção com metadata controlada e wire do ExampleMod compilado, BL_HAVE_QUICKJS=0. Não inicializa VM JS. Isso comprova esse caminho de flags, não a independência integral dos loaders de tile/árvore/parede ainda pendentes. TreeLoader/TileEntity/GlobalTile C# completos não existem nesta revisão; não se expõem fachadas vazias.
+
+## Paredes C# .100
+
+Classificação: API C# original com bridge própria, utilizando serviços nativos independentes compartilhados. BunnyWall/SourceLoader chamam ModWalls diretamente; não executam API JS nem inicializam QuickJS. NativeWallRuntime mantém políticas de gameplay em tabela nativa imutável, e os listeners de registro C# e JS são separados.
+
+A prova host contém o registro/mapa real (`wall_registry_test.cpp`, BL_HAVE_QUICKJS=0), os hooks de produção com engine/metadata controlada (`wall_runtime_test.cpp`) e a aplicação de defaults de item com o helper nativo e suas máscaras (`native_item_binding_test --wall`). Não comprova renderização/persistência no Terraria nem independência de TODOS os outros sistemas: os callbacks arbitrários de parede, Tree/TileEntity/GlobalTile permanecem pendentes. O helper é aplicado na thread do Terraria; getters C# anteriores à aplicação retornam apenas o estado declarado.

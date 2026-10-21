@@ -111,9 +111,21 @@ size_t closing(const std::vector<Token>& tokens, size_t open, const std::string&
 
 bool contentDeclaration(const std::vector<Token>& tokens, size_t first, size_t last,
                         std::string* base, std::map<std::string, std::string>* properties,
-                        std::string* error) {
-    const std::string kinds = "|Item|Tile|Weapon|Projectile|Buff|BuffPotion|Accessory|Player|NPC|Prefix|";
+                        std::string* error,std::vector<std::pair<std::string,std::string>>* localizedNames) {
+    const std::string kinds = "|Item|Tile|Tree|Gore|Wall|Weapon|Projectile|Buff|BuffPotion|Accessory|Player|NPC|Prefix|";
     for (size_t i = first; i < last; ++i) {
+        if(!tokens[i].literal&&(tokens[i].value=="BunnyName"||tokens[i].value=="BunnyNameAttribute")) {
+            if(i+6>=last||tokens[i+1].value!="("||!tokens[i+2].literal||tokens[i+3].value!=","||!tokens[i+4].literal||tokens[i+5].value!=")"||tokens[i+6].value!="]") {
+                *error="BunnyName exige cultura e texto literais";return false;
+            }
+            const auto& culture=tokens[i+2].value;const auto& text=tokens[i+4].value;
+            bool valid=culture.size()>=2&&culture.size()<=20&&!text.empty()&&text.size()<=128&&localizedNames->size()<8;
+            for(unsigned char c:culture)if(!((c>='A'&&c<='Z')||(c>='a'&&c<='z')||(c>='0'&&c<='9')||c=='-'))valid=false;
+            for(unsigned char c:text)if(c<32||c==127)valid=false;
+            for(const auto& name:*localizedNames)if(name.first==culture)valid=false;
+            if(!valid){*error="BunnyName exige cultura unica, nome UTF-8 ate 128 bytes e no maximo 8 idiomas";return false;}
+            localizedNames->push_back({culture,text});i+=6;continue;
+        }
         if (tokens[i].literal || (tokens[i].value != "BunnyContent" &&
             tokens[i].value != "BunnyContentAttribute")) continue;
         if (i + 10 >= last || tokens[i + 1].value != "(" ||
@@ -138,6 +150,13 @@ bool contentDeclaration(const std::vector<Token>& tokens, size_t first, size_t l
 bool statements(const std::vector<Token>& ts, size_t first, size_t last,
                 ParsedSourceType* def, std::string* error) {
     for (size_t i = first; i < last;) {
+        // These optional descriptors are executed by Mono; legacy metadata
+        // extraction must not try to interpret constructor/fluent-call syntax.
+        if(ts[i].value=="NativeDefaults"||ts[i].value=="Holdout") {
+            size_t end=i;int parentheses=0;
+            for(;end<last;++end){if(ts[end].value=="(")++parentheses;if(ts[end].value==")")--parentheses;if(ts[end].value==";"&&parentheses==0)break;}
+            if(end==last){*error="descritor C# sem termino";return false;}i=end+1;continue;
+        }
         if (i + 5 < last && ts[i].value == "base" && ts[i + 1].value == "." &&
             ts[i + 2].value == "SetDefaults" && ts[i + 3].value == "(" &&
             ts[i + 4].value == ")" && ts[i + 5].value == ";") {
@@ -195,7 +214,7 @@ bool parseClass(const std::vector<Token>& tokens, size_t begin, size_t end,
     if (base != "BunnyItem" && base != "BunnyProjectile" && base != "BunnyWeapon" &&
         base != "BunnyBuff" && base != "BunnyBuffPotion" &&
         base != "BunnyPlayer" && base != "BunnyAccessory" &&
-        base != "BunnyNPC" && base != "BunnyPrefix" && base != "BunnyTile" &&
+        base != "BunnyNPC" && base != "BunnyPrefix" && base != "BunnyTile" && base != "BunnyTree" && base != "BunnyGore" && base != "BunnyWall" &&
         base != "BunnyScreenEffect") return true;
     ParsedSourceType def;
     def.name = name;
@@ -215,7 +234,7 @@ bool parseClass(const std::vector<Token>& tokens, size_t begin, size_t end,
                     return false;
                 }
                 if (i > member && (tokens[i - 1].value == "SetDefaults" ||
-                    (base == "BunnyTile" && tokens[i - 1].value == "SetStaticDefaults")) &&
+                    ((base == "BunnyTile" || base == "BunnyWall") && tokens[i - 1].value == "SetStaticDefaults")) &&
                     parametersEnd == i + 1 && parametersEnd + 1 < end &&
                     tokens[parametersEnd + 1].value == "{") {
                     if (foundDefaults) {
@@ -227,7 +246,7 @@ bool parseClass(const std::vector<Token>& tokens, size_t begin, size_t end,
                         *error = name + ": corpo SetDefaults sem fechamento";
                         return false;
                     }
-                    if (base == "BunnyItem" || base == "BunnyTile") {
+                    if (base == "BunnyItem" || base == "BunnyTile" || base == "BunnyWall" || base == "BunnyProjectile") {
                         // So recursos/nomes sao necessarios ANTES do Mono. Todos
                         // os defaults numericos e receitas sao executados em C#;
                         // nao adivinhar expressoes nem descartar a sua funcionalidade.
@@ -404,10 +423,11 @@ bool parseCSharpSource(const std::string& source,
         }
         std::string declaredBase;
         std::map<std::string, std::string> declaredProperties;
+        std::vector<std::pair<std::string,std::string>> localizedNames;
         if (!contentDeclaration(tokens, declarationStart, i, &declaredBase,
-                                &declaredProperties, error)) return false;
+                                &declaredProperties, error,&localizedNames)) return false;
         if (!declaredBase.empty()) {
-            const std::string roots = "|BunnyItem|BunnyTile|BunnyWeapon|BunnyProjectile|BunnyBuff|BunnyBuffPotion|BunnyAccessory|BunnyPlayer|BunnyNPC|BunnyPrefix|";
+            const std::string roots = "|BunnyItem|BunnyTile|BunnyTree|BunnyGore|BunnyWall|BunnyWeapon|BunnyProjectile|BunnyBuff|BunnyBuffPotion|BunnyAccessory|BunnyPlayer|BunnyNPC|BunnyPrefix|";
             if (roots.find("|" + base + "|") != std::string::npos && base != declaredBase) {
                 *error = name + ": categoria BunnyContent difere da classe base";
                 return false;
@@ -418,7 +438,7 @@ bool parseCSharpSource(const std::string& source,
             base == "BunnyBuff" || base == "BunnyBuffPotion" ||
             base == "BunnyPlayer" || base == "BunnyAccessory" ||
             base == "BunnyNPC" || base == "BunnyPrefix" ||
-            base == "BunnyTile" || base == "BunnyScreenEffect")) {
+            base == "BunnyTile" || base == "BunnyTree" || base == "BunnyGore" || base == "BunnyWall" || base == "BunnyScreenEffect")) {
             std::string qualifiedNamespace = fileNamespace;
             for (const auto& scope : namespaces) {
                 if (!qualifiedNamespace.empty()) qualifiedNamespace += ".";
@@ -426,6 +446,7 @@ bool parseCSharpSource(const std::string& source,
             }
             if (!parseClass(tokens, brace, end, name, base,
                             qualifiedNamespace, definitions, error, declaredProperties)) return false;
+            definitions->back().localizedNames=std::move(localizedNames);
             ++found;
         }
         i = end;

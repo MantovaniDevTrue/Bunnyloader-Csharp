@@ -1,0 +1,36 @@
+{
+  "loader": "0.1.10.16.90.29.95.1-summon-snapshots",
+  "exampleMod": "0.1.54",
+  "baseCommit": "6a106345",
+  "managedCases": 33,
+  "entityChecks": 43,
+  "combatCases": 31,
+  "productionNativeTests": [
+    "summon_lifecycle/runtime_test.cpp",
+    "summon_lifecycle/source_damage_test.cpp",
+    "summon_lifecycle/contracts_test.cpp",
+    "projectile_policy/native_policy_test.cpp",
+    "recipe_callbacks/run.sh",
+    "summon_lifecycle/source_registration_test.cpp",
+    "summon_lifecycle/scheduler_test.cpp"
+  ],
+  "nativeProvider": "controlled IL2CPP objects/metadata, BL_HAVE_QUICKJS=0",
+  "androidGameplay": "awaiting validation",
+  "androidFPS": "unmeasured",
+  "ci": "success:39165749967",
+  "sourceRegistrationScope": "SourceParser + SourceLoader.fields -> NativeContentSpec; does not allocate Terraria IDs or load game textures",
+  "schedulerScope": "Production ManagedRuntime.cpp request queue/cadence/deduplication/stale generation/world pause; no MonoVM worker execution in this fixture",
+  "concurrentPublication": {
+    "productionPublisher": true,
+    "readers": 3,
+    "revisions": 2000,
+    "result": "pass"
+  },
+  "previousExperimentalAndroidCI": {
+    "run": 39164705347,
+    "source": "25ea4f5bc9c18d3eca91d20303e9da6c7e122c3e",
+    "result": "success",
+    "supersededReason": "Concurrent definition publication corrected in .95.1"
+  },
+  "testedSource": "ea35b7b130487480ae8993d4f7ad3189d83e50af"
+}

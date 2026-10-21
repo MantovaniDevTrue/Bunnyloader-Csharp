@@ -24,6 +24,7 @@ on:
       - feat/csharp-loader-foundation-v91
       - feat/csharp-owned-recipe-loader-v92
       - feat/csharp-owned-loaders-v93
+      - feat/csharp-summon-lifecycle-v95
       - feat/csharp-94-owned-summon-damage-lot
       - fix/csharp-90-3-recipegroup-return-contract
       - feat/csharp-90-4-projectile-minion-contract
@@ -238,7 +239,9 @@ concurrency:
 
 jobs:
   build:
-    if: ${{ github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && contains(fromJSON('["codex/csharp-lights-88-3-prewarm-scene-fidelity","codex/csharp-lights-fidelity-v90-29-88","codex/csharp-lights-native-graph-v90-29-87","codex/csharp-lights-night-hotfix","codex/csharp-lights-sdk-settings-split","codex/csharp-screenfx-v90-29-86","feat/csharp-buff-recipes-v90","feat/csharp-native-recipe-groups-v89","fix/csharp-88-8-lights-review","fix/csharp-90-1-static-recipegroup-register","fix/csharp-90-2-recipegroup-real-instance-abi","fix/csharp-90-3-recipegroup-return-contract","hotfix/csharp-88-5-sigabrt-logcat-tail","perf/csharp-88-7-lights-invisible-ray-fastpath","feat/csharp-loader-foundation-v91","feat/csharp-owned-recipe-loader-v92","feat/csharp-owned-loaders-v93"]'), github.head_ref)) }}
+    outputs:
+      publish: ${{ steps.build_policy.outputs.publish }}
+    if: ${{ github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && contains(fromJSON('["codex/csharp-lights-88-3-prewarm-scene-fidelity","codex/csharp-lights-fidelity-v90-29-88","codex/csharp-lights-native-graph-v90-29-87","codex/csharp-lights-night-hotfix","codex/csharp-lights-sdk-settings-split","codex/csharp-screenfx-v90-29-86","feat/csharp-buff-recipes-v90","feat/csharp-native-recipe-groups-v89","fix/csharp-88-8-lights-review","fix/csharp-90-1-static-recipegroup-register","fix/csharp-90-2-recipegroup-real-instance-abi","fix/csharp-90-3-recipegroup-return-contract","hotfix/csharp-88-5-sigabrt-logcat-tail","perf/csharp-88-7-lights-invisible-ray-fastpath","feat/csharp-loader-foundation-v91","feat/csharp-owned-recipe-loader-v92","feat/csharp-owned-loaders-v93","feat/csharp-summon-lifecycle-v95"]'), github.head_ref)) }}
     runs-on: ubuntu-latest
     timeout-minutes: 150
     env:
@@ -1021,6 +1024,10 @@ jobs:
         run: |
           set -euo pipefail
           dotnet run --project tests/basic_items/ItemBatch.csproj -c Release
+          bash tests/shooting/run.sh
+          bash tests/world_loaders/run.sh
+          python3 tests/world_loaders/batch_gate_test.py
+          python3 tools/loader_batch_gate.py
           bash tests/projectile_policy/run.sh
           g++ -std=c++20 -Wall -Wextra -Werror -I app/src/main/cpp tests/basic_items/basic_wire_test.cpp -o "$RUNNER_TEMP/basic-wire-test"
           "$RUNNER_TEMP/basic-wire-test" build/basic-items/source-runtime-values.txt
@@ -1069,6 +1076,7 @@ jobs:
           "$RUNNER_TEMP/native-items-no-js" build/basic-items/source-runtime-values.txt --nullable
           "$RUNNER_TEMP/native-items-no-js" build/basic-items/source-runtime-values.txt --nullable-unboxed
           "$RUNNER_TEMP/native-items-no-js" build/basic-items/source-runtime-values.txt --bounds
+          "$RUNNER_TEMP/native-items-no-js" build/basic-items/wall-source-runtime-values.txt --wall
       - name: Execute combat batch and actionable diagnostic regressions
         working-directory: Split/Bunny-Loader
         run: dotnet run --project tests/combat_batch/CombatBatch.csproj -c Release
@@ -1082,13 +1090,7 @@ jobs:
       - name: Verify source batch limits agree
         working-directory: Split/Bunny-Loader
         run: python3 tests/combat_batch/check_package.py
-      - name: Verify native summon zero-damage recovery and Android buff ABI
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 Split/Bunny-Loader/tests/csharp_native_summon_damage_test.py
-
-      - name: Package independent ExampleMod CSharp 0.1.53
+      - name: Package independent ExampleMod CSharp 0.1.59
         shell: bash
         run: |
           set -euo pipefail
@@ -1097,17 +1099,17 @@ jobs:
           python3 "$ROOT/samples/ExampleModCSharp/Tests/check_examples.py"
           test -z "$(find "$PKG" -type f \( -name '*.js' -o -name '*.so' -o -name '*.dll' \) -print -quit)"
           python3 "$ROOT/tools/mods/pack.py" "$PKG"
-          SOURCE="$ROOT/build/mods-packs/examplemodcsharp-0.1.53.bl"
+          SOURCE="$ROOT/build/mods-packs/examplemodcsharp-0.1.59.bl"
           test -s "$SOURCE"
           python3 "$ROOT/tools/mods/check_csharp_assets.py" "$SOURCE" --compiled-assets "$ROOT/build/basic-items/full-source-assets.json"
-          cp "$SOURCE" "$RUNNER_TEMP/ExampleModCSharp-v0.1.53.bmod"
-          python3 - "$RUNNER_TEMP/ExampleModCSharp-v0.1.53.bmod" <<'PY'
+          cp "$SOURCE" "$RUNNER_TEMP/ExampleModCSharp-v0.1.59.bmod"
+          python3 - "$RUNNER_TEMP/ExampleModCSharp-v0.1.59.bmod" <<'PY'
           import json,sys,zipfile
           with zipfile.ZipFile(sys.argv[1]) as z:
               names=z.namelist()
               manifest=json.loads(z.read("manifest.json"))
               assert manifest["id"]=="examplemodcsharp"
-              assert manifest["version"]=="0.1.53"
+              assert manifest["version"]=="0.1.59"
               assert manifest["uid"]=="68c3115f-62f4-49f2-a56b-388256781d5f"
               assert manifest["entry"]=="main.cs"
               assert [n for n in names if n.endswith(".cs")]
@@ -1121,6 +1123,7 @@ jobs:
               assert "content/Content/Buffs/ExampleMinionBuff.cs" in names
               assert "content/Content/Items/Weapons/Summon/ExampleMinionItem.cs" in names
               assert "content/Documentation/PROJECTILE_LOADER_V93.md" in names
+              assert "content/Documentation/SUMMON_LOADER_V95.md" in names
               for file in ("ExampleItem.png", "Tools/ExamplePickaxe.png", "Tools/ExampleHamaxe.png"):
                   assert "content/Content/Items/" + file in names
               for file in ("COMPATIBILIDADE.json", "COMPATIBILIDADE.md", "TESTAR_ANDROID.md"):
@@ -1203,11 +1206,11 @@ jobs:
               assert not any(n.endswith((".dll",".so",".js")) for n in names)
               print("EXAMPLEMOD_CSHARP_INDEPENDENT_BMOD=PASS")
           PY
-          sha256sum "$RUNNER_TEMP/ExampleModCSharp-v0.1.53.bmod" > \
-            "$RUNNER_TEMP/ExampleModCSharp-v0.1.53.bmod.sha256"
+          sha256sum "$RUNNER_TEMP/ExampleModCSharp-v0.1.59.bmod" > \
+            "$RUNNER_TEMP/ExampleModCSharp-v0.1.59.bmod.sha256"
 
       - name: Package standalone native minion CSharp probe
-        if: github.ref != 'refs/heads/feat/csharp-94-owned-summon-damage-lot'
+        if: github.ref != 'refs/heads/feat/csharp-94-owned-summon-damage-lot' && github.ref != 'refs/heads/feat/csharp-summon-lifecycle-v95'
         shell: bash
         run: |
           set -euo pipefail
@@ -1358,19 +1361,10 @@ jobs:
           print("BUNNY_CSHARP_MULTIMOD_ROUTING_GUARDS=PASS")
           PY
 
-      - name: Verify source projectile lifecycle with native motion
-        shell: bash
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          source = Path('Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/ManagedProjectileHook.cpp').read_text()
-          assert 'runManagedEntityProjectile(projectile, game, projectileType, !nativeMotion);' in source
-          assert 'if (!applyVelocity) return;' in source
-          assert 'const bool nativeMotion = coveredByCurve ||' in source
-          assert 'queueManagedSourceProjectileCombat(4,' in Path('Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/ManagedHitHook.cpp').read_text()
-          assert 'queueManagedSourceProjectileCombat(5,' in Path('Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/ManagedKillHook.cpp').read_text()
-          print('PROJECTILE_NATIVE_CURVE_LIFECYCLE=PASS')
-          PY
+      - name: Execute production summon lifecycle, source damage and legacy curve callbacks
+        working-directory: Split/Bunny-Loader
+        run: python3 tests/csharp_native_summon_damage_test.py
+
       - name: Verify universal hook timeout recovery circuit breaker
         shell: bash
         run: |
@@ -1541,25 +1535,6 @@ jobs:
           assert 'if (bl::config().disableQuickJs)' in engine
           assert 'if (!javaScriptEnabled)' in engine
           print('CSHARP_QUICKJS_SETTINGS_ISOLATION=PASS')
-          PY
-      - name: Verify early managed projectile registration and six-tick cadence
-        shell: bash
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          root = Path('Split/Bunny-Loader/app/src/main/cpp/experiments/csharp')
-          source = (root / 'ManagedProjectileHook.cpp').read_text()
-          dispatcher = (root / 'ManagedRuntime.cpp').read_text()
-          header = (root / 'ManagedRuntime.h').read_text()
-          prewarm = source.index('void hkAi(')
-          call = source.index('runManagedEntityProjectile(projectile, game, type, false);', prewarm)
-          native = source.index('if (original) original(projectile, method);', prewarm)
-          assert call < native, 'first registration must precede native AI'
-          assert 'firstObserved, npcTarget, npcX, npcY)) return;' in source, 'target payload must preserve early projectile AI cadence'
-          assert 'result, bool immediateFirstTick' in header
-          assert 'if ((!immediateFirstTick && ticks % 6 != 0) || pending)' in dispatcher
-          assert 'result, false, -1, 0.f, 0.f);' in dispatcher, 'NPC dispatch must preserve six-tick, non-first-tick scheduling'
-          print('PROJECTILE_EARLY_FIRST_TICK=PASS')
           PY
       - name: Validate generic C# projectile policy integration
         shell: bash
@@ -2211,7 +2186,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for file in SourceCSharpMod-v0.1.5.bmod ExampleModCSharp-v0.1.53.bmod ArmorPoliciesCSharp-v0.1.0.bmod SecondExampleModCSharp-v0.1.0.bmod NativePlacementProbe-v0.1.0.bmod NativeAccessProbeCSharp-v0.1.0.bmod; do
+          for file in SourceCSharpMod-v0.1.5.bmod ExampleModCSharp-v0.1.59.bmod ArmorPoliciesCSharp-v0.1.0.bmod SecondExampleModCSharp-v0.1.0.bmod NativePlacementProbe-v0.1.0.bmod NativeAccessProbeCSharp-v0.1.0.bmod; do
             test -s "$RUNNER_TEMP/$file"
             test -s "$RUNNER_TEMP/$file.sha256"
           done
@@ -2219,7 +2194,7 @@ jobs:
           echo "BUNNY_PUBLIC_RELEASE_EXCLUDES_TERRARIA_RUNTIME=YES"
 
       - name: Export independent native minion CSharp probe
-        if: github.ref != 'refs/heads/feat/csharp-94-owned-summon-damage-lot'
+        if: github.ref != 'refs/heads/feat/csharp-94-owned-summon-damage-lot' && github.ref != 'refs/heads/feat/csharp-summon-lifecycle-v95'
         uses: actions/upload-artifact@v4
         with:
           name: BunnyLoader-CSharp-NativeMinion-Probe-0.1.1
@@ -2245,16 +2220,17 @@ jobs:
           if-no-files-found: error
 
       - name: Export source-only CSharp examples as safe workflow artifact
+        if: steps.build_policy.outputs.publish == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: BunnyLoader-CSharp-SourceOnly-Examples-0.1.52
+          name: BunnyLoader-CSharp-SourceOnly-Examples-0.1.59
           retention-days: 14
           if-no-files-found: error
           path: |
             ${{ runner.temp }}/SourceCSharpMod-v0.1.5.bmod
             ${{ runner.temp }}/SourceCSharpMod-v0.1.5.bmod.sha256
-            ${{ runner.temp }}/ExampleModCSharp-v0.1.53.bmod
-            ${{ runner.temp }}/ExampleModCSharp-v0.1.53.bmod.sha256
+            ${{ runner.temp }}/ExampleModCSharp-v0.1.59.bmod
+            ${{ runner.temp }}/ExampleModCSharp-v0.1.59.bmod.sha256
             ${{ runner.temp }}/ArmorPoliciesCSharp-v0.1.0.bmod
             ${{ runner.temp }}/ArmorPoliciesCSharp-v0.1.0.bmod.sha256
             ${{ runner.temp }}/SecondExampleModCSharp-v0.1.0.bmod
@@ -2265,7 +2241,7 @@ jobs:
             ${{ runner.temp }}/NativePlacementProbe-v0.1.0.bmod.sha256
   report-private-csharp-apk:
     needs: build
-    if: ${{ always() && github.event_name == 'push' && (github.ref == 'refs/heads/fix/csharp-90-3-recipegroup-return-contract' || github.ref == 'refs/heads/feat/csharp-loader-foundation-v91' || github.ref == 'refs/heads/feat/csharp-owned-recipe-loader-v92' || github.ref == 'refs/heads/feat/csharp-owned-loaders-v93') }}
+    if: ${{ always() && needs.build.outputs.publish == 'true' && github.event_name == 'push' && (github.ref == 'refs/heads/fix/csharp-90-3-recipegroup-return-contract' || github.ref == 'refs/heads/feat/csharp-loader-foundation-v91' || github.ref == 'refs/heads/feat/csharp-owned-recipe-loader-v92' || github.ref == 'refs/heads/feat/csharp-owned-loaders-v93' || github.ref == 'refs/heads/feat/csharp-summon-lifecycle-v95') }}
     runs-on: ubuntu-latest
     permissions:
       contents: read

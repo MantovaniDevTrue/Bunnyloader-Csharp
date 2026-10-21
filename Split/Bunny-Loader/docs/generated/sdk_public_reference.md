@@ -25,11 +25,13 @@ abstract class; base: `BunnyLoader.Source.BunnyRecipeSource`.
 
 ```csharp
 BunnyAccessoryVisualMode VisualMode { get; set; }
+BunnyNativeDefaults NativeDefaults { get; }
 UInt32 VisualColor { get; set; }
 float VisualOpacity { get; set; }
 float VisualScale { get; set; }
 int DefenseBonus { get; set; }
 string DisplayName { get; set; }
+string NativeDefaultsDefinition { get; }
 string Texture { get; set; }
 string Tooltip { get; set; }
 string VisualTexture { get; set; }
@@ -135,9 +137,11 @@ string Texture { get; set; }
 abstract class; base: `BunnyLoader.Source.BunnyRecipeSource`.
 
 ```csharp
+BunnyNativeDefaults NativeDefaults { get; }
 int Duration { get; set; }
 string Buff { get; set; }
 string DisplayName { get; set; }
+string NativeDefaultsDefinition { get; }
 string Texture { get; set; }
 ```
 
@@ -191,7 +195,7 @@ string Texture { get; }
 
 enum; base: `System.Enum`.
 
-Values: Item, Tile, Weapon, Projectile, Buff, BuffPotion, Accessory, Player, NPC, Prefix.
+Values: Item, Tile, Tree, Weapon, Projectile, Buff, BuffPotion, Accessory, Player, NPC, Prefix, Wall, Gore.
 
 ## BunnyLoader.Source.BunnyCraftContext
 
@@ -275,6 +279,30 @@ Values: MeleeDamage, RangedDamage, MagicDamage, MinionDamage, MoveSpeed.
 enum; base: `System.Enum`.
 
 Values: Head, Body, Legs, Beard, Back, Wings.
+
+## BunnyLoader.Source.BunnyGore
+
+abstract class; base: `System.Object`.
+
+```csharp
+bool SafeGore { get; set; }
+int SpecialAI { get; set; }
+string Texture { get; set; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `void SetDefaults()` | compile_policy |
+
+## BunnyLoader.Source.BunnyHoldout
+
+class; base: `System.Object`.
+
+```csharp
+BunnyHoldout(float x, float y)
+float X { get; }
+float Y { get; }
+```
 
 ## BunnyLoader.Source.BunnyHookHandle
 
@@ -511,10 +539,13 @@ BunnyInt32ZeroHook(Object object, IntPtr method)
 
 ## BunnyLoader.Source.BunnyItem
 
-abstract class; base: `BunnyLoader.Source.BunnyRecipeSource`.
+abstract class; base: `BunnyLoader.Source.BunnyShootSource`.
 
 ```csharp
+BunnyHoldout Holdout { get; set; }
 BunnyItemBehavior Behavior { get; }
+BunnyNativeDefaults NativeDefaults { get; }
+BunnySoundStyle CustomUseSound { get; set; }
 Dictionary<string, string> TooltipTranslations { get; }
 bool Accessory { get; set; }
 bool AutoReuse { get; set; }
@@ -542,6 +573,7 @@ string BehaviorDefinition { get; }
 string DisplayName { get; set; }
 string NativeAccessoryEffectsDefinition { get; }
 string NativeArmorDefinition { get; }
+string NativeDefaultsDefinition { get; }
 string PlacementDefinition { get; }
 string Texture { get; set; }
 string Tooltip { get; set; }
@@ -550,8 +582,12 @@ string UseSound { get; set; }
 
 | Method | Execution |
 | --- | --- |
+| `static int BuyPrice(int platinum, int gold, int silver, int copper)` | managed_helper |
+| `static int SellPrice(int platinum, int gold, int silver, int copper)` | managed_helper |
 | `void DefaultToPlaceableTile(int vanillaTileId, int style)` | managed_helper |
 | `void DefaultToPlaceableTile(string modTileName, int style)` | managed_helper |
+| `void DefaultToPlaceableWall(int vanillaWallId)` | managed_helper |
+| `void DefaultToPlaceableWall(string modWallName)` | managed_helper |
 | `void SetDefaults()` | compile_policy |
 
 ## BunnyLoader.Source.BunnyItemBehavior
@@ -598,18 +634,25 @@ bool IsDisposed { get; }
 class; base: `System.Object`.
 
 ```csharp
-BunnyMinionMovement(float followSpeed, float attackSpeed, float catchUpSpeed, float followInertia, float attackInertia, float followOffsetX, float followOffsetY, float catchUpDistance, float idleDistance, float idleDamping)
+BunnyMinionMovement(float followSpeed, float attackSpeed, float catchUpSpeed, float followInertia, float attackInertia, float followOffsetX, float followOffsetY, float catchUpDistance, float idleDistance, float idleDamping, float catchUpInertia, float teleportDistance, float formationSpacing, float attackStopDistance, float ownerLeashDistance, float rotationFactor, float separation)
 BunnyMinionMovement Default { get; }
 float AttackInertia { get; }
 float AttackSpeed { get; }
+float AttackStopDistance { get; }
 float CatchUpDistance { get; }
+float CatchUpInertia { get; }
 float CatchUpSpeed { get; }
 float FollowInertia { get; }
 float FollowOffsetX { get; }
 float FollowOffsetY { get; }
 float FollowSpeed { get; }
+float FormationSpacing { get; }
 float IdleDamping { get; }
 float IdleDistance { get; }
+float OwnerLeashDistance { get; }
+float RotationFactor { get; }
+float Separation { get; }
+float TeleportDistance { get; }
 ```
 
 ## BunnyLoader.Source.BunnyMinionSteering
@@ -647,6 +690,16 @@ string Texture { get; set; }
 | `void OnSpawn(ref BunnyNpcAiState state)` | worker_async_entity |
 | `void SetDefaults()` | compile_policy |
 
+## BunnyLoader.Source.BunnyNameAttribute
+
+class; base: `System.Attribute`.
+
+```csharp
+BunnyNameAttribute(string culture, string text)
+string Culture { get; }
+string Text { get; }
+```
+
 ## BunnyLoader.Source.BunnyNativeBatch
 
 class; base: `System.Object`.
@@ -659,6 +712,23 @@ int Count { get; }
 | --- | --- |
 | `BunnyValue ReadAndInvoke(BunnyNativeMember method, BunnyValue[] destination, BunnyNativeObject target, BunnyValue arg0, BunnyValue arg1, BunnyValue arg2, BunnyValue arg3)` | experimental_game_thread_access |
 | `void Read(BunnyValue[] destination, BunnyNativeObject target)` | experimental_game_thread_access |
+
+## BunnyLoader.Source.BunnyNativeDefaults
+
+class; base: `System.Object`.
+
+```csharp
+BunnyNativeDefaults()
+string Definition { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `BunnyNativeDefaults SetBool(string field, bool value)` | managed_helper |
+| `BunnyNativeDefaults SetFloat(string field, float value)` | managed_helper |
+| `BunnyNativeDefaults SetId(string field, string idClass, string name)` | managed_helper |
+| `BunnyNativeDefaults SetInt(string field, int value)` | managed_helper |
+| `BunnyNativeDefaults SetProjectile(string field, string key)` | managed_helper |
 
 ## BunnyLoader.Source.BunnyNativeMember
 
@@ -805,6 +875,8 @@ string DisplayName { get; set; }
 abstract class; base: `System.Object`.
 
 ```csharp
+BunnyMinionMovement MinionMovement { get; set; }
+BunnyNativeDefaults NativeDefaults { get; }
 bool Friendly { get; set; }
 bool IgnoreWater { get; set; }
 bool Minion { get; set; }
@@ -821,6 +893,7 @@ int Penetrate { get; set; }
 int TimeLeft { get; set; }
 int Width { get; set; }
 string DisplayName { get; set; }
+string NativeDefaultsDefinition { get; }
 string Texture { get; set; }
 ```
 
@@ -987,41 +1060,228 @@ string ShaderFile { get; set; }
 | --- | --- |
 | `void SetDefaults()` | compile_policy |
 
+## BunnyLoader.Source.BunnyShootContext
+
+class; base: `System.Object`.
+
+```csharp
+Random Random { get; }
+int ItemType { get; }
+int PlayerIndex { get; }
+int WeaponDamage { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `void Spawn(BunnyShot shot)` | worker_shoot_command_batch |
+
+## BunnyLoader.Source.BunnyShootRuntime
+
+abstract class; base: `System.Object`.
+
+| Method | Execution |
+| --- | --- |
+| `static string Dispatch(string modId, string assemblyPath, string owner, int index, int kind, string snapshot)` | worker_sync_shoot_snapshot |
+
+## BunnyLoader.Source.BunnyShootSource
+
+abstract class; base: `BunnyLoader.Source.BunnyRecipeSource`.
+
+```csharp
+int ShootCallbackMask { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `bool CanShoot(BunnyShootContext context)` | worker_sync_shoot_snapshot |
+| `bool OnShoot(BunnyShootContext context, BunnyShot shot)` | worker_sync_shoot_snapshot |
+| `void ModifyShootStats(BunnyShootContext context, ref BunnyShot shot)` | worker_sync_shoot_snapshot |
+
+## BunnyLoader.Source.BunnyShot
+
+struct; base: `System.ValueType`.
+
+## BunnyLoader.Source.BunnySoundLimitBehavior
+
+enum; base: `System.Enum`.
+
+Values: IgnoreNew, ReplaceOldest.
+
+## BunnyLoader.Source.BunnySoundStyle
+
+class; base: `System.Object`.
+
+```csharp
+BunnySoundStyle(string path, float volume, float pitch, float pitchVariance, int maxInstances, BunnySoundLimitBehavior limitBehavior)
+BunnySoundLimitBehavior LimitBehavior { get; }
+float Pitch { get; }
+float PitchVariance { get; }
+float Volume { get; }
+int MaxInstances { get; }
+string Definition { get; }
+string Path { get; }
+```
+
 ## BunnyLoader.Source.BunnyTile
 
 abstract class; base: `System.Object`.
 
 ```csharp
 BunnyTileFlags Flags { get; set; }
+BunnyTileFrameToggle FrameToggle { get; set; }
 BunnyTileShape Shape { get; set; }
+bool AllowBreaking { get; set; }
+bool AllowDrops { get; set; }
+bool CacheDrawData { get; set; }
+float MineResist { get; set; }
 int AdjacentTile { get; set; }
+int AnimationFrameHeight { get; set; }
+int AnimationFrameTicks { get; set; }
+int AnimationFrames { get; set; }
 int CoordinateHeight { get; set; }
 int MapB { get; }
 int MapG { get; }
 int MapR { get; }
+int MinPick { get; set; }
+int SaplingGrowthChance { get; set; }
+int SaplingStyleRange { get; set; }
+int SaplingVanillaGroundTile { get; set; }
+int TileCallbackMask { get; }
+int[] AdjacentTiles { get; set; }
 string DisplayName { get; set; }
 string DustName { get; set; }
+string ItemDropDefinitions { get; }
 string MapName { get; }
+string SaplingGroundTile { get; set; }
 string Texture { get; set; }
 ```
 
 | Method | Execution |
 | --- | --- |
+| `BunnyTileDrop[] GetItemDrops(int x, int y)` | managed_helper |
+| `bool CanDrop(int x, int y)` | managed_helper |
+| `bool CanKillTile(int x, int y)` | managed_helper |
+| `bool CreateDust(int x, int y, ref int type)` | managed_helper |
+| `bool GrowSapling(int x, int y, bool underground, int treeHeightAddon, bool ignoreWalls)` | managed_helper |
+| `bool HasSmartInteract(int x, int y, BunnyTileSmartInteractSettings settings)` | managed_helper |
+| `bool KillSound(int x, int y, bool fail)` | managed_helper |
+| `bool PreDraw(int x, int y)` | managed_helper |
+| `bool PreDraw(int x, int y, BunnyTileDrawContext draw)` | managed_helper |
+| `bool RightClick(int x, int y)` | managed_helper |
+| `bool Slope(int x, int y)` | managed_helper |
+| `bool TileFrame(int x, int y, ref bool resetFrame, ref bool noBreak)` | managed_helper |
 | `int NumDust(bool fail)` | compile_policy |
 | `void AddMapEntry(int red, int green, int blue, string name)` | managed_helper |
+| `void AnimateIndividualTile(int type, int x, int y, ref int addFrameX, ref int addFrameY)` | managed_helper |
+| `void AnimateIndividualTile(int x, int y, ref int addFrameX, ref int addFrameY)` | managed_helper |
+| `void AnimateTile(ref int frame, ref int frameCounter)` | managed_helper |
+| `void DrawEffects(int x, int y, int tileFrameX, int tileFrameY, BunnyTileDrawContext draw)` | managed_helper |
+| `void EmitParticles(int x, int y, int tileFrameX, int tileFrameY, BunnyTileDrawContext draw)` | managed_helper |
+| `void HitWire(int x, int y)` | managed_helper |
+| `void KillMultiTile(int x, int y, int frameX, int frameY)` | managed_helper |
+| `void KillTile(int x, int y, ref bool fail, ref bool effectOnly, ref bool noItem)` | managed_helper |
+| `void ModifyLight(int x, int y, ref float r, ref float g, ref float b)` | managed_helper |
+| `void MouseOver(int x, int y)` | managed_helper |
+| `void MouseOverFar(int x, int y)` | managed_helper |
+| `void NearbyEffects(int x, int y, bool closer)` | managed_helper |
+| `void NumDust(int x, int y, bool fail, ref int num)` | managed_helper |
+| `void PlaceInWorld(int x, int y)` | managed_helper |
+| `void PostDraw(int x, int y, BunnyTileDrawContext draw)` | managed_helper |
+| `void RandomUpdate(int x, int y)` | managed_helper |
+| `void RegisterItemDrop(int itemType, int[] styles)` | managed_helper |
+| `void RegisterItemDrop(string itemName, int[] styles)` | managed_helper |
+| `void SetDrawPositions(int x, int y, ref int width, ref int top, ref int height, ref int frameX, ref int frameY)` | managed_helper |
+| `void SetSpriteEffects(int x, int y, ref int effects)` | managed_helper |
 | `void SetStaticDefaults()` | compile_policy |
+| `void SpecialDraw(int x, int y, BunnyTileDrawContext draw)` | managed_helper |
+
+## BunnyLoader.Source.BunnyTileDrawContext
+
+class; base: `System.Object`.
+
+```csharp
+int AnimationFrame { get; }
+int Count { get; }
+int ParticleCount { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `void DrawFlameTexture(int frameX, int frameY, int width, int height, int offsetX, int offsetY, UInt32 argb, int effects)` | managed_helper |
+| `void DrawGlowTexture(int frameX, int frameY, int width, int height, int offsetX, int offsetY, UInt32 argb, int effects)` | managed_helper |
+| `void DrawTileTexture(int frameX, int frameY, int width, int height, int offsetX, int offsetY, UInt32 argb, int effects)` | managed_helper |
+| `void EmitDust(int dustType, int offsetX, int offsetY, int width, int height, int speedXMilli, int speedYMilli, int alpha, int scaleMilli, UInt32 argb)` | managed_helper |
+| `void EmitDustStyled(int dustType, int offsetX, int offsetY, int width, int height, int speedXMilli, int speedYMilli, int alpha, int scaleMilli, UInt32 argb, bool noGravity, int fadeInMilli, int velocityXScaleMilli, int velocityYScaleMilli, int velocityYAddMilli, int positionXAdd, int alphaAdd)` | managed_helper |
+| `void RequestSpecialDraw()` | managed_helper |
+
+## BunnyLoader.Source.BunnyTileDrop
+
+struct; base: `System.ValueType`.
+
+```csharp
+BunnyTileDrop(int itemType, int stack)
+int ItemType { get; }
+int Stack { get; }
+```
 
 ## BunnyLoader.Source.BunnyTileFlags
 
 enum; base: `System.Enum`.
 
-Values: None, Table, SolidTop, NoAttach, LavaDeath, FrameImportant, DisableSmartCursor, HasOutlines, IgnoredByNpcStepUp, CountsAsTable.
+Values: None, Table, SolidTop, NoAttach, LavaDeath, FrameImportant, DisableSmartCursor, HasOutlines, IgnoredByNpcStepUp, CountsAsTable, Solid, BlockLight, MergeDirt, Lighted, WaterDeath, ChecksForMerge, Cut, Campfire, TreeSapling, CommonSapling, SwaysInWindBasic.
+
+## BunnyLoader.Source.BunnyTileFrameToggle
+
+enum; base: `System.Enum`.
+
+Values: None, CampfireVertical, LampHorizontal.
+
+## BunnyLoader.Source.BunnyTileRuntime
+
+abstract class; base: `System.Object`.
+
+| Method | Execution |
+| --- | --- |
+| `static string Dispatch(string modId, string assemblyPath, string owner, int index, int kind, string snapshot)` | managed_helper |
 
 ## BunnyLoader.Source.BunnyTileShape
 
 enum; base: `System.Enum`.
 
-Values: Single, Style2x1.
+Values: Single, Style2x1, Style3x2, Style1x3, Sapling1x2.
+
+## BunnyLoader.Source.BunnyTileSmartInteractSettings
+
+struct; base: `System.ValueType`.
+
+```csharp
+BunnyTileSmartInteractSettings(int lx, int ly, int hx, int hy)
+int HX { get; }
+int HY { get; }
+int LX { get; }
+int LY { get; }
+```
+
+## BunnyLoader.Source.BunnyTree
+
+abstract class; base: `System.Object`.
+
+```csharp
+bool CanDropAcorn { get; set; }
+bool ShakeLeaves { get; set; }
+int DustType { get; set; }
+int LeafGoreType { get; set; }
+string GrowsOnTile { get; set; }
+string LeafGoreName { get; set; }
+string SaplingTile { get; set; }
+string ShakeItem { get; set; }
+string Texture { get; set; }
+string WoodItem { get; set; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `void SetDefaults()` | compile_policy |
 
 ## BunnyLoader.Source.BunnyUniversalHookDispatcher
 
@@ -1175,11 +1435,40 @@ BunnyVoidInt32TripleHook(Object object, IntPtr method)
 | `void EndInvoke(IAsyncResult result)` | managed_helper |
 | `void Invoke(BunnyOriginalVoid original, IntPtr self, int first, int second, int third)` | managed_helper |
 
-## BunnyLoader.Source.BunnyWeapon
+## BunnyLoader.Source.BunnyWall
 
-abstract class; base: `BunnyLoader.Source.BunnyRecipeSource`.
+abstract class; base: `System.Object`.
 
 ```csharp
+BunnyWorldLight DayLight { get; set; }
+BunnyWorldLight NightLight { get; set; }
+bool Housing { get; set; }
+int AnimationFrameTicks { get; set; }
+int AnimationFrames { get; set; }
+int DustCount { get; set; }
+int FailedDustCount { get; set; }
+string BlendWallName { get; set; }
+string DisplayName { get; set; }
+string DustName { get; set; }
+string NativeDefinition { get; }
+string Texture { get; set; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `void AddMapEntry(int r, int g, int b, string name)` | managed_helper |
+| `void RandomizeFrame(int from, float chance, int[] alternatives)` | managed_helper |
+| `void SetFrameDust(int frameNumber, string dustName)` | managed_helper |
+| `void SetStaticDefaults()` | compile_policy |
+
+## BunnyLoader.Source.BunnyWeapon
+
+abstract class; base: `BunnyLoader.Source.BunnyShootSource`.
+
+```csharp
+BunnyHoldout Holdout { get; set; }
+BunnyNativeDefaults NativeDefaults { get; }
+BunnySoundStyle CustomUseSound { get; set; }
 bool Summon { get; set; }
 float ShootSpeed { get; set; }
 int Damage { get; set; }
@@ -1187,6 +1476,7 @@ int MinionBuffTime { get; set; }
 int UseTime { get; set; }
 string DisplayName { get; set; }
 string MinionBuff { get; set; }
+string NativeDefaultsDefinition { get; }
 string Shoot { get; set; }
 string Texture { get; set; }
 ```
@@ -1194,6 +1484,17 @@ string Texture { get; set; }
 | Method | Execution |
 | --- | --- |
 | `void SetDefaults()` | compile_policy |
+
+## BunnyLoader.Source.BunnyWorldLight
+
+struct; base: `System.ValueType`.
+
+```csharp
+BunnyWorldLight(float r, float g, float b)
+float B { get; }
+float G { get; }
+float R { get; }
+```
 
 ## BunnyLoader.Source.PrefixCategory
 

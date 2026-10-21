@@ -1,0 +1,172 @@
+{
+  "sourceCommit": "018b477a5a90115f399aed57ff84811c020d7a3f",
+  "loader": "0.1.10.16.90.29.95.2-summon-native-lifecycle",
+  "versionCode": 272,
+  "exampleMod": "0.1.54",
+  "run": 39171952411,
+  "ci": "success",
+  "privateDelivery": "verified by report-private-csharp-apk job and release API",
+  "release": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp-Builds/releases/tag/csharp-v3-run-39171952411-a1",
+  "signature": "V3 verified by Android CI",
+  "sourceArchiveSha256": "6d4fd12578dc90a89ad5c06a5fcc4566d2211806962ed424facca074bd9df8ad",
+  "sourceFilesCompared": 71,
+  "apkSha256": "d42ba3140624634126471d743bf3d7be22ffba8b8b3bc3470795161c4ea9aa06",
+  "assets": [
+    {
+      "browser_download_url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp-Builds/releases/download/csharp-v3-run-39171952411-a1/ArmorPoliciesCSharp-v0.1.0.bmod",
+      "name": "ArmorPoliciesCSharp-v0.1.0.bmod",
+      "size": 8135
+    },
+    {
+      "browser_download_url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp-Builds/releases/download/csharp-v3-run-39171952411-a1/ArmorPoliciesCSharp-v0.1.0.bmod.sha256",
+      "name": "ArmorPoliciesCSharp-v0.1.0.bmod.sha256",
+      "size": 98
+    },
+    {
+      "browser_download_url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp-Builds/releases/download/csharp-v3-run-39171952411-a1/basic-items-results.json",
+      "name": "basic-items-results.json",
+      "size": 3531
+    },
+    {
+      "browser_download_url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp-Builds/releases/download/csharp-v3-run-39171952411-a1/BunnyLoader-CSharp-0.1.10.16.90.29.95.2-summon-native-lifecycle-SignedV3.apk",
+      "name": "BunnyLoader-CSharp-0.1.10.16.90.29.95.2-summon-native-lifecycle-SignedV3.apk",
+      "size": 241516501
+    },
+    {
+      "browser_download_url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp-Builds/releases/download/csharp-v3-run-39171952411-a1/BunnyLoader-CSharp-0.1.10.16.90.29.95.2-summon-native-lifecycle-SignedV3.apk.sha256",
+      "name": "BunnyLoader-CSharp-0.1.10.16.90.29.95.2-summon-native-lifecycle-SignedV3.apk.sha256",
+      "size": 143
+    },
+    {
+      "browser_download_url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp-Builds/releases/download/csharp-v3-run-39171952411-a1/combat-batch-results.json",
+      "name": "combat-batch-results.json",
+      "size": 2991
+    },
+    {
+      "browser_download_url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp-Builds/releases/download/csharp-v3-run-39171952411-a1/ExampleModCSharp-v0.1.54.bmod",
+      "name": "ExampleModCSharp-v0.1.54.bmod",
+      "size": 190649
+    },
+    {
+      "browser_download_url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp-Builds/releases/download/csharp-v3-run-39171952411-a1/ExampleModCSharp-v0.1.54.bmod.sha256",
+      "name": "ExampleModCSharp-v0.1.54.bmod.sha256",
+      "size": 120
+    },
+    {
+      "browser_download_url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp-Builds/releases/download/csharp-v3-run-39171952411-a1/LightsAndShadowsCSharp-v0.4.2.3.bmod",
+      "name": "LightsAndShadowsCSharp-v0.4.2.3.bmod",
+      "size": 9394
+    },
+    {
+      "browser_download_url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp-Builds/releases/download/csharp-v3-run-39171952411-a1/LightsAndShadowsCSharp-v0.4.2.3.bmod.sha256",
+      "name": "LightsAndShadowsCSharp-v0.4.2.3.bmod.sha256",
+      "size": 127
+    },
+    {
+      "browser_download_url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp-Builds/releases/download/csharp-v3-run-39171952411-a1/NativeAccessProbeCSharp-v0.1.0.bmod",
+      "name": "NativeAccessProbeCSharp-v0.1.0.bmod",
+      "size": 1914
+    },
+    {
+      "browser_download_url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp-Builds/releases/download/csharp-v3-run-39171952411-a1/NativeAccessProbeCSharp-v0.1.0.bmod.sha256",
+      "name": "NativeAccessProbeCSharp-v0.1.0.bmod.sha256",
+      "size": 102
+    },
+    {
+      "browser_download_url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp-Builds/releases/download/csharp-v3-run-39171952411-a1/NativePlacementProbe-v0.1.0.bmod",
+      "name": "NativePlacementProbe-v0.1.0.bmod",
+      "size": 5090
+    },
+    {
+      "browser_download_url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp-Builds/releases/download/csharp-v3-run-39171952411-a1/NativePlacementProbe-v0.1.0.bmod.sha256",
+      "name": "NativePlacementProbe-v0.1.0.bmod.sha256",
+      "size": 123
+    }
+  ],
+  "regressions": {
+    "managedItemCases": 33,
+    "entityChecks": 43,
+    "combatCases": 31,
+    "nativeFixtureBinaries": 6,
+    "runtimeHookSanitizers": "AddressSanitizer+UndefinedBehaviorSanitizer passed on host",
+    "newNativeBindingCoverage": "production binder without identity; required typed whoAmI and originalDamage, offsets/storage/bounds; no Terraria runtime",
+    "poolReuseCoverage": "production hooks before SetDefaults original, same object/slot/type/owner/timeLeft, cancel buff after refreshed timeLeft, sample and off-thread isolation"
+  },
+  "independentSuites": [
+    {
+      "conclusion": "success",
+      "databaseId": 39171952433,
+      "event": "push",
+      "headSha": "018b477a5a90115f399aed57ff84811c020d7a3f",
+      "status": "completed",
+      "workflowName": "Check Mono Android signal ownership"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39171952374,
+      "event": "push",
+      "headSha": "018b477a5a90115f399aed57ff84811c020d7a3f",
+      "status": "completed",
+      "workflowName": "Check Mono pinned worker GC transitions"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39171952410,
+      "event": "push",
+      "headSha": "018b477a5a90115f399aed57ff84811c020d7a3f",
+      "status": "completed",
+      "workflowName": "CSharp Native ScreenFx"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39171952440,
+      "event": "push",
+      "headSha": "018b477a5a90115f399aed57ff84811c020d7a3f",
+      "status": "completed",
+      "workflowName": "Check Bunny CSharp Native Visual Queue"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39171952368,
+      "event": "push",
+      "headSha": "018b477a5a90115f399aed57ff84811c020d7a3f",
+      "status": "completed",
+      "workflowName": "Check CSharp combat batch"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39171952455,
+      "event": "push",
+      "headSha": "018b477a5a90115f399aed57ff84811c020d7a3f",
+      "status": "completed",
+      "workflowName": "Check Bunny CSharp Visual Queue"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39171952422,
+      "event": "push",
+      "headSha": "018b477a5a90115f399aed57ff84811c020d7a3f",
+      "status": "completed",
+      "workflowName": "Check managed callback lifecycle"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39171952443,
+      "event": "push",
+      "headSha": "018b477a5a90115f399aed57ff84811c020d7a3f",
+      "status": "completed",
+      "workflowName": "Check complete ExampleMod audit"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39171952389,
+      "event": "push",
+      "headSha": "018b477a5a90115f399aed57ff84811c020d7a3f",
+      "status": "completed",
+      "workflowName": "Check CSharp SDK and continuous runtime foundation"
+    }
+  ],
+  "previousDeviceFailure": "csharp-v95-1-device-failure-2026-10-18.json",
+  "androidGameplay": "awaiting new validation after .95.1 native binding failure",
+  "androidFPS": "unmeasured"
+}

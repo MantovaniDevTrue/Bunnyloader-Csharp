@@ -6,19 +6,15 @@
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
 #include "il2cpp/Signature.h"
+#include "il2cpp/FieldContract.h"
 
 #include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <cmath>
-#include <condition_variable>
 #include <cstdint>
 #include <cstring>
-#include <deque>
 #include <mutex>
-#include <thread>
-#include <unordered_map>
-#include <unordered_set>
 #include <vector>
 
 namespace bl::runtime::content {
@@ -31,17 +27,16 @@ using PlaySoundFn = Il2CppObject* (*)(Il2CppObject*, int32_t, int32_t, int32_t, 
 
 struct ActiveStream {
     int token = 0;
-    Clock::time_point end{};
 };
 
 struct NativeStyle {
+    bool released = false;
     int soundId = 0;
     float volume = 1.0f;
     float pitch = 0.0f;
     float pitchVariance = 0.0f;
     int maxInstances = 1;
     int limitBehavior = 1;
-    int durationMs = 0;
     std::vector<ActiveStream> active;
 };
 
@@ -65,33 +60,11 @@ struct GameAudioRefs {
     StaticValueRef<float> attenuation;
 };
 
-enum class AudioCommandKind {
-    Play,
-    Stop,
-};
-
-struct AudioCommand {
-    AudioCommandKind kind = AudioCommandKind::Play;
-    int token = 0;
-    int soundId = 0;
-    float left = 1.0f;
-    float right = 1.0f;
-    float rate = 1.0f;
-};
-
 std::mutex g_mutex;
 std::vector<NativeStyle> g_styles;
 GameAudioRefs g_refs;
 PlaySoundFn g_original = nullptr;
 bool g_hooked = false;
-
-std::mutex g_queueMutex;
-std::condition_variable g_queueCv;
-std::deque<AudioCommand> g_queue;
-std::unordered_map<int, int> g_streams;
-std::unordered_set<int> g_cancelled;
-std::atomic<int> g_nextToken{kAsyncSoundTokenBase};
-std::once_flag g_workerOnce;
 
 float clampf(float value, float min, float max) {
     return value < min ? min : value > max ? max : value;
@@ -125,12 +98,32 @@ T staticValue(const StaticValueRef<T>& ref, T fallback) {
 }
 
 template <typename T>
-StaticValueRef<T> resolveStatic(Il2CppClass* cls, const char* fieldName, const char* getterName) {
+StaticValueRef<T> resolveStatic(Il2CppClass* cls, const char* fieldName, const char* getterName,
+                                const char* expected) {
     StaticValueRef<T> ref;
-    if (!cls) return ref;
-    ref.field = il2cpp::findField(cls, fieldName);
-    if (!ref.field) ref.getter = il2cpp::api().class_get_method_from_name(cls, getterName, 0);
-    return ref;
+    auto& a=il2cpp::api(); std::string error;
+    if(!cls) return ref;
+    FieldInfo* field=nullptr;
+    if(il2cpp::nativeFieldContract(cls,fieldName,expected,true,sizeof(T),&field,nullptr,&error)) {
+        ref.field=field; return ref;
+    }
+    const auto fail=[&](const char* actual) {
+        BL_WARN("[NativeSound][WARN] Field=%s Getter=%s Stage=BindAudioRefs Expected=Static:%s Actual=%s Detail=%s Reason=AudioReferenceContractMismatch",fieldName,getterName,expected,actual,error.c_str());
+        return ref;
+    };
+    if(!a.class_get_method_from_name||!a.method_is_instance||!a.method_get_param_count||
+       !a.method_get_return_type||!a.class_from_il2cpp_type||!a.class_value_size||!a.runtime_invoke||
+       !a.class_get_namespace||!a.class_get_name||!a.class_is_valuetype)
+        return fail("RequiredExportMissing");
+    const auto* getter=a.class_get_method_from_name(cls,getterName,0);
+    if(!getter||a.method_is_instance(getter)||a.method_get_param_count(getter)!=0) return fail("MissingOrNonStaticZeroParameterGetter");
+    auto* type=a.class_from_il2cpp_type(a.method_get_return_type(getter));
+    const char* ns=type?a.class_get_namespace(type):nullptr;
+    const char* name=type?a.class_get_name(type):nullptr;
+    uint32_t alignment=0;
+    if(!ns||!name||std::string(ns)+"."+name!=expected||!a.class_is_valuetype(type)||
+       a.class_value_size(type,&alignment)!=static_cast<int>(sizeof(T))) return fail("GetterReturnTypeOrSizeMismatch");
+    ref.getter=getter; return ref;
 }
 
 template <typename T>
@@ -138,109 +131,45 @@ bool resolved(const StaticValueRef<T>& ref) {
     return ref.field || ref.getter;
 }
 
-void workerLoop() {
-    for (;;) {
-        AudioCommand command;
-        {
-            std::unique_lock<std::mutex> lock(g_queueMutex);
-            g_queueCv.wait(lock, [] { return !g_queue.empty(); });
-            command = g_queue.front();
-            g_queue.pop_front();
-        }
-
-        if (command.kind == AudioCommandKind::Stop) {
-            int stream = 0;
-            {
-                std::lock_guard<std::mutex> lock(g_queueMutex);
-                g_cancelled.insert(command.token);
-                const auto it = g_streams.find(command.token);
-                if (it != g_streams.end()) {
-                    stream = it->second;
-                    g_streams.erase(it);
-                }
-            }
-            if (stream > 0) stopSound(stream);
-            continue;
-        }
-
-        {
-            std::lock_guard<std::mutex> lock(g_queueMutex);
-            if (g_cancelled.erase(command.token) > 0) continue;
-        }
-
-        const int stream = playSound(command.soundId, command.left, command.right, command.rate);
-        if (stream <= 0) continue;
-
-        bool stopImmediately = false;
-        {
-            std::lock_guard<std::mutex> lock(g_queueMutex);
-            if (g_cancelled.erase(command.token) > 0) {
-                stopImmediately = true;
-            } else {
-                g_streams[command.token] = stream;
-            }
-        }
-        if (stopImmediately) stopSound(stream);
-    }
-}
-
-void ensureWorker() {
-    std::call_once(g_workerOnce, [] {
-        std::thread(workerLoop).detach();
-    });
-}
-
-int nextToken() {
-    int token = g_nextToken.fetch_add(1, std::memory_order_relaxed);
-    if (token < kAsyncSoundTokenBase) {
-        g_nextToken.store(kAsyncSoundTokenBase + 1, std::memory_order_relaxed);
-        token = kAsyncSoundTokenBase;
-    }
-    return token;
-}
+// The shared Android SfxQueue bounds pending work/history and owns stream cleanup.
+// Keep the legacy token range so JavaScript stop/findActive calls remain compatible.
 
 int queuePlay(int soundId, float left, float right, float rate) {
-    ensureWorker();
-    const int token = nextToken();
-    {
-        std::lock_guard<std::mutex> lock(g_queueMutex);
-        g_queue.push_back({AudioCommandKind::Play, token, soundId, left, right, rate});
-    }
-    g_queueCv.notify_one();
-    return token;
+    const int handle = enqueueSound(-soundId, soundId, left, right, rate, 0, false);
+    if (handle<=0) return 0;
+    if (handle>=kAsyncSoundTokenBase) {cancelSound(handle);return 0;}
+    return kAsyncSoundTokenBase+handle;
 }
 
 void queueStop(int token) {
-    if (!isSoundStyleToken(token)) return;
-    ensureWorker();
-    {
-        std::lock_guard<std::mutex> lock(g_queueMutex);
-        g_queue.push_back({AudioCommandKind::Stop, token, 0, 0, 0, 1});
-    }
-    g_queueCv.notify_one();
+    if (token>kAsyncSoundTokenBase) cancelSound(token-kAsyncSoundTokenBase);
 }
 
-void prune(NativeStyle& style, Clock::time_point now) {
+void prune(NativeStyle& style) {
     style.active.erase(std::remove_if(style.active.begin(), style.active.end(),
-        [now](const ActiveStream& stream) { return stream.end <= now; }), style.active.end());
+        [](const ActiveStream& stream) {
+            const int state=playbackState(stream.token-kAsyncSoundTokenBase);
+            return state<=0 || state>=4; // Pending, playing and paused remain tracked.
+        }), style.active.end());
 }
 
-void resolveGameAudioRefs() {
+bool resolveGameAudioRefs() {
     using namespace il2cpp;
     auto& a = api();
+    g_refs = {};
     g_refs.main = findClass({"Terraria", "Main", {}});
     if (g_refs.main) {
         if (a.runtime_class_init) a.runtime_class_init(g_refs.main);
-        g_refs.screenPosition = resolveStatic<Vec2>(g_refs.main, "screenPosition", "get_screenPosition");
-        g_refs.screenWidth = resolveStatic<int32_t>(g_refs.main, "screenWidth", "get_screenWidth");
-        g_refs.screenHeight = resolveStatic<int32_t>(g_refs.main, "screenHeight", "get_screenHeight");
-        g_refs.soundVolume = resolveStatic<float>(g_refs.main, "soundVolume", "get_soundVolume");
+        g_refs.screenPosition = resolveStatic<Vec2>(g_refs.main, "screenPosition", "get_screenPosition", "Microsoft.Xna.Framework.Vector2");
+        g_refs.screenWidth = resolveStatic<int32_t>(g_refs.main, "screenWidth", "get_screenWidth", "System.Int32");
+        g_refs.screenHeight = resolveStatic<int32_t>(g_refs.main, "screenHeight", "get_screenHeight", "System.Int32");
+        g_refs.soundVolume = resolveStatic<float>(g_refs.main, "soundVolume", "get_soundVolume", "System.Single");
     }
 
     Il2CppClass* legacy = findClass({"Terraria.Audio", "LegacySoundPlayer", {}});
     if (legacy) {
         if (a.runtime_class_init) a.runtime_class_init(legacy);
-        g_refs.attenuation = resolveStatic<float>(legacy, "SoundAttenuationDistance", "get_SoundAttenuationDistance");
+        g_refs.attenuation = resolveStatic<float>(legacy, "SoundAttenuationDistance", "get_SoundAttenuationDistance", "System.Single");
     }
 
     if (!resolved(g_refs.screenPosition)) BL_WARN("sons nativos: Main.screenPosition nao resolvido");
@@ -248,6 +177,7 @@ void resolveGameAudioRefs() {
     if (!resolved(g_refs.screenHeight)) BL_WARN("sons nativos: Main.screenHeight nao resolvido");
     if (!resolved(g_refs.soundVolume)) BL_WARN("sons nativos: Main.soundVolume nao resolvido");
     if (!resolved(g_refs.attenuation)) BL_WARN("sons nativos: SoundAttenuationDistance nao resolvido; usando 2500");
+    return resolved(g_refs.screenPosition)&&resolved(g_refs.screenWidth)&&resolved(g_refs.screenHeight)&&resolved(g_refs.soundVolume);
 }
 
 int playStyleLocked(NativeStyle& style, int x, int y, float volumeScale, float pitchOffset) {
@@ -274,8 +204,7 @@ int playStyleLocked(NativeStyle& style, int x, int y, float volumeScale, float p
     volume *= style.volume * volumeScale * staticValue<float>(g_refs.soundVolume, 1.0f);
     if (!(volume > 0.0f)) return 0;
 
-    const auto now = Clock::now();
-    prune(style, now);
+    prune(style);
     if (style.maxInstances > 0 && static_cast<int>(style.active.size()) >= style.maxInstances) {
         if (style.limitBehavior == 0) return 0;
         queueStop(style.active.front().token);
@@ -287,10 +216,9 @@ int playStyleLocked(NativeStyle& style, int x, int y, float volumeScale, float p
     const float left = clampf(volume * std::min(1.0f, 1.0f - pan), 0.0f, 1.0f);
     const float right = clampf(volume * std::min(1.0f, 1.0f + pan), 0.0f, 1.0f);
     const int token = queuePlay(style.soundId, left, right, rate);
+    if(token<=0) return 0;
 
-    const int duration = style.durationMs > 0 ? style.durationMs : 1000;
-    const auto scaled = static_cast<int64_t>(static_cast<double>(duration) / static_cast<double>(rate));
-    style.active.push_back({token, now + std::chrono::milliseconds(std::max<int64_t>(1, scaled))});
+    style.active.push_back({token});
     return token;
 }
 
@@ -320,8 +248,10 @@ bool installNativeSoundRouter() {
         return false;
     }
 
-    resolveGameAudioRefs();
-    ensureWorker();
+    if(!api().field_static_get_value||!api().method_is_instance||!api().method_is_instance(method)||!resolveGameAudioRefs()) {
+        BL_ERROR("[NativeSound][ERROR] Stage=BindRouter Expected=InstancePlaySoundAndTypedStaticAudioRefs Actual=NativeContractMismatch Result=RouterRejected");
+        return false;
+    }
     if (!hook::install(method, playSoundHook, &g_original)) {
         BL_ERROR("sons nativos: falha ao instalar roteador");
         return false;
@@ -332,7 +262,7 @@ bool installNativeSoundRouter() {
 
 int registerSoundStyle(int soundId, float volume, float pitch, float pitchVariance,
                        int maxInstances, int limitBehavior) {
-    installNativeSoundRouter();
+    if (!installNativeSoundRouter()) return -1;
     std::lock_guard<std::mutex> guard(g_mutex);
     NativeStyle style;
     style.soundId = soundId;
@@ -341,9 +271,19 @@ int registerSoundStyle(int soundId, float volume, float pitch, float pitchVarian
     style.pitchVariance = pitchVariance;
     style.maxInstances = std::max(0, maxInstances);
     style.limitBehavior = limitBehavior == 0 ? 0 : 1;
-    style.durationMs = soundId > 0 ? soundDuration(soundId) : 0;
+    for (size_t i=0;i<g_styles.size();++i) {
+        if (g_styles[i].released) {g_styles[i]=std::move(style);return static_cast<int>(i);}
+    }
     g_styles.push_back(std::move(style));
     return static_cast<int>(g_styles.size() - 1);
+}
+
+void releaseSoundStyle(int style) {
+    std::lock_guard<std::mutex> guard(g_mutex);
+    if (style<0 || static_cast<size_t>(style)>=g_styles.size()) return;
+    for (const auto& stream:g_styles[static_cast<size_t>(style)].active) queueStop(stream.token);
+    g_styles[static_cast<size_t>(style)]=NativeStyle{};
+    g_styles[static_cast<size_t>(style)].released=true;
 }
 
 int playSoundStyle(int style, int x, int y, float volumeScale, float pitchOffset) {
@@ -356,7 +296,7 @@ int findActiveSoundStyle(int style) {
     std::lock_guard<std::mutex> guard(g_mutex);
     if (style < 0 || static_cast<size_t>(style) >= g_styles.size()) return 0;
     NativeStyle& sound = g_styles[static_cast<size_t>(style)];
-    prune(sound, Clock::now());
+    prune(sound);
     return sound.active.empty() ? 0 : sound.active.back().token;
 }
 

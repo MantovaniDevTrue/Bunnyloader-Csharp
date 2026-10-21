@@ -24,7 +24,7 @@ for event in ("push", "workflow_dispatch", "pull_request"):
     for branch in set().union(*map(set, module.POLICY.values())) | {"unknown", "main"}:
         result = module.classify(event, "refs/heads/" + branch, branch, repo, repo)
         for key in ("aot", "publish"):
-            assert result[key] == (branch in module.POLICY[key + ("_pr" if event == "pull_request" else "_push")])
+            assert result[key] == (branch in module.POLICY[key + ("_pr" if event == "pull_request" else "_push")] and not (key == "publish" and branch == module.BATCH_BRANCH and not module.batch_ready()))
         assert result["lights"] == (branch in module.POLICY["lights"])
         assert not any(module.classify("pull_request", "refs/pull/81/merge", branch, "fork/repo", repo).values())
 assert all(module.classify("push", "refs/heads/feat/csharp-loader-foundation-v91", "", "", repo).values())
@@ -48,3 +48,24 @@ print("CSHARP_BUILD_POLICY_EVENTS_REFS_FORKS_OUTPUT_AND_EXPRESSION_LIMIT=PASS")
 # GitHub also limits the expanded literal of each interpolated step, not only expressions.
 run_blocks=re.findall(r"(?m)^        run: \|\n((?: {10}.*\n|\n)*)",workflow)
 assert max((len(block) for block in run_blocks if '${{' in block),default=0)<18000, 'Extract large interpolated run steps before GitHub 21000 limit'
+
+# User requires five complete loaders per next APK; the active batch is incomplete.
+for event in ("push", "workflow_dispatch", "pull_request"):
+    held=module.classify(event,"refs/heads/feat/csharp-summon-lifecycle-v95","feat/csharp-summon-lifecycle-v95",repo,repo)
+    assert held["aot"] and held["lights"] and held["publish"] == module.batch_ready()
+assert "needs.build.outputs.publish == 'true'" in workflow
+
+# A direct call must also stop before credentials/network when publication is held.
+for ref, head in (("refs/heads/feat/csharp-summon-lifecycle-v95", ""), ("refs/pull/98/merge", "feat/csharp-summon-lifecycle-v95")):
+    result=subprocess.run(["bash", str(root/"tools/ci/publish_csharp_private.sh")],
+        env=dict(os.environ,GITHUB_REF=ref,GITHUB_HEAD_REF=head,GH_TOKEN=""),capture_output=True,text=True)
+    assert result.returncode!=0 and ("missing" if module.batch_ready() else "PublicationHeldFiveLoaderBatch") in result.stdout
+
+# Completion changes publication readiness, without bypassing repository trust.
+original_ready = module.batch_ready
+for ready in (False, True):
+    module.batch_ready = lambda: ready
+    assert module.classify("push", "refs/heads/" + module.BATCH_BRANCH, "", repo, repo)["publish"] == ready
+    assert module.classify("pull_request", "refs/pull/98/merge", module.BATCH_BRANCH, repo, repo)["publish"] == ready
+    assert not module.classify("pull_request", "refs/pull/98/merge", module.BATCH_BRANCH, "fork/repo", repo)["publish"]
+module.batch_ready = original_ready

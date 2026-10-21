@@ -1,7 +1,7 @@
 name: Check CSharp SDK and continuous runtime foundation
 on:
   push:
-    branches: [feat/csharp-94-owned-summon-damage-lot, feat/csharp-owned-loaders-v93, feat/csharp-owned-recipe-loader-v92, feat/csharp-loader-foundation-v91, feat/csharp-buff-recipes-v90, fix/csharp-90-2-recipegroup-real-instance-abi, fix/csharp-90-3-recipegroup-return-contract, feat/csharp-native-recipe-groups-v89, fix/csharp-88-8-lights-review, codex/csharp-sdk-runtime-foundation, codex/csharp-lights-fidelity-v90-29-88, codex/csharp-lights-night-hotfix, codex/csharp-lights-sdk-settings-split]
+    branches: [feat/csharp-summon-lifecycle-v95, feat/csharp-94-owned-summon-damage-lot, feat/csharp-owned-loaders-v93, feat/csharp-owned-recipe-loader-v92, feat/csharp-loader-foundation-v91, feat/csharp-buff-recipes-v90, fix/csharp-90-2-recipegroup-real-instance-abi, fix/csharp-90-3-recipegroup-return-contract, feat/csharp-native-recipe-groups-v89, fix/csharp-88-8-lights-review, codex/csharp-sdk-runtime-foundation, codex/csharp-lights-fidelity-v90-29-88, codex/csharp-lights-night-hotfix, codex/csharp-lights-sdk-settings-split]
   pull_request:
     paths:
       - 'Split/Bunny-Loader/experiments/csharp/**'

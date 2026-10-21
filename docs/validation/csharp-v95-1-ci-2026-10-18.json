@@ -1,0 +1,144 @@
+{
+  "sourceCommit": "ea35b7b130487480ae8993d4f7ad3189d83e50af",
+  "loader": "0.1.10.16.90.29.95.1-summon-snapshots",
+  "versionCode": 271,
+  "exampleMod": "0.1.54",
+  "run": 39165749967,
+  "ci": "success",
+  "privateDelivery": "verified",
+  "release": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp-Builds/releases/tag/csharp-v3-run-39165749967-a1",
+  "signature": "V3 verified by Android CI",
+  "sourceArchiveSha256": "50c4c0ebf78b9a398b631f3fff9a1ce8010a5eb4413e7b490af1bbbb2ce1cf93",
+  "sourceFilesCompared": 71,
+  "apkSha256": "90d9065bb251fb18a2d572ee449d37a7ecfbc567835541c8f9c5fff2a0f3a281",
+  "assets": [
+    {
+      "name": "ArmorPoliciesCSharp-v0.1.0.bmod",
+      "size": 8135,
+      "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp-Builds/releases/download/csharp-v3-run-39165749967-a1/ArmorPoliciesCSharp-v0.1.0.bmod"
+    },
+    {
+      "name": "ArmorPoliciesCSharp-v0.1.0.bmod.sha256",
+      "size": 98,
+      "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp-Builds/releases/download/csharp-v3-run-39165749967-a1/ArmorPoliciesCSharp-v0.1.0.bmod.sha256"
+    },
+    {
+      "name": "basic-items-results.json",
+      "size": 3531,
+      "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp-Builds/releases/download/csharp-v3-run-39165749967-a1/basic-items-results.json"
+    },
+    {
+      "name": "BunnyLoader-CSharp-0.1.10.16.90.29.95.1-summon-snapshots-SignedV3.apk",
+      "size": 241518449,
+      "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp-Builds/releases/download/csharp-v3-run-39165749967-a1/BunnyLoader-CSharp-0.1.10.16.90.29.95.1-summon-snapshots-SignedV3.apk"
+    },
+    {
+      "name": "BunnyLoader-CSharp-0.1.10.16.90.29.95.1-summon-snapshots-SignedV3.apk.sha256",
+      "size": 136,
+      "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp-Builds/releases/download/csharp-v3-run-39165749967-a1/BunnyLoader-CSharp-0.1.10.16.90.29.95.1-summon-snapshots-SignedV3.apk.sha256"
+    },
+    {
+      "name": "combat-batch-results.json",
+      "size": 2991,
+      "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp-Builds/releases/download/csharp-v3-run-39165749967-a1/combat-batch-results.json"
+    },
+    {
+      "name": "ExampleModCSharp-v0.1.54.bmod",
+      "size": 189913,
+      "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp-Builds/releases/download/csharp-v3-run-39165749967-a1/ExampleModCSharp-v0.1.54.bmod"
+    },
+    {
+      "name": "ExampleModCSharp-v0.1.54.bmod.sha256",
+      "size": 120,
+      "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp-Builds/releases/download/csharp-v3-run-39165749967-a1/ExampleModCSharp-v0.1.54.bmod.sha256"
+    },
+    {
+      "name": "LightsAndShadowsCSharp-v0.4.2.3.bmod",
+      "size": 9394,
+      "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp-Builds/releases/download/csharp-v3-run-39165749967-a1/LightsAndShadowsCSharp-v0.4.2.3.bmod"
+    },
+    {
+      "name": "LightsAndShadowsCSharp-v0.4.2.3.bmod.sha256",
+      "size": 127,
+      "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp-Builds/releases/download/csharp-v3-run-39165749967-a1/LightsAndShadowsCSharp-v0.4.2.3.bmod.sha256"
+    },
+    {
+      "name": "NativeAccessProbeCSharp-v0.1.0.bmod",
+      "size": 1914,
+      "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp-Builds/releases/download/csharp-v3-run-39165749967-a1/NativeAccessProbeCSharp-v0.1.0.bmod"
+    },
+    {
+      "name": "NativeAccessProbeCSharp-v0.1.0.bmod.sha256",
+      "size": 102,
+      "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp-Builds/releases/download/csharp-v3-run-39165749967-a1/NativeAccessProbeCSharp-v0.1.0.bmod.sha256"
+    },
+    {
+      "name": "NativePlacementProbe-v0.1.0.bmod",
+      "size": 5090,
+      "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp-Builds/releases/download/csharp-v3-run-39165749967-a1/NativePlacementProbe-v0.1.0.bmod"
+    },
+    {
+      "name": "NativePlacementProbe-v0.1.0.bmod.sha256",
+      "size": 123,
+      "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp-Builds/releases/download/csharp-v3-run-39165749967-a1/NativePlacementProbe-v0.1.0.bmod.sha256"
+    }
+  ],
+  "androidGameplay": "awaiting validation",
+  "androidFPS": "unmeasured",
+  "independentSuites": [
+    {
+      "name": "Check Bunny CSharp Native Visual Queue",
+      "run": 39165749713,
+      "result": "success",
+      "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39165749713"
+    },
+    {
+      "name": "Check Mono Android signal ownership",
+      "run": 39165749737,
+      "result": "success",
+      "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39165749737"
+    },
+    {
+      "name": "Check Bunny CSharp Visual Queue",
+      "run": 39165749786,
+      "result": "success",
+      "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39165749786"
+    },
+    {
+      "name": "Check CSharp combat batch",
+      "run": 39165749708,
+      "result": "success",
+      "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39165749708"
+    },
+    {
+      "name": "Check Mono pinned worker GC transitions",
+      "run": 39165749787,
+      "result": "success",
+      "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39165749787"
+    },
+    {
+      "name": "CSharp Native ScreenFx",
+      "run": 39165749835,
+      "result": "success",
+      "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39165749835"
+    },
+    {
+      "name": "Check managed callback lifecycle",
+      "run": 39165749758,
+      "result": "success",
+      "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39165749758"
+    },
+    {
+      "name": "Check complete ExampleMod audit",
+      "run": 39165749774,
+      "result": "success",
+      "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39165749774"
+    },
+    {
+      "name": "Check CSharp SDK and continuous runtime foundation",
+      "run": 39165749751,
+      "result": "success",
+      "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39165749751"
+    }
+  ]
+}

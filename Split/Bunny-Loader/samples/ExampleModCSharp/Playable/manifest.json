@@ -2,7 +2,7 @@
   "uid": "68c3115f-62f4-49f2-a56b-388256781d5f",
   "id": "examplemodcsharp",
   "name": "ExampleMod CSharp",
-  "version": "0.1.53",
+  "version": "0.1.59",
   "authors": [
     {
       "name": "Bunny Loader",
@@ -10,7 +10,7 @@
     }
   ],
   "category": "Example",
-  "summary": "Minion C# nativo: dano por contato, buff Android, perseguição e animação com políticas do SDK, além das receitas e hooks existentes.",
+  "summary": "Exemplos C# editáveis com equipamentos, receitas, projéteis e áudio nativo; port integral em desenvolvimento, sem nova release parcial.",
   "license": "MIT",
   "blVersion": 2,
   "gameVersion": [

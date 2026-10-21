@@ -11,6 +11,7 @@
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
 #include "il2cpp/Signature.h"
+#include "experiments/csharp/NativeSummonRuntime.h"
 
 #include <algorithm>
 #include <array>
@@ -304,6 +305,49 @@ void applySparkAi(Il2CppObject* projectile, const runtime::GameRefs& game) {
     g_sparkWrites.fetch_add(1, std::memory_order_relaxed);
 }
 
+using namespace nativeSummon;
+
+bool summonTargetPosition(int index,Vector2* center,Il2CppObject** object=nullptr,Il2CppArray* npcs=nullptr) {
+    if(!npcs)il2cpp::api().field_static_get_value(g_targets.npcArray,&npcs);
+    if(!npcs||index<0||static_cast<size_t>(index)>=npcs->length||npcs->length>1024||
+       il2cpp::api().class_get_rank(npcs->obj.klass)!=1||il2cpp::api().class_get_element_class(npcs->obj.klass)!=g_targets.npcClass)return false;
+    auto* npc=static_cast<Il2CppObject**>(arrayData(npcs))[index];
+    if(!npc||!runtime::field<uint8_t>(npc,g_targets.active)||runtime::field<uint8_t>(npc,g_targets.friendly)||
+       runtime::field<int>(npc,g_targets.life)<=0||(g_targets.dontTakeDamage>=0&&runtime::field<uint8_t>(npc,g_targets.dontTakeDamage)))return false;
+    const auto& fields=runtime::game().entity;const auto position=runtime::field<Vector2>(npc,fields.position);
+    *center={position.x+runtime::field<int>(npc,fields.width)*.5f,position.y+runtime::field<int>(npc,fields.height)*.5f};
+    if(object)*object=npc;
+    return std::isfinite(center->x)&&std::isfinite(center->y);
+}
+void refreshSummonTarget(Slot& entry,Il2CppObject* projectile,Il2CppObject* owner,Vector2 center,
+                         SummonVector ownerCenter,float radius,const SummonMovement& movement) {
+    entry.target=-1;const auto& game=runtime::game();
+    Il2CppArray* npcs=nullptr;il2cpp::api().field_static_get_value(g_targets.npcArray,&npcs);
+    if(!npcs)return;
+    auto accept=[&](int index,bool manual,float* distance) {
+        Vector2 point;Il2CppObject* npc=nullptr;if(!summonTargetPosition(index,&point,&npc,npcs))return false;
+        const float squared=summonDistanceSquared({center.x,center.y},{point.x,point.y});
+        if(squared>=*distance||!std::isfinite(squared))return false;
+        if(movement.enabled&&summonDistanceSquared(ownerCenter,{point.x,point.y})>movement.ownerLeash*movement.ownerLeash)return false;
+        uint8_t ignore=0;void* chaseArgs[]={nullptr,&ignore};
+        if(!summonBool(g_summon.canChase,npc,chaseArgs,runtime::field<int>(projectile,game.proj.type)))return false;
+        if(!manual&&squared>100.f*100.f) {
+            auto from=runtime::field<Vector2>(projectile,game.entity.position),to=runtime::field<Vector2>(npc,game.entity.position);
+            int w=runtime::field<int>(projectile,game.entity.width),h=runtime::field<int>(projectile,game.entity.height);
+            int nw=runtime::field<int>(npc,game.entity.width),nh=runtime::field<int>(npc,game.entity.height);
+            void* sightArgs[]={&from,&w,&h,&to,&nw,&nh};
+            if(!summonBool(g_summon.canHit,nullptr,sightArgs,runtime::field<int>(projectile,game.proj.type)))return false;
+        }
+        *distance=squared;entry.target=index;entry.targetX=point.x;entry.targetY=point.y;return true;
+    };
+    if(owner&&g_summon.owner.manualTarget>=0) {
+        float manualRange=2000.f*2000.f;
+        if(accept(runtime::field<int>(owner,g_summon.owner.manualTarget),true,&manualRange))return;
+    }
+    float best=radius*radius;
+    for(int i=0;i<200;++i)accept(i,false,&best);
+}
+
 struct ManagedEntityProjectileSlot {
     Il2CppObject* object = nullptr;
     int type = -1;
@@ -311,6 +355,8 @@ struct ManagedEntityProjectileSlot {
     int lastTimeLeft = 0;
     int generation = 0;
     bool killQueued = false;
+    bool spawnPending = false;
+    SummonMovement movement{};
     Slot targetCache{};
     unsigned targetScanTicks = 0;
     int frames = 1;
@@ -320,10 +366,11 @@ struct ManagedEntityProjectileSlot {
 std::array<ManagedEntityProjectileSlot, 4096> g_managedEntityProjectileSlots{};
 int g_managedEntityProjectileGeneration = 1;
 FieldInfo* g_managedEntityNetMode = nullptr;
+thread_local bool g_managedProjectileSlotThread = false;
 
 void runManagedEntityProjectile(Il2CppObject* projectile,
                                 const runtime::GameRefs& game, int type,
-                                bool applyVelocity) {
+                                bool applyVelocity,bool lifecycleOnly=false) {
     if (!hasManagedEntityProjectileType(type) ||
         !runtime::field<uint8_t>(projectile, game.proj.active)) return;
     if (!g_managedEntityNetMode) {
@@ -334,6 +381,7 @@ void runManagedEntityProjectile(Il2CppObject* projectile,
     int mode = -1;
     il2cpp::api().field_static_get_value(g_managedEntityNetMode, &mode);
     if (mode != 0) return;
+    g_managedProjectileSlotThread = true;
     const int slot = runtime::field<int>(projectile, game.entity.whoAmI);
     const int timeLeft = runtime::field<int>(projectile, game.proj.timeLeft);
     if (slot < 0 || slot >= static_cast<int>(g_managedEntityProjectileSlots.size()) ||
@@ -341,73 +389,54 @@ void runManagedEntityProjectile(Il2CppObject* projectile,
     const int owner = runtime::field<int>(projectile, game.proj.owner);
     ManagedEntityProjectileSlot& state =
         g_managedEntityProjectileSlots[static_cast<size_t>(slot)];
+    const auto policy=nativeManagedProjectilePolicy(type);
     const bool firstObserved = state.object != projectile || state.type != type ||
-        state.owner != owner || timeLeft > state.lastTimeLeft;
+        state.owner != owner || (!policy.minion&&timeLeft > state.lastTimeLeft);
     if (firstObserved) {
-        if (g_managedEntityProjectileGeneration <= 0)
+        if (g_managedEntityProjectileGeneration <= 0 || g_managedEntityProjectileGeneration==INT32_MAX)
             g_managedEntityProjectileGeneration = 1;
-        state = {projectile, type, owner, timeLeft, g_managedEntityProjectileGeneration++, false};
+        state={};state.object=projectile;state.type=type;state.owner=owner;state.lastTimeLeft=timeLeft;
+        state.generation=g_managedEntityProjectileGeneration++;state.spawnPending=true;
+        state.movement=nativeManagedMinionMovement(type);
         state.policy=nativeManagedProjectilePolicy(type);state.frames=state.policy.frames;
         nativeManagedProjectileFields(type,&state.gameplay);
-        if (state.policy.minion) {
-            int& damage = runtime::field<int32_t>(projectile, game.proj.damage);
-            if (damage <= 0) {
-                const int configured = nativeManagedMinionConfiguredDamage(type);
-                if (configured > 0 && configured <= 1000) {
-                    damage = configured;
-                    BL_INFO("csharp summon: initial projectile zero damage restored type=%d damage=%d",
-                            type, damage);
-                }
-            }
-        }
     }
     state.lastTimeLeft = timeLeft;
-    if (firstObserved) {
-        const int minionBuff = nativeManagedMinionBuff(type);
-        if (minionBuff > 0 && owner >= 0 && owner < 255) {
-            static FieldInfo* playerArrayField = nullptr;
-            static const MethodInfo* addBuff = nullptr;
-            static bool attempted = false;
-            if (!attempted) {
-                attempted = true;
-                auto* mainClass = il2cpp::findClass({"Terraria", "Main", {}});
-                auto* playerClass = il2cpp::findClass({"Terraria", "Player", {}});
-                playerArrayField = mainClass ? il2cpp::findField(mainClass, "player") : nullptr;
-                addBuff = playerClass ? il2cpp::findMethodBySignature(
-                    playerClass, il2cpp::parseSignature("void AddBuff(int type, int time, bool fromNetPvP)")) : nullptr;
-                if (addBuff && !il2cpp::api().method_is_instance(addBuff)) addBuff = nullptr;
-                if (!playerArrayField || !addBuff)
-                    BL_WARN("csharp minion: native Player.AddBuff contract unavailable");
-            }
-            Il2CppArray* players = nullptr;
-            if (playerArrayField && addBuff)
-                il2cpp::api().field_static_get_value(playerArrayField, &players);
-            if (players && players->length <= 256 &&
-                static_cast<size_t>(owner) < players->length) {
-                auto* player = static_cast<Il2CppObject**>(arrayData(players))[owner];
-                if (player) {
-                    int32_t buff = minionBuff;
-                    int32_t duration = 2;
-                    uint8_t fromNetPvP = 0;
-                    void* arguments[] = {&buff, &duration, &fromNetPvP};
-                    Il2CppObject* error = nullptr;
-                    il2cpp::api().runtime_invoke(addBuff, player, arguments, &error);
-                    if (error) BL_WARN("csharp minion: AddBuff threw for buff=%d", buff);
-                }
-            }
+    Il2CppObject* ownerObject=nullptr;
+    if(state.policy.minion) {
+        ownerObject=summonOwner(owner);
+        const int buff=nativeManagedMinionBuff(type);
+        auto life=summonLife(ownerObject,g_summon.owner,buff,firstObserved);
+        if(life==SummonLife::StartBuff) {
+            int32_t duration=18000,id=buff;uint8_t fromNetPvP=0;void* args[]={&id,&duration,&fromNetPvP};
+            Il2CppObject* error=nullptr;il2cpp::api().runtime_invoke(g_summon.addBuff,ownerObject,args,&error);
+            if(error)summonException("Player.AddBuff",type,error);
+            life=summonLife(ownerObject,g_summon.owner,buff,false);
         }
+        if(life!=SummonLife::Alive) {killSummon(projectile,type,life);return;}
+        runtime::field<int32_t>(projectile,game.proj.timeLeft)=2;
+        // Do not mistake a refreshed timeLeft for a new instance after cancellation.
+        state.lastTimeLeft=2;
     }
+    if(lifecycleOnly)return;
     if (applyVelocity && state.frames > 1 && state.frames <= 32) {
         advanceProjectileFrame(projectile,state.gameplay,state.policy);
     }
-    const TerrariaSnapshot target = captureTerrariaSnapshot(false, false);
-    if (!target.ready || target.player.life <= 0) return;
-    const Vector2 position = runtime::field<Vector2>(projectile, game.entity.position);
+    const TerrariaSnapshot target = state.policy.minion?TerrariaSnapshot{}:captureTerrariaSnapshot(false, false);
+    if (!state.policy.minion&&(!target.ready || target.player.life <= 0)) return;
+    Vector2 position = runtime::field<Vector2>(projectile, game.entity.position);
     const Vector2 before = runtime::field<Vector2>(projectile, game.entity.velocity);
     const int width = runtime::field<int>(projectile, game.entity.width);
     const int height = runtime::field<int>(projectile, game.entity.height);
-    const float cx = position.x + width * 0.5f;
-    const float cy = position.y + height * 0.5f;
+    float cx = position.x + width * 0.5f;
+    float cy = position.y + height * 0.5f;
+    SummonVector ownerCenter{target.player.x,target.player.y};
+    int ownerDirection=1;
+    if(ownerObject) {
+        const auto pos=runtime::field<Vector2>(ownerObject,g_summon.owner.position);
+        ownerCenter={pos.x+runtime::field<int>(ownerObject,g_summon.owner.width)*.5f,pos.y+runtime::field<int>(ownerObject,g_summon.owner.height)*.5f};
+        ownerDirection=runtime::field<int>(ownerObject,g_summon.owner.direction);
+    }
     int npcTarget = -1;
     float npcX = 0.f;
     float npcY = 0.f;
@@ -423,21 +452,49 @@ void runManagedEntityProjectile(Il2CppObject* projectile,
         if (g_targets.ready) {
             if (firstObserved || ++state.targetScanTicks >= static_cast<unsigned>(state.policy.minionScanTicks)) {
                 state.targetScanTicks = 0;
-                refreshTarget(state.targetCache, {cx, cy}, state.policy.minionTargetRange*state.policy.minionTargetRange);
+                refreshSummonTarget(state.targetCache,projectile,ownerObject,{cx,cy},ownerCenter,state.policy.minionTargetRange,state.movement);
             }
             npcTarget = state.targetCache.target;
-            if (npcTarget >= 0) {
-                npcX = state.targetCache.targetX;
-                npcY = state.targetCache.targetY;
-            }
+            Vector2 current;
+            if(npcTarget>=0&&summonTargetPosition(npcTarget,&current)&&(!state.movement.enabled||summonDistanceSquared(ownerCenter,{current.x,current.y})<=state.movement.ownerLeash*state.movement.ownerLeash)) {
+                npcX=current.x;npcY=current.y;
+            } else {npcTarget=-1;state.targetCache.target=-1;}
         }
     }
+    if(state.policy.minion&&state.movement.enabled&&applyVelocity) {
+        auto* all=summonObjects(g_summon.projectiles,g_summon.projectileClass,4096);
+        int rank=0;SummonVector separated{before.x,before.y};
+        if(all)for(size_t i=0;i<all->length;++i) {
+            auto* other=static_cast<Il2CppObject**>(arrayData(all))[i];
+            if(!other||other==projectile||!runtime::field<uint8_t>(other,game.proj.active)||runtime::field<int>(other,game.proj.owner)!=owner)continue;
+            if(runtime::field<int>(other,game.proj.type)!=type)continue;
+            if(static_cast<int>(i)<slot)++rank;
+            const auto otherPos=runtime::field<Vector2>(other,game.entity.position);
+            if(std::fabs(position.x-otherPos.x)+std::fabs(position.y-otherPos.y)<width) {
+                separated.x+=position.x<otherPos.x?-state.movement.separation:state.movement.separation;
+                separated.y+=position.y<otherPos.y?-state.movement.separation:state.movement.separation;
+            }
+        }
+        const auto idle=summonIdle(state.movement,ownerCenter,ownerDirection,rank);
+        if(summonDistanceSquared({cx,cy},ownerCenter)>state.movement.teleportDistance*state.movement.teleportDistance) {
+            position={idle.x-width*.5f,idle.y-height*.5f};cx=idle.x;cy=idle.y;
+            runtime::field<Vector2>(projectile,game.entity.position)=position;
+            separated={separated.x*.1f,separated.y*.1f};npcTarget=-1;
+        }
+        const auto velocity=steerSummon(state.movement,{cx,cy},separated,npcTarget>=0?SummonVector{npcX,npcY}:idle,npcTarget>=0);
+        runtime::field<Vector2>(projectile,game.entity.velocity)={velocity.x,velocity.y};
+        runtime::field<float>(projectile,game.proj.rotation)=velocity.x*state.movement.rotation;
+        runtime::field<int>(projectile,g_summon.spriteDirection)=velocity.x<0?-1:1;
+        runtime::field<uint8_t>(projectile,g_summon.friendly)=npcTarget>=0;
+    }
     ManagedEntityVelocity next{};
+    const auto aiVelocity=runtime::field<Vector2>(projectile,game.entity.velocity);
+    const bool firstTicket=state.spawnPending;state.spawnPending=false;
     if (!tickManagedEntityProjectile(type, slot, state.generation, owner,
         reinterpret_cast<uintptr_t>(projectile), cx, cy,
-        before.x, before.y, target.player.x, target.player.y, &next,
-        firstObserved, npcTarget, npcX, npcY)) return;
-    if (!applyVelocity) return;
+        aiVelocity.x, aiVelocity.y, ownerCenter.x, ownerCenter.y, &next,
+        firstTicket, npcTarget, npcX, npcY)) return;
+    if (!applyVelocity || state.movement.enabled) return;
     if (!runtime::field<uint8_t>(projectile, game.proj.active) ||
         runtime::field<int>(projectile, game.proj.type) != type ||
         runtime::field<int>(projectile, game.entity.whoAmI) != slot ||
@@ -458,18 +515,14 @@ void hkAi(Il2CppObject* projectile, const MethodInfo* method) {
             const int slot = runtime::field<int>(projectile, game.entity.whoAmI);
             if (slot >= 0 &&
                 static_cast<size_t>(slot) < g_managedEntityProjectileSlots.size()) {
-                const int owner = runtime::field<int>(projectile, game.proj.owner);
-                const int remaining = runtime::field<int>(projectile, game.proj.timeLeft);
-                const auto& known = g_managedEntityProjectileSlots[static_cast<size_t>(slot)];
-                if (remaining > 0 &&
-                    (known.object != projectile || known.type != type ||
-                     known.owner != owner || remaining > known.lastTimeLeft))
-                    runManagedEntityProjectile(projectile, game, type, false);
+                runManagedEntityProjectile(projectile, game, type, false,true);
+                if(!runtime::field<uint8_t>(projectile,game.proj.active))return;
             }
         }
     }
     AiFn original = __atomic_load_n(&g_original, __ATOMIC_ACQUIRE);
-    if (original) original(projectile, method);
+    const bool controlled=projectile&&nativeManagedMinionMovement(runtime::field<int>(projectile,runtime::game().proj.type)).enabled;
+    if (original && !controlled) original(projectile, method);
     if (!projectile) return;
 
     const auto& game = runtime::game();
@@ -483,12 +536,13 @@ void hkAi(Il2CppObject* projectile, const MethodInfo* method) {
             coveredByCurve = g_curveStates[static_cast<size_t>(curveIndex)]
                 .enabled.load(std::memory_order_acquire);
     }
-    const bool nativeMotion = coveredByCurve ||
+    const bool nativeMotion = !controlled && (coveredByCurve ||
         (g_sparkEnabled.load(std::memory_order_acquire) &&
          projectileType == g_sparkType.load(std::memory_order_relaxed)) ||
         (g_enabled.load(std::memory_order_acquire) &&
-         projectileType == g_type.load(std::memory_order_relaxed));
+         projectileType == g_type.load(std::memory_order_relaxed)));
     runManagedEntityProjectile(projectile, game, projectileType, !nativeMotion);
+    if(controlled)return;
     if (projectileType >= 0 &&
         static_cast<size_t>(projectileType) < g_curveByType.size()) {
         const int slot = g_curveByType[static_cast<size_t>(projectileType)]
@@ -637,6 +691,22 @@ bool queueManagedSourceProjectileCombat(int eventKind, Il2CppObject* projectile,
     return queueManagedEntityCombatEvent(eventKind, type, slot, state.generation,
         owner, reinterpret_cast<uintptr_t>(projectile),
         std::clamp(damage, 0, 1000000), npcIndex);
+}
+
+bool prepareManagedSummonRuntime(std::string* error) {return prepareSummon(error)&&prepareHomingTargetRefs(error);}
+
+void notifyManagedSourceProjectileDefaults(Il2CppObject* projectile) {
+    // SetDefaults is the native pool-reuse boundary. Read the previous slot
+    // before the engine resets it; inventory/content samples must not reset it.
+    // Off-thread content samples must not touch gameplay-thread slot storage.
+    // Before the first managed AI there is no tracked instance to invalidate.
+    if(!g_managedProjectileSlotThread)return;
+    const int offset=runtime::game().entity.whoAmI;
+    if(!projectile||offset<static_cast<int>(sizeof(Il2CppObject)))return;
+    const int slot=runtime::field<int>(projectile,offset);
+    if(slot<0||static_cast<size_t>(slot)>=g_managedEntityProjectileSlots.size())return;
+    auto& state=g_managedEntityProjectileSlots[static_cast<size_t>(slot)];
+    if(state.object==projectile)state={};
 }
 
 void resetManagedSourceProjectileSlots() {

@@ -43,6 +43,8 @@ def validate(package, requirements=None):
             if name.startswith('content/') and name.endswith('.cs'):
                 source=archive.read(name).decode('utf-8-sig')
                 declaration=re.search(r'\bclass\s+(\w+)',source)
+                for sound in re.finditer(r'\bnew\s+BunnySoundStyle\s*\(\s*"([^"\r\n]+)"',source):
+                    requested.append(dict(path=sound[1],file=name,className=declaration[1] if declaration else "SourceLiteral",kind="audio"))
                 for match in re.finditer(r'\b(?:VisualTexture|Texture)\s*=\s*"([^"\r\n]+)"|\bEquipTexture\s*\([^,]+,\s*"([^"\r\n]+)"',source):
                     requested.append(dict(path=match.group(1) or match.group(2),file=name,
                                           className=declaration.group(1) if declaration else 'SourceLiteral'))
@@ -52,18 +54,25 @@ def validate(package, requirements=None):
         checked=set()
         for entry in requested:
             relative=entry['path']
-            if not relative.endswith('.png'): relative+='.png'
+            audio=entry.get('kind')=='audio' or PurePosixPath(relative).suffix.lower() in ('.wav','.ogg','.mp3')
+            if not audio and not relative.endswith('.png'): relative+='.png'
             path=PurePosixPath(relative)
             reason=''
             if path.is_absolute() or '..' in path.parts or '\\' in relative: reason='UnsafeAssetPath'
             member='content/'+relative
             if not reason and member not in files: reason='AssetMissing'
-            if not reason and member not in checked and not png_valid(archive.read(member)): reason='InvalidPng'
+            if not reason and member not in checked:
+                data=archive.read(member)
+                if audio:
+                    ext=path.suffix.lower()
+                    valid=(ext=='.ogg' and len(data)>27 and data.startswith(b'OggS')) or (ext=='.wav' and len(data)>44 and data[:4]==b'RIFF' and data[8:12]==b'WAVE') or (ext=='.mp3' and len(data)>10 and (data.startswith(b'ID3') or data[0]==255 and data[1]&224==224))
+                    if not valid: reason='InvalidAudioHeader'
+                elif not png_valid(data): reason='InvalidPng'
             checked.add(member)
             if reason:
                 errors.append('[CSharp][ERROR][PackageAsset] Mod='+mod+' Class='+entry['className']+
                     ' File='+entry.get('file','CompiledDefaults')+' Path='+member+
-                    ' Stage=VerifyFinalArchive Expected=ExistingValidPng Actual='+reason+
+                    ' Stage=VerifyFinalArchive Expected='+('ExistingAudioHeader' if audio else 'ExistingValidPng')+' Actual='+reason+
                     ' Reason='+reason+' Result=PublicationRejected')
         if errors: raise ValueError('\n'.join(errors))
         if not requested: raise ValueError('NoCSharpAssetReferences')

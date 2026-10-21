@@ -852,25 +852,37 @@
         "CachedProjectileCounterBuffTextHandler (texto de contagem) ainda pendente."
       ],
       "preservedFeatures": [
-        "Source C# editavel, registro publico, assets originais e binding minion/buff/cajado sem QuickJS."
+        "Source C# editavel, registro publico, assets originais e binding minion/buff/cajado sem QuickJS.",
+        ".94/.93/.90.6 preservadas por merge; fonte editavel e receitas originais da linha de desenvolvimento mantidas."
       ],
       "nativeDependencies": [
         "app/src/main/cpp/experiments/csharp/NativeContent.cpp",
         "app/src/main/cpp/experiments/csharp/ManagedProjectileHook.cpp",
-        "app/src/main/cpp/experiments/csharp/ProjectilePolicy.h"
+        "app/src/main/cpp/experiments/csharp/ProjectilePolicy.h",
+        "app/src/main/cpp/experiments/csharp/SummonPolicy.h"
       ],
       "automatedTests": [
         "tests/basic_items/Program.cs",
         "tests/entity_source/Program.cs",
-        "tests/projectile_policy/native_policy_test.cpp"
+        "tests/projectile_policy/native_policy_test.cpp",
+        "tests/summon_lifecycle/runtime_test.cpp",
+        "tests/summon_lifecycle/source_damage_test.cpp",
+        "tests/summon_lifecycle/contracts_test.cpp",
+        "tests/summon_lifecycle/native_binding_test.cpp"
       ],
       "manualTests": [
-        "Invocar usando o cajado do ExampleMod, observar combate/animacao/buff, morte/respawn, salvar/sair e reentrar."
+        "Invocar usando o cajado do ExampleMod, observar combate/animacao/buff, morte/respawn, salvar/sair e reentrar.",
+        "Documentation/SUMMON_LOADER_V95.md: cancelar buff, reinvocar, morte, perseguicao/retorno, alvo e troca de mundo usando apenas ExampleMod."
       ],
       "automatedEvidence": [
-        "Contratos host e wire; nao comprova equivalencia integral nem gameplay Android."
+        "Contratos host e wire; nao comprova equivalencia integral nem gameplay Android.",
+        ".95: hooks de producao executados no host com provider IL2CPP controlado; cancelamento, dono morto/inativo, reinvocacao/geracao propria (corrigida na .95.2 por SetDefaults), acompanhamento, teleporte, alvo, LOS/leash e originalDamage. Nao e validacao Android.",
+        ".95.2: binder real sem identity; slots tipados, reutilizacao por SetDefaults, renovacao timeLeft, isolamento de amostras e threads. Host controlado, sem Terraria."
       ],
-      "deviceEvidence": []
+      "deviceEvidence": [
+        "Relatorio do usuario .95.1 / 2026-10-18 19:14 / pid4956: BindLifecycle rejeitou ExampleMinion porque Projectile.identity esta ausente. Mod carregou parcialmente; nao valida comportamento. Correcao .95.2 aguarda novo teste Android.",
+        "Usuario informou que funcionou apos entrega .95.2 (versao inferida; captura nao exibe versao/PID). Captura mostra Lifetime Killed BuffCancelled e originalDamage30/incoming36/item30. Evidencia parcial; nao certifica todas as mecanicas, ABI ou FPS."
+      ]
     },
     "Content/Buffs/ExampleMountBuff.js": {
       "status": "Não implementado",
@@ -910,29 +922,44 @@
         "samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleMinion.cs"
       ],
       "missingFeatures": [
-        "Teleporte, separacao entre minions, alvo manual, linha de visao e iluminacao originais ainda pendentes.",
-        "Rotacao e movimento dependentes da direcao do dono ainda diferem do original."
+        "Iluminacao .78, CanCutTiles(false) e resistencia Cultist ainda pendentes.",
+        "Idle damping e limite de afastamento do dono sao politicas explicitas do SDK, diferem do idle original; gameplay Android .95 ainda aguardando validacao."
       ],
       "preservedFeatures": [
-        "Source C# editavel, registro publico, assets originais e binding minion/buff/cajado sem QuickJS."
+        "Source C# editavel, registro publico, assets originais e binding minion/buff/cajado sem QuickJS.",
+        ".94/.93/.90.6 preservadas por merge; fonte editavel e receitas originais da linha de desenvolvimento mantidas.",
+        "Controlador nativo configuravel por update: inercia de seguir/atacar/retornar, formacao por dono/direcao, separacao, teleporte, rotacao e spriteDirection.",
+        "Alvo manual quando campo nativo existe, CanBeChasedBy, linha de visao com curto alcance atraves de paredes e alvo vivo atualizado entre scans.",
+        "Buff cancelado ou dono morto/inativo encerra via Projectile.Kill; originalDamage vem de Item/source real, preservando dano escalado recebido."
       ],
       "nativeDependencies": [
         "app/src/main/cpp/experiments/csharp/NativeContent.cpp",
         "app/src/main/cpp/experiments/csharp/ManagedProjectileHook.cpp",
-        "app/src/main/cpp/experiments/csharp/ProjectilePolicy.h"
+        "app/src/main/cpp/experiments/csharp/ProjectilePolicy.h",
+        "app/src/main/cpp/experiments/csharp/SummonPolicy.h"
       ],
       "automatedTests": [
         "tests/basic_items/Program.cs",
         "tests/entity_source/Program.cs",
-        "tests/projectile_policy/native_policy_test.cpp"
+        "tests/projectile_policy/native_policy_test.cpp",
+        "tests/summon_lifecycle/runtime_test.cpp",
+        "tests/summon_lifecycle/source_damage_test.cpp",
+        "tests/summon_lifecycle/contracts_test.cpp",
+        "tests/summon_lifecycle/native_binding_test.cpp"
       ],
       "manualTests": [
-        "Invocar usando o cajado do ExampleMod, observar combate/animacao/buff, morte/respawn, salvar/sair e reentrar."
+        "Invocar usando o cajado do ExampleMod, observar combate/animacao/buff, morte/respawn, salvar/sair e reentrar.",
+        "Documentation/SUMMON_LOADER_V95.md: cancelar buff, reinvocar, morte, perseguicao/retorno, alvo e troca de mundo usando apenas ExampleMod."
       ],
       "automatedEvidence": [
-        "Contratos host e wire; nao comprova equivalencia integral nem gameplay Android."
+        "Contratos host e wire; nao comprova equivalencia integral nem gameplay Android.",
+        ".95: hooks de producao executados no host com provider IL2CPP controlado; cancelamento, dono morto/inativo, reinvocacao/geracao propria (corrigida na .95.2 por SetDefaults), acompanhamento, teleporte, alvo, LOS/leash e originalDamage. Nao e validacao Android.",
+        ".95.2: binder real sem identity; slots tipados, reutilizacao por SetDefaults, renovacao timeLeft, isolamento de amostras e threads. Host controlado, sem Terraria."
       ],
-      "deviceEvidence": []
+      "deviceEvidence": [
+        "Relatorio do usuario .95.1 / 2026-10-18 19:14 / pid4956: BindLifecycle rejeitou ExampleMinion porque Projectile.identity esta ausente. Mod carregou parcialmente; nao valida comportamento. Correcao .95.2 aguarda novo teste Android.",
+        "Usuario informou que funcionou apos entrega .95.2 (versao inferida; captura nao exibe versao/PID). Captura mostra Lifetime Killed BuffCancelled e originalDamage30/incoming36/item30. Evidencia parcial; nao certifica todas as mecanicas, ABI ou FPS."
+      ]
     },
     "Content/Items/Weapons/Summon/ExampleMinionItem.js": {
       "status": "Parcial",
@@ -944,25 +971,384 @@
         "Spawn na mira/LimitPointToPlayerReachableArea e receita vanilla original ainda pendentes; receita adicional C# usa a bancada do ExampleMod."
       ],
       "preservedFeatures": [
-        "Source C# editavel, registro publico, assets originais e binding minion/buff/cajado sem QuickJS."
+        "Source C# editavel, registro publico, assets originais e binding minion/buff/cajado sem QuickJS.",
+        ".94/.93/.90.6 preservadas por merge; fonte editavel e receitas originais da linha de desenvolvimento mantidas."
       ],
       "nativeDependencies": [
         "app/src/main/cpp/experiments/csharp/NativeContent.cpp",
         "app/src/main/cpp/experiments/csharp/ManagedProjectileHook.cpp",
-        "app/src/main/cpp/experiments/csharp/ProjectilePolicy.h"
+        "app/src/main/cpp/experiments/csharp/ProjectilePolicy.h",
+        "app/src/main/cpp/experiments/csharp/SummonPolicy.h"
       ],
       "automatedTests": [
         "tests/basic_items/Program.cs",
         "tests/entity_source/Program.cs",
-        "tests/projectile_policy/native_policy_test.cpp"
+        "tests/projectile_policy/native_policy_test.cpp",
+        "tests/summon_lifecycle/runtime_test.cpp",
+        "tests/summon_lifecycle/source_damage_test.cpp",
+        "tests/summon_lifecycle/contracts_test.cpp",
+        "tests/summon_lifecycle/native_binding_test.cpp"
       ],
       "manualTests": [
-        "Invocar usando o cajado do ExampleMod, observar combate/animacao/buff, morte/respawn, salvar/sair e reentrar."
+        "Invocar usando o cajado do ExampleMod, observar combate/animacao/buff, morte/respawn, salvar/sair e reentrar.",
+        "Documentation/SUMMON_LOADER_V95.md: cancelar buff, reinvocar, morte, perseguicao/retorno, alvo e troca de mundo usando apenas ExampleMod."
       ],
       "automatedEvidence": [
-        "Contratos host e wire; nao comprova equivalencia integral nem gameplay Android."
+        "Contratos host e wire; nao comprova equivalencia integral nem gameplay Android.",
+        ".95: hooks de producao executados no host com provider IL2CPP controlado; cancelamento, dono morto/inativo, reinvocacao/geracao propria (corrigida na .95.2 por SetDefaults), acompanhamento, teleporte, alvo, LOS/leash e originalDamage. Nao e validacao Android.",
+        ".95.2: binder real sem identity; slots tipados, reutilizacao por SetDefaults, renovacao timeLeft, isolamento de amostras e threads. Host controlado, sem Terraria."
+      ],
+      "deviceEvidence": [
+        "Relatorio do usuario .95.1 / 2026-10-18 19:14 / pid4956: BindLifecycle rejeitou ExampleMinion porque Projectile.identity esta ausente. Mod carregou parcialmente; nao valida comportamento. Correcao .95.2 aguarda novo teste Android.",
+        "Usuario informou que funcionou apos entrega .95.2 (versao inferida; captura nao exibe versao/PID). Captura mostra Lifetime Killed BuffCancelled e originalDamage30/incoming36/item30. Evidencia parcial; nao certifica todas as mecanicas, ABI ou FPS."
+      ]
+    },
+    "Content/Items/Weapons/Melee/ExampleMeleeWeapon.js": {
+      "status": "Implementado, aguardando validação",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Melee/ExampleMeleeWeapon.cs"
+      ],
+      "missingFeatures": [],
+      "preservedFeatures": [
+        "Espada nativa melee, dano50, repulsao6, critico6, swing20/20, autoReuse, valor50000 (sellPrice1gold), raridadeGreen e SoundID.Item1.",
+        "Assets originais do anexo1.8.0; nomes en-US/pt-BR localizados via BunnyName. API publica e fontes comentadas, sem QuickJS.",
+        "Continuidade0.1.57: nomes exibidos e traduções começam com Example; identidades e assets preservados."
+      ],
+      "nativeDependencies": [
+        "app/src/main/cpp/experiments/csharp/NativeDefaults.h",
+        "app/src/main/cpp/experiments/csharp/NativeHoldout.h",
+        "app/src/main/cpp/experiments/csharp/NativeContent.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp"
+      ],
+      "automatedTests": [
+        "tests/basic_items/Program.cs",
+        "tests/summon_lifecycle/native_defaults_test.cpp",
+        "tests/summon_lifecycle/holdout_test.cpp",
+        "tests/summon_lifecycle/source_registration_test.cpp",
+        "tests/summon_lifecycle/source_damage_test.cpp"
+      ],
+      "manualTests": [
+        "Documentation/NATIVE_DEFAULTS_V96.md: exemplos do ExampleMod, consumo e dano de municao, penetracao/imunidade/colisao, offsets/direcao/gravidade, idioma e Save/Exit."
+      ],
+      "automatedEvidence": [
+        "Descritores executados pelo Roslyn e aplicados pelo binder e hooks de producao em fixtures IL2CPP; nao executa o motor Terraria Android."
+      ],
+      "deviceEvidence": [
+        "Usuário aprovou .96 + ExampleMod de forma geral em19/10/2026; procedimentos individuais não informados. docs/validation/csharp-v96-android-user-2026-10-19.json. Estado integral não promovido."
+      ]
+    },
+    "Content/Items/Ammo/ExampleBullet.js": {
+      "status": "Implementado, aguardando validação",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Ammo/ExampleBullet.cs"
+      ],
+      "missingFeatures": [],
+      "preservedFeatures": [
+        "Municao Bullet nativa, consumivel/pilha9999, dano12, repulsao1, valor5000 (sellPrice10silver), Green, velocidade4.5 e referencia por nome ao projetil.",
+        "Assets originais do anexo1.8.0; nomes en-US/pt-BR localizados via BunnyName. API publica e fontes comentadas, sem QuickJS.",
+        "Continuidade0.1.57: nomes exibidos e traduções começam com Example; identidades e assets preservados."
+      ],
+      "nativeDependencies": [
+        "app/src/main/cpp/experiments/csharp/NativeDefaults.h",
+        "app/src/main/cpp/experiments/csharp/NativeHoldout.h",
+        "app/src/main/cpp/experiments/csharp/NativeContent.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp"
+      ],
+      "automatedTests": [
+        "tests/basic_items/Program.cs",
+        "tests/summon_lifecycle/native_defaults_test.cpp",
+        "tests/summon_lifecycle/holdout_test.cpp",
+        "tests/summon_lifecycle/source_registration_test.cpp",
+        "tests/summon_lifecycle/source_damage_test.cpp"
+      ],
+      "manualTests": [
+        "Documentation/NATIVE_DEFAULTS_V96.md: exemplos do ExampleMod, consumo e dano de municao, penetracao/imunidade/colisao, offsets/direcao/gravidade, idioma e Save/Exit."
+      ],
+      "automatedEvidence": [
+        "Descritores executados pelo Roslyn e aplicados pelo binder e hooks de producao em fixtures IL2CPP; nao executa o motor Terraria Android."
+      ],
+      "deviceEvidence": [
+        "Usuário aprovou .96 + ExampleMod de forma geral em19/10/2026; procedimentos individuais não informados. docs/validation/csharp-v96-android-user-2026-10-19.json. Estado integral não promovido."
+      ]
+    },
+    "Content/Projectiles/ExampleBulletProjectile.js": {
+      "status": "Implementado, aguardando validação",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleBulletProjectile.cs"
+      ],
+      "missingFeatures": [],
+      "preservedFeatures": [
+        "IA nativa de bala aiStyle1, 8x8, escala1, penetracao5, timeLeft600, luz0.5, extraUpdates1, ranged/friendly, colisao/agua e imunidade local com cooldown-1.",
+        "Assets originais do anexo1.8.0; nomes en-US/pt-BR localizados via BunnyName. API publica e fontes comentadas, sem QuickJS.",
+        "Continuidade0.1.57: nomes exibidos e traduções começam com Example; identidades e assets preservados."
+      ],
+      "nativeDependencies": [
+        "app/src/main/cpp/experiments/csharp/NativeDefaults.h",
+        "app/src/main/cpp/experiments/csharp/NativeHoldout.h",
+        "app/src/main/cpp/experiments/csharp/NativeContent.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp"
+      ],
+      "automatedTests": [
+        "tests/basic_items/Program.cs",
+        "tests/summon_lifecycle/native_defaults_test.cpp",
+        "tests/summon_lifecycle/holdout_test.cpp",
+        "tests/summon_lifecycle/source_registration_test.cpp",
+        "tests/summon_lifecycle/source_damage_test.cpp"
+      ],
+      "manualTests": [
+        "Documentation/NATIVE_DEFAULTS_V96.md: exemplos do ExampleMod, consumo e dano de municao, penetracao/imunidade/colisao, offsets/direcao/gravidade, idioma e Save/Exit."
+      ],
+      "automatedEvidence": [
+        "Descritores executados pelo Roslyn e aplicados pelo binder e hooks de producao em fixtures IL2CPP; nao executa o motor Terraria Android."
+      ],
+      "deviceEvidence": [
+        "Usuário aprovou .96 + ExampleMod de forma geral em19/10/2026; procedimentos individuais não informados. docs/validation/csharp-v96-android-user-2026-10-19.json. Estado integral não promovido."
+      ]
+    },
+    "Content/Items/Weapons/Ranged/ExampleRocketLauncher.js": {
+      "status": "Implementado, aguardando validação",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Ranged/ExampleRocketLauncher.cs"
+      ],
+      "missingFeatures": [],
+      "preservedFeatures": [
+        "Lancador nativo: dano55, repulsao4, uso30/30, municaoRocket e RocketI resolvidos por nomes, velocidade5, valor400000, raridadeYellow, SoundID.Item11 e HoldoutOffset(-2,-2).",
+        "Assets originais do anexo1.8.0; nomes en-US/pt-BR localizados via BunnyName. API publica e fontes comentadas, sem QuickJS.",
+        "Continuidade0.1.57: nomes exibidos e traduções começam com Example; identidades e assets preservados."
+      ],
+      "nativeDependencies": [
+        "app/src/main/cpp/experiments/csharp/NativeDefaults.h",
+        "app/src/main/cpp/experiments/csharp/NativeHoldout.h",
+        "app/src/main/cpp/experiments/csharp/NativeContent.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp"
+      ],
+      "automatedTests": [
+        "tests/basic_items/Program.cs",
+        "tests/summon_lifecycle/native_defaults_test.cpp",
+        "tests/summon_lifecycle/holdout_test.cpp",
+        "tests/summon_lifecycle/source_registration_test.cpp",
+        "tests/summon_lifecycle/source_damage_test.cpp"
+      ],
+      "manualTests": [
+        "Documentation/NATIVE_DEFAULTS_V96.md: exemplos do ExampleMod, consumo e dano de municao, penetracao/imunidade/colisao, offsets/direcao/gravidade, idioma e Save/Exit."
+      ],
+      "automatedEvidence": [
+        "Descritores executados pelo Roslyn e aplicados pelo binder e hooks de producao em fixtures IL2CPP; nao executa o motor Terraria Android."
+      ],
+      "deviceEvidence": [
+        "Usuário aprovou .96 + ExampleMod de forma geral em19/10/2026; procedimentos individuais não informados. docs/validation/csharp-v96-android-user-2026-10-19.json. Estado integral não promovido."
+      ]
+    },
+    "Content/Items/Weapons/Ranged/ExampleGun.js": {
+      "status": "Implementado, aguardando validação",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Ranged/ExampleGun.cs"
+      ],
+      "preservedFeatures": [
+        "Defaults ranged, dano20/knockback5/crit0, uso10, autoReuse/noMelee, sellPrice10gold, raridadeGreen, muniçãoBullet e shootSpeed10 com fallbackPurificationPowder",
+        "Holdout(-18,0) nativo com direção/gravidade/rotação",
+        "Som original Ogg, volume0.9, pitchVariance0.2, MaxInstances3/ReplaceOldest pelo serviço nativo compartilhado sem QuickJS",
+        "Nomes originais en-US/pt-BR da localização do pacote",
+        "Continuidade0.1.57: nomes exibidos e traduções começam com Example; identidades e assets preservados."
+      ],
+      "missingFeatures": [],
+      "assets": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Ranged/ExampleGun.png",
+        "samples/ExampleModCSharp/Playable/content/Assets/Sounds/Items/Guns/ExampleGun.ogg"
+      ],
+      "nativeDependencies": [
+        "app/src/main/cpp/experiments/csharp/NativeUseSounds.h",
+        "app/src/main/cpp/content/sounds/NativeSoundRouter.cpp",
+        "app/src/main/cpp/content/sounds/AndroidAudio.cpp",
+        "app/src/main/kotlin/dev/bunnyloader/game/SfxQueue.kt",
+        "app/src/main/kotlin/dev/bunnyloader/game/ModAudio.kt"
+      ],
+      "automatedTests": [
+        "tests/basic_items/Program.cs",
+        "tests/basic_items/package_assets_test.py",
+        "tests/summon_lifecycle/use_sound_test.cpp",
+        "tests/summon_lifecycle/sound_router_test.cpp"
+      ],
+      "terrariaTests": [
+        "Usar ExampleGun com ExampleBullet, conferir consumo/dano/sprite; comparar som original/volume/variação e posição da arma ao virar/mirar.",
+        "Testar pausa/retorno, mais de uma arma/mod de áudio, limite de sobreposição3 e nenhuma regressão JavaScript."
+      ],
+      "validation": "Contratos gerenciados e binders/roteador C++ de produção exercitados no host com providers IL2CPP/Android controlados. Não executa SoundPool/decodificador Android, combate ou direção real no Terraria. Publicação suspensa até o port integral.",
+      "deviceEvidence": []
+    },
+    "Content/Items/Weapons/Ranged/ExampleShotgun.js": {
+      "status": "Implementado, aguardando validação",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Ranged/ExampleShotgun.cs"
+      ],
+      "preservedFeatures": [
+        "Defaults originais:44x18,Green,buyPrice10gold,use55/55,Shoot,autoReuse,SoundItem36,ranged,dano10,knockback6,noMelee,AmmoBullet,shootSpeed10,fallbackPurificationPowder,holdout(-2,-2).",
+        "Shoot real C# com oito spawns, dispersão uniforme±15°, velocidade70–100%, retornofalse; snapshot após munição/modificadores preserva tipo/dano/dono/fonte/AI.",
+        "Textura original; nomes começam com Example por pedido do usuário, sem alteração de chave persistida."
+      ],
+      "missingFeatures": [],
+      "assets": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Ranged/ExampleShotgun.png"
+      ],
+      "nativeDependencies": [
+        "app/src/main/cpp/experiments/csharp/NativeShooting.cpp",
+        "app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeDefaults.h",
+        "app/src/main/cpp/experiments/csharp/NativeHoldout.h"
+      ],
+      "automatedTests": [
+        "tests/shooting/Program.cs",
+        "tests/shooting/native_test.cpp",
+        "tests/summon_lifecycle/scheduler_test.cpp",
+        "tests/summon_lifecycle/source_registration_test.cpp",
+        "tests/basic_items/Program.cs"
+      ],
+      "manualTests": [
+        "Documentation/SHOOTING.md: Example Escopeta + Example Bala contra Example Slime; oito tiros/cadência/consumo/dano/direção/som/persistência/múltiplos mods/FPS."
+      ],
+      "validation": "CI39236367596 e nove suítes de push aprovados no código367488d9; testes C# e hooks/decoder/binder C++ de produção com providers controlados. APK Android compilado/validado, sem execução no Terraria nem pacote publicado. Aguardando gameplay Android.",
+      "automatedEvidence": [
+        "42 verificações gerenciadas; oito spawns C# reais processados pelos hooks C++, fonte/dono/modifier/AI preservados, validação transacional, cancelamento, warmup e contratos inválidos."
       ],
       "deviceEvidence": []
+    },
+    "Content/Tiles/ExampleTile.js": {
+      "status": "Implementado, aguardando validação",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Tiles/ExampleTile.cs"
+      ],
+      "missingFeatures": [],
+      "preservedFeatures": [
+        "tileSolid/tileBlockLight/tileMergeDirt/ChecksForMerge originais por arrays IL2CPP tipados, sem QuickJS.",
+        "Dust Stone e mapa RGB(0,200,255); textura original, drop via item correspondente e persistência no serviço existente."
+      ],
+      "nativeDependencies": [
+        "app/src/main/cpp/experiments/csharp/NativeTileFlags.h",
+        "app/src/main/cpp/experiments/csharp/NativeContent.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeTileGameplay.cpp",
+        "app/src/main/cpp/content/tiles/ModTiles.cpp"
+      ],
+      "automatedTests": [
+        "tests/basic_items/Program.cs",
+        "tests/world_loaders/tile_flags_test.cpp",
+        "tests/basic_items/package_assets_test.py"
+      ],
+      "manualTests": [
+        "Usar ExampleTileItem: fabricar dez, colocar, caminhar sobre o bloco, observar junção/luz/mapa, quebrar e recolher.",
+        "Salvar/sair/reabrir; repetir com mods JS habilitados e ordem de registro alterada."
+      ],
+      "validation": "Port dos comportamentos explícitos do original; contratos e wire no host. Colisão, frames, iluminação e save aguardam Terraria Android; isso não certifica TileLoader completo.",
+      "deviceEvidence": []
+    },
+    "Content/Items/Placeable/ExampleTileItem.js": {
+      "status": "Implementado, aguardando validação",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Placeable/ExampleTileItem.cs"
+      ],
+      "missingFeatures": [],
+      "preservedFeatures": [
+        "DefaultToPlaceableTile por chave local, Width/Height12.",
+        "Receita original: um ExampleItem produz dez blocos, estação WorkBenches.",
+        "Textura original e nome exibido Example Block, sem alterar UID ou conteúdo existente."
+      ],
+      "nativeDependencies": [
+        "app/src/main/cpp/experiments/csharp/NativeTileFlags.h",
+        "app/src/main/cpp/experiments/csharp/NativeContent.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeTileGameplay.cpp",
+        "app/src/main/cpp/content/tiles/ModTiles.cpp"
+      ],
+      "automatedTests": [
+        "tests/basic_items/Program.cs",
+        "tests/world_loaders/tile_flags_test.cpp",
+        "tests/basic_items/package_assets_test.py"
+      ],
+      "manualTests": [
+        "Usar ExampleTileItem: fabricar dez, colocar, caminhar sobre o bloco, observar junção/luz/mapa, quebrar e recolher.",
+        "Salvar/sair/reabrir; repetir com mods JS habilitados e ordem de registro alterada."
+      ],
+      "validation": "Port dos comportamentos explícitos do original; contratos e wire no host. Colisão, frames, iluminação e save aguardam Terraria Android; isso não certifica TileLoader completo.",
+      "deviceEvidence": []
+    },
+    "Content/Walls/ExampleWallAdvanced.js": {
+      "status": "Parcial",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Walls/ExampleWallAdvanced.cs"
+      ],
+      "assets": [
+        "samples/ExampleModCSharp/Playable/content/Content/Walls/ExampleWallAdvanced.png"
+      ],
+      "preservedFeatures": [
+        "Registro nativo compartilhado WALL separado de ITEM, moradia e blend CogWall.",
+        "Frames condicionais com chance de 75%; animação de dois quadros a cada cinco ticks.",
+        "Poeira Stone/GemEmerald por frame, orçamento 3/10 e iluminação RGB noturna 0.1/0.5/0.",
+        "Textura original preservada; serviço de mapa transacional e persistência de parede no núcleo existente."
+      ],
+      "nativeDependencies": [
+        "app/src/main/cpp/experiments/csharp/NativeWallRuntime.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp",
+        "app/src/main/cpp/content/walls/ModWalls.cpp",
+        "app/src/main/cpp/content/tiles/ModTileMap.cpp"
+      ],
+      "automatedTests": [
+        "tests/basic_items/Program.cs",
+        "tests/world_loaders/wall_runtime_test.cpp",
+        "tests/world_loaders/wall_registry_test.cpp",
+        "tests/basic_items/native_item_binding_test.cpp --wall",
+        "tests/basic_items/package_assets_test.py"
+      ],
+      "automatedEvidence": [
+        "Testes host executam o código de produção com metadados IL2CPP controlados; não são execução no Terraria."
+      ],
+      "missingFeatures": [
+        "Validar contratos IL2CPP e paridade visual no Terraria Android real: colocação, frames, blend, iluminação, partículas, fabricação, mapa e save/reload.",
+        "BunnyWall oferece políticas nativas reutilizáveis; callbacks C# arbitrários do WallLoader original ainda pendentes, sem overrides públicos silenciosamente ignorados."
+      ],
+      "terrariaTests": [
+        "Após o grupo de cinco loaders estar liberado, usar ExampleItem e ExampleWorkbench para fabricar quatro Example Advanced Wall.",
+        "Colocar Example Advanced Wall, comparar frames/mesclagem e conferir luz ao alternar dia/noite.",
+        "Bater e quebrar a parede: partículas variam pelo frame; recolher o item original.",
+        "Salvar/sair, reabrir e verificar parede, mapa, drops e fabricação com o ExampleMod junto de um mod JS."
+      ]
+    },
+    "Content/Items/Placeable/ExampleWallAdvanced.js": {
+      "status": "Parcial",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Placeable/ExampleWallAdvanced.cs"
+      ],
+      "assets": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Placeable/ExampleWallAdvanced.png"
+      ],
+      "preservedFeatures": [
+        "DefaultToPlaceableWall do próprio Terraria Android; createWall com largura/offset validados.",
+        "Overrides explícitos após o helper, inclusive valores 0 e false, preservados no wire.",
+        "Receita original de quatro paredes com ExampleItem e bancada C# ExampleWorkbench; nomes resolvidos a cada sessão."
+      ],
+      "nativeDependencies": [
+        "app/src/main/cpp/experiments/csharp/NativeWallRuntime.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp",
+        "app/src/main/cpp/content/walls/ModWalls.cpp",
+        "app/src/main/cpp/content/tiles/ModTileMap.cpp"
+      ],
+      "automatedTests": [
+        "tests/basic_items/Program.cs",
+        "tests/world_loaders/wall_runtime_test.cpp",
+        "tests/world_loaders/wall_registry_test.cpp",
+        "tests/basic_items/native_item_binding_test.cpp --wall",
+        "tests/basic_items/package_assets_test.py"
+      ],
+      "automatedEvidence": [
+        "Testes host executam o código de produção com metadados IL2CPP controlados; não são execução no Terraria."
+      ],
+      "missingFeatures": [
+        "Validar contratos IL2CPP e paridade visual no Terraria Android real: colocação, frames, blend, iluminação, partículas, fabricação, mapa e save/reload.",
+        "BunnyWall oferece políticas nativas reutilizáveis; callbacks C# arbitrários do WallLoader original ainda pendentes, sem overrides públicos silenciosamente ignorados."
+      ],
+      "terrariaTests": [
+        "Após o grupo de cinco loaders estar liberado, usar ExampleItem e ExampleWorkbench para fabricar quatro Example Advanced Wall.",
+        "Colocar Example Advanced Wall, comparar frames/mesclagem e conferir luz ao alternar dia/noite.",
+        "Bater e quebrar a parede: partículas variam pelo frame; recolher o item original.",
+        "Salvar/sair, reabrir e verificar parede, mapa, drops e fabricação com o ExampleMod junto de um mod JS."
+      ]
     }
   },
   "additionalCSharpDeviceEvidence": {
@@ -1331,6 +1717,25 @@
           "nativeVisual": 38620813712
         }
       }
+    },
+    "v96": {
+      "scope": "typed primitive native defaults, native holdout, localized names, four JS ports + one CSharp ammo test launcher",
+      "sourceReference": "attachment-reference-1.8.0.json",
+      "canonicalInventoryPreserved": 206,
+      "android": "pending",
+      "recipeDeadline": "Queue priority improved; 3ms budget unchanged; arbitrary slow callbacks still possible"
+    },
+    "fullPortContinuation": {
+      "exampleModDevelopmentVersion": "0.1.56",
+      "publication": "held by user request until whole port is complete",
+      "canonicalInventoryPreserved": 206,
+      "sound": "BunnySoundStyle and typed/rooted native UseSound markers; bounded shared SfxQueue, legacy JS token compatibility, fail-closed router registration",
+      "android": "pending"
     }
+  },
+  "latestUserObservation": {
+    "loader": ".96",
+    "report": "../../docs/validation/csharp-v96-android-user-2026-10-19.json",
+    "scope": "Funcionamento geral com ExampleMod, sem procedimentos individuais/FPS informados; não certifica o port inteiro."
   }
 }

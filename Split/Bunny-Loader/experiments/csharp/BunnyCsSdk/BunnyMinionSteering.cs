@@ -16,9 +16,18 @@ public sealed class BunnyMinionMovement
     public float CatchUpDistance { get; }
     public float IdleDistance { get; }
     public float IdleDamping { get; }
+    public float CatchUpInertia { get; }
+    public float TeleportDistance { get; }
+    public float FormationSpacing { get; }
+    public float AttackStopDistance { get; }
+    public float OwnerLeashDistance { get; }
+    public float RotationFactor { get; }
+    public float Separation { get; }
     public BunnyMinionMovement(float followSpeed=6f,float attackSpeed=10f,float catchUpSpeed=12f,
         float followInertia=18f,float attackInertia=12f,float followOffsetX=-42f,float followOffsetY=-46f,
-        float catchUpDistance=600f,float idleDistance=20f,float idleDamping=0.82f)
+        float catchUpDistance=600f,float idleDistance=20f,float idleDamping=0.82f,
+        float catchUpInertia=60f,float teleportDistance=2000f,float formationSpacing=40f,
+        float attackStopDistance=40f,float ownerLeashDistance=1200f,float rotationFactor=.05f,float separation=.04f)
     {
         static void Range(float value,float min,float max,string field) {
             if(!float.IsFinite(value)||value<min||value>max)
@@ -29,6 +38,11 @@ public sealed class BunnyMinionMovement
         Range(attackInertia,1f,1000f,nameof(attackInertia));Range(followOffsetX,-2000,2000,nameof(followOffsetX));
         Range(followOffsetY,-2000,2000,nameof(followOffsetY));Range(catchUpDistance,1,4000,nameof(catchUpDistance));
         Range(idleDistance,0,catchUpDistance,nameof(idleDistance));Range(idleDamping,0,1,nameof(idleDamping));
+        Range(catchUpInertia,1,1000,nameof(catchUpInertia));Range(teleportDistance,catchUpDistance+.01f,10000,nameof(teleportDistance));
+        Range(formationSpacing,0,200,nameof(formationSpacing));Range(attackStopDistance,0,400,nameof(attackStopDistance));
+        Range(ownerLeashDistance,1,4000,nameof(ownerLeashDistance));Range(rotationFactor,-1,1,nameof(rotationFactor));Range(separation,0,1,nameof(separation));
+        CatchUpInertia=catchUpInertia;TeleportDistance=teleportDistance;FormationSpacing=formationSpacing;
+        AttackStopDistance=attackStopDistance;OwnerLeashDistance=ownerLeashDistance;RotationFactor=rotationFactor;Separation=separation;
         FollowSpeed=followSpeed;AttackSpeed=attackSpeed;CatchUpSpeed=catchUpSpeed;
         FollowInertia=followInertia;AttackInertia=attackInertia;FollowOffsetX=followOffsetX;FollowOffsetY=followOffsetY;
         CatchUpDistance=catchUpDistance;IdleDistance=idleDistance;IdleDamping=idleDamping;

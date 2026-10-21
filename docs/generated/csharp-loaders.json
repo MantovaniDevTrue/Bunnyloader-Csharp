@@ -5,7 +5,7 @@
   "meaning": "Inventory includes helpers in Loaders. Hook candidates are lexical hints, not complete contracts. APIs are evidence pointers, not a parity certificate.",
   "counts": {
     "modules": 88,
-    "partialMappings": 11,
+    "partialMappings": 12,
     "verifiedComplete": 0
   },
   "modules": [
@@ -546,11 +546,15 @@
       "publicApis": [
         "BunnyItem",
         "BunnyWeapon",
-        "BunnyAccessory"
+        "BunnyAccessory",
+        "BunnyShootSource",
+        "BunnyShootContext",
+        "BunnyShot"
       ],
       "nativeEvidence": [
         "experiments/csharp/NativeBasicItems.cpp",
-        "experiments/csharp/NativeItemPolicies.cpp"
+        "experiments/csharp/NativeItemPolicies.cpp",
+        "experiments/csharp/NativeShooting.cpp"
       ],
       "state": "Parcial",
       "verifiedParity": false,
@@ -915,7 +919,8 @@
       "nativeEvidence": [
         "experiments/csharp/NativeContent.cpp",
         "experiments/csharp/ManagedRuntime.cpp",
-        "experiments/csharp/ProjectilePolicy.h"
+        "experiments/csharp/ProjectilePolicy.h",
+        "experiments/csharp/SummonPolicy.h"
       ],
       "state": "Parcial",
       "verifiedParity": false,
@@ -1402,12 +1407,18 @@
         "RandomUpdate",
         "WallFrame"
       ],
-      "publicApis": [],
-      "nativeEvidence": [],
-      "state": "Auditoria pendente",
+      "publicApis": [
+        "BunnyWall",
+        "BunnyWorldLight"
+      ],
+      "nativeEvidence": [
+        "experiments/csharp/NativeWallRuntime.cpp",
+        "content/walls/ModWalls.cpp"
+      ],
+      "state": "Parcial",
       "verifiedParity": false,
       "android": "Não validado integralmente",
-      "nextStep": "Investigar contratos originais; implementar SDK, bridge e exemplos em conjunto"
+      "nextStep": "Conferir cada hook/propriedade e seus exemplos antes de promover a cobertura"
     },
     {
       "original": "app/src/main/cpp/script/js/mod/Loaders/WaterStyleLoader.js",

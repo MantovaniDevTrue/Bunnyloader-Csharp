@@ -20,7 +20,8 @@
     "fix/csharp-90-2-recipegroup-real-instance-abi",
     "fix/csharp-90-3-recipegroup-return-contract",
     "hotfix/csharp-88-5-sigabrt-logcat-tail",
-    "perf/csharp-88-7-lights-invisible-ray-fastpath"
+    "perf/csharp-88-7-lights-invisible-ray-fastpath",
+    "feat/csharp-summon-lifecycle-v95"
   ],
   "aot_pr": [
     "codex/csharp-lights-88-3-prewarm-scene-fidelity",
@@ -39,7 +40,8 @@
     "perf/csharp-88-7-lights-invisible-ray-fastpath",
     "feat/csharp-loader-foundation-v91",
     "feat/csharp-owned-recipe-loader-v92",
-    "feat/csharp-owned-loaders-v93"
+    "feat/csharp-owned-loaders-v93",
+    "feat/csharp-summon-lifecycle-v95"
   ],
   "publish_push": [
     "codex/combat-batch-v90-25",
@@ -137,7 +139,8 @@
     "fix/csharp-90-2-recipegroup-real-instance-abi",
     "fix/csharp-90-3-recipegroup-return-contract",
     "hotfix/csharp-88-5-sigabrt-logcat-tail",
-    "perf/csharp-88-7-lights-invisible-ray-fastpath"
+    "perf/csharp-88-7-lights-invisible-ray-fastpath",
+    "feat/csharp-summon-lifecycle-v95"
   ],
   "publish_pr": [
     "codex/csharp-lights-88-3-prewarm-scene-fidelity",
@@ -156,7 +159,8 @@
     "perf/csharp-88-7-lights-invisible-ray-fastpath",
     "feat/csharp-loader-foundation-v91",
     "feat/csharp-owned-recipe-loader-v92",
-    "feat/csharp-owned-loaders-v93"
+    "feat/csharp-owned-loaders-v93",
+    "feat/csharp-summon-lifecycle-v95"
   ],
   "android_pr": [
     "codex/csharp-lights-88-3-prewarm-scene-fidelity",
@@ -175,7 +179,8 @@
     "perf/csharp-88-7-lights-invisible-ray-fastpath",
     "feat/csharp-loader-foundation-v91",
     "feat/csharp-owned-recipe-loader-v92",
-    "feat/csharp-owned-loaders-v93"
+    "feat/csharp-owned-loaders-v93",
+    "feat/csharp-summon-lifecycle-v95"
   ],
   "lights": [
     "feat/csharp-90-4-projectile-minion-contract",
@@ -191,6 +196,7 @@
     "fix/csharp-90-2-recipegroup-real-instance-abi",
     "fix/csharp-90-3-recipegroup-return-contract",
     "hotfix/csharp-88-5-sigabrt-logcat-tail",
-    "perf/csharp-88-7-lights-invisible-ray-fastpath"
+    "perf/csharp-88-7-lights-invisible-ray-fastpath",
+    "feat/csharp-summon-lifecycle-v95"
   ]
 }

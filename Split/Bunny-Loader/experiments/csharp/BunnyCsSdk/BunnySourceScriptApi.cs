@@ -37,6 +37,8 @@ public struct BunnyProjectileAiState
 
 public abstract class BunnyProjectile
 {
+    public BunnyNativeDefaults NativeDefaults { get; } = new();
+    public string NativeDefaultsDefinition => NativeDefaults.Definition;
     public string DisplayName { get; set; } = "";
     public string Texture { get; set; } = "";
     public int Width { get; set; } = 8;
@@ -52,6 +54,8 @@ public abstract class BunnyProjectile
     public bool Friendly { get; set; } = true;
     public bool Minion { get; set; }
     public bool MinionContactDamage { get; set; }
+    /// <summary>Optional native per-update follow/attack controller. Null keeps custom MonoVM AI; lifecycle remains native.</summary>
+    public BunnyMinionMovement? MinionMovement { get; set; }
     public float MinionSlots { get; set; }
     public bool TileCollide { get; set; } = true;
     public bool IgnoreWater { get; set; } = true;
@@ -68,8 +72,13 @@ public abstract class BunnyProjectile
     public virtual int OnKillDuration(int damage) => 0;
 }
 
-public abstract class BunnyWeapon : BunnyRecipeSource
+public abstract class BunnyWeapon : BunnyShootSource
 {
+    public BunnyHoldout? Holdout { get; set; }
+    /// <summary>Som próprio do mod; tem precedência sobre o SoundID vanilla.</summary>
+    public BunnySoundStyle? CustomUseSound { get; set; }
+    public BunnyNativeDefaults NativeDefaults { get; } = new();
+    public string NativeDefaultsDefinition => NativeDefaults.Definition;
     public string DisplayName { get; set; } = "";
     public string Texture { get; set; } = "";
     public int Damage { get; set; } = 20;
@@ -106,6 +115,8 @@ public abstract class BunnyBuff
 
 public abstract class BunnyBuffPotion : BunnyRecipeSource
 {
+    public BunnyNativeDefaults NativeDefaults { get; } = new();
+    public string NativeDefaultsDefinition => NativeDefaults.Definition;
     public string DisplayName { get; set; } = "";
     public string Texture { get; set; } = "";
     public string Buff { get; set; } = "";
@@ -123,6 +134,8 @@ public enum BunnyAccessoryVisualMode
 
 public abstract class BunnyAccessory : BunnyRecipeSource
 {
+    public BunnyNativeDefaults NativeDefaults { get; } = new();
+    public string NativeDefaultsDefinition => NativeDefaults.Definition;
     public string DisplayName { get; set; } = "";
     public string Texture { get; set; } = "";
     public int DefenseBonus { get; set; } = 0;

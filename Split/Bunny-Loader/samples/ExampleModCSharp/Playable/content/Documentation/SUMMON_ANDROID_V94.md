@@ -1,3 +1,5 @@
+> Histórico: para a .95, use SUMMON_LOADER_V95.md; as instruções e limitações abaixo descrevem a entrega anterior.
+
 # Bunny C# .94 — ExampleMod CSharp 0.1.53
 
 O cajado, buff e minion fazem parte do ExampleMod CSharp. Não é necessário instalar o Native Minion Probe separado.

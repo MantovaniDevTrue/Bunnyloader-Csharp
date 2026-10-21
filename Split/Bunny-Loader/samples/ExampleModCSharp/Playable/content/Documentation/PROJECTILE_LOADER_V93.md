@@ -1,3 +1,5 @@
+> Histórico: para a .95, use SUMMON_LOADER_V95.md; as instruções e limitações abaixo descrevem a entrega anterior.
+
 # Receitas próprias + projéteis configuráveis — ExampleMod 0.1.52
 
 Esta versão reúne o loader de receitas .92 e a infraestrutura minion da build

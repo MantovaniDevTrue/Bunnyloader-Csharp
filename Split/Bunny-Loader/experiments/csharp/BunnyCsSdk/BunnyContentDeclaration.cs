@@ -2,9 +2,25 @@ using System;
 
 namespace BunnyLoader.Source;
 
+/// <summary>Nome localizado registrado no núcleo antes de carregar as tabelas de conteúdo.</summary>
+[AttributeUsage(AttributeTargets.Class, AllowMultiple = true, Inherited = false)]
+public sealed class BunnyNameAttribute : Attribute
+{
+    public string Culture { get; }
+    public string Text { get; }
+    public BunnyNameAttribute(string culture,string text)
+    {
+        if(string.IsNullOrEmpty(culture)||culture.Length<2||culture.Length>20)throw new ArgumentException("Cultura inválida",nameof(culture));
+        foreach(char c in culture)if(!char.IsAsciiLetterOrDigit(c)&&c!='-')throw new ArgumentException("Cultura inválida",nameof(culture));
+        if(string.IsNullOrWhiteSpace(text)||System.Text.Encoding.UTF8.GetByteCount(text)>128)throw new ArgumentException("Nome localizado inválido",nameof(text));
+        foreach(char c in text)if(c<32||c==127)throw new ArgumentException("Controle em nome localizado",nameof(text));
+        Culture=culture;Text=text;
+    }
+}
+
 public enum BunnyContentKind
 {
-    Item, Tile, Weapon, Projectile, Buff, BuffPotion, Accessory, Player, NPC, Prefix
+    Item, Tile, Tree, Weapon, Projectile, Buff, BuffPotion, Accessory, Player, NPC, Prefix, Wall, Gore
 }
 
 /// <summary>Declares content identity before Mono starts. Required for custom base classes.</summary>

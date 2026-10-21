@@ -1,3 +1,31 @@
+# Regra vigente — cinco loaders completos por APK
+
+O pedido mais recente de19/10/2026 substitui a exigência anterior de aguardar o port integral antes de cada entrega: **cinco loaders completos por APK e um exemplo original completo por loader**. Preservar todos os exemplos existentes e a meta global. Plano operacional: [grupos, critérios e continuidade](csharp-loader-batches.md); inventário executável: [csharp-loader-batches.json](csharp-loader-batches.json). Primeiro grupo: Tile, Wall, Tree, TileEntity e GlobalTile. Auxiliares não contam como loaders extras. Nenhum dos cinco está certificado; publicações são condicionadas ao gate dos cinco, às regressões e à build. CI39246685678 e nove suítes passaram no código f70caa80; nenhuma publicação ou validação de gameplay Android. [Evidência](validation/csharp-world-loaders-v99-2026-10-19.json).
+
+As entradas anteriores abaixo são histórico, incluindo as proibições de entrega parcial e a antiga ordem de lotes. Para novas entregas, prevalece esta regra; as matrizes de206 JS e do ExampleMod PC continuam no escopo.
+
+> [Evidência final interna .98](validation/csharp-v98-internal-2026-10-19.json): código367488d9, APK compilado/validado, nenhuma publicação de APK/.bmod. Port integral continua em desenvolvimento.
+
+> Continuidade .98: nomes Example em todo conteúdo, callbacks C# CanShoot/ModifyShootStats/OnShoot com bridge real e ExampleShotgun; testes de host e matriz atualizados; CI Android39236367596 e nove suítes aprovados no código367488d9, gameplay Android pendente. Publicação permanece bloqueada. O usuário aprovou a .96 com ExampleMod de forma geral; registro em [evidência Android](validation/csharp-v96-android-user-2026-10-19.json).
+
+> Verificação interna sem entrega: [CI do port em desenvolvimento](validation/csharp-full-port-wip-2026-10-19.json), fonte `e11f5279`, nove suítes e Android build aprovados. Publicação e export dos pacotes pulados; nenhuma release nova. Port integral ainda aberto.
+
+> Preservar também o inventário oficial PC (449 ativos/112 legados e ExampleLibraryMod); a matriz de206 JS não substitui nem reduz esse escopo. Não há equivalência automática com assemblies tModLoader.
+
+> Continuidade do port integral: [estado, APIs de áudio e próximo sistema compartilhado](csharp-full-example-port-progress.md). Revisão de desenvolvimento .98/ExampleMod0.1.57 sem publicação.
+
+> Regra de entrega atualizada em 19/10/2026: o usuário exige o port integral antes de nova entrega. Publicação automática da branch `feat/csharp-summon-lifecycle-v95` desabilitada nas políticas push/PR; compilação e testes permanecem habilitados. Não reabilitar publicação para entregar outro subconjunto. A .96 já publicada permanece apenas checkpoint histórico; 206 exemplos seguem no escopo e nenhum pendente pode ser omitido.
+
+> Entrega experimental .96: [CI, artefatos e validação pendente](validation/csharp-v96-ci-2026-10-19.json). Fonte testada `96c90e63`; nove suítes e Android build aprovados. Não conclui os lotes.
+
+> Continuidade .96: [defaults nativos, holdouts e quatro ports](csharp-native-defaults-v96.md). Anexo1.8.0/178 scripts integralmente contabilizado dentro dos206 canônicos. ExampleMod0.1.55 com76 fontes. Novos exemplos aguardam Android; não conclui o lote de armas/projéteis.
+
+> Correção atual .95.2: relatório Android da .95.1 comprovou ausência de Projectile.identity e carga parcial do ExampleMod. Contrato corrigido com ciclo nativo SetDefaults e testes sem esse campo; validar novamente o conjunto no Android. Ver [relatório](csharp-summon-v95.md). Não promove exemplos a completos.
+
+## Continuidade .95 — summons por mecanismos compartilhados
+
+Ver [csharp-summon-v95.md](csharp-summon-v95.md). .93/.94/.90.6 integradas, cancelamento e dono tratados nativamente, controlador de movimento por update e originalDamage pela origem real. Não conclui Lote 1 nem muda pendências para validadas Android. Guia no ExampleMod0.1.54. Manter os 192 históricos e 206 canônicos.
+
 > Continuidade .93: [última build .90.5 integrada aos loaders .92](csharp-loaders-v93.md). Novas políticas públicas de projétil e exemplos summon parciais; testes Android pendentes. Histórico preservado abaixo.
 
 > Continuidade atual: [loader próprio .92](csharp-loaders-v92.md), [PR93](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/pull/93). Fonte `2ea904f4`: nove regressões, build/assinatura e entrega privada aprovadas. [Evidência](validation/csharp-v92-ci-2026-10-18.json). Preserva a .91; três receitas adicionais por API comum, sem certificar conclusão do Lote A ou paridade de todos os loaders. Gameplay Android da .92 pendente.

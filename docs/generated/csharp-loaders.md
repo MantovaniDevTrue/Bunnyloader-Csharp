@@ -37,7 +37,7 @@ As APIs indicadas já possuem caminhos reais, mas ainda precisam de comparação
 | `ItemDataLoader` | — | Auditoria pendente |
 | `ItemDrawLoader` | — | Auditoria pendente |
 | `ItemHealingHooks` | — | Auditoria pendente |
-| `ItemLoader` | BunnyItem, BunnyWeapon, BunnyAccessory | Parcial |
+| `ItemLoader` | BunnyItem, BunnyWeapon, BunnyAccessory, BunnyShootSource, BunnyShootContext, BunnyShot | Parcial |
 | `ItemNetworkHooks` | — | Auditoria pendente |
 | `ItemPickupLoader` | — | Auditoria pendente |
 | `ItemUseHooks` | — | Auditoria pendente |
@@ -90,7 +90,7 @@ As APIs indicadas já possuem caminhos reais, mas ainda precisam de comparação
 | `UndergroundBackgroundLoader` | — | Auditoria pendente |
 | `VanillaMusic` | — | Auditoria pendente |
 | `VanillaTooltips` | — | Auditoria pendente |
-| `WallLoader` | — | Auditoria pendente |
+| `WallLoader` | BunnyWall, BunnyWorldLight | Parcial |
 | `WaterStyleLoader` | — | Auditoria pendente |
 | `WaterfallStyleLoader` | — | Auditoria pendente |
 | `WingLoader` | — | Auditoria pendente |

@@ -192,9 +192,12 @@ def main():
     data={'matrix.json':json.dumps(report,ensure_ascii=False,indent=2)+'\n','matrix.md':markdown(report)}
     OUT.mkdir(parents=True,exist_ok=True)
     for name,body in data.items():
-        path=OUT/name
-        if args.write:path.write_text(body)
-        elif not path.is_file() or path.read_text()!=body:raise ValueError('Matriz desatualizada: '+str(path))
+        # Ship the same evidence in the editable ExampleMod; stale bundled
+        # documentation previously lagged behind the repository matrix.
+        bundled = ROOT/'samples/ExampleModCSharp/Playable/content/Documentation'/name.replace('matrix.', 'COMPATIBILIDADE.')
+        for path in (OUT/name, bundled):
+            if args.write:path.write_text(body)
+            elif not path.is_file() or path.read_text()!=body:raise ValueError('Matriz desatualizada: '+str(path))
     print(json.dumps(report['counts'],ensure_ascii=False))
 
 if __name__=='__main__':main()

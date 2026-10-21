@@ -1,0 +1,856 @@
+{
+  "schemaVersion": 1,
+  "policy": {
+    "loadersPerApk": 5,
+    "completeExamplesPerLoader": 1,
+    "retainExistingExamples": true,
+    "androidValidationRequiredBeforeStable": true,
+    "customShaders": false,
+    "scope": "Todos os sistemas do Bunny original e inventário PC; esta lista é inicial, não um limite."
+  },
+  "activeBatch": "world-01",
+  "batches": [
+    {
+      "id": "world-01",
+      "loaders": [
+        {
+          "loader": "TileLoader",
+          "modules": [
+            "TileDrawLoader",
+            "TileLoader",
+            "TileUseLoader",
+            "TileWorldLoader"
+          ],
+          "contractStatus": "partial",
+          "exampleStatus": "implemented-awaiting-android",
+          "example": {
+            "reference": "Content/Tiles/ExampleTile.js",
+            "referenceKind": "bunny-js-pinned",
+            "csharpClass": "ExampleModCSharp.Tiles.ExampleTile",
+            "supportingSourcesAllowed": true
+          },
+          "tests": [
+            "tests/basic_items/Program.cs",
+            "tests/world_loaders/tile_flags_test.cpp",
+            "tests/world_loaders/tile_animation_test.cpp",
+            "tests/world_loaders/tile_adjacency_test.cpp",
+            "tests/world_loaders/tile_wire_test.cpp",
+            "tests/world_loaders/tile_break_policy_test.cpp",
+            "tests/world_loaders/tile_scan_policy_test.cpp",
+            "tests/world_loaders/tile_smart_interact_policy_test.cpp",
+            "tests/world_loaders/tile_frame_callback_test.cpp",
+            "tests/world_loaders/tile_kill_callback_test.cpp",
+            "tests/world_loaders/tile_dust_callback_test.cpp",
+            "tests/world_loaders/tile_drop_callback_test.cpp"
+          ],
+          "missing": [
+            "GetItemDrops C# com no máximo dois itens e null para fallback já implementado; ainda faltam RegisterItemDrop por estilo, GrowSapling, resting, baús, PlaceInWorld com item, custom HitSound/MinPick/MineResist e validação Android.",
+            "Completar paridade do contexto HasSmartInteract além de LX/LY/HX/HY e validar o orçamento de 8 callbacks por varredura, renderização, sincronização de frames, persistência e multiplayer no Terraria Android."
+          ],
+          "android": "pending",
+          "contractSource": "app/src/main/cpp/script/js/mod/ModTile.js"
+        },
+        {
+          "loader": "WallLoader",
+          "modules": [
+            "WallLoader"
+          ],
+          "contractStatus": "partial",
+          "exampleStatus": "partial",
+          "example": {
+            "reference": "Content/Walls/ExampleWallAdvanced.js",
+            "referenceKind": "bunny-js-pinned",
+            "csharpClass": "ExampleModCSharp.Walls.ExampleWallAdvanced",
+            "supportingSourcesAllowed": true
+          },
+          "tests": [
+            "tests/basic_items/Program.cs",
+            "tests/world_loaders/wall_runtime_test.cpp",
+            "tests/world_loaders/wall_registry_test.cpp",
+            "tests/basic_items/native_item_binding_test.cpp",
+            "tests/basic_items/package_assets_test.py"
+          ],
+          "missing": [
+            "Validar no Android as novas bridges: moradia/blend, frames, animação, dust, luz, colocação, drops, mapa e persistência.",
+            "Concluir callbacks C# arbitrários de parede (KillWall/NumDust/CreateDust/KillSound/Drop/ModifyLight/AnimateWall/RandomUpdate/WallFrame), além das políticas nativas implementadas.",
+            "Defaults efetivos do helper de colocação executam no host; getters C# anteriores à aplicação ainda representam a declaração, não uma consulta ao objeto Android."
+          ],
+          "android": "pending",
+          "contractSource": "app/src/main/cpp/script/js/mod/ModWall.js"
+        },
+        {
+          "loader": "TreeLoader",
+          "modules": [
+            "TreeLoader"
+          ],
+          "contractStatus": "pending",
+          "exampleStatus": "pending",
+          "example": {
+            "reference": "Content/Tiles/Plants/ExampleTree.js",
+            "referenceKind": "bunny-js-pinned",
+            "csharpClass": "",
+            "supportingSourcesAllowed": true
+          },
+          "tests": [],
+          "missing": [
+            "Serviço compartilhado ModTrees desenha troncos/copas; C# ainda não registra o ciclo completo.",
+            "Exige chão ExampleTile, ExampleSapling, madeira ExampleItem, shake e gore original das folhas."
+          ],
+          "android": "pending",
+          "contractSource": "app/src/main/cpp/script/js/mod/ModTree.js"
+        },
+        {
+          "loader": "TileEntityLoader",
+          "modules": [
+            "TileEntityItemHooks",
+            "TileEntityLoader"
+          ],
+          "contractStatus": "pending",
+          "exampleStatus": "pending",
+          "example": {
+            "reference": "Content/TileEntities/BasicTileEntity.js",
+            "referenceKind": "bunny-js-pinned",
+            "csharpClass": "",
+            "supportingSourcesAllowed": true
+          },
+          "tests": [],
+          "missing": [
+            "Faltam registro C#, instância por posição, callbacks, serialização e sincronização.",
+            "Barril original: chuva por 3600 ticks, status, balde no servidor, reset e Save/Load."
+          ],
+          "android": "pending",
+          "contractSource": "app/src/main/cpp/script/js/mod/ModTileEntity.js"
+        },
+        {
+          "loader": "GlobalTileLoader",
+          "modules": [
+            "GlobalTileLoader"
+          ],
+          "contractStatus": "pending",
+          "exampleStatus": "pending",
+          "example": {
+            "reference": "ExampleMod/Common/GlobalTiles/ShakeTrees.cs",
+            "referenceKind": "tmodloader-pinned",
+            "csharpClass": "",
+            "supportingSourcesAllowed": true
+          },
+          "tests": [],
+          "missing": [
+            "Não existe demonstração GlobalTile na referência JS; usar original PC pinado como comportamento.",
+            "Faltam agregação/ordem de globais, callbacks reais, contexto, drops e efeitos sem QuickJS."
+          ],
+          "android": "pending",
+          "contractSource": "app/src/main/cpp/script/js/mod/GlobalTile.js"
+        }
+      ]
+    },
+    {
+      "id": "loaders-02",
+      "loaders": [
+        {
+          "loader": "ItemLoader",
+          "modules": [
+            "ItemCombatHooks",
+            "ItemDataLoader",
+            "ItemDrawLoader",
+            "ItemHealingHooks",
+            "ItemLoader",
+            "ItemNetworkHooks",
+            "ItemPickupLoader",
+            "ItemUseHooks",
+            "TooltipLoader",
+            "VanillaTooltips"
+          ],
+          "contractStatus": "pending",
+          "exampleStatus": "pending",
+          "example": null,
+          "tests": [],
+          "missing": [
+            "Auditar contrato completo, APIs, bridge, exemplo e testes."
+          ],
+          "android": "pending"
+        },
+        {
+          "loader": "EquipLoader",
+          "modules": [
+            "EquipLoader"
+          ],
+          "contractStatus": "pending",
+          "exampleStatus": "pending",
+          "example": null,
+          "tests": [],
+          "missing": [
+            "Auditar contrato completo, APIs, bridge, exemplo e testes."
+          ],
+          "android": "pending"
+        },
+        {
+          "loader": "ArmorSetLoader",
+          "modules": [
+            "ArmorSetLoader"
+          ],
+          "contractStatus": "pending",
+          "exampleStatus": "pending",
+          "example": null,
+          "tests": [],
+          "missing": [
+            "Auditar contrato completo, APIs, bridge, exemplo e testes."
+          ],
+          "android": "pending"
+        },
+        {
+          "loader": "WingLoader",
+          "modules": [
+            "WingLoader"
+          ],
+          "contractStatus": "pending",
+          "exampleStatus": "pending",
+          "example": null,
+          "tests": [],
+          "missing": [
+            "Auditar contrato completo, APIs, bridge, exemplo e testes."
+          ],
+          "android": "pending"
+        },
+        {
+          "loader": "PrefixLoader",
+          "modules": [
+            "PrefixLoader"
+          ],
+          "contractStatus": "pending",
+          "exampleStatus": "pending",
+          "example": null,
+          "tests": [],
+          "missing": [
+            "Auditar contrato completo, APIs, bridge, exemplo e testes."
+          ],
+          "android": "pending"
+        }
+      ]
+    },
+    {
+      "id": "loaders-03",
+      "loaders": [
+        {
+          "loader": "ProjectileLoader",
+          "modules": [
+            "ProjectileLoader"
+          ],
+          "contractStatus": "pending",
+          "exampleStatus": "pending",
+          "example": null,
+          "tests": [],
+          "missing": [
+            "Auditar contrato completo, APIs, bridge, exemplo e testes."
+          ],
+          "android": "pending"
+        },
+        {
+          "loader": "DamageClassLoader",
+          "modules": [
+            "CombatLoader",
+            "DamageClassLoader"
+          ],
+          "contractStatus": "pending",
+          "exampleStatus": "pending",
+          "example": null,
+          "tests": [],
+          "missing": [
+            "Auditar contrato completo, APIs, bridge, exemplo e testes."
+          ],
+          "android": "pending"
+        },
+        {
+          "loader": "GlobalProjectileLoader",
+          "modules": [
+            "GlobalProjectileLoader"
+          ],
+          "contractStatus": "pending",
+          "exampleStatus": "pending",
+          "example": null,
+          "tests": [],
+          "missing": [
+            "Auditar contrato completo, APIs, bridge, exemplo e testes."
+          ],
+          "android": "pending"
+        },
+        {
+          "loader": "BuffLoader",
+          "modules": [
+            "BuffLoader"
+          ],
+          "contractStatus": "pending",
+          "exampleStatus": "pending",
+          "example": null,
+          "tests": [],
+          "missing": [
+            "Auditar contrato completo, APIs, bridge, exemplo e testes."
+          ],
+          "android": "pending"
+        },
+        {
+          "loader": "GlobalItemLoader",
+          "modules": [
+            "GlobalItemLoader"
+          ],
+          "contractStatus": "pending",
+          "exampleStatus": "pending",
+          "example": null,
+          "tests": [],
+          "missing": [
+            "Auditar contrato completo, APIs, bridge, exemplo e testes."
+          ],
+          "android": "pending"
+        }
+      ]
+    },
+    {
+      "id": "loaders-04",
+      "loaders": [
+        {
+          "loader": "NPCLoader",
+          "modules": [
+            "NPCLoader",
+            "SpawnLoader"
+          ],
+          "contractStatus": "pending",
+          "exampleStatus": "pending",
+          "example": null,
+          "tests": [],
+          "missing": [
+            "Auditar contrato completo, APIs, bridge, exemplo e testes."
+          ],
+          "android": "pending"
+        },
+        {
+          "loader": "TownNPCLoader",
+          "modules": [
+            "BiomeShoppingLoader",
+            "TownNPCLoader"
+          ],
+          "contractStatus": "pending",
+          "exampleStatus": "pending",
+          "example": null,
+          "tests": [],
+          "missing": [
+            "Auditar contrato completo, APIs, bridge, exemplo e testes."
+          ],
+          "android": "pending"
+        },
+        {
+          "loader": "GlobalNPCLoader",
+          "modules": [
+            "GlobalNPCLoader"
+          ],
+          "contractStatus": "pending",
+          "exampleStatus": "pending",
+          "example": null,
+          "tests": [],
+          "missing": [
+            "Auditar contrato completo, APIs, bridge, exemplo e testes."
+          ],
+          "android": "pending"
+        },
+        {
+          "loader": "BossBarLoader",
+          "modules": [
+            "BossBarLoader"
+          ],
+          "contractStatus": "pending",
+          "exampleStatus": "pending",
+          "example": null,
+          "tests": [],
+          "missing": [
+            "Auditar contrato completo, APIs, bridge, exemplo e testes."
+          ],
+          "android": "pending"
+        },
+        {
+          "loader": "GlobalLootLoader",
+          "modules": [
+            "GlobalLootLoader"
+          ],
+          "contractStatus": "pending",
+          "exampleStatus": "pending",
+          "example": null,
+          "tests": [],
+          "missing": [
+            "Auditar contrato completo, APIs, bridge, exemplo e testes."
+          ],
+          "android": "pending"
+        }
+      ]
+    },
+    {
+      "id": "loaders-05",
+      "loaders": [
+        {
+          "loader": "RecipeLoader",
+          "modules": [
+            "RecipeLoader"
+          ],
+          "contractStatus": "pending",
+          "exampleStatus": "pending",
+          "example": null,
+          "tests": [],
+          "missing": [
+            "Auditar contrato completo, APIs, bridge, exemplo e testes."
+          ],
+          "android": "pending"
+        },
+        {
+          "loader": "RarityLoader",
+          "modules": [
+            "RarityLoader"
+          ],
+          "contractStatus": "pending",
+          "exampleStatus": "pending",
+          "example": null,
+          "tests": [],
+          "missing": [
+            "Auditar contrato completo, APIs, bridge, exemplo e testes."
+          ],
+          "android": "pending"
+        },
+        {
+          "loader": "LocalizationLoader",
+          "modules": [
+            "LocalizationLoader"
+          ],
+          "contractStatus": "pending",
+          "exampleStatus": "pending",
+          "example": null,
+          "tests": [],
+          "missing": [
+            "Auditar contrato completo, APIs, bridge, exemplo e testes."
+          ],
+          "android": "pending"
+        },
+        {
+          "loader": "CommandLoader",
+          "modules": [
+            "CommandLoader"
+          ],
+          "contractStatus": "pending",
+          "exampleStatus": "pending",
+          "example": null,
+          "tests": [],
+          "missing": [
+            "Auditar contrato completo, APIs, bridge, exemplo e testes."
+          ],
+          "android": "pending"
+        },
+        {
+          "loader": "ConfigLoader",
+          "modules": [
+            "ConfigLoader",
+            "HostSettingsMenu",
+            "ModConfigMenu"
+          ],
+          "contractStatus": "pending",
+          "exampleStatus": "pending",
+          "example": null,
+          "tests": [],
+          "missing": [
+            "Auditar contrato completo, APIs, bridge, exemplo e testes."
+          ],
+          "android": "pending"
+        }
+      ]
+    },
+    {
+      "id": "loaders-06",
+      "loaders": [
+        {
+          "loader": "BiomeLoader",
+          "modules": [
+            "BiomeLoader"
+          ],
+          "contractStatus": "pending",
+          "exampleStatus": "pending",
+          "example": null,
+          "tests": [],
+          "missing": [
+            "Auditar contrato completo, APIs, bridge, exemplo e testes."
+          ],
+          "android": "pending"
+        },
+        {
+          "loader": "SceneEffectLoader",
+          "modules": [
+            "BackgroundTextureLoader",
+            "SceneEffectLoader",
+            "ScreenEffectsSetting"
+          ],
+          "contractStatus": "pending",
+          "exampleStatus": "pending",
+          "example": null,
+          "tests": [],
+          "missing": [
+            "Auditar contrato completo, APIs, bridge, exemplo e testes."
+          ],
+          "android": "pending"
+        },
+        {
+          "loader": "SurfaceBackgroundLoader",
+          "modules": [
+            "SurfaceBackgroundLoader"
+          ],
+          "contractStatus": "pending",
+          "exampleStatus": "pending",
+          "example": null,
+          "tests": [],
+          "missing": [
+            "Auditar contrato completo, APIs, bridge, exemplo e testes."
+          ],
+          "android": "pending"
+        },
+        {
+          "loader": "UndergroundBackgroundLoader",
+          "modules": [
+            "UndergroundBackgroundLoader"
+          ],
+          "contractStatus": "pending",
+          "exampleStatus": "pending",
+          "example": null,
+          "tests": [],
+          "missing": [
+            "Auditar contrato completo, APIs, bridge, exemplo e testes."
+          ],
+          "android": "pending"
+        },
+        {
+          "loader": "MapBackgroundLoader",
+          "modules": [
+            "MapBackgroundLoader"
+          ],
+          "contractStatus": "pending",
+          "exampleStatus": "pending",
+          "example": null,
+          "tests": [],
+          "missing": [
+            "Auditar contrato completo, APIs, bridge, exemplo e testes."
+          ],
+          "android": "pending"
+        }
+      ]
+    },
+    {
+      "id": "loaders-07",
+      "loaders": [
+        {
+          "loader": "WaterStyleLoader",
+          "modules": [
+            "WaterStyleLoader"
+          ],
+          "contractStatus": "pending",
+          "exampleStatus": "pending",
+          "example": null,
+          "tests": [],
+          "missing": [
+            "Auditar contrato completo, APIs, bridge, exemplo e testes."
+          ],
+          "android": "pending"
+        },
+        {
+          "loader": "WaterfallStyleLoader",
+          "modules": [
+            "WaterfallStyleLoader"
+          ],
+          "contractStatus": "pending",
+          "exampleStatus": "pending",
+          "example": null,
+          "tests": [],
+          "missing": [
+            "Auditar contrato completo, APIs, bridge, exemplo e testes."
+          ],
+          "android": "pending"
+        },
+        {
+          "loader": "CloudLoader",
+          "modules": [
+            "CloudLoader"
+          ],
+          "contractStatus": "pending",
+          "exampleStatus": "pending",
+          "example": null,
+          "tests": [],
+          "missing": [
+            "Auditar contrato completo, APIs, bridge, exemplo e testes."
+          ],
+          "android": "pending"
+        },
+        {
+          "loader": "GoreLoader",
+          "modules": [
+            "GoreLoader"
+          ],
+          "contractStatus": "pending",
+          "exampleStatus": "pending",
+          "example": null,
+          "tests": [],
+          "missing": [
+            "Auditar contrato completo, APIs, bridge, exemplo e testes."
+          ],
+          "android": "pending"
+        },
+        {
+          "loader": "DustLoader",
+          "modules": [],
+          "contractStatus": "pending",
+          "exampleStatus": "pending",
+          "example": null,
+          "tests": [],
+          "missing": [
+            "Auditar contrato completo, APIs, bridge, exemplo e testes."
+          ],
+          "android": "pending"
+        }
+      ]
+    },
+    {
+      "id": "loaders-08",
+      "loaders": [
+        {
+          "loader": "MountLoader",
+          "modules": [
+            "MountLoader"
+          ],
+          "contractStatus": "pending",
+          "exampleStatus": "pending",
+          "example": null,
+          "tests": [],
+          "missing": [
+            "Auditar contrato completo, APIs, bridge, exemplo e testes."
+          ],
+          "android": "pending"
+        },
+        {
+          "loader": "AnglerQuestLoader",
+          "modules": [
+            "AnglerQuestLoader"
+          ],
+          "contractStatus": "pending",
+          "exampleStatus": "pending",
+          "example": null,
+          "tests": [],
+          "missing": [
+            "Auditar contrato completo, APIs, bridge, exemplo e testes."
+          ],
+          "android": "pending"
+        },
+        {
+          "loader": "PylonLoader",
+          "modules": [
+            "PylonLoader"
+          ],
+          "contractStatus": "pending",
+          "exampleStatus": "pending",
+          "example": null,
+          "tests": [],
+          "missing": [
+            "Auditar contrato completo, APIs, bridge, exemplo e testes."
+          ],
+          "android": "pending"
+        },
+        {
+          "loader": "BannerLoader",
+          "modules": [
+            "BannerLoader"
+          ],
+          "contractStatus": "pending",
+          "exampleStatus": "pending",
+          "example": null,
+          "tests": [],
+          "missing": [
+            "Auditar contrato completo, APIs, bridge, exemplo e testes."
+          ],
+          "android": "pending"
+        },
+        {
+          "loader": "BestiaryLoader",
+          "modules": [
+            "BestiaryLoader",
+            "BiomeBestiaryLoader"
+          ],
+          "contractStatus": "pending",
+          "exampleStatus": "pending",
+          "example": null,
+          "tests": [],
+          "missing": [
+            "Auditar contrato completo, APIs, bridge, exemplo e testes."
+          ],
+          "android": "pending"
+        }
+      ]
+    },
+    {
+      "id": "loaders-09",
+      "loaders": [
+        {
+          "loader": "AchievementLoader",
+          "modules": [
+            "AchievementLoader"
+          ],
+          "contractStatus": "pending",
+          "exampleStatus": "pending",
+          "example": null,
+          "tests": [],
+          "missing": [
+            "Auditar contrato completo, APIs, bridge, exemplo e testes."
+          ],
+          "android": "pending"
+        },
+        {
+          "loader": "EmoteBubbleLoader",
+          "modules": [
+            "EmoteBubbleLoader"
+          ],
+          "contractStatus": "pending",
+          "exampleStatus": "pending",
+          "example": null,
+          "tests": [],
+          "missing": [
+            "Auditar contrato completo, APIs, bridge, exemplo e testes."
+          ],
+          "android": "pending"
+        },
+        {
+          "loader": "HairLoader",
+          "modules": [
+            "HairLoader"
+          ],
+          "contractStatus": "pending",
+          "exampleStatus": "pending",
+          "example": null,
+          "tests": [],
+          "missing": [
+            "Auditar contrato completo, APIs, bridge, exemplo e testes."
+          ],
+          "android": "pending"
+        },
+        {
+          "loader": "TouchButtonLoader",
+          "modules": [
+            "TouchButtonHooks",
+            "TouchButtonLayouts",
+            "TouchButtonLoader"
+          ],
+          "contractStatus": "pending",
+          "exampleStatus": "pending",
+          "example": null,
+          "tests": [],
+          "missing": [
+            "Auditar contrato completo, APIs, bridge, exemplo e testes."
+          ],
+          "android": "pending"
+        },
+        {
+          "loader": "KeybindLoader",
+          "modules": [
+            "KeybindLoader"
+          ],
+          "contractStatus": "pending",
+          "exampleStatus": "pending",
+          "example": null,
+          "tests": [],
+          "missing": [
+            "Auditar contrato completo, APIs, bridge, exemplo e testes."
+          ],
+          "android": "pending"
+        }
+      ]
+    },
+    {
+      "id": "loaders-10",
+      "loaders": [
+        {
+          "loader": "PlayerLoader",
+          "modules": [
+            "PlayerDrawHooks",
+            "PlayerItemHooks",
+            "PlayerJumpHooks",
+            "PlayerLoader",
+            "PlayerNetworkHooks",
+            "PlayerUpdateHooks",
+            "PlayerWorldHooks"
+          ],
+          "contractStatus": "pending",
+          "exampleStatus": "pending",
+          "example": null,
+          "tests": [],
+          "missing": [
+            "Auditar contrato completo, APIs, bridge, exemplo e testes."
+          ],
+          "android": "pending"
+        },
+        {
+          "loader": "SystemLoader",
+          "modules": [
+            "SystemDrawHooks",
+            "SystemLoader",
+            "SystemNetworkHooks",
+            "SystemUpdateHooks",
+            "SystemWorldHooks"
+          ],
+          "contractStatus": "pending",
+          "exampleStatus": "pending",
+          "example": null,
+          "tests": [],
+          "missing": [
+            "Auditar contrato completo, APIs, bridge, exemplo e testes."
+          ],
+          "android": "pending"
+        },
+        {
+          "loader": "ServerSyncLoader",
+          "modules": [
+            "ChestNetworkHooks",
+            "PvpItemNetwork",
+            "ServerSyncLoader",
+            "ServerSyncMenu"
+          ],
+          "contractStatus": "pending",
+          "exampleStatus": "pending",
+          "example": null,
+          "tests": [],
+          "missing": [
+            "Auditar contrato completo, APIs, bridge, exemplo e testes."
+          ],
+          "android": "pending"
+        },
+        {
+          "loader": "SoundLoader",
+          "modules": [
+            "ModMusic",
+            "SoundLoader",
+            "VanillaMusic"
+          ],
+          "contractStatus": "pending",
+          "exampleStatus": "pending",
+          "example": null,
+          "tests": [],
+          "missing": [
+            "Auditar contrato completo, APIs, bridge, exemplo e testes."
+          ],
+          "android": "pending"
+        },
+        {
+          "loader": "MenuLoader",
+          "modules": [
+            "MenuLoader",
+            "MenuThemeSetting"
+          ],
+          "contractStatus": "pending",
+          "exampleStatus": "pending",
+          "example": null,
+          "tests": [],
+          "missing": [
+            "Auditar contrato completo, APIs, bridge, exemplo e testes."
+          ],
+          "android": "pending"
+        }
+      ]
+    }
+  ]
+}

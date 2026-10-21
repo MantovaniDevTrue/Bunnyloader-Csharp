@@ -1,7 +1,7 @@
 name: Check complete ExampleMod audit
 on:
   push:
-    branches: [feat/csharp-94-owned-summon-damage-lot, feat/csharp-owned-loaders-v93, feat/csharp-owned-recipe-loader-v92, feat/csharp-loader-foundation-v91, feat/csharp-buff-recipes-v90, fix/csharp-90-2-recipegroup-real-instance-abi, fix/csharp-90-3-recipegroup-return-contract, feat/csharp-native-recipe-groups-v89, fix/csharp-88-8-lights-review, codex/lot-a-complete-v90-29, codex/example-completion-v90-28]
+    branches: [feat/csharp-summon-lifecycle-v95, feat/csharp-94-owned-summon-damage-lot, feat/csharp-owned-loaders-v93, feat/csharp-owned-recipe-loader-v92, feat/csharp-loader-foundation-v91, feat/csharp-buff-recipes-v90, fix/csharp-90-2-recipegroup-real-instance-abi, fix/csharp-90-3-recipegroup-return-contract, feat/csharp-native-recipe-groups-v89, fix/csharp-88-8-lights-review, codex/lot-a-complete-v90-29, codex/example-completion-v90-28]
   workflow_dispatch:
   pull_request:
     paths:
@@ -35,7 +35,13 @@ jobs:
           dotnet-version: '8.0.x'
       - name: Run real CSharp items-only and full-package compiler tests
         working-directory: Split/Bunny-Loader
-        run: dotnet run --project tests/basic_items/ItemBatch.csproj -c Release
+        run: |
+          dotnet run --project tests/basic_items/ItemBatch.csproj -c Release
+          bash tests/shooting/run.sh
+          bash tests/world_loaders/run.sh
+          python3 samples/ExampleModCSharp/Tests/check_tile_visual_probes.py
+          python3 tests/world_loaders/batch_gate_test.py
+          python3 tools/loader_batch_gate.py
       - name: Execute typed projectile policy integration
         working-directory: Split/Bunny-Loader
         run: bash tests/projectile_policy/run.sh
@@ -152,6 +158,7 @@ jobs:
           /tmp/native-items-no-js build/basic-items/source-runtime-values.txt --nullable
           /tmp/native-items-no-js build/basic-items/source-runtime-values.txt --nullable-unboxed
           /tmp/native-items-no-js build/basic-items/source-runtime-values.txt --bounds
+          /tmp/native-items-no-js build/basic-items/wall-source-runtime-values.txt --wall
       - uses: actions/upload-artifact@v4
         with:
           name: ExampleMod-Complete-Audit

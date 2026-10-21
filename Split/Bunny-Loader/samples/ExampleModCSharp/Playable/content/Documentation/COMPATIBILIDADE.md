@@ -8,7 +8,7 @@ O JSON ao lado conserva APIs, propriedades, dependencias, testes, lacunas e evid
 | --- | ---: | ---: | ---: | ---: | ---: |
 | Accessories | 7 | 3 (42.86%) | 0 (0.0%) | 4 (57.14%) | 0 |
 | Achievements | 2 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
-| Ammo | 1 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
+| Ammo | 1 | 1 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
 | Armor | 6 | 5 (83.33%) | 0 (0.0%) | 0 (0.0%) | 0 |
 | Biomes | 6 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
 | Bosses | 2 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
@@ -30,18 +30,18 @@ O JSON ao lado conserva APIs, propriedades, dependencias, testes, lacunas e evid
 | Mounts | 4 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
 | NPCs | 5 | 0 (0.0%) | 0 (0.0%) | 1 (20.0%) | 0 |
 | Pets | 6 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
-| Placeable | 36 | 1 (2.78%) | 0 (0.0%) | 0 (0.0%) | 0 |
+| Placeable | 36 | 2 (5.56%) | 0 (0.0%) | 1 (2.78%) | 0 |
 | Players | 7 | 0 (0.0%) | 0 (0.0%) | 1 (14.29%) | 0 |
 | Prefixes | 3 | 0 (0.0%) | 0 (0.0%) | 2 (66.67%) | 0 |
-| Projectiles | 20 | 0 (0.0%) | 0 (0.0%) | 1 (5.0%) | 0 |
+| Projectiles | 20 | 1 (5.0%) | 0 (0.0%) | 1 (5.0%) | 0 |
 | Quests | 1 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
 | Rarities | 2 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
 | Systems | 6 | 0 (0.0%) | 0 (0.0%) | 1 (16.67%) | 0 |
 | TileEntities | 2 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
-| Tiles | 37 | 1 (2.7%) | 0 (0.0%) | 0 (0.0%) | 0 |
+| Tiles | 37 | 2 (5.41%) | 0 (0.0%) | 0 (0.0%) | 0 |
 | Tools | 5 | 2 (40.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
-| Walls | 2 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
-| Weapons | 18 | 0 (0.0%) | 0 (0.0%) | 1 (5.56%) | 0 |
+| Walls | 2 | 0 (0.0%) | 0 (0.0%) | 1 (50.0%) | 0 |
+| Weapons | 18 | 4 (22.22%) | 0 (0.0%) | 1 (5.56%) | 0 |
 
 ## Todos os arquivos
 
@@ -81,7 +81,7 @@ O JSON ao lado conserva APIs, propriedades, dependencias, testes, lacunas e evid
 | Content/Buffs/ExampleDefenseBuff.js | samples/ExampleModCSharp/Playable/content/Content/Buffs/ExampleDefenseBuff.cs | Parcial | ModifyDescription com localizacao e ModifyBuffText com duracao restante. | tests/combat_batch/Program.cs; tests/visual_queue/VisualAccessoryProgram.cs (quando aplicavel); .github/workflows/build-bunny-csharp-source-loader.yml |
 | Content/Buffs/ExampleDefenseDebuff.js | samples/ExampleModCSharp/Playable/content/Content/Buffs/ExampleDefenseDebuff.cs | Parcial | Localização integral e validação de comportamento no Android. | tests/basic_items/Program.cs buff.managed-flags-calculated-defaults; tests/recipe_callbacks/run.sh |
 | Content/Buffs/ExampleMinecartBuff.js | — | Não implementado | Arquivo C# e registro nativo de minecart, Cart/MountType, sons/faíscas, texturas e ciclo de vida. | Pendência obrigatória do conjunto solicitado; não é bloqueio técnico comprovado. |
-| Content/Buffs/ExampleMinionBuff.js | samples/ExampleModCSharp/Playable/content/Content/Buffs/ExampleMinionBuff.cs | Parcial | CachedProjectileCounterBuffTextHandler (texto de contagem) ainda pendente. | tests/basic_items/Program.cs; tests/entity_source/Program.cs; tests/projectile_policy/native_policy_test.cpp |
+| Content/Buffs/ExampleMinionBuff.js | samples/ExampleModCSharp/Playable/content/Content/Buffs/ExampleMinionBuff.cs | Parcial | CachedProjectileCounterBuffTextHandler (texto de contagem) ainda pendente. | tests/basic_items/Program.cs; tests/entity_source/Program.cs; tests/projectile_policy/native_policy_test.cpp; tests/summon_lifecycle/runtime_test.cpp; tests/summon_lifecycle/source_damage_test.cpp; tests/summon_lifecycle/contracts_test.cpp; tests/summon_lifecycle/native_binding_test.cpp |
 | Content/Buffs/ExampleMountBuff.js | — | Não implementado | Arquivo C# e registro nativo de montaria, item, movement, frames, efeitos e estado por jogador. | Pendência obrigatória do conjunto solicitado; não é bloqueio técnico comprovado. |
 | Content/Clouds/ExampleAdvancedCloud.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModCloud | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/DamageClasses/ExampleDamageClass.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para DamageClass | Sem validacao funcional C# deste exemplo inteiro. |
@@ -98,7 +98,7 @@ O JSON ao lado conserva APIs, propriedades, dependencias, testes, lacunas e evid
 | Content/Items/Accessories/ExampleStatBonusAccessory.js | samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleVitalAccessory.cs; samples/ExampleModCSharp/Playable/content/Common/Players/ExampleVitalPlayer.cs | Parcial | Atributos e condicoes originais deste acessorio; o Vital e uma demonstracao diferente. | tests/combat_batch/Program.cs; tests/visual_queue/VisualAccessoryProgram.cs (quando aplicavel); .github/workflows/build-bunny-csharp-source-loader.yml |
 | Content/Items/Accessories/ExampleWings.js | samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleWings.cs | Implementado, aguardando validação | Aguardando roteiro Android | tests/basic_items/Program.cs: wire do ExampleWings real; tests/run_native_item_policies.py: wire real, BL_HAVE_QUICKJS=0; tests/test_csharp_no_javascript_dependency.py |
 | Content/Items/Accessories/WaspNest.js | samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/WaspNest.cs | Implementado, aguardando validação | Aguardando roteiro Android | tests/basic_items/Program.cs; tests/basic_items/native_item_binding_test.cpp; tests/basic_items/content_texture_test.cpp: real source parser, shared registration texture contract and CI asset presence; tests/run_native_item_policies.py: wire real, BL_HAVE_QUICKJS=0; tests/test_csharp_no_javascript_dependency.py |
-| Content/Items/Ammo/ExampleBullet.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
+| Content/Items/Ammo/ExampleBullet.js | samples/ExampleModCSharp/Playable/content/Content/Items/Ammo/ExampleBullet.cs | Implementado, aguardando validação | Aguardando roteiro Android | tests/basic_items/Program.cs; tests/summon_lifecycle/native_defaults_test.cpp; tests/summon_lifecycle/holdout_test.cpp; tests/summon_lifecycle/source_registration_test.cpp; tests/summon_lifecycle/source_damage_test.cpp |
 | Content/Items/Armor/ExampleBreastplate.js | samples/ExampleModCSharp/Playable/content/Content/Items/Armor/ExampleBreastplate.cs | Implementado, aguardando validação | Aguardando roteiro Android | tests/basic_items/Program.cs; tests/run_native_item_policies.py: wire real, BL_HAVE_QUICKJS=0; tests/test_csharp_no_javascript_dependency.py; tests/run_native_armor_policies.py |
 | Content/Items/Armor/ExampleCostume.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para EquipTexture, ModItem | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Items/Armor/ExampleHelmet.js | samples/ExampleModCSharp/Playable/content/Content/Items/Armor/ExampleHelmet.cs | Implementado, aguardando validação | Aguardando roteiro Android | tests/basic_items/Program.cs; tests/run_native_item_policies.py: wire real, BL_HAVE_QUICKJS=0; tests/test_csharp_no_javascript_dependency.py; tests/run_native_armor_policies.py |
@@ -131,12 +131,12 @@ O JSON ao lado conserva APIs, propriedades, dependencias, testes, lacunas e evid
 | Content/Items/Placeable/ExampleSignItem.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Items/Placeable/ExampleSinkItem.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Items/Placeable/ExampleStatue.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
-| Content/Items/Placeable/ExampleTileItem.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
+| Content/Items/Placeable/ExampleTileItem.js | samples/ExampleModCSharp/Playable/content/Content/Items/Placeable/ExampleTileItem.cs | Implementado, aguardando validação | Aguardando roteiro Android | tests/basic_items/Program.cs; tests/world_loaders/tile_flags_test.cpp; tests/basic_items/package_assets_test.py |
 | Content/Items/Placeable/ExampleTorch.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Items/Placeable/ExampleTransparentShapedTileItem.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Items/Placeable/ExampleTrap.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem, ExampleTrapBase, ExampleTrapBase | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Items/Placeable/ExampleWall.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
-| Content/Items/Placeable/ExampleWallAdvanced.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
+| Content/Items/Placeable/ExampleWallAdvanced.js | samples/ExampleModCSharp/Playable/content/Content/Items/Placeable/ExampleWallAdvanced.cs | Parcial | Validar contratos IL2CPP e paridade visual no Terraria Android real: colocação, frames, blend, iluminação, partículas, fabricação, mapa e save/reload.; BunnyWall oferece políticas nativas reutilizáveis; callbacks C# arbitrários do WallLoader original ainda pendentes, sem overrides públicos silenciosamente ignorados. | tests/basic_items/Program.cs; tests/world_loaders/wall_runtime_test.cpp; tests/world_loaders/wall_registry_test.cpp; tests/basic_items/native_item_binding_test.cpp --wall; tests/basic_items/package_assets_test.py |
 | Content/Items/Placeable/Furniture/ExampleBed.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Items/Placeable/Furniture/ExampleChair.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Items/Placeable/Furniture/ExampleChandelier.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
@@ -164,16 +164,16 @@ O JSON ao lado conserva APIs, propriedades, dependencias, testes, lacunas e evid
 | Content/Items/Weapons/Magic/ExampleMagicWeapon.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Items/Weapons/Magic/ExampleRiftStaff.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Items/Weapons/Melee/ExampleFlail.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
-| Content/Items/Weapons/Melee/ExampleMeleeWeapon.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
+| Content/Items/Weapons/Melee/ExampleMeleeWeapon.js | samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Melee/ExampleMeleeWeapon.cs | Implementado, aguardando validação | Aguardando roteiro Android | tests/basic_items/Program.cs; tests/summon_lifecycle/native_defaults_test.cpp; tests/summon_lifecycle/holdout_test.cpp; tests/summon_lifecycle/source_registration_test.cpp; tests/summon_lifecycle/source_damage_test.cpp |
 | Content/Items/Weapons/Melee/ExampleShortsword.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Items/Weapons/Melee/ExampleSpear.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Items/Weapons/Melee/ExampleSwingingEnergySword.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Items/Weapons/Melee/ExampleWhip.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Items/Weapons/Melee/ExampleYoyo.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
-| Content/Items/Weapons/Ranged/ExampleGun.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
-| Content/Items/Weapons/Ranged/ExampleRocketLauncher.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
-| Content/Items/Weapons/Ranged/ExampleShotgun.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
-| Content/Items/Weapons/Summon/ExampleMinionItem.js | samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Summon/ExampleMinionItem.cs | Parcial | Mana, knockback, raridade, valor e SoundID.Item44 originais ainda precisam de API/bridge.; Spawn na mira/LimitPointToPlayerReachableArea e receita vanilla original ainda pendentes; receita adicional C# usa a bancada do ExampleMod. | tests/basic_items/Program.cs; tests/entity_source/Program.cs; tests/projectile_policy/native_policy_test.cpp |
+| Content/Items/Weapons/Ranged/ExampleGun.js | samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Ranged/ExampleGun.cs | Implementado, aguardando validação | Aguardando roteiro Android | tests/basic_items/Program.cs; tests/basic_items/package_assets_test.py; tests/summon_lifecycle/use_sound_test.cpp; tests/summon_lifecycle/sound_router_test.cpp |
+| Content/Items/Weapons/Ranged/ExampleRocketLauncher.js | samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Ranged/ExampleRocketLauncher.cs | Implementado, aguardando validação | Aguardando roteiro Android | tests/basic_items/Program.cs; tests/summon_lifecycle/native_defaults_test.cpp; tests/summon_lifecycle/holdout_test.cpp; tests/summon_lifecycle/source_registration_test.cpp; tests/summon_lifecycle/source_damage_test.cpp |
+| Content/Items/Weapons/Ranged/ExampleShotgun.js | samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Ranged/ExampleShotgun.cs | Implementado, aguardando validação | Aguardando roteiro Android | tests/shooting/Program.cs; tests/shooting/native_test.cpp; tests/summon_lifecycle/scheduler_test.cpp; tests/summon_lifecycle/source_registration_test.cpp; tests/basic_items/Program.cs |
+| Content/Items/Weapons/Summon/ExampleMinionItem.js | samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Summon/ExampleMinionItem.cs | Parcial | Mana, knockback, raridade, valor e SoundID.Item44 originais ainda precisam de API/bridge.; Spawn na mira/LimitPointToPlayerReachableArea e receita vanilla original ainda pendentes; receita adicional C# usa a bancada do ExampleMod. | tests/basic_items/Program.cs; tests/entity_source/Program.cs; tests/projectile_policy/native_policy_test.cpp; tests/summon_lifecycle/runtime_test.cpp; tests/summon_lifecycle/source_damage_test.cpp; tests/summon_lifecycle/contracts_test.cpp; tests/summon_lifecycle/native_binding_test.cpp |
 | Content/Items/Weapons/Summon/ExampleSentryItem.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Mounts/ExampleMinecartMount.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModMount | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Mounts/ExampleMount.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModMount | Sem validacao funcional C# deste exemplo inteiro. |
@@ -191,7 +191,7 @@ O JSON ao lado conserva APIs, propriedades, dependencias, testes, lacunas e evid
 | Content/Prefixes/ExamplePrefix.js | samples/ExampleModCSharp/Playable/content/Content/Prefixes/ExampleMightyPrefix.cs | Parcial | Power sobrescrevivel, heranca do ExampleDerivedPrefix, GetTooltipLines e Apply genericos. | tests/combat_batch/Program.cs; tests/visual_queue/VisualAccessoryProgram.cs (quando aplicavel); .github/workflows/build-bunny-csharp-source-loader.yml |
 | Content/Projectiles/ExampleAdvancedAnimatedProjectile.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModProjectile | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Projectiles/ExampleBobber.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModProjectile | Sem validacao funcional C# deste exemplo inteiro. |
-| Content/Projectiles/ExampleBulletProjectile.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModProjectile | Sem validacao funcional C# deste exemplo inteiro. |
+| Content/Projectiles/ExampleBulletProjectile.js | samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleBulletProjectile.cs | Implementado, aguardando validação | Aguardando roteiro Android | tests/basic_items/Program.cs; tests/summon_lifecycle/native_defaults_test.cpp; tests/summon_lifecycle/holdout_test.cpp; tests/summon_lifecycle/source_registration_test.cpp; tests/summon_lifecycle/source_damage_test.cpp |
 | Content/Projectiles/ExampleDrillProjectile.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModProjectile | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Projectiles/ExampleFlailProjectile.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModProjectile | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Projectiles/ExampleGolfBallProjectile.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModProjectile | Sem validacao funcional C# deste exemplo inteiro. |
@@ -200,7 +200,7 @@ O JSON ao lado conserva APIs, propriedades, dependencias, testes, lacunas e evid
 | Content/Projectiles/ExampleLaserHoldout.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModProjectile | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Projectiles/ExampleLastPrismBeam.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModProjectile | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Projectiles/ExampleLastPrismHoldout.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModProjectile | Sem validacao funcional C# deste exemplo inteiro. |
-| Content/Projectiles/ExampleMinion.js | samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleMinion.cs | Parcial | Teleporte, separacao entre minions, alvo manual, linha de visao e iluminacao originais ainda pendentes.; Rotacao e movimento dependentes da direcao do dono ainda diferem do original. | tests/basic_items/Program.cs; tests/entity_source/Program.cs; tests/projectile_policy/native_policy_test.cpp |
+| Content/Projectiles/ExampleMinion.js | samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleMinion.cs | Parcial | Iluminacao .78, CanCutTiles(false) e resistencia Cultist ainda pendentes.; Idle damping e limite de afastamento do dono sao politicas explicitas do SDK, diferem do idle original; gameplay Android .95 ainda aguardando validacao. | tests/basic_items/Program.cs; tests/entity_source/Program.cs; tests/projectile_policy/native_policy_test.cpp; tests/summon_lifecycle/runtime_test.cpp; tests/summon_lifecycle/source_damage_test.cpp; tests/summon_lifecycle/contracts_test.cpp; tests/summon_lifecycle/native_binding_test.cpp |
 | Content/Projectiles/ExampleRiftProjectile.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModProjectile | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Projectiles/ExampleSentry.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModProjectile | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Projectiles/ExampleSentryShot.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModProjectile | Sem validacao funcional C# deste exemplo inteiro. |
@@ -229,7 +229,7 @@ O JSON ao lado conserva APIs, propriedades, dependencias, testes, lacunas e evid
 | Content/Tiles/ExampleSign.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModTile | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Tiles/ExampleSink.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModTile | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Tiles/ExampleStatue.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModTile | Sem validacao funcional C# deste exemplo inteiro. |
-| Content/Tiles/ExampleTile.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModTile | Sem validacao funcional C# deste exemplo inteiro. |
+| Content/Tiles/ExampleTile.js | samples/ExampleModCSharp/Playable/content/Content/Tiles/ExampleTile.cs | Implementado, aguardando validação | Aguardando roteiro Android | tests/basic_items/Program.cs; tests/world_loaders/tile_flags_test.cpp; tests/basic_items/package_assets_test.py |
 | Content/Tiles/ExampleTorch.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModTile | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Tiles/ExampleTransparentShapedTile.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModTile | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Tiles/ExampleTrap.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModTile | Sem validacao funcional C# deste exemplo inteiro. |
@@ -251,7 +251,7 @@ O JSON ao lado conserva APIs, propriedades, dependencias, testes, lacunas e evid
 | Content/Tiles/Plants/ExampleSapling.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModTile | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Tiles/Plants/ExampleTree.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModTree | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Walls/ExampleWall.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModWall | Sem validacao funcional C# deste exemplo inteiro. |
-| Content/Walls/ExampleWallAdvanced.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModWall | Sem validacao funcional C# deste exemplo inteiro. |
+| Content/Walls/ExampleWallAdvanced.js | samples/ExampleModCSharp/Playable/content/Content/Walls/ExampleWallAdvanced.cs | Parcial | Validar contratos IL2CPP e paridade visual no Terraria Android real: colocação, frames, blend, iluminação, partículas, fabricação, mapa e save/reload.; BunnyWall oferece políticas nativas reutilizáveis; callbacks C# arbitrários do WallLoader original ainda pendentes, sem overrides públicos silenciosamente ignorados. | tests/basic_items/Program.cs; tests/world_loaders/wall_runtime_test.cpp; tests/world_loaders/wall_registry_test.cpp; tests/basic_items/native_item_binding_test.cpp --wall; tests/basic_items/package_assets_test.py |
 | main.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para Mod | Sem validacao funcional C# deste exemplo inteiro. |
 
 ## Evidencia e continuidade

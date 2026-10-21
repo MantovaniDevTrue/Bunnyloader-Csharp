@@ -298,7 +298,7 @@ public sealed class MinionStaff : BunnyWeapon
     string independentOut = Path.Combine(scratch, "IndependentExample.dll");
     string independentDiag = Path.Combine(scratch, "independent-diagnostics.txt");
     if (Compiler.Compile(independentRoot, independentOut, framework, independentDiag) != 1 ||
-        CompiledAssemblyProbe.Verify(independentOut, independentDiag) != 48)
+        CompiledAssemblyProbe.Verify(independentOut, independentDiag) != 63)
         throw new InvalidOperationException("Independent ExampleMod C# compile/verify failed: " +
             File.ReadAllText(independentDiag));
     string independentDefaults = File.ReadAllText(Path.Combine(scratch, "source-runtime-values.txt"));
@@ -306,8 +306,8 @@ public sealed class MinionStaff : BunnyWeapon
         File.ReadAllText(Path.Combine(independentRoot, "manifest.json")))
         .RootElement.GetProperty("version").GetString()!;
     string[] defaultRows = independentDefaults.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-    if (defaultRows.Length != 53 || defaultRows[0] != "BUNNY_MANAGED_DEFAULTS_V2")
-        throw new InvalidOperationException("Independent ExampleMod schema mismatch: Expected=53Rows,V2Header ActualRows=" +
+    if (defaultRows.Length != 80 || defaultRows[0] != "BUNNY_MANAGED_DEFAULTS_V2")
+        throw new InvalidOperationException("Independent ExampleMod schema mismatch: Expected=80Rows,V2Header ActualRows=" +
             defaultRows.Length + " ActualHeader=" + defaultRows.FirstOrDefault());
     string[] expectedDefaults = {
         "PROJECTILE\tExampleBolt\t12\t12\t1\t1\t240\t1\n",
@@ -339,6 +339,13 @@ public sealed class MinionStaff : BunnyWeapon
         "PREFIX\tExampleMightyPrefix\t4\t5\t1.2",
         "PREFIX\tExampleGuardedPrefix\t5\t1\t1",
         "ITEM\tExampleWings\t",
+        "ITEM\tExampleMeleeWeapon\t0\t0\t1\t50000\t2\t50\t6\t20\t20\t1\t",
+        "ITEM\tExampleBullet\t0\t0\t9999\t5000\t2\t12\t",
+        "ITEM\tExampleRocketLauncher\t0\t0\t1\t400000\t8\t55\t",
+        "HOLDOUT\tExampleBulletLauncher\t-18\t0\n",
+        "HOLDOUT\tExampleRocketLauncher\t-2\t-2\n",
+        "NATIVE_ITEM\tExampleBullet\tammo:d:AmmoID:Bullet;ranged:b:1;shoot:p:ExampleBulletProjectile;shootSpeed:f:4.5\n",
+        "NATIVE_PROJECTILE\tExampleBulletProjectile\textraUpdates:i:1;hostile:b:0;light:f:0.5;localNPCHitCooldown:i:-1;ranged:b:1;scale:f:1;usesLocalNPCImmunity:b:1\n",
     };
     foreach (string expectedDefault in expectedDefaults) {
         if (independentDefaults.Contains(expectedDefault, StringComparison.Ordinal)) continue;
@@ -691,6 +698,223 @@ public sealed class MinionStaff : BunnyWeapon
     Console.WriteLine("BUNNY_CSHARP_MANAGED_BUFF_POTION=PASS");
     Console.WriteLine("BUNNY_CSHARP_AUTO_COMBAT_INDEPENDENT=PASS");
     Console.WriteLine("BUNNY_CSHARP_INDEPENDENT_EXAMPLE=PASS");
+    var typedTile = new TileAnimatedTypeSmoke();
+    var legacyTile = new TileAnimatedLegacySmoke();
+    if ((typedTile.TileCallbackMask & (1 << 14)) == 0 ||
+        (legacyTile.TileCallbackMask & (1 << 14)) == 0)
+        throw new InvalidOperationException("BunnyTile overload override bit missing");
+    int tx = 0, ty = 0;
+    typedTile.AnimateIndividualTile(755, 4, 5, ref tx, ref ty);
+    if (typedTile.LastType != 755 || tx != 9 || ty != 10)
+        throw new InvalidOperationException("Native TileType lost in typed animation callback");
+    tx = 0;
+    ty = 0;
+    legacyTile.AnimateIndividualTile(755, 4, 5, ref tx, ref ty);
+    if (tx != 4 || ty != 5)
+        throw new InvalidOperationException("Legacy tile animation overload delegation failed");
+    string tileSmokeAssembly = typeof(TileAnimatedTypeSmoke).Assembly.Location;
+    string typedDraw = BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-typed-tile",
+        tileSmokeAssembly, nameof(TileAnimatedTypeSmoke), 13, 0,
+        "4,5,0,0,16,16,0,0,0,0,0,755");
+    string typedAnimatedDraw = BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-typed-tile",
+        tileSmokeAssembly, nameof(TileAnimatedTypeSmoke), 13, 0,
+        "4,5,0,0,16,16,0,0,0,0,0,755,3");
+    if(typedAnimatedDraw != "DRAW|0|0|16|16|0|9|10|0")
+        throw new InvalidOperationException("13-field typed tile draw lost TileType: "+typedAnimatedDraw);
+    string legacyDraw = BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-legacy-tile",
+        tileSmokeAssembly, nameof(TileAnimatedLegacySmoke), 13, 0,
+        "4,5,0,0,16,16,0,0,0,0,0,755");
+    string oldWireDraw = BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-legacy-tile",
+        tileSmokeAssembly, nameof(TileAnimatedLegacySmoke), 13, 0,
+        "4,5,0,0,16,16,0,0,0,0,0");
+    string badTypeDraw = BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-typed-tile",
+        tileSmokeAssembly, nameof(TileAnimatedTypeSmoke), 13, 0,
+        "4,5,0,0,16,16,0,0,0,0,0,753");
+    if (typedDraw != "DRAW|0|0|16|16|0|9|10|0" ||
+        legacyDraw != "DRAW|0|0|16|16|0|4|5|0" ||
+        oldWireDraw != legacyDraw ||
+        badTypeDraw != "ERROR|Stage=DecodeTileDraw Reason=InvalidTileType")
+        throw new InvalidOperationException("Tile animation managed draw transport mismatch: " +
+            typedDraw + " / " + legacyDraw + " / " + oldWireDraw + " / " + badTypeDraw);
+    string growthYes = BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-grow-sapling",
+        tileSmokeAssembly, nameof(TileSaplingSmoke), 28, 0, "2,3,0,1,0");
+    string growthNo = BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-grow-sapling",
+        tileSmokeAssembly, nameof(TileSaplingSmoke), 28, 0, "2,3,1,1,0");
+    string growthBad = BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-grow-sapling",
+        tileSmokeAssembly, nameof(TileSaplingSmoke), 28, 0, "2,3,2,1,0");
+    string growthBounds = BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-grow-sapling",
+        tileSmokeAssembly, nameof(TileSaplingSmoke), 28, 0, "2,3,0,65,0");
+    if ((new TileSaplingSmoke().TileCallbackMask & (1 << 28)) == 0 ||
+        growthYes != "1" || growthNo != "0" ||
+        growthBad != "ERROR|Stage=DecodeGrowSapling Reason=InvalidBooleans" ||
+        growthBounds != "ERROR|Stage=DecodeGrowSapling Reason=TreeHeightOutOfBounds")
+        throw new InvalidOperationException("GrowSapling callback regression: " +
+            growthYes + " / " + growthNo + " / " + growthBad + " / " + growthBounds);
+    Console.WriteLine("BUNNY_CSHARP_GROW_SAPLING_TRANSPORT=PASS");
+    var registeredDrop = new TileRegisteredDropSmoke();
+    registeredDrop.SetStaticDefaults();
+    if(registeredDrop.ItemDropDefinitions != "-1~ExampleTileItem;0~#40;1~ExampleChest" ||
+       registeredDrop.TileCallbackMask != 0)
+        throw new InvalidOperationException("BunnyTile RegisterItemDrop style/default serialization mismatch");
+    var replacedDrop = new TileRegisteredDropSmoke();
+    replacedDrop.RegisterItemDrop("ExampleDoor", 0, 0);
+    if(replacedDrop.ItemDropDefinitions != "0~ExampleDoor")
+        throw new InvalidOperationException("RegisterItemDrop last registration should win");
+    string dropsTwo=BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-drop-tile",
+        tileSmokeAssembly,nameof(TileDropsSmoke),27,0,"1,4");
+    string dropsDefault=BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-drop-tile",
+        tileSmokeAssembly,nameof(TileDropsSmoke),27,0,"2,4");
+    string dropsEmpty=BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-drop-tile",
+        tileSmokeAssembly,nameof(TileDropsSmoke),27,0,"3,4");
+    if((new TileDropsSmoke().TileCallbackMask&(1<<27))==0||
+       dropsTwo!="DROPS|2|40,1|41,5"||dropsDefault!="DEFAULT"||dropsEmpty!="DROPS|0")
+        throw new InvalidOperationException("Tile custom drops wire mismatch: "+
+            dropsTwo+" / "+dropsDefault+" / "+dropsEmpty);
+    string soundYes=BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-kill-sound",
+        tileSmokeAssembly,nameof(TileKillSoundSmoke),26,0,"2,3,0");
+    string soundNo=BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-kill-sound",
+        tileSmokeAssembly,nameof(TileKillSoundSmoke),26,0,"2,3,1");
+    string soundInvalid=BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-kill-sound",
+        tileSmokeAssembly,nameof(TileKillSoundSmoke),26,0,"2,3,2");
+    if((new TileKillSoundSmoke().TileCallbackMask&(1<<26))==0||soundYes!="1"||
+       soundNo!="0"||soundInvalid!="ERROR|Stage=DecodeTileKillSound Reason=InvalidFail")
+        throw new InvalidOperationException("KillSound managed callback regression: "+
+            soundYes+" / "+soundNo+" / "+soundInvalid);
+    string dustCount=BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-dynamic-dust",
+        tileSmokeAssembly,nameof(TileDynamicDustSmoke),24,0,"2,3,1,3");
+    string dustCountInvalid=BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-dynamic-dust",
+        tileSmokeAssembly,nameof(TileDynamicDustSmoke),24,0,"2,3,2,3");
+    string dustCreate=BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-dynamic-dust",
+        tileSmokeAssembly,nameof(TileDynamicDustSmoke),25,0,"2,3,31");
+    string dustDenied=BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-dynamic-dust",
+        tileSmokeAssembly,nameof(TileDynamicDustSmoke),25,0,"3,3,31");
+    if((new TileDynamicDustSmoke().TileCallbackMask&((1<<24)|(1<<25)))!=((1<<24)|(1<<25))||
+       dustCount!="DUST|7"||dustCountInvalid!="ERROR|Stage=DecodeTileDustCount Reason=InvalidFail"||
+       dustCreate!="CREATE|1|57"||dustDenied!="CREATE|0|57")
+        throw new InvalidOperationException("Dynamic dust wire regression: "+
+            dustCount+" / "+dustCountInvalid+" / "+dustCreate+" / "+dustDenied);
+    string killWire=BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-kill-tile",
+        tileSmokeAssembly,nameof(TileKillSmoke),22,0,"2,4,0,0,0");
+    string killReject=BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-kill-tile",
+        tileSmokeAssembly,nameof(TileKillSmoke),22,0,"2,4,2,0,0");
+    string multiWire=BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-kill-tile",
+        tileSmokeAssembly,nameof(TileKillSmoke),23,0,"4,5,54,36");
+    string multiReject=BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-kill-tile",
+        tileSmokeAssembly,nameof(TileKillSmoke),23,0,"4,5,-18,36");
+    if((new TileKillSmoke().TileCallbackMask&((1<<22)|(1<<23)))!=((1<<22)|(1<<23))||
+       killWire!="KILL|1|0|1"||killReject!="ERROR|Stage=DecodeTileKill Reason=InvalidBooleans"||
+       multiWire!="1"||multiReject!="ERROR|Stage=DecodeTileMultiKill Reason=InvalidFrames")
+        throw new InvalidOperationException("KillTile callbacks wire regression: "+
+            killWire+" / "+killReject+" / "+multiWire+" / "+multiReject);
+    string f0=BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-frame-tile",tileSmokeAssembly,nameof(TileFrameSmoke),21,0,"2,4,1,0");
+    string f1=BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-frame-tile",tileSmokeAssembly,nameof(TileFrameSmoke),21,0,"3,4,0,1");
+    string f2=BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-frame-tile",tileSmokeAssembly,nameof(TileFrameSmoke),21,0,"2,4,2,0");
+    if((new TileFrameSmoke().TileCallbackMask&(1<<21))==0||f0!="FRAME|1|0|1"||
+       f1!="FRAME|0|0|1"||f2!="ERROR|Stage=DecodeTileFrame Reason=InvalidBooleans")
+        throw new InvalidOperationException("CSharp TileFrame callback wire regression: "+f0+" / "+f1+" / "+f2);
+    string smartAllow=BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-smart-tile",
+        tileSmokeAssembly,nameof(TileSmartInteractSmoke),20,0,"3,4,1,2,5,6");
+    string smartReject=BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-smart-tile",
+        tileSmokeAssembly,nameof(TileSmartInteractSmoke),20,0,"9,4,1,2,5,6");
+    string smartInvalid=BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-smart-tile",
+        tileSmokeAssembly,nameof(TileSmartInteractSmoke),20,0,"3,4,5,2,1,6");
+    if((new TileSmartInteractSmoke().TileCallbackMask&(1<<20))==0||
+       smartAllow!="1"||smartReject!="0"||!smartInvalid.StartsWith("ERROR|"))
+        throw new InvalidOperationException("SmartInteract managed transport failed: "+
+            smartAllow+" / "+smartReject+" / "+smartInvalid);
+    string nativeFrame = BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-native-animated",
+        tileSmokeAssembly, nameof(TileNativeAnimatedSmoke), 13, 0,
+        "3,4,0,0,16,16,0,0,0,0,0,754,5");
+    string resetFrame = BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-native-animated",
+        tileSmokeAssembly, nameof(TileNativeAnimatedSmoke), 13, 0,
+        "3,4,0,0,16,16,0,0,0,0,0,754,0");
+    string missingFrame = BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-native-animated",
+        tileSmokeAssembly, nameof(TileNativeAnimatedSmoke), 13, 0,
+        "3,4,0,0,16,16,0,0,0,0,0,754");
+    string invalidFrame = BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-native-animated",
+        tileSmokeAssembly, nameof(TileNativeAnimatedSmoke), 13, 0,
+        "3,4,0,0,16,16,0,0,0,0,0,754,128");
+    if (nativeFrame != "DRAW|0|0|16|16|0|0|0|0\nSPRITES|1|754,3,4,0,180,16,16,0,0,4294967295,0,2" ||
+        resetFrame != "DRAW|0|0|16|16|0|0|0|0\nSPRITES|1|754,3,4,0,0,16,16,0,0,4294967295,0,2" ||
+        missingFrame != "DRAW|0|0|16|16|0|0|0|0" ||
+        invalidFrame != "ERROR|Stage=DecodeTileDraw Reason=InvalidAnimationFrame")
+        throw new InvalidOperationException("Native tile animation frame transport regression: " +
+            nativeFrame + " / " + resetFrame + " / " + missingFrame + " / " + invalidFrame);
+    string spriteDraw = BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-sprite-tile",
+        tileSmokeAssembly, nameof(TileSpriteSmoke), 13, 0,
+        "3,4,0,0,16,16,0,0,0,0,0,754");
+    if (spriteDraw != "DRAW|0|0|16|16|0|0|0|0|0\nSPRITES|1|754,3,4,0,0,16,16,0,2,4294967295,1")
+        throw new InvalidOperationException("CSharp PreDraw sprite wire mismatch: " + spriteDraw);
+    if ((new TileSpriteSmoke().TileCallbackMask & (1 << 5)) == 0)
+        throw new InvalidOperationException("CSharp PreDraw context overload undetected");
+    string postOnly = BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-postonly-tile",
+        tileSmokeAssembly, nameof(TilePostOnlySmoke), 13, 0,
+        "3,4,0,0,16,16,0,0,0,0,0,754");
+    if (postOnly != "DRAW|0|0|16|16|0|0|0|0\nSPRITES|1|754,3,4,0,0,16,16,1,3,4294967295,0")
+        throw new InvalidOperationException("PostDraw-only wire mismatch: "+postOnly);
+    if ((new TilePostOnlySmoke().TileCallbackMask & (1 << 16)) == 0)
+        throw new InvalidOperationException("PostDraw callback missing");
+    string specialPost = BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-postonly-tile",
+        tileSmokeAssembly, nameof(TilePostOnlySmoke), 13, 0,
+        "3,4,0,0,16,16,0,0,0,0,1,754");
+    if (specialPost != "DRAW|0|0|16|16|0|0|0|0")
+        throw new InvalidOperationException("PostDraw ran during special pass: "+specialPost);
+    string legacyPost = BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-postonly-tile",
+        tileSmokeAssembly, nameof(TilePostOnlySmoke), 13, 0,
+        "3,4,0,0,16,16,0,0,0,0,0");
+    if (legacyPost != "ERROR|Stage=DecodeTileDraw Reason=VisualCallbacksRequireTileType")
+        throw new InvalidOperationException("PostDraw without native type: "+legacyPost);
+    string both = BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-prepost-tile",
+        tileSmokeAssembly, nameof(TilePrePostSmoke), 13, 0,
+        "3,4,0,0,16,16,0,0,0,0,0,754");
+    if (both != "DRAW|0|0|16|16|0|0|0|0|0\nSPRITES|2|754,3,4,0,0,16,16,0,0,4294967295,1|754,3,4,16,0,16,16,0,0,4294967295,2")
+        throw new InvalidOperationException("PreDraw + PostDraw order: "+both);
+    string overlayWire=BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-overlay-tile",
+        tileSmokeAssembly,nameof(TileOverlaySmoke),13,0,
+        "3,4,0,0,16,16,0,0,0,0,0,754");
+    if(overlayWire!="DRAW|0|0|16|16|0|0|0|0\nSPRITES|3|754,3,4,0,0,16,16,0,0,4294967295,0|754,3,4,0,56,16,16,0,0,4294967295,0,1|754,3,4,0,36,16,16,0,2,16777215,0,2")
+        throw new InvalidOperationException("Tile glow/flame source wire mismatch: "+overlayWire);
+    string effects=BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-effect-tile",
+        tileSmokeAssembly,nameof(TileEffectsSmoke),13,0,
+        "3,4,0,0,16,16,0,0,0,0,0,754");
+    if(effects!="DRAW|0|0|16|16|0|0|0|0\nSPRITES|2|754,3,4,0,0,16,16,0,0,4294967295,0,1|754,3,4,0,36,16,16,0,2,4294967295,1,2,1")
+        throw new InvalidOperationException("DrawEffects special pass incorrect: "+effects);
+    if((new TileEffectsSmoke().TileCallbackMask&((1<<17)|(1<<18)))!=((1<<17)|(1<<18)))
+        throw new InvalidOperationException("DrawEffects/SpecialDraw override mask missing");
+    string inactive=BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-effect-tile",
+        tileSmokeAssembly,nameof(TileEffectsSmoke),13,0,
+        "3,4,18,0,16,16,0,0,0,0,0,754");
+    if(inactive!="DRAW|18|0|16|16|0|0|0|0")
+        throw new InvalidOperationException("SpecialDraw executed without request: "+inactive);
+    string noSpecial=BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-effect-tile",
+        tileSmokeAssembly,nameof(TileEffectsSmoke),13,0,
+        "3,4,0,0,16,16,0,0,0,0,1,754");
+    if(noSpecial!="DRAW|0|0|16|16|0|0|0|0")
+        throw new InvalidOperationException("SpecialDraw invoked in special pass: "+noSpecial);
+    string dust=BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-dust-tile",
+        tileSmokeAssembly,nameof(TileDustSmoke),13,0,
+        "3,4,0,0,16,16,0,0,0,0,0,754");
+    if(dust!="DRAW|0|0|16|16|0|0|0|0\nPARTICLES|1|754,3,4,31,2,-4,4,8,0,-1500,100,1000,4294967295")
+        throw new InvalidOperationException("EmitParticles expected native Dust wire: "+dust);
+    if((new TileDustSmoke().TileCallbackMask&(1<<19))==0)
+        throw new InvalidOperationException("EmitParticles override missing");
+    string noDust=BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-dust-tile",
+        tileSmokeAssembly,nameof(TileDustSmoke),13,0,
+        "3,4,0,18,16,16,0,0,0,0,0,754");
+    if(noDust!="DRAW|0|18|16|16|0|0|0|0")
+        throw new InvalidOperationException("EmitParticles ran with wrong tile frame: "+noDust);
+    string styledDust=BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-styled-dust",
+        tileSmokeAssembly,nameof(TileStyledDustSmoke),13,0,
+        "3,4,0,0,16,16,0,0,0,0,0,754");
+    if(styledDust!="DRAW|0|0|16|16|0|0|0|0\nPARTICLES|1|754,3,4,31,2,-4,4,8,0,0,100,1000,4294967295,1,500,200,200,-1000,4,63")
+        throw new InvalidOperationException("Styled Dust wire mismatch: "+styledDust);
+    Console.WriteLine("BUNNY_CSHARP_TILE_DUST_STYLE=PASS");
+    Console.WriteLine("BUNNY_CSHARP_TILE_PARTICLES=PASS");
+    Console.WriteLine("BUNNY_CSHARP_TILE_DRAW_EFFECTS_SPECIAL=PASS");
+    Console.WriteLine("BUNNY_CSHARP_TILE_OVERLAYS=PASS");
+    Console.WriteLine("BUNNY_CSHARP_TILE_POSTDRAW=PASS");
+    Console.WriteLine("BUNNY_CSHARP_TILE_SPRITE_CONTEXT=PASS");
+    Console.WriteLine("BUNNY_CSHARP_TILE_ANIMATION_TYPE=PASS");
     Console.WriteLine("BUNNY_ROSLYN_CACHE=PASS");
 }
 finally
@@ -699,3 +923,178 @@ finally
 }
 
 
+
+sealed class TileSaplingSmoke : BunnyLoader.Source.BunnyTile
+{
+    public override void SetStaticDefaults() { }
+    public override bool GrowSapling(int x, int y, bool underground, int treeHeightAddon, bool ignoreWalls)
+        => !underground && treeHeightAddon < 2 && !ignoreWalls;
+}
+
+sealed class TileRegisteredDropSmoke : BunnyLoader.Source.BunnyTile
+{
+    public override void SetStaticDefaults()
+    {
+        RegisterItemDrop("ExampleTileItem");
+        RegisterItemDrop(40, 0);
+        RegisterItemDrop("ExampleChest", 1);
+    }
+}
+
+sealed class TileAnimatedTypeSmoke : BunnyLoader.Source.BunnyTile
+{
+    public int LastType { get; private set; } = -1;
+    public override void SetStaticDefaults() { }
+    public override void AnimateIndividualTile(int type, int x, int y,
+        ref int addFrameX, ref int addFrameY)
+    {
+        LastType = type;
+        addFrameX += x + type - 750;
+        addFrameY += y + type - 750;
+    }
+}
+
+sealed class TileAnimatedLegacySmoke : BunnyLoader.Source.BunnyTile
+{
+    public override void SetStaticDefaults() { }
+    public override void AnimateIndividualTile(int x, int y, ref int addFrameX, ref int addFrameY)
+    {
+        addFrameX += x;
+        addFrameY += y;
+    }
+}
+
+sealed class TileSpriteSmoke : BunnyLoader.Source.BunnyTile
+{
+    public override void SetStaticDefaults() { CacheDrawData = false; }
+    public override bool PreDraw(int x,int y,BunnyLoader.Source.BunnyTileDrawContext draw)
+    {
+        draw.DrawTileTexture(0,0,16,16,0,2,0xffffffffu,1);
+        return false;
+    }
+}
+
+sealed class TilePostOnlySmoke : BunnyLoader.Source.BunnyTile
+{
+    public override void SetStaticDefaults() { CacheDrawData = false; }
+    public override void PostDraw(int x,int y,BunnyLoader.Source.BunnyTileDrawContext draw)
+    {
+        draw.DrawTileTexture(0,0,16,16,1,3);
+    }
+}
+sealed class TilePrePostSmoke : BunnyLoader.Source.BunnyTile
+{
+    public override void SetStaticDefaults() { CacheDrawData = false; }
+    public override bool PreDraw(int x,int y,BunnyLoader.Source.BunnyTileDrawContext draw)
+    {
+        draw.DrawTileTexture(0,0,16,16,0,0,0xffffffffu,1);
+        return false;
+    }
+    public override void PostDraw(int x,int y,BunnyLoader.Source.BunnyTileDrawContext draw)
+    {
+        draw.DrawTileTexture(16,0,16,16,0,0,0xffffffffu,2);
+    }
+}
+
+sealed class TileOverlaySmoke : BunnyLoader.Source.BunnyTile
+{
+    public override void SetStaticDefaults() { CacheDrawData=false; }
+    public override void PostDraw(int x,int y,BunnyLoader.Source.BunnyTileDrawContext draw)
+    {
+        draw.DrawTileTexture(0,0,16,16);
+        draw.DrawGlowTexture(0,56,16,16);
+        draw.DrawFlameTexture(0,36,16,16,0,2,0x00ffffffu);
+    }
+}
+
+sealed class TileEffectsSmoke : BunnyLoader.Source.BunnyTile
+{
+    public override void SetStaticDefaults() { CacheDrawData=false; }
+    public override void DrawEffects(int x,int y,int tileFrameX,int tileFrameY,
+        BunnyLoader.Source.BunnyTileDrawContext draw)
+    {
+        if(tileFrameX!=0)return;
+        draw.DrawGlowTexture(0,0,16,16);
+        draw.RequestSpecialDraw();
+    }
+    public override void SpecialDraw(int x,int y,BunnyLoader.Source.BunnyTileDrawContext draw)
+    {
+        draw.DrawFlameTexture(0,36,16,16,0,2,0xffffffffu,1);
+    }
+}
+
+sealed class TileDustSmoke : BunnyLoader.Source.BunnyTile
+{
+    public override void SetStaticDefaults() { CacheDrawData=false; }
+    public override void EmitParticles(int x,int y,int tileFrameX,int tileFrameY,
+        BunnyLoader.Source.BunnyTileDrawContext draw)
+    {
+        if(tileFrameY!=0)return;
+        draw.EmitDust(31,2,-4,4,8,0,-1500,100,1000);
+    }
+}
+
+sealed class TileStyledDustSmoke : BunnyLoader.Source.BunnyTile
+{
+    public override void SetStaticDefaults() { CacheDrawData=false; }
+    public override void EmitParticles(int x,int y,int tileFrameX,int tileFrameY,
+        BunnyLoader.Source.BunnyTileDrawContext draw)
+    {
+        if(tileFrameY!=0)return;
+        draw.EmitDustStyled(31,2,-4,4,8,0,0,100,1000,0xffffffffu,
+                            true,500,200,200,-1000,4,63);
+    }
+}
+
+sealed class TileNativeAnimatedSmoke : BunnyLoader.Source.BunnyTile
+{
+    public override void SetStaticDefaults() { CacheDrawData=false; }
+    public override void DrawEffects(int x,int y,int tileFrameX,int tileFrameY,
+        BunnyLoader.Source.BunnyTileDrawContext draw)
+    {
+        if (draw.AnimationFrame >= 0)
+            draw.DrawFlameTexture(0,draw.AnimationFrame*36,16,16);
+    }
+}
+
+sealed class TileSmartInteractSmoke : BunnyLoader.Source.BunnyTile {
+    public override void SetStaticDefaults() {}
+    public override bool HasSmartInteract(int x,int y,BunnyLoader.Source.BunnyTileSmartInteractSettings settings)
+        => x>=settings.LX && x<=settings.HX && y>=settings.LY && y<=settings.HY;
+}
+
+sealed class TileFrameSmoke : BunnyLoader.Source.BunnyTile {
+    public override void SetStaticDefaults() {}
+    public override bool TileFrame(int x,int y,ref bool resetFrame,ref bool noBreak) {
+        resetFrame=false;noBreak=true;
+        return x!=3;
+    }
+}
+
+sealed class TileKillSmoke : BunnyLoader.Source.BunnyTile {
+    public override void SetStaticDefaults() {}
+    public override void KillTile(int x,int y,ref bool fail,ref bool effectOnly,ref bool noItem) {
+        fail=true;effectOnly=false;noItem=true;
+    }
+    public override void KillMultiTile(int x,int y,int frameX,int frameY) {
+        if(frameX!=54||frameY!=36)throw new InvalidOperationException("Frame coordinates changed");
+    }
+}
+
+sealed class TileDynamicDustSmoke : BunnyLoader.Source.BunnyTile {
+    public override void SetStaticDefaults() {}
+    public override void NumDust(int x,int y,bool fail,ref int num) {num=fail?7:4;}
+    public override bool CreateDust(int x,int y,ref int type) {type=57;return x!=3;}
+}
+
+sealed class TileKillSoundSmoke : BunnyLoader.Source.BunnyTile {
+    public override void SetStaticDefaults() {}
+    public override bool KillSound(int x,int y,bool fail) => !fail;
+}
+
+sealed class TileDropsSmoke : BunnyLoader.Source.BunnyTile {
+    public override void SetStaticDefaults() {}
+    public override BunnyLoader.Source.BunnyTileDrop[]? GetItemDrops(int x,int y) =>
+        x==2 ? null : x==3 ? Array.Empty<BunnyLoader.Source.BunnyTileDrop>() :
+        new[]{new BunnyLoader.Source.BunnyTileDrop(40),new BunnyLoader.Source.BunnyTileDrop(41,5)};
+}
