@@ -17,7 +17,7 @@ complete = {
     "ModifyTimeRate",
 }
 
-implemented = set(re.findall(r"\bprotected virtual void (\w+)\s*\(", sdk))
+implemented = set(re.findall(r"\bprotected virtual void (\w+)\s*\(", sdk)) - {"OnUnloaded"}
 expected = {
     "PreUpdateEntities", "PostUpdateEverything", "PreUpdateProjectiles",
     "PreUpdateDusts", "PostUpdateDusts", "PreUpdateInvasions",
