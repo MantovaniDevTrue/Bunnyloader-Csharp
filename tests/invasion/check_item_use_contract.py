@@ -98,3 +98,13 @@ entity_test = (root / "tests/entity_source/Program.cs").read_text()
 assert 'BunnyDust assembly registered before item use' in entity_test
 assert 'Dust registration remains idempotent' in entity_test
 print("CSHARP_DUST_EARLY_REGISTRATION_GUARD=PASS")
+
+dust = (root / "experiments/csharp/BunnyCsSdk/BunnyDustSourceDispatcher.cs").read_text()
+assert "RegisterLoaded(modId, Assembly.LoadFrom(assemblyPath))" in dust
+assert "BunnyEntitySourceDispatcher.TryRegisterDustAssembly(assembly)" in dust
+assert "RegistrationError=" in dust
+assert "BunnyDustSourceDispatcher.RegisterLoaded(modId, assembly)" in dispatcher
+assert "internal static bool TryRegisterDustAssembly(Assembly assembly)" in dispatcher
+source_runtime = (root / "app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp").read_text()
+assert "Stage=BindingPlan Mod=%s Registered=%d ManagedHooks=%zu" in source_runtime
+print("CSHARP_DUST_ASSEMBLY_RECOVERY_GUARD=PASS")
