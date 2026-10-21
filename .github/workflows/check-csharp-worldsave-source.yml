@@ -121,6 +121,7 @@ jobs:
       - name: Compile CSharp Terraria hook translation unit in host-only syntax mode
         run: |
           g++ -std=c++20 -Wall -Wextra -Werror -fsyntax-only \
+            -I Split/Bunny-Loader/tests/world_save/host_include \
             -I Split/Bunny-Loader/app/src/main/cpp \
             Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp
       - name: Audit exact IL2CPP save/load hook contract
