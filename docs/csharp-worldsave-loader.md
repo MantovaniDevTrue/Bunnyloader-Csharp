@@ -22,6 +22,12 @@ O hook já existente em `ModTileSave.cpp` passa o caminho local vindo de `Active
 
 Este passo **não registra** os callbacks `BunnyWorldSystem`, não lê/escreve dados via Mono e não afirma que os hooks de save do Terraria estão integrados. O teste do workflow verifica os pontos de conexão em fonte; assinatura e offsets reais ainda exigem QA Android.
 
+## Etapa 4 — dispatcher gerenciado de sistemas de mundo
+
+O novo `BunnyWorldDispatcher` descobre e registra sistemas por UUID/classe, rejeita duplicações e alterações de registro após entrada, e executa `ClearWorld → OnWorldLoad → LoadWorldData → PostWorldLoad`. `TryPrepareSave` cria o snapshot sem mutar o último documento confirmado, e `TryConfirmSaved` só deve ser chamado após sucesso do sidecar nativo. Uma exceção bloqueia o snapshot inteiro; `TryLeaveWorld` invalida o epoch e os estados. Clientes não podem persistir no disco. Mod ausente mantém dados originais.
+
+Estes são métodos executáveis no SDK; **a chamada entre o MonoVM e os hooks reais ainda não está implementada**. O teste .NET usa as próprias classes do SDK e o ExampleDownedBossWorldSystem de exemplo.
+
 ## Requisitos ainda bloqueantes
 
 1. Host nativo C++ deve capturar a identidade real do arquivo de mundo após a seleção; não confiar em nome de mundo ou caminho informado por um mod.

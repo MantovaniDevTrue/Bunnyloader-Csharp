@@ -70,6 +70,7 @@ internal static class Program
         Require(newWorld.SystemCount == 0, "world transition clears state");
 
         // Este teste de fonte não confirma hooks IL2CPP ou escrita no Android.
+        DispatcherTests.Run();
         Console.WriteLine("WORLD_CODEC_SOURCE_TESTS_PASS");
     }
 }
