@@ -3,7 +3,9 @@
 #include "experiments/csharp/NativeCloudRegistry.h"
 #include "experiments/csharp/NativeCloudSelection.h"
 
+#include <cmath>
 #include <cstddef>
+#include <utility>
 #include <vector>
 
 namespace bl::csharp {
@@ -30,8 +32,10 @@ public:
             return false;
         for (const auto& entry : weights) {
             const auto* record = registry.find(entry.type);
-            if (!record || !record->ready || entry.chance <= 0)
+            if (!record || !std::isfinite(entry.chance) || entry.chance < 0)
                 return false;
+            if (entry.chance == 0) continue;
+            if (!record->ready) return false;
             if (record->rare) {
                 if (!registry.addWeight(rare, entry.type, true, entry.chance) ||
                     !registry.addWeight(anniversary, entry.type, true, entry.chance))
