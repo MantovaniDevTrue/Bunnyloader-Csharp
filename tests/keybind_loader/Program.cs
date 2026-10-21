@@ -103,6 +103,26 @@ static class KeybindContract
         BunnyTouchButtonLoader.ApplyHostFrame(2, true, false, false, false,
             new[] { dash.Id, 127, -1 }, Array.Empty<int>(), Array.Empty<int>());
         Check(!second.Current && !dash.Current, "invalid/stale IDs discarded");
+        BunnyTouchButtonLoader.ReleaseAll();
+        BunnyTouchEntry.Load();
+        Check(BunnyTouchButtonLoader.TryGet("examplemodcsharp/RandomBuff", out var random) &&
+              random is not null, "playable touch entry registers RandomBuff");
+        Check(BunnyTouchButtonLoader.TryGet("examplemodcsharp/LearningExample", out var learning) &&
+              learning is not null, "playable touch entry registers LearningExample");
+        BunnyTouchButtonLoader.ApplyHostFrame(1, true, false, false, false,
+            Array.Empty<int>(), new[] { random!.Id, learning!.Id },
+            new[] { random.Id, learning.Id });
+        BunnyTouchEntry.ProcessTriggers();
+        Check(BunnyTouchEntry.RandomBuffPresses == 1, "playable ProcessTriggers uses JustPressed");
+        BunnyTouchButtonLoader.ApplyHostFrame(2, true, false, false, false,
+            Array.Empty<int>(), Array.Empty<int>(), new[] { random.Id, learning.Id });
+        BunnyTouchEntry.ProcessTriggers();
+        BunnyTouchButtonLoader.ApplyHostFrame(3, true, false, false, false,
+            Array.Empty<int>(), new[] { learning.Id }, new[] { random.Id, learning.Id });
+        BunnyTouchEntry.ProcessTriggers();
+        Check(BunnyTouchEntry.DoubleTaps == 1, "playable ProcessTriggers recognizes double tap");
+        BunnyTouchButtonLoader.UnregisterMod("examplemodcsharp");
+
         LayoutStoreTests.Run();
         Console.WriteLine("KEYBIND CONTRACT PASS (" + checks + " checks)");
     }
