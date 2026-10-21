@@ -7,5 +7,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../experiments/csharp/BunnyCsSdk/BunnyCsSdk.csproj" />
+    <Compile Include="../../samples/ExampleModCSharp/Playable/content/Common/Systems/BunnyTouchEntry.cs"
+             Link="ExampleTouchEntry.cs" />
   </ItemGroup>
 </Project>
