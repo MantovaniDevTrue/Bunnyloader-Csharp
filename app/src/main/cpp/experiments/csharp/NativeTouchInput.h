@@ -48,6 +48,7 @@ public:
               const int* bound, size_t boundCount);
     uint32_t read(int id) const;
     uint64_t pressToken(int id) const;
+    int snapshot(uint32_t* states, uint64_t* tokens, int capacity) const;
     std::string fullName(int id) const;
     int find(std::string_view fullName) const;
     std::string displayName(int id) const;
@@ -86,6 +87,8 @@ __attribute__((visibility("default"))) int bunny_csharp_touch_frame(
     const int* held, int heldCount, const int* bound, int boundCount);
 __attribute__((visibility("default"))) uint32_t bunny_csharp_touch_read(int id);
 __attribute__((visibility("default"))) uint64_t bunny_csharp_touch_press_token(int id);
+__attribute__((visibility("default"))) int bunny_csharp_touch_snapshot(
+    uint32_t* states, uint64_t* tokens, int capacity);
 __attribute__((visibility("default"))) int bunny_csharp_touch_count();
 __attribute__((visibility("default"))) int bunny_csharp_touch_host_ready();
 __attribute__((visibility("default"))) void bunny_csharp_touch_world_reset();
