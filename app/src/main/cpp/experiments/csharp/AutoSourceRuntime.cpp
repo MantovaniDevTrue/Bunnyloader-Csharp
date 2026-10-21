@@ -11,6 +11,7 @@
 #include "experiments/csharp/NativeTouchController.h"
 #include "experiments/csharp/NativeTouchEditor.h"
 #include "experiments/csharp/NativeTouchStaticMappings.h"
+#include "experiments/csharp/NativeTouchIcons.h"
 #include "experiments/csharp/NativeTouchInput.h"
 #include "graphics/CSharpScreenEffects.h"
 #include "experiments/csharp/NativeContent.h"
