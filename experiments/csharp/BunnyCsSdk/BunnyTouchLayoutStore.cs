@@ -23,7 +23,7 @@ public sealed class BunnyTouchLayoutSlot
 }
 
 /// <summary>
-/// Arquivo BunnyLoader.touchbuttons.json no mesmo esquema do loader JS.
+/// Arquivo BunnyLoader.touchbuttons.csharp.json no mesmo esquema do loader JS.
 /// O host deve capturar os Slots ANTES de salvar o perfil vanilla e restaurar
 /// os IDs depois; nunca gravar os valores C# no arquivo padrão do jogo.
 /// </summary>
@@ -244,7 +244,7 @@ public sealed class BunnyTouchLayoutStore
     {
         if (string.IsNullOrWhiteSpace(directory))
             throw new ArgumentException("Diretório do jogo ausente", nameof(directory));
-        return Path.Combine(Path.GetFullPath(directory), "BunnyLoader.touchbuttons.json");
+        return Path.Combine(Path.GetFullPath(directory), "BunnyLoader.touchbuttons.csharp.json");
     }
 
     private static string? Keep(string? current, bool unbound,
