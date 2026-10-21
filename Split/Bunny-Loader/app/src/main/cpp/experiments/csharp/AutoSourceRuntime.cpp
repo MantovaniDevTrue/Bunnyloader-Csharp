@@ -1256,6 +1256,20 @@ void noteAutoGameUpdate() {
     }
     flushDeferredWorldEntry();
     if (!g_worldTilesLoaded.load(std::memory_order_acquire)) {
+        if (g_worldDataEnteredEpoch.load(std::memory_order_acquire) != 0 &&
+            g_worldMenuPollFrames.fetch_add(1, std::memory_order_relaxed) % 30 == 0) {
+            const auto context = readActivationContext();
+            if (context.gameMenu == 1 && context.netMode == 0) {
+                const uint64_t leaving = g_worldDataEnteredEpoch.exchange(
+                    0, std::memory_order_acq_rel);
+                if (leaving != 0) {
+                    std::string error;
+                    worldsave::leaveManagedWorld(leaving, &error);
+                    g_worldEpoch.fetch_add(1, std::memory_order_acq_rel);
+                    invalidateManagedWorldMonoRequests();
+                }
+            }
+        }
         static unsigned retries = 0;
         if (++retries % 12u == 0) schedulePreWorldBindings();
         reportCSharpLoadSummary();
@@ -1465,6 +1479,38 @@ void flushDeferredWorldEntry() {
 }
 
 
+
+using NativeClearWorldFn = void (*)(const MethodInfo*);
+NativeClearWorldFn g_origNativeWorldClear = nullptr;
+
+void hkNativeCSharpWorldClear(const MethodInfo* method) {
+    if (!g_origNativeWorldClear) return;
+    g_origNativeWorldClear(method);
+    if (g_worldSystemModules.load(std::memory_order_acquire) == 0 ||
+        !g_worldRegistrationReady.load(std::memory_order_acquire) ||
+        !g_nativeWorldNetHooksReady.load(std::memory_order_acquire) ||
+        readActivationContext().netMode != 1) return;
+    const uint64_t old = g_worldDataEnteredEpoch.exchange(
+        0, std::memory_order_acq_rel);
+    if (old != 0) {
+        std::string error;
+        worldsave::leaveManagedWorld(old, &error);
+    }
+    invalidateManagedWorldMonoRequests();
+    const uint64_t epoch = g_worldEpoch.fetch_add(1, std::memory_order_acq_rel) + 1;
+    worldsave::MonoWorldRequest request{};
+    request.action = worldsave::MonoWorldAction::Enter;
+    request.epoch = epoch;
+    request.authoritative = false;
+    worldsave::MonoWorldReply reply{};
+    if (!requestManagedWorldOnMono(request, &reply, 3000) || !reply.success) {
+        BL_WARN("CSharp WorldNet client world initialization rejected: %s",
+                reply.error.c_str());
+        return;
+    }
+    g_worldDataEnteredEpoch.store(epoch, std::memory_order_release);
+}
+
 using NativeLoadWorldFn = void (*)(bool, const MethodInfo*);
 using NativeSaveWorldFn = void (*)(bool, bool, const MethodInfo*);
 using NativeQuitCallbackFn = void (*)(Il2CppObject*, const MethodInfo*);
@@ -1538,9 +1584,12 @@ bool installNativeCSharpWorldSaveHooks() {
     Il2CppClass* worldGen = il2cpp::findClass({"Terraria", "WorldGen", {}});
     const MethodInfo* quit = worldGen
         ? il2cpp::findMethodBySignature(worldGen, quitSig) : nullptr;
-    if (!load || !save || !quit || !api.method_is_instance ||
+    const MethodInfo* clear = worldGen
+        ? il2cpp::findMethodBySignature(worldGen,
+            il2cpp::parseSignature("void clearWorld()")) : nullptr;
+    if (!load || !save || !quit || !clear || !api.method_is_instance ||
         api.method_is_instance(load) || api.method_is_instance(save) ||
-        api.method_is_instance(quit)) {
+        api.method_is_instance(quit) || api.method_is_instance(clear)) {
         BL_WARN("CSharp WorldSave: assinatura IL2CPP nao encontrada para hooks estaticos");
         return false;
     }
@@ -1550,6 +1599,8 @@ bool installNativeCSharpWorldSaveHooks() {
         return false;
     if (!bl::hook::install(quit, hkNativeCSharpWorldQuitCallback,
                            &g_origNativeQuitCallback)) return false;
+    if (!bl::hook::install(clear, hkNativeCSharpWorldClear,
+                           &g_origNativeWorldClear)) return false;
     return true;
 }
 
@@ -1569,6 +1620,35 @@ bool installCSharpWorldEntryGate() {
     if (!worldSaveReady)
         BL_WARN("CSharp WorldSave hooks unavailable; world system gate remains closed");
     return true;
+}
+
+
+void onNativeWorldSyncSent(int remoteClient, int ignoreClient) {
+    if (g_worldSystemModules.load(std::memory_order_acquire) == 0 ||
+        !g_nativeWorldNetHooksReady.load(std::memory_order_acquire) ||
+        readActivationContext().netMode != 2) return;
+    const uint64_t epoch = g_worldEpoch.load(std::memory_order_acquire);
+    if (g_worldDataEnteredEpoch.load(std::memory_order_acquire) != epoch)
+        return;
+    std::vector<uint8_t> packet;
+    std::string error;
+    if (!worldsave::prepareWorldNetworkPacket(epoch, &packet, &error) ||
+        !worldsave::sendNativeWorldNetPacket(
+            packet, remoteClient, ignoreClient, &error))
+        BL_WARN("CSharp WorldNet server send failed: %s", error.c_str());
+}
+
+void onNativeWorldNetReceived(const uint8_t* bytes, size_t length, int from) {
+    if (g_worldSystemModules.load(std::memory_order_acquire) == 0 ||
+        !g_nativeWorldNetHooksReady.load(std::memory_order_acquire) ||
+        readActivationContext().netMode != 1) return;
+    const uint64_t epoch = g_worldDataEnteredEpoch.load(std::memory_order_acquire);
+    if (epoch == 0 || epoch != g_worldEpoch.load(std::memory_order_acquire))
+        return;
+    std::string error;
+    if (!worldsave::receiveWorldNetworkPacket(epoch, bytes, length, &error))
+        BL_WARN("CSharp WorldNet packet rejected (remote=%d): %s",
+                from, error.c_str());
 }
 
 void startAutoSourceRuntime() {
