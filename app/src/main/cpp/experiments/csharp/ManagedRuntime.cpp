@@ -1562,16 +1562,29 @@ bool executeManagedCloudOnWorker(const CloudWorkerJob& job,
         g_cloudSpawnMethod = g_api.findMethod(cls, "OnSpawnWire", 5);
         g_cloudUnregisterMethod = g_api.findMethod(cls, "Unregister", 1);
         g_cloudClearMethod = g_api.findMethod(cls, "Clear", 0);
+        void* biome = image ? g_api.findClass(
+            image, "BunnyLoader.Source", "BunnyBiomeDispatcher") : nullptr;
+        if (!biome) return false;
+        g_biomeRegisterMethod = g_api.findMethod(biome, "RegisterFromPath", 2);
+        g_biomeTilesMethod = g_api.findMethod(biome, "TilesWire", 1);
+        g_biomeEvaluateMethod = g_api.findMethod(biome, "EvaluateWire", 8);
+        g_biomeUnregisterMethod = g_api.findMethod(biome, "Unregister", 1);
+        g_biomeClearMethod = g_api.findMethod(biome, "Clear", 0);
         if (!g_cloudRegisterMethod || !g_cloudBindMethod ||
             !g_cloudWeightsMethod || !g_cloudSpawnMethod ||
-            !g_cloudUnregisterMethod || !g_cloudClearMethod)
+            !g_cloudUnregisterMethod || !g_cloudClearMethod ||
+            !g_biomeRegisterMethod || !g_biomeTilesMethod ||
+            !g_biomeEvaluateMethod || !g_biomeUnregisterMethod ||
+            !g_biomeClearMethod)
             return false;
     }
 
     if (job.kind == 3) {
-        void* exception = nullptr;
-        g_api.invoke(g_cloudClearMethod, nullptr, nullptr, &exception);
-        return exception == nullptr;
+        void* cloudException = nullptr;
+        void* biomeException = nullptr;
+        g_api.invoke(g_cloudClearMethod, nullptr, nullptr, &cloudException);
+        g_api.invoke(g_biomeClearMethod, nullptr, nullptr, &biomeException);
+        return cloudException == nullptr && biomeException == nullptr;
     }
 
     CloudWorkerBinding binding;
@@ -1591,6 +1604,25 @@ bool executeManagedCloudOnWorker(const CloudWorkerJob& job,
         const auto* raw = exception || !boxed ? nullptr :
             static_cast<const uint8_t*>(g_api.unbox(boxed));
         return raw && *raw != 0;
+    };
+    auto managedText = [&](void* method, void** args,
+                           std::string* output) -> bool {
+        if (!output) return false;
+        void* exception = nullptr;
+        void* reply = g_api.invoke(method, nullptr, args, &exception);
+        if (exception || !reply) return false;
+        using Utf8Fn = char* (*)(void*);
+        using FreeFn = void (*)(void*);
+        static auto toUtf8 = resolve<Utf8Fn>("mono_string_to_utf8");
+        static auto monoFree = resolve<FreeFn>("mono_free");
+        if (!toUtf8 || !monoFree) return false;
+        char* encoded = toUtf8(reply);
+        if (!encoded) return false;
+        const size_t length = strnlen(encoded, 8193);
+        bool ok = length > 0 && length <= 8192;
+        if (ok) output->assign(encoded, length);
+        monoFree(encoded);
+        return ok;
     };
 
     if (job.kind == 0) {
@@ -1620,6 +1652,41 @@ bool executeManagedCloudOnWorker(const CloudWorkerJob& job,
             }
         }
         return true;
+    }
+
+    if (job.kind == 4 && weightReply) {
+        if (!validAssembly(binding.assemblyPath)) return false;
+        void* path = g_api.newString(g_domain, binding.assemblyPath.c_str());
+        if (!path) return false;
+        void* args[] = {mod, path};
+        if (!managedBool(g_biomeRegisterMethod, args)) return false;
+        void* manifestArgs[] = {mod};
+        if (!managedText(g_biomeTilesMethod, manifestArgs, weightReply))
+            return false;
+        std::vector<NativeBiomeDescriptor> records;
+        std::string validationError;
+        if (!appendNativeBiomeManifest(binding.modId, *weightReply,
+                                       &records, &validationError) ||
+            records.size() != binding.biomeNames.size())
+            return false;
+        for (const auto& record : records)
+            if (std::find(binding.biomeNames.begin(), binding.biomeNames.end(),
+                          record.className) == binding.biomeNames.end())
+                return false;
+        return true;
+    }
+
+    if (job.kind == 5 && weightReply) {
+        int maxTiles = job.maxTilesX;
+        float position = job.positionX;
+        bool menu = job.gameMenu;
+        bool active = job.playerActive;
+        bool sky = job.skyHeight, surface = job.overworldHeight;
+        void* tiles = g_api.newString(g_domain, job.tileCounts.c_str());
+        if (!tiles) return false;
+        void* args[] = {mod, &menu, &active, &position, &maxTiles,
+                         &sky, &surface, tiles};
+        return managedText(g_biomeEvaluateMethod, args, weightReply);
     }
 
     if (job.kind == 1) {
