@@ -63,3 +63,20 @@ world = auto[auto.index("void noteAutoGameUpdate()"):auto.index("bool preWorldCS
 assert 'g_worldSessionReady.store(true, std::memory_order_release);\n        requestBasicItemInstanceRefresh("WorldLoaded");' in world
 assert 'bool finishPreWorldCSharpPlayer() {\n    requestBasicItemInstanceRefresh("BeforeWorld");' in auto
 print("CSHARP_SAVED_WINGS_AND_INACTIVE_LOADOUT_REHYDRATION_GUARD=PASS")
+
+exports = (Path(__file__).resolve().parents[2] / "app/src/main/cpp/script/js/mod/Exports.js").read_text()
+tooltip_loader = (Path(__file__).resolve().parents[2] / "app/src/main/cpp/script/js/mod/Loaders/TooltipLoader.js").read_text()
+native_api = (Path(__file__).resolve().parents[2] / "app/src/main/cpp/script/api/CSharpPrototypeApi.cpp").read_text()
+writer = (Path(__file__).resolve().parents[2] / "experiments/csharp/BunnySourceCompiler/BasicItemWriter.cs").read_text()
+sample = (Path(__file__).resolve().parents[2] / "samples/ExampleModCSharp/Playable/content/Content/Items/ExampleTooltipItem.cs").read_text()
+assert "typeof globalThis.bl?.csharp?.tooltipPlan === 'function'" in exports
+assert "Hooks.Once('item.Tooltips', TooltipLoader.Install);" in exports
+assert 'JS_SetPropertyStr(ctx, api, "tooltipPlan"' in native_api
+assert "bl::csharp::basicItemTooltipPlan(type)" in native_api
+assert "TooltipLoader.#ModifyManaged(item, lines);" in tooltip_loader
+assert "TooltipLoader.#DrawManagedWave(line, def);" in tooltip_loader
+assert "batch[TooltipLoader.#DRAW_STRING](font, ch," in tooltip_loader
+assert "const draw = batch[TooltipLoader.#DRAW_STRING];" not in tooltip_loader
+assert "rainbow=draw.RainbowWave" in writer
+assert 'line.OverrideColor = "FFD75A"' in sample
+print("CSHARP_TOOLTIP_PLAN_NATIVE_ACTIVATION_GUARD=PASS")

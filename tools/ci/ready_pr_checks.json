@@ -318,5 +318,10 @@
     "name": "Execute full ExampleMod native bootstrap and actual invasion HUD binding/drawing",
     "source": "integration-regression",
     "command": "bash tests/ready_prs/run.sh"
+  },
+  {
+    "name": "Audit CSharp native tooltip activation, line colors and glyph drawing",
+    "source": "integration-regression",
+    "command": "python3 tests/basic_items/check_csharp_tooltip_refresh.py"
   }
 ]

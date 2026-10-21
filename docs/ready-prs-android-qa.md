@@ -1,6 +1,6 @@
 # Sete PRs integrados — QA experimental Android
 
-Bunny `1.0.7-tooltip-hook-qa` (versionCode 306), ExampleMod CSharp `0.1.63`.
+Bunny `1.0.8-tooltip-wave-qa` (versionCode 307), ExampleMod CSharp `0.1.63`.
 Base: `v1.0` em `cfbe784ee3cb`. Branch: `integration/ready-prs-20261020`.
 
 Este APK reúne os PRs #101 (Localization), #102 (Rarity), #114 (AnglerQuest),
@@ -127,3 +127,9 @@ Ative **ExampleMod CSharp 0.1.63** e use o `ExampleTooltipItem`, que contém as 
 ## QA 1.0.7: correção da ativação do tooltip C#
 
 O relatório 1.0.6 mostrou o item `Exemplo de Tooltip` renderizado como vanilla, sem a linha `Bunny Loader`. Causa identificada nas fontes: `TooltipLoader.Install` era chamado por callbacks JS de `ModItem`, `GlobalItem` e outros, mas nunca por mods exclusivamente C#. Agora `Exports.js` registra esse hook uma vez pelo mecanismo `Hooks.Once` quando a API `bl.csharp.tooltipPlan` está presente, mantendo a decisão de desenhar somente itens com plano C# e o caminho vanilla para os demais. O log nativo `[CSharp][Tooltip] Stage=PlanStored` confirma a instalação do plano no tipo do item. Verifique o mesmo `ExampleMod CSharp 0.1.63` e reporte se as três linhas (nome, arco-íris ondulado, descrição dourada) aparecem sem alterar itens vanilla. O áudio validado não foi modificado.
+
+## QA 1.0.8: renderização da onda por letra
+
+A ativação C# introduzida na QA 1.0.7 foi mantida sem alterações; a chamada de `SpriteBatch.DrawString` na animação agora usa diretamente o receptor `spriteBatch` do renderizador do ExampleModBunny, sem separar a referência ao método. Esse ajuste corrige um possível problema de contexto no desenho dos glifos. O plano C# continua compilado uma vez, sem executar callbacks Mono por quadro, e o hook só desenha itens com plano visual ativo.
+
+Repetir com `ExampleTooltipItem`: três linhas, `Bunny Loader` com onda arco-íris e `Tooltip0` dourado; comparar com o tooltip JS e um item vanilla. Registrar FPS em movimento e parado, trocar de mundo, abrir/fechar inventário e exportar relatório em caso de falha. Os testes automatizados não substituem a validação visual Android. Os loaders Dust, Invasion e AnglerQuest não receberam alterações nesta revisão.
