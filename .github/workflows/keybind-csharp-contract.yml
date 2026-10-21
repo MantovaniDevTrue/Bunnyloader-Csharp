@@ -35,6 +35,8 @@ on:
       - app/src/main/cpp/experiments/csharp/NativeTouchLayoutAccess.cpp
       - app/src/main/cpp/experiments/csharp/NativeTouchLayoutHooks.h
       - app/src/main/cpp/experiments/csharp/NativeTouchLayoutHooks.cpp
+      - app/src/main/cpp/experiments/csharp/NativeTouchGroups.h
+      - app/src/main/cpp/experiments/csharp/NativeTouchGroups.cpp
       - app/src/main/cpp/experiments/csharp/NativeTouchInput.cpp
       - app/src/main/cpp/experiments/csharp/NativeTouchInput.h
       - app/src/main/cpp/experiments/csharp/NativeTouchGameAbi.h
@@ -117,7 +119,8 @@ jobs:
             app/src/main/cpp/experiments/csharp/NativeTouchPointer.cpp \
             app/src/main/cpp/experiments/csharp/NativeTouchFocus.cpp \
             app/src/main/cpp/experiments/csharp/NativeTouchLayoutAccess.cpp \
-            app/src/main/cpp/experiments/csharp/NativeTouchLayoutHooks.cpp
+            app/src/main/cpp/experiments/csharp/NativeTouchLayoutHooks.cpp \
+            app/src/main/cpp/experiments/csharp/NativeTouchGroups.cpp
       - name: Android ABI compilation (no APK)
         shell: bash
         run: |
