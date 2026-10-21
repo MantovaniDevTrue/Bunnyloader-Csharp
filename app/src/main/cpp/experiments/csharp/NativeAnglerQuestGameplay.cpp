@@ -43,6 +43,7 @@ const MethodInfo* g_cultureNameMethod = nullptr;
 uint64_t g_appliedGeneration = std::numeric_limits<uint64_t>::max();
 unsigned g_poll = 0;
 unsigned g_resolveFailures = 0;
+const char* g_contractDiagnostic = "NotChecked";
 std::vector<Quest> g_active;
 uint64_t g_effectiveListFingerprint = 0;
 std::set<int> g_ownedTypes;
@@ -141,6 +142,7 @@ bool arrayType(FieldInfo* field, const char* element) {
 }
 
 bool findContracts() {
+    g_contractDiagnostic = "MissingIL2CPPExports";
     auto& a = il2cpp::api();
     if (!a.field_static_get_value || !a.field_static_set_value ||
         !a.array_new || !a.object_get_class || !a.string_new ||
@@ -150,7 +152,11 @@ bool findContracts() {
     Il2CppClass* main = il2cpp::findClass({"Terraria", "Main", {}});
     Il2CppClass* lang = il2cpp::findClass({"Terraria", "Lang", {}});
     Il2CppClass* sets = il2cpp::findClass({"Terraria.ID", "ItemID", "Sets"});
-    if (!main || !lang || !sets) return false;
+    if (!main || !lang || !sets) {
+        g_contractDiagnostic = !main ? "TerrariaMainMissing" :
+            !lang ? "TerrariaLangMissing" : "ItemIDSetsMissing";
+        return false;
+    }
     if (a.runtime_class_init) {
         a.runtime_class_init(main);
         a.runtime_class_init(sets);
@@ -159,29 +165,46 @@ bool findContracts() {
     const MethodInfo* swap = a.class_get_method_from_name(main, "AnglerQuestSwap", 0);
     const MethodInfo* chat = a.class_get_method_from_name(lang, "AnglerQuestChat", 1);
     if (!methodSignature(swap, "System.Void") ||
-        !methodSignature(chat, "System.String", "System.Boolean"))
+        !methodSignature(chat, "System.String", "System.Boolean")) {
+        g_contractDiagnostic = !methodSignature(swap, "System.Void") ?
+            "AnglerQuestSwapSignatureMismatch" : "AnglerQuestChatSignatureMismatch";
         return false;
+    }
     g_questItems = il2cpp::findField(main, "anglerQuestItemNetIDs");
     g_questIndex = il2cpp::findField(main, "anglerQuest");
     g_questFinished = il2cpp::findField(main, "anglerQuestFinished");
     g_hardMode = il2cpp::findField(main, "hardMode");
     g_netMode = il2cpp::findField(main, "netMode");
     if (!staticField(g_netMode) ||
-        !typeName(a.field_get_type(g_netMode), "System.Int32"))
+        !typeName(a.field_get_type(g_netMode), "System.Int32")) {
+        g_contractDiagnostic = "NetModeStaticInt32Mismatch";
         return false;
+    }
     g_chatCorner = il2cpp::findField(main, "npcChatCornerItem");
     g_questFlag = il2cpp::findField(sets, "IsQuestFish");
     g_weaponRackFlag = il2cpp::findField(sets, "CanBePlacedOnWeaponRacks");
     if (!arrayType(g_weaponRackFlag, "Boolean"))
         g_weaponRackFlag = nullptr;
-    if (!arrayType(g_questItems, "Int32") || !arrayType(g_questFlag, "Boolean") ||
+    if (!arrayType(g_questItems, "Int32") ||
+        !arrayType(g_questFlag, "Boolean") ||
         !staticField(g_questIndex) || !staticField(g_questFinished) ||
         !staticField(g_hardMode) || !staticField(g_chatCorner) ||
         !typeName(a.field_get_type(g_questIndex), "System.Int32") ||
         !typeName(a.field_get_type(g_chatCorner), "System.Int32") ||
         !typeName(a.field_get_type(g_questFinished), "System.Boolean") ||
-        !typeName(a.field_get_type(g_hardMode), "System.Boolean"))
+        !typeName(a.field_get_type(g_hardMode), "System.Boolean")) {
+        g_contractDiagnostic = !arrayType(g_questItems, "Int32") ? "QuestItemNetIDsInt32ArrayMismatch" :
+            !arrayType(g_questFlag, "Boolean") ? "ItemIsQuestFishBooleanArrayMismatch" :
+            !staticField(g_questIndex) ? "QuestIndexNotStatic" :
+            !staticField(g_questFinished) ? "QuestFinishedNotStatic" :
+            !staticField(g_hardMode) ? "HardModeNotStatic" :
+            !staticField(g_chatCorner) ? "NpcChatCornerNotStatic" :
+            !typeName(a.field_get_type(g_questIndex), "System.Int32") ? "QuestIndexNotInt32" :
+            !typeName(a.field_get_type(g_chatCorner), "System.Int32") ? "NpcChatCornerNotInt32" :
+            !typeName(a.field_get_type(g_questFinished), "System.Boolean") ? "QuestFinishedNotBoolean" :
+            "HardModeNotBoolean";
         return false;
+    }
     Il2CppClass* language = il2cpp::findClassQuiet("Terraria.Localization", "Language");
     Il2CppClass* culture = il2cpp::findClassQuiet("Terraria.Localization", "GameCulture");
     g_activeCultureMethod = language ?
@@ -286,7 +309,10 @@ bool findContracts() {
         api.field_static_set_value(g_chatCorner, &corner);
         return output;
     }, &g_originalChat);
-    return g_swapHooked && g_chatHooked;
+    const bool both = g_swapHooked && g_chatHooked;
+    g_contractDiagnostic = both ? "Ready" : (!g_swapHooked ? "QuestSwapHookRejected" :
+        "QuestChatHookRejected");
+    return both;
 }
 
 struct PendingArrayRoots {
@@ -445,7 +471,8 @@ void pumpOnGameThread() {
     if (!g_swapHooked || !g_chatHooked || !g_questItems) {
         if (!findContracts()) {
             if (++g_resolveFailures == 1 || g_resolveFailures == 120)
-                BL_WARN("[CSharp][AnglerQuest] Stage=ResolveNativeHooks Result=Pending Reason=MissingOrIncompatibleIL2CPPContract");
+                BL_WARN("[CSharp][AnglerQuest] Stage=ResolveNativeHooks Result=Pending Reason=%s",
+                        g_contractDiagnostic);
             return;
         }
     }
