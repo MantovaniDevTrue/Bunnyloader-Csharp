@@ -58,6 +58,21 @@ int main() {
     assert(state.frame(10, true, false, false, false, nullptr, 129, nullptr, 0) == -1);
     assert(state.frame(10, true, false, false, false, nullptr, 0, nullptr, 129) == -1);
 
+    assert(state.policies(other, false, true));
+    assert(!state.visible(other) && state.enabled(other));
+    assert(!state.tap(other));
+    assert(state.frame(10, true, false, false, false, &other, 1, &other, 1) >= 0);
+    assert(!(state.read(other) & bits::Current));
+    assert(state.policies(other, true, false));
+    assert(state.visible(other) && !state.enabled(other));
+    assert(!state.tap(other));
+    assert(state.frame(11, true, false, false, false, &other, 1, &other, 1) >= 0);
+    assert(!(state.read(other) & bits::Current));
+    assert(state.policies(other, true, true));
+    assert(state.tap(other));
+    assert(state.frame(12, true, false, false, false, nullptr, 0, &other, 1) >= 0);
+    assert(state.read(other) & bits::JustPressed);
+
     state.resetWorld();
     assert(state.read(other) == 0);
     assert(state.frame(1, true, false, false, false, &other, 1, &other, 1) == 1);
