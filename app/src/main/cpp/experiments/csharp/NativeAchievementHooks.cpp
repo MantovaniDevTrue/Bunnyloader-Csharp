@@ -33,6 +33,7 @@ std::array<bool, 4> installed{};
 std::atomic<bool> hooksReady{false};
 std::atomic<bool> worldActive{false};
 std::atomic<bool> bindingsReady{false};
+std::atomic<uint64_t> rejectedEvents{0};
 std::mutex bindingMutex;
 struct AchievementBinding {
     std::string assembly;
@@ -98,9 +99,13 @@ void notify(int operation, int type, int count, bool local) {
     // nenhuma entidade IL2CPP atravessa a fronteira entre threads.
     std::lock_guard<std::mutex> lock(bindingMutex);
     for (const auto& [mod, binding] : bindings) {
-        if (!queueManagedAchievementEvent(mod, binding.assembly, operation, type, count, true))
-            BL_WARN("[CSharp][AchievementLoader] Evento nao entregue mod=%s kind=%d type=%d",
-                    mod.c_str(), operation, type);
+        if (!queueManagedAchievementEvent(mod, binding.assembly, operation, type, count, true)) {
+            const auto failures = rejectedEvents.fetch_add(1, std::memory_order_relaxed) + 1;
+            if (failures <= 4 || failures % 256 == 0)
+                BL_WARN("[CSharp][AchievementLoader] Evento nao entregue mod=%s kind=%d type=%d total=%llu",
+                        mod.c_str(), operation, type,
+                        static_cast<unsigned long long>(failures));
+        }
     }
 }
 
