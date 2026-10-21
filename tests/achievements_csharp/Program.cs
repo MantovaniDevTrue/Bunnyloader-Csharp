@@ -123,7 +123,7 @@ Check(transportSave.StartsWith("BACH1\n") && transportSave != "BACH1\n",
 Check(Bind("transport", 6, 0, 1, "BACH1\n") == "OK", "managed restore clears progress");
 Check(Bind("transport", 6, 0, 1, transportSave) == "OK", "managed restore accepts snapshot");
 Check(Bind("transport", 8).Contains("|0|0|1|"), "restored completed state visible in UI manifest");
-Check(Bind("transport", 1, -1, 1, "1").StartsWith("ERROR|"),
+Check(Bind("transport", 1, -32769, 1, "1").StartsWith("ERROR|"),
     "invalid native event rejected");
 Check(Bind("transport", 7) == transportSave, "unload returns the last saved snapshot");
 Check(Bind("transport", 8).StartsWith("ERROR|"), "unloaded mod cannot receive callbacks");
