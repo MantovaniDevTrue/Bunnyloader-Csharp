@@ -5,6 +5,7 @@
 #include "experiments/csharp/NativeTouchProfiles.h"
 #include "experiments/csharp/NativeTouchFocus.h"
 #include "experiments/csharp/NativeTouchGroups.h"
+#include "experiments/csharp/NativeTouchLayoutHooks.h"
 #include "hook/HookManager.h"
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
@@ -197,6 +198,8 @@ void onControllerUpdate(void* self, float elapsedTime, const MethodInfo* method)
     // Os layouts mudam durante a edição. A leitura da configuração ocorre
     // no máximo a cada 30 frames; o gameplay não escaneia perfis por toque.
     const void* currentProfile = nativeTouchActiveProfileIdentity();
+    if (currentProfile && scannedProfile != currentProfile)
+        reapplyNativeTouchLayoutsOnGameThread();
     if (!sampled || scannedProfile != currentProfile ||
         ticks - previousScan >= 30) {
         ActiveTouchSnapshot next;
