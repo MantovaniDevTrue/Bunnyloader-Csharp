@@ -101,6 +101,11 @@ bool achievementProfileReady() {
     return active.load(std::memory_order_acquire);
 }
 
+void pauseAchievementProfileOnWorldExit() {
+    active.store(false, std::memory_order_release);
+    setNativeAchievementWorldActive(false);
+}
+
 void pumpAchievementProfileOnGameThread(bool inWorld) {
     if (!inWorld) return;
     if (++attempts % (achievementProfileReady() ? 60u : 12u) != 1u)
