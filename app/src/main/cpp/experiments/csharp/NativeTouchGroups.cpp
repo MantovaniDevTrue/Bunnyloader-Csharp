@@ -198,6 +198,12 @@ void nativeTouchGroupBefore(void* controller, bool gameplay) {
                        discoveryAttempts % 120 == 0))
         available = discover(controller);
     if (!available) return;
+    if (!gameplay) {
+        for (int i = 0; i < count; ++i)
+            groups[static_cast<size_t>(i)].before = -1;
+        frames = 0;
+        return;
+    }
     const void* profile = nativeTouchActiveProfileIdentity();
     if (++frames == 1 || frames % 30 == 0 || cachedProfile != profile) {
         refresh();
