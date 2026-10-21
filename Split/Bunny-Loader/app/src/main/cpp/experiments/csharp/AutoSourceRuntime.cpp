@@ -5,6 +5,7 @@
 #include "experiments/csharp/NativeWorldCoordinator.h"
 #include "experiments/csharp/NativeWorldNetwork.h"
 #include "experiments/csharp/NativeWorldNetTransport.h"
+#include "experiments/csharp/StableWorldUid.h"
 #include "il2cpp/Signature.h"
 #include "experiments/csharp/NativeVisualRenderer.h"
 #include "experiments/csharp/NativeContent.h"
@@ -890,7 +891,7 @@ void run() {
     for (const auto& [id, assembly] : pendingWorldModules) {
         worldsave::MonoWorldRequest request{};
         request.action = worldsave::MonoWorldAction::Register;
-        request.modUid = id;
+        request.modUid = worldsave::stableWorldSystemUid(id);
         request.assemblyPath = assembly;
         std::string lastReason = "MonoVM registration unavailable";
         bool registered = false;

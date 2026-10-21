@@ -69,6 +69,13 @@ jobs:
             Split/Bunny-Loader/tests/world_save/world_source_parser_test.cpp \
             -o /tmp/world_source_parser_test
           ASAN_OPTIONS=detect_leaks=1 /tmp/world_source_parser_test
+      - name: Verify stable Bunny source mod UID to world UUID conversion
+        run: |
+          g++ -std=c++20 -O2 -Wall -Wextra -Werror -pedantic \
+            -I Split/Bunny-Loader/app/src/main/cpp \
+            Split/Bunny-Loader/tests/world_save/stable_world_uid_test.cpp \
+            -o /tmp/stable_world_uid_test
+          /tmp/stable_world_uid_test
       - name: Native MonoVM mailbox with ASan and UBSan
         run: |
           g++ -std=c++20 -O1 -g -Wall -Wextra -Werror -pedantic -pthread \

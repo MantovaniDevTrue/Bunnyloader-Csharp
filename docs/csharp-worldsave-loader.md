@@ -94,6 +94,12 @@ Os dois hooks de NetManager verificam `nativeWorldNetActive()` antes de inspecio
 
 O caminho quente não tem varreduras por entidade. A validação em dispositivo Android continua obrigatória.
 
+## Etapa 18 — identidade estável de mods reais
+
+`SourceModStatus.id` deriva do UID de pasta (por exemplo, `examplemodcsharp`) e **não é obrigatoriamente um UUID**. Antes de chamar o `BunnyWorldMonoHost.RegisterMod`, o host converte UIDs de pasta com SHA-256 namespaceado em um UUID determinístico (versão 8, variante RFC), sem depender da ordem de carga, dispositivo, endereços nativos ou índice do Terraria. UIDs que já são UUIDs válidos preservam sua forma canônica. A identidade original da pasta continua sendo a utilizada pelo loader, pelos assets e pela compilação C#. O teste valida repetibilidade, separação entre mods, canonicidade e entradas inválidas.
+
+Esta conversão não foi aplicada retroativamente a saves antigos porque os arquivos BWC1 ainda não foram lançados ao público. Não altera UUIDs declarados por mods com UID já canônico.
+
 ## Requisitos ainda bloqueantes
 
 1. Host nativo C++ deve capturar a identidade real do arquivo de mundo após a seleção; não confiar em nome de mundo ou caminho informado por um mod.
