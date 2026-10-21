@@ -377,6 +377,8 @@ void pumpNativeCloudManagedCallbacksOnGameThread(
     g_collectingWeights = false;
 }
 
+bool nativeCloudHooksEnabled() { return g_enabled; }
+
 void pauseNativeCloudHooks() {
     g_enabled = false;
     g_insideAdd = false;
