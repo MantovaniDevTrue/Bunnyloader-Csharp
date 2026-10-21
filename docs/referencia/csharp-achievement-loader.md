@@ -45,15 +45,15 @@ g++ -std=c++20 -O2 -Iapp/src/main/cpp tests/achievements_csharp/source_parser_te
 dotnet run -c Release --project tests/achievements_csharp/AchievementCoreTests.csproj
 ```
 
-Validação de 21/10/2026: GitHub Actions `39632688060` — parser C++ passou; 40 verificações .NET passaram. Isto **não** valida o comportamento dentro do Terraria Android.
+Validação de 21/10/2026: GitHub Actions [39637092215](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39637092215) — parser C++ passou; fila C++ passou; C++ ManagedRuntime/NativeAchievementHooks/AutoSourceRuntime passaram na verificação de sintaxe; 42 verificações .NET passaram. Isto **não** valida o comportamento dentro do Terraria Android.
 
 ## Pendências que impedem concluir ou gerar APK
 
-1. Ligar o dispatcher ao worker MonoVM real via fila existente e protocolar limites para saves maiores que a resposta RPC atual.
-2. Capturar eventos IL2CPP reais de mortes/coleta/craft/tiles com filtro de jogador local, deduplicação e isolamento entre mods, sem usar JavaScript.
-3. Registrar conquistas e conditions/trackers no `Terraria.Main.Achievements`, incluindo reload seguro e preservação do progresso vanilla.
-4. Implementar a textura de ícones no layout mobile, categorias, nome e descrição localizados, conquistas ocultas, menu e popup nativos.
-5. Integrar o `BACH1` ao ciclo real de save do perfil e restauração antes dos eventos, evitando sobrescritas e duplicações.
-6. Revisar ativação/desativação de mod, DLC de mundos, multitarefa, multiplayer, desempenho e QA Android.
+1. **Implementado em fonte, pendente QA Android:** despacho por fila FIFO limitada de 256 comandos no worker MonoVM já existente, com limite de resposta de 1 MiB, eventos assíncronos e controles com timeout/resultado desconhecido explícito.
+2. **Implementado em fonte, pendente QA Android:** resolução tipada das quatro assinaturas IL2CPP do AchievementsHelper (NotifyNPCKilledDirect, NotifyItemPickup, NotifyItemCraft e NotifyTileDestroyed). Os ganchos só ficam ativos no mundo e entregam dados do jogador local a cada mod registrado. Ainda falta conferir antiduplificação por sessão e rejeição de eventos atrasados em transições de mundo.
+3. **Pendente:** registrar conquistas e conditions/trackers no `Terraria.Main.Achievements`, incluindo reload seguro e preservação do progresso vanilla.
+4. **Pendente:** implementar textura de ícones no layout mobile, categorias, nome e descrição localizados, conquistas ocultas, menu e popup nativos.
+5. **Pendente:** integrar `BACH1` ao save real de conquistas do perfil, com gravação atômica e restauração antes dos eventos, evitando sobrescritas e duplicações.
+6. **Pendente:** revisar ativação/desativação de mod, transições de mundo, multitarefa, multiplayer, desempenho, reconciliação do estado do worker e QA Android.
 
 **ESTADO: WIP — SEM APK, SEM MERGE.** A branch permite avançar com CI estática e gerenciada, mas ainda não é loader jogável.
