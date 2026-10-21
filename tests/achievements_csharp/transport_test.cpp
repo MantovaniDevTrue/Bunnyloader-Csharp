@@ -18,6 +18,12 @@ int main() {
     invalid.count = 1;
     invalid.payload = "1";
     assert(queue.push(invalid));
+    invalid.value = -4;
+    assert(queue.push(invalid));
+    invalid.operation = 2;
+    assert(!queue.push(invalid));
+    invalid.operation = 1;
+    invalid.value = 12;
     invalid.payload = "2";
     assert(!queue.push(invalid));
     invalid.payload = "1";
@@ -28,6 +34,7 @@ int main() {
 
     AchievementJob out;
     assert(queue.pop(&out) && out.count == 1);
+    assert(queue.pop(&out) && out.value == -4);
     assert(queue.pop(&out) && out.count == 9999);
     assert(!queue.pop(&out));
 
