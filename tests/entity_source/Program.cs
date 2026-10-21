@@ -61,6 +61,14 @@ public sealed class BrokenManagedNpc : BunnyNPC
     }
 }
 
+public sealed class ManagedProbeDust : BunnyDust
+{
+    public override void SetStaticDefaults()
+    {
+        Texture = "Content/Effects/TrailblazerSpark.png";
+    }
+}
+
 public static class Program
 {
     private static int checks;
@@ -80,6 +88,14 @@ public static class Program
         int second = BunnyEntitySourceDispatcher.Register("source-mod-b", dll);
         Check(first == 0 && second == 1, "mod registration");
         Check(BunnyEntitySourceDispatcher.Register("source-mod-a", dll) == first, "registration idempotent");
+        var dustResolver = typeof(BunnyDustSourceDispatcher).GetMethod(
+            "ModForAssembly", BindingFlags.NonPublic | BindingFlags.Static);
+        Check(dustResolver?.Invoke(null, new object[] { Assembly.GetExecutingAssembly() }) as string
+              == "source-mod-a", "BunnyDust assembly registered before item use");
+        Check(BunnyDustSourceDispatcher.Register("source-mod-a", dll) == 0,
+            "Dust registration remains idempotent");
+        Check(BunnyDustSourceDispatcher.Register("source-mod-b", dll) == 1,
+            "Second mod Dust registration remains idempotent");
         Check(BunnyEntitySourceDispatcher.Bind(first, 0, 697, nameof(ManagedProbeNpc)), "npc bind");
         Check(BunnyEntitySourceDispatcher.Bind(first, 1, 1136, nameof(ManagedProbeProjectile)), "projectile bind");
         Check(BunnyEntitySourceDispatcher.Bind(second, 0, 698, nameof(ManagedProbeNpc)), "second mod bind");

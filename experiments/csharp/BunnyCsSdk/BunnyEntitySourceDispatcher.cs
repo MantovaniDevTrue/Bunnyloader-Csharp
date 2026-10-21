@@ -76,6 +76,7 @@ public static class BunnyEntitySourceDispatcher
         {
             var assembly = Assembly.LoadFrom(assemblyPath);
             var context = new Context { Mod = modId, Path = assemblyPath };
+            bool hasDust = false;
             foreach (Type type in assembly.GetTypes().OrderBy(t => t.FullName, StringComparer.Ordinal))
             {
                 if (!type.IsClass || type.IsAbstract || type.ContainsGenericParameters) continue;
@@ -105,6 +106,10 @@ public static class BunnyEntitySourceDispatcher
                             throw new InvalidOperationException("Duplicate item use class " + type.Name);
                     }
                 }
+                else if (typeof(BunnyDust).IsAssignableFrom(type))
+                {
+                    hasDust = true;
+                }
                 else if (typeof(BunnyInvasionSystem).IsAssignableFrom(type))
                 {
                     BunnyInvasionSystem system = Activator.CreateInstance(type) as BunnyInvasionSystem
@@ -114,6 +119,9 @@ public static class BunnyEntitySourceDispatcher
                     context.InvasionOrder.Add(system);
                 }
             }
+            if (hasDust && BunnyDustSourceDispatcher.Register(modId, assemblyPath) < 0)
+                context.LastError = "BunnyDust registration: " +
+                    BunnyDustSourceDispatcher.LastRegistrationError;
             Contexts.Add(context);
             return Contexts.Count - 1;
         }
