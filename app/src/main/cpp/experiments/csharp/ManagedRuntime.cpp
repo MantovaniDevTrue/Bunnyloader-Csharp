@@ -425,6 +425,7 @@ struct ManagedEntityBinding {
     bool armed = true;
     bool invasionSupported = true;
     bool firstWorldTickReported = false;
+    bool firstWorldErrorReported = false;
 };
 
 struct ManagedEntityJob {
@@ -490,6 +491,7 @@ void* g_entityRegister = nullptr;
 void* g_entityBind = nullptr;
 void* g_entityNpcTick = nullptr;
 void* g_entityWorldTick = nullptr;
+void* g_entityStatusMethod = nullptr;
 void* g_entityProjectileTick = nullptr;
 void* g_entityNpcHit = nullptr;
 void* g_entityNpcKill = nullptr;
@@ -1154,6 +1156,7 @@ int64_t executeManagedEntityOnWorker(const ManagedEntityJob& job) {
         g_entityBind = g_api.findMethod(klass, "Bind", 4);
         g_entityNpcTick = g_api.findMethod(klass, "TickNpc", 13);
         g_entityWorldTick = g_api.findMethod(klass, "TickWorld", 7);
+        g_entityStatusMethod = g_api.findMethod(klass, "Status", 1);
         g_entityProjectileTick = g_api.findMethod(klass, "TickProjectile", 14);
         g_entityNpcHit = g_api.findMethod(klass, "HitNpc", 6);
         g_entityNpcKill = g_api.findMethod(klass, "KillNpc", 4);
@@ -1219,6 +1222,43 @@ int64_t executeManagedEntityOnWorker(const ManagedEntityJob& job) {
         if (!raw) return -1;
         int32_t count = -1;
         std::memcpy(&count, raw, sizeof(count));
+        bool reportError = false;
+        if (count < 0) {
+            std::lock_guard<std::mutex> guard(g_pinnedMutex);
+            if (job.session == g_entitySession && job.binding >= 0 &&
+                static_cast<size_t>(job.binding) < g_entityBindings.size()) {
+                auto& owner = g_entityBindings[static_cast<size_t>(job.binding)];
+                if (!owner.firstWorldErrorReported) {
+                    owner.firstWorldErrorReported = true;
+                    reportError = true;
+                }
+            }
+        }
+        if (reportError) {
+            std::string detail = "WorldTick returned " + std::to_string(count);
+            if (g_entityStatusMethod) {
+                void* statusArgs[] = {&managedSlot};
+                void* statusError = nullptr;
+                void* status = g_api.invoke(g_entityStatusMethod, nullptr,
+                    statusArgs, &statusError);
+                if (status && !statusError) {
+                    auto utf8 = resolve<char* (*)(void*)>("mono_string_to_utf8");
+                    auto release = resolve<void (*)(void*)>("mono_free");
+                    if (utf8 && release) {
+                        char* message = utf8(status);
+                        if (message) {
+                            detail.assign(message, strnlen(message, 320));
+                            release(message);
+                        }
+                    }
+                }
+            }
+#ifdef __ANDROID__
+            __android_log_print(ANDROID_LOG_WARN, "BunnyCSharp",
+                "[CSharp][ItemUse] Mod=%s Stage=WorldTick Result=Error Detail=%s",
+                binding.modId.c_str(), detail.c_str());
+#endif
+        }
         return count;
     }
     int type = job.type, slot = job.slot, generation = job.generation;
@@ -2926,6 +2966,8 @@ bool hasManagedEntityProjectileType(int type) {
 void pauseManagedEntitySourceCallbacks() {
     std::lock_guard<std::mutex> guard(g_pinnedMutex);
     ++g_entitySession;
+    for (auto& binding : g_entityBindings)
+        binding.firstWorldErrorReported = false;
     g_entityQueue.clear();
     g_entityNpcPending.fill(false);
     g_entityProjectilePending.fill(false);
