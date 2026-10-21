@@ -33,6 +33,7 @@ std::array<bool, 4> installed{};
 std::atomic<bool> hooksReady{false};
 std::atomic<bool> worldActive{false};
 std::atomic<bool> bindingsReady{false};
+std::atomic<uint64_t> metadataRevision{0};
 std::atomic<uint64_t> rejectedEvents{0};
 std::mutex bindingMutex;
 struct AchievementBinding {
@@ -214,6 +215,7 @@ bool registerNativeAchievementMod(const std::string& modId,
             return false;
         }
         found->second.metadata = std::move(records);
+        metadataRevision.fetch_add(1, std::memory_order_release);
         return true;
     }
     if (bindings.size() >= 64) {
@@ -222,6 +224,7 @@ bool registerNativeAchievementMod(const std::string& modId,
     }
     bindings.emplace(modId, AchievementBinding{assemblyPath, std::move(records)});
     bindingsReady.store(true, std::memory_order_release);
+    metadataRevision.fetch_add(1, std::memory_order_release);
     return true;
 }
 
@@ -258,7 +261,12 @@ bool updateNativeAchievementProgress(const std::string& modId,
         old.hidden = entries[i].hidden;
         old.progress = entries[i].progress;
     }
+    metadataRevision.fetch_add(1, std::memory_order_release);
     return true;
+}
+
+std::uint64_t nativeAchievementMetadataRevision() {
+    return metadataRevision.load(std::memory_order_acquire);
 }
 
 std::vector<AchievementMetadata> nativeAchievementMetadataSnapshot() {
