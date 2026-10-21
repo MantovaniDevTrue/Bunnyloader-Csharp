@@ -8,7 +8,7 @@ expected = {
     "ITEM_RARITY": {3}, "RARITY": {2}, "DUST": {5}, "QUEST_FISH": {6,7}, "QUEST_LOCALE": {5}, "QUEST_CALLBACK": {3}, "QUEST_CATCH": {4},
     "SHOOT": {3}, "USE_SOUND": {8}, "HOLDOUT": {4}, "NATIVE_ITEM": {3}, "NATIVE_PROJECTILE": {3},
     "RECIPES": {4},
-    "ITEM": {20, 21, 22, 23, 24, 25, 26},
+    "ITEM": {20, 21, 22, 23, 24, 25, 26, 27},
     "TILE": {13, 14, 16, 17, 19, 20, 21},
     "WALL": {16},
     "PROJECTILE": {8, 12, 13, 14, 16, 17, 18},
