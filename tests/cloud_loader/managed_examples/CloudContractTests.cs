@@ -52,6 +52,60 @@ static class CloudContractTests
             "Infinity disabled");
         Require(BunnyCloud.SafeSpawnChance(-2) == 0, "Negative disabled");
         Require(BunnyCloud.SafeSpawnChance(10) == 10, "Valid weight preserved");
+        // O mesmo caminho da API de nuvens será usado pelo worker MonoVM.
+        // O host só poderá ativá-lo depois de instalar os assets/máscaras.
+        var assembly = typeof(CloudContractTests).Assembly;
+        BunnyCloudDispatcher.Clear();
+        Require(BunnyCloudDispatcher.Register("cloud-test-a", assembly),
+            "Managed class registration: " + BunnyCloudDispatcher.LastRegistrationError);
+        Require(!BunnyCloudDispatcher.Register("cloud-test-a", assembly),
+            "Duplicate mod rejected");
+        Require(BunnyCloudDispatcher.Bind("cloud-test-a", nameof(ExampleCommonCloud), 200),
+            "Bind common");
+        Require(BunnyCloudDispatcher.Bind("cloud-test-a", nameof(ExampleAdvancedCloud), 201),
+            "Bind advanced");
+        Require(BunnyCloudDispatcher.Bind("cloud-test-a", nameof(ExampleFaultingCloud), 202),
+            "Bind faulting probe");
+        Require(!BunnyCloudDispatcher.Bind("cloud-test-a", nameof(ExampleCommonCloud), 203),
+            "One cloud must not bind twice");
+        Require(!BunnyCloudDispatcher.Bind("cloud-test-a", nameof(ExampleAdvancedCloud), 200),
+            "Native ID must not have two owners");
+        Require(!BunnyCloudDispatcher.IsRare("cloud-test-a", 200), "Common category");
+        Require(BunnyCloudDispatcher.IsRare("cloud-test-a", 201), "Rare category");
+        Require(BunnyCloudDispatcher.Texture("cloud-test-a", 201) ==
+            "Content/Clouds/ExampleAdvancedCloud", "Texture registration");
+
+        Require(BunnyCloudDispatcher.SpawnChance("cloud-test-a", 200, biome) == 1,
+            "Managed common chance");
+        Require(BunnyCloudDispatcher.SpawnChance("cloud-test-a", 201, biome) == 10,
+            "Managed rare chance in biome");
+        Require(BunnyCloudDispatcher.SpawnChance("cloud-test-a", 201, outside) == 1,
+            "Managed rare chance outside biome");
+        Require(BunnyCloudDispatcher.SpawnChance("cloud-test-a", 202, outside) == 0,
+            "Faulting chance is suppressed");
+        Require(BunnyCloudDispatcher.SpawnChance("cloud-test-a", 202, outside) == 0,
+            "Faulting cloud remains blocked");
+        Require(BunnyCloudDispatcher.Diagnostics("cloud-test-a").Contains("Faults=1"),
+            "Fault is counted only once");
+
+        Require(BunnyCloudDispatcher.TryOnSpawn("cloud-test-a", 201, 8, 0.75f,
+            (int)BunnyCloudSpriteEffects.FlipHorizontally, out int adjusted) &&
+            adjusted == 0, "Managed OnSpawn disables flipping");
+        Require(!BunnyCloudDispatcher.TryOnSpawn("cloud-test-a", 201, 200, 0.75f,
+            1, out _), "Invalid slot is rejected");
+        Require(!BunnyCloudDispatcher.TryOnSpawn("cloud-test-a", 201, 8,
+            float.NaN, 1, out _), "NaN scale is rejected");
+
+        Require(BunnyCloudDispatcher.Register("cloud-test-b", assembly),
+            "Second mod allowed");
+        Require(!BunnyCloudDispatcher.Bind("cloud-test-b", nameof(ExampleCommonCloud), 200),
+            "Native IDs must be unique across mods");
+        Require(BunnyCloudDispatcher.Unregister("cloud-test-a"), "Unregister mod A");
+        Require(BunnyCloudDispatcher.Bind("cloud-test-b", nameof(ExampleCommonCloud), 200),
+            "Native ID reusable after mod A unloads");
+        BunnyCloudDispatcher.Clear();
+        Require(BunnyCloudDispatcher.ModCount == 0 &&
+            BunnyCloudDispatcher.BoundCloudCount == 0, "Worker reset removes registrations");
         Console.WriteLine("BunnyCloud C# source-only contract and two examples OK (no APK)");
         return 0;
     }
