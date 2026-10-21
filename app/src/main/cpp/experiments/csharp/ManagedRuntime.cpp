@@ -2419,7 +2419,7 @@ bool invokeManagedAchievementControl(const std::string& modId,
                                      std::string* output, int timeoutMilliseconds) {
     if (!output) return false;
     output->clear();
-    if ((operation != 0 && (operation < 5 || operation > 8)) ||
+    if ((operation != 0 && (operation < 5 || operation > 10)) ||
         timeoutMilliseconds < 1 || timeoutMilliseconds > 30000 ||
         !g_recipeRuntimeReady.load(std::memory_order_acquire)) {
         *output = "PENDING|AchievementInvalidControlOrRuntimeNotReady";
