@@ -2,7 +2,7 @@
 
 Base do lote: `v1.0`, commit `cfbe784ee3cbc0ba2fabafce56c59e6eac41b67b`.
 Branch: `feature/csharp-cloudloader-source-only-20261021`.
-**Estado: hooks, cache de pesos, worker MonoVM, snapshot de jogador/tiles e pump de jogo codificados. O lifecycle Android ainda NÃO instala ou ativa o CloudLoader C#.**
+**Estado: BunnyBiome C# + dispatcher, reconhecimento no parser/Roslyn, manifesto nativo, worker MonoVM e coordenador de flags por geração codificados. O registro de biomas ainda está bloqueado pelo SourceLoader, e o lifecycle Android ainda NÃO instala ou ativa CloudLoader C#.**
 
 ## Fontes de referência obrigatórias
 
@@ -158,6 +158,46 @@ de `OnSpawn` são drenados a cada quadro. Se qualquer contrato
 IL2CPP não corresponder à versão real do Terraria, a seleção
 C# é pausada e as nuvens vanilla continuam disponíveis.
 
+## BunnyBiome C# — novos contratos e limites
+
+O SDK `BunnySourceSdk.dll` possui `BunnyBiome`,
+`BunnyBiomeSnapshot` e `BunnyBiomeDispatcher`, baseados exclusivamente
+no `ModBiome` e `BiomeLoader` do ExampleModBunny (sem JavaScript em
+runtime). Cada classe declara suas dependências em `CountedTiles`
+e calcula `IsBiomeActive(snapshot)`, recebendo apenas tipos primitivos
+na thread MonoVM. Métodos `OnEnter`, `OnInBiome` e `OnLeave` estão
+declarados, mas seus eventos reais **ainda não são despachados**
+a cada frame; isso impede afirmar fidelidade total prematuramente.
+
+O Roslyn reconhece `BunnyBiome` e gera o manifesto separado
+`source-biomes-v1.txt`, com versão `BUNNY_BIOMES_V1`, classe e
+dependências de tiles. O parser nativo atribui o domínio `BIOME` separado
+de `CLOUD`. O `SourceLoader.cpp` rejeita qualquer `BunnyBiome`
+declarado enquanto `NativeBiomeRegistryNotInstalled` for verdadeiro:
+assim, o mod não carrega perdendo conteúdo silenciosamente.
+
+No núcleo nativo, `NativeBiomeManifest.h` confere IDs e nomes por
+proprietário de mod e rejeita snapshots adulterados. O mesmo manifesto
+é confirmado pelo `BunnyBiomeDispatcher.TilesWire` executado pelo
+**worker MonoVM fixado existente**, antes da aprovação de cada
+registro. `readNativeBiomeTileCountsWire` faz um snapshot com no máximo
+32 dependências do mod usando `ModTiles.modTileTypeByName` e
+`PlayerSceneMetrics._tileCounts`, sem varredura de blocos.
+
+`NativeBiomeGameBridge` prepara o registro, recebe os resultados do
+worker por geração, verifica novamente cada chave e passa somente flags
+C# autenticadas para o cache de chances do CloudLoader. Os resultados
+são invalidados em troca de mundo ou novo snapshot; não há chamadas
+MonoVM dentro de `Cloud.addCloud`. Como a inscrição de biomas pelo
+carregador principal ainda não está habilitada, esse pipeline fica
+**inativo no jogo**.
+
+Os testes executam uma versão C# do `ExampleSurfaceBiome` (40 blocos
+`ExampleTile`, posição central, altura sky/overworld), isolamento de
+exceções, negativos, JSON inexistente, chaves por mod, manifesto Roslyn,
+parser C++ e sanitizers. Tudo é teste de fonte; ainda faltam os
+hooks de ciclo `UpdateBiomes` e QA Android.
+
 ## Bloqueio de ativação confirmado
 
 A checagem `SourceLoader.cpp` retorna
@@ -226,9 +266,15 @@ restrito aos testes, **sem alterar o código Android real**.
 - [x] Conectar o pump protegido à atualização real do Terraria:
       somente quando hooks/máscaras já estiverem ativos; snapshot
       periódico de flags vanilla e contagem nativa de tiles em O(1).
-- [ ] Implementar registro de `BunnyBiome` C# e validar a
-      consulta ao bioma do exemplo, incluindo TileCountsAvailable;
-      não anunciar biomas não registrados.
+- [x] Criar contratos `BunnyBiome`, dispatcher C#, reconhecimento
+      no parser/Roslyn, manifesto nativo e registro/avaliação
+      assíncronos no worker existente.
+- [x] Codificar a leitura genérica de `SceneMetrics._tileCounts`
+      de até 32 tiles declarados e a publicação segura de
+      biomas após verificação por proprietário e geração.
+- [ ] Habilitar registro de `BunnyBiome` pelo carregador de fontes
+      somente após fechar a inicialização e eventos reais;
+      `OnEnter`/`OnInBiome`/`OnLeave` e QA Android seguem pendentes.
 - [x] Preparar fila `OnSpawn` por slot/geração com limites e testes
       para ignorar resultados de callbacks atrasados.
 - [x] Codificar atualização de tamanho de nuvem pelo PNG, seleção rara
