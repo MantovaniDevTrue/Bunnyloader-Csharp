@@ -29,6 +29,7 @@
     <Compile Include="../BunnyCsSdk/BunnyPrimitives.cs" Link="BunnyPrimitives.cs" />
     <Compile Include="../BunnyCsSdk/BunnyNativeAccess.cs" Link="BunnyNativeAccess.cs" />
     <Compile Include="../BunnyCsSdk/BunnyUniversalHooks.cs" Link="BunnyUniversalHooks.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyWorldUpdateLoader.cs" Link="BunnyWorldUpdateLoader.cs" />
     <Compile Include="../BunnyCsSdk/BunnyHooks.cs" Link="BunnyHooks.cs" />
     <Compile Include="../BunnyCsSdk/BunnyVisual.cs" Link="BunnyVisual.cs" />
     <Compile Include="../BunnyCsSdk/BunnyPlayerHurtDispatcher.cs" Link="BunnyPlayerHurtDispatcher.cs" />
