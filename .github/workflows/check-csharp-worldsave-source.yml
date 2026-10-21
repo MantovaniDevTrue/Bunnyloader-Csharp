@@ -260,3 +260,41 @@ jobs:
           done
           echo "WORLD_ARM64_ANDROID_NDK_OBJECTS_PASS_NO_APK"
 
+
+  android-arm64-linked-library:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+      - name: Install Android Native CMake toolchain
+        run: |
+          set -euo pipefail
+          SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | sort -V | tail -n 1)"
+          test -x "$SDKMANAGER"
+          "$SDKMANAGER" --install "platforms;android-34" "ndk;30.0.16248370" "cmake;3.22.1"
+      - name: Stage canonical quickjs-ng sources
+        run: |
+          git clone --depth 1 --branch v0.17.0 https://github.com/quickjs-ng/quickjs.git \
+            Split/Bunny-Loader/app/src/main/cpp/third_party/quickjs
+          test -f Split/Bunny-Loader/app/src/main/cpp/third_party/quickjs/quickjs.c
+      - name: Link actual native libraries only (no APK/bmod)
+        working-directory: Split/Bunny-Loader
+        run: |
+          set -euo pipefail
+          gradle --no-daemon :app:externalNativeBuildDebug -Pbl.uiOnly=true
+          find app/build -type f \( -name libbunny.so -o -name libbunnymonoprobe.so \) \
+            -print | sort
+          test "$(find app/build -type f -name libbunny.so | wc -l)" -ge 1
+          test "$(find app/build -type f -name libbunnymonoprobe.so | wc -l)" -ge 1
+          if find app/build -type f \( -name '*.apk' -o -name '*.bmod' \) | grep -q .; then
+            echo "Unexpected game package generated" >&2
+            exit 1
+          fi
+          echo "WORLD_ANDROID_NATIVE_FULL_LINK_PASS_NO_APK"
