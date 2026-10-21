@@ -41,8 +41,9 @@ public static class BunnyWorldNetworkCodec
             writer.Write(Magic);
             writer.Write(revision);
             writer.Write(checked((ushort)systems.Count));
-            foreach (var entry in new SortedDictionary<string, BunnyWorldSystem>(
-                         systems, StringComparer.Ordinal))
+            var ordered = new SortedDictionary<string, BunnyWorldSystem>(StringComparer.Ordinal);
+            foreach (var item in systems) ordered.Add(item.Key, item.Value);
+            foreach (var entry in ordered)
             {
                 byte[] key = Utf8.GetBytes(Key(entry.Key));
                 if (key.Length > BunnyWorldDocument.MaxKeyBytes)
