@@ -9,6 +9,8 @@ on:
       - app/src/main/cpp/experiments/csharp/NativeCloudRegistry.h
       - app/src/main/cpp/experiments/csharp/NativeCloudAssets.h
       - app/src/main/cpp/experiments/csharp/NativeCloudAssets.cpp
+      - app/src/main/cpp/experiments/csharp/NativeCloudManifest.h
+      - app/src/main/cpp/experiments/csharp/NativeCloudSpawnLedger.h
       - tests/cloud_loader/**
       - experiments/csharp/BunnyCsSdk/BunnyCloud.cs
       - experiments/csharp/BunnyCsSdk/BunnyCloudDispatcher.cs
