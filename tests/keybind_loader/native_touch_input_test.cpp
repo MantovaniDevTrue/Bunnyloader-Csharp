@@ -20,7 +20,9 @@ int main() {
     const int dash = state.add("demo", "Dash", "Dash", "Assets/Dash.png");
     const int other = state.add("other", "Dash", "Outro Dash", "Assets/Dash.png");
     assert(dash == 0 && other == 1);
+    assert(state.registrationVersion() == 2);
     assert(state.add("demo", "Dash", "Dash", "Assets/Dash.png") == dash);
+    assert(state.registrationVersion() == 2);
     assert(state.fullName(dash) == "demo/Dash");
     assert(state.count() == 2);
 
@@ -85,14 +87,19 @@ int main() {
            tokens[dash] == state.pressToken(dash));
 
     state.resetWorld();
+    assert(state.registrationVersion() == 2);
     assert(state.read(other) == 0);
     assert(state.frame(1, true, false, false, false, &other, 1, &other, 1) == 1);
     state.unloadMod("demo");
+    assert(state.registrationVersion() == 3);
+    state.unloadMod("demo");
+    assert(state.registrationVersion() == 3);
     assert(state.read(dash) == 0 && !state.tap(dash));
     assert(state.count() == 1 && state.fullName(dash).empty());
     assert(state.snapshot(states.data(), tokens.data(), bits::kMaxButtons) == 2);
     assert(states[dash] == 0 && tokens[dash] == 0);
     assert(state.add("demo", "Dash", "Dash", "Assets/Dash.png") == 2);
+    assert(state.registrationVersion() == 4);
     assert(state.read(2) == 0);
 
     for (int i = 3; i < bits::kMaxButtons; ++i) {
