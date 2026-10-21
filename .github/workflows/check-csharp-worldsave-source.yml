@@ -16,6 +16,8 @@ on:
       - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeWorldNetwork.h"
       - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeWorldNetTransport.cpp"
       - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeWorldNetTransport.h"
+      - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/WorldNetAsync.h"
+      - "Split/Bunny-Loader/experiments/csharp/BunnyCsSdk/BunnyWorldDispatcher.cs"
       - "Split/Bunny-Loader/experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj"
       - "Split/Bunny-Loader/tests/world_save/**"
       - ".github/workflows/check-csharp-worldsave-source.yml"
@@ -76,6 +78,14 @@ jobs:
             Split/Bunny-Loader/tests/world_save/stable_world_uid_test.cpp \
             -o /tmp/stable_world_uid_test
           /tmp/stable_world_uid_test
+      - name: Verify asynchronous native world network scheduler
+        run: |
+          g++ -std=c++20 -O1 -g -Wall -Wextra -Werror -pedantic -pthread \
+            -fsanitize=address,undefined -fno-omit-frame-pointer \
+            -I Split/Bunny-Loader/app/src/main/cpp \
+            Split/Bunny-Loader/tests/world_save/world_net_async_test.cpp \
+            -o /tmp/world_net_async_test
+          ASAN_OPTIONS=detect_leaks=1 /tmp/world_net_async_test
       - name: Native MonoVM mailbox with ASan and UBSan
         run: |
           g++ -std=c++20 -O1 -g -Wall -Wextra -Werror -pedantic -pthread \
@@ -190,6 +200,9 @@ jobs:
           assert "request.authoritative = false" in a
           assert "void onNativeWorldNetReceived" in a
           assert "void onNativeWorldSyncSent" in a
+          assert "worldNetQueue().send(epoch, remoteClient, ignoreClient)" in a
+          assert "worldNetQueue().receive(epoch, bytes, length)" in a
+          assert "worldNetQueue().pump(currentEpoch" in a
           assert "g_worldDataEnteredEpoch.load(std::memory_order_acquire) != epoch" in a
           assert "readActivationContext().netMode != 2" in a
           assert "g_nativeWorldNetHooksReady.load(std::memory_order_acquire)" in a

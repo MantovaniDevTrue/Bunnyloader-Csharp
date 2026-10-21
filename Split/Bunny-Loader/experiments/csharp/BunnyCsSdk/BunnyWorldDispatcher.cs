@@ -119,7 +119,7 @@ public sealed class BunnyWorldDispatcher
 
     /// <summary>
     /// Somente o servidor ou single-player persiste. O cliente recebe estado
-    /// de rede por um caminho separado (ainda não ligado ao host Android).
+    /// de rede por um caminho separado, sem gravar arquivos locais.
     /// Bytes ausentes significam mundo novo; bytes inválidos bloqueiam saves.
     /// </summary>
     public bool TryEnterWorld(ulong epoch, byte[]? saved, bool authoritative, out string error)
@@ -140,25 +140,25 @@ public sealed class BunnyWorldDispatcher
         _networkFaulted = false;
 
         if (!InvokeAll("ClearWorld", s => s.ClearWorld(), out error))
-            return false;
+            return AbortEntry(error, out error);
 
         if (saved != null && saved.Length != 0 &&
             !BunnyWorldDocument.TryDecode(saved, out _loaded))
         {
-            error = "Invalid world data; sidecar must not be overwritten";
-            return false;
+            return AbortEntry("Invalid world data; sidecar must not be overwritten",
+                              out error);
         }
 
         if (!InvokeAll("OnWorldLoad", s => s.OnWorldLoad(), out error))
-            return false;
+            return AbortEntry(error, out error);
         if (!InvokeAll("LoadWorldData", (key, system) => {
                 var divider = key.IndexOf('/');
                 system.LoadWorldData(_loaded.Read(
                     key.Substring(0, divider), key.Substring(divider + 1)));
             }, out error))
-            return false;
+            return AbortEntry(error, out error);
         if (!InvokeAll("PostWorldLoad", s => s.PostWorldLoad(), out error))
-            return false;
+            return AbortEntry(error, out error);
 
         _canSave = true;
         return true;
@@ -310,6 +310,13 @@ public sealed class BunnyWorldDispatcher
         _networkFaulted = false;
         _epoch = 0;
         return callbacksOk;
+    }
+
+    private bool AbortEntry(string reason, out string error)
+    {
+        TryLeaveWorld(_epoch, out _);
+        error = reason;
+        return false;
     }
 
     private bool InvokeAll(string phase, Action<BunnyWorldSystem> action,

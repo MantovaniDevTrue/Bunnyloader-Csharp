@@ -119,3 +119,12 @@ dotnet build Split/Bunny-Loader/experiments/csharp/BunnySourceSdk/BunnySourceSdk
 dotnet run --project Split/Bunny-Loader/tests/world_save/BunnyWorldData.Smoke.csproj -c Release
 
 O workflow check-csharp-worldsave-source executa esses dois comandos apenas na branch dedicada.
+
+
+### Etapa 20 — isolamento da rede assíncrona e rollback
+
+- `WorldNetAsync` limita a 32 trabalhos por sessão e prepara `NetSend` e executa `NetReceive` fora da thread de renderização. A função `noteAutoGameUpdate` envia no máximo quatro resultados por frame, usando exclusivamente a thread do Terraria e conferindo epoch/autoridade. Na troca de mundo, a geração do worker é invalidada e resultados atrasados são descartados.
+- A rotina de rede não espera os três segundos do MonoVM dentro de `NetManager.Read` nem de `NetMessage.SendData`; o timeout subsiste em worker e nos raros hooks transacionais de persistência.
+- `BunnyWorldDispatcher` desfaz uma entrada mal sucedida e permite sessão posterior mesmo se `ClearWorld`, `OnWorldLoad`, `LoadWorldData` ou `PostWorldLoad` falhar; nenhum sidecar corrompido pode ser salvo.
+- `ManagedRuntime` agora aplica o limite correto de 80 KB Base64 a retornos `NetSend`, não o limite de 1,4 MB dos saves.
+- A CI exercita cancelamento por geração, fila limitada, callbacks e retorno ao mundo, além de compilação estrita C++/C# host-only. Continua pendente QA Android/ABI real.

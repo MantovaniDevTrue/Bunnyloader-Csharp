@@ -6,6 +6,7 @@
 #include "experiments/csharp/NativeWorldNetwork.h"
 #include "experiments/csharp/NativeWorldNetTransport.h"
 #include "experiments/csharp/StableWorldUid.h"
+#include "experiments/csharp/WorldNetAsync.h"
 #include "il2cpp/Signature.h"
 #include "experiments/csharp/NativeVisualRenderer.h"
 #include "experiments/csharp/NativeContent.h"
@@ -1206,6 +1207,8 @@ void noteAutoWorldTilesLoaded(const std::string& worldPath) {
             BL_WARN("CSharp WorldSave previous world unload: %s", unloadError.c_str());
     }
     const uint64_t epoch = g_worldEpoch.fetch_add(1, std::memory_order_acq_rel) + 1;
+    if (g_worldSystemModules.load(std::memory_order_acquire) > 0)
+        worldNetQueue().invalidate();
     invalidateManagedWorldMonoRequests();
     // O caminho foi extraído de Main.ActiveWorldFileData pelo hook nativo dos tiles.
     // Cloud e caminhos inválidos deixam o sidecar C# explicitamente desabilitado.
@@ -1235,6 +1238,25 @@ void noteAutoWorldTilesLoaded(const std::string& worldPath) {
 void flushDeferredWorldEntry();
 
 void noteAutoGameUpdate() {
+    if (nativeWorldNetActive()) {
+        const uint64_t currentEpoch = g_worldEpoch.load(std::memory_order_acquire);
+        worldNetQueue().pump(currentEpoch,
+            [currentEpoch](const worldsave::WorldNetAsync::Result& result) {
+                if (!result.success) {
+                    BL_WARN("CSharp WorldNet async %s failed: %s",
+                        result.job.kind == worldsave::WorldNetAsync::Kind::Send
+                            ? "send" : "receive", result.error.c_str());
+                    return;
+                }
+                if (result.job.kind != worldsave::WorldNetAsync::Kind::Send ||
+                    g_worldDataEnteredEpoch.load(std::memory_order_acquire) != currentEpoch ||
+                    readActivationContext().netMode != 2) return;
+                std::string error;
+                if (!worldsave::sendNativeWorldNetPacket(
+                    result.job.packet, result.job.remote, result.job.ignore, &error))
+                    BL_WARN("CSharp WorldNet native send failed: %s", error.c_str());
+            });
+    }
     if (managedEntitySourceModsRegistered() &&
         runtime::modNpcsSettled() && runtime::modProjectilesSettled()) {
         installNpcAiHost();
@@ -1311,6 +1333,8 @@ void noteAutoGameUpdate() {
         }
         worldsave::activeWorldStore().endWorld(departingEpoch);
         invalidateManagedWorldMonoRequests();
+        if (g_worldSystemModules.load(std::memory_order_acquire) > 0)
+            worldNetQueue().invalidate();
         g_worldSessionReady.store(false, std::memory_order_release);
         g_worldTilesLoaded.store(false, std::memory_order_release);
         g_worldReadyFrames.store(0, std::memory_order_relaxed);
@@ -1487,6 +1511,8 @@ NativeClearWorldFn g_origNativeWorldClear = nullptr;
 void hkNativeCSharpWorldClear(const MethodInfo* method) {
     if (!g_origNativeWorldClear) return;
     g_origNativeWorldClear(method);
+    if (g_worldSystemModules.load(std::memory_order_acquire) > 0)
+        worldNetQueue().invalidate();
     if (g_worldSystemModules.load(std::memory_order_acquire) == 0 ||
         !g_worldRegistrationReady.load(std::memory_order_acquire) ||
         !g_nativeWorldNetHooksReady.load(std::memory_order_acquire) ||
@@ -1630,6 +1656,19 @@ bool nativeWorldNetActive() {
         g_nativeWorldNetHooksReady.load(std::memory_order_acquire);
 }
 
+
+worldsave::WorldNetAsync& worldNetQueue() {
+    static worldsave::WorldNetAsync queue(
+        [](const worldsave::WorldNetAsync::Job& job,
+           std::vector<uint8_t>* packet, std::string* error) -> bool {
+            if (job.kind == worldsave::WorldNetAsync::Kind::Receive)
+                return worldsave::receiveWorldNetworkPacket(
+                    job.epoch, packet->data(), packet->size(), error);
+            return worldsave::prepareWorldNetworkPacket(job.epoch, packet, error);
+        });
+    return queue;
+}
+
 void onNativeWorldSyncSent(int remoteClient, int ignoreClient) {
     if (g_worldSystemModules.load(std::memory_order_acquire) == 0 ||
         !g_nativeWorldNetHooksReady.load(std::memory_order_acquire) ||
@@ -1637,12 +1676,8 @@ void onNativeWorldSyncSent(int remoteClient, int ignoreClient) {
     const uint64_t epoch = g_worldEpoch.load(std::memory_order_acquire);
     if (g_worldDataEnteredEpoch.load(std::memory_order_acquire) != epoch)
         return;
-    std::vector<uint8_t> packet;
-    std::string error;
-    if (!worldsave::prepareWorldNetworkPacket(epoch, &packet, &error) ||
-        !worldsave::sendNativeWorldNetPacket(
-            packet, remoteClient, ignoreClient, &error))
-        BL_WARN("CSharp WorldNet server send failed: %s", error.c_str());
+    if (!worldNetQueue().send(epoch, remoteClient, ignoreClient))
+        BL_WARN("CSharp WorldNet send queue full or invalid");
 }
 
 void onNativeWorldNetReceived(const uint8_t* bytes, size_t length, int from) {
@@ -1652,10 +1687,9 @@ void onNativeWorldNetReceived(const uint8_t* bytes, size_t length, int from) {
     const uint64_t epoch = g_worldDataEnteredEpoch.load(std::memory_order_acquire);
     if (epoch == 0 || epoch != g_worldEpoch.load(std::memory_order_acquire))
         return;
-    std::string error;
-    if (!worldsave::receiveWorldNetworkPacket(epoch, bytes, length, &error))
-        BL_WARN("CSharp WorldNet packet rejected (remote=%d): %s",
-                from, error.c_str());
+    if (from != 256 || !worldsave::validWorldNetworkPacket(bytes, length) ||
+        !worldNetQueue().receive(epoch, bytes, length))
+        BL_WARN("CSharp WorldNet received invalid or full queue (remote=%d)", from);
 }
 
 void startAutoSourceRuntime() {

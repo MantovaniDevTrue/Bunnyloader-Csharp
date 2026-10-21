@@ -61,9 +61,10 @@ internal static class DispatcherTests
               "corrupt save rejected");
         Check(!dispatcher.TryPrepareSave(44, out _, out _),
               "corrupt save cannot be overwritten");
-        Check(dispatcher.TryLeaveWorld(44, out _), "corrupt world cleanup");
+        Check(!dispatcher.WorldActive, "corrupt world automatically unloaded");
+        Check(dispatcher.TryEnterWorld(45, null, false, out _),
+              "client loads callbacks");
 
-        Check(dispatcher.TryEnterWorld(45, null, false, out _), "client loads callbacks");
         Check(!dispatcher.TryPrepareSave(45, out _, out _),
               "client cannot persist world data");
         Check(dispatcher.TryLeaveWorld(45, out _), "client cleanup");
@@ -75,6 +76,14 @@ internal static class DispatcherTests
               rejected.Length == 0 && reason.Contains("SaveWorldData"),
               "callback exception blocks whole save");
         Check(failing.TryLeaveWorld(88, out _), "fault system cleanup");
+        var brokenLoad = new BunnyWorldDispatcher();
+        Check(brokenLoad.TryRegister(A, new ThrowingLoadSystem(), out _),
+              "register failing load system");
+        Check(!brokenLoad.TryEnterWorld(90, null, true, out var loadError) &&
+              loadError.Contains("OnWorldLoad") && !brokenLoad.WorldActive,
+              "failed world entry rolls back");
+        Check(brokenLoad.TryEnterWorld(91, null, true, out _) == false &&
+              !brokenLoad.WorldActive, "reentry after callback error is not locked");
         Console.WriteLine("WORLD_DISPATCHER_TESTS_PASS");
     }
 }
@@ -94,4 +103,10 @@ public sealed class ThrowingSaveSystem : BunnyWorldSystem
 {
     public override void SaveWorldData(BunnyWorldTag tag) =>
         throw new InvalidOperationException("test simulated failure");
+}
+
+public sealed class ThrowingLoadSystem : BunnyWorldSystem
+{
+    public override void OnWorldLoad() =>
+        throw new InvalidOperationException("test load failure");
 }

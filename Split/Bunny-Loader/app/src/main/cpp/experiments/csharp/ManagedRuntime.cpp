@@ -1223,7 +1223,10 @@ worldsave::MonoWorldReply invokeManagedWorldOnPinnedMono(
         if (boxed) {
             reply.payload = getString(boxed);
             reply.success = !reply.payload.empty() &&
-                reply.payload.size() <= worldsave::MonoWorldMailbox::MaxPayload;
+                reply.payload.size() <= (
+                    request.action == worldsave::MonoWorldAction::NetSend
+                        ? worldsave::MonoWorldMailbox::MaxNetPayload
+                        : worldsave::MonoWorldMailbox::MaxPayload);
         }
     } else if (boxed) {
         void* unboxed = g_api.unbox(boxed);
