@@ -71,6 +71,32 @@ Check(faultRegistry.CallbackFaults == 1 && independent.IsCompleted, "callback fa
 Throws<ArgumentException>(() => faultRegistry.Register("bad/uid", new ExampleBossKilled()), "invalid UID");
 
 
+string tempDirectory = Path.Combine(Path.GetTempPath(),
+    "bunny-achievement-verify-" + Guid.NewGuid().ToString("N"));
+Directory.CreateDirectory(tempDirectory);
+try
+{
+    string diag = Path.Combine(tempDirectory, "achievements-diagnostics.txt");
+    File.WriteAllText(diag, "BUNNY_TEST");
+    int verified = BunnyLoader.SourceCompiler.CompiledAssemblyProbe.Verify(
+        typeof(ExampleBossKilled).Assembly.Location, diag);
+    Check(verified == 2, "compiled assembly probe finds two achievement-only classes");
+    string metadataPath = Path.Combine(tempDirectory, "source-achievement-values.txt");
+    Check(File.Exists(metadataPath), "compiler exports achievement metadata");
+    var achievementRows = File.ReadAllLines(metadataPath);
+    Check(achievementRows.Length == 3 && achievementRows[0] == "BACH_SOURCE_V1",
+        "achievement metadata sidecar is versioned and complete");
+    Check(achievementRows[1].Split('\t').Length == 6 &&
+        achievementRows[2].Split('\t').Length == 6,
+        "achievement sidecar contains six validated columns");
+    Check(File.Exists(Path.Combine(tempDirectory, "source-runtime-values.txt")),
+        "existing native defaults wire remains available");
+}
+finally
+{
+    Directory.Delete(tempDirectory, true);
+}
+
 string fixturePath = typeof(ExampleBossKilled).Assembly.Location;
 string Bind(string uid, int operation, int type = 0, int count = 1, string payload = "")
     => BunnyAchievementRuntime.Dispatch(uid, fixturePath, operation, type, count, payload);
