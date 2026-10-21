@@ -66,3 +66,24 @@ jobs:
             echo 'Unexpected APK in source-only build' >&2
             exit 1
           fi
+
+  native-arm64-syntax:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile all touched Android native integration units without APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          NDK_VERSION=27.2.12479018
+          NDK="$ANDROID_HOME/ndk/$NDK_VERSION"
+          if [ ! -x "$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android34-clang++" ]; then
+            yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+            "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "ndk;$NDK_VERSION"
+          fi
+          CXX="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android34-clang++"
+          for file in SourceParser SourceLoader AutoSourceRuntime ManagedRuntime NativeCommandChatHooks ManagedSoundLoader NativeRarityGameplay NativeDustEmission NativeCSharpItemUse; do
+            "$CXX" -std=c++20 -fsyntax-only -fexceptions -frtti -D__ANDROID__ -DANDROID -D_GNU_SOURCE -Iapp/src/main/cpp -Iapp/src/main/cpp/third_party/quickjs "app/src/main/cpp/experiments/csharp/$file.cpp"
+          done
+          echo CSHARP_SOURCE_COMBINED_ANDROID_ARM64_SYNTAX_PASS_NO_APK
