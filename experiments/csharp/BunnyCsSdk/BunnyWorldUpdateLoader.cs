@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Threading;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 [assembly: InternalsVisibleTo("WorldUpdateLoader.Tests")]
 
@@ -29,7 +30,30 @@ internal enum BunnyUpdateStageFlags
     PostUpdateProjectiles = 16384,
     PreUpdateItems = 32768,
     PostUpdateItems = 65536,
-    UpdateUI = 131072
+    UpdateUI = 131072,
+    ModifyTimeRate = 262144
+}
+
+/// <summary>Valores de ModifyTimeRate. A unidade é ticks por atualização do mundo.</summary>
+public struct BunnyTimeRateValues
+{
+    public double TimeRate;
+    public double TileUpdateRate;
+    public double EventUpdateRate;
+    public BunnyTimeRateValues(double time, double tiles, double events)
+    {
+        TimeRate = time;
+        TileUpdateRate = tiles;
+        EventUpdateRate = events;
+    }
+}
+
+internal static class BunnyNativeTimeRate
+{
+    [DllImport("bunny", EntryPoint = "bunny_system_time_rate_read", CallingConvention = CallingConvention.Cdecl)]
+    internal static extern int Read(out long session, out double time, out double tiles, out double events);
+    [DllImport("bunny", EntryPoint = "bunny_system_time_rate_write", CallingConvention = CallingConvention.Cdecl)]
+    internal static extern int Write(long session, double time, double tiles, double events);
 }
 
 /// <summary>
@@ -94,6 +118,12 @@ public abstract class BunnyWorldUpdateLoader : BunnyHookModule
     /// <summary>Após Main.UpdateInvasion.</summary>
     protected virtual void PostUpdateInvasions() { }
 
+    /// <summary>
+    /// Altera o relógio, a taxa de blocos e de eventos em um único lote.
+    /// Frações são preservadas pelo host C++, evitando perda em cada tick.
+    /// </summary>
+    protected virtual void ModifyTimeRate(ref BunnyTimeRateValues rates) { }
+
     /// <summary>Após Main.UpdateUIStates, somente durante o mundo. Handle GameTime válido neste callback.</summary>
     protected virtual void UpdateUI(nint gameTime) { }
 
@@ -154,6 +184,24 @@ public abstract class BunnyWorldUpdateLoader : BunnyHookModule
     internal bool Wants(BunnyUpdateStageFlags flag) => (flags & flag) != 0;
 
     internal void Deactivate() => Volatile.Write(ref registered, 0);
+
+    internal void InvokeTimeRate(ref BunnyTimeRateValues rates)
+    {
+        if (!IsRegistered) return;
+        BunnyTimeRateValues before = rates;
+        try
+        {
+            ModifyTimeRate(ref rates);
+            Interlocked.Increment(ref callbacks);
+        }
+        catch (Exception error)
+        {
+            rates = before;
+            Interlocked.Increment(ref faults);
+            string message = "ModifyTimeRate:" + error.GetType().Name + ":" + error.Message;
+            Volatile.Write(ref lastError, message.Length <= 180 ? message : message.Substring(0, 180));
+        }
+    }
 
     internal void Invoke(BunnyUpdateStageFlags flag, nint context = default)
     {
@@ -262,6 +310,8 @@ internal static class BunnyWorldUpdateRegistry
             BunnyUpdateStageFlags.PostUpdateEverything, BunnyUpdateStageFlags.None),
         new("Bunny.SystemStage", "UIEnd", false,
             BunnyUpdateStageFlags.UpdateUI, BunnyUpdateStageFlags.None),
+        new("Bunny.SystemStage", "TimeRate", false,
+            BunnyUpdateStageFlags.ModifyTimeRate, BunnyUpdateStageFlags.None),
         new("Terraria.Main", "PreUpdateAllProjectiles", false,
             BunnyUpdateStageFlags.PreUpdateProjectiles, BunnyUpdateStageFlags.None),
         new("Terraria.Dust", "UpdateDust", true,
@@ -275,6 +325,8 @@ internal static class BunnyWorldUpdateRegistry
     // Testes .NET8 injetam handles falsos. Em produção é sempre null e os
     // hooks reais são instalados exclusivamente por BunnyHookScope.HookVoid.
     internal static Func<BunnyHookScope, string, string, BunnyVoidHook, bool, BunnyMethodHook>? TestHookFactory;
+    internal static Func<(long Session, BunnyTimeRateValues Values)>? TestTimeRead;
+    internal static Func<long, BunnyTimeRateValues, bool>? TestTimeWrite;
 
     internal static int ActiveHookCount
     {
@@ -391,6 +443,32 @@ internal static class BunnyWorldUpdateRegistry
 
     private static void Dispatch(Stage stage, Action original, nint context = default)
     {
+        if (stage.Method == "TimeRate")
+        {
+            long session;
+            BunnyTimeRateValues rates;
+            if (TestTimeRead is not null)
+            {
+                var probe = TestTimeRead();
+                session = probe.Session;
+                rates = probe.Values;
+            }
+            else if (BunnyNativeTimeRate.Read(out session, out double time,
+                        out double tiles, out double events) != 0)
+                rates = new BunnyTimeRateValues(time, tiles, events);
+            else
+            {
+                original();
+                return;
+            }
+            foreach (BunnyWorldUpdateLoader loader in Volatile.Read(ref stage.BeforeListeners))
+                loader.InvokeTimeRate(ref rates);
+            if (TestTimeWrite is not null) TestTimeWrite(session, rates);
+            else BunnyNativeTimeRate.Write(session, rates.TimeRate,
+                rates.TileUpdateRate, rates.EventUpdateRate);
+            original();
+            return;
+        }
         foreach (BunnyWorldUpdateLoader loader in Volatile.Read(ref stage.BeforeListeners))
             loader.Invoke(stage.Before, context);
 
