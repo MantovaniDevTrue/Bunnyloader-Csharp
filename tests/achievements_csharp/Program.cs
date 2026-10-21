@@ -78,6 +78,15 @@ var floatEntry = typed.Register("conditions", new FloatCondition());
 Check(floatEntry.Conditions[0].Kind == BunnyAchievementConditionKind.Float &&
     floatEntry.Conditions[0].Maximum == 4.5,
     "float condition native maximum and kind retained");
+var manifestReflection = typeof(BunnyAchievementRuntime).GetMethod(
+    "Manifest", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
+Check(manifestReflection != null, "managed V2 serializer available");
+string typedManifest = (string)manifestReflection!.Invoke(null, new object[] { typed })!;
+Check(typedManifest.StartsWith("BACH_META_V2\n") &&
+    typedManifest.Split('\n').Count(line => line.StartsWith("C|")) == 3 &&
+    typedManifest.Contains("|2|4.5|0\n"),
+    "V2 manifest keeps all typed condition rows and exact float maximum");
+
 var negatives = new BunnyAchievementRegistry();
 var negativeNpc = negatives.Register("variants", new NegativeNpcAchievement());
 negatives.NotifyNPCKilled(-4);
@@ -123,7 +132,7 @@ string fixturePath = typeof(ExampleBossKilled).Assembly.Location;
 string Bind(string uid, int operation, int type = 0, int count = 1, string payload = "")
     => BunnyAchievementRuntime.Dispatch(uid, fixturePath, operation, type, count, payload);
 string loaded = Bind("transport", 0);
-Console.WriteLine("ACHIEVEMENT_V2_BIND_DIAGNOSTIC " + loaded.Replace("\n", "\\n"));
+
 Check(loaded.StartsWith("BACH_META_V2\n", StringComparison.Ordinal) &&
     loaded.Split('\n').Length == 6, "Mono dispatcher discovers both classes from fixture DLL");
 Check(Bind("transport", 0) == loaded, "repeated bind does not recreate achievements");
