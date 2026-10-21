@@ -6,6 +6,13 @@ on:
       - feat/csharp-achievement-loader-20261021
     paths:
       - experiments/csharp/BunnyCsSdk/BunnyAchievement.cs
+      - experiments/csharp/BunnyCsSdk/BunnyAchievementRuntime.cs
+      - experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj
+      - experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs
+      - app/src/main/cpp/experiments/csharp/SourceParser.cpp
+      - app/src/main/cpp/experiments/csharp/SourceContentIdentity.h
+      - app/src/main/cpp/experiments/csharp/SourceLoader.cpp
+      - app/src/main/cpp/experiments/csharp/SourceLoader.h
       - tests/achievements_csharp/**
       - samples/ExampleModCSharp/Examples/Achievements/**
       - .github/workflows/verify-csharp-achievements.yml
@@ -19,5 +26,9 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x
+      - name: Test native CSharp source parsing without Android
+        run: |
+          g++ -std=c++20 -O2 -Iapp/src/main/cpp             tests/achievements_csharp/source_parser_test.cpp             app/src/main/cpp/experiments/csharp/SourceParser.cpp             -o /tmp/csharp-achievement-source-parser
+          /tmp/csharp-achievement-source-parser
       - name: Test achievements without Android or APK
         run: dotnet run --configuration Release --project tests/achievements_csharp/AchievementCoreTests.csproj
