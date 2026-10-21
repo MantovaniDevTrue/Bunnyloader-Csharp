@@ -293,7 +293,8 @@ int installUniversalSystemStageOnGameThread(const std::string& name, int slot) {
             main, il2cpp::parseSignature("void UpdateUIStates(GameTime gameTime)")) : nullptr;
         std::string error;
         FieldInfo* menu = systemStageField(main,"gameMenu",false,nullptr,&error);
-        if (!menu || !systemStageMethodStorage(method,true,"Main.UpdateUIStates",&error)) {
+        if (!menu || !systemStageMethodStorage(method,true,"Main.UpdateUIStates",&error) ||
+            !systemStageReferenceParameter(method,0,&error)) {
             BL_ERROR("%s",error.c_str()); return -7;
         }
         if (!il2cpp::methodPointer(method)) return -7;

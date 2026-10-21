@@ -58,4 +58,25 @@ inline bool systemStageMethodStorage(const MethodInfo* method, bool isStatic, co
         " Result=Rejected Reason=NativeMethodStorageMismatch";
     return false;
 }
+
+// The UI trampoline passes GameTime as an opaque object pointer. Matching its
+// short type name is insufficient if another runtime exposes a value type.
+inline bool systemStageReferenceParameter(const MethodInfo* method,uint32_t index,std::string* error) {
+    auto& a=il2cpp::api();
+    Il2CppClass* cls=nullptr;
+    if(method && a.method_get_param_count && a.method_get_param && a.class_from_il2cpp_type &&
+       index<a.method_get_param_count(method)) {
+        const auto* type=a.method_get_param(method,index);
+        cls=type?a.class_from_il2cpp_type(type):nullptr;
+    }
+    if(cls && a.class_is_valuetype && !a.class_is_valuetype(cls)) return true;
+    const char* name=cls && a.class_get_name?a.class_get_name(cls):nullptr;
+    const char* ns=cls && a.class_get_namespace?a.class_get_namespace(cls):nullptr;
+    *error="[Native][ERROR][NativeBridge] API=BunnyWorldUpdateLoader Method=Main.UpdateUIStates Parameter="+
+        std::to_string(index)+" Stage=BindSystemMethod Expected=ReferenceTypePointer Actual="+
+        (cls?std::string(ns?ns:"?")+"."+(name?name:"?")+":"+
+         (a.class_is_valuetype?"ValueType":"UnknownStorage"):"MissingMetadataOrParameter")+
+        " Result=Rejected Reason=NativeParameterStorageMismatch";
+    return false;
+}
 }

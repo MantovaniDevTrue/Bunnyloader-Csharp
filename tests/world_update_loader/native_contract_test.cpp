@@ -4,7 +4,7 @@
 struct Il2CppClass { const char* name; int size; bool value=true; const char* ns="System"; };
 struct Il2CppType { Il2CppClass* cls; };
 struct FieldInfo { const char* name; Il2CppType type; uint32_t flags=0x10; };
-struct MethodInfo { uint32_t flags=0x10; };
+struct MethodInfo { uint32_t flags=0x10;uint32_t count=0;const Il2CppType* parameter=nullptr; };
 #include "experiments/csharp/SystemStageContracts.h"
 #include <cassert>
 #include <iostream>
@@ -28,6 +28,8 @@ int main(){
  fixture.class_value_size=[](Il2CppClass* c,uint32_t*){return int32_t(c->size);};
  fixture.field_static_get_value=[](FieldInfo*,void*){assert(false && "Contract resolution must not read a value");};
  fixture.field_static_set_value=[](FieldInfo*,void*){assert(false && "Contract resolution must not write a value");};
+ fixture.method_get_param_count=[](const MethodInfo* m){return m->count;};
+ fixture.method_get_param=[](const MethodInfo* m,uint32_t){return m->parameter;};
  fixture.method_get_flags=[](const MethodInfo* m,uint32_t*){return m->flags;};
  std::string error;bl::csharp::SystemStageFieldKind kind{};
  assert(bl::csharp::systemStageField(&owner,"dayRate",true,&kind,&error)==&field && kind==bl::csharp::SystemStageFieldKind::Single);
@@ -63,5 +65,15 @@ int main(){
  method.flags=0;
  assert(bl::csharp::systemStageMethodStorage(&method,false,"Main.DoUpdateInWorld",&error));
  assert(!bl::csharp::systemStageMethodStorage(nullptr,true,"Main.UpdateTimeRate",&error));
+ Il2CppClass timeClass{"GameTime",0,false,"Microsoft.Xna.Framework"};Il2CppType timeType{&timeClass};
+ method.count=1;method.parameter=&timeType;
+ assert(bl::csharp::systemStageReferenceParameter(&method,0,&error));
+ timeClass.value=true;timeClass.size=24;
+ assert(!bl::csharp::systemStageReferenceParameter(&method,0,&error));
+ assert(error.find("Expected=ReferenceTypePointer")!=error.npos && error.find("Actual=Microsoft.Xna.Framework.GameTime:ValueType")!=error.npos);
+ timeClass.value=false;method.count=0;
+ assert(!bl::csharp::systemStageReferenceParameter(&method,0,&error));
+ method.count=1;fixture.class_is_valuetype=nullptr;
+ assert(!bl::csharp::systemStageReferenceParameter(&method,0,&error));
  std::cout<<"WORLD_UPDATE_NATIVE_FIELD_STORAGE_SIZE_AND_METHOD_ABI_CONTRACTS=PASS\n";
 }

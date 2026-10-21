@@ -227,3 +227,16 @@ APK parcial. A lista atual contabiliza **1/15 contratos implementados (6,67%)**
 e **0/15 validados no Android**; as duas integrações adicionais não inflam
 esse percentual. O inventário global de exemplos continua sendo uma meta
 separada. Os 14 contratos restantes não foram reduzidos a stubs ou removidos.
+
+
+## Guarda adicional de ABI da UI
+
+O caminho nativo `UpdateUIStates(GameTime)` passa o argumento como ponteiro
+opaco ao callback C#. A resolução por nome curto de tipo não basta para
+confirmar essa ABI. O binding verifica agora a representação real do parâmetro:
+classe por referência aceita; value type, parâmetro ausente ou export de
+metadata indisponível são recusados antes de instalar o hook. O teste nativo
+exercita a aceitação e essas três recusas, com diagnóstico do tipo encontrado.
+Nenhum campo do GameTime é lido por offset e a assinatura pública existente
+`UpdateUI(nint)` foi preservada. Os novos testes de host e a sintaxe com flags
+de produção passaram; esta guarda exige o CI do próprio commit e QA Android.
