@@ -1,6 +1,7 @@
 #include "experiments/csharp/NativeTouchIconHooks.h"
 #include "experiments/csharp/NativeTouchController.h"
 #include "experiments/csharp/NativeTouchIcons.h"
+#include "experiments/csharp/NativeTouchInput.h"
 #include "hook/HookManager.h"
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
@@ -146,7 +147,7 @@ void quickDraw(int32_t action, Il2CppObject* layout, uint8_t pressed,
     Il2CppObject* texture = !ignoreIcon && layout && scale
         ? nativeTouchIcon(id, &width, &height) : nullptr;
     if (texture && drawIcon && drawIconMethod) {
-        const int32_t state = pressed ? 1 : 2;
+        const int32_t state = !registry().enabled(id) ? 0 : pressed ? 1 : 2;
         drawIcon(layout, texture, state, scale, drawIconMethod);
         return;
     }
