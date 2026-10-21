@@ -16,12 +16,14 @@ public static class BunnyBiomeDispatcher
     {
         public string Name { get; }
         public BunnyBiome Biome { get; }
+        public string[] CountedTiles { get; }
         public bool Disabled { get; set; }
 
         public Entry(string name, BunnyBiome biome)
         {
             Name = name;
             Biome = biome;
+            CountedTiles = biome.CountedTiles.ToArray();
         }
     }
 
@@ -60,6 +62,9 @@ public static class BunnyBiomeDispatcher
                 biome.Validate();
                 prepared.Add(new Entry(type.Name, biome));
             }
+            if (prepared.SelectMany(entry => entry.CountedTiles)
+                .Distinct(StringComparer.Ordinal).Count() > 32)
+                return Fail("Too many unique tile dependencies for biome snapshot");
             Mods.Add(modId, prepared);
             return true;
         }
@@ -84,7 +89,7 @@ public static class BunnyBiomeDispatcher
         var builder = new StringBuilder("BUNNY_BIOMES_V1\n");
         foreach (Entry entry in entries)
             builder.Append("BIOME\t").Append(entry.Name).Append('\t')
-                .Append(string.Join(",", entry.Biome.CountedTiles))
+                .Append(string.Join(",", entry.CountedTiles))
                 .Append('\n');
         return builder.ToString();
     }
@@ -126,7 +131,7 @@ public static class BunnyBiomeDispatcher
             foreach (Entry entry in entries)
             {
                 if (entry.Disabled) continue;
-                if (entry.Biome.CountedTiles.Any(name =>
+                if (entry.CountedTiles.Any(name =>
                     !counts.ContainsKey(name)))
                     continue;
                 try
