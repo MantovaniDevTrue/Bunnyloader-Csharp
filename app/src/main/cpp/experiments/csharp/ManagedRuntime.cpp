@@ -2,6 +2,8 @@
 #include "experiments/csharp/UniversalHookMailbox.h"
 #include "experiments/csharp/UniversalHooks.h"
 #include "experiments/csharp/ManagedRuntime.h"
+#include "experiments/csharp/NativeCommandMailbox.h"
+#include "experiments/csharp/NativeCommandResult.h"
 #include "experiments/csharp/ManagedLocalizationEpochFence.h"
 #include "experiments/csharp/ManagedLiveSourceRevocations.h"
 #include "experiments/csharp/ManagedDeferredModRevocation.h"
@@ -328,6 +330,19 @@ std::map<std::string,std::shared_ptr<RecipeRpcCompletion>> g_shootWarmups;
 std::map<std::string,std::shared_ptr<RecipeRpcCompletion>> g_tileWarmups;
 std::map<std::string,std::shared_ptr<RecipeRpcCompletion>> g_rarityWarmups;
 std::atomic<bool> g_recipeRuntimeReady{false};
+
+struct ManagedCommandBinding {
+    std::string modId;
+    std::string assembly;
+    bool registered = false;
+    int failures = 0;
+};
+std::vector<ManagedCommandBinding> g_commandBindings;
+void* g_commandRegisterMethod = nullptr;
+void* g_commandExecuteMethod = nullptr;
+void* g_commandClearMethod = nullptr;
+bool g_commandSessionReset = false;
+
 
 
 struct SceneLightBinding {
@@ -1786,6 +1801,87 @@ void executeManagedDustResetOnWorker() {
 #endif
 }
 
+bool prepareManagedCommandWorker() {
+    if (!g_domain || !g_status.domainInitialized || !g_status.methodExecuted ||
+        !g_api.attach || !g_api.openAssembly || !g_api.image ||
+        !g_api.findClass || !g_api.findMethod || !g_api.invoke || !g_api.newString ||
+        !g_api.unbox)
+        return false;
+    if (!g_api.attach(g_domain)) return false;
+    if (g_commandRegisterMethod && g_commandExecuteMethod &&
+        g_commandClearMethod) return true;
+    const size_t slash = g_checkpointPath.find_last_of('/');
+    if (slash == std::string::npos) return false;
+    const std::string sdk = g_checkpointPath.substr(0, slash + 1) + "BunnySourceSdk.dll";
+    if (!validAssembly(sdk)) return false;
+    void* assembly = g_api.openAssembly(g_domain, sdk.c_str());
+    void* image = assembly ? g_api.image(assembly) : nullptr;
+    void* klass = image ? g_api.findClass(image, "BunnyLoader.Source",
+                                           "BunnyCommandWorker") : nullptr;
+    void* registerMethod = klass ? g_api.findMethod(klass, "RegisterAssembly", 2) : nullptr;
+    void* executeMethod = klass ? g_api.findMethod(klass, "Execute", 4) : nullptr;
+    void* clearMethod = klass ? g_api.findMethod(klass, "Clear", 0) : nullptr;
+    if (!registerMethod || !executeMethod || !clearMethod) return false;
+    g_commandRegisterMethod = registerMethod;
+    g_commandExecuteMethod = executeMethod;
+    g_commandClearMethod = clearMethod;
+    return true;
+}
+
+bool clearManagedCommandOnWorker() {
+    std::lock_guard<std::mutex> guard(g_mutex);
+    if (!prepareManagedCommandWorker()) return false;
+    void* exception = nullptr;
+    g_api.invoke(g_commandClearMethod, nullptr, nullptr, &exception);
+    return !exception;
+}
+
+bool registerManagedCommandOnWorker(const ManagedCommandBinding& binding) {
+    std::lock_guard<std::mutex> guard(g_mutex);
+    if (!validAssembly(binding.assembly) || !prepareManagedCommandWorker()) return false;
+    void* args[] = {
+        g_api.newString(g_domain, binding.modId.c_str()),
+        g_api.newString(g_domain, binding.assembly.c_str())
+    };
+    if (!args[0] || !args[1]) return false;
+    void* exception = nullptr;
+    void* boxed = g_api.invoke(g_commandRegisterMethod, nullptr, args, &exception);
+    void* raw = !exception && boxed ? g_api.unbox(boxed) : nullptr;
+    if (!raw) return false;
+    int count = 0;
+    std::memcpy(&count, raw, sizeof(count));
+    return count > 0 && count <= 128;
+}
+
+std::string executeManagedCommandOnWorker(const NativeCommandRequest& request) {
+    std::lock_guard<std::mutex> guard(g_mutex);
+    if (!prepareManagedCommandWorker()) return {};
+    int player = request.playerIndex;
+    int mode = request.networkMode;
+    int kind = static_cast<int>(request.caller);
+    void* args[] = {
+        g_api.newString(g_domain, request.input.c_str()),
+        &player, &mode, &kind
+    };
+    if (!args[0]) return {};
+    void* exception = nullptr;
+    void* result = g_api.invoke(g_commandExecuteMethod, nullptr, args, &exception);
+    if (exception || !result) return {};
+    using Utf8Fn = char* (*)(void*);
+    using FreeFn = void (*)(void*);
+    static const auto utf8 = resolve<Utf8Fn>("mono_string_to_utf8");
+    static const auto release = resolve<FreeFn>("mono_free");
+    if (!utf8 || !release) return {};
+    char* raw = utf8(result);
+    if (!raw) return {};
+    const size_t bytes = strnlen(raw, 20 * 1024 + 1);
+    std::string wire;
+    if (bytes > 0 && bytes <= 20 * 1024)
+        wire.assign(raw, bytes);
+    release(raw);
+    return wire;
+}
+
 void* pinnedMonoWorker(void*) {
     {
         std::lock_guard<std::mutex> lock(g_pinnedMutex);
@@ -1946,6 +2042,77 @@ void* pinnedMonoWorker(void*) {
                         g_vmCompare.passed ? "matched" : "mismatch";
                     g_vmCompare.error = done.error;
                     continue;
+                }
+                if (g_commandSessionReset &&
+                    g_recipeRuntimeReady.load(std::memory_order_acquire)) {
+                    g_commandSessionReset = false;
+                    lock.unlock();
+                    const bool cleared = clearManagedCommandOnWorker();
+                    lock.lock();
+                    for (auto& binding : g_commandBindings) {
+                        binding.registered = false;
+                        binding.failures = cleared ? 0 : 3;
+                    }
+                    continue;
+                }
+                if (!g_commandBindings.empty() &&
+                    g_recipeRuntimeReady.load(std::memory_order_acquire)) {
+                    bool attemptedRegistration = false;
+                    for (const auto& pending : g_commandBindings) {
+                        if (pending.registered || pending.failures >= 3) continue;
+                        ManagedCommandBinding binding = pending;
+                        lock.unlock();
+                        const bool registered = registerManagedCommandOnWorker(binding);
+                        lock.lock();
+                        for (auto& current : g_commandBindings) {
+                            if (current.modId != binding.modId ||
+                                current.assembly != binding.assembly) continue;
+                            if (registered) {
+                                current.registered = true;
+                                nativeCommandMailbox().setModReady(binding.modId, true);
+                            } else ++current.failures;
+                            break;
+                        }
+                        attemptedRegistration = true;
+                        break;
+                    }
+                    if (attemptedRegistration) continue;
+                    auto commands = nativeCommandMailbox().takeRequests(8);
+                    if (!commands.empty()) {
+                        lock.unlock();
+                        for (const auto& command : commands) {
+                            if (command.epoch != nativeCommandMailbox().epoch())
+                                continue;
+                            const std::string wire = executeManagedCommandOnWorker(command);
+                            std::vector<NativeCommandReply> messages;
+                            bool handled = false;
+                            NativeCommandAction action;
+                            std::string parseError;
+                            const bool valid = !wire.empty() &&
+                                decodeNativeCommandResult(wire, command.playerIndex,
+                                                          &handled, &messages, &parseError,
+                                                          &action) && handled;
+                            if (valid && wire.find("\nACTION\t") != std::string::npos) {
+                                if (nativeCommandMailbox().deliverAction(command, action))
+                                    continue;
+                            }
+                            if (!valid ||
+                                wire.find("\nACTION\t") != std::string::npos) {
+                                messages.clear();
+                                NativeCommandReply fallback;
+                                fallback.playerIndex = command.playerIndex;
+                                fallback.text = "Comando C# indisponivel";
+                                fallback.red = 255;
+                                fallback.green = 25;
+                                fallback.blue = 25;
+                                messages.push_back(std::move(fallback));
+                            }
+                            nativeCommandMailbox().deliver(command.epoch,
+                                                           command.sequence, messages);
+                        }
+                        lock.lock();
+                        continue;
+                    }
                 }
                 ManagedLiveQueuedEvent event;
                 bool hasEvent = g_liveHitQueue.pop(&event);
@@ -2450,6 +2617,44 @@ void unloadManagedLocalizationCallbacks(const std::string& modId) {
     if (std::find(g_localizationUnloads.begin(), g_localizationUnloads.end(), modId)
         == g_localizationUnloads.end())
         g_localizationUnloads.push_back(modId);
+    g_pinnedWake.notify_one();
+}
+
+bool bindManagedCommandMod(const std::string& modId,
+                           const std::string& assemblyPath, std::string* error) {
+    if (!error) return false;
+    error->clear();
+    if (modId.empty() || modId.size() > 64 ||
+        !validAssembly(assemblyPath)) {
+        *error = "ModCommand: mod ou assembly invalidos";
+        return false;
+    }
+    std::lock_guard<std::mutex> lock(g_pinnedMutex);
+    if (g_commandBindings.size() >= 128) {
+        *error = "ModCommand: limite de 128 mods";
+        return false;
+    }
+    for (const auto& binding : g_commandBindings)
+        if (binding.modId == modId) {
+            *error = "ModCommand: mod ja vinculado ao MonoVM";
+            return false;
+        }
+    g_commandBindings.push_back({modId, assemblyPath});
+    g_pinnedWake.notify_one();
+    return true;
+}
+
+void notifyManagedCommandWorker() {
+    g_pinnedWake.notify_one();
+}
+
+void resetManagedCommandSession() {
+    std::lock_guard<std::mutex> lock(g_pinnedMutex);
+    g_commandSessionReset = true;
+    for (auto& binding : g_commandBindings) {
+        binding.registered = false;
+        nativeCommandMailbox().setModReady(binding.modId, false);
+    }
     g_pinnedWake.notify_one();
 }
 
