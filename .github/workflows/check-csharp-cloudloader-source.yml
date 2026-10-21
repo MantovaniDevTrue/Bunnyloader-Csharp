@@ -25,6 +25,7 @@ on:
       - app/src/main/cpp/experiments/csharp/NativeCloudBiomePolicy.h
       - app/src/main/cpp/experiments/csharp/NativeCloudBiomeSampler.h
       - app/src/main/cpp/experiments/csharp/NativeCloudBiomeSampler.cpp
+      - app/src/main/cpp/experiments/csharp/NativeBiomeManifest.h
       - app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp
       - app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp
       - app/src/main/cpp/experiments/csharp/ManagedRuntime.h
@@ -147,7 +148,7 @@ jobs:
           trap 'rm -rf "$tmp"' EXIT
           for file in tests/cloud_loader/*_test.cpp; do
             extras=()
-            if [[ "${file##*/}" == "source_parser_cloud_test.cpp" ]]; then
+            if [[ "${file##*/}" == "source_parser_cloud_test.cpp" || "${file##*/}" == "source_parser_biome_test.cpp" ]]; then
               extras+=(app/src/main/cpp/experiments/csharp/SourceParser.cpp)
             fi
             if [[ "${file##*/}" == "native_cloud_autoload_test.cpp" ]]; then
