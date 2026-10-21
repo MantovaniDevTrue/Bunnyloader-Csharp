@@ -1221,6 +1221,7 @@ void noteAutoWorldTilesLoaded() {
     std::lock_guard<std::mutex> sessionGuard(g_worldTransitionMutex);
     touch::registry().resetWorld();
     touch::resetNativeTouchGroupSession();
+    touch::invalidateNativeTouchLayouts();
     clearManagedVisualCommands();
     resetNativeVisualRenderer();
     g_visualUpdateTick.store(0, std::memory_order_relaxed);
@@ -1346,7 +1347,8 @@ void noteAutoGameUpdate() {
         resetNativeVisualRenderer();
         g_visualUpdateTick.store(0, std::memory_order_relaxed);
         touch::registry().resetWorld();
-    touch::resetNativeTouchGroupSession();
+        touch::resetNativeTouchGroupSession();
+        touch::invalidateNativeTouchLayouts();
         g_worldExits.fetch_add(1, std::memory_order_relaxed);
         g_worldEpoch.fetch_add(1, std::memory_order_acq_rel);
         g_worldSessionReady.store(false, std::memory_order_release);
