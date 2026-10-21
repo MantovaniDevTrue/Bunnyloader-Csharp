@@ -403,10 +403,12 @@ bool make(const AchievementMetadata& definition, NativeEntry* out,
         }
         int intMaximum = static_cast<int>(definitionCondition.maximum);
         float floatMaximum = static_cast<float>(definitionCondition.maximum);
-        void* args[]{key, isFloat ? static_cast<void*>(&floatMaximum)
-                                  : static_cast<void*>(&intMaximum)};
+        void* valueArgs[]{key, isFloat ? static_cast<void*>(&floatMaximum)
+                                       : static_cast<void*>(&intMaximum)};
+        void* flagArgs[]{key};
         Il2CppObject* nativeCondition = nullptr;
-        if (!invoke(factory, nullptr, args, &nativeCondition, error) ||
+        if (!invoke(factory, nullptr, isFlag ? flagArgs : valueArgs,
+                    &nativeCondition, error) ||
             !nativeCondition) {
             if (error->empty()) *error = "Native condition factory returned null";
             releaseRoots();
