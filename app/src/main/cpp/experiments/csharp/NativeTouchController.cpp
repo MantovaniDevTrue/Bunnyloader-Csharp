@@ -157,7 +157,15 @@ void onControllerUpdate(void* self, float elapsedTime, const MethodInfo* method)
     auto& api = il2cpp::api();
     bool menu = true;
     api.field_static_get_value(refs.gameMenu, &menu);
+    static ActiveTouchSnapshot snapshot;
+    static const void* scannedProfile = nullptr;
+    static uint64_t previousScan = 0;
+    static bool sampled = false;
     if (menu) {
+        snapshot = {};
+        scannedProfile = nullptr;
+        previousScan = 0;
+        sampled = false;
         registry().frame(static_cast<int64_t>(++ticks), false, true,
                          true, true, nullptr, 0, nullptr, 0);
         return;
@@ -180,13 +188,15 @@ void onControllerUpdate(void* self, float elapsedTime, const MethodInfo* method)
     }
     // Os layouts mudam durante a edição. A leitura da configuração ocorre
     // no máximo a cada 30 frames; o gameplay não escaneia perfis por toque.
-    static ActiveTouchSnapshot snapshot;
-    static uint64_t previousScan = 0;
-    if (!snapshot.ready || ticks - previousScan >= 30) {
+    const void* currentProfile = nativeTouchActiveProfileIdentity();
+    if (!sampled || scannedProfile != currentProfile ||
+        ticks - previousScan >= 30) {
         ActiveTouchSnapshot next;
-        if (nativeTouchActiveSnapshot(&next)) snapshot = next;
+        if (currentProfile && nativeTouchActiveSnapshot(&next)) snapshot = next;
         else snapshot = {};
+        scannedProfile = currentProfile;
         previousScan = ticks;
+        sampled = true;
     }
     std::array<int, kMaxButtons> bound{};
     size_t boundCount = 0;
