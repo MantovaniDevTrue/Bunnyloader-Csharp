@@ -1,5 +1,6 @@
 #include "experiments/csharp/NativeTouchGroups.h"
 #include "experiments/csharp/NativeTouchProfiles.h"
+#include "experiments/csharp/NativeTouchGroupSelection.h"
 #include "experiments/csharp/NativeTouchController.h"
 #include "experiments/csharp/NativeTouchInput.h"
 #include "il2cpp/Api.h"
@@ -93,42 +94,42 @@ bool discover(void* controller) {
 int indexOf(void* controller, const Group& group) {
     auto& api = il2cpp::api();
     if (!group.slotRoot || !api.object_get_class ||
-        !api.field_get_offset || !api.class_instance_size) return -1;
+        !api.field_get_offset || !api.class_instance_size) return kGroupReadError;
     Il2CppObject* table = nullptr;
     std::memcpy(&table, static_cast<const char*>(controller) + statesOffset,
                 sizeof(table));
-    if (!table) return -1;
+    if (!table) return kGroupReadError;
     Il2CppObject* key = api.gchandle_get_target(group.slotRoot);
-    if (!key) return -1;
+    if (!key) return kGroupReadError;
     void* args[1] = {&key};
     Il2CppObject* ex = nullptr;
     Il2CppObject* contains = api.runtime_invoke(containsMethod, table, args, &ex);
-    if (ex || !contains || !api.object_get_class) return -1;
+    if (ex || !contains || !api.object_get_class) return kGroupReadError;
     Il2CppClass* cls = api.object_get_class(contains);
     if (!api.class_get_name || std::strcmp(api.class_get_name(cls), "Boolean") != 0)
-        return -1;
+        return kGroupReadError;
     bool found = *reinterpret_cast<uint8_t*>(
         reinterpret_cast<char*>(contains) + sizeof(Il2CppObject)) != 0;
     if (!found) return -1;
     Il2CppObject* state = api.runtime_invoke(itemMethod, table, args, &ex);
-    if (ex || !state) return -1;
+    if (ex || !state) return kGroupReadError;
     cls = api.object_get_class(state);
-    if (!cls) return -1;
+    if (!cls) return kGroupReadError;
     if (cls != pressedIndexClass) {
         FieldInfo* field = il2cpp::findField(cls, "pressedIndex");
         if (!field)
             field = il2cpp::findField(cls, "<pressedIndex>k__BackingField");
         if (!field || !api.field_get_flags ||
-            (api.field_get_flags(field) & 0x10u)) return -1;
+            (api.field_get_flags(field) & 0x10u)) return kGroupReadError;
         const Il2CppType* type = api.field_get_type(field);
         char* name = type ? api.type_get_name(type) : nullptr;
         const bool valid = name && std::strcmp(name, "System.Int32") == 0;
         if (name) api.il2cpp_free(name);
-        if (!valid) return -1;
+        if (!valid) return kGroupReadError;
         const size_t position = api.field_get_offset(field);
         if (position < sizeof(Il2CppObject) ||
             position + sizeof(int32_t) > api.class_instance_size(cls))
-            return -1;
+            return kGroupReadError;
         pressedIndexClass = cls;
         pressedIndexOffset = position;
     }
@@ -208,8 +209,9 @@ void nativeTouchGroupAfter(void* controller) {
         auto& group = groups[static_cast<size_t>(i)];
         const int was = group.before;
         // O centro virtual de grupos (9) fecha o menu sem selecionar.
-        if (was < 0 || was == 9 || was >= group.count ||
-            indexOf(controller, group) != -1) continue;
+        if (was < 0 || was == 9 || was >= group.count) continue;
+        if (!nativeTouchGroupSelected(was, indexOf(controller, group),
+                                      group.count)) continue;
         const int id = nativeTouchIndexByAction(group.actions[static_cast<size_t>(was)]);
         if (id >= 0 && !registry().ownerId(id).empty()) registry().tap(id);
     }
