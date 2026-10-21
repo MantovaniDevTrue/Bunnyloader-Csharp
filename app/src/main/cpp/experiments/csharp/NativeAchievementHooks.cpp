@@ -223,6 +223,7 @@ bool registerNativeAchievementMod(const std::string& modId,
         return false;
     }
     bindings.emplace(modId, AchievementBinding{assemblyPath, std::move(records)});
+    setManagedAchievementMetadataPublisher(&updateNativeAchievementProgress);
     bindingsReady.store(true, std::memory_order_release);
     metadataRevision.fetch_add(1, std::memory_order_release);
     return true;
