@@ -1511,6 +1511,132 @@ bool executeManagedSceneOnWorker(const SceneLightRequest& request,
     return true;
 }
 
+// Executed ONLY on the pinned MonoVM worker. Native content hooks never
+// invoke managed code directly. CSharp BunnyCloudDispatcher is loaded from
+// BunnySourceSdk.dll beside the existing Mono checkpoint, just like entities.
+bool executeManagedCloudOnWorker(const CloudWorkerJob& job,
+                                 std::string* weightReply,
+                                 int* spriteReply) {
+    std::lock_guard<std::mutex> monoGuard(g_mutex);
+    if (!g_domain || !g_status.domainInitialized || !g_status.methodExecuted ||
+        !g_api.attach || !g_api.openAssembly || !g_api.image ||
+        !g_api.findClass || !g_api.findMethod || !g_api.invoke ||
+        !g_api.unbox || !g_api.newString) return false;
+    if (!g_api.attach(g_domain)) return false;
+
+    if (!g_cloudRegisterMethod) {
+        const size_t slash = g_checkpointPath.find_last_of('/');
+        if (slash == std::string::npos) return false;
+        const std::string sdk =
+            g_checkpointPath.substr(0, slash + 1) + "BunnySourceSdk.dll";
+        if (!validAssembly(sdk)) return false;
+        void* assembly = g_api.openAssembly(g_domain, sdk.c_str());
+        void* image = assembly ? g_api.image(assembly) : nullptr;
+        void* cls = image ? g_api.findClass(image, "BunnyLoader.Source",
+                                            "BunnyCloudDispatcher") : nullptr;
+        if (!cls) return false;
+        g_cloudRegisterMethod = g_api.findMethod(cls, "RegisterFromPath", 2);
+        g_cloudBindMethod = g_api.findMethod(cls, "Bind", 3);
+        g_cloudWeightsMethod = g_api.findMethod(cls, "WeightsWire", 4);
+        g_cloudSpawnMethod = g_api.findMethod(cls, "OnSpawnWire", 5);
+        g_cloudUnregisterMethod = g_api.findMethod(cls, "Unregister", 1);
+        g_cloudClearMethod = g_api.findMethod(cls, "Clear", 0);
+        if (!g_cloudRegisterMethod || !g_cloudBindMethod ||
+            !g_cloudWeightsMethod || !g_cloudSpawnMethod ||
+            !g_cloudUnregisterMethod || !g_cloudClearMethod)
+            return false;
+    }
+
+    if (job.kind == 3) {
+        void* exception = nullptr;
+        g_api.invoke(g_cloudClearMethod, nullptr, nullptr, &exception);
+        return exception == nullptr;
+    }
+
+    CloudWorkerBinding binding;
+    {
+        std::lock_guard<std::mutex> lock(g_pinnedMutex);
+        if (job.session != g_cloudSession || job.binding < 0 ||
+            static_cast<size_t>(job.binding) >= g_cloudBindings.size())
+            return false;
+        binding = g_cloudBindings[static_cast<size_t>(job.binding)];
+    }
+
+    void* mod = g_api.newString(g_domain, binding.modId.c_str());
+    if (!mod) return false;
+    auto managedBool = [&](void* method, void** args) -> bool {
+        void* exception = nullptr;
+        void* boxed = g_api.invoke(method, nullptr, args, &exception);
+        const auto* raw = exception || !boxed ? nullptr :
+            static_cast<const uint8_t*>(g_api.unbox(boxed));
+        return raw && *raw != 0;
+    };
+
+    if (job.kind == 0) {
+        if (!validAssembly(binding.assemblyPath)) return false;
+        void* path = g_api.newString(g_domain, binding.assemblyPath.c_str());
+        if (!path) return false;
+        void* registerArgs[] = {mod, path};
+        // RegisterFromPath instantiates all CSharp BunnyCloud descendants;
+        // roll back the entire mod if any native ID could not be bound.
+        if (!managedBool(g_cloudRegisterMethod, registerArgs))
+            return false;
+        for (const auto& [type, className] : binding.types) {
+            int nativeType = type;
+            void* name = g_api.newString(g_domain, className.c_str());
+            if (!name) {
+                void* args[] = {mod};
+                void* exception = nullptr;
+                g_api.invoke(g_cloudUnregisterMethod, nullptr, args, &exception);
+                return false;
+            }
+            void* args[] = {mod, name, &nativeType};
+            if (!managedBool(g_cloudBindMethod, args)) {
+                void* removeArgs[] = {mod};
+                void* exception = nullptr;
+                g_api.invoke(g_cloudUnregisterMethod, nullptr, removeArgs, &exception);
+                return false;
+            }
+        }
+        return true;
+    }
+
+    if (job.kind == 1) {
+        void* biomes = g_api.newString(g_domain, job.biomes.c_str());
+        if (!biomes || !weightReply) return false;
+        bool menu = job.gameMenu, anniversary = job.anniversary;
+        void* args[] = {mod, &menu, &anniversary, biomes};
+        void* exception = nullptr;
+        void* reply = g_api.invoke(g_cloudWeightsMethod, nullptr, args, &exception);
+        if (exception || !reply) return false;
+        using Utf8Fn = char* (*)(void*);
+        using FreeFn = void (*)(void*);
+        static auto toUtf8 = resolve<Utf8Fn>("mono_string_to_utf8");
+        static auto monoFree = resolve<FreeFn>("mono_free");
+        if (!toUtf8 || !monoFree) return false;
+        char* encoded = toUtf8(reply);
+        if (!encoded) return false;
+        const size_t length = strnlen(encoded, 8193);
+        const bool ok = length > 0 && length <= 8192;
+        if (ok) weightReply->assign(encoded, length);
+        monoFree(encoded);
+        return ok;
+    }
+
+    if (job.kind == 2 && spriteReply) {
+        int type = job.type, slot = job.slot, sprite = job.spriteDir;
+        float scale = job.scale;
+        void* args[] = {mod, &type, &slot, &scale, &sprite};
+        void* exception = nullptr;
+        void* boxed = g_api.invoke(g_cloudSpawnMethod, nullptr, args, &exception);
+        const void* raw = exception || !boxed ? nullptr : g_api.unbox(boxed);
+        if (!raw) return false;
+        std::memcpy(spriteReply, raw, sizeof(*spriteReply));
+        return *spriteReply >= 0 && *spriteReply <= 3;
+    }
+    return false;
+}
+
 void* pinnedMonoWorker(void*) {
     {
         std::lock_guard<std::mutex> lock(g_pinnedMutex);
