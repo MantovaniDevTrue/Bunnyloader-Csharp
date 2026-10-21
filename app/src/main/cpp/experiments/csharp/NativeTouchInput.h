@@ -18,6 +18,11 @@ enum StateBits : uint32_t {
     IsBound = 1u << 5,
 };
 
+struct TouchIconSource {
+    std::string owner;
+    std::string path;
+};
+
 struct Registration {
     std::string owner;
     std::string name;
@@ -54,6 +59,7 @@ public:
     std::string displayName(int id) const;
     std::string iconPath(int id) const;
     std::string ownerId(int id) const;
+    int iconSources(std::array<TouchIconSource, kMaxButtons>* output) const;
     int count() const;
     uint64_t registrationVersion() const;
     void resetWorld();
