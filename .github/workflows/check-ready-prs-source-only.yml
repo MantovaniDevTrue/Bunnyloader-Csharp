@@ -26,6 +26,10 @@ jobs:
           dotnet build experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj -c Release --nologo
           dotnet build experiments/csharp/BunnySourceCompiler/BunnySourceCompiler.csproj -c Release --nologo
           dotnet build tests/ready_prs/FullExampleManaged.csproj -c Release --nologo
+      - name: Bunny JS tooltip renderer and reference example syntax
+        run: |
+          node --check app/src/main/cpp/script/js/mod/Loaders/TooltipLoader.js
+          node --check samples/ExampleMod/content/Content/Items/ExampleTooltipItem.js
       - name: Run all playable source defaults with real managed compiler
         run: dotnet run --project tests/ready_prs/FullExampleRuntime/FullExampleRuntime.csproj -c Release -- samples/ExampleModCSharp/Playable
       - name: Verify staged managed SDK and compiler from combined sources
