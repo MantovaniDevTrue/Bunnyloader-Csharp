@@ -9,6 +9,9 @@ on:
       - experiments/csharp/BunnyCsSdk/BunnyTouchNativeHost.cs
       - experiments/csharp/BunnyCsSdk/BunnyTouchLayoutStore.cs
       - app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp
+      - app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp
+      - app/src/main/cpp/experiments/csharp/ManagedRuntime.h
+      - samples/ExampleModCSharp/Playable/content/Common/Systems/BunnyTouchEntry.cs
       - app/src/main/cpp/experiments/csharp/NativeTouchController.cpp
       - app/src/main/cpp/experiments/csharp/NativeTouchController.h
       - app/src/main/cpp/experiments/csharp/NativeTouchActionIds.h
@@ -127,6 +130,14 @@ jobs:
             app/src/main/cpp/experiments/csharp/NativeTouchGroups.cpp \
             app/src/main/cpp/experiments/csharp/NativeTouchVisibility.cpp \
             app/src/main/cpp/experiments/csharp/NativeTouchActivation.cpp
+      - name: Compile full managed-worker native integration (no APK)
+        shell: bash
+        run: |
+          set -euo pipefail
+          g++ -std=c++20 -fsyntax-only \
+            -Iapp/src/main/cpp \
+            app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp \
+            app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp
       - name: Android ABI compilation (no APK)
         shell: bash
         run: |
