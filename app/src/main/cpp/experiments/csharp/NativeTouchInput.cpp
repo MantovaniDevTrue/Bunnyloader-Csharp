@@ -141,6 +141,25 @@ uint64_t Registry::pressToken(int id) const {
            entries_[static_cast<size_t>(id)].pressSequence;
 }
 
+int Registry::snapshot(uint32_t* states, uint64_t* tokens, int capacity) const {
+    if (!states || !tokens || capacity < 1 || capacity > kMaxButtons)
+        return -1;
+    std::lock_guard lock(mutex_);
+    if (capacity < nextId_) return -1;
+    for (int i = 0; i < capacity; ++i) {
+        if (!active(i)) {
+            states[i] = 0;
+            tokens[i] = 0;
+            continue;
+        }
+        const Registration& entry = entries_[static_cast<size_t>(i)];
+        states[i] = entry.state;
+        tokens[i] = (static_cast<uint64_t>(worldEpoch_) << 32) |
+                    entry.pressSequence;
+    }
+    return nextId_;
+}
+
 uint32_t Registry::read(int id) const {
     std::lock_guard lock(mutex_);
     return active(id) ? entries_[static_cast<size_t>(id)].state : 0u;
@@ -247,6 +266,10 @@ extern "C" __attribute__((visibility("default"))) uint32_t bunny_csharp_touch_re
 }
 extern "C" __attribute__((visibility("default"))) uint64_t bunny_csharp_touch_press_token(int id) {
     return bl::csharp::touch::registry().pressToken(id);
+}
+extern "C" __attribute__((visibility("default"))) int bunny_csharp_touch_snapshot(
+    uint32_t* states, uint64_t* tokens, int capacity) {
+    return bl::csharp::touch::registry().snapshot(states, tokens, capacity);
 }
 extern "C" __attribute__((visibility("default"))) int bunny_csharp_touch_host_ready() {
     return bl::csharp::touch::hostReady() ? 1 : 0;
