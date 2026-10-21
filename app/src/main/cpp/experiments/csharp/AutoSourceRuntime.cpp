@@ -68,6 +68,7 @@
 #include <vector>
 
 namespace bl::csharp {
+bool compiledSourceHasTouchEntry(const std::string& assembly);
 namespace {
 
 constexpr const char* kFixtureId = "57a98f20-7a35-4d19-8ce8-079e25bb36a1";
