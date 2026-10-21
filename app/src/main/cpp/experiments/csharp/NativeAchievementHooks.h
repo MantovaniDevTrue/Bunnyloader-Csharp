@@ -12,6 +12,10 @@ bool registerNativeAchievementMod(const std::string& modId,
                                   const std::string& metadata,
                                   std::string* error);
 std::vector<AchievementMetadata> nativeAchievementMetadataSnapshot();
+// Chamado no worker após um evento; atualiza apenas estado mutável da UI.
+bool updateNativeAchievementProgress(const std::string& modId,
+                                     const std::string& snapshot,
+                                     std::string* error);
 
 bool nativeAchievementBindingsReady();
 bool nativeAchievementHooksReady();
