@@ -325,6 +325,7 @@ struct CloudWorkerJob {
     int kind = 0; // 0 Register+Bind; 1 Weight snapshot; 2 OnSpawn; 3 Clear
     int binding = -1;
     uint64_t session = 0;
+    uint64_t weightGeneration = 0;
     bool gameMenu = false;
     bool anniversary = false;
     std::string biomes;
@@ -334,7 +335,7 @@ struct CloudWorkerJob {
 };
 std::vector<CloudWorkerBinding> g_cloudBindings;
 std::deque<CloudWorkerJob> g_cloudQueue;
-std::map<std::string, std::string> g_cloudWeightReplies;
+std::map<std::string, std::pair<uint64_t, std::string>> g_cloudWeightReplies;
 std::set<std::string> g_cloudWeightsPending;
 std::deque<ManagedCloudSpawnReply> g_cloudSpawnReplies;
 uint64_t g_cloudSession = 1;
@@ -2097,7 +2098,7 @@ void* pinnedMonoWorker(void*) {
                     } else if (job.kind == 1) {
                         g_cloudWeightsPending.erase(mod);
                         if (ok && binding.ready)
-                            g_cloudWeightReplies[mod] = std::move(wire);
+                            g_cloudWeightReplies[mod] = {job.weightGeneration, std::move(wire)};
                     } else if (job.kind == 2 && ok && binding.ready &&
                                g_cloudSpawnReplies.size() < 128) {
                         g_cloudSpawnReplies.push_back({
@@ -2334,8 +2335,9 @@ bool managedCloudRegistrationReady(const std::string& modId) {
 }
 
 bool requestManagedCloudWeights(const std::string& modId, bool gameMenu,
-    bool tenthAnniversaryWorld, const std::string& biomeKeys) {
-    if (biomeKeys.size() > 4096) return false;
+    bool tenthAnniversaryWorld, const std::string& biomeKeys,
+    uint64_t batchGeneration) {
+    if (biomeKeys.size() > 4096 || batchGeneration == 0) return false;
     std::unique_lock<std::mutex> lock(g_pinnedMutex, std::try_to_lock);
     if (!lock.owns_lock() || !g_cloudDispatcherHealthy ||
         !g_pinnedStarted || g_pinnedPending || g_cloudQueue.size() >= 64 ||
@@ -2347,6 +2349,7 @@ bool requestManagedCloudWeights(const std::string& modId, bool gameMenu,
             continue;
         CloudWorkerJob job{};
         job.kind = 1;
+        job.weightGeneration = batchGeneration;
         job.binding = static_cast<int>(i);
         job.session = g_cloudSession;
         job.gameMenu = gameMenu;
@@ -2360,15 +2363,17 @@ bool requestManagedCloudWeights(const std::string& modId, bool gameMenu,
     return false;
 }
 
-bool takeManagedCloudWeights(const std::string& modId, std::string* payload) {
+bool takeManagedCloudWeights(const std::string& modId,
+    uint64_t batchGeneration, std::string* payload) {
     if (!payload) return false;
     std::unique_lock<std::mutex> lock(g_pinnedMutex, std::try_to_lock);
     if (!lock.owns_lock()) return false;
     auto found = g_cloudWeightReplies.find(modId);
     if (found == g_cloudWeightReplies.end()) return false;
-    *payload = std::move(found->second);
+    const bool fresh = found->second.first == batchGeneration;
+    if (fresh) *payload = std::move(found->second.second);
     g_cloudWeightReplies.erase(found);
-    return true;
+    return fresh;
 }
 
 bool queueManagedCloudOnSpawn(const std::string& modId, int type, int slot,
