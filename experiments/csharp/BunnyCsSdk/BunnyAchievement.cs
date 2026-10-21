@@ -14,6 +14,17 @@ public enum BunnyAchievementCategory
     Challenger = 3
 }
 
+public enum BunnyAchievementConditionKind
+{
+    Flag = 0,
+    Integer = 1,
+    Float = 2,
+    NpcKilled = 3,
+    ItemPickup = 4,
+    ItemCraft = 5,
+    TileDestroyed = 6
+}
+
 public enum BunnyAchievementEvent
 {
     Manual = 0,
@@ -32,18 +43,20 @@ public sealed class BunnyAchievementCondition
 
     internal BunnyAchievementCondition(
         BunnyAchievement owner, string key, double maximum,
-        BunnyAchievementEvent source, int[]? ids)
+        BunnyAchievementEvent source, BunnyAchievementConditionKind kind, int[]? ids)
     {
         this.owner = owner;
         Key = key;
         Maximum = maximum;
         Source = source;
+        Kind = kind;
         acceptedIds = ids == null ? null : new HashSet<int>(ids);
     }
 
     public string Key { get; }
     public double Maximum { get; }
     public BunnyAchievementEvent Source { get; }
+    public BunnyAchievementConditionKind Kind { get; }
     public bool IsCompleted => value >= Maximum;
 
     public double Value
@@ -122,28 +135,29 @@ public abstract class BunnyAchievement
     public virtual void OnTileDestroyed(int tileType) { }
 
     protected BunnyAchievementCondition AddCondition(string key = "Condition")
-        => Add(key, 1, BunnyAchievementEvent.Manual, null);
+        => Add(key, 1, BunnyAchievementEvent.Manual, BunnyAchievementConditionKind.Flag, null);
 
     protected BunnyAchievementCondition AddIntCondition(string key, int maximum)
-        => Add(key, maximum, BunnyAchievementEvent.Manual, null);
+        => Add(key, maximum, BunnyAchievementEvent.Manual, BunnyAchievementConditionKind.Integer, null);
 
     protected BunnyAchievementCondition AddFloatCondition(string key, float maximum)
-        => Add(key, maximum, BunnyAchievementEvent.Manual, null);
+        => Add(key, maximum, BunnyAchievementEvent.Manual, BunnyAchievementConditionKind.Float, null);
 
     protected BunnyAchievementCondition AddNPCKilledCondition(params int[] ids)
-        => Add("NPCKilled", 1, BunnyAchievementEvent.NpcKilled, ids);
+        => Add("NPCKilled", 1, BunnyAchievementEvent.NpcKilled, BunnyAchievementConditionKind.NpcKilled, ids);
 
     protected BunnyAchievementCondition AddItemPickupCondition(params int[] ids)
-        => Add("ItemPickup", 1, BunnyAchievementEvent.ItemPickup, ids);
+        => Add("ItemPickup", 1, BunnyAchievementEvent.ItemPickup, BunnyAchievementConditionKind.ItemPickup, ids);
 
     protected BunnyAchievementCondition AddItemCraftCondition(params int[] ids)
-        => Add("ItemCraft", 1, BunnyAchievementEvent.ItemCraft, ids);
+        => Add("ItemCraft", 1, BunnyAchievementEvent.ItemCraft, BunnyAchievementConditionKind.ItemCraft, ids);
 
     protected BunnyAchievementCondition AddTileDestroyedCondition(params int[] ids)
-        => Add("TileDestroyed", 1, BunnyAchievementEvent.TileDestroyed, ids);
+        => Add("TileDestroyed", 1, BunnyAchievementEvent.TileDestroyed, BunnyAchievementConditionKind.TileDestroyed, ids);
 
     private BunnyAchievementCondition Add(
-        string key, double maximum, BunnyAchievementEvent source, int[]? ids)
+        string key, double maximum, BunnyAchievementEvent source,
+        BunnyAchievementConditionKind kind, int[]? ids)
     {
         if (registered)
             throw new InvalidOperationException("As condições só podem ser criadas em SetStaticDefaults.");
@@ -162,7 +176,7 @@ public abstract class BunnyAchievement
              ids.Distinct().Count() != ids.Length))
             throw new ArgumentException("Tipos do evento ausentes, inválidos ou repetidos.", nameof(ids));
 
-        var condition = new BunnyAchievementCondition(this, key, maximum, source, ids);
+        var condition = new BunnyAchievementCondition(this, key, maximum, source, kind, ids);
         conditions.Add(condition);
         byKey.Add(key, condition);
         return condition;
