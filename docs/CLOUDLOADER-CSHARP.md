@@ -27,6 +27,20 @@ o comportamento correto e suas regras já validadas.
   `CloudID.Count` fornecido pelo Terraria, rejeição de caminhos perigosos,
   segurança transacional de disponibilidade de textura/máscara e limpeza.
 - `BunnyCloudDispatcher.cs`: registro C# por assembly, vínculo de IDs nativos, peso por bioma, `OnSpawn`, isolamento de exceções, várias instâncias e descarregamento.
+- `NativeCloudManifest.h`: leitura estrita e transacional do protocolo
+  `BUNNY_CLOUDS_V1` gerado pelo Roslyn. Duplicações ou entradas inválidas
+  não deixam classes parcialmente registradas.
+- `NativeCloudAssets.cpp`: instalação nativa **ainda não chamada pelo loader**.
+  Prepara PNGs, duas tabelas IL2CPP separadas, máscaras do horizonte e
+  seus handles GC. Publica máscaras antes das texturas e reverte ambas
+  se qualquer verificação falhar. Rejeita IDs já ocupados por outro loader.
+- `NativeCloudSpawnLedger.h`: fila limitada de eventos `OnSpawn` para
+  MonoVM, com gerações por slot; bloqueia resultados atrasados depois
+  que o Terraria reutiliza um slot ou troca de mundo.
+- `NativeCloudHookBindings.cpp`: valida em tempo de execução as assinaturas
+  `void addCloud()` e `int RollRareCloud()`, offsets tipados e
+  `Main.cloud`, mas **ainda não instala hooks**.
+
 - `SourceParser.cpp` / `SourceContentIdentity.h`: reconhecimento explícito de `BunnyCloud` e domínio `CLOUD`; `SourceLoader.cpp` recusa nuvens antes de registrar itens enquanto não houver máscaras e hooks nativos.
 - `CompiledAssemblyProbe.cs`: reconhecimento por reflexão e geração do catálogo isolado `source-clouds-v1.txt`, sem alterar o formato V2 dos demais itens.
 - `tests/cloud_loader/`: exemplos executáveis das duas classes de nuvens,
@@ -90,15 +104,20 @@ metadado, não uma ponte para QuickJS.
 - [ ] Estabilizar a API com o host nativo e validar em aparelho antes de classificá-la como utilizável em jogo.
 - [x] Reconhecer `BunnyCloud` no parser, reservar domínio `CLOUD` e exportar catálogo Roslyn separado.
 - [ ] Completar registro nativo real e instalação automática de texturas e máscaras antes da entrada no mundo.
-- [ ] Instalar texturas em `TextureAssets.Cloud` e máscaras seguras em
-      `TextureMaskManager.CloudMasks` na thread de jogo. Se a máscara
-      falhar, bloquear aquele tipo sem afetar nuvens vanilla.
-- [ ] Conectar nativamente `Cloud.addCloud` e `RollRareCloud` usando as
-      assinaturas verificadas no Terraria Mobile; preservar a rolagem vanilla.
+- [x] Codificar instalador transacional nativo e verificação de máscaras,
+      com rollback e preservação das tabelas vanilla.
+- [ ] Acionar o instalador no momento correto do ciclo de vida do jogo
+      e validar as classes e máscaras reais em Android; na falha,
+      bloquear aquele tipo sem afetar nuvens vanilla.
+- [x] Codificar a resolução estrita das assinaturas IL2CPP e offsets tipados.
+- [ ] Validar esses contratos contra Terraria Mobile em execução e
+      instalar os hooks preservando a rolagem vanilla.
 - [x] Implementar dispatch C# de `SpawnChance` e `OnSpawn` com identificação por mod, limites e isolamento de exceções.
 - [ ] Conectar o dispatcher ao worker MonoVM e ao hook IL2CPP, com cache e nenhuma RPC por frame.
-- [ ] Atualizar tamanho de nuvem pelo PNG, preservar `spriteDir`, impedir
-      callback em slot inativo e garantir ordem correta de rara/comum.
+- [x] Preparar fila `OnSpawn` por slot/geração com limites e testes
+      para ignorar resultados de callbacks atrasados.
+- [ ] Atualizar o tamanho real pelo PNG, preservar `spriteEffects`,
+      impedir callback em slot inativo e ligar a ordem rara/comum aos hooks.
 - [ ] Cobrir múltiplos mods, mundo de aniversário, recarga de mundo,
       desconexão, recompilação, assets ausentes e fechamento sem leak.
 - [x] Criar classes C# de nuvem comum e avançada comentadas e testes de
@@ -119,4 +138,6 @@ bash tests/cloud_loader/run_native.sh
 ```
 
 O runner compila com C++20, `-Wall -Wextra -Werror -pedantic`. A Action
-específica também executa AddressSanitizer e UndefinedBehaviorSanitizer.
+específica também executa AddressSanitizer e UndefinedBehaviorSanitizer e
+verifica a sintaxe real do instalador de assets e do resolvedor IL2CPP
+com GCC e Clang, sem executar código Android.
