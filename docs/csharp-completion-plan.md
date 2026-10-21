@@ -1,8 +1,31 @@
-# Regra vigente — cinco loaders completos por APK
+# Regra vigente — 21/10/2026: quinze loaders completos, sem APK parcial
+
+A instrução mais recente exige avançar até cerca de **quinze loaders completos**,
+com APIs públicas, bridges reais e exemplos editáveis/comentados. **É proibido
+gerar APK enquanto o escopo escolhido tiver funcionalidades faltantes.**
+A regra antiga de cinco loaders por APK, preservada abaixo como histórico,
+não autoriza uma entrega menor nesta execução.
+
+Escopo verificável: [quinze contratos e pendências](csharp-loader-completion-15.json).
+Continuidade e evidências: [integração de 21/10](csharp-loader-integration-20261021.md).
+O gate `tools/ci/check_loader_delivery_gate.py` bloqueia empacotamento/publicação;
+os testes e a linkagem de `libbunny.so` sem APK continuam permitidos.
+SystemUpdate (#126) e Gore (#121) foram integrados como trabalhos existentes:
+seus callbacks não são contados como loaders extras nem substituem pendências
+na lista de quinze. Android e FPS permanecem estados de validação separados.
+
+O inventário do anexo ExampleModBunny 1.9.0 contém 206 fontes JS, preservados
+com hashes em `docs/generated/examplemod-1.9.0-upload-inventory.json`. As metas
+globais JS/PC e a identidade dos exemplos anteriores continuam preservadas.
+Nenhuma porcentagem de conclusão total é deduzida da aprovação do CI.
+
+## Histórico — regra de cinco loaders, substituída nesta execução
+
+### Registro anterior — cinco loaders completos por APK
 
 O pedido mais recente de19/10/2026 substitui a exigência anterior de aguardar o port integral antes de cada entrega: **cinco loaders completos por APK e um exemplo original completo por loader**. Preservar todos os exemplos existentes e a meta global. Plano operacional: [grupos, critérios e continuidade](csharp-loader-batches.md); inventário executável: [csharp-loader-batches.json](csharp-loader-batches.json). Primeiro grupo: Tile, Wall, Tree, TileEntity e GlobalTile. Auxiliares não contam como loaders extras. Nenhum dos cinco está certificado; publicações são condicionadas ao gate dos cinco, às regressões e à build. CI39246685678 e nove suítes passaram no código f70caa80; nenhuma publicação ou validação de gameplay Android. [Evidência](validation/csharp-world-loaders-v99-2026-10-19.json).
 
-As entradas anteriores abaixo são histórico, incluindo as proibições de entrega parcial e a antiga ordem de lotes. Para novas entregas, prevalece esta regra; as matrizes de206 JS e do ExampleMod PC continuam no escopo.
+As entradas anteriores abaixo são histórico, incluindo as proibições de entrega parcial e a antiga ordem de lotes. Para as entregas daquele registro, prevalecia aquela regra; as matrizes de206 JS e do ExampleMod PC continuam no escopo.
 
 > [Evidência final interna .98](validation/csharp-v98-internal-2026-10-19.json): código367488d9, APK compilado/validado, nenhuma publicação de APK/.bmod. Port integral continua em desenvolvimento.
 

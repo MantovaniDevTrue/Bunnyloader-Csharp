@@ -210,3 +210,20 @@ storage estático/instância do método antes de instalar as âncoras.
 Continuam vigentes o bloqueio de APK, as 14 pendências do escopo de quinze e
 as adaptações de Keybind/WorldSave descritas acima. Nenhuma aprovação anterior
 foi reutilizada como aprovação do novo SHA.
+
+
+## CI do complemento com QuickJS real
+
+O SHA `7d5c87479ee13f1f75c90b27aa37f54fac82f11d` passou nos onze workflows.
+[CI combinado 39685243816](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39685243816):
+quatro jobs aprovados, incluindo o teste QuickJS real, as regressões existentes,
+compilação ARM64 dos arquivos modificados e linkagem de `libbunny.so` completa.
+O workflow confirma ausência de APK. O SHA registrado é o dos fontes testados;
+este registro documental posterior não representa outro teste no dispositivo.
+
+O plano oficial `csharp-completion-plan.md` agora apresenta a regra de quinze
+no topo. A regra de cinco permanece somente no histórico; não autoriza gerar
+APK parcial. A lista atual contabiliza **1/15 contratos implementados (6,67%)**
+e **0/15 validados no Android**; as duas integrações adicionais não inflam
+esse percentual. O inventário global de exemplos continua sendo uma meta
+separada. Os 14 contratos restantes não foram reduzidos a stubs ou removidos.

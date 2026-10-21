@@ -1,0 +1,51 @@
+{
+  "schema": 1,
+  "sourceCommit": "7d5c87479ee13f1f75c90b27aa37f54fac82f11d",
+  "baseCommit": "5a18a67899c1f6ee88a34097be3adb6e7877edd4",
+  "pullRequest": 130,
+  "branch": "feat/csharp-loader-completion-15-20261021",
+  "workflowRun": 39685243816,
+  "workflowResult": "success",
+  "jobs": {
+    "managed-and-contracts": "success",
+    "native-host": "success",
+    "native-arm64-syntax": "success",
+    "native-android-link-no-apk": "success"
+  },
+  "scope": {
+    "targets": 15,
+    "implemented": 1,
+    "pending": 14,
+    "androidValidated": 0,
+    "additionalIntegrations": [
+      "SystemUpdateLoader",
+      "GoreLoader"
+    ]
+  },
+  "sourceOnly": true,
+  "apkProduced": false,
+  "bmodProduced": false,
+  "androidTested": false,
+  "fpsMeasured": false,
+  "reference": {
+    "archive": "examplemod.bl",
+    "version": "1.9.0",
+    "jsFiles": 206,
+    "archiveSha256": "1a8986992aac4744e4d1c925e0cf582b58d113d48c26ff3d3bb4726c321e521e"
+  },
+  "testEvidence": {
+    "combinedRegressions": 65,
+    "managedSystemUpdateChecks": 115,
+    "nodeSystemBehaviorChecks": 34,
+    "realQuickJsNativeInterop": true,
+    "sdkPublicTypes": 155,
+    "exampleManagedTypes": 85,
+    "exampleSources": 104
+  },
+  "limits": [
+    "Native metadata/ShadowHook controlled in host fixtures; ARM64 trampoline execution still requires Android.",
+    "Real QuickJS test uses production JS/native bindings and a native simulation of the CSharp hook; MonoVM execution is covered separately.",
+    "No Android validation, stable release or FPS guarantee.",
+    "Fourteen selected original loader contracts remain pending; additional integrations are not substituted for targets."
+  ]
+}

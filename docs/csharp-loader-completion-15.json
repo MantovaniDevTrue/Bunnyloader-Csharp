@@ -667,10 +667,10 @@
         "app/src/main/cpp/hook/HookManager.cpp"
       ],
       "automatedValidation": {
-        "commit": "1ce4c19b8288c35dd708915d422ddb8ba1e18860",
-        "runId": 39684504809,
+        "commit": "7d5c87479ee13f1f75c90b27aa37f54fac82f11d",
+        "runId": 39685243816,
         "result": "passed",
-        "scope": "65 host regressions, 115 managed checks, ARM64 syntax and complete native link; next bridge extraction and real QuickJS test require their own CI. No APK."
+        "scope": "65 host regressions, 115 managed checks, real QuickJS/native integration, ARM64 syntax and complete native library link. No APK or Android execution."
       }
     },
     {
