@@ -187,8 +187,13 @@ void refresh() {
 }
 }
 
-void nativeTouchGroupBefore(void* controller) {
-    if (!controller || registry().count() == 0) return;
+void nativeTouchGroupBefore(void* controller, bool gameplay) {
+    if (!controller) return;
+    if (registry().count() == 0) {
+        if (count > 0) clear();
+        cachedProfile = nullptr;
+        return;
+    }
     if (!available && (++discoveryAttempts == 1 ||
                        discoveryAttempts % 120 == 0))
         available = discover(controller);
@@ -198,13 +203,17 @@ void nativeTouchGroupBefore(void* controller) {
         refresh();
         cachedProfile = profile;
     }
-    if (!hostReady()) return;
+    for (int i = 0; i < count; ++i)
+        groups[static_cast<size_t>(i)].before = -1;
+    if (!hostReady() || !gameplay) return;
     for (int i = 0; i < count; ++i)
         groups[static_cast<size_t>(i)].before =
             indexOf(controller, groups[static_cast<size_t>(i)]);
 }
 void nativeTouchGroupAfter(void* controller) {
-    if (!controller || !available || !hostReady()) return;
+    if (!controller || !available || !hostReady() ||
+        cachedProfile != nativeTouchActiveProfileIdentity())
+        return;
     for (int i = 0; i < count; ++i) {
         auto& group = groups[static_cast<size_t>(i)];
         const int was = group.before;
