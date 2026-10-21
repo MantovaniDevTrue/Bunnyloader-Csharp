@@ -15,7 +15,7 @@ namespace bl::csharp {
 #if defined(__aarch64__)
 namespace {
 using Clock = std::chrono::steady_clock;
-constexpr int kCount = 9;
+constexpr int kCount = 10;
 struct alignas(16) RegisterFrame {
     uint64_t general[31];
     uint64_t flags;
@@ -37,6 +37,9 @@ struct Stage {
 extern Stage stages[kCount];
 using WorldUpdateFn = void (*)(void*, const MethodInfo*);
 WorldUpdateFn originalWorldUpdate = nullptr;
+using UiUpdateFn = void (*)(void*, const MethodInfo*);
+UiUpdateFn originalUiUpdate = nullptr;
+FieldInfo* gameMenuField = nullptr;
 std::atomic<bool> rootInstalled{false};
 
 extern "C" {
@@ -51,7 +54,7 @@ __attribute__((visibility("hidden"))) void* g_blCSharpSystemOriginal7 = nullptr;
 __attribute__((visibility("hidden"))) void* g_blCSharpSystemOriginal8 = nullptr;
 }
 
-void invokeStage(int index) {
+void invokeStage(int index, uintptr_t context = 0) {
     Stage& stage = stages[index];
     if (!stage.active.load(std::memory_order_acquire)) return;
     const int slot = stage.slot.load(std::memory_order_acquire);
@@ -64,7 +67,7 @@ void invokeStage(int index) {
     // seguinte de DoUpdateInWorld. Nunca executá-la via MonoVM.
     // O Original.Invoke gerenciado apenas sincroniza este ponto de pausa.
     const auto result = universalHookMailbox().dispatch(
-        slot, 0, [] { return true; }, wakeUniversalHookWorker,
+        slot, context, [] { return true; }, wakeUniversalHookWorker,
         std::chrono::milliseconds(3), 0, false,
         universalNativeService.load(std::memory_order_acquire));
     if (result.accepted && !result.faulted) {
@@ -79,6 +82,14 @@ void invokeStage(int index) {
 extern "C" __attribute__((visibility("hidden"))) void blCSharpSystemStageDispatch(
     unsigned index, RegisterFrame*) {
     if (index < kCount) invokeStage(static_cast<int>(index));
+}
+
+void hkUpdateUIStates(void* gameTime, const MethodInfo* info) {
+    originalUiUpdate(gameTime, info);
+    bool gameMenu = true;
+    if (!gameMenuField || !il2cpp::api().field_static_get_value) return;
+    il2cpp::api().field_static_get_value(gameMenuField, &gameMenu);
+    if (!gameMenu) invokeStage(9, reinterpret_cast<uintptr_t>(gameTime));
 }
 
 void hkDoUpdateInWorld(void* self, const MethodInfo* info) {
@@ -196,7 +207,8 @@ Stage stages[kCount] = {
     {"ItemsBegin", 0x1740, {0xd000feb7, 0xf000fed8, 0xd000ff99, 0x9001017c}, csBridge5, &g_blCSharpSystemOriginal5},
     {"ItemsEnd", 0x1a14, {0x9000ffc8, 0xf9437908, 0xb0010037, 0xd00100b6}, csBridge6, &g_blCSharpSystemOriginal6},
     {"EntitiesBegin", 0, {0, 0, 0, 0}, nullptr, nullptr},
-    {"EntitiesEnd", 0, {0, 0, 0, 0}, nullptr, nullptr}
+    {"EntitiesEnd", 0, {0, 0, 0, 0}, nullptr, nullptr},
+    {"UIEnd", 0, {0, 0, 0, 0}, nullptr, nullptr}
 };
 
 const MethodInfo* worldMethod() {
@@ -220,13 +232,23 @@ int installUniversalSystemStageOnGameThread(const std::string& name, int slot) {
     if (index < 0) return -3;
     auto& stage = stages[index];
     if (stage.active.load(std::memory_order_acquire)) return -8;
-    if (!rootInstalled.load(std::memory_order_acquire)) {
+    if (index < 9 && !rootInstalled.load(std::memory_order_acquire)) {
         const MethodInfo* method = worldMethod();
         if (!method || !il2cpp::methodPointer(method)) return -7;
         if (!hook::install(method, hkDoUpdateInWorld, &originalWorldUpdate)) return -9;
         rootInstalled.store(true, std::memory_order_release);
     }
 
+    if (index == 9 && !originalUiUpdate) {
+        auto* main = il2cpp::findClassQuiet("Terraria", "Main");
+        const MethodInfo* method = main ? il2cpp::findMethodBySignature(
+            main, il2cpp::parseSignature("void UpdateUIStates(GameTime gameTime)")) : nullptr;
+        FieldInfo* menu = main ? il2cpp::findField(main, "gameMenu") : nullptr;
+        if (!method || !il2cpp::methodPointer(method) || !menu ||
+            !il2cpp::api().field_static_get_value) return -7;
+        if (!hook::install(method, hkUpdateUIStates, &originalUiUpdate)) return -9;
+        gameMenuField = menu;
+    }
     if (index < 7 && !*stage.original) {
         // Os quatro opcodes originais do Bunny validam exatamente a build
         // Terraria Android 301720. Falha segura para versões incompatíveis.
