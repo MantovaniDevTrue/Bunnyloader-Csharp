@@ -16,17 +16,14 @@ namespace bl::csharp::touch {
 
 void pumpNativeTouchActivationOnGameThread() {
     static uint64_t tick = 0;
-    static uint64_t appliedVersion = 0;
     if (registry().count() == 0) {
         if (hostReady()) setHostReady(false);
         return;
     }
-    const uint64_t version = registry().registrationVersion();
     if (hostReady()) {
         if (++tick % 60 != 0) return;
         if (!ensureNativeTouchEditorOptionsOnGameThread()) return;
-        if (reapplyNativeTouchLayoutsOnGameThread())
-            appliedVersion = version;
+        reapplyNativeTouchLayoutsOnGameThread();
         return;
     }
     if (++tick != 1 && tick % 30 != 0) return;
@@ -54,7 +51,6 @@ void pumpNativeTouchActivationOnGameThread() {
     if (!ensureNativeTouchStaticMappingsOnGameThread()) return;
     if (!ensureNativeTouchEditorOptionsOnGameThread()) return;
     setHostReady(true);
-    appliedVersion = version;
 }
 
 } // namespace bl::csharp::touch
