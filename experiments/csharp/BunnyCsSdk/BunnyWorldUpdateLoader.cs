@@ -79,7 +79,7 @@ public abstract class BunnyWorldUpdateLoader : BunnyHookModule
         attached = true;
     }
 
-    /// <summary>A desmontagem libera a inscrição e migra o hook para outro mod ativo.</summary>
+    /// <summary>A desmontagem libera a inscrição sem descartar outros mods ativos.</summary>
     public sealed override void Unload()
     {
         if (!attached) return;
@@ -156,6 +156,7 @@ internal static class BunnyWorldUpdateRegistry
         internal readonly BunnyUpdateStageFlags After;
         internal BunnyWorldUpdateLoader[] BeforeListeners = Array.Empty<BunnyWorldUpdateLoader>();
         internal BunnyWorldUpdateLoader[] AfterListeners = Array.Empty<BunnyWorldUpdateLoader>();
+        internal BunnyHookScope? Owner;
         internal BunnyMethodHook? Hook;
 
         internal Stage(string type, string method, bool isStatic,
@@ -196,6 +197,10 @@ internal static class BunnyWorldUpdateRegistry
             BunnyUpdateStageFlags.None, BunnyUpdateStageFlags.PostUpdateInput)
     };
 
+    // Testes .NET8 injetam handles falsos. Em produção é sempre null e os
+    // hooks reais são instalados exclusivamente por BunnyHookScope.HookVoid.
+    internal static Func<BunnyHookScope, string, string, BunnyVoidHook, bool, BunnyMethodHook>? TestHookFactory;
+
     internal static int ActiveHookCount
     {
         get
@@ -214,6 +219,8 @@ internal static class BunnyWorldUpdateRegistry
     {
         lock (Gate)
         {
+            if (Subscribers.Exists(entry => ReferenceEquals(entry.Loader, loader)))
+                throw new InvalidOperationException("Loader de mundo já inscrito");
             Subscribers.Add(new Subscription(loader, scope));
             try { Rebuild(); }
             catch
@@ -229,20 +236,20 @@ internal static class BunnyWorldUpdateRegistry
     {
         lock (Gate)
         {
-            if (Subscribers.Count == 0) return;
-            bool wasOwner = ReferenceEquals(Subscribers[0].Loader, loader);
-            Subscribers.RemoveAll(item => ReferenceEquals(item.Loader, loader));
-            if (wasOwner)
-            {
-                // O BunnyUniversalHookDispatcher já descartou o scope antigo.
-                // Os novos hooks pertencem ao próximo mod, nunca ao descarregado.
-                foreach (Stage stage in Stages)
-                {
-                    stage.Hook?.Dispose();
-                    stage.Hook = null;
-                }
-            }
-            Rebuild();
+            if (Subscribers.RemoveAll(entry => ReferenceEquals(entry.Loader, loader)) != 0)
+                Rebuild();
+        }
+    }
+
+    // O dispatcher deve chamar este método ANTES de Dispose no escopo.
+    // Todas as classes do mesmo mod usam o mesmo escopo, logo a saída tem
+    // que ser atômica; caso contrário ocorre reinstalação num escopo morto.
+    internal static void DetachScope(BunnyHookScope scope)
+    {
+        lock (Gate)
+        {
+            if (Subscribers.RemoveAll(entry => ReferenceEquals(entry.Scope, scope)) != 0)
+                Rebuild();
         }
     }
 
@@ -252,41 +259,68 @@ internal static class BunnyWorldUpdateRegistry
         {
             var before = new List<BunnyWorldUpdateLoader>();
             var after = new List<BunnyWorldUpdateLoader>();
+            BunnyHookScope? owner = null;
+
             foreach (Subscription entry in Subscribers)
             {
-                if (entry.Loader.Wants(stage.Before)) before.Add(entry.Loader);
-                if (entry.Loader.Wants(stage.After)) after.Add(entry.Loader);
+                bool wantsBefore = stage.Before != BunnyUpdateStageFlags.None &&
+                                   entry.Loader.Wants(stage.Before);
+                bool wantsAfter = stage.After != BunnyUpdateStageFlags.None &&
+                                  entry.Loader.Wants(stage.After);
+                if (!wantsBefore && !wantsAfter) continue;
+                owner ??= entry.Scope;
+                if (wantsBefore) before.Add(entry.Loader);
+                if (wantsAfter) after.Add(entry.Loader);
             }
-            Volatile.Write(ref stage.BeforeListeners, before.ToArray());
-            Volatile.Write(ref stage.AfterListeners, after.ToArray());
 
-            bool required = before.Count != 0 || after.Count != 0;
-            if (!required)
+            if (owner is null || !ReferenceEquals(owner, stage.Owner) ||
+                stage.Hook is null || stage.Hook.IsDisposed)
             {
                 stage.Hook?.Dispose();
                 stage.Hook = null;
-                continue;
+                stage.Owner = null;
+                if (owner is not null)
+                {
+                    Stage captured = stage;
+                    BunnyVoidHook handler = (original, self) => Dispatch(captured, original.Invoke);
+                    BunnyMethodHook hook = TestHookFactory is null
+                        ? owner.HookVoid(stage.Type, stage.Method, handler, stage.IsStatic)
+                        : TestHookFactory(owner, stage.Type, stage.Method, handler, stage.IsStatic);
+                    stage.Hook = hook;
+                    stage.Owner = owner;
+                }
             }
-            if (stage.Hook is { IsDisposed: false }) continue;
-            BunnyHookScope scope = Subscribers[0].Scope;
-            Stage captured = stage;
-            stage.Hook = scope.HookVoid(stage.Type, stage.Method,
-                (original, self) => Dispatch(captured, original), stage.IsStatic);
+
+            // Publicar listeners só depois de confirmar a instalação.
+            // Callback em voo usa o snapshot anterior e não bloqueia o frame.
+            Volatile.Write(ref stage.BeforeListeners, before.ToArray());
+            Volatile.Write(ref stage.AfterListeners, after.ToArray());
         }
     }
 
-    private static void Dispatch(Stage stage, BunnyOriginalVoid original)
+    private static void Dispatch(Stage stage, Action original)
     {
-        // Os arrays são cópias imutáveis da inscrição; sem lock por frame.
-        // Uma falha de callback não suprime o update vanilla.
         foreach (BunnyWorldUpdateLoader loader in Volatile.Read(ref stage.BeforeListeners))
             loader.Invoke(stage.Before);
 
-        try { original.Invoke(); }
+        try { original(); }
         finally
         {
             foreach (BunnyWorldUpdateLoader loader in Volatile.Read(ref stage.AfterListeners))
                 loader.Invoke(stage.After);
         }
+    }
+
+    // Só para o projeto de teste do SDK: executa o mesmo despacho gerenciado
+    // com um original simulado. Nunca é chamado pelo jogo.
+    internal static void TestFire(string method, Action original)
+    {
+        foreach (Stage stage in Stages)
+            if (stage.Method == method)
+            {
+                Dispatch(stage, original);
+                return;
+            }
+        throw new ArgumentException("Estágio inexistente", nameof(method));
     }
 }
