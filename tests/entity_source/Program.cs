@@ -21,6 +21,7 @@ public sealed class ManagedProbeNpc : BunnyNPC
 public sealed class ManagedProbeProjectile : BunnyProjectile
 {
     public static int Spawns, Despawns, Hits, Calls, Kills, SeenTarget = -1;
+    public static float LastHitX, LastHitY, LastKillX, LastKillY;
     public override void SetDefaults() { }
 
     public override void OnSpawn(ref BunnyProjectileAiState state) => Spawns++;
@@ -32,8 +33,17 @@ public sealed class ManagedProbeProjectile : BunnyProjectile
         return true;
     }
     public override void OnHitNPC(ref BunnyProjectileAiState state, int npcIndex, int damage)
-        => Hits += npcIndex + damage;
-    public override void OnKill(ref BunnyProjectileAiState state) => Kills++;
+    {
+        Hits += npcIndex + damage;
+        LastHitX = state.X;
+        LastHitY = state.Y;
+    }
+    public override void OnKill(ref BunnyProjectileAiState state)
+    {
+        Kills++;
+        LastKillX = state.X;
+        LastKillY = state.Y;
+    }
     public override void OnDespawn(ref BunnyProjectileAiState state) => Despawns++;
 }
 
@@ -117,11 +127,15 @@ public static class Program
         Check(!BunnyEntitySourceDispatcher.HitProjectile(first, 1136, 8, 12, 1, 5, 7), "projectile owner isolation");
         Check(!BunnyEntitySourceDispatcher.HitProjectile(first, 1136, 8, 11, 0, 5, 7), "projectile generation isolation");
         Check(ManagedProbeProjectile.Hits == 12, "projectile hit payload");
+        Check(ManagedProbeProjectile.LastHitX == 100 &&
+              ManagedProbeProjectile.LastHitY == 100, "projectile sound position retained on hit");
         Check(BunnyEntitySourceDispatcher.KillProjectile(first, 1136, 8, 12, 0),
             "projectile native kill event");
         Check(!BunnyEntitySourceDispatcher.KillProjectile(first, 1136, 8, 12, 0),
             "projectile OnKill once per generation");
         Check(ManagedProbeProjectile.Kills == 1, "projectile kill count");
+        Check(ManagedProbeProjectile.LastKillX == 100 &&
+              ManagedProbeProjectile.LastKillY == 100, "projectile position retained on kill");
         Check(!BunnyEntitySourceDispatcher.HitProjectile(first, 1136, 8, 12, 0, 5, 7),
             "projectile hit after kill quarantined");
         Check(BunnyEntitySourceDispatcher.TickProjectile(first, 1136, 8, 12, 1,
