@@ -33,12 +33,13 @@ public abstract class BunnyWorldUpdateLoader : BunnyHookModule
     private long callbacks;
     private long faults;
     private string lastError = "";
-    private bool attached;
+    private bool loaded;
+    private int registered;
 
     public long CallbackCount => Interlocked.Read(ref callbacks);
     public long ErrorCount => Interlocked.Read(ref faults);
     public string LastError => Volatile.Read(ref lastError);
-    public bool IsRegistered => attached;
+    public bool IsRegistered => Volatile.Read(ref registered) != 0;
 
     /// <summary>Exemplos podem desligar o loader sem instalar nenhum hook.</summary>
     protected virtual bool EnableUpdates => true;
@@ -74,19 +75,21 @@ public abstract class BunnyWorldUpdateLoader : BunnyHookModule
     public sealed override void Load(BunnyHookScope hooks)
     {
         if (hooks is null) throw new ArgumentNullException(nameof(hooks));
-        if (attached) throw new InvalidOperationException("Loader de mundo registrado duas vezes");
+        if (loaded) throw new InvalidOperationException("Loader de mundo registrado duas vezes");
         if (!EnableUpdates) return;
         flags = FindOverrides();
         if (flags == BunnyUpdateStageFlags.None) return;
         BunnyWorldUpdateRegistry.Attach(this, hooks);
-        attached = true;
+        loaded = true;
+        Volatile.Write(ref registered, 1);
     }
 
     /// <summary>A desmontagem libera a inscrição sem descartar outros mods ativos.</summary>
     public sealed override void Unload()
     {
-        if (!attached) return;
-        attached = false;
+        if (!loaded) return;
+        loaded = false;
+        Deactivate();
         BunnyWorldUpdateRegistry.Detach(this);
         OnUnloaded();
     }
@@ -117,8 +120,11 @@ public abstract class BunnyWorldUpdateLoader : BunnyHookModule
 
     internal bool Wants(BunnyUpdateStageFlags flag) => (flags & flag) != 0;
 
+    internal void Deactivate() => Volatile.Write(ref registered, 0);
+
     internal void Invoke(BunnyUpdateStageFlags flag)
     {
+        if (!IsRegistered) return;
         try
         {
             switch (flag)
@@ -239,6 +245,7 @@ internal static class BunnyWorldUpdateRegistry
     {
         lock (Gate)
         {
+            loader.Deactivate();
             if (Subscribers.RemoveAll(entry => ReferenceEquals(entry.Loader, loader)) != 0)
                 Rebuild();
         }
@@ -251,6 +258,8 @@ internal static class BunnyWorldUpdateRegistry
     {
         lock (Gate)
         {
+            foreach (Subscription entry in Subscribers)
+                if (ReferenceEquals(entry.Scope, scope)) entry.Loader.Deactivate();
             if (Subscribers.RemoveAll(entry => ReferenceEquals(entry.Scope, scope)) != 0)
                 Rebuild();
         }
