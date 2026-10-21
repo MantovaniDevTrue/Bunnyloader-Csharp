@@ -344,7 +344,7 @@ public static class BunnyTouchButtonLoader
                 entry.TriggerSnapshot = new BunnyTouchButtonState(
                     current.Current || pending,
                     current.Old,
-                    pending || current.JustPressed,
+                    pending,
                     current.JustReleased && !pending,
                     current.RetroCurrent,
                     current.IsBound);
