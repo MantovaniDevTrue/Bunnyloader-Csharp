@@ -56,6 +56,7 @@ jobs:
           "$NM" -D --defined-only "$LIB" > /tmp/bunny-gore-native-symbols.txt
           for symbol in \
             bunny_csharp_gore_type \
+            bunny_csharp_gore_type_any \
             bunny_csharp_gore_spawn \
             bunny_csharp_gore_configure
           do
