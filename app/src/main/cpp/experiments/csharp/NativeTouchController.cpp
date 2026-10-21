@@ -2,6 +2,8 @@
 #include "experiments/csharp/NativeTouchInput.h"
 #include "experiments/csharp/NativeTouchGameAbi.h"
 #include "experiments/csharp/NativeTouchActionIds.h"
+#include "experiments/csharp/NativeTouchProfiles.h"
+#include "experiments/csharp/NativeTouchFocus.h"
 #include "hook/HookManager.h"
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
@@ -174,8 +176,27 @@ void onControllerUpdate(void* self, float elapsedTime, const MethodInfo* method)
             data[index] != 0)
             held[count++] = id;
     }
-    registry().frame(static_cast<int64_t>(++ticks), true, true, true, true,
-                     held.data(), count, nullptr, 0);
+    // Os layouts mudam durante a edição. A leitura da configuração ocorre
+    // no máximo a cada 30 frames; o gameplay não escaneia perfis por toque.
+    static ActiveTouchSnapshot snapshot;
+    static uint64_t previousScan = 0;
+    if (!snapshot.ready || ticks - previousScan >= 30) {
+        ActiveTouchSnapshot next;
+        if (nativeTouchActiveSnapshot(&next)) snapshot = next;
+        else snapshot = {};
+        previousScan = ticks;
+    }
+    std::array<int, kMaxButtons> bound{};
+    size_t boundCount = 0;
+    if (snapshot.ready) {
+        for (int id = 0; id < kMaxButtons; ++id)
+            if (snapshot.bound[static_cast<size_t>(id)])
+                bound[boundCount++] = id;
+    }
+    const FocusState focus = readNativeTouchFocus();
+    registry().frame(static_cast<int64_t>(++ticks), true, focus.chat,
+                     focus.npc, focus.sign, held.data(), count,
+                     bound.data(), boundCount);
 }
 
 } // namespace
