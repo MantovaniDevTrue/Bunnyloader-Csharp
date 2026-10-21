@@ -11,6 +11,8 @@ on:
       - app/src/main/cpp/experiments/csharp/NativeCloudAssets.cpp
       - app/src/main/cpp/experiments/csharp/NativeCloudManifest.h
       - app/src/main/cpp/experiments/csharp/NativeCloudSpawnLedger.h
+      - app/src/main/cpp/experiments/csharp/NativeCloudHookBindings.h
+      - app/src/main/cpp/experiments/csharp/NativeCloudHookBindings.cpp
       - tests/cloud_loader/**
       - experiments/csharp/BunnyCsSdk/BunnyCloud.cs
       - experiments/csharp/BunnyCsSdk/BunnyCloudDispatcher.cs
@@ -54,9 +56,15 @@ jobs:
           clang++ -std=c++20 -Wall -Wextra -Werror -pedantic -fsyntax-only \
             -Iapp/src/main/cpp \
             app/src/main/cpp/experiments/csharp/NativeCloudAssets.cpp
+          clang++ -std=c++20 -Wall -Wextra -Werror -pedantic -fsyntax-only \
+            -Iapp/src/main/cpp \
+            app/src/main/cpp/experiments/csharp/NativeCloudHookBindings.cpp
           g++ -std=c++20 -Wall -Wextra -Werror -pedantic -fsyntax-only \
             -Iapp/src/main/cpp \
             app/src/main/cpp/experiments/csharp/NativeCloudAssets.cpp
+          g++ -std=c++20 -Wall -Wextra -Werror -pedantic -fsyntax-only \
+            -Iapp/src/main/cpp \
+            app/src/main/cpp/experiments/csharp/NativeCloudHookBindings.cpp
       - name: Clang ASan and UBSan regression
         shell: bash
         run: |
