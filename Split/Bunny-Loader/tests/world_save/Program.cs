@@ -89,6 +89,7 @@ internal static class Program
 
         // Este teste de fonte não confirma hooks IL2CPP ou escrita no Android.
         DispatcherTests.Run();
+        WorldNetworkTests.Run();
         Console.WriteLine("WORLD_CODEC_SOURCE_TESTS_PASS");
     }
 }

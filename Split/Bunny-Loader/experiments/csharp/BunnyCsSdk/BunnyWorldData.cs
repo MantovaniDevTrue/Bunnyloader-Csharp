@@ -19,6 +19,12 @@ public abstract class BunnyWorldSystem
     public virtual void PostWorldLoad() { }
     public virtual void SaveWorldData(BunnyWorldTag tag) { }
     public virtual void OnWorldUnload() { }
+
+    /// <summary>O host envia este payload apenas a clientes do mesmo mundo.</summary>
+    public virtual void NetSend(BinaryWriter writer) { }
+
+    /// <summary>O host valida o pacote inteiro antes de chamar este método.</summary>
+    public virtual void NetReceive(BinaryReader reader) { }
 }
 
 /// <summary>

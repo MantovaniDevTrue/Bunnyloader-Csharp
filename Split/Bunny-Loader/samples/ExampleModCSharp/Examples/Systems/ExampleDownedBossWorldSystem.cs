@@ -1,4 +1,5 @@
 using BunnyLoader.Source;
+using System.IO;
 
 namespace ExampleModCSharp;
 
@@ -30,5 +31,17 @@ public sealed class ExampleDownedBossWorldSystem : BunnyWorldSystem
         // Em mundos novos, ContainsKey devolve false sem gerar exceção.
         DownedExampleBoss = tag.ContainsKey("downedExampleBoss") &&
                             tag.GetBoolean("downedExampleBoss");
+    }
+
+    public override void NetSend(BinaryWriter writer)
+    {
+        // Equivale à flag enviada pelo DownedBossSystem do ExampleModBunny.
+        writer.Write(DownedExampleBoss);
+    }
+
+    public override void NetReceive(BinaryReader reader)
+    {
+        // O cliente recebe o progresso do servidor, nunca grava o save local.
+        DownedExampleBoss = reader.ReadBoolean();
     }
 }
