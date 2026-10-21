@@ -2,6 +2,8 @@
 #include "experiments/csharp/NativeTouchLayoutAccess.h"
 #include "experiments/csharp/NativeTouchLayoutJson.h"
 #include "experiments/csharp/NativeTouchLayoutIdentity.h"
+#include "experiments/csharp/NativeTouchLayoutRefresh.h"
+#include "experiments/csharp/NativeTouchProfiles.h"
 #include "experiments/csharp/NativeTouchController.h"
 #include "experiments/csharp/NativeTouchInput.h"
 #include "hook/HookManager.h"
@@ -30,6 +32,8 @@ ShareFn originalShare = nullptr;
 std::atomic<bool> installed{false};
 std::atomic<bool> restored{false};
 uint64_t restoredVersion = 0;
+const void* restoredProfile = nullptr;
+std::atomic<bool> invalidated{false};
 bool attempted = false;
 
 struct Changed {
@@ -182,6 +186,7 @@ void onSave(Il2CppObject* styles, Il2CppObject* prefs, const MethodInfo* method)
 void onLoad(Il2CppObject* styles, Il2CppObject* prefs, const MethodInfo* method) {
     SaveFn original = __atomic_load_n(&originalLoad, __ATOMIC_ACQUIRE);
     if (!original) return;
+    restored.store(false, std::memory_order_release);
     original(styles, prefs, method);
     if (!installed.load(std::memory_order_acquire)) return;
     std::vector<NativeLayoutBinding> bindings;
@@ -191,6 +196,8 @@ void onLoad(Il2CppObject* styles, Il2CppObject* prefs, const MethodInfo* method)
     if (!directory.empty() && loadTouchLayoutFile(directory, &profiles)) {
         restoreBindings(bindings, profiles);
         restoredVersion = registry().registrationVersion();
+        restoredProfile = nativeTouchActiveProfileIdentity();
+        invalidated.store(false, std::memory_order_release);
         restored.store(true, std::memory_order_release);
     }
 }
@@ -218,6 +225,10 @@ Il2CppString* onShare(Il2CppObject* profile, const MethodInfo* method) {
 }
 }
 
+void invalidateNativeTouchLayouts() {
+    invalidated.store(true, std::memory_order_release);
+}
+
 bool nativeTouchLayoutHooksInstalled() {
     return installed.load(std::memory_order_acquire);
 }
@@ -228,8 +239,13 @@ bool nativeTouchLayoutsRestored() {
 bool reapplyNativeTouchLayoutsOnGameThread() {
     if (!nativeTouchLayoutHooksInstalled()) return false;
     const uint64_t version = registry().registrationVersion();
-    if (restored.load(std::memory_order_acquire) &&
-        restoredVersion == version) return true;
+    const void* profile = nativeTouchActiveProfileIdentity();
+    const bool dirty = invalidated.exchange(false, std::memory_order_acq_rel);
+    if (!needsNativeTouchLayoutRefresh(
+            restored.load(std::memory_order_acquire), dirty,
+            restoredVersion, version, restoredProfile, profile))
+        return true;
+    restored.store(false, std::memory_order_release);
     Il2CppObject* styles = currentNativeTouchStyles();
     std::vector<NativeLayoutBinding> bindings;
     if (!collect(styles, &bindings)) return false;
@@ -239,6 +255,7 @@ bool reapplyNativeTouchLayoutsOnGameThread() {
         return false;
     restoreBindings(bindings, saved);
     restoredVersion = version;
+    restoredProfile = profile;
     restored.store(true, std::memory_order_release);
     return true;
 }
