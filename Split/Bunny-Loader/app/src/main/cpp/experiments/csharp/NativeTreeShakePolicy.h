@@ -2,6 +2,12 @@
 #include <cstddef>
 #include <cstdint>
 namespace bl::csharp::tree_shake {
+struct CanopyPosition {
+    int x, y, pixelX, pixelY;
+};
+inline CanopyPosition canopyPosition(int x,int top) {
+    return {x,top,x*16,top*16};
+}
 inline bool validItem(int item) { return item>=6196&&item<65536; }
 inline bool canShake(int x,int y,int width,int height,int shakes,int maximum,int netMode) {
     return x>=2&&x<width-2&&y>=12&&y<height-2&&

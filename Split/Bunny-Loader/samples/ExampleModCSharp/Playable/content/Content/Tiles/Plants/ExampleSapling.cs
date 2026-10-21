@@ -19,4 +19,10 @@ public sealed class ExampleSapling : BunnyTile
         AdjacentTile = 20;
         AddMapEntry(200, 200, 200, "Sapling");
     }
+
+    public override void SetSpriteEffects(int x, int y, ref int effects)
+    {
+        if ((x & 1) == 0)
+            effects = 1;
+    }
 }

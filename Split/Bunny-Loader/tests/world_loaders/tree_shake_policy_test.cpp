@@ -4,6 +4,10 @@
 int main() {
     using namespace bl::csharp::tree_shake;
     int32_t xs[]={3,8,11}, ys[]={45,32,9};
+    const auto canopy=canopyPosition(8,32);
+    assert(canopy.x==8&&canopy.y==32&&canopy.pixelX==128&&canopy.pixelY==512);
+    const auto neighbor=canopyPosition(9,35);
+    assert(neighbor.x==9&&neighbor.y==35&&neighbor.pixelX==144&&neighbor.pixelY==560);
     assert(validItem(6196)&&validItem(65535));
     assert(!validItem(6195)&&!validItem(65536));
     assert(canShake(3,30,100,100,0,5,0));

@@ -493,6 +493,15 @@ try {
   Equal(true,wire.Any(row=>row.StartsWith("GORE\tExampleTree_Leaf\tContent/Gores/ExampleTree_Leaf\t3\t1")));
   Equal(true,wire.Any(row=>row.StartsWith("TREE\tExampleTree\tExampleTile\tExampleSapling\tContent/Tiles/Plants/ExampleTree\t")));
   Equal(true,wire.Any(row=>row.EndsWith("\tExampleTree_Leaf")));
+  var sapling=wire.Single(row=>row.StartsWith("TILE\tExampleSapling\t",StringComparison.Ordinal)).Split('\t');
+  Equal("32768",sapling[19]);
+  Equal("20",sapling[28]);
+  const string drawing="0,0,16,16,0,0,0,0,0";
+  Equal("READY",BunnyTileRuntime.Dispatch("tree-gore-fidelity",output,"ExampleSapling",0,2,""));
+  Equal("DRAW|0|0|16|16|0|0|0|1",BunnyTileRuntime.Dispatch(
+    "tree-gore-fidelity",output,"ExampleSapling",13,0,"4,20,"+drawing));
+  Equal("DRAW|0|0|16|16|0|0|0|0",BunnyTileRuntime.Dispatch(
+    "tree-gore-fidelity",output,"ExampleSapling",13,0,"5,20,"+drawing));
  });
  Check("tiles.sapling-1x2-native-descriptor",()=>{
   string root=Path.Combine(scratch,"sapling1x2-source");

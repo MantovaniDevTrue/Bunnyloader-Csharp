@@ -24,3 +24,9 @@ O `ExampleSapling.js` original possui uma verificação `Rand.NextBool(20)` no `
 `ExampleSapling` declara `SaplingGrowthChance = 20`, equivalente à chance de 1 em 20 do `RandomUpdate` do `ExampleSapling.js`. Valor zero desliga a tentativa automática para outros tiles; uma chance positiva exige `Sapling1x2`. A atualização nativa deve usar `Main.rand`, conferir `Main.worldSurface` e chamar a ponte existente `AttemptToGrowTreeFromSapling`, sem passagem por Mono/QuickJS por célula. A poeira 1/3 já é o padrão do `BunnyTile`. O espelhamento visual por coluna ainda requer conferência no dispositivo.
 
 No Android, testar crescimento normal/subterrâneo, restauração da muda em tentativas falhas, aleatoriedade após vários ciclos, coexistência C#/JS, save/reload, multiplayer e FPS. Compilação e políticas isoladas não validam jogabilidade.
+
+## Fidelidade da muda e do Shake no código
+
+`ExampleSapling.cs` implementa `SetSpriteEffects`: colunas pares aplicam `FlipHorizontally` (valor 1), ímpares mantêm a orientação anterior. O teste da DLL compilada verifica o `BunnyTileRuntime.Dispatch` com ambas as paridades e o bit 15 no descritor. A ponte de Shake C++ passa `(x,top)` (copa) ao `GetItemSource_FromTreeShake` e posiciona `NewItem` em `(x*16,top*16)`, exatamente como `TreeLoader.js` chama `ExampleTree.Shake(x,top,createLeaves)` e `ExampleTree.js` faz o drop; `canopyPosition` compartilha as coordenadas com a implementação e os testes de política. A quantidade, o item e `ShakeLeaves=true` permanecem os originais.
+
+A aprovação em CI não comprova comportamento nem custo de callback de desenho no Android. Validar a direção visual da muda nas colunas pares/ímpares, queda do item na copa e emissão de folhas sob carga, sem perda de FPS.

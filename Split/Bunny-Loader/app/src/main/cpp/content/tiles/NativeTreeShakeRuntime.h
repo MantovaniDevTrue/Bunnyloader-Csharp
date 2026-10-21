@@ -66,7 +66,8 @@ void hkShakeTree(int32_t x,int32_t y,const MethodInfo* method) {
     }
     ++top;
     if(top<=10||top>=by||steps>=kMaxTrunk){original();return;}
-    int tx=bx,ty=top;
+    const auto canopy=bl::csharp::tree_shake::canopyPosition(bx,top);
+    int tx=canopy.x,ty=canopy.y;
     void* leafArgs[]={&tx,&ty};
     if(!shakeCallBool(r.leafy,leafArgs)){original();return;}
     int left=bx-2,right=bx+2,upper=top-2,lower=top+2;
@@ -77,7 +78,7 @@ void hkShakeTree(int32_t x,int32_t y,const MethodInfo* method) {
     exception=nullptr;
     Il2CppObject* source=a.runtime_invoke(r.source,nullptr,sourceArgs,&exception);
     if(exception||!source){original();return;}
-    int px=bx*16,py=top*16,w=0,h=0,kind=tree->shakeItem.load(std::memory_order_acquire);
+    int px=canopy.pixelX,py=canopy.pixelY,w=0,h=0,kind=tree->shakeItem.load(std::memory_order_acquire);
     int stack=1,prefix=0,ownership=0;
     bool broadcast=false;
     alignas(4) uint8_t nullableVelocity[12]={};
