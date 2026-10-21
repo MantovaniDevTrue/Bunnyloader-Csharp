@@ -87,10 +87,18 @@ Il2CppObject* achievementAt(Il2CppObject* menu, int32_t index) {
     Il2CppObject* list = call(sortedGetter, menu);
     if (!list || !a.object_get_class) return nullptr;
     auto* listClass = a.object_get_class(list);
-    const auto* countGetter = listClass
-        ? a.class_get_method_from_name(listClass, "get_Count", 0) : nullptr;
-    const auto* itemGetter = listClass
-        ? a.class_get_method_from_name(listClass, "get_Item", 1) : nullptr;
+    // Os métodos da lista são resolvidos uma vez por classe; não repetir
+    // busca de métodos do IL2CPP para cada entrada desenhada a 60 FPS.
+    static Il2CppClass* cachedClass = nullptr;
+    static const MethodInfo* countGetter = nullptr;
+    static const MethodInfo* itemGetter = nullptr;
+    if (listClass != cachedClass) {
+        cachedClass = listClass;
+        countGetter = listClass
+            ? a.class_get_method_from_name(listClass, "get_Count", 0) : nullptr;
+        itemGetter = listClass
+            ? a.class_get_method_from_name(listClass, "get_Item", 1) : nullptr;
+    }
     if (!countGetter || !itemGetter) return nullptr;
     Il2CppObject* boxedCount = call(countGetter, list);
     if (!boxedCount) return nullptr;
@@ -156,7 +164,8 @@ bool resolve(std::string* error) {
         !a.method_get_param || !a.method_get_param_count ||
         !a.gc_wbarrier_set_field || !a.field_static_set_value ||
         !a.field_static_get_value || !a.runtime_invoke ||
-        !a.object_get_class) {
+        !a.object_get_class || !a.field_get_flags ||
+        !a.field_get_type || !a.field_get_offset) {
         *error = "Achievement visual IL2CPP exports unavailable";
         return false;
     }
