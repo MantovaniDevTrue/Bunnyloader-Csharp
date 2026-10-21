@@ -578,8 +578,11 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
         screenEffects.push_back(std::move(effect));
     }
     status->screenEffects = static_cast<int>(screenEffects.size());
+    status->achievements = static_cast<int>(std::count_if(defs.begin(), defs.end(),
+        [](const ParsedSourceType& def) { return def.base == "BunnyAchievement"; }));
     if (status->items+status->tiles+status->projectiles+status->buffs+
-        status->npcs+status->prefixes+status->players+status->screenEffects==0) {
+        status->npcs+status->prefixes+status->players+status->screenEffects+
+        status->achievements==0) {
         status->error = "mod C# sem conteudo registrado";
         return false;
     }
