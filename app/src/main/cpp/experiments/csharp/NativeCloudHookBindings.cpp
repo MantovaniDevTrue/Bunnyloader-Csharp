@@ -63,7 +63,7 @@ bool resolveNativeCloudHookBindings(NativeCloudHookBindings* bindings,
             false, 4, nullptr, &prepared.width, error) ||
         !il2cpp::nativeFieldContract(cloud, "height", "System.Int32",
             false, 4, nullptr, &prepared.height, error) ||
-        !il2cpp::nativeFieldContract(cloud, "spriteEffects",
+        !il2cpp::nativeFieldContract(cloud, "spriteDir",
             "Microsoft.Xna.Framework.Graphics.SpriteEffects",
             false, 4, nullptr, &prepared.spriteEffects, error))
         return false;
