@@ -22,6 +22,11 @@ internal static class BunnyTouchNativeHost
     [DllImport("bunny", EntryPoint = "bunny_csharp_touch_read", CallingConvention = CallingConvention.Cdecl)]
     private static extern uint ReadNative(int id);
 
+    [DllImport("bunny", EntryPoint = "bunny_csharp_touch_press_token", CallingConvention = CallingConvention.Cdecl)]
+    private static extern ulong ReadPressToken(int id);
+
+    internal static ulong PressToken(int id) => ReadPressToken(id);
+
     [DllImport("bunny", EntryPoint = "bunny_csharp_touch_world_reset", CallingConvention = CallingConvention.Cdecl)]
     internal static extern void ResetWorld();
 
