@@ -1264,7 +1264,7 @@ int64_t executeManagedEntityOnWorker(const ManagedEntityJob& job) {
                                 const size_t end = details.find(" npc=", use);
                                 const std::string outcome = details.substr(use,
                                     end == std::string::npos ? end : end - use);
-                                bool report = false;
+                                [[maybe_unused]] bool report = false;
                                 {
                                     std::lock_guard<std::mutex> guard(g_pinnedMutex);
                                     if (job.session == g_entitySession && job.binding >= 0 &&
@@ -3010,7 +3010,8 @@ bool registerManagedEntitySourceMod(
         if (g_entityProjectileTypeOwner[static_cast<size_t>(type)].load(
                 std::memory_order_acquire) != 0) return false;
     g_entityBindings.push_back({
-        modId, assemblyPath, npcTypes, projectileTypes, -1, true
+        modId, assemblyPath, npcTypes, projectileTypes,
+        -1, true, true, false, false, false, {}, 0
     });
     for (const auto& [type, unused] : npcTypes)
         g_entityNpcTypeOwner[static_cast<size_t>(type)].store(index + 1,
