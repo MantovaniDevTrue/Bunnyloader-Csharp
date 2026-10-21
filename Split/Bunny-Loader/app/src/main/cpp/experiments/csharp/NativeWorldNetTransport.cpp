@@ -25,6 +25,7 @@ const MethodInfo* g_getPosition = nullptr;
 const MethodInfo* g_setPosition = nullptr;
 const MethodInfo* g_packetCtor = nullptr;
 const MethodInfo* g_getWriter = nullptr;
+int32_t g_writerOffset = -1;
 const MethodInfo* g_writeBytes = nullptr;
 const MethodInfo* g_shrink = nullptr;
 const MethodInfo* g_getInstance = nullptr;
@@ -153,6 +154,7 @@ bool resolve() {
         "void SendData(int msgType, int remoteClient, int ignoreClient, NetworkText text, int number, float number2, float number3, float number4, int number5, int number6, int number7)");
     g_packetCtor = method(packetClass, "void .ctor(ushort id, int size)");
     g_getWriter = api.class_get_method_from_name(packetClass, "get_Writer", 0);
+    if (!g_getWriter) g_writerOffset = il2cpp::fieldOffset(packetClass, "Writer");
     g_writeBytes = method(binaryWriter, "void Write(byte[] buffer)");
     g_shrink = api.class_get_method_from_name(packetClass, "ShrinkToFit", 0);
     g_readUInt16 = api.class_get_method_from_name(binaryReader, "ReadUInt16", 0);
@@ -169,7 +171,8 @@ bool resolve() {
     g_modeField = il2cpp::findField(main, "netMode");
     g_packetClass = packetClass;
     g_byteClass = byte;
-    if (!read || !send || !g_packetCtor || !g_getWriter || !g_writeBytes ||
+    if (!read || !send || !g_packetCtor ||
+        (!g_getWriter && g_writerOffset < 0) || !g_writeBytes ||
         !g_shrink || !g_readUInt16 || !g_readBytes || !g_getBaseStream ||
         !g_getPosition || !g_setPosition || !g_sendClient || !g_broadcast ||
         (!g_getInstance && !g_instanceField) || !g_modeField ||
@@ -218,7 +221,13 @@ bool sendNativeWorldNetPacket(const std::vector<uint8_t>& data,
     bool ok = false;
     invoke(g_packetCtor, packet, ctorArgs, &ok);
     if (!ok) { *error = "NetPacket constructor rejected"; return false; }
-    Il2CppObject* writer = invoke(g_getWriter, packet, nullptr, &ok);
+    Il2CppObject* writer = nullptr;
+    if (g_getWriter) writer = invoke(g_getWriter, packet, nullptr, &ok);
+    else if (g_writerOffset >= 0) {
+        writer = *reinterpret_cast<Il2CppObject**>(
+            reinterpret_cast<char*>(packet) + g_writerOffset);
+        ok = writer != nullptr;
+    }
     if (!ok || !writer) { *error = "NetPacket writer unavailable"; return false; }
     void* writeArgs[] = {bytes};
     invoke(g_writeBytes, writer, writeArgs, &ok);
