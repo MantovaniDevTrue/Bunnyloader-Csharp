@@ -237,9 +237,21 @@ public static class BunnyEntitySourceDispatcher
                     out BunnyUseContext useContext); n++)
                 {
                     context.RewardPlayer = usingPlayer;
-                    bool applied = pair.Value.OnUse(usingPlayer, useContext);
-                    context.LastUse = pair.Key + " Flags=" + useContext.Flags +
-                        " Applied=" + (applied ? "1" : "0");
+                    try
+                    {
+                        bool applied = pair.Value.OnUse(usingPlayer, useContext);
+                        context.LastUse = pair.Key + " Flags=" + useContext.Flags +
+                            " Applied=" + (applied ? "1" : "0");
+                    }
+                    catch (Exception error)
+                    {
+                        context.Faults++;
+                        context.LastError = "OnUse(" + pair.Key + "): " +
+                            error.GetType().Name + ": " + error.Message;
+                        context.LastUse = pair.Key + " Flags=" + useContext.Flags +
+                            " Applied=0 Error=" + error.GetType().Name +
+                            ": " + error.Message;
+                    }
                     used++;
                     SaveInvasionIfChanged(context);
                 }
@@ -647,10 +659,10 @@ public static class BunnyEntitySourceDispatcher
     {
         if ((uint)modSlot >= (uint)Contexts.Count) return LastRegistrationError;
         Context context = Contexts[modSlot];
-        return "npc=" + context.NpcCalls + " projectile=" + context.ProjectileCalls +
+        return "lastUse=" + context.LastUse +
+            " npc=" + context.NpcCalls + " projectile=" + context.ProjectileCalls +
             " npcHits=" + context.NpcHits + " npcKills=" + context.NpcKills +
             " projectileHits=" + context.ProjectileHits + " projectileKills=" + context.ProjectileKills +
-            " faults=" + context.Faults + " last=" + context.LastError +
-            " lastUse=" + context.LastUse;
+            " faults=" + context.Faults + " last=" + context.LastError;
     }
 }

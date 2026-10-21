@@ -31,6 +31,7 @@
 #include <cstring>
 #ifdef __ANDROID__
 #include <android/log.h>
+#include "core/Log.h"
 #endif
 #include <dlfcn.h>
 #include <mutex>
@@ -1253,9 +1254,13 @@ int64_t executeManagedEntityOnWorker(const ManagedEntityJob& job) {
                                         g_entityBindings[static_cast<size_t>(job.binding)].firstWorldUseReported = true;
                                 }
 #ifdef __ANDROID__
-                                __android_log_print(ANDROID_LOG_INFO, "BunnyCSharp",
-                                    "[CSharp][ItemUse] Mod=%s Stage=OnUseResult %s",
-                                    binding.modId.c_str(), details.substr(use).c_str());
+                                const std::string outcome = details.substr(use);
+                                if (outcome.find(" Error=") != std::string::npos)
+                                    BL_WARN("[CSharp][ItemUse] Mod=%s Stage=OnUseResult %s",
+                                            binding.modId.c_str(), outcome.c_str());
+                                else
+                                    BL_INFO("[CSharp][ItemUse] Mod=%s Stage=OnUseResult %s",
+                                            binding.modId.c_str(), outcome.c_str());
 #endif
                             }
                         }
@@ -1295,9 +1300,8 @@ int64_t executeManagedEntityOnWorker(const ManagedEntityJob& job) {
                 }
             }
 #ifdef __ANDROID__
-            __android_log_print(ANDROID_LOG_WARN, "BunnyCSharp",
-                "[CSharp][ItemUse] Mod=%s Stage=WorldTick Result=Error Detail=%s",
-                binding.modId.c_str(), detail.c_str());
+            BL_WARN("[CSharp][ItemUse] Mod=%s Stage=WorldTick Result=Error Detail=%s",
+                    binding.modId.c_str(), detail.c_str());
 #endif
         }
         return count;
@@ -2482,9 +2486,8 @@ void* pinnedMonoWorker(void*) {
                         if (!source.firstWorldTickReported) {
                             source.firstWorldTickReported = true;
 #ifdef __ANDROID__
-                            __android_log_print(ANDROID_LOG_INFO, "BunnyCSharp",
-                                "[CSharp][ItemUse] Mod=%s Stage=FirstWorldTick Result=%lld",
-                                source.modId.c_str(), static_cast<long long>(result));
+                            BL_INFO("[CSharp][ItemUse] Mod=%s Stage=FirstWorldTick Result=%lld",
+                                    source.modId.c_str(), static_cast<long long>(result));
 #endif
                         }
                         if (result == -2) source.invasionSupported = false;
