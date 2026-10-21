@@ -366,6 +366,18 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
             return false;
         }
     }
+    // A class detected by the CSharp parser must never disappear silently:
+    // until the managed biome registry is installed, reject before IDs.
+    const int declaredBiomes = static_cast<int>(std::count_if(
+        defs.begin(), defs.end(), [](const ParsedSourceType& def) {
+            return def.base == "BunnyBiome";
+        }));
+    if (declaredBiomes > 0) {
+        status->error = "[CSharp][BiomeLoader] Mod=" + mod.id +
+            " Stage=PreRegister Result=Blocked Reason=NativeBiomeRegistryNotInstalled" +
+            " Biomes=" + std::to_string(declaredBiomes);
+        return false;
+    }
     // The original ExampleModBunny autoloads any PNG in Clouds/, even
     // without a BunnyCloud class. Detect BOTH forms before registering any
     // native item ID. This prevents a source mod from loading successfully
