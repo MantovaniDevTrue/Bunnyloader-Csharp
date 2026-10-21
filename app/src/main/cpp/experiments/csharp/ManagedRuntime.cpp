@@ -1,3 +1,4 @@
+#include "core/Log.h"
 #include "experiments/csharp/SourceLimits.h"
 #include "experiments/csharp/UniversalHookMailbox.h"
 #include "experiments/csharp/UniversalHooks.h"
