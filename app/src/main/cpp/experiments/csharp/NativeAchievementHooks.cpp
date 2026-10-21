@@ -34,7 +34,11 @@ std::atomic<bool> hooksReady{false};
 std::atomic<bool> worldActive{false};
 std::atomic<bool> bindingsReady{false};
 std::mutex bindingMutex;
-std::map<std::string, std::string> bindings;
+struct AchievementBinding {
+    std::string assembly;
+    std::vector<AchievementMetadata> metadata;
+};
+std::map<std::string, AchievementBinding> bindings;
 FieldInfo* playersField = nullptr;
 FieldInfo* localIndexField = nullptr;
 FieldInfo* networkModeField = nullptr;
@@ -93,8 +97,8 @@ void notify(int operation, int type, int count, bool local) {
     // Poucos mods inscritos. A fila MonoVM recebe somente valores primitivos;
     // nenhuma entidade IL2CPP atravessa a fronteira entre threads.
     std::lock_guard<std::mutex> lock(bindingMutex);
-    for (const auto& [mod, assembly] : bindings) {
-        if (!queueManagedAchievementEvent(mod, assembly, operation, type, count, true))
+    for (const auto& [mod, binding] : bindings) {
+        if (!queueManagedAchievementEvent(mod, binding.assembly, operation, type, count, true))
             BL_WARN("[CSharp][AchievementLoader] Evento nao entregue mod=%s kind=%d type=%d",
                     mod.c_str(), operation, type);
     }
@@ -186,16 +190,42 @@ bool validateFields(std::string* error) {
 }
 
 bool registerNativeAchievementMod(const std::string& modId,
-                                  const std::string& assemblyPath) {
-    if (modId.empty() || assemblyPath.empty() || modId.size() > 96 ||
-        assemblyPath.size() > 1024) return false;
+                                  const std::string& assemblyPath,
+                                  const std::string& metadata,
+                                  std::string* error) {
+    if (!error) return false;
+    if (assemblyPath.empty() || assemblyPath.size() > 1024) {
+        *error = "Invalid achievement assembly path";
+        return false;
+    }
+    std::vector<AchievementMetadata> records;
+    if (!parseAchievementMetadata(metadata, modId, &records, error))
+        return false;
     std::lock_guard<std::mutex> lock(bindingMutex);
     const auto found = bindings.find(modId);
-    if (found != bindings.end()) return found->second == assemblyPath;
-    if (bindings.size() >= 64) return false;
-    bindings.emplace(modId, assemblyPath);
+    if (found != bindings.end()) {
+        if (found->second.assembly != assemblyPath) {
+            *error = "Achievement mod path changed without unload";
+            return false;
+        }
+        found->second.metadata = std::move(records);
+        return true;
+    }
+    if (bindings.size() >= 64) {
+        *error = "Achievement mod capacity exceeded";
+        return false;
+    }
+    bindings.emplace(modId, AchievementBinding{assemblyPath, std::move(records)});
     bindingsReady.store(true, std::memory_order_release);
     return true;
+}
+
+std::vector<AchievementMetadata> nativeAchievementMetadataSnapshot() {
+    std::lock_guard<std::mutex> lock(bindingMutex);
+    std::vector<AchievementMetadata> all;
+    for (const auto& [mod, binding] : bindings)
+        all.insert(all.end(), binding.metadata.begin(), binding.metadata.end());
+    return all;
 }
 
 bool nativeAchievementBindingsReady() {
@@ -209,8 +239,8 @@ bool nativeAchievementHooksReady() {
 void flushNativeAchievementProgressOnExit() {
     worldActive.store(false, std::memory_order_release);
     std::lock_guard<std::mutex> lock(bindingMutex);
-    for (const auto& [mod, assembly] : bindings) {
-        if (!queueManagedAchievementFlush(mod, assembly))
+    for (const auto& [mod, binding] : bindings) {
+        if (!queueManagedAchievementFlush(mod, binding.assembly))
             BL_WARN("[CSharp][AchievementLoader] Flush enfileirado recusado mod=%s",
                     mod.c_str());
     }
