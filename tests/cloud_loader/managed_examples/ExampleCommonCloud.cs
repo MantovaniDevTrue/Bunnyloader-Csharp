@@ -9,7 +9,7 @@ namespace ExampleModCSharp.CloudExamples;
 /// </summary>
 public sealed class ExampleCommonCloud : BunnyCloud
 {
-    public ExampleCommonCloud()
+    public override void SetDefaults()
     {
         Texture = "Content/Clouds/ExampleCloud";
     }
