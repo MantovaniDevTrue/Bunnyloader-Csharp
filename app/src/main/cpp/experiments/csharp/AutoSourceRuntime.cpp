@@ -10,6 +10,7 @@
 #include "experiments/csharp/NativeVisualRenderer.h"
 #include "experiments/csharp/NativeCloudHooks.h"
 #include "experiments/csharp/NativeCloudBiomeSampler.h"
+#include "experiments/csharp/NativeBiomeGameBridge.h"
 #include "graphics/CSharpScreenEffects.h"
 #include "experiments/csharp/NativeContent.h"
 #include "experiments/csharp/NativeBasicItems.h"
@@ -1203,6 +1204,7 @@ void noteAutoWorldTilesLoaded() {
     pauseManagedEntitySourceCallbacks();
     pauseManagedScreenSceneCallbacks();
     pauseNativeCloudHooks();
+    resetNativeBiomeWorldStateOnGameThread();
     resetManagedCloudWorldSession();
     resetManagedSourceNpcSlots();
     resetManagedSourceProjectileSlots();
@@ -1245,6 +1247,7 @@ void noteAutoGameUpdate() {
         static uint64_t cloudSnapshotEpoch = ~uint64_t(0);
         static uint32_t cloudSnapshotTicks = 0;
         static std::string cloudBiomeKeys;
+        static NativeCloudBiomeFacts cloudFacts{};
         static bool cloudSnapshotReady = false;
         static bool cloudAnniversary = false;
         const uint64_t epoch = g_worldEpoch.load(std::memory_order_acquire);
@@ -1253,7 +1256,9 @@ void noteAutoGameUpdate() {
             cloudSnapshotTicks = 0;
             cloudSnapshotReady = false;
             cloudBiomeKeys.clear();
+            resetNativeBiomeWorldStateOnGameThread();
         }
+        bool newSnapshot = false;
         if (!cloudSnapshotReady || ++cloudSnapshotTicks % 20u == 0) {
             NativeCloudBiomeFacts facts{};
             std::string error;
@@ -1261,19 +1266,33 @@ void noteAutoGameUpdate() {
                 // Unknown native fields are NOT a reason to invent a
                 // biome. Disable only the C# cloud hook; vanilla continues.
                 pauseNativeCloudHooks();
+                resetNativeBiomeWorldStateOnGameThread();
                 resetManagedCloudWorldSession();
                 cloudSnapshotReady = false;
                 BL_WARN("[CSharp][CloudLoader] Stage=BiomeSnapshot Result=Paused Detail=%s",
                         error.c_str());
             } else {
+                cloudFacts = facts;
                 cloudBiomeKeys = nativeCloudBiomeKeys(facts);
                 cloudAnniversary = facts.tenthAnniversaryWorld;
                 cloudSnapshotReady = true;
+                newSnapshot = true;
             }
         }
-        if (cloudSnapshotReady && nativeCloudHooksEnabled())
-            pumpNativeCloudManagedCallbacksOnGameThread(
-                false, cloudAnniversary, cloudBiomeKeys);
+        if (cloudSnapshotReady && nativeCloudHooksEnabled()) {
+            std::string verifiedKeys = cloudBiomeKeys;
+            if (!pumpNativeBiomeOwnersOnGameThread(
+                    cloudFacts, newSnapshot, &verifiedKeys)) {
+                pauseNativeCloudHooks();
+                resetNativeBiomeWorldStateOnGameThread();
+                resetManagedCloudWorldSession();
+                cloudSnapshotReady = false;
+                BL_WARN("[CSharp][CloudLoader] Stage=BiomeFlags Result=Paused Reason=InvalidManagedBiomeSnapshot");
+            } else {
+                pumpNativeCloudManagedCallbacksOnGameThread(
+                    false, cloudAnniversary, verifiedKeys);
+            }
+        }
     }
     if (!g_worldTilesLoaded.load(std::memory_order_acquire))
         updateManagedNpcBuffDispatcherOnGameThread();
@@ -1317,6 +1336,7 @@ void noteAutoGameUpdate() {
         graphics::clearCSharpScreenEffects();
         pauseManagedScreenSceneCallbacks();
         pauseNativeCloudHooks();
+        resetNativeBiomeWorldStateOnGameThread();
         resetManagedCloudWorldSession();
         resetNativeVisualRenderer();
         g_visualUpdateTick.store(0, std::memory_order_relaxed);
