@@ -180,19 +180,7 @@ bool ensureNativeTouchEditorOptionsOnGameThread() {
     if (!changed)
         for (size_t i = 0; i < items.size(); ++i)
             if (items[i] != original[i]) { changed = true; break; }
-    if (!changed) return true;
-
-    Il2CppClass* listType = api.object_get_class(
-        reinterpret_cast<Il2CppObject*>(list));
-    Il2CppClass* element = api.class_get_element_class(listType);
-    auto* replacement = api.array_new(element, items.size());
-    if (!replacement || replacement->length != items.size()) return false;
-    uint32_t root = api.gchandle_new(
-        reinterpret_cast<Il2CppObject*>(replacement), false);
-    if (!root) return false;
-    if (!items.empty())
-        std::memcpy(arrayData(replacement), items.data(),
-                    items.size() * sizeof(int32_t));
+    if (!changed && oldItems >= static_cast<int>(items.size())) return true;
 
     int newItems = oldItems;
     int newLines = oldLines;
@@ -206,15 +194,29 @@ bool ensureNativeTouchEditorOptionsOnGameThread() {
             newItems = newLines * columns;
         }
     }
-    auto* value = api.gchandle_get_target(root);
-    if (!value) {
+    if (newItems > 4096 || newLines > 4096) return false;
+    if (changed) {
+        Il2CppClass* listType = api.object_get_class(
+            reinterpret_cast<Il2CppObject*>(list));
+        Il2CppClass* element = api.class_get_element_class(listType);
+        auto* replacement = api.array_new(element, items.size());
+        if (!replacement || replacement->length != items.size()) return false;
+        uint32_t root = api.gchandle_new(
+            reinterpret_cast<Il2CppObject*>(replacement), false);
+        if (!root) return false;
+        if (!items.empty())
+            std::memcpy(arrayData(replacement), items.data(),
+                        items.size() * sizeof(int32_t));
+        auto* value = api.gchandle_get_target(root);
+        if (!value) {
+            api.gchandle_free(root);
+            return false;
+        }
+        auto* destination = reinterpret_cast<void**>(
+            static_cast<char*>(static_cast<void*>(config)) + buttonsOffset);
+        api.gc_wbarrier_set_field(config, destination, value);
         api.gchandle_free(root);
-        return false;
     }
-    auto* destination = reinterpret_cast<void**>(
-        static_cast<char*>(static_cast<void*>(config)) + buttonsOffset);
-    api.gc_wbarrier_set_field(config, destination, value);
-    api.gchandle_free(root);
     write<int32_t>(grid, itemOffset, newItems);
     write<int32_t>(grid, lineOffset, newLines);
     return true;
