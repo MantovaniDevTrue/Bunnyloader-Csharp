@@ -26,32 +26,32 @@ Os nomes dos métodos Terraria foram conferidos no `SystemUpdateHooks.js` da pr�
 | PostUpdateProjectiles | estágio nativo ItemsBegin | Após projéteis, antes dos itens |
 | PreUpdateItems | estágio nativo ItemsBegin | Após PostUpdateProjectiles |
 | PostUpdateItems | estágio nativo ItemsEnd | Depois dos itens |
+| UpdateUI(nint gameTime) | Main.UpdateUIStates(GameTime) | Após o original, fora do menu |
+| ModifyTimeRate(ref BunnyTimeRateValues rates) | Main.UpdateTimeRate e estágio ClockAdvance | Após defaults vanilla; preserva frações |
 
-Os **17 métodos acima** já possuem declaração C# e ponte nativa projetada.
-O estágio C# usa as sete âncoras ARM64 da própria implementação do Bunny,
-com validação exata dos quatro opcodes originais antes de instalar um hook.
-Uma incompatibilidade na versão do Terraria aborta a instalação.
+As **19 APIs de SystemUpdateHooks** têm implementação na fonte C#/C++.
+Os sete estágios intermediários conservam as instruções ARM64 do Bunny
+original, com checagem dos quatro opcodes por âncora. O método raiz
+`DoUpdateInWorld` executa uma vez e os estágios internos são disparados
+diretamente para o MonoVM, sem JS.
 
-A ponte C++ mantém um método raiz `DoUpdateInWorld` e duas fases
-(`EntitiesBegin` / `EntitiesEnd`) para evitar espera circular no MonoVM.
-Os eventos intermediários correm antes de liberar o trampolim original.
-A execução entra pelo dispatcher C# existente; o JavaScript não despacha
-esses callbacks.
+`UpdateUI` oferece `nint gameTime`, referência nativa transitória válida
+somente enquanto o callback é executado. O mod não deve guardar esse ponteiro,
+nem supor que ele seja uma instância gerenciada C#. É chamado somente após
+`Main.UpdateUIStates` fora do menu do jogo.
 
-**Ainda não implementados (2 de 19):**
+`ModifyTimeRate` recebe `ref BunnyTimeRateValues` com `TimeRate`,
+`TileUpdateRate` e `EventUpdateRate`, todos `double`. O host valida o
+tipo real dos campos IL2CPP, rejeita números negativos/não finitos, preserva
+as frações de tiles e eventos, e altera o relógio pela etapa nativa
+`ClockAdvance`. A ponte usa sessão por atualização para impedir escrita
+atrasada de um callback já expirado.
 
-| Callback restante | Requisito |
-| --- | --- |
-| UpdateUI | Main.UpdateUIStates(GameTime), após o original e com filtro fora do menu |
-| ModifyTimeRate | Main.UpdateTimeRate, taxa de mundo/tile/eventos e etapa ClockAdvance |
-
-O UI exige assinatura `GameTime` que a ABI universal atual não oferece.
-Alterar o tempo exige preservar frações e a taxa do relógio nativo;
-nenhuma substituição aproximada por evento de frame será aceita.
-
-**Validação até agora:** os testes no desktop não comprovam a ponte ARM64,
-os registradores no aparelho, os pontos de interceptação na libil2cpp nem o
-desempenho com mods concorrentes. APK e merge permanecem proibidos.
+**Cobertura do código não equivale a validação no jogo.** Ainda faltam
+testar os 19 pontos no Terraria Android 301720, os hooks concorrentes de
+outros mods, JNI/MonoVM no aparelho, desempenho de 60 FPS e descarregamento
+e reentrada em mundo. Uma assinatura IL2CPP que não corresponda à build é
+rejeitada. Sem essas verificações, não há APK nem merge.
 
 ## Como escrever o mod
 
@@ -103,12 +103,12 @@ Troque para `true` apenas no pacote de QA, sem alterar a versão estável.
 1. Compilar o `BunnySourceSdk` e os dois exemplos com o .NET 8, sem warnings ou erros.
 2. Passar o projeto `tests/world_update_loader`, incluindo três sistemas
    simulados, ordem dos eventos, exceções, partilha de hooks e unload/rebind.
-3. Verificar os 4 métodos universais, 7 âncoras internas e o método raiz
+3. Verificar os 4 métodos universais, 7 âncoras internas, UI/tempo e o método raiz
    comparando a ABI no Terraria Android 301720; conferir registradores ARM64.
 4. Verificar integração dos hooks com **dois mods ativos**, desligar um durante a
    sessão e confirmar o outro ainda ativo (sem duplo update do mundo).
-5. Confirmar ordem dos 17 callbacks, quarentena de exceções, estabilidade em
+5. Confirmar ordem dos 19 callbacks, quarentena de exceções, estabilidade em
    mundo/menu, ausência de erro de MonoVM, FPS e unload/reload.
 
-**Estado:** 17/19 APIs ligadas na fonte. `UpdateUI` e `ModifyTimeRate` ainda
-pendentes. CI não substitui QA Android nem libera APK/merge.
+**Estado:** 19/19 APIs no fonte; CI desktop não valida execução nativa Android.
+Ainda não está autorizada a criação de APK. PR em rascunho.
