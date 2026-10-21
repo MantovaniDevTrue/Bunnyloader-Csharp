@@ -81,7 +81,7 @@ public static class BunnyBiomeDispatcher
     public static string TilesWire(string modId)
     {
         if (!Mods.TryGetValue(modId, out List<Entry>? entries)) return "";
-        var builder = new StringBuilder("BUNNY_BIOME_TILES_V1\n");
+        var builder = new StringBuilder("BUNNY_BIOMES_V1\n");
         foreach (Entry entry in entries)
             builder.Append("BIOME\t").Append(entry.Name).Append('\t')
                 .Append(string.Join(",", entry.Biome.CountedTiles))
