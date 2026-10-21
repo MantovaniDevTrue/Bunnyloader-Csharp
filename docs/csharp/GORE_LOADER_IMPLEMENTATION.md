@@ -37,7 +37,7 @@ quadro e sem exigir que o modder informe um tipo numérico global.
   por cópia com validação de tipos, protege os arrays e sprites no GC,
   decodifica os PNGs por bytes já verificados e publica os IDs ao fim do
   lote. A chamada `Gore.NewGore` roda apenas na thread do jogo.
-- `BunnyGore.cs`: expõe `GetType`, `TrySpawn` e `TryConfigure`
+- `BunnyGore.cs`: expõe `GetType`, `GetTypeAny`, `TrySpawn` e `TryConfigure`
   para o modder, com P/Invoke e parâmetros tipados. Fila limitada a
   128 pedidos, 32 spawns processados por quadro; nenhuma VM JavaScript.
 - `AutoSourceRuntime.cpp`: ativa e pausa os pedidos nas transições
@@ -123,14 +123,16 @@ nao prova o registro IL2CPP ou os efeitos no jogo.
 - As opções pendentes não são retiradas da fila quando a restauração
   falha; serão reaplicadas na próxima atualização válida. O limite de
   fila permanece fixo.
-- O workflow `csharp-gore-source-check.yml` compila Discovery,
-  Runtime, SourceLoader e AutoSourceRuntime para **ARM64 Android**
-  com Clang do NDK 27, produzindo somente objetos `.o`, além
-  dos testes nativos de host e do SDK C# e exemplos.
-- O workflow `csharp-gore-native-link-no-apk.yml` tenta fazer a
-  **linkagem de toda a libbunny.so** com o NDK/CMake 30 fixado pelo projeto,
-  chamando somente `:app:externalNativeBuildDebug`. Não chama
-  `assembleDebug` ou `assembleRelease`, e proíbe saída APK.
+- O workflow `csharp-gore-source-check.yml` executa rapidamente
+  os testes de descoberta/catálogo, a análise de sintaxe nativa e a
+  compilação do SDK C# e exemplos sem o custo de instalar o NDK.
+- O workflow `csharp-gore-native-link-no-apk.yml` realiza a
+  **compilação ARM64 e linkagem de toda a libbunny.so** com o NDK
+  `30.0.16248370` e CMake `3.22.1` fixados pelo projeto, chamando
+  somente `:app:externalNativeBuildDebug`. Verifica as exportações
+  P/Invoke `bunny_csharp_gore_type`, `_type_any`, `_spawn`
+  e `_configure`. Não chama `assembleDebug` ou
+  `assembleRelease`, e proíbe saída APK.
 - A aprovação do compilador e da linkagem **não comprova** que os
   métodos IL2CPP e texturas funcionem no Terraria; isso requer QA real.
 
