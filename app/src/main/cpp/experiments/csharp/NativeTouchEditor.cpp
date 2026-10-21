@@ -37,10 +37,20 @@ bool validSignature(const MethodInfo* method) {
     bool stringReturn = result && std::strcmp(result, "System.String") == 0;
     if (result) api.il2cpp_free(result);
     if (!stringReturn) return false;
-    char* arg = api.type_get_name(api.method_get_param(method, 0));
-    bool enumArg = arg && std::strcmp(arg,
-        "VirtualControlsHardwareConfigurationMapping_Layout.ContolType") == 0;
-    if (arg) api.il2cpp_free(arg);
+    if (!api.class_from_il2cpp_type || !api.class_get_name ||
+        !api.class_get_declaring_type || !api.class_is_enum ||
+        !api.class_enum_basetype) return false;
+    Il2CppClass* parameter = api.class_from_il2cpp_type(
+        api.method_get_param(method, 0));
+    Il2CppClass* mapping = il2cpp::findClassQuiet(
+        "", "VirtualControlsHardwareConfigurationMapping_Layout");
+    if (!parameter || !mapping || !api.class_is_enum(parameter) ||
+        api.class_get_declaring_type(parameter) != mapping ||
+        std::strcmp(api.class_get_name(parameter), "ContolType") != 0)
+        return false;
+    char* base = api.type_get_name(api.class_enum_basetype(parameter));
+    bool enumArg = base && std::strcmp(base, "System.Int32") == 0;
+    if (base) api.il2cpp_free(base);
     return enumArg;
 }
 
