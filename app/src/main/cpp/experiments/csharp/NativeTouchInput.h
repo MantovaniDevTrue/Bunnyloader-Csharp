@@ -28,6 +28,7 @@ struct Registration {
     bool visible = true;
     bool enabled = true;
     uint32_t state = 0;
+    uint32_t pressSequence = 0;
 };
 
 class Registry final {
@@ -46,6 +47,7 @@ public:
               const int* held, size_t heldCount,
               const int* bound, size_t boundCount);
     uint32_t read(int id) const;
+    uint64_t pressToken(int id) const;
     std::string fullName(int id) const;
     int find(std::string_view fullName) const;
     std::string displayName(int id) const;
@@ -64,6 +66,7 @@ private:
     std::array<Registration, kMaxButtons> entries_{};
     int nextId_ = 0;
     int64_t lastTick_ = -1;
+    uint32_t worldEpoch_ = 1;
 };
 
 Registry& registry();
@@ -82,6 +85,7 @@ __attribute__((visibility("default"))) int bunny_csharp_touch_frame(
     int64_t tick, int inGame, int chat, int npc, int sign,
     const int* held, int heldCount, const int* bound, int boundCount);
 __attribute__((visibility("default"))) uint32_t bunny_csharp_touch_read(int id);
+__attribute__((visibility("default"))) uint64_t bunny_csharp_touch_press_token(int id);
 __attribute__((visibility("default"))) int bunny_csharp_touch_count();
 __attribute__((visibility("default"))) int bunny_csharp_touch_host_ready();
 __attribute__((visibility("default"))) void bunny_csharp_touch_world_reset();
