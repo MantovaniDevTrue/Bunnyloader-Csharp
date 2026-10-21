@@ -2,10 +2,10 @@
   "schema": 1,
   "base": "cfbe784ee3cb",
   "branch": "integration/ready-prs-source-fixes-20261020",
-  "apkVersion": "1.0.4-seven-prs-qa",
+  "apkVersion": "1.0.5-seven-prs-qa",
   "exampleVersion": "0.1.62",
   "experimental": true,
-  "androidValidation": "Pending manual QA on Android",
+  "androidValidation": "Pending manual QA on Android: flags, event consumption, dust emission, entire hovered Disco tooltip",
   "selectedPullRequests": [
     {
       "number": 101,
@@ -90,7 +90,10 @@
     "Full seven-PR combined ARM64 native syntax, native linking and managed SDK staged before APK QA",
     "Preserve live Projectile AI coordinates on OnHitNPC/OnKill to prevent positional audio from playing at world origin",
     "Hover-specific SpriteBatch rarity text tint fallback when Terraria 1.4.5 MouseText tooltip signature differs; the invalid hook is not forced",
-    "Permit native active-player fallback for solo item-use world ticks and log first per-mod result without spamming"
+    "Permit native active-player fallback for solo item-use world ticks and log first per-mod result without spamming",
+    "Independent safe native item-use context flags: support Main.gameMenu property and Single/Double worldSurface without dropping PlayerAlive and WorldReady",
+    "Confirm first native item event consumption by MonoVM and first Dust emission acceptance/rejection with bounded game logs",
+    "Bounded hovered tooltip text tint after title match using the existing verified SpriteBatch.DrawString hook; preserve all unrelated UI"
   ],
   "manualInstructions": "docs/ready-prs-android-qa.md"
 }

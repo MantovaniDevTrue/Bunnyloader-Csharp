@@ -1,6 +1,6 @@
 # Sete PRs integrados — QA experimental Android
 
-Bunny `1.0.4-seven-prs-qa` (versionCode 303), ExampleMod CSharp `0.1.62`.
+Bunny `1.0.5-seven-prs-qa` (versionCode 304), ExampleMod CSharp `0.1.62`.
 Base: `v1.0` em `cfbe784ee3cb`. Branch: `integration/ready-prs-20261020`.
 
 Este APK reúne os PRs #101 (Localization), #102 (Rarity), #114 (AnglerQuest),
@@ -113,3 +113,7 @@ A pipeline da branch executa compilação de sintaxe ARM64 para os nove arquivos
 ## Correções de QA após relatório 21/10
 
 A execução de OnHitNPC já estava confirmada no relatório Android, mas o estado de impacto não incluía X/Y; a posição agora vem do último TickProjectile do mesmo slot, geração e owner. A tela de tooltip reportava `RarityTooltipSignatureMismatch`; esta revisão instala um fallback restrito ao nome do item em `SpriteBatch.DrawString` quando a ABI de MouseText não corresponde, em vez de forçar hook incompatível. Para o Dust Charm e Invasion Beacon, a atualização de mundo solo pode usar o jogador nativo caso o snapshot esteja indisponível; a primeira execução registra `[CSharp][ItemUse] Stage=FirstWorldTick` somente uma vez por mod. Nenhum dos três reparos foi confirmado no dispositivo até novo relatório.
+
+## QA 1.0.5: após o relatório do ItemUse
+
+O relatório Android 1.0.4 confirmou `WorldTickSnapshot Ready=1 Mode=0`, `Stage=Bind Result=Ready` para Charm e Beacon, além de `Stage=ActualUse Result=Queued Flags=0`. Nesta revisão os indicadores são lidos independentemente, evitando zerar `PlayerAlive` e `WorldReady` se `Main.gameMenu` for propriedade ou `worldSurface` tiver outro tipo numérico. O contrato Surface exige coordenada verificada, e multiplayer continua sob autoridade do host. O relatório deverá mostrar, nessa ordem: `ActualUse`, `Consumed`, e, no Dust Charm, `DustEmission Stage=EmitRequest`; resultado do callback ainda depende de validação no Android. Para a raridade Disco, conferir não só o nome mas as linhas do tooltip; o fallback é limitado à região visual abaixo do nome e não altera as cores fora dela.
