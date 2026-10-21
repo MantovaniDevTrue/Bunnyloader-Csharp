@@ -994,6 +994,8 @@ void run() {
             BL_WARN("csharp universal hooks: fila recusada mod=%s", mod.id.c_str());
         if (mod.dusts > 0) {
             const auto dustTypes = selectManagedDustBindings(mod);
+            BL_INFO("[CSharp][DustLoader] Stage=BindingPlan Mod=%s Registered=%d ManagedHooks=%zu",
+                    mod.id.c_str(), mod.dusts, dustTypes.size());
             if (!dustTypes.empty()) {
                 if (!registerManagedDustSourceMod(mod.id, assembly, dustTypes)) {
                     BL_WARN("[CSharp][DustLoader] Mod=%s Stage=MonoRegister Result=Rejected",
