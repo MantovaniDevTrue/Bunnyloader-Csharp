@@ -2,7 +2,7 @@
 
 Base do lote: `v1.0`, commit `cfbe784ee3cbc0ba2fabafce56c59e6eac41b67b`.
 Branch: `feature/csharp-cloudloader-source-only-20261021`.
-**Estado: hooks nativos, pesos em cache, descoberta de PNGs, registro, parser e contratos MonoVM codificados; chamadas ao worker e ativação Android ainda NÃO conectadas.**
+**Estado: hooks nativos, cache de pesos, descoberta de PNGs, contratos C# e fila real do worker MonoVM codificados; pump de retorno na thread do jogo disponível, mas o lifecycle Android ainda NÃO instala/ativa o CloudLoader.**
 
 ## Fontes de referência obrigatórias
 
@@ -53,9 +53,18 @@ o comportamento correto e suas regras já validadas.
 - `NativeCloudWeightWire.h`: leitura com validação por tipo e mod das
   respostas `BUNNY_CLOUD_WEIGHTS_V1`; rejeita IDs desconhecidos, pesos
   inválidos e atualizações parcialmente preenchidas.
-- `BunnyCloudDispatcher.cs`: novos entrypoints
-  `RegisterFromPath`, `WeightsWire` e `OnSpawnWire` para execução no
-  worker MonoVM existente; o agendamento nativo ainda falta.
+- `BunnyCloudDispatcher.cs`: entrypoints `RegisterFromPath`,
+  `WeightsWire` e `OnSpawnWire`, executados fora do frame.
+- `ManagedRuntime.cpp`: integrado à thread MonoVM fixada existente,
+  com jobs limitados de registro, vinculação de IDs, pesos e `OnSpawn`.
+  Os retornos incluem a geração da sessão e dos lotes de pesos;
+  callbacks atrasados são descartados.
+- `NativeCloudHooks.cpp`: `pumpNativeCloudManagedCallbacksOnGameThread`
+  drena resultados de `OnSpawn` e publica pesos somente depois das
+  respostas de todos os mods. Nuvens autoload recebem peso 1 sem
+  criar jobs gerenciados; a thread de jogo nunca aguarda o MonoVM.
+  **Ainda não chamado pelo ciclo de atualização real**, aguardando
+  descoberta fiel de biomas e ativação das texturas/máscaras.
 - `NativeCloudAutoload.cpp`: descoberta única de PNGs em qualquer
   `Clouds/` dentro de `content/`, com limite de profundidade e arquivos,
   ignorando links simbólicos e duplicatas de classes, igual ao
@@ -138,8 +147,12 @@ metadado, não uma ponte para QuickJS.
 - [x] Implementar dispatch C# de `SpawnChance` e `OnSpawn` com identificação por mod, limites e isolamento de exceções.
 - [x] Implementar cache C++ e entrypoints C# de snapshot por mod e
       callback de espelhamento. Testados sem Android.
-- [ ] Agendar efetivamente esses entrypoints no worker MonoVM do runtime e
-      transmitir pesos/resultados ao host pelo protocolo nativo.
+- [x] Executar os entrypoints no worker MonoVM fixado do runtime
+      e disponibilizar os resultados por caixas de mensagens delimitadas.
+- [x] Codificar o pump de respostas na thread do jogo, com atualização
+      transacional dos pesos e proteção contra resposta antiga por geração.
+- [ ] Ligar o pump ao DoUpdate nativo e fornecer os biomas verdadeiros
+      do jogador em tempo real, sem APIs inventadas.
 - [x] Preparar fila `OnSpawn` por slot/geração com limites e testes
       para ignorar resultados de callbacks atrasados.
 - [x] Codificar atualização de tamanho de nuvem pelo PNG, seleção rara
@@ -173,3 +186,24 @@ O runner compila com C++20, `-Wall -Wextra -Werror -pedantic`. A Action
 específica também executa AddressSanitizer e UndefinedBehaviorSanitizer e
 verifica a sintaxe real do instalador de assets e do resolvedor IL2CPP
 com GCC e Clang, sem executar código Android.
+
+
+## Atualização — integração MonoVM e hooks de nuvens
+
+O worker fixado em `ManagedRuntime.cpp` ganhou seis funções nativas
+de envio/leitura/pausa e uma fila de até 64 solicitações. As classes
+C# são registradas e associadas aos IDs nativos no worker, e os
+métodos `SpawnChance`/`OnSpawn` nunca são chamados por `addCloud`.
+O mecanismo usa a mesma API Mono dinâmica e o mesmo arquivo
+`BunnySourceSdk.dll` empregados pelo registro de entidades C#.
+
+`NativeCloudHooks.cpp` oferece o pump completo do lado da thread do
+Terraria, incluindo respostas atrasadas por sessão, slot e geração de
+refresh, mas **não é chamado automaticamente**. Para ligar com segurança
+falta obter o estado de bioma *real* do jogador e resolver a ordem de
+instalação do `TextureMaskManager` / `TextureAssets` e a concorrência
+de IDs com o CloudLoader JS.
+
+O CI do lote também verifica a compilação da unidade **real**
+`ManagedRuntime.cpp` (GCC e Clang), além do SDK C# e de todos os
+testes isolados. Compilação não equivale a testes IL2CPP no aparelho.
