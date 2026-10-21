@@ -28,6 +28,21 @@ jobs:
           dotnet build tests/ready_prs/FullExampleManaged.csproj -c Release --nologo
       - name: Run all playable source defaults with real managed compiler
         run: dotnet run --project tests/ready_prs/FullExampleRuntime/FullExampleRuntime.csproj -c Release -- samples/ExampleModCSharp/Playable
+      - name: Verify staged managed SDK and compiler from combined sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash tools/ci/stage_ready_managed.sh
+          grep -a -q BunnySounds app/src/main/assets/managed/BunnySourceSdk.dll
+          grep -a -q BunnyCommandWorker app/src/main/assets/managed/BunnySourceSdk.dll
+          python3 - <<'PY'
+          import hashlib
+          from pathlib import Path
+          root = Path('app/src/main/assets/managed')
+          pairs = [line.split('\t') for line in (root / 'framework.sha256').read_text().splitlines()]
+          assert pairs
+          assert all(hashlib.sha256((root / name).read_bytes()).hexdigest() == sha for name,sha in pairs)
+          PY
       - name: CommandLoader registration and action regressions
         run: |
           dotnet run --project tests/commands/Commands.HostTests.csproj -c Release
@@ -87,3 +102,33 @@ jobs:
             "$CXX" -std=c++20 -fsyntax-only -fexceptions -frtti -D__ANDROID__ -DANDROID -D_GNU_SOURCE -Iapp/src/main/cpp -Iapp/src/main/cpp/third_party/quickjs "app/src/main/cpp/experiments/csharp/$file.cpp"
           done
           echo CSHARP_SOURCE_COMBINED_ANDROID_ARM64_SYNTAX_PASS_NO_APK
+  native-android-link-no-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Link complete Android ARM64 native library without APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "ndk;30.0.16248370" "cmake;3.22.1" "platforms;android-34"
+          gradle :app:externalNativeBuildDebug --no-daemon -Pbl.uiOnly=true -Pbl.readyPrPreview=true -Pbl.dustPreview=true
+          LIB="$(find app/build -type f -name libbunny.so -size +0c -print -quit)"
+          test -n "$LIB"
+          NM="$ANDROID_HOME/ndk/30.0.16248370/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-nm"
+          for symbol in bunny_csharp_sound_register bunny_csharp_sound_play bunny_item_use_bind bunny_item_use_poll_context bunny_dust_emit; do
+            "$NM" -D --defined-only "$LIB" | grep -q "$symbol"
+          done
+          if find app/build -type f -name '*.apk' -print | grep -q .; then
+            echo 'APK created during no-APK link gate' >&2
+            exit 1
+          fi
+          echo CSHARP_SEVEN_PRS_FULL_NATIVE_LINK_PASS_NO_APK

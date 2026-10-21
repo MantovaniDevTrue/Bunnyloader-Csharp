@@ -1,17 +1,18 @@
-# Cinco PRs integrados — QA experimental Android
+# Sete PRs integrados — QA experimental Android
 
-Bunny `1.0.2-ready-prs-qa` (versionCode 301), ExampleMod CSharp `0.1.61`.
+Bunny `1.0.3-seven-prs-qa` (versionCode 302), ExampleMod CSharp `0.1.62`.
 Base: `v1.0` em `cfbe784ee3cb`. Branch: `integration/ready-prs-20261020`.
 
 Este APK reúne os PRs #101 (Localization), #102 (Rarity), #114 (AnglerQuest),
-#115 (Dust experimental) e #116 (Invasion beta local). Os PRs originais continuam
+#115 (Dust experimental), #116 (Invasion beta local), #117 (CommandLoader)
+e #118 (SoundLoader). Os PRs originais continuam
 intactos. Não certifica conclusão dos loaders nem substitui a release estável.
 Os commits congelados estão em `ready-prs-integration.json`.
 
 ## Instalação
 
 Instale o APK experimental assinado `Bunny Loader C# Test`, pacote
-`com.bunnyloader.csharptest`, e importe `ExampleMod-CSharp-0.1.61.bl`.
+`com.bunnyloader.csharptest`, e importe `ExampleMod-CSharp-0.1.62.bl`.
 Preserva o UID do ExampleMod e os identificadores das classes existentes.
 Não é necessário limpar caches ou apagar saves; a identidade do compilador mudou
 para reconstruir caches incompatíveis automaticamente. Faça cópia dos saves de
@@ -28,7 +29,7 @@ assets e referências; chamadas comuns/genéricas permanecem a cargo do Mono.
 O HUD obtém o tipo `Color` dos parâmetros dos overloads nativos, valida seu
 layout e não procura `Microsoft.Xna.Framework.Color` por suposição.
 
-Repetir primeiro o carregamento com o pacote `0.1.61`: nenhuma falha do parser
+Repetir primeiro o carregamento com o pacote `0.1.62`: nenhuma falha do parser
 na poção, arma ou acessório. Abrir os tooltips de Example Defense Potion,
 Example C# Wand e Example Stat Accessory e conferir suas cores. Depois iniciar
 a Example Invasion, conferir barra e texto sem erro de classe `Color`.
@@ -65,7 +66,9 @@ Anotar versão, ação e relatório da mesma sessão; Android continua pendente.
    de 5 Example Items. Salvar/sair no meio e reentrar no mesmo mundo; depois
    entrar em outro mundo para verificar isolamento. Derrotas/despawns não devem
    pontuar duas vezes nem deixar o evento preso.
-7. **Regressão:** na Example Workbench fabricar equipamentos/armaduras;
+7. **Comandos C#:** no chat, executar `/echo teste`, `/dizer teste`, `/heal 30` e `/addTime 3600`. Confirmar texto, cura real e avanço do relógio. Repetir `/heal` sem argumento e conferir mensagem de uso, sem crash. Sair e reentrar, verificar que os comandos continuam disponíveis. Em multiplayer, testar autorização, sem permitir ações do cliente que exijam servidor.
+8. **SoundLoader:** acertar um inimigo com o Example Wave Bolt e ouvir o efeito `ExampleGun.ogg` posicionado. Repetir a colisão algumas vezes e conferir limite de três instâncias; testar esquerda/direita, pause/retorno e sair/entrar no mundo. Conferir relatório nativo, volume, ausência de travamento e FPS.
+9. **Regressão:** na Example Workbench fabricar equipamentos/armaduras;
    equipar/desequipar asas, escudo, botas, acessórios e armadura, morrer/reviver,
    testar o Example Minion e cancelar seu buff. Salvar itens com prefixo no
    inventário e no baú. Repetir com um mod JS conhecido e Lights And Shadows.
@@ -78,8 +81,8 @@ fixtures IL2CPP executáveis, revogação de assemblies, prazos de Dust,
 integração de pesca e round trips C#/C++ da invasão. `tests/ready_prs/run.sh`
 executa a emissão de Dust de verdade contra uma fixture IL2CPP: argumentos de
 NewDust, recusa de tipo incompatível, limite de fila, sessão obsoleta e jogador
-inativo. O mesmo runner percorre os 93 fontes reais com o parser nativo e valida
-51 definições/contratos antecipados, assets e dependências. A fixture de HUD
+inativo. O mesmo runner percorre os 96 fontes reais com o parser nativo e valida
+os contratos de registro antecipado, assets e dependências. A fixture de HUD
 executa a resolução/instalação/desenho de retângulos e texto com layouts
 boxed/raw e byte order distinto; recusa tipos inconsistentes ou fora do contrato.
 A suíte Roslyn executa os defaults reais e verifica as cinco raridades de itens.
@@ -100,3 +103,9 @@ contratos. Não publica binários do Terraria em artifacts do repositório públ
 
 Se houver falha, exportar o relatório da mesma sessão após reproduzir a ação.
 Registrar qual exemplo, passo, idioma, estado do mundo e mods ligados.
+
+## Integração dos sete PRs
+
+O SoundLoader e o CommandLoader foram integrados a partir das fontes originais das PRs #117 e #118, sem substituir os callbacks das cinco PRs anteriores. O arquivo `BunnySourceSdk.dll` e o compilador são recompilados na execução do APK; o manifesto `framework.sha256` é validado dentro do pacote.
+
+A pipeline da branch executa compilação de sintaxe ARM64 para os nove arquivos nativos compartilhados, ligação nativa completa sem gerar APK, testes Roslyn para todos os exemplos, ações dos comandos, invariantes dos sons e regressões anteriores. O APK só é produzido na pipeline de QA depois da aprovação dos gates; sucesso de CI não substitui teste Android real.

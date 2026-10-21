@@ -1,11 +1,11 @@
 {
   "schema": 1,
   "base": "cfbe784ee3cb",
-  "branch": "integration/ready-prs-20261020",
-  "apkVersion": "1.0.2-ready-prs-qa",
-  "exampleVersion": "0.1.61",
+  "branch": "integration/ready-prs-source-fixes-20261020",
+  "apkVersion": "1.0.3-seven-prs-qa",
+  "exampleVersion": "0.1.62",
   "experimental": true,
-  "androidValidation": "Pending",
+  "androidValidation": "Pending manual QA on Android",
   "selectedPullRequests": [
     {
       "number": 101,
@@ -22,8 +22,8 @@
       "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/pull/102",
       "baseRefName": "feat/csharp-summon-lifecycle-v95",
       "headRefName": "feat/csharp-rarity-loader-core-20261019",
-      "headRefOid": "6722e23faa25cd3cc45fd8230a337bf1c3ccf48b",
-      "fetchedHead": "6722e23faa25cd3cc45fd8230a337bf1c3ccf48b"
+      "headRefOid": "2ed7fb47988d561b678ab713f9b524bd4783f9f4",
+      "fetchedHead": "2ed7fb47988d561b678ab713f9b524bd4783f9f4"
     },
     {
       "number": 114,
@@ -51,6 +51,20 @@
       "headRefName": "feat/csharp-example-invasion-20261019",
       "headRefOid": "0074b0b73e7916c1d2529d48ccb5fde1072215a2",
       "fetchedHead": "0074b0b73e7916c1d2529d48ccb5fde1072215a2"
+    },
+    {
+      "number": 117,
+      "title": "CommandLoader C# — Android QA",
+      "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/pull/117",
+      "headRefName": "feat/csharp-command-loader-20261020",
+      "headRefOid": "a32d159bb913dae508af503da375765c855d96bc"
+    },
+    {
+      "number": 118,
+      "title": "SoundLoader C# — Android QA",
+      "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/pull/118",
+      "headRefName": "feat/csharp-soundloader-native-complete",
+      "headRefOid": "8ab77e59a353c071a3cd22dc0aec15ed72c2c9ff"
     }
   ],
   "excluded": {
@@ -69,7 +83,11 @@
     "Native bootstrap defers generic and ordinary SDK method calls to authoritative Mono defaults while preserving Shoot/Buff references",
     "Invasion HUD binds the actual Color parameter shared by native Draw overloads; no hardcoded namespace lookup",
     "Execute all 93 packaged C# sources through production native parser and 51 early content field contracts; verify all five managed rarity assignments",
-    "Executable native HUD fixture draws with Android Graphics.Color and alternate namespace; rejects inconsistent or malformed value layouts"
+    "Executable native HUD fixture draws with Android Graphics.Color and alternate namespace; rejects inconsistent or malformed value layouts",
+    "Three BunnyCommand example classes registered without native content allocation; managed MonoVM command worker integrated with world epochs",
+    "BunnySounds native bridge, audio cache, 8 exported sound ABI endpoints and stop all on world exit",
+    "Independent Rarity tooltip hook and animated Disco RGB sampling from updated PR #102",
+    "Full seven-PR combined ARM64 native syntax, native linking and managed SDK staged before APK QA"
   ],
   "manualInstructions": "docs/ready-prs-android-qa.md"
 }
