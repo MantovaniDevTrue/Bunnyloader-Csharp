@@ -1,6 +1,7 @@
 #include "experiments/csharp/NativeCloudBiomeSampler.h"
 
 #include "il2cpp/Api.h"
+#include "content/tiles/ModTiles.h"
 #include "il2cpp/FieldContract.h"
 #include "il2cpp/Resolver.h"
 
@@ -37,6 +38,46 @@ bool fieldArrayIsPlayer(Il2CppClass* main, Il2CppClass* player,
         return false;
     *field = value;
     return true;
+}
+
+// Original ExampleBiomeTileCount.TileCountsAvailable reads the local
+// Main.PlayerSceneMetrics._tileCounts[ModContent.TileType("ExampleTile")].
+// This is O(1) and runs at most once per biome snapshot, NOT a tile scan.
+int sampleExampleTileCount(Il2CppClass* main) {
+    if (!bl::runtime::modTilesSettled()) return -1;
+    const int type = bl::runtime::modTileTypeByName(
+        "ExampleModCSharp", "ExampleTile");
+    if (type < 0 || type >= 65536) return -1;
+
+    Il2CppClass* sceneClass = il2cpp::findClass(
+        {"Terraria", "SceneMetrics", {}});
+    if (!sceneClass) return -1;
+    FieldInfo* metricsField = nullptr;
+    int countsOffset = -1;
+    std::string why;
+    if (!il2cpp::nativeFieldContract(main, "PlayerSceneMetrics",
+            "Terraria.SceneMetrics", true, sizeof(void*),
+            &metricsField, nullptr, &why) ||
+        !il2cpp::nativeFieldContract(sceneClass, "_tileCounts",
+            "System.Int32[]", false, sizeof(void*),
+            nullptr, &countsOffset, &why))
+        return -1;
+
+    auto& api = il2cpp::api();
+    Il2CppObject* scene = nullptr;
+    api.field_static_get_value(metricsField, &scene);
+    if (!scene || !api.object_get_class ||
+        api.object_get_class(scene) != sceneClass)
+        return -1;
+
+    Il2CppArray* counts = *reinterpret_cast<Il2CppArray**>(
+        reinterpret_cast<char*>(scene) + countsOffset);
+    if (!il2cpp::nativeArrayContract(counts, "Int32", sizeof(int32_t),
+                                     65536) ||
+        static_cast<uintptr_t>(type) >= counts->length)
+        return -1;
+    const int32_t count = static_cast<int32_t*>(arrayData(counts))[type];
+    return count >= 0 ? count : -1;
 }
 
 } // namespace
@@ -123,7 +164,10 @@ bool readNativeCloudVanillaBiomeFacts(bool gameMenu,
     facts->zoneOverworldHeight = surface;
     facts->playerPositionX = pos.x;
     facts->maxTilesX = maxTilesX;
-    facts->exampleBiomeTileCount = -1;
+    facts->exampleBiomeTileCount = sampleExampleTileCount(main);
+    // No BunnyBiome/ModSystem registry exists in the CSharp host yet.
+    // Therefore even a tile count of 40 does not authorize the mod key.
+    facts->exampleBiomeRegistered = false;
     return true;
 }
 
