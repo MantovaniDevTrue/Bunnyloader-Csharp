@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../experiments/csharp/BunnyCsSdk/BunnyCsSdk.csproj" />
+    <Compile Include="../../samples/ExampleModCSharp/Examples/Achievements/ExampleBossKilled.cs" Link="Examples/ExampleBossKilled.cs" />
+    <Compile Include="../../samples/ExampleModCSharp/Examples/Achievements/ManyWormsKilled.cs" Link="Examples/ManyWormsKilled.cs" />
+  </ItemGroup>
+</Project>
