@@ -244,14 +244,17 @@ public static class BunnyTouchButtonLoader
         ValidatePart(modId, nameof(modId));
         lock (Gate)
         {
+            bool stagedNative = false;
             for (int i = 0; i < Entries.Count; i++)
             {
                 if (Entries[i] is not { } entry || entry.Button.ModId != modId) continue;
+                stagedNative |= entry.NativeId >= 0;
                 ByName.Remove(entry.Button.FullName);
                 Entries[i] = null;
             }
-            if (nativeBound || !nativeStagePending)
-                BunnyTouchNativeHost.Unload(modId);
+            // Testes gerenciados não carregam libbunny; só chamar a ponte
+            // quando já há uma identidade realmente registrada no host.
+            if (stagedNative) BunnyTouchNativeHost.Unload(modId);
         }
     }
 
