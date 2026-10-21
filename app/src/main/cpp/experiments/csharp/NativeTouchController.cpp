@@ -1,6 +1,7 @@
 #include "experiments/csharp/NativeTouchController.h"
 #include "experiments/csharp/NativeTouchInput.h"
 #include "experiments/csharp/NativeTouchGameAbi.h"
+#include "experiments/csharp/NativeTouchActionIds.h"
 #include "hook/HookManager.h"
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
@@ -21,12 +22,12 @@ struct RuntimeFields {
     std::array<size_t, 3> offsets{};
     FieldInfo* gameMenu = nullptr;
     Il2CppClass* controller = nullptr;
-    int controlBase = -1;
+    ActionIds ids;
 };
 RuntimeFields refs;
 uint64_t ticks = 0;
 
-bool enumCount(Il2CppClass* owner, const char* nested, int* value) {
+bool enumValue(Il2CppClass* owner, const char* nested, const char* member, int* value) {
     auto& api = il2cpp::api();
     if (!owner || !api.field_static_get_value || !api.field_get_flags ||
         !api.field_get_type || !api.class_from_il2cpp_type ||
@@ -34,7 +35,7 @@ bool enumCount(Il2CppClass* owner, const char* nested, int* value) {
         !api.type_get_name || !api.il2cpp_free)
         return false;
     Il2CppClass* type = il2cpp::findNested(owner, nested);
-    FieldInfo* field = type ? il2cpp::findField(type, "Count") : nullptr;
+    FieldInfo* field = type ? il2cpp::findField(type, member) : nullptr;
     if (!field || !(api.field_get_flags(field) & 0x10u)) return false;
     const Il2CppType* fieldType = api.field_get_type(field);
     Il2CppClass* enumType = fieldType ? api.class_from_il2cpp_type(fieldType) : nullptr;
@@ -77,8 +78,8 @@ bool ensureControllerArrays(void* self) {
             api.object_get_class(reinterpret_cast<Il2CppObject*>(self))))
         return false;
 
-    const int required = refs.controlBase + kMaxButtons;
-    if (required <= 0 || required > 512) return false;
+    const int required = refs.ids.control(kMaxButtons - 1) + 1;
+    if (!refs.ids.valid() || required <= 0 || required > kMaxGameActionId) return false;
     std::array<Il2CppArray*, 3> arrays{};
     std::array<Il2CppArray*, 3> next{};
     constexpr std::array<size_t, 3> widths{1, 1, 4};
@@ -141,7 +142,7 @@ void onControllerUpdate(void* self, float elapsedTime, const MethodInfo* method)
     // Os IDs do registry são locais ao boot; o offset do enum é descoberto
     // por reflexão, e nunca assume o Count fixo de outra versão do jogo.
     for (int id = 0; id < kMaxButtons; ++id) {
-        const int index = refs.controlBase + id;
+        const int index = refs.ids.control(id);
         if (index >= 0 && static_cast<uintptr_t>(index) < pressed->length &&
             data[index] != 0)
             held[count++] = id;
@@ -154,6 +155,18 @@ void onControllerUpdate(void* self, float elapsedTime, const MethodInfo* method)
 
 bool nativeTouchObserverInstalled() {
     return installed.load(std::memory_order_acquire);
+}
+int nativeTouchActionOf(int id) {
+    return nativeTouchObserverInstalled() ? refs.ids.action(id) : -1;
+}
+int nativeTouchControlOf(int id) {
+    return nativeTouchObserverInstalled() ? refs.ids.control(id) : -1;
+}
+int nativeTouchQuickOf(int id) {
+    return nativeTouchObserverInstalled() ? refs.ids.quick(id) : -1;
+}
+int nativeTouchIndexByAction(int value) {
+    return nativeTouchObserverInstalled() ? refs.ids.byAction(value) : -1;
 }
 
 void pumpNativeTouchObserverOnGameThread() {
@@ -170,8 +183,17 @@ void pumpNativeTouchObserverOnGameThread() {
     Il2CppClass* controller = il2cpp::findClassQuiet("", "GUIVirtualInputController");
     const auto* update = controller ? il2cpp::findMethodBySignature(
         controller, il2cpp::parseSignature("void Update(float elapsedTime)")) : nullptr;
+    Il2CppClass* layout = il2cpp::findClassQuiet(
+        "", "VirtualControlsHardwareConfigurationMapping_Layout");
+    Il2CppClass* quick = il2cpp::findClassQuiet("", "QuickActionButton_Layout");
+    int unbound = -1, controllerCount = -1, quickUnbound = -1;
     if (!update || !menuField(&refs.gameMenu) ||
-        !enumCount(controller, "ControlType", &refs.controlBase)) return;
+        !enumValue(controller, "ControlType", "Count", &controllerCount) ||
+        !enumValue(layout, "ContolType", "Count", &unbound) ||
+        !enumValue(quick, "QuickActionControl", "Unbound", &quickUnbound))
+        return;
+    refs.ids = resolveActionIds(unbound, controllerCount, quickUnbound, kMaxButtons);
+    if (!refs.ids.valid()) return;
     constexpr std::array<const char*, 3> fields{"Pressed", "WasPressed", "Scale"};
     for (size_t i = 0; i < fields.size(); ++i) {
         FieldInfo* field = controller ? il2cpp::findField(controller, fields[i]) : nullptr;
