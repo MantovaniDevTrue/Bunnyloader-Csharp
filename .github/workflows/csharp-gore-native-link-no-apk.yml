@@ -50,5 +50,16 @@ jobs:
           LIB="$(find app/build/intermediates/cxx -path '*/obj/arm64-v8a/libbunny.so' -type f | head -1)"
           test -n "$LIB" && test -s "$LIB"
           file "$LIB"
+          NDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}/ndk/30.0.16248370"
+          NM="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-nm"
+          test -x "$NM"
+          "$NM" -D --defined-only "$LIB" > /tmp/bunny-gore-native-symbols.txt
+          for symbol in \
+            bunny_csharp_gore_type \
+            bunny_csharp_gore_spawn \
+            bunny_csharp_gore_configure
+          do
+            grep -Eq "[[:space:]][TW][[:space:]]+${symbol}$" /tmp/bunny-gore-native-symbols.txt
+          done
           test ! -d app/build/outputs/apk
-          echo "GORE_CSHARP_NATIVE_LINK_PASS=YES APK=NO"
+          echo "GORE_CSHARP_NATIVE_LINK_AND_EXPORTS_PASS=YES APK=NO"
