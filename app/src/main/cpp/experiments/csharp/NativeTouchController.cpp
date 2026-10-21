@@ -156,7 +156,12 @@ void onControllerUpdate(void* self, float elapsedTime, const MethodInfo* method)
         nativeTouchGroupBefore(self, !menuBefore);
     }
     if (original) original(self, elapsedTime, method);
-    if (!arraysReady) return;
+    if (!arraysReady) {
+        if (observe)
+            registry().frame(static_cast<int64_t>(++ticks), false, true, true,
+                             true, nullptr, 0, nullptr, 0);
+        return;
+    }
     bool menu = true;
     api.field_static_get_value(refs.gameMenu, &menu);
     if (!menuBefore && !menu) nativeTouchGroupAfter(self);
