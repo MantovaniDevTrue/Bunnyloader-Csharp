@@ -21,6 +21,7 @@
     <Compile Include="../BunnyCsSdk/BunnyHooks.cs" Link="BunnyHooks.cs" />
     <Compile Include="../BunnyCsSdk/BunnyVisual.cs" Link="BunnyVisual.cs" />
     <Compile Include="../BunnyCsSdk/BunnyPlayerHurtDispatcher.cs" Link="BunnyPlayerHurtDispatcher.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyWorldData.cs" Link="BunnyWorldData.cs" />
   </ItemGroup>
 </Project>
 
