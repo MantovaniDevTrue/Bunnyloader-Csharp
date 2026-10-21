@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Reflection;
 
 namespace BunnyLoader.Source;
@@ -17,6 +18,9 @@ public sealed class BunnyWorldDispatcher
     private bool _worldActive;
     private bool _canSave;
     private bool _authoritative;
+    private uint _sentNetRevision;
+    private uint _receivedNetRevision;
+    private bool _networkFaulted;
 
     public int RegisteredSystems => _systems.Count;
     public bool WorldActive => _worldActive;
@@ -131,6 +135,9 @@ public sealed class BunnyWorldDispatcher
         _canSave = false;
         _authoritative = authoritative;
         _loaded = new BunnyWorldDocument();
+        _sentNetRevision = 0;
+        _receivedNetRevision = 0;
+        _networkFaulted = false;
 
         if (!InvokeAll("ClearWorld", s => s.ClearWorld(), out error))
             return false;
@@ -213,6 +220,78 @@ public sealed class BunnyWorldDispatcher
         return true;
     }
 
+    /// <summary>
+    /// Somente servidor/single-player produz um snapshot de sincronização.
+    /// A revisão só avança quando todos os NetSend terminam com sucesso.
+    /// </summary>
+    public bool TryBuildNetworkState(ulong epoch, out byte[] packet, out string error)
+    {
+        packet = Array.Empty<byte>();
+        error = "";
+        if (!_worldActive || !_authoritative || !_canSave || epoch != _epoch ||
+            _sentNetRevision == uint.MaxValue)
+        {
+            error = "World network send rejected: non-authoritative or stale session";
+            return false;
+        }
+        try
+        {
+            uint nextRevision = _sentNetRevision + 1;
+            packet = BunnyWorldNetworkCodec.Encode(_systems, nextRevision);
+            _sentNetRevision = nextRevision;
+            return true;
+        }
+        catch (Exception ex)
+        {
+            error = "NetSend rejected: " + ex.GetType().Name;
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Recepção permitida apenas no cliente. O BWN1 é validado por inteiro
+    /// antes de entregar bytes a qualquer mod; revisão antiga nunca executa.
+    /// Falha de callback bloqueia a sessão para evitar estado parcial oculto.
+    /// </summary>
+    public bool TryApplyNetworkState(ulong epoch, ReadOnlySpan<byte> packet,
+                                     out string error)
+    {
+        error = "";
+        if (!_worldActive || _authoritative || epoch != _epoch || _networkFaulted)
+        {
+            error = "World network receive rejected: invalid client session";
+            return false;
+        }
+        if (!BunnyWorldNetworkCodec.TryDecode(packet, out uint revision,
+                                               out var received) ||
+            revision <= _receivedNetRevision)
+        {
+            error = "World network packet invalid, stale or replayed";
+            return false;
+        }
+
+        foreach (var entry in received)
+        {
+            if (!_systems.TryGetValue(entry.Key, out var system)) continue;
+            try
+            {
+                using var stream = new MemoryStream(entry.Value, false);
+                using var reader = new BinaryReader(stream);
+                system.NetReceive(reader);
+                if (stream.Position != stream.Length)
+                    throw new InvalidDataException("NetReceive left unread bytes");
+            }
+            catch (Exception ex)
+            {
+                _networkFaulted = true;
+                error = "NetReceive failed for " + entry.Key + ": " + ex.GetType().Name;
+                return false;
+            }
+        }
+        _receivedNetRevision = revision;
+        return true;
+    }
+
     public bool TryLeaveWorld(ulong epoch, out string error)
     {
         error = "";
@@ -226,6 +305,9 @@ public sealed class BunnyWorldDispatcher
         _canSave = false;
         _authoritative = false;
         _loaded = new BunnyWorldDocument();
+        _sentNetRevision = 0;
+        _receivedNetRevision = 0;
+        _networkFaulted = false;
         _epoch = 0;
         return callbacksOk;
     }

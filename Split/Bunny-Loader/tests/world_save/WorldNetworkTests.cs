@@ -46,5 +46,39 @@ internal static class WorldNetworkTests
             throw new Exception("BWN1 oversized packet accepted");
         Console.WriteLine("WORLD_NET_CALLBACKS_PASS");
         Console.WriteLine("WORLD_NET_CODEC_PASS");
+        // Simula servidor e cliente com epochs locais diferentes.
+        var authoritativeBoss = new ExampleDownedBossWorldSystem();
+        var clientBoss = new ExampleDownedBossWorldSystem();
+        var authoritative = new BunnyWorldDispatcher();
+        var remote = new BunnyWorldDispatcher();
+        const string modId = "00000000-0000-4000-8000-000000000001";
+        if (!authoritative.TryRegister(modId, authoritativeBoss, out _) ||
+            !remote.TryRegister(modId, clientBoss, out _) ||
+            !authoritative.TryEnterWorld(123, null, true, out _) ||
+            !remote.TryEnterWorld(7, null, false, out _))
+            throw new Exception("Network dispatcher setup failed");
+        authoritativeBoss.MarkExampleBossDefeated();
+        if (!authoritative.TryBuildNetworkState(123, out var firstPacket, out _) ||
+            !remote.TryApplyNetworkState(7, firstPacket, out _) ||
+            !clientBoss.DownedExampleBoss)
+            throw new Exception("Authoritative boss sync failed");
+        if (remote.TryApplyNetworkState(7, firstPacket, out _) ||
+            remote.TryBuildNetworkState(7, out _, out _) ||
+            authoritative.TryApplyNetworkState(123, firstPacket, out _))
+            throw new Exception("Network permissions or replay failed");
+        authoritativeBoss.ClearWorld();
+        if (!authoritative.TryBuildNetworkState(123, out var nextPacket, out _) ||
+            !remote.TryApplyNetworkState(7, nextPacket, out _) ||
+            clientBoss.DownedExampleBoss)
+            throw new Exception("Revised world state not applied");
+        if (!remote.TryLeaveWorld(7, out _) ||
+            !authoritative.TryLeaveWorld(123, out _) ||
+            !remote.TryEnterWorld(8, null, false, out _) ||
+            !remote.TryApplyNetworkState(8, firstPacket, out _) ||
+            !clientBoss.DownedExampleBoss ||
+            !remote.TryLeaveWorld(8, out _))
+            throw new Exception("Network epoch reset failed");
+        Console.WriteLine("WORLD_NET_DISPATCHER_PASS");
+
     }
 }
