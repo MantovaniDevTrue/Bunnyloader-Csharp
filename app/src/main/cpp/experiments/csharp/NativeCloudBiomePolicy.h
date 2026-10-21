@@ -11,6 +11,7 @@ namespace bl::csharp {
 struct NativeCloudBiomeFacts {
     bool playerActive = false;
     bool gameMenu = true;
+    bool tenthAnniversaryWorld = false;
     bool zoneSkyHeight = false;
     bool zoneOverworldHeight = false;
     float playerPositionX = 0;
