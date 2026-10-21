@@ -55,6 +55,7 @@ public static class BunnyEntitySourceDispatcher
         public readonly NpcInstance[] NpcSlots = new NpcInstance[512];
         public readonly ProjectileInstance[] ProjectileSlots = new ProjectileInstance[4096];
         public string LastError = "";
+        public string LastUse = "None";
         public long NpcCalls, ProjectileCalls, NpcHits, NpcKills, ProjectileHits, ProjectileKills, Faults;
     }
 
@@ -162,6 +163,7 @@ public static class BunnyEntitySourceDispatcher
             context.PendingRewards.Clear();
             context.RewardPlayer = -1;
             context.LastWorldPlayer = -1;
+            context.LastUse = "None";
             context.NativeWorldSession = worldSession;
             context.NextInvasionIndex = 0;
             context.SaveTimerFrames = 0;
@@ -235,7 +237,9 @@ public static class BunnyEntitySourceDispatcher
                     out BunnyUseContext useContext); n++)
                 {
                     context.RewardPlayer = usingPlayer;
-                    pair.Value.OnUse(usingPlayer, useContext);
+                    bool applied = pair.Value.OnUse(usingPlayer, useContext);
+                    context.LastUse = pair.Key + " Flags=" + useContext.Flags +
+                        " Applied=" + (applied ? "1" : "0");
                     used++;
                     SaveInvasionIfChanged(context);
                 }
@@ -646,6 +650,7 @@ public static class BunnyEntitySourceDispatcher
         return "npc=" + context.NpcCalls + " projectile=" + context.ProjectileCalls +
             " npcHits=" + context.NpcHits + " npcKills=" + context.NpcKills +
             " projectileHits=" + context.ProjectileHits + " projectileKills=" + context.ProjectileKills +
-            " faults=" + context.Faults + " last=" + context.LastError;
+            " faults=" + context.Faults + " last=" + context.LastError +
+            " lastUse=" + context.LastUse;
     }
 }
