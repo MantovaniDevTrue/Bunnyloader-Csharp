@@ -2280,6 +2280,156 @@ void resumeUniversalHookMods() {
     g_pinnedWake.notify_one();
 }
 
+// Registration queues one job per mod, then each cloud's type IDs are
+// bound on the pinned MonoVM worker. This is intentionally not called by the
+// source loader until native CloudMasks and hooks are proven safe.
+bool registerManagedCloudSourceMod(
+    const std::string& modId, const std::string& assemblyPath,
+    const std::vector<std::pair<int, std::string>>& clouds) {
+    if (modId.empty() || modId.size() > 72 ||
+        modId.find_first_not_of(
+            "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-") !=
+            std::string::npos ||
+        assemblyPath.empty() || assemblyPath.size() > 2048 ||
+        assemblyPath.find("..") != std::string::npos ||
+        clouds.empty() || clouds.size() > 128)
+        return false;
+    std::set<int> uniqueTypes;
+    std::set<std::string> uniqueNames;
+    for (const auto& [type, name] : clouds) {
+        if (type <= 0 || type > 16384 ||
+            name.empty() || name.size() > 72 ||
+            name.find_first_not_of(
+                "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_") !=
+                std::string::npos ||
+            !uniqueTypes.insert(type).second ||
+            !uniqueNames.insert(name).second)
+            return false;
+    }
+    std::lock_guard<std::mutex> lock(g_pinnedMutex);
+    if (g_cloudBindings.size() >= 16 || g_cloudQueue.size() >= 64)
+        return false;
+    for (const auto& existing : g_cloudBindings) {
+        if (existing.modId == modId) return false;
+        for (const auto& [type, unused] : existing.types)
+            if (uniqueTypes.count(type)) return false;
+    }
+    const int binding = static_cast<int>(g_cloudBindings.size());
+    g_cloudBindings.push_back({modId, assemblyPath, clouds, false, false});
+    CloudWorkerJob job{};
+    job.kind = 0;
+    job.binding = binding;
+    job.session = g_cloudSession;
+    g_cloudQueue.push_back(std::move(job));
+    g_pinnedWake.notify_one();
+    return true;
+}
+
+bool managedCloudRegistrationReady(const std::string& modId) {
+    std::unique_lock<std::mutex> lock(g_pinnedMutex, std::try_to_lock);
+    if (!lock.owns_lock() || !g_cloudDispatcherHealthy) return false;
+    for (const auto& entry : g_cloudBindings)
+        if (entry.modId == modId) return entry.ready && !entry.failed;
+    return false;
+}
+
+bool requestManagedCloudWeights(const std::string& modId, bool gameMenu,
+    bool tenthAnniversaryWorld, const std::string& biomeKeys) {
+    if (biomeKeys.size() > 4096) return false;
+    std::unique_lock<std::mutex> lock(g_pinnedMutex, std::try_to_lock);
+    if (!lock.owns_lock() || !g_cloudDispatcherHealthy ||
+        !g_pinnedStarted || g_pinnedPending || g_cloudQueue.size() >= 64 ||
+        g_cloudWeightsPending.count(modId) || g_cloudWeightReplies.count(modId))
+        return false;
+    for (size_t i = 0; i < g_cloudBindings.size(); ++i) {
+        if (g_cloudBindings[i].modId != modId ||
+            !g_cloudBindings[i].ready || g_cloudBindings[i].failed)
+            continue;
+        CloudWorkerJob job{};
+        job.kind = 1;
+        job.binding = static_cast<int>(i);
+        job.session = g_cloudSession;
+        job.gameMenu = gameMenu;
+        job.anniversary = tenthAnniversaryWorld;
+        job.biomes = biomeKeys;
+        g_cloudQueue.push_back(std::move(job));
+        g_cloudWeightsPending.insert(modId);
+        g_pinnedWake.notify_one();
+        return true;
+    }
+    return false;
+}
+
+bool takeManagedCloudWeights(const std::string& modId, std::string* payload) {
+    if (!payload) return false;
+    std::unique_lock<std::mutex> lock(g_pinnedMutex, std::try_to_lock);
+    if (!lock.owns_lock()) return false;
+    auto found = g_cloudWeightReplies.find(modId);
+    if (found == g_cloudWeightReplies.end()) return false;
+    *payload = std::move(found->second);
+    g_cloudWeightReplies.erase(found);
+    return true;
+}
+
+bool queueManagedCloudOnSpawn(const std::string& modId, int type, int slot,
+    uint32_t generation, float scale, int spriteDir) {
+    if (type <= 0 || type > 16384 || slot < 0 || slot >= 200 ||
+        generation == 0 || !std::isfinite(scale) || scale <= 0.f ||
+        scale > 10.f || (spriteDir & ~3) != 0)
+        return false;
+    std::unique_lock<std::mutex> lock(g_pinnedMutex, std::try_to_lock);
+    if (!lock.owns_lock() || !g_cloudDispatcherHealthy ||
+        !g_pinnedStarted || g_pinnedPending || g_cloudQueue.size() >= 64)
+        return false;
+    for (size_t i = 0; i < g_cloudBindings.size(); ++i) {
+        auto& binding = g_cloudBindings[i];
+        if (binding.modId != modId || !binding.ready || binding.failed)
+            continue;
+        bool owned = false;
+        for (const auto& [id, name] : binding.types)
+            if (id == type) { owned = true; break; }
+        if (!owned) return false;
+        CloudWorkerJob job{};
+        job.kind = 2;
+        job.binding = static_cast<int>(i);
+        job.session = g_cloudSession;
+        job.type = type;
+        job.slot = slot;
+        job.cloudGeneration = generation;
+        job.scale = scale;
+        job.spriteDir = spriteDir;
+        g_cloudQueue.push_back(std::move(job));
+        g_pinnedWake.notify_one();
+        return true;
+    }
+    return false;
+}
+
+bool takeManagedCloudOnSpawnReply(ManagedCloudSpawnReply* reply) {
+    if (!reply) return false;
+    std::unique_lock<std::mutex> lock(g_pinnedMutex, std::try_to_lock);
+    if (!lock.owns_lock() || g_cloudSpawnReplies.empty()) return false;
+    *reply = g_cloudSpawnReplies.front();
+    g_cloudSpawnReplies.pop_front();
+    return true;
+}
+
+void pauseManagedCloudCallbacks() {
+    std::lock_guard<std::mutex> lock(g_pinnedMutex);
+    ++g_cloudSession;
+    if (!g_cloudSession) ++g_cloudSession;
+    g_cloudQueue.clear();
+    g_cloudBindings.clear();
+    g_cloudWeightsPending.clear();
+    g_cloudWeightReplies.clear();
+    g_cloudSpawnReplies.clear();
+    // Reset the SDK static dispatcher on the worker, including registrations
+    // from an in-flight old-world job, before accepting new registrations.
+    g_cloudClearPending = true;
+    g_cloudDispatcherHealthy = false;
+    g_pinnedWake.notify_one();
+}
+
 bool registerManagedEntitySourceMod(
     const std::string& modId, const std::string& assemblyPath,
     const std::vector<std::pair<int, std::string>>& npcTypes,
