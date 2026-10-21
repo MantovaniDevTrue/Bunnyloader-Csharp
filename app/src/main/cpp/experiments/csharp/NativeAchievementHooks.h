@@ -18,5 +18,6 @@ bool installNativeAchievementHooks(std::string* error);
 // Os ganchos permanecem instalados, mas entregam eventos somente dentro do
 // mundo do jogador local. A transição entre mundos altera apenas essa flag.
 void setNativeAchievementWorldActive(bool active);
+void flushNativeAchievementProgressOnExit();
 
 }
