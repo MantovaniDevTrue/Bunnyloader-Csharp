@@ -70,6 +70,33 @@ faultRegistry.NotifyNPCKilled(1234);
 Check(faultRegistry.CallbackFaults == 1 && independent.IsCompleted, "callback fault isolation");
 Throws<ArgumentException>(() => faultRegistry.Register("bad/uid", new ExampleBossKilled()), "invalid UID");
 
+
+string fixturePath = typeof(ExampleBossKilled).Assembly.Location;
+string Bind(string uid, int operation, int type = 0, int count = 1, string payload = "")
+    => BunnyAchievementRuntime.Dispatch(uid, fixturePath, operation, type, count, payload);
+string loaded = Bind("transport", 0);
+Check(loaded.StartsWith("BACH_META_V1\n", StringComparison.Ordinal) &&
+    loaded.Split('\n').Length == 4, "Mono dispatcher discovers both classes from fixture DLL");
+Check(Bind("transport", 0) == loaded, "repeated bind does not recreate achievements");
+Check(Bind("transport", 1, 10, 1, "0") == "OK|0", "remote NPC event routed without credit");
+Check(Bind("transport", 1, 10, 1, "1") == "OK|0", "local NPC event accepted");
+Check(Bind("transport", 1, 1234, 1, "1") == "OK|0", "local boss kill accepted");
+string metadata = Bind("transport", 8);
+Check(metadata.Contains("|0|0|1|") && metadata.Contains("|1|0|0|"),
+    "native-ready metadata includes category hidden completion and progress");
+string transportSave = Bind("transport", 5);
+Check(transportSave.StartsWith("BACH1\n") && transportSave != "BACH1\n",
+    "Mono dispatcher serializes progress");
+Check(Bind("transport", 6, 0, 1, "BACH1\n") == "OK", "managed restore clears progress");
+Check(Bind("transport", 6, 0, 1, transportSave) == "OK", "managed restore accepts snapshot");
+Check(Bind("transport", 8).Contains("|0|0|1|"), "restored completed state visible in UI manifest");
+Check(Bind("transport", 1, -1, 1, "1").StartsWith("ERROR|"),
+    "invalid native event rejected");
+Check(Bind("transport", 7) == transportSave, "unload returns the last saved snapshot");
+Check(Bind("transport", 8).StartsWith("ERROR|"), "unloaded mod cannot receive callbacks");
+Check(Bind("transport", 0).StartsWith("BACH_META_V1\n"), "mod can bind after unload");
+Check(Bind("transport", 7).StartsWith("BACH1\n"), "second unload succeeds");
+
 Console.WriteLine("BUNNY_CSHARP_ACHIEVEMENTS_CORE=PASS checks=" + checkedCases);
 
 sealed class TwoConditions : BunnyAchievement
