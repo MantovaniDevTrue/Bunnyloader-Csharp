@@ -23,6 +23,7 @@ struct ActiveTouchSnapshot {
 // propriedade/campo muda na versão do Terraria ou usa layout não validado.
 bool nativeTouchSlot(int slot, SlotAction* result);
 bool nativeTouchSlotId(int slot, std::string* id);
+const void* nativeTouchActiveProfileIdentity();
 bool nativeTouchActiveSnapshot(ActiveTouchSnapshot* result);
 
 } // namespace bl::csharp::touch
