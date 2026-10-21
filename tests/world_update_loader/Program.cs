@@ -182,6 +182,51 @@ static class Program
         Order("vanilla");
         Check(Hooks.TrueForAll(h => h.Hook.IsDisposed),
             "Handle não foi liberado no unload");
+        // Se o host impedir reinstalação durante o unload, não podemos
+        // interromper a desmontagem do mod nem deixar handles órfãos.
+        using var scopeD = new BunnyHookScope();
+        using var scopeE = new BunnyHookScope();
+        var d = new C();
+        var e = new C();
+        d.Load(scopeD);
+        e.Load(scopeE);
+        Check(BunnyWorldUpdateRegistry.ActiveHookCount == 1,
+            "Hook inicial do teste de falha ausente");
+        bool failRebind = true;
+        BunnyWorldUpdateRegistry.TestHookFactory = (scope, type, method, callback, isStatic) =>
+        {
+            if (failRebind)
+            {
+                failRebind = false;
+                throw new NotSupportedException("Rebind recusado em unload");
+            }
+            return FakeInstall(scope, type, method, callback, isStatic);
+        };
+        long previousFaults = BunnyWorldUpdateRegistry.InstallFaultCount;
+        BunnyWorldUpdateRegistry.DetachScope(scopeD);
+        Check(BunnyWorldUpdateRegistry.ActiveHookCount == 0,
+            "Hook antigo continuou ativo depois de rebind recusado");
+        Check(BunnyWorldUpdateRegistry.InstallFaultCount == previousFaults + 1 &&
+              BunnyWorldUpdateRegistry.LastInstallError.Contains("Rebind recusado"),
+            "Falha de rebind não foi registrada");
+        d.Unload();
+        scopeD.Dispose();
+        BunnyWorldUpdateRegistry.TestHookFactory = FakeInstall;
+
+        // Um novo módulo pode solicitar novamente a instalação depois que
+        // o host voltar a aceitar hooks. Não exige carregar outro APK.
+        var f = new C();
+        f.Load(scopeE);
+        Check(BunnyWorldUpdateRegistry.ActiveHookCount == 1,
+            "Hook não foi recuperado na inscrição seguinte");
+        BunnyWorldUpdateRegistry.DetachScope(scopeE);
+        e.Unload();
+        f.Unload();
+        scopeE.Dispose();
+        Check(BunnyWorldUpdateRegistry.ActiveHookCount == 0,
+            "Hook do teste de falha não foi desmontado");
+        Check(Hooks.TrueForAll(h => h.Hook.IsDisposed),
+            "Handle órfão após recuperação do host");
         BunnyWorldUpdateRegistry.TestHookFactory = null;
 
         Console.WriteLine("SystemUpdateLoader C#: " + assertions +
