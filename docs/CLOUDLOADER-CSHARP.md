@@ -2,7 +2,7 @@
 
 Base do lote: `v1.0`, commit `cfbe784ee3cbc0ba2fabafce56c59e6eac41b67b`.
 Branch: `feature/csharp-cloudloader-source-only-20261021`.
-**Estado: hooks nativos, cache de pesos, descoberta de PNGs, contratos C# e fila real do worker MonoVM codificados; pump de retorno na thread do jogo disponível, mas o lifecycle Android ainda NÃO instala/ativa o CloudLoader.**
+**Estado: hooks, cache de pesos, worker MonoVM, snapshot de jogador/tiles e pump de jogo codificados. O lifecycle Android ainda NÃO instala ou ativa o CloudLoader C#.**
 
 ## Fontes de referência obrigatórias
 
@@ -136,14 +136,27 @@ e depende de três condições simultâneas:
 - `ZoneSkyHeight` **ou** `ZoneOverworldHeight`.
 
 Esses três dados NÃO equivalem simplesmente a `ZoneOverworldHeight`.
-O Bunny JavaScript mantém flags de `ModBiome` por jogador em
-`BiomeLoader.UpdateBiomes`, mas o C# puro ainda não implementa
-`BunnyBiome` nem recebe flags válidas desse host nativamente.
-Não vamos copiar a API tModLoader, consumir o worker JavaScript, nem
-afirmar que o teste com uma string simulada reproduz o bioma real.
-Será necessário um snapshot de bioma gerenciado próprio no
-`BunnySourceSdk`, com coleta fiel de blocos e posição, antes de
-considerar o exemplo raro 100% funcional no jogo.
+A política `NativeCloudBiomePolicy.h` agora reproduz os três critérios
+e ainda exige registro de um bioma C# verdadeiro. O sampler
+`NativeCloudBiomeSampler.cpp` valida os campos reais de
+`Terraria.Main` e do jogador local (menu, zonas, posição e modo de
+aniversário), depois tenta ler em O(1) a contagem da
+`Main.PlayerSceneMetrics._tileCounts[ExampleTile]`, usando
+`bl::runtime::modTileTypeByName`, já existente no Bunny Loader C++.
+
+Enquanto não existir `BunnyBiome` registrado no host C#, o sampler
+define `exampleBiomeRegistered=false`. Portanto **mesmo 40 blocos
+não ativam a chave do bioma do exemplo**; a nuvem rara conserva
+`SpawnChance=1` fora de um bioma C# registrado. Isso impede uma
+simulação enganosa por mera altura, sem usar o JavaScript.
+
+O método `noteAutoGameUpdate` já chama o pump protegido
+`pumpNativeCloudManagedCallbacksOnGameThread` quando (e só quando)
+o hook C# foi realmente ativado por uma etapa externa e o mundo está
+pronto. O snapshot é renovado a cada 20 atualizações; os resultados
+de `OnSpawn` são drenados a cada quadro. Se qualquer contrato
+IL2CPP não corresponder à versão real do Terraria, a seleção
+C# é pausada e as nuvens vanilla continuam disponíveis.
 
 ## Bloqueio de ativação confirmado
 
@@ -210,8 +223,12 @@ restrito aos testes, **sem alterar o código Android real**.
       e disponibilizar os resultados por caixas de mensagens delimitadas.
 - [x] Codificar o pump de respostas na thread do jogo, com atualização
       transacional dos pesos e proteção contra resposta antiga por geração.
-- [ ] Ligar o pump ao DoUpdate nativo e fornecer os biomas verdadeiros
-      do jogador em tempo real, sem APIs inventadas.
+- [x] Conectar o pump protegido à atualização real do Terraria:
+      somente quando hooks/máscaras já estiverem ativos; snapshot
+      periódico de flags vanilla e contagem nativa de tiles em O(1).
+- [ ] Implementar registro de `BunnyBiome` C# e validar a
+      consulta ao bioma do exemplo, incluindo TileCountsAvailable;
+      não anunciar biomas não registrados.
 - [x] Preparar fila `OnSpawn` por slot/geração com limites e testes
       para ignorar resultados de callbacks atrasados.
 - [x] Codificar atualização de tamanho de nuvem pelo PNG, seleção rara
@@ -268,3 +285,24 @@ de IDs com o CloudLoader JS.
 O CI do lote também verifica a compilação da unidade **real**
 `ManagedRuntime.cpp` (GCC e Clang), além do SDK C# e de todos os
 testes isolados. Compilação não equivale a testes IL2CPP no aparelho.
+
+## Atualização — snapshot nativo e retomada do worker
+
+- `NativeCloudBiomePolicy.h` e testes exigem simultaneamente os
+  40 `ExampleTile`, a região central do mapa, altura correta e
+  um bioma C# registrado antes de retornar `ExampleSurfaceBiome`.
+- `NativeCloudBiomeSampler.cpp` inspeciona o jogador real e lê os
+  contadores nativos já produzidos por `SceneMetrics`; não faz
+  varreduras massivas de blocos nem consulta o JavaScript.
+- `AutoSourceRuntime.cpp` conecta o pump ao update, usando
+  snapshots a cada 20 frames e pausando com segurança quando os
+  contratos não existem. A troca de mundo pausa os hooks e
+  descarta callbacks pendentes.
+- `ManagedRuntime.cpp` agora repete uma limpeza C# malsucedida
+  com intervalo de 250 ms, sem deixar `g_cloudDispatcherHealthy`
+  permanentemente falso por uma tentativa feita antes do MonoVM estar
+  disponível.
+- O CI verifica também os arquivos reais `AutoSourceRuntime.cpp`
+  e `NativeCloudBiomeSampler.cpp` com Clang e GCC. Continua
+  **sem build Android**: assinatura e renderização em aparelho
+  permanecem sem validação.
