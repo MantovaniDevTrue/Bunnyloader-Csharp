@@ -2390,6 +2390,21 @@ ManagedHurtSchedulerStatus managedHurtSchedulerStatus() {
     return status;
 }
 
+bool queueManagedAchievementFlush(const std::string& modId,
+                                  const std::string& assemblyPath) {
+    if (!g_recipeRuntimeReady.load(std::memory_order_acquire)) return false;
+    AchievementJob job;
+    job.mod = modId;
+    job.assembly = assemblyPath;
+    job.operation = 10;
+    if (!ManagedAchievementQueue::valid(job)) return false;
+    std::lock_guard<std::mutex> lock(g_pinnedMutex);
+    if (!g_pinnedStarted || !g_achievementRpcQueue.push(std::move(job)))
+        return false;
+    g_pinnedWake.notify_one();
+    return true;
+}
+
 bool queueManagedAchievementEvent(const std::string& modId,
                                   const std::string& assemblyPath,
                                   int operation, int type, int count,
