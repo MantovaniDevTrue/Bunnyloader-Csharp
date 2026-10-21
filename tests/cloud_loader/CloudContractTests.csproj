@@ -9,6 +9,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../../experiments/csharp/BunnyCsSdk/BunnyCloud.cs" Link="BunnyCloud.cs" />
+    <Compile Include="../../experiments/csharp/BunnyCsSdk/BunnyCloudDispatcher.cs" Link="BunnyCloudDispatcher.cs" />
     <Compile Include="managed_examples/*.cs" />
   </ItemGroup>
 </Project>
