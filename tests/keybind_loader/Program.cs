@@ -1,7 +1,16 @@
 using BunnyLoader.Source;
+using System.Reflection;
 
 static class KeybindContract
 {
+    private static void Trigger(bool start)
+    {
+        string name = start ? "BeginTriggerFrame" : "EndTriggerFrame";
+        MethodInfo method = typeof(BunnyTouchButtonLoader).GetMethod(
+            name, BindingFlags.Static | BindingFlags.NonPublic)
+            ?? throw new MissingMethodException(nameof(BunnyTouchButtonLoader), name);
+        method.Invoke(null, null);
+    }
     private static int checks;
 
     private static void Check(bool ok, string description)
@@ -40,10 +49,10 @@ static class KeybindContract
         Check(dash.Current && dash.JustPressed && !dash.JustReleased && !dash.Old, "first press");
         Check(dash.RetroCurrent && dash.IsBound && dash.GetAssignedKeys().Length == 1, "bound key and retro");
         Check(!second.Current && !second.IsBound, "isolated other mod");
-        BunnyTouchButtonLoader.BeginTriggerFrame();
+        Trigger(true);
         Check(dash.Current && dash.JustPressed && dash.IsBound,
             "managed trigger fallback retains state before native activation");
-        BunnyTouchButtonLoader.EndTriggerFrame();
+        Trigger(false);
 
         Check(BunnyTouchButtonLoader.ApplyHostFrame(1, true, false, false, false,
             Array.Empty<int>(), Array.Empty<int>(), Array.Empty<int>()) == 0, "dedup tick");
@@ -99,10 +108,10 @@ static class KeybindContract
         BunnyTouchButtonLoader.ApplyHostFrame(1, true, false, false, false,
             new[] { second.Id }, Array.Empty<int>(), new[] { second.Id });
         Check(second.JustPressed, "new world with fresh tick epoch");
-        BunnyTouchButtonLoader.BeginTriggerFrame();
+        Trigger(true);
         Check(second.JustPressed && second.Current,
             "world reset does not suppress the first managed trigger");
-        BunnyTouchButtonLoader.EndTriggerFrame();
+        Trigger(false);
 
         BunnyTouchButtonLoader.UnregisterMod("example");
         Check(!BunnyTouchButtonLoader.TryGet("example/Dash", out _), "unloaded mod removed");
@@ -120,20 +129,20 @@ static class KeybindContract
         BunnyTouchButtonLoader.ApplyHostFrame(1, true, false, false, false,
             Array.Empty<int>(), new[] { random!.Id, learning!.Id },
             new[] { random.Id, learning.Id });
-        BunnyTouchButtonLoader.BeginTriggerFrame();
+        Trigger(true);
         BunnyTouchEntry.ProcessTriggers();
-        BunnyTouchButtonLoader.EndTriggerFrame();
+        Trigger(false);
         Check(BunnyTouchEntry.RandomBuffPresses == 1, "playable ProcessTriggers uses JustPressed");
         BunnyTouchButtonLoader.ApplyHostFrame(2, true, false, false, false,
             Array.Empty<int>(), Array.Empty<int>(), new[] { random.Id, learning.Id });
-        BunnyTouchButtonLoader.BeginTriggerFrame();
+        Trigger(true);
         BunnyTouchEntry.ProcessTriggers();
-        BunnyTouchButtonLoader.EndTriggerFrame();
+        Trigger(false);
         BunnyTouchButtonLoader.ApplyHostFrame(3, true, false, false, false,
             Array.Empty<int>(), new[] { learning.Id }, new[] { random.Id, learning.Id });
-        BunnyTouchButtonLoader.BeginTriggerFrame();
+        Trigger(true);
         BunnyTouchEntry.ProcessTriggers();
-        BunnyTouchButtonLoader.EndTriggerFrame();
+        Trigger(false);
         Check(BunnyTouchEntry.DoubleTaps == 1, "playable ProcessTriggers recognizes double tap");
         BunnyTouchButtonLoader.UnregisterMod("examplemodcsharp");
 
