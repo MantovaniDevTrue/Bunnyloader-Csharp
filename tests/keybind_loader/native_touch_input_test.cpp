@@ -1,4 +1,5 @@
 #include "experiments/csharp/NativeTouchInput.h"
+#include <array>
 #include <cassert>
 #include <cstdint>
 #include <iostream>
@@ -72,6 +73,16 @@ int main() {
     assert(state.tap(other));
     assert(state.frame(12, true, false, false, false, nullptr, 0, &other, 1) >= 0);
     assert(state.read(other) & bits::JustPressed);
+    std::array<uint32_t, bits::kMaxButtons> states{};
+    std::array<uint64_t, bits::kMaxButtons> tokens{};
+    assert(state.snapshot(states.data(), tokens.data(), 0) == -1);
+    assert(state.snapshot(nullptr, tokens.data(), bits::kMaxButtons) == -1);
+    assert(state.snapshot(states.data(), nullptr, bits::kMaxButtons) == -1);
+    assert(state.snapshot(states.data(), tokens.data(), bits::kMaxButtons) == 2);
+    assert(states[other] == state.read(other) &&
+           tokens[other] == state.pressToken(other));
+    assert(states[dash] == state.read(dash) &&
+           tokens[dash] == state.pressToken(dash));
 
     state.resetWorld();
     assert(state.read(other) == 0);
@@ -79,6 +90,8 @@ int main() {
     state.unloadMod("demo");
     assert(state.read(dash) == 0 && !state.tap(dash));
     assert(state.count() == 1 && state.fullName(dash).empty());
+    assert(state.snapshot(states.data(), tokens.data(), bits::kMaxButtons) == 2);
+    assert(states[dash] == 0 && tokens[dash] == 0);
     assert(state.add("demo", "Dash", "Dash", "Assets/Dash.png") == 2);
     assert(state.read(2) == 0);
 
@@ -98,6 +111,10 @@ int main() {
     assert(bunny_csharp_touch_tap(apiId) == 1);
     assert(bunny_csharp_touch_frame(10, 1, 0, 0, 0, nullptr, 0, &apiId, 1) == 1);
     assert(bunny_csharp_touch_read(apiId) & bits::JustPressed);
+    assert(bunny_csharp_touch_snapshot(states.data(), tokens.data(),
+                                      bits::kMaxButtons) == 1);
+    assert(states[apiId] == bunny_csharp_touch_read(apiId) &&
+           tokens[apiId] == bunny_csharp_touch_press_token(apiId));
     bunny_csharp_touch_world_reset();
     assert(bunny_csharp_touch_read(apiId) == 0);
     bunny_csharp_touch_mod_unload("api");
