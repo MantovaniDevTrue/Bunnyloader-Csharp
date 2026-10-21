@@ -92,6 +92,18 @@ public sealed class BunnyHookScope : IDisposable
     {
         get { lock(gate) { if(disposed)throw new ObjectDisposedException(nameof(BunnyHookScope));return native??=new BunnyNativeScope(); } }
     }
+    /// <summary>Estágio interno ARM64 do Terraria; nunca usa o motor JavaScript.</summary>
+    public BunnyMethodHook HookSystemStage(string stageName, BunnyVoidHook callback)
+    {
+        lock (gate)
+        {
+            if (disposed) throw new ObjectDisposedException(nameof(BunnyHookScope));
+            BunnyMethodHook handle = BunnyHooks.RegisterSystemStage(stageName, callback);
+            handles.Add(handle);
+            return handle;
+        }
+    }
+
     public BunnyMethodHook HookVoid(string type, string method, BunnyVoidHook callback, bool isStatic = false)
     {
         lock (gate)
@@ -262,6 +274,37 @@ public static class BunnyHooks
         if (scope is null) throw new ArgumentNullException(nameof(scope));
         return scope.HookVoidInt32Triple(type, method, callback, isStatic);
     }
+    internal static BunnyMethodHook RegisterSystemStage(string stageName, BunnyVoidHook callback)
+    {
+        if (string.IsNullOrWhiteSpace(stageName) || stageName.Length > 64 ||
+            stageName.IndexOf('\0') >= 0)
+            throw new ArgumentException("Estágio nativo inválido", nameof(stageName));
+        if (callback is null) throw new ArgumentNullException(nameof(callback));
+        lock (RegistrationLock)
+        {
+            int slot = -1;
+            for (int i = 0; i < Slots.Length; i++)
+                if (Slots[i] is null || Slots[i]!.IsDisposed) { slot = i; break; }
+            if (slot < 0) throw new InvalidOperationException("Limite de 64 hooks ativos");
+            var handle = new BunnyMethodHook(callback);
+            Volatile.Write(ref Slots[slot], handle);
+            try
+            {
+                int native = NativeInstallSystemStage(stageName, slot);
+                if (native < 0)
+                    throw new NotSupportedException("Estágio nativo " + stageName +
+                        " recusado pelo Terraria (codigo " + native + ")");
+                handle.NativeHandle = native;
+                return handle;
+            }
+            catch
+            {
+                handle.Dispose();
+                throw;
+            }
+        }
+    }
+
     internal static BunnyMethodHook Register(string type, string method, BunnyVoidHook callback, bool isStatic)
     {
         if (string.IsNullOrEmpty(type) || !type.StartsWith("Terraria.", StringComparison.Ordinal) || type.Length > 256 || type.IndexOf('\0') >= 0)
@@ -538,6 +581,9 @@ public static class BunnyHooks
 
     [DllImport("bunny", EntryPoint = "bunny_universal_hook_stat", CallingConvention = CallingConvention.Cdecl)]
     private static extern long NativeStat(int key);
+    [DllImport("bunny", EntryPoint = "bunny_universal_hook_install_stage", CallingConvention = CallingConvention.Cdecl)]
+    internal static extern int NativeInstallSystemStage(
+        [MarshalAs(UnmanagedType.LPUTF8Str)] string name, int slot);
     [DllImport("bunny", EntryPoint = "bunny_universal_hook_install", CallingConvention = CallingConvention.Cdecl)]
     private static extern int NativeInstall([MarshalAs(UnmanagedType.LPUTF8Str)] string type,
         [MarshalAs(UnmanagedType.LPUTF8Str)] string method, int slot, int isStatic);
@@ -616,6 +662,8 @@ public static class BunnyUniversalHookDispatcher
 
     private static void Close(Context context)
     {
+        try { BunnyWorldUpdateRegistry.DetachScope(context.Scope); }
+        catch (Exception error) { LastError = context.Id + ": world teardown: " + error.Message; }
         context.Scope.Dispose();
         foreach (BunnyHookModule module in context.Modules)
             try { module.Unload(); }
