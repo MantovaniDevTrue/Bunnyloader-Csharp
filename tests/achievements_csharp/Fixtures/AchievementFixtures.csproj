@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../../experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj" />
+    <Compile Include="../../../samples/ExampleModCSharp/Examples/Achievements/ExampleBossKilled.cs" Link="ExampleBossKilled.cs" />
+    <Compile Include="../../../samples/ExampleModCSharp/Examples/Achievements/ManyWormsKilled.cs" Link="ManyWormsKilled.cs" />
+  </ItemGroup>
+</Project>
