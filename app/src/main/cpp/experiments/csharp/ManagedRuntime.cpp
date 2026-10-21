@@ -2,6 +2,7 @@
 #include "experiments/csharp/UniversalHookMailbox.h"
 #include "experiments/csharp/UniversalHooks.h"
 #include "experiments/csharp/ManagedRuntime.h"
+#include "experiments/csharp/NativeBiomeManifest.h"
 #include "graphics/ScreenScene.h"
 #include "experiments/csharp/ManagedVisualMonoPump.h"
 #include "experiments/csharp/ManagedVisualState.h"
@@ -320,6 +321,9 @@ struct CloudWorkerBinding {
     std::vector<std::pair<int, std::string>> types;
     bool ready = false;
     bool failed = false;
+    std::vector<std::string> biomeNames;
+    bool biomeReady = false;
+    bool biomeFailed = false;
 };
 struct CloudWorkerJob {
     int kind = 0; // 0 Register+Bind; 1 Weight snapshot; 2 OnSpawn; 3 Clear
@@ -328,6 +332,12 @@ struct CloudWorkerJob {
     uint64_t weightGeneration = 0;
     bool gameMenu = false;
     bool anniversary = false;
+    bool playerActive = false;
+    bool skyHeight = false;
+    bool overworldHeight = false;
+    float positionX = 0.f;
+    int maxTilesX = 0;
+    std::string tileCounts;
     std::string biomes;
     int type = -1, slot = -1, spriteDir = 0;
     uint32_t cloudGeneration = 0;
@@ -336,6 +346,9 @@ struct CloudWorkerJob {
 std::vector<CloudWorkerBinding> g_cloudBindings;
 std::deque<CloudWorkerJob> g_cloudQueue;
 std::map<std::string, std::pair<uint64_t, std::string>> g_cloudWeightReplies;
+std::map<std::string, std::string> g_biomeManifestReplies;
+std::map<std::string, std::pair<uint64_t, std::string>> g_biomeActiveReplies;
+std::set<std::string> g_biomeSnapshotsPending;
 std::set<std::string> g_cloudWeightsPending;
 std::deque<ManagedCloudSpawnReply> g_cloudSpawnReplies;
 uint64_t g_cloudSession = 1;
@@ -348,6 +361,11 @@ void* g_cloudWeightsMethod = nullptr;
 void* g_cloudSpawnMethod = nullptr;
 void* g_cloudUnregisterMethod = nullptr;
 void* g_cloudClearMethod = nullptr;
+void* g_biomeRegisterMethod = nullptr;
+void* g_biomeTilesMethod = nullptr;
+void* g_biomeEvaluateMethod = nullptr;
+void* g_biomeUnregisterMethod = nullptr;
+void* g_biomeClearMethod = nullptr;
 
 std::vector<SceneLightBinding> g_sceneLightBindings;
 std::deque<SceneLightRequest> g_sceneLightQueue;
