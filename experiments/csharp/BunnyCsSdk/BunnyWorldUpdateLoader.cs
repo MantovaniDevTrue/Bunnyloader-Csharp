@@ -387,6 +387,17 @@ internal static class BunnyWorldUpdateRegistry
         foreach (BunnyWorldUpdateLoader loader in Volatile.Read(ref stage.BeforeListeners))
             loader.Invoke(stage.Before);
 
+        if (stage.Type == "Bunny.SystemStage")
+        {
+            // Um estágio é um ponto preciso DENTRO do método nativo, e não um
+            // método a executar pelo Mono. Ambos os callbacks acontecem
+            // antes de liberar o trampolim ARM64 para o código seguinte.
+            foreach (BunnyWorldUpdateLoader loader in Volatile.Read(ref stage.AfterListeners))
+                loader.Invoke(stage.After);
+            original();
+            return;
+        }
+
         try { original(); }
         finally
         {
