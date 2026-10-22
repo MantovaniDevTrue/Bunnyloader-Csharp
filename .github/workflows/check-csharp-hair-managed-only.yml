@@ -244,6 +244,21 @@ jobs:
         run: |
           mkdir -p /tmp/bunny-hair-worker-interop
           dotnet run --project Split/Bunny-Loader/tests/hair_loader/HairCompiler.Tests.csproj -c Release -- /tmp/bunny-hair-worker-interop/source-hair-examplemodcsharp.manifest
+          test -s /tmp/bunny-hair-worker-interop/source-hair-examplemodcsharp.manifest
+          grep -q '^BUNNY_HAIR_MANIFEST_V1 \
+            -I Split/Bunny-Loader/app/src/main/cpp \
+            Split/Bunny-Loader/tests/hair_loader/native_worker_pipeline.cpp \
+            Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairWorkerPipeline.cpp \
+            Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairHandoff.cpp \
+            -o /tmp/bunny-hair-worker-pipeline
+          /tmp/bunny-hair-worker-pipeline /tmp/bunny-hair-worker-interop
+          rm -f /tmp/bunny-hair-worker-interop/source-hair-examplemodcsharp.manifest
+          rmdir /tmp/bunny-hair-worker-interop
+      - name: Guard against Android artifacts
+        run: |
+          test ! -d Split/Bunny-Loader/app/build/outputs/apk
+          test ! -d app/build/outputs/apk
+ /tmp/bunny-hair-worker-interop/source-hair-examplemodcsharp.manifest
           g++ -std=c++20 -Wall -Wextra -Werror -pthread \
             -I Split/Bunny-Loader/app/src/main/cpp \
             Split/Bunny-Loader/tests/hair_loader/native_worker_pipeline.cpp \
