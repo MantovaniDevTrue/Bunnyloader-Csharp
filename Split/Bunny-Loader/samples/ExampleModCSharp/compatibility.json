@@ -292,6 +292,23 @@
         "ExampleBreastplate",
         "ExampleLeggings"
       ]
+    },
+    {
+      "id": "csharp_mod_hair",
+      "status": "experimental",
+      "examples": [
+        "ExampleHair"
+      ],
+      "runtimeEnabled": false,
+      "validation": "CSharp SDK, compiled MonoVM guard, C++ host contracts only; Android lifecycle not verified",
+      "blockedBy": [
+        "SourceLoader native lifecycle gate",
+        "MonoVM/IL2CPP installation",
+        "character creation and Stylist UI",
+        "player persistence and unload",
+        "native multiplayer transport",
+        "Android QA"
+      ]
     }
   ]
 }
