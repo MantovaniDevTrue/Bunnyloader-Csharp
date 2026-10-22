@@ -366,6 +366,7 @@ void* g_biomeTilesMethod = nullptr;
 void* g_biomeEvaluateMethod = nullptr;
 void* g_biomeUnregisterMethod = nullptr;
 void* g_biomeClearMethod = nullptr;
+void* g_biomeResetWorldMethod = nullptr;
 
 std::vector<SceneLightBinding> g_sceneLightBindings;
 std::deque<SceneLightRequest> g_sceneLightQueue;
@@ -1550,7 +1551,7 @@ bool executeManagedCloudOnWorker(const CloudWorkerJob& job,
         !g_cloudUnregisterMethod || !g_cloudClearMethod ||
         !g_biomeRegisterMethod || !g_biomeTilesMethod ||
         !g_biomeEvaluateMethod || !g_biomeUnregisterMethod ||
-        !g_biomeClearMethod) {
+        !g_biomeClearMethod || !g_biomeResetWorldMethod) {
         const size_t slash = g_checkpointPath.find_last_of('/');
         if (slash == std::string::npos) return false;
         const std::string sdk =
@@ -1575,12 +1576,13 @@ bool executeManagedCloudOnWorker(const CloudWorkerJob& job,
         g_biomeEvaluateMethod = g_api.findMethod(biome, "EvaluateWire", 8);
         g_biomeUnregisterMethod = g_api.findMethod(biome, "Unregister", 1);
         g_biomeClearMethod = g_api.findMethod(biome, "Clear", 0);
+        g_biomeResetWorldMethod = g_api.findMethod(biome, "ResetWorld", 0);
         if (!g_cloudRegisterMethod || !g_cloudBindMethod ||
             !g_cloudWeightsMethod || !g_cloudSpawnMethod ||
             !g_cloudUnregisterMethod || !g_cloudClearMethod ||
             !g_biomeRegisterMethod || !g_biomeTilesMethod ||
             !g_biomeEvaluateMethod || !g_biomeUnregisterMethod ||
-            !g_biomeClearMethod)
+            !g_biomeClearMethod || !g_biomeResetWorldMethod)
             return false;
     }
 
@@ -1590,6 +1592,11 @@ bool executeManagedCloudOnWorker(const CloudWorkerJob& job,
         g_api.invoke(g_cloudClearMethod, nullptr, nullptr, &cloudException);
         g_api.invoke(g_biomeClearMethod, nullptr, nullptr, &biomeException);
         return cloudException == nullptr && biomeException == nullptr;
+    }
+    if (job.kind == 6) {
+        void* exception = nullptr;
+        g_api.invoke(g_biomeResetWorldMethod, nullptr, nullptr, &exception);
+        return exception == nullptr;
     }
 
     CloudWorkerBinding binding;
@@ -2193,7 +2200,12 @@ void* pinnedMonoWorker(void*) {
                     const bool ok = backendReady &&
                         executeManagedCloudOnWorker(job, &wire, &spriteDir);
                     lock.lock();
-                    if (job.session != g_cloudSession || job.binding < 0 ||
+                    if (job.session != g_cloudSession) continue;
+                    if (job.kind == 6) {
+                        if (!ok) g_cloudDispatcherHealthy = false;
+                        continue;
+                    }
+                    if (job.binding < 0 ||
                         static_cast<size_t>(job.binding) >= g_cloudBindings.size() ||
                         g_cloudBindings[static_cast<size_t>(job.binding)].modId != mod)
                         continue;
@@ -2679,6 +2691,12 @@ void resetManagedCloudWorldSession() {
     g_cloudSpawnReplies.clear();
     g_biomeActiveReplies.clear();
     g_biomeSnapshotsPending.clear();
+    if (g_cloudQueue.size() < 64) {
+        CloudWorkerJob reset{};
+        reset.kind = 6;
+        reset.session = g_cloudSession;
+        g_cloudQueue.push_back(std::move(reset));
+    }
     g_pinnedWake.notify_one();
 }
 
