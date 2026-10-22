@@ -68,6 +68,20 @@ class ReleaseGateTests(unittest.TestCase):
         path.write_text("export class NewExample {}\n")
         self.assertTrue(any("upstream" in x for x in self.check()))
 
+    def test_missing_or_replaced_original_sprite_blocks(self):
+        relative = "content/Content/Items/Example.png"
+        original = self.upstream / "samples/ExampleMod" / relative
+        original.parent.mkdir(parents=True, exist_ok=True)
+        original.write_bytes(b"original sprite bytes")
+        self.rows[0]["assets"] = [relative]
+        self.assertTrue(any("ausente no pacote" in x for x in self.check()))
+        copy = self.project / "samples/ExampleModCSharp/Playable" / relative
+        copy.parent.mkdir(parents=True, exist_ok=True)
+        copy.write_bytes(original.read_bytes())
+        self.assertEqual([], self.check())
+        copy.write_bytes(b"modified sprite bytes")
+        self.assertTrue(any("asset alterado" in x for x in self.check()))
+
     def test_modified_js_with_same_filename_blocks(self):
         original = self.upstream / "samples/ExampleMod/content/Content/Example000.js"
         original.write_text("export class Changed {}\\n")
