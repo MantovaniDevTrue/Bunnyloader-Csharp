@@ -288,6 +288,18 @@ public abstract class BunnyNPC
     public int AiStyle { get; set; } = 1;
     public int AnimationType { get; set; } = 1;
     public int Frames { get; set; } = 2;
+    /// <summary>
+    /// Nome da classe BunnyNPC que recebe os contadores de abates (equivale
+    /// a Banner = Type no tModLoader). Vazio desabilita a bandeira. Para
+    /// compartilhar a bandeira, use o nome do NPC representante.
+    /// Os IDs numericos sao descobertos pelo host depois do registro.
+    /// </summary>
+    public string Banner { get; set; } = "";
+    /// <summary>
+    /// Nome da classe BunnyItem entregue pelo BannerSystem quando a bandeira
+    /// fica disponivel. Exige Banner preenchido e item do mesmo mod.
+    /// </summary>
+    public string BannerItem { get; set; } = "";
     public abstract void SetDefaults();
     public virtual void OnSpawn(ref BunnyNpcAiState state) { }
     public virtual bool AI(ref BunnyNpcAiState state) => false;
