@@ -1,7 +1,11 @@
 #include "experiments/csharp/NativeInvasionMailbox.h"
 #include "experiments/csharp/NativeInvasionSpawn.h"
+#ifdef __ANDROID__
+#include "core/Log.h"
+#endif
 
 #include <algorithm>
+#include <array>
 #include <atomic>
 #include <cstdint>
 #include <cstring>
@@ -42,6 +46,24 @@ std::deque<SpawnReply> g_replies;
 std::atomic<uint64_t> g_session{0};
 std::atomic<bool> g_ready{false};
 
+#ifdef __ANDROID__
+const char* spawnErrorName(InvasionSpawnError error) {
+    switch (error) {
+        case InvasionSpawnError::None: return "None";
+        case InvasionSpawnError::InvalidRequest: return "InvalidRequest";
+        case InvasionSpawnError::NotAuthoritative: return "NotAuthoritative";
+        case InvasionSpawnError::WorldUnavailable: return "WorldUnavailable";
+        case InvasionSpawnError::UnregisteredNpc: return "UnregisteredNpc";
+        case InvasionSpawnError::NativeUnavailable: return "NativeUnavailable";
+        case InvasionSpawnError::NativeException: return "NativeException";
+        case InvasionSpawnError::NoNpcSlot: return "NoNpcSlot";
+        case InvasionSpawnError::VerificationFailed: return "VerificationFailed";
+        case InvasionSpawnError::NoSafeSpawnSite: return "NoSafeSpawnSite";
+    }
+    return "Unknown";
+}
+#endif
+
 bool validName(const char* value, size_t limit) {
     if (!value) return false;
     const size_t size = strnlen(value, limit + 1);
@@ -79,6 +101,17 @@ void clearNativeInvasionMailbox() {
 
 void pumpNativeInvasionSpawnsOnGameThread() {
     if (!g_ready.load(std::memory_order_acquire)) return;
+#ifdef __ANDROID__
+    static uint64_t reportedSession = 0;
+    static std::array<bool, 10> errorsReported{};
+    static bool firstSuccessReported = false;
+    const uint64_t liveSession = g_session.load(std::memory_order_acquire);
+    if (reportedSession != liveSession) {
+        reportedSession = liveSession;
+        errorsReported.fill(false);
+        firstSuccessReported = false;
+    }
+#endif
     for (int i = 0; i < 2; ++i) {
         PendingSpawn task;
         {
@@ -103,6 +136,20 @@ void pumpNativeInvasionSpawnsOnGameThread() {
         } else {
             result.error = InvasionSpawnError::WorldUnavailable;
         }
+#ifdef __ANDROID__
+        const int code = static_cast<int>(result.error);
+        if (result && !firstSuccessReported) {
+            firstSuccessReported = true;
+            BL_INFO("[CSharp][Invasion] Stage=NativeSpawn Result=Created Mod=%s NPC=%s Slot=%d",
+                task.mod.c_str(), task.npc.c_str(), result.npcSlot);
+        } else if (!result && code >= 0 &&
+                   static_cast<size_t>(code) < errorsReported.size() &&
+                   !errorsReported[static_cast<size_t>(code)]) {
+            errorsReported[static_cast<size_t>(code)] = true;
+            BL_WARN("[CSharp][Invasion] Stage=NativeSpawn Result=Rejected Mod=%s NPC=%s Reason=%s",
+                task.mod.c_str(), task.npc.c_str(), spawnErrorName(result.error));
+        }
+#endif
         std::lock_guard<std::mutex> guard(g_mutex);
         if (!g_ready.load(std::memory_order_acquire) ||
             g_session.load(std::memory_order_acquire) != task.session) continue;
