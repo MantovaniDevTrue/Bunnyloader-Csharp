@@ -89,6 +89,18 @@ static class CloudContractTests
             "Faulting cloud may retry, but still has weight zero");
         Require(BunnyCloudDispatcher.Diagnostics("cloud-test-a").Contains("Faults=2"),
             "Each failed evaluation is isolated and counted, like JS Safe.Run");
+        ExampleFaultingCloud.FailChance = false;
+        Require(BunnyCloudDispatcher.SpawnChance("cloud-test-a", 202, outside) == 2,
+            "Transient chance exception cannot permanently blacklist cloud");
+        ExampleFaultingCloud.FailChance = true;
+        Require(!BunnyCloudDispatcher.TryOnSpawn("cloud-test-a", 202, 8, .75f, 1, out _),
+            "Faulting OnSpawn is isolated without crashing Terraria");
+        ExampleFaultingCloud.FailSpawn = false;
+        Require(BunnyCloudDispatcher.TryOnSpawn("cloud-test-a", 202, 8, .75f, 1,
+            out int recoveredSprite) && recoveredSprite == 0,
+            "OnSpawn must recover after transient error without cloud blacklisting");
+        ExampleFaultingCloud.FailSpawn = true;
+
 
         Require(BunnyCloudDispatcher.TryOnSpawn("cloud-test-a", 201, 8, 0.75f,
             (int)BunnyCloudSpriteEffects.FlipHorizontally, out int adjusted) &&
