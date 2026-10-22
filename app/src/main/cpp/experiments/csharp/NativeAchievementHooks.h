@@ -13,6 +13,8 @@ bool registerNativeAchievementMod(const std::string& modId,
                                   const std::string& metadata,
                                   std::string* error);
 // Call only after the matching native objects have been detached.
+bool prepareNativeAchievementBindingUnload(const std::string& modId,
+                                           std::string* error);
 bool unregisterNativeAchievementBinding(const std::string& modId,
                                         std::string* error);
 std::vector<AchievementMetadata> nativeAchievementMetadataSnapshot();
