@@ -22,6 +22,8 @@ internal static class BunnySurfaceRegistry
     private static extern unsafe int Fades(long session,int slot,float* values,int length,int write);
     [DllImport("bunny",EntryPoint="bunny_surface_complete",CallingConvention=CallingConvention.Cdecl)]
     private static extern int Complete(long session,int slot,int texture,int defaultClose,double scale,double parallax,double a,double b);
+    [DllImport("bunny",EntryPoint="bunny_surface_reject",CallingConvention=CallingConvention.Cdecl)]
+    private static extern int Reject(long session,int slot,[MarshalAs(UnmanagedType.LPUTF8Str)]string diagnostic);
     internal static BunnySurfaceBackgroundStyle? Get(int slot)
     {foreach(Entry entry in Volatile.Read(ref snapshot))if(entry.Style.Slot==slot)return entry.Style;return null;}
     internal static void Attach(BunnySurfaceBackgroundStyle style,BunnyHookScope scope)
@@ -69,6 +71,7 @@ internal static class BunnySurfaceRegistry
                             try {fixed(float* data=rented) {
                                 if(Fades(session,slot,data,fadeCount,0)==0)return;
                                 entry.Style.ModifyFarFades(rented.AsSpan(0,fadeCount),speed);
+                                for(int i=0;i<fadeCount;i++)if(!float.IsFinite(rented[i]))throw new InvalidOperationException("Field=fades["+i+"] Expected=FiniteSingle Actual="+rented[i]+" Reason=NonFiniteFade");
                                 if(Fades(session,slot,data,fadeCount,1)==0)return;
                             }}finally{ArrayPool<float>.Shared.Return(rented);}
                             break;
@@ -87,9 +90,13 @@ internal static class BunnySurfaceRegistry
                     Complete(session,slot,texture,defaultClose?1:0,scale,parallax,a,b);
                 }catch(Exception error) {
                     int failures=Interlocked.Increment(ref entry.Failures);
-                    if((failures & (failures-1))==0)Console.Error.WriteLine("[CSharp][ERROR][SurfaceBackground] Mod="+entry.Style.ModId+
+                    string detail="[CSharp][ERROR][SurfaceBackground] Mod="+entry.Style.ModId+
                         " Class="+entry.Style.GetType().FullName+" Method="+method+" Stage=Invoke ContentId="+slot+
-                        " SuppressedTotal="+(failures-1)+" Result=CallbackRejected Consequence=NativeFallback Exception="+error);
+                        " SuppressedTotal="+(failures-1)+" Result=CallbackRejected Consequence=NativeFallback Exception="+error;
+                    // Preserve the original exception in Bunny's native report/logcat,
+                    // even when the Android Console sink is not being captured.
+                    Reject(session,slot,detail);
+                    if((failures & (failures-1))==0)Console.Error.WriteLine(detail);
                 }
                 break;
             }

@@ -36,6 +36,7 @@ static class Program
  [DllImport("bunny",EntryPoint="bunny_test_surface_reset")]private static extern void Reset();
  [DllImport("bunny",EntryPoint="bunny_test_surface_calls")]private static extern int Calls();
  [DllImport("bunny",EntryPoint="bunny_test_surface_deny_installs")]private static extern void DenyInstalls(int deny);
+ [DllImport("bunny",EntryPoint="bunny_test_surface_has_log")]private static extern int HasLog([MarshalAs(UnmanagedType.LPUTF8Str)]string text);
  [DllImport("bunny",EntryPoint="bunny_test_surface_cleanup")]private static extern void Cleanup();
  private static void Check(bool value,string message){if(!value)throw new Exception(message);}
  private static void SetId(BunnyHookModule style,string uid)=>typeof(BunnyHookModule).GetProperty(nameof(BunnyHookModule.ModId))!.GetSetMethod(true)!.Invoke(style,new object[]{uid});
@@ -66,6 +67,7 @@ static class Program
    finally{Console.SetError(stderr);}
    Check(errors.ToString().Contains("Mod=rejected-surface-uid") && errors.ToString().Contains("Class=ExampleRejectedSurface") &&
     errors.ToString().Contains("Method=ChooseFarTexture") && errors.ToString().Contains("example-original-surface-exception"),"original managed exception with mod/class/hook context");
+   Check(HasLog("example-original-surface-exception")==1 && HasLog("Method=ChooseFarTexture")==1,"native Bunny report preserves the managed exception, not only Console.Error or CallbackReplyMissing");
    rejected.Unload();Scene(second.Slot,0);Check(Layer(0)==10,"one failure leaves other real style functional");
    Reset();Check(Pick(0)==0,"scene deactivates at world boundary");
    BunnySurfaceBackgrounds.Set(second.ModId,second.GetType().FullName!,BunnyBackgroundPriority.BossHigh,.5,true,true);

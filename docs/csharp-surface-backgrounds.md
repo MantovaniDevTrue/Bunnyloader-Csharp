@@ -41,7 +41,10 @@ capacidade são conferidos antes da resposta. Late/duplicado, ocupado, dispatche
 removido e fades incompletos são recusados. `ArrayPool<float>` e snapshots de
 registro evitam arrays gerenciados novos por fade. Logs de falha têm contexto do
 mod/classe/hook e exceção original, com emissão na primeira ocorrência e potências
-de dois. Não existe log por frame saudável.
+de dois. Uma resposta de rejeição leva a exceção/stack originais ao relatório
+nativo e ao logcat, mesmo sem captura do Console.Error. Sessão vencida ou rejeição
+duplicada não sobrescreve o pedido seguinte; diagnóstico acima de 16 KiB é
+explicitamente marcado como truncado. Não existe log por frame saudável.
 
 ## JavaScript e ciclo de vida
 
@@ -77,7 +80,7 @@ leases durante o fade; dependência ausente tem diagnóstico e fallback seguro.
 | `python3 tools/ci/test_ready_prs.py` | Regressões existentes; o inventário mantém todos os exemplos anteriores e acrescenta um comando e um módulo de estilo |
 
 O CI source-only executa também sintaxe ARM64 e link completo de `libbunny.so`,
-conferindo onze novos exports. Não executa `assemble`, assinatura ou publicação.
+conferindo doze novos exports. Não executa `assemble`, assinatura ou publicação.
 Fonte IL2CPP controlada e CLR host não equivalem a Terraria ou MonoVM Android.
 
 ## QA Android, exclusivamente com ExampleMod

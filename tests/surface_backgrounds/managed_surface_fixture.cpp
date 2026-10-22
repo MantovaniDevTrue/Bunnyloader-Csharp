@@ -77,6 +77,11 @@ extern "C" __attribute__((visibility("default"))) double bunny_test_surface_draw
 }
 extern "C" __attribute__((visibility("default"))) void bunny_test_surface_reset(){surface::resetWorld();}
 extern "C" __attribute__((visibility("default"))) int bunny_test_surface_calls(){return surfaceWorkerCalls.load();}
+extern "C" __attribute__((visibility("default"))) int bunny_test_surface_has_log(const char* text) {
+    if(!text)return 0;
+    for(const auto& line:logs)if(line.find(text)!=line.npos)return 1;
+    return 0;
+}
 extern "C" __attribute__((visibility("default"))) int bunny_test_surface_world_stage(){return surfaceTestWorldStage?1:0;}
 extern "C" __attribute__((visibility("default"))) void bunny_test_surface_deny_installs(int deny){surfaceDenyInstall=deny!=0;}
 extern "C" __attribute__((visibility("default"))) void bunny_test_surface_pause_world() {

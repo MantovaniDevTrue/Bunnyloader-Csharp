@@ -4,6 +4,7 @@
 #include <mutex>
 #include <cstring>
 #include <cmath>
+#include <algorithm>
 
 namespace bl::csharp {
 static_assert(sizeof(int)==4 && sizeof(float)==4 && sizeof(double)==8 && sizeof(int64_t)==8);
@@ -13,11 +14,13 @@ std::mutex surfaceMutex,surfaceTransaction;
 std::atomic<void(*)()> surfaceDispatcher{nullptr};
 uint64_t surfaceRevision=0;
 bool surfaceLive=false,surfaceDone=false,surfaceFadesWritten=false;
+bool surfaceRejected=false;
+std::string surfaceRejection;
 surface::Request surfaceRequest;
 surface::Reply surfaceReply;
 thread_local std::string surfaceError;
 bool validSession(int64_t session,int slot) {
-    return surfaceLive && !surfaceDone && surfaceRevision==uint64_t(session) && surfaceRequest.slot==slot;
+    return surfaceLive && !surfaceDone && !surfaceRejected && surfaceRevision==uint64_t(session) && surfaceRequest.slot==slot;
 }
 int surfaceReject(const char* stage,const char* reason,const std::string& expected,const std::string& actual) {
     surfaceError="[CSharp][ERROR][NativeBridge] API=BunnySurfaceBackgroundStyle Stage="+std::string(stage)+" Expected="+expected+" Actual="+actual+" Result=Rejected Reason="+reason;return 0;
@@ -28,9 +31,10 @@ bool surfaceInvoke(const surface::Request& request,surface::Reply* reply,std::st
     const auto callback=surfaceDispatcher.load(std::memory_order_acquire);
     if(!callback){*error="[CSharp][ERROR][SurfaceBackground] Stage=Invoke Result=Rejected Reason=ManagedDispatcherUnavailable";return false;}
     uint64_t session;
-    {std::lock_guard lock(surfaceMutex);session=++surfaceRevision;surfaceRequest=request;surfaceReply={};surfaceLive=true;surfaceDone=false;surfaceFadesWritten=false;}
+    {std::lock_guard lock(surfaceMutex);session=++surfaceRevision;surfaceRequest=request;surfaceReply={};surfaceLive=true;surfaceDone=false;surfaceFadesWritten=false;surfaceRejected=false;surfaceRejection.clear();}
     callback();
     std::lock_guard lock(surfaceMutex);
+    if(surfaceRevision==session && surfaceLive && surfaceRejected){*error=surfaceRejection;surfaceLive=false;return false;}
     if(surfaceRevision!=session || !surfaceLive || !surfaceDone) {
         const char* reason=surfaceRevision!=session?"CallbackSessionInvalidated":!surfaceLive?"CallbackCancelled":"CallbackReplyMissing";
         surfaceLive=false;*error="[CSharp][WARN][SurfaceBackground] Stage=Invoke Expected=CompletedCurrentRevision Actual=NoValidReply Result=Fallback Reason="+
@@ -79,7 +83,7 @@ extern "C" __attribute__((visibility("default"))) const char* bunny_surface_last
 // The revision guards every read/write; a late worker cannot complete a newer draw.
 extern "C" __attribute__((visibility("default"))) int bunny_surface_read(int version,int64_t* session,int* slot,int* operation,double* speed,int* fades) {
     if(version!=1 || !session || !slot || !operation || !speed || !fades)return 0;
-    std::lock_guard lock(surfaceMutex);if(!surfaceLive || surfaceDone)return 0;
+    std::lock_guard lock(surfaceMutex);if(!surfaceLive || surfaceDone || surfaceRejected)return 0;
     *session=int64_t(surfaceRevision);*slot=surfaceRequest.slot;*operation=int(surfaceRequest.operation);*speed=surfaceRequest.speed;*fades=int(surfaceRequest.fades.size());return 1;
 }
 extern "C" __attribute__((visibility("default"))) int bunny_surface_context(int64_t session,int slot,double* values,int length,uint32_t* rgba) {
@@ -122,5 +126,13 @@ extern "C" __attribute__((visibility("default"))) int bunny_surface_complete(int
     std::lock_guard lock(surfaceMutex);if(!validSession(session,slot))return 0;
     if(surfaceRequest.operation==surface::Operation::Fades && !surfaceFadesWritten)return 0;
     surfaceReply.texture=texture;surfaceReply.defaultClose=defaultClose!=0;surfaceReply.close={scale,parallax,a,b};surfaceDone=true;return 1;
+}
+extern "C" __attribute__((visibility("default"))) int bunny_surface_reject(int64_t session,int slot,const char* diagnostic) {
+    if(!diagnostic)return 0;
+    const size_t size=strnlen(diagnostic,16385);if(!size)return 0;
+    std::lock_guard lock(surfaceMutex);if(!validSession(session,slot))return 0;
+    surfaceRejection.assign(diagnostic,std::min(size,size_t(16384)));
+    if(size>16384)surfaceRejection+=" DiagnosticTruncated=1";
+    surfaceRejected=true;return 1;
 }
 }

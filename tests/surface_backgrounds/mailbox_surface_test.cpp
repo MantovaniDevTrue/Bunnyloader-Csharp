@@ -39,6 +39,14 @@ int main() {
         removeManagedSurfaceDispatch();CHECK(!bunny_surface_complete(revision,slot,-1,1,1.25,.37,1800,1750));
     });
     CHECK(!surfaceInvoke(query,&reply,&error));CHECK(error.find("CallbackSessionInvalidated")!=error.npos);
+    managedSurfaceDispatch(+[]{
+        int64_t revision;int slot,operation,count;double speed;
+        CHECK(bunny_surface_read(1,&revision,&slot,&operation,&speed,&count));
+        CHECK(bunny_surface_reject(revision,slot,"[CSharp][ERROR][SurfaceBackground] Mod=example-session Class=Example Method=ModifyFarFades Stage=Invoke Result=CallbackRejected Exception=OriginalManagedFailure"));
+        CHECK(!bunny_surface_reject(revision,slot,"DuplicateFailure"));
+        CHECK(!bunny_surface_complete(revision,slot,-1,1,1.25,.37,1800,1750));
+    });
+    CHECK(!surfaceInvoke(query,&reply,&error));CHECK(error.find("OriginalManagedFailure")!=error.npos && error.find("CallbackReplyMissing")==error.npos);
     query.operation=surface::Operation::Close;query.fades.clear();
     managedSurfaceDispatch(+[]{
         int64_t revision;int slot,operation,count;double speed;
