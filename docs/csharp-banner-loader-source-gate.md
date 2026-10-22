@@ -114,3 +114,14 @@ A separacao entre save e rede utiliza `ManagedBannerSaveDispatch.h` e `ManagedBa
 - `check-csharp-bannerloader-source-only.yml`: compila `AutoSourceRuntime.cpp`, `SourceLoader.cpp` e `NativeInvasionWorldPath.cpp` na mesma checagem de sintaxe C++; executa todos os testes acima, o ExampleMod Roslyn e garante **nenhum APK**.
 
 Nao realizar `assemble`, criar release nem abrir PR que acione geracao de APK antes de validar TODOS os gates restantes.
+
+## Lote 5 — banner original 1x3, estilo e sprite preservados
+
+- `BunnyTileShape.HangingBanner1x3 = 2` foi adicionado ao SDK. `TileWriter`, `SourceLoader` e `NativeTileGameplay` aceitam o novo tipo, com checagem de limites antes de publicar.
+- `NativeContent.applyTileShape` configura `TileObjectData.newTile` a partir de `Style1x2Top`, altura 3, `CoordinateHeights = [16, 16, 16]`, estilos horizontais e `DrawYOffset = -2`. Os setters sao usados quando presentes; caso contrario, somente campos de instancia com contrato IL2CPP verificado por nome, tipo, largura e bounds sao escritos. Na ausencia dos contratos, o registro falha em vez de produzir um objeto quebrado.
+- `ExampleEnemyBannerTile.cs` espelha as flags, cor de mapa, textura e formato 1x3 do ExampleModBunny. O PNG de `Content/Tiles/Banners/ExampleEnemyBannerTile.png` e **exatamente o blob original** (`9c9bcdf36687d25599d71cf05e741c3511fc8e2c`). O item `ExampleSlimeBanner` usa `DefaultToPlaceableTile("ExampleEnemyBannerTile", 1)`, como o estilo 1 do original.
+- `TileWriter` preserva a chave de localizacao `MapObject.Banner`, permitindo o ponto do resource name mas recusando `..`.
+- `NativeBasicItems.basicItemForTileStyle` consulta o item por chave e estilo explicitamente; `NativeTileGameplay` converte `frameX` em estilo horizontal com passo de 18 px. O tile 1x3 so faz drop do item do estilo exato quando o Terraria solicita drop de objeto grande. Evita a antiga consulta fixa no estilo 0, que perderia o ExampleSlimeBanner.
+- O teste do ExampleMod compilado pelo Roslyn verifica a linha `TILE\tExampleEnemyBannerTile\t...` com `shape = 2` e os dois descritores `NPC_BANNER` vinculados ao NPC representante. `native_tile_style.cpp` cobre coordenadas, limites e flags de drop. O CI tambem compila sintaticamente `NativeContent.cpp`, `NativeTileGameplay.cpp` e `NativeBasicItems.cpp`.
+
+**Ainda nao esta completo nem ativado no Android:** a alternativa de `AnchorTop` para plataformas, o `TileDrawing.DrawMultiTileVinesInWind`, os `NearbyEffects` nativos, a entrega de banners apos abates e a sincronizacao de rede precisam reproduzir as APIs do JS do Bunny e as regras do Terraria sem inferir assinaturas IL2CPP. Os testes C++ de host nao provam os offsets, setters ou assets no aparelho. `lookupsActive` continua false. Nao produzir APK.
