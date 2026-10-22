@@ -75,13 +75,22 @@ public:
 
     bool RegisterBatch(const std::vector<Declaration>& batch,
                        const AssetExists& exists, std::string* error) {
+        return RegisterAt(batch, nextType_, exists, error);
+    }
+
+    // O host reserva blocos globais depois de detectar os IDs usados pelo
+    // Bunny JS. As faixas de mods diferentes podem conter buracos, e não
+    // devem ser compactadas: salvar e net usam sempre UID/classe.
+    bool RegisterAt(const std::vector<Declaration>& batch, int firstReservedType,
+                    const AssetExists& exists, std::string* error) {
         if (!error) return false;
         error->clear();
-        if (!exists || firstModType_ < kVanillaCount || firstModType_ > kLastType) {
+        if (!exists || firstModType_ < kVanillaCount || firstModType_ > kLastType ||
+            firstReservedType < kVanillaCount || firstReservedType > kLastType) {
             *error = "NativeHairInvalidCapacityOrAssetProvider";
             return false;
         }
-        if (batch.size() > static_cast<size_t>(kLastType - nextType_ + 1)) {
+        if (batch.size() > static_cast<size_t>(kLastType - firstReservedType + 1)) {
             *error = "NativeHairCapacityExceeded";
             return false;
         }
@@ -89,7 +98,7 @@ public:
         std::vector<Entry> prepared;
         prepared.reserve(batch.size());
         std::set<std::string> added;
-        int candidate = nextType_;
+        int candidate = firstReservedType;
         for (const auto& item : batch) {
             if (!validIdentifier(item.modUid) || !validIdentifier(item.className)) {
                 *error = "NativeHairInvalidIdentity";
@@ -104,6 +113,10 @@ public:
                 item.randomGender != RandomGender::Male &&
                 item.randomGender != RandomGender::Female) {
                 *error = "NativeHairInvalidGender:" + full;
+                return false;
+            }
+            if (byType_.contains(candidate)) {
+                *error = "NativeHairTypeAlreadyReserved:" + std::to_string(candidate);
                 return false;
             }
             std::string main, alt, reason;
@@ -128,7 +141,7 @@ public:
             byName_.emplace(item.fullName, id);
             byType_.emplace(id, std::move(item));
         }
-        nextType_ = candidate;
+        nextType_ = std::max(nextType_, candidate);
         return true;
     }
 
