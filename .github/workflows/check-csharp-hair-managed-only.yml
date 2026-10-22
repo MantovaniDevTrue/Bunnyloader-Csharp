@@ -25,6 +25,7 @@ on:
       - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairSlotProbe.*"
       - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairStartup.*"
       - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairHandoff.*"
+      - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairSlotMailbox.*"
       - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairReservation.h"
       - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairSaveState.h"
       - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairSaveSession.h"
@@ -194,6 +195,31 @@ jobs:
             Split/Bunny-Loader/tests/hair_loader/native_startup.cpp \
             -o /tmp/bunny-hair-startup
           /tmp/bunny-hair-startup
+      - name: Check worker mailbox and native startup factory syntax
+        run: |
+          g++ -std=c++20 -Wall -Wextra -Werror -fsyntax-only -pthread \
+            -I Split/Bunny-Loader/app/src/main/cpp \
+            Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairSlotMailbox.cpp
+          g++ -std=c++20 -Wall -Wextra -Werror -fsyntax-only -pthread \
+            -I Split/Bunny-Loader/app/src/main/cpp \
+            Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairStartup.cpp
+      - name: Verify game-thread handoff is idle-free, bounded and cancels on unload
+        run: |
+          g++ -std=c++20 -Wall -Wextra -Werror -pthread \
+            -I Split/Bunny-Loader/app/src/main/cpp \
+            Split/Bunny-Loader/tests/hair_loader/native_mailbox.cpp \
+            -o /tmp/bunny-hair-slot-mailbox
+          /tmp/bunny-hair-slot-mailbox
+          python3 - <<'PY'
+          from pathlib import Path
+          root = Path("Split/Bunny-Loader/app/src/main/cpp/experiments/csharp")
+          a = (root / "AutoSourceRuntime.cpp").read_text()
+          assert "PumpNativeHairSlotsOnGameThread();" in a
+          assert a.index("PumpNativeHairSlotsOnGameThread();") > a.index("void noteAutoGameUpdate()")
+          assert a.count("CancelNativeHairSlotRequests();") >= 2
+          assert "MakeNativeHairStartupForWorker" in (root / "NativeHairStartup.cpp").read_text()
+          print("HAIR_GAME_THREAD_BRIDGE=PASS")
+          PY
       - name: Guard against Android artifacts
         run: |
           test ! -d Split/Bunny-Loader/app/build/outputs/apk
