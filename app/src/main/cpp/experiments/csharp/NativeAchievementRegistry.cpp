@@ -721,6 +721,95 @@ bool replaceNativeAchievementObjects(
     return true;
 }
 
+bool unregisterNativeAchievementMod(const std::string& modId, std::string* error) {
+    if (!error) return false;
+    error->clear();
+    if (!prepared || modId.empty() || modId.size() > 96) {
+        *error = "Native achievement mod unregister unavailable";
+        return false;
+    }
+    for (unsigned char ch : modId)
+        if (!((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') ||
+              (ch >= '0' && ch <= '9') || ch == '_' || ch == '-' || ch == '.')) {
+            *error = "Invalid achievement mod identity";
+            return false;
+        }
+
+    const auto prefix = modId + "/";
+    std::vector<std::string> names;
+    for (const auto& [name, entry] : entries) {
+        if (name.starts_with(prefix)) {
+            if (!entry.registered) {
+                *error = "Incomplete achievement registration, removal blocked";
+                return false;
+            }
+            names.push_back(name);
+        }
+    }
+    if (names.empty()) {
+        *error = "No registered native achievements for mod";
+        return false;
+    }
+    if (retiredEntries.size() + names.size() > kMaxRetiredAchievementEntries) {
+        *error = "Achievement retirement capacity exceeded";
+        return false;
+    }
+
+    const auto& a = il2cpp::api();
+    auto* main = il2cpp::findClass({"Terraria", "Main", {}});
+    auto* managerField = main ? il2cpp::findField(main, "Achievements") : nullptr;
+    Il2CppObject* currentManager = nullptr;
+    if (!managerField || !a.field_static_get_value) {
+        *error = "Current Terraria achievement manager unavailable";
+        return false;
+    }
+    a.field_static_get_value(managerField, &currentManager);
+    if (currentManager != methods.manager) {
+        *error = "Achievement manager changed; native unregister blocked";
+        return false;
+    }
+
+    NativeAchievementManagerAdapter adapter;
+    if (!adapter.prepare(methods.manager, error)) return false;
+    for (const auto& name : names) {
+        auto* root = a.gchandle_get_target(entries.at(name).achievementRoot);
+        if (!adapter.containsExact(name, root, error)) return false;
+    }
+
+    std::vector<std::string> removed;
+    const auto restore = [&]() {
+        std::string detail;
+        bool restored = true;
+        for (auto it = removed.rbegin(); it != removed.rend(); ++it) {
+            auto* old = a.gchandle_get_target(entries.at(*it).achievementRoot);
+            void* args[]{old};
+            if (!invoke(methods.registerAchievement, methods.manager, args,
+                        nullptr, &detail)) {
+                restored = false;
+                *error += " / RESTORE_FAILED " + *it + " " + detail;
+            }
+        }
+        return restored;
+    };
+    for (const auto& name : names) {
+        auto* root = a.gchandle_get_target(entries.at(name).achievementRoot);
+        if (!adapter.removeExact(name, root, error)) {
+            if (!restore()) *error += " / NATIVE_ROLLBACK_INCOMPLETE";
+            return false;
+        }
+        removed.push_back(name);
+    }
+    for (const auto& name : names) {
+        auto it = entries.find(name);
+        auto* old = a.gchandle_get_target(it->second.achievementRoot);
+        iconsByAchievement.erase(old);
+        retiredEntries.push_back(std::move(it->second));
+        entries.erase(it);
+    }
+    ++revisions;
+    return true;
+}
+
 bool reconcileNativeAchievementObjects(
     const std::vector<AchievementMetadata>& definitions,
     std::string* error) {
