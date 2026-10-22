@@ -2167,11 +2167,13 @@ bool applyTileShape(int type, const ManagedTileEntry& e) {
         return true;
     };
 
-    Il2CppArray* heights = a.array_new(intClass, e.shape == 2 ? 3 : 1);
+    Il2CppArray* heights = a.array_new(intClass,
+        e.shape == 2 ? banners::kBannerAnchorPlan.coordinateHeights.size() : 1);
     if (!heights) return false;
     auto* data = static_cast<int32_t*>(arrayData(heights));
     if (e.shape == 2) {
-        data[0] = 16; data[1] = 16; data[2] = 16;
+        for (size_t i=0;i<banners::kBannerAnchorPlan.coordinateHeights.size();++i)
+            data[i]=banners::kBannerAnchorPlan.coordinateHeights[i];
     } else data[0] = e.coordinateHeight;
 
     Il2CppObject* exc = nullptr;
@@ -2179,9 +2181,9 @@ bool applyTileShape(int type, const ManagedTileEntry& e) {
     a.runtime_invoke(copy, tile, copyArgs, &exc);
     if (exc) return false;
     if (e.shape == 2) {
-        int32_t height = 3;
+        int32_t height = banners::kBannerAnchorPlan.height;
         uint8_t horizontal = 1;
-        int32_t yOffset = -2;
+        int32_t yOffset = banners::kBannerAnchorPlan.solidDrawYOffset;
         if (!setVerified("Height", setHeight, "System.Int32", 4, &height) ||
             !setVerified("StyleHorizontal", setHorizontal, "System.Boolean", 1,
                          &horizontal) ||
