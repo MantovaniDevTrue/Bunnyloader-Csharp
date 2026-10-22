@@ -2740,7 +2740,11 @@ void resetManagedCloudWorldSession() {
     g_cloudSpawnReplies.clear();
     g_biomeActiveReplies.clear();
     g_biomeSnapshotsPending.clear();
-    g_biomeResetPending = true;
+    g_biomeResetPending = std::any_of(
+        g_cloudBindings.begin(), g_cloudBindings.end(),
+        [](const CloudWorkerBinding& binding) {
+            return binding.biomeReady && !binding.biomeFailed;
+        });
     g_pinnedWake.notify_one();
 }
 
