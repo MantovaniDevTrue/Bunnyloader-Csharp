@@ -13,11 +13,12 @@ import json
 from pathlib import Path, PurePosixPath
 
 UPSTREAM_COMMIT = "a0132963026e3b35e45f33ffffa01a75eb8535d5"
-BASELINE_JS_COUNT = 206
+BASELINE_JS_COUNT = 232
 COMPLETE = "Validado no Android"
 SOURCE_READY = frozenset(("Implementado, aguardando validação", "Validado por testes automatizados", COMPLETE))
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_MATRIX = ROOT / "docs/generated/example_completion/matrix.json"
+DEFAULT_INVENTORY = ROOT / "tools/example_completion/current_upstream.json"
 
 
 def _relative_file(value: str, root: Path, extension: str) -> bool:
@@ -32,7 +33,8 @@ def _relative_file(value: str, root: Path, extension: str) -> bool:
 
 def check_release(matrix: dict, project: Path, upstream: Path | None,
                   upstream_commit: str = UPSTREAM_COMMIT,
-                  phase: str = "source") -> list[str]:
+                  phase: str = "source",
+                  inventory: dict | None = None) -> list[str]:
     """Fase source autoriza o primeiro APK de QA somente depois da porta integral.
 
     A fase release requer as provas Android adicionais. Este codigo nunca
@@ -58,6 +60,27 @@ def check_release(matrix: dict, project: Path, upstream: Path | None,
             f"minimo obrigatorio={BASELINE_JS_COUNT}"
         )
     ids: set[str] = set()
+    canonical = {}
+    if inventory is not None:
+        entries = inventory.get("files", [])
+        if not isinstance(entries, list):
+            errors.append("Inventario original invalido")
+            entries = []
+        for entry in entries:
+            if isinstance(entry, dict):
+                key = entry.get("path")
+                digest = entry.get("gitBlob")
+                if isinstance(key, str) and isinstance(digest, str) and key not in canonical:
+                    canonical[key] = digest
+                else:
+                    errors.append("Inventario original com caminho duplicado ou invalido")
+            else:
+                errors.append("Inventario original com entrada invalida")
+        if inventory.get("upstreamCommit") != upstream_commit:
+            errors.append("Inventario original possui commit diferente do upstream fixado")
+        if len(canonical) < BASELINE_JS_COUNT or inventory.get("count") != len(canonical):
+            errors.append("Inventario canonico possui fontes ausentes")
+
     for index, row in enumerate(rows):
         if not isinstance(row, dict):
             errors.append(f"Linha {index}: exemplo invalido")
@@ -73,6 +96,8 @@ def check_release(matrix: dict, project: Path, upstream: Path | None,
         if name in ids:
             errors.append(f"{name}: arquivo JS duplicado")
         ids.add(name)
+        if inventory is not None and canonical.get(name) != blob:
+            errors.append(f"{name}: JS nao confere com inventario canonico atualizado")
         allowed = SOURCE_READY if phase == "source" else (COMPLETE,)
         if row.get("status") not in allowed:
             errors.append(f"{name}: {row.get('status', 'sem estado')}")
@@ -110,6 +135,11 @@ def check_release(matrix: dict, project: Path, upstream: Path | None,
                 if not original.is_file() or original.read_bytes() != replacement.read_bytes():
                     errors.append(f"{name}: asset alterado em relacao ao upstream: {relative}")
 
+    if inventory is not None and set(canonical) != ids:
+        errors.append(
+            f"Matriz desatualizada: {len(set(canonical) - ids)} exemplos atuais sem linha, "
+            f"{len(ids - set(canonical))} linhas obsoletas"
+        )
     if upstream is None:
         errors.append("Checkout atual do upstream obrigatorio (--upstream-root)")
     else:
@@ -149,14 +179,20 @@ def main() -> int:
     parser.add_argument("--upstream-root", type=Path, required=True)
     parser.add_argument("--upstream-commit", default=UPSTREAM_COMMIT)
     parser.add_argument("--phase", choices=("source", "release"), default="source")
+    parser.add_argument("--inventory", type=Path, default=DEFAULT_INVENTORY)
     args = parser.parse_args()
     try:
         report = json.loads(args.matrix.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as error:
         print(f"EXAMPLEMOD_APK_GATE=BLOCKED: matriz invalida: {error}")
         return 1
+    try:
+        inventory = json.loads(args.inventory.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        print(f"EXAMPLEMOD_APK_GATE=BLOCKED: inventario original invalido: {error}")
+        return 1
     problems = check_release(report, args.project_root, args.upstream_root,
-                             args.upstream_commit, phase=args.phase)
+                             args.upstream_commit, phase=args.phase, inventory=inventory)
     if problems:
         print(f"EXAMPLEMOD_APK_GATE=BLOCKED: {len(problems)} pendencias")
         for problem in problems[:30]:
