@@ -295,6 +295,10 @@ bool nativeAchievementHooksReady() {
     return hooksReady.load(std::memory_order_acquire);
 }
 
+bool nativeAchievementWorldActive() {
+    return worldActive.load(std::memory_order_acquire);
+}
+
 void flushNativeAchievementProgressOnExit() {
     setNativeAchievementWorldActive(false);
     std::lock_guard<std::mutex> lock(bindingMutex);
