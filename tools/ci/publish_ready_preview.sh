@@ -31,17 +31,20 @@ PY
 mkdir -p build/ready-delivery
 cp "$APK" build/ready-delivery/BunnyLoader-CSharp-ReadyPRs-QA.apk
 python3 tools/mods/pack.py samples/ExampleModCSharp/Playable
-cp build/mods-packs/examplemodcsharp-0.1.63.bl build/ready-delivery/ExampleMod-CSharp-0.1.63.bl
+MOD_VERSION="$(python3 -c 'import json; print(json.load(open("samples/ExampleModCSharp/Playable/manifest.json"))["version"])')"
+cp "build/mods-packs/examplemodcsharp-${MOD_VERSION}.bl" "build/ready-delivery/ExampleMod-CSharp-${MOD_VERSION}.bl"
+cp docs/csharp/SHOOTING_AIM_QA.md build/ready-delivery/SHOOTING-AIM-QA.md
+cp docs/csharp/EXAMPLEMOD_COVERAGE.json build/ready-delivery/EXAMPLEMOD_COVERAGE.json
 cp docs/ready-prs-android-qa.md build/ready-delivery/TESTES-ANDROID.md
 cp docs/ready-prs-integration.json build/ready-delivery/integration.json
 cp build/ready-pr-tests/results.json build/ready-delivery/host-tests.json
 printf '%s\n' "$GITHUB_SHA" > build/ready-delivery/COMMIT.txt
 (cd build/ready-delivery && sha256sum *.apk *.bl *.md *.json COMMIT.txt > SHA256SUMS)
 TAG="ready-prs-qa-${GITHUB_SHA:0:12}"
-printf 'Build experimental dos PRs #101, #102, #114, #115, #116, #117 e #118.\n\nCommit: %s\nCI: https://github.com/%s/actions/runs/%s\n\nAPK assinado V3; ExampleMod editável. Android e multiplayer aguardam validação real. Não é release estável nem conclusão global dos loaders. Consulte TESTES-ANDROID.md.\n' "$GITHUB_SHA" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID" > build/ready-delivery/NOTES.md
+printf 'Build experimental sobre 1.0.11 Dust/Invasion QA: ExampleMod unificado e direção antes do disparo.\n\nCommit: %s\nCI: https://github.com/%s/actions/runs/%s\n\nAPK assinado V3; ExampleMod editável. Android e multiplayer aguardam validação real. Não é release estável nem conclusão global dos loaders. Consulte TESTES-ANDROID.md.\n' "$GITHUB_SHA" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID" > build/ready-delivery/NOTES.md
 if gh release view "$TAG" --repo "$PRIVATE_INPUTS_REPO" >/dev/null 2>&1; then
   gh release upload "$TAG" build/ready-delivery/* --repo "$PRIVATE_INPUTS_REPO" --clobber
 else
-  gh release create "$TAG" build/ready-delivery/* --repo "$PRIVATE_INPUTS_REPO" --prerelease --title 'Bunny C# — sete PRs integrados para QA Android' --notes-file build/ready-delivery/NOTES.md
+  gh release create "$TAG" build/ready-delivery/* --repo "$PRIVATE_INPUTS_REPO" --prerelease --title 'Bunny C# 1.0.11 — ExampleMod e direção de tiro para QA' --notes-file build/ready-delivery/NOTES.md
 fi
 printf 'PRIVATE_PREVIEW=https://github.com/%s/releases/tag/%s\n' "$PRIVATE_INPUTS_REPO" "$TAG"

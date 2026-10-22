@@ -1,4 +1,4 @@
-name: Build seven ready PRs — experimental Android QA
+name: Build Bunny CSharp 1.0.11 — ExampleMod Android QA
 'on':
   push:
     branches:
@@ -31,10 +31,12 @@ jobs:
       with:
         distribution: temurin
         java-version: '17'
-    - name: Compile all 96 playable CSharp example sources with the current SDK
+    - name: Compile all playable CSharp example sources with the current SDK
       run: dotnet build tests/ready_prs/FullExampleManaged.csproj -c Release --nologo
     - name: Run full ExampleMod through real Roslyn and DLL verifier
       run: dotnet run --project tests/ready_prs/FullExampleRuntime/FullExampleRuntime.csproj -c Release -- samples/ExampleModCSharp/Playable
+    - name: Verify conservative ExampleMod coverage
+      run: python3 tools/examplemod_coverage.py --check
     - name: Run combined PR contracts and integration tests
       run: python3 tools/ci/test_ready_prs.py
     - name: Run core regressions and editable ExampleMod compilation

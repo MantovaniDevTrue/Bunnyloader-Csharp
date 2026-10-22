@@ -1,4 +1,5 @@
 #include "experiments/csharp/NativeShooting.h"
+#include "experiments/csharp/NativeShootingAim.h"
 #include "experiments/csharp/ManagedRuntime.h"
 #include "content/projectiles/ModProjectiles.h"
 #include "il2cpp/FieldContract.h"
@@ -23,7 +24,7 @@ struct Policy {Entry entry;mutable std::atomic<int> ready{0};mutable std::atomic
 using Table=std::map<int,std::shared_ptr<Policy>>;
 std::shared_ptr<const Table> policies=std::make_shared<const Table>();
 std::mutex writer;
-struct Refs {int type=-1,who=-1;FieldInfo* pool=nullptr;Il2CppClass* projectile=nullptr;const MethodInfo* time=nullptr;} refs;
+struct Refs {AimBinding aim;int type=-1,who=-1;FieldInfo* pool=nullptr;Il2CppClass* projectile=nullptr;const MethodInfo* time=nullptr;} refs;
 using UseFn=void(*)(Il2CppObject*,int,Il2CppObject*,int,bool,const MethodInfo*);
 using SpawnFn=int(*)(Il2CppObject*,float,float,float,float,int,int,float,int,float,float,float,Il2CppObject*,const MethodInfo*);
 UseFn originalUse=nullptr;SpawnFn originalSpawn=nullptr;
@@ -39,14 +40,14 @@ std::vector<std::string> split(const std::string& text,char sep) {
 }
 bool integer(const std::string& text,int* value) {auto r=std::from_chars(text.data(),text.data()+text.size(),*value);return !text.empty()&&r.ec==std::errc{}&&r.ptr==text.data()+text.size();}
 bool real(const std::string& text,float* value) {char* end=nullptr;*value=std::strtof(text.c_str(),&end);return !text.empty()&&end==text.c_str()+text.size()&&std::isfinite(*value);}
-void diagnostic(const Policy& policy,const char* stage,const std::string& reason) {
+void diagnostic(const Policy& policy,const char* stage,const std::string& reason,const char* result="ShotRejected") {
     const auto now=static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count());
     auto expected=policy.nextLog.load(std::memory_order_relaxed);
     if(now<expected||!policy.nextLog.compare_exchange_strong(expected,now+5000)){policy.suppressed.fetch_add(1);return;}
     const bool pending=reason.find("DeadlineExceeded")!=std::string::npos||reason.find("NotReady")!=std::string::npos||
         reason.find("QueueBusy")!=std::string::npos||reason.find("QueueCapacityExceeded")!=std::string::npos;
-    bl::log::write(pending?ANDROID_LOG_WARN:ANDROID_LOG_ERROR,"[CSharp][%s][Shoot] Mod=%s Class=%s File=%s ContentId=%d Stage=%s Result=ShotRejected Suppressed=%llu Detail=%s",pending?"WARN":"ERROR",
-        policy.entry.mod.c_str(),policy.entry.name.c_str(),policy.entry.source.c_str(),policy.entry.type,stage,
+    bl::log::write(pending?ANDROID_LOG_WARN:ANDROID_LOG_ERROR,"[CSharp][%s][Shoot] Mod=%s Class=%s File=%s ContentId=%d Stage=%s Result=%s Suppressed=%llu Detail=%s",pending?"WARN":"ERROR",
+        policy.entry.mod.c_str(),policy.entry.name.c_str(),policy.entry.source.c_str(),policy.entry.type,stage,result,
         static_cast<unsigned long long>(policy.suppressed.exchange(0)),reason.c_str());
 }
 // Android 1.4.5.8.6 uses 1000 as the factory's no-slot return, also used by the
@@ -113,13 +114,15 @@ void use(Il2CppObject* player,int index,Il2CppObject* item,int damage,bool feedb
     Active context{policy,who,damage,poolSize()};
     bool allowed=context.slots>0&&who>=0&&who<=255&&damage>=0&&damage<=1000000;
     if(!allowed)diagnostic(*policy,"ReadSnapshot","Expected=Player0..255,Damage0..1000000,PoolWithAtLeast1000Cells ActualPlayer="+std::to_string(who)+" ActualDamage="+std::to_string(damage)+" ValidatedProjectileCapacity="+std::to_string(context.slots)+" Reason=InvalidNativeShotSnapshot");
-    else allowed=ready(*policy);
+    else allowed=policy->entry.mask==0||ready(*policy);
     if(allowed&&(policy->entry.mask&1)) {
         std::string output;const bool invoked=invokeManagedShoot(policy->entry.mod,policy->entry.assembly,policy->entry.name,0,snapshot(context,{}),&output);
         allowed=invoked&&output=="1";
         if(!invoked||(output!="0"&&output!="1"))diagnostic(*policy,"CanShoot",output);
     }
     if(!allowed){reinterpret_cast<void(*)(Il2CppObject*,Il2CppObject*,const MethodInfo*)>(il2cpp::methodPointer(refs.time))(player,item,refs.time);return;}
+    // Terraria computes muzzle/holdout from direction inside the original method.
+    if(!refs.aim.synchronize(player,who))diagnostic(*policy,"Aim","Reason=LocalAimUnavailable","VanillaDirectionPreserved");
     const auto previous=active;active=std::move(context);
     // Native exceptions must not leave a stale thread-local shooting scope armed.
     il2cpp::Caught caught;
@@ -163,6 +166,7 @@ bool prepare(std::string* error) {
     if(!array||!(a.field_get_flags(pool)&0x10u)||!a.class_get_rank||!a.class_get_element_class||!a.field_static_get_value||
        a.class_get_rank(array)!=1||a.class_get_element_class(array)!=projectile){*error="Field=Main.projectile Expected=StaticProjectileArray Actual=MissingOrWrongType Reason=NativeArrayContractMismatch";return false;}
     staged.pool=pool;
+    if(!staged.aim.bind(player,main,error))return false;
     auto method=[&](Il2CppClass* cls,const char* signature,bool instance)->const MethodInfo* {
         bool ambiguous=false;const MethodInfo* renamed=nullptr;
         auto* found=findMethodBySignature(cls,parseSignature(signature),&ambiguous,&renamed);
@@ -194,15 +198,20 @@ bool publish(const std::vector<Entry>& entries,std::string* error) {
     if(!prepare(error)){*error="[CSharp][ERROR][Shoot] Mod="+entries.front().mod+" Class="+entries.front().name+" File="+entries.front().source+" Stage=BindNative Result=BatchRejected Detail="+*error;return false;}
     auto next=std::make_shared<Table>(*std::atomic_load_explicit(&policies,std::memory_order_acquire));std::map<int,bool> seen;
     for(const auto& entry:entries){
-        if(entry.type<1||entry.mask<1||entry.mask>7||!seen.emplace(entry.type,true).second){*error="[CSharp][ERROR][Shoot] Mod="+entry.mod+" Class="+entry.name+" Stage=Publish Reason=InvalidOrDuplicateShootOwner Result=BatchRejected";return false;}
+        if(entry.type<1||entry.mask<0||entry.mask>7||!seen.emplace(entry.type,true).second){*error="[CSharp][ERROR][Shoot] Mod="+entry.mod+" Class="+entry.name+" Stage=Publish Reason=InvalidOrDuplicateShootOwner Result=BatchRejected";return false;}
         auto policy=std::make_shared<Policy>();policy->entry=entry;(*next)[entry.type]=std::move(policy);
     }
     std::atomic_store_explicit(&policies,std::shared_ptr<const Table>(std::move(next)),std::memory_order_release);return true;
 }
-bool hasPolicies(const std::string& mod) {auto table=std::atomic_load_explicit(&policies,std::memory_order_acquire);for(const auto& p:*table)if(p.second->entry.mod==mod)return true;return false;}
+void unload(const std::string& mod) {
+    std::lock_guard lock(writer);auto next=std::make_shared<Table>(*std::atomic_load_explicit(&policies,std::memory_order_acquire));
+    for(auto p=next->begin();p!=next->end();)if(p->second->entry.mod==mod)p=next->erase(p);else ++p;
+    std::atomic_store_explicit(&policies,std::shared_ptr<const Table>(std::move(next)),std::memory_order_release);
+}
+bool hasPolicies(const std::string& mod) {auto table=std::atomic_load_explicit(&policies,std::memory_order_acquire);for(const auto& p:*table)if(p.second->entry.mod==mod&&p.second->entry.mask!=0)return true;return false;}
 bool bindAssembly(const std::string& mod,const std::string& assembly,std::string* error) {
     std::lock_guard lock(writer);auto next=std::make_shared<Table>(*std::atomic_load_explicit(&policies,std::memory_order_acquire));
-    for(auto& p:*next)if(p.second->entry.mod==mod) {
+    for(auto& p:*next)if(p.second->entry.mod==mod&&p.second->entry.mask!=0) {
         auto replacement=std::make_shared<Policy>();replacement->entry=p.second->entry;replacement->entry.assembly=assembly;
         if(!queueManagedShootWarmup(mod,assembly,replacement->entry.name)){*error="[CSharp][ERROR][Shoot] Mod="+mod+" Class="+replacement->entry.name+" Stage=QueueWarmup Reason=WorkerQueueCapacityExceeded Result=Rejected";return false;}
         BL_INFO("[CSharp][Shoot] Mod=%s Class=%s File=%s Stage=Warmup Result=Queued",mod.c_str(),replacement->entry.name.c_str(),replacement->entry.source.c_str());

@@ -146,7 +146,7 @@ try {
   Equal(1,Compiler.Compile("tests/basic_items/owned_recipe_fixture",output,runtime,diag));
   Equal(5,CompiledAssemblyProbe.Verify(output,diag));
   var rows=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt"));
-  Equal(9,rows.Length);Equal(3,rows.Count(row=>row.StartsWith("RECIPES\t",StringComparison.Ordinal)));
+  Equal(10,rows.Length);Equal(true,rows.Contains("SHOOT\tContractWeapon\t0"));Equal(3,rows.Count(row=>row.StartsWith("RECIPES\t",StringComparison.Ordinal)));
   foreach(string owner in new[]{"ContractWeapon","ContractAccessory","ContractPotion"}) {
    string Call(int kind,string state)=>BunnyRecipeLoader.Dispatch("owned",output,owner,0,kind,state);
    Equal("READY",Call(3,""));Equal("1",Call(0,"10,100,0,3,9,3,0,0,0"));

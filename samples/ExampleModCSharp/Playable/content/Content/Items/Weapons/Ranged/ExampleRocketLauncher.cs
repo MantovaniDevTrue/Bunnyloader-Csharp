@@ -16,6 +16,7 @@ public sealed class ExampleRocketLauncher : BunnyItem
         NativeDefaults.SetBool("ranged", true).SetFloat("shootSpeed", 5)
             .SetId("shoot", "ProjectileID", "RocketI").SetId("useAmmo", "AmmoID", "Rocket");
         // Referencial local: direção, gravidade e rotação são aplicadas pelo host a cada desenho.
+        // Declarar shoot também sincroniza a direção com a mira antes do tiro nativo.
         Holdout = new BunnyHoldout(-2, -2);
     }
 }

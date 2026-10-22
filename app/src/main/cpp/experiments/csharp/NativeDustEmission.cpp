@@ -86,15 +86,24 @@ bool resolve() {
     next.spawn=il2cpp::findMethodBySignature(dust, il2cpp::parseSignature(
         "int NewDust(Vector2 Position, int Width, int Height, int Type, "
         "float SpeedX, float SpeedY, int Alpha, Color newColor, float Scale)"));
+    constexpr const char* parameters[]={"Microsoft.Xna.Framework.Vector2","System.Int32","System.Int32","System.Int32","System.Single","System.Single","System.Int32","Microsoft.Xna.Framework.Color","System.Single"};
+    auto matches=[&](const MethodInfo* method) {
+        if(!method||std::strcmp(api.method_get_name(method),"NewDust")||api.method_get_param_count(method)!=9)return false;
+        uint32_t flags=0;
+        bool match=(api.method_get_flags(method,&flags)&0x10u)!=0&&typeIs(api.method_get_return_type(method),"System.Int32");
+        for(unsigned i=0;i<9&&match;++i)match=typeIs(api.method_get_param(method,i),parameters[i]);
+        return match;
+    };
+    // The general resolver accepts short names; emission additionally requires the exact ABI/storage contract.
+    if(!matches(next.spawn))next.spawn=nullptr;
     if(!next.spawn) {
-        constexpr const char* parameters[]={"Microsoft.Xna.Framework.Vector2","System.Int32","System.Int32","System.Int32","System.Single","System.Single","System.Int32","Microsoft.Xna.Framework.Color","System.Single"};
         void* iterator=nullptr;
         while(const MethodInfo* method=api.class_get_methods(dust,&iterator)) {
-            if(std::strcmp(api.method_get_name(method),"NewDust")||api.method_get_param_count(method)!=9)continue;
-            uint32_t flags=0;
-            bool match=(api.method_get_flags(method,&flags)&0x10u)!=0 && typeIs(api.method_get_return_type(method),"System.Int32");
-            for(unsigned i=0;i<9&&match;++i)match=typeIs(api.method_get_param(method,i),parameters[i]);
-            if(match) { next.spawn=method;break; }
+            if(!matches(method))continue;
+            if(next.spawn&&next.spawn!=method) {
+                nativeResolutionFailure="NewDustSignatureAmbiguous";return false;
+            }
+            next.spawn=method;
         }
     }
     if(!next.spawn) {

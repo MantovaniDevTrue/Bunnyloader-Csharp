@@ -15,7 +15,7 @@ public static class Compiler
     private const int MaxFiles = 4096;
     private const int MaxFileBytes = 1024 * 1024;
     private const int MaxTotalBytes = 32 * 1024 * 1024;
-    private const string CacheVersion = "roslyn-net8-source-v52-verified-reference-mode";
+    private const string CacheVersion = "roslyn-net8-source-v53-native-shoot-aim";
     private static readonly string[] ReferenceNames =
     {
         "System.Private.CoreLib.dll",

@@ -1,0 +1,132 @@
+{
+  "baseline": {
+    "commit": "fcdc3fd2c30d1e7432fddbafc4af9f6d65ca473a",
+    "loader": "1.0.11-dust-invasion-qa",
+    "game": "Terraria Android 1.4.5.8.6",
+    "gameBuild": 301720,
+    "device": "Xiaomi Mi 11 Lite 5G NE / Android 14 / arm64-v8a (alvo; indisponível nesta sessão)",
+    "cSharpArchiveSha256": "c8a469f7f45e92349d5a16978cac9a62127a5f1fe0bd46bdee7e4c7700e8ef15",
+    "fps": null,
+    "memoryBytes": null,
+    "bootMs": null,
+    "modLoadMs": null
+  },
+  "behaviors": {
+    "requirement:tooltip-without-js": {
+      "status": "falhou",
+      "behavior": "Tooltip C# independente de JavaScript",
+      "note": "Dependência confirmada por inspeção de Exports.js/TooltipLoader.js; substituir por renderer nativo.",
+      "implementation": [
+        "app/src/main/cpp/script/js/mod/Exports.js",
+        "app/src/main/cpp/script/js/mod/Loaders/TooltipLoader.js"
+      ],
+      "tests": [],
+      "androidEvidence": []
+    },
+    "requirement:aim-before-shoot": {
+      "status": "validado automaticamente",
+      "behavior": "Player.direction sincronizado antes de ItemCheck_Shoot",
+      "note": "Hook de produção executado no host antes do original: lados/vertical, remoto, getter/erro, máscara zero e unload. Android pendente.",
+      "implementation": [
+        "app/src/main/cpp/experiments/csharp/NativeShootingAim.h",
+        "app/src/main/cpp/experiments/csharp/NativeShooting.cpp",
+        "experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs"
+      ],
+      "tests": [
+        "tests/shooting/run.sh",
+        "tests/shooting/native_test.cpp"
+      ],
+      "androidEvidence": [],
+      "validationScope": "host; Android pendente",
+      "validatedFilesSha256": {
+        "app/src/main/cpp/experiments/csharp/NativeShootingAim.h": "4d2058678ad1bcecb88f961d921fc72b91ad966343b2a05e51ebc9f2970e57e8",
+        "app/src/main/cpp/experiments/csharp/NativeShooting.cpp": "47664a472d1a82129df4bb29cc4e80b7b6429e94d4c1d54985060fb9e95dca41",
+        "experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs": "78ae7b689ba994d7d09ee64846c4b654d785e49ce163210a6bee24887291c483",
+        "tests/shooting/run.sh": "1d8995d8ac9f6c41073c41452cde4360098cc762cfe3f593366c31c9eb74842a",
+        "tests/shooting/native_test.cpp": "916418116a3ec8f2ca07746575e107d9bc9bce39bce0fb859365fd1735022a67"
+      }
+    },
+    "requirement:ExampleGun": {
+      "status": "validado automaticamente",
+      "behavior": "Defaults e munição nativa da arma",
+      "source": "content/Content/Items/Weapons/Ranged/ExampleGun.js",
+      "sourceSha256": "fa4aa6f7e7d439683fcef77d6e35a2facc930087cd4a0a4ef98e7e363a57055b",
+      "note": "Asserções dos valores/algoritmo do exemplo real e protocolo compilado no host. Trajetória, cano e consumo no motor Android pendentes.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Ranged/ExampleGun.cs"
+      ],
+      "tests": [
+        "tests/shooting/Program.cs",
+        "tests/shooting/native_test.cpp"
+      ],
+      "validationScope": "host; Android pendente",
+      "androidEvidence": [],
+      "validatedFilesSha256": {
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Ranged/ExampleGun.cs": "87be9263633bbf52aff6cce73cd848e8c6d3be78eebb0ab280042ae7d9ecd75f",
+        "tests/shooting/Program.cs": "98ba8e4058727c2938d1a7d00f2a978b0a9f75766a7def9842959f9010aa284a",
+        "tests/shooting/native_test.cpp": "916418116a3ec8f2ca07746575e107d9bc9bce39bce0fb859365fd1735022a67"
+      }
+    },
+    "requirement:ExampleRocketLauncher": {
+      "status": "validado automaticamente",
+      "behavior": "Defaults e munição nativa do lançador",
+      "source": "content/Content/Items/Weapons/Ranged/ExampleRocketLauncher.js",
+      "sourceSha256": "c60f0f9ba49837c73ac427a37c233937873ec6e934b44fee02d0f7631b539859",
+      "note": "Asserções dos valores/algoritmo do exemplo real e protocolo compilado no host. Trajetória, cano e consumo no motor Android pendentes.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Ranged/ExampleRocketLauncher.cs"
+      ],
+      "tests": [
+        "tests/shooting/Program.cs",
+        "tests/shooting/native_test.cpp"
+      ],
+      "validationScope": "host; Android pendente",
+      "androidEvidence": [],
+      "validatedFilesSha256": {
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Ranged/ExampleRocketLauncher.cs": "df1a67d32f99a398b5d0e0363da62865328f9dfc7ef1c08c75fa4f76a0d0e3f2",
+        "tests/shooting/Program.cs": "98ba8e4058727c2938d1a7d00f2a978b0a9f75766a7def9842959f9010aa284a",
+        "tests/shooting/native_test.cpp": "916418116a3ec8f2ca07746575e107d9bc9bce39bce0fb859365fd1735022a67"
+      }
+    },
+    "requirement:ExampleShotgun": {
+      "status": "validado automaticamente",
+      "behavior": "Oito projéteis; dispersão, velocidade e preservação da munição selecionada",
+      "source": "content/Content/Items/Weapons/Ranged/ExampleShotgun.js",
+      "sourceSha256": "3a698ed9c3c2f9a132df049d5de27b367c7415851a5e4ac73aa05d335e26bd61",
+      "note": "Asserções dos valores/algoritmo do exemplo real e protocolo compilado no host. Trajetória, cano e consumo no motor Android pendentes.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Ranged/ExampleShotgun.cs"
+      ],
+      "tests": [
+        "tests/shooting/Program.cs",
+        "tests/shooting/native_test.cpp"
+      ],
+      "validationScope": "host; Android pendente",
+      "androidEvidence": [],
+      "validatedFilesSha256": {
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Ranged/ExampleShotgun.cs": "f2483447a74c07fe4db4c6527fd58d209739f855b4cd2c68ef6267ab82eaad34",
+        "tests/shooting/Program.cs": "98ba8e4058727c2938d1a7d00f2a978b0a9f75766a7def9842959f9010aa284a",
+        "tests/shooting/native_test.cpp": "916418116a3ec8f2ca07746575e107d9bc9bce39bce0fb859365fd1735022a67"
+      }
+    },
+    "requirement:dust-emission-binding": {
+      "status": "validado automaticamente",
+      "behavior": "Resolver e emitir Dust por contrato nativo estrito",
+      "note": "Usa Signature.cpp de produção no host; rejeita método de instância/Color incompatível, permite nomes de parâmetros Android diferentes. Dust visível em aparelho ainda pendente.",
+      "implementation": [
+        "app/src/main/cpp/experiments/csharp/NativeDustEmission.cpp"
+      ],
+      "tests": [
+        "tests/ready_prs/dust_emission_test.cpp",
+        "tests/ready_prs/run.sh"
+      ],
+      "validationScope": "host; Android pendente",
+      "androidEvidence": [],
+      "validatedFilesSha256": {
+        "app/src/main/cpp/experiments/csharp/NativeDustEmission.cpp": "9a18cdf8a73d00482a8a6686580af256f85a7e75338bdc339be43694ee285537",
+        "tests/ready_prs/dust_emission_test.cpp": "8bb145dbc67d382fd50382f8889740f18b7fbb6f6d7037dd1fdc5de6c198aa68",
+        "tests/ready_prs/run.sh": "09dd1e58ecad571303d50d130be33da171992f00450056b7d00ee0f33791d25d"
+      }
+    }
+  }
+}

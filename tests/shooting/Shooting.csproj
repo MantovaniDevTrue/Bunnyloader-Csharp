@@ -3,5 +3,7 @@
   <ItemGroup>
     <ProjectReference Include="../../experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj" />
     <Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Ranged/ExampleShotgun.cs" Link="ExampleShotgun.cs" />
+    <Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Ranged/ExampleGun.cs" Link="ExampleGun.cs" />
+    <Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Ranged/ExampleRocketLauncher.cs" Link="ExampleRocketLauncher.cs" />
   </ItemGroup>
 </Project>

@@ -1,3 +1,5 @@
+> Auditoria atual: veja SHOOTING_AIM_QA.md e docs/csharp/EXAMPLEMOD_COVERAGE.json no repositório. As tabelas históricas abaixo não comprovam validação Android deste lote. O tooltip C# ainda depende de JS.
+
 # Matriz completa ExampleModBunny → C#
 
 Referencia canonica: **206 JS**, fork: **178 JS**, referencia inicial informada: **169 JS**.
