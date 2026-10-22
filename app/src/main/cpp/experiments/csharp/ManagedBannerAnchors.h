@@ -105,13 +105,20 @@ inline bool configureNativeBannerAnchors(Il2CppClass* tileClass,
         api.runtime_invoke(top,dest,args,&exc);
         return !exc;
     };
-    if (!installAnchor(base,solidData) || !installAnchor(alternate,platformData)) {
-        *error="BannerAnchor: falha no AnchorTop";
+    if (!installAnchor(base,solidData)) {
+        *error="BannerAnchor: falha no AnchorTop solido";
+        return false;
+    }
+    void* copyArgs[1]={base};
+    Il2CppObject* exc=nullptr;
+    api.runtime_invoke(copy,alternate,copyArgs,&exc);
+    if (exc || !installAnchor(alternate,platformData)) {
+        *error="BannerAnchor: CopyFrom/AnchorTop alternativo falhou";
         return false;
     }
     int32_t offset=-10;
     void* shiftArgs[1]={&offset};
-    Il2CppObject* exc=nullptr;
+    exc=nullptr;
     api.runtime_invoke(draw,alternate,shiftArgs,&exc);
     if (exc) {
         *error="BannerAnchor: DrawYOffset alternativo divergente";
