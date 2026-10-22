@@ -67,7 +67,7 @@ jobs:
           fi
 
   publish-managed-reference:
-    name: Update public C# SDK reference only (NO APK)
+    name: Stage native-ready managed C# SDK and reference (NO APK)
     if: github.event_name == 'push' && github.ref_name == 'feat/csharp-damageclass-complete-20261022'
     needs: managed-parity
     runs-on: ubuntu-latest
@@ -88,6 +88,32 @@ jobs:
           set -euo pipefail
           dotnet run --project tools/sdk_reference/SdkReference.csproj -c Release -- --write
           dotnet run --project tools/sdk_reference/SdkReference.csproj -c Release -- --check
+          sdk=experiments/csharp/BunnySourceSdk/bin/Release/net8.0/BunnySourceSdk.dll
+          dest=app/src/main/assets/managed/BunnySourceSdk.dll
+          test -s "$sdk"
+          grep -a -q DamageClassLoader "$sdk"
+          grep -a -q DamageClassPlayer "$sdk"
+          cp "$sdk" "$dest"
+          python3 - <<'PY'
+          from pathlib import Path
+          from hashlib import sha256
+          folder = Path('app/src/main/assets/managed')
+          manifest = folder / 'framework.sha256'
+          lines = manifest.read_text(encoding='utf-8').splitlines()
+          updated = []
+          found = False
+          for line in lines:
+              if not line:
+                  continue
+              name, digest = line.split('\t', 1)
+              if name == 'BunnySourceSdk.dll':
+                  digest = sha256((folder / name).read_bytes()).hexdigest()
+                  found = True
+              updated.append(f'{name}\t{digest}')
+          if not found:
+              raise SystemExit('BunnySourceSdk.dll absent from framework manifest')
+          manifest.write_text('\n'.join(updated) + '\n', encoding='utf-8')
+          PY
           if find . -type f -name '*.apk' -print -quit | grep -q .; then
             echo "FORBIDDEN: APK generated"
             exit 1
@@ -98,9 +124,9 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/generated/sdk_public_reference.json docs/generated/sdk_public_reference.md
+          git add docs/generated/sdk_public_reference.json docs/generated/sdk_public_reference.md app/src/main/assets/managed/BunnySourceSdk.dll app/src/main/assets/managed/framework.sha256
           if ! git diff --cached --quiet; then
-            git commit -m "docs(csharp): refresh generated DamageClass SDK reference (NO APK)"
+            git commit -m "build(csharp): stage DamageClass SDK and public reference (NO APK)"
             git push origin "HEAD:feat/csharp-damageclass-complete-20261022"
           fi
           echo "CSHARP_DAMAGECLASS_PUBLIC_REFERENCE=PASS NO_APK=TRUE"
