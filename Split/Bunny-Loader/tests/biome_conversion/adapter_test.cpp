@@ -22,7 +22,7 @@ void setTile(int32_t* at,uint16_t type,const MethodInfo*){++tileWrites;lookup[*a
 void setWall(int32_t* at,uint16_t type,const MethodInfo*){++wallWrites;walls[*at]=type;}
 void frame(int32_t,int32_t,bool,const MethodInfo*){++frames;}
 MethodInfo mt{reinterpret_cast<void*>(setTile),"set_type",{&u16},false},mw{reinterpret_cast<void*>(setWall),"set_wall",{&u16},false},
- ft{reinterpret_cast<void*>(frame),"SquareTileFrame",{&i32,&i32,&boolean},true},fw{reinterpret_cast<void*>(frame),"SquareWallFrame",{&i32,&i32,&boolean},true};
+ ft{reinterpret_cast<void*>(frame),"SquareTileFrame",{&i32,&i32,&boolean},true},fw{reinterpret_cast<void*>(frame),"WallFrame",{&i32,&i32,&boolean},true};
 Il2CppClass tile{"Tile",{&mt,&mw}},world{"WorldGen",{&ft}},framing{"Framing",{&fw}},mainClass{"Main",{}};
 FieldInfo fmenu{"gameMenu",&boolean},fnet{"netMode",&i32},ftiles{"tileSolid",&array},fwalls{"wallHouse",&array};
 bl::il2cpp::Api api;
