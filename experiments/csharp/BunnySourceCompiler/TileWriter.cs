@@ -44,7 +44,7 @@ internal static class TileWriter {
             throw new InvalidOperationException("[CSharp][ERROR][TileDefaults] Class=" + type.FullName +
                 " API=BunnyTile.Flags Field=Flags Stage=Serialize Expected=Int32:KnownMask0xFFFF Actual=" +
                 flags.ToString(CultureInfo.InvariantCulture) + " Result=Rejected Reason=UnknownFlagBits");
-        if (shape < 0 || shape > 1 ||
+        if (shape < 0 || shape > 2 ||
             height < 1 || height > 32 || adjacent < -1 || adjacent >= 754 ||
             dust.Length > 72 || !Safe(dust) || map.Length > 80 || !Safe(map) ||
             (uint)r > 255 || (uint)g > 255 || (uint)b > 255 ||
@@ -54,7 +54,8 @@ internal static class TileWriter {
             animationTicks < 0 || animationTicks > 600 ||
             (animationFrames > 1 && (animationHeight == 0 || animationTicks == 0)) ||
             (animationFrames == 1 && animationTicks != 0) ||
-            (shape == 0 && height != 18) || (shape == 1 && height != 18))
+            (shape == 0 && height != 18) || (shape == 1 && height != 18) ||
+            (shape == 2 && height != 18))
             throw new InvalidOperationException(type.FullName + ": native tile defaults out of bounds");
         return string.Join("\t", "TILE", type.Name,
             flags.ToString(CultureInfo.InvariantCulture),
