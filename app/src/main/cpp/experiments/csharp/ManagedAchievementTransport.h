@@ -79,6 +79,22 @@ public:
         return true;
     }
 
+    // Called under the existing MonoVM queue mutex when a world/profile ends.
+    // Control RPCs, saves and unloads remain in their original FIFO order.
+    std::size_t discardPendingEvents() {
+        std::size_t removed = 0;
+        for (auto it = pending.begin(); it != pending.end();) {
+            if (it->operation >= 1 && it->operation <= 4) {
+                bufferedBytes -= it->payload.size();
+                it = pending.erase(it);
+                ++removed;
+            } else {
+                ++it;
+            }
+        }
+        return removed;
+    }
+
     std::size_t size() const { return pending.size(); }
     bool empty() const { return pending.empty(); }
 
