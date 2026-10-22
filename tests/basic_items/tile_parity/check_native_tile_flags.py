@@ -18,5 +18,7 @@ for key, (flag, call) in required.items():
     assert re.search(r"\b" + key + r"\s*=\s*" + str(flag) + r"\b", sdk), key
     assert call in native, call
 assert "tile.flags > 8191" in loader, "O parser nao aceita todas as flags"
+writer = (ROOT / "experiments/csharp/BunnySourceCompiler/TileWriter.cs").read_text()
+assert "(flags & ~8191) != 0" in writer, "O emissor de metadados rejeita as flags do SDK"
 assert 'if (!enabled) return true;' in native, "Mudou a politica existente de flags"
 print("EXAMPLE_TILE_NATIVE_FLAG_WIRING=PASS")
