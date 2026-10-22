@@ -2127,25 +2127,54 @@ Il2CppObject* tileStaticObject(Il2CppClass* cls, const char* name) {
 
 bool applyTileShape(int type, const ManagedTileEntry& e) {
     if (e.shape == 0) return true;
-    if (e.shape != 1) return false;
+    if (e.shape != 1 && e.shape != 2) return false;
     auto& a = il2cpp::api();
     Il2CppClass* cls = il2cpp::findClass({"Terraria.ObjectData", "TileObjectData", {}});
     Il2CppObject* tile = tileStaticObject(cls, "newTile");
-    Il2CppObject* shape = tileStaticObject(cls, "Style2x1");
+    Il2CppObject* shape = tileStaticObject(
+        cls, e.shape == 2 ? "Style1x2Top" : "Style2x1");
     if (!tile || !shape) return false;
     Il2CppClass* tileClass = a.object_get_class(tile);
     const MethodInfo* copy = a.class_get_method_from_name(tileClass, "CopyFrom", 1);
-    const MethodInfo* setHeights = a.class_get_method_from_name(tileClass, "set_CoordinateHeights", 1);
+    const MethodInfo* setHeights = a.class_get_method_from_name(
+        tileClass, "set_CoordinateHeights", 1);
     const MethodInfo* addTile = cls ? a.class_get_method_from_name(cls, "addTile", 1) : nullptr;
+    const MethodInfo* setHeight = e.shape == 2 ?
+        a.class_get_method_from_name(tileClass, "set_Height", 1) : nullptr;
+    const MethodInfo* setHorizontal = e.shape == 2 ?
+        a.class_get_method_from_name(tileClass, "set_StyleHorizontal", 1) : nullptr;
+    const MethodInfo* setDrawYOffset = e.shape == 2 ?
+        a.class_get_method_from_name(tileClass, "set_DrawYOffset", 1) : nullptr;
     Il2CppClass* intClass = il2cpp::findClass({"System", "Int32", {}});
-    if (!copy || !setHeights || !addTile || !intClass) return false;
-    Il2CppArray* heights = a.array_new(intClass, 1);
+    if (!copy || !setHeights || !addTile || !intClass ||
+        (e.shape == 2 && (!setHeight || !setHorizontal || !setDrawYOffset)))
+        return false;
+
+    Il2CppArray* heights = a.array_new(intClass, e.shape == 2 ? 3 : 1);
     if (!heights) return false;
-    *static_cast<int32_t*>(arrayData(heights)) = e.coordinateHeight;
+    auto* data = static_cast<int32_t*>(arrayData(heights));
+    if (e.shape == 2) {
+        data[0] = 16; data[1] = 16; data[2] = 16;
+    } else data[0] = e.coordinateHeight;
+
     Il2CppObject* exc = nullptr;
     void* copyArgs[1] = {shape};
     a.runtime_invoke(copy, tile, copyArgs, &exc);
     if (exc) return false;
+    if (e.shape == 2) {
+        int32_t height = 3;
+        uint8_t horizontal = 1;
+        int32_t yOffset = -2;
+        void* heightArgs[1] = {&height};
+        a.runtime_invoke(setHeight, tile, heightArgs, &exc);
+        if (exc) return false;
+        void* horizontalArgs[1] = {&horizontal};
+        a.runtime_invoke(setHorizontal, tile, horizontalArgs, &exc);
+        if (exc) return false;
+        void* drawArgs[1] = {&yOffset};
+        a.runtime_invoke(setDrawYOffset, tile, drawArgs, &exc);
+        if (exc) return false;
+    }
     void* heightArgs[1] = {heights};
     a.runtime_invoke(setHeights, tile, heightArgs, &exc);
     if (exc) return false;
