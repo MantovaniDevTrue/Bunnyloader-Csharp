@@ -52,3 +52,29 @@ banners.TryBind("examplemodcsharp", "ExampleSlimeNPC",
 ```
 
 Os IDs no exemplo representam os IDs **reais** que o loader deve obter do registro de conteudo, nunca constantes do mod. Para uma variante de NPC, registre outro `NpcClass` com o mesmo `BannerNpcClass`. A classe `ExampleSlimeBanner` devera existir como item/tile C# real antes de ativar a ponte de jogo.
+
+## Lote 2: Roslyn -> registro C++ nativo, sem APK
+
+O `BunnyNPC` ganhou `Banner` e `BannerItem` como **nomes de classes locais**, pois o `int Type` do Terraria Android so existe depois do registro. Isso preserva o proposito de `Banner = Type` e `BannerItem = ModContent.ItemType<T>()` no tModLoader, sem inventar IDs estaveis.
+
+A execucao verdadeira de `SetDefaults()` pelo compilador emite `NPC_BANNER\tNpcClass\tRepresentativeNpcClass\tBannerItemClass`. O `SourceLoader.cpp` resolve os tres nomes por tipo e dono nativos ja registrados, confere que o item e `BunnyItem` e faz preflight em `ManagedBannerRegistry.h`. Representantes precisam declarar a si mesmos; variantes compartilham o item e o contador. O snapshot C++ troca mapas completos sem locks nas consultas e descarta o mapeamento ao descarregar o mod.
+
+A API **ainda nao ativa o BannerSystem do jogo**. Os mapas existem, mas nao interceptam NPCtoBanner, BannerToItem, BannerToNPC, SceneMetrics, morte de NPC, save ou multiplayer. Nenhum contador de kills e incrementado por esta etapa. Nao declarar bandeira funcional/colocavel no Android ate concluir os hooks.
+
+O `ExampleSlimeNPC` e `ExampleInvasionEliteSlimeNPC` foram configurados no ExampleMod C# para compartilhar a bandeira. `ExampleSlimeBanner.cs` usa o PNG binario original do ExampleMod Bunny. O item existe como fonte editavel e e registrado, mas **nao pode ser colocado ainda**: o `BunnyTileShape` nativo atual suporta apenas `Single` e `Style2x1`, nao o banner pendurado `1x3` com ancoragem, sprites/estilos e `NearbyEffects` originais. Essa dependencia bloqueia o item jogavel.
+
+### Evidencias de fonte
+
+`tests/banners/native_registry.cpp` valida propriedade de mod, representante, colisao, rollback, unload e leitura durante troca de snapshots. `tests/banners/native_parser.cpp` executa o SourceParser original com as propriedades C# e recusa expressao dinamica insegura. `tests/banners/Program.cs` testa a API gerenciada, progresso por UID, migracao de tipo, normalizacao e transacoes.
+
+O workflow `check-csharp-bannerloader-source-only.yml` compila o SDK, Roslyn, o ExampleMod C# completo, roda os testes gerenciados/C++ e verifica **a sintaxe do proprio SourceLoader.cpp**. Executa sem Gradle, sem Android e sem artefatos APK.
+
+**CI de lote 2:** [39790448717](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39790448717), sucesso. **QA Android: nao executado; APK: 0**.
+
+### Proximos gates tecnicos obrigatorios
+
+1. Hooks reais do BannerSystem IL2CPP no ARM64, com original encadeado, preflight dos metodos e rollback seguro em caso de falha.
+2. Redimensionamento transacional de `killCount`, `claimableBanners`, `newBanner`, `SceneMetrics.NPCBannerBuff` e `PlayerSceneMetrics.NPCBannerBuff` no mundo correto.
+3. Contagem de kills, entregas a cada limite vanilla, refresh e efeitos de banners proximos; tile pendurado 1x3 com suas texturas, estilos, drops e ancoras.
+4. Persistencia real no sidecar do mundo, isolamento multi-mod, envio de rede por UID, autoridade servidor e recuperacao de mods ausentes.
+5. Testes automatizados de todos os pontos acima, verificacao de link nativo ARM64, Android QA separado e performance. **Apenas depois do codigo integral e verificacoes exigidas** considerar gerar um APK.
