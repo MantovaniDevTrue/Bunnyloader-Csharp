@@ -57,6 +57,8 @@ bool saveBannerWorldCountersOnGameThread(uint64_t worldEpoch,
                                          bool authoritative,
                                          std::string* error);
 bool sourceHasBannerMappings();
+// So chamar depois da validacao de TODOS os hooks, world/net/tile.
+bool prepareBannerStrengthOnGameThread(std::string* error);
 
 }
 
