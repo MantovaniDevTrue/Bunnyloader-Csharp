@@ -273,9 +273,9 @@ bool installNativeCloudAssets(NativeCloudRegistry* registry,
         stage->loadedAssets.push_back(texturePin);
 
         Il2CppObject* mask = a.object_new(maskClass);
-        if (!mask || !invoke(maskCtor, mask, nullptr)) {
+        if (!mask) {
             stage->cleanup();
-            return fail(error, "Stage=Prepare Reason=CannotConstructTextureMask");
+            return fail(error, "Stage=Prepare Reason=CannotAllocateTextureMask");
         }
         uint32_t maskPin = stage->pin(mask);
         if (!maskPin) {
@@ -283,6 +283,10 @@ bool installNativeCloudAssets(NativeCloudRegistry* registry,
             return fail(error, "Stage=Prepare Reason=CannotPinCloudMask");
         }
         stage->loadedMasks.push_back(maskPin);
+        if (!invoke(maskCtor, mask, nullptr)) {
+            stage->cleanup();
+            return fail(error, "Stage=Prepare Reason=CannotConstructTextureMask");
+        }
         *reinterpret_cast<int32_t*>(reinterpret_cast<char*>(mask) + srcWidth) = width;
         *reinterpret_cast<int32_t*>(reinterpret_cast<char*>(mask) + srcHeight) = height;
         if (outputWidth >= 0 &&
