@@ -1,0 +1,118 @@
+name: ExampleMod CSharp SoundLoader source-only (NO APK)
+
+on:
+  push:
+    branches:
+      - feature/examplemod-csharp-parity-gate-20261022
+    paths:
+      - "app/src/main/cpp/content/sounds/NativeSoundRouter.*"
+      - "app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp"
+      - "app/src/main/cpp/experiments/csharp/ManagedSoundLoader.*"
+      - "experiments/csharp/BunnyCsSdk/BunnySounds.cs"
+      - "experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj"
+      - "samples/ExampleModCSharp/Playable/content/Common/Audio/**"
+      - "tests/summon_lifecycle/managed_sound_*"
+      - "tests/summon_lifecycle/ManagedSoundPInvokeTest.cs"
+      - "tests/summon_lifecycle/sound_router_test.cpp"
+      - ".github/workflows/check-examplemod-csharp-sound-source-only.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  native-host:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Confirm genuine native SoundLoader lifecycle
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'managedSound::pump()' app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp
+          test "$(grep -c 'managedSound::worldExit()' app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp)" -ge 2
+          grep -q 'bunny_csharp_sound_register' app/src/main/cpp/experiments/csharp/ManagedSoundLoader.cpp
+          test -s samples/ExampleModCSharp/Playable/content/Assets/Sounds/Items/Guns/ExampleGun.ogg
+      - name: Native queue, ownership, decode and lifecycle regression
+        run: |
+          set -euo pipefail
+          g++ -std=c++20 -O1 -Wall -Wextra -pthread \
+            -Iapp/src/main/cpp -Itests/basic_items/include \
+            tests/summon_lifecycle/managed_sound_loader_test.cpp -o /tmp/bunny-sound-host
+          /tmp/bunny-sound-host
+      - name: Native sound router existing regressions
+        run: |
+          set -euo pipefail
+          g++ -std=c++20 -O1 -Wall -Wextra -pthread \
+            -Iapp/src/main/cpp -Itests/basic_items/include \
+            tests/summon_lifecycle/sound_router_test.cpp -o /tmp/bunny-sound-router
+          /tmp/bunny-sound-router
+      - name: Verify eight managed PInvoke exports
+        run: |
+          set -euo pipefail
+          g++ -std=c++20 -fPIC -shared -fvisibility=hidden \
+            -Iapp/src/main/cpp -Itests/basic_items/include \
+            app/src/main/cpp/experiments/csharp/ManagedSoundLoader.cpp -o /tmp/libbunny-sound-symbols.so
+          for api in register state play playback find_active stop duration unload; do
+            nm -D --defined-only /tmp/libbunny-sound-symbols.so | grep -q "bunny_csharp_sound_${api}$"
+          done
+      - name: No Android binary or APK may be produced
+        run: |
+          if find . -type f \( -name '*.apk' -o -name '*.aab' \) | grep -q .; then
+            echo "BLOQUEADO: artefato Android criado" >&2
+            exit 1
+          fi
+
+  managed-sdk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - name: Compile native CSharp API and source example
+        run: |
+          set -euo pipefail
+          dotnet build experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj -c Release -o /tmp/bunny-sound-sdk
+          mkdir -p /tmp/bunny-sound-example
+          cat > /tmp/bunny-sound-example/Example.csproj <<EOF
+          <Project Sdk="Microsoft.NET.Sdk">
+            <PropertyGroup>
+              <TargetFramework>net8.0</TargetFramework>
+              <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+              <Nullable>enable</Nullable>
+            </PropertyGroup>
+            <ItemGroup>
+              <Reference Include="BunnySourceSdk">
+                <HintPath>/tmp/bunny-sound-sdk/BunnySourceSdk.dll</HintPath>
+              </Reference>
+              <Compile Include="$GITHUB_WORKSPACE/samples/ExampleModCSharp/Playable/content/Common/Audio/ExampleSoundEffects.cs" />
+            </ItemGroup>
+          </Project>
+          EOF
+          dotnet build /tmp/bunny-sound-example/Example.csproj -c Release
+      - name: Exercise PInvoke against bounded native queue mock
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/bunny-sound-pinvoke
+          g++ -std=c++20 -O1 -fPIC -shared -fvisibility=hidden -pthread \
+            -Iapp/src/main/cpp -Itests/basic_items/include \
+            tests/summon_lifecycle/managed_sound_pinvoke_mock.cpp -o /tmp/bunny-sound-pinvoke/libbunny.so
+          cat > /tmp/bunny-sound-pinvoke/Test.csproj <<EOF
+          <Project Sdk="Microsoft.NET.Sdk">
+            <PropertyGroup>
+              <OutputType>Exe</OutputType>
+              <TargetFramework>net8.0</TargetFramework>
+              <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+              <Nullable>enable</Nullable>
+            </PropertyGroup>
+            <ItemGroup>
+              <Reference Include="BunnySourceSdk">
+                <HintPath>/tmp/bunny-sound-sdk/BunnySourceSdk.dll</HintPath>
+              </Reference>
+              <Compile Include="$GITHUB_WORKSPACE/tests/summon_lifecycle/ManagedSoundPInvokeTest.cs" />
+            </ItemGroup>
+          </Project>
+          EOF
+          dotnet build /tmp/bunny-sound-pinvoke/Test.csproj -c Release
+          LD_LIBRARY_PATH=/tmp/bunny-sound-pinvoke dotnet /tmp/bunny-sound-pinvoke/bin/Release/net8.0/Test.dll
