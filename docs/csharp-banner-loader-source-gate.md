@@ -151,3 +151,9 @@ O `ModBannerTile.js` original declara duas âncoras nativas: `SolidTile | SolidS
 A API `BunnyBannerTile : BunnyTile` foi incluída no `BunnySourceSdk.csproj`. `ExampleEnemyBannerTile` usa herança da classe-base e preserva o sprite do ExampleModBunny. `SourceParser.cpp` normaliza `BunnyBannerTile` para o tipo de registro `BunnyTile`; `CompiledAssemblyProbe` permite esse tipo de herança interna, e `native_parser.cpp` cobre o caso. Essa é uma exceção controlada para uma classe do próprio SDK; a exigência de declaração explícita para outras heranças de conteúdo permanece.
 
 **Continua faltando:** renderização `TileDrawLoader.AddSpecialPoint(...,5)` / `DrawMultiTileVinesInWind` no passo nativo correto de desenho, verificação do ciclo de entrega por mortes, protocolo multiplayer por UID, testes de stress/concorrência reais e QA arm64. O gate `lookupsActive` permanece fechado e o workflow não chama Gradle ou gera APK.
+
+### Complemento do lote 7 — constantes reais do IL2CPP
+
+A revisão do contrato mostrou que `AnchorType` e `BannerSystem.MaxBannerTypes` podem ser metadados `literal` (atributo `0x40`), e não campos estáticos com armazenamento. `il2cpp/Api.h` e `Api.cpp` passam a expor opcionalmente `il2cpp_field_get_value_object`. O novo `il2cpp/ConstantField.h` lê valores boxed de campos literais com confirmação de tipo, ou campos estáticos convencionais com `field_static_get_value`. `ManagedBannerAnchors.h` e `ManagedBannerSaveSlice.h` usam esse contrato: sem números inventados e sem pressupor que constantes literais possam ser lidas como uma variável estática.
+
+Os testes de CI deste incremento incluem verificação sintática de `il2cpp/Api.cpp` e dos consumidores nativos. A ABI/export da libil2cpp.so real ainda depende de teste Android. O símbolo opcional não bloqueia a inicialização de outros loaders; se estiver indisponível, o BannerLoader falha no preflight da funcionalidade que precisa dele. Nenhum APK.
