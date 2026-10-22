@@ -17,6 +17,7 @@ namespace {
 
 std::atomic<ContentReadyHook> g_hook{nullptr};
 bool g_done = false;
+std::atomic<bool> g_callbacksCompleted{false};
 
 struct Refs {
     FieldInfo *itemDrops = nullptr, *bestiary = nullptr, *numRecipes = nullptr;
@@ -62,16 +63,21 @@ bool contentSettled() {
     return readStatic<int32_t>(r.numRecipes) > 0;
 }
 
+bool contentReadyCallbacksCompleted() {
+    return g_callbacksCompleted.load(std::memory_order_acquire);
+}
+
 void tickContentReady() {
-    if (g_done) return;
+    if (g_done || !contentSettled()) return;
     ContentReadyHook hook = g_hook.load(std::memory_order_acquire);
-    if (!hook) return;
-    if (!contentSettled()) return;
     g_done = true;
     const Refs& r = refs();
     if (!r.ok) return;
     BL_INFO("conteudo de mod: pronto (receitas do jogo: %d)", readStatic<int32_t>(r.numRecipes));
-    hook();
+    if (hook) hook();
+    // JS Ready.Add runs all setup callbacks, including CloudLoader.#Install,
+    // before this becomes visible to CSharp's native planner.
+    g_callbacksCompleted.store(true, std::memory_order_release);
 }
 
 } // namespace bl::runtime
