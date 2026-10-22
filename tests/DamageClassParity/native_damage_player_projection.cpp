@@ -69,4 +69,20 @@ int main() {
     assert(!projectNativeClassMeleeSpeedDelta(custom, -1.f, &speedDelta));
     assert(!projectNativeClassMeleeSpeedDelta(custom, 1.f, nullptr));
     assert(std::abs(speedDelta + .5f) < .0001f);
+
+    float projectedPen = -100.f;
+    custom.armorPenetration = 10.f;
+    custom.inheritance[0].armorPenetration = 1.f;
+    assert(projectNativeArmorPenetration(custom, 5, 3, &projectedPen));
+    assert(projectedPen == 18.f);
+    custom.inheritance[0].armorPenetration = 0.f;
+    assert(projectNativeArmorPenetration(custom, 5, 3, &projectedPen));
+    assert(projectedPen == 13.f);
+    custom.inheritance[0].armorPenetration = -.5f;
+    assert(projectNativeArmorPenetration(custom, 6, 3, &projectedPen));
+    assert(projectedPen == 10.f);
+    assert(!projectNativeArmorPenetration(custom, 100001, 1, &projectedPen));
+    assert(!projectNativeArmorPenetration(custom, 0, -100001, &projectedPen));
+    assert(!projectNativeArmorPenetration(custom, 1, 2, nullptr));
+    assert(projectedPen == 10.f);
 }
