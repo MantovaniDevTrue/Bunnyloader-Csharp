@@ -1,0 +1,480 @@
+{
+  "ItemName": {
+    "ExampleSlimeBanner": "Example Slime Banner",
+    "ExampleItem": "Example Item",
+    "ExampleMeleeWeapon": "Sword",
+    "ExampleGun": "Example Gun",
+    "ExampleBullet": "Example Bullet",
+    "ExampleSoul": "Example Soul",
+    "ExamplePickaxe": "Example Pickaxe",
+    "ExampleHamaxe": "Example Hamaxe",
+    "ExampleGolfBall": "Example Golf Ball",
+    "ExampleShotgun": "Example Shotgun",
+    "ExampleRocketLauncher": "Example Rocket Launcher",
+    "ExampleSpear": "Example Spear",
+    "ExampleFlail": "Example Flail",
+    "ExampleYoyo": "Example Yoyo",
+    "ExampleWhip": "Example Whip",
+    "ExampleSwingingEnergySword": "Example Energy Sword",
+    "ExampleDrill": "Example Drill",
+    "ExampleMagicWeapon": "Example Magic Staff",
+    "ExampleLaserWeapon": "Example Prism",
+    "ExampleHookItem": "Example Hook",
+    "ExampleFishingRod": "Example Fishing Rod",
+    "ExampleBuffPotion": "Buff Potion",
+    "ExampleShield": "Example Shield",
+    "ExampleStatAccessory": "Stat Accessory",
+    "ExampleCustomDamageWeapon": "Example Custom Damage Weapon",
+    "ExampleStatBonusAccessory": "Example Stat Bonus Accessory",
+    "ExampleBoots": "Example Boots",
+    "WaspNest": "Wasp Nest",
+    "ExampleTooltipItem": "Example Tooltip",
+    "ExampleTileItem": "Example Block",
+    "ExampleOreItem": "Example Ore",
+    "ExampleSinkItem": "Example Sink",
+    "ExamplePetItem": "Paper Airplane",
+    "ExampleLightPetItem": "Annoying Light",
+    "ExampleMinionItem": "Example Minion Item",
+    "ExampleSentryItem": "Example Sentry Item",
+    "ExampleBossSummonItem": "Eye of ???",
+    "ExampleWorkbench": "Example Work Bench",
+    "ExampleTable": "Example Table",
+    "ExampleChair": "Example Chair",
+    "ExampleToilet": "Example Toilet",
+    "ExampleBed": "Example Bed",
+    "ExampleDoor": "Example Door",
+    "ExampleChest": "Example Chest",
+    "ExampleChestKey": "Example Chest Key",
+    "ExampleDresser": "Example Dresser",
+    "ExampleClock": "Example Clock",
+    "ExamplePlatform": "Example Platform",
+    "ExampleChandelier": "Example Chandelier",
+    "ExampleWideBanner": "Example Wide Banner",
+    "MinionBossTrophy": "Eye of ??? Trophy",
+    "MinionBossRelic": "Eye of ??? Relic",
+    "ExampleTorch": "Example Torch",
+    "ExampleLamp": "Example Lamp",
+    "ExampleCampfire": "Example Campfire",
+    "ExampleLivingFire": "Example Living Fire Block",
+    "ExampleStatue": "Example Statue",
+    "ExampleTrapIchorBullet": "Example Ichor Trap",
+    "ExampleTrapChlorophyteBullet": "Example Chlorophyte Trap",
+    "ExampleMusicBox": "Music Box (Eye of ???)",
+    "ExampleBar": "Example Bar",
+    "ExampleCutTile": "Example Hanging Rock",
+    "ExampleGemsparkBlock": "Example Gemspark Block",
+    "ExampleHerbSeeds": "Example Herb Seeds",
+    "ExampleSignItem": "Example Sign",
+    "ExampleAnimatedTileItem": "Example Firefly Jar",
+    "ExampleAnimatedGlowmaskTileItem": "Example Monolith",
+    "ExampleTransparentShapedTileItem": "Example Molten Glass",
+    "ExampleHelmet": "Example Helmet",
+    "ExampleBreastplate": "Example Breastplate",
+    "ExampleLeggings": "Example Leggings",
+    "ExampleBossMask": "Example Boss Mask",
+    "ExampleBossBag": "Treasure Bag (Example Boss)",
+    "ExampleWings": "Example Wings",
+    "ExampleBeard": "Example Beard",
+    "ExampleCostume": "Example Costume",
+    "ExampleRobe": "Example Robe",
+    "ExampleMultiplePrefixCategoryWeapon": "Example Multiple Prefix Category Weapon",
+    "ExampleMountItem": "ExampleMount Car Key",
+    "ExampleMinecart": "Example Minecart",
+    "ExampleQuestFish": "Upside-down Fish",
+    "ExampleWall": "Example Wall",
+    "ExampleWallAdvanced": "Advanced Example Wall",
+    "ExamplePylonItem": "Example Pylon",
+    "BasicTileEntityItem": "Basic Tile Entity",
+    "ExamplePickup": "Example Pickup",
+    "ExampleShortsword": "Example Shortsword",
+    "ExampleLastPrism": "Example Last Prism",
+    "ExampleRiftStaff": "Example Rift Staff",
+    "ExampleCustomResourceWeapon": "Example Custom Resource Weapon",
+    "ExampleResourceAccessory": "Example Resource Accessory",
+    "ExampleLifeFruit": "Example Life Fruit",
+    "ExampleManaCrystal": "Example Mana Crystal"
+  },
+  "MapObject": {
+    "ExampleTile": "Example Block",
+    "ExampleOre": "Example Ore",
+    "ExampleSink": "Example Sink",
+    "ExampleAnimatedTile": "Example Firefly Jar",
+    "ExampleHerb": "Example Herb",
+    "ExampleSign": "Example Sign",
+    "ExampleWorkbench": "Example Workbench",
+    "ExampleDresser": "Example Dresser",
+    "ExampleChest": "Example Chest",
+    "ExampleChestLocked": "Locked Example Chest",
+    "ExampleWall": "Example Wall",
+    "ExampleWallAdvanced": "Advanced Example Wall",
+    "ExamplePylonTile": "Example Pylon",
+    "BasicTileEntityTile": "Basic Tile Entity"
+  },
+  "ProjectileName": {
+    "ExampleBulletProjectile": "Example Bullet",
+    "ExampleGolfBallProjectile": "Example Golf Ball",
+    "ExampleSpearProjectile": "Example Spear",
+    "ExampleFlailProjectile": "Example Flail",
+    "ExampleYoyoProjectile": "Example Yoyo",
+    "ExampleWhipProjectile": "Example Whip",
+    "ExampleSwingingEnergySwordProjectile": "Example Energy Sword",
+    "ExampleDrillProjectile": "Example Drill",
+    "ExampleAdvancedAnimatedProjectile": "Example Magic Wave",
+    "ExampleLaserHoldout": "Example Prism",
+    "ExampleLaserBeam": "Example Laser",
+    "ExampleHookProjectile": "Example Hook",
+    "ExampleBobber": "Example Bobber",
+    "ExamplePetProjectile": "Paper Airplane",
+    "ExampleLightPetProjectile": "Annoying Light",
+    "ExampleMinion": "Example Minion",
+    "ExampleSentry": "Example Sentry",
+    "ExampleSentryShot": "Example Sentry Shot",
+    "ExampleShortswordProjectile": "Example Shortsword",
+    "ExampleLastPrismHoldout": "Example Last Prism",
+    "ExampleLastPrismBeam": "Example Last Prism Beam",
+    "ExampleRiftProjectile": "Rift"
+  },
+  "NPCName": {
+    "ExampleSlimeNPC": "Example Slime",
+    "ExamplePerson": "Person",
+    "ExampleBoss": "Eye of ???"
+  },
+  "ItemTooltip": {
+    "ExampleBossBag": "{$CommonItemTooltip.RightClickToOpen}",
+    "ExampleItem": "Item description",
+    "ExampleShotgun": "Fires eight bullets at once",
+    "ExampleWhip": "Your summons will focus struck enemies\n5 summon tag damage",
+    "ExampleHookItem": "Also latches onto tree trunks",
+    "ExampleFishingRod": "Can fish in lava",
+    "ExampleShield": "Double tap in any direction to dash",
+    "ExampleStatAccessory": "{0}% increased damage",
+    "ExampleStatBonusAccessory": "25% increased damage, this is an additive multiplier with other damage bonuses\n12% increased multiplicative damage multiplier; this is multiplicative with other damage bonuses\nIncreases base damage for all weapons by 4\nIncreases total damage for all weapons by 5\n10% increased melee critical strike chance\nIncreases ranged firing speed by 15%\n5 magic armor penetration\n100% increased example knockback",
+    "ExampleBoots": "Allows flight, super fast running, even faster running on sand, and extra mobility on ice\nProvides the ability to walk on water, honey, lava, and shimmer\nGrants immunity to fire blocks and {0} seconds of immunity to lava\nReduces damage from touching lava\nPrevents fall damage\nLeaves a trail of flames in your wake",
+    "WaspNest": "Bees become stronger",
+    "ExampleTooltipItem": "Above, one color per letter. This line, in gold",
+    "ExamplePetItem": "Summons a Paper Airplane to follow aimlessly behind you",
+    "ExampleLightPetItem": "Summons an annoying light",
+    "ExampleMinionItem": "Summons an example minion to fight for you",
+    "ExampleSentryItem": "Summons an example sentry to fight for you",
+    "ExampleBossSummonItem": "???",
+    "ExampleWorkbench": "Counts as a Work Bench",
+    "ExampleChestKey": "Opens a locked Example Chest, at night",
+    "ExampleClock": "Tap it to see the time",
+    "ExampleChandelier": "Wire it to turn it on and off",
+    "ExampleLamp": "Wire it to turn it on and off",
+    "ExampleCampfire": "Tap it to light it; lit, it grants Cozy Fire",
+    "ExampleStatue": "Wired, it drops coins (and sometimes a goldfish)",
+    "ExampleTrapIchorBullet": "Shoots ichor bullets when wired\nHammer it to turn it",
+    "ExampleTrapChlorophyteBullet": "Shoots chlorophyte bullets when wired\nHammer it to turn it",
+    "ExampleMusicBox": "Tap it to play the Eye of ??? music",
+    "ExampleGemsparkBlock": "Wire it to turn it on and off",
+    "ExampleHerbSeeds": "Grows on grass and on the Example Block",
+    "ExampleHelmet": "This is a modded helmet.",
+    "ExampleBreastplate": "This is a modded body armor.\nImmunity to 'On Fire!'\n+{0} max mana and +{1} max minions",
+    "ExampleLeggings": "This is a modded leg armor.\n{0}% increased movement speed",
+    "ExampleWings": "This is a modded wing.",
+    "ExampleBeard": "This is a modded beard which matches your hair color.",
+    "ExampleCostume": "Turns the holder into a blocky figure near town NPCs",
+    "ExampleMultiplePrefixCategoryWeapon": "This can receive and keep both melee and magic prefixes",
+    "ExampleMountItem": "This summons a modded mount.",
+    "ExamplePylonItem": "Must be within the Example Surface or Underground Biome in order to function\nHas no NPC requirements!",
+    "BasicTileEntityItem": "Collects rain water\nInteract with it when full to claim a water bucket",
+    "ExampleLastPrism": "Ten beams that focus into one\nWhere they hit, the screen ripples",
+    "ExampleRiftStaff": "Opens a rift that twists the world around it\nScreen effect example: its own .frag shader",
+    "ExampleCustomResourceWeapon": "Uses the example resource instead of mana",
+    "ExampleResourceAccessory": "Increases maximum example resource by {0}\nThe example resource regenerates faster",
+    "ExampleLifeFruit": "Permanently increases maximum life by {0}\nUp to {1} can be used",
+    "ExampleManaCrystal": "Permanently increases maximum mana by {0}\nUp to {1} can be used"
+  },
+  "Bestiary": {
+    "ExampleSlimeNPC": "A light blue slime that only shows up in the daytime, on the surface.",
+    "ExamplePerson": "ExamplePerson Bestiary Text",
+    "ExampleBoss": "Eye of something"
+  },
+  "RecipeGroups": {
+    "ExampleItem": "Example Item"
+  },
+  "BuffName": {
+    "ExampleDefenseBuff": "Defense",
+    "ExampleDefenseDebuff": "Reduced Defense",
+    "ExamplePetBuff": "Paper Airplane",
+    "ExampleLightPetBuff": "Annoying Light",
+    "ExampleMinionBuff": "Example Minion",
+    "Blocky": "Blocky",
+    "ExampleMountBuff": "ExampleMount",
+    "ExampleMinecartBuff": "Example Minecart"
+  },
+  "BuffDescription": {
+    "ExampleDefenseBuff": "Increases the player's defense by {0}",
+    "ExampleDefenseDebuff": "Reduces the player's defense by {0}%",
+    "ExamplePetBuff": "\"Let this pet be an example to you!\"",
+    "ExampleLightPetBuff": "Ugh, soooo annoying",
+    "ExampleMinionBuff": "The example minion will fight for you",
+    "Blocky": "Jumping power is increased",
+    "ExampleMountBuff": "Leather seats, 4 cup holders",
+    "ExampleMinecartBuff": "{$BuffDescription.MinecartLeft}"
+  },
+  "CustomText": {
+    "WelcomeMessage": "Welcome to {WorldName}!",
+    "BasicTileEntityStatus": "Filled: {0}%",
+    "RemainingTime": "Remaining time: {0}",
+    "RandomBuff": "ExampleMod's touch button was just pressed. The {0} buff was given to the player.",
+    "LearningExampleHeld": "LearningExample held for half a second",
+    "LearningExampleDoubleTap": "LearningExample double tapped within a quarter of a second",
+    "CannotCancel": "You must be moving to cancel this buff!"
+  },
+  "NPCChat": {
+    "ExamplePerson_1": "Hello, how are you?",
+    "ExamplePerson_2": "Hello!"
+  },
+  "TownNPCMood": {
+    "ExamplePerson": {
+      "Content": "I am well thanks.",
+      "DislikeBiome": "I don't like {0}.",
+      "DislikeCrowded": "It's getting very crowded in here.",
+      "DislikeNPC": "I don't like {0}.",
+      "HateBiome": "I hate {0}.",
+      "HateCrowded": "There are a lot of people here.",
+      "HateNPC": "I hate {0}.",
+      "LikeBiome": "I like {0}.",
+      "LikeNPC": "I like {0}.",
+      "LoveBiome": "I really like {0}.",
+      "LoveNPC": "I really like {0}.",
+      "LoveSpace": "I like it here.",
+      "NoHome": "I need a house.",
+      "FarFromHome": "I'm a long way from home.",
+      "ExampleSpecialMoodText": "I don't like selling products overnight."
+    }
+  },
+  "CustomCurrency": {
+    "ExampleItemCurrency": "credits"
+  },
+  "ArmorSetBonus": {
+    "ExampleArmor": "Increases dealt damage by {0}%"
+  },
+  "PrefixName": {
+    "ExamplePrefix": "Example Prefix",
+    "ExampleDerivedPrefix": "Example Derived Prefix",
+    "ExampleAccessoryPrefix": "Sturdy Example"
+  },
+  "Prefixes": {
+    "PowerTooltip": "{0} Power",
+    "ExamplePrefix": {
+      "AdditionalTooltip": "More Power"
+    },
+    "ExampleDerivedPrefix": {
+      "AdditionalTooltip": "Even More Power"
+    }
+  },
+  "DamageClasses": {
+    "ExampleDamageClass": {
+      "DisplayName": "example damage"
+    }
+  },
+  "Biomes": {
+    "ExampleSurfaceBiome": {
+      "DisplayName": "Example Surface",
+      "TownNPCDialogueName": "the Example Surface Biome"
+    },
+    "ExampleUndergroundBiome": {
+      "DisplayName": "Example Underground",
+      "TownNPCDialogueName": "the Example Underground Biome"
+    }
+  },
+  "Commands": {
+    "Common": {
+      "NoParameters": "At least one argument was expected.",
+      "NotInteger": "{0} is not a correct integer value."
+    },
+    "HealCommand": {
+      "Usage": "/heal amount",
+      "Description": "Heals you by the amount",
+      "Error": "Use /heal and a positive amount",
+      "Full": "Your life is already full",
+      "Healed": "You recovered {0} health"
+    },
+    "ExampleTimeCommand": {
+      "Usage": "/addTime numTicks\nnumTicks: positive or negative number in ticks (1 second = 60 ticks).",
+      "Description": "Adds numTicks to fast forward or rewind world time"
+    },
+    "ExampleCoinsCommand": {
+      "Description": "Show the coin rate UI"
+    },
+    "ExampleStructureCommand": {
+      "Description": "Builds the example castle on the ground below you",
+      "NoGround": "There is no ground below you",
+      "Built": "Example castle built"
+    }
+  },
+  "Achievements": {
+    "ExampleBossKilled": {
+      "FriendlyName": "Example Boss Killed",
+      "Description": "Defeat the Example Boss"
+    },
+    "ManyWormsKilled": {
+      "FriendlyName": "Many Worms Killed",
+      "Description": "Okay... we get it, now please stop murdering these poor worms."
+    }
+  },
+  "AnglerQuest": {
+    "ExampleQuestFish": {
+      "Description": "I've heard stories of a fish that swims upside-down. Supposedly you have to stand upside-down yourself to even find one. One of those would go great on my ceiling. Go fetch!",
+      "CatchLocation": "Caught anywhere while standing upside-down."
+    }
+  },
+  "Configs": {
+    "ExampleConfig": {
+      "ToggleHeader": {
+        "Label": "Toggle Example"
+      },
+      "ShowFlavorText": {
+        "Label": "Extra item text"
+      },
+      "BossMusic": {
+        "Label": "Boss music"
+      },
+      "ShowBossBar": {
+        "Label": "Boss health bar"
+      },
+      "ExtraLoot": {
+        "Label": "Extra loot"
+      },
+      "RangeHeader": {
+        "Label": "Slider Example"
+      },
+      "BossHealth": {
+        "Label": "Boss health"
+      },
+      "BossDamage": {
+        "Label": "Boss damage"
+      },
+      "TorchLight": {
+        "Label": "Torch light"
+      },
+      "RadioHeader": {
+        "Label": "Choice Example"
+      },
+      "Particles": {
+        "Label": "Particles",
+        "low": "Few",
+        "normal": "Normal",
+        "high": "Many"
+      },
+      "BossSpeed": {
+        "Label": "Boss speed",
+        "slow": "Slow",
+        "normal": "Normal",
+        "fast": "Fast"
+      },
+      "DropdownHeader": {
+        "Label": "Dropdown Example"
+      },
+      "FavoriteBiome": {
+        "Label": "Favorite biome",
+        "forest": "Forest",
+        "desert": "Desert",
+        "snow": "Snow",
+        "jungle": "Jungle",
+        "corruption": "Corruption",
+        "crimson": "Crimson",
+        "hallow": "Hallow",
+        "ocean": "Ocean",
+        "mushroom": "Mushroom"
+      },
+      "ShopPrices": {
+        "Label": "Shop prices",
+        "cheap": "Cheap",
+        "normal": "Normal",
+        "expensive": "Expensive"
+      },
+      "CycleHeader": {
+        "Label": "Cycle Example"
+      },
+      "Weather": {
+        "Label": "Weather",
+        "clear": "Clear",
+        "rain": "Rain",
+        "snow": "Snow",
+        "storm": "Storm"
+      },
+      "TimeOfDay": {
+        "Label": "Time of day",
+        "dawn": "Dawn",
+        "day": "Day",
+        "dusk": "Dusk",
+        "night": "Night"
+      },
+      "ColorHeader": {
+        "Label": "Color Example"
+      },
+      "GlowColor": {
+        "Label": "Glow color"
+      },
+      "ButtonHeader": {
+        "Label": "Button Example"
+      },
+      "RandomGlow": {
+        "Label": "Glow color",
+        "Text": "Randomize"
+      },
+      "ResetAll": {
+        "Label": "All options",
+        "Text": "Default"
+      },
+      "LinkHeader": {
+        "Label": "Link Example"
+      },
+      "Repository": {
+        "Label": "Bunny Loader source",
+        "Text": "GitHub"
+      },
+      "Wiki": {
+        "Label": "Documentation",
+        "Text": "Wiki"
+      },
+      "DisabledHeader": {
+        "Label": "Disabled Option Example"
+      },
+      "EnablePets": {
+        "Label": "Enable pets"
+      },
+      "PetGlow": {
+        "Label": "Pet glow"
+      },
+      "PetSize": {
+        "Label": "Pet size",
+        "small": "Small",
+        "medium": "Medium",
+        "large": "Large"
+      },
+      "PetDistance": {
+        "Label": "Pet distance"
+      }
+    }
+  },
+  "TouchButtons": {
+    "RandomBuff": {
+      "DisplayName": "Random Buff"
+    },
+    "LearningExample": {
+      "DisplayName": "Learning Example"
+    }
+  },
+  "Conditions": {
+    "LowHealth": "Below half health"
+  },
+  "WorldGen": {
+    "ExampleStructure": "Building the example castle"
+  },
+  "UI": {
+    "ExampleCoinsUIState": {
+      "Reset": "Reset Coins Per Minute Counter"
+    },
+    "ExampleResource": "Example Resource: {0} / {1}"
+  },
+  "Items": {
+    "ExampleCustomResourceWeapon": {
+      "UsesXExampleResource": "Uses {0} example resource"
+    }
+  }
+}
