@@ -10,6 +10,7 @@ on:
       - "Split/Bunny-Loader/tests/hair_loader/**"
       - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/SourceParser.cpp"
       - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairRegistry.h"
+      - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairTextures.*"
       - ".github/workflows/check-csharp-hair-managed-only.yml"
   workflow_dispatch:
 
@@ -44,6 +45,11 @@ jobs:
             Split/Bunny-Loader/tests/hair_loader/native_registry.cpp \
             -o /tmp/bunny-hair-native-contract
           /tmp/bunny-hair-native-contract
+      - name: Syntax check native IL2CPP texture installer
+        run: |
+          g++ -std=c++20 -Wall -Wextra -Werror -fsyntax-only \
+            -I Split/Bunny-Loader/app/src/main/cpp \
+            Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairTextures.cpp
       - name: Guard against Android artifacts
         run: |
           test ! -d Split/Bunny-Loader/app/build/outputs/apk
