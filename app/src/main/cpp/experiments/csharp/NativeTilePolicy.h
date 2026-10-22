@@ -6,6 +6,13 @@ inline constexpr int kSupportedManagedCallbacks = (1<<0)|(1<<1)|(1<<2)|(1<<3)|(1
 inline bool validCallbackMask(int mask) { return mask >= 0 && (mask & ~kSupportedManagedCallbacks) == 0; }
 
 
+// Banner TileObjectData com StyleHorizontal=true: uma coluna de 18 pixels
+// por estilo. ID do banner nao e tipo do tile nem indice do atlas.
+inline int bannerStyleFromFrameX(int frameX) {
+    return frameX >= 0 && frameX % 18 == 0 && frameX / 18 <= 1024
+        ? frameX / 18 : -1;
+}
+
 inline int leftOf2x1(int x, int frameX) {
     if (frameX < 0) return x;
     return x - ((frameX % 36) / 18);
