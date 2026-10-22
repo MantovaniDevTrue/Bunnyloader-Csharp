@@ -16,6 +16,10 @@ on:
       - app/src/main/cpp/experiments/csharp/ManagedBannerSaveHooks.h
       - app/src/main/cpp/experiments/csharp/ManagedBannerSaveDispatch.h
       - app/src/main/cpp/experiments/csharp/NativeInvasionWorldPath.cpp
+      - app/src/main/cpp/experiments/csharp/NativeContent.cpp
+      - app/src/main/cpp/experiments/csharp/NativeTileGameplay.cpp
+      - experiments/csharp/BunnySourceCompiler/TileWriter.cs
+      - samples/ExampleModCSharp/Playable/content/Content/Tiles/**
       - app/src/main/cpp/experiments/csharp/ManagedBannerGameCounters.h
       - app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp
       - app/src/main/cpp/experiments/csharp/ManagedBannerArrayBridge.h
@@ -39,6 +43,10 @@ on:
       - app/src/main/cpp/experiments/csharp/ManagedBannerSaveHooks.h
       - app/src/main/cpp/experiments/csharp/ManagedBannerSaveDispatch.h
       - app/src/main/cpp/experiments/csharp/NativeInvasionWorldPath.cpp
+      - app/src/main/cpp/experiments/csharp/NativeContent.cpp
+      - app/src/main/cpp/experiments/csharp/NativeTileGameplay.cpp
+      - experiments/csharp/BunnySourceCompiler/TileWriter.cs
+      - samples/ExampleModCSharp/Playable/content/Content/Tiles/**
       - app/src/main/cpp/experiments/csharp/ManagedBannerGameCounters.h
       - app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp
       - app/src/main/cpp/experiments/csharp/ManagedBannerArrayBridge.h
@@ -128,7 +136,9 @@ jobs:
             -Iapp/src/main/cpp -Itests/basic_items/include -Itests/startup/include \
             app/src/main/cpp/experiments/csharp/SourceLoader.cpp \
             app/src/main/cpp/experiments/csharp/NativeInvasionWorldPath.cpp \
-            app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp
+            app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp \
+            app/src/main/cpp/experiments/csharp/NativeContent.cpp \
+            app/src/main/cpp/experiments/csharp/NativeTileGameplay.cpp
       - name: Verify APK gate remains closed
         shell: bash
         run: |
