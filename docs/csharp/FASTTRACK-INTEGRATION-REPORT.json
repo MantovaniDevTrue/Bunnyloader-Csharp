@@ -354,7 +354,7 @@
       "path": "app/src/main/cpp/experiments/csharp/ManagedSourceClassCount.h",
       "reason": "three_way_conflict",
       "base_sha256": "cbf41bbc5942ddd5a618b3cd9c974d77cb5e53b2118267e7c75cacf7f45b9967",
-      "local_sha256": "fadea0b79838e18b1eca3bfe17a399c6849da364e2ea26431ce2a38b97892f83",
+      "local_sha256": "89d2fde3992654fd8507b072b73584c66945bb4d5836a4f37220d47c5312e1b3",
       "incoming_sha256": "67215757ddee679d4c344c9aa4f99c6c725cad6434913d493fd98ea6e9570c56"
     },
     {
