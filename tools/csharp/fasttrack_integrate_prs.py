@@ -30,6 +30,8 @@ MANUAL_RECONCILIATIONS = {
     (121, "app/src/main/cpp/experiments/csharp/SourceLoader.cpp"):
         (b'gore::discover(mod.dir', b'gore::install(mod.id',
          b'status->goreSourcesDiscovered'),
+    (117, "app/src/main/cpp/experiments/csharp/SourceLoader.h"):
+        (b'int commands = 0;', b'std::vector<std::string> commandClasses;'),
     (121, "app/src/main/cpp/experiments/csharp/SourceLoader.h"):
         (b'int goreSourcesDiscovered = 0;',),
     (117, "app/src/main/cpp/experiments/csharp/ManagedSourceClassCount.h"):
@@ -38,7 +40,8 @@ MANUAL_RECONCILIATIONS = {
         (b'base != "BunnyCommand"', b'if (base == "BunnyCommand")'),
     (117, "app/src/main/cpp/experiments/csharp/SourceLoader.cpp"):
         (b'status->commandClasses.push_back', b'status->commands > 128',
-         b'status->commands==0', b'hasNativeContent && !prepareNativeContent()'),
+         b'status->commands+status->goreSourcesDiscovered==0',
+         b'hasNativeContent && !prepareNativeContent()'),
     (117, "experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs"):
         (b"CommandManifestWriter.CountCommands(assembly)", b"CommandManifestWriter.Write(assembly, diagnosticsPath, assemblyPath)"),
     (117, "experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj"):
