@@ -34,6 +34,17 @@ Base técnica: `ModHair` do tModLoader (API pública) e `HairLoader.js` /
   `TextureAssets.PlayerHair` e `PlayerHairAlt` com cópias, fixa arrays e
   assets enquanto carrega PNGs e volta às tabelas anteriores se falhar.
   **Ainda não é chamado por nenhum hook de produção**.
+- `NativeHairUnlockState.h` e `NativeHairUi.{h,cpp}`: hooks de fonte
+  para `HairstyleUnlocksHelper.ListWarrantsRemake/RebuildList`, com
+  validação de metadados, fallback conservador e reavaliação do Stylist
+  limitada a intervalos de 250 ms para evitar consultas Mono por frame.
+  **Os hooks ainda não são acionados pelo carregador de produção.**
+- `ExportNativeManifest()` + `NativeHairManifest.h`: protocolo V1
+  determinístico de oito campos por cabelo, com classe/UID, caminho PNG,
+  gênero e disponibilidade na criação; o parser C++ recusa registros
+  parciais, IDs divergentes ou caminhos inseguros. A ponte Mono que envia
+  os dados permanece pendente.
+- O instalador de texturas recusa qualquer ID ocupado por outro mod.
 - Em `ModHair.cs`, `Type` já é atribuído antes de `AutoStaticDefaults`
   e `SetStaticDefaults`, como no tModLoader; se ocorrer erro, a inscrição
   gerenciada é revertida, sem consumir ID.
@@ -46,9 +57,10 @@ Base técnica: `ModHair` do tModLoader (API pública) e `HairLoader.js` /
    diretório do mod e instalação antes da UI. Validar retorno de erro, unload,
    reinstalação e falhas de texture load no Android. O instalador C++ está
    implementado **mas não está conectado ao jogo**.
-3. Inserir os IDs na lista de criação de personagem e no Stylist, preservando
-   itens vanilla, ordem, estado desbloqueado e reavaliação quando condições
-   mudarem. Usar a API native de `HairstyleUnlocksHelper`.
+3. Conectar os hooks IL2CPP já escritos ao ciclo nativo de instalação e
+   completar o callback C# de `GetUnlockConditions` sem bloquear os frames.
+   Confirmar lista e UI de criação/Stylist no Android; os testes host
+   verificam somente compilação, comportamento lógico e fail-closed.
 4. Aplicar o gênero sugerido no sorteio de criação de personagem, sem restringir
    o jogador a um gênero na escolha manual.
 5. Conectar o contrato H1 ao save extra do personagem do Bunny. O arquivo
@@ -84,6 +96,15 @@ g++ -std=c++20 -Wall -Wextra -Werror \
 g++ -std=c++20 -Wall -Wextra -Werror -fsyntax-only \
   -I Split/Bunny-Loader/app/src/main/cpp \
   Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairTextures.cpp
+g++ -std=c++20 -Wall -Wextra -Werror -fsyntax-only \
+  -I Split/Bunny-Loader/app/src/main/cpp \
+  Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairUi.cpp
+for name in native_unlock_state native_manifest; do
+  g++ -std=c++20 -Wall -Wextra -Werror \
+    -I Split/Bunny-Loader/app/src/main/cpp \
+    Split/Bunny-Loader/tests/hair_loader/${name}.cpp \
+    -o /tmp/${name} && /tmp/${name}
+done
 ```
 
 Esses testes **não** comprovam renderização, salvamento nem sincronização no
