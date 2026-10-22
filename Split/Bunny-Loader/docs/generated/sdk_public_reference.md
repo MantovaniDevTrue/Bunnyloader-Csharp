@@ -660,3 +660,68 @@ int CriticalBonus { get; set; }
 int TagDamageBonus { get; set; }
 ```
 
+## Terraria.Utilities.UnifiedRandom
+
+class; base: `System.Random`.
+
+```csharp
+UnifiedRandom()
+UnifiedRandom(int seed)
+```
+
+| Method | Execution |
+| --- | --- |
+| `Double NextDouble()` | managed_helper |
+| `Int64 NextInt64()` | managed_helper |
+| `Int64 NextInt64(Int64 maxValue)` | managed_helper |
+| `Int64 NextInt64(Int64 minValue, Int64 maxValue)` | managed_helper |
+| `float NextSingle()` | managed_helper |
+| `int Next()` | managed_helper |
+| `int Next(int maxValue)` | managed_helper |
+| `int Next(int minValue, int maxValue)` | managed_helper |
+| `void NextBytes(Byte[] buffer)` | managed_helper |
+| `void NextBytes(Span<Byte> buffer)` | managed_helper |
+| `void SetSeed(int seed)` | managed_helper |
+
+## Terraria.Utilities.WeightedRandom`1
+
+class; base: `System.Object`.
+
+```csharp
+WeightedRandom`1()
+WeightedRandom`1(Tuple<T, Double>[] theElements)
+WeightedRandom`1(UnifiedRandom random)
+WeightedRandom`1(UnifiedRandom random, Tuple<T, Double>[] theElements)
+WeightedRandom`1(int seed)
+WeightedRandom`1(int seed, Tuple<T, Double>[] theElements)
+```
+
+| Method | Execution |
+| --- | --- |
+| `T Get()` | managed_helper |
+| `void Add(T element, Double weight)` | managed_helper |
+| `void CalculateTotalWeight()` | managed_helper |
+| `void Clear()` | managed_helper |
+
+## Terraria.Utils
+
+abstract class; base: `System.Object`.
+
+| Method | Execution |
+| --- | --- |
+| `static T Next(UnifiedRandom random, IList<T> list)` | managed_helper |
+| `static T Next(UnifiedRandom random, T[] array)` | managed_helper |
+| `static T NextFromCollection(UnifiedRandom random, List<T> values)` | managed_helper |
+| `static T NextFromList(UnifiedRandom random, T[] values)` | managed_helper |
+| `static Vector2 NextVector2Circular(UnifiedRandom random, float halfWidth, float halfHeight)` | managed_helper |
+| `static Vector2 NextVector2CircularEdge(UnifiedRandom random, float halfWidth, float halfHeight)` | managed_helper |
+| `static Vector2 NextVector2Square(UnifiedRandom random, float min, float max)` | managed_helper |
+| `static Vector2 NextVector2Unit(UnifiedRandom random, float startRotation, float rotationRange)` | managed_helper |
+| `static bool NextBool(UnifiedRandom random)` | managed_helper |
+| `static bool NextBool(UnifiedRandom random, int antecedent, int consequent)` | managed_helper |
+| `static bool NextBool(UnifiedRandom random, int consequent)` | managed_helper |
+| `static float NextFloat(UnifiedRandom random)` | managed_helper |
+| `static float NextFloat(UnifiedRandom random, float maxValue)` | managed_helper |
+| `static float NextFloat(UnifiedRandom random, float minValue, float maxValue)` | managed_helper |
+| `static float NextFloatDirection(UnifiedRandom random)` | managed_helper |
+
