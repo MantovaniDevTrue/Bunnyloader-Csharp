@@ -21,7 +21,6 @@ public static class BunnyCloudDispatcher
     {
         public readonly string Name;
         public readonly BunnyCloud Cloud;
-        public bool Blocked;
         public CloudEntry(string name, BunnyCloud cloud) { Name = name; Cloud = cloud; }
     }
 
@@ -38,7 +37,6 @@ public static class BunnyCloudDispatcher
         public Context(string modId) { ModId = modId; }
         public void Fault(CloudEntry entry, string phase, Exception ex)
         {
-            entry.Blocked = true;
             Faults++;
             LastError = entry.Name + "." + phase + ": " +
                 ex.GetType().Name + ": " + ex.Message;
@@ -171,7 +169,7 @@ public static class BunnyCloudDispatcher
     {
         if (nativeType < 0 || !Mods.TryGetValue(modId, out Context? context) ||
             !context.Named.TryGetValue(className, out CloudEntry? cloud) ||
-            cloud.Blocked || context.Bound.ContainsKey(nativeType) ||
+            context.Bound.ContainsKey(nativeType) ||
             context.Bound.Values.Contains(cloud))
             return false;
         foreach (Context other in Mods.Values)
@@ -189,8 +187,8 @@ public static class BunnyCloudDispatcher
         BunnyCloudEnvironment environment)
     {
         if (environment is null || !Mods.TryGetValue(modId, out Context? context) ||
-            !context.Bound.TryGetValue(nativeType, out CloudEntry? entry) ||
-            entry.Blocked) return 0f;
+            !context.Bound.TryGetValue(nativeType, out CloudEntry? entry))
+            return 0f;
         try
         {
             float weight = BunnyCloud.SafeSpawnChance(entry.Cloud.SpawnChance(environment));
@@ -216,8 +214,8 @@ public static class BunnyCloudDispatcher
         if (slot < 0 || slot >= 200 || !float.IsFinite(scale) ||
             scale <= 0f || scale > 10f || (originalSpriteEffects & ~3) != 0 ||
             !Mods.TryGetValue(modId, out Context? context) ||
-            !context.Bound.TryGetValue(nativeType, out CloudEntry? entry) ||
-            entry.Blocked) return false;
+            !context.Bound.TryGetValue(nativeType, out CloudEntry? entry))
+            return false;
         try
         {
             var snapshot = new BunnyCloudSpawn(nativeType, slot, scale,
