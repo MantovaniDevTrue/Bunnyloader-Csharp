@@ -46,7 +46,7 @@ internal static class TileWriter {
                 flags.ToString(CultureInfo.InvariantCulture) + " Result=Rejected Reason=UnknownFlagBits");
         if (shape < 0 || shape > 2 ||
             height < 1 || height > 32 || adjacent < -1 || adjacent >= 754 ||
-            dust.Length > 72 || !Safe(dust) || map.Length > 80 || !Safe(map) ||
+            dust.Length > 72 || !Safe(dust) || map.Length > 80 || !Safe(map, true) ||
             (uint)r > 255 || (uint)g > 255 || (uint)b > 255 ||
             fail < 0 || fail > 20 || normal < 0 || normal > 20 ||
             animationHeight < 0 || animationHeight > 4096 ||
@@ -78,10 +78,11 @@ internal static class TileWriter {
             cacheDrawData ? "1" : "0");
     }
 
-    private static bool Safe(string value) {
+    private static bool Safe(string value, bool mapKey = false) {
         foreach (char c in value)
-            if (!(char.IsAsciiLetterOrDigit(c) || c == '_' || c == '-' || c == ' '))
+            if (!(char.IsAsciiLetterOrDigit(c) || c == '_' || c == '-' || c == ' ' ||
+                  (mapKey && c == '.')))
                 return false;
-        return true;
+        return !mapKey || !value.Contains("..", StringComparison.Ordinal);
     }
 }
