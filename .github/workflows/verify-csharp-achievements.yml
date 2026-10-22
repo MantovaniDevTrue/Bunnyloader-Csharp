@@ -19,6 +19,9 @@ on:
       - app/src/main/cpp/experiments/csharp/ManagedAchievementTransport.h
       - app/src/main/cpp/experiments/csharp/ManagedAchievementMetadata.h
       - app/src/main/cpp/experiments/csharp/NativeAchievementMetadataSync.h
+      - app/src/main/cpp/experiments/csharp/NativeAchievementLocaleJson.h
+      - app/src/main/cpp/experiments/csharp/NativeAchievementLocale.h
+      - app/src/main/cpp/experiments/csharp/NativeAchievementLocale.cpp
       - app/src/main/cpp/experiments/csharp/NativeAchievementRegistry.h
       - app/src/main/cpp/experiments/csharp/NativeAchievementRegistry.cpp
       - app/src/main/cpp/experiments/csharp/NativeAchievementVisualHooks.h
@@ -34,6 +37,7 @@ on:
       - tests/achievements_csharp/**
       - samples/ExampleModCSharp/Examples/Achievements/**
       - samples/ExampleModCSharp/Playable/content/Content/Achievements/**
+      - samples/ExampleModCSharp/Playable/content/Localization/**
       - .github/workflows/verify-csharp-achievements.yml
   workflow_dispatch:
 
@@ -76,6 +80,11 @@ jobs:
           g++ -std=c++20 -O2 -Wall -Wextra -Werror -Iapp/src/main/cpp \
             tests/achievements_csharp/metadata_sync_test.cpp -o /tmp/csharp-achievement-sync
           /tmp/csharp-achievement-sync
+      - name: Verify native localized achievement JSON
+        run: |
+          g++ -std=c++20 -O2 -Wall -Wextra -Werror -Iapp/src/main/cpp \
+            tests/achievements_csharp/locale_test.cpp -o /tmp/csharp-achievement-locale
+          /tmp/csharp-achievement-locale
       - name: Verify isolated character identity
         run: |
           g++ -std=c++20 -O2 -Wall -Wextra -Werror -Iapp/src/main/cpp \
@@ -91,6 +100,8 @@ jobs:
             app/src/main/cpp/experiments/csharp/NativeAchievementRegistry.cpp
           g++ -std=c++20 -O0 -fsyntax-only -Itests/basic_items/include -Iapp/src/main/cpp \
             app/src/main/cpp/experiments/csharp/NativeAchievementProfile.cpp
+          g++ -std=c++20 -O0 -fsyntax-only -Itests/basic_items/include -Iapp/src/main/cpp \
+            app/src/main/cpp/experiments/csharp/NativeAchievementLocale.cpp
           g++ -std=c++20 -O0 -fsyntax-only -Itests/basic_items/include -Iapp/src/main/cpp \
             app/src/main/cpp/experiments/csharp/NativeAchievementProfileLifecycle.cpp
           g++ -std=c++20 -O0 -fsyntax-only -Itests/basic_items/include -Iapp/src/main/cpp \
