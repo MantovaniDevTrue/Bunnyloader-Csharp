@@ -12,6 +12,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../BunnyCsSdk/ModTypeLookup.cs" Link="ModTypeLookup.cs" />
+    <Compile Include="../BunnyCsSdk/BiomeConversionLoader.cs" Link="BiomeConversionLoader.cs" />
     <Compile Include="../BunnyCsSdk/Loader.cs" Link="Loader.cs" />
     <Compile Include="../BunnyCsSdk/ContentAssemblyHash.cs" Link="ContentAssemblyHash.cs" />
     <Compile Include="../BunnyCsSdk/BunnyContentHostDispatcher.cs" Link="BunnyContentHostDispatcher.cs" />

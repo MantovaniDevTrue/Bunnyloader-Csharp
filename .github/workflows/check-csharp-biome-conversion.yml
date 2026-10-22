@@ -1,0 +1,62 @@
+name: CSharp BiomeConversionLoader (NO APK)
+on:
+  push:
+    branches: [feat/csharp-biome-conversion-loader-no-apk-20261022]
+  pull_request:
+    paths:
+      - 'Split/Bunny-Loader/experiments/csharp/**'
+      - 'Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/**'
+      - 'Split/Bunny-Loader/tests/biome_conversion/**'
+      - 'Split/Bunny-Loader/samples/BiomeConversionCSharp/**'
+      - '.github/workflows/check-csharp-biome-conversion.yml'
+permissions:
+  contents: read
+jobs:
+  conversion:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - dotnet: '8.0.x'
+            framework: net8.0
+          - dotnet: '10.0.x'
+            framework: net10.0
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ matrix.dotnet }}
+      - name: Execute pinned upstream, native engine, IL2CPP adapter and Roslyn PInvoke integration
+        run: python3 Split/Bunny-Loader/tests/biome_conversion/run.py --framework ${{ matrix.framework }}
+      - name: Check SDK public reference
+        if: matrix.framework == 'net8.0'
+        working-directory: Split/Bunny-Loader
+        run: dotnet run --project tools/sdk_reference -c Release -- --check
+      - name: Refuse APK
+        if: always()
+        run: |
+          if find . -type f -name '*.apk' -print -quit | grep -q .; then exit 1; fi
+  android-objects:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile production integration to ARM64 objects only
+        run: |
+          ndk="${ANDROID_NDK_LATEST_HOME:-${ANDROID_NDK_HOME:-}}"
+          if [ ! -x "$ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android26-clang++" ]; then
+            sdkmanager 'ndk;30.0.16248370'
+            ndk="$ANDROID_HOME/ndk/30.0.16248370"
+          fi
+          mkdir -p /tmp/bunny-biome-arm64
+          for file in NativeBiomeConversion AutoSourceRuntime; do
+            "$ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android26-clang++" \
+              -std=c++20 -fno-exceptions -fno-rtti -Wall -Wextra -Werror \
+              -ISplit/Bunny-Loader/app/src/main/cpp \
+              -c "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/$file.cpp" \
+              -o "/tmp/bunny-biome-arm64/$file.o"
+            readelf -h "/tmp/bunny-biome-arm64/$file.o" | grep -q 'Machine:.*AArch64'
+          done
+          if find . -type f -name '*.apk' -print -quit | grep -q .; then exit 1; fi

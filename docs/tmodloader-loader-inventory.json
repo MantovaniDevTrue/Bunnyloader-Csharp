@@ -26,7 +26,7 @@
       "classes": [
         "BiomeConversionLoader"
       ],
-      "status": "not_audited_against_csharp",
+      "status": "implemented_csharp_native_replacement_tables_pending_android_qa",
       "relatedPRs": [],
       "androidVerified": null
     },

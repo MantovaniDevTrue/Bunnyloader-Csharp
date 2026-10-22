@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework Condition="'$(BunnyTargetFramework)' == ''">net8.0</TargetFramework>
+    <TargetFramework Condition="'$(BunnyTargetFramework)' != ''">$(BunnyTargetFramework)</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable><TreatWarningsAsErrors>true</TreatWarningsAsErrors><NoWarn>$(NoWarn);8603</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj" />
+    <ProjectReference Include="../../experiments/csharp/BunnySourceCompiler/BunnySourceCompiler.csproj" />
+    <Compile Remove="upstream/**/*.cs" />
+    <Compile Include="upstream/BiomeConversionLoader.cs;upstream/ModBiomeConversion.cs" />
+    <Compile Include="../../samples/BiomeConversionCSharp/Playable/content/main.cs" Link="Example.cs" />
+  </ItemGroup>
+</Project>

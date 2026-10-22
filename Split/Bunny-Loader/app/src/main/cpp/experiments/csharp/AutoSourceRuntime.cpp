@@ -1,3 +1,4 @@
+#include "experiments/csharp/NativeBiomeConversion.h"
 #include "experiments/csharp/SourceLimits.h"
 #include "experiments/csharp/AutoSourceCache.h"
 #include "experiments/csharp/AutoSourceRuntime.h"
@@ -1151,6 +1152,7 @@ void retryWorldManagedPrefixesWhenReady() {
 }
 
 void noteAutoWorldTilesLoaded() {
+    resetBiomeConversionWorld();
     std::lock_guard<std::mutex> sessionGuard(g_worldTransitionMutex);
     clearManagedVisualCommands();
     resetNativeVisualRenderer();
@@ -1186,6 +1188,7 @@ void noteAutoGameUpdate() {
         installManagedSourceEntityHitHook();
         installManagedSourceEntityKillHook();
     }
+    pumpBiomeConversionsOnGameThread();
     pumpInteractiveConsoleOnGameThread();
     pumpBasicRecipesOnGameThread();
     pumpNativeVisualRendererOnGameThread();
@@ -1231,6 +1234,7 @@ void noteAutoGameUpdate() {
         g_visualUpdateTick.store(0, std::memory_order_relaxed);
         g_worldExits.fetch_add(1, std::memory_order_relaxed);
         g_worldEpoch.fetch_add(1, std::memory_order_acq_rel);
+        resetBiomeConversionWorld();
         g_worldSessionReady.store(false, std::memory_order_release);
         g_worldTilesLoaded.store(false, std::memory_order_release);
         g_worldReadyFrames.store(0, std::memory_order_relaxed);
@@ -1259,6 +1263,7 @@ void noteAutoGameUpdate() {
     if (g_worldReadyFrames.fetch_add(1, std::memory_order_relaxed) >= 2) {
         const ActivationContext context = readActivationContext();
         if (context.netMode != 0 || context.gameMenu == 1) return;
+        beginBiomeConversionWorld();
         g_worldSessionReady.store(true, std::memory_order_release);
         requestBasicItemInstanceRefresh("WorldLoaded");
         BL_INFO("csharp auto live: mundo carregado e jogador ativo confirmados");
@@ -1271,7 +1276,7 @@ void noteAutoGameUpdate() {
 }
 
 bool managedContentBootstrapReady() {
-    if (managedContentHostClosing()) return false;
+    if (managedContentHostClosing() || !nativeBiomeConversionReady()) return false;
     const auto states = autoSourceStatuses();
     for (const auto& source : sourceModStatuses()) {
         if (!source.loaded || source.sourceFiles == 0 || source.id == kFixtureId) continue;

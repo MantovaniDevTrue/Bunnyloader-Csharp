@@ -9,7 +9,7 @@ O objetivo é portar todos os loaders. Esta matriz não declara paridade Android
 | Arquivo oficial | Classes | Situação C# observada | PRs relacionadas |
 | --- | --- | --- | --- |
 | `AccessorySlotLoader.cs` | `AccessorySlotLoader` | Não auditado contra o C# |  |
-| `BiomeConversionLoader.cs` | `BiomeConversionLoader` | Não auditado contra o C# |  |
+| `BiomeConversionLoader.cs` | `BiomeConversionLoader` | [C# + substituições nativas implementados; QA Android pendente](csharp-biome-conversion-loader.md) | Lote empilhado sobre #138 |
 | `BiomeLoader.cs` | `BiomeLoader` | Trabalho em PR; não duplicar | [#125](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/pull/125) |
 | `BossBarLoader.cs` | `BossBarLoader` | Não auditado contra o C# |  |
 | `BuffLoader.cs` | `BuffLoader` | Não auditado contra o C# |  |

@@ -44,8 +44,8 @@ public sealed class AutoloadAttribute : Attribute
 }
 
 /// <summary>
-/// Base for managed service/data content, modeled after tModLoader.ModType.
-/// It does not register Terraria items, allocate game IDs or install native hooks.
+/// Base for content categories, modeled after tModLoader.ModType.
+/// This base does not allocate Terraria entity IDs; concrete categories own their host integration.
 /// Use Load for local resources and SetupContent/SetStaticDefaults for cross-content references.
 /// </summary>
 public abstract class ModType : IModType
@@ -177,6 +177,7 @@ public static class BunnyContentLoader
                     mod.AcceptingContent = false;
                     LoaderManager.ResizeArrays();
                     foreach (ModType instance in mod.Content) instance.SetupContent();
+                    BiomeConversionLoader.PostSetupContent(mod);
                     mod.IsLoaded = true;
                     LoadOrder.Add(mod);
                     return mod;
