@@ -53,6 +53,7 @@ static class BiomeContractTests
             new Dictionary<string, int> { ["../../unknown"] = 50 }));
 
         BunnyBiomeDispatcher.Clear();
+        ExampleSurfaceBiome.ResetCounters();
         Require(BunnyBiomeDispatcher.RegisterFromPath("example-mod",
             typeof(BiomeContractTests).Assembly.Location),
             BunnyBiomeDispatcher.LastError);
@@ -70,6 +71,18 @@ static class BiomeContractTests
             "ExampleTile=40");
         Require(active == "BUNNY_BIOMES_V1\nBIOME\tExampleSurfaceBiome\n",
             "Dispatcher reports only the authentic active biome");
+        Require(ExampleSurfaceBiome.Enters == 1 &&
+                ExampleSurfaceBiome.Ticks == 1 &&
+                ExampleSurfaceBiome.Leaves == 0 &&
+                string.Join(",", ExampleSurfaceBiome.Events) ==
+                "Enter,InBiome",
+            "OnEnter precedes OnInBiome on first active evaluation");
+        Require(BunnyBiomeDispatcher.EvaluateWire(
+            "example-mod", false, true, 3200 * 16f, 6400, false, true,
+            "ExampleTile=40") == active &&
+            ExampleSurfaceBiome.Enters == 1 &&
+            ExampleSurfaceBiome.Ticks == 2,
+            "OnInBiome repeats on subsequent valid evaluation, not OnEnter");
         Require(BunnyBiomeDispatcher.LastError.Contains(
             "ExampleFaultingBiome.IsBiomeActive", StringComparison.Ordinal),
             "Faulting biome isolated without affecting ExampleSurfaceBiome");
@@ -77,6 +90,12 @@ static class BiomeContractTests
             "example-mod", false, true, 3200 * 16f, 6400, false, true,
             "ExampleTile=39") == "BUNNY_BIOMES_V1\n",
             "Dispatcher disallows insufficient block count");
+        Require(ExampleSurfaceBiome.Enters == 1 &&
+                ExampleSurfaceBiome.Ticks == 2 &&
+                ExampleSurfaceBiome.Leaves == 1 &&
+                string.Join(",", ExampleSurfaceBiome.Events) ==
+                "Enter,InBiome,InBiome,Leave",
+            "OnLeave emitted precisely once on transition to false");
         Require(BunnyBiomeDispatcher.EvaluateWire(
             "example-mod", false, true, 3200 * 16f, 6400, false, true,
             "") == "BUNNY_BIOMES_V1\n",
@@ -97,6 +116,24 @@ static class BiomeContractTests
             "example-mod", true, true, 3200 * 16f, 6400, false, true,
             "ExampleTile=40") == "BUNNY_BIOMES_V1\n",
             "World unload cannot preserve active mod biome");
+        Require(BunnyBiomeDispatcher.EvaluateWire(
+            "example-mod", false, true, 3200 * 16f, 6400, false, true,
+            "ExampleTile=40") == active &&
+            ExampleSurfaceBiome.Enters == 2 &&
+            ExampleSurfaceBiome.Ticks == 3,
+            "Reentry fires after leaving the biome");
+        BunnyBiomeDispatcher.ResetWorld();
+        BunnyBiomeDispatcher.ResetWorld();
+        Require(ExampleSurfaceBiome.Leaves == 2 &&
+                string.Join(",", ExampleSurfaceBiome.Events) ==
+                "Enter,InBiome,InBiome,Leave,Enter,InBiome,Leave",
+            "World reset emits one final OnLeave, never duplicate");
+        Require(BunnyBiomeDispatcher.EvaluateWire(
+            "example-mod", false, true, 3200 * 16f, 6400, false, true,
+            "ExampleTile=40") == active &&
+            ExampleSurfaceBiome.Enters == 3,
+            "World reset clears active biome and allows entering again");
+
 
         string dir = Path.Combine(Path.GetTempPath(),
             "bunny-biome-source-test-" + Guid.NewGuid().ToString("N"));
@@ -125,6 +162,8 @@ static class BiomeContractTests
         }
 
         BunnyBiomeDispatcher.Clear();
+        Require(ExampleSurfaceBiome.Leaves == 3,
+            "Managed unload calls OnLeave once for active biome");
         Require(BunnyBiomeDispatcher.ModCount == 0, "No stale biome registrations");
         Console.WriteLine("BunnyBiome CSharp policy, wire, Roslyn and isolation OK (no APK)");
         return 0;
