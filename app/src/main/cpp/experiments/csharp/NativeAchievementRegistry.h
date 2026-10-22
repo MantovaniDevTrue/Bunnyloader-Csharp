@@ -40,6 +40,10 @@ bool replaceNativeAchievementObjects(
 Il2CppObject* nativeAchievementIconAsset(const Il2CppObject* achievement);
 
 // After the achievement menu has rebuilt its native cache, old GC roots may be released.
+// Safely detach only this mod's exact native Achievement objects. Other
+// mods and vanilla achievements are not touched. Failure attempts rollback.
+bool unregisterNativeAchievementMod(const std::string& modId, std::string* error);
+
 void releaseRetiredNativeAchievements();
 
 NativeAchievementRegistryStatus nativeAchievementRegistryStatus();
