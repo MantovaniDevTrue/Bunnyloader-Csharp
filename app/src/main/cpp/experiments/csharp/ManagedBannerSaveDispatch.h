@@ -39,6 +39,10 @@ public:
             requested == epoch_.load(std::memory_order_acquire);
     }
 
+    uint64_t worldEpoch() const {
+        return epoch_.load(std::memory_order_acquire);
+    }
+
     static int networkDepth() { return networkDepth_; }
 
 private:
