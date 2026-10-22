@@ -333,12 +333,10 @@ métodos `SpawnChance`/`OnSpawn` nunca são chamados por `addCloud`.
 O mecanismo usa a mesma API Mono dinâmica e o mesmo arquivo
 `BunnySourceSdk.dll` empregados pelo registro de entidades C#.
 
-`NativeCloudHooks.cpp` oferece o pump completo do lado da thread do
-Terraria, incluindo respostas atrasadas por sessão, slot e geração de
-refresh, mas **não é chamado automaticamente**. Para ligar com segurança
-falta obter o estado de bioma *real* do jogador e resolver a ordem de
-instalação do `TextureMaskManager` / `TextureAssets` e a concorrência
-de IDs com o CloudLoader JS.
+`NativeCloudHooks.cpp` contém o pump de retorno da thread do jogo,
+já chamado por `AutoSourceRuntime.cpp` **somente depois de um instalador
+externo confirmar todos os hooks e assets**. O SourceLoader C# ainda bloqueia
+a inscrição de nuvens e biomas; a ativação Android permanece pendente.
 
 O CI do lote também verifica a compilação da unidade **real**
 `ManagedRuntime.cpp` (GCC e Clang), além do SDK C# e de todos os
@@ -374,11 +372,12 @@ desabilitar permanentemente o bioma). `OnEnter`, `OnInBiome` e
 `OnLeave` têm isolamento independente de exceções; um callback ruim
 não suprime os demais biomas nem invalida as flags do snapshot.
 
-Na saída ou recarga do mundo, `resetManagedCloudWorldSession` coloca
-um job `ResetWorld` na fila MonoVM, limpa avaliações antigas e aciona
-um `OnLeave` final para instâncias ativas. O reset é idempotente;
-uma falha deixa os IDs C# bloqueados, dispara a rotina de recuperação
-e evita reutilizar registros possivelmente inconsistentes.
+Na saída ou recarga do mundo, `resetManagedCloudWorldSession` invalida
+a sessão anterior e marca uma **barreira persistente** de `ResetWorld` no
+MonoVM quando há biomas C# registrados. Ela não pode desaparecer numa segunda
+troca rápida de mundo nem quando a fila comum é limpa. O worker executa
+`OnLeave` nas instâncias ativas antes dos próximos snapshots; uma falha
+invalida o registro C# e obriga limpeza completa antes de retomada.
 
 Os testes do `ExampleSurfaceBiome` verificam entrada uma vez,
 `OnInBiome` em avaliações sucessivas, saída exatamente uma vez,
@@ -390,3 +389,37 @@ passou em https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39
 não roda sincronamente com cada `Player.UpdateBiomes` original.
 O `SourceLoader` continua recusando `BunnyBiome` e `BunnyCloud`;
 não houve build Android, pacote de mod ou teste no aparelho.
+
+## Hook nativo de atualização do jogador local — lote atual
+
+`NativeBiomeUpdateHook.cpp` resolve somente o método de instância
+`Terraria.Player.UpdateBiomes()` com assinatura exata e valida
+`Main.player` e `Main.myPlayer` antes de instalar um hook encadeado.
+O hook chama primeiro o próximo método da cadeia; depois confere se
+o jogador atualizado é o local e marca um sinal em contador atômico
+limitado a 64 eventos. Não chama MonoVM, não consulta JavaScript,
+não faz alocações por quadro e não usa polling de blocos nessa função.
+
+A instalação ocorre apenas na thread do jogo, após confirmação de
+`NativeBiomeGameBridge` de que os manifestos compilados e gerenciados
+do mod são idênticos. `SourceLoader.cpp` ainda bloqueia a criação desses
+registros; portanto, em builds atuais o hook não é armado durante jogo.
+
+`AutoSourceRuntime.cpp` coleta o sinal e o utiliza para autorizar o
+snapshot periódico (máximo uma renovação a cada 20 atualizações),
+depois encaminha os dados primitivos ao worker MonoVM sem bloquear
+a thread de renderização. A política preserva FPS, porém **ainda não
+equivale a executar `OnInBiome` a cada chamada de `UpdateBiomes`**.
+Esse requisito exato continua pendente de um dispatcher de eventos
+C# com cadência e backpressure comprovadamente seguros.
+
+`NativeBiomeUpdateSignal.h` possui testes nativos para contador
+saturável, consumo, reativação e transições de mundo. Também
+foi corrigido o caso em que um refresh iniciava antes da resposta
+MonoVM anterior: `NativeBiomeGameBridge` agora descarta a caixa de
+resposta velha antes de solicitar o novo snapshot, evitando ficar
+permanentemente bloqueado por geração antiga.
+
+Continuam pendentes a ativação segura dos assets após JS Ready/setup
+e `TextureMaskManager.LoadMasks`, sincronização exata por quadro
+e QA IL2CPP Android. **Sem APK, .bmod ou merge.**
