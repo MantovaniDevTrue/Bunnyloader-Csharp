@@ -1,0 +1,444 @@
+{
+  "schema": 1,
+  "status": "SOURCE_ONLY_PENDING_ANDROID_AND_CONFLICT_RECONCILIATION",
+  "integration_base": "PR #119, commit 489ec3e7b88b0e4540446a7cc404724e68408427",
+  "common_base": "cfbe784ee3cbc0ba2fabafce56c59e6eac41b67b",
+  "source_prs": [
+    {
+      "number": 117,
+      "sha": "a32d159bb913dae508af503da375765c855d96bc",
+      "name": "CommandLoader"
+    },
+    {
+      "number": 121,
+      "sha": "d061f7654660223ea00e55c7d21d85dfdffcb8d9",
+      "name": "GoreLoader"
+    }
+  ],
+  "counts": {
+    "CommandLoader": {
+      "clean_take_pr": 26,
+      "clean_three_way": 3,
+      "already_equal": 0,
+      "already_contains_pr": 0,
+      "blocked": 5,
+      "excluded": 8
+    },
+    "GoreLoader": {
+      "clean_take_pr": 14,
+      "clean_three_way": 0,
+      "already_equal": 0,
+      "already_contains_pr": 0,
+      "blocked": 3,
+      "excluded": 7
+    }
+  },
+  "integrated": [
+    {
+      "pr": 117,
+      "path": "app/src/main/cpp/experiments/csharp/ManagedRuntime.h",
+      "result": "clean_three_way",
+      "sha256": "ccf8d244ee0c467e5aa55b2b7b76a9b29d4b7408d08eb989fc8cc1c32540e5d2"
+    },
+    {
+      "pr": 117,
+      "path": "app/src/main/cpp/experiments/csharp/NativeCommandChatHooks.cpp",
+      "result": "clean_take_pr",
+      "sha256": "78ddc1a405a4bee8c985d6d8f3e7ed3f28d71f0469fe576569aed3a52b996396"
+    },
+    {
+      "pr": 117,
+      "path": "app/src/main/cpp/experiments/csharp/NativeCommandChatHooks.h",
+      "result": "clean_take_pr",
+      "sha256": "cee4c61f97ae83bbb7b1d054bb7b272b6e9eed59ee2e5b9824afa506f59e0a6a"
+    },
+    {
+      "pr": 117,
+      "path": "app/src/main/cpp/experiments/csharp/NativeCommandClock.h",
+      "result": "clean_take_pr",
+      "sha256": "fafba055438a585af22c5e85e842af4dc0bf62ba9fbd40b46e37a72ce9150664"
+    },
+    {
+      "pr": 117,
+      "path": "app/src/main/cpp/experiments/csharp/NativeCommandMailbox.h",
+      "result": "clean_take_pr",
+      "sha256": "2aebe19ca6db303633a28b3cfa49b9d6546d13eb28b58c48f1308c8079f18316"
+    },
+    {
+      "pr": 117,
+      "path": "app/src/main/cpp/experiments/csharp/NativeCommandManifest.h",
+      "result": "clean_take_pr",
+      "sha256": "a50ab6efa60cb88751abc2475f591fbfeff763c2fa8cfa2c28df6d98ab8789fe"
+    },
+    {
+      "pr": 117,
+      "path": "app/src/main/cpp/experiments/csharp/NativeCommandResult.h",
+      "result": "clean_take_pr",
+      "sha256": "b2288a047b5c4deaf9b6f05fa258610201decdfafa62e3dd2ddbf940b1486bb1"
+    },
+    {
+      "pr": 117,
+      "path": "app/src/main/cpp/experiments/csharp/SourceContentIdentity.h",
+      "result": "clean_three_way",
+      "sha256": "8e913576df6d0d1489c39fba7df571fcb98a809898c0772c46ee39d77f8b05a7"
+    },
+    {
+      "pr": 117,
+      "path": "app/src/main/cpp/experiments/csharp/SourceLoader.h",
+      "result": "clean_three_way",
+      "sha256": "e143d785d1f19454acc36e1893e7064191a5be61568f9869903e8c6f4d484fe1"
+    },
+    {
+      "pr": 117,
+      "path": "samples/ExampleModCSharp/Experimental/CommandLoader/ExampleEchoCommand.cs",
+      "result": "clean_take_pr",
+      "sha256": "38a1a136cee4a86eedfbfda95fdd39cba7f09cfc6829eb2e193569e3643305c3"
+    },
+    {
+      "pr": 117,
+      "path": "samples/ExampleModCSharp/Experimental/CommandLoader/ExampleHealCommand.cs",
+      "result": "clean_take_pr",
+      "sha256": "261e0960fd54bc20c20cb7341b3f28dce590eafb08eddaaf699ad0ab365351d4"
+    },
+    {
+      "pr": 117,
+      "path": "samples/ExampleModCSharp/Experimental/CommandLoader/ExampleTimeCommand.cs",
+      "result": "clean_take_pr",
+      "sha256": "8c64d97a14efa2d028a1f3c60ed1ca1262ffec15a7d418e1e5293c46b21e38b4"
+    },
+    {
+      "pr": 117,
+      "path": "samples/ExampleModCSharp/Playable/content/Common/Commands/ExampleEchoCommand.cs",
+      "result": "clean_take_pr",
+      "sha256": "c64bc2e7a4a0cb16fe081b577621dc22d22bbae7809142c186a62352aee57f6b"
+    },
+    {
+      "pr": 117,
+      "path": "samples/ExampleModCSharp/Playable/content/Common/Commands/ExampleHealCommand.cs",
+      "result": "clean_take_pr",
+      "sha256": "261e0960fd54bc20c20cb7341b3f28dce590eafb08eddaaf699ad0ab365351d4"
+    },
+    {
+      "pr": 117,
+      "path": "samples/ExampleModCSharp/Playable/content/Common/Commands/ExampleTimeCommand.cs",
+      "result": "clean_take_pr",
+      "sha256": "8c64d97a14efa2d028a1f3c60ed1ca1262ffec15a7d418e1e5293c46b21e38b4"
+    },
+    {
+      "pr": 117,
+      "path": "samples/ExampleModCSharp/Playable/content/LEIA_PRIMEIRO.md",
+      "result": "clean_take_pr",
+      "sha256": "04a1095ffae793d9e0d223239e78d24f8fcfafb099e8d8b19539e54522182cdf"
+    },
+    {
+      "pr": 117,
+      "path": "tests/commands/Actions.HostTests.csproj",
+      "result": "clean_take_pr",
+      "sha256": "ccc0636fb6a46795fb19d6e6463a95aeb2059b49c66d748989da8d52d580c45e"
+    },
+    {
+      "pr": 117,
+      "path": "tests/commands/ActionsSmoke.cs",
+      "result": "clean_take_pr",
+      "sha256": "28c13ac8478ff9c80c58797203ea1d39e00a42c8f11a24b643b0bbb1676764b7"
+    },
+    {
+      "pr": 117,
+      "path": "tests/commands/CommandManifest.HostTests.csproj",
+      "result": "clean_take_pr",
+      "sha256": "b1b714c2f87470d00fbc3d397c212a6df6f4320b6a12ea3e3e1101447dd50b91"
+    },
+    {
+      "pr": 117,
+      "path": "tests/commands/Commands.HostTests.csproj",
+      "result": "clean_take_pr",
+      "sha256": "44006aae873c91b2191c3acef68e4a5b397c1f5bb00aeba8cfed658600a6db73"
+    },
+    {
+      "pr": 117,
+      "path": "tests/commands/ManifestSmoke.cs",
+      "result": "clean_take_pr",
+      "sha256": "72808b8843d9a2abd68dfb4fe01a4aac4327c5b46201b98ef086a42c2ae88b3e"
+    },
+    {
+      "pr": 117,
+      "path": "tests/commands/NATIVE_INTEGRATION.md",
+      "result": "clean_take_pr",
+      "sha256": "f783e8037302f420cac81ff9d33041babc90550505b5edbcb85aa38ca985f28e"
+    },
+    {
+      "pr": 117,
+      "path": "tests/commands/Program.cs",
+      "result": "clean_take_pr",
+      "sha256": "34b79ca79d006ac1b7af1e6c7805c56954f91315238c8cc9385cc1dc735853f8"
+    },
+    {
+      "pr": 117,
+      "path": "tests/commands/README.md",
+      "result": "clean_take_pr",
+      "sha256": "98430d48167d3b6a75f034e74cbdf6e655c2c6c44b3bfe5b4da0860cf66170b1"
+    },
+    {
+      "pr": 117,
+      "path": "tests/commands/native_command_clock_test.cpp",
+      "result": "clean_take_pr",
+      "sha256": "1180c1000eb9c0547bc23a8977bb9ba8fcb9b4071e8ea7992363f477d5bb4217"
+    },
+    {
+      "pr": 117,
+      "path": "tests/commands/native_command_manifest_test.cpp",
+      "result": "clean_take_pr",
+      "sha256": "bffa7926883e7ee3519f7cc0dbef2a414176979215a04790b51bb8075751bb97"
+    },
+    {
+      "pr": 117,
+      "path": "tests/commands/native_command_result_test.cpp",
+      "result": "clean_take_pr",
+      "sha256": "6e53b6fb2baeb63e3af28690493f401511c23d47f62844bfcfb3e992641a74b2"
+    },
+    {
+      "pr": 117,
+      "path": "tests/commands/native_command_source_parser_test.cpp",
+      "result": "clean_take_pr",
+      "sha256": "ff21c0b8f02c21a0781c69c3d609893f1cb47abe34d91125fc756dbe81c09361"
+    },
+    {
+      "pr": 117,
+      "path": "tests/commands/native_mailbox_test.cpp",
+      "result": "clean_take_pr",
+      "sha256": "f6352d4c36669fc22a60b76eee4d6f52c778942fcdda8e9e94891af8fbe6cfce"
+    },
+    {
+      "pr": 121,
+      "path": "app/src/main/cpp/experiments/csharp/ManagedGoreCatalog.h",
+      "result": "clean_take_pr",
+      "sha256": "ff605475f97951bf6f7884d82c08ee4f5fa7a604ea0a207e378d7239a5d45814"
+    },
+    {
+      "pr": 121,
+      "path": "app/src/main/cpp/experiments/csharp/ManagedGoreDiscovery.cpp",
+      "result": "clean_take_pr",
+      "sha256": "33cb42fa1bc2507db2792d9bec7ad2842a0360875e2e3df17755b27c094d4af2"
+    },
+    {
+      "pr": 121,
+      "path": "app/src/main/cpp/experiments/csharp/ManagedGoreDiscovery.h",
+      "result": "clean_take_pr",
+      "sha256": "47c29496ccfdd9b195b873c182478427ea1af408d7c8cadea211861ce7ca3f13"
+    },
+    {
+      "pr": 121,
+      "path": "app/src/main/cpp/experiments/csharp/ManagedGoreRuntime.cpp",
+      "result": "clean_take_pr",
+      "sha256": "27653358f69b5e40de44a5c71a570f0f4a5c573f3fff3cdf4e2727e7616f8557"
+    },
+    {
+      "pr": 121,
+      "path": "app/src/main/cpp/experiments/csharp/ManagedGoreRuntime.h",
+      "result": "clean_take_pr",
+      "sha256": "5a7f781720b19086ad11084b75d997494c63cf25dca83c506bee699cdf308c87"
+    },
+    {
+      "pr": 121,
+      "path": "docs/csharp/GORE_LOADER_IMPLEMENTATION.md",
+      "result": "clean_take_pr",
+      "sha256": "9c92d7ab6adcc55d3d1e4951daf07994651315aba3abb4f2f9ebc23188b7be2a"
+    },
+    {
+      "pr": 121,
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Gores/ExampleBoss_GoreFront.png",
+      "result": "clean_take_pr",
+      "sha256": "88539a306ad15004cae715c3005dde108cd059eb44c6ea5b8980595c94b0857f"
+    },
+    {
+      "pr": 121,
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Gores/ExampleDroplet.png",
+      "result": "clean_take_pr",
+      "sha256": "4d884ceae0f84e55205037d84853416d216b9030419641f906f9f7da4f2289b0"
+    },
+    {
+      "pr": 121,
+      "path": "samples/ExampleModCSharp/Playable/content/Content/NPCs/ExampleSlimeNPC.cs",
+      "result": "clean_take_pr",
+      "sha256": "866bb16b06f4925994eb99b7acb512eda96a725e8f7e0b2653f8e97e4461e98c"
+    },
+    {
+      "pr": 121,
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleWaveBolt.cs",
+      "result": "clean_take_pr",
+      "sha256": "c6795f863be4341baf17566b582066ce566f6a2572d6c3557b47c9ce5e1d2124"
+    },
+    {
+      "pr": 121,
+      "path": "tests/csharp_gore_catalog_test.cpp",
+      "result": "clean_take_pr",
+      "sha256": "3e1e157380c517e15018623d281d0bda32c5bec18fd33a7e463d05924407519b"
+    },
+    {
+      "pr": 121,
+      "path": "tests/csharp_gore_discovery_test.cpp",
+      "result": "clean_take_pr",
+      "sha256": "ab770448311848a403d4e52aa4b569ce3200b27e39e9594bc36bd661955fe890"
+    },
+    {
+      "pr": 121,
+      "path": "tests/csharp_gore_examples/GoreExamples.csproj",
+      "result": "clean_take_pr",
+      "sha256": "d0a75408f38b7437a38b616990353f3e4f739a48d7bd65b77d491f8576edf530"
+    },
+    {
+      "pr": 121,
+      "path": "tests/stubs/android/log.h",
+      "result": "clean_take_pr",
+      "sha256": "5825ccad293c46a98d7209b5c6bfd5bf90a2f0b18cb1440f3ba9587dbe763e8f"
+    }
+  ],
+  "manual_reconciliation": [
+    {
+      "pr": 117,
+      "path": ".github/workflows/check-csharp-command-android-syntax.yml",
+      "reason": "outside_safe_source_scope"
+    },
+    {
+      "pr": 117,
+      "path": ".github/workflows/check-csharp-native-command-mailbox.yml",
+      "reason": "outside_safe_source_scope"
+    },
+    {
+      "pr": 117,
+      "path": ".github/workflows/command-loader-host-tests.yml",
+      "reason": "outside_safe_source_scope"
+    },
+    {
+      "pr": 117,
+      "path": "app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp",
+      "reason": "three_way_conflict",
+      "base_sha256": "f766787ea721267528fc8c3b7b139824628cae77786f4d912ad56757f961bb04",
+      "local_sha256": "c066dd5b2ce4f14d75bb22470fd394792dab5109d007de2473bb7c49f3fd755a",
+      "incoming_sha256": "b6cfca97a970f1b6a073c6e708178e5126d3c0b3d9fc7df6b1531aaa3ec75c70"
+    },
+    {
+      "pr": 117,
+      "path": "app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp",
+      "reason": "three_way_conflict",
+      "base_sha256": "f462836e285e1198b79e0124bdff61c3c084567827142156e4d4ef1de8a7b52e",
+      "local_sha256": "fba68ee1bab08f236ea22accaf6d598c54cb7832930af43c4f62c339587eb51e",
+      "incoming_sha256": "b1ab7612d20a6374b4e1fbb3e7163406de96aad17a23fd7f619c55f0152121de"
+    },
+    {
+      "pr": 117,
+      "path": "app/src/main/cpp/experiments/csharp/ManagedSourceClassCount.h",
+      "reason": "three_way_conflict",
+      "base_sha256": "cbf41bbc5942ddd5a618b3cd9c974d77cb5e53b2118267e7c75cacf7f45b9967",
+      "local_sha256": "fadea0b79838e18b1eca3bfe17a399c6849da364e2ea26431ce2a38b97892f83",
+      "incoming_sha256": "67215757ddee679d4c344c9aa4f99c6c725cad6434913d493fd98ea6e9570c56"
+    },
+    {
+      "pr": 117,
+      "path": "app/src/main/cpp/experiments/csharp/SourceLoader.cpp",
+      "reason": "three_way_conflict",
+      "base_sha256": "9312a2e872fbedb5fa43646642d3ab8932b2b3142d8a797555c0403173e910f4",
+      "local_sha256": "eeeb6cd91adf4a8b3fad3490f76e061b1c800d85dfe29b79e47b778fc59ad52f",
+      "incoming_sha256": "2764e2fc54eb4017fee68c303f84ffc73e48409984aef9e0a226c254433bc43d"
+    },
+    {
+      "pr": 117,
+      "path": "app/src/main/cpp/experiments/csharp/SourceParser.cpp",
+      "reason": "three_way_conflict",
+      "base_sha256": "6b720a80e3427fd06f4bb44998a7a01d86ae41ff0ef8697bdef6efa654e005e0",
+      "local_sha256": "0b3ef9731122cdd18cf1175411ef0f91487e6c9a825bd22dcb1a996848ea6767",
+      "incoming_sha256": "2a47d507be3e259200e0e1599fc6797927f7803a365e38bf95404169468c5f4f"
+    },
+    {
+      "pr": 117,
+      "path": "experiments/csharp/BunnyCsSdk/BunnyCommand.cs",
+      "reason": "outside_safe_source_scope"
+    },
+    {
+      "pr": 117,
+      "path": "experiments/csharp/BunnyCsSdk/BunnyCommandWorker.cs",
+      "reason": "outside_safe_source_scope"
+    },
+    {
+      "pr": 117,
+      "path": "experiments/csharp/BunnySourceCompiler/CommandManifestWriter.cs",
+      "reason": "outside_safe_source_scope"
+    },
+    {
+      "pr": 117,
+      "path": "experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs",
+      "reason": "outside_safe_source_scope"
+    },
+    {
+      "pr": 117,
+      "path": "experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj",
+      "reason": "outside_safe_source_scope"
+    },
+    {
+      "pr": 121,
+      "path": ".github/workflows/csharp-gore-native-link-no-apk.yml",
+      "reason": "outside_safe_source_scope"
+    },
+    {
+      "pr": 121,
+      "path": ".github/workflows/csharp-gore-source-check.yml",
+      "reason": "outside_safe_source_scope"
+    },
+    {
+      "pr": 121,
+      "path": ".github/workflows/stage-csharp-gore-sdk-no-apk.yml",
+      "reason": "outside_safe_source_scope"
+    },
+    {
+      "pr": 121,
+      "path": "app/src/main/assets/managed/BunnySourceSdk.dll",
+      "reason": "outside_safe_source_scope"
+    },
+    {
+      "pr": 121,
+      "path": "app/src/main/assets/managed/framework.sha256",
+      "reason": "outside_safe_source_scope"
+    },
+    {
+      "pr": 121,
+      "path": "app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp",
+      "reason": "three_way_conflict",
+      "base_sha256": "f766787ea721267528fc8c3b7b139824628cae77786f4d912ad56757f961bb04",
+      "local_sha256": "c066dd5b2ce4f14d75bb22470fd394792dab5109d007de2473bb7c49f3fd755a",
+      "incoming_sha256": "ab2f576e61d8b5d3c750fe974b8f421e47ae59b4ee131ac1d40205e4622ccdf9"
+    },
+    {
+      "pr": 121,
+      "path": "app/src/main/cpp/experiments/csharp/SourceLoader.cpp",
+      "reason": "three_way_conflict",
+      "base_sha256": "9312a2e872fbedb5fa43646642d3ab8932b2b3142d8a797555c0403173e910f4",
+      "local_sha256": "eeeb6cd91adf4a8b3fad3490f76e061b1c800d85dfe29b79e47b778fc59ad52f",
+      "incoming_sha256": "1bcaa2e312c9443807fd3bb87b7992925dbf25d3cb2c97138370b270455db998"
+    },
+    {
+      "pr": 121,
+      "path": "app/src/main/cpp/experiments/csharp/SourceLoader.h",
+      "reason": "three_way_conflict",
+      "base_sha256": "fb84a08c1713055e4d1a304a872e26cec64d19de1319fe1d44d3e0b037a88043",
+      "local_sha256": "e143d785d1f19454acc36e1893e7064191a5be61568f9869903e8c6f4d484fe1",
+      "incoming_sha256": "f5e0e28b8f60304746a37bb19d31ec1e6feb125e8704a40671f143611d526e57"
+    },
+    {
+      "pr": 121,
+      "path": "experiments/csharp/BunnyCsSdk/BunnyGore.cs",
+      "reason": "outside_safe_source_scope"
+    },
+    {
+      "pr": 121,
+      "path": "experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj",
+      "reason": "outside_safe_source_scope"
+    }
+  ],
+  "rules": {
+    "no_tmodloader_code": true,
+    "no_js_runtime_dependency": true,
+    "no_apk_or_release": true,
+    "no_last_writer_wins": true,
+    "not_loader_certification": true
+  }
+}

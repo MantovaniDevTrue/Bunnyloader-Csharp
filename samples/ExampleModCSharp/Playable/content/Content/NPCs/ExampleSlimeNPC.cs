@@ -40,6 +40,12 @@ public sealed class ExampleSlimeNPC : BunnyNPC
     public override void OnKill(ref BunnyNpcAiState state)
     {
         KillEvents++;
+        // Exemplo do gore original ExampleBoss_GoreFront do ExampleModBunny.
+        // A origem no centro do NPC evita o pedaco aparecer deslocado ao morrer.
+        // A API enfileira o efeito e a thread do Terraria executa NewGore.
+        BunnyGore.TrySpawn("examplemodcsharp", "ExampleBoss_GoreFront",
+            state.X + Width * 0.5f, state.Y + Height * 0.5f,
+            state.VelocityX * 0.35f, -2f, 1f);
     }
 
 }
