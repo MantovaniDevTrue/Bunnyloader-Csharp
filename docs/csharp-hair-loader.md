@@ -54,6 +54,27 @@ Base técnica: `ModHair` do tModLoader (API pública) e `HairLoader.js` /
   parciais, IDs divergentes ou caminhos inseguros. A ponte Mono que envia
   os dados permanece pendente.
 - O instalador de texturas recusa qualquer ID ocupado por outro mod.
+- `NativeHairReservation.h`: reserva blocos contíguos em startup para
+  diversos mods C#, ignorando slots ocupados em `PlayerHair` e
+  `PlayerHairAlt` (inclusive cabelos registrados pelo Bunny JS).
+  Um unload libera só a faixa daquele mod sem renumerar os restantes.
+  O host ainda precisa **usar esse alocador** antes de pedir a compilação.
+- `NativeHairSaveState.h`: guarda RAII para gravar 0 no arquivo vanilla e
+  restaurar o cabelo local em memória. `PendingRestore` adia o retorno
+  ao ID de mod até as texturas estarem prontas.
+- `NativeHairSidecar.{h,cpp}`: arquivo de versão `H1` independente do
+  `.plr.bl.json` do PlayerLoader JavaScript. Gravação atômica,
+  verificação de tamanho, leitura sem seguir symlinks e chave por UID/classe.
+- `NativeHairSaveSession.h`: preserva dados de um mod temporariamente
+  ausente, mas remove o sidecar se o jogador escolher outro penteado
+  e o salvamento concluir com sucesso.
+- `NativeHairPlayerIo.{h,cpp}`: implementação isolada dos hooks IL2CPP
+  de `InternalSavePlayerFile` e `LoadPlayer`, com checagem de assinatura,
+  campos e cloud save, usando os contratos de save anteriores.
+  **Ainda não está vinculada nem ativada pelo ciclo de produção.**
+- A verificação de organização do repositório voltou a passar depois
+  da recuperação de `docs/STATUS.md`.
+
 - Em `ModHair.cs`, `Type` já é atribuído antes de `AutoStaticDefaults`
   e `SetStaticDefaults`, como no tModLoader; se ocorrer erro, a inscrição
   gerenciada é revertida, sem consumir ID.
@@ -74,9 +95,12 @@ Base técnica: `ModHair` do tModLoader (API pública) e `HairLoader.js` /
    verificam somente compilação, comportamento lógico e fail-closed.
 4. Aplicar o gênero sugerido no sorteio de criação de personagem, sem restringir
    o jogador a um gênero na escolha manual.
-5. Conectar o contrato H1 ao save extra do personagem do Bunny. O arquivo
-   vanilla deve conter 0 durante save e ser restaurado mesmo em exceção; o
-   arquivo extra mantém UID/classe. Os testes H1 **não** substituem esse hook.
+5. Instalar os hooks `NativeHairPlayerIo` somente depois de confirmar as
+   assinaturas e a disponibilidade de todos os módulos em Android; fechar
+   a política de replace/remove de sidecar, salvar, recarregar e cloud.
+   O contrato usa arquivo `.plr.bl.csharp-hair` independente do JSON JS,
+   preservando o arquivo `.plr.bl.json` sem parsing do motor JavaScript.
+   Os testes host incluem RAII, falha, symlink, mod ausente e troca vanilla.
 6. Conectar a validação H1 aos hooks de envio e recebimento de pacote
    multiplayer e fazer QA com dois clientes de ordens diferentes. Os testes
    locais cobrem anti-spoof, identidade e fallback, não a rede real.
@@ -95,6 +119,15 @@ Na raiz deste repositório:
 dotnet build Split/Bunny-Loader/experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj -c Release
 dotnet run --project Split/Bunny-Loader/tests/hair_loader/HairLoader.Tests.csproj -c Release
 dotnet run --project Split/Bunny-Loader/tests/hair_loader/HairCompiler.Tests.csproj -c Release
+g++ -std=c++20 -Wall -Wextra -Werror \
+  -I Split/Bunny-Loader/app/src/main/cpp \
+  Split/Bunny-Loader/tests/hair_loader/native_reservation.cpp \
+  -o /tmp/native-hair-reservations && /tmp/native-hair-reservations
+g++ -std=c++20 -Wall -Wextra -Werror \
+  -I Split/Bunny-Loader/app/src/main/cpp \
+  Split/Bunny-Loader/tests/hair_loader/native_save.cpp \
+  Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairSidecar.cpp \
+  -o /tmp/native-hair-save && /tmp/native-hair-save
 g++ -std=c++20 -I Split/Bunny-Loader/app/src/main/cpp \
   Split/Bunny-Loader/tests/hair_loader/parser_guard.cpp \
   Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/SourceParser.cpp \
@@ -111,6 +144,9 @@ g++ -std=c++20 -Wall -Wextra -Werror -fsyntax-only \
 g++ -std=c++20 -Wall -Wextra -Werror -fsyntax-only \
   -I Split/Bunny-Loader/app/src/main/cpp \
   Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairUi.cpp
+g++ -std=c++20 -Wall -Wextra -Werror -fsyntax-only \
+  -I Split/Bunny-Loader/app/src/main/cpp \
+  Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairPlayerIo.cpp
 for name in native_unlock_state native_manifest; do
   g++ -std=c++20 -Wall -Wextra -Werror \
     -I Split/Bunny-Loader/app/src/main/cpp \
