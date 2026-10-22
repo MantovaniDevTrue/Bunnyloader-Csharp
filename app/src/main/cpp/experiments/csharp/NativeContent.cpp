@@ -13,6 +13,7 @@
 #include "experiments/csharp/NativeTileFlags.h"
 #include "experiments/csharp/NativeTileAdjacencyPolicy.h"
 #include "experiments/csharp/NativeTilePolicy.h"
+#include "experiments/csharp/ManagedBannerAnchors.h"
 #include "experiments/csharp/NativeBootEffects.h"
 
 #include "content/common/GameRefs.h"
@@ -2190,6 +2191,16 @@ bool applyTileShape(int type, const ManagedTileEntry& e) {
     void* heightArgs[1] = {heights};
     a.runtime_invoke(setHeights, tile, heightArgs, &exc);
     if (exc) return false;
+    if (e.shape == 2) {
+        Il2CppObject* alternate = tileStaticObject(cls, "newAlternate");
+        std::string anchorError;
+        if (!banners::configureNativeBannerAnchors(tileClass, cls, tile, alternate,
+                                                    &anchorError)) {
+            BL_ERROR("[CSharp][BannerTile] NativeAnchorConfig failed Type=%d: %s",
+                     type, anchorError.c_str());
+            return false;
+        }
+    }
     int32_t id = type;
     void* addArgs[1] = {&id};
     a.runtime_invoke(addTile, nullptr, addArgs, &exc);
