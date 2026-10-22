@@ -53,9 +53,20 @@ class ReleaseGateTests(unittest.TestCase):
         self.rows[0]["missingFeatures"] = ["Shoot: oito pellets"]
         self.assertTrue(any("Example000" in x for x in self.check()))
 
-    def test_no_android_proof_never_approves(self):
+    def test_complete_source_can_qualify_for_first_qa_apk(self):
+        self.rows[0]["status"] = "Implementado, aguardando validação"
         self.rows[0]["deviceEvidence"] = []
-        self.assertTrue(any("sem evidencia Android" in x for x in self.check()))
+        self.assertEqual([], self.check())
+        self.assertTrue(any("sem evidencia Android" in x for x in
+                            check_release(self.matrix, self.project, self.upstream,
+                                          phase="release")))
+
+    def test_android_release_needs_every_device_proof(self):
+        self.rows[0]["deviceEvidence"] = []
+        self.assertEqual([], self.check())
+        self.assertTrue(any("sem evidencia Android" in x for x in
+                            check_release(self.matrix, self.project, self.upstream,
+                                          phase="release")))
 
     def test_missing_code_and_unsafe_paths_block(self):
         self.rows[0]["cSharp"] = ["../../outside.cs"]
