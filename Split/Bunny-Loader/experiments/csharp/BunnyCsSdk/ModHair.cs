@@ -8,7 +8,7 @@ namespace BunnyLoader.Source;
 /// Gênero sugerido pela seleção aleatória de cabelo.
 /// Não impede um personagem de selecionar qualquer penteado manualmente.
 /// </summary>
-public enum HairGender
+public enum Gender
 {
     Unspecified = 0,
     Male = 1,
@@ -62,13 +62,16 @@ public abstract class ModHair
     public virtual bool AvailableDuringCharacterCreation => true;
 
     /// <summary>Gênero sugerido quando o gerador escolhe este cabelo.</summary>
-    public virtual HairGender RandomizedCharacterCreationGender => HairGender.Unspecified;
+    public virtual Gender RandomizedCharacterCreationGender => Gender.Unspecified;
 
     /// <summary>
     /// Condições do Cabeleireiro, com a mesma separação da API do tModLoader.
     /// Estas condições não escondem o cabelo na criação do personagem.
     /// </summary>
     public virtual IEnumerable<Condition> GetUnlockConditions() => Array.Empty<Condition>();
+
+    /// <summary>AutoStaticDefaults segue o contrato do tModLoader.</summary>
+    public virtual void AutoStaticDefaults() { }
 
     /// <summary>Chamado uma vez quando o conteúdo é registrado, antes das texturas.</summary>
     public virtual void SetStaticDefaults() { }
@@ -112,7 +115,7 @@ public sealed record HairDefinition(
     string FullName,
     string MainTexture,
     string AltTexture,
-    HairGender RandomGender);
+    Gender RandomGender);
 
 /// <summary>
 /// Registro gerenciado, independente de QuickJS.
@@ -159,6 +162,7 @@ public sealed class HairLoader
         if (nextType > MaximumHairType)
             throw new InvalidOperationException("Limite de IDs de cabelos de mod atingido.");
 
+        hair.AutoStaticDefaults();
         hair.SetStaticDefaults();
         string texture = ValidateTexture(hair.Texture);
         string alternate = ValidateTexture(hair.AltTexture);
@@ -168,8 +172,8 @@ public sealed class HairLoader
         if (!fileExists(alternate + ".png"))
             alternate = texture;
 
-        HairGender gender = hair.RandomizedCharacterCreationGender;
-        if (!Enum.IsDefined(typeof(HairGender), gender))
+        Gender gender = hair.RandomizedCharacterCreationGender;
+        if (!Enum.IsDefined(typeof(Gender), gender))
             throw new InvalidOperationException(key + ": gênero de randomização inválido.");
 
         int type = nextType;
