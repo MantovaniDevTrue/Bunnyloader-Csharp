@@ -12,6 +12,8 @@ enum class SidecarRead { Found, Missing, Invalid, IOError };
 
 std::string NativeHairSidecarPath(std::string_view terrariaPlayerPath);
 
+bool RemoveNativeHairSidecar(std::string_view terrariaPlayerPath, std::string* error);
+
 bool WriteNativeHairSidecar(std::string_view terrariaPlayerPath,
                             std::string_view stableKey, std::string* error);
 
