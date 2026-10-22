@@ -1601,10 +1601,6 @@ bool applyManagedSourceDefaults(
         *error = "[CSharp][BannerLoader] Stage=Preflight Result=Rejected Reason=" + *error;
         return false;
     }
-    if (!bannerBindings.empty() && !banners::installBannerLookupHooks()) {
-        *error = "[CSharp][BannerLoader] Stage=HookPreflight Result=Rejected Reason=MissingIl2CppSignatureOrDetour";
-        return false;
-    }
     if (!applyManagedNativeBuffDefaultsBatch(modId, buffs, potions)) {
         *error = "Falha ao validar buffs e pocoes C# gerenciados";
         return false;
@@ -1720,7 +1716,16 @@ bool applyManagedSourceDefaults(
 std::vector<SourceModStatus> sourceModStatuses() { return g_statuses; }
 
 bool prepareBannerWorldArraysOnGameThread(std::string* error) {
-    return banners::growGameArraysOnMainThread(error);
+    if (!banners::growGameArraysOnMainThread(error)) return false;
+    const auto state = banners::registry(runtime::kVanillaNpcCount).snapshot();
+    if (state->bannerToItem.empty()) return true;
+    if (!banners::installBannerLookupHooks()) {
+        if (error) *error = "BannerSystem: falha ao instalar 3 hooks na thread do jogo";
+        return false;
+    }
+    // Nao ativar antes do sidecar, refresh, rede e tile completos.
+    banners::setBannerLookupsActive(false);
+    return true;
 }
 
 bool sourceRuntimeApplied(const std::string& modId) {
