@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <atomic>
 #include <locale>
 #include <sstream>
@@ -21,6 +22,14 @@ struct NativeDamageStatModifier {
     float flat = 0.f;
 };
 
+struct NativeDamageInheritance {
+    float damage = 0.f;
+    float crit = 0.f;
+    float attackSpeed = 0.f;
+    float armorPenetration = 0.f;
+    float knockback = 0.f;
+};
+
 struct NativeDamageClassStatDefaults {
     NativeDamageStatModifier damage;
     NativeDamageStatModifier knockback;
@@ -28,6 +37,7 @@ struct NativeDamageClassStatDefaults {
     float attackSpeed = 1.f;
     float armorPenetration = 0.f;
     bool standardCrit = true;
+    std::array<NativeDamageInheritance, 5> inheritance{};
 };
 
 class NativeDamageClassStatRegistry {
@@ -48,8 +58,8 @@ class NativeDamageClassStatRegistry {
 public:
     bool publish(const std::string& mod, std::string_view wire) {
         if (mod.empty() || mod.size() > 128 || wire.size() > 32768 ||
-            !wire.starts_with("DAMAGE_CLASS_STATS_V1\n")) return false;
-        wire.remove_prefix(sizeof("DAMAGE_CLASS_STATS_V1\n") - 1);
+            !wire.starts_with("DAMAGE_CLASS_STATS_V2\n")) return false;
+        wire.remove_prefix(sizeof("DAMAGE_CLASS_STATS_V2\n") - 1);
         Stats incoming;
         int rows = 0;
         while (!wire.empty()) {
@@ -66,7 +76,7 @@ public:
                 if (tab == std::string_view::npos) break;
                 line.remove_prefix(tab + 1);
             }
-            if (columns.size() != 14 || columns[0] != "CLASS" ||
+            if (columns.size() != 39 || columns[0] != "CLASS" ||
                 columns[1].empty() || columns[1].size() > 240 ||
                 (columns[13] != "0" && columns[13] != "1")) return false;
             float parsed[11]{};
@@ -78,6 +88,15 @@ public:
                 {parsed[4], parsed[5], parsed[6], parsed[7]},
                 parsed[8], parsed[9], parsed[10], columns[13] == "1"
             };
+            for (size_t source = 0; source < 5; ++source) {
+                float part[5]{};
+                for (size_t attribute = 0; attribute < 5; ++attribute)
+                    if (!number(columns[14 + source * 5 + attribute], &part[attribute]))
+                        return false;
+                stats.inheritance[source] = {
+                    part[0], part[1], part[2], part[3], part[4]
+                };
+            }
             if (!incoming.emplace(Key{mod, "C:" + std::string(columns[1])}, stats).second)
                 return false;
         }
