@@ -29,4 +29,32 @@ int main() {
     assert(std::abs(delta - .6f) < .0001f);
     assert(nativeVanillaPlayerDamageValid({1.f, 1.f, 1.f, 1.f}));
     assert(!nativeVanillaPlayerDamageValid({1001.f, 1.f, 1.f, 1.f}));
+
+    custom.inheritance[1].crit = .5f;
+    custom.inheritance[2].crit = -1.f;
+    custom.inheritance[3].crit = 2.f;
+    float sharedCrit = -100.f, critDelta = -100.f;
+    assert(projectNativeClassCritDelta(custom, {20, 10, 15}, &sharedCrit, &critDelta));
+    assert(sharedCrit == 10.f && std::abs(critDelta - 15.f) < .0001f);
+    custom.inheritance[1].crit = 0.f;
+    custom.inheritance[2].crit = 0.f;
+    custom.inheritance[3].crit = 0.f;
+    assert(projectNativeClassCritDelta(custom, {20, 10, 15}, &sharedCrit, &critDelta));
+    assert(sharedCrit == 10.f && critDelta == 0.f);
+    assert(!projectNativeClassCritDelta(custom, {1001, 0, 0}, &sharedCrit, &critDelta));
+    assert(!projectNativeClassCritDelta(custom, {0, -1001, 0}, &sharedCrit, &critDelta));
+    assert(!projectNativeClassCritDelta(custom, {0, 0, 0}, nullptr, &critDelta));
+    assert(!projectNativeClassCritDelta(custom, {0, 0, 0}, &sharedCrit, nullptr));
+
+    float speedDelta = -100.f;
+    custom.inheritance[1].attackSpeed = 1.f;
+    assert(projectNativeClassMeleeSpeedDelta(custom, 1.25f, &speedDelta));
+    assert(std::abs(speedDelta - .25f) < .0001f);
+    custom.inheritance[1].attackSpeed = -2.f;
+    assert(projectNativeClassMeleeSpeedDelta(custom, 1.25f, &speedDelta));
+    assert(std::abs(speedDelta + .5f) < .0001f);
+    assert(!projectNativeClassMeleeSpeedDelta(custom, NAN, &speedDelta));
+    assert(!projectNativeClassMeleeSpeedDelta(custom, -1.f, &speedDelta));
+    assert(!projectNativeClassMeleeSpeedDelta(custom, 1.f, nullptr));
+    assert(std::abs(speedDelta + .5f) < .0001f);
 }
