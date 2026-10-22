@@ -11,6 +11,7 @@ import argparse
 import hashlib
 import json
 from pathlib import Path, PurePosixPath
+from check_assets import check as check_original_assets
 
 UPSTREAM_COMMIT = "a0132963026e3b35e45f33ffffa01a75eb8535d5"
 BASELINE_JS_COUNT = 232
@@ -193,6 +194,7 @@ def main() -> int:
         return 1
     problems = check_release(report, args.project_root, args.upstream_root,
                              args.upstream_commit, phase=args.phase, inventory=inventory)
+    problems.extend(check_original_assets(args.project_root, inventory))
     if problems:
         print(f"EXAMPLEMOD_APK_GATE=BLOCKED: {len(problems)} pendencias")
         for problem in problems[:30]:
