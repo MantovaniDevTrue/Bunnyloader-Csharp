@@ -15,6 +15,7 @@ on:
       - app/src/main/cpp/experiments/csharp/ManagedBannerMetrics.h
       - app/src/main/cpp/experiments/csharp/ManagedBannerStrength.h
       - app/src/main/cpp/experiments/csharp/ManagedBannerAnchors.h
+      - app/src/main/cpp/experiments/csharp/ManagedBannerSaveSlice.h
       - app/src/main/cpp/experiments/csharp/ManagedBannerWorldFile.h
       - app/src/main/cpp/experiments/csharp/ManagedBannerWorldSession.h
       - app/src/main/cpp/experiments/csharp/ManagedBannerSaveHooks.h
@@ -154,6 +155,12 @@ jobs:
             tests/banners/native_strength_policy.cpp \
             -o /tmp/bunny-banner-strength
           /tmp/bunny-banner-strength
+      - name: Verify vanilla-only banner save bounds
+        run: |
+          c++ -std=c++20 -O1 -Wall -Wextra -Werror -pthread \
+            -Iapp/src/main/cpp tests/banners/native_save_slice.cpp \
+            -o /tmp/bunny-banner-save-slice
+          /tmp/bunny-banner-save-slice
       - name: Test bounded BannerSystem array planner
         run: |
           c++ -std=c++20 -O1 -Wall -Wextra -Werror -pthread \
