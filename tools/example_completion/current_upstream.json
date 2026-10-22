@@ -1,0 +1,1199 @@
+{
+  "schemaVersion": 1,
+  "upstreamRepository": "JonataOliveiraa/Bunny-Loader",
+  "upstreamCommit": "a0132963026e3b35e45f33ffffa01a75eb8535d5",
+  "upstreamTree": "5143dca50f6575d96a7f9ff094ca5e60b7328fd7",
+  "scope": "samples/ExampleMod/content/**/*.js",
+  "count": 232,
+  "previousDocumentedCount": 206,
+  "newOriginals": [
+    "Common/Commands/ExampleCoinsCommand.js",
+    "Common/Commands/ExampleStructureCommand.js",
+    "Common/Networking/MessageType.js",
+    "Common/Players/ExampleResourcePlayer.js",
+    "Common/Players/ExampleStatIncreasePlayer.js",
+    "Common/Systems/ExampleStructureSystem.js",
+    "Common/UI/ExampleCoinsUI/ExampleCoinsUIState.js",
+    "Common/UI/ExampleCoinsUI/ExampleCoinsUISystem.js",
+    "Common/UI/ExampleCoinsUI/ExampleDraggableUIPanel.js",
+    "Common/UI/ExampleCoinsUI/ExampleUIHoverImageButton.js",
+    "Common/UI/ExampleCoinsUI/MoneyCounterGlobalItem.js",
+    "Common/UI/ExampleCoinsUI/UIMoneyDisplay.js",
+    "Common/UI/ExampleResourceUI/ExampleResourceBar.js",
+    "Common/UI/ExampleResourceUI/ExampleResourceUISystem.js",
+    "Common/UI/ResourceOverlay/VanillaLifeOverlay.js",
+    "Common/UI/ResourceOverlay/VanillaManaOverlay.js",
+    "Content/Dusts/ExampleAdvancedDust.js",
+    "Content/Dusts/ExampleBubble.js",
+    "Content/Dusts/ExampleCustomDrawDust.js",
+    "Content/Dusts/ExampleSolutionDust.js",
+    "Content/Dusts/Sparkle.js",
+    "Content/Items/Accessories/ExampleResourceAccessory.js",
+    "Content/Items/Consumables/ExampleLifeFruit.js",
+    "Content/Items/Consumables/ExampleManaCrystal.js",
+    "Content/Items/Weapons/ExampleCustomResourceWeapon.js",
+    "Content/Structures/ExampleStructure.js"
+  ],
+  "files": [
+    {
+      "path": "Common/Commands/ExampleCoinsCommand.js",
+      "gitBlob": "36345a01ba323e8a154bbc6fa082a0ed3a9b3d35",
+      "size": 482
+    },
+    {
+      "path": "Common/Commands/ExampleStructureCommand.js",
+      "gitBlob": "0b24952f62fe2f74453c3db6d76f3947a5fbac05",
+      "size": 1504
+    },
+    {
+      "path": "Common/Commands/ExampleTimeCommand.js",
+      "gitBlob": "b394034975bd782b153a8e285c4755f558374b48",
+      "size": 1507
+    },
+    {
+      "path": "Common/Commands/HealCommand.js",
+      "gitBlob": "fd15756af79f5e6f03e67acb6d140038f7fa9883",
+      "size": 1082
+    },
+    {
+      "path": "Common/Configs/ExampleConfig.js",
+      "gitBlob": "4ab6be6a63ac5bbc98d3b88fe169c31b9f1e3c60",
+      "size": 2361
+    },
+    {
+      "path": "Common/GlobalBossBars/ExampleGlobalBossBar.js",
+      "gitBlob": "a6af3a36ec14404042769d2d60c1287a05615fe6",
+      "size": 1442
+    },
+    {
+      "path": "Common/GlobalBuffs/ExampleGlobalBuff.js",
+      "gitBlob": "1bee0fbd33d6cac2612b8fa18d476e00afd2cfc4",
+      "size": 4169
+    },
+    {
+      "path": "Common/GlobalNPCs/ExampleNPCLoot.js",
+      "gitBlob": "d736ada516b915c90f7e0fffe3a262204b6e3849",
+      "size": 475
+    },
+    {
+      "path": "Common/GlobalNPCs/ExamplePickupGlobalNPC.js",
+      "gitBlob": "b4390c25d0da1a4baf75f6c8c5c39ffabad8b2c4",
+      "size": 1419
+    },
+    {
+      "path": "Common/GlobalNPCs/ExamplePylonShop.js",
+      "gitBlob": "8f9b526091f207c8f120d358d1d4698338899c58",
+      "size": 1469
+    },
+    {
+      "path": "Common/GlobalRecipes/ExampleGlobalRecipe.js",
+      "gitBlob": "23291ae5aafa5fc5cc22018b82458810c545096b",
+      "size": 1498
+    },
+    {
+      "path": "Common/GlobalTiles/ShakeTrees.js",
+      "gitBlob": "17ac1878faa6b099c16e76fe160483bad1591df0",
+      "size": 4033
+    },
+    {
+      "path": "Common/GlobalTiles/SunflowerChanges.js",
+      "gitBlob": "791d32afba512f48a0bdb5b1ad50dd6aaa1ec690",
+      "size": 656
+    },
+    {
+      "path": "Common/Networking/MessageType.js",
+      "gitBlob": "e500814d085cbba78086db80df2364211ffeaaef",
+      "size": 496
+    },
+    {
+      "path": "Common/Players/ExampleCostumePlayer.js",
+      "gitBlob": "eaf249d8fd3ae2707afacf3244c0e1c2a844250e",
+      "size": 1369
+    },
+    {
+      "path": "Common/Players/ExampleDashPlayer.js",
+      "gitBlob": "dd433e7b01ac23dae85b74f8ddfb035e171ebabb",
+      "size": 3630
+    },
+    {
+      "path": "Common/Players/ExampleFishingPlayer.js",
+      "gitBlob": "17fdd48fcd3976940bce8bdb4767e6f5565917b3",
+      "size": 623
+    },
+    {
+      "path": "Common/Players/ExampleLowLifePlayer.js",
+      "gitBlob": "406e092341bf08e900b953cf5d061d57fbcc312a",
+      "size": 1298
+    },
+    {
+      "path": "Common/Players/ExamplePlayer.js",
+      "gitBlob": "e5d32ee479bb3bd13cfa295fa6cb8d3d61ab27f8",
+      "size": 756
+    },
+    {
+      "path": "Common/Players/ExampleResourcePlayer.js",
+      "gitBlob": "90db94d44f66e9dfb21ad27cb14e6d1ae7de9bbd",
+      "size": 4091
+    },
+    {
+      "path": "Common/Players/ExampleStatIncreasePlayer.js",
+      "gitBlob": "95fafd320f1a52267555710fb824ae5eb9979db6",
+      "size": 2256
+    },
+    {
+      "path": "Common/Players/ExampleTouchButtonPlayer.js",
+      "gitBlob": "cdc6ea1a829cadf298dc963dec3c27fca56d5c4c",
+      "size": 2113
+    },
+    {
+      "path": "Common/Players/WingsGlowmask.js",
+      "gitBlob": "275804a4b46efe120e0d025345045e32c45904cb",
+      "size": 3108
+    },
+    {
+      "path": "Common/Systems/DownedBossSystem.js",
+      "gitBlob": "1e4e6fd09ea19597a5af7b9b6de44547323c06d2",
+      "size": 584
+    },
+    {
+      "path": "Common/Systems/ExampleBiomeTileCount.js",
+      "gitBlob": "f2885d2b2f97de0408d8231236ce2b7e0395fe20",
+      "size": 289
+    },
+    {
+      "path": "Common/Systems/ExampleStructureSystem.js",
+      "gitBlob": "303c90a1ef4c2448c587ebeda599db2975ee2686",
+      "size": 1147
+    },
+    {
+      "path": "Common/Systems/TouchButtonSystem.js",
+      "gitBlob": "23bfdd66733b50a64fe68e61976839c778d6e65a",
+      "size": 1058
+    },
+    {
+      "path": "Common/UI/ExampleCoinsUI/ExampleCoinsUIState.js",
+      "gitBlob": "3cd14694c88da96ebc1571f0184938a0edf67217",
+      "size": 2595
+    },
+    {
+      "path": "Common/UI/ExampleCoinsUI/ExampleCoinsUISystem.js",
+      "gitBlob": "50981c1d840bb037e8f7fce5d166121eabbfc05b",
+      "size": 1358
+    },
+    {
+      "path": "Common/UI/ExampleCoinsUI/ExampleDraggableUIPanel.js",
+      "gitBlob": "d272b5a36a1188e8aa07271c8caf51561965dbfd",
+      "size": 1904
+    },
+    {
+      "path": "Common/UI/ExampleCoinsUI/ExampleUIHoverImageButton.js",
+      "gitBlob": "ce7adef0e4abac0cbd6061b2de77f1044ab9f56e",
+      "size": 411
+    },
+    {
+      "path": "Common/UI/ExampleCoinsUI/MoneyCounterGlobalItem.js",
+      "gitBlob": "f7501bf5891960ce4e378c2e3eb90a459ee31e38",
+      "size": 536
+    },
+    {
+      "path": "Common/UI/ExampleCoinsUI/UIMoneyDisplay.js",
+      "gitBlob": "fbcb331bb3f0f7c86eed1e868afb7b0d3361cfe9",
+      "size": 2905
+    },
+    {
+      "path": "Common/UI/ExampleResourceUI/ExampleResourceBar.js",
+      "gitBlob": "52c5f66d4eb0f9e34570b2624eed4d01fe2dc903",
+      "size": 3173
+    },
+    {
+      "path": "Common/UI/ExampleResourceUI/ExampleResourceUISystem.js",
+      "gitBlob": "efce643829f012899f71ba84dab3d12ae50f88c9",
+      "size": 1240
+    },
+    {
+      "path": "Common/UI/ResourceOverlay/VanillaLifeOverlay.js",
+      "gitBlob": "9e80738c546c5a659d21cc09afa0b590242d4c9a",
+      "size": 3499
+    },
+    {
+      "path": "Common/UI/ResourceOverlay/VanillaManaOverlay.js",
+      "gitBlob": "404ec56f57d354f960ea504eda9afc9524a40563",
+      "size": 3304
+    },
+    {
+      "path": "Content/Achievements/ExampleBossKilled.js",
+      "gitBlob": "8c4e87ac1d0ce570ec44050b4aa02b453b18ae41",
+      "size": 303
+    },
+    {
+      "path": "Content/Achievements/ManyWormsKilled.js",
+      "gitBlob": "4b201a8c764ad8c38f8fcaad288868489feaf095",
+      "size": 804
+    },
+    {
+      "path": "Content/Biomes/ExampleSurfaceBackgroundStyle.js",
+      "gitBlob": "28918858be0ea5ea0556e9447bf1a746eae758cc",
+      "size": 1671
+    },
+    {
+      "path": "Content/Biomes/ExampleSurfaceBiome.js",
+      "gitBlob": "a32a54497918fc381dce68920498493c410da269",
+      "size": 1050
+    },
+    {
+      "path": "Content/Biomes/ExampleUndergroundBackgroundStyle.js",
+      "gitBlob": "1ad9769cd77e39604c91f2849d26169caa1ba6a7",
+      "size": 413
+    },
+    {
+      "path": "Content/Biomes/ExampleUndergroundBiome.js",
+      "gitBlob": "614c3ce29607978725e4bdeae05e3a07a1046e43",
+      "size": 912
+    },
+    {
+      "path": "Content/Biomes/ExampleWaterfallStyle.js",
+      "gitBlob": "5c969cbf46f9a35d1443dc050fe98ed9e09129d5",
+      "size": 329
+    },
+    {
+      "path": "Content/Biomes/ExampleWaterStyle.js",
+      "gitBlob": "e0f0ddea2e80186893953ae61eeb91b6631bbd95",
+      "size": 1044
+    },
+    {
+      "path": "Content/BossBars/ExampleBossBar.js",
+      "gitBlob": "a557cb88ff7cdfb4c27d1e884c00d17103adccd8",
+      "size": 1369
+    },
+    {
+      "path": "Content/Buffs/Blocky.js",
+      "gitBlob": "1b100658ac546fa834c0dc2473ea2faaf83dfa7d",
+      "size": 896
+    },
+    {
+      "path": "Content/Buffs/ExampleDefenseBuff.js",
+      "gitBlob": "df377ddc1c6b74e9e6ed74dc4905caa60cecd820",
+      "size": 1175
+    },
+    {
+      "path": "Content/Buffs/ExampleDefenseDebuff.js",
+      "gitBlob": "92c93b5cad737adb5834076f65b85f5a7d9f4952",
+      "size": 711
+    },
+    {
+      "path": "Content/Buffs/ExampleMinecartBuff.js",
+      "gitBlob": "62b979d42a70ecbef9eb725b380777d1d5da052d",
+      "size": 438
+    },
+    {
+      "path": "Content/Buffs/ExampleMinionBuff.js",
+      "gitBlob": "2aee95f7f251a017f310085e0897b2be7543848a",
+      "size": 680
+    },
+    {
+      "path": "Content/Buffs/ExampleMountBuff.js",
+      "gitBlob": "87fa929c41d9c797426f29b62135f27736d444a2",
+      "size": 574
+    },
+    {
+      "path": "Content/Clouds/ExampleAdvancedCloud.js",
+      "gitBlob": "a84d6c48171ccd682806fe134ed1af9f1b99e73f",
+      "size": 794
+    },
+    {
+      "path": "Content/DamageClasses/ExampleDamageClass.js",
+      "gitBlob": "9395ddf282f0781b9191220d03ea115c38f8b6fc",
+      "size": 1037
+    },
+    {
+      "path": "Content/Dusts/ExampleAdvancedDust.js",
+      "gitBlob": "0fad6387a36b7b3b7ac29f878180fb5ea1398789",
+      "size": 1386
+    },
+    {
+      "path": "Content/Dusts/ExampleBubble.js",
+      "gitBlob": "67e7c1bfe3619e218853f1119430a2c5ed0684fa",
+      "size": 446
+    },
+    {
+      "path": "Content/Dusts/ExampleCustomDrawDust.js",
+      "gitBlob": "90a7d10bba3f36fae4d39499f69aad3a98869d6b",
+      "size": 1872
+    },
+    {
+      "path": "Content/Dusts/ExampleSolutionDust.js",
+      "gitBlob": "aec8676c871c061726cb787599b9edb0a3dc4c52",
+      "size": 307
+    },
+    {
+      "path": "Content/Dusts/Sparkle.js",
+      "gitBlob": "d61934e3aecbdf1da6e023c06c60ae216925b1d1",
+      "size": 1028
+    },
+    {
+      "path": "Content/Effects/ExampleRiftEffect.js",
+      "gitBlob": "325acf7c09d82a4a87e34a833f66bdfc631421ec",
+      "size": 987
+    },
+    {
+      "path": "Content/EmoteBubbles/ExampleAnimatedEmote.js",
+      "gitBlob": "d8dad13ca617a32b46b922792aeab8df182a0567",
+      "size": 1120
+    },
+    {
+      "path": "Content/EmoteBubbles/ExampleItemEmote.js",
+      "gitBlob": "8a5ca99621f762898ec5fa934756432972728252",
+      "size": 280
+    },
+    {
+      "path": "Content/ExampleModMenu.js",
+      "gitBlob": "660e114920774b0aefaffb43bc875c2dbcb2205b",
+      "size": 832
+    },
+    {
+      "path": "Content/ExampleRecipes.js",
+      "gitBlob": "5d9da446716de16febdb6ed7e9a88f9cccbbaa3a",
+      "size": 4018
+    },
+    {
+      "path": "Content/Hairs/ExampleHair.js",
+      "gitBlob": "7c8fbe3d4b1d58fd0368d57bcc83341077f9bbbf",
+      "size": 467
+    },
+    {
+      "path": "Content/Items/Accessories/ExampleBeard.js",
+      "gitBlob": "e1fafce687afe8208a3b686feea6a0d2139f1aec",
+      "size": 528
+    },
+    {
+      "path": "Content/Items/Accessories/ExampleBoots.js",
+      "gitBlob": "a8ef26f177c00667bfb6cbcfdb8622101ac14495",
+      "size": 2008
+    },
+    {
+      "path": "Content/Items/Accessories/ExampleResourceAccessory.js",
+      "gitBlob": "9ed79b368781d6e6291e34972339e795e3ff97ae",
+      "size": 1109
+    },
+    {
+      "path": "Content/Items/Accessories/ExampleShield.js",
+      "gitBlob": "917ca07d56c39e1e86d903ee2a48b2f3ccf2d046",
+      "size": 833
+    },
+    {
+      "path": "Content/Items/Accessories/ExampleStatAccessory.js",
+      "gitBlob": "d5f1a8c6d539d9b09582428038da5c1145a2db99",
+      "size": 907
+    },
+    {
+      "path": "Content/Items/Accessories/ExampleStatBonusAccessory.js",
+      "gitBlob": "c36f67b81fb479feaf3127fcc0b94b7193c37b1f",
+      "size": 1438
+    },
+    {
+      "path": "Content/Items/Accessories/ExampleWings.js",
+      "gitBlob": "cbdaebae9ffaf384a7ce7244488b77a2da18c0d1",
+      "size": 962
+    },
+    {
+      "path": "Content/Items/Accessories/WaspNest.js",
+      "gitBlob": "19a11c61e34b2aba2e74328fc11cf1b1ec152eb7",
+      "size": 398
+    },
+    {
+      "path": "Content/Items/Ammo/ExampleBullet.js",
+      "gitBlob": "8687d1239e5d65d3e42b8a33da1cfa2174a2c13a",
+      "size": 562
+    },
+    {
+      "path": "Content/Items/Armor/ExampleBreastplate.js",
+      "gitBlob": "9847b2b4acaf7e94b2a8c42fb3c1d494b8dc3223",
+      "size": 1107
+    },
+    {
+      "path": "Content/Items/Armor/ExampleCostume.js",
+      "gitBlob": "14f26d926ea21cd6663731bcc14ed805a3ba851a",
+      "size": 3091
+    },
+    {
+      "path": "Content/Items/Armor/ExampleHelmet.js",
+      "gitBlob": "99d4f417ebce3630766c4ad17dc7b49e254c8dc4",
+      "size": 1418
+    },
+    {
+      "path": "Content/Items/Armor/ExampleLeggings.js",
+      "gitBlob": "af9b5db8743a0e7a63379e87091d62794f0fcd25",
+      "size": 827
+    },
+    {
+      "path": "Content/Items/Armor/Vanity/ExampleBossMask.js",
+      "gitBlob": "fc730b6ec3e84fb54008ffce1f3d67656e5a506a",
+      "size": 387
+    },
+    {
+      "path": "Content/Items/Armor/Vanity/ExampleRobe.js",
+      "gitBlob": "22d3994b05b58c44c4a5c6396219335e02e8749b",
+      "size": 782
+    },
+    {
+      "path": "Content/Items/Consumables/ExampleBossBag.js",
+      "gitBlob": "a99eb17138b44a71d4ded3c397db3b653015f03c",
+      "size": 1458
+    },
+    {
+      "path": "Content/Items/Consumables/ExampleBossSummonItem.js",
+      "gitBlob": "ddb58caae42de7784cf559360105ad25ad4cc46c",
+      "size": 1917
+    },
+    {
+      "path": "Content/Items/Consumables/ExampleBuffPotion.js",
+      "gitBlob": "22c42157b108477a2ab83f3d4c9f87e1f7823d1a",
+      "size": 921
+    },
+    {
+      "path": "Content/Items/Consumables/ExampleLifeFruit.js",
+      "gitBlob": "bbff1df9c1d0c6382ca44761693ce09e98a8fb92",
+      "size": 1599
+    },
+    {
+      "path": "Content/Items/Consumables/ExampleManaCrystal.js",
+      "gitBlob": "39bbe20343ac288d51efe0b5a6ae1cf38b577f76",
+      "size": 1621
+    },
+    {
+      "path": "Content/Items/ExampleGolfBall.js",
+      "gitBlob": "c6156f400454523c6608066d8d386cff29f2c947",
+      "size": 165
+    },
+    {
+      "path": "Content/Items/ExampleItem.js",
+      "gitBlob": "4e0e5209a976a4c87176a155787c915aa3ecb1b5",
+      "size": 1264
+    },
+    {
+      "path": "Content/Items/ExamplePickup.js",
+      "gitBlob": "3f07d0b9665a08bc2271b885c0e9f9e787566812",
+      "size": 1672
+    },
+    {
+      "path": "Content/Items/ExampleTooltipItem.js",
+      "gitBlob": "d7eebb5fbc6d302fb2d94e786c1a996302d7a9ae",
+      "size": 3358
+    },
+    {
+      "path": "Content/Items/Materials/ExampleSoul.js",
+      "gitBlob": "978668be8df48bb901df671afaf3ba7082fd09bb",
+      "size": 895
+    },
+    {
+      "path": "Content/Items/Mounts/ExampleMinecart.js",
+      "gitBlob": "f22ad9d5c295f9985be940d62f7f2028a23c73e6",
+      "size": 730
+    },
+    {
+      "path": "Content/Items/Mounts/ExampleMountItem.js",
+      "gitBlob": "3361d446f27176df07fdb44eeeb1033dd2313bb8",
+      "size": 901
+    },
+    {
+      "path": "Content/Items/Placeable/Banners/ExampleSlimeBanner.js",
+      "gitBlob": "acf93b9af0992ad1ab412880fcb1d9a6bda847b3",
+      "size": 355
+    },
+    {
+      "path": "Content/Items/Placeable/ExampleAnimatedGlowmaskTileItem.js",
+      "gitBlob": "7200fc1b0aec3f07e270e746aeb914d5dde52c46",
+      "size": 527
+    },
+    {
+      "path": "Content/Items/Placeable/ExampleAnimatedTileItem.js",
+      "gitBlob": "263e4aaea26d192952173a8dc401a821daf4b480",
+      "size": 517
+    },
+    {
+      "path": "Content/Items/Placeable/ExampleBar.js",
+      "gitBlob": "7a9a0e0a30a1cf0960cbad1db7f9b154521fa27a",
+      "size": 593
+    },
+    {
+      "path": "Content/Items/Placeable/ExampleCampfire.js",
+      "gitBlob": "5a7c02ecc5144f7fcef09cfb7c6017f9408f666b",
+      "size": 341
+    },
+    {
+      "path": "Content/Items/Placeable/ExampleCutTile.js",
+      "gitBlob": "db672d6b1020949bd3a406aced3bce486466d62c",
+      "size": 465
+    },
+    {
+      "path": "Content/Items/Placeable/ExampleGemsparkBlock.js",
+      "gitBlob": "125a6b9580a2a623f78c31f37a8495e15db90e51",
+      "size": 483
+    },
+    {
+      "path": "Content/Items/Placeable/ExampleHerbSeeds.js",
+      "gitBlob": "645ebac170cfcd431a6bd5ce08f2adfbf983e94f",
+      "size": 467
+    },
+    {
+      "path": "Content/Items/Placeable/ExampleLamp.js",
+      "gitBlob": "f3564c7bd22959974a849a842d15545fe2e5ec47",
+      "size": 440
+    },
+    {
+      "path": "Content/Items/Placeable/ExampleLivingFire.js",
+      "gitBlob": "6b6090f1b4295550e949c903befd8c26a050624d",
+      "size": 678
+    },
+    {
+      "path": "Content/Items/Placeable/ExampleMusicBox.js",
+      "gitBlob": "ada0c06011248ce841716f1beb495a35fe4dc022",
+      "size": 855
+    },
+    {
+      "path": "Content/Items/Placeable/ExampleOreItem.js",
+      "gitBlob": "aee22709ef3390f39598f6ba5f8efbffbe3fa9de",
+      "size": 425
+    },
+    {
+      "path": "Content/Items/Placeable/ExamplePylonItem.js",
+      "gitBlob": "ee4bba62c93807792c40ca85bf4c3370744fe02c",
+      "size": 394
+    },
+    {
+      "path": "Content/Items/Placeable/ExampleSignItem.js",
+      "gitBlob": "c38f62643f65554b00310746b0fd02f98e42bc5b",
+      "size": 461
+    },
+    {
+      "path": "Content/Items/Placeable/ExampleSinkItem.js",
+      "gitBlob": "ff70630667e01aa09b0fd78b9f245d1672032db6",
+      "size": 440
+    },
+    {
+      "path": "Content/Items/Placeable/ExampleStatue.js",
+      "gitBlob": "e65168a851a2be1419c7403a2d02b6b337f40519",
+      "size": 529
+    },
+    {
+      "path": "Content/Items/Placeable/ExampleTileItem.js",
+      "gitBlob": "b867170048681254180a7c9bc3076b5167041818",
+      "size": 410
+    },
+    {
+      "path": "Content/Items/Placeable/ExampleTorch.js",
+      "gitBlob": "6199f17526ddf72a9d0e7de95f018d63669ffbb2",
+      "size": 1143
+    },
+    {
+      "path": "Content/Items/Placeable/ExampleTransparentShapedTileItem.js",
+      "gitBlob": "17c7fd677eb864237a689a2687d85fb99e43343c",
+      "size": 328
+    },
+    {
+      "path": "Content/Items/Placeable/ExampleTrap.js",
+      "gitBlob": "c021ad883c5e042cedbf9fdc54efa76d5a5e5c6f",
+      "size": 869
+    },
+    {
+      "path": "Content/Items/Placeable/ExampleWall.js",
+      "gitBlob": "83ad5efa8034a9d900ed134c8f6a7c5bae2cb2f4",
+      "size": 349
+    },
+    {
+      "path": "Content/Items/Placeable/ExampleWallAdvanced.js",
+      "gitBlob": "20031953a08d7f999713dbf996f2bfb6075b9b79",
+      "size": 365
+    },
+    {
+      "path": "Content/Items/Placeable/Furniture/ExampleBed.js",
+      "gitBlob": "be39f832931019326428b2514f0dc0d8c90fba97",
+      "size": 439
+    },
+    {
+      "path": "Content/Items/Placeable/Furniture/ExampleChair.js",
+      "gitBlob": "ee06505dbb3f2981ad039fe1f172161d359284b1",
+      "size": 442
+    },
+    {
+      "path": "Content/Items/Placeable/Furniture/ExampleChandelier.js",
+      "gitBlob": "80d1b6b1da324cd0c3501f3c79b37967ff656468",
+      "size": 417
+    },
+    {
+      "path": "Content/Items/Placeable/Furniture/ExampleChest.js",
+      "gitBlob": "f572ff535820b63e7d9cb3c74dbfc07242720ed6",
+      "size": 849
+    },
+    {
+      "path": "Content/Items/Placeable/Furniture/ExampleClock.js",
+      "gitBlob": "14d42613ae9301f7d9e1994dfa27a339b350b2d0",
+      "size": 442
+    },
+    {
+      "path": "Content/Items/Placeable/Furniture/ExampleDoor.js",
+      "gitBlob": "9f7517bd5b10233d331425859a09c47784476ad5",
+      "size": 496
+    },
+    {
+      "path": "Content/Items/Placeable/Furniture/ExampleDresser.js",
+      "gitBlob": "3546585efe8155ecbff3f9ac5f121cb7dd512501",
+      "size": 530
+    },
+    {
+      "path": "Content/Items/Placeable/Furniture/ExamplePlatform.js",
+      "gitBlob": "9a3e2a14d5bd9720991cf9241bf3cb330f5d6c6b",
+      "size": 421
+    },
+    {
+      "path": "Content/Items/Placeable/Furniture/ExampleTable.js",
+      "gitBlob": "e2fb8251e8384bed1406f6e7dc70c674cecb006c",
+      "size": 464
+    },
+    {
+      "path": "Content/Items/Placeable/Furniture/ExampleToilet.js",
+      "gitBlob": "b65ef00346ccdeacd46dbfc8aa6ea087c1336a03",
+      "size": 505
+    },
+    {
+      "path": "Content/Items/Placeable/Furniture/ExampleWideBanner.js",
+      "gitBlob": "65a84ad0355858df8f4cda8bcf83df566db387b4",
+      "size": 421
+    },
+    {
+      "path": "Content/Items/Placeable/Furniture/ExampleWorkbench.js",
+      "gitBlob": "ffb02fd75845ea3393eb4aef037f220b8619d613",
+      "size": 470
+    },
+    {
+      "path": "Content/Items/Placeable/Furniture/MinionBossRelic.js",
+      "gitBlob": "ca92e749e9c3a1013ccbbeae1fef02d7a236b969",
+      "size": 375
+    },
+    {
+      "path": "Content/Items/Placeable/Furniture/MinionBossTrophy.js",
+      "gitBlob": "92546254ff69ae24eade6b49b740825653118186",
+      "size": 364
+    },
+    {
+      "path": "Content/Items/Quests/ExampleQuestFish.js",
+      "gitBlob": "5d231962099091705f4d58be670e4e6950db9a89",
+      "size": 889
+    },
+    {
+      "path": "Content/Items/Tools/ExampleDrill.js",
+      "gitBlob": "c9fc4c971ece0789f58b22fa304bef9caf05e22a",
+      "size": 830
+    },
+    {
+      "path": "Content/Items/Tools/ExampleFishingRod.js",
+      "gitBlob": "e6c6117508382207d23c34ac68a5488ebb700747",
+      "size": 942
+    },
+    {
+      "path": "Content/Items/Tools/ExampleHamaxe.js",
+      "gitBlob": "4430b871682d2455f82c7fcd58d6499afd0ef890",
+      "size": 1135
+    },
+    {
+      "path": "Content/Items/Tools/ExampleHookItem.js",
+      "gitBlob": "a945c18843ef86f38c3effd10727a80e3f75f1e9",
+      "size": 272
+    },
+    {
+      "path": "Content/Items/Tools/ExamplePickaxe.js",
+      "gitBlob": "cbf8b7c4465a223bbb37b5b1037d37ca677ae138",
+      "size": 1136
+    },
+    {
+      "path": "Content/Items/Weapons/ExampleCustomDamageWeapon.js",
+      "gitBlob": "b4b9ebec0ba5206b184df0a7f877c572d6cdc15c",
+      "size": 1086
+    },
+    {
+      "path": "Content/Items/Weapons/ExampleCustomResourceWeapon.js",
+      "gitBlob": "a63baf0f6958c204533bfb7233f5f739a086f424",
+      "size": 1799
+    },
+    {
+      "path": "Content/Items/Weapons/ExampleMultiplePrefixCategoryWeapon.js",
+      "gitBlob": "984554bd3d30309ef9091af6b0d286396c4861ff",
+      "size": 1298
+    },
+    {
+      "path": "Content/Items/Weapons/Magic/ExampleLaserWeapon.js",
+      "gitBlob": "4c97d8d6ba3704899d15817f236d64a82ec8ded8",
+      "size": 466
+    },
+    {
+      "path": "Content/Items/Weapons/Magic/ExampleLastPrism.js",
+      "gitBlob": "a623949db1fc08f98c1a3f513663dc4195b36341",
+      "size": 888
+    },
+    {
+      "path": "Content/Items/Weapons/Magic/ExampleMagicWeapon.js",
+      "gitBlob": "dfb766f537eab8fae29d1b8dbaee99b58cc7fa34",
+      "size": 541
+    },
+    {
+      "path": "Content/Items/Weapons/Magic/ExampleRiftStaff.js",
+      "gitBlob": "5bf231af8056e70be2198a2df36af75d0f2c444f",
+      "size": 1016
+    },
+    {
+      "path": "Content/Items/Weapons/Melee/ExampleFlail.js",
+      "gitBlob": "41737d0453d9eb5679bcf3cf2a53e868ab1a1245",
+      "size": 865
+    },
+    {
+      "path": "Content/Items/Weapons/Melee/ExampleMeleeWeapon.js",
+      "gitBlob": "2d05027df3e3715ccf88d2cb366476517f3d3d8b",
+      "size": 519
+    },
+    {
+      "path": "Content/Items/Weapons/Melee/ExampleShortsword.js",
+      "gitBlob": "529dda8633b5d3b6f4f014399f7c2f616465283f",
+      "size": 1577
+    },
+    {
+      "path": "Content/Items/Weapons/Melee/ExampleSpear.js",
+      "gitBlob": "308951cf11975b47947a3ef46872db1ef6e8dfe3",
+      "size": 1205
+    },
+    {
+      "path": "Content/Items/Weapons/Melee/ExampleSwingingEnergySword.js",
+      "gitBlob": "278902a98330dc1e4e347d97f2c72273e85cfa18",
+      "size": 1275
+    },
+    {
+      "path": "Content/Items/Weapons/Melee/ExampleWhip.js",
+      "gitBlob": "4d04bb4f472000c7b0b284445dd67796d5d54967",
+      "size": 1422
+    },
+    {
+      "path": "Content/Items/Weapons/Melee/ExampleYoyo.js",
+      "gitBlob": "b429a7455bcdf05058097b8088197f2cc618f2b3",
+      "size": 1099
+    },
+    {
+      "path": "Content/Items/Weapons/Ranged/ExampleGun.js",
+      "gitBlob": "166168537b5db91865db27cbf9958bfa138aacfc",
+      "size": 1027
+    },
+    {
+      "path": "Content/Items/Weapons/Ranged/ExampleRocketLauncher.js",
+      "gitBlob": "b2ae111e582a3ff32cab710c49df71f1281e57b5",
+      "size": 631
+    },
+    {
+      "path": "Content/Items/Weapons/Ranged/ExampleShotgun.js",
+      "gitBlob": "2195d633a9515001c2c4c25ebff6110a3c3b0125",
+      "size": 1603
+    },
+    {
+      "path": "Content/Items/Weapons/Summon/ExampleMinionItem.js",
+      "gitBlob": "1216ffffe486faadead84d79004a312eb4e16b4c",
+      "size": 1502
+    },
+    {
+      "path": "Content/Items/Weapons/Summon/ExampleSentryItem.js",
+      "gitBlob": "969d7a3949c509fa5c34745b9e0ad7d5290f557d",
+      "size": 2186
+    },
+    {
+      "path": "Content/Mounts/ExampleMinecartMount.js",
+      "gitBlob": "abcb9f0090f0ff59ca16452ae56dd439537869ed",
+      "size": 2261
+    },
+    {
+      "path": "Content/Mounts/ExampleMount.js",
+      "gitBlob": "eb1617e4c1d577982d315a7b1839f510db6f6c06",
+      "size": 5299
+    },
+    {
+      "path": "Content/NPCs/ExampleBoss/ExampleBoss.js",
+      "gitBlob": "9653342fcb00573cfea2f1cdebe0d1e799f0993a",
+      "size": 5590
+    },
+    {
+      "path": "Content/NPCs/ExamplePerson/ExamplePerson.js",
+      "gitBlob": "207441f538bb674ef0f0ca27cc345fe17481b8e8",
+      "size": 5857
+    },
+    {
+      "path": "Content/NPCs/ExampleSlimeNPC.js",
+      "gitBlob": "4516ea96c8c53324db61dfb845fa9f42b73722d0",
+      "size": 3699
+    },
+    {
+      "path": "Content/Pets/ExampleLightPet/ExampleLightPetBuff.js",
+      "gitBlob": "89b62201f260d785503e3a0b72283950b3f8ea58",
+      "size": 506
+    },
+    {
+      "path": "Content/Pets/ExampleLightPet/ExampleLightPetItem.js",
+      "gitBlob": "03785f051b070d605b58d270768dc1968e5c7614",
+      "size": 1039
+    },
+    {
+      "path": "Content/Pets/ExampleLightPet/ExampleLightPetProjectile.js",
+      "gitBlob": "cd5982b21a251d31bbfe17e7bcb0f0d9d3d8e507",
+      "size": 4619
+    },
+    {
+      "path": "Content/Pets/ExamplePet/ExamplePetBuff.js",
+      "gitBlob": "ea69a9f60fe862b22fbbf74f277cb3a344989df1",
+      "size": 497
+    },
+    {
+      "path": "Content/Pets/ExamplePet/ExamplePetItem.js",
+      "gitBlob": "48a701cd78a8e6378822ea159605e581da1c23ee",
+      "size": 629
+    },
+    {
+      "path": "Content/Pets/ExamplePet/ExamplePetProjectile.js",
+      "gitBlob": "5f5731914532a22c604fd4400f71a0e4272251fb",
+      "size": 889
+    },
+    {
+      "path": "Content/Prefixes/ExampleAccessoryPrefix.js",
+      "gitBlob": "1050a92f0485932f54c3c079c0c3252545f04072",
+      "size": 722
+    },
+    {
+      "path": "Content/Prefixes/ExampleDerivedPrefix.js",
+      "gitBlob": "3520f4857dd2c5aef435d1a164bbf1d72da7ab15",
+      "size": 298
+    },
+    {
+      "path": "Content/Prefixes/ExamplePrefix.js",
+      "gitBlob": "262326f4f16e2f96802eccc19404ddfc89df1a2e",
+      "size": 1679
+    },
+    {
+      "path": "Content/Projectiles/ExampleAdvancedAnimatedProjectile.js",
+      "gitBlob": "cc8a488f4d9cffe3f9ae6756b1121cf7bf3cc15b",
+      "size": 2672
+    },
+    {
+      "path": "Content/Projectiles/ExampleBobber.js",
+      "gitBlob": "176f5ad720d6e783a4688dc1ffa89a4048f0fbd7",
+      "size": 740
+    },
+    {
+      "path": "Content/Projectiles/ExampleBulletProjectile.js",
+      "gitBlob": "d83946db37864cc76694579a024a4d46ae514aa2",
+      "size": 702
+    },
+    {
+      "path": "Content/Projectiles/ExampleDrillProjectile.js",
+      "gitBlob": "c3022f18e4a99123f3d9b77e1dfb24cdbf77982c",
+      "size": 2569
+    },
+    {
+      "path": "Content/Projectiles/ExampleFlailProjectile.js",
+      "gitBlob": "4ff0138840395514d71de5c91b659e5b062bf7b0",
+      "size": 2147
+    },
+    {
+      "path": "Content/Projectiles/ExampleGolfBallProjectile.js",
+      "gitBlob": "1087b3691912b980f771a7040bf7c19a0bd2b55f",
+      "size": 635
+    },
+    {
+      "path": "Content/Projectiles/ExampleHookProjectile.js",
+      "gitBlob": "5838a071d57367150fa883d96952482aa517f3f3",
+      "size": 3503
+    },
+    {
+      "path": "Content/Projectiles/ExampleLaserBeam.js",
+      "gitBlob": "8d766ea6dc832c8767d988d1417fb28458f4d29d",
+      "size": 6115
+    },
+    {
+      "path": "Content/Projectiles/ExampleLaserHoldout.js",
+      "gitBlob": "470cbb84628a6dca337fe99bccf73018e9e32e47",
+      "size": 3472
+    },
+    {
+      "path": "Content/Projectiles/ExampleLastPrismBeam.js",
+      "gitBlob": "01fd4901cb94bcda0c98c8cea9dbb81cca7e58d1",
+      "size": 12239
+    },
+    {
+      "path": "Content/Projectiles/ExampleLastPrismHoldout.js",
+      "gitBlob": "f801f22cac5bb9fc5f70a9e314868f2fc833774b",
+      "size": 6114
+    },
+    {
+      "path": "Content/Projectiles/ExampleMinion.js",
+      "gitBlob": "f7b62f950f9636b3ffc1c16722c0cfae8d213497",
+      "size": 5959
+    },
+    {
+      "path": "Content/Projectiles/ExampleRiftProjectile.js",
+      "gitBlob": "db21e2337917f8f49d3f5caa65aebb15f64ef8ab",
+      "size": 2240
+    },
+    {
+      "path": "Content/Projectiles/ExampleSentry.js",
+      "gitBlob": "6332b95157983a88a5f0d9796173e67d13f0b12a",
+      "size": 5074
+    },
+    {
+      "path": "Content/Projectiles/ExampleSentryShot.js",
+      "gitBlob": "35a9a0e4ab3cc29d67ecd6b21c9ecd2a5cc6a114",
+      "size": 1367
+    },
+    {
+      "path": "Content/Projectiles/ExampleShortswordProjectile.js",
+      "gitBlob": "da75af106591d8717aa057acb80733af0f2f916d",
+      "size": 4118
+    },
+    {
+      "path": "Content/Projectiles/ExampleSpearProjectile.js",
+      "gitBlob": "18e41d2f25c1f453b05d91e83028816e629f1d56",
+      "size": 1828
+    },
+    {
+      "path": "Content/Projectiles/ExampleSwingingEnergySwordProjectile.js",
+      "gitBlob": "cbcda69a5f9ac76775eb0a8835fe506b92c6ee03",
+      "size": 8484
+    },
+    {
+      "path": "Content/Projectiles/ExampleWhipProjectile.js",
+      "gitBlob": "b5f8d5a006996705299a0634e22e7a1815b22ee2",
+      "size": 2850
+    },
+    {
+      "path": "Content/Projectiles/ExampleYoyoProjectile.js",
+      "gitBlob": "7dd3e779984a99c7ddba3a4beb0d73fe2f8f81c6",
+      "size": 1111
+    },
+    {
+      "path": "Content/Rarities/ExampleHigherTierModRarity.js",
+      "gitBlob": "53eeb04af67458890065c5ea87798c33524bad19",
+      "size": 603
+    },
+    {
+      "path": "Content/Rarities/ExampleModRarity.js",
+      "gitBlob": "8fa37cedfad756a5fe508e2922f2b0c82dea5b20",
+      "size": 554
+    },
+    {
+      "path": "Content/Structures/ExampleStructure.js",
+      "gitBlob": "f062308abaa36d145c4fd0ffda1dd77d653bda3c",
+      "size": 13047
+    },
+    {
+      "path": "Content/TileEntities/BasicTileEntity.js",
+      "gitBlob": "262e831303cf4e05bd4ac010020c5292d7258308",
+      "size": 7429
+    },
+    {
+      "path": "Content/TileEntities/SimplePylonTileEntity.js",
+      "gitBlob": "7bfd72ce8a80f66a2b7f69a07ada72d510ebd357",
+      "size": 310
+    },
+    {
+      "path": "Content/Tiles/Banners/ExampleEnemyBannerTile.js",
+      "gitBlob": "ed5421a72af8319cb3956d34b63a4c98b050f3c0",
+      "size": 199
+    },
+    {
+      "path": "Content/Tiles/ExampleAnimatedGlowmaskTile.js",
+      "gitBlob": "5e287840f71ca3443b047dc66c373bdf1b0c782b",
+      "size": 2038
+    },
+    {
+      "path": "Content/Tiles/ExampleAnimatedTile.js",
+      "gitBlob": "2cf5f75f1d06616c8ae4ce681df75e21915d7162",
+      "size": 1750
+    },
+    {
+      "path": "Content/Tiles/ExampleBar.js",
+      "gitBlob": "9a0c54f53408958320beb9b921566a37f0fcca29",
+      "size": 1020
+    },
+    {
+      "path": "Content/Tiles/ExampleCampfire.js",
+      "gitBlob": "dea701d21ad22202f07c125a9f55caac1279c0f4",
+      "size": 5064
+    },
+    {
+      "path": "Content/Tiles/ExampleCutTile.js",
+      "gitBlob": "1948164d416257b884a185143fdaa35dd4bada48",
+      "size": 1468
+    },
+    {
+      "path": "Content/Tiles/ExampleGemsparkBlock.js",
+      "gitBlob": "d9764c15645fc1f222e2211b91800fd958498fe4",
+      "size": 2072
+    },
+    {
+      "path": "Content/Tiles/ExampleHerb.js",
+      "gitBlob": "bce2b69a62ce136bd6d218b8442f9288fedfa2f6",
+      "size": 3125
+    },
+    {
+      "path": "Content/Tiles/ExampleLamp.js",
+      "gitBlob": "2fd6a77a53f361b42d1bace543a0bb5ca96832a3",
+      "size": 4652
+    },
+    {
+      "path": "Content/Tiles/ExampleLivingFireTile.js",
+      "gitBlob": "7a249db3ecc81bbdbd05e8174f702e92cafd7ab3",
+      "size": 1107
+    },
+    {
+      "path": "Content/Tiles/ExampleMusicBoxTile.js",
+      "gitBlob": "fcc70727fa2b968480c92ad569003d2f0a4762a1",
+      "size": 1852
+    },
+    {
+      "path": "Content/Tiles/ExampleOre.js",
+      "gitBlob": "d1677dc0818de76493fe05ce2c4223533463d2a2",
+      "size": 896
+    },
+    {
+      "path": "Content/Tiles/ExamplePylonTile.js",
+      "gitBlob": "0082bf78293e41536a9b5db0307637e27781d571",
+      "size": 3361
+    },
+    {
+      "path": "Content/Tiles/ExampleSign.js",
+      "gitBlob": "0043d20af3e5adad741b81809a46738eec7372f7",
+      "size": 2538
+    },
+    {
+      "path": "Content/Tiles/ExampleSink.js",
+      "gitBlob": "d0f598c4158f6ea59e260791cc8217337b7b2049",
+      "size": 956
+    },
+    {
+      "path": "Content/Tiles/ExampleStatue.js",
+      "gitBlob": "b84580b94d37cc8b5f7b83ef0a60198e3c32b733",
+      "size": 3087
+    },
+    {
+      "path": "Content/Tiles/ExampleTile.js",
+      "gitBlob": "63bfa6eca8cee445a23f9f822d7e153fafc3dad1",
+      "size": 490
+    },
+    {
+      "path": "Content/Tiles/ExampleTorch.js",
+      "gitBlob": "82a2b030fe61b4c38597f298caffd6ecbc628ef8",
+      "size": 3953
+    },
+    {
+      "path": "Content/Tiles/ExampleTransparentShapedTile.js",
+      "gitBlob": "7e410dfe844cc104bc4d0081eed1728888e4e8f3",
+      "size": 754
+    },
+    {
+      "path": "Content/Tiles/ExampleTrap.js",
+      "gitBlob": "5be514e96220e6fa4f0a0b5f25c3b61d31bb3aee",
+      "size": 3302
+    },
+    {
+      "path": "Content/Tiles/Furniture/ExampleBed.js",
+      "gitBlob": "cb41ffd1a7ddeda8b9a6c2f399e81c37cf137892",
+      "size": 3384
+    },
+    {
+      "path": "Content/Tiles/Furniture/ExampleChair.js",
+      "gitBlob": "5cc445fd596d4d5853f1ec8739f3f29bfaf3eed7",
+      "size": 3084
+    },
+    {
+      "path": "Content/Tiles/Furniture/ExampleChandelier.js",
+      "gitBlob": "8c48d207414aa3da1e0337428e70455d0d103676",
+      "size": 4057
+    },
+    {
+      "path": "Content/Tiles/Furniture/ExampleChest.js",
+      "gitBlob": "0ff0e3379763d66f0b447aa740b63a56a9e8bc34",
+      "size": 6006
+    },
+    {
+      "path": "Content/Tiles/Furniture/ExampleClock.js",
+      "gitBlob": "4536b164473d15f496ba37a879cb45d1c7a66c3c",
+      "size": 1961
+    },
+    {
+      "path": "Content/Tiles/Furniture/ExampleDoorClosed.js",
+      "gitBlob": "eebb3eaf07bba71905e2886a1b39dca5704df6e9",
+      "size": 1633
+    },
+    {
+      "path": "Content/Tiles/Furniture/ExampleDoorOpen.js",
+      "gitBlob": "a66b45ea2a2823b6ce0e0524f455fcdfa6de3545",
+      "size": 3071
+    },
+    {
+      "path": "Content/Tiles/Furniture/ExampleDresser.js",
+      "gitBlob": "cadaeb858d7dbf06da47d104830ba4ed07a26fbf",
+      "size": 4750
+    },
+    {
+      "path": "Content/Tiles/Furniture/ExamplePlatform.js",
+      "gitBlob": "b644451dc70faf92a38f0b8effe20b981aa2e2d5",
+      "size": 1561
+    },
+    {
+      "path": "Content/Tiles/Furniture/ExampleTable.js",
+      "gitBlob": "8c81b3735118a11015ea3b146278f59a8caeba0c",
+      "size": 1112
+    },
+    {
+      "path": "Content/Tiles/Furniture/ExampleToilet.js",
+      "gitBlob": "bc1e32de697075551bb6b41d2f977d35df5cf1c4",
+      "size": 3811
+    },
+    {
+      "path": "Content/Tiles/Furniture/ExampleWideBannerTile.js",
+      "gitBlob": "9285dc72d04256a5ed6aa7ae5909f23f533fed7a",
+      "size": 1428
+    },
+    {
+      "path": "Content/Tiles/Furniture/ExampleWorkbench.js",
+      "gitBlob": "e6f1a1b30f357fa857f494b19fbbe9c37d48eeaa",
+      "size": 1246
+    },
+    {
+      "path": "Content/Tiles/Furniture/MinionBossRelic.js",
+      "gitBlob": "5fdd36e57f74061bc9c7beea2325aa8a26fbe1c1",
+      "size": 3986
+    },
+    {
+      "path": "Content/Tiles/Furniture/MinionBossTrophy.js",
+      "gitBlob": "b7570957242743a03de7020b91ceb82760530ecf",
+      "size": 609
+    },
+    {
+      "path": "Content/Tiles/Plants/ExampleSapling.js",
+      "gitBlob": "e634d429283216ca0cb42d5ac9996187003d3007",
+      "size": 2303
+    },
+    {
+      "path": "Content/Tiles/Plants/ExampleTree.js",
+      "gitBlob": "934acca3ac3baceec6b69885525233048e8ac10f",
+      "size": 1775
+    },
+    {
+      "path": "Content/Walls/ExampleWall.js",
+      "gitBlob": "67be26633e7f937f80fe5e455e901af5fc26e5ff",
+      "size": 475
+    },
+    {
+      "path": "Content/Walls/ExampleWallAdvanced.js",
+      "gitBlob": "8689416fabbf7e2ba094034d5c3fd6d30b26d55d",
+      "size": 1239
+    },
+    {
+      "path": "main.js",
+      "gitBlob": "fb1e1194ccfd01fc8e7ac48297b85b61db870189",
+      "size": 2963
+    }
+  ]
+}
