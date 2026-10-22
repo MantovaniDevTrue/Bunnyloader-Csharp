@@ -9,6 +9,7 @@ on:
       - "tools/example_completion/test_release_gate.py"
       - "tools/example_completion/stage_tile_assets.py"
       - "tools/example_completion/check_assets.py"
+      - "tools/example_completion/verify_uploaded_csharp.py"
       - "tools/example_completion/current_upstream.json"
       - "samples/ExampleModCSharp/Playable/content/**"
       - "samples/ExampleModCSharp/Porting/**"
@@ -36,6 +37,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Verify original 0.1.63 CSharp sources in isolated staging (NO APK)
+        run: python3 tools/example_completion/verify_uploaded_csharp.py
       - name: Validate Python source syntax
         run: python3 -m py_compile tools/example_completion/release_gate.py tools/example_completion/test_release_gate.py
       - name: Verify all deny and allow cases using isolated source fixtures
