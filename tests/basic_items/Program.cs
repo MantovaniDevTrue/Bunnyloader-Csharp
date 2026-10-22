@@ -33,6 +33,17 @@ Check("sound.immutable-options-paths-and-original-gun",()=>{
 Check("pickaxe.original-defaults",()=>{var item=new ExamplePickaxe();item.SetDefaults();Equal(220,item.Pick);Equal(20,item.Damage);Equal(6f,item.KnockBack);Equal(10,item.UseTime);Equal(10,item.UseAnimation);Equal(true,item.Melee&&item.AutoReuse);Equal("Item1",item.UseSound);Equal(50000,item.Value);item.AddRecipes();Equal("1,18,mExampleItem:10",item.RecipeDefinitions.Single());});
 Check("hamaxe.original-defaults",()=>{var item=new ExampleHamaxe();item.SetDefaults();Equal(30,item.Axe);Equal(100,item.Hammer);Equal(25,item.Damage);Equal(15,item.UseTime);Equal(15,item.UseAnimation);Equal(50000,item.Value);Equal("Item1",item.UseSound);item.AddRecipes();Equal("1,18,mExampleItem:10",item.RecipeDefinitions.Single());});
 Check("material.original-recipe",()=>{var item=new ExampleItem();item.SetDefaults();Equal(9999,item.MaxStack);Equal(100,item.Value);item.AddRecipes();Equal("999,18,v2:10",item.RecipeDefinitions.Single());});
+Check("exampletile.original-flags-map-and-recipe",()=>{
+ var tile=new ExampleTile();tile.SetStaticDefaults();
+ Equal("Content/Tiles/ExampleTile.png",tile.Texture);
+ Equal("Stone",tile.DustName);
+ Equal(0,tile.MapR);Equal(200,tile.MapG);Equal(255,tile.MapB);
+ Equal((BunnyTileFlags)7680,tile.Flags);
+ var item=new ExampleTileItem();item.SetDefaults();
+ Equal(12,item.Width);Equal(12,item.Height);
+ Equal("mExampleTile:0",item.PlacementDefinition);
+ item.AddRecipes();Equal("10,18,mExampleItem:1",item.RecipeDefinitions.Single());
+});
 Check("minion.configurable-movement-and-finite-state",()=>{
  var custom=new BunnyMinionMovement(attackSpeed:16f,attackInertia:1f,followOffsetX:0f,followOffsetY:0f);
  var state=new BunnyProjectileAiState{TargetNpc=7,TargetX=100f,TargetY=0f};
