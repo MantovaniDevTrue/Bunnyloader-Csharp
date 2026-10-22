@@ -2,6 +2,7 @@
 
 #include "experiments/csharp/ManagedBannerRegistry.h"
 #include "content/items/ModItems.h"
+#include "content/npcs/ModNpcs.h"
 #include "il2cpp/Api.h"
 #include "il2cpp/FieldContract.h"
 #include "il2cpp/Resolver.h"
