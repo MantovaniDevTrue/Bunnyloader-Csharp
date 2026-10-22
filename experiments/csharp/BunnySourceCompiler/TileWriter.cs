@@ -21,7 +21,7 @@ internal static class TileWriter {
             ?? throw new InvalidOperationException(type.FullName + ": NumDust missing"));
         int normal = (int)(type.GetMethod("NumDust")?.Invoke(tile, new object[] {false})
             ?? throw new InvalidOperationException(type.FullName + ": NumDust missing"));
-        if ((flags & ~511) != 0 || shape < 0 || shape > 1 ||
+        if ((flags & ~8191) != 0 || shape < 0 || shape > 1 ||
             height < 1 || height > 32 || adjacent < -1 || adjacent >= 754 ||
             dust.Length > 72 || !Safe(dust) || map.Length > 80 || !Safe(map) ||
             (uint)r > 255 || (uint)g > 255 || (uint)b > 255 ||
