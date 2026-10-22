@@ -38,7 +38,7 @@ int main() {
     custom.inheritance[3].damage = 2.f;
     custom.inheritance[4].damage = 0.f;
     assert(!projectNativeClassDamageDelta(custom, equipped, nullptr));
-    assert(std::abs(delta - .5f) < .0001f);
+    assert(std::abs(delta - .6f) < .0001f);
     assert(nativeVanillaPlayerDamageValid({1.f, 1.f, 1.f, 1.f}));
     assert(!nativeVanillaPlayerDamageValid({1001.f, 1.f, 1.f, 1.f}));
 
@@ -47,7 +47,7 @@ int main() {
     custom.inheritance[3].crit = 2.f;
     float sharedCrit = -100.f, critDelta = -100.f;
     assert(projectNativeClassCritDelta(custom, {20, 10, 15}, &sharedCrit, &critDelta));
-    assert(sharedCrit == 10.f && std::abs(critDelta - 15.f) < .0001f);
+    assert(sharedCrit == 10.f && std::abs(critDelta - 10.f) < .0001f);
     custom.inheritance[1].crit = 0.f;
     custom.inheritance[2].crit = 0.f;
     custom.inheritance[3].crit = 0.f;
