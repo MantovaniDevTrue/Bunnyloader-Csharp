@@ -54,6 +54,13 @@ public:
         return true;
     }
 
+    bool isCustom(bool projectile, int type) const {
+        if (type < 0) return false;
+        const auto view = std::atomic_load_explicit(&active_, std::memory_order_acquire);
+        const auto it = view->find(Key{projectile, type});
+        return it != view->end() && it->second.damageClass.starts_with("C:");
+    }
+
     bool lookupFlags(bool projectile, int type, NativeDamageClassFlags* out) const {
         if (!out || type < 0) return false;
         const auto view = std::atomic_load_explicit(&active_, std::memory_order_acquire);
