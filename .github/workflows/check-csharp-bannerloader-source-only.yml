@@ -1,0 +1,37 @@
+name: Bunny BannerLoader CSharp source-only contracts
+
+on:
+  push:
+    branches:
+      - feat/csharp-bannerloader-source-only-20261022
+    paths:
+      - experiments/csharp/BunnyCsSdk/BunnyBannerRegistry.cs
+      - experiments/csharp/BunnyCsSdk/BunnyCsSdk.csproj
+      - samples/ExampleModCSharp/Examples/Banners/**
+      - tests/banners/**
+      - .github/workflows/check-csharp-bannerloader-source-only.yml
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  banner-source-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Compile actual Bunny CSharp SDK
+        run: dotnet build experiments/csharp/BunnyCsSdk/BunnyCsSdk.csproj -c Release --nologo
+      - name: Execute banner registry and persistence contracts
+        run: dotnet run --project tests/banners/Banners.HostTests.csproj -c Release --no-launch-profile
+      - name: Verify APK gate remains closed
+        shell: bash
+        run: |
+          if find . -type f -name '*.apk' -print -quit | grep -q .; then
+            echo 'APK forbidden: BannerLoader runtime is incomplete' >&2
+            exit 1
+          fi
