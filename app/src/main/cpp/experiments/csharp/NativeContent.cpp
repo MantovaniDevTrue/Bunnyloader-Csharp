@@ -2146,9 +2146,25 @@ bool applyTileShape(int type, const ManagedTileEntry& e) {
     const MethodInfo* setDrawYOffset = e.shape == 2 ?
         a.class_get_method_from_name(tileClass, "set_DrawYOffset", 1) : nullptr;
     Il2CppClass* intClass = il2cpp::findClass({"System", "Int32", {}});
-    if (!copy || !setHeights || !addTile || !intClass ||
-        (e.shape == 2 && (!setHeight || !setHorizontal || !setDrawYOffset)))
-        return false;
+    if (!copy || !setHeights || !addTile || !intClass) return false;
+
+    auto setVerified = [&](const char* fieldName, const MethodInfo* setter,
+                           const char* expected, size_t width, void* bytes) {
+        if (setter) {
+            Il2CppObject* error = nullptr;
+            void* args[1] = {bytes};
+            a.runtime_invoke(setter, tile, args, &error);
+            return error == nullptr;
+        }
+        FieldInfo* field = nullptr;
+        int offset = -1;
+        std::string reason;
+        if (!nativeFieldContract(tileClass, fieldName, expected, false, width,
+                                 &field, &offset, &reason))
+            return false;
+        std::memcpy(reinterpret_cast<char*>(tile) + offset, bytes, width);
+        return true;
+    };
 
     Il2CppArray* heights = a.array_new(intClass, e.shape == 2 ? 3 : 1);
     if (!heights) return false;
@@ -2165,15 +2181,11 @@ bool applyTileShape(int type, const ManagedTileEntry& e) {
         int32_t height = 3;
         uint8_t horizontal = 1;
         int32_t yOffset = -2;
-        void* heightArgs[1] = {&height};
-        a.runtime_invoke(setHeight, tile, heightArgs, &exc);
-        if (exc) return false;
-        void* horizontalArgs[1] = {&horizontal};
-        a.runtime_invoke(setHorizontal, tile, horizontalArgs, &exc);
-        if (exc) return false;
-        void* drawArgs[1] = {&yOffset};
-        a.runtime_invoke(setDrawYOffset, tile, drawArgs, &exc);
-        if (exc) return false;
+        if (!setVerified("Height", setHeight, "System.Int32", 4, &height) ||
+            !setVerified("StyleHorizontal", setHorizontal, "System.Boolean", 1,
+                         &horizontal) ||
+            !setVerified("DrawYOffset", setDrawYOffset, "System.Int32", 4,
+                         &yOffset)) return false;
     }
     void* heightArgs[1] = {heights};
     a.runtime_invoke(setHeights, tile, heightArgs, &exc);
