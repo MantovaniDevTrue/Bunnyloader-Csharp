@@ -18,10 +18,10 @@
   "counts": {
     "CommandLoader": {
       "clean_take_pr": 3,
-      "clean_three_way": 4,
+      "clean_three_way": 3,
       "already_equal": 26,
       "already_contains_pr": 0,
-      "blocked": 6,
+      "blocked": 7,
       "excluded": 3
     },
     "GoreLoader": {
@@ -105,12 +105,6 @@
       "path": "experiments/csharp/BunnySourceCompiler/CommandManifestWriter.cs",
       "result": "clean_take_pr",
       "sha256": "904db0004a8c10531c07f7bb7828e45381ed31705b792203420b512efd68d21a"
-    },
-    {
-      "pr": 117,
-      "path": "experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj",
-      "result": "clean_three_way",
-      "sha256": "02161f1b8b493fc6ec43603496b404fb81e4880017f0bbf982cc102651e16df0"
     },
     {
       "pr": 117,
@@ -388,6 +382,14 @@
       "incoming_sha256": "2deb02fe8d23a2a3e844b9784b2423a5d6c5ca3daceaa9f7120be31c585d69ea"
     },
     {
+      "pr": 117,
+      "path": "experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj",
+      "reason": "three_way_conflict",
+      "base_sha256": "bcba274ae9e3489985da105667b95058c985a06f0ad5159d9495da914fb0cc98",
+      "local_sha256": "c97dcbfec942908c2dbabcd30dd2a8173491e1f6c90d766865d4f956325ffab2",
+      "incoming_sha256": "3dd625d5190b50e76394b21075d45fb94c72c3750f11ffe448270dc30187a45f"
+    },
+    {
       "pr": 121,
       "path": ".github/workflows/csharp-gore-native-link-no-apk.yml",
       "reason": "outside_safe_source_scope"
@@ -441,7 +443,7 @@
       "path": "experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj",
       "reason": "three_way_conflict",
       "base_sha256": "bcba274ae9e3489985da105667b95058c985a06f0ad5159d9495da914fb0cc98",
-      "local_sha256": "02161f1b8b493fc6ec43603496b404fb81e4880017f0bbf982cc102651e16df0",
+      "local_sha256": "c97dcbfec942908c2dbabcd30dd2a8173491e1f6c90d766865d4f956325ffab2",
       "incoming_sha256": "bd1b112dba16455a8eb57fe271e6ae8f42977b4841546f7e8f8de4684527a493"
     }
   ],
