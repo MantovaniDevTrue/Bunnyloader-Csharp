@@ -11,6 +11,9 @@ on:
       - app/src/main/cpp/experiments/csharp/ManagedBannerRegistry.h
       - app/src/main/cpp/experiments/csharp/ManagedBannerLookupHooks.h
       - app/src/main/cpp/experiments/csharp/ManagedBannerWorldState.h
+      - app/src/main/cpp/experiments/csharp/ManagedBannerWorldFile.h
+      - app/src/main/cpp/experiments/csharp/ManagedBannerWorldSession.h
+      - app/src/main/cpp/experiments/csharp/NativeInvasionWorldPath.cpp
       - app/src/main/cpp/experiments/csharp/ManagedBannerArrayBridge.h
       - app/src/main/cpp/experiments/csharp/SourceLoader.cpp
       - app/src/main/cpp/experiments/csharp/SourceParser.cpp
@@ -27,6 +30,9 @@ on:
       - app/src/main/cpp/experiments/csharp/ManagedBannerRegistry.h
       - app/src/main/cpp/experiments/csharp/ManagedBannerLookupHooks.h
       - app/src/main/cpp/experiments/csharp/ManagedBannerWorldState.h
+      - app/src/main/cpp/experiments/csharp/ManagedBannerWorldFile.h
+      - app/src/main/cpp/experiments/csharp/ManagedBannerWorldSession.h
+      - app/src/main/cpp/experiments/csharp/NativeInvasionWorldPath.cpp
       - app/src/main/cpp/experiments/csharp/ManagedBannerArrayBridge.h
       - app/src/main/cpp/experiments/csharp/SourceLoader.cpp
       - samples/ExampleModCSharp/Playable/content/Content/NPCs/**
@@ -80,6 +86,16 @@ jobs:
             -Iapp/src/main/cpp tests/banners/native_world_state.cpp \
             -o /tmp/bunny-banner-world-state
           /tmp/bunny-banner-world-state
+      - name: Test real banner world sidecars and world-session isolation
+        run: |
+          c++ -std=c++20 -O1 -Wall -Wextra -Werror -pthread \
+            -Iapp/src/main/cpp tests/banners/native_world_disk.cpp \
+            -o /tmp/bunny-banner-world-disk
+          /tmp/bunny-banner-world-disk
+          c++ -std=c++20 -O1 -Wall -Wextra -Werror -pthread \
+            -Iapp/src/main/cpp tests/banners/native_world_session.cpp \
+            -o /tmp/bunny-banner-world-session
+          /tmp/bunny-banner-world-session
       - name: Test bounded BannerSystem array planner
         run: |
           c++ -std=c++20 -O1 -Wall -Wextra -Werror -pthread \
@@ -96,7 +112,8 @@ jobs:
         run: |
           c++ -std=c++20 -Wall -Wextra -Werror -fsyntax-only \
             -Iapp/src/main/cpp -Itests/basic_items/include -Itests/startup/include \
-            app/src/main/cpp/experiments/csharp/SourceLoader.cpp
+            app/src/main/cpp/experiments/csharp/SourceLoader.cpp \
+            app/src/main/cpp/experiments/csharp/NativeInvasionWorldPath.cpp
       - name: Verify APK gate remains closed
         shell: bash
         run: |
