@@ -134,8 +134,11 @@ void hkDraw(Il2CppObject* self, Il2CppObject* grid, int32_t index,
 void hkOpen(Il2CppObject* self, int32_t backTo, int32_t selected,
             const MethodInfo* method) {
     if (self && menuListOffset >= 0) {
-        const std::size_t current = nativeAchievementRegistryStatus().registered;
-        if (current > 0 && menuRevisions[self] != current) {
+        const auto status = nativeAchievementRegistryStatus();
+        const std::size_t current =
+            status.registered * static_cast<std::size_t>(0x9e3779b9u) ^
+            static_cast<std::size_t>(status.appliedRevisions);
+        if (status.registered > 0 && menuRevisions[self] != current) {
             auto& a = il2cpp::api();
             void** location = reinterpret_cast<void**>(
                 reinterpret_cast<char*>(self) + menuListOffset);
