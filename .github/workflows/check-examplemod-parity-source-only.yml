@@ -40,5 +40,10 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
-      - name: Compile and test original tile and item SDK source (no Android build)
+      - name: Check all new tile flag paths
+        run: python3 tests/basic_items/tile_parity/check_native_tile_flags.py
+      - name: Run established Bunny CSharp item regression suite
         run: dotnet run --project tests/basic_items/ItemBatch.csproj -c Release
+      - name: Compile and test original CSharp tile + placeable item
+        run: dotnet run --project tests/basic_items/tile_parity/TileParity.csproj -c Release
+
