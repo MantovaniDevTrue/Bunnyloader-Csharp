@@ -13,7 +13,11 @@ public enum BunnyTileFlags {
     DisableSmartCursor = 32,
     HasOutlines = 64,
     IgnoredByNpcStepUp = 128,
-    CountsAsTable = 256
+    CountsAsTable = 256,
+    Solid = 512,
+    BlockLight = 1024,
+    MergeDirt = 2048,
+    ChecksForMerge = 4096
 }
 
 public enum BunnyTileShape {
