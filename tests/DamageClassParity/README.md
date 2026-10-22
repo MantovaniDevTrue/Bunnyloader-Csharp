@@ -35,8 +35,10 @@ completo nem autorizar geração de APK.**
   não reutiliza o ID antigo e limpa no worker MonoVM. O parser e o carregador
   também reconhecem mods sem entidade que contenham apenas DamageClass;
   ainda falta verificar esse processo em arm64 no jogo.
-- Garantir um bloqueio de inicialização que aguarde o registro antes de
-  criar itens; a fila de preload é assíncrona e não satisfaz essa garantia.
+- O MonoVM retém o preload após trocar de mundo, evitando que uma sessão
+  antiga descarregue um mod ativo. O snapshot é solicitado apenas uma vez
+  por mod, no preload ou no primeiro callback válido. Ainda falta uma
+  barreira de inicialização antes de criar itens: o preload é assíncrono.
 - `DamageType` agora existe em `BunnyItem`, `BunnyWeapon` e `BunnyProjectile`.
   O compilador emite `DAMAGE_TYPE` com ID vanilla ou nome completo da classe,
   e o runtime nativo valida ownership, cacheia por tipo e revoga por mod.
@@ -51,8 +53,15 @@ completo nem autorizar geração de APK.**
   Ainda falta preservar a classificação nos clones, verificar a rede e,
   principalmente, aplicar os cinco atributos personalizados ao combate.
   Esse mapeamento parcial não representa paridade completa de DamageClass.
-- Ler e aplicar `GetTotalDamage`, crítico, knockback, armorPen e
-  attackSpeed aos campos reais de Terraria.Player no tempo correto.
+- `DamageClassLoader.ExportDefaultStatSnapshot` calcula e exporta os cinco
+  canais com herança e validação de números finitos. O MonoVM entrega o
+  snapshot ao registro nativo separado por mod, sem varredura por quadro.
+  O ExampleDamageClass produz crítico 8 e armorPen 10; os testes C++
+  incluem concorrência, unload e rejeição de entradas inválidas.
+- Integrar os atributos aos hooks reais do Terraria.Player, incluindo
+  equipamento, buffs e reset por jogador. **O snapshot atual só contém
+  valores padrão da classe**, não os totais de um jogador equipado.
+  Somá-lo diretamente ao valor vanilla duplicaria modificadores.
 - Encaminhar efeitos, prefixos e tooltips pelos pontos nativos exatos
   do jogo, sem invocar Mono por frame quando não houver mod.
 - Fazer testes de contrato C++/C# e smoke QA em Android/arm64; somente
