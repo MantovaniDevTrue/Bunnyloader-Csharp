@@ -55,6 +55,7 @@ public static class BunnyEntitySourceDispatcher
         public readonly NpcInstance[] NpcSlots = new NpcInstance[512];
         public readonly ProjectileInstance[] ProjectileSlots = new ProjectileInstance[4096];
         public string LastError = "";
+        public int DamageClassesRegistered;
         public string LastUse = "None";
         public long NpcCalls, ProjectileCalls, NpcHits, NpcKills, ProjectileHits, ProjectileKills, Faults;
     }
@@ -119,6 +120,7 @@ public static class BunnyEntitySourceDispatcher
                     context.InvasionOrder.Add(system);
                 }
             }
+            context.DamageClassesRegistered = DamageClassLoader.RegisterAssembly(assembly);
             if (hasDust && BunnyDustSourceDispatcher.RegisterLoaded(modId, assembly) < 0)
                 context.LastError = "BunnyDust registration: " +
                     BunnyDustSourceDispatcher.LastRegistrationError;
@@ -700,6 +702,7 @@ public static class BunnyEntitySourceDispatcher
                 " SpawnFailed=" + invasion.Pipeline.FailedCount;
         }
         return "lastUse=" + context.LastUse + invasionState +
+            " damageClasses=" + context.DamageClassesRegistered +
             " npc=" + context.NpcCalls + " projectile=" + context.ProjectileCalls +
             " npcHits=" + context.NpcHits + " npcKills=" + context.NpcKills +
             " projectileHits=" + context.ProjectileHits + " projectileKills=" + context.ProjectileKills +
