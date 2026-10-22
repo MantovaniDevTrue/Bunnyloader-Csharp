@@ -33,14 +33,19 @@ jobs:
       - name: Verify pinned upstream test sources
         run: python3 Split/Bunny-Loader/tests/content_loader/check_upstream.py
       - name: Run full SDK and differential loader tests
-        run: dotnet run --project Split/Bunny-Loader/tests/content_loader -c Release -p:TargetFramework=${{ matrix.framework }}
+        run: |
+          dotnet build Split/Bunny-Loader/tests/content_loader/ContentLoaderTests.csproj -c Release -p:TargetFramework=${{ matrix.framework }}
+          dotnet Split/Bunny-Loader/tests/content_loader/bin/Release/${{ matrix.framework }}/ContentLoaderTests.dll
       - name: Run documented example
-        run: dotnet run --project Split/Bunny-Loader/samples/ContentLoaderCSharp -c Release -p:TargetFramework=${{ matrix.framework }}
+        run: |
+          dotnet build Split/Bunny-Loader/samples/ContentLoaderCSharp/ContentLoaderExample.csproj -c Release -p:TargetFramework=${{ matrix.framework }}
+          dotnet Split/Bunny-Loader/samples/ContentLoaderCSharp/bin/Release/${{ matrix.framework }}/ContentLoaderExample.dll
       - name: Check compiled public reference
         if: matrix.framework == 'net8.0'
         working-directory: Split/Bunny-Loader
         run: dotnet run --project tools/sdk_reference -c Release -- --check
       - name: Refuse any generated Android package
+        if: always()
         run: |
           if find . -type f -name '*.apk' -print -quit | grep -q .; then
             echo 'APK forbidden for this batch'
