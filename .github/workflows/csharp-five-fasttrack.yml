@@ -7,6 +7,10 @@ on:
     paths:
       - tools/csharp/fasttrack_integrate_prs.py
       - .github/workflows/csharp-five-fasttrack.yml
+      - experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj
+      - experiments/csharp/BunnyCsSdk/BunnyCommand.cs
+      - experiments/csharp/BunnyCsSdk/BunnyCommandWorker.cs
+      - experiments/csharp/BunnyCsSdk/BunnyGore.cs
   workflow_dispatch:
 
 permissions:
@@ -64,6 +68,15 @@ jobs:
           fi
           git commit -m "feat(csharp): reconcile clean Command and Gore changes onto five-loader QA baseline"
           git push origin HEAD:integration/csharp-five-loader-fasttrack-20261022
+      - name: Set up .NET 8 for CSharp compile validation
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Build the unified managed SDK and Roslyn compiler
+        run: |
+          set -euo pipefail
+          dotnet build experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj -c Release --nologo
+          dotnet build experiments/csharp/BunnySourceCompiler/BunnySourceCompiler.csproj -c Release --nologo
       - name: C++ source tests and diagnostic build
         run: |
           set -euo pipefail
