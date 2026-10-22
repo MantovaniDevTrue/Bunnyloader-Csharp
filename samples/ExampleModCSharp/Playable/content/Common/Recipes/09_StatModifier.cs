@@ -31,4 +31,19 @@ public static class ExampleStatModifierRecipe
         StatModifier total = melee.CombineWith(generic.Scale(inheritance.damageInheritance));
         return total.ApplyTo(originalDamage);
     }
+
+    /// <summary>
+    /// Exemplo do fator de herança de velocidade de ataque, sem acessar o jogo.
+    /// Na API original, GetTotalAttackSpeed parte do valor da classe (1 = 100%)
+    /// e soma (velocidadeDaOrigem - 1) * attackSpeedInheritance.
+    /// Use isto como referência matemática no hook real, não como um hook pronto.
+    /// </summary>
+    public static float CalculateInheritedAttackSpeed(float ownSpeed, float inheritedClassSpeed)
+    {
+        StatInheritanceData inheritance = new(attackSpeedInheritance: 0.5f);
+
+        // Herda metade da diferença em relação a 1, não metade da velocidade total.
+        // Exemplo: classe própria 1.05; origem 1.20 => 1.05 + 0.10 = 1.15.
+        return ownSpeed + (inheritedClassSpeed - 1f) * inheritance.attackSpeedInheritance;
+    }
 }
