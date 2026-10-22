@@ -1,0 +1,33 @@
+name: Validate CSharp HairLoader managed contract (NO APK)
+
+on:
+  push:
+    branches:
+      - feature/csharp-hair-loader-no-apk-20261022
+    paths:
+      - "Split/Bunny-Loader/experiments/csharp/BunnyCsSdk/ModHair.cs"
+      - "Split/Bunny-Loader/experiments/csharp/BunnySourceSdk/**"
+      - "Split/Bunny-Loader/tests/hair_loader/**"
+      - ".github/workflows/check-csharp-hair-managed-only.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  managed-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - name: Build the actual BunnySourceSdk loaded by Roslyn
+        run: dotnet build Split/Bunny-Loader/experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj -c Release --nologo
+      - name: Run the hair identity, texture and unlocking tests
+        run: dotnet run --project Split/Bunny-Loader/tests/hair_loader/HairLoader.Tests.csproj -c Release
+      - name: Guard against Android artifacts
+        run: |
+          test ! -d Split/Bunny-Loader/app/build/outputs/apk
+          test ! -d app/build/outputs/apk
