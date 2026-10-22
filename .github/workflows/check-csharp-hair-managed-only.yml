@@ -220,6 +220,15 @@ jobs:
           assert "MakeNativeHairStartupForWorker" in (root / "NativeHairStartup.cpp").read_text()
           print("HAIR_GAME_THREAD_BRIDGE=PASS")
           PY
+      - name: Exercise actual Hair worker factory with game-thread mailbox
+        run: |
+          g++ -std=c++20 -Wall -Wextra -Werror -pthread \
+            -I Split/Bunny-Loader/app/src/main/cpp \
+            Split/Bunny-Loader/tests/hair_loader/native_worker_factory.cpp \
+            Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairSlotMailbox.cpp \
+            Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairStartup.cpp \
+            -o /tmp/bunny-hair-worker-factory
+          /tmp/bunny-hair-worker-factory
       - name: Guard against Android artifacts
         run: |
           test ! -d Split/Bunny-Loader/app/build/outputs/apk
