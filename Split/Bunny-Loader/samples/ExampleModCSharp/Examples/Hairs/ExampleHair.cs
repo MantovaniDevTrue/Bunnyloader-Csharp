@@ -41,3 +41,24 @@ public static class ExampleHairRegistration
         return hairs.Register("examplemodcsharp", new ExampleHair(), hasAsset);
     }
 }
+
+/// <summary>
+/// Exemplo do estágio Roslyn/MonoVM: o host precisa reservar o primeiro ID
+/// global antes de executar este método. Um segundo mod pode começar em 229,
+/// 230 etc.; nunca reutilizar 228 por conta própria para todos os mods.
+/// A saída é somente um manifesto para o instalador IL2CPP futuro, NÃO
+/// uma confirmação de que o cabelo apareceu no Terraria.
+/// </summary>
+public static class ExampleHairManifest
+{
+    public static string Prepare(Func<string, bool> hasAsset, int firstReservedType)
+    {
+        HairManifestSession session = HairManifestSession.Prepare(
+            "examplemodcsharp", new[] { typeof(ExampleHair) },
+            hasAsset, firstReservedType);
+
+        // ExportNativeManifest escreve UID, classe, texturas e gênero.
+        // IDs não devem viajar na rede; cada cliente resolve por UID/classe.
+        return session.Manifest;
+    }
+}
