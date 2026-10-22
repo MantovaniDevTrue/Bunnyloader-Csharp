@@ -1,0 +1,20 @@
+name: Check Bunny CSharp Random Compat (no APK)
+on:
+  pull_request:
+    paths:
+      - "Split/Bunny-Loader/experiments/csharp/BunnyCsSdk/TerrariaRandomCompat.cs"
+      - "Split/Bunny-Loader/experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj"
+      - "Split/Bunny-Loader/tests/random_compat/**"
+      - "Split/Bunny-Loader/samples/RandomCompatCSharp/**"
+      - ".github/workflows/check-csharp-random-compat.yml"
+  workflow_dispatch:
+jobs:
+  random-sdk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Compile and test random API
+        run: dotnet run --project Split/Bunny-Loader/tests/random_compat/RandomCompat.csproj --configuration Release
