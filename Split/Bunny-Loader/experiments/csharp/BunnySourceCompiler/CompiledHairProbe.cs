@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-using System.Linq;
 using System.Reflection;
 using BunnyLoader.Source;
 
@@ -23,9 +22,18 @@ public static class CompiledHairProbe
         if (string.IsNullOrWhiteSpace(destination))
             throw new ArgumentException("Destino do manifesto não informado.", nameof(destination));
 
-        string root = Path.GetFullPath(modRoot);
-        if (!Directory.Exists(root) || new DirectoryInfo(root).LinkTarget is not null)
+        string root = Path.GetFullPath(modRoot).TrimEnd(
+            Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        if (root.Length == 0 || !Directory.Exists(root) || new DirectoryInfo(root).LinkTarget is not null)
             throw new InvalidOperationException("Diretório raiz do mod inexistente ou simbólico.");
+
+        string target = Path.GetFullPath(destination);
+        string? folderPath = Path.GetDirectoryName(target);
+        if (folderPath is null || !Directory.Exists(folderPath))
+            throw new InvalidOperationException("Diretório do manifesto não existe.");
+        // Um manifesto antigo não pode disfarçar a falha desta compilação.
+        if (File.Exists(target)) File.Delete(target);
+        if (File.Exists(target + ".tmp")) File.Delete(target + ".tmp");
 
         bool HasAsset(string relative)
         {
@@ -57,11 +65,6 @@ public static class CompiledHairProbe
         // O Type de cada classe é atribuído pelo HairLoader a partir da reserva.
         HairManifestSession session = HairManifestSession.Prepare(
             modUid, compiledMod.GetTypes(), HasAsset, reservedFirstHairType);
-
-        string target = Path.GetFullPath(destination);
-        string? folderPath = Path.GetDirectoryName(target);
-        if (folderPath is null || !Directory.Exists(folderPath))
-            throw new InvalidOperationException("Diretório do manifesto não existe.");
 
         string temporary = target + ".tmp";
         try
