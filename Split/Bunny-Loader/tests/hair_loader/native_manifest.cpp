@@ -59,5 +59,24 @@ int main() {
     registry.Reset();
     require(registry.Size() == 0, "reiniciar sessao limpa identidades");
 
+    Registry sparse;
+    const std::string first =
+        "HAIR\t230\tmod-a\tA\tContent/Hairs/A.png\tContent/Hairs/A.png\t0\t1\n";
+    const std::string second =
+        "HAIR\t238\tmod-b\tB\tContent/Hairs/B.png\tContent/Hairs/B_Alt.png\t2\t0\n";
+    require(ParseAndRegisterManifest(header + first, &sparse, exists, &error, 230) &&
+        sparse.Resolve("mod-a/A") == 230, "manifesto aceita ID reservado apos slots JS");
+    require(ParseAndRegisterManifest(header + second, &sparse, exists, &error, 238) &&
+        sparse.Resolve("mod-b/B") == 238 && sparse.NextType() == 239 &&
+        !sparse.ByType(237), "multi-mod preserva lacunas e identidade");
+    const auto before = sparse.Size();
+    require(!ParseAndRegisterManifest(header + first, &sparse, exists, &error, 230) &&
+        sparse.Size() == before, "manifesto duplicado nao invade blocos antigos");
+    const std::string colliding =
+        "HAIR\t238\tmod-c\tB\tContent/Hairs/B.png\tContent/Hairs/B.png\t0\t1\n";
+    require(!ParseAndRegisterManifest(header + colliding, &sparse, exists, &error, 238) &&
+        error.starts_with("NativeHairTypeAlreadyReserved") &&
+        sparse.Size() == before, "tipo ja utilizado recusado atomicamente");
+
     std::cout << "Native HairManifest interop contracts OK (NO APK).\n";
 }
