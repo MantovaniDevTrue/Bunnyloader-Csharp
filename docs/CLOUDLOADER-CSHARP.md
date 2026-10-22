@@ -165,9 +165,14 @@ O SDK `BunnySourceSdk.dll` possui `BunnyBiome`,
 no `ModBiome` e `BiomeLoader` do ExampleModBunny (sem JavaScript em
 runtime). Cada classe declara suas dependências em `CountedTiles`
 e calcula `IsBiomeActive(snapshot)`, recebendo apenas tipos primitivos
-na thread MonoVM. Métodos `OnEnter`, `OnInBiome` e `OnLeave` estão
-declarados, mas seus eventos reais **ainda não são despachados**
-a cada frame; isso impede afirmar fidelidade total prematuramente.
+na thread MonoVM. Os callbacks `OnEnter`, `OnInBiome` e
+`OnLeave` agora executam na avaliação gerenciada na mesma ordem do
+`BiomeLoader.js`: primeiro a comparação do estado, em seguida a
+entrada ou saída (se houve mudança), depois `OnInBiome` se ativo.
+Exceções são isoladas por callback, sem desativar permanentemente
+o bioma que lançou. Esse pipeline **ainda não coincide com a frequência
+de `Player.UpdateBiomes` por quadro**, pois a coleta nativa permanece
+amostrada a cada 20 updates.
 
 O Roslyn reconhece `BunnyBiome` e gera o manifesto separado
 `source-biomes-v1.txt`, com versão `BUNNY_BIOMES_V1`, classe e
@@ -272,9 +277,16 @@ restrito aos testes, **sem alterar o código Android real**.
 - [x] Codificar a leitura genérica de `SceneMetrics._tileCounts`
       de até 32 tiles declarados e a publicação segura de
       biomas após verificação por proprietário e geração.
+- [x] Implementar no dispatcher a ordem original
+      `OnEnter` → `OnInBiome` e saída `OnLeave`, com isolamento
+      de exceções, retorno após falha e limpeza de estado por mundo.
+- [x] Agendar `BunnyBiomeDispatcher.ResetWorld` no worker
+      MonoVM fixado quando a sessão do Terraria muda, sem bloquear
+      a thread do jogo nem carregar flags antigas.
+- [ ] Associar a avaliação e a execução dos três callbacks ao hook real
+      `Player.UpdateBiomes` por quadro, sem perder 60 FPS.
 - [ ] Habilitar registro de `BunnyBiome` pelo carregador de fontes
-      somente após fechar a inicialização e eventos reais;
-      `OnEnter`/`OnInBiome`/`OnLeave` e QA Android seguem pendentes.
+      somente após fechar a inicialização nativa e QA Android.
 - [x] Preparar fila `OnSpawn` por slot/geração com limites e testes
       para ignorar resultados de callbacks atrasados.
 - [x] Codificar atualização de tamanho de nuvem pelo PNG, seleção rara
@@ -352,3 +364,29 @@ testes isolados. Compilação não equivale a testes IL2CPP no aparelho.
   e `NativeCloudBiomeSampler.cpp` com Clang e GCC. Continua
   **sem build Android**: assinatura e renderização em aparelho
   permanecem sem validação.
+
+## Ciclo de vida gerenciado — lote atualizado
+
+O `BunnyBiomeDispatcher` agora guarda o estado anterior por
+instância e executa os três eventos na ordem do carregador Bunny.
+Quando `IsBiomeActive` lança, vale falso naquela avaliação (em vez de
+desabilitar permanentemente o bioma). `OnEnter`, `OnInBiome` e
+`OnLeave` têm isolamento independente de exceções; um callback ruim
+não suprime os demais biomas nem invalida as flags do snapshot.
+
+Na saída ou recarga do mundo, `resetManagedCloudWorldSession` coloca
+um job `ResetWorld` na fila MonoVM, limpa avaliações antigas e aciona
+um `OnLeave` final para instâncias ativas. O reset é idempotente;
+uma falha deixa os IDs C# bloqueados, dispara a rotina de recuperação
+e evita reutilizar registros possivelmente inconsistentes.
+
+Os testes do `ExampleSurfaceBiome` verificam entrada uma vez,
+`OnInBiome` em avaliações sucessivas, saída exatamente uma vez,
+reentrada após `ResetWorld` e falhas independentes em todos os hooks.
+A compilação real de `ManagedRuntime.cpp`, testes C# e sanitizers
+passou em https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39785023797.
+
+**Limite atual:** a execução é fiel *por avaliação*, mas ainda
+não roda sincronamente com cada `Player.UpdateBiomes` original.
+O `SourceLoader` continua recusando `BunnyBiome` e `BunnyCloud`;
+não houve build Android, pacote de mod ou teste no aparelho.
