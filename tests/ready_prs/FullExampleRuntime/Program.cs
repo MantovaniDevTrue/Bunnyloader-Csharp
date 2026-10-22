@@ -64,6 +64,15 @@ try
         throw new InvalidOperationException("Auto-registered ExampleDamageClass defaults differ");
     if (!BunnyEntitySourceDispatcher.Status(entitySlot).Contains("damageClasses=1", StringComparison.Ordinal))
         throw new InvalidOperationException("Managed entity context missing DamageClass registration");
+    if (BunnyEntitySourceDispatcher.Register(modId, output) != entitySlot ||
+        DamageClassLoader.DamageClassCount != 11)
+        throw new InvalidOperationException("Repeated registration changed class IDs or context");
+    bool duplicateRejected = false;
+    try { DamageClassLoader.RegisterAssembly(System.Reflection.Assembly.LoadFrom(output)); }
+    catch (InvalidOperationException) { duplicateRejected = true; }
+    if (!duplicateRejected || DamageClassLoader.DamageClassCount != 11 ||
+        !ReferenceEquals(DamageClassLoader.GetDamageClass(10), registeredDamageClass))
+        throw new InvalidOperationException("Duplicate assembly registration corrupted DamageClass registry");
     Console.WriteLine("FULL_EXAMPLE_DAMAGECLASS_AUTO_REGISTRATION=PASS id=10 crit=8 pen=10");
     var dustOwner = typeof(BunnyDustSourceDispatcher).GetMethod("ModForAssembly",
         System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)
