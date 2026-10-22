@@ -13,6 +13,7 @@ on:
       - app/src/main/cpp/experiments/csharp/ManagedBannerWorldState.h
       - app/src/main/cpp/experiments/csharp/ManagedBannerNearbyPolicy.h
       - app/src/main/cpp/experiments/csharp/ManagedBannerMetrics.h
+      - app/src/main/cpp/experiments/csharp/ManagedBannerStrength.h
       - app/src/main/cpp/experiments/csharp/ManagedBannerWorldFile.h
       - app/src/main/cpp/experiments/csharp/ManagedBannerWorldSession.h
       - app/src/main/cpp/experiments/csharp/ManagedBannerSaveHooks.h
@@ -47,6 +48,7 @@ on:
       - app/src/main/cpp/experiments/csharp/ManagedBannerWorldState.h
       - app/src/main/cpp/experiments/csharp/ManagedBannerNearbyPolicy.h
       - app/src/main/cpp/experiments/csharp/ManagedBannerMetrics.h
+      - app/src/main/cpp/experiments/csharp/ManagedBannerStrength.h
       - app/src/main/cpp/experiments/csharp/ManagedBannerWorldFile.h
       - app/src/main/cpp/experiments/csharp/ManagedBannerWorldSession.h
       - app/src/main/cpp/experiments/csharp/ManagedBannerSaveHooks.h
@@ -144,6 +146,13 @@ jobs:
             -Iapp/src/main/cpp tests/banners/native_nearby.cpp \
             -o /tmp/bunny-banner-nearby
           /tmp/bunny-banner-nearby
+      - name: Validate BannerStrength does not touch vanilla item range
+        run: |
+          c++ -std=c++20 -O1 -Wall -Wextra -Werror -pthread \
+            -Iapp/src/main/cpp -Itests/basic_items/include -Itests/startup/include \
+            tests/banners/native_strength_policy.cpp \
+            -o /tmp/bunny-banner-strength
+          /tmp/bunny-banner-strength
       - name: Test bounded BannerSystem array planner
         run: |
           c++ -std=c++20 -O1 -Wall -Wextra -Werror -pthread \
