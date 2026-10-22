@@ -621,6 +621,10 @@ bool replaceNativeAchievementObjects(
 
     const auto release = [](NativeEntry& entry) {
         auto& api = il2cpp::api();
+        if (entry.assetRoot && api.gchandle_get_target) {
+            auto* asset = api.gchandle_get_target(entry.assetRoot);
+            if (asset) bl::runtime::content::destroyTextureAsset(asset);
+        }
         for (uint32_t handle : {entry.achievementRoot, entry.titleRoot,
                                 entry.descriptionRoot, entry.hiddenRoot,
                                 entry.assetRoot}) {
@@ -662,20 +666,29 @@ bool replaceNativeAchievementObjects(
         return okay;
     };
 
+    const cleanupAfterFailure = [&](bool rollbackComplete) {
+        for (auto& [_, entry] : staged) {
+            if (rollbackComplete) release(entry);
+            else retiredEntries.push_back(std::move(entry));
+        }
+    };
+
     for (const auto& definition : definitions) {
         auto* oldObject = il2cpp::api().gchandle_get_target(
             entries.at(definition.name).achievementRoot);
         if (!adapter.removeExact(definition.name, oldObject, error)) {
-            if (!rollback()) *error += " / ROLLBACK_INCOMPLETE " + rollbackError;
-            for (auto& [_, entry] : staged) release(entry);
+            const bool restored = rollback();
+            if (!restored) *error += " / ROLLBACK_INCOMPLETE " + rollbackError;
+            cleanupAfterFailure(restored);
             return false;
         }
         if (!commit(definition, &staged.at(definition.name), error, true)) {
-            if (!restoreOld(definition.name))
-                *error += " / RESTORE_FAILED " + rollbackError;
-            if (!rollback())
+            const bool restored = restoreOld(definition.name);
+            if (!restored) *error += " / RESTORE_FAILED " + rollbackError;
+            const bool rolledBack = rollback();
+            if (!rolledBack)
                 *error += " / ROLLBACK_INCOMPLETE " + rollbackError;
-            for (auto& [_, entry] : staged) release(entry);
+            cleanupAfterFailure(restored && rolledBack);
             return false;
         }
         replaced.push_back(definition.name);
