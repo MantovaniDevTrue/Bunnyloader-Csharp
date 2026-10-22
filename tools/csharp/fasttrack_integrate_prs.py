@@ -15,7 +15,7 @@ SOURCES = (
 )
 REPORT = ROOT / "docs/csharp/FASTTRACK-INTEGRATION-REPORT.json"
 ALLOWED = (".cs", ".csproj", ".cpp", ".h", ".hpp", ".c", ".cmake", ".json", ".md", ".png", ".xml", ".props", ".targets")
-ROOTS = ("app/", "samples/", "tests/", "tools/", "docs/", "Split/Bunny-Loader/")
+ROOTS = ("app/", "experiments/", "samples/", "tests/", "tools/", "docs/", "Split/Bunny-Loader/")
 MAX_BYTES = 5_000_000
 
 def git(*args, check=True):
