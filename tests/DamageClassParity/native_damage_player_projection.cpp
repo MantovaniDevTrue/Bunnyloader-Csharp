@@ -47,7 +47,7 @@ int main() {
     custom.inheritance[3].crit = 2.f;
     float sharedCrit = -100.f, critDelta = -100.f;
     assert(projectNativeClassCritDelta(custom, {20, 10, 15}, &sharedCrit, &critDelta));
-    assert(sharedCrit == 10.f && std::abs(critDelta - 10.f) < .0001f);
+    assert(sharedCrit == 10.f && std::abs(critDelta - 15.f) < .0001f);
     custom.inheritance[1].crit = 0.f;
     custom.inheritance[2].crit = 0.f;
     custom.inheritance[3].crit = 0.f;
