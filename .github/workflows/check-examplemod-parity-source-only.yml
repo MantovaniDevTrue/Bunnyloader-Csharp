@@ -1,0 +1,30 @@
+name: ExampleMod CSharp source-only parity gate
+
+on:
+  push:
+    branches:
+      - feature/examplemod-csharp-parity-gate-20261022
+    paths:
+      - "tools/example_completion/release_gate.py"
+      - "tools/example_completion/test_release_gate.py"
+      - ".github/workflows/check-examplemod-parity-source-only.yml"
+  pull_request:
+    paths:
+      - "tools/example_completion/release_gate.py"
+      - "tools/example_completion/test_release_gate.py"
+      - ".github/workflows/check-examplemod-parity-source-only.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  gate-tests:
+    name: Test evidence policy (NO APK)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate Python source syntax
+        run: python3 -m py_compile tools/example_completion/release_gate.py tools/example_completion/test_release_gate.py
+      - name: Verify all deny and allow cases using isolated source fixtures
+        run: python3 tools/example_completion/test_release_gate.py -v
