@@ -1,6 +1,7 @@
 #pragma once
 
 #include "il2cpp/Api.h"
+#include "experiments/csharp/ManagedBannerAnchorPolicy.h"
 #include "il2cpp/Resolver.h"
 #include "il2cpp/FieldContract.h"
 
@@ -79,13 +80,18 @@ inline bool configureNativeBannerAnchors(Il2CppClass* tileClass,
             return false;
         }
     }
+    if (!bannerAnchorMaskValid(kinds)) {
+        *error="BannerAnchor: mascara AnchorType incompatível";
+        return false;
+    }
     const int32_t solid=kinds[0]|kinds[1]|kinds[2]|kinds[3];
     const int32_t platforms=kinds[4]|kinds[5];
 
     auto makeAnchor=[&](int32_t kind)->Il2CppObject* {
         auto* boxed=api.object_new(anchor);
         if (!boxed || api.object_get_class(boxed)!=anchor) return nullptr;
-        int32_t width=1,first=0;
+        int32_t width=kBannerAnchorPlan.coordinateWidth;
+        int32_t first=kBannerAnchorPlan.anchorCheckStart;
         void* args[3]={&kind,&width,&first};
         Il2CppObject* exc=nullptr;
         api.runtime_invoke(ctor,boxed,args,&exc);
@@ -116,7 +122,7 @@ inline bool configureNativeBannerAnchors(Il2CppClass* tileClass,
         *error="BannerAnchor: CopyFrom/AnchorTop alternativo falhou";
         return false;
     }
-    int32_t offset=-10;
+    int32_t offset=kBannerAnchorPlan.platformDrawYOffset;
     void* shiftArgs[1]={&offset};
     exc=nullptr;
     api.runtime_invoke(draw,alternate,shiftArgs,&exc);
@@ -126,7 +132,7 @@ inline bool configureNativeBannerAnchors(Il2CppClass* tileClass,
     }
     // O alternate copia do tile configurado (altura 3, correcao -2).
     // O CopyFrom anterior a AnchorTop alternativo e feito pelo chamador.
-    int32_t alternateStyle=0;
+    int32_t alternateStyle=kBannerAnchorPlan.platformAlternateIndex;
     void* addArgs[1]={&alternateStyle};
     api.runtime_invoke(addAlternate,nullptr,addArgs,&exc);
     if (exc) {
