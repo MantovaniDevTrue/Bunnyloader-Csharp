@@ -1,6 +1,10 @@
 #include "experiments/csharp/NativeTileGameplay.h"
 #include "experiments/csharp/ManagedRuntime.h"
 #include "experiments/csharp/NativeTilePolicy.h"
+#include "experiments/csharp/ManagedBannerRegistry.h"
+#include "experiments/csharp/ManagedBannerLookupHooks.h"
+#include "experiments/csharp/ManagedBannerSaveDispatch.h"
+#include "experiments/csharp/ManagedBannerNearbyPolicy.h"
 #include "experiments/csharp/NativeTileAnimationPolicy.h"
 #include "experiments/csharp/NativeTileScanPolicy.h"
 #include "experiments/csharp/NativeTileDrawWire.h"
@@ -501,7 +505,23 @@ void scanTileNearby(const runtime::TileArrays& world,bool visual) {
         const int x=region.left+static_cast<int>(index%region.width);
         const int y=region.top+static_cast<int>(index/region.width);
         const auto it=g_tiles.find(runtime::tileTypeAt(x,y));
-        if(it==g_tiles.end()||!managedTileReady(it->second.spec,11))continue;
+        if(it==g_tiles.end())continue;
+        if(!visual && it->second.spec.shape==2 &&
+           banners::lookupsActive.load(std::memory_order_acquire) &&
+           world.lookup && world.frameX) {
+            const auto epoch=banners::saveDispatch().worldEpoch();
+            const size_t offset=static_cast<size_t>(y)*world.width+x;
+            const int frameX=world.frameX[world.lookup[offset]];
+            const int style=tile_policy::bannerStyleFromFrameX(frameX);
+            const int item=style>=0?basicItemForTileStyle(
+                it->second.spec.mod+"/"+it->second.spec.name,style):-1;
+            const auto bindings=banners::registry(runtime::kVanillaNpcCount).snapshot();
+            const auto banner=bindings->itemToBanner.find(item);
+            if(epoch && item>0 && banner!=bindings->itemToBanner.end())
+                banners::nearbyBannerCache().observe(epoch,g_tileScanTick,x,y,
+                                                      it->first,style,banner->second);
+        }
+        if(!managedTileReady(it->second.spec,11))continue;
         const auto key=tile_scan::cellKey(x,y,visual);
         const auto previous=g_tileNearbyEvents.find(key);
         if(previous!=g_tileNearbyEvents.end()&&g_tileScanTick-previous->second<6)continue;
@@ -564,6 +584,8 @@ void scanManagedTileWorld() {
     ++g_tileScanTick;
     if(!g_tileScanReady||g_tiles.empty())return;
     if(!g_usesManagedNearby&&!g_usesManagedLight)return;
+    if(g_tileScanTick%30==0)
+        banners::nearbyBannerCache().prune(g_tileScanTick);
     runtime::TileArrays world{};
     if(!runtime::tileArrays(&world))return;
     if(g_usesManagedNearby&&(g_tileScanTick%6==0)) {
@@ -1050,6 +1072,7 @@ void resetNativeTileSessionState() {
     g_tileScanLightCursor=0;
     g_tileLightCache.clear();
     g_tileNearbyEvents.clear();
+    banners::nearbyBannerCache().reset();
     g_lastUseFrames.clear();
     g_mouseOverFrames.clear();
     g_mouseOverFarFrames.clear();
@@ -1086,10 +1109,12 @@ bool registerNativeTileGameplay(const NativeTileGameplaySpec& spec) {
     behavior.itemType = basicItemForTile(spec.mod + "/" + spec.name);
     behavior.dustType = resolveDustId(spec.dustName);
     if (!setupHooks()) return false;
-    if ((spec.animationFrames > 1 || (spec.callbackMask & ((1 << 6)|(1 << 11)|(1 << 12)))) &&
+    if ((spec.shape==2 || spec.animationFrames > 1 ||
+         (spec.callbackMask & ((1 << 6)|(1 << 11)|(1 << 12)))) &&
         !setupNativeTileAnimation()) return false;
-    if((spec.callbackMask&((1<<6)|(1<<11))) &&
-       !setupTileWorldScan((spec.callbackMask&(1<<6))!=0,(spec.callbackMask&(1<<11))!=0))
+    if((spec.shape==2 || (spec.callbackMask&((1<<6)|(1<<11)))) &&
+       !setupTileWorldScan((spec.callbackMask&(1<<6))!=0,
+                           spec.shape==2 || (spec.callbackMask&(1<<11))!=0))
         return false;
     if ((!spec.allowBreaking || (spec.callbackMask&1)) && !setupCanKillTileHook()) {
         BL_ERROR("[CSharp][Tile] CanKillTile ABI ou hook indisponivel para %s/%s",
@@ -1125,7 +1150,7 @@ bool registerNativeTileGameplay(const NativeTileGameplaySpec& spec) {
         g_managedDrawUncached[spec.type].store(!spec.cacheDrawData,std::memory_order_release);
         g_managedDrawMarks[spec.type].store(1,std::memory_order_release);
     }
-    g_usesManagedNearby|=(spec.callbackMask&(1<<11))!=0;
+    g_usesManagedNearby|=spec.shape==2 || (spec.callbackMask&(1<<11))!=0;
     g_usesManagedLight|=(spec.callbackMask&(1<<6))!=0;
     if(spec.callbackMask&& !behavior.spec.assembly.empty())
         queueManagedTileWarmup(spec.mod,behavior.spec.assembly,spec.name);
