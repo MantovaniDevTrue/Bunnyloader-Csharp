@@ -23,6 +23,8 @@ on:
       - app/src/main/cpp/experiments/csharp/NativeTileGameplay.cpp
       - experiments/csharp/BunnySourceCompiler/TileWriter.cs
       - samples/ExampleModCSharp/Playable/content/Content/Tiles/**
+      - samples/ExampleMod/content/Content/Tiles/Banners/**
+      - samples/ExampleMod/content/Content/Items/Placeable/Banners/**
       - app/src/main/cpp/experiments/csharp/ManagedBannerGameCounters.h
       - app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp
       - app/src/main/cpp/experiments/csharp/ManagedBannerArrayBridge.h
@@ -53,6 +55,8 @@ on:
       - app/src/main/cpp/experiments/csharp/NativeTileGameplay.cpp
       - experiments/csharp/BunnySourceCompiler/TileWriter.cs
       - samples/ExampleModCSharp/Playable/content/Content/Tiles/**
+      - samples/ExampleMod/content/Content/Tiles/Banners/**
+      - samples/ExampleMod/content/Content/Items/Placeable/Banners/**
       - app/src/main/cpp/experiments/csharp/ManagedBannerGameCounters.h
       - app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp
       - app/src/main/cpp/experiments/csharp/ManagedBannerArrayBridge.h
@@ -152,6 +156,12 @@ jobs:
             app/src/main/cpp/experiments/csharp/NativeContent.cpp \
             app/src/main/cpp/experiments/csharp/NativeTileGameplay.cpp \
             app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp
+      - name: Verify banner artwork is byte-for-byte identical to ExampleModBunny
+        run: |
+          cmp samples/ExampleMod/content/Content/Tiles/Banners/ExampleEnemyBannerTile.png \
+              samples/ExampleModCSharp/Playable/content/Content/Tiles/Banners/ExampleEnemyBannerTile.png
+          cmp samples/ExampleMod/content/Content/Items/Placeable/Banners/ExampleSlimeBanner.png \
+              samples/ExampleModCSharp/Playable/content/Content/Items/Placeable/Banners/ExampleSlimeBanner.png
       - name: Verify APK gate remains closed
         shell: bash
         run: |
