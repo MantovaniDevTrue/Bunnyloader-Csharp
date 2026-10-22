@@ -1,4 +1,6 @@
 #include "experiments/csharp/NativeInvasionPersistence.h"
+#include "experiments/csharp/ManagedBannerWorldSession.h"
+#include "core/Log.h"
 
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
@@ -60,6 +62,7 @@ std::string utf8(Il2CppString* value) {
 void updateNativeInvasionWorldPath(bool ready, uint64_t session) {
     if (!ready) {
         setNativeInvasionSaveWorld(false, session, {}, false);
+        banners::worldSession().end();
         return;
     }
     static PathFields fields;
@@ -67,17 +70,25 @@ void updateNativeInvasionWorldPath(bool ready, uint64_t session) {
         fields = resolvePath();
     if (!fields.active || fields.path < 0 || fields.cloud < 0) {
         setNativeInvasionSaveWorld(false, session, {}, false);
+        banners::worldSession().end();
         return;
     }
     Il2CppObject* data = nullptr;
     il2cpp::api().field_static_get_value(fields.active, &data);
     if (!data) {
         setNativeInvasionSaveWorld(false, session, {}, false);
+        banners::worldSession().end();
         return;
     }
     const bool cloud = runtime::field<uint8_t>(data, fields.cloud) != 0;
     auto* value = runtime::field<Il2CppString*>(data, fields.path);
-    setNativeInvasionSaveWorld(true, session, utf8(value), cloud);
+    const std::string path = utf8(value);
+    setNativeInvasionSaveWorld(true, session, path, cloud);
+    const auto outcome = banners::worldSession().begin(session, path, cloud);
+    if (outcome == banners::DiskResult::Corrupt ||
+        outcome == banners::DiskResult::IoError)
+        BL_WARN("[CSharp][BannerLoader] WorldSidecar=%d Stage=Load Result=Quarantined",
+                static_cast<int>(outcome));
 }
 
 }
