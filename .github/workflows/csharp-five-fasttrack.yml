@@ -1,0 +1,86 @@
+name: CSharp five-loader fast-track source integration
+
+on:
+  push:
+    branches:
+      - integration/csharp-five-loader-fasttrack-20261022
+    paths:
+      - tools/csharp/fasttrack_integrate_prs.py
+      - .github/workflows/csharp-five-fasttrack.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: csharp-fasttrack-five
+  cancel-in-progress: false
+
+jobs:
+  merge-source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout isolated PR119 integration base
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+      - name: Stage PR117 and PR121 using pinned three-way source merge
+        run: |
+          set -euo pipefail
+          python3 -m py_compile tools/csharp/fasttrack_integrate_prs.py
+          python3 tools/csharp/fasttrack_integrate_prs.py
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          f = Path('docs/csharp/FASTTRACK-INTEGRATION-REPORT.json')
+          j = json.loads(f.read_text())
+          assert j['rules']['no_last_writer_wins']
+          assert j['rules']['no_apk_or_release']
+          assert j['source_prs'][0]['number'] == 117
+          assert j['source_prs'][1]['number'] == 121
+          print('MANUAL_RECONCILIATION', len(j['manual_reconciliation']))
+          for x in j['manual_reconciliation'][:60]:
+              print(x['pr'], x['path'], x['reason'])
+          PY
+      - name: Verify staged source safety
+        run: |
+          set -euo pipefail
+          if git diff --name-only | grep -E '^app/src/main/assets/managed/|\.apk$|\.bmod$|\.tmod$|\.tl$|\.so$|\.dll$'; then
+            echo 'Refusing binary / release / runtime payload.' >&2
+            exit 1
+          fi
+          git diff --check
+      - name: Commit source and reproducible conflict report to isolated branch
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- app samples tests tools docs
+          if git diff --cached --quiet; then
+            echo "NO_NEW_SOURCE_CHANGES"
+            exit 0
+          fi
+          git commit -m "feat(csharp): reconcile clean Command and Gore changes onto five-loader QA baseline"
+          git push origin HEAD:integration/csharp-five-loader-fasttrack-20261022
+      - name: C++ source tests and diagnostic build
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          j=json.loads(Path('docs/csharp/FASTTRACK-INTEGRATION-REPORT.json').read_text())
+          stats=j['counts']
+          print('INTEGRATION_SUMMARY', stats)
+          PY
+          for test in \
+            tests/native-and-managed/commands/native_command_clock_test.cpp \
+            tests/native-and-managed/commands/native_mailbox_test.cpp \
+            tests/native-and-managed/csharp_gore_catalog_test.cpp; do
+            if test -f "$test"; then
+              echo "Building $test"
+              g++ -std=c++20 -O1 -Wall -Wextra -Werror -Iapp/src/main/cpp/experiments/csharp "$test" -o "/tmp/$(basename "$test" .cpp)"
+              "/tmp/$(basename "$test" .cpp)"
+            fi
+          done
