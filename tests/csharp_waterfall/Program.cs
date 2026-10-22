@@ -101,7 +101,9 @@ internal static class Program
             "no native access outside the light callback");
 
         first.FailLight = true;
-        Check(!loader.TryAddLight(28, 10, 20, 0, sink), "failed light hook isolated");
+        var failedSink = new CapturedLights();
+        Check(!loader.TryAddLight(28, 10, 20, 0, failedSink), "failed light hook isolated");
+        Check(failedSink.Lights.Count == 0, "native queue remains atomic when a mod throws");
         Check(loader.RejectedCalls == 2, "light diagnostics");
         first.FailLight = false;
 
@@ -122,8 +124,18 @@ internal static class Program
         bounded.Register("testmod", excessive, _ => true);
         bounded.Seal();
         bounded.Activate();
-        Check(!bounded.TryAddLight(28, 0, 0, 0, new CapturedLights()), "light flood rejected");
+        var floodSink = new CapturedLights();
+        Check(!bounded.TryAddLight(28, 0, 0, 0, floodSink), "light flood rejected");
+        Check(floodSink.Lights.Count == 0, "light limit cannot leak partial requests");
         Check(bounded.RejectedCalls == 1, "flood rejection tracked");
+
+        var discovery = new WaterfallStyleLoader();
+        var slots = discovery.RegisterAssembly("examplemod",
+            typeof(ExampleModCSharp.Content.Biomes.ExampleWaterfallStyle).Assembly, _ => true);
+        Check(slots.Count == 1 && slots[0] == 28, "find C# example through public type discovery");
+        Check(discovery.Seal()[0].Texture == "Content/Biomes/ExampleWaterfallStyle.png",
+            "reflection registration uses actual sample texture");
+        discovery.Unload();
     }
 
     private sealed class CapturedLights : IWaterfallLightSink
