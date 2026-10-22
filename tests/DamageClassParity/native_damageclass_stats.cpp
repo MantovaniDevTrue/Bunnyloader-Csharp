@@ -26,6 +26,14 @@ int main() {
     assert(!registry.publish("mod-c", header + custom + custom));
     assert(!registry.publish("mod-c", header + "CLASS\tBad\t0\t1\t0\n"));
     assert(!registry.lookup("mod-c", "C:Bad", &stats));
+    assert(registry.publish("mod-c", header +
+        "CLASS\tScience.Damage\t0\t1e-5\t1\t0\t0\t1\t1\t0\t4\t1\t0\t1\n"));
+    assert(registry.lookup("mod-c", "C:Science.Damage", &stats));
+    assert(stats.damage.additive > 0.f && stats.damage.additive < 0.0001f);
+    registry.unload("mod-c");
+    assert(!registry.publish("mod-c", header +
+        "CLASS\tBad.Damage\t0\t1.0 \t1\t0\t0\t1\t1\t0\t4\t1\t0\t1\n"));
+
 
     std::atomic<bool> readerOk{true};
     std::thread reader([&] {
