@@ -273,7 +273,7 @@ bool nativeAchievementHooksReady() {
 }
 
 void flushNativeAchievementProgressOnExit() {
-    worldActive.store(false, std::memory_order_release);
+    setNativeAchievementWorldActive(false);
     std::lock_guard<std::mutex> lock(bindingMutex);
     for (const auto& [mod, binding] : bindings) {
         if (!queueManagedAchievementFlush(mod, binding.assembly))
