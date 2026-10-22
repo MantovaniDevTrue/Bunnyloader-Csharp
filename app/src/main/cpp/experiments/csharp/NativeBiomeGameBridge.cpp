@@ -160,6 +160,10 @@ bool pumpNativeBiomeOwnersOnGameThread(const NativeCloudBiomeFacts& facts,
     return true;
 }
 
+bool nativeBiomeOwnersStagedOnGameThread() {
+    return gameThread() && g_started && !g_owners.empty();
+}
+
 void resetNativeBiomeWorldStateOnGameThread() {
     if (!gameThread()) return;
     for (auto& [mod, owner] : g_owners) {
