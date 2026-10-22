@@ -16,6 +16,7 @@ bool stageNativeBiomeOwnerOnGameThread(const std::string& modId,
 bool pumpNativeBiomeOwnersOnGameThread(const NativeCloudBiomeFacts& facts,
     bool newSnapshot, std::string* biomeKeys);
 
+bool nativeBiomeOwnersStagedOnGameThread();
 void resetNativeBiomeWorldStateOnGameThread();
 void clearNativeBiomeOwnersOnGameThread();
 
