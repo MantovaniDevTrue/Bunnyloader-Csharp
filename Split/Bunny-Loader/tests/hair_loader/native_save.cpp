@@ -1,4 +1,5 @@
 #include "experiments/csharp/NativeHairSaveState.h"
+#include "experiments/csharp/NativeHairSaveSession.h"
 #include "experiments/csharp/NativeHairSidecar.h"
 
 #include <cstdlib>
@@ -118,6 +119,33 @@ int main() {
     std::getline(outsideFile, outsideContents);
     outsideFile.close();
     check(outsideContents == "forged", "symlink nao sobrescreve alvo externo");
+
+    PlayerHairSaveSession session;
+    session.OnLoaded(player, key, 228);
+    check(session.BeforeSave(player, 228, registry).action ==
+          SidecarAction::Update,
+          "salvar cabelo do mod mantém sidecar atualizado");
+    check(session.BeforeSave(player, 12, registry).action ==
+          SidecarAction::Remove,
+          "trocar para cabelo vanilla pede remoção do sidecar antigo");
+    check(session.HasPending(player), "tracker não é alterado antes do commit");
+    check(RemoveNativeHairSidecar(player, &error), "sidecar removido após salvar vanilla");
+    session.Commit(player, {SidecarAction::Remove, {}}, 12);
+    check(!session.HasPending(player) &&
+          ReadNativeHairSidecar(player, &actual, &error) == SidecarRead::Missing,
+          "cabelo vanilla escolhido não restaura penteado antigo");
+
+    check(WriteNativeHairSidecar(player, key, &error),
+          "sidecar regravado para mod ausente");
+    session.OnLoaded(player, key, 0);
+    check(session.BeforeSave(player, 0, withoutMod).action ==
+          SidecarAction::Preserve,
+          "ausência temporária do mod mantém dados para futura reinstalação");
+    check(session.BeforeSave(player, 12, withoutMod).action ==
+          SidecarAction::Remove,
+          "escolher outro penteado deliberadamente limpa save órfão");
+    session.Reset();
+    check(!session.HasPending(player), "fim da sessão limpa tracking em memória");
 
     unlink(separate.c_str());
     unlink(outside.c_str());
