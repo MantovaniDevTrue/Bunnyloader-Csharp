@@ -1,0 +1,12 @@
+{
+  "Achievements": {
+    "ExampleBossKilled": {
+      "FriendlyName": "Slime King Defeated",
+      "Description": "Defeat King Slime."
+    },
+    "ManyWormsKilled": {
+      "FriendlyName": "Five Giant Worms",
+      "Description": "Defeat five Giant Worms."
+    }
+  }
+}
