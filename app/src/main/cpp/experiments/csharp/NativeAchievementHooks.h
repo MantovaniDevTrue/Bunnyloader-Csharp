@@ -24,6 +24,7 @@ bool updateNativeAchievementProgress(const std::string& modId,
 
 bool nativeAchievementBindingsReady();
 bool nativeAchievementHooksReady();
+bool nativeAchievementWorldActive();
 
 // Deve ser chamado apenas na thread do Terraria, depois de resolver GameRefs.
 // Falha fechada se qualquer uma das quatro assinaturas IL2CPP divergir.
