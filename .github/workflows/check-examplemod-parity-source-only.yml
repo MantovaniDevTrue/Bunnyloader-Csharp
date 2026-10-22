@@ -12,6 +12,7 @@ on:
       - "samples/ExampleModCSharp/Playable/content/Content/Tiles/ExampleTile.cs"
       - "samples/ExampleModCSharp/Playable/content/Content/Items/Placeable/ExampleTileItem.cs"
       - "experiments/csharp/BunnyCsSdk/BunnyTile.cs"
+      - "experiments/csharp/BunnySourceCompiler/TileWriter.cs"
       - "app/src/main/cpp/experiments/csharp/NativeContent.cpp"
       - "app/src/main/cpp/experiments/csharp/SourceLoader.cpp"
       - ".github/workflows/check-examplemod-parity-source-only.yml"
