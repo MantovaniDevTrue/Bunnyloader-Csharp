@@ -129,6 +129,10 @@ int main(){
  const auto oldOffset=back.offset;back.offset=65536;
  assert(!property.bind(&localClass,"backTexture",bl::il2cpp::CheckedProperty::Kind::IntArray,false,&error));back.offset=oldOffset;
  back.type.byref=true;assert(!property.bind(&localClass,"backTexture",bl::il2cpp::CheckedProperty::Kind::IntArray,false,&error));back.type.byref=false;
+ // Parameter names are optional metadata. The native signature resolver still
+ // validates exact types/storage/layout when this soft export is absent.
+ auto namesExport=exports.method_get_param_name;exports.method_get_param_name=nullptr;
+ assert(bl::runtime::underground::bind(&error) && installed.empty());refs={};exports.method_get_param_name=namesExport;
  // Name and parameter count alone must not select an incompatible overload.
  MethodInfo wrongPicker=pick;wrongPicker.parameters={{&integer}};
  mainClass.methods.insert(mainClass.methods.begin(),&wrongPicker);

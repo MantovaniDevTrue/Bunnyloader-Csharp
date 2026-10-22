@@ -72,10 +72,10 @@ bool bind(std::string* error) {
     auto& a=il2cpp::api();
     if(!a.gchandle_new || !a.gchandle_free || !a.gchandle_get_target || !a.gc_wbarrier_set_field)
         return failure(error,"Bind","MetadataUnavailable","GcRootsAndWriteBarrier","Missing");
-    if(!a.class_get_methods || !a.method_get_name || !a.method_get_param_name || !a.method_is_generic)
-        return failure(error,"BindSignatureMetadata","MetadataUnavailable","MethodEnumeration,Name,ParameterName,GenericFlag",
+    if(!a.class_get_methods || !a.method_get_name || !a.method_is_generic)
+        return failure(error,"BindSignatureMetadata","MetadataUnavailable","MethodEnumeration,Name,GenericFlag",
             std::string(!a.class_get_methods?"Missing=class_get_methods ":"")+(!a.method_get_name?"Missing=method_get_name ":"")+
-            (!a.method_get_param_name?"Missing=method_get_param_name ":"")+(!a.method_is_generic?"Missing=method_is_generic":""));
+            (!a.method_is_generic?"Missing=method_is_generic":""));
     auto* main=il2cpp::findClassQuiet("Terraria","Main");
     auto* local=il2cpp::findClassQuiet("","LocalUserGameState");
     auto* texture=il2cpp::findClassQuiet("Microsoft.Xna.Framework.Graphics","Texture2D");

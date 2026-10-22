@@ -79,6 +79,10 @@ ausente, pedidos simultâneos e publicação atrasada/duplicada.
 `bash tests/underground_backgrounds/run_quickjs.sh` executa o motor QuickJS
 real, o loader adaptado e o exemplo JS original. Cobre IDs JS/C# intercalados,
 seleção, transição, isolamento de exceções e unload JS preservando C#.
+Preserva também o contrato JS dos slots: valores não numéricos não são
+convertidos em textura 0; arrays encurtados preservam as camadas ausentes e
+entradas além das primeiras cinco não mudam o desenho. Exceções em getters
+das entradas preservam o erro original e o último snapshot válido.
 Também executa `MixedProgram.cs`: o exemplo C# real e o exemplo JS original
 no mesmo processo, usando a bridge de produção, incluindo prioridade/peso,
 transição entre linguagens e as duas ordens de unload/reload. Esse host usa

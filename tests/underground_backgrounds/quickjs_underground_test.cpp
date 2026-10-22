@@ -42,6 +42,17 @@ int main(){
  assert(bunny_test_underground_draw(3)==22);assert(bunny_test_underground_patch(22,0)==5);
  assert(select(cs,3,.5,true,&error));assert(bunny_test_underground_draw(3)==cs); // UID tie-break, not install order.
  eval(ctx,"selected={value:second.Slot,priority:4,weight:0};");assert(bunny_test_underground_draw(9)==24);assert(bunny_test_underground_patch(24,1)==5);
+ // Original JS permits shrinking the array and skips non-integer values
+ // without coercion. Only the first five layers are consumed by Terraria.
+ eval(ctx,"second.FillTextureArray=slots=>{slots[0]=10;slots[1]=null;slots[2]='12';slots[3]=Symbol('skip');slots[4]=6;slots.push(11);};");
+ assert(bunny_test_underground_draw(3)==24);
+ assert(entries.at(24).slots==Slots({10,-1,-1,-1,6}));
+ eval(ctx,"second.FillTextureArray=slots=>{slots.length=2;slots[0]=10;slots[1]=null;};");
+ assert(bunny_test_underground_draw(3)==24 && entries.at(24).slots==Slots({10,-1,-1,-1,-1}));
+ eval(ctx,"second.FillTextureArray=slots=>Object.defineProperty(slots,1,{get(){throw Error('example-layer-getter-failure');}});");
+ assert(bunny_test_underground_draw(3)==24);
+ bool getterReported=false;for(auto& line:logs)getterReported|=line.find("example-layer-getter-failure")!=line.npos;
+ assert(getterReported && entries.at(24).slots==Slots({10,-1,-1,-1,-1}));
  // Source classes remain normal JS classes; exceptions preserve original detail.
  eval(ctx,"second.FillTextureArray=()=>{throw Error('example-fill-failure');};");
  assert(bunny_test_underground_draw(3)==24);bool reported=false;for(auto& line:logs)reported|=line.find("example-fill-failure")!=line.npos;assert(reported);

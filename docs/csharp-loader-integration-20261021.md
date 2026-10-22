@@ -84,6 +84,13 @@ de métodos e resolução de campos herdados antes de instalar hooks; a ausênci
 de exports é identificada pelo nome. O fixture recusa Double de quatro bytes
 sem instalar hooks nem escrever. Esses guardas não ampliam a contagem de loaders.
 
+O commit `f3c92d59` passou no CI combinado
+[39715577521](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39715577521),
+incluindo sintaxe ARM64 e linkagem completa. A revisão JS seguinte preserva
+`Number.isInteger` do original: null/string/Symbol não viram textura 0, arrays
+encurtados omitem camadas e entradas extras são ignoradas pelo desenho.
+Getters que lançam exceção são testados sem perder a mensagem original.
+
 Branch: `feat/csharp-loader-completion-15-20261021`.
 Base: `5a18a67899c1f6ee88a34097be3adb6e7877edd4`.
 O trabalho preserva as correções da integração anterior, inclusive contagem

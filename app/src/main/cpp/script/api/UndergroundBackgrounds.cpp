@@ -50,14 +50,13 @@ bool fill(int slot,bg::Slots* slots,std::string* error) {
     JSValue arg=JS_NewInt32(context,slot),value=JS_Call(context,fillCallback,JS_UNDEFINED,1,&arg);
     JS_FreeValue(context,arg);
     if(JS_IsException(value)){exception(context,error,"FillTextureArray");JS_FreeValue(context,value);return false;}
-    if(!JS_IsArray(value)){JS_FreeValue(context,value);*error="[JavaScript][ERROR][UndergroundBackground] Stage=FillTextureArray Expected=FiveElementArray Actual=OtherType Result=Rejected Reason=CallbackContractMismatch";return false;}
-    JSValue lengthValue=JS_GetPropertyStr(context,value,"length");int32_t length=0;
-    if(JS_IsException(lengthValue)){JS_FreeValue(context,value);return exception(context,error,"FillTextureArray.length");}
-    const int lengthResult=JS_ToInt32(context,&length,lengthValue);JS_FreeValue(context,lengthValue);
-    if(lengthResult){JS_FreeValue(context,value);return exception(context,error,"FillTextureArray.length");}
-    if(length!=5){JS_FreeValue(context,value);*error="[JavaScript][ERROR][UndergroundBackground] Stage=FillTextureArray Expected=FiveElementArray Actual="+std::to_string(length)+" Result=Rejected Reason=CallbackContractMismatch";return false;}
+    if(!JS_IsArray(value)){JS_FreeValue(context,value);*error="[JavaScript][ERROR][UndergroundBackground] Stage=FillTextureArray Expected=ArrayOfTextureSlots Actual=OtherType Result=Rejected Reason=CallbackContractMismatch";return false;}
     for(size_t i=0;i<5;++i) {
         JSValue item=JS_GetPropertyUint32(context,value,i);double number=0;
+        if(JS_IsException(item)){JS_FreeValue(context,value);return exception(context,error,"FillTextureArray");}
+        // Match Number.isInteger in the original loader: null/string/Symbol
+        // preserve a layer, rather than coercing to texture 0 or throwing.
+        if(!JS_IsNumber(item)){(*slots)[i]=-1;JS_FreeValue(context,item);continue;}
         const int converted=JS_ToFloat64(context,&number,item);JS_FreeValue(context,item);
         if(converted){JS_FreeValue(context,value);return exception(context,error,"FillTextureArray");}
         (*slots)[i]=std::isfinite(number) && number>=0 && number<16384 && std::floor(number)==number?int(number):-1;
