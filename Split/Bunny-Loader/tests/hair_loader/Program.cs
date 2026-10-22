@@ -1,3 +1,5 @@
+Check.Run();
+
 using BunnyLoader.Source;
 
 static class Check
@@ -139,5 +141,3 @@ public sealed class BadGenderHair : ModHair
 {
     public override HairGender RandomizedCharacterCreationGender => (HairGender)89;
 }
-
-Check.Run();
