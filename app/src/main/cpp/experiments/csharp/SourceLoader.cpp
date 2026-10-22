@@ -734,7 +734,7 @@ bool applyManagedSourceDefaults(
                 !integer(fields[9], &tile.mapB) ||
                 !integer(fields[11], &tile.failDust) ||
                 !integer(fields[12], &tile.normalDust) ||
-                tile.flags < 0 || tile.flags > 511 ||
+                tile.flags < 0 || tile.flags > 8191 ||
                 tile.shape < 0 || tile.shape > 1 ||
                 tile.coordinateHeight != 18 ||
                 tile.adjacentTile < -1 || tile.adjacentTile >= 754 ||
