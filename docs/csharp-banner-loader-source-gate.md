@@ -139,3 +139,15 @@ Nao realizar `assemble`, criar release nem abrir PR que acione geracao de APK an
 ### Gate final ainda bloqueado
 
 O hook real de proximidade e o de `BannerSystem.Clear` estão disponíveis na camada nativa, mas os buffs do jogo só podem ser ativados quando `lookupsActive` for liberado junto de **todos** os contratos restantes. Faltam validar a ABI arm64 do Android para as structs `BannerStrength`/`SceneMetrics`, a ancoragem extra sobre plataformas, o desenho animado pelo vento, a integração completa da entrega de bandeiras no fluxo nativo e sincronização multiplayer por UID, com reentrada/save/restore testadas. Não promover a branch, não gerar APK nem afirmar paridade com o PC.
+
+## Lote 7 — âncoras fiéis e proteção do Save vanilla (source-only)
+
+O `ModBannerTile.js` original declara duas âncoras nativas: `SolidTile | SolidSide | SolidBottom | PlanterBox`, `DrawYOffset = -2`, e uma alternada de `PlatformNonHammered | AllFlatHeight` com `DrawYOffset = -10`, altura 3 e `CoordinateHeights = [16,16,16]`.
+
+`ManagedBannerAnchors.h` configura `AnchorData` e `TileObjectData.newAlternate` diretamente pela API IL2CPP, com preflight de classe e assinatura; `NativeContent.applyTileShape` publica `addTile(type)` apenas depois da configuração. `ManagedBannerAnchorPolicy.h` concentra esses valores testados por `native_anchor_policy.cpp`. **A verificação de ABI arm64 em jogo continua pendente.** Um `AnchorType` ou método não resolvido rejeita o registro em vez de trocar o comportamento.
+
+`ManagedBannerSaveSlice.h` prepara uma cópia temporária de `BannerSystem.killCount` e `claimableBanners` limitada a `BannerSystem.MaxBannerTypes`, fazendo a validação de todos os limites e protegendo os arrays originais e substitutos por GC handles. `ManagedBannerSaveHooks.h` executa a serialização .wld dentro desse escopo, restaurando referências na saída. `NetBannersModule.WriteFullState` continua em escopo thread-local separado e conserva os arrays estendidos. Se o recorte vanilla não puder ser preparado, o hook falha de forma explícita e desativa a entrada de mod, em vez de produzir silenciosamente um save incompatível. `native_save_slice.cpp` testa os limites do recorte.
+
+A API `BunnyBannerTile : BunnyTile` foi incluída no `BunnySourceSdk.csproj`. `ExampleEnemyBannerTile` usa herança da classe-base e preserva o sprite do ExampleModBunny. `SourceParser.cpp` normaliza `BunnyBannerTile` para o tipo de registro `BunnyTile`; `CompiledAssemblyProbe` permite esse tipo de herança interna, e `native_parser.cpp` cobre o caso. Essa é uma exceção controlada para uma classe do próprio SDK; a exigência de declaração explícita para outras heranças de conteúdo permanece.
+
+**Continua faltando:** renderização `TileDrawLoader.AddSpecialPoint(...,5)` / `DrawMultiTileVinesInWind` no passo nativo correto de desenho, verificação do ciclo de entrega por mortes, protocolo multiplayer por UID, testes de stress/concorrência reais e QA arm64. O gate `lookupsActive` permanece fechado e o workflow não chama Gradle ou gera APK.
