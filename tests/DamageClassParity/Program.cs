@@ -273,9 +273,9 @@ Check("Unregister only first mod; second keeps original ID and effects", () =>
     Verify(ReferenceEquals(DamageClassLoader.GetDamageClass(11), classB), "B unchanged");
     Verify(classA!.Type == -1, "A invalid");
     Verify(DamageClassLoader.All.Count == 11, "active snapshot skips tombstone");
-    Verify(classB!.CountsAsClass(classB), "B self-effect");
-    Near(p.GetTotalCritChance(classB), 4f, "B inherited generic crit");
-    Throws<InvalidOperationException>(() => { _ = p.GetTotalDamage(classA); });
+    Verify(classB!.CountsAsClass(classB!), "B self-effect");
+    Near(p.GetTotalCritChance(classB!), 4f, "B inherited generic crit");
+    Throws<InvalidOperationException>(() => { _ = p.GetTotalDamage(classA!); });
 });
 Check("Re-register another mod never reuses retired class ID", () =>
 {
