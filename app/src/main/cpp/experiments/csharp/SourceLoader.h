@@ -47,5 +47,9 @@ bool applyManagedSourceDefaults(const std::string& modId,
 std::vector<SourceModStatus> sourceModStatuses();
 bool sourceRuntimeApplied(const std::string& modId);
 
+// Exige a thread de jogo. So prepara arrays; os hooks e a rede continuam
+// fechados ate a instalacao completa do BannerLoader.
+bool prepareBannerWorldArraysOnGameThread(std::string* error);
+
 }
 
