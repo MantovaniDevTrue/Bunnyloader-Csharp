@@ -162,28 +162,41 @@ public sealed class HairLoader
         if (nextType > MaximumHairType)
             throw new InvalidOperationException("Limite de IDs de cabelos de mod atingido.");
 
-        hair.AutoStaticDefaults();
-        hair.SetStaticDefaults();
-        string texture = ValidateTexture(hair.Texture);
-        string alternate = ValidateTexture(hair.AltTexture);
-        if (!fileExists(texture + ".png"))
-            throw new InvalidOperationException(key + ": textura principal ausente: " + texture + ".png");
-
-        if (!fileExists(alternate + ".png"))
-            alternate = texture;
-
-        Gender gender = hair.RandomizedCharacterCreationGender;
-        if (!Enum.IsDefined(typeof(Gender), gender))
-            throw new InvalidOperationException(key + ": gênero de randomização inválido.");
-
         int type = nextType;
-        var definition = new HairDefinition(type, key, texture, alternate, gender);
-        byType.Add(type, hair);
-        byKey.Add(key, definition);
-        definitions.Add(type, definition);
-        nextType++;
         hair.Type = type;
-        return definition;
+        try
+        {
+            // Assim como no tModLoader, o Type já existe em SetStaticDefaults.
+            // Se a textura ou um hook falhar, o registro inteiro é desfeito.
+            hair.AutoStaticDefaults();
+            hair.SetStaticDefaults();
+
+            string texture = ValidateTexture(hair.Texture);
+            string alternate = ValidateTexture(hair.AltTexture);
+            if (!fileExists(texture + ".png"))
+                throw new InvalidOperationException(key + ": textura principal ausente: " + texture + ".png");
+            if (!fileExists(alternate + ".png"))
+                alternate = texture;
+
+            Gender gender = hair.RandomizedCharacterCreationGender;
+            if (!Enum.IsDefined(typeof(Gender), gender))
+                throw new InvalidOperationException(key + ": gênero de randomização inválido.");
+
+            var definition = new HairDefinition(type, key, texture, alternate, gender);
+            byType.Add(type, hair);
+            byKey.Add(key, definition);
+            definitions.Add(type, definition);
+            nextType++;
+            return definition;
+        }
+        catch
+        {
+            byType.Remove(type);
+            byKey.Remove(key);
+            definitions.Remove(type);
+            hair.Type = -1;
+            throw;
+        }
     }
 
     /// <summary>
