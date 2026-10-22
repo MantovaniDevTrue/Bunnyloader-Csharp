@@ -184,6 +184,134 @@ abstract class; base: `System.Object`.
 | `static int LifePercent(int life, int maxLife)` | managed_helper |
 | `static int ReduceDamage(int damage, int percent, int minimum)` | managed_helper |
 
+## BunnyLoader.Source.BunnyCommand
+
+abstract class; base: `System.Object`.
+
+```csharp
+BunnyCommandType Type { get; }
+IReadOnlyList<string> Aliases { get; }
+bool IsCaseSensitive { get; }
+string Command { get; }
+string Description { get; }
+string Usage { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `void Action(BunnyCommandContext context)` | managed_helper |
+
+## BunnyLoader.Source.BunnyCommandAction
+
+struct; base: `System.ValueType`.
+
+```csharp
+BunnyCommandAction(BunnyCommandActionKind Kind, int Amount)
+BunnyCommandActionKind Kind { get; set; }
+int Amount { get; set; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `bool Equals(BunnyCommandAction other)` | managed_helper |
+| `bool Equals(Object obj)` | managed_helper |
+| `int GetHashCode()` | managed_helper |
+| `string ToString()` | managed_helper |
+| `void Deconstruct(out BunnyCommandActionKind Kind, out int Amount)` | managed_helper |
+
+## BunnyLoader.Source.BunnyCommandActionKind
+
+enum; base: `System.Enum`.
+
+Values: Heal, AdvanceWorldTime.
+
+## BunnyLoader.Source.BunnyCommandCaller
+
+class; base: `System.Object`.
+
+```csharp
+BunnyCommandCaller(int playerIndex, int networkMode, BunnyCommandCallerKind kind, Action<BunnyCommandReply> reply, Action<BunnyCommandAction> requestAction)
+BunnyCommandCallerKind Kind { get; }
+int NetworkMode { get; }
+int PlayerIndex { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `void AdvanceWorldTime(int ticks)` | managed_helper |
+| `void Heal(int amount)` | managed_helper |
+| `void Reply(string message, Byte red, Byte green, Byte blue)` | managed_helper |
+
+## BunnyLoader.Source.BunnyCommandCallerKind
+
+enum; base: `System.Enum`.
+
+Values: Chat, Server.
+
+## BunnyLoader.Source.BunnyCommandContext
+
+class; base: `System.Object`.
+
+```csharp
+BunnyCommandCaller Caller { get; }
+IReadOnlyList<string> Arguments { get; }
+string Input { get; }
+```
+
+## BunnyLoader.Source.BunnyCommandRegistry
+
+class; base: `System.Object`.
+
+```csharp
+BunnyCommandRegistry(Action<Exception> onError)
+```
+
+| Method | Execution |
+| --- | --- |
+| `IReadOnlyList<ValueTuple<string, string>> GetHelp(BunnyCommandCaller caller)` | managed_helper |
+| `bool TryHandle(string input, BunnyCommandCaller caller)` | managed_helper |
+| `int Register(string modId, IEnumerable<BunnyCommand> commands)` | managed_helper |
+| `int RegisterAssembly(string modId, Assembly assembly)` | managed_helper |
+| `int RegisterTypes(string modId, IEnumerable<Type> types)` | managed_helper |
+| `void Unregister(string modId)` | managed_helper |
+
+## BunnyLoader.Source.BunnyCommandReply
+
+struct; base: `System.ValueType`.
+
+```csharp
+BunnyCommandReply(string Text, Byte Red, Byte Green, Byte Blue)
+Byte Blue { get; set; }
+Byte Green { get; set; }
+Byte Red { get; set; }
+string Text { get; set; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `bool Equals(BunnyCommandReply other)` | managed_helper |
+| `bool Equals(Object obj)` | managed_helper |
+| `int GetHashCode()` | managed_helper |
+| `string ToString()` | managed_helper |
+| `void Deconstruct(out string Text, out Byte Red, out Byte Green, out Byte Blue)` | managed_helper |
+
+## BunnyLoader.Source.BunnyCommandType
+
+enum; base: `System.Enum`.
+
+Values: Chat, Server, World.
+
+## BunnyLoader.Source.BunnyCommandWorker
+
+abstract class; base: `System.Object`.
+
+| Method | Execution |
+| --- | --- |
+| `static int RegisterAssembly(string modId, string path)` | managed_helper |
+| `static string Execute(string input, int playerIndex, int netMode, int callerKind)` | managed_helper |
+| `static void Clear()` | managed_helper |
+| `static void Unregister(string modId)` | managed_helper |
+
 ## BunnyLoader.Source.BunnyContentAttribute
 
 class; base: `System.Attribute`.
@@ -237,6 +365,22 @@ BunnyDodgeHook(Object object, IntPtr method)
 | `IAsyncResult BeginInvoke(int damage, out bool dodge, AsyncCallback callback, Object object)` | managed_helper |
 | `void EndInvoke(out bool dodge, IAsyncResult result)` | managed_helper |
 | `void Invoke(int damage, out bool dodge)` | managed_helper |
+
+## BunnyLoader.Source.BunnyDrawableTooltipLine
+
+class; base: `System.Object`.
+
+```csharp
+BunnyDrawableTooltipLine(string name)
+bool DrawDefault { get; set; }
+bool RainbowWave { get; set; }
+float HueSpeed { get; set; }
+float HueStep { get; set; }
+float LetterStep { get; set; }
+float WaveAmplitude { get; set; }
+float WaveSpeed { get; set; }
+string Name { get; }
+```
 
 ## BunnyLoader.Source.BunnyDust
 
@@ -954,13 +1098,16 @@ string UseSound { get; set; }
 | --- | --- |
 | `bool OnUse(int playerIndex)` | managed_helper |
 | `bool OnUse(int playerIndex, BunnyUseContext context)` | managed_helper |
+| `bool PreDrawTooltipLine(BunnyDrawableTooltipLine line)` | managed_helper |
 | `static int BuyPrice(int platinum, int gold, int silver, int copper)` | managed_helper |
 | `static int SellPrice(int platinum, int gold, int silver, int copper)` | managed_helper |
+| `string OnUseRejectionReason(int playerIndex, BunnyUseContext context)` | managed_helper |
 | `void DefaultToPlaceableTile(int vanillaTileId, int style)` | managed_helper |
 | `void DefaultToPlaceableTile(string modTileName, int style)` | managed_helper |
 | `void DefaultToPlaceableWall(int vanillaWallId)` | managed_helper |
 | `void DefaultToPlaceableWall(string modWallName)` | managed_helper |
 | `void DefaultToQuestFish()` | managed_helper |
+| `void ModifyTooltips(List<BunnyTooltipLine> lines)` | managed_helper |
 | `void SetDefaults()` | compile_policy |
 | `void SetRarity<T>()` | managed_helper |
 
@@ -1658,11 +1805,41 @@ int ShootCallbackMask { get; }
 
 struct; base: `System.ValueType`.
 
+## BunnyLoader.Source.BunnySoundClip
+
+struct; base: `System.ValueType`.
+
+```csharp
+int DurationMilliseconds { get; }
+int Handle { get; }
+int State { get; }
+string ModId { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `BunnySoundPlayback Play(int x, int y, float volumeScale, float pitchOffset)` | managed_helper |
+| `int FindActive()` | managed_helper |
+
 ## BunnyLoader.Source.BunnySoundLimitBehavior
 
 enum; base: `System.Enum`.
 
 Values: IgnoreNew, ReplaceOldest.
+
+## BunnyLoader.Source.BunnySoundPlayback
+
+struct; base: `System.ValueType`.
+
+```csharp
+int ClipHandle { get; }
+int Request { get; }
+int Token { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `bool Stop()` | managed_helper |
 
 ## BunnyLoader.Source.BunnySoundStyle
 
@@ -1678,6 +1855,15 @@ int MaxInstances { get; }
 string Definition { get; }
 string Path { get; }
 ```
+
+## BunnyLoader.Source.BunnySounds
+
+abstract class; base: `System.Object`.
+
+| Method | Execution |
+| --- | --- |
+| `static BunnySoundClip Register(string modId, BunnySoundStyle style)` | managed_helper |
+| `static void UnloadMod(string modId)` | managed_helper |
 
 ## BunnyLoader.Source.BunnyTile
 
@@ -1748,6 +1934,28 @@ enum; base: `System.Enum`.
 
 Values: Single, Style2x1.
 
+## BunnyLoader.Source.BunnyTooltipLine
+
+class; base: `System.Object`.
+
+```csharp
+BunnyTooltipLine(string name, string text)
+bool Visible { get; set; }
+string Name { get; set; }
+string OverrideColor { get; set; }
+string Text { get; set; }
+```
+
+## BunnyLoader.Source.BunnyTooltipPlan
+
+class; base: `System.Object`.
+
+```csharp
+BunnyTooltipPlan()
+Dictionary<string, BunnyDrawableTooltipLine> Draw { get; }
+List<BunnyTooltipLine> Lines { get; }
+```
+
 ## BunnyLoader.Source.BunnyUniversalHookDispatcher
 
 abstract class; base: `System.Object`.
@@ -1762,6 +1970,14 @@ string LastError { get; }
 | `static int Register(string id, string path)` | experimental_worker_sync_void0 |
 | `static string GetStatusSnapshot(string id)` | experimental_worker_sync_void0 |
 | `static void UnloadAll()` | experimental_worker_sync_void0 |
+
+## BunnyLoader.Source.BunnyUsageException
+
+class; base: `System.Exception`.
+
+```csharp
+BunnyUsageException(string message)
+```
 
 ## BunnyLoader.Source.BunnyUseContext
 
@@ -1989,6 +2205,157 @@ float G { get; }
 float R { get; }
 ```
 
+## BunnyLoader.Source.DamageClass
+
+abstract class; base: `System.Object`.
+
+```csharp
+DamageClass Default { get; }
+DamageClass Generic { get; }
+DamageClass Magic { get; }
+DamageClass MagicSummonHybrid { get; }
+DamageClass Melee { get; }
+DamageClass MeleeNoSpeed { get; }
+DamageClass Ranged { get; }
+DamageClass Summon { get; }
+DamageClass SummonMeleeSpeed { get; }
+DamageClass Throwing { get; }
+bool UseStandardCritCalcs { get; }
+int Type { get; }
+string DisplayNameKey { get; }
+string LocalizationCategory { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `StatInheritanceData GetModifierInheritance(DamageClass damageClass)` | managed_stat_snapshot_no_android_damage_hook |
+| `bool CountsAsClass(DamageClass damageClass)` | managed_stat_snapshot_no_android_damage_hook |
+| `bool CountsAsClass<T>()` | managed_stat_snapshot_no_android_damage_hook |
+| `bool GetEffectInheritance(DamageClass damageClass)` | managed_stat_snapshot_no_android_damage_hook |
+| `bool GetPrefixInheritance(DamageClass damageClass)` | managed_stat_snapshot_no_android_damage_hook |
+| `bool GetsPrefixesFor(DamageClass damageClass)` | managed_stat_snapshot_no_android_damage_hook |
+| `bool GetsPrefixesFor<T>()` | managed_stat_snapshot_no_android_damage_hook |
+| `bool ShowStatTooltipLine(DamageClassPlayer player, string lineName)` | managed_stat_snapshot_no_android_damage_hook |
+| `void SetDefaultStats(DamageClassPlayer player)` | managed_stat_snapshot_no_android_damage_hook |
+
+## BunnyLoader.Source.DamageClassLoader
+
+abstract class; base: `System.Object`.
+
+```csharp
+IReadOnlyList<DamageClass> All { get; }
+int DamageClassCount { get; }
+int Generation { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `static DamageClass GetDamageClass(int type)` | managed_stat_snapshot_no_android_damage_hook |
+| `static T GetInstance<T>()` | managed_stat_snapshot_no_android_damage_hook |
+| `static int Register(DamageClass damageClass)` | managed_stat_snapshot_no_android_damage_hook |
+| `static int Register<T>()` | managed_stat_snapshot_no_android_damage_hook |
+| `static int RegisterAssembly(Assembly assembly)` | managed_stat_snapshot_no_android_damage_hook |
+| `static void Unload()` | managed_stat_snapshot_no_android_damage_hook |
+
+## BunnyLoader.Source.DamageClassPlayer
+
+class; base: `System.Object`.
+
+```csharp
+DamageClassPlayer()
+```
+
+| Method | Execution |
+| --- | --- |
+| `StatModifier GetTotalDamage(DamageClass cls)` | managed_stat_snapshot_no_android_damage_hook |
+| `StatModifier GetTotalDamage<T>()` | managed_stat_snapshot_no_android_damage_hook |
+| `StatModifier GetTotalKnockback(DamageClass cls)` | managed_stat_snapshot_no_android_damage_hook |
+| `StatModifier GetTotalKnockback<T>()` | managed_stat_snapshot_no_android_damage_hook |
+| `float GetTotalArmorPenetration(DamageClass cls)` | managed_stat_snapshot_no_android_damage_hook |
+| `float GetTotalArmorPenetration<T>()` | managed_stat_snapshot_no_android_damage_hook |
+| `float GetTotalAttackSpeed(DamageClass cls)` | managed_stat_snapshot_no_android_damage_hook |
+| `float GetTotalAttackSpeed<T>()` | managed_stat_snapshot_no_android_damage_hook |
+| `float GetTotalCritChance(DamageClass cls)` | managed_stat_snapshot_no_android_damage_hook |
+| `float GetTotalCritChance<T>()` | managed_stat_snapshot_no_android_damage_hook |
+| `ref StatModifier GetDamage(DamageClass cls)` | managed_stat_snapshot_no_android_damage_hook |
+| `ref StatModifier GetDamage<T>()` | managed_stat_snapshot_no_android_damage_hook |
+| `ref StatModifier GetKnockback(DamageClass cls)` | managed_stat_snapshot_no_android_damage_hook |
+| `ref StatModifier GetKnockback<T>()` | managed_stat_snapshot_no_android_damage_hook |
+| `ref float GetArmorPenetration(DamageClass cls)` | managed_stat_snapshot_no_android_damage_hook |
+| `ref float GetArmorPenetration<T>()` | managed_stat_snapshot_no_android_damage_hook |
+| `ref float GetAttackSpeed(DamageClass cls)` | managed_stat_snapshot_no_android_damage_hook |
+| `ref float GetAttackSpeed<T>()` | managed_stat_snapshot_no_android_damage_hook |
+| `ref float GetCritChance(DamageClass cls)` | managed_stat_snapshot_no_android_damage_hook |
+| `ref float GetCritChance<T>()` | managed_stat_snapshot_no_android_damage_hook |
+| `void ResetEffects()` | managed_stat_snapshot_no_android_damage_hook |
+
+## BunnyLoader.Source.DefaultDamageClass
+
+class; base: `BunnyLoader.Source.VanillaDamageClass`.
+
+```csharp
+DefaultDamageClass()
+```
+
+| Method | Execution |
+| --- | --- |
+| `StatInheritanceData GetModifierInheritance(DamageClass other)` | managed_helper |
+
+## BunnyLoader.Source.GenericDamageClass
+
+class; base: `BunnyLoader.Source.VanillaDamageClass`.
+
+```csharp
+GenericDamageClass()
+```
+
+| Method | Execution |
+| --- | --- |
+| `StatInheritanceData GetModifierInheritance(DamageClass other)` | managed_helper |
+| `void SetDefaultStats(DamageClassPlayer player)` | managed_helper |
+
+## BunnyLoader.Source.MagicDamageClass
+
+class; base: `BunnyLoader.Source.VanillaDamageClass`.
+
+```csharp
+MagicDamageClass()
+```
+
+## BunnyLoader.Source.MagicSummonHybridDamageClass
+
+class; base: `BunnyLoader.Source.VanillaDamageClass`.
+
+```csharp
+MagicSummonHybridDamageClass()
+```
+
+| Method | Execution |
+| --- | --- |
+| `StatInheritanceData GetModifierInheritance(DamageClass other)` | managed_helper |
+| `bool GetEffectInheritance(DamageClass other)` | managed_helper |
+
+## BunnyLoader.Source.MeleeDamageClass
+
+class; base: `BunnyLoader.Source.VanillaDamageClass`.
+
+```csharp
+MeleeDamageClass()
+```
+
+## BunnyLoader.Source.MeleeNoSpeedDamageClass
+
+class; base: `BunnyLoader.Source.VanillaDamageClass`.
+
+```csharp
+MeleeNoSpeedDamageClass()
+```
+
+| Method | Execution |
+| --- | --- |
+| `StatInheritanceData GetModifierInheritance(DamageClass other)` | managed_helper |
+| `bool GetEffectInheritance(DamageClass other)` | managed_helper |
+
 ## BunnyLoader.Source.PrefixCategory
 
 enum; base: `System.Enum`.
@@ -2010,5 +2377,90 @@ float UseTimeMultiplier { get; set; }
 int ArmorPenetrationBonus { get; set; }
 int CriticalBonus { get; set; }
 int TagDamageBonus { get; set; }
+```
+
+## BunnyLoader.Source.RangedDamageClass
+
+class; base: `BunnyLoader.Source.VanillaDamageClass`.
+
+```csharp
+RangedDamageClass()
+```
+
+## BunnyLoader.Source.StatInheritanceData
+
+struct; base: `System.ValueType`.
+
+```csharp
+StatInheritanceData(float damageInheritance, float critChanceInheritance, float attackSpeedInheritance, float armorPenInheritance, float knockbackInheritance)
+```
+
+## BunnyLoader.Source.StatModifier
+
+struct; base: `System.ValueType`.
+
+```csharp
+StatModifier()
+StatModifier(float additive, float multiplicative, float flat, float base)
+float Additive { get; }
+float Multiplicative { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `StatModifier CombineWith(StatModifier other)` | managed_helper |
+| `StatModifier Scale(float scale)` | managed_helper |
+| `bool Equals(Object obj)` | managed_helper |
+| `float ApplyTo(float baseValue)` | managed_helper |
+| `float Undo(float currentValue)` | managed_helper |
+| `int GetHashCode()` | managed_helper |
+
+## BunnyLoader.Source.SummonDamageClass
+
+class; base: `BunnyLoader.Source.VanillaDamageClass`.
+
+```csharp
+SummonDamageClass()
+bool UseStandardCritCalcs { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `bool ShowStatTooltipLine(DamageClassPlayer player, string lineName)` | managed_helper |
+
+## BunnyLoader.Source.SummonMeleeSpeedDamageClass
+
+class; base: `BunnyLoader.Source.VanillaDamageClass`.
+
+```csharp
+SummonMeleeSpeedDamageClass()
+bool UseStandardCritCalcs { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `StatInheritanceData GetModifierInheritance(DamageClass other)` | managed_helper |
+| `bool GetEffectInheritance(DamageClass other)` | managed_helper |
+| `bool GetPrefixInheritance(DamageClass other)` | managed_helper |
+| `bool ShowStatTooltipLine(DamageClassPlayer player, string lineName)` | managed_helper |
+
+## BunnyLoader.Source.ThrowingDamageClass
+
+class; base: `BunnyLoader.Source.VanillaDamageClass`.
+
+```csharp
+ThrowingDamageClass()
+```
+
+| Method | Execution |
+| --- | --- |
+| `bool GetPrefixInheritance(DamageClass other)` | managed_helper |
+
+## BunnyLoader.Source.VanillaDamageClass
+
+abstract class; base: `BunnyLoader.Source.DamageClass`.
+
+```csharp
+string DisplayNameKey { get; }
 ```
 
