@@ -60,6 +60,23 @@ inline bool projectNativeClassMeleeSpeedDelta(
     return true;
 }
 
+inline bool projectNativeArmorPenetration(
+    const NativeDamageClassStatDefaults& cls,
+    int32_t playerArmorPen, int32_t itemArmorPen, float* total) {
+    if (!total || playerArmorPen < -100000 || playerArmorPen > 100000 ||
+        itemArmorPen < -100000 || itemArmorPen > 100000) return false;
+    const float genericFactor = cls.inheritance[0].armorPenetration;
+    if (!std::isfinite(genericFactor) || !std::isfinite(cls.armorPenetration))
+        return false;
+    const float projected = cls.armorPenetration +
+        static_cast<float>(playerArmorPen) * genericFactor +
+        static_cast<float>(itemArmorPen);
+    if (!std::isfinite(projected) || std::abs(projected) > 100000.f)
+        return false;
+    *total = projected;
+    return true;
+}
+
 inline bool nativeVanillaPlayerDamageValid(const NativeVanillaPlayerDamage& stats) {
     for (float value : {stats.melee, stats.ranged, stats.magic, stats.summon})
         if (!std::isfinite(value) || value < 0.f || value > 1000.f)
