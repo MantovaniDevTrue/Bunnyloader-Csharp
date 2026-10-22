@@ -17,17 +17,17 @@
   ],
   "counts": {
     "CommandLoader": {
-      "clean_take_pr": 3,
+      "clean_take_pr": 0,
       "clean_three_way": 3,
-      "already_equal": 26,
+      "already_equal": 29,
       "already_contains_pr": 0,
       "blocked": 7,
       "excluded": 3
     },
     "GoreLoader": {
-      "clean_take_pr": 1,
+      "clean_take_pr": 0,
       "clean_three_way": 0,
-      "already_equal": 14,
+      "already_equal": 15,
       "already_contains_pr": 0,
       "blocked": 4,
       "excluded": 5
@@ -91,19 +91,19 @@
     {
       "pr": 117,
       "path": "experiments/csharp/BunnyCsSdk/BunnyCommand.cs",
-      "result": "clean_take_pr",
+      "result": "already_equal",
       "sha256": "d7e1f06fe2628bc5f0dda99a5b8c25a002ce10c2c0b694406f88923552982855"
     },
     {
       "pr": 117,
       "path": "experiments/csharp/BunnyCsSdk/BunnyCommandWorker.cs",
-      "result": "clean_take_pr",
+      "result": "already_equal",
       "sha256": "dd204895bfeda450d2c174bdd76c4b5dc1e755a7c04fc2ac848c74d3d843fe9f"
     },
     {
       "pr": 117,
       "path": "experiments/csharp/BunnySourceCompiler/CommandManifestWriter.cs",
-      "result": "clean_take_pr",
+      "result": "already_equal",
       "sha256": "904db0004a8c10531c07f7bb7828e45381ed31705b792203420b512efd68d21a"
     },
     {
@@ -265,7 +265,7 @@
     {
       "pr": 121,
       "path": "experiments/csharp/BunnyCsSdk/BunnyGore.cs",
-      "result": "clean_take_pr",
+      "result": "already_equal",
       "sha256": "2e4bf971fe7ade158b3dac2ff4a4dc1dc3a6e61da0479a0779ddab000b67ee22"
     },
     {
@@ -378,7 +378,7 @@
       "path": "experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs",
       "reason": "three_way_conflict",
       "base_sha256": "f080844ca7cd983ab95250dc27e2f7f3cbed9b31126f3b8b8f4027ba9ddc6de6",
-      "local_sha256": "eafa0b8de2f2abab02330b72d3e45d75ad3cfa40ee5a52e10d4d3788ca6f466a",
+      "local_sha256": "5eb1f7031a0fbb43b2ac850044c1e441ca165b2679170c36d83d568862e27321",
       "incoming_sha256": "2deb02fe8d23a2a3e844b9784b2423a5d6c5ca3daceaa9f7120be31c585d69ea"
     },
     {
