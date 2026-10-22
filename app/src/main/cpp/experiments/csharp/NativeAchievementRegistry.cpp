@@ -806,6 +806,23 @@ bool updateNativeAchievementTranslations(
     return true;
 }
 
+void releaseRetiredNativeAchievements() {
+    const auto& api = il2cpp::api();
+    for (auto& entry : retiredEntries) {
+        Il2CppObject* asset = entry.assetRoot && api.gchandle_get_target
+            ? api.gchandle_get_target(entry.assetRoot) : nullptr;
+        if (asset) bl::runtime::content::destroyTextureAsset(asset);
+        for (auto handle : {entry.achievementRoot, entry.titleRoot,
+                            entry.descriptionRoot, entry.hiddenRoot,
+                            entry.assetRoot}) {
+            if (handle) api.gchandle_free(handle);
+        }
+        for (const auto& condition : entry.conditions)
+            if (condition.root) api.gchandle_free(condition.root);
+    }
+    retiredEntries.clear();
+}
+
 NativeAchievementRegistryStatus nativeAchievementRegistryStatus() {
     NativeAchievementRegistryStatus status{};
     status.registered = static_cast<std::size_t>(
