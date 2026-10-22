@@ -30,6 +30,7 @@ Check("dois NPCs dividem a mesma bandeira", () =>
     True(registry.NpcToBanner(701) == 700, "variante");
     True(registry.BannerToItem(700) == 2100, "item");
     True(registry.ItemToBanner(2100) == 700, "reverso");
+    True(registry.BannerToNpc(700) == 700, "representante");
     True(registry.NpcToBanner(10) == 0 && registry.BannerToItem(2) == 0, "vanilla");
 });
 
@@ -71,6 +72,20 @@ Check("conflitos nao sobrescrevem mappings existentes", () =>
     True(!registry.TryBind("m", "C", 700, 702, 1002), "npc duplicado");
     True(registry.Count == 1 && registry.BannerToItem(700) == 1000, "rollback");
     True(registry.NpcToBanner(701) == 0 && registry.ItemToBanner(1001) == 0, "residuos");
+});
+
+Check("bandeira de variante exige representante existente e vinculado", () =>
+{
+    var registry = new BunnyBannerRegistry(700);
+    registry.Register(new BunnyBannerDefinition("m", "Variant", "Main", "BannerItem"));
+    True(!registry.TryBind("m", "Variant", 701, 700, 2000), "sem classe principal");
+    registry.Register(new BunnyBannerDefinition("m", "Main", "Main", "BannerItem"));
+    True(!registry.TryBind("m", "Variant", 701, 700, 2000), "principal nao vinculado");
+    True(!registry.TryBind("m", "Main", 700, 702, 2000), "representante nao pode ter outro id");
+    True(registry.TryBind("m", "Main", 700, 700, 2000), "principal");
+    True(!registry.TryBind("m", "Variant", 701, 702, 2000), "id diferente");
+    True(registry.TryBind("m", "Variant", 701, 700, 2000), "variante");
+    True(registry.Count == 2 && registry.BannerToNpc(700) == 700, "sem residuo");
 });
 
 Check("resize cresce tudo sem mutar arrays de entrada", () =>
