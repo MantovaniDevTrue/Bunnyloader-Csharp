@@ -25,6 +25,8 @@ on:
       - app/src/main/cpp/experiments/csharp/NativeAchievementLocale.cpp
       - app/src/main/cpp/experiments/csharp/NativeAchievementRegistry.h
       - app/src/main/cpp/experiments/csharp/NativeAchievementRegistry.cpp
+      - app/src/main/cpp/experiments/csharp/NativeAchievementManagerAdapter.h
+      - app/src/main/cpp/experiments/csharp/NativeAchievementManagerAdapter.cpp
       - app/src/main/cpp/experiments/csharp/NativeAchievementVisualHooks.h
       - app/src/main/cpp/experiments/csharp/NativeAchievementVisualHooks.cpp
       - app/src/main/cpp/experiments/csharp/NativeAchievementProgress.h
@@ -104,6 +106,8 @@ jobs:
             app/src/main/cpp/experiments/csharp/NativeAchievementHooks.cpp
           g++ -std=c++20 -O0 -fsyntax-only -Itests/basic_items/include -Iapp/src/main/cpp \
             app/src/main/cpp/experiments/csharp/NativeAchievementRegistry.cpp
+          g++ -std=c++20 -O0 -fsyntax-only -Itests/basic_items/include -Iapp/src/main/cpp \
+            app/src/main/cpp/experiments/csharp/NativeAchievementManagerAdapter.cpp
           g++ -std=c++20 -O0 -fsyntax-only -Itests/basic_items/include -Iapp/src/main/cpp \
             app/src/main/cpp/experiments/csharp/NativeAchievementProfile.cpp
           g++ -std=c++20 -O0 -fsyntax-only -Itests/basic_items/include -Iapp/src/main/cpp \
