@@ -26,6 +26,24 @@ try
         Assembly.GetExecutingAssembly(), "examplemodcsharp",
         mod, destination, 300);
 
+    int directMonoCount = CompiledHairProbe.ExportFromFile(
+        Assembly.GetExecutingAssembly().Location, "examplemodcsharp", mod, root, 300);
+    Check(directMonoCount == 2 &&
+          File.ReadAllText(Path.Combine(root, "source-hair-examplemodcsharp.manifest")) ==
+            result.Manifest,
+          "entrada MonoVM de 5 argumentos exporta assembly .dll compilada real");
+    bool missingDllRejected = false;
+    try
+    {
+        CompiledHairProbe.ExportFromFile(
+            Path.Combine(root, "missing.dll"), "examplemodcsharp", mod, root, 300);
+    }
+    catch (InvalidOperationException)
+    {
+        missingDllRejected = true;
+    }
+    Check(missingDllRejected, "entrada MonoVM rejeita .dll inexistente");
+
     Check(result.Count == 2, "descobre duas classes C# compiladas");
     Check(result.Loader.TryResolveSavedHair("examplemodcsharp/AlphaHair", out int alpha) &&
           alpha == 300, "alocação começa no ID reservado");
