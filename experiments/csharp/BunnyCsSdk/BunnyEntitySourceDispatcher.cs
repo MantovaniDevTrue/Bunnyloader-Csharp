@@ -56,6 +56,7 @@ public static class BunnyEntitySourceDispatcher
         public readonly ProjectileInstance[] ProjectileSlots = new ProjectileInstance[4096];
         public string LastError = "";
         public int DamageClassesRegistered;
+        public string DamageClassStats = "";
         public bool Revoked;
         public string LastUse = "None";
         public long NpcCalls, ProjectileCalls, NpcHits, NpcKills, ProjectileHits, ProjectileKills, Faults;
@@ -122,6 +123,12 @@ public static class BunnyEntitySourceDispatcher
                 }
             }
             context.DamageClassesRegistered = DamageClassLoader.RegisterAssembly(modId, assembly);
+            try { context.DamageClassStats = DamageClassLoader.ExportDefaultStatSnapshot(assembly); }
+            catch
+            {
+                DamageClassLoader.UnregisterMod(modId);
+                throw;
+            }
             if (hasDust && BunnyDustSourceDispatcher.RegisterLoaded(modId, assembly) < 0)
                 context.LastError = "BunnyDust registration: " +
                     BunnyDustSourceDispatcher.LastRegistrationError;
@@ -144,6 +151,7 @@ public static class BunnyEntitySourceDispatcher
             if (context.Mod != modId || context.Revoked) continue;
             DamageClassLoader.UnregisterMod(modId);
             context.Revoked = true;
+            context.DamageClassStats = "";
             context.NamedNpcs.Clear();
             context.NamedProjectiles.Clear();
             context.Npcs.Clear();
@@ -707,6 +715,13 @@ public static class BunnyEntitySourceDispatcher
             Array.Clear(context.NpcSlots);
             Array.Clear(context.ProjectileSlots);
         }
+    }
+
+    public static string DamageStats(int modSlot)
+    {
+        if ((uint)modSlot >= (uint)Contexts.Count) return "";
+        Context context = Contexts[modSlot];
+        return context.Revoked ? "" : context.DamageClassStats;
     }
 
     public static string Status(int modSlot)
