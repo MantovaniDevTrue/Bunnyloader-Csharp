@@ -30,6 +30,7 @@
 #include "experiments/csharp/NativeAchievementHooks.h"
 #include "experiments/csharp/NativeAchievementRegistry.h"
 #include "experiments/csharp/NativeAchievementVisualHooks.h"
+#include "experiments/csharp/NativeAchievementLocale.h"
 #include "experiments/csharp/NativeAchievementProfileLifecycle.h"
 #include "experiments/csharp/MonoServiceDispatch.h"
 #include "experiments/csharp/SourceLoader.h"
@@ -1295,6 +1296,29 @@ void noteAutoGameUpdate() {
             } else {
                 BL_WARN("[CSharp][AchievementLoader] Registry=Pending Detail=%s",
                         error.c_str());
+            }
+        }
+    }
+    if (g_nativeAchievementRegistered.load(std::memory_order_acquire)) {
+        static unsigned int localePollFrames = 0;
+        static std::string appliedCulture;
+        static std::size_t appliedCount = 0;
+        if (++localePollFrames % 60u == 1u) {
+            std::string culture, error;
+            if (currentNativeAchievementCulture(&culture, &error)) {
+                const auto count = nativeAchievementRegistryStatus().registered;
+                if (culture != appliedCulture || count != appliedCount) {
+                    const auto definitions = nativeAchievementMetadataSnapshot();
+                    if (updateNativeAchievementTranslations(definitions, culture, &error)) {
+                        appliedCulture = std::move(culture);
+                        appliedCount = count;
+                        BL_INFO("[CSharp][AchievementLoader] Language=Ready Count=%zu",
+                                count);
+                    } else if (localePollFrames % 120u == 1u) {
+                        BL_WARN("[CSharp][AchievementLoader] Language=Pending Detail=%s",
+                                error.c_str());
+                    }
+                }
             }
         }
     }
