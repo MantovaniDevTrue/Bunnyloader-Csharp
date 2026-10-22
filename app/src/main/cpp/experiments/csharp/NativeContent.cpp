@@ -379,10 +379,12 @@ void applyNativeDamageClassFlags(Il2CppObject* object, bool projectile, int cont
         bl::runtime::field<uint8_t>(object,r.projMagic) = flags.magic;
         return;
     }
+    const bool nativeSummon = bl::runtime::field<uint8_t>(object,r.itemSummon) != 0;
     bl::runtime::field<uint8_t>(object,r.itemMelee) = flags.melee;
     bl::runtime::field<uint8_t>(object,r.itemRanged) = flags.ranged;
     bl::runtime::field<uint8_t>(object,r.itemMagic) = flags.magic;
-    bl::runtime::field<uint8_t>(object,r.itemSummon) = flags.summon;
+    bl::runtime::field<uint8_t>(object,r.itemSummon) =
+        flags.summon || (nativeSummon && !flags.melee && !flags.ranged && !flags.magic);
 }
 
 void hkItemDefaults(Il2CppObject* self, int32_t type, int32_t variant, const MethodInfo* method) {
