@@ -1531,9 +1531,19 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.BUNNY_PRIVATE_BUILD_TOKEN }}
         run: |
+          set -euo pipefail
           mkdir -p "$RUNNER_TEMP/runtime"
-          gh release download "$RUNTIME_TAG" --repo "$PRIVATE_INPUTS_REPO" --pattern "$RUNTIME_ASSET" --dir "$RUNNER_TEMP/runtime"
+          for attempt in 1 2 3 4 5 6; do
+            rm -f "$RUNNER_TEMP/runtime/$RUNTIME_ASSET"
+            if gh release download "$RUNTIME_TAG" --repo "$PRIVATE_INPUTS_REPO" --pattern "$RUNTIME_ASSET" --dir "$RUNNER_TEMP/runtime"; then
+              break
+            fi
+            echo "::warning::GitHub private runtime download failed, attempt $attempt"
+            if [ "$attempt" -eq 6 ]; then exit 1; fi
+            sleep $((attempt * 5))
+          done
           cd "$RUNNER_TEMP/runtime"
+          test -s "$RUNTIME_ASSET"
           echo "$RUNTIME_SHA256  $RUNTIME_ASSET" | sha256sum -c -
           mkdir -p extracted
           unzip -q "$RUNTIME_ASSET" -d extracted
@@ -1554,7 +1564,15 @@ jobs:
           GH_TOKEN: ${{ secrets.BUNNY_PRIVATE_BUILD_TOKEN }}
         run: |
           mkdir -p "$RUNNER_TEMP/stable-apk"
-          gh release download "$RUNTIME_TAG" --repo "$PRIVATE_INPUTS_REPO" --pattern "BunnyLoader-v0.1.9.1-MusicPrewarm.apk" --dir "$RUNNER_TEMP/stable-apk"
+          for attempt in 1 2 3 4 5; do
+            rm -f "$RUNNER_TEMP/stable-apk/BunnyLoader-v0.1.9.1-MusicPrewarm.apk"
+            if gh release download "$RUNTIME_TAG" --repo "$PRIVATE_INPUTS_REPO" --pattern "BunnyLoader-v0.1.9.1-MusicPrewarm.apk" --dir "$RUNNER_TEMP/stable-apk"; then
+              break
+            fi
+            echo "::warning::GitHub private sprite APK download failed, attempt $attempt"
+            if [ "$attempt" -eq 5 ]; then exit 1; fi
+            sleep $((attempt * 5))
+          done
           printf '%s  %s\n' "aaf7c46046e776a966122d7f4e26469ebb72ad2fc21f0c6e57f98189e0c93c00" "$RUNNER_TEMP/stable-apk/BunnyLoader-v0.1.9.1-MusicPrewarm.apk" | sha256sum -c -
           mkdir -p "$RUNNER_TEMP/stable-sprites"
           unzip -q "$RUNNER_TEMP/stable-apk/BunnyLoader-v0.1.9.1-MusicPrewarm.apk" "assets/sprites/*" -d "$RUNNER_TEMP/stable-sprites"
