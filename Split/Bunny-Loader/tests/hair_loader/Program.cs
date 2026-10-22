@@ -76,9 +76,9 @@ static class Check
         True(!second.CreationAvailable && registered.CreationAvailable,
             "disponibilidade na criacao fica no descritor");
         string expectedManifest =
-            "BUNNY_HAIR_MANIFEST_V1\\n" +
-            "HAIR\\t228\\tmod-a\\tProgressHair\\tContent/Hairs/ProgressHair.png\\tContent/Hairs/ProgressHair.png\\t0\\t1\\n" +
-            "HAIR\\t229\\tmod-b\\tAltHair\\tContent/Hairs/AltHair.png\\tContent/Hairs/AltHair_Alt.png\\t2\\t0\\n";
+            "BUNNY_HAIR_MANIFEST_V1\n" +
+            "HAIR\t228\tmod-a\tProgressHair\tContent/Hairs/ProgressHair.png\tContent/Hairs/ProgressHair.png\t0\t1\n" +
+            "HAIR\t229\tmod-b\tAltHair\tContent/Hairs/AltHair.png\tContent/Hairs/AltHair_Alt.png\t2\t0\n";
         True(loader.ExportNativeManifest() == expectedManifest,
             "manifesto Mono->IL2CPP deterministico e versionado");
         True(!loader.GetUnlockedTypes(true, false).Contains(second.Type),
