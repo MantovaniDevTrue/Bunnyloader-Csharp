@@ -1273,6 +1273,8 @@ void noteAutoGameUpdate() {
     pumpInteractiveConsoleOnGameThread();
     pumpBasicRecipesOnGameThread();
     pumpNativeVisualRendererOnGameThread();
+    pumpNativeAchievementPersistence(
+        g_worldSessionReady.load(std::memory_order_acquire));
     if (nativeAchievementBindingsReady() &&
         g_initialCSharpRegistrationFinished.load(std::memory_order_acquire)) {
         const uint64_t currentRevision = nativeAchievementMetadataRevision();
