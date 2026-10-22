@@ -68,6 +68,9 @@ completo nem autorizar geração de APK.**
   contabilizar repetidamente bônus iguais em classes híbridas. Também
   lê opcionalmente meleeCrit/rangedCrit/magicCrit e meleeSpeed, com
   validação de tipo IL2CPP, para observar herança de crítico e velocidade.
+  Também pode ler armorPenetration de Player e Item quando ambos forem
+  System.Int32; projeta somente para diagnóstico a penetração de classe
+  com a parte genérica herdada, sem alterar acertos ou defesa inimiga.
   A parcela comum inferida não distingue exatamente os buffs individuais
   e por isso não deve ser usada como cálculo definitivo de dano.
   Os três hooks continuam retornando o resultado vanilla inalterado,
