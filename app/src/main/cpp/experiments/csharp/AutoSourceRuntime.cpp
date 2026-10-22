@@ -1315,6 +1315,7 @@ void noteAutoGameUpdate() {
             if (!pumpNativeBiomeOwnersOnGameThread(
                     cloudFacts, newSnapshot, &verifiedKeys)) {
                 pauseNativeCloudHooks();
+                pauseNativeBiomeUpdateHookOnGameThread();
                 resetNativeBiomeWorldStateOnGameThread();
                 resetManagedCloudWorldSession();
                 cloudSnapshotReady = false;
