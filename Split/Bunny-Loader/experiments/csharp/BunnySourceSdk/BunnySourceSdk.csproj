@@ -15,6 +15,7 @@
     <Compile Include="../BunnyCsSdk/BunnyItemBehavior.cs" Link="BunnyItemBehavior.cs" />
     <Compile Include="../BunnyCsSdk/BunnyItem.cs" Link="BunnyItem.cs" />
     <Compile Include="../BunnyCsSdk/BunnyTile.cs" Link="BunnyTile.cs" />
+    <Compile Include="../BunnyCsSdk/ModHair.cs" Link="ModHair.cs" />
     <Compile Include="../BunnyCsSdk/BunnyCombatUtilities.cs" Link="BunnyCombatUtilities.cs" />
     <Compile Include="../BunnyCsSdk/BunnySourceScriptApi.cs" Link="BunnySourceScriptApi.cs" />
     <Compile Include="../BunnyCsSdk/BunnyEntitySourceDispatcher.cs" Link="BunnyEntitySourceDispatcher.cs" />
