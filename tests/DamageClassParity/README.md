@@ -8,7 +8,8 @@
   cache estável de efeito (apenas na carga), busca e descarregamento.
 - `DamageClassPlayer` com `ref` para os cinco atributos e cálculos
   `GetTotal*` correspondentes a Terraria.Player.TML.cs.
-- ExampleMod: `Common/DamageClasses/ExampleDamageClass.cs`.
+- ExampleMod: `Common/DamageClasses/ExampleDamageClass.cs`, aplicado como
+  identidade em `ExampleWaveWand` e `ExampleWaveBolt`.
 - 26 testes incluindo Custom DamageClass, herança negativa e parcial,
   reset de atributos, unload por mod, IDs não reutilizados, testes com
   dois assemblies e rollback de registro.
@@ -21,7 +22,8 @@
   não depende mais de receber AI de NPC para iniciar o registro.
 - O CI compila o SDK Android net8, executa 26 testes e o ExampleMod via Roslyn,
   além de verificar a sintaxe de ManagedRuntime.cpp, SourceLoader.cpp e
-  AutoSourceRuntime.cpp e executar teste nativo do parser, sem Gradle ou APK.
+  AutoSourceRuntime.cpp, executar testes nativos do parser e registro
+  por mod, e validar o wire `DAMAGE_TYPE`, sem Gradle ou APK.
 
 ## O que falta para o DamageClassLoader ficar completo no Terraria Android
 
@@ -34,8 +36,12 @@ combate completo nem usado para autorizar geração de APK.**
   ainda falta verificar esse processo em arm64 no jogo.
 - Garantir um bloqueio de inicialização que aguarde o registro antes de
   criar itens; a fila de preload é assíncrona e não satisfaz essa garantia.
-- Resolver `DamageType` dos itens/projéteis C# e manter o tipo no
-  clone, no spawn e na sincronização de rede.
+- `DamageType` agora existe em `BunnyItem`, `BunnyWeapon` e `BunnyProjectile`.
+  O compilador emite `DAMAGE_TYPE` com ID vanilla ou nome completo da classe,
+  e o runtime nativo valida ownership, cacheia por tipo e revoga por mod.
+  Ainda falta **consumir** esse binding nos hooks reais de item/projétil,
+  preservar a classificação nos clones e verificar sincronização de rede.
+  O binding, sozinho, **não altera o dano real** do Terraria.
 - Ler e aplicar `GetTotalDamage`, crítico, knockback, armorPen e
   attackSpeed aos campos reais de Terraria.Player no tempo correto.
 - Encaminhar efeitos, prefixos e tooltips pelos pontos nativos exatos
