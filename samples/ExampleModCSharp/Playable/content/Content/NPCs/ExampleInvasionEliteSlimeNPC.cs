@@ -17,6 +17,9 @@ public sealed class ExampleInvasionEliteSlimeNPC : BunnyNPC
         AiStyle = 1;
         AnimationType = 1;
         Frames = 2;
+        // Variante com mesmo contador/mesma bandeira do ExampleSlimeNPC.
+        Banner = "ExampleSlimeNPC";
+        BannerItem = "ExampleSlimeBanner";
     }
 
     public override bool AI(ref BunnyNpcAiState state)
