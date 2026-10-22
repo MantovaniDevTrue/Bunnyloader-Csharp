@@ -54,6 +54,7 @@
 #include "experiments/csharp/ManagedBannerWorldSession.h"
 #include "experiments/csharp/ManagedBannerLookupHooks.h"
 #include "experiments/csharp/ManagedBannerSaveDispatch.h"
+#include "experiments/csharp/ManagedBannerNearbyPolicy.h"
 #include "experiments/csharp/ManagedDustBindingSelection.h"
 #include "experiments/csharp/ManagedSourceClassCount.h"
 #include "il2cpp/Api.h"
@@ -1406,6 +1407,7 @@ void noteAutoGameUpdate() {
     static unsigned bannerRestoreFailures = 0;
     if (!invasionWorldReady) {
         banners::saveDispatch().leaveWorld();
+        banners::nearbyBannerCache().reset();
         lastSaveWorldSession = 0;
         restoredBannerWorld = 0;
         bannerRestoreTicks = 0;
@@ -1413,6 +1415,7 @@ void noteAutoGameUpdate() {
     } else if (lastSaveWorldSession != invasionWorldEpoch) {
         updateNativeInvasionWorldPath(true, invasionWorldEpoch);
         banners::saveDispatch().enterWorld(invasionWorldEpoch);
+        banners::nearbyBannerCache().beginWorld(invasionWorldEpoch);
         lastSaveWorldSession = invasionWorldEpoch;
         bannerRestoreTicks = 0;
         bannerRestoreFailures = 0;
