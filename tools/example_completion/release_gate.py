@@ -8,6 +8,7 @@ teste automatizado, verificacao no Terraria Android e nenhuma pendencia.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from pathlib import Path, PurePosixPath
 
@@ -57,6 +58,10 @@ def check_release(matrix: dict, project: Path, upstream: Path | None,
         if not isinstance(name, str) or not name.endswith(".js"):
             errors.append(f"Linha {index}: caminho JS invalido")
             continue
+        source_identity = row.get("javaScript", {})
+        blob = source_identity.get("upstreamBlob") if isinstance(source_identity, dict) else None
+        if not isinstance(blob, str) or len(blob) != 40 or any(c not in "0123456789abcdef" for c in blob):
+            errors.append(f"{name}: identidade do arquivo original sem SHA Git verificavel")
         if name in ids:
             errors.append(f"{name}: arquivo JS duplicado")
         ids.add(name)
@@ -88,6 +93,20 @@ def check_release(matrix: dict, project: Path, upstream: Path | None,
         } if source_root.is_dir() else set()
         if not actual:
             errors.append("Checkout upstream inexistente ou sem arquivos JS")
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+            name = row.get("id")
+            if not isinstance(name, str) or name not in actual:
+                continue
+            source = source_root / name
+            data = source.read_bytes()
+            expected = row.get("javaScript", {}).get("upstreamBlob")
+            actual_blob = hashlib.sha1(
+                b"blob " + str(len(data)).encode("ascii") + b"\\0" + data
+            ).hexdigest()
+            if expected != actual_blob:
+                errors.append(f"{name}: JS original mudou desde o inventario Git")
         if actual != ids:
             errors.append(
                 f"Inventario diverge do upstream: +{len(actual - ids)} novos, "
