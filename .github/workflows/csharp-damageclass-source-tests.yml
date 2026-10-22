@@ -7,6 +7,7 @@ on:
     paths:
       - 'experiments/csharp/BunnyCsSdk/DamageClass*.cs'
       - 'experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj'
+      - 'tools/sdk_reference/Program.cs'
       - 'samples/ExampleModCSharp/Playable/content/Common/DamageClasses/**'
       - 'tests/DamageClassParity/**'
       - '.github/workflows/csharp-damageclass-source-tests.yml'
@@ -14,6 +15,7 @@ on:
     paths:
       - 'experiments/csharp/BunnyCsSdk/DamageClass*.cs'
       - 'experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj'
+      - 'tools/sdk_reference/Program.cs'
       - 'samples/ExampleModCSharp/Playable/content/Common/DamageClasses/**'
       - 'tests/DamageClassParity/**'
       - '.github/workflows/csharp-damageclass-source-tests.yml'
@@ -52,3 +54,42 @@ jobs:
             echo "FORBIDDEN: APK cannot be generated before Android integration is complete"
             exit 1
           fi
+
+  publish-managed-reference:
+    name: Update public C# SDK reference only (NO APK)
+    if: github.event_name == 'push' && github.ref_name == 'feat/csharp-damageclass-complete-20261022'
+    needs: managed-parity
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout source branch
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Install .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Generate public API files from the rebuilt SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet run --project tools/sdk_reference/SdkReference.csproj -c Release -- --write
+          dotnet run --project tools/sdk_reference/SdkReference.csproj -c Release -- --check
+          if find . -type f -name '*.apk' -print -quit | grep -q .; then
+            echo "FORBIDDEN: APK generated"
+            exit 1
+          fi
+      - name: Commit only generated public C# reference
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/generated/sdk_public_reference.json docs/generated/sdk_public_reference.md
+          if ! git diff --cached --quiet; then
+            git commit -m "docs(csharp): refresh generated DamageClass SDK reference (NO APK)"
+            git push origin "HEAD:feat/csharp-damageclass-complete-20261022"
+          fi
+          echo "CSHARP_DAMAGECLASS_PUBLIC_REFERENCE=PASS NO_APK=TRUE"
