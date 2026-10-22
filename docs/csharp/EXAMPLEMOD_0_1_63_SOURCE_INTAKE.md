@@ -37,6 +37,26 @@ Android precisam executar os hooks genuínos. Cada arquivo muda de `Porting` par
 `Playable` **apenas** com a respectiva API funcional e a categoria completa de
 comportamento do original.
 
+## SoundLoader — fonte incorporada (22/10)
+
+A implementação de `BunnySounds` foi integrada da PR #118 para esta branch,
+incluindo o roteador nativo, oito chamadas de ABI C, fila limitada, descarregamento
+por mod e manutenção pelo loop do Terraria. O arquivo original
+`Common/Audio/ExampleSoundEffects.cs` foi promovido a `Playable` **sem alterar
+um byte**, enquanto a versão de arquivo fornecida continua preservada em
+`Porting/Archive-0.1.63`. O `ExampleWaveBolt` usa o som quando acerta um NPC;
+não há decodificação de áudio por frame nem passagem pelo runtime JavaScript.
+
+Os testes Linux C++, testes C# / PInvoke e compilação do exemplo passaram no
+workflow **ExampleMod CSharp SoundLoader source-only (NO APK)**. Há também
+checagem isolada de compilação dos objetos C++ ARM64, sem montar pacote Android.
+Isso comprova o código e as interfaces de fonte, não o funcionamento no aparelho.
+
+**Pendente:** integração final do SDK gerenciado ao runtime de distribuição,
+verificação real de áudio posicional e unload no Terraria Android e QA de FPS.
+Não marcar como Validado no Android antes desses testes. O source gate integral
+do ExampleMod continua bloqueando APK até todos os 232 JS estarem completos.
+
 ## Conferência reproduzível (apenas fontes)
 
 Dentro da raiz do repositório:
