@@ -1,0 +1,19 @@
+name: CSharp Scene Effect Core Check
+on:
+  pull_request:
+    paths:
+      - 'app/src/main/cpp/content/scene/**'
+      - 'tests/scene_effects/**'
+      - '.github/workflows/check-csharp-scene-effects.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  host:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Ranking do SceneEffect com g++
+        run: bash tests/scene_effects/run.sh
+      - name: Ranking do SceneEffect com clang++
+        run: CXX=clang++ bash tests/scene_effects/run.sh
