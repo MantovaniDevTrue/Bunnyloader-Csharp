@@ -15,6 +15,7 @@ on:
       - app/src/main/cpp/experiments/csharp/ManagedSourceClassCount.h
       - tests/commands/native_fasttrack_command_class_count.cpp
       - app/src/main/cpp/experiments/csharp/SourceParser.cpp
+      - app/src/main/cpp/experiments/csharp/SourceLoader.cpp
   workflow_dispatch:
 
 permissions:
