@@ -22,7 +22,7 @@ public sealed class ExampleHair : ModHair
     public override bool AvailableDuringCharacterCreation => true;
 
     // Apenas uma sugestão para o seletor aleatório; não limita o jogador.
-    public override HairGender RandomizedCharacterCreationGender => HairGender.Unspecified;
+    public override Gender RandomizedCharacterCreationGender => Gender.Unspecified;
 
     // No Stylist, condições devem consultar progresso REAL do mundo.
     // Este exemplo é livre no Cabeleireiro e por isso retorna nenhuma condição.
