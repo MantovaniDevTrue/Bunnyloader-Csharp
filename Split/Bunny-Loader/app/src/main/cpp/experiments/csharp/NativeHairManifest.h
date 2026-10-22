@@ -14,7 +14,8 @@ namespace bl::csharp::hair {
 // todo o lote passa ou nenhuma identidade é publicada.
 inline bool ParseAndRegisterManifest(
     std::string_view wire, Registry* registry,
-    const Registry::AssetExists& assetExists, std::string* error) {
+    const Registry::AssetExists& assetExists, std::string* error,
+    int firstReservedType = -1) {
 
     if (!registry || !error) return false;
     error->clear();
@@ -26,7 +27,8 @@ inline bool ParseAndRegisterManifest(
     }
     wire.remove_prefix(header.size());
     std::vector<Declaration> proposed;
-    int expectedType = registry->NextType();
+    int expectedType = firstReservedType < 0
+        ? registry->NextType() : firstReservedType;
 
     while (!wire.empty()) {
         const auto newline = wire.find('\n');
@@ -95,7 +97,8 @@ inline bool ParseAndRegisterManifest(
         *error = "NativeHairManifestEmpty";
         return false;
     }
-    return registry->RegisterBatch(proposed, assetExists, error);
+    return registry->RegisterAt(proposed, firstReservedType < 0
+        ? registry->NextType() : firstReservedType, assetExists, error);
 }
 
 } // namespace bl::csharp::hair
