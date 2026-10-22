@@ -4,6 +4,7 @@
 #include "experiments/csharp/ManagedBannerAnchorPolicy.h"
 #include "il2cpp/Resolver.h"
 #include "il2cpp/FieldContract.h"
+#include "il2cpp/ConstantField.h"
 
 #include <array>
 #include <cstdint>
@@ -69,12 +70,10 @@ inline bool configureNativeBannerAnchors(Il2CppClass* tileClass,
     std::array<int32_t,6> kinds{};
     for (size_t i=0;i<names.size();++i) {
         auto* field=il2cpp::findField(anchorType,names[i]);
-        if (!field || (api.field_get_flags(field)&0x10u)==0 ||
-            api.class_from_il2cpp_type(api.field_get_type(field))!=anchorType) {
+        if (!field || !il2cpp::readInt32Constant(field,anchorType,&kinds[i])) {
             *error=std::string("BannerAnchor: AnchorType ausente ")+names[i];
             return false;
         }
-        api.field_static_get_value(field,&kinds[i]);
         if (!kinds[i]) {
             *error=std::string("BannerAnchor: AnchorType invalido ")+names[i];
             return false;
