@@ -99,7 +99,7 @@ public:
         Registry next = registry_;
         if (!ParseAndRegisterManifest(manifest, &next, assets, error,
                                       found->second.block.first)) return false;
-        registry_ = std::move(next);
+        registry_.Swap(next);
         found->second.registered = true;
         return true;
     }
