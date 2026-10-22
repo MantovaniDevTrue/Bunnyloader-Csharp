@@ -76,6 +76,14 @@ e contratos adicionais na matriz. Não basta Add/Get/Wake: nullable, quatro
 arrays, menu, fades, três fases de desenho e animação original continuam
 pendentes. Nenhuma API de superfície incompleta foi exposta.
 
+CI do complemento `8c1512e2`: os onze workflows passaram; o combinado
+[39714561760](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39714561760)
+inclui a execução mista real C#/QuickJS e a linkagem ARM64 sem APK.
+O reforço posterior também valida os tamanhos Int32/Double do picker, enumeração
+de métodos e resolução de campos herdados antes de instalar hooks; a ausência
+de exports é identificada pelo nome. O fixture recusa Double de quatro bytes
+sem instalar hooks nem escrever. Esses guardas não ampliam a contagem de loaders.
+
 Branch: `feat/csharp-loader-completion-15-20261021`.
 Base: `5a18a67899c1f6ee88a34097be3adb6e7877edd4`.
 O trabalho preserva as correções da integração anterior, inclusive contagem

@@ -297,10 +297,10 @@
       "validationDocument": "docs/csharp-underground-backgrounds.md",
       "note": "Full underground style contract; biome activation/music/scene loaders are separate pending targets. QA command explicitly tests only the ExampleMod style. Automated fixtures are not Android validation.",
       "automatedValidation": {
-        "commit": "23101aad6b8fd3b3cc2c8628cdfffaef3dedc9fc",
-        "runId": 39713260819,
+        "commit": "8c1512e274207a7e11e4148ae4660ce105490d59",
+        "runId": 39714561760,
         "result": "passed",
-        "scope": "Four source-only jobs: managed/native contracts, ARM64 syntax and full native library link. No APK or Android execution. Later isolation/mixed-runtime changes require their own CI."
+        "scope": "Four source-only jobs including real CSharp/original QuickJS examples in one process, native contracts, ARM64 syntax and full native library link. No APK/Android execution. Later metadata guards have separate CI."
       }
     },
     {

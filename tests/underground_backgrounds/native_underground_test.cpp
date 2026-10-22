@@ -69,6 +69,7 @@ void initialize(){
  exports.field_get_type=[](FieldInfo* f)->const Il2CppType*{return &f->type;};exports.field_get_flags=[](FieldInfo* f){return f->flags;};exports.field_get_offset=[](FieldInfo* f){return f->offset;};
  exports.field_static_get_value=[](FieldInfo* f,void* out){std::memcpy(out,f->data.data(),f->data.size());};
  exports.class_get_fields=[](Il2CppClass* c,void** it)->FieldInfo*{size_t i=reinterpret_cast<size_t>(*it);if(i>=c->fields.size())return nullptr;*it=reinterpret_cast<void*>(i+1);return c->fields[i];};
+ exports.class_get_field_from_name=[](Il2CppClass* c,const char* name)->FieldInfo*{for(auto* f:c->fields)if(std::strcmp(name,f->name)==0)return f;return nullptr;};
  exports.class_get_method_from_name=[](Il2CppClass* c,const char* name,int count)->const MethodInfo*{for(auto* m:c->methods)if(std::strcmp(name,m->name)==0 && int(m->parameters.size())==count)return m;return nullptr;};
  exports.class_get_methods=[](Il2CppClass* c,void** it)->const MethodInfo*{size_t i=reinterpret_cast<size_t>(*it);if(i>=c->methods.size())return nullptr;*it=reinterpret_cast<void*>(i+1);return c->methods[i];};exports.class_get_parent=[](Il2CppClass*)->Il2CppClass*{return nullptr;};
  exports.method_get_name=[](const MethodInfo* m){return m->name;};exports.method_get_flags=[](const MethodInfo* m,uint32_t*){return m->flags;};exports.method_get_param_count=[](const MethodInfo* m){return uint32_t(m->parameters.size());};
@@ -110,6 +111,12 @@ int main(){
  assert(!install(&error) && error.find("MetadataUnavailable")!=error.npos && installed.empty());exports.class_get_name=classNameExport;
  auto parameterExport=exports.method_get_param;exports.method_get_param=nullptr;
  assert(!install(&error) && error.find("MetadataUnavailable")!=error.npos && installed.empty());exports.method_get_param=parameterExport;
+ auto parentExport=exports.class_get_parent;exports.class_get_parent=nullptr;
+ assert(!install(&error) && error.find("MetadataUnavailable")!=error.npos && installed.empty());exports.class_get_parent=parentExport;
+ auto methodsExport=exports.class_get_methods;exports.class_get_methods=nullptr;
+ assert(!install(&error) && error.find("Missing=class_get_methods")!=error.npos && installed.empty());exports.class_get_methods=methodsExport;
+ dbl.size=4;
+ assert(!install(&error) && error.find("NativeMethodValueSizeMismatch")!=error.npos && error.find("Double:4")!=error.npos && installed.empty());dbl.size=8;
  auto originalMenuType=menu.type;menu.type.cls=&integer;
  assert(!install(&error) && error.find("NativeTypeOrSizeMismatch")!=error.npos && installed.empty());menu.type=originalMenuType;
  // Field/getter contracts and malformed storage are tested without writes.

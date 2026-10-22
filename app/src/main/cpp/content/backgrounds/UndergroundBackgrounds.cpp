@@ -49,7 +49,10 @@ void diagnostic(const std::string& error,int slot=-1,int operation=0) {
     // index uses registered slot/operation, never variable exception text.
     static std::map<std::pair<int,int>,unsigned> counts;
     const unsigned n=++counts[{slot,operation}];
-    if(n && !(n&(n-1)))BL_ERROR("%s SuppressedTotal=%u",error.c_str(),n-1);
+    if(n && !(n&(n-1))) {
+        if(error.find("[WARN]")!=error.npos)BL_WARN("%s SuppressedTotal=%u",error.c_str(),n-1);
+        else BL_ERROR("%s SuppressedTotal=%u",error.c_str(),n-1);
+    }
 }
 bool identity(const std::string& text) {
     if(text.empty() || text.size()>240)return false;
@@ -69,6 +72,10 @@ bool bind(std::string* error) {
     auto& a=il2cpp::api();
     if(!a.gchandle_new || !a.gchandle_free || !a.gchandle_get_target || !a.gc_wbarrier_set_field)
         return failure(error,"Bind","MetadataUnavailable","GcRootsAndWriteBarrier","Missing");
+    if(!a.class_get_methods || !a.method_get_name || !a.method_get_param_name || !a.method_is_generic)
+        return failure(error,"BindSignatureMetadata","MetadataUnavailable","MethodEnumeration,Name,ParameterName,GenericFlag",
+            std::string(!a.class_get_methods?"Missing=class_get_methods ":"")+(!a.method_get_name?"Missing=method_get_name ":"")+
+            (!a.method_get_param_name?"Missing=method_get_param_name ":"")+(!a.method_is_generic?"Missing=method_is_generic":""));
     auto* main=il2cpp::findClassQuiet("Terraria","Main");
     auto* local=il2cpp::findClassQuiet("","LocalUserGameState");
     auto* texture=il2cpp::findClassQuiet("Microsoft.Xna.Framework.Graphics","Texture2D");
@@ -91,15 +98,27 @@ bool bind(std::string* error) {
     if(!il2cpp::resolveValueLayout(staged.position.declared,&layout,error))return false;
     auto* x=il2cpp::findField(staged.position.declared,"X");
     if(!x || (a.field_get_flags(x)&0x10u) || !layout.offset(a.field_get_offset(x),4,&staged.xOffset))return failure(error,"Bind","NativeVectorLayoutMismatch","Vector2.X:InstanceSingleWithin8Bytes","MissingStaticOrOutOfRange");
-    auto* xType=a.class_from_il2cpp_type(a.field_get_type(x));uint32_t align=0;
+    const auto* xNativeType=a.field_get_type(x);auto* xType=xNativeType?a.class_from_il2cpp_type(xNativeType):nullptr;uint32_t align=0;
+    char* xName=xNativeType?a.type_get_name(xNativeType):nullptr;
+    const bool indirect=xName && (std::strchr(xName,'&') || std::strchr(xName,'*'));
+    if(xName)a.il2cpp_free(xName);
+    if(indirect)return failure(error,"Bind","NativeVectorLayoutMismatch","Vector2.X:ValueSingle","ByRefOrPointer");
     if(Property::name(xType)!="System.Single" || !a.class_is_valuetype(xType) || a.class_value_size(xType,&align)!=4)
         return failure(error,"Bind","NativeVectorLayoutMismatch","Vector2.X:System.Single:4",Property::name(xType));
     const auto* method=il2cpp::findMethodBySignature(main,il2cpp::parseSignature("int DrawBackground_PickUndergroundBackgroundStyle(double magmaLayer)"));
+    const auto* returned=method?a.method_get_return_type(method):nullptr;
+    const auto* parameter=method && a.method_get_param_count(method)==1?a.method_get_param(method,0):nullptr;
+    auto* returnClass=returned?a.class_from_il2cpp_type(returned):nullptr;
+    auto* parameterClass=parameter?a.class_from_il2cpp_type(parameter):nullptr;
     if(!method || !a.method_get_flags || !(a.method_get_flags(method,nullptr)&0x10u) || a.method_get_param_count(method)!=1 ||
-       Property::name(a.class_from_il2cpp_type(a.method_get_return_type(method)))!="System.Int32" ||
-       Property::name(a.class_from_il2cpp_type(a.method_get_param(method,0)))!="System.Double" ||
+       Property::name(returnClass)!="System.Int32" || Property::name(parameterClass)!="System.Double" ||
        !il2cpp::methodPointer(method) || (a.method_is_generic && a.method_is_generic(method)))
         return failure(error,"BindPicker","NativeMethodContractMismatch","Static:Int32(Double)","MissingOrWrongSignature");
+    const int returnBytes=a.class_is_valuetype(returnClass)?a.class_value_size(returnClass,&align):0;
+    const int parameterBytes=a.class_is_valuetype(parameterClass)?a.class_value_size(parameterClass,&align):0;
+    if(returnBytes!=4 || parameterBytes!=8)
+        return failure(error,"BindPicker","NativeMethodValueSizeMismatch","System.Int32:4(System.Double:8)",
+            Property::name(returnClass)+":"+std::to_string(returnBytes)+"("+Property::name(parameterClass)+":"+std::to_string(parameterBytes)+")");
     if(!il2cpp::methodPointer(staged.values.getter) || !il2cpp::methodPointer(staged.oldValues.getter))
         return failure(error,"BindTextureGetters","NativeMethodBodyMissing","CurrentAndPreviousTextureGetterBodies","MissingNativeBody");
     staged.picker=method;staged.ready=true;refs=staged;return true;

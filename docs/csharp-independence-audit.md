@@ -1,3 +1,17 @@
+## Continuidade de 22/10/2026 — núcleo compartilhado de fundos
+
+| Sistema | Classificação | Evidência e limite |
+| --- | --- | --- |
+| BunnyBackgroundTexture / BunnyBackgroundTextures | API C# usando serviço nativo independente compartilhado | Reserva/autoload/publicação/lookup por UID e leases. Teste C# por P/Invoke liga o serviço de produção sem QuickJS. |
+| BunnyUndergroundBackgroundStyle / BunnyUndergroundBackgrounds | API C# original com bridge própria e núcleo independente compartilhado | MonoVM → ManagedUndergroundBackgrounds → content/backgrounds/UndergroundBackgrounds → picker/getters Terraria. JS utiliza outra bridge para esse núcleo, sem intermediar chamadas C#. |
+| Compatibilidade entre as duas linguagens | Serviço nativo compartilhado | Mixed.HostTests executa o exemplo C# e o original JS com QuickJS real no mesmo processo, incluindo transição, prioridade e as duas ordens de unload. É host CLR com metadata controlada, não Android. |
+| Demais módulos/estilos/biomas | Auditoria ou implementação ainda pendente conforme matriz | Não inferir independência do SDK inteiro ou conclusão dos quinze a partir desses testes. |
+
+Código, limitações e QA em [csharp-underground-backgrounds.md](csharp-underground-backgrounds.md).
+CI `23101aad` e `8c1512e2`: quatro jobs source-only aprovados, incluindo linkagem
+ARM64; nenhum APK. Mudanças posteriores exigem nova aprovação. As seções abaixo
+preservam a auditoria histórica, inclusive dependências ainda não certificadas.
+
 > Continuidade .98 WIP: BunnyShootSource/Context/Shot → worker MonoVM e NativeShooting → fábrica Terraria diretamente. Fonte/dono/modifier ficam na thread do jogo; resolução de referências usa o registro nativo compartilhado. Nenhuma invocação QuickJS. Testes executam o C# e os hooks/contratos C++ de produção com providers; gameplay Android pendente. Nenhum loader inteiro certificado.
 
 > Port integral em desenvolvimento: CustomUseSound usa NativeUseSounds → NativeSoundRouter → AndroidAudio/SfxQueue, sem QuickJS. SDK e binding próprios; serviço de áudio independente compartilhado com JS. Testes de host não certificam áudio Android. Publicação suspensa.
