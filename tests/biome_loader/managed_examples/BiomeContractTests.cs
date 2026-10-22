@@ -162,8 +162,8 @@ static class BiomeContractTests
             ExampleFaultingBiome.Leaves == 1,
             "Throwing OnLeave must not corrupt other active biomes");
         Require(BunnyBiomeDispatcher.LastError.Contains(
-                "ExampleFaultingBiome.IsBiomeActive", StringComparison.Ordinal),
-            "Biome IsBiomeActive errors remain recoverable and isolated");
+                "ExampleFaultingBiome.OnLeave", StringComparison.Ordinal),
+            "OnLeave exceptions are isolated after a false evaluation");
 
         string dir = Path.Combine(Path.GetTempPath(),
             "bunny-biome-source-test-" + Guid.NewGuid().ToString("N"));
