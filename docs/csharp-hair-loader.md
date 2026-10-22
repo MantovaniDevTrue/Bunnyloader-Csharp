@@ -56,6 +56,24 @@ Base técnica: `ModHair` do tModLoader (API pública) e `HairLoader.js` /
   parciais, IDs divergentes ou caminhos inseguros. A ponte Mono que envia
   os dados permanece pendente.
 - O instalador de texturas recusa qualquer ID ocupado por outro mod.
+- `CompiledAssemblyProbe.Verify` agora chama
+  `CompiledHairProbe.RejectUninstalledHairTypes` sobre os tipos **da
+  assembly real** antes de executar `SetDefaults`: um `ModHair` herdado
+  indiretamente, que escape ao parser textual C++, também fica bloqueado
+  sem carregar metade de um mod misto.
+- `NativeHairNetworkState.h`: contrato de rede C++ que transmite
+  `H1|jogador|UID/classe` e limpa cabelo de mod com `H1|jogador|#tipoVanilla`.
+  Rejeita falsificação de remetente, IDs acima de 227 no formato vanilla,
+  payloads incorretos e rebroadcast de mensagens duplicadas; recodifica
+  o ID local entre clientes que carregam os mods em ordens diferentes.
+  **O transporte NetPacket/NetManager ainda não está conectado**.
+- A referência pública gerada do SDK foi sincronizada pela workflow
+  `sync-csharp-hair-sdk-reference.yml` sem APK; as assinaturas do
+  HairLoader são rotuladas como `hair_manifest_only_native_lifecycle_blocked`.
+- A auditoria do `ExampleModCSharp` permite explicitamente somente
+  `Examples/Hairs/ExampleHair.cs` além dos seis espelhos da fixture e
+  confirma que o cabelo **não** integra `Playable/`.
+
 - `NativeHairReservation.h`: reserva blocos contíguos em startup para
   diversos mods C#, ignorando slots ocupados em `PlayerHair` e
   `PlayerHairAlt` (inclusive cabelos registrados pelo Bunny JS).
@@ -107,9 +125,11 @@ Base técnica: `ModHair` do tModLoader (API pública) e `HairLoader.js` /
    O contrato usa arquivo `.plr.bl.csharp-hair` independente do JSON JS,
    preservando o arquivo `.plr.bl.json` sem parsing do motor JavaScript.
    Os testes host incluem RAII, falha, symlink, mod ausente e troca vanilla.
-6. Conectar a validação H1 aos hooks de envio e recebimento de pacote
-   multiplayer e fazer QA com dois clientes de ordens diferentes. Os testes
-   locais cobrem anti-spoof, identidade e fallback, não a rede real.
+6. Ligar `NetworkState::EncodeOutgoing/Receive` ao transporte nativo
+   `NetPacket`/`NetManager` após a mensagem vanilla 4. O contrato host
+   já cobre autenticação do sender, fallback, supressão de duplicata,
+   mudança para cabelo vanilla e mapeamento entre ordens de mods, mas
+   ainda faltam hooks reais, entrada tardia, desconexão e QA multiplayer.
 7. Evitar chamadas MonoVM por pixel ou por desenho; avaliação de condições e
    criação das texturas devem ocorrer apenas nos pontos de atualização corretos.
 8. Testar descarregamento, múltiplos mods, colisões de nomes, trocar de mundo,
@@ -125,6 +145,7 @@ Na raiz deste repositório:
 dotnet build Split/Bunny-Loader/experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj -c Release
 dotnet run --project Split/Bunny-Loader/tests/hair_loader/HairLoader.Tests.csproj -c Release
 dotnet run --project Split/Bunny-Loader/tests/hair_loader/HairCompiler.Tests.csproj -c Release
+dotnet run --project Split/Bunny-Loader/tests/hair_loader/HairRuntimeGate.Tests.csproj -c Release
 g++ -std=c++20 -Wall -Wextra -Werror \
   -I Split/Bunny-Loader/app/src/main/cpp \
   Split/Bunny-Loader/tests/hair_loader/native_reservation.cpp \
@@ -144,6 +165,10 @@ g++ -std=c++20 -Wall -Wextra -Werror \
   Split/Bunny-Loader/tests/hair_loader/native_registry.cpp \
   -o /tmp/bunny-hair-native-contract
 /tmp/bunny-hair-native-contract
+g++ -std=c++20 -Wall -Wextra -Werror \
+  -I Split/Bunny-Loader/app/src/main/cpp \
+  Split/Bunny-Loader/tests/hair_loader/native_network_state.cpp \
+  -o /tmp/native-hair-net && /tmp/native-hair-net
 g++ -std=c++20 -Wall -Wextra -Werror -fsyntax-only \
   -I Split/Bunny-Loader/app/src/main/cpp \
   Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairTextures.cpp
