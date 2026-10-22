@@ -176,6 +176,16 @@ try
         throw new InvalidOperationException("Android packaged CLR validation returned " +
             packagedVerified + "\n" + File.ReadAllText(packagedDiagnostics));
     Console.WriteLine("FULL_EXAMPLE_PACKAGED_ANDROID_CLR=PASS classes=" + packagedVerified);
+    // Revogar o mod não pode alterar os IDs vanilla nem deixar uma classe
+    // personalizada registrada após o encerramento do assembly.
+    if (!BunnyEntitySourceDispatcher.Unregister(modId) ||
+        DamageClassLoader.GetDamageClass(10) != null ||
+        DamageClassLoader.DamageClassCount != 11 ||
+        DamageClassLoader.All.Count != 10 ||
+        BunnyEntitySourceDispatcher.Register(modId, output) >= 0)
+        throw new InvalidOperationException("ExampleMod DamageClass per-mod cleanup failed");
+    Console.WriteLine("FULL_EXAMPLE_DAMAGECLASS_MOD_UNLOAD=PASS stableIds=true");
+
 }
 finally
 {
