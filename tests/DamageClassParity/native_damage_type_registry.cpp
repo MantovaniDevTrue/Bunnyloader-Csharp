@@ -8,6 +8,7 @@ int main() {
     using namespace bl::csharp;
     NativeDamageTypeRegistry registry;
     NativeDamageTypeBinding state;
+    NativeDamageClassFlags flags;
     assert(registry.publish("mod-a", {
         {"mod-a", 900, false, "V4"}, {"mod-a", 800, true, "C:ModA.SwordDamage"}
     }));
@@ -15,6 +16,10 @@ int main() {
         {"mod-b", 901, false, "V5"}, {"mod-b", 801, true, "C:ModB.BoltDamage"}
     }));
     assert(registry.lookup(false, 900, &state) && state.damageClass == "V4");
+    assert(registry.lookupFlags(false, 900, &flags) && flags.resolved && flags.ranged);
+    assert(registry.lookupFlags(true, 800, &flags) && flags.resolved &&
+           !flags.ranged && !flags.melee && !flags.magic && !flags.summon);
+    assert(!registry.lookupFlags(false, 800, &flags));
     assert(registry.lookup(true, 800, &state) && state.mod == "mod-a");
     assert(!registry.lookup(false, 800, &state));
     assert(!registry.publish("mod-c", {{"mod-c", 900, false, "V6"}}));
@@ -30,6 +35,7 @@ int main() {
     reader.join();
     assert(valid.load());
     assert(!registry.lookup(false, 900, &state));
+    assert(!registry.lookupFlags(false, 900, &flags));
     assert(!registry.lookup(true, 800, &state));
     assert(!registry.publish("mod-new", {{"mod-new", 900, false, "V2"}}));
     assert(registry.publish("mod-new", {{"mod-new", 902, false, "V2"}}));
