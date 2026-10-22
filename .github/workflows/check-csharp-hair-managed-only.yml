@@ -1,0 +1,132 @@
+name: Validate CSharp HairLoader managed contract (NO APK)
+
+on:
+  push:
+    branches:
+      - feature/csharp-hair-loader-no-apk-20261022
+    paths:
+      - "Split/Bunny-Loader/experiments/csharp/BunnyCsSdk/ModHair.cs"
+      - "Split/Bunny-Loader/experiments/csharp/BunnyCsSdk/HairManifestSession.cs"
+      - "Split/Bunny-Loader/experiments/csharp/BunnySourceCompiler/**"
+      - "Split/Bunny-Loader/experiments/csharp/BunnySourceSdk/**"
+      - "Split/Bunny-Loader/tests/hair_loader/**"
+      - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/SourceParser.cpp"
+      - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/SourceLoader.*"
+      - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/SourceContentIdentity.h"
+      - "Split/Bunny-Loader/samples/ExampleModCSharp/Examples/Hairs/**"
+      - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairRegistry.h"
+      - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairTextures.*"
+      - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairUi.*"
+      - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairUnlockState.h"
+      - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairManifest.h"
+      - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairNetworkState.h"
+      - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairReservation.h"
+      - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairSaveState.h"
+      - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairSaveSession.h"
+      - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairSidecar.*"
+      - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairPlayerIo.*"
+      - ".github/workflows/check-csharp-hair-managed-only.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  managed-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - name: Build the actual BunnySourceSdk loaded by Roslyn
+        run: dotnet build Split/Bunny-Loader/experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj -c Release --nologo
+      - name: Run the hair identity, texture and unlocking tests
+        run: dotnet run --project Split/Bunny-Loader/tests/hair_loader/HairLoader.Tests.csproj -c Release
+      - name: Test real Roslyn compiler ModHair export and fail-closed source assets
+        run: dotnet run --project Split/Bunny-Loader/tests/hair_loader/HairCompiler.Tests.csproj -c Release
+      - name: Reject inherited ModHair before loading any mixed CSharp content
+        run: dotnet run --project Split/Bunny-Loader/tests/hair_loader/HairRuntimeGate.Tests.csproj -c Release
+      - name: Check unsupported hair classes fail fast in the actual C++ source parser
+        run: |
+          g++ -std=c++20 -Wall -Wextra \
+            -I Split/Bunny-Loader/app/src/main/cpp \
+            Split/Bunny-Loader/tests/hair_loader/parser_guard.cpp \
+            Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/SourceParser.cpp \
+            -o /tmp/bunny-hair-parser-check
+          /tmp/bunny-hair-parser-check
+      - name: Compile native hair identity, save and sender validation with host compiler
+        run: |
+          g++ -std=c++20 -Wall -Wextra -Werror \
+            -I Split/Bunny-Loader/app/src/main/cpp \
+            Split/Bunny-Loader/tests/hair_loader/native_registry.cpp \
+            -o /tmp/bunny-hair-native-contract
+          /tmp/bunny-hair-native-contract
+      - name: Syntax check native IL2CPP texture installer
+        run: |
+          g++ -std=c++20 -Wall -Wextra -Werror -fsyntax-only \
+            -I Split/Bunny-Loader/app/src/main/cpp \
+            Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairTextures.cpp
+      - name: Compile and run character creation and Stylist unlock tests
+        run: |
+          g++ -std=c++20 -Wall -Wextra -Werror \
+            -I Split/Bunny-Loader/app/src/main/cpp \
+            Split/Bunny-Loader/tests/hair_loader/native_unlock_state.cpp \
+            -o /tmp/bunny-hair-unlock
+          /tmp/bunny-hair-unlock
+      - name: Syntax check native HairstyleUnlocksHelper hooks
+        run: |
+          g++ -std=c++20 -Wall -Wextra -Werror -fsyntax-only \
+            -I Split/Bunny-Loader/app/src/main/cpp \
+            Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairUi.cpp
+      - name: Validate typed Mono-to-native HairLoader manifests
+        run: |
+          g++ -std=c++20 -Wall -Wextra -Werror \
+            -I Split/Bunny-Loader/app/src/main/cpp \
+            Split/Bunny-Loader/tests/hair_loader/native_manifest.cpp \
+            -o /tmp/bunny-hair-manifest
+          /tmp/bunny-hair-manifest
+      - name: Ensure CSharp HairLoader remains fail-closed before native lifecycle completion
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root = Path("Split/Bunny-Loader/app/src/main/cpp/experiments/csharp")
+          source = (root / "SourceLoader.cpp").read_text()
+          assert "status->hairs > 0" in source
+          assert "NativeHairLifecycleIncomplete" in source
+          assert source.index("NativeHairLifecycleIncomplete") < source.index("prepareNativeContent()")
+          assert "ModHair" in (root / "SourceParser.cpp").read_text()
+          print("HAIR_LOADER_ACTIVATION_GATE=PASS")
+          PY
+      - name: Test native multi-mod and JS hair ID reservations
+        run: |
+          g++ -std=c++20 -Wall -Wextra -Werror \
+            -I Split/Bunny-Loader/app/src/main/cpp \
+            Split/Bunny-Loader/tests/hair_loader/native_reservation.cpp \
+            -o /tmp/bunny-hair-reservations
+          /tmp/bunny-hair-reservations
+      - name: Test native player save guard and atomic hair sidecar
+        run: |
+          g++ -std=c++20 -Wall -Wextra -Werror \
+            -I Split/Bunny-Loader/app/src/main/cpp \
+            Split/Bunny-Loader/tests/hair_loader/native_save.cpp \
+            Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairSidecar.cpp \
+            -o /tmp/bunny-hair-sidecar
+          /tmp/bunny-hair-sidecar
+      - name: Check IL2CPP native player save and load hook syntax
+        run: |
+          g++ -std=c++20 -Wall -Wextra -Werror -fsyntax-only \
+            -I Split/Bunny-Loader/app/src/main/cpp \
+            Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairPlayerIo.cpp
+      - name: Validate hair network ownership and vanilla/mod transitions
+        run: |
+          g++ -std=c++20 -Wall -Wextra -Werror \
+            -I Split/Bunny-Loader/app/src/main/cpp \
+            Split/Bunny-Loader/tests/hair_loader/native_network_state.cpp \
+            -o /tmp/bunny-hair-network-contract
+          /tmp/bunny-hair-network-contract
+      - name: Guard against Android artifacts
+        run: |
+          test ! -d Split/Bunny-Loader/app/build/outputs/apk
+          test ! -d app/build/outputs/apk

@@ -13,6 +13,7 @@ inline std::string_view sourceContentDomain(std::string_view base) {
     if (base == "BunnyPrefix") return "PREFIX";
     if (base == "BunnyPlayer") return "PLAYER";
     if (base == "BunnyTile") return "TILE";
+    if (base == "ModHair" || base == "BunnyHair") return "HAIR";
     return {};
 }
 
@@ -20,7 +21,7 @@ inline std::string_view sourceWireDomain(std::string_view kind) {
     if (kind == "WEAPON" || kind == "ACCESSORY" || kind == "POTION") return "ITEM";
     if (kind == "ITEM" || kind == "PROJECTILE" || kind == "BUFF" ||
         kind == "NPC" || kind == "PREFIX" || kind == "PLAYER" ||
-        kind == "TILE") return kind;
+        kind == "TILE" || kind == "HAIR") return kind;
     return {};
 }
 

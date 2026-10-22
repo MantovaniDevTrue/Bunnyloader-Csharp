@@ -417,6 +417,15 @@
       "methods": []
     },
     {
+      "name": "BunnyLoader.Source.BunnyHair",
+      "kind": "abstract class",
+      "baseType": "BunnyLoader.Source.ModHair",
+      "constructors": [],
+      "properties": [],
+      "values": [],
+      "methods": []
+    },
+    {
       "name": "BunnyLoader.Source.BunnyHookHandle",
       "kind": "struct",
       "baseType": "System.ValueType",
@@ -1177,6 +1186,171 @@
         {
           "signature": "void SetDefaults()",
           "execution": "compile_policy"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.Condition",
+      "kind": "class",
+      "baseType": "System.Object",
+      "constructors": [
+        "Condition(string description, Func\u003Cbool\u003E predicate)"
+      ],
+      "properties": [
+        "string Description { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "bool IsMet()",
+          "execution": "hair_manifest_only_native_lifecycle_blocked"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.Gender",
+      "kind": "enum",
+      "baseType": "System.Enum",
+      "constructors": [],
+      "properties": [],
+      "values": [
+        "Unspecified",
+        "Male",
+        "Female"
+      ],
+      "methods": []
+    },
+    {
+      "name": "BunnyLoader.Source.HairDefinition",
+      "kind": "class",
+      "baseType": "System.Object",
+      "constructors": [
+        "HairDefinition(int Type, string FullName, string MainTexture, string AltTexture, Gender RandomGender, bool CreationAvailable)"
+      ],
+      "properties": [
+        "Gender RandomGender { get; set; }",
+        "bool CreationAvailable { get; set; }",
+        "int Type { get; set; }",
+        "string AltTexture { get; set; }",
+        "string FullName { get; set; }",
+        "string MainTexture { get; set; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "HairDefinition \u003CClone\u003E$()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool Equals(HairDefinition other)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool Equals(Object obj)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "int GetHashCode()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "string ToString()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void Deconstruct(out int Type, out string FullName, out string MainTexture, out string AltTexture, out Gender RandomGender, out bool CreationAvailable)",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.HairLoader",
+      "kind": "class",
+      "baseType": "System.Object",
+      "constructors": [
+        "HairLoader(int firstModHairType)"
+      ],
+      "properties": [],
+      "values": [],
+      "methods": [
+        {
+          "signature": "HairDefinition Register(string modUid, ModHair hair, Func\u003Cstring, bool\u003E fileExists)",
+          "execution": "hair_manifest_only_native_lifecycle_blocked"
+        },
+        {
+          "signature": "IReadOnlyList\u003CHairDefinition\u003E GetDefinitions()",
+          "execution": "hair_manifest_only_native_lifecycle_blocked"
+        },
+        {
+          "signature": "IReadOnlyList\u003Cint\u003E GetUnlockedTypes(bool characterCreation, bool stylist)",
+          "execution": "hair_manifest_only_native_lifecycle_blocked"
+        },
+        {
+          "signature": "bool TryGet(int type, out ModHair hair)",
+          "execution": "hair_manifest_only_native_lifecycle_blocked"
+        },
+        {
+          "signature": "bool TryResolveSavedHair(string fullName, out int type)",
+          "execution": "hair_manifest_only_native_lifecycle_blocked"
+        },
+        {
+          "signature": "string ExportNativeManifest()",
+          "execution": "hair_manifest_only_native_lifecycle_blocked"
+        },
+        {
+          "signature": "void Reset()",
+          "execution": "hair_manifest_only_native_lifecycle_blocked"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.HairManifestSession",
+      "kind": "class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [
+        "HairLoader Loader { get; }",
+        "int Count { get; }",
+        "string Manifest { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "static HairManifestSession Prepare(string modUid, IEnumerable\u003CType\u003E types, Func\u003Cstring, bool\u003E assetExists, int firstModHairType)",
+          "execution": "hair_manifest_only_native_lifecycle_blocked"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.ModHair",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [
+        "Gender RandomizedCharacterCreationGender { get; }",
+        "bool AvailableDuringCharacterCreation { get; }",
+        "int Type { get; }",
+        "string AltTexture { get; }",
+        "string Name { get; }",
+        "string Texture { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "IEnumerable\u003CCondition\u003E GetUnlockConditions()",
+          "execution": "hair_manifest_only_native_lifecycle_blocked"
+        },
+        {
+          "signature": "bool IsUnlocked(bool isAtCharacterCreation, bool isAtStylist)",
+          "execution": "hair_manifest_only_native_lifecycle_blocked"
+        },
+        {
+          "signature": "void AutoStaticDefaults()",
+          "execution": "hair_manifest_only_native_lifecycle_blocked"
+        },
+        {
+          "signature": "void SetStaticDefaults()",
+          "execution": "hair_manifest_only_native_lifecycle_blocked"
         }
       ]
     },

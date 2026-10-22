@@ -289,6 +289,20 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
         status->error = "mod C# sem conteudo concreto registrado; use uma base publica Bunny ou [BunnyContent] com override de defaults para heranca propria";
         return false;
     }
+    status->hairs = static_cast<int>(std::count_if(defs.begin(), defs.end(),
+        [](const ParsedSourceType& entry) {
+            return entry.base == "ModHair" || entry.base == "BunnyHair";
+        }));
+    if (status->hairs > 0) {
+        // Fail-closed antes de registrar qualquer conteúdo do pacote.
+        // O manifesto C# e os hooks IL2CPP ainda não participam do ciclo
+        // de carregamento, save e rede. Um mod misto também não pode
+        // parecer carregado se um de seus cabelos ficou pendente.
+        status->error = "[CSharp][HairLoader] Stage=SourcePreflight Classes=" +
+            std::to_string(status->hairs) +
+            " Result=Blocked Reason=NativeHairLifecycleIncomplete; sem APK";
+        return false;
+    }
     if (defs.size() > kSourceMaxTypes) { status->error = "tipos C# demais"; return false; }
     std::map<std::string, int> typed;
     for (const auto& def : defs) {

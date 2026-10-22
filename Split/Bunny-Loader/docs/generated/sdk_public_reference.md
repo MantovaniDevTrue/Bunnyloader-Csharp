@@ -217,6 +217,10 @@ enum; base: `System.Enum`.
 
 Values: Head, Body, Legs, Beard, Back, Wings.
 
+## BunnyLoader.Source.BunnyHair
+
+abstract class; base: `BunnyLoader.Source.ModHair`.
+
 ## BunnyLoader.Source.BunnyHookHandle
 
 struct; base: `System.ValueType`.
@@ -636,6 +640,100 @@ string Texture { get; set; }
 | Method | Execution |
 | --- | --- |
 | `void SetDefaults()` | compile_policy |
+
+## BunnyLoader.Source.Condition
+
+class; base: `System.Object`.
+
+```csharp
+Condition(string description, Func<bool> predicate)
+string Description { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `bool IsMet()` | hair_manifest_only_native_lifecycle_blocked |
+
+## BunnyLoader.Source.Gender
+
+enum; base: `System.Enum`.
+
+Values: Unspecified, Male, Female.
+
+## BunnyLoader.Source.HairDefinition
+
+class; base: `System.Object`.
+
+```csharp
+HairDefinition(int Type, string FullName, string MainTexture, string AltTexture, Gender RandomGender, bool CreationAvailable)
+Gender RandomGender { get; set; }
+bool CreationAvailable { get; set; }
+int Type { get; set; }
+string AltTexture { get; set; }
+string FullName { get; set; }
+string MainTexture { get; set; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `HairDefinition <Clone>$()` | managed_helper |
+| `bool Equals(HairDefinition other)` | managed_helper |
+| `bool Equals(Object obj)` | managed_helper |
+| `int GetHashCode()` | managed_helper |
+| `string ToString()` | managed_helper |
+| `void Deconstruct(out int Type, out string FullName, out string MainTexture, out string AltTexture, out Gender RandomGender, out bool CreationAvailable)` | managed_helper |
+
+## BunnyLoader.Source.HairLoader
+
+class; base: `System.Object`.
+
+```csharp
+HairLoader(int firstModHairType)
+```
+
+| Method | Execution |
+| --- | --- |
+| `HairDefinition Register(string modUid, ModHair hair, Func<string, bool> fileExists)` | hair_manifest_only_native_lifecycle_blocked |
+| `IReadOnlyList<HairDefinition> GetDefinitions()` | hair_manifest_only_native_lifecycle_blocked |
+| `IReadOnlyList<int> GetUnlockedTypes(bool characterCreation, bool stylist)` | hair_manifest_only_native_lifecycle_blocked |
+| `bool TryGet(int type, out ModHair hair)` | hair_manifest_only_native_lifecycle_blocked |
+| `bool TryResolveSavedHair(string fullName, out int type)` | hair_manifest_only_native_lifecycle_blocked |
+| `string ExportNativeManifest()` | hair_manifest_only_native_lifecycle_blocked |
+| `void Reset()` | hair_manifest_only_native_lifecycle_blocked |
+
+## BunnyLoader.Source.HairManifestSession
+
+class; base: `System.Object`.
+
+```csharp
+HairLoader Loader { get; }
+int Count { get; }
+string Manifest { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `static HairManifestSession Prepare(string modUid, IEnumerable<Type> types, Func<string, bool> assetExists, int firstModHairType)` | hair_manifest_only_native_lifecycle_blocked |
+
+## BunnyLoader.Source.ModHair
+
+abstract class; base: `System.Object`.
+
+```csharp
+Gender RandomizedCharacterCreationGender { get; }
+bool AvailableDuringCharacterCreation { get; }
+int Type { get; }
+string AltTexture { get; }
+string Name { get; }
+string Texture { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `IEnumerable<Condition> GetUnlockConditions()` | hair_manifest_only_native_lifecycle_blocked |
+| `bool IsUnlocked(bool isAtCharacterCreation, bool isAtStylist)` | hair_manifest_only_native_lifecycle_blocked |
+| `void AutoStaticDefaults()` | hair_manifest_only_native_lifecycle_blocked |
+| `void SetStaticDefaults()` | hair_manifest_only_native_lifecycle_blocked |
 
 ## BunnyLoader.Source.PrefixCategory
 

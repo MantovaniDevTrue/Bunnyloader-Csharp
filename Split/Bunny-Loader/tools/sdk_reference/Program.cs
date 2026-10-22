@@ -22,6 +22,12 @@ string Parameters(MethodBase method) => string.Join(", ", method.GetParameters()
 
 string Mode(Type type, MethodInfo method)
 {
+    // Tipos visíveis no SDK não significam que o cabelo já é instalável.
+    // A PR do HairLoader permanece bloqueada até UI/save/rede/unload reais.
+    if (type == typeof(ModHair) || type == typeof(BunnyHair) ||
+        type == typeof(HairLoader) || type == typeof(HairManifestSession) ||
+        type == typeof(Condition))
+        return "hair_manifest_only_native_lifecycle_blocked";
     if (type == typeof(BunnyPlayer))
         return method.Name switch {
             "ModifyHurt" or "ModifyHitByNPC" or "ModifyHitByProjectile" or "FreeDodge" => "worker_sync_pre_hit",

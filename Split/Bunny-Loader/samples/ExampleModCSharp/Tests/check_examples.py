@@ -32,7 +32,25 @@ for signature in (
 ):
     assert signature in sdk, f"SDK method missing: {signature}"
 
-assert len(list((EXAMPLE / "Examples").rglob("*.cs"))) == len(MIRRORS)
+# Os espelhos da fixture devem permanecer byte a byte idênticos. ModHair é
+# um exemplo adicional, intencionalmente fora do pacote Playable até que
+# o ciclo nativo (UI/save/rede) esteja concluído.
+experimental = {"Examples/Hairs/ExampleHair.cs"}
+actual_examples = {
+    path.relative_to(EXAMPLE).as_posix()
+    for path in (EXAMPLE / "Examples").rglob("*.cs")
+}
+assert actual_examples == set(MIRRORS) | experimental, (
+    f"Exemplos ausentes/extras: {actual_examples ^ (set(MIRRORS) | experimental)}"
+)
+hair_example = (EXAMPLE / "Examples/Hairs/ExampleHair.cs").read_text(encoding="utf-8")
+for key in ("class ExampleHair : ModHair", "GetUnlockConditions()",
+            "HairManifestSession.Prepare", "AvailableDuringCharacterCreation",
+            "RandomizedCharacterCreationGender"):
+    assert key in hair_example, f"Hair example missing contract: {key}"
+assert not list((EXAMPLE / "Playable").rglob("ExampleHair.cs")), (
+    "HairLoader incompleto nunca pode entrar no pacote Playable"
+)
 for mirror, source in MIRRORS.items():
     example = EXAMPLE / mirror
     fixture = FIXTURE / source
@@ -65,7 +83,7 @@ example_classes = {"ExampleItem", "ExamplePickaxe", "ExampleHamaxe", "SourceWand
                    "ExampleGuardianShieldAccessory", "ExampleGuardianShieldPlayer",
                    "ExampleTrailblazerBootsAccessory", "ExampleTrailblazerBootsPlayer",
                    "ExampleMysticWardAccessory", "ExampleMysticWardPlayer",
-                   "ExampleWorkbench", "ExampleHelmet", "ExampleBreastplate", "ExampleLeggings"}
+                   "ExampleWorkbench", "ExampleHelmet", "ExampleBreastplate", "ExampleLeggings", "ExampleHair"}
 for feature in features:
     assert feature["id"] not in ids, "Duplicate feature ID"
     ids.add(feature["id"])
