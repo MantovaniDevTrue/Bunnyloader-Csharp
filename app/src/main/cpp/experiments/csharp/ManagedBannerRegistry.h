@@ -169,10 +169,9 @@ private:
     }
 };
 
-inline Registry& registry() {
-    // kVanillaNpcCount deve vir do host no integrador, nao do SDK C#.
-    // O valor e configurado pelo runtime real antes de aceitar descritores.
-    static Registry active(700);
+inline Registry& registry(int firstModNpc) {
+    // Primeiro acesso feito pelo SourceLoader com kVanillaNpcCount real.
+    static Registry active(firstModNpc);
     return active;
 }
 
