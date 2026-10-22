@@ -6,6 +6,7 @@
 #include "experiments/csharp/NativeBasicItems.h"
 #include "experiments/csharp/NativeTilePolicy.h"
 #include "content/tiles/TileAccess.h"
+#include "content/tiles/ModTiles.h"
 #include "il2cpp/FieldContract.h"
 #include "il2cpp/Signature.h"
 
