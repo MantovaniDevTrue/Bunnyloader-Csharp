@@ -246,6 +246,13 @@ bool unregisterNativeAchievementBinding(const std::string& modId,
         *error = "Achievement mod not registered";
         return false;
     }
+    // Keep the managed store alive until its final dirty-save flush is
+    // accepted by the FIFO. A full queue never discards this binding.
+    if (!queueManagedAchievementFlush(it->first, it->second.assembly)) {
+        pendingFlush[it->first] = it->second.assembly;
+        *error = "Achievement final save pending; retry native binding detach";
+        return false;
+    }
     bindings.erase(it);
     pendingFlush.erase(modId);
     const bool empty = bindings.empty();
