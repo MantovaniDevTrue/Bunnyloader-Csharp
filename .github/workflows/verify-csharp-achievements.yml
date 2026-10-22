@@ -27,6 +27,7 @@ on:
       - app/src/main/cpp/experiments/csharp/NativeAchievementRegistry.cpp
       - app/src/main/cpp/experiments/csharp/NativeAchievementManagerAdapter.h
       - app/src/main/cpp/experiments/csharp/NativeAchievementManagerAdapter.cpp
+      - app/src/main/cpp/experiments/csharp/NativeAchievementOwnership.h
       - app/src/main/cpp/experiments/csharp/NativeAchievementVisualHooks.h
       - app/src/main/cpp/experiments/csharp/NativeAchievementVisualHooks.cpp
       - app/src/main/cpp/experiments/csharp/NativeAchievementProgress.h
@@ -66,6 +67,11 @@ jobs:
             tests/achievements_csharp/transport_test.cpp \
             -o /tmp/csharp-achievement-transport
           /tmp/csharp-achievement-transport
+      - name: Test strict mod ownership during native unload
+        run: |
+          g++ -std=c++20 -O2 -Wall -Wextra -Werror -Iapp/src/main/cpp \
+            tests/achievements_csharp/ownership_test.cpp -o /tmp/csharp-achievement-ownership
+          /tmp/csharp-achievement-ownership
       - name: Test achievement session epoch barrier
         run: |
           g++ -std=c++20 -O2 -Wall -Wextra -Werror -Iapp/src/main/cpp \
