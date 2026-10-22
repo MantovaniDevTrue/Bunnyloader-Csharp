@@ -3,6 +3,7 @@
 #include "experiments/csharp/UniversalHooks.h"
 #include "experiments/csharp/ManagedRuntime.h"
 #include "experiments/csharp/ManagedAchievementTransport.h"
+#include "experiments/csharp/ManagedAchievementSession.h"
 
 #include "graphics/ScreenScene.h"
 #include "experiments/csharp/ManagedVisualMonoPump.h"
@@ -295,6 +296,7 @@ std::condition_variable g_recipeRpcWake;
 void* g_recipeDispatchMethod=nullptr;
 std::atomic<bool> g_recipeRuntimeReady{false};
 ManagedAchievementQueue g_achievementRpcQueue;
+ManagedAchievementSession g_achievementSession;
 std::condition_variable g_achievementRpcWake;
 std::atomic<AchievementMetadataPublisher> g_achievementPublisher{nullptr};
 void* g_achievementDispatchMethod = nullptr;
@@ -1467,6 +1469,9 @@ std::string executeAchievementOnWorker(const AchievementJob& job) {
 bool processManagedAchievementRpc(std::unique_lock<std::mutex>& lock) {
     AchievementJob job;
     if (!g_achievementRpcQueue.pop(&job)) return false;
+    if (job.operation >= 1 && job.operation <= 4 &&
+        !g_achievementSession.accepts(job.generation))
+        return true;
     if (job.reply && job.reply->cancelled) {
         g_achievementRpcWake.notify_all();
         return true;
@@ -2402,6 +2407,18 @@ ManagedHurtSchedulerStatus managedHurtSchedulerStatus() {
     return status;
 }
 
+void pauseManagedAchievementEventSession() {
+    std::lock_guard<std::mutex> lock(g_pinnedMutex);
+    if (g_achievementSession.active())
+        g_achievementSession.pause();
+}
+
+void resumeManagedAchievementEventSession() {
+    std::lock_guard<std::mutex> lock(g_pinnedMutex);
+    if (!g_achievementSession.active())
+        g_achievementSession.resume();
+}
+
 void setManagedAchievementMetadataPublisher(
     AchievementMetadataPublisher callback) {
     g_achievementPublisher.store(callback, std::memory_order_release);
@@ -2439,8 +2456,9 @@ bool queueManagedAchievementEvent(const std::string& modId,
 
     // O hook só copia dados. A execução acontece posteriormente no worker.
     std::lock_guard<std::mutex> lock(g_pinnedMutex);
-    if (!g_pinnedStarted || !g_achievementRpcQueue.push(std::move(job)))
-        return false;
+    if (!g_pinnedStarted || !g_achievementSession.active()) return false;
+    job.generation = g_achievementSession.stamp();
+    if (!g_achievementRpcQueue.push(std::move(job))) return false;
     g_pinnedWake.notify_one();
     return true;
 }
