@@ -3218,6 +3218,97 @@ ManagedSourceCompileResult compileManagedSource(
     return out;
 }
 
+ManagedHairManifestResult exportManagedHairManifest(
+    const std::string& probeAssembly,
+    const std::string& compilerAssembly,
+    const std::string& modAssembly,
+    const std::string& modUid,
+    const std::string& modRoot,
+    const std::string& privateWorkDir,
+    int firstReservedHairType) {
+    ManagedHairManifestResult out;
+    const auto safePath = [](const std::string& path) {
+        return !path.empty() && path.size() <= 2048 && path.front() == '/' &&
+               path.find("..") == std::string::npos &&
+               path.find('\\\\') == std::string::npos &&
+               path.find('\0') == std::string::npos;
+    };
+    const auto safeUid = [](const std::string& uid) {
+        if (uid.empty() || uid.size() > 128) return false;
+        return std::all_of(uid.begin(), uid.end(), [](unsigned char c) {
+            return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
+                   (c >= '0' && c <= '9') || c == '_' || c == '-';
+        });
+    };
+    if (!safeUid(modUid) || !safePath(modRoot) || !safePath(privateWorkDir) ||
+        !safePath(modAssembly) ||
+        firstReservedHairType < 228 || firstReservedHairType > 4095) {
+        out.phase = "hair-manifest-arguments-invalid";
+        out.error = "HairManifestInvalidModPathOrReservedType";
+        return out;
+    }
+    const auto initialized = probeManagedRuntime(probeAssembly);
+    if (!initialized.domainInitialized || !initialized.methodExecuted) {
+        out.phase = "hair-manifest-mono-unavailable";
+        out.error = initialized.error;
+        return out;
+    }
+    std::lock_guard<std::mutex> guard(g_mutex);
+    if (!validAssembly(compilerAssembly) || !validAssembly(modAssembly) ||
+        !g_domain || !g_api.openAssembly || !g_api.image ||
+        !g_api.findClass || !g_api.findMethod || !g_api.invoke ||
+        !g_api.newString || !g_api.unbox || !g_api.attach ||
+        !g_api.attach(g_domain)) {
+        out.phase = "hair-manifest-host-unavailable";
+        out.error = "HairManifestMonoCompilerOrAssemblyUnavailable";
+        return out;
+    }
+
+    void* assembly = g_api.openAssembly(g_domain, compilerAssembly.c_str());
+    void* image = assembly ? g_api.image(assembly) : nullptr;
+    void* klass = image ? g_api.findClass(
+        image, "BunnyLoader.SourceCompiler", "CompiledHairProbe") : nullptr;
+    void* method = klass ? g_api.findMethod(klass, "ExportFromFile", 5) : nullptr;
+    if (!method) {
+        out.phase = "hair-manifest-entrypoint-missing";
+        out.error = "CompiledHairProbe.ExportFromFileUnavailable";
+        return out;
+    }
+    void* managedArgs[4] = {
+        g_api.newString(g_domain, modAssembly.c_str()),
+        g_api.newString(g_domain, modUid.c_str()),
+        g_api.newString(g_domain, modRoot.c_str()),
+        g_api.newString(g_domain, privateWorkDir.c_str())
+    };
+    if (!managedArgs[0] || !managedArgs[1] ||
+        !managedArgs[2] || !managedArgs[3]) {
+        out.phase = "hair-manifest-managed-arguments-failed";
+        out.error = "HairManifestMonoStringAllocationFailed";
+        return out;
+    }
+    int reserved = firstReservedHairType;
+    void* invokeArgs[5] = {managedArgs[0], managedArgs[1],
+                           managedArgs[2], managedArgs[3], &reserved};
+    void* exception = nullptr;
+    void* boxed = g_api.invoke(method, nullptr, invokeArgs, &exception);
+    void* raw = !exception && boxed ? g_api.unbox(boxed) : nullptr;
+    if (!raw) {
+        out.phase = "hair-manifest-export-failed";
+        out.error = "CompiledHairProbe.ExportFromFileRejected";
+        return out;
+    }
+    std::memcpy(&out.classes, raw, sizeof(out.classes));
+    if (out.classes < 1 || out.classes > 2048 ||
+        firstReservedHairType + out.classes - 1 > 4095) {
+        out.classes = 0;
+        out.phase = "hair-manifest-export-invalid-count";
+        out.error = "HairManifestCountOutOfBounds";
+        return out;
+    }
+    out.phase = "hair-manifest-prepared";
+    return out;
+}
+
 LiveSourceStatus liveSourceStatus(const std::string& modId) {
     std::lock_guard<std::mutex> guard(g_mutex);
     const auto found = g_sourceLiveEntries.find(modId);
