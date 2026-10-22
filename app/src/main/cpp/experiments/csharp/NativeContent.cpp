@@ -123,6 +123,10 @@ struct NativeRefs {
     int playerRangedDamage = -1;
     int playerMagicDamage = -1;
     int playerSummonDamage = -1;
+    int playerMeleeCrit = -1;
+    int playerRangedCrit = -1;
+    int playerMagicCrit = -1;
+    int playerMeleeSpeed = -1;
     int playerArmor = -1;
     int playerMaxRunSpeed = -1;
     int playerRunAcceleration = -1;
@@ -311,6 +315,8 @@ WeaponDamageFn g_originalWeaponDamage = nullptr;
 WeaponCritFn g_originalWeaponCrit = nullptr;
 WeaponKnockbackFn g_originalWeaponKnockback = nullptr;
 bool g_combatPlayerDamageFieldsReady = false;
+bool g_combatPlayerCritFieldsReady = false;
+bool g_combatPlayerMeleeSpeedFieldReady = false;
 std::atomic<int> g_damageCombatSamples{0};
 std::atomic<int> g_critCombatSamples{0};
 std::atomic<int> g_knockbackCombatSamples{0};
@@ -402,14 +408,29 @@ void observeNativeWeaponCombat(const char* channel, Il2CppObject* player,
         native.summon = bl::runtime::field<float>(player, g_refs.playerSummonDamage);
         valid = projectNativeClassDamageDelta(stats, native, &observedDelta);
     }
-    BL_INFO("[CSharp][DamageClass][Observe] Stage=%s Mod=%s ItemType=%d Class=%s Vanilla=%.3f DamageAdd=%.3f DamageMul=%.3f Crit=%.3f KnockbackAdd=%.3f KnockbackMul=%.3f Speed=%.3f ArmorPen=%.3f StandardCrit=%d LiveValid=%d Melee=%.3f Ranged=%.3f Magic=%.3f Summon=%.3f NonGenericDamageDelta=%.3f Result=Unchanged",
+    NativeVanillaPlayerCrit nativeCrit;
+    float sharedCrit = 0.f, inheritedCrit = 0.f, inheritedSpeed = 0.f;
+    bool validCrit = false, validSpeed = false;
+    if (player && g_combatPlayerCritFieldsReady) {
+        nativeCrit.melee = bl::runtime::field<int32_t>(player, g_refs.playerMeleeCrit);
+        nativeCrit.ranged = bl::runtime::field<int32_t>(player, g_refs.playerRangedCrit);
+        nativeCrit.magic = bl::runtime::field<int32_t>(player, g_refs.playerMagicCrit);
+        validCrit = projectNativeClassCritDelta(stats, nativeCrit,
+                                                 &sharedCrit, &inheritedCrit);
+    }
+    if (player && g_combatPlayerMeleeSpeedFieldReady)
+        validSpeed = projectNativeClassMeleeSpeedDelta(
+            stats, bl::runtime::field<float>(player, g_refs.playerMeleeSpeed),
+            &inheritedSpeed);
+    BL_INFO("[CSharp][DamageClass][Observe] Stage=%s Mod=%s ItemType=%d Class=%s Vanilla=%.3f DamageAdd=%.3f DamageMul=%.3f Crit=%.3f KnockbackAdd=%.3f KnockbackMul=%.3f Speed=%.3f ArmorPen=%.3f StandardCrit=%d LiveValid=%d Melee=%.3f Ranged=%.3f Magic=%.3f Summon=%.3f NonGenericDamageDelta=%.3f CritValid=%d SharedCrit=%.3f CritDelta=%.3f SpeedValid=%d MeleeSpeedDelta=%.3f Result=Unchanged",
         channel, snapshot.source.mod.c_str(), itemType,
         snapshot.source.damageClass.c_str(), nativeValue,
         stats.damage.additive, stats.damage.multiplicative, stats.crit,
         stats.knockback.additive, stats.knockback.multiplicative,
         stats.attackSpeed, stats.armorPenetration, stats.standardCrit ? 1 : 0,
         valid ? 1 : 0, native.melee, native.ranged, native.magic,
-        native.summon, observedDelta);
+        native.summon, observedDelta, validCrit ? 1 : 0,
+        sharedCrit, inheritedCrit, validSpeed ? 1 : 0, inheritedSpeed);
 }
 
 int32_t hkNativeWeaponDamage(Il2CppObject* player, Il2CppObject* item,
@@ -1558,6 +1579,24 @@ bool prepareNativeContent() {
     if (!g_combatPlayerDamageFieldsReady)
         BL_WARN("[CSharp][DamageClass] Stage=BindPlayerDamage Result=PassiveNoLiveStats Detail=%s",
                 nativeDamageError.c_str());
+    std::string nativeCritError;
+    g_combatPlayerCritFieldsReady =
+        nativeFieldContract(player, "meleeCrit", "System.Int32", false, 4,
+                            nullptr, &r.playerMeleeCrit, &nativeCritError) &&
+        nativeFieldContract(player, "rangedCrit", "System.Int32", false, 4,
+                            nullptr, &r.playerRangedCrit, &nativeCritError) &&
+        nativeFieldContract(player, "magicCrit", "System.Int32", false, 4,
+                            nullptr, &r.playerMagicCrit, &nativeCritError);
+    if (!g_combatPlayerCritFieldsReady)
+        BL_WARN("[CSharp][DamageClass] Stage=BindPlayerCrit Result=PassiveNoLiveStats Detail=%s",
+                nativeCritError.c_str());
+    std::string nativeSpeedError;
+    g_combatPlayerMeleeSpeedFieldReady =
+        nativeFieldContract(player, "meleeSpeed", "System.Single", false, 4,
+                            nullptr, &r.playerMeleeSpeed, &nativeSpeedError);
+    if (!g_combatPlayerMeleeSpeedFieldReady)
+        BL_WARN("[CSharp][DamageClass] Stage=BindPlayerSpeed Result=PassiveNoLiveStats Detail=%s",
+                nativeSpeedError.c_str());
     r.playerArmor = fieldOffset(player, "armor");
     r.playerMaxRunSpeed = fieldOffset(player, "maxRunSpeed");
     r.playerRunAcceleration = fieldOffset(player, "runAcceleration");
