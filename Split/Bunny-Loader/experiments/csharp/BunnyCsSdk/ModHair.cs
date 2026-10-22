@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 
 namespace BunnyLoader.Source;
 
@@ -115,7 +116,8 @@ public sealed record HairDefinition(
     string FullName,
     string MainTexture,
     string AltTexture,
-    Gender RandomGender);
+    Gender RandomGender,
+    bool CreationAvailable);
 
 /// <summary>
 /// Registro gerenciado, independente de QuickJS.
@@ -182,7 +184,8 @@ public sealed class HairLoader
             if (!Enum.IsDefined(typeof(Gender), gender))
                 throw new InvalidOperationException(key + ": gênero de randomização inválido.");
 
-            var definition = new HairDefinition(type, key, texture, alternate, gender);
+            var definition = new HairDefinition(type, key, texture, alternate, gender,
+                hair.AvailableDuringCharacterCreation);
             byType.Add(type, hair);
             byKey.Add(key, definition);
             definitions.Add(type, definition);
@@ -239,6 +242,34 @@ public sealed class HairLoader
         return result;
     }
 
+    /// <summary>
+    /// Manifesto tipado para a futura ponte MonoVM -> C++.
+    /// O Host só pode aplicar estes registros em lote; nunca confiar em
+    /// um ID remoto, e nunca expor penteados antes de carregar texturas.
+    /// Cada linha possui oito campos tabulados e caminhos PNG completos.
+    /// </summary>
+    public string ExportNativeManifest()
+    {
+        var manifest = new StringBuilder("BUNNY_HAIR_MANIFEST_V1\n");
+        foreach (HairDefinition entry in GetDefinitions())
+        {
+            int slash = entry.FullName.IndexOf('/');
+            if (slash <= 0 || slash >= entry.FullName.Length - 1)
+                throw new InvalidOperationException("Identidade de cabelo inválida.");
+
+            manifest.Append("HAIR\t")
+                .Append(entry.Type).Append('\t')
+                .Append(entry.FullName, 0, slash).Append('\t')
+                .Append(entry.FullName, slash + 1, entry.FullName.Length - slash - 1)
+                .Append('\t').Append(entry.MainTexture).Append(".png")
+                .Append('\t').Append(entry.AltTexture).Append(".png")
+                .Append('\t').Append((int)entry.RandomGender)
+                .Append('\t').Append(entry.CreationAvailable ? '1' : '0')
+                .Append('\n');
+        }
+        return manifest.ToString();
+    }
+
     public void Reset()
     {
         foreach (ModHair hair in byType.Values)
@@ -252,8 +283,10 @@ public sealed class HairLoader
     private static string ValidateTexture(string texture)
     {
         if (string.IsNullOrWhiteSpace(texture) ||
-            texture.Length > 200 ||
-            texture.StartsWith("/", StringComparison.Ordinal) ||
+            texture.Length > 156 ||
+            !texture.StartsWith("Content/", StringComparison.Ordinal) ||
+            texture.Contains("//", StringComparison.Ordinal) ||
+            texture.EndsWith("/", StringComparison.Ordinal) ||
             texture.Contains("..", StringComparison.Ordinal) ||
             texture.Contains('\\') ||
             texture.Contains(':') ||
