@@ -21,8 +21,8 @@
       "clean_three_way": 2,
       "already_equal": 29,
       "already_contains_pr": 0,
-      "manual_reconciled": 6,
-      "blocked": 2,
+      "manual_reconciled": 8,
+      "blocked": 0,
       "excluded": 3
     },
     "GoreLoader": {
@@ -101,6 +101,18 @@
       "path": "app/src/main/cpp/experiments/csharp/SourceContentIdentity.h",
       "result": "clean_three_way",
       "sha256": "8e913576df6d0d1489c39fba7df571fcb98a809898c0772c46ee39d77f8b05a7"
+    },
+    {
+      "pr": 117,
+      "path": "app/src/main/cpp/experiments/csharp/SourceLoader.cpp",
+      "result": "manual_source_reconciled",
+      "sha256": "08d356b1565c5f8e58e595de939a0ed4f410265fc95ae3c4a3f0150d7fa85bd0"
+    },
+    {
+      "pr": 117,
+      "path": "app/src/main/cpp/experiments/csharp/SourceLoader.h",
+      "result": "manual_source_reconciled",
+      "sha256": "5f2de1fafb5c15ee9bf1cf48611d78740591f4bbd19f264215b740d9372a77c4"
     },
     {
       "pr": 117,
@@ -388,22 +400,6 @@
       "pr": 117,
       "path": ".github/workflows/command-loader-host-tests.yml",
       "reason": "outside_safe_source_scope"
-    },
-    {
-      "pr": 117,
-      "path": "app/src/main/cpp/experiments/csharp/SourceLoader.cpp",
-      "reason": "three_way_conflict",
-      "base_sha256": "9312a2e872fbedb5fa43646642d3ab8932b2b3142d8a797555c0403173e910f4",
-      "local_sha256": "08d356b1565c5f8e58e595de939a0ed4f410265fc95ae3c4a3f0150d7fa85bd0",
-      "incoming_sha256": "2764e2fc54eb4017fee68c303f84ffc73e48409984aef9e0a226c254433bc43d"
-    },
-    {
-      "pr": 117,
-      "path": "app/src/main/cpp/experiments/csharp/SourceLoader.h",
-      "reason": "three_way_conflict",
-      "base_sha256": "fb84a08c1713055e4d1a304a872e26cec64d19de1319fe1d44d3e0b037a88043",
-      "local_sha256": "5f2de1fafb5c15ee9bf1cf48611d78740591f4bbd19f264215b740d9372a77c4",
-      "incoming_sha256": "7743988eafb45fbe5f7aeccb97bc5d9bde7cd62d8263447ecfefaf4ce38c5fc0"
     },
     {
       "pr": 121,
