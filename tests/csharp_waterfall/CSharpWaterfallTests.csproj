@@ -7,5 +7,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../experiments/csharp/BunnyCsSdk/BunnyCsSdk.csproj" />
+    <Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/Biomes/ExampleWaterfallStyle.cs"
+             Link="ExampleWaterfallStyle.cs" />
   </ItemGroup>
 </Project>
