@@ -23,6 +23,7 @@ on:
       - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairSaveState.h"
       - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairSaveSession.h"
       - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairSidecar.*"
+      - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairPlayerIo.*"
       - ".github/workflows/check-csharp-hair-managed-only.yml"
   workflow_dispatch:
 
@@ -110,6 +111,11 @@ jobs:
             Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairSidecar.cpp \
             -o /tmp/bunny-hair-sidecar
           /tmp/bunny-hair-sidecar
+      - name: Check IL2CPP native player save and load hook syntax
+        run: |
+          g++ -std=c++20 -Wall -Wextra -Werror -fsyntax-only \
+            -I Split/Bunny-Loader/app/src/main/cpp \
+            Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairPlayerIo.cpp
       - name: Guard against Android artifacts
         run: |
           test ! -d Split/Bunny-Loader/app/build/outputs/apk
