@@ -1,0 +1,47 @@
+name: Refresh ExampleMod CSharp source inventory (NO APK)
+
+on:
+  push:
+    branches:
+      - feature/examplemod-csharp-parity-gate-20261022
+    paths:
+      - "tools/example_completion_audit.py"
+      - "tools/example_completion/current_upstream.json"
+      - "tools/example_completion/evidence.json"
+      - ".github/workflows/refresh-examplemod-audit-source-only.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: examplemod-audit-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/checkout@v4
+        with:
+          repository: JonataOliveiraa/Bunny-Loader
+          ref: a0132963026e3b35e45f33ffffa01a75eb8535d5
+          path: .audit-upstream
+      - name: Rebuild complete 232-file source parity matrix
+        run: python3 tools/example_completion_audit.py --upstream-root .audit-upstream --write
+      - name: Commit generated JSON and Markdown only (never APK)
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add docs/generated/example_completion/matrix.json docs/generated/example_completion/matrix.md
+          if git diff --cached --quiet; then
+            echo "SOURCE_MATRIX=UNCHANGED"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "audit(csharp): refresh every original ExampleMod JS file from pinned source"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
