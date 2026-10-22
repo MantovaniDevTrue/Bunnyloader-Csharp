@@ -135,10 +135,10 @@ static class Check
         True(prepared.Loader.TryResolveSavedHair("mod-test/ProgressHair", out int preparedProgress) &&
              preparedProgress == 301, "segundo ModHair recebe o ID sequencial correto");
         True(prepared.Manifest.StartsWith(
-            "BUNNY_HAIR_MANIFEST_V1\\nHAIR\\t300\\tmod-test\\tAltHair\\t",
+            "BUNNY_HAIR_MANIFEST_V1\nHAIR\t300\tmod-test\tAltHair\t",
             StringComparison.Ordinal), "manifesto da sessao inicia no ID nativo reservado");
         True(prepared.Manifest.Contains(
-            "HAIR\\t301\\tmod-test\\tProgressHair\\t", StringComparison.Ordinal),
+            "HAIR\t301\tmod-test\tProgressHair\t", StringComparison.Ordinal),
             "manifesto de varias classes respeita ordem deterministica");
 
         Throws<InvalidOperationException>(() => HairManifestSession.Prepare(
