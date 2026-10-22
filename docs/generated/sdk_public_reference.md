@@ -99,6 +99,35 @@ enum; base: `System.Enum`.
 
 Values: MeleeDamage, RangedDamage, MagicDamage, MinionDamage, MoveSpeed.
 
+## BunnyLoader.Source.BunnyBackgroundPriority
+
+enum; base: `System.Enum`.
+
+Values: None, BiomeLow, BiomeMedium, BiomeHigh, Environment, Event, BossLow, BossMedium, BossHigh.
+
+## BunnyLoader.Source.BunnyBackgroundTexture
+
+abstract class; base: `System.Object`.
+
+```csharp
+string Texture { get; set; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `void SetStaticDefaults()` | compile_policy |
+
+## BunnyLoader.Source.BunnyBackgroundTextures
+
+abstract class; base: `System.Object`.
+
+| Method | Execution |
+| --- | --- |
+| `static bool TryGetSlot(string modId, string path, out int slot)` | managed_helper |
+| `static int GetSlot(string fullPath)` | managed_helper |
+| `static int GetSlot(string modId, string path)` | managed_helper |
+| `static int GetSlot<T>(string modId)` | managed_helper |
+
 ## BunnyLoader.Source.BunnyBeforeHurtHook
 
 class; base: `System.MulticastDelegate`.
@@ -184,6 +213,135 @@ abstract class; base: `System.Object`.
 | `static int LifePercent(int life, int maxLife)` | managed_helper |
 | `static int ReduceDamage(int damage, int percent, int minimum)` | managed_helper |
 
+## BunnyLoader.Source.BunnyCommand
+
+abstract class; base: `System.Object`.
+
+```csharp
+BunnyCommandType Type { get; }
+IReadOnlyList<string> Aliases { get; }
+bool IsCaseSensitive { get; }
+string Command { get; }
+string Description { get; }
+string Usage { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `void Action(BunnyCommandContext context)` | managed_helper |
+
+## BunnyLoader.Source.BunnyCommandAction
+
+struct; base: `System.ValueType`.
+
+```csharp
+BunnyCommandAction(BunnyCommandActionKind Kind, int Amount)
+BunnyCommandActionKind Kind { get; set; }
+int Amount { get; set; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `bool Equals(BunnyCommandAction other)` | managed_helper |
+| `bool Equals(Object obj)` | managed_helper |
+| `int GetHashCode()` | managed_helper |
+| `string ToString()` | managed_helper |
+| `void Deconstruct(out BunnyCommandActionKind Kind, out int Amount)` | managed_helper |
+
+## BunnyLoader.Source.BunnyCommandActionKind
+
+enum; base: `System.Enum`.
+
+Values: Heal, AdvanceWorldTime.
+
+## BunnyLoader.Source.BunnyCommandCaller
+
+class; base: `System.Object`.
+
+```csharp
+BunnyCommandCaller(int playerIndex, int networkMode, BunnyCommandCallerKind kind, Action<BunnyCommandReply> reply, Action<BunnyCommandAction> requestAction)
+BunnyCommandCallerKind Kind { get; }
+int NetworkMode { get; }
+int PlayerIndex { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `void AdvanceWorldTime(int ticks)` | managed_helper |
+| `void Heal(int amount)` | managed_helper |
+| `void Reply(string message, Byte red, Byte green, Byte blue)` | managed_helper |
+
+## BunnyLoader.Source.BunnyCommandCallerKind
+
+enum; base: `System.Enum`.
+
+Values: Chat, Server.
+
+## BunnyLoader.Source.BunnyCommandContext
+
+class; base: `System.Object`.
+
+```csharp
+BunnyCommandCaller Caller { get; }
+IReadOnlyList<string> Arguments { get; }
+string Input { get; }
+string ModId { get; }
+```
+
+## BunnyLoader.Source.BunnyCommandRegistry
+
+class; base: `System.Object`.
+
+```csharp
+BunnyCommandRegistry(Action<Exception> onError)
+```
+
+| Method | Execution |
+| --- | --- |
+| `IReadOnlyList<ValueTuple<string, string>> GetHelp(BunnyCommandCaller caller)` | managed_helper |
+| `bool TryHandle(string input, BunnyCommandCaller caller)` | managed_helper |
+| `int Register(string modId, IEnumerable<BunnyCommand> commands)` | managed_helper |
+| `int RegisterAssembly(string modId, Assembly assembly)` | managed_helper |
+| `int RegisterTypes(string modId, IEnumerable<Type> types)` | managed_helper |
+| `void Unregister(string modId)` | managed_helper |
+
+## BunnyLoader.Source.BunnyCommandReply
+
+struct; base: `System.ValueType`.
+
+```csharp
+BunnyCommandReply(string Text, Byte Red, Byte Green, Byte Blue)
+Byte Blue { get; set; }
+Byte Green { get; set; }
+Byte Red { get; set; }
+string Text { get; set; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `bool Equals(BunnyCommandReply other)` | managed_helper |
+| `bool Equals(Object obj)` | managed_helper |
+| `int GetHashCode()` | managed_helper |
+| `string ToString()` | managed_helper |
+| `void Deconstruct(out string Text, out Byte Red, out Byte Green, out Byte Blue)` | managed_helper |
+
+## BunnyLoader.Source.BunnyCommandType
+
+enum; base: `System.Enum`.
+
+Values: Chat, Server, World.
+
+## BunnyLoader.Source.BunnyCommandWorker
+
+abstract class; base: `System.Object`.
+
+| Method | Execution |
+| --- | --- |
+| `static int RegisterAssembly(string modId, string path)` | managed_helper |
+| `static string Execute(string input, int playerIndex, int netMode, int callerKind)` | managed_helper |
+| `static void Clear()` | managed_helper |
+| `static void Unregister(string modId)` | managed_helper |
+
 ## BunnyLoader.Source.BunnyContentAttribute
 
 class; base: `System.Attribute`.
@@ -199,7 +357,7 @@ string Texture { get; }
 
 enum; base: `System.Enum`.
 
-Values: Item, Tile, Weapon, Projectile, Buff, BuffPotion, Accessory, Player, NPC, Prefix, Wall, Dust.
+Values: Item, Tile, Weapon, Projectile, Buff, BuffPotion, Accessory, Player, NPC, Prefix, Wall, Dust, BackgroundTexture.
 
 ## BunnyLoader.Source.BunnyCraftContext
 
@@ -237,6 +395,22 @@ BunnyDodgeHook(Object object, IntPtr method)
 | `IAsyncResult BeginInvoke(int damage, out bool dodge, AsyncCallback callback, Object object)` | managed_helper |
 | `void EndInvoke(out bool dodge, IAsyncResult result)` | managed_helper |
 | `void Invoke(int damage, out bool dodge)` | managed_helper |
+
+## BunnyLoader.Source.BunnyDrawableTooltipLine
+
+class; base: `System.Object`.
+
+```csharp
+BunnyDrawableTooltipLine(string name)
+bool DrawDefault { get; set; }
+bool RainbowWave { get; set; }
+float HueSpeed { get; set; }
+float HueStep { get; set; }
+float LetterStep { get; set; }
+float WaveAmplitude { get; set; }
+float WaveSpeed { get; set; }
+string Name { get; }
+```
 
 ## BunnyLoader.Source.BunnyDust
 
@@ -395,6 +569,35 @@ enum; base: `System.Enum`.
 
 Values: Head, Body, Legs, Beard, Back, Wings.
 
+## BunnyLoader.Source.BunnyGore
+
+abstract class; base: `System.Object`.
+
+```csharp
+string LastError { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `static bool TryConfigure(string modId, string name, BunnyGoreSettings settings)` | managed_helper |
+| `static bool TrySpawn(string modId, string name, float x, float y, float velocityX, float velocityY, float scale)` | managed_helper |
+| `static int GetType(string modId, string name)` | managed_helper |
+| `static int GetTypeAny(string name)` | managed_helper |
+
+## BunnyLoader.Source.BunnyGoreSettings
+
+struct; base: `System.ValueType`.
+
+```csharp
+BunnyGoreSettings()
+BunnyGoreSettings(int specialAI, float disappearSpeed, float disappearSpeedAlpha, bool isDrip, bool safeGore)
+bool IsDrip { get; }
+bool SafeGore { get; }
+float DisappearSpeed { get; }
+float DisappearSpeedAlpha { get; }
+int SpecialAI { get; }
+```
+
 ## BunnyLoader.Source.BunnyHoldout
 
 class; base: `System.Object`.
@@ -418,6 +621,10 @@ int Id { get; }
 ## BunnyLoader.Source.BunnyHookModule
 
 abstract class; base: `System.Object`.
+
+```csharp
+string ModId { get; }
+```
 
 | Method | Execution |
 | --- | --- |
@@ -478,6 +685,7 @@ BunnyNativeScope Native { get; }
 | `BunnyMethodHook HookInt32Pair(string type, string method, BunnyInt32PairHook callback, bool isStatic)` | experimental_worker_sync_void0 |
 | `BunnyMethodHook HookInt32Triple(string type, string method, BunnyInt32TripleHook callback, bool isStatic)` | experimental_worker_sync_void0 |
 | `BunnyMethodHook HookInt32Zero(string type, string method, BunnyInt32ZeroHook callback, bool isStatic)` | experimental_worker_sync_void0 |
+| `BunnyMethodHook HookSystemStage(string stageName, BunnyVoidHook callback)` | experimental_worker_sync_void0 |
 | `BunnyMethodHook HookVoid(string type, string method, BunnyVoidHook callback, bool isStatic)` | experimental_worker_sync_void0 |
 | `BunnyMethodHook HookVoidInt32(string type, string method, BunnyVoidInt32Hook callback, bool isStatic)` | experimental_worker_sync_void0 |
 | `BunnyMethodHook HookVoidInt32Pair(string type, string method, BunnyVoidInt32PairHook callback, bool isStatic)` | experimental_worker_sync_void0 |
@@ -954,13 +1162,16 @@ string UseSound { get; set; }
 | --- | --- |
 | `bool OnUse(int playerIndex)` | managed_helper |
 | `bool OnUse(int playerIndex, BunnyUseContext context)` | managed_helper |
+| `bool PreDrawTooltipLine(BunnyDrawableTooltipLine line)` | managed_helper |
 | `static int BuyPrice(int platinum, int gold, int silver, int copper)` | managed_helper |
 | `static int SellPrice(int platinum, int gold, int silver, int copper)` | managed_helper |
+| `string OnUseRejectionReason(int playerIndex, BunnyUseContext context)` | managed_helper |
 | `void DefaultToPlaceableTile(int vanillaTileId, int style)` | managed_helper |
 | `void DefaultToPlaceableTile(string modTileName, int style)` | managed_helper |
 | `void DefaultToPlaceableWall(int vanillaWallId)` | managed_helper |
 | `void DefaultToPlaceableWall(string modWallName)` | managed_helper |
 | `void DefaultToQuestFish()` | managed_helper |
+| `void ModifyTooltips(List<BunnyTooltipLine> lines)` | managed_helper |
 | `void SetDefaults()` | compile_policy |
 | `void SetRarity<T>()` | managed_helper |
 
@@ -1107,6 +1318,7 @@ int Height { get; set; }
 int LifeMax { get; set; }
 int Width { get; set; }
 string DisplayName { get; set; }
+string ModId { get; }
 string Texture { get; set; }
 ```
 
@@ -1357,6 +1569,7 @@ int Penetrate { get; set; }
 int TimeLeft { get; set; }
 int Width { get; set; }
 string DisplayName { get; set; }
+string ModId { get; }
 string NativeDefaultsDefinition { get; }
 string Texture { get; set; }
 ```
@@ -1658,11 +1871,41 @@ int ShootCallbackMask { get; }
 
 struct; base: `System.ValueType`.
 
+## BunnyLoader.Source.BunnySoundClip
+
+struct; base: `System.ValueType`.
+
+```csharp
+int DurationMilliseconds { get; }
+int Handle { get; }
+int State { get; }
+string ModId { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `BunnySoundPlayback Play(int x, int y, float volumeScale, float pitchOffset)` | managed_helper |
+| `int FindActive()` | managed_helper |
+
 ## BunnyLoader.Source.BunnySoundLimitBehavior
 
 enum; base: `System.Enum`.
 
 Values: IgnoreNew, ReplaceOldest.
+
+## BunnyLoader.Source.BunnySoundPlayback
+
+struct; base: `System.ValueType`.
+
+```csharp
+int ClipHandle { get; }
+int Request { get; }
+int Token { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `bool Stop()` | managed_helper |
 
 ## BunnyLoader.Source.BunnySoundStyle
 
@@ -1678,6 +1921,73 @@ int MaxInstances { get; }
 string Definition { get; }
 string Path { get; }
 ```
+
+## BunnyLoader.Source.BunnySounds
+
+abstract class; base: `System.Object`.
+
+| Method | Execution |
+| --- | --- |
+| `static BunnySoundClip Register(string modId, BunnySoundStyle style)` | managed_helper |
+| `static void UnloadMod(string modId)` | managed_helper |
+
+## BunnyLoader.Source.BunnySurfaceBackgroundStyle
+
+abstract class; base: `BunnyLoader.Source.BunnyHookModule`.
+
+```csharp
+int Slot { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `bool PreDrawCloseBackground(ref BunnySurfaceDrawContext context)` | managed_helper |
+| `int ChooseCloseTexture(ref Double scale, ref Double parallax, ref Double a, ref Double b)` | managed_helper |
+| `int ChooseFarTexture()` | managed_helper |
+| `int ChooseMiddleTexture()` | managed_helper |
+| `string DiagnosticStatus()` | managed_helper |
+| `void Load(BunnyHookScope hooks)` | managed_helper |
+| `void ModifyFarFades(Span<float> fades, Double transitionSpeed)` | managed_helper |
+| `void SetStaticDefaults()` | compile_policy |
+| `void Unload()` | managed_helper |
+
+## BunnyLoader.Source.BunnySurfaceBackgrounds
+
+abstract class; base: `System.Object`.
+
+```csharp
+int VanillaCount { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `static BunnySurfaceBackgroundStyle Get(int slot)` | managed_helper |
+| `static int GetSlot(string modId, string className)` | managed_helper |
+| `static int GetSlot<T>(string modId)` | managed_helper |
+| `static void Activate<T>(string modId, BunnyBackgroundPriority priority, Double weight)` | managed_helper |
+| `static void Deactivate<T>(string modId)` | managed_helper |
+| `static void Set(string modId, string className, BunnyBackgroundPriority priority, Double weight, bool active, bool menu)` | managed_helper |
+
+## BunnyLoader.Source.BunnySurfaceDrawContext
+
+struct; base: `System.ValueType`.
+
+```csharp
+BunnyColor BaseColor { get; }
+BunnyColor FadedColor { get; }
+Double Alpha { get; }
+Double BackgroundTop { get; }
+Double ScreenX { get; }
+Double ScreenY { get; }
+Double VerticalAdjustment { get; }
+Double WorldSurface { get; }
+int PushTop { get; }
+int ScreenWidth { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `void Draw(int textureSlot, BunnyVector2 position, BunnyColor color, Nullable<BunnyRectangle> source, float rotation, BunnyVector2 origin, float scale, int effects, float layerDepth)` | managed_helper |
 
 ## BunnyLoader.Source.BunnyTile
 
@@ -1748,6 +2058,69 @@ enum; base: `System.Enum`.
 
 Values: Single, Style2x1.
 
+## BunnyLoader.Source.BunnyTimeRateValues
+
+struct; base: `System.ValueType`.
+
+```csharp
+BunnyTimeRateValues(Double time, Double tiles, Double events)
+```
+
+## BunnyLoader.Source.BunnyTooltipLine
+
+class; base: `System.Object`.
+
+```csharp
+BunnyTooltipLine(string name, string text)
+bool Visible { get; set; }
+string Name { get; set; }
+string OverrideColor { get; set; }
+string Text { get; set; }
+```
+
+## BunnyLoader.Source.BunnyTooltipPlan
+
+class; base: `System.Object`.
+
+```csharp
+BunnyTooltipPlan()
+Dictionary<string, BunnyDrawableTooltipLine> Draw { get; }
+List<BunnyTooltipLine> Lines { get; }
+```
+
+## BunnyLoader.Source.BunnyUndergroundBackgroundStyle
+
+abstract class; base: `BunnyLoader.Source.BunnyHookModule`.
+
+```csharp
+int Slot { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `string DiagnosticStatus()` | managed_owned_registration |
+| `void FillTextureArray(Span<int> textureSlots)` | worker_sync_background_slots |
+| `void Load(BunnyHookScope hooks)` | managed_owned_registration |
+| `void SetStaticDefaults()` | managed_owned_registration |
+| `void Unload()` | managed_owned_registration |
+
+## BunnyLoader.Source.BunnyUndergroundBackgrounds
+
+abstract class; base: `System.Object`.
+
+```csharp
+int VanillaCount { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `static BunnyUndergroundBackgroundStyle Get(int slot)` | native_shared_background_registry |
+| `static int GetSlot(string modId, string className)` | native_shared_background_registry |
+| `static int GetSlot<T>(string modId)` | native_shared_background_registry |
+| `static void Activate<T>(string modId, BunnyBackgroundPriority priority, Double weight)` | native_shared_background_registry |
+| `static void Deactivate<T>(string modId)` | native_shared_background_registry |
+| `static void Set(string modId, string className, BunnyBackgroundPriority priority, Double weight, bool active)` | native_shared_background_registry |
+
 ## BunnyLoader.Source.BunnyUniversalHookDispatcher
 
 abstract class; base: `System.Object`.
@@ -1759,9 +2132,18 @@ string LastError { get; }
 | Method | Execution |
 | --- | --- |
 | `static bool Unload(string id)` | experimental_worker_sync_void0 |
+| `static int PauseWorld()` | experimental_worker_sync_void0 |
 | `static int Register(string id, string path)` | experimental_worker_sync_void0 |
 | `static string GetStatusSnapshot(string id)` | experimental_worker_sync_void0 |
 | `static void UnloadAll()` | experimental_worker_sync_void0 |
+
+## BunnyLoader.Source.BunnyUsageException
+
+class; base: `System.Exception`.
+
+```csharp
+BunnyUsageException(string message)
+```
 
 ## BunnyLoader.Source.BunnyUseContext
 
@@ -1988,6 +2370,23 @@ float B { get; }
 float G { get; }
 float R { get; }
 ```
+
+## BunnyLoader.Source.BunnyWorldUpdateLoader
+
+abstract class; base: `BunnyLoader.Source.BunnyHookModule`.
+
+```csharp
+Int64 CallbackCount { get; }
+Int64 ErrorCount { get; }
+bool IsRegistered { get; }
+string LastError { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `string DiagnosticStatus()` | managed_helper |
+| `void Load(BunnyHookScope hooks)` | managed_helper |
+| `void Unload()` | managed_helper |
 
 ## BunnyLoader.Source.PrefixCategory
 

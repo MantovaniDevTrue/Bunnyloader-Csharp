@@ -38,6 +38,8 @@ public struct BunnyProjectileAiState
 
 public abstract class BunnyProjectile
 {
+    /// <summary>UID real do pacote, atribuído pelo dispatcher antes dos defaults e callbacks.</summary>
+    public string ModId { get; internal set; } = "";
     public BunnyNativeDefaults NativeDefaults { get; } = new();
     public string NativeDefaultsDefinition => NativeDefaults.Definition;
     public string DisplayName { get; set; } = "";
@@ -278,6 +280,8 @@ public readonly struct BunnyHurtInfo
 
 public abstract class BunnyNPC
 {
+    /// <summary>UID real do pacote; use-o para resolver recursos próprios sem IDs fixos.</summary>
+    public string ModId { get; internal set; } = "";
     public string DisplayName { get; set; } = "";
     public string Texture { get; set; } = "";
     public int Width { get; set; } = 32;

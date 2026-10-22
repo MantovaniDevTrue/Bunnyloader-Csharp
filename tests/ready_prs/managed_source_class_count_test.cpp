@@ -9,7 +9,7 @@
 
 int main(int argc, char** argv) {
     using namespace bl::csharp;
-    assert(argc == 2);
+    assert(argc == 2 || argc == 3);
     SourceModStatus mod;
     mod.id = "full-example";
     std::vector<ParsedSourceType> types;
@@ -40,25 +40,39 @@ int main(int argc, char** argv) {
         else if (base == "BunnyPrefix") ++mod.prefixes;
         else if (base == "BunnyRarity") ++mod.rarities;
         else if (base == "BunnyScreenEffect") ++mod.screenEffects;
+        else if (base == "BunnyBackgroundTexture") ++mod.backgroundTextures;
         else if (base == "BunnyCommand") ++mod.commands;
         else {
             std::cerr << "Unrecognized content base: " << base << '\n';
             return 1;
         }
     }
-    assert(types.size() == 71);
+    assert(types.size() == 76);
     assert(mod.dusts == 1);
     assert(mod.walls == 1);
     assert(mod.rarities == 2);
     assert(mod.localizationModules == 1);
-    assert(mod.commands == 3);
-    assert(expectedManagedSourceTypes(mod) == 72);
+    assert(mod.commands == 6);
+    assert(expectedManagedSourceTypes(mod) == 77);
     const std::string status =
         "state=finished\nmodId=full-example\nphase=compile-verified\n"
-        "assemblyReady=1\nexecutedTypes=72\n";
+        "assemblyReady=1\nexecutedTypes=77\n";
     assert(managedSourceCompileFinished(status, mod.id, mod));
+    if (argc == 3) {
+        std::ifstream inventory(argv[2]);
+        assert(inventory.good());
+        std::string managed((std::istreambuf_iterator<char>(inventory)),{});
+        const std::string actual = "state=finished\nmodId=full-example\nphase=compile-verified\nassemblyReady=1\n" + managed;
+        assert(managedSourceCompileFinished(actual,mod.id,mod));
+        assert(verifiedHookModuleCount(actual)>0);
+    }
+    SourceModStatus pure;
+    const std::string moduleStatus="state=finished\nmodId=pure\nphase=compile-verified\nassemblyReady=1\nexecutedTypes=1\nhookModules=1\n";
+    assert(managedSourceCompileFinished(moduleStatus,"pure",pure));
+    assert(!managedSourceCompileFinished(moduleStatus+"hookModules=1\n","pure",pure));
+    assert(!managedSourceCompileFinished("state=finished\nmodId=pure\nphase=compile-verified\nassemblyReady=1\nexecutedTypes=0\n","pure",pure));
     --mod.dusts;
     assert(!managedSourceCompileFinished(status, mod.id, mod));
-    std::cout << "FULL_EXAMPLE_NATIVE_MANAGED_COUNT=PASS expected=72"
-              << " rarities=2 dust=1 wall=1 localization=1 commands=3\n";
+    std::cout << "FULL_EXAMPLE_NATIVE_MANAGED_COUNT=PASS expected=77"
+              << " rarities=2 dust=1 wall=1 localization=1 commands=6 backgrounds=1\n";
 }

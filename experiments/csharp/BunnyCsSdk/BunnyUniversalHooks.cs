@@ -86,14 +86,37 @@ public sealed class BunnyMethodHook : IDisposable
 
 public sealed class BunnyHookScope : IDisposable
 {
+    private static readonly object transferGate=new();
     private readonly object gate = new();
     private readonly List<BunnyMethodHook> handles = new();
     private bool disposed;
     private BunnyNativeScope? native;
+    internal static void Transfer(BunnyMethodHook handle,BunnyHookScope from,BunnyHookScope to)
+    {
+        // A shared loader changes scope ownership without uninstalling/reinstalling
+        // its native stage. Teardown has no permission to install new hooks.
+        lock(transferGate)lock(from.gate)lock(to.gate) {
+            if(to.disposed)throw new ObjectDisposedException(nameof(BunnyHookScope));
+            if(handle.IsDisposed || !from.handles.Remove(handle))throw new InvalidOperationException("Cannot transfer an unowned/disposed hook");
+            to.handles.Add(handle);
+        }
+    }
     public BunnyNativeScope Native
     {
         get { lock(gate) { if(disposed)throw new ObjectDisposedException(nameof(BunnyHookScope));return native??=new BunnyNativeScope(); } }
     }
+    /// <summary>Estágio interno ARM64 do Terraria; nunca usa o motor JavaScript.</summary>
+    public BunnyMethodHook HookSystemStage(string stageName, BunnyVoidHook callback)
+    {
+        lock (gate)
+        {
+            if (disposed) throw new ObjectDisposedException(nameof(BunnyHookScope));
+            BunnyMethodHook handle = BunnyHooks.RegisterSystemStage(stageName, callback);
+            handles.Add(handle);
+            return handle;
+        }
+    }
+
     public BunnyMethodHook HookVoid(string type, string method, BunnyVoidHook callback, bool isStatic = false)
     {
         lock (gate)
@@ -190,6 +213,8 @@ public sealed class BunnyHookScope : IDisposable
 
 public abstract class BunnyHookModule
 {
+    /// <summary>Owning mod identity supplied by the source runtime, independent of the class name.</summary>
+    public string ModId { get; internal set; } = "";
     public abstract void Load(BunnyHookScope hooks);
     public virtual void Unload() { }
     public virtual string DiagnosticStatus() => "";
@@ -264,6 +289,37 @@ public static class BunnyHooks
         if (scope is null) throw new ArgumentNullException(nameof(scope));
         return scope.HookVoidInt32Triple(type, method, callback, isStatic);
     }
+    internal static BunnyMethodHook RegisterSystemStage(string stageName, BunnyVoidHook callback)
+    {
+        if (string.IsNullOrWhiteSpace(stageName) || stageName.Length > 64 ||
+            stageName.IndexOf('\0') >= 0)
+            throw new ArgumentException("Estágio nativo inválido", nameof(stageName));
+        if (callback is null) throw new ArgumentNullException(nameof(callback));
+        lock (RegistrationLock)
+        {
+            int slot = -1;
+            for (int i = 0; i < Slots.Length; i++)
+                if (Slots[i] is null || Slots[i]!.IsDisposed) { slot = i; break; }
+            if (slot < 0) throw new InvalidOperationException("Limite de 64 hooks ativos");
+            var handle = new BunnyMethodHook(callback);
+            Volatile.Write(ref Slots[slot], handle);
+            try
+            {
+                int native = NativeInstallSystemStage(stageName, slot);
+                if (native < 0)
+                    throw new NotSupportedException("Estágio nativo " + stageName +
+                        " recusado pelo Terraria (codigo " + native + ")");
+                handle.NativeHandle = native;
+                return handle;
+            }
+            catch
+            {
+                handle.Dispose();
+                throw;
+            }
+        }
+    }
+
     internal static BunnyMethodHook Register(string type, string method, BunnyVoidHook callback, bool isStatic)
     {
         if (string.IsNullOrEmpty(type) || !type.StartsWith("Terraria.", StringComparison.Ordinal) || type.Length > 256 || type.IndexOf('\0') >= 0)
@@ -540,6 +596,9 @@ public static class BunnyHooks
 
     [DllImport("bunny", EntryPoint = "bunny_universal_hook_stat", CallingConvention = CallingConvention.Cdecl)]
     private static extern long NativeStat(int key);
+    [DllImport("bunny", EntryPoint = "bunny_universal_hook_install_stage", CallingConvention = CallingConvention.Cdecl)]
+    internal static extern int NativeInstallSystemStage(
+        [MarshalAs(UnmanagedType.LPUTF8Str)] string name, int slot);
     [DllImport("bunny", EntryPoint = "bunny_universal_hook_install", CallingConvention = CallingConvention.Cdecl)]
     private static extern int NativeInstall([MarshalAs(UnmanagedType.LPUTF8Str)] string type,
         [MarshalAs(UnmanagedType.LPUTF8Str)] string method, int slot, int isStatic);
@@ -583,7 +642,10 @@ public static class BunnyUniversalHookDispatcher
         public string Path = "";
         public CollectibleModContext? LoadContext;
         public Assembly? ModAssembly;
-        public readonly BunnyHookScope Scope = new();
+        public BunnyHookScope Scope = new();
+        public readonly BunnyHookScope RenderScope = new();
+        public CollectibleModContext? RenderLoadContext;
+        public bool WorldPaused;
         public readonly List<BunnyHookModule> Modules = new();
     }
     private static readonly List<Context> Contexts = new();
@@ -593,33 +655,45 @@ public static class BunnyUniversalHookDispatcher
     {
         if (string.IsNullOrWhiteSpace(id) || string.IsNullOrWhiteSpace(path)) return -1;
         foreach (Context existing in Contexts)
-            if (existing.Id == id) return existing.Path == path ? existing.Modules.Count : -1;
+            if (existing.Id == id) {
+                if(existing.Path!=path)return -1;
+                if(!existing.WorldPaused)return existing.Modules.Count;
+                try { existing.WorldPaused=false;LoadModules(existing,true);return existing.Modules.Count; }
+                catch(Exception error) { LastError=id+": world resume: "+error;CloseWorld(existing);return -1; }
+            }
         if (Contexts.Count >= 16) return -1;
         var context = new Context { Id = id, Path = path };
         try
         {
-            var loadContext = new CollectibleModContext(id);
-            context.LoadContext = loadContext;
-            using var bytes = new MemoryStream(File.ReadAllBytes(path), writable: false);
-            Assembly loaded = loadContext.LoadFromStream(bytes);
-            context.ModAssembly = loaded;
-            Type[] types = loaded.GetTypes().Where(type =>
-                !type.IsAbstract && typeof(BunnyHookModule).IsAssignableFrom(type))
-                .OrderBy(type => type.FullName, StringComparer.Ordinal).ToArray();
-            foreach (Type type in types)
-            {
-                var module = (BunnyHookModule)Activator.CreateInstance(type)!;
-                context.Modules.Add(module);
-                module.Load(context.Scope);
-            }
+            LoadModules(context,false);
             Contexts.Add(context);
             return context.Modules.Count;
         }
         catch (Exception error)
         {
-            LastError = id + ": " + error.GetBaseException().Message;
+            LastError = id + ": " + error;
             Close(context);
             return -1;
+        }
+    }
+    private static bool SessionBackground(Type type)=>typeof(BunnySurfaceBackgroundStyle).IsAssignableFrom(type);
+    private static void LoadModules(Context context,bool worldOnly)
+    {
+        // Keep render styles alive in their original assembly context. World
+        // modules use a fresh collectible context on re-entry, preserving their
+        // previous instance/static reset behavior without resetting menu frames.
+        var loadContext=new CollectibleModContext(context.Id);
+        context.LoadContext=loadContext;
+        using var bytes=new MemoryStream(File.ReadAllBytes(context.Path),writable:false);
+        Assembly loaded=loadContext.LoadFromStream(bytes);context.ModAssembly=loaded;
+        foreach(Type type in loaded.GetTypes().Where(type=>!type.IsAbstract && typeof(BunnyHookModule).IsAssignableFrom(type))
+            .OrderBy(type=>type.FullName,StringComparer.Ordinal)) {
+            bool session=SessionBackground(type);
+            if(worldOnly && session)continue;
+            var module=(BunnyHookModule)Activator.CreateInstance(type)!;module.ModId=context.Id;
+            context.Modules.Add(module);
+            if(session)context.RenderLoadContext=loadContext;
+            module.Load(session?context.RenderScope:context.Scope);
         }
     }
     public static string GetStatusSnapshot(string id)
@@ -638,17 +712,46 @@ public static class BunnyUniversalHookDispatcher
         return statuses.Count == 0 ? "modulos=" + context.Modules.Count : string.Join(" | ", statuses);
     }
 
-    private static void Close(Context context)
+    private static void CloseWorld(Context context)
     {
+        if(context.WorldPaused)return;
+        try { BunnyWorldUpdateRegistry.DetachScope(context.Scope); }
+        catch (Exception error) { LastError = context.Id + ": world teardown: " + error.Message; }
+        try { BunnyUndergroundRegistry.DetachScope(context.Scope); }
+        catch (Exception error) { LastError = context.Id + ": underground teardown: " + error; }
         context.Scope.Dispose();
-        foreach (BunnyHookModule module in context.Modules)
+        foreach (BunnyHookModule module in context.Modules.Where(module=>!SessionBackground(module.GetType())).ToArray()) {
             try { module.Unload(); }
-            catch (Exception error) { LastError = context.Id + ": " + error.Message; }
-        context.Modules.Clear();
+            catch (Exception error) { LastError = context.Id + ": " + error; }
+            context.Modules.Remove(module);
+        }
+        context.Scope=new BunnyHookScope();context.WorldPaused=true;
         context.ModAssembly = null;
         var managed = context.LoadContext;
         context.LoadContext = null;
-        managed?.Unload();
+        if(!ReferenceEquals(managed,context.RenderLoadContext))managed?.Unload();
+    }
+    /// <summary>Host lifecycle endpoint: unload gameplay modules at a world boundary while surface menu callbacks remain live.</summary>
+    public static int PauseWorld()
+    {
+        int retained=0;
+        foreach(Context context in Contexts.ToArray()) {
+            CloseWorld(context);
+            if(context.Modules.Count==0){Contexts.Remove(context);Close(context);}
+            else retained+=context.Modules.Count;
+        }
+        return retained;
+    }
+    private static void Close(Context context)
+    {
+        CloseWorld(context);
+        try { BunnySurfaceRegistry.DetachScope(context.RenderScope); }
+        catch(Exception error) { LastError=context.Id+": surface teardown: "+error; }
+        context.RenderScope.Dispose();context.Scope.Dispose();
+        foreach(BunnyHookModule module in context.Modules)
+            try { module.Unload(); }catch(Exception error) { LastError=context.Id+": "+error; }
+        context.Modules.Clear();
+        var render=context.RenderLoadContext;context.RenderLoadContext=null;render?.Unload();
     }
     public static bool Unload(string id)
     {

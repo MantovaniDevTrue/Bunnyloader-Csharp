@@ -1,0 +1,1119 @@
+{
+  "schema": 1,
+  "targetCount": 15,
+  "apkPolicy": "Forbidden until every listed original contract is implemented, examples/assets are present and mandatory CI passes. Android validation must be recorded separately.",
+  "base": "5a18a67899c1f6ee88a34097be3adb6e7877edd4",
+  "branch": "feat/csharp-loader-completion-15-20261021",
+  "referenceArchive": {
+    "name": "examplemod.bl",
+    "version": "1.9.0",
+    "javascriptFiles": 206,
+    "sha256": "1a8986992aac4744e4d1c925e0cf582b58d113d48c26ff3d3bb4726c321e521e"
+  },
+  "loaders": [
+    {
+      "loader": "BackgroundTextureLoader",
+      "reference": "app/src/main/cpp/script/js/mod/Loaders/BackgroundTextureLoader.js",
+      "referenceSha256": "492850e03518e1a0f0836eb253d4585dfade99fba57cae455d0f20914b6e2599",
+      "implementation": "implemented",
+      "android": "not-tested",
+      "publicApi": [
+        "experiments/csharp/BunnyCsSdk/BunnyBackgroundTexture.cs"
+      ],
+      "nativeBridge": [
+        "app/src/main/cpp/content/backgrounds/BackgroundTextures.cpp"
+      ],
+      "example": [
+        "samples/ExampleModCSharp/Playable/content/Common/Backgrounds/ExampleBackgroundTexture.cs",
+        "samples/ExampleModCSharp/Playable/content/Common/Commands/ExampleBackgroundCommand.cs"
+      ],
+      "contracts": [
+        {
+          "name": "VanillaCount",
+          "implemented": true,
+          "tests": [
+            "tests/backgrounds/native_background_test.cpp",
+            "tests/backgrounds/Program.cs",
+            "tests/backgrounds/shared_background_js_test.cjs"
+          ]
+        },
+        {
+          "name": "TotalCount",
+          "implemented": true,
+          "tests": [
+            "tests/backgrounds/native_background_test.cpp",
+            "tests/backgrounds/Program.cs",
+            "tests/backgrounds/shared_background_js_test.cjs"
+          ]
+        },
+        {
+          "name": "Autoload",
+          "implemented": true,
+          "tests": [
+            "tests/backgrounds/native_background_test.cpp",
+            "tests/backgrounds/Program.cs",
+            "tests/backgrounds/shared_background_js_test.cjs"
+          ]
+        },
+        {
+          "name": "AddBackgroundTexture",
+          "implemented": true,
+          "tests": [
+            "tests/backgrounds/native_background_test.cpp",
+            "tests/backgrounds/Program.cs",
+            "tests/backgrounds/shared_background_js_test.cjs"
+          ]
+        },
+        {
+          "name": "GetBackgroundSlot",
+          "implemented": true,
+          "tests": [
+            "tests/backgrounds/native_background_test.cpp",
+            "tests/backgrounds/Program.cs",
+            "tests/backgrounds/shared_background_js_test.cjs"
+          ]
+        },
+        {
+          "name": "TryGetBackgroundSlot",
+          "implemented": true,
+          "tests": [
+            "tests/backgrounds/native_background_test.cpp",
+            "tests/backgrounds/Program.cs",
+            "tests/backgrounds/shared_background_js_test.cjs"
+          ]
+        }
+      ],
+      "missing": []
+    },
+    {
+      "loader": "SurfaceBackgroundLoader",
+      "reference": "app/src/main/cpp/script/js/mod/Loaders/SurfaceBackgroundLoader.js",
+      "referenceSha256": "4538e3d819e0d0c6a0b5be387fd0d2b10b306e8d44c09c9ef71b1a56c620c2a0",
+      "implementation": "implemented",
+      "android": "not-tested",
+      "publicApi": [
+        "experiments/csharp/BunnyCsSdk/BunnySurfaceBackgroundStyle.cs",
+        "experiments/csharp/BunnyCsSdk/BunnySurfaceDrawContext.cs"
+      ],
+      "nativeBridge": [
+        "app/src/main/cpp/content/backgrounds/SurfaceGeometry.cpp",
+        "app/src/main/cpp/content/backgrounds/SurfaceTables.cpp",
+        "app/src/main/cpp/content/backgrounds/SurfaceSpriteBatch.cpp",
+        "app/src/main/cpp/il2cpp/NullableLayout.h",
+        "app/src/main/cpp/il2cpp/CheckedFieldWrite.h",
+        "app/src/main/cpp/content/backgrounds/SurfaceBackgrounds.cpp",
+        "app/src/main/cpp/content/backgrounds/SurfaceProperties.h",
+        "app/src/main/cpp/experiments/csharp/ManagedSurfaceBackgrounds.cpp",
+        "app/src/main/cpp/script/api/SurfaceBackgrounds.cpp"
+      ],
+      "example": [
+        "samples/ExampleModCSharp/Playable/content/Content/Biomes/ExampleSurfaceBackgroundStyle.cs",
+        "samples/ExampleModCSharp/Playable/content/Common/Commands/ExampleSurfaceBackgroundCommand.cs"
+      ],
+      "contracts": [
+        {
+          "name": "VanillaCount",
+          "implemented": true,
+          "tests": [
+            "tests/surface_backgrounds/native_surface_test.cpp",
+            "tests/surface_backgrounds/native_surface_loader_test.cpp",
+            "tests/surface_backgrounds/mailbox_surface_test.cpp",
+            "tests/surface_backgrounds/Program.cs",
+            "tests/surface_backgrounds/quickjs_surface_test.cpp",
+            "tests/surface_backgrounds/MixedProgram.cs",
+            "tests/surface_backgrounds/original_surface_comparison.cjs"
+          ]
+        },
+        {
+          "name": "Add",
+          "implemented": true,
+          "tests": [
+            "tests/surface_backgrounds/native_surface_test.cpp",
+            "tests/surface_backgrounds/native_surface_loader_test.cpp",
+            "tests/surface_backgrounds/mailbox_surface_test.cpp",
+            "tests/surface_backgrounds/Program.cs",
+            "tests/surface_backgrounds/quickjs_surface_test.cpp",
+            "tests/surface_backgrounds/MixedProgram.cs",
+            "tests/surface_backgrounds/original_surface_comparison.cjs",
+            "tests/surface_backgrounds/SessionProgram.cs"
+          ]
+        },
+        {
+          "name": "Get",
+          "implemented": true,
+          "tests": [
+            "tests/surface_backgrounds/native_surface_test.cpp",
+            "tests/surface_backgrounds/native_surface_loader_test.cpp",
+            "tests/surface_backgrounds/mailbox_surface_test.cpp",
+            "tests/surface_backgrounds/Program.cs",
+            "tests/surface_backgrounds/quickjs_surface_test.cpp",
+            "tests/surface_backgrounds/MixedProgram.cs",
+            "tests/surface_backgrounds/original_surface_comparison.cjs",
+            "tests/surface_backgrounds/SessionProgram.cs"
+          ]
+        },
+        {
+          "name": "Wake",
+          "implemented": true,
+          "tests": [
+            "tests/surface_backgrounds/native_surface_test.cpp",
+            "tests/surface_backgrounds/native_surface_loader_test.cpp",
+            "tests/surface_backgrounds/mailbox_surface_test.cpp",
+            "tests/surface_backgrounds/Program.cs",
+            "tests/surface_backgrounds/quickjs_surface_test.cpp",
+            "tests/surface_backgrounds/MixedProgram.cs",
+            "tests/surface_backgrounds/original_surface_comparison.cjs"
+          ]
+        },
+        {
+          "name": "Wake/Sleep while vanilla/mod fades are active",
+          "implemented": true,
+          "tests": [
+            "tests/surface_backgrounds/native_surface_test.cpp",
+            "tests/surface_backgrounds/native_surface_loader_test.cpp",
+            "tests/surface_backgrounds/mailbox_surface_test.cpp",
+            "tests/surface_backgrounds/Program.cs",
+            "tests/surface_backgrounds/quickjs_surface_test.cpp",
+            "tests/surface_backgrounds/MixedProgram.cs",
+            "tests/surface_backgrounds/original_surface_comparison.cjs"
+          ]
+        },
+        {
+          "name": "Atomic growth and recreated LocalUserGameState arrays",
+          "implemented": true,
+          "tests": [
+            "tests/surface_backgrounds/native_surface_test.cpp",
+            "tests/surface_backgrounds/original_surface_comparison.cjs",
+            "tests/surface_backgrounds/native_surface_loader_test.cpp",
+            "tests/surface_backgrounds/mailbox_surface_test.cpp",
+            "tests/surface_backgrounds/Program.cs",
+            "tests/surface_backgrounds/quickjs_surface_test.cpp",
+            "tests/surface_backgrounds/MixedProgram.cs"
+          ]
+        },
+        {
+          "name": "Vanilla forest/medium/high and menu background arbitration",
+          "implemented": true,
+          "tests": [
+            "tests/surface_backgrounds/native_surface_test.cpp",
+            "tests/surface_backgrounds/original_surface_comparison.cjs",
+            "tests/surface_backgrounds/native_surface_loader_test.cpp",
+            "tests/surface_backgrounds/mailbox_surface_test.cpp",
+            "tests/surface_backgrounds/Program.cs",
+            "tests/surface_backgrounds/quickjs_surface_test.cpp",
+            "tests/surface_backgrounds/MixedProgram.cs",
+            "tests/surface_backgrounds/SessionProgram.cs"
+          ]
+        },
+        {
+          "name": "Nullable BackLayer overrides and native far alpha routine",
+          "implemented": true,
+          "tests": [
+            "tests/surface_backgrounds/native_surface_test.cpp",
+            "tests/surface_backgrounds/original_surface_comparison.cjs",
+            "tests/surface_backgrounds/native_surface_loader_test.cpp",
+            "tests/surface_backgrounds/mailbox_surface_test.cpp",
+            "tests/surface_backgrounds/Program.cs",
+            "tests/surface_backgrounds/quickjs_surface_test.cpp",
+            "tests/surface_backgrounds/MixedProgram.cs"
+          ]
+        },
+        {
+          "name": "Managed ModifyFarFades after original FrontLayer",
+          "implemented": true,
+          "tests": [
+            "tests/surface_backgrounds/native_surface_test.cpp",
+            "tests/surface_backgrounds/original_surface_comparison.cjs",
+            "tests/surface_backgrounds/native_surface_loader_test.cpp",
+            "tests/surface_backgrounds/mailbox_surface_test.cpp",
+            "tests/surface_backgrounds/Program.cs",
+            "tests/surface_backgrounds/quickjs_surface_test.cpp",
+            "tests/surface_backgrounds/MixedProgram.cs"
+          ]
+        },
+        {
+          "name": "Far/Middle render placement using native geometry and alpha",
+          "implemented": true,
+          "tests": [
+            "tests/surface_backgrounds/native_surface_test.cpp",
+            "tests/surface_backgrounds/original_surface_comparison.cjs",
+            "tests/surface_backgrounds/native_surface_loader_test.cpp",
+            "tests/surface_backgrounds/mailbox_surface_test.cpp",
+            "tests/surface_backgrounds/Program.cs",
+            "tests/surface_backgrounds/quickjs_surface_test.cpp",
+            "tests/surface_backgrounds/MixedProgram.cs"
+          ]
+        },
+        {
+          "name": "PreDrawCloseBackground suppression and custom drawing",
+          "implemented": true,
+          "tests": [
+            "tests/surface_backgrounds/native_surface_test.cpp",
+            "tests/surface_backgrounds/native_surface_loader_test.cpp",
+            "tests/surface_backgrounds/mailbox_surface_test.cpp",
+            "tests/surface_backgrounds/Program.cs",
+            "tests/surface_backgrounds/quickjs_surface_test.cpp",
+            "tests/surface_backgrounds/MixedProgram.cs",
+            "tests/surface_backgrounds/original_surface_comparison.cjs"
+          ]
+        },
+        {
+          "name": "Close scale/parallax/a/b, SkyManager depth and surface clipping",
+          "implemented": true,
+          "tests": [
+            "tests/surface_backgrounds/native_surface_test.cpp",
+            "tests/surface_backgrounds/original_surface_comparison.cjs",
+            "tests/surface_backgrounds/native_surface_loader_test.cpp",
+            "tests/surface_backgrounds/mailbox_surface_test.cpp",
+            "tests/surface_backgrounds/Program.cs",
+            "tests/surface_backgrounds/quickjs_surface_test.cpp",
+            "tests/surface_backgrounds/MixedProgram.cs"
+          ]
+        },
+        {
+          "name": "Original four-frame Middle animation and full mod path lookup",
+          "implemented": true,
+          "tests": [
+            "tests/surface_backgrounds/native_surface_test.cpp",
+            "tests/surface_backgrounds/original_surface_comparison.cjs",
+            "tests/surface_backgrounds/native_surface_loader_test.cpp",
+            "tests/surface_backgrounds/mailbox_surface_test.cpp",
+            "tests/surface_backgrounds/Program.cs",
+            "tests/surface_backgrounds/quickjs_surface_test.cpp",
+            "tests/surface_backgrounds/MixedProgram.cs"
+          ]
+        },
+        {
+          "name": "Safe current/previous texture ownership and dependency failures",
+          "implemented": true,
+          "tests": [
+            "tests/surface_backgrounds/native_surface_test.cpp",
+            "tests/surface_backgrounds/native_surface_loader_test.cpp",
+            "tests/surface_backgrounds/mailbox_surface_test.cpp",
+            "tests/surface_backgrounds/Program.cs",
+            "tests/surface_backgrounds/quickjs_surface_test.cpp",
+            "tests/surface_backgrounds/MixedProgram.cs",
+            "tests/surface_backgrounds/original_surface_comparison.cjs"
+          ]
+        }
+      ],
+      "missing": [],
+      "auditDocument": "docs/csharp-surface-backgrounds.md",
+      "infrastructure": {
+        "status": "shared-native-service-managed-worker-sdk-and-quickjs-adapter-implemented",
+        "documentation": "docs/csharp-surface-backgrounds.md",
+        "tests": [
+          "tests/surface_backgrounds/native_surface_test.cpp",
+          "tests/surface_backgrounds/native_surface_loader_test.cpp",
+          "tests/surface_backgrounds/mailbox_surface_test.cpp",
+          "tests/surface_backgrounds/Program.cs",
+          "tests/surface_backgrounds/quickjs_surface_test.cpp",
+          "tests/surface_backgrounds/MixedProgram.cs",
+          "tests/surface_backgrounds/original_surface_comparison.cjs",
+          "tests/surface_backgrounds/SessionProgram.cs"
+        ],
+        "android": "not-tested",
+        "publicApiExposed": true
+      },
+      "automatedValidation": {
+        "commit": "32d6ffa2f3a513bec5aadae0a86b7f0ea33c70df",
+        "runId": 39769307079,
+        "result": "passed",
+        "scope": "All eleven workflows, production native detours/protocol, real CSharp worker and original QuickJS, mixed process, collectible mod host world/menu lifecycle, 65 regressions, ARM64 syntax and complete native library link. No APK or Android execution.",
+        "evidence": "docs/validation/csharp-surface-managed-bridges-2026-10-22.json"
+      }
+    },
+    {
+      "loader": "UndergroundBackgroundLoader",
+      "reference": "app/src/main/cpp/script/js/mod/Loaders/UndergroundBackgroundLoader.js",
+      "referenceSha256": "ee5adbbb735d221655a205af721a413ab27b18283d552b70bfcd0a7a74d195dd",
+      "implementation": "implemented",
+      "android": "not-tested",
+      "publicApi": [
+        "experiments/csharp/BunnyCsSdk/BunnyUndergroundBackgroundStyle.cs"
+      ],
+      "nativeBridge": [
+        "app/src/main/cpp/content/backgrounds/UndergroundBackgrounds.cpp",
+        "app/src/main/cpp/experiments/csharp/ManagedUndergroundBackgrounds.cpp",
+        "app/src/main/cpp/content/backgrounds/BackgroundAssetLifetime.cpp"
+      ],
+      "example": [
+        "samples/ExampleModCSharp/Playable/content/Content/Biomes/ExampleUndergroundBackgroundStyle.cs",
+        "samples/ExampleModCSharp/Playable/content/Common/Commands/ExampleUndergroundBackgroundCommand.cs"
+      ],
+      "contracts": [
+        {
+          "name": "VanillaCount",
+          "implemented": true,
+          "tests": [
+            "tests/underground_backgrounds/native_underground_test.cpp",
+            "tests/underground_backgrounds/Program.cs",
+            "tests/underground_backgrounds/quickjs_underground_test.cpp"
+          ]
+        },
+        {
+          "name": "Add and Get by UID/class with shared JS/CSharp slots",
+          "implemented": true,
+          "tests": [
+            "tests/underground_backgrounds/native_underground_test.cpp",
+            "tests/underground_backgrounds/Program.cs",
+            "tests/underground_backgrounds/quickjs_underground_test.cpp"
+          ]
+        },
+        {
+          "name": "SetStaticDefaults and real managed FillTextureArray",
+          "implemented": true,
+          "tests": [
+            "tests/underground_backgrounds/native_underground_test.cpp",
+            "tests/underground_backgrounds/Program.cs",
+            "tests/underground_backgrounds/quickjs_underground_test.cpp"
+          ]
+        },
+        {
+          "name": "Vanilla picker once and priority/cave selection",
+          "implemented": true,
+          "tests": [
+            "tests/underground_backgrounds/native_underground_test.cpp",
+            "tests/underground_backgrounds/Program.cs",
+            "tests/underground_backgrounds/quickjs_underground_test.cpp"
+          ]
+        },
+        {
+          "name": "Current and previous texture getters; five layers and default hell transition",
+          "implemented": true,
+          "tests": [
+            "tests/underground_backgrounds/native_underground_test.cpp",
+            "tests/underground_backgrounds/Program.cs",
+            "tests/underground_backgrounds/quickjs_underground_test.cpp"
+          ]
+        },
+        {
+          "name": "Once per requested style per draw and repair of rebuilt arrays",
+          "implemented": true,
+          "tests": [
+            "tests/underground_backgrounds/native_underground_test.cpp",
+            "tests/underground_backgrounds/Program.cs",
+            "tests/underground_backgrounds/quickjs_underground_test.cpp"
+          ]
+        },
+        {
+          "name": "Unload, world reset and original fallback",
+          "implemented": true,
+          "tests": [
+            "tests/underground_backgrounds/native_underground_test.cpp",
+            "tests/underground_backgrounds/Program.cs",
+            "tests/underground_backgrounds/quickjs_underground_test.cpp"
+          ]
+        },
+        {
+          "name": "Checked IL2CPP fields/getters, hierarchy, types, sizes, offsets and overload signature",
+          "implemented": true,
+          "tests": [
+            "tests/underground_backgrounds/native_underground_test.cpp"
+          ]
+        },
+        {
+          "name": "Mono worker/render thread mailbox, bounded deadline, stale/duplicate/busy rejection",
+          "implemented": true,
+          "tests": [
+            "tests/underground_backgrounds/mailbox_underground_test.cpp",
+            "tests/underground_backgrounds/Program.cs"
+          ]
+        },
+        {
+          "name": "Transactional GC roots and asset leases through previous-style transition",
+          "implemented": true,
+          "tests": [
+            "tests/underground_backgrounds/native_underground_test.cpp",
+            "tests/backgrounds/native_background_test.cpp"
+          ]
+        },
+        {
+          "name": "Real QuickJS original ExampleMod style and shared provider isolation",
+          "implemented": true,
+          "tests": [
+            "tests/underground_backgrounds/quickjs_underground_test.cpp"
+          ]
+        },
+        {
+          "name": "Actual CSharp example and original JavaScript in the same QuickJS/native host; both unload orders",
+          "implemented": true,
+          "tests": [
+            "tests/underground_backgrounds/mixed_underground_test.cpp",
+            "tests/underground_backgrounds/MixedProgram.cs"
+          ]
+        }
+      ],
+      "missing": [],
+      "originalReferenceSnapshot": "tests/underground_backgrounds/reference/UndergroundBackgroundLoader.js",
+      "validationDocument": "docs/csharp-underground-backgrounds.md",
+      "note": "Full underground style contract; biome activation/music/scene loaders are separate pending targets. QA command explicitly tests only the ExampleMod style. Automated fixtures are not Android validation.",
+      "automatedValidation": {
+        "commit": "46e6d545f8b267e2c7e2bb94ab813f780e277a3f",
+        "runId": 39716948102,
+        "result": "passed",
+        "scope": "All eleven workflows; four combined jobs including real CSharp/original QuickJS, IL2CPP contracts, ARM64 syntax, all seven bridge exports and complete native library link. No APK or Android execution.",
+        "evidence": "docs/validation/csharp-backgrounds-2026-10-22.json"
+      }
+    },
+    {
+      "loader": "WaterStyleLoader",
+      "reference": "app/src/main/cpp/script/js/mod/Loaders/WaterStyleLoader.js",
+      "referenceSha256": "a6d6b854c04f5642f9f05e1b699619de8ece59eeae8e155a429b72b1cc6a790c",
+      "implementation": "pending",
+      "android": "not-tested",
+      "publicApi": [],
+      "nativeBridge": [
+        "app/src/main/cpp/content/tiles/ModWater.cpp",
+        "app/src/main/cpp/content/tiles/WaterAlphaTables.cpp",
+        "app/src/main/cpp/hook/CodePatchTransaction.cpp"
+      ],
+      "example": [],
+      "contracts": [
+        {
+          "name": "TotalCount",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Add",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Get",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Current",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Transactional Liquid/LiquidSlope/LiquidRenderer asset publication and fallbacks",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Recreated LocalUserGameState alpha arrays before native DrawWaters count publication",
+          "implemented": true,
+          "tests": [
+            "tests/water_styles/native_water_count_test.cpp",
+            "tests/water_styles/js_water_install_test.cjs"
+          ]
+        },
+        {
+          "name": "Native DrawWaters two-loop contract and failure without partial patch",
+          "implemented": true,
+          "tests": [
+            "tests/water_styles/native_code_patch_test.cpp",
+            "tests/water_styles/native_water_count_test.cpp"
+          ]
+        },
+        {
+          "name": "Scene priority, fountain, blood moon, vanilla background and menu arbitration",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Visible water waterfall selection and native drawing after original",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Splash dust callback",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Droplet spawn, vanilla Update alias and type restoration",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Both lighting engines, checked Vector3 and .91 multiplier",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "MakeRain temporary style, conditional NewRain variants and restoration",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "NewRainForced custom variants",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Rain texture cache, temporary DrawRain asset and restoration",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Biome hair dye interpolation, alpha and Shimmer exception",
+          "implemented": false,
+          "tests": []
+        }
+      ],
+      "missing": [
+        "Implement every audited callback/engine contract in docs/csharp-water-rendering-audit.md with reusable SDK/native service and both language adapters.",
+        "Port original examples and five water/rain/waterfall PNGs; existing ExampleDroplet PNG/Gore API does not prove vanilla Update alias.",
+        "Real managed/native/QuickJS execution, failures without partial state, source regressions, ARM64 and separate Android QA."
+      ],
+      "auditDocument": "docs/csharp-water-rendering-audit.md",
+      "nativeSafetyDocument": "docs/csharp-water-native-safety.md"
+    },
+    {
+      "loader": "WaterfallStyleLoader",
+      "reference": "app/src/main/cpp/script/js/mod/Loaders/WaterfallStyleLoader.js",
+      "referenceSha256": "cb9243465c3baf8a471019e7f9edf0cc0a5234d3fc8931f6a9e4226552b34c5a",
+      "implementation": "pending",
+      "android": "not-tested",
+      "publicApi": [],
+      "nativeBridge": [],
+      "example": [],
+      "contracts": [
+        {
+          "name": "TotalCount",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Add",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Get",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Light",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Texture publication, fallback and shared ownership",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Nested DrawWaterfall color gate",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Color by-reference SpriteBatch overload and restoration",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "VertexColors by-reference four-corner overload and restoration",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Color by-value SpriteBatch overload",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Visible waterfall lighting: currentMax, type zero, three-tile steps and 24-tile cap",
+          "implemented": false,
+          "tests": []
+        }
+      ],
+      "missing": [
+        "Implement every audited callback/engine contract in docs/csharp-water-rendering-audit.md with reusable SDK/native service and both language adapters.",
+        "Port original examples and five water/rain/waterfall PNGs; existing ExampleDroplet PNG/Gore API does not prove vanilla Update alias.",
+        "Real managed/native/QuickJS execution, failures without partial state, source regressions, ARM64 and separate Android QA."
+      ],
+      "auditDocument": "docs/csharp-water-rendering-audit.md"
+    },
+    {
+      "loader": "MapBackgroundLoader",
+      "reference": "app/src/main/cpp/script/js/mod/Loaders/MapBackgroundLoader.js",
+      "referenceSha256": "88786ea7af6a8d6e9325972ffda234db564b6e330d0fd4747f022a2398652def",
+      "implementation": "pending",
+      "android": "not-tested",
+      "publicApi": [],
+      "nativeBridge": [],
+      "example": [],
+      "contracts": [
+        {
+          "name": "Install",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Texture",
+          "implemented": false,
+          "tests": []
+        }
+      ],
+      "missing": [
+        "Audit full behavior and native dependencies; implement and validate every original contract"
+      ]
+    },
+    {
+      "loader": "SceneEffectLoader",
+      "reference": "app/src/main/cpp/script/js/mod/Loaders/SceneEffectLoader.js",
+      "referenceSha256": "af69f2968036c4620c43673c3dbdb5c29ae671666d05a6a277364561214ac370",
+      "implementation": "pending",
+      "android": "not-tested",
+      "publicApi": [],
+      "nativeBridge": [],
+      "example": [],
+      "contracts": [
+        {
+          "name": "Add",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "KeyOf",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Empty",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "UpdateSceneEffect",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Of",
+          "implemented": false,
+          "tests": []
+        }
+      ],
+      "missing": [
+        "Audit full behavior and native dependencies; implement and validate every original contract"
+      ]
+    },
+    {
+      "loader": "BiomeLoader",
+      "reference": "app/src/main/cpp/script/js/mod/Loaders/BiomeLoader.js",
+      "referenceSha256": "bf4ccc2f9b9b9d736de5fadfe554b545f93a78333c7f2182ab3fd9a6564023f2",
+      "implementation": "pending",
+      "android": "not-tested",
+      "publicApi": [],
+      "nativeBridge": [],
+      "example": [],
+      "contracts": [
+        {
+          "name": "Add",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Install",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "LeaveWorld",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Receive",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Resolve",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "InBiome",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "UpdateBiomes",
+          "implemented": false,
+          "tests": []
+        }
+      ],
+      "missing": [
+        "Audit full behavior and native dependencies; implement and validate every original contract"
+      ]
+    },
+    {
+      "loader": "BiomeShoppingLoader",
+      "reference": "app/src/main/cpp/script/js/mod/Loaders/BiomeShoppingLoader.js",
+      "referenceSha256": "ee6c088bb1e9d08f667e63e65ef56d51f897cd4c1126f335cc28aad8a032bf9a",
+      "implementation": "pending",
+      "android": "not-tested",
+      "publicApi": [],
+      "nativeBridge": [],
+      "example": [],
+      "contracts": [
+        {
+          "name": "Of",
+          "implemented": false,
+          "tests": []
+        }
+      ],
+      "missing": [
+        "Audit full behavior and native dependencies; implement and validate every original contract"
+      ]
+    },
+    {
+      "loader": "BiomeBestiaryLoader",
+      "reference": "app/src/main/cpp/script/js/mod/Loaders/BiomeBestiaryLoader.js",
+      "referenceSha256": "faee17950c8db0ae1ed009076a0b7b328b13f3ec87a729393ff7e9f380956d94",
+      "implementation": "pending",
+      "android": "not-tested",
+      "publicApi": [],
+      "nativeBridge": [],
+      "example": [],
+      "contracts": [
+        {
+          "name": "Of",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Biomes",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Finish",
+          "implemented": false,
+          "tests": []
+        }
+      ],
+      "missing": [
+        "Audit full behavior and native dependencies; implement and validate every original contract"
+      ]
+    },
+    {
+      "loader": "SpawnLoader",
+      "reference": "app/src/main/cpp/script/js/mod/Loaders/SpawnLoader.js",
+      "referenceSha256": "a0e3629f55b3e07dd54de3782d603a79fdc4fa93e7f4248fe5a418c82abf64a5",
+      "implementation": "pending",
+      "android": "not-tested",
+      "publicApi": [],
+      "nativeBridge": [],
+      "example": [],
+      "contracts": [
+        {
+          "name": "InstallPool",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "SpawnNPC",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "InstallFlags",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "InstallRate",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "InstallRange",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "InstallInfo",
+          "implemented": false,
+          "tests": []
+        }
+      ],
+      "missing": [
+        "Audit full behavior and native dependencies; implement and validate every original contract"
+      ]
+    },
+    {
+      "loader": "BossBarLoader",
+      "reference": "app/src/main/cpp/script/js/mod/Loaders/BossBarLoader.js",
+      "referenceSha256": "9a2132989f29d86d4ed031ef7c1d2e08daa177bf278f3e6ba9b152ddb751dc9b",
+      "implementation": "pending",
+      "android": "not-tested",
+      "publicApi": [],
+      "nativeBridge": [],
+      "example": [],
+      "contracts": [
+        {
+          "name": "Add",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "WantGlobals",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Of",
+          "implemented": false,
+          "tests": []
+        }
+      ],
+      "missing": [
+        "Audit full behavior and native dependencies; implement and validate every original contract"
+      ]
+    },
+    {
+      "loader": "DamageClassLoader",
+      "reference": "app/src/main/cpp/script/js/mod/Loaders/DamageClassLoader.js",
+      "referenceSha256": "14449eeeabe7c325884c0d4ca6251806416f97d51bcd2e19452f7aac26e55996",
+      "implementation": "pending",
+      "android": "not-tested",
+      "publicApi": [],
+      "nativeBridge": [],
+      "example": [],
+      "contracts": [
+        {
+          "name": "Vanilla",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "DamageClassCount",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "GetDamageClass",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "NameOf",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Add",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Resolve",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "IsHooked",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "CountsAs",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Defaulting",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "ItemClass",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "SetItemClass",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "ProjectileClass",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "SetProjectileClass",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Data",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Stats",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Total",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Activate",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "UsesCrit",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Install",
+          "implemented": false,
+          "tests": []
+        }
+      ],
+      "missing": [
+        "Audit full behavior and native dependencies; implement and validate every original contract"
+      ]
+    },
+    {
+      "loader": "GlobalLootLoader",
+      "reference": "app/src/main/cpp/script/js/mod/Loaders/GlobalLootLoader.js",
+      "referenceSha256": "599936db516b6291a59aaeaa63b9d5ba7db3b31197d7af5f23ad2ef244f8e60b",
+      "implementation": "pending",
+      "android": "not-tested",
+      "publicApi": [],
+      "nativeBridge": [],
+      "example": [],
+      "contracts": [
+        {
+          "name": "Schedule",
+          "implemented": false,
+          "tests": []
+        }
+      ],
+      "missing": [
+        "Audit full behavior and native dependencies; implement and validate every original contract"
+      ]
+    },
+    {
+      "loader": "BestiaryLoader",
+      "reference": "app/src/main/cpp/script/js/mod/Loaders/BestiaryLoader.js",
+      "referenceSha256": "062cf707ce6002ac6b45b40b11142740890d7adfeb9fa8e6d68496825f7d3bdb",
+      "implementation": "pending",
+      "android": "not-tested",
+      "publicApi": [],
+      "nativeBridge": [],
+      "example": [],
+      "contracts": [
+        {
+          "name": "Register",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Finish",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "RefreshDrops",
+          "implemented": false,
+          "tests": []
+        }
+      ],
+      "missing": [
+        "Audit full behavior and native dependencies; implement and validate every original contract"
+      ]
+    }
+  ],
+  "existingWorkPreserved": [
+    {
+      "pr": 98,
+      "scope": "Tree/Tile/Wall/TileEntity/GlobalTile"
+    },
+    {
+      "pr": 120,
+      "scope": "Keybind"
+    },
+    {
+      "pr": 121,
+      "scope": "Gore"
+    },
+    {
+      "pr": 122,
+      "scope": "WorldSave"
+    },
+    {
+      "pr": 125,
+      "scope": "Cloud"
+    },
+    {
+      "pr": 126,
+      "scope": "SystemUpdate"
+    }
+  ],
+  "additionalIntegrations": [
+    {
+      "loader": "SystemUpdateLoader",
+      "pullRequest": 126,
+      "implementation": "implemented",
+      "android": "not-tested",
+      "publicApi": [
+        "experiments/csharp/BunnyCsSdk/BunnyWorldUpdateLoader.cs"
+      ],
+      "tests": [
+        "tests/world_update_loader/Program.cs",
+        "tests/world_update_loader/native_contract_test.cpp",
+        "tests/world_update_loader/time_rate_mailbox_test.cpp",
+        "tests/world_update_loader/shared_time_rates_test.cpp",
+        "tests/world_update_loader/verified_hook_chain_test.cpp",
+        "tools/tests/modsystemhooks/check.mjs",
+        "tests/world_update_loader/quickjs_shared_time_rates_test.cpp"
+      ],
+      "note": "Conclusao de lote existente; nao contado como dezenove loaders nem como substituicao de um alvo da lista. Compatibilidade JS/C# reforcada com provas originais de opcodes e transacao nativa unica de taxas; Android pendente.",
+      "nativeBridge": [
+        "app/src/main/cpp/experiments/csharp/UniversalSystemStages.cpp",
+        "app/src/main/cpp/content/systems/SystemTimeRates.cpp",
+        "app/src/main/cpp/hook/HookManager.cpp"
+      ],
+      "automatedValidation": {
+        "commit": "7d5c87479ee13f1f75c90b27aa37f54fac82f11d",
+        "runId": 39685243816,
+        "result": "passed",
+        "scope": "65 host regressions, 115 managed checks, real QuickJS/native integration, ARM64 syntax and complete native library link. No APK or Android execution."
+      }
+    },
+    {
+      "loader": "GoreLoader",
+      "pullRequest": 121,
+      "implementation": "implemented",
+      "android": "not-tested",
+      "publicApi": [
+        "experiments/csharp/BunnyCsSdk/BunnyGore.cs"
+      ],
+      "example": [
+        "samples/ExampleModCSharp/Playable/content/Content/NPCs/ExampleGoreSlime.cs"
+      ],
+      "tests": [
+        "tests/gore/native_gore_runtime_test.cpp",
+        "tests/gore/Program.cs",
+        "tests/gore/mixed_js_gore_test.cjs"
+      ],
+      "note": "Integracao adicional de PR existente; nao remove pendencias dos quinze alvos.",
+      "automatedValidation": {
+        "commit": "d2d901bfea307f46e6096c7f51341fe11dabb054",
+        "runId": 39682216237,
+        "result": "passed",
+        "scope": "Host contracts, managed examples, ARM64 syntax and complete libbunny.so link. No APK or Android execution."
+      }
+    }
+  ]
+}

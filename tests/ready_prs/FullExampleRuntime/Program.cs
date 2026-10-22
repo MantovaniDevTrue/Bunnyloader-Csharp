@@ -93,6 +93,10 @@ try
         !defaults.Contains("ITEM\tExampleItem\t", StringComparison.Ordinal))
         throw new InvalidOperationException("Full ExampleMod native handoff is incomplete");
 
+    string inventoryDirectory = Path.Combine(Directory.GetCurrentDirectory(), "build", "ready-pr-tests");
+    Directory.CreateDirectory(inventoryDirectory);
+    File.WriteAllText(Path.Combine(inventoryDirectory, "managed-class-inventory.txt"),
+        "executedTypes=" + verified + "\nhookModules=" + CompiledAssemblyProbe.LastVerifiedHookModules + "\n");
     Console.WriteLine("FULL_EXAMPLE_ROSLYN_AND_EXECUTION=PASS classes=" + verified);
     string compact = Path.Combine(framework, "compiler-references");
     File.WriteAllText(Path.Combine(framework, "framework-version.txt"), new string('a', 64));

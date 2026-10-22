@@ -4,6 +4,8 @@ import pathlib
 import sys
 
 expected = {
+    "HOOK_MODULES": {2},
+    "BACKGROUND_TEXTURE": {3},
     "LOCALE": {4}, "LOCALE_MODULES": {2}, "LOCALE_RUNTIME": {2},
     "ITEM_RARITY": {3}, "RARITY": {2}, "DUST": {5}, "QUEST_FISH": {6,7}, "QUEST_LOCALE": {5}, "QUEST_CALLBACK": {3}, "QUEST_CATCH": {4},
     "SHOOT": {3}, "USE_SOUND": {8}, "HOLDOUT": {4}, "NATIVE_ITEM": {3}, "NATIVE_PROJECTILE": {3},

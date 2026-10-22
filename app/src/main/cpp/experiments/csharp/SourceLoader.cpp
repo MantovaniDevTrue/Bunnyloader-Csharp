@@ -1,5 +1,7 @@
 #include "experiments/csharp/SourceLimits.h"
 #include "experiments/csharp/NativeTileWirePolicy.h"
+#include "experiments/csharp/ManagedGoreDiscovery.h"
+#include "experiments/csharp/ManagedGoreRuntime.h"
 #include "experiments/csharp/SourceLoader.h"
 #include "experiments/csharp/NativeRarityRegistry.h"
 #include "experiments/csharp/ManagedDustContract.h"
@@ -11,6 +13,9 @@
 #include "experiments/csharp/NativeWallRuntime.h"
 #include "experiments/csharp/NativeLocalizationRuntime.h"
 #include "content/walls/ModWalls.h"
+#include "content/backgrounds/BackgroundTextures.h"
+#include "experiments/csharp/ContentTexture.h"
+#include "experiments/csharp/BackgroundTextureWire.h"
 #include "content/projectiles/ModProjectiles.h"
 #include "graphics/CSharpScreenEffects.h"
 #include "experiments/csharp/NativeBasicItems.h"
@@ -333,6 +338,13 @@ bool fields(const ParsedSourceType& type, NativeContentSpec* spec,
 
 bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
     const std::string folder = mod.dir + "/content";
+    std::vector<gore::Source> goreSources;
+    if (!gore::discover(mod.dir, &goreSources, &status->error)) {
+        status->error = "[CSharp][ERROR][GoreLoader] Mod=" + mod.id +
+            " Stage=Discover Result=Rejected Detail=" + status->error;
+        return false;
+    }
+    status->goreSourcesDiscovered = static_cast<int>(goreSources.size());
     std::vector<std::string> paths;
     if (!collect(folder, "", &paths, &status->error, 0)) return false;
     if (paths.empty() || paths.size() > kSourceMaxFiles) {
@@ -364,9 +376,17 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
             return false;
         }
     }
+    // Assets are independent of item/content classes. A mod with only a world
+    // module and Backgrounds PNGs must receive the same autoload as item mods.
+    if (!bl::runtime::backgrounds::autoload(mod.id, folder, &status->error)) return false;
+    // A pure managed hook/localization module needs no native content IDs.
+    // Roslyn's verifier must still prove at least one supported class.
     if (defs.empty()) {
-        status->error = "mod C# sem conteudo concreto registrado; use uma base publica Bunny ou [BunnyContent] com override de defaults para heranca propria";
-        return false;
+        if (!goreSources.empty() && !gore::install(mod.id,goreSources,&status->error)) {
+            status->error="[CSharp][ERROR][GoreLoader] Mod="+mod.id+" Stage=NativeInstall Result=Rejected Detail="+status->error;
+            return false;
+        }
+        return true;
     }
     if (defs.size() > kSourceMaxTypes) { status->error = "tipos C# demais"; return false; }
     std::map<std::string, int> typed;
@@ -386,14 +406,29 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
         return false;
     }
     NativeRegisterContext ctx{mod.id, mod.dir, 0, 0};
-    const std::array<std::string, 12> order = {
-        "BunnyDust", "BunnyTile", "BunnyWall", "BunnyItem",
+    const std::array<std::string, 13> order = {
+        "BunnyBackgroundTexture", "BunnyDust", "BunnyTile", "BunnyWall", "BunnyItem",
         "BunnyBuff", "BunnyProjectile", "BunnyAccessory",
         "BunnyNPC", "BunnyBuffPotion", "BunnyWeapon", "BunnyPrefix", "BunnyRarity"
     };
     for (const auto& base : order) {
         for (const auto& def : defs) {
             if (def.base != base) continue;
+            if (base == "BunnyBackgroundTexture") {
+                const auto texture = def.properties.find("Texture");
+                std::string path;
+                if (texture == def.properties.end() ||
+                    !normalizeContentTexture(texture->second.c_str(), &path, &status->error)) {
+                    status->error = "[CSharp][ERROR][BackgroundTexture] Mod=" + mod.id + " Class=" + def.name +
+                        " Stage=Reserve Reason=LiteralTextureRequired Result=Rejected";
+                    return false;
+                }
+                const int slot = bl::runtime::backgrounds::reserve(mod.id, path, folder + "/" + path, &status->error);
+                if (slot < 0) { status->error += " Mod=" + mod.id + " Class=" + def.name; return false; }
+                typed[sourceIdentityForBase(base, def.name)] = slot;
+                ++status->backgroundTextures;
+                continue;
+            }
             if (base == "BunnyRarity") {
                 if (!def.properties.empty()) {
                     status->error = def.name + ": BunnyRarity usa callbacks gerenciados, nao propriedades literais";
@@ -684,14 +719,14 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
         status->error = "ModCommand: maximo de 128 classes por mod";
         return false;
     }
-    if (status->dusts+status->items+status->tiles+status->projectiles+status->buffs+
-        status->npcs+status->prefixes+status->rarities+status->players+status->screenEffects+status->commands==0) {
-        status->error = "mod C# sem conteudo registrado";
-        return false;
-    }
     if (!screenEffects.empty() &&
         !bl::graphics::registerCSharpScreenEffects(mod.id, folder, screenEffects, &status->error))
         return false;
+    if (!goreSources.empty() && !gore::install(mod.id, goreSources, &status->error)) {
+        status->error = "[CSharp][ERROR][GoreLoader] Mod=" + mod.id +
+            " Stage=NativeInstall Result=Rejected Detail=" + status->error;
+        return false;
+    }
     return true;
 }
 
@@ -699,6 +734,7 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
 
 void resetCSharpSourceModSession() {
     for (const auto& mod : g_statuses) {
+        bl::runtime::backgrounds::unload(mod.id);
         angler::registry().unload(mod.id);
         unbindNativeRecipeAssembly(mod.id);
         invalidateManagedLiveSourceMod(mod.id);
@@ -711,6 +747,7 @@ bool loadCSharpSourceMod(const bl::mods::LoadedMod& mod) {
     auto previous = std::find_if(g_statuses.begin(), g_statuses.end(),
         [&](const SourceModStatus& entry) { return entry.id == mod.id; });
     if (previous != g_statuses.end()) {
+        bl::runtime::backgrounds::unload(mod.id);
         angler::registry().unload(mod.id);
         unbindNativeRecipeAssembly(mod.id);
         invalidateManagedLiveSourceMod(mod.id);
@@ -721,10 +758,14 @@ bool loadCSharpSourceMod(const bl::mods::LoadedMod& mod) {
     status.directory = mod.dir;
     status.loaded = load(mod, &status);
     if (status.loaded) {
+        if (status.goreSourcesDiscovered > 0)
+            BL_INFO("C# GoreLoader %s: %d PNGs registrados em arrays nativos",
+                    mod.id.c_str(), status.goreSourcesDiscovered);
         BL_INFO("C# source %s: %d arquivo(s), %d item(ns), %d projetil(is), %d buff(s), %d pocao(oes), %d NPC(s), %d Dust(s)",
                 mod.id.c_str(), status.sourceFiles, status.items,
                 status.projectiles, status.buffs, status.potions, status.npcs, status.dusts);
     } else {
+        bl::runtime::backgrounds::unload(mod.id);
         BL_ERROR("C# source %s: %s", mod.id.c_str(), status.error.c_str());
     }
     if (previous != g_statuses.end()) {
@@ -785,8 +826,10 @@ bool applyManagedSourceDefaults(
     std::vector<localization::Entry> localized;
     std::set<std::string> seenLocale;
     bool seenLocalizationModules = false;
+    bool seenHookModules = false;
     bool seenLocalizationRuntime = false;
     size_t rarityCount = 0;
+    std::set<std::string> backgroundRows;
     std::map<std::string, int> itemRarityOverrides;
     std::vector<SourceRecipeOwner> recipeOwners;
     std::map<std::string,bool> seenRecipeOwners;
@@ -799,6 +842,19 @@ bool applyManagedSourceDefaults(
         std::vector<std::string> fields;
         std::string part;
         while (std::getline(parts, part, '\t')) fields.push_back(part);
+        if (!fields.empty() && fields[0] == "BACKGROUND_TEXTURE") {
+            if (!validateBackgroundTextureWire(fields, modId, mod->registeredKindTypes, &seen, &backgroundRows, error)) return false;
+            continue;
+        }
+        if (!fields.empty() && fields[0] == "HOOK_MODULES") {
+            int count = 0;
+            if (seenHookModules || fields.size() != 2 || !integer(fields[1], &count) || count < 1 || count > 4096) {
+                *error = "[CSharp][ERROR][ModuleDiscovery] Mod=" + modId + " Stage=DecodeHookInventory Result=Rejected Reason=InvalidOrDuplicateModuleCount";
+                return false;
+            }
+            seenHookModules = true;
+            continue;
+        }
         if(!fields.empty()&&fields[0]=="LOCALE_MODULES") {
             int count=0;
             if (seenLocalizationModules || fields.size()!=2 ||
@@ -1507,7 +1563,8 @@ bool applyManagedSourceDefaults(
             return false;
         }
     }
-    if (dustRows != mod->dusts ||
+    if (backgroundRows.size() != static_cast<size_t>(mod->backgroundTextures) ||
+        dustRows != mod->dusts ||
         tiles.size() != static_cast<size_t>(mod->tiles) ||
         projectiles.size() != static_cast<size_t>(mod->projectiles) ||
         weapons.size() + potions.size() + accessories.size() + basicItems.size() !=
@@ -1524,6 +1581,9 @@ bool applyManagedSourceDefaults(
         *error = "As classes compiladas nao correspondem ao conteudo registrado";
         return false;
     }
+    const int backgroundState = bl::runtime::backgrounds::readiness(modId, error);
+    if (backgroundState < 0 || (backgroundState == 0 && !bl::runtime::backgrounds::publish(error, modId))) return false;
+
     for (size_t i = 0; i < weapons.size(); ++i) {
         const auto projectile = projectilesByName.find(shootNames[i]);
         if (projectile == projectilesByName.end()) {

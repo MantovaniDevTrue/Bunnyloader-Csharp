@@ -7,6 +7,7 @@
 
 #include <cstdint>
 #include <string>
+#include <unistd.h>
 
 namespace bl::csharp {
 
@@ -26,7 +27,7 @@ InvasionSpawnResult spawnNativeInvasionNpc(const InvasionSpawnRequest& request) 
 extern "C" void bunny_invasion_test_world(int ready, int64_t session) {
     bl::csharp::setNativeInvasionWorldState(ready != 0, static_cast<uint64_t>(session));
     bl::csharp::setNativeInvasionRewardWorldState(ready != 0, static_cast<uint64_t>(session));
-    const std::string path = "/tmp/bunny-invasion-ci-" + std::to_string(session) + ".wld";
+    const std::string path = "/tmp/bunny-invasion-ci-" + std::to_string(getpid()) + "-" + std::to_string(session) + ".wld";
     bl::csharp::setNativeInvasionSaveWorld(
         ready != 0, static_cast<uint64_t>(session), path, false);
 }

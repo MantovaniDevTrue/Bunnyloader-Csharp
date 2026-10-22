@@ -71,7 +71,7 @@ internal static class MultiInvasionIntegration
             OtherInvasionSystem.Controller.Phase == BunnyInvasionPhase.Inactive,
             "independent world isolation");
         World(0, 83);
-        System.IO.File.Delete("/tmp/bunny-invasion-ci-81.wld.invasions.bl");
+        System.IO.File.Delete("/tmp/bunny-invasion-ci-"+Environment.ProcessId+"-81.wld.invasions.bl");
         Console.WriteLine("Multi-invasion native roundtrip: " + checks + " checks OK");
         return 0;
     }

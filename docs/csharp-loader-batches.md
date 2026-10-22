@@ -1,4 +1,12 @@
-# Entregas de cinco loaders
+# Inventário global dos loaders
+
+**Regra atual de 21/10/2026:** continuar o escopo de quinze loaders antes de
+gerar APK. A lista e o bloqueio executável desta execução estão em
+[csharp-loader-completion-15.json](csharp-loader-completion-15.json).
+Os grupos de cinco abaixo são o inventário histórico, preservado para não
+perder sistemas. Não autorizam um APK parcial desta execução.
+
+## Grupos anteriores de cinco loaders
 
 Regra atual do usuário em19/10/2026: desenvolver todos os loaders, entregando **cinco loaders completos por APK**, com **um exemplo original completo por loader**. Esta regra substitui a espera pelo port integral de todos os exemplos antes da próxima entrega. O objetivo global de portar todos os exemplos permanece; nenhum fonte existente será removido.
 

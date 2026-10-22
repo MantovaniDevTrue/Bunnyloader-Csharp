@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj" />
+    <Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/NPCs/ExampleGoreSlime.cs" Link="ExampleGoreSlime.cs" />
+  </ItemGroup>
+</Project>

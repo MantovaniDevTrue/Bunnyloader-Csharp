@@ -1,9 +1,13 @@
 #include "script/api/SystemHooks.h"
 #include "script/bridge/ScriptEngine.h"
+#include "script/api/UndergroundBackgrounds.h"
+#include "script/api/SurfaceBackgrounds.h"
 #if BL_HAVE_QUICKJS && defined(__aarch64__)
 #include "il2cpp/Resolver.h"
 #include "il2cpp/Signature.h"
 #include "hook/HookManager.h"
+#include "script/api/SystemTimeRates.h"
+#include "content/systems/SystemContracts.h"
 #include "core/Log.h"
 #include "quickjs.h"
 #include <cmath>
@@ -180,17 +184,23 @@ JSValue installSystemStage(JSContext* context, JSValueConst, int argc, JSValueCo
         auto* main = bl::il2cpp::findClass({"Terraria", "Main", ""});
         const MethodInfo* method = main ? bl::il2cpp::findMethodBySignature(main, bl::il2cpp::parseSignature(selected->signature)) : nullptr;
         const auto* entry = method ? static_cast<const uint8_t*>(bl::il2cpp::methodPointer(method)) : nullptr;
-        if (!entry || std::memcmp(entry + selected->offset, selected->expected, sizeof(selected->expected)) != 0) {
-            return JS_ThrowInternalError(context, "%s: corpo nativo incompativel", selected->name);
-        }
-        if (!bl::hook::install(const_cast<uint8_t*>(entry + selected->offset), reinterpret_cast<void*>(selected->bridge), selected->original)) {
-            return JS_ThrowInternalError(context, "%s: hook nativo recusado", selected->name);
+        std::string error;
+        if (!bl::runtime::systems::systemStageMethodStorage(method,selected==&stages[8],selected->signature,&error,"JS.ModSystem"))
+            return JS_ThrowInternalError(context,"%s",error.c_str());
+        if (!entry) return JS_ThrowInternalError(context,
+            "[JavaScript][ERROR][SystemStage] Stage=%s Method=%s Result=Rejected Reason=NativeMethodBodyMissing",
+            selected->name,selected->signature);
+        if (!bl::hook::installVerified(const_cast<uint8_t*>(entry + selected->offset),selected->expected,sizeof(selected->expected), reinterpret_cast<void*>(selected->bridge), selected->original)) {
+            return JS_ThrowInternalError(context,
+                "[JavaScript][ERROR][SystemStage] Stage=%s Method=%s Offset=%zu Result=Rejected Reason=OriginalProofOrHookRejected Detail=SeePreviousNativeHookDiagnostic",
+                selected->name,selected->signature,selected->offset);
         }
     }
     selected->callback = JS_DupValue(context, argv[1]);
     selected->context = context;
     return JS_UNDEFINED;
 }
+
 }
 namespace bl::script {
 void installSystemBindings(void* context) {
@@ -198,10 +208,15 @@ void installSystemBindings(void* context) {
     JSValue global = JS_GetGlobalObject(ctx);
     JSValue api = JS_GetPropertyStr(ctx, global, "bl");
     JS_SetPropertyStr(ctx, api, "installSystemStage", JS_NewCFunction(ctx, installSystemStage, "installSystemStage", 2));
+    installSystemTimeRateBindings(context);
+    installUndergroundBackgroundBindings(context);
+    installSurfaceBackgroundBindings(context);
     JS_FreeValue(ctx, api);
     JS_FreeValue(ctx, global);
 }
 void releaseSystemBindings(void* context) {
+    releaseUndergroundBackgroundBindings(context);
+    releaseSurfaceBackgroundBindings(context);
     for (Stage& stage : stages) {
         if (stage.context != context) continue;
         JS_FreeValue(stage.context, stage.callback);

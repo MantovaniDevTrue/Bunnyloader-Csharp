@@ -20,7 +20,7 @@
     "forkJsFiles": 178,
     "canonicalJsFiles": 206,
     "newUpstreamFiles": 28,
-    "cSharpSourceFiles": 83
+    "cSharpSourceFiles": 108
   },
   "statePolicy": "Validado no Android exige evidencia de jogo do exemplo inteiro; Validado por testes automatizados nao prova execucao no aparelho.",
   "coverageByCategory": {
@@ -93,18 +93,19 @@
     "Biomes": {
       "total": 6,
       "states": {
-        "Não implementado": 6
+        "Validado por testes automatizados": 2,
+        "Não implementado": 4
       },
-      "implemented": 0,
+      "implemented": 2,
       "validated": 0,
-      "automated": 0,
-      "automatedPercent": 0.0,
+      "automated": 2,
+      "automatedPercent": 33.33,
       "partial": 0,
-      "implementedPercent": 0.0,
+      "implementedPercent": 33.33,
       "validatedPercent": 0.0,
       "partialPercent": 0.0,
       "limitations": 0,
-      "missingExamples": 6
+      "missingExamples": 4
     },
     "Bosses": {
       "total": 2,
@@ -2208,7 +2209,9 @@
         "nativeSignatures": [],
         "imports": []
       },
-      "cSharp": [],
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Biomes/ExampleSurfaceBackgroundStyle.cs"
+      ],
       "requiredApis": [
         "ChooseCloseTexture",
         "ChooseFarTexture",
@@ -2216,23 +2219,51 @@
         "ModSurfaceBackgroundStyle",
         "ModifyFarFades"
       ],
-      "status": "Não implementado",
-      "assets": [],
-      "automatedEvidence": [],
-      "preservedFeatures": [],
-      "missingFeatures": [
-        "Sem contrato C# reutilizavel equivalente para ModSurfaceBackgroundStyle"
+      "status": "Validado por testes automatizados",
+      "assets": [
+        "samples/ExampleModCSharp/Playable/content/Assets/Textures/Backgrounds/ExampleBiomeSurfaceFar.png",
+        "samples/ExampleModCSharp/Playable/content/Assets/Textures/Backgrounds/ExampleBiomeSurfaceMid0.png",
+        "samples/ExampleModCSharp/Playable/content/Assets/Textures/Backgrounds/ExampleBiomeSurfaceMid1.png",
+        "samples/ExampleModCSharp/Playable/content/Assets/Textures/Backgrounds/ExampleBiomeSurfaceMid2.png",
+        "samples/ExampleModCSharp/Playable/content/Assets/Textures/Backgrounds/ExampleBiomeSurfaceMid3.png",
+        "samples/ExampleModCSharp/Playable/content/Assets/Textures/Backgrounds/ExampleBiomeSurfaceClose.png"
       ],
+      "automatedEvidence": [
+        "docs/csharp-surface-backgrounds.md: exemplo C# executado no CLR host via P/Invoke e worker separado com UniversalHookMailbox de producao; JS original executado no QuickJS real, inclusive processo misto. Metadata/heap IL2CPP controlados; nao Android."
+      ],
+      "preservedFeatures": [
+        "Tres camadas Far/Middle/Close com seis imagens originais; transicao por fades Single calculados em Double, parallax, altura, SkyManager e clipping nativos.",
+        "Animacao Middle estatica original: quatro frames, avanco a cada treze chamadas efetivas; lookup UID/caminho relativo e completo, sem GUID fixo.",
+        "SDK reutilizavel e callbacks MonoVM via protocolo revisado; nenhum JavaScript executado pelo mod C#. JS e C# compartilham o registro nativo.",
+        "O host preserva a instancia/animacao do estilo no menu ao pausar o mundo, reinicia os modulos de gameplay em assembly nova na reentrada e descarrega ambos no unload real."
+      ],
+      "missingFeatures": [],
       "nativeDependencies": [
-        "app/src/main/cpp/script/js/mod/ModSurfaceBackgroundStyle.js"
+        "app/src/main/cpp/content/backgrounds/SurfaceGeometry.cpp",
+        "app/src/main/cpp/content/backgrounds/SurfaceTables.cpp",
+        "app/src/main/cpp/content/backgrounds/SurfaceSpriteBatch.cpp",
+        "app/src/main/cpp/il2cpp/NullableLayout.h",
+        "app/src/main/cpp/il2cpp/CheckedFieldWrite.h",
+        "app/src/main/cpp/content/backgrounds/SurfaceBackgrounds.cpp",
+        "app/src/main/cpp/content/backgrounds/SurfaceProperties.h",
+        "app/src/main/cpp/experiments/csharp/ManagedSurfaceBackgrounds.cpp",
+        "app/src/main/cpp/script/api/SurfaceBackgrounds.cpp"
       ],
-      "automatedTests": [],
+      "automatedTests": [
+        "tests/surface_backgrounds/native_surface_test.cpp",
+        "tests/surface_backgrounds/native_surface_loader_test.cpp",
+        "tests/surface_backgrounds/mailbox_surface_test.cpp",
+        "tests/surface_backgrounds/Program.cs",
+        "tests/surface_backgrounds/quickjs_surface_test.cpp",
+        "tests/surface_backgrounds/MixedProgram.cs",
+        "tests/surface_backgrounds/original_surface_comparison.cjs",
+        "tests/surface_backgrounds/SessionProgram.cs"
+      ],
       "terrariaTests": [
-        "Comparar cada hook/propriedade listado com o comportamento JS original no Terraria 1.4.5.8.6.",
-        "Carregar junto de um mod JS; entrar/sair do mundo e conferir falhas e desempenho.",
-        "Verificar persistencia, remocao do mod e morte/respawn quando o exemplo mantiver estado."
+        "Seguir docs/csharp-surface-backgrounds.md; /examplesurface on|off testa exclusivamente o ExampleMod, quatro frames, tres camadas, parallax, transicoes, save/exit, ativacao apos entrar no mundo e convivencia com mods JS.",
+        "ExampleSurfaceBiome/SceneEffectLoader ainda pendentes; o comando de QA nao os substitui."
       ],
-      "validation": "Sem validacao funcional C# deste exemplo inteiro.",
+      "validation": "Estilo validado automaticamente no host. Metadata real, renderizacao, estabilidade, deadline no MonoVM Android e FPS pendentes.",
       "deviceEvidence": [],
       "technicalBlockEvidence": [],
       "sourceEvidence": [
@@ -2346,28 +2377,46 @@
         "nativeSignatures": [],
         "imports": []
       },
-      "cSharp": [],
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Biomes/ExampleUndergroundBackgroundStyle.cs"
+      ],
       "requiredApis": [
         "FillTextureArray",
         "ModUndergroundBackgroundStyle"
       ],
-      "status": "Não implementado",
-      "assets": [],
-      "automatedEvidence": [],
-      "preservedFeatures": [],
-      "missingFeatures": [
-        "Sem contrato C# reutilizavel equivalente para ModUndergroundBackgroundStyle"
+      "status": "Validado por testes automatizados",
+      "assets": [
+        "samples/ExampleModCSharp/Playable/content/Assets/Textures/Backgrounds/ExampleBiomeUnderground0.png",
+        "samples/ExampleModCSharp/Playable/content/Assets/Textures/Backgrounds/ExampleBiomeUnderground1.png",
+        "samples/ExampleModCSharp/Playable/content/Assets/Textures/Backgrounds/ExampleBiomeUnderground2.png",
+        "samples/ExampleModCSharp/Playable/content/Assets/Textures/Backgrounds/ExampleBiomeUnderground3.png"
       ],
+      "automatedEvidence": [
+        "docs/csharp-underground-backgrounds.md: producao nativa com metadata controlada, P/Invoke do exemplo C# e exemplo JS original executado no QuickJS real; sem Terraria Android."
+      ],
+      "preservedFeatures": [
+        "FillTextureArray original de quatro camadas; quinta camada default 6; prioridade e transicao atual/anterior pelo servico nativo compartilhado.",
+        "Consulta por UID/caminho em SetStaticDefaults; nenhum ID persistido e nenhum JavaScript executado pelo mod C#."
+      ],
+      "missingFeatures": [],
       "nativeDependencies": [
-        "app/src/main/cpp/script/js/mod/ModUndergroundBackgroundStyle.js"
+        "app/src/main/cpp/content/backgrounds/UndergroundBackgrounds.cpp",
+        "app/src/main/cpp/experiments/csharp/ManagedUndergroundBackgrounds.cpp",
+        "app/src/main/cpp/content/backgrounds/BackgroundAssetLifetime.cpp"
       ],
-      "automatedTests": [],
+      "automatedTests": [
+        "tests/underground_backgrounds/native_underground_test.cpp",
+        "tests/underground_backgrounds/Program.cs",
+        "tests/underground_backgrounds/quickjs_underground_test.cpp",
+        "tests/underground_backgrounds/mailbox_underground_test.cpp",
+        "tests/underground_backgrounds/MixedProgram.cs",
+        "tests/underground_backgrounds/mixed_underground_test.cpp"
+      ],
       "terrariaTests": [
-        "Comparar cada hook/propriedade listado com o comportamento JS original no Terraria 1.4.5.8.6.",
-        "Carregar junto de um mod JS; entrar/sair do mundo e conferir falhas e desempenho.",
-        "Verificar persistencia, remocao do mod e morte/respawn quando o exemplo mantiver estado."
+        "Seguir docs/csharp-underground-backgrounds.md; ativar o estilo do ExampleMod via /exampleunderground on; conferir quatro texturas, transicoes e save/exit.",
+        "BiomeLoader/SceneEffectLoader/ExampleUndergroundBiome continuam pendentes; comando de QA nao os substitui."
       ],
-      "validation": "Sem validacao funcional C# deste exemplo inteiro.",
+      "validation": "Contrato do estilo verificado no host; renderizacao, estabilidade e FPS no Android pendentes.",
       "deviceEvidence": [],
       "technicalBlockEvidence": [],
       "sourceEvidence": [
@@ -16166,6 +16215,78 @@
   ],
   "additionalCSharp": [
     {
+      "path": "samples/ExampleModCSharp/Playable/content/Common/Audio/ExampleSoundEffects.cs",
+      "classes": [
+        "ExampleSoundEffects"
+      ],
+      "mappedToJs": [],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Common/Backgrounds/ExampleBackgroundTexture.cs",
+      "classes": [
+        "ExampleBackgroundTexture"
+      ],
+      "mappedToJs": [],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Common/Commands/ExampleBackgroundCommand.cs",
+      "classes": [
+        "ExampleBackgroundCommand"
+      ],
+      "mappedToJs": [],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Common/Commands/ExampleEchoCommand.cs",
+      "classes": [
+        "ExampleEchoCommand"
+      ],
+      "mappedToJs": [],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Common/Commands/ExampleHealCommand.cs",
+      "classes": [
+        "ExampleHealCommand"
+      ],
+      "mappedToJs": [],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Common/Commands/ExampleSurfaceBackgroundCommand.cs",
+      "classes": [
+        "ExampleSurfaceBackgroundCommand"
+      ],
+      "mappedToJs": [],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Common/Commands/ExampleTimeCommand.cs",
+      "classes": [
+        "ExampleTimeCommand"
+      ],
+      "mappedToJs": [],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Common/Commands/ExampleUndergroundBackgroundCommand.cs",
+      "classes": [
+        "ExampleUndergroundBackgroundCommand"
+      ],
+      "mappedToJs": [],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
       "path": "samples/ExampleModCSharp/Playable/content/Common/Hooks/ExampleHookInt32Triple.cs",
       "classes": [
         "ExampleHookInt32Triple"
@@ -16279,6 +16400,15 @@
       "path": "samples/ExampleModCSharp/Playable/content/Common/Players/ExampleArcanePlayer.cs",
       "classes": [
         "ExampleArcanePlayer"
+      ],
+      "mappedToJs": [],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Common/Players/ExampleFishingPlayer.cs",
+      "classes": [
+        "ExampleFishingPlayer"
       ],
       "mappedToJs": [],
       "deviceEvidence": [],
@@ -16468,6 +16598,28 @@
       "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
     },
     {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Biomes/ExampleSurfaceBackgroundStyle.cs",
+      "classes": [
+        "ExampleSurfaceBackgroundStyle"
+      ],
+      "mappedToJs": [
+        "Content/Biomes/ExampleSurfaceBackgroundStyle.js"
+      ],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Biomes/ExampleUndergroundBackgroundStyle.cs",
+      "classes": [
+        "ExampleUndergroundBackgroundStyle"
+      ],
+      "mappedToJs": [
+        "Content/Biomes/ExampleUndergroundBackgroundStyle.js"
+      ],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
       "path": "samples/ExampleModCSharp/Playable/content/Content/Buffs/ExampleDefenseBuff.cs",
       "classes": [
         "ExampleDefenseBuff"
@@ -16497,6 +16649,15 @@
       "mappedToJs": [
         "Content/Buffs/ExampleMinionBuff.js"
       ],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Effects/ExampleSparkDust.cs",
+      "classes": [
+        "ExampleSparkDust"
+      ],
+      "mappedToJs": [],
       "deviceEvidence": [],
       "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
     },
@@ -16739,6 +16900,24 @@
       "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
     },
     {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Items/Consumables/ExampleInvasionBeacon.cs",
+      "classes": [
+        "ExampleInvasionBeacon"
+      ],
+      "mappedToJs": [],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Items/ExampleDustCharm.cs",
+      "classes": [
+        "ExampleDustCharm"
+      ],
+      "mappedToJs": [],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
       "path": "samples/ExampleModCSharp/Playable/content/Content/Items/ExampleItem.cs",
       "classes": [
         "ExampleItem"
@@ -16746,6 +16925,15 @@
       "mappedToJs": [
         "Content/Items/ExampleItem.js"
       ],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Items/ExampleTooltipItem.cs",
+      "classes": [
+        "ExampleTooltipItem"
+      ],
+      "mappedToJs": [],
       "deviceEvidence": [],
       "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
     },
@@ -16791,6 +16979,15 @@
         "Content/ExampleRecipes.js",
         "Content/Items/Placeable/Furniture/ExampleWorkbench.js"
       ],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Items/Quests/ExampleQuestFish.cs",
+      "classes": [
+        "ExampleQuestFish"
+      ],
+      "mappedToJs": [],
       "deviceEvidence": [],
       "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
     },
@@ -16899,6 +17096,24 @@
       "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
     },
     {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/NPCs/ExampleGoreSlime.cs",
+      "classes": [
+        "ExampleGoreSlime"
+      ],
+      "mappedToJs": [],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/NPCs/ExampleInvasionEliteSlimeNPC.cs",
+      "classes": [
+        "ExampleInvasionEliteSlimeNPC"
+      ],
+      "mappedToJs": [],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
       "path": "samples/ExampleModCSharp/Playable/content/Content/NPCs/ExampleSlimeNPC.cs",
       "classes": [
         "ExampleSlimeNPC"
@@ -16963,6 +17178,24 @@
       "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
     },
     {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Rarities/ExampleHigherTierModRarity.cs",
+      "classes": [
+        "ExampleHigherTierModRarity"
+      ],
+      "mappedToJs": [],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Rarities/ExampleModRarity.cs",
+      "classes": [
+        "ExampleModRarity"
+      ],
+      "mappedToJs": [],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
       "path": "samples/ExampleModCSharp/Playable/content/Content/Recipes/ExampleCraftingReward.cs",
       "classes": [
         "ExampleCraftingReward"
@@ -16975,6 +17208,51 @@
       "path": "samples/ExampleModCSharp/Playable/content/Content/Recipes/ExampleWorkbenchRecipeBehavior.cs",
       "classes": [
         "ExampleWorkbenchRecipeBehavior"
+      ],
+      "mappedToJs": [],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Systems/ExampleDustAndInvasionSystem.cs",
+      "classes": [
+        "ExampleDustAndInvasionSystem"
+      ],
+      "mappedToJs": [],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Systems/ExampleInvasion.cs",
+      "classes": [
+        "ExampleInvasion"
+      ],
+      "mappedToJs": [],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Systems/ExampleInvasionSystem.cs",
+      "classes": [
+        "ExampleInvasionSystem"
+      ],
+      "mappedToJs": [],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Systems/ExampleTimeRateSystem.cs",
+      "classes": [
+        "ExampleTimeRateSystem"
+      ],
+      "mappedToJs": [],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Systems/ExampleWorldUpdateCounter.cs",
+      "classes": [
+        "ExampleWorldUpdateCounter"
       ],
       "mappedToJs": [],
       "deviceEvidence": [],

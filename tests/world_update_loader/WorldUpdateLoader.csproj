@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>WorldUpdateLoader.Tests</AssemblyName>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>12</LangVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj" />
+    <ProjectReference Include="../../experiments/csharp/BunnySourceCompiler/BunnySourceCompiler.csproj" />
+    <Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/Systems/ExampleWorldUpdateCounter.cs" Link="ExampleWorldUpdateCounter.cs" />
+    <Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/Systems/ExampleDustAndInvasionSystem.cs" Link="ExampleDustAndInvasionSystem.cs" />
+    <Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/Systems/ExampleTimeRateSystem.cs" Link="ExampleTimeRateSystem.cs" />
+  </ItemGroup>
+</Project>

@@ -44,6 +44,10 @@ int main(int argc, char** argv) {
             ++commands;
             continue;
         }
+        if (type.base == "BunnyBackgroundTexture") {
+            assert(std::filesystem::is_regular_file(root / (type.properties.at("Texture") + ".png")));
+            continue;
+        }
         if (type.base == "BunnyPlayer" || type.base == "BunnyScreenEffect" ||
             type.base == "BunnyRarity" || type.base == "BunnyPrefix" ||
             type.base == "BunnyDust") continue;
@@ -69,7 +73,7 @@ int main(int argc, char** argv) {
         }
         ++checked;
     }
-    assert(commands == 3);
+    assert(commands == 6);
     assert(targets.at("ExampleBuffPotion") == "ExampleDefenseBuff");
     assert(targets.at("ExampleWand") == "ExampleBolt");
     // Calls on either side of native references must remain deferred to Mono.

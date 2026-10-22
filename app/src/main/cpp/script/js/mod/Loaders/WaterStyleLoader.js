@@ -17,6 +17,7 @@ class WaterStyleLoader {
     static VanillaCount = 15;          // Main.maxLiquidTypes
     static #installed = false;
     static #counted = false;
+    static #countRetryWait = 0;
     static #dripGores = new Set();     // gores de gota de mod já pingados (como o UpdateType do tModLoader)
     static #rainAssets = new Map();     // arquivo -> Asset<Texture2D> da chuva, ou null (falhou)
     static #raining = null;             // a água de mod do MakeRain em curso
@@ -84,10 +85,17 @@ class WaterStyleLoader {
         const total = WaterStyleLoader.TotalCount;
         if (Main.liquidAlpha.length < total) Main.liquidAlpha = Main.liquidAlpha.cloneResized(total);
         if (Main.activeLiquidAlpha.length < total) Main.activeLiquidAlpha = Main.activeLiquidAlpha.cloneResized(total);
-        if (!WaterStyleLoader.#counted) {
-            WaterStyleLoader.#counted = true;
-            if (!bl.tiles.setWaterStyleCount(total)) bl.log('águas de mod: o Main.DrawWaters não aceitou os estilos de mod (ver o log do núcleo)');
+        if (WaterStyleLoader.#counted) return true;
+        if (WaterStyleLoader.#countRetryWait > 0) {
+            --WaterStyleLoader.#countRetryWait;
+            return false;
         }
+        // A recusa não conclui a instalação. Adiar o retry evita uma chamada
+        // de patch/log por quadro; o desenho só continua com contrato aceito.
+        WaterStyleLoader.#countRetryWait = 60;
+        WaterStyleLoader.#counted = bl.tiles.setWaterStyleCount(total) === true;
+        if (WaterStyleLoader.#counted) WaterStyleLoader.#countRetryWait = 0;
+        return WaterStyleLoader.#counted;
     }
 
     // O fundo de bioma do jogo que escolhe a água dele (o switch do CalculateWaterStyle).
@@ -114,7 +122,7 @@ class WaterStyleLoader {
         });
 
         Main['void DrawWaters(bool isBackground)'].hook((original, self, isBackground) => {
-            Safe.Run('água: tabelas', () => WaterStyleLoader.#Ensure());
+            if (Safe.Run('água: tabelas', () => WaterStyleLoader.#Ensure()) !== true) return;
             return original(self, isBackground);
         });
 

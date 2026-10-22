@@ -1664,6 +1664,10 @@ JSValue js_loadTexture(JSContext* ctx, JSValueConst, int argc, JSValueConst* arg
     return loadTexture(ctx, argc, argv);
 }
 
+JSValue js_reserveBackground(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) { return reserveBackgroundTexture(ctx, argc, argv); }
+JSValue js_publishBackground(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) { return publishBackgroundTextures(ctx, argc, argv); }
+JSValue js_backgroundSlot(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) { return backgroundTextureSlot(ctx, argc, argv); }
+JSValue js_backgroundCount(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) { return backgroundTextureCount(ctx, argc, argv); }
 JSValue js_loadTextureAsset(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
     return loadTextureAsset(ctx, argc, argv);
 }
@@ -1848,6 +1852,10 @@ void installBindings(void* context) {
     JS_SetPropertyStr(ctx, bl, "unbox", JS_NewCFunction(ctx, js_unbox, "unbox", 1));
     JS_SetPropertyStr(ctx, bl, "loadTexture",
                       JS_NewCFunction(ctx, js_loadTexture, "loadTexture", 1));
+    JS_SetPropertyStr(ctx, bl, "reserveBackgroundTexture", JS_NewCFunction(ctx, js_reserveBackground, "reserveBackgroundTexture", 3));
+    JS_SetPropertyStr(ctx, bl, "publishBackgroundTextures", JS_NewCFunction(ctx, js_publishBackground, "publishBackgroundTextures", 0));
+    JS_SetPropertyStr(ctx, bl, "backgroundTextureSlot", JS_NewCFunction(ctx, js_backgroundSlot, "backgroundTextureSlot", 2));
+    JS_SetPropertyStr(ctx, bl, "backgroundTextureCount", JS_NewCFunction(ctx, js_backgroundCount, "backgroundTextureCount", 0));
     JS_SetPropertyStr(ctx, bl, "loadTextureAsset",
                       JS_NewCFunction(ctx, js_loadTextureAsset, "loadTextureAsset", 1));
     JS_SetPropertyStr(ctx, bl, "builtinTexture",

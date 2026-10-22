@@ -274,7 +274,7 @@ try {
   var domains=new Dictionary<Type,string>{
    [typeof(BunnyItem)]="ITEM",[typeof(BunnyWeapon)]="ITEM",[typeof(BunnyAccessory)]="ITEM",[typeof(BunnyBuffPotion)]="ITEM",
    [typeof(BunnyWall)]="WALL",[typeof(BunnyTile)]="TILE",[typeof(BunnyProjectile)]="PROJECTILE",[typeof(BunnyNPC)]="NPC",
-   [typeof(BunnyRarity)]="RARITY",[typeof(BunnyDust)]="DUST",[typeof(BunnyBuff)]="BUFF",[typeof(BunnyPlayer)]="PLAYER",[typeof(BunnyPrefix)]="PREFIX"
+   [typeof(BunnyBackgroundTexture)]="BACKGROUND_TEXTURE",[typeof(BunnyRarity)]="RARITY",[typeof(BunnyDust)]="DUST",[typeof(BunnyBuff)]="BUFF",[typeof(BunnyPlayer)]="PLAYER",[typeof(BunnyPrefix)]="PREFIX"
   };
   var compiled=Assembly.Load(File.ReadAllBytes(output));
   var identities=compiled.GetTypes().Where(t=>t.IsClass&&!t.IsAbstract&&!t.ContainsGenericParameters)
@@ -285,10 +285,10 @@ try {
    typeof(BunnyLocalizationModule).IsAssignableFrom(t));
   int commands=compiled.GetTypes().Count(t=>t.IsClass&&!t.IsAbstract&&
    typeof(BunnyCommand).IsAssignableFrom(t));
-  Equal(3,commands);
-  if(CompiledAssemblyProbe.Verify(output,diag,root)!=identities.Count+localizationModules+commands)
+  Equal(4,commands);
+  if(CompiledAssemblyProbe.Verify(output,diag,root)!=identities.Count+localizationModules+commands+compiled.GetTypes().Count(t=>t.IsClass&&!t.IsAbstract&&!t.ContainsGenericParameters&&typeof(BunnyHookModule).IsAssignableFrom(t)))
    throw new Exception(File.ReadAllText(diag));
-  var contentKinds=new HashSet<string>{"ITEM","WEAPON","ACCESSORY","POTION","TILE","WALL","DUST","RARITY","BUFF","PLAYER","PROJECTILE","NPC","PREFIX"};
+  var contentKinds=new HashSet<string>{"ITEM","WEAPON","ACCESSORY","POTION","TILE","WALL","DUST","RARITY","BACKGROUND_TEXTURE","BUFF","PLAYER","PROJECTILE","NPC","PREFIX"};
   string localizationUid="68c3115f-62f4-49f2-a56b-388256781d5f";
   string dynamicWire=BunnyLocalizationRuntime.Dispatch(localizationUid,output,"pt-BR");
   if(!dynamicWire.StartsWith("OK|",StringComparison.Ordinal)||
@@ -345,7 +345,7 @@ try {
   foreach(var type in compiled.GetTypes().Where(t=>t.IsClass&&!t.IsAbstract&&!t.ContainsGenericParameters&&
       domains.Keys.Any(baseType=>baseType.IsAssignableFrom(t)))) {
     var instance=Activator.CreateInstance(type)??throw new Exception("Cannot instantiate "+type.FullName);
-    var defaults=type.GetMethod((typeof(BunnyTile).IsAssignableFrom(type)||typeof(BunnyWall).IsAssignableFrom(type)||typeof(BunnyDust).IsAssignableFrom(type))?"SetStaticDefaults":"SetDefaults");
+    var defaults=type.GetMethod((typeof(BunnyTile).IsAssignableFrom(type)||typeof(BunnyWall).IsAssignableFrom(type)||typeof(BunnyDust).IsAssignableFrom(type)||typeof(BunnyBackgroundTexture).IsAssignableFrom(type))?"SetStaticDefaults":"SetDefaults");
     defaults?.Invoke(instance,null);
     // Execute every registered content class: names and localized names share the user-facing convention.
     if(type.GetProperty("DisplayName")?.GetValue(instance) is string displayName &&

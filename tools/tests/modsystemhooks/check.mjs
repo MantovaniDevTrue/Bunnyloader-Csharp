@@ -6,7 +6,9 @@ import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const source = path.join(root, 'app/src/main/cpp/script/js/mod');
-const dump = fs.readFileSync(path.join(root, 'refs/dump.cs'), 'utf8');
+const behaviorOnly=process.env.BUNNY_MODSYSTEM_BEHAVIOR_ONLY==='1';
+const dump = behaviorOnly ? '' : fs.readFileSync(path.join(root, 'refs/dump.cs'), 'utf8');
+if(behaviorOnly) process.stdout.write('NATIVE_SIGNATURE_DUMP_VALIDATION=NOT_RUN (behavior-only mode)\n');
 const methods = new Map();
 const parameterNames = new Map();
 let namespace = '', owner = '';
@@ -63,7 +65,7 @@ function native(name) {
                 fn.entry = entry;
                 fn.hook = (callback, filter = {}) => {
                     const known = methods.get(name) || methods.get(name.replace(/^Terraria\.(Player\.)/, '$1'));
-                    if (!known?.has(normalized)) failures.push(name + ' ' + key);
+                    if (!behaviorOnly && !known?.has(normalized)) failures.push(name + ' ' + key);
                     const expected = parameterNames.get(id) || parameterNames.get(name.replace(/^Terraria\.(Player\.)/, '$1') + ':' + normalized);
                     if (expected && JSON.stringify(expected) !== JSON.stringify(names(key))) failures.push(name + ' ' + key + ' => ' + expected.join(', '));
                     entry.callbacks.push(callback);
@@ -109,9 +111,27 @@ Object.assign(Main, { gameMenu: false, netMode: 0, dayRate: 1, desiredWorldTiles
     ActivePlayerFileData: { Name: 'Player' }, ActiveWorldFileData: { Name: 'World', Path: '/test.wld' }, GameViewMatrix: {} });
 const files = new Map(), errors = [], events = [], tasks = [], definitions = new Map();
 let contentReady;
+// Native service is exercised separately by shared_time_rates_test.cpp. This
+// fixture checks the real JS wrapper's nesting, cleanup and original calls.
+let rateDepth=0, ratePublished=null, rateClock=NaN, tileFraction=0, eventFraction=0;
+const sharedRates={
+    systemTimeRatePrepare() {},
+    systemTimeRateBegin() { if(rateDepth++===0)ratePublished=null;return true; },
+    systemTimeRateRead() { return ratePublished ?? [Main.dayRate,Main.desiredWorldTilesUpdateRate,Main.dayRate]; },
+    systemTimeRatePublish(...rates) { assert.equal(rateDepth>0,true);ratePublished=rates; },
+    systemTimeRateEnd() {
+        assert.equal(rateDepth>0,true);
+        if(--rateDepth || !ratePublished)return;
+        rateClock=ratePublished[0];
+        const tiles=ratePublished[1]+tileFraction, events=ratePublished[2]+eventFraction;
+        Main.desiredWorldTilesUpdateRate=Math.floor(tiles);Main.dayRate=Math.floor(events);
+        tileFraction=tiles%1;eventFraction=events%1;
+    },
+    systemTimeRateClock() {return rateClock;}
+};
 const sandbox = { Terraria, System, Microsoft, assert,
     Ref: class { constructor(value) { this.value = value; } },
-    bl: { mod: { uuid: 'systems' }, log() {}, error: error => errors.push(String(error)),
+    bl: { ...sharedRates, mod: { uuid: 'systems' }, log() {}, error: error => errors.push(String(error)),
         classOf: (ns, cls) => native((ns ? ns + '.' : '') + cls),
         defineMethod: (cls, name, method) => definitions.set(name, method),
         installSystemStage: (name, callback) => stages.set(name, callback),
@@ -197,6 +217,25 @@ test('Three independent rates and fractional accumulation', () => {
 test('Invalid rates fail back to vanilla', () => {
     All.prototype.ModifyTimeRate = (time,tiles,events) => { time.value=NaN; tiles.value=-1; events.value=Infinity; };
     call('Terraria.Main','UpdateTimeRate'); assert.equal(stages.get('ClockAdvance')(),1); assert.equal(Main.dayRate,1); assert.equal(Main.desiredWorldTilesUpdateRate,1);
+});
+test('Shared language transaction retains separate inner time and event rates',()=>{
+    All.prototype.ModifyTimeRate=(time,tiles,events)=>{
+        assert.deepEqual([time.value,tiles.value,events.value],[.25,.5,.75]);
+        time.value+=.5;tiles.value+=.25;events.value+=.25;
+    };
+    vanilla('Terraria.Main','UpdateTimeRate',()=>{
+        sharedRates.systemTimeRateBegin();
+        sharedRates.systemTimeRatePublish(.25,.5,.75);
+        sharedRates.systemTimeRateEnd();
+    });
+    call('Terraria.Main','UpdateTimeRate');
+    assert.equal(rateClock,.75);assert.equal(Main.dayRate,1);assert.equal(rateDepth,0);
+});
+test('Native original exception balances the shared transaction',()=>{
+    const failure=Error('native-original-failure');let calls=0;
+    vanilla('Terraria.Main','UpdateTimeRate',()=>{calls++;throw failure;});
+    assert.throws(()=>call('Terraria.Main','UpdateTimeRate'),e=>e===failure);
+    assert.equal(calls,1);assert.equal(rateDepth,0);
 });
 test('Sunlight Ref replacements', () => {
     All.prototype.ModifySunLightColor=(tiles,sky)=>{ tiles.value='tile'; sky.value='sky'; };

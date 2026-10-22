@@ -15,6 +15,7 @@ struct SourceModStatus {
     int sourceFiles = 0;
     int items = 0;
     int tiles = 0;
+    int backgroundTextures = 0;
     int walls = 0;
     int dusts = 0;
     int projectiles = 0;
@@ -30,6 +31,7 @@ struct SourceModStatus {
     int screenEffects = 0;
     int commands = 0;
     std::vector<std::string> commandClasses;
+    int goreSourcesDiscovered = 0;
     std::vector<std::string> playerClasses;
     bool loaded = false;
     bool runtimeApplied = false;

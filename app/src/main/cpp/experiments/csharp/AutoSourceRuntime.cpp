@@ -21,9 +21,13 @@
 #include "experiments/csharp/UniversalHooks.h"
 #include "experiments/csharp/AutoSourceCache.h"
 #include "experiments/csharp/AutoSourceRuntime.h"
+#include "content/backgrounds/UndergroundBackgrounds.h"
+#include "content/backgrounds/SurfaceBackgrounds.h"
 #include "content/dusts/ModDusts.h"
+#include "content/backgrounds/BackgroundTextures.h"
 #include "experiments/csharp/NativeVisualRenderer.h"
 #include "experiments/csharp/NativeRarityGameplay.h"
+#include "experiments/csharp/ManagedGoreRuntime.h"
 #include "graphics/CSharpScreenEffects.h"
 #include "experiments/csharp/NativeContent.h"
 #include "experiments/csharp/NativeBasicItems.h"
@@ -338,7 +342,7 @@ bool compile(const std::string& root, const std::string& id,
         if (status.find("state=finished\n") != std::string::npos &&
             status.find("modId=" + id + "\n") != std::string::npos &&
             !validCompileStatus(status, id, mod)) {
-            const int expected = expectedManagedSourceTypes(mod);
+            const int expected = expectedManagedSourceTypes(mod) + std::max(0, verifiedHookModuleCount(status));
             std::string actual = "desconhecido";
             const std::string marker = "executedTypes=";
             const size_t start = status.find(marker);
@@ -863,6 +867,7 @@ void run() {
                 continue;
             }
         }
+        hasUniversalHooks = hasUniversalHooks || defaults.find("HOOK_MODULES\t") != std::string::npos;
         note(&status, "waiting-content");
         bool ready = false;
         const auto tablesStarted = std::chrono::steady_clock::now();
@@ -1332,12 +1337,15 @@ void retryWorldManagedPrefixesWhenReady() {
 }
 
 void noteAutoWorldTilesLoaded() {
+    runtime::underground::resetWorld();
+    runtime::surface::resetWorld();
     angler::invalidateWorldSession();
     std::lock_guard<std::mutex> sessionGuard(g_worldTransitionMutex);
     nativeCommandMailbox().newWorld();
     resetManagedCommandSession();
     managedSound::worldExit();
     resetNativeTileSessionState();
+    gore::worldBoundary();
     clearManagedVisualCommands();
     resetNativeVisualRenderer();
     g_visualUpdateTick.store(0, std::memory_order_relaxed);
@@ -1376,6 +1384,16 @@ void noteAutoWorldTilesLoaded() {
 void flushDeferredWorldEntry();
 
 void noteAutoGameUpdate() {
+    static unsigned backgroundRetryFrames = 0;
+    const bool pendingBackgrounds = runtime::backgrounds::pending();
+    if (!pendingBackgrounds) backgroundRetryFrames = 0;
+    if (pendingBackgrounds && (backgroundRetryFrames++ % 30 == 0)) {
+        std::string error;
+        if (!runtime::backgrounds::publish(&error)) {
+            static std::string previousError;
+            if (error != previousError) { BL_ERROR("%s", error.c_str()); previousError = error; }
+        }
+    }
     if (nativeCommandMailbox().hasCommands())
         installNativeCommandChatHooks();
     pumpNativeCommandRepliesOnGameThread();
@@ -1408,6 +1426,7 @@ void noteAutoGameUpdate() {
     pumpNativeAccessOnGameThread();
     managedSound::pump();
     localization::pumpOnGameThread();
+    gore::pumpOnGameThread();
     pumpUniversalHookInstallsOnGameThread();
     if (managedEntitySourceModsRegistered() &&
         runtime::modNpcsSettled() && runtime::modProjectilesSettled()) {
@@ -1517,6 +1536,7 @@ void noteAutoGameUpdate() {
         resetManagedCommandSession();
         managedSound::worldExit();
         clearManagedVisualCommands();
+        gore::worldBoundary();
         graphics::clearCSharpScreenEffects();
         pauseManagedScreenSceneCallbacks();
         resetNativeVisualRenderer();
@@ -1542,7 +1562,7 @@ void noteAutoGameUpdate() {
         if (managedLiveHitStatus().enabled)
             pauseManagedLiveHit();
         pauseManagedPlayerHurtBindings();
-        disableUniversalHooks();
+        pauseUniversalHooksForWorldExit();
         resetNativeAccessOnGameThread();
         pauseUniversalHookMods();
         pauseManagedEntitySourceCallbacks();
@@ -1568,6 +1588,7 @@ void noteAutoGameUpdate() {
         if (context.netMode < 0 || context.netMode > 3 ||
             context.gameMenu == 1) return;
         g_worldSessionReady.store(true, std::memory_order_release);
+        gore::worldReady();
         requestBasicItemInstanceRefresh("WorldLoaded");
         enableUniversalHooks();
         resumeUniversalHookMods();

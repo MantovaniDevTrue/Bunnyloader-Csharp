@@ -329,3 +329,16 @@ dependencies {
 
 
 
+
+// The active 15-loader work is source-only. Native library compilation and host
+// tests remain available; APK tasks fail closed while any scoped loader is missing.
+val loaderCompletionManifest = rootProject.file("docs/csharp-loader-completion-15.json")
+if (loaderCompletionManifest.exists()) {
+    val verifyLoaderCompletion by tasks.registering(Exec::class) {
+        workingDir(rootProject.projectDir)
+        commandLine("python3", "tools/ci/check_loader_delivery_gate.py")
+    }
+    tasks.configureEach {
+        if (name.startsWith("assemble") || name.matches(Regex("^package.*(Debug|Release)(AndroidTest)?$"))) dependsOn(verifyLoaderCompletion)
+    }
+}

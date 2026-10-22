@@ -47,6 +47,8 @@ internal static class TransportIntegration
         BunnyEntitySourceDispatcher.TickWorld(modSlot, 0, 30, world,
             0, 1700f, 2200f);
 
+    private static string WorldPath(int id) => "/tmp/bunny-invasion-ci-" + Environment.ProcessId + "-" + id + ".wld";
+
     public static int Main()
     {
         ExampleInvasion.WorldExit();
@@ -88,7 +90,7 @@ internal static class TransportIntegration
             ExampleInvasion.Pipeline.PendingCount == 0, "real NPC OnSpawn confirms identity");
         Check(BunnyEntitySourceDispatcher.KillNpc(mod, npcType, 1, 50) &&
             ExampleInvasion.Controller.Progress == 1, "real kill scores once");
-        Check(System.IO.File.Exists("/tmp/bunny-invasion-ci-11.wld.invasions.bl"),
+        Check(System.IO.File.Exists(WorldPath(11)+".invasions.bl"),
             "real native sidecar written immediately on NPC kill");
         Check(!BunnyEntitySourceDispatcher.KillNpc(mod, npcType, 1, 50),
             "double kill ignored");
@@ -128,7 +130,7 @@ internal static class TransportIntegration
         SetWorld(1, 13);
         Check(Tick(mod, 13) == 0 && ExampleInvasion.Pipeline.PendingCount == 0,
             "old world queued spawn discarded");
-        SetWorldRestore(1, 20, "/tmp/bunny-invasion-ci-11.wld");
+        SetWorldRestore(1, 20, WorldPath(11));
         Tick(mod, 20);
         Check(ExampleInvasion.Controller.Phase == BunnyInvasionPhase.Completed &&
             ExampleInvasion.Controller.Progress == ExampleInvasion.Controller.Definition.Goal &&
@@ -136,7 +138,7 @@ internal static class TransportIntegration
             "re-entered original world restores completion and never reuses NPC membership");
         SetWorld(0, 21);
         foreach (int id in new[] { 11, 12, 13 })
-            System.IO.File.Delete("/tmp/bunny-invasion-ci-" + id + ".wld.invasions.bl");
+            System.IO.File.Delete(WorldPath(id)+".invasions.bl");
         Console.WriteLine("Managed-to-native-to-managed invasion bridge: " + checks + " checks OK");
         return 0;
     }

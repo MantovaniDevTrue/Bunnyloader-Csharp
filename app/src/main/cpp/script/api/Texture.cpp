@@ -9,6 +9,7 @@
 #include "script/bridge/Bridge.h"
 #include "boot/Boot.h"
 #include "content/common/ContentAssets.h"
+#include "content/backgrounds/BackgroundTextures.h"
 #include "content/common/BunnyHeadIcon.h"
 #include "script/bridge/Invoke.h"
 
@@ -183,6 +184,38 @@ std::string callerModId(JSContext* ctx) {
         if (!id.empty()) return id;
     }
     return mods::currentId();
+}
+
+JSValue reserveBackgroundTexture(JSContext* ctx, int argc, JSValueConst* argv) {
+    if (argc != 3) return JS_ThrowTypeError(ctx, "reserveBackgroundTexture(modUid, relativePath, file)");
+    const char* mod = JS_ToCString(ctx, argv[0]);
+    const char* path = JS_ToCString(ctx, argv[1]);
+    const char* file = JS_ToCString(ctx, argv[2]);
+    std::string error;
+    int slot = -1;
+    if (mod && path && file && callerModId(ctx) == mod)
+        slot = runtime::backgrounds::reserve(mod, path, file, &error);
+    else error = "BackgroundTexture Stage=Reserve Result=Rejected Reason=MissingArgumentsOrModOwnershipMismatch";
+    if (mod) JS_FreeCString(ctx, mod);
+    if (path) JS_FreeCString(ctx, path);
+    if (file) JS_FreeCString(ctx, file);
+    return slot < 0 ? JS_ThrowInternalError(ctx, "%s", error.c_str()) : JS_NewInt32(ctx, slot);
+}
+JSValue publishBackgroundTextures(JSContext* ctx, int, JSValueConst*) {
+    std::string error;
+    return runtime::backgrounds::publish(&error) ? JS_UNDEFINED : JS_ThrowInternalError(ctx, "%s", error.c_str());
+}
+JSValue backgroundTextureSlot(JSContext* ctx, int argc, JSValueConst* argv) {
+    if (argc < 2) return JS_ThrowTypeError(ctx, "backgroundTextureSlot(modUid, path)");
+    const char* mod = JS_ToCString(ctx, argv[0]);
+    const char* path = JS_ToCString(ctx, argv[1]);
+    const int slot = mod && path ? runtime::backgrounds::find(mod, path, false) : -1;
+    if (mod) JS_FreeCString(ctx, mod);
+    if (path) JS_FreeCString(ctx, path);
+    return JS_NewInt32(ctx, slot);
+}
+JSValue backgroundTextureCount(JSContext* ctx, int, JSValueConst*) {
+    return JS_NewInt32(ctx, runtime::backgrounds::totalSlots());
 }
 
 JSValue loadTexture(JSContext* ctx, int argc, JSValueConst* argv) {

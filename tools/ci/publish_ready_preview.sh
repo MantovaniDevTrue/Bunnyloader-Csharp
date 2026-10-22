@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
+if [ -f docs/csharp-loader-completion-15.json ]; then
+  python3 tools/ci/check_loader_delivery_gate.py
+fi
 : "${PRIVATE_INPUTS_REPO:?}" "${GITHUB_SHA:?}" "${GITHUB_RUN_ID:?}"
 test "$(gh repo view "$PRIVATE_INPUTS_REPO" --json isPrivate --jq .isPrivate)" = true
 APK=app/build/outputs/apk/debug/app-debug.apk

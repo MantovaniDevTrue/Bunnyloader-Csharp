@@ -1,5 +1,6 @@
 #pragma once
 #include "il2cpp/Api.h"
+#include <cstddef>
 
 namespace bl::hook {
 
@@ -8,6 +9,9 @@ namespace bl::hook {
 // outro elo entra na cadeia) — leia-o a cada chamada, nunca guarde uma copia.
 bool install(void* address, void* replacement, void** original);
 bool install(const MethodInfo* method, void* replacement, void** original);
+// Validates original instructions atomically with installation. Later links
+// validate against the proof retained before the first patch, never patched code.
+bool installVerified(void* address,const void* expected,size_t length,void* replacement,void** original);
 
 // IMPORTANTE: todo método hookado do IL2CPP recebe um `const MethodInfo*` como
 // ÚLTIMO argumento. A assinatura da função de substituição precisa refletir isso.
