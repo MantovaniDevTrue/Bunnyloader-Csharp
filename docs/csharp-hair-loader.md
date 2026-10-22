@@ -46,10 +46,15 @@ Base técnica: `ModHair` do tModLoader (API pública) e `HairLoader.js` /
 - `HairManifestSession.Prepare()`: reconhece subclasses concretas a partir
   dos tipos do assembly C# compilado, ordena pelo nome, recebe um primeiro
   ID reservado pelo host e desfaz todas as instâncias em falhas.
-- `CompiledHairProbe.Export()`: a ponte preparada para o worker Roslyn/MonoVM,
-  escrita no `BunnySourceCompiler`, exige UID e diretório reais do mod,
-  confere arquivos e bloqueia symlinks; remove sidecars antigos de execuções
-  que falharam. **Ainda não é invocada pelo ciclo de produção**.
+- `CompiledHairProbe.ExportForNative()`: exportador gerenciado para
+  `source-hair-<UID>.manifest`, no diretório privado do worker. Confere
+  `modRoot/content/Content/Hairs/*.png` (mesmo layout do `SourceLoader`),
+  arquivos ausentes e symlinks; invalida resultados antigos se falhar.
+  `NativeHairHandoff.{h,cpp}` abre o arquivo via `openat/O_NOFOLLOW`,
+  recusa tamanho maior que 512 KiB e só aceita UID válido. O CI gera
+  manifestos reais em C# e os importa em `NativeHairStartup` no C++,
+  validando identidade, textura principal/_Alt, gênero e disponibilidade.
+  **O worker MonoVM de produção ainda não invoca o exportador.**
 - `ExportNativeManifest()` + `NativeHairManifest.h`: protocolo V1
   determinístico de oito campos por cabelo, com classe/UID, caminho PNG,
   gênero e disponibilidade na criação; o parser C++ recusa registros
@@ -74,14 +79,13 @@ Base técnica: `ModHair` do tModLoader (API pública) e `HairLoader.js` /
   `Examples/Hairs/ExampleHair.cs` além dos seis espelhos da fixture e
   confirma que o cabelo **não** integra `Playable/`.
 
-- `NativeHairStartup.{h,cpp}`: ponte segura, ainda desacoplada do
-  `SourceLoader`, que usa `ReadNativeHairOccupiedSlots` da thread IL2CPP
-  em `Begin` e novamente em `Seal`, após `CommitManifest`. O caller só
-  obtém `ReadyDescriptors()` quando o lote inteiro foi confirmado; sem
-  texture tables, callback ou rechecagem dos slots, não publica registros.
-  A classe não instala hooks sozinha e não pode ser usada fora da game thread
-  real sem fornecer um leitor de slots compatível. Os testes host simulam
-  a sequência snapshot → reserva → manifesto MonoVM → Seal → Reset.
+- `NativeHairStartup.{h,cpp}`: cria o registro somente após duas
+  verificações de ocupação, em `Begin` e `Seal`. A fábrica
+  `MakeNativeHairStartupForWorker()` usa `NativeHairSlotMailbox`
+  para obter snapshots da **thread de atualização do Terraria**, não
+  diretamente do worker MonoVM. Sem todas as validações,
+  `ReadyDescriptors()` continua nulo. Ainda não é chamado pelo
+  `SourceLoader` para instalar conteúdo jogável.
 - `NativeHairSlotProbe.{h,cpp}`: consulta na game thread as tabelas
   reais `TextureAssets.PlayerHair` e `PlayerHairAlt` e copia apenas
   bits de ocupação para `TypeReservations`. Quando o layout ou as
@@ -89,7 +93,20 @@ Base técnica: `ModHair` do tModLoader (API pública) e `HairLoader.js` /
   (fail-closed). Repetir a consulta antes de `Seal` evita que um cabelo
   JS registrado enquanto Roslyn compila seja sobrescrito. Os testes host
   incluem tabelas indisponíveis, slots JS ocupados e corrida de registro.
-  **Esta consulta ainda não está ligada ao loop nativo de produção.**
+  `noteAutoGameUpdate()` agora atende pedidos pela mailbox; em
+  atualizações sem pedidos não consulta o IL2CPP.
+- `NativeHairSlotMailbox.{h,cpp}`: requisição com timeout
+  limitado, sem polling ativo no worker. A thread do jogo só chama o
+  probe quando há pedido (checagem atômica O(1) em frames ociosos).
+  `noteAutoWorldTilesLoaded()` e a saída do mundo cancelam pedidos;
+  cada leitura tem um número de geração, impedindo que um resultado
+  iniciado antes do timeout seja aplicado a uma requisição posterior.
+  O CI cobre 10.000 frames ociosos, timeout, cancelamento, duplicação,
+  corrida entre gerações e o caminho fábrica→worker→game thread.
+- `AutoSourceRuntime` também recusa qualquer `SourceModStatus.hairs > 0`
+  antes de cache, Roslyn e aplicação dos defaults. Essa proteção se soma
+  ao bloqueio antecipado no `SourceLoader` e à verificação da
+  assembly compilada no MonoVM.
 - `NativeHairStaging.h`: coordena o contrato pré-IL2CPP sem ativar
   os hooks. `Begin` reserva um bloco por mod após observar slots vanilla/JS,
   `CommitManifest` confere UID, contagem e tipos retornados do MonoVM com
