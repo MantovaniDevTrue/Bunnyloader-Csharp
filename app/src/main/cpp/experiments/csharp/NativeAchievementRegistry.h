@@ -39,6 +39,9 @@ bool replaceNativeAchievementObjects(
 // Chamado apenas na thread Terraria; ponteiro permanece enraizado até unload.
 Il2CppObject* nativeAchievementIconAsset(const Il2CppObject* achievement);
 
+// After the achievement menu has rebuilt its native cache, old GC roots may be released.
+void releaseRetiredNativeAchievements();
+
 NativeAchievementRegistryStatus nativeAchievementRegistryStatus();
 
 }
