@@ -236,7 +236,12 @@ try {
    .Select(t=>new{type=t,domain=domains.FirstOrDefault(p=>p.Key.IsAssignableFrom(t)).Value})
    .Where(x=>x.domain is not null).Select(x=>x.domain+":"+x.type.Name).ToHashSet(StringComparer.Ordinal);
   if(identities.Count==0)throw new Exception("full package has no content");
-  Equal(identities.Count,CompiledAssemblyProbe.Verify(output,diag));
+  int verified=CompiledAssemblyProbe.Verify(output,diag);
+  if(verified<0) {
+   string diagnostic=File.Exists(diag)?File.ReadAllText(diag):"missing diagnostics";
+   throw new Exception("Full-package compiled probe failed: "+diagnostic[^Math.Min(4500,diagnostic.Length)..]);
+  }
+  Equal(identities.Count,verified);
   var actual=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt")).Skip(1)
    .Where(l=>l.Length>0&&!l.StartsWith("RECIPES\t",StringComparison.Ordinal)&&!l.StartsWith("NATIVE_",StringComparison.Ordinal)&&!l.StartsWith("HOLDOUT\t",StringComparison.Ordinal)&&!l.StartsWith("USE_SOUND\t",StringComparison.Ordinal)).Select(l=>l.Split('\t')).Select(f=>
     (f[0] is "WEAPON" or "ACCESSORY" or "POTION"?"ITEM":f[0])+":"+f[1]).ToArray();
