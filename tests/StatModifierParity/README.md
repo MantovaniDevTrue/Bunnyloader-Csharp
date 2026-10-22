@@ -14,7 +14,7 @@ acesso à memória do Terraria: ela calcula valores de forma pura e determiníst
   construtor com parâmetros opcionais idênticos à referência.
 - Exemplo C# real compilado nos testes:
   `samples/ExampleModCSharp/Playable/content/Common/Recipes/09_StatModifier.cs`.
-- Testes de paridade do cálculo e de assinatura por `dotnet run`:
+- 18 testes de paridade do cálculo, exemplos e assinaturas por `dotnet run`:
 
 ```sh
 dotnet run --project tests/StatModifierParity/StatModifierParity.csproj -c Release
@@ -37,8 +37,8 @@ A identidade deve ser `new StatModifier()` ou `StatModifier.Default`.
 ## Fonte e licença
 
 Implementação matemática adaptada dos fontes do tModLoader:
-- [StatModifier.cs](https://github.com/tModLoader/tModLoader/blob/stable/patches/tModLoader/Terraria/ModLoader/StatModifier.cs)
-- [StatInheritanceData.cs](https://github.com/tModLoader/tModLoader/blob/stable/patches/tModLoader/Terraria/ModLoader/StatInheritanceData.cs)
+- [StatModifier.cs](https://github.com/tModLoader/tModLoader/blob/1.4.5/patches/tModLoader/Terraria/ModLoader/StatModifier.cs)
+- [StatInheritanceData.cs](https://github.com/tModLoader/tModLoader/blob/1.4.5/patches/tModLoader/Terraria/ModLoader/StatInheritanceData.cs)
 
 O código original é distribuído sob a licença MIT do projeto tModLoader.
 Preservar a atribuição e a licença nas distribuições do SDK.
