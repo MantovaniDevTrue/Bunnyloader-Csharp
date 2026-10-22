@@ -26,9 +26,11 @@ Base técnica: `ModHair` do tModLoader (API pública) e `HairLoader.js` /
   completa (UI, save, rede, unload) não estiver conectada.
 - Testes C# sem NuGet, smoke do parser C++ e GitHub Actions apenas de fonte,
   sem Gradle/Android/APK.
-- `NativeHairRegistry.h`: pré-registro atômico de lotes, IDs por sessão,
-  recuperação por nome estável, limites, checagem de arquivos, fallback _Alt,
-  chave de personagem versão H1 e pacote de aparência usando UID/classe.
+- `NativeHairRegistry.h`: registro atômico de lotes e faixas não
+  consecutivas por `RegisterAt`, IDs por sessão, nomes estáveis, validação
+  de recursos, fallback _Alt, chave de personagem H1 e protocolo de
+  aparência usando UID/classe. `NativeHairManifest.h` aceita o primeiro
+  ID reservado para não recompactar cabelos de mods distintos.
 - O servidor só aceita aparência do próprio remetente; clientes só aceitam
   atualização vinda do servidor (índice 256). O cliente converte UID/classe
   para seu próprio tipo local, sem confiar no número recebido.
@@ -82,9 +84,13 @@ Base técnica: `ModHair` do tModLoader (API pública) e `HairLoader.js` /
 ## Contrato que ainda precisa estar completo antes de APK
 
 1. Ligar `CompiledHairProbe.Export` ao worker MonoVM e ao
-   `AutoSourceRuntime`; reservar a faixa global de IDs entre vários mods,
-   passar o manifesto tipado ao `NativeHairManifest` e remover o bloqueio
-   do `SourceLoader` **somente depois** de validar todo o ciclo.
+   `AutoSourceRuntime`; usar `TypeReservations` para reservar cada
+   faixa global **depois** do loader JS e importar manifestos via
+   `ParseAndRegisterManifest(..., firstReservedType)` em `Registry`.
+   A preservação de lacunas e a rejeição de colisões já possuem testes
+   host, mas ainda faltam o coordenador de startup e o hook do jogo.
+   Remover o bloqueio do `SourceLoader` **somente depois** de validar
+   o ciclo completo.
 2. Acionar o instalador de texturas na thread IL2CPP, com resolução real do
    diretório do mod e instalação antes da UI. Validar retorno de erro, unload,
    reinstalação e falhas de texture load no Android. O instalador C++ está
@@ -161,7 +167,9 @@ serialização de manifesto, o núcleo nativo isolado, a proteção de
 carregamento e a sintaxe C++ dos hooks. Nenhum APK,
 bmod ou pacote jogável deve ser publicado a partir desta etapa.
 O job Android de `build-bunny-csharp-88-7.yml` recusa explicitamente
-esta branch. A PR #134 permanece Draft.
+esta branch. A PR #134 permanece Draft. Testes de host e compilação de
+sintaxe **não** demonstram que hooks nativos tenham sido instalados ou
+executados no Android.
 
 Documentação da referência:
 https://docs.tmodloader.net/docs/stable/class_mod_hair.html
