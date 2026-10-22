@@ -1,0 +1,31 @@
+name: CSharp Native ScreenFx
+
+on:
+  pull_request:
+    paths:
+      - 'Split/Bunny-Loader/app/src/main/cpp/graphics/**'
+      - 'Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/SourceLoader.*'
+      - 'Split/Bunny-Loader/tests/*screenfx*'
+      - 'Split/Bunny-Loader/tests/screenfx_stubs/**'
+      - 'Split/Bunny-Loader/tests/screenfx_probe/**'
+      - 'Split/Bunny-Loader/samples/ScreenFxProbeCSharp/**'
+      - '.github/workflows/check-csharp-screenfx-native.yml'
+  workflow_dispatch:
+
+jobs:
+  screenfx-native:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile and run native ScreenFx tests
+        run: bash Split/Bunny-Loader/tests/screenfx_native_test.sh
+
+  screenfx-managed:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Execute ScreenFx MonoVM contract probe
+        run: dotnet run --project Split/Bunny-Loader/tests/screenfx_probe/ScreenFxProbe.Tests.csproj -c Release

@@ -1,4 +1,5 @@
 #include "graphics/RenderHook.h"
+#include "graphics/FrameComposer.h"
 #include "graphics/GlHooks.h"
 #include "graphics/EffectRenderer.h"
 #include "core/Log.h"
@@ -11,6 +12,7 @@
 #include <deque>
 #include <cstring>
 #include <initializer_list>
+#include <map>
 #include <mutex>
 
 namespace bl::graphics {
@@ -36,6 +38,7 @@ constexpr size_t kMaxQueued = 4;
 std::mutex g_queueMutex;
 EffectFrame g_pending;
 bool g_pendingSet = false;
+std::map<std::string, EffectFrame> g_modPending;
 std::deque<EffectFrame> g_worldQueue, g_screenQueue;
 
 std::mutex g_statsMutex;
@@ -188,11 +191,18 @@ void push(std::deque<EffectFrame>& queue, EffectFrame&& frame) {
 // proximo quadro, nada desenha.
 void splitPending(EffectFrame& world, EffectFrame& screen) {
     EffectFrame pending;
+    std::map<std::string, EffectFrame> contributions;
     {
         std::lock_guard<std::mutex> lock(g_queueMutex);
-        if (!g_pendingSet) return;
-        std::swap(pending, g_pending);
+        if (!g_pendingSet && g_modPending.empty()) return;
+        if (g_pendingSet) std::swap(pending, g_pending);
         g_pendingSet = false;
+        contributions.swap(g_modPending);
+    }
+    for (auto& [modId, frame] : contributions) {
+        std::string error;
+        if (!appendNamespacedFrame(pending, std::move(frame), modId, &error))
+            BL_WARN("screen effects: %s rejected: %s", modId.c_str(), error.c_str());
     }
     for (EffectDraw& e : pending.draws) {
         (e.layer == EffectLayer::Screen ? screen : world).draws.push_back(std::move(e));
@@ -297,6 +307,19 @@ void submitEffects(EffectFrame&& frame) {
     std::lock_guard<std::mutex> lock(g_queueMutex);
     g_pending = std::move(frame);
     g_pendingSet = true;
+}
+
+bool submitModEffects(const std::string& modId, EffectFrame&& frame) {
+    if (modId.empty() || modId.size() > 128 || modId.find('/') != std::string::npos ||
+        modId.find('\\') != std::string::npos || modId.find("..") != std::string::npos)
+        return false;
+    if (frame.draws.size() > FrameComposeLimits::MaxDraws ||
+        frame.targets.size() > FrameComposeLimits::MaxTargets) return false;
+    if (!frame.empty() && !g_marker.tried) setupMarker();
+    std::lock_guard<std::mutex> lock(g_queueMutex);
+    if (frame.empty() && !frame.history) g_modPending.erase(modId);
+    else g_modPending[modId] = std::move(frame);
+    return true;
 }
 
 bool takeWorldEffects(EffectFrame& out) {

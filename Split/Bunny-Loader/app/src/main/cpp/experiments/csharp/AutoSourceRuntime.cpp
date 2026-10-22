@@ -2,6 +2,7 @@
 #include "experiments/csharp/AutoSourceCache.h"
 #include "experiments/csharp/AutoSourceRuntime.h"
 #include "experiments/csharp/NativeVisualRenderer.h"
+#include "graphics/CSharpScreenEffects.h"
 #include "experiments/csharp/NativeContent.h"
 #include "experiments/csharp/NativeBasicItems.h"
 #include "experiments/csharp/NativeArmorPolicies.h"
@@ -1186,6 +1187,7 @@ void noteAutoGameUpdate() {
         return;
     }
     if (g_worldSessionReady.load(std::memory_order_acquire)) {
+        graphics::pumpCSharpScreenEffects();
         const uint64_t tick = g_visualUpdateTick.fetch_add(1, std::memory_order_relaxed) + 1;
         if (tick % 12 == 0) {
             static const std::string sdk = folderOfCheckpoint() + "BunnySourceSdk.dll";

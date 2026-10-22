@@ -116,12 +116,15 @@ public static class CompiledAssemblyProbe
             var prefixTypes = contentTypes
                 .Where(type => IsContentType(type, "BunnyPrefix"))
                 .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
+            var screenEffectTypes = contentTypes
+                .Where(type => IsContentType(type, "BunnyScreenEffect"))
+                .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
             if (tileTypes.Length > 4096 || prefixTypes.Length > 4096 || npcTypes.Length > 4096 || accessoryTypes.Length > 4096 || playerTypes.Length > 4096 ||
                 projectileTypes.Length > 4096 ||
                 weaponTypes.Length > 4096 || basicItemTypes.Length > 4096 ||
-                buffTypes.Length > 4096 || potionTypes.Length > 4096)
+                buffTypes.Length > 4096 || potionTypes.Length > 4096 || screenEffectTypes.Length > 4096)
                 throw new InvalidOperationException("C# content class count out of bounds");
-            if (tileTypes.Length + basicItemTypes.Length + projectileTypes.Length + weaponTypes.Length + buffTypes.Length + potionTypes.Length + accessoryTypes.Length + playerTypes.Length + npcTypes.Length + prefixTypes.Length == 0)
+            if (tileTypes.Length + basicItemTypes.Length + projectileTypes.Length + weaponTypes.Length + buffTypes.Length + potionTypes.Length + accessoryTypes.Length + playerTypes.Length + npcTypes.Length + prefixTypes.Length + screenEffectTypes.Length == 0)
                 throw new InvalidOperationException("C# assembly has no supported content types");
             bool fixture = projectileTypes.Any(t => t.FullName == "SourceCSharpMod.SourceBolt") &&
                 weaponTypes.Any(t => t.FullName == "SourceCSharpMod.SourceWand");
@@ -141,6 +144,13 @@ public static class CompiledAssemblyProbe
             object[] players = playerTypes.Select(CreateContent).ToArray();
             object[] npcs = npcTypes.Select(CreateContent).ToArray();
             object[] prefixes = prefixTypes.Select(CreateContent).ToArray();
+            object[] screenEffects = screenEffectTypes.Select(CreateContent).ToArray();
+            foreach (object effect in screenEffects)
+            {
+                string shader = (string)effect.GetType().GetProperty("ShaderFile")!.GetValue(effect)!;
+                if (string.IsNullOrWhiteSpace(shader))
+                    throw new InvalidOperationException(effect.GetType().FullName + ": ShaderFile missing");
+            }
             WriteRuntimeDefaults(projectiles, weapons, buffs, potions,
                 accessories, players, npcs, prefixes, basicItems, tiles, diagnosticsPath);
             WriteProjectileMotionPolicies(assembly, projectileTypes, diagnosticsPath);
@@ -154,16 +164,17 @@ public static class CompiledAssemblyProbe
                 WriteKillPolicy(primaryProjectile!, diagnosticsPath);
             }
             File.AppendAllText(diagnosticsPath,
-                "\nASSEMBLY_EXEC_OK classes=" + (tiles.Length + projectiles.Length + weapons.Length + buffs.Length + potions.Length + accessories.Length + players.Length + npcs.Length + prefixes.Length + basicItems.Length) +
+                "\nASSEMBLY_EXEC_OK classes=" + (tiles.Length + projectiles.Length + weapons.Length + buffs.Length + potions.Length + accessories.Length + players.Length + npcs.Length + prefixes.Length + basicItems.Length + screenEffects.Length) +
                 " projectiles=" + projectiles.Length + " weapons=" + weapons.Length +
                 " buffs=" + buffs.Length + " potions=" + potions.Length +
                 " accessories=" + accessories.Length + " players=" + players.Length +
                 " npcs=" + npcs.Length + " tiles=" + tiles.Length + " prefixes=" + prefixes.Length +
+                " screenEffects=" + screenEffects.Length +
                 (fixture
                     ? " projectile=SourceBolt width=10 weapon=SourceWand damage=22 shoot=SourceBolt"
                     : " policy=generic-managed-defaults"));
             return projectiles.Length + weapons.Length + buffs.Length + potions.Length +
-                accessories.Length + players.Length + npcs.Length + prefixes.Length + basicItems.Length + tiles.Length;
+                accessories.Length + players.Length + npcs.Length + prefixes.Length + basicItems.Length + tiles.Length + screenEffects.Length;
         }
         catch (Exception exception)
         {

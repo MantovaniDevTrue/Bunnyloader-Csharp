@@ -1,0 +1,13 @@
+{
+  "uid": "22e1e022-3f15-4b58-bb58-09dcbaa43edb",
+  "id": "screenfxprobecsharp",
+  "name": "Screen FX Probe CSharp",
+  "version": "0.1.0",
+  "authors": [{"name": "Bunny Loader C#", "role": "Testes da API"}],
+  "category": "Example",
+  "summary": "Prova visual de shaders nativos em C#, sem scripts JavaScript",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.cs",
+  "dependencies": []
+}
