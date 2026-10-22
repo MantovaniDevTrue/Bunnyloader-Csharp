@@ -10,14 +10,21 @@
 using namespace bl::csharp::hair;
 
 namespace bl::csharp {
+int mockClassCount = 2;
+int inspected = 0;
+int exported = 0;
+int lastReserved = -1;
 ManagedHairManifestResult inspectManagedHairClassCount(
     const std::string&, const std::string&, const std::string&) {
-    return {0, "mock-available", {}};
+    ++inspected;
+    return {mockClassCount, "hair-count-verified", {}};
 }
 ManagedHairManifestResult exportManagedHairManifest(
     const std::string&, const std::string&, const std::string&,
-    const std::string&, const std::string&, const std::string&, int) {
-    return {0, "mock-available", {}};
+    const std::string&, const std::string&, const std::string&, int first) {
+    ++exported;
+    lastReserved = first;
+    return {mockClassCount, "hair-manifest-prepared", {}};
 }
 }
 
@@ -110,6 +117,29 @@ int main(int argc, char** argv) {
         &startup, "examplemodcsharp", 2, argv[1], exported, assetExists);
     check(recovered.ready && recovered.firstType == 300,
           "pipeline pode recuperar sem reservar IDs antigos após falha");
+
+    startup.Reset();
+    const auto production = PrepareCompiledHairModOnWorker(
+        &startup, "/private/probe.dll", "/private/BunnySourceCompiler.dll",
+        "/private/examplemodcsharp.dll", "examplemodcsharp",
+        "/private/mod", argv[1], assetExists);
+    check(production.ready && production.firstType == 300 &&
+          bl::csharp::inspected == 1 &&
+          bl::csharp::exported == 1 &&
+          bl::csharp::lastReserved == 300,
+          "endpoint nativo completo chama contagem MonoVM antes do export");
+
+    startup.Reset();
+    bl::csharp::mockClassCount = 0;
+    const int exportsBefore = bl::csharp::exported;
+    const auto empty = PrepareCompiledHairModOnWorker(
+        &startup, "/private/probe.dll", "/private/BunnySourceCompiler.dll",
+        "/private/examplemodcsharp.dll", "examplemodcsharp",
+        "/private/mod", argv[1], assetExists);
+    check(!empty.ready && empty.phase == "hair-worker-class-inspection-failed" &&
+          bl::csharp::exported == exportsBefore &&
+          !startup.ReadyDescriptors(),
+          "sem ModHair concreto não reserva nem exporta o pacote");
 
     std::cout << "HAIR_MONOVM_WORKER_NATIVE_PIPELINE_PASS NO_APK\n";
 }
