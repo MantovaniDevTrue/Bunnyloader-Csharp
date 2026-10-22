@@ -23,7 +23,9 @@ class ReleaseGateTests(unittest.TestCase):
         self.rows = []
         for index in range(BASELINE_JS_COUNT):
             relative = f"Content/Example{index:03}.js"
-            (content / f"Example{index:03}.js").write_text("export class Example {}\n")
+            body = b"export class Example {}\n"
+            (content / f"Example{index:03}.js").write_bytes(body)
+            blob = hashlib.sha1(b"blob " + str(len(body)).encode() + b"\x00" + body).hexdigest()
             self.rows.append({
                 "id": relative,
                 "javaScript": {"upstreamBlob": blob},
