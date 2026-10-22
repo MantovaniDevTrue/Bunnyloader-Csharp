@@ -35,6 +35,38 @@ public static class CompiledHairProbe
     }
 
     /// <summary>
+    /// Fase sem instanciar nenhum ModHair: conta tipos concretos, incluindo
+    /// herança indireta, antes de o host reservar slots no Terraria.
+    /// </summary>
+    public static int CountFromFile(string compiledAssemblyPath)
+    {
+        Assembly loaded = LoadCompiledAssembly(compiledAssemblyPath);
+        Type[] hairs = loaded.GetTypes()
+            .Where(type => type.IsClass && !type.IsAbstract &&
+                typeof(ModHair).IsAssignableFrom(type)).ToArray();
+        if (hairs.Length > 2048)
+            throw new InvalidOperationException("Limite de cabelos C# excedido.");
+        if (hairs.Any(type => type.ContainsGenericParameters ||
+              type.GetConstructor(Type.EmptyTypes) is null))
+            throw new InvalidOperationException(
+                "ModHair requer classe concreta e construtor publico vazio.");
+        return hairs.Length;
+    }
+
+    private static Assembly LoadCompiledAssembly(string compiledAssemblyPath)
+    {
+        if (string.IsNullOrWhiteSpace(compiledAssemblyPath))
+            throw new ArgumentException("Assembly C# ausente.", nameof(compiledAssemblyPath));
+        string path = Path.GetFullPath(compiledAssemblyPath);
+        var file = new FileInfo(path);
+        if (!file.Exists || file.LinkTarget is not null ||
+            file.Length < 1 || file.Length > 32 * 1024 * 1024 ||
+            !path.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Assembly de HairLoader invalida.");
+        return Assembly.Load(File.ReadAllBytes(path));
+    }
+
+    /// <summary>
     /// Ponto de entrada do MonoVM nativo após Roslyn emitir uma assembly.
     /// O UID e o primeiro ID devem vir do host, nunca de código de mod.
     /// O resultado é apenas a quantidade de descritores preparados.
@@ -43,17 +75,7 @@ public static class CompiledHairProbe
         string compiledAssemblyPath, string modUid, string modRoot,
         string privateWorkDirectory, int reservedFirstHairType)
     {
-        if (string.IsNullOrWhiteSpace(compiledAssemblyPath))
-            throw new ArgumentException("Assembly C# ausente.", nameof(compiledAssemblyPath));
-
-        string path = Path.GetFullPath(compiledAssemblyPath);
-        var file = new FileInfo(path);
-        if (!file.Exists || file.LinkTarget is not null ||
-            file.Length < 1 || file.Length > 32 * 1024 * 1024 ||
-            !path.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException("Assembly de HairLoader inválida.");
-
-        Assembly loaded = Assembly.Load(File.ReadAllBytes(path));
+        Assembly loaded = LoadCompiledAssembly(compiledAssemblyPath);
         return ExportForNative(loaded, modUid, modRoot, privateWorkDirectory,
                                reservedFirstHairType).Count;
     }
