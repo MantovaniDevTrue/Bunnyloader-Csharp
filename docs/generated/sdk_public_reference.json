@@ -3374,6 +3374,48 @@
       ]
     },
     {
+      "name": "BunnyLoader.Source.BunnySceneEffect",
+      "kind": "abstract class",
+      "baseType": "BunnyLoader.Source.BunnyHookModule",
+      "constructors": [],
+      "properties": [
+        "BunnyBackgroundPriority Priority { get; }",
+        "Type SurfaceBackgroundStyle { get; }",
+        "Type UndergroundBackgroundStyle { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "Double GetWeight(BunnyNativeObject player)",
+          "execution": "worker_sync_scene_effect"
+        },
+        {
+          "signature": "bool IsSceneEffectActive(BunnyNativeObject player)",
+          "execution": "worker_sync_scene_effect"
+        },
+        {
+          "signature": "string DiagnosticStatus()",
+          "execution": "managed_owned_registration"
+        },
+        {
+          "signature": "void Load(BunnyHookScope hooks)",
+          "execution": "managed_owned_registration"
+        },
+        {
+          "signature": "void SetStaticDefaults()",
+          "execution": "managed_owned_registration"
+        },
+        {
+          "signature": "void SpecialVisuals(BunnyNativeObject player, bool isActive)",
+          "execution": "worker_sync_scene_effect"
+        },
+        {
+          "signature": "void Unload()",
+          "execution": "managed_owned_registration"
+        }
+      ]
+    },
+    {
       "name": "BunnyLoader.Source.BunnyScreenEffect",
       "kind": "abstract class",
       "baseType": "System.Object",

@@ -1813,6 +1813,26 @@ BunnyRectangle(int x, int y, int width, int height)
 | --- | --- |
 | `bool Contains(int x, int y)` | managed_helper |
 
+## BunnyLoader.Source.BunnySceneEffect
+
+abstract class; base: `BunnyLoader.Source.BunnyHookModule`.
+
+```csharp
+BunnyBackgroundPriority Priority { get; }
+Type SurfaceBackgroundStyle { get; }
+Type UndergroundBackgroundStyle { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `Double GetWeight(BunnyNativeObject player)` | worker_sync_scene_effect |
+| `bool IsSceneEffectActive(BunnyNativeObject player)` | worker_sync_scene_effect |
+| `string DiagnosticStatus()` | managed_owned_registration |
+| `void Load(BunnyHookScope hooks)` | managed_owned_registration |
+| `void SetStaticDefaults()` | managed_owned_registration |
+| `void SpecialVisuals(BunnyNativeObject player, bool isActive)` | worker_sync_scene_effect |
+| `void Unload()` | managed_owned_registration |
+
 ## BunnyLoader.Source.BunnyScreenEffect
 
 abstract class; base: `System.Object`.
