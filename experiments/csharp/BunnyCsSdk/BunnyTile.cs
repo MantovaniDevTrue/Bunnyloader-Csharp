@@ -30,7 +30,9 @@ public enum BunnyTileFlags {
 
 public enum BunnyTileShape {
     Single = 0,
-    Style2x1 = 1
+    Style2x1 = 1,
+    /// <summary>Bandeira de inimigo pendurada em um bloco, com tres celulas verticais.</summary>
+    HangingBanner1x3 = 2
 }
 
 public abstract class BunnyTile {
