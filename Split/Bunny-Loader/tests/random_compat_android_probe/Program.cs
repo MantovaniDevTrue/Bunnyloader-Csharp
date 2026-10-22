@@ -1,6 +1,6 @@
-using ExampleModCSharp;
+using RandomCompatSmokeCSharp;
 
-var player = new ExampleRandomCompatProbePlayer();
+var player = new RandomCompatProbePlayer();
 player.SetDefaults();
 player.UpdateEquips(false);
 const string expected = "Bunny C# Random Compat: PASS (seed/weights/bool/float/vector/list)";
