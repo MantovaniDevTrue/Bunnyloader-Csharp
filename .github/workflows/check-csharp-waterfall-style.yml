@@ -1,0 +1,33 @@
+name: CSharp WaterfallStyle source verification (NO APK)
+
+on:
+  push:
+    paths:
+      - 'experiments/csharp/BunnyCsSdk/**'
+      - 'tests/csharp_waterfall/**'
+      - 'samples/ExampleModCSharp/Playable/content/Content/Biomes/**'
+      - '.github/workflows/check-csharp-waterfall-style.yml'
+  pull_request:
+    paths:
+      - 'experiments/csharp/BunnyCsSdk/**'
+      - 'tests/csharp_waterfall/**'
+      - 'samples/ExampleModCSharp/Playable/content/Content/Biomes/**'
+      - '.github/workflows/check-csharp-waterfall-style.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  managed-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Build SDK and ExampleMod waterfall
+        run: dotnet build tests/csharp_waterfall/CSharpWaterfallTests.csproj -c Release --nologo -warnaserror
+      - name: Run registration, colors, lighting, unload and safety checks
+        run: dotnet run --project tests/csharp_waterfall/CSharpWaterfallTests.csproj -c Release --no-build
