@@ -103,6 +103,8 @@ jobs:
             tests/commands/native_command_clock_test.cpp \
             tests/commands/native_fasttrack_command_class_count.cpp \
             tests/commands/native_mailbox_test.cpp \
+            tests/commands/native_command_manifest_test.cpp \
+            tests/commands/native_command_result_test.cpp \
             tests/csharp_gore_catalog_test.cpp; do
             if test -f "$test"; then
               echo "Building $test"
@@ -115,3 +117,8 @@ jobs:
             app/src/main/cpp/experiments/csharp/SourceParser.cpp \
             -o /tmp/native_command_source_parser_test
           /tmp/native_command_source_parser_test
+          g++ -std=c++20 -O1 -Wall -Wextra -Werror -Iapp/src/main/cpp \
+            tests/csharp_gore_discovery_test.cpp \
+            app/src/main/cpp/experiments/csharp/ManagedGoreDiscovery.cpp \
+            -o /tmp/native_gore_discovery_test
+          /tmp/native_gore_discovery_test
