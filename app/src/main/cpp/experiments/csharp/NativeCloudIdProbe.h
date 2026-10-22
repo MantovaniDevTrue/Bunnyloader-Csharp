@@ -13,4 +13,8 @@ NativeCloudIdPlan probeNativeCloudIdPlan(int cloudCount,
                                         bool jsReadySetupFinished,
                                         bool mobileLoadMasksFinished);
 
+// Production preflight uses the actual post-JS Ready content hook and probes
+// the native mobile mask array, rather than trusting caller-provided flags.
+NativeCloudIdPlan probeNativeCloudIdPlanAtReady(int cloudCount);
+
 } // namespace bl::csharp
