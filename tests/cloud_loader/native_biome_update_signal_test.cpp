@@ -26,6 +26,8 @@ int main() {
         });
     for (auto& worker : producers) worker.join();
     assert(signal.takePending() == 64);
+    assert(signal.takeOverflow());
+    assert(!signal.takeOverflow());
     signal.noteLocalPlayerUpdate();
     assert(signal.takePending() == 1);
 
