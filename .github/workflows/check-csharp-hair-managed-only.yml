@@ -21,6 +21,7 @@ on:
       - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairManifest.h"
       - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairReservation.h"
       - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairSaveState.h"
+      - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairSaveSession.h"
       - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairSidecar.*"
       - ".github/workflows/check-csharp-hair-managed-only.yml"
   workflow_dispatch:
