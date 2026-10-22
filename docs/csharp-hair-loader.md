@@ -10,7 +10,7 @@ Base técnica: `ModHair` do tModLoader (API pública) e `HairLoader.js` /
 
 - `ModHair` e alias `BunnyHair`, com nomes próximos do tModLoader:
   `Type`, `Texture`, `AltTexture`, `AvailableDuringCharacterCreation`,
-  `RandomizedCharacterCreationGender`, `SetStaticDefaults`,
+  `RandomizedCharacterCreationGender`, `AutoStaticDefaults`, `SetStaticDefaults`,
   `GetUnlockConditions`.
 - `Condition` tipada em C#: predicado testável e reavaliado quando se consulta
   a lista do Stylist, sem guardar um resultado que possa ficar obsoleto.
