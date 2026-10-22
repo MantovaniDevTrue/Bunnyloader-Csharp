@@ -2,6 +2,7 @@
 #include "content/dusts/ModDusts.h"
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
+#include "il2cpp/Signature.h"
 #include "il2cpp/GuardedCall.h"
 #include "core/Log.h"
 #include <cmath>
@@ -19,6 +20,7 @@ uint64_t session = 0;
 bool ready = false;
 bool firstEmitReported = false;
 bool firstEmitRejected = false;
+const char* nativeResolutionFailure = "NotAttempted";
 bool valid(const char* text, size_t limit) {
     if (!text) return false;
     const size_t size = strnlen(text, limit + 1);
@@ -51,7 +53,10 @@ bool resolve() {
     auto* main=il2cpp::findClass({"Terraria","Main",{}});
     auto* player=il2cpp::findClass({"Terraria","Player",{}});
     auto* dust=il2cpp::findClass({"Terraria","Dust",{}});
-    if(!main||!player||!dust)return false;
+    if(!main||!player||!dust) {
+        nativeResolutionFailure = "MissingTerrariaClass";
+        return false;
+    }
     Refs next;
     next.players=il2cpp::findField(main,"player");
     next.position=il2cpp::findField(player,"position");
@@ -59,26 +64,44 @@ bool resolve() {
     if(!next.players||!next.position||!next.active||
        !typeIs(api.field_get_type(next.players),"Terraria.Player[]")||
        !typeIs(api.field_get_type(next.position),"Microsoft.Xna.Framework.Vector2")||
-       !typeIs(api.field_get_type(next.active),"System.Boolean"))return false;
+       !typeIs(api.field_get_type(next.active),"System.Boolean")) {
+        nativeResolutionFailure = "MissingOrMismatchedPlayerField";
+        return false;
+    }
     if((api.field_get_flags(next.players)&0x10u)==0 ||
-       (api.field_get_flags(next.position)&0x10u)!=0 || (api.field_get_flags(next.active)&0x10u)!=0)return false;
+       (api.field_get_flags(next.position)&0x10u)!=0 || (api.field_get_flags(next.active)&0x10u)!=0) {
+        nativeResolutionFailure = "PlayerFieldStaticMismatch";
+        return false;
+    }
     next.positionOffset=api.field_get_offset(next.position);next.activeOffset=api.field_get_offset(next.active);
     const size_t instanceSize=api.class_instance_size(player);
     uint32_t alignment=0;
     auto* positionClass=api.class_from_il2cpp_type(api.field_get_type(next.position));
     if(!positionClass||api.class_value_size(positionClass,&alignment)!=8||
        next.positionOffset<sizeof(Il2CppObject)||next.positionOffset+8>instanceSize||
-       next.activeOffset<sizeof(Il2CppObject)||next.activeOffset+1>instanceSize)return false;
-    constexpr const char* parameters[]={"Microsoft.Xna.Framework.Vector2","System.Int32","System.Int32","System.Int32","System.Single","System.Single","System.Int32","Microsoft.Xna.Framework.Color","System.Single"};
-    void* iterator=nullptr;
-    while(const MethodInfo* method=api.class_get_methods(dust,&iterator)) {
-        if(std::strcmp(api.method_get_name(method),"NewDust")||api.method_get_param_count(method)!=9)continue;
-        uint32_t flags=0;
-        bool match=(api.method_get_flags(method,&flags)&0x10u)!=0 && typeIs(api.method_get_return_type(method),"System.Int32");
-        for(unsigned i=0;i<9&&match;++i)match=typeIs(api.method_get_param(method,i),parameters[i]);
-        if(match) { next.spawn=method;break; }
+       next.activeOffset<sizeof(Il2CppObject)||next.activeOffset+1>instanceSize) {
+        nativeResolutionFailure = "PlayerFieldLayoutMismatch";
+        return false;
     }
-    if(!next.spawn)return false;
+    next.spawn=il2cpp::findMethodBySignature(dust, il2cpp::parseSignature(
+        "int NewDust(Vector2 Position, int Width, int Height, int Type, "
+        "float SpeedX, float SpeedY, int Alpha, Color newColor, float Scale)"));
+    if(!next.spawn) {
+        constexpr const char* parameters[]={"Microsoft.Xna.Framework.Vector2","System.Int32","System.Int32","System.Int32","System.Single","System.Single","System.Int32","Microsoft.Xna.Framework.Color","System.Single"};
+        void* iterator=nullptr;
+        while(const MethodInfo* method=api.class_get_methods(dust,&iterator)) {
+            if(std::strcmp(api.method_get_name(method),"NewDust")||api.method_get_param_count(method)!=9)continue;
+            uint32_t flags=0;
+            bool match=(api.method_get_flags(method,&flags)&0x10u)!=0 && typeIs(api.method_get_return_type(method),"System.Int32");
+            for(unsigned i=0;i<9&&match;++i)match=typeIs(api.method_get_param(method,i),parameters[i]);
+            if(match) { next.spawn=method;break; }
+        }
+    }
+    if(!next.spawn) {
+        nativeResolutionFailure = "NewDustSignatureUnavailable";
+        return false;
+    }
+    nativeResolutionFailure = "None";
     refs=next;
     return true;
 }
@@ -105,6 +128,8 @@ void pumpNativeDustEmission() {
         const int type=runtime::modDustTypeByName(request.mod,request.name);
         if(type<runtime::kVanillaDustCount||!resolve()) {
             BL_WARN("[CSharp][WARN][DustEmission] Mod=%s Class=%s Stage=Resolve Result=Rejected Reason=%s",request.mod.c_str(),request.name.c_str(),type<runtime::kVanillaDustCount?"DustNotRegistered":"NativeContractUnavailable");
+            if(type>=runtime::kVanillaDustCount)
+                BL_WARN("[CSharp][DustEmission] Stage=NativeContract Detail=%s",nativeResolutionFailure);
             continue;
         }
         auto& api=il2cpp::api();Il2CppArray* players=nullptr;
