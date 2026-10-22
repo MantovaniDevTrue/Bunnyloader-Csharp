@@ -82,6 +82,7 @@ struct NativeEntry {
 NativeMethods methods{};
 std::map<std::string, NativeEntry> entries;
 std::map<const Il2CppObject*, uint32_t> iconsByAchievement;
+std::map<std::string, std::pair<int, int>> registeredManagerMetadata;
 std::vector<NativeEntry> retiredEntries;
 constexpr std::size_t kMaxRetiredAchievementEntries = 512;
 std::string lastError;
@@ -507,6 +508,15 @@ bool make(const AchievementMetadata& definition, NativeEntry* out,
 bool commit(const AchievementMetadata& definition, NativeEntry* entry,
             std::string* error, bool preserveManagerMetadata = false) {
     auto& a = il2cpp::api();
+    const auto previouslyRegistered = registeredManagerMetadata.find(definition.name);
+    if (previouslyRegistered != registeredManagerMetadata.end()) {
+        if (previouslyRegistered->second !=
+            std::pair<int, int>{definition.index, definition.category}) {
+            *error = "Achievement icon/category changed after first native registration";
+            return false;
+        }
+        preserveManagerMetadata = true;
+    }
     auto* achievement = a.gchandle_get_target(entry->achievementRoot);
     if (!achievement) { *error = "Native achievement root unavailable"; return false; }
     if (!entry->managerRegistered) {
@@ -538,6 +548,8 @@ bool commit(const AchievementMetadata& definition, NativeEntry* entry,
     if (!invoke(methods.registerCategory, methods.manager, args, nullptr, error))
         return false;
     entry->registered = true;
+    registeredManagerMetadata[definition.name] =
+        {definition.index, definition.category};
     if (auto* target = a.gchandle_get_target(entry->achievementRoot))
         iconsByAchievement[target] = entry->assetRoot;
     return true;
