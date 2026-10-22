@@ -4,6 +4,7 @@
 #include "experiments/csharp/NativeAchievementLocaleJson.h"
 #include "experiments/csharp/NativeAchievementManagerAdapter.h"
 #include "experiments/csharp/NativeAchievementOwnership.h"
+#include "experiments/csharp/NativeAchievementHooks.h"
 #include "experiments/csharp/ContentTexture.h"
 #include "content/common/ContentAssets.h"
 #include "mods/ModLoader.h"
@@ -591,6 +592,10 @@ bool replaceNativeAchievementObjects(
     std::string* error) {
     if (!error) return false;
     error->clear();
+    if (nativeAchievementWorldActive()) {
+        *error = "Pause native achievement event ingress before hot-swap";
+        return false;
+    }
     if (!prepared || definitions.empty() || definitions.size() != entries.size() ||
         retiredEntries.size() + entries.size() > kMaxRetiredAchievementEntries) {
         *error = "Native achievements cannot safely replace this registry";
@@ -725,6 +730,10 @@ bool replaceNativeAchievementObjects(
 bool unregisterNativeAchievementMod(const std::string& modId, std::string* error) {
     if (!error) return false;
     error->clear();
+    if (nativeAchievementWorldActive()) {
+        *error = "Pause native achievement event ingress before unregister";
+        return false;
+    }
     if (!prepared || !validAchievementModUid(modId)) {
         *error = "Native achievement mod unregister unavailable";
         return false;
