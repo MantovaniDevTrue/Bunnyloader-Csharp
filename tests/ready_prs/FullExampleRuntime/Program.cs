@@ -74,6 +74,17 @@ try
     if (classStats.GetTotalCritChance(registeredDamageClass) != 8f ||
         classStats.GetTotalArmorPenetration(registeredDamageClass) != 10f)
         throw new InvalidOperationException("Auto-registered ExampleDamageClass defaults differ");
+    string snapshot = BunnyEntitySourceDispatcher.DamageStats(entitySlot);
+    string[] statLines = snapshot.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+    if (statLines.Length != 2 || statLines[0] != "DAMAGE_CLASS_STATS_V1")
+        throw new InvalidOperationException("Managed default DamageClass stat snapshot header/count");
+    string[] stats = statLines[1].Split('\t');
+    if (stats.Length != 14 || stats[0] != "CLASS" ||
+        stats[1] != "ExampleModCSharp.DamageClasses.ExampleDamageClass" ||
+        stats[10] != "8" || stats[11] != "1" || stats[12] != "10" || stats[13] != "1")
+        throw new InvalidOperationException("ExampleDamageClass five stat channels differ from live managed registry: " +
+            statLines[1]);
+    Console.WriteLine("FULL_EXAMPLE_DAMAGECLASS_FIVE_STAT_SNAPSHOT=PASS crit=8 armorPen=10");
     if (!BunnyEntitySourceDispatcher.Status(entitySlot).Contains("damageClasses=1", StringComparison.Ordinal))
         throw new InvalidOperationException("Managed entity context missing DamageClass registration");
     if (BunnyEntitySourceDispatcher.Register(modId, output) != entitySlot ||
@@ -191,6 +202,7 @@ try
     // Revogar o mod não pode alterar os IDs vanilla nem deixar uma classe
     // personalizada registrada após o encerramento do assembly.
     if (!BunnyEntitySourceDispatcher.Unregister(modId) ||
+        BunnyEntitySourceDispatcher.DamageStats(entitySlot) != "" ||
         DamageClassLoader.GetDamageClass(10) != null ||
         DamageClassLoader.DamageClassCount != 11 ||
         DamageClassLoader.All.Count != 10 ||
