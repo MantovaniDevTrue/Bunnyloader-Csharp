@@ -17,8 +17,6 @@ inline NativeDamageClassFlags nativeDamageClassFlags(std::string_view key) {
     if (key == "V4") return {true, false, true, false, false};
     if (key == "V5") return {true, false, false, true, false};
     if (key == "V6" || key == "V7") return {true, false, false, false, true};
-    // Generic, Default, Throwing, hybrid and modded classes do not map 1:1
-    // to a single Terraria mobile damage flag. Keep their managed identity.
     return {};
 }
 
