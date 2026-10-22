@@ -1,9 +1,9 @@
 #pragma once
-#include "il2cpp/CheckedFieldWrite.h"
+#include "il2cpp/PrimitiveArrayTransaction.h"
 #include <array>
 
 namespace bl::runtime::surface {
-struct TableTarget {const il2cpp::CheckedFieldWrite* field=nullptr;void* owner=nullptr;};
+using TableTarget=il2cpp::PrimitiveArrayTarget;
 // Called on the engine thread with direct, checked fields. All allocations,
 // roots, owner/array checks, and the optional generation check precede writes.
 // A getter/setter pair cannot provide this atomic publication contract.

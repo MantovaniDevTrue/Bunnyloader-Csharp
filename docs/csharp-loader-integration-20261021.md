@@ -1,5 +1,24 @@
 # Continuidade dos loaders C# — 2026-10-21
 
+## Continuidade sobre 753bb31a — segurança nativa dos laços de água
+
+Implementados dois contratos internos de WaterStyleLoader: publicação conjunta
+dos dois limites de DrawWaters e recuperação nativa dos arrays de transparência
+de LocalUserGameState. O SDK de água e a cachoeira completos ainda estão
+pendentes; a contagem continua **3/15** e o gate de APK permanece fechado.
+
+O patch agora verifica ambos os padrões, limites reais do método, páginas RX,
+permissões e conflitos antes de escrever. Retém a contagem efetivamente aplicada
+mesmo se o SO recusar restaurar RX; retry repara permissões e hook separadamente.
+O guard nativo prepara os dois arrays juntos antes do original, sem entrar em
+VM. O JS não marca uma recusa como instalação concluída e limita os retries.
+A transação de arrays foi extraída do código já testado de superfície para uma
+implementação compartilhada; o wrapper e seus contratos foram preservados.
+
+Código, testes e continuidade: [csharp-water-native-safety.md](csharp-water-native-safety.md).
+CI e Android devem ser registrados separadamente; não houve APK, bmod, nova
+versão de ExampleMod ou alteração de ABI pública gerenciada nesta etapa.
+
 ## Continuidade sobre 8173aaac — superfície com C#/JS reais e exemplo original
 
 Conectados os dois providers ao registro nativo: C# → Mono worker → estágio 13 →

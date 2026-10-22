@@ -61,7 +61,13 @@ preservando a ordem dos hooks de outros mods e restaurando o tipo corretamente.
 Biome/SceneEffect e música do bioma continuam dependências separadas; um comando
 de QA do Example pode testar o renderer, mas não concluir o bioma por associação.
 
-## Revisão necessária antes de publicar contagem
+## Revisão do serviço anterior e correção
+
+**Atualização:** o risco abaixo foi corrigido nos fontes e coberto por testes em
+[csharp-water-native-safety.md](csharp-water-native-safety.md). Os dois contratos
+de contagem/arrays estão implementados; os loaders completos continuam pendentes.
+
+### Estado observado antes da correção
 
 `content/tiles/ModWater.cpp` já oferece setWaterStyleCount, independente de VM.
 Entretanto chama patchLoopEnd duas vezes e só depois confere se ambos retornaram

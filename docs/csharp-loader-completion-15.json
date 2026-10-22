@@ -463,7 +463,11 @@
       "implementation": "pending",
       "android": "not-tested",
       "publicApi": [],
-      "nativeBridge": [],
+      "nativeBridge": [
+        "app/src/main/cpp/content/tiles/ModWater.cpp",
+        "app/src/main/cpp/content/tiles/WaterAlphaTables.cpp",
+        "app/src/main/cpp/hook/CodePatchTransaction.cpp"
+      ],
       "example": [],
       "contracts": [
         {
@@ -493,13 +497,19 @@
         },
         {
           "name": "Recreated LocalUserGameState alpha arrays before native DrawWaters count publication",
-          "implemented": false,
-          "tests": []
+          "implemented": true,
+          "tests": [
+            "tests/water_styles/native_water_count_test.cpp",
+            "tests/water_styles/js_water_install_test.cjs"
+          ]
         },
         {
           "name": "Native DrawWaters two-loop contract and failure without partial patch",
-          "implemented": false,
-          "tests": []
+          "implemented": true,
+          "tests": [
+            "tests/water_styles/native_code_patch_test.cpp",
+            "tests/water_styles/native_water_count_test.cpp"
+          ]
         },
         {
           "name": "Scene priority, fountain, blood moon, vanilla background and menu arbitration",
@@ -552,7 +562,8 @@
         "Port original examples and five water/rain/waterfall PNGs; existing ExampleDroplet PNG/Gore API does not prove vanilla Update alias.",
         "Real managed/native/QuickJS execution, failures without partial state, source regressions, ARM64 and separate Android QA."
       ],
-      "auditDocument": "docs/csharp-water-rendering-audit.md"
+      "auditDocument": "docs/csharp-water-rendering-audit.md",
+      "nativeSafetyDocument": "docs/csharp-water-native-safety.md"
     },
     {
       "loader": "WaterfallStyleLoader",

@@ -14,16 +14,23 @@ namespace bl::runtime {
  * jogo faz o fade e o desenho dos estilos de mod, como o laco
  * `WaterStylesLoader.TotalCount` do tModLoader.
  *
- * As tabelas por estilo (texturas, liquidAlpha, activeLiquidAlpha) crescem no
- * JS (Loaders/WaterStyleLoader.js) ANTES desta chamada: o laco maior indexa
- * alem do fim se elas ainda tiverem 15.
+ * As tabelas de texturas devem estar completas ANTES desta chamada. O
+ * servico WaterAlphaTables prepara liquidAlpha/activeLiquidAlpha juntos e o
+ * guard nativo verifica esses arrays antes de cada DrawWaters, inclusive
+ * depois de recriar LocalUserGameState. Nao depende de executar uma VM.
  */
 constexpr int kVanillaWaterStyleCount = 15;   // Main.maxLiquidTypes
+constexpr int kMaxWaterStyleCount = 4095-8;   // limite + cabecalho precisa caber em imm12
 
 /**
  * Os lacos do Main.DrawWaters passam a ir ate `total` (>= 15). Pode ser
  * chamado de novo com um total maior. Na thread do jogo. Devolve false se o
- * codigo nao for o esperado (outra versao do jogo): nada e escrito.
+ * codigo nao for o esperado (outra versao do jogo): nada e escrito. As cinco
+ * tabelas sao verificadas por tipo/capacidade antes da publicacao. Os dois
+ * padroes e permissoes sao preparados juntos; nunca se escreve so um laco.
+ * Uma falha do SO ao restaurar RX e relatada separadamente: nesse caso ambos
+ * os lacos ja foram aplicados, a contagem real e preservada e a proxima
+ * tentativa primeiro repara as permissoes. Nao existe sucesso ficticio.
  */
 bool setWaterStyleCount(int total);
 
