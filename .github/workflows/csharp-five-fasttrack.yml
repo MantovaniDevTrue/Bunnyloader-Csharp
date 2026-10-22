@@ -12,6 +12,8 @@ on:
       - experiments/csharp/BunnyCsSdk/BunnyCommandWorker.cs
       - experiments/csharp/BunnyCsSdk/BunnyGore.cs
       - experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs
+      - app/src/main/cpp/experiments/csharp/ManagedSourceClassCount.h
+      - tests/commands/native_fasttrack_command_class_count.cpp
   workflow_dispatch:
 
 permissions:
@@ -97,6 +99,7 @@ jobs:
           PY
           for test in \
             tests/commands/native_command_clock_test.cpp \
+            tests/commands/native_fasttrack_command_class_count.cpp \
             tests/commands/native_mailbox_test.cpp \
             tests/csharp_gore_catalog_test.cpp; do
             if test -f "$test"; then
