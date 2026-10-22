@@ -56,6 +56,7 @@ public static class BunnyEntitySourceDispatcher
         public readonly ProjectileInstance[] ProjectileSlots = new ProjectileInstance[4096];
         public string LastError = "";
         public int DamageClassesRegistered;
+        public bool Revoked;
         public string LastUse = "None";
         public long NpcCalls, ProjectileCalls, NpcHits, NpcKills, ProjectileHits, ProjectileKills, Faults;
     }
@@ -70,7 +71,7 @@ public static class BunnyEntitySourceDispatcher
         for (int i = 0; i < Contexts.Count; ++i)
         {
             if (Contexts[i].Mod == modId)
-                return Contexts[i].Path == assemblyPath ? i : -1;
+                return !Contexts[i].Revoked && Contexts[i].Path == assemblyPath ? i : -1;
         }
         if (Contexts.Count >= 16) return -1;
         try
@@ -120,7 +121,7 @@ public static class BunnyEntitySourceDispatcher
                     context.InvasionOrder.Add(system);
                 }
             }
-            context.DamageClassesRegistered = DamageClassLoader.RegisterAssembly(assembly);
+            context.DamageClassesRegistered = DamageClassLoader.RegisterAssembly(modId, assembly);
             if (hasDust && BunnyDustSourceDispatcher.RegisterLoaded(modId, assembly) < 0)
                 context.LastError = "BunnyDust registration: " +
                     BunnyDustSourceDispatcher.LastRegistrationError;
@@ -132,6 +133,28 @@ public static class BunnyEntitySourceDispatcher
             LastRegistrationError = error.GetType().Name + ": " + error.Message;
             return -1;
         }
+    }
+
+    /// <summary>Desarma o catálogo gerenciado de um mod revogado no MonoVM.</summary>
+    public static bool Unregister(string modId)
+    {
+        if (string.IsNullOrWhiteSpace(modId)) return false;
+        foreach (Context context in Contexts)
+        {
+            if (context.Mod != modId || context.Revoked) continue;
+            DamageClassLoader.UnregisterMod(modId);
+            context.Revoked = true;
+            context.NamedNpcs.Clear();
+            context.NamedProjectiles.Clear();
+            context.Npcs.Clear();
+            context.Projectiles.Clear();
+            context.ItemUsers.Clear();
+            context.RegisteredItemUses.Clear();
+            Array.Clear(context.NpcSlots);
+            Array.Clear(context.ProjectileSlots);
+            return true;
+        }
+        return false;
     }
 
     internal static bool TryRegisterDustAssembly(Assembly assembly)
