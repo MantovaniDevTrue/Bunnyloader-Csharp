@@ -164,7 +164,12 @@ public:
                         std::vector<int32_t>* kills,
                         std::vector<int32_t>* claimable,
                         std::vector<uint8_t>* fresh) {
-        if (!kills || !claimable || !fresh) return false;
+        if (!kills || !claimable || !fresh ||
+            saved.size() > kMaxEntries) return false;
+        for (const auto& [key, state] : saved)
+            if (!keyValid(key) || state.kills < 0 ||
+                (state.claimable == 0 && state.fresh))
+                return false;
         for (const auto& [id, item] : bound.bannerToItem) {
             if (id < 0 || static_cast<size_t>(id) >= kills->size() ||
                 static_cast<size_t>(id) >= claimable->size() ||
