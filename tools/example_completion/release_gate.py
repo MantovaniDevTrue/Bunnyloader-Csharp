@@ -103,7 +103,7 @@ def check_release(matrix: dict, project: Path, upstream: Path | None,
             data = source.read_bytes()
             expected = row.get("javaScript", {}).get("upstreamBlob")
             actual_blob = hashlib.sha1(
-                b"blob " + str(len(data)).encode("ascii") + b"\\0" + data
+                b"blob " + str(len(data)).encode("ascii") + b"\x00" + data
             ).hexdigest()
             if expected != actual_blob:
                 errors.append(f"{name}: JS original mudou desde o inventario Git")
