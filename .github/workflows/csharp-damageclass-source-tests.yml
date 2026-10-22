@@ -149,10 +149,37 @@ jobs:
             exit 1
           fi
 
+  arm64-combat:
+    name: Android ARM64 native combat hooks (NO APK)
+    needs: managed-parity
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Syntax-check native combat hooks with Android ARM64 ABI
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
+          if [[ -n "${ANDROID_NDK_HOME:-}" && -x "${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang++" ]]; then
+            ndk="${ANDROID_NDK_HOME}"
+          else
+            test -d "$root/ndk"
+            ndk="$(find "$root/ndk" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
+          fi
+          clang="$ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang++"
+          test -x "$clang"
+          for source in NativeContent.cpp ManagedRuntime.cpp; do
+            "$clang" -std=c++20 -O0 -Wall -Wextra -Werror -pedantic -pthread -fsyntax-only \
+              -Iapp/src/main/cpp -Itests/basic_items/include \
+              "app/src/main/cpp/experiments/csharp/$source"
+          done
+          echo "CSHARP_DAMAGECLASS_ARM64_COMBAT=PASS NO_APK=TRUE"
+
   publish-managed-reference:
     name: Stage updated managed C# SDK and reference (NO APK)
     if: github.event_name == 'push' && github.ref_name == 'feat/csharp-damageclass-complete-20261022'
-    needs: managed-parity
+    needs: [managed-parity, arm64-combat]
     runs-on: ubuntu-latest
     permissions:
       contents: write
