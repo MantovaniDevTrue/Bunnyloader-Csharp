@@ -1,7 +1,8 @@
 #pragma once
 
 #include <atomic>
-#include <charconv>
+#include <locale>
+#include <sstream>
 #include <cmath>
 #include <map>
 #include <memory>
@@ -37,8 +38,10 @@ class NativeDamageClassStatRegistry {
 
     static bool number(std::string_view source, float* value) {
         if (!value || source.empty() || source.size() > 32) return false;
-        const auto read = std::from_chars(source.data(), source.data() + source.size(), *value);
-        return read.ec == std::errc{} && read.ptr == source.data() + source.size() &&
+        std::istringstream input{std::string(source)};
+        input.imbue(std::locale::classic());
+        input >> std::noskipws >> *value;
+        return !input.fail() && input.eof() &&
                std::isfinite(*value) && std::abs(*value) <= 100000.f;
     }
 
