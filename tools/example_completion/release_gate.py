@@ -83,6 +83,24 @@ def check_release(matrix: dict, project: Path, upstream: Path | None,
                 if not _relative_file(source, project, ".cs"):
                     errors.append(f"{name}: fonte C# ausente ou caminho invalido: {source}")
 
+        assets = row.get("assets", [])
+        if not isinstance(assets, list):
+            errors.append(f"{name}: lista de assets invalida")
+            continue
+        for relative in assets:
+            if not isinstance(relative, str) or not relative.startswith("content/"):
+                errors.append(f"{name}: asset sem caminho seguro: {relative}")
+                continue
+            destination = "samples/ExampleModCSharp/Playable/" + relative
+            if not _relative_file(destination, project, Path(relative).suffix):
+                errors.append(f"{name}: sprite/audio original ausente no pacote C#: {relative}")
+                continue
+            if upstream is not None:
+                original = upstream / "samples/ExampleMod" / relative
+                replacement = project / destination
+                if not original.is_file() or original.read_bytes() != replacement.read_bytes():
+                    errors.append(f"{name}: asset alterado em relacao ao upstream: {relative}")
+
     if upstream is None:
         errors.append("Checkout atual do upstream obrigatorio (--upstream-root)")
     else:
