@@ -12,6 +12,9 @@ bool registerNativeAchievementMod(const std::string& modId,
                                   const std::string& assemblyPath,
                                   const std::string& metadata,
                                   std::string* error);
+// Call only after the matching native objects have been detached.
+bool unregisterNativeAchievementBinding(const std::string& modId,
+                                        std::string* error);
 std::vector<AchievementMetadata> nativeAchievementMetadataSnapshot();
 std::uint64_t nativeAchievementMetadataRevision();
 // Chamado no worker após um evento; atualiza apenas estado mutável da UI.
