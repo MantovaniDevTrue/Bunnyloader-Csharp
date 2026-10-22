@@ -24,6 +24,7 @@
 #include "content/dusts/ModDusts.h"
 #include "experiments/csharp/NativeVisualRenderer.h"
 #include "experiments/csharp/NativeRarityGameplay.h"
+#include "experiments/csharp/ManagedGoreRuntime.h"
 #include "graphics/CSharpScreenEffects.h"
 #include "experiments/csharp/NativeContent.h"
 #include "experiments/csharp/NativeBasicItems.h"
@@ -1299,6 +1300,7 @@ void retryWorldManagedPrefixesWhenReady() {
 }
 
 void noteAutoWorldTilesLoaded() {
+    gore::worldBoundary();
     angler::invalidateWorldSession();
     std::lock_guard<std::mutex> sessionGuard(g_worldTransitionMutex);
     resetNativeTileSessionState();
@@ -1340,6 +1342,7 @@ void noteAutoWorldTilesLoaded() {
 void flushDeferredWorldEntry();
 
 void noteAutoGameUpdate() {
+    gore::pumpOnGameThread();
     pumpNativeRarityGameplay();
     const bool invasionWorldReady = g_worldSessionReady.load(std::memory_order_acquire);
     const uint64_t invasionWorldEpoch = g_worldEpoch.load(std::memory_order_acquire);
@@ -1469,6 +1472,7 @@ void noteAutoGameUpdate() {
             return;
         }
         std::lock_guard<std::mutex> sessionGuard(g_worldTransitionMutex);
+        gore::worldBoundary();
         clearManagedVisualCommands();
         graphics::clearCSharpScreenEffects();
         pauseManagedScreenSceneCallbacks();
@@ -1521,6 +1525,7 @@ void noteAutoGameUpdate() {
         if (context.netMode < 0 || context.netMode > 3 ||
             context.gameMenu == 1) return;
         g_worldSessionReady.store(true, std::memory_order_release);
+        gore::worldReady();
         requestBasicItemInstanceRefresh("WorldLoaded");
         enableUniversalHooks();
         resumeUniversalHookMods();
