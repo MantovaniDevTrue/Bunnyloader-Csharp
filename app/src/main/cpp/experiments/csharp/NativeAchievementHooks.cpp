@@ -1,4 +1,5 @@
 #include "experiments/csharp/NativeAchievementHooks.h"
+#include "experiments/csharp/NativeAchievementMetadataSync.h"
 #include "experiments/csharp/ManagedRuntime.h"
 #include "content/common/GameRefs.h"
 #include "core/Log.h"
@@ -243,25 +244,8 @@ bool updateNativeAchievementProgress(const std::string& modId,
         return false;
     }
 
-    // Impedir que callbacks modifiquem identidade, categoria ou assets depois
-    // de registrados; só a conclusão/progresso/visibilidade são dinâmicos.
-    for (std::size_t i = 0; i < entries.size(); ++i) {
-        const auto& old = it->second.metadata[i];
-        const auto& entry = entries[i];
-        if (old.name != entry.name || old.title != entry.title ||
-            old.description != entry.description ||
-            old.texture != entry.texture || old.index != entry.index ||
-            old.category != entry.category || (old.completed && !entry.completed)) {
-            *error = "Achievement static metadata changed or progress regressed";
-            return false;
-        }
-    }
-    for (std::size_t i = 0; i < entries.size(); ++i) {
-        auto& old = it->second.metadata[i];
-        old.completed = entries[i].completed;
-        old.hidden = entries[i].hidden;
-        old.progress = entries[i].progress;
-    }
+    if (!updateAchievementMetadataSnapshot(&it->second.metadata, entries, error))
+        return false;
     metadataRevision.fetch_add(1, std::memory_order_release);
     return true;
 }
