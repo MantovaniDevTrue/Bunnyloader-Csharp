@@ -98,10 +98,18 @@ public static class BunnyBiomeDispatcher
 
     public static string EvaluateWire(string modId, bool gameMenu,
         bool playerActive, float positionX, int maxTilesX,
-        bool skyHeight, bool overworldHeight, string tileCountsWire)
+        bool skyHeight, bool overworldHeight, string tileCountsWire) =>
+        EvaluateTicksWire(modId, gameMenu, playerActive, positionX,
+            maxTilesX, skyHeight, overworldHeight, tileCountsWire, 1);
+
+    public static string EvaluateTicksWire(string modId, bool gameMenu,
+        bool playerActive, float positionX, int maxTilesX,
+        bool skyHeight, bool overworldHeight, string tileCountsWire,
+        int updateEvents)
     {
         if (!Mods.TryGetValue(modId, out List<Entry>? entries) ||
-            tileCountsWire is null || tileCountsWire.Length > 4096)
+            tileCountsWire is null || tileCountsWire.Length > 4096 ||
+            updateEvents < 1 || updateEvents > 64)
             return "";
 
         var counts = new Dictionary<string, int>(StringComparer.Ordinal);
@@ -129,33 +137,35 @@ public static class BunnyBiomeDispatcher
             BunnyBiomeSnapshot snapshot = new(
                 gameMenu, playerActive, skyHeight, overworldHeight,
                 positionX, maxTilesX, counts);
-            var response = new StringBuilder("BUNNY_BIOMES_V1\n");
-            foreach (Entry entry in entries)
+            var response = new StringBuilder();
+            for (int update = 0; update < updateEvents; update++)
             {
-                bool active = false;
-                // Missing native tile counts are *unknown*, never zero.
-                // An exception in IsBiomeActive is false for THIS evaluation
-                // only, matching ExampleModBunny's Safe.Run policy.
-                if (snapshot.PlayerActive &&
-                    !entry.CountedTiles.Any(name => !counts.ContainsKey(name)))
+                response.Clear();
+                response.Append("BUNNY_BIOMES_V1\n");
+                foreach (Entry entry in entries)
                 {
-                    try { active = entry.Biome.IsBiomeActive(snapshot); }
-                    catch (Exception ex) { Fault(entry, "IsBiomeActive", ex); }
-                }
+                    bool active = false;
+                    if (snapshot.PlayerActive &&
+                        !entry.CountedTiles.Any(name => !counts.ContainsKey(name)))
+                    {
+                        try { active = entry.Biome.IsBiomeActive(snapshot); }
+                        catch (Exception ex) { Fault(entry, "IsBiomeActive", ex); }
+                    }
 
-                bool before = entry.Active;
-                entry.Active = active;
-                if (!before && active)
-                    RunHook(entry, "OnEnter", snapshot, entry.Biome.OnEnter);
-                else if (before && !active)
-                    RunHook(entry, "OnLeave", snapshot, entry.Biome.OnLeave);
+                    bool before = entry.Active;
+                    entry.Active = active;
+                    if (!before && active)
+                        RunHook(entry, "OnEnter", snapshot, entry.Biome.OnEnter);
+                    else if (before && !active)
+                        RunHook(entry, "OnLeave", snapshot, entry.Biome.OnLeave);
 
-                if (active)
-                {
-                    RunHook(entry, "OnInBiome", snapshot, entry.Biome.OnInBiome);
-                    response.Append("BIOME\t").Append(entry.Name).Append('\n');
+                    if (active)
+                    {
+                        RunHook(entry, "OnInBiome", snapshot, entry.Biome.OnInBiome);
+                        response.Append("BIOME\t").Append(entry.Name).Append('\n');
+                    }
+                    entry.LastSnapshot = snapshot;
                 }
-                entry.LastSnapshot = snapshot;
             }
             return response.ToString();
         }
