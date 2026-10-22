@@ -417,19 +417,19 @@
     "Placeable": {
       "total": 36,
       "states": {
-        "Não implementado": 35,
-        "Implementado, aguardando validação": 1
+        "Não implementado": 34,
+        "Implementado, aguardando validação": 2
       },
-      "implemented": 1,
+      "implemented": 2,
       "validated": 0,
       "automated": 0,
       "automatedPercent": 0.0,
       "partial": 0,
-      "implementedPercent": 2.78,
+      "implementedPercent": 5.56,
       "validatedPercent": 0.0,
       "partialPercent": 0.0,
       "limitations": 0,
-      "missingExamples": 35
+      "missingExamples": 34
     },
     "Players": {
       "total": 7,
@@ -551,19 +551,19 @@
     "Tiles": {
       "total": 37,
       "states": {
-        "Não implementado": 36,
-        "Implementado, aguardando validação": 1
+        "Não implementado": 35,
+        "Implementado, aguardando validação": 2
       },
-      "implemented": 1,
+      "implemented": 2,
       "validated": 0,
       "automated": 0,
       "automatedPercent": 0.0,
       "partial": 0,
-      "implementedPercent": 2.7,
+      "implementedPercent": 5.41,
       "validatedPercent": 0.0,
       "partialPercent": 0.0,
       "limitations": 0,
-      "missingExamples": 36
+      "missingExamples": 35
     },
     "Tools": {
       "total": 5,
@@ -6754,31 +6754,39 @@
         "nativeSignatures": [],
         "imports": []
       },
-      "cSharp": [],
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Placeable/ExampleTileItem.cs"
+      ],
       "requiredApis": [
         "AddRecipes",
         "ModItem",
         "SetDefaults"
       ],
-      "status": "Não implementado",
+      "status": "Implementado, aguardando validação",
       "assets": [
         "content/Content/Items/Placeable/ExampleTileItem.png"
       ],
       "automatedEvidence": [],
-      "preservedFeatures": [],
-      "missingFeatures": [
-        "Sem contrato C# reutilizavel equivalente para ModItem"
+      "preservedFeatures": [
+        "DefaultToPlaceableTile pelo nome local; dimensoes 12x12 e receita 10 blocos por ExampleItem e WorkBenches",
+        "PNG original conferido por SHA Git e staging sem conversao"
       ],
+      "missingFeatures": [],
       "nativeDependencies": [
-        "app/src/main/cpp/script/js/mod/ModItem.js"
+        "experiments/csharp/BunnyCsSdk/BunnyItem.cs",
+        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp"
       ],
-      "automatedTests": [],
+      "automatedTests": [
+        "tests/basic_items/Program.cs: exampletile.original-flags-map-and-recipe",
+        "tools/example_completion/stage_tile_assets.py"
+      ],
       "terrariaTests": [
         "Comparar cada hook/propriedade listado com o comportamento JS original no Terraria 1.4.5.8.6.",
         "Carregar junto de um mod JS; entrar/sair do mundo e conferir falhas e desempenho.",
         "Verificar persistencia, remocao do mod e morte/respawn quando o exemplo mantiver estado."
       ],
-      "validation": "Sem validacao funcional C# deste exemplo inteiro.",
+      "validation": "Port de fonte concluido; recursos binarios devem ser copiados antes do teste Android. Sem APK gerada ou validacao em aparelho.",
       "deviceEvidence": [],
       "technicalBlockEvidence": [],
       "sourceEvidence": [
@@ -14343,30 +14351,38 @@
         "nativeSignatures": [],
         "imports": []
       },
-      "cSharp": [],
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Tiles/ExampleTile.cs"
+      ],
       "requiredApis": [
         "ModTile",
         "SetStaticDefaults"
       ],
-      "status": "Não implementado",
+      "status": "Implementado, aguardando validação",
       "assets": [
         "content/Content/Tiles/ExampleTile.png"
       ],
       "automatedEvidence": [],
-      "preservedFeatures": [],
-      "missingFeatures": [
-        "Sem contrato C# reutilizavel equivalente para ModTile"
+      "preservedFeatures": [
+        "Main.tileSolid, tileBlockLight, tileMergeDirt e TileID.Sets.ChecksForMerge via flags IL2CPP nativas",
+        "DustID.Stone e mapa (0,200,255); sprite original conferido por SHA Git"
       ],
+      "missingFeatures": [],
       "nativeDependencies": [
-        "app/src/main/cpp/script/js/mod/ModTile.js"
+        "experiments/csharp/BunnyCsSdk/BunnyTile.cs",
+        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeContent.cpp"
       ],
-      "automatedTests": [],
+      "automatedTests": [
+        "tests/basic_items/Program.cs: exampletile.original-flags-map-and-recipe",
+        "tools/example_completion/stage_tile_assets.py"
+      ],
       "terrariaTests": [
         "Comparar cada hook/propriedade listado com o comportamento JS original no Terraria 1.4.5.8.6.",
         "Carregar junto de um mod JS; entrar/sair do mundo e conferir falhas e desempenho.",
         "Verificar persistencia, remocao do mod e morte/respawn quando o exemplo mantiver estado."
       ],
-      "validation": "Sem validacao funcional C# deste exemplo inteiro.",
+      "validation": "Port de fonte concluido, sem validacao Android. PNG original exige staging deterministico para o pacote C#; nenhuma APK gerada.",
       "deviceEvidence": [],
       "technicalBlockEvidence": [],
       "sourceEvidence": [
