@@ -15,6 +15,7 @@ on:
       - app/src/main/cpp/experiments/csharp/ManagedBannerMetrics.h
       - app/src/main/cpp/experiments/csharp/ManagedBannerStrength.h
       - app/src/main/cpp/experiments/csharp/ManagedBannerAnchors.h
+      - app/src/main/cpp/experiments/csharp/ManagedBannerAnchorPolicy.h
       - app/src/main/cpp/experiments/csharp/ManagedBannerSaveSlice.h
       - app/src/main/cpp/experiments/csharp/ManagedBannerWorldFile.h
       - app/src/main/cpp/experiments/csharp/ManagedBannerWorldSession.h
@@ -161,6 +162,12 @@ jobs:
             -Iapp/src/main/cpp tests/banners/native_save_slice.cpp \
             -o /tmp/bunny-banner-save-slice
           /tmp/bunny-banner-save-slice
+      - name: Validate original banner solid and platform anchor layout
+        run: |
+          c++ -std=c++20 -O1 -Wall -Wextra -Werror \
+            -Iapp/src/main/cpp tests/banners/native_anchor_policy.cpp \
+            -o /tmp/bunny-banner-anchor-policy
+          /tmp/bunny-banner-anchor-policy
       - name: Test bounded BannerSystem array planner
         run: |
           c++ -std=c++20 -O1 -Wall -Wextra -Werror -pthread \
