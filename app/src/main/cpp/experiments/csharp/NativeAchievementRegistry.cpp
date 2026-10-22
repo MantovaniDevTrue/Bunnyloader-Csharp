@@ -2,6 +2,7 @@
 #include "experiments/csharp/NativeAchievementProgress.h"
 #include "experiments/csharp/NativeAchievementLocale.h"
 #include "experiments/csharp/NativeAchievementLocaleJson.h"
+#include "experiments/csharp/NativeAchievementManagerAdapter.h"
 #include "experiments/csharp/ContentTexture.h"
 #include "content/common/ContentAssets.h"
 #include "mods/ModLoader.h"
@@ -79,6 +80,8 @@ struct NativeEntry {
 NativeMethods methods{};
 std::map<std::string, NativeEntry> entries;
 std::map<const Il2CppObject*, uint32_t> iconsByAchievement;
+std::vector<NativeEntry> retiredEntries;
+constexpr std::size_t kMaxRetiredAchievementEntries = 512;
 std::string lastError;
 std::uint64_t revisions = 0;
 bool prepared = false;
@@ -500,7 +503,7 @@ bool make(const AchievementMetadata& definition, NativeEntry* out,
 }
 
 bool commit(const AchievementMetadata& definition, NativeEntry* entry,
-            std::string* error) {
+            std::string* error, bool preserveManagerMetadata = false) {
     auto& a = il2cpp::api();
     auto* achievement = a.gchandle_get_target(entry->achievementRoot);
     if (!achievement) { *error = "Native achievement root unavailable"; return false; }
@@ -509,6 +512,13 @@ bool commit(const AchievementMetadata& definition, NativeEntry* entry,
         if (!invoke(methods.registerAchievement, methods.manager, args, nullptr, error))
             return false;
         entry->managerRegistered = true;
+    }
+    if (preserveManagerMetadata) {
+        entry->iconRegistered = true;
+        entry->registered = true;
+        if (auto* target = a.gchandle_get_target(entry->achievementRoot))
+            iconsByAchievement[target] = entry->assetRoot;
+        return true;
     }
     if (!entry->iconRegistered) {
         auto* name = a.string_new(definition.name.c_str());
@@ -573,6 +583,112 @@ bool registerNativeAchievementObjects(
         }
     }
     return reconcileNativeAchievementObjects(definitions, error);
+}
+
+bool replaceNativeAchievementObjects(
+    const std::vector<AchievementMetadata>& definitions,
+    std::string* error) {
+    if (!error) return false;
+    error->clear();
+    if (!prepared || definitions.empty() || definitions.size() != entries.size() ||
+        retiredEntries.size() + entries.size() > kMaxRetiredAchievementEntries) {
+        *error = "Native achievements cannot safely replace this registry";
+        return false;
+    }
+
+    NativeAchievementManagerAdapter adapter;
+    if (!adapter.prepare(methods.manager, error)) return false;
+    for (const auto& definition : definitions) {
+        auto current = entries.find(definition.name);
+        if (current == entries.end() || !current->second.registered ||
+            current->second.conditions.size() != definition.conditions.size()) {
+            *error = "Native achievement identity set differs";
+            return false;
+        }
+        for (std::size_t i = 0; i < definition.conditions.size(); ++i) {
+            const auto& a = current->second.conditions[i];
+            const auto& b = definition.conditions[i];
+            if (a.key != b.key || a.kind != b.kind || a.maximum != b.maximum) {
+                *error = "Native achievement condition structure differs";
+                return false;
+            }
+        }
+        auto* oldObject = il2cpp::api().gchandle_get_target(
+            current->second.achievementRoot);
+        if (!adapter.containsExact(definition.name, oldObject, error))
+            return false;
+    }
+
+    const auto release = [](NativeEntry& entry) {
+        auto& api = il2cpp::api();
+        for (uint32_t handle : {entry.achievementRoot, entry.titleRoot,
+                                entry.descriptionRoot, entry.hiddenRoot,
+                                entry.assetRoot}) {
+            if (handle) api.gchandle_free(handle);
+        }
+        for (const auto& condition : entry.conditions)
+            if (condition.root) api.gchandle_free(condition.root);
+        entry = {};
+    };
+
+    std::map<std::string, NativeEntry> staged;
+    for (const auto& definition : definitions) {
+        NativeEntry replacement{};
+        if (!make(definition, &replacement, error)) {
+            for (auto& [_, entry] : staged) release(entry);
+            return false;
+        }
+        staged.emplace(definition.name, std::move(replacement));
+    }
+
+    std::vector<std::string> replaced;
+    std::string rollbackError;
+    const auto restoreOld = [&](const std::string& name) {
+        auto* oldObject = il2cpp::api().gchandle_get_target(
+            entries.at(name).achievementRoot);
+        void* args[]{oldObject};
+        return invoke(methods.registerAchievement, methods.manager,
+                      args, nullptr, &rollbackError);
+    };
+    const auto rollback = [&]() {
+        bool okay = true;
+        for (auto it = replaced.rbegin(); it != replaced.rend(); ++it) {
+            auto* newObject = il2cpp::api().gchandle_get_target(
+                staged.at(*it).achievementRoot);
+            if (!adapter.removeExact(*it, newObject, &rollbackError) ||
+                !restoreOld(*it)) okay = false;
+            iconsByAchievement.erase(newObject);
+        }
+        return okay;
+    };
+
+    for (const auto& definition : definitions) {
+        auto* oldObject = il2cpp::api().gchandle_get_target(
+            entries.at(definition.name).achievementRoot);
+        if (!adapter.removeExact(definition.name, oldObject, error)) {
+            if (!rollback()) *error += " / ROLLBACK_INCOMPLETE " + rollbackError;
+            for (auto& [_, entry] : staged) release(entry);
+            return false;
+        }
+        if (!commit(definition, &staged.at(definition.name), error, true)) {
+            if (!restoreOld(definition.name))
+                *error += " / RESTORE_FAILED " + rollbackError;
+            if (!rollback())
+                *error += " / ROLLBACK_INCOMPLETE " + rollbackError;
+            for (auto& [_, entry] : staged) release(entry);
+            return false;
+        }
+        replaced.push_back(definition.name);
+    }
+
+    for (auto& [name, old] : entries) {
+        auto* oldObject = il2cpp::api().gchandle_get_target(old.achievementRoot);
+        iconsByAchievement.erase(oldObject);
+        retiredEntries.push_back(std::move(old));
+        old = std::move(staged.at(name));
+    }
+    ++revisions;
+    return true;
 }
 
 bool reconcileNativeAchievementObjects(
