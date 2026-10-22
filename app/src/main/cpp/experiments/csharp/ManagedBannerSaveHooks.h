@@ -2,6 +2,7 @@
 
 #include "experiments/csharp/ManagedBannerLookupHooks.h"
 #include "experiments/csharp/ManagedBannerSaveDispatch.h"
+#include "experiments/csharp/ManagedBannerSaveSlice.h"
 
 #include <mutex>
 
@@ -14,10 +15,25 @@ inline BannerSaveFn originalBannerSave = nullptr;
 inline FullStateFn originalBannerNetwork = nullptr;
 inline std::mutex saveHookLock;
 inline bool saveHooksInstalled = false;
+inline std::mutex bannerSaveSerializationMutex;
+inline BannerSaveFields bannerVanillaSaveFields{};
 
 inline void hookBannerSave(Il2CppObject* writer, const MethodInfo* method) {
     const auto original = originalBannerSave;
     if (!original) return;
+    if (SaveDispatch::networkDepth() != 0) {
+        original(writer,method);
+        return;
+    }
+    std::lock_guard<std::mutex> saveGuard(bannerSaveSerializationMutex);
+    ScopedVanillaBannerSave slice(bannerVanillaSaveFields);
+    std::string error;
+    if (!slice.begin(&error)) {
+        lookupsActive.store(false,std::memory_order_release);
+        BL_ERROR("[CSharp][BannerLoader] Save vanilla nao pode serializar mod arrays: %s",
+                 error.c_str());
+        return;
+    }
     original(writer, method);
     saveDispatch().requestFromWorldSave(
         lookupsActive.load(std::memory_order_acquire) && saveHooksInstalled);
@@ -53,6 +69,13 @@ inline bool installBannerSaveHooks() {
         BL_ERROR("[CSharp][BannerLoader] Save/WriteFullState estaticos nao verificados");
         return false;
     }
+    BannerSaveFields fields{};
+    std::string error;
+    if (!resolveVanillaBannerSaveFields(&fields,&error)) {
+        BL_ERROR("[CSharp][BannerLoader] world-save preflight falhou: %s",error.c_str());
+        return false;
+    }
+    bannerVanillaSaveFields=fields;
     if (!originalBannerSave &&
         !bl::hook::install(save, hookBannerSave, &originalBannerSave))
         return false;
