@@ -133,6 +133,7 @@ void hkDraw(Il2CppObject* self, Il2CppObject* grid, int32_t index,
 
 void hkOpen(Il2CppObject* self, int32_t backTo, int32_t selected,
             const MethodInfo* method) {
+    bool rebuilt = false;
     if (self && menuListOffset >= 0) {
         const auto status = nativeAchievementRegistryStatus();
         const std::size_t current =
@@ -144,9 +145,11 @@ void hkOpen(Il2CppObject* self, int32_t backTo, int32_t selected,
                 reinterpret_cast<char*>(self) + menuListOffset);
             a.gc_wbarrier_set_field(self, location, nullptr);
             menuRevisions[self] = current;
+            rebuilt = true;
         }
     }
     if (originalOpen) originalOpen(self, backTo, selected, method);
+    if (rebuilt) releaseRetiredNativeAchievements();
 }
 
 void hkPopup(Il2CppObject* self, Il2CppObject* achievement,
