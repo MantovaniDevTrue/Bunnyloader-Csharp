@@ -45,6 +45,8 @@ jobs:
         run: dotnet run --project Split/Bunny-Loader/tests/hair_loader/HairLoader.Tests.csproj -c Release
       - name: Test real Roslyn compiler ModHair export and fail-closed source assets
         run: dotnet run --project Split/Bunny-Loader/tests/hair_loader/HairCompiler.Tests.csproj -c Release
+      - name: Reject inherited ModHair before loading any mixed CSharp content
+        run: dotnet run --project Split/Bunny-Loader/tests/hair_loader/HairRuntimeGate.Tests.csproj -c Release
       - name: Check unsupported hair classes fail fast in the actual C++ source parser
         run: |
           g++ -std=c++20 -Wall -Wextra \
