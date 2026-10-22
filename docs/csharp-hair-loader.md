@@ -24,24 +24,39 @@ Base técnica: `ModHair` do tModLoader (API pública) e `HairLoader.js` /
   C# pareça instalado antes da ponte nativa real.
 - Testes C# sem NuGet, smoke do parser C++ e GitHub Actions apenas de fonte,
   sem Gradle/Android/APK.
+- `NativeHairRegistry.h`: pré-registro atômico de lotes, IDs por sessão,
+  recuperação por nome estável, limites, checagem de arquivos, fallback _Alt,
+  chave de personagem versão H1 e pacote de aparência usando UID/classe.
+- O servidor só aceita aparência do próprio remetente; clientes só aceitam
+  atualização vinda do servidor (índice 256). O cliente converte UID/classe
+  para seu próprio tipo local, sem confiar no número recebido.
+- `NativeHairTextures.{h,cpp}`: instalador IL2CPP isolado que amplia
+  `TextureAssets.PlayerHair` e `PlayerHairAlt` com cópias, fixa arrays e
+  assets enquanto carrega PNGs e volta às tabelas anteriores se falhar.
+  **Ainda não é chamado por nenhum hook de produção**.
+- Em `ModHair.cs`, `Type` já é atribuído antes de `AutoStaticDefaults`
+  e `SetStaticDefaults`, como no tModLoader; se ocorrer erro, a inscrição
+  gerenciada é revertida, sem consumir ID.
 
 ## Contrato que ainda precisa estar completo antes de APK
 
-1. Registrar `ModHair` no **SourceParser** e `SourceLoader` com IDs,
-   texturas e identidade, sem deixar a classe só no assembly do MonoVM.
-2. Instalar `TextureAssets.PlayerHair` e `PlayerHairAlt` na thread IL2CPP,
-   estender as duas tabelas sem substituir entradas de outros mods, e fazer
-   rollback seguro em erro ou recarga.
+1. Integrar o `ModHair` no **SourceParser**, `SourceLoader` e MonoVM;
+   os descritores de fonte ainda não passam pelos registros nativos.
+2. Acionar o instalador de texturas na thread IL2CPP, com resolução real do
+   diretório do mod e instalação antes da UI. Validar retorno de erro, unload,
+   reinstalação e falhas de texture load no Android. O instalador C++ está
+   implementado **mas não está conectado ao jogo**.
 3. Inserir os IDs na lista de criação de personagem e no Stylist, preservando
    itens vanilla, ordem, estado desbloqueado e reavaliação quando condições
    mudarem. Usar a API native de `HairstyleUnlocksHelper`.
 4. Aplicar o gênero sugerido no sorteio de criação de personagem, sem restringir
    o jogador a um gênero na escolha manual.
-5. Gravar cabelo vanilla compatível no arquivo do jogo e UID/classe no arquivo
-   extra do Bunny; restaurar ao entrar, oferecer fallback para cabelo 0 quando
-   o mod está ausente e não corromper personagens existentes.
-6. Sincronizar multiplayer validando remetente, índice, mod e nome estável;
-   garantir compatibilidade quando a ordem de mods/IDs difere entre clientes.
+5. Conectar o contrato H1 ao save extra do personagem do Bunny. O arquivo
+   vanilla deve conter 0 durante save e ser restaurado mesmo em exceção; o
+   arquivo extra mantém UID/classe. Os testes H1 **não** substituem esse hook.
+6. Conectar a validação H1 aos hooks de envio e recebimento de pacote
+   multiplayer e fazer QA com dois clientes de ordens diferentes. Os testes
+   locais cobrem anti-spoof, identidade e fallback, não a rede real.
 7. Evitar chamadas MonoVM por pixel ou por desenho; avaliação de condições e
    criação das texturas devem ocorrer apenas nos pontos de atualização corretos.
 8. Testar descarregamento, múltiplos mods, colisões de nomes, trocar de mundo,
@@ -61,10 +76,19 @@ g++ -std=c++20 -I Split/Bunny-Loader/app/src/main/cpp \
   Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/SourceParser.cpp \
   -o /tmp/bunny-hair-parser-check
 /tmp/bunny-hair-parser-check
+g++ -std=c++20 -Wall -Wextra -Werror \
+  -I Split/Bunny-Loader/app/src/main/cpp \
+  Split/Bunny-Loader/tests/hair_loader/native_registry.cpp \
+  -o /tmp/bunny-hair-native-contract
+/tmp/bunny-hair-native-contract
+g++ -std=c++20 -Wall -Wextra -Werror -fsyntax-only \
+  -I Split/Bunny-Loader/app/src/main/cpp \
+  Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairTextures.cpp
 ```
 
 Esses testes **não** comprovam renderização, salvamento nem sincronização no
-Terraria, apenas o contrato C# e as proteções de carregamento. Nenhum APK,
+Terraria. Eles verificam o contrato C#, o núcleo nativo isolado, proteção de
+carregamento e sintaxe C++ da instalação de texturas. Nenhum APK,
 bmod ou pacote jogável deve ser publicado a partir desta etapa.
 
 Documentação da referência:
