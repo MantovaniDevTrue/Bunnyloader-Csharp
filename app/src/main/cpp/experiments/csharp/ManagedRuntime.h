@@ -66,7 +66,8 @@ bool takeManagedBiomeManifest(const std::string& modId, std::string* result);
 bool requestManagedBiomeSnapshot(const std::string& modId,
     bool gameMenu, bool playerActive, float positionX, int maxTilesX,
     bool zoneSkyHeight, bool zoneOverworldHeight,
-    const std::string& tileCountsWire, uint64_t generation);
+    const std::string& tileCountsWire, uint32_t updateEvents,
+    uint64_t generation);
 bool takeManagedBiomeSnapshot(
     const std::string& modId, uint64_t generation, std::string* result);
 
