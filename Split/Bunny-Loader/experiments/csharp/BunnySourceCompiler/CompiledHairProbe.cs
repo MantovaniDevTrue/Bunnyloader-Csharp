@@ -34,6 +34,29 @@ public static class CompiledHairProbe
             "; aguardando UI, save, rede e unload IL2CPP");
     }
 
+    public static HairManifestSession ExportForNative(
+        Assembly compiledMod, string modUid, string modRoot,
+        string privateWorkDirectory, int reservedFirstHairType)
+    {
+        if (string.IsNullOrEmpty(modUid) || modUid.Length > 128 ||
+            modUid.Any(c => !((c >= 'a' && c <= 'z') ||
+                              (c >= 'A' && c <= 'Z') ||
+                              (c >= '0' && c <= '9') ||
+                              c == '_' || c == '-')))
+            throw new ArgumentException("UID inválido para o handoff nativo.", nameof(modUid));
+
+        if (string.IsNullOrWhiteSpace(privateWorkDirectory))
+            throw new ArgumentException("Diretório privado não informado.", nameof(privateWorkDirectory));
+
+        string directory = Path.GetFullPath(privateWorkDirectory);
+        if (!Directory.Exists(directory) ||
+            new DirectoryInfo(directory).LinkTarget is not null)
+            throw new InvalidOperationException("Diretório privado de manifesto indisponível.");
+
+        string destination = Path.Combine(directory, "source-hair-" + modUid + ".manifest");
+        return Export(compiledMod, modUid, modRoot, destination, reservedFirstHairType);
+    }
+
     public static HairManifestSession Export(
         Assembly compiledMod, string modUid, string modRoot,
         string destination, int reservedFirstHairType)
