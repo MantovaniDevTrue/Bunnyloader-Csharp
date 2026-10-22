@@ -1235,7 +1235,9 @@ jobs:
           assert "kFixtureId" in native
           assert "source-compile-status.txt" in native
           count_contract=(root/"experiments/csharp/ManagedSourceClassCount.h").read_text()
-          assert "modId=" in count_contract and "executedTypes=" in count_contract
+          assert 'status.find("modId=" + modId + "\\n")' in count_contract
+          assert 'sourceStatusCount(status, "executedTypes", &executed)' in count_contract
+          assert "executed - managed == expectedManagedSourceTypes(mod)" in count_contract
           assert "managedSourceCompileFinished(status, id, mod)" in native
           assert "BUNNY_AUTO_SOURCE_V3_NATIVE_ITEM_POLICIES_20261015" in native
           assert "requestIsolatedMonoCompile(root, id, *error)" in native
