@@ -367,6 +367,23 @@ ManagedSourceCompileResult compileManagedSource(
     const std::string& outputAssembly,
     const std::string& diagnosticsPath);
 
+struct ManagedHairManifestResult {
+    int classes = 0;
+    std::string phase = "idle";
+    std::string error;
+};
+
+// Exporta um manifesto do ModHair usando o mesmo MonoVM e
+// BunnySourceCompiler do carregador real. Não instala texturas nem hooks.
+ManagedHairManifestResult exportManagedHairManifest(
+    const std::string& probeAssembly,
+    const std::string& compilerAssembly,
+    const std::string& modAssembly,
+    const std::string& modUid,
+    const std::string& modRoot,
+    const std::string& privateWorkDir,
+    int firstReservedHairType);
+
 }
 
 namespace bl::csharp {
