@@ -1,0 +1,12 @@
+{
+  "Achievements": {
+    "ExampleBossKilled": {
+      "FriendlyName": "Rei Slime Derrotado",
+      "Description": "Derrote o Rei Slime."
+    },
+    "ManyWormsKilled": {
+      "FriendlyName": "Cinco Vermes Gigantes",
+      "Description": "Derrote cinco Vermes Gigantes."
+    }
+  }
+}
