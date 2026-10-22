@@ -1,6 +1,7 @@
 #include "experiments/csharp/SourceLimits.h"
 #include "experiments/csharp/NativeTileWirePolicy.h"
 #include "experiments/csharp/SourceLoader.h"
+#include "experiments/csharp/NativeDamageTypeRegistry.h"
 #include "experiments/csharp/NativeRarityRegistry.h"
 #include "experiments/csharp/ManagedDustContract.h"
 
@@ -680,6 +681,10 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
             status->commandClasses.push_back(def.namespaceName.empty() ? def.name :
                 def.namespaceName + "." + def.name);
     status->commands = static_cast<int>(status->commandClasses.size());
+    for (const auto& def : defs)
+        if (def.base == "DamageClass")
+            status->damageClassNames.push_back(def.namespaceName.empty()
+                ? def.name : def.namespaceName + "." + def.name);
     status->damageClasses = static_cast<int>(std::count_if(defs.begin(), defs.end(),
         [](const ParsedSourceType& def) { return def.base == "DamageClass"; }));
     if (status->damageClasses > 118) {
@@ -706,6 +711,7 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
 
 void resetCSharpSourceModSession() {
     for (const auto& mod : g_statuses) {
+        nativeDamageTypes().unload(mod.id);
         angler::registry().unload(mod.id);
         unbindNativeRecipeAssembly(mod.id);
         invalidateManagedLiveSourceMod(mod.id);
@@ -780,6 +786,8 @@ bool applyManagedSourceDefaults(
     std::vector<angler::Quest> anglerQuests;
     std::map<std::string, bool> anglerPlayerRules;
     std::vector<NativeDefaultsRequest> nativeDefaults;
+    std::vector<NativeDamageTypeBinding> damageTypes;
+    std::set<std::string> seenDamageTypes;
     std::vector<holdout::Entry> holdouts;
     std::vector<shooting::Entry> shooting;
     std::vector<useSounds::Entry> useSounds;
@@ -1015,6 +1023,33 @@ bool applyManagedSourceDefaults(
             }
             const auto source=mod->sourcePaths.find(key);
             holdouts.push_back({modId,fields[1],source==mod->sourcePaths.end()?"<unavailable>":source->second,it->second,x,y});continue;
+        }
+        if (fields.size() == 4 && fields[0] == "DAMAGE_TYPE") {
+            const bool projectile = fields[1] == "PROJECTILE";
+            if (fields[1] != "ITEM" && !projectile) {
+                *error = "[CSharp][DamageClass] Unknown content family";
+                return false;
+            }
+            const std::string key = sourceIdentityForWire(fields[1], fields[2]);
+            const auto registered = mod->registeredKindTypes.find(key);
+            const auto base = mod->registeredBases.find(key);
+            const bool family = base != mod->registeredBases.end() &&
+                (projectile ? base->second == "BunnyProjectile" :
+                    (base->second == "BunnyItem" || base->second == "BunnyWeapon"));
+            const std::string& cls = fields[3];
+            const bool vanilla = cls.size() == 2 && cls[0] == 'V' &&
+                cls[1] >= '0' && cls[1] <= '9';
+            const bool custom = cls.starts_with("C:") &&
+                std::find(mod->damageClassNames.begin(), mod->damageClassNames.end(),
+                          cls.substr(2)) != mod->damageClassNames.end();
+            if (registered == mod->registeredKindTypes.end() || !family ||
+                (!vanilla && !custom) || !seenDamageTypes.insert(key).second) {
+                *error = "[CSharp][DamageClass] Mod=" + modId + " Class=" + fields[2] +
+                    " Stage=BindDamageType Result=Rejected Reason=OwnerOrClassIdentityMismatch";
+                return false;
+            }
+            damageTypes.push_back({modId, registered->second, projectile, cls});
+            continue;
         }
         if(fields.size()==3&&(fields[0]=="NATIVE_ITEM"||fields[0]=="NATIVE_PROJECTILE")) {
             const bool projectile=fields[0]=="NATIVE_PROJECTILE";
@@ -1660,6 +1695,13 @@ bool applyManagedSourceDefaults(
     if(!angler::registry().publish(modId,anglerQuests,error)) {
         *error="[CSharp][ERROR][AnglerQuest] Mod="+modId+
             " Stage=Publish Reason="+*error;
+        return false;
+    }
+    if (damageTypes.size() != static_cast<size_t>(mod->basicItems + mod->projectiles +
+          (mod->items - mod->accessories - mod->potions - mod->basicItems)) ||
+        !nativeDamageTypes().publish(modId, damageTypes)) {
+        *error = "[CSharp][DamageClass] Mod=" + modId +
+            " Stage=Publish Result=Rejected Reason=MissingOrDuplicateDamageType";
         return false;
     }
     mod->runtimeApplied = true;
