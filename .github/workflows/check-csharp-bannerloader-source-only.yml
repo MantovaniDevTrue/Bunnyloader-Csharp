@@ -17,6 +17,9 @@ on:
       - app/src/main/cpp/experiments/csharp/ManagedBannerSaveDispatch.h
       - app/src/main/cpp/experiments/csharp/NativeInvasionWorldPath.cpp
       - app/src/main/cpp/experiments/csharp/NativeContent.cpp
+      - app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp
+      - app/src/main/cpp/experiments/csharp/NativeBasicItems.h
+      - app/src/main/cpp/experiments/csharp/NativeTilePolicy.h
       - app/src/main/cpp/experiments/csharp/NativeTileGameplay.cpp
       - experiments/csharp/BunnySourceCompiler/TileWriter.cs
       - samples/ExampleModCSharp/Playable/content/Content/Tiles/**
@@ -44,6 +47,9 @@ on:
       - app/src/main/cpp/experiments/csharp/ManagedBannerSaveDispatch.h
       - app/src/main/cpp/experiments/csharp/NativeInvasionWorldPath.cpp
       - app/src/main/cpp/experiments/csharp/NativeContent.cpp
+      - app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp
+      - app/src/main/cpp/experiments/csharp/NativeBasicItems.h
+      - app/src/main/cpp/experiments/csharp/NativeTilePolicy.h
       - app/src/main/cpp/experiments/csharp/NativeTileGameplay.cpp
       - experiments/csharp/BunnySourceCompiler/TileWriter.cs
       - samples/ExampleModCSharp/Playable/content/Content/Tiles/**
@@ -118,6 +124,12 @@ jobs:
             -Iapp/src/main/cpp tests/banners/native_save_dispatch.cpp \
             -o /tmp/bunny-banner-save-dispatch
           /tmp/bunny-banner-save-dispatch
+      - name: Validate native banner tile style, drops and bounds
+        run: |
+          c++ -std=c++20 -O1 -Wall -Wextra -Werror \
+            -Iapp/src/main/cpp tests/banners/native_tile_style.cpp \
+            -o /tmp/bunny-banner-tile-style
+          /tmp/bunny-banner-tile-style
       - name: Test bounded BannerSystem array planner
         run: |
           c++ -std=c++20 -O1 -Wall -Wextra -Werror -pthread \
@@ -138,7 +150,8 @@ jobs:
             app/src/main/cpp/experiments/csharp/NativeInvasionWorldPath.cpp \
             app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp \
             app/src/main/cpp/experiments/csharp/NativeContent.cpp \
-            app/src/main/cpp/experiments/csharp/NativeTileGameplay.cpp
+            app/src/main/cpp/experiments/csharp/NativeTileGameplay.cpp \
+            app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp
       - name: Verify APK gate remains closed
         shell: bash
         run: |
