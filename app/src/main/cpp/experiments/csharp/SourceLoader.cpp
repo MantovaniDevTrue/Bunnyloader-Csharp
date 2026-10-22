@@ -1,5 +1,6 @@
 #include "experiments/csharp/SourceLimits.h"
 #include "experiments/csharp/ManagedBannerRegistry.h"
+#include "experiments/csharp/ManagedBannerLookupHooks.h"
 #include "experiments/csharp/NativeTileWirePolicy.h"
 #include "experiments/csharp/SourceLoader.h"
 #include "experiments/csharp/NativeRarityRegistry.h"
@@ -707,6 +708,7 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
 }
 
 void resetCSharpSourceModSession() {
+    banners::setBannerLookupsActive(false);
     for (const auto& mod : g_statuses) {
         angler::registry().unload(mod.id);
         banners::registry(runtime::kVanillaNpcCount).unload(mod.id);
@@ -721,6 +723,8 @@ bool loadCSharpSourceMod(const bl::mods::LoadedMod& mod) {
     auto previous = std::find_if(g_statuses.begin(), g_statuses.end(),
         [&](const SourceModStatus& entry) { return entry.id == mod.id; });
     if (previous != g_statuses.end()) {
+        banners::setBannerLookupsActive(false);
+        banners::registry(runtime::kVanillaNpcCount).unload(mod.id);
         angler::registry().unload(mod.id);
         unbindNativeRecipeAssembly(mod.id);
         invalidateManagedLiveSourceMod(mod.id);
@@ -1594,6 +1598,10 @@ bool applyManagedSourceDefaults(
     }
     if (!banners::registry(runtime::kVanillaNpcCount).validate(modId, bannerBindings, error)) {
         *error = "[CSharp][BannerLoader] Stage=Preflight Result=Rejected Reason=" + *error;
+        return false;
+    }
+    if (!bannerBindings.empty() && !banners::installBannerLookupHooks()) {
+        *error = "[CSharp][BannerLoader] Stage=HookPreflight Result=Rejected Reason=MissingIl2CppSignatureOrDetour";
         return false;
     }
     if (!applyManagedNativeBuffDefaultsBatch(modId, buffs, potions)) {
