@@ -36,3 +36,26 @@ jobs:
         run: |
           dotnet run --project Split/Bunny-Loader/tests/random_compat/RandomCompat.csproj --configuration Release
           dotnet run --project Split/Bunny-Loader/tests/random_compat_android_probe/RandomCompatAndroidProbe.csproj --configuration Release
+      - name: Package independent CSharp gameplay probe
+        run: |
+          set -euo pipefail
+          python3 Split/Bunny-Loader/tools/mods/pack.py Split/Bunny-Loader/samples/RandomCompatSmokeCSharp/Playable
+          cp Split/Bunny-Loader/build/mods-packs/randomcompatsmoke-0.1.0.bl RandomCompatSmokeCSharp-v0.1.0.bmod
+          python3 - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile
+          p=Path("RandomCompatSmokeCSharp-v0.1.0.bmod")
+          with ZipFile(p) as z:
+              names=z.namelist()
+              assert "manifest.json" in names
+              assert "content/main.cs" in names
+              assert "content/Common/Players/RandomCompatProbePlayer.cs" in names
+              assert not any(x.endswith((".js",".dll",".so")) for x in names)
+          print("BUNNY_CSHARP_RANDOM_QA_BMOD=PASS")
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: RandomCompatSmokeCSharp-v0.1.0
+          path: RandomCompatSmokeCSharp-v0.1.0.bmod
+          retention-days: 14
+          if-no-files-found: error
