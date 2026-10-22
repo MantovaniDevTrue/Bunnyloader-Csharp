@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include "experiments/csharp/NativeDamageClassFlags.h"
 #include <atomic>
 #include <map>
 #include <memory>
@@ -50,6 +51,15 @@ public:
         auto it = snapshot->find(Key{projectile, type});
         if (it == snapshot->end()) return false;
         *out = it->second;
+        return true;
+    }
+
+    bool lookupFlags(bool projectile, int type, NativeDamageClassFlags* out) const {
+        if (!out || type < 0) return false;
+        const auto view = std::atomic_load_explicit(&active_, std::memory_order_acquire);
+        const auto it = view->find(Key{projectile, type});
+        if (it == view->end()) return false;
+        *out = nativeDamageClassFlags(it->second.damageClass);
         return true;
     }
 
