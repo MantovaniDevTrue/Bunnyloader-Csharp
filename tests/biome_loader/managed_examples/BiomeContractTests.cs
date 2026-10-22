@@ -135,6 +135,36 @@ static class BiomeContractTests
             "World reset clears active biome and allows entering again");
 
 
+        ExampleFaultingBiome.Activate = true;
+        string recovered = BunnyBiomeDispatcher.EvaluateWire(
+            "example-mod", false, true, 3200 * 16f, 6400, false, true,
+            "ExampleTile=40");
+        Require(recovered.Contains("BIOME\tExampleFaultingBiome\n",
+                StringComparison.Ordinal) &&
+                recovered.Contains("BIOME\tExampleSurfaceBiome\n",
+                StringComparison.Ordinal) &&
+                ExampleFaultingBiome.Enters == 1 &&
+                ExampleFaultingBiome.Inside == 1,
+            "One failing IsBiomeActive does not permanently disable biome");
+        Require(BunnyBiomeDispatcher.LastError.Contains(
+                "ExampleFaultingBiome.OnInBiome", StringComparison.Ordinal),
+            "OnInBiome exception isolated from active flags");
+        recovered = BunnyBiomeDispatcher.EvaluateWire(
+            "example-mod", false, true, 3200 * 16f, 6400, false, true,
+            "ExampleTile=40");
+        Require(ExampleFaultingBiome.Enters == 1 &&
+                ExampleFaultingBiome.Inside == 2,
+            "Throwing OnEnter must not repeat on every evaluation");
+        ExampleFaultingBiome.Activate = false;
+        Require(BunnyBiomeDispatcher.EvaluateWire(
+            "example-mod", false, true, 3200 * 16f, 6400, false, true,
+            "ExampleTile=40") == active &&
+            ExampleFaultingBiome.Leaves == 1,
+            "Throwing OnLeave must not corrupt other active biomes");
+        Require(BunnyBiomeDispatcher.LastError.Contains(
+                "ExampleFaultingBiome.IsBiomeActive", StringComparison.Ordinal),
+            "Biome IsBiomeActive errors remain recoverable and isolated");
+
         string dir = Path.Combine(Path.GetTempPath(),
             "bunny-biome-source-test-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(dir);
