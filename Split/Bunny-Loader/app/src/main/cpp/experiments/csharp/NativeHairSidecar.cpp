@@ -57,6 +57,22 @@ std::string NativeHairSidecarPath(std::string_view terrariaPlayerPath) {
         : std::string{};
 }
 
+bool RemoveNativeHairSidecar(std::string_view terrariaPlayerPath,
+                            std::string* error) {
+    if (!error) return false;
+    error->clear();
+    const std::string path = NativeHairSidecarPath(terrariaPlayerPath);
+    if (path.empty()) {
+        *error = "HairSidecarInvalidPlayerPath";
+        return false;
+    }
+    // unlink remove apenas a entrada do diretório; se ela for symlink, não
+    // segue nem escreve no alvo. ENOENT significa que já está removido.
+    if (unlink(path.c_str()) == 0 || errno == ENOENT) return true;
+    *error = "HairSidecarRemoveFailed";
+    return false;
+}
+
 bool WriteNativeHairSidecar(std::string_view terrariaPlayerPath,
                             std::string_view stableKey, std::string* error) {
     if (!error) return false;
