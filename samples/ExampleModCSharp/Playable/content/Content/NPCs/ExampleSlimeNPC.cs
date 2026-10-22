@@ -17,6 +17,10 @@ public sealed class ExampleSlimeNPC : BunnyNPC
         AiStyle = 1;
         AnimationType = 1;
         Frames = 2;
+        // Equivalente a Banner = Type e BannerItem = ModContent.ItemType<T>
+        // no tModLoader. O Bunny resolve os nomes para IDs reais ao carregar.
+        Banner = "ExampleSlimeNPC";
+        BannerItem = "ExampleSlimeBanner";
     }
 
     public override bool AI(ref BunnyNpcAiState state)
