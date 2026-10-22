@@ -11,6 +11,7 @@
 #include "experiments/csharp/NativeCloudHooks.h"
 #include "experiments/csharp/NativeCloudBiomeSampler.h"
 #include "experiments/csharp/NativeBiomeGameBridge.h"
+#include "experiments/csharp/NativeBiomeUpdateHook.h"
 #include "graphics/CSharpScreenEffects.h"
 #include "experiments/csharp/NativeContent.h"
 #include "experiments/csharp/NativeBasicItems.h"
@@ -1204,6 +1205,7 @@ void noteAutoWorldTilesLoaded() {
     pauseManagedEntitySourceCallbacks();
     pauseManagedScreenSceneCallbacks();
     pauseNativeCloudHooks();
+    pauseNativeBiomeUpdateHookOnGameThread();
     resetNativeBiomeWorldStateOnGameThread();
     resetManagedCloudWorldSession();
     resetManagedSourceNpcSlots();
@@ -1239,7 +1241,26 @@ void noteAutoGameUpdate() {
     pumpInteractiveConsoleOnGameThread();
     pumpBasicRecipesOnGameThread();
     pumpNativeVisualRendererOnGameThread();
-    if (nativeCloudHooksEnabled() &&
+    if (g_worldSessionReady.load(std::memory_order_acquire) &&
+        nativeBiomeOwnersStagedOnGameThread() &&
+        !nativeBiomeUpdateHookEnabled()) {
+        static uint64_t lastAttempt = ~uint64_t(0);
+        const uint64_t epoch = g_worldEpoch.load(std::memory_order_acquire);
+        if (lastAttempt != epoch) {
+            lastAttempt = epoch;
+            std::string error;
+            if (!installNativeBiomeUpdateHookOnGameThread(true, &error)) {
+                pauseNativeCloudHooks();
+                resetNativeBiomeWorldStateOnGameThread();
+                resetManagedCloudWorldSession();
+                BL_WARN("[CSharp][BiomeLoader] Stage=UpdateBiomesHook Result=Paused Detail=%s",
+                    error.c_str());
+            }
+        }
+    }
+    if ((nativeCloudHooksEnabled() ||
+            (nativeBiomeOwnersStagedOnGameThread() &&
+             nativeBiomeUpdateHookEnabled())) &&
         g_worldSessionReady.load(std::memory_order_acquire)) {
         // Never inspect the local player in either cloud hook. Cache one
         // validated snapshot for up to 20 game updates; drain Mono results
@@ -1250,22 +1271,30 @@ void noteAutoGameUpdate() {
         static NativeCloudBiomeFacts cloudFacts{};
         static bool cloudSnapshotReady = false;
         static bool cloudAnniversary = false;
+        static bool pendingBiomeUpdate = false;
         const uint64_t epoch = g_worldEpoch.load(std::memory_order_acquire);
         if (cloudSnapshotEpoch != epoch) {
             cloudSnapshotEpoch = epoch;
             cloudSnapshotTicks = 0;
             cloudSnapshotReady = false;
             cloudBiomeKeys.clear();
+            pendingBiomeUpdate = false;
             resetNativeBiomeWorldStateOnGameThread();
         }
+        if (takeNativeBiomePlayerUpdatesOnGameThread() > 0)
+            pendingBiomeUpdate = true;
         bool newSnapshot = false;
-        if (!cloudSnapshotReady || ++cloudSnapshotTicks % 20u == 0) {
+        const bool needsBiomeTick = nativeBiomeOwnersStagedOnGameThread();
+        const bool due = ++cloudSnapshotTicks % 20u == 0;
+        if ((!cloudSnapshotReady && (!needsBiomeTick || pendingBiomeUpdate)) ||
+            (due && (!needsBiomeTick || pendingBiomeUpdate))) {
             NativeCloudBiomeFacts facts{};
             std::string error;
             if (!readNativeCloudVanillaBiomeFacts(false, &facts, &error)) {
                 // Unknown native fields are NOT a reason to invent a
                 // biome. Disable only the C# cloud hook; vanilla continues.
                 pauseNativeCloudHooks();
+                pauseNativeBiomeUpdateHookOnGameThread();
                 resetNativeBiomeWorldStateOnGameThread();
                 resetManagedCloudWorldSession();
                 cloudSnapshotReady = false;
@@ -1277,9 +1306,11 @@ void noteAutoGameUpdate() {
                 cloudAnniversary = facts.tenthAnniversaryWorld;
                 cloudSnapshotReady = true;
                 newSnapshot = true;
+                pendingBiomeUpdate = false;
             }
         }
-        if (cloudSnapshotReady && nativeCloudHooksEnabled()) {
+        if (cloudSnapshotReady && (nativeCloudHooksEnabled() ||
+                nativeBiomeOwnersStagedOnGameThread())) {
             std::string verifiedKeys = cloudBiomeKeys;
             if (!pumpNativeBiomeOwnersOnGameThread(
                     cloudFacts, newSnapshot, &verifiedKeys)) {
@@ -1289,8 +1320,9 @@ void noteAutoGameUpdate() {
                 cloudSnapshotReady = false;
                 BL_WARN("[CSharp][CloudLoader] Stage=BiomeFlags Result=Paused Reason=InvalidManagedBiomeSnapshot");
             } else {
-                pumpNativeCloudManagedCallbacksOnGameThread(
-                    false, cloudAnniversary, verifiedKeys);
+                if (nativeCloudHooksEnabled())
+                    pumpNativeCloudManagedCallbacksOnGameThread(
+                        false, cloudAnniversary, verifiedKeys);
             }
         }
     }
@@ -1336,6 +1368,7 @@ void noteAutoGameUpdate() {
         graphics::clearCSharpScreenEffects();
         pauseManagedScreenSceneCallbacks();
         pauseNativeCloudHooks();
+        pauseNativeBiomeUpdateHookOnGameThread();
         resetNativeBiomeWorldStateOnGameThread();
         resetManagedCloudWorldSession();
         resetNativeVisualRenderer();
