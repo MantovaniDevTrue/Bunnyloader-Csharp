@@ -128,12 +128,14 @@ public sealed class HairLoader
     private readonly Dictionary<string, HairDefinition> byKey =
         new(StringComparer.Ordinal);
     private readonly Dictionary<int, HairDefinition> definitions = new();
+    private readonly int firstModHairType;
     private int nextType;
 
     public HairLoader(int firstModHairType = VanillaHairCount)
     {
         if (firstModHairType < VanillaHairCount || firstModHairType > MaximumHairType)
             throw new ArgumentOutOfRangeException(nameof(firstModHairType));
+        this.firstModHairType = firstModHairType;
         nextType = firstModHairType;
     }
 
@@ -227,7 +229,7 @@ public sealed class HairLoader
         byType.Clear();
         byKey.Clear();
         definitions.Clear();
-        nextType = VanillaHairCount;
+        nextType = firstModHairType;
     }
 
     private static string ValidateTexture(string texture)
