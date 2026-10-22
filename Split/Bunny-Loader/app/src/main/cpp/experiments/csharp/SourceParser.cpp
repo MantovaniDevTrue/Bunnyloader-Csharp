@@ -192,6 +192,10 @@ bool parseClass(const std::vector<Token>& tokens, size_t begin, size_t end,
                 const std::string& namespaceName,
                 std::vector<ParsedSourceType>* definitions, std::string* error,
                 const std::map<std::string, std::string>& declaredProperties = {}) {
+    if (base == "ModHair" || base == "BunnyHair") {
+        *error = name + ": ModHair C# bloqueado: instalacao IL2CPP, UI, save e rede ainda nao vinculados; nao gerar APK.";
+        return false;
+    }
     if (base != "BunnyItem" && base != "BunnyProjectile" && base != "BunnyWeapon" &&
         base != "BunnyBuff" && base != "BunnyBuffPotion" &&
         base != "BunnyPlayer" && base != "BunnyAccessory" &&
