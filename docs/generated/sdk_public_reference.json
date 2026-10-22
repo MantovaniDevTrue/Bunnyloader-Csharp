@@ -954,6 +954,10 @@
           "execution": "worker_async_entity"
         },
         {
+          "signature": "static string DamageStats(int modSlot)",
+          "execution": "worker_async_entity"
+        },
+        {
           "signature": "static string Status(int modSlot)",
           "execution": "worker_async_entity"
         },
@@ -4203,6 +4207,10 @@
         },
         {
           "signature": "static int RegisterAssembly(string modId, Assembly assembly)",
+          "execution": "managed_stat_snapshot_no_android_damage_hook"
+        },
+        {
+          "signature": "static string ExportDefaultStatSnapshot(Assembly assembly)",
           "execution": "managed_stat_snapshot_no_android_damage_hook"
         },
         {

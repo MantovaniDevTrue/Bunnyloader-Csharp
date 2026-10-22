@@ -513,6 +513,7 @@ string LastRegistrationError { get; }
 | `static bool Unregister(string modId)` | worker_async_entity |
 | `static int Register(string modId, string assemblyPath)` | worker_async_entity |
 | `static int TickWorld(int modSlot, int mode, int elapsedFrames, Int64 worldSession, int playerIndex, float playerX, float playerY)` | worker_async_entity |
+| `static string DamageStats(int modSlot)` | worker_async_entity |
 | `static string Status(int modSlot)` | worker_async_entity |
 | `static void ResetWorld()` | worker_async_entity |
 
@@ -2261,6 +2262,7 @@ int Generation { get; }
 | `static int Register<T>()` | managed_stat_snapshot_no_android_damage_hook |
 | `static int RegisterAssembly(Assembly assembly)` | managed_stat_snapshot_no_android_damage_hook |
 | `static int RegisterAssembly(string modId, Assembly assembly)` | managed_stat_snapshot_no_android_damage_hook |
+| `static string ExportDefaultStatSnapshot(Assembly assembly)` | managed_stat_snapshot_no_android_damage_hook |
 | `static void Unload()` | managed_stat_snapshot_no_android_damage_hook |
 
 ## BunnyLoader.Source.DamageClassPlayer
