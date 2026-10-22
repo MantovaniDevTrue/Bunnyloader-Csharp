@@ -46,8 +46,18 @@ public static class CompiledHairProbe
 
         string root = Path.GetFullPath(modRoot).TrimEnd(
             Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-        if (root.Length == 0 || !Directory.Exists(root) || new DirectoryInfo(root).LinkTarget is not null)
+        if (root.Length == 0 || !Directory.Exists(root) ||
+            new DirectoryInfo(root).LinkTarget is not null)
             throw new InvalidOperationException("Diretório raiz do mod inexistente ou simbólico.");
+
+        // SourceLoader lê os .cs de modRoot/content. As texturas do
+        // ExampleModBunny estão em modRoot/content/Content/Hairs/*.png.
+        // Não confundir essa raiz com a pasta privada do próprio mod.
+        string contentRoot = Path.Combine(root, "content");
+        if (!Directory.Exists(contentRoot) ||
+            new DirectoryInfo(contentRoot).LinkTarget is not null)
+            throw new InvalidOperationException(
+                "A pasta content do pacote C# não existe ou é simbólica.");
 
         string target = Path.GetFullPath(destination);
         string? folderPath = Path.GetDirectoryName(target);
@@ -65,22 +75,23 @@ public static class CompiledHairProbe
                 relative.Contains("//", StringComparison.Ordinal))
                 return false;
 
-            string path = Path.GetFullPath(Path.Combine(root,
+            string path = Path.GetFullPath(Path.Combine(contentRoot,
                 relative.Replace('/', Path.DirectorySeparatorChar)));
-            if (!path.StartsWith(root + Path.DirectorySeparatorChar,
+            if (!path.StartsWith(contentRoot + Path.DirectorySeparatorChar,
                 StringComparison.Ordinal) || !File.Exists(path))
                 return false;
 
             // Não usar File.Exists isoladamente: symlink em Content/Hairs
             // permite sair da pasta do mod mesmo com um caminho relativo.
             DirectoryInfo? folder = new FileInfo(path).Directory;
-            while (folder != null && folder.FullName != root)
+            while (folder != null && folder.FullName != contentRoot)
             {
                 if (folder.LinkTarget is not null)
                     return false;
                 folder = folder.Parent;
             }
-            return new FileInfo(path).LinkTarget is null;
+            return folder?.FullName == contentRoot &&
+                new FileInfo(path).LinkTarget is null;
         }
 
         // Classes de uma assembly compilada, não de outras assemblies do host.
