@@ -1209,6 +1209,94 @@
       ],
       "validation": "Contratos gerenciados e binders/roteador C++ de produção exercitados no host com providers IL2CPP/Android controlados. Não executa SoundPool/decodificador Android, combate ou direção real no Terraria. Publicação suspensa até o port integral.",
       "deviceEvidence": []
+    },
+    "Content/Items/Placeable/ExampleCampfire.js": {
+      "status": "Parcial",
+      "cSharp": [
+        "samples/ExampleModCSharp/Porting/Content/Items/Placeable/ExampleCampfire.cs"
+      ],
+      "preservedFeatures": [
+        "Exact placeable default, Wood recipe group and 5 ExampleTorch inputs."
+      ],
+      "missingFeatures": [
+        "ExampleCampfire tile still lacks C# NearbyEffects, frame, light and related native policy."
+      ],
+      "nativeDependencies": [
+        "experiments/csharp/BunnyCsSdk/BunnyItem.cs",
+        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp"
+      ],
+      "automatedTests": [
+        "tests/basic_items/placeable_stage/PlaceableStage.csproj"
+      ],
+      "validation": "O item esta em Porting para nao ativar a receita antes de existir o ModTile C# correspondente; aguarda host e Android.",
+      "deviceEvidence": []
+    },
+    "Content/Items/Placeable/ExampleHerbSeeds.js": {
+      "status": "Parcial",
+      "cSharp": [
+        "samples/ExampleModCSharp/Porting/Content/Items/Placeable/ExampleHerbSeeds.cs"
+      ],
+      "preservedFeatures": [
+        "Exact native tile name, 12x14 item, value 80 and ExampleTileItem recipe."
+      ],
+      "missingFeatures": [
+        "ExampleHerb tile germination, planting and substrate behaviors are not implemented in C#."
+      ],
+      "nativeDependencies": [
+        "experiments/csharp/BunnyCsSdk/BunnyItem.cs",
+        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp"
+      ],
+      "automatedTests": [
+        "tests/basic_items/placeable_stage/PlaceableStage.csproj"
+      ],
+      "validation": "O item esta em Porting para nao ativar a receita antes de existir o ModTile C# correspondente; aguarda host e Android.",
+      "deviceEvidence": []
+    },
+    "Content/Items/Placeable/ExampleLamp.js": {
+      "status": "Parcial",
+      "cSharp": [
+        "samples/ExampleModCSharp/Porting/Content/Items/Placeable/ExampleLamp.cs"
+      ],
+      "preservedFeatures": [
+        "Exact native item placement, 10x24 size, value 500 and ExampleWorkbench recipe."
+      ],
+      "missingFeatures": [
+        "ExampleLamp tile draw, light and placed furniture behavior have not been ported."
+      ],
+      "nativeDependencies": [
+        "experiments/csharp/BunnyCsSdk/BunnyItem.cs",
+        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp"
+      ],
+      "automatedTests": [
+        "tests/basic_items/placeable_stage/PlaceableStage.csproj"
+      ],
+      "validation": "O item esta em Porting para nao ativar a receita antes de existir o ModTile C# correspondente; aguarda host e Android.",
+      "deviceEvidence": []
+    },
+    "Content/Items/Placeable/ExampleSinkItem.js": {
+      "status": "Parcial",
+      "cSharp": [
+        "samples/ExampleModCSharp/Porting/Content/Items/Placeable/ExampleSinkItem.cs"
+      ],
+      "preservedFeatures": [
+        "Exact native item placement, 24x30 size, value 3000 and WorkBenches recipe."
+      ],
+      "missingFeatures": [
+        "ExampleSink tile's TileObjectData layout, placement and sink effects are not implemented."
+      ],
+      "nativeDependencies": [
+        "experiments/csharp/BunnyCsSdk/BunnyItem.cs",
+        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp"
+      ],
+      "automatedTests": [
+        "tests/basic_items/placeable_stage/PlaceableStage.csproj"
+      ],
+      "validation": "O item esta em Porting para nao ativar a receita antes de existir o ModTile C# correspondente; aguarda host e Android.",
+      "deviceEvidence": []
     }
   },
   "additionalCSharpDeviceEvidence": {
