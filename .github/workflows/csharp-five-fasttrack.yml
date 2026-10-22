@@ -11,6 +11,7 @@ on:
       - experiments/csharp/BunnyCsSdk/BunnyCommand.cs
       - experiments/csharp/BunnyCsSdk/BunnyCommandWorker.cs
       - experiments/csharp/BunnyCsSdk/BunnyGore.cs
+      - experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs
   workflow_dispatch:
 
 permissions:
