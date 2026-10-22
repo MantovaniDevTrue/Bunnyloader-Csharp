@@ -11,6 +11,9 @@ on:
       - "Split/Bunny-Loader/experiments/csharp/BunnySourceSdk/**"
       - "Split/Bunny-Loader/tests/hair_loader/**"
       - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/SourceParser.cpp"
+      - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/SourceLoader.*"
+      - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/SourceContentIdentity.h"
+      - "Split/Bunny-Loader/samples/ExampleModCSharp/Examples/Hairs/**"
       - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairRegistry.h"
       - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairTextures.*"
       - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairUi.*"
@@ -76,6 +79,18 @@ jobs:
             Split/Bunny-Loader/tests/hair_loader/native_manifest.cpp \
             -o /tmp/bunny-hair-manifest
           /tmp/bunny-hair-manifest
+      - name: Ensure CSharp HairLoader remains fail-closed before native lifecycle completion
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root = Path("Split/Bunny-Loader/app/src/main/cpp/experiments/csharp")
+          source = (root / "SourceLoader.cpp").read_text()
+          assert "status->hairs > 0" in source
+          assert "NativeHairLifecycleIncomplete" in source
+          assert source.index("NativeHairLifecycleIncomplete") < source.index("prepareNativeContent()")
+          assert "ModHair" in (root / "SourceParser.cpp").read_text()
+          print("HAIR_LOADER_ACTIVATION_GATE=PASS")
+          PY
       - name: Guard against Android artifacts
         run: |
           test ! -d Split/Bunny-Loader/app/build/outputs/apk
