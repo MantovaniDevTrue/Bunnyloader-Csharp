@@ -2,6 +2,7 @@
 
 #include "content/common/TypeTables.h"
 #include "il2cpp/FieldContract.h"
+#include "il2cpp/ConstantField.h"
 #include "il2cpp/Resolver.h"
 
 #include <array>
@@ -45,7 +46,12 @@ inline bool resolveVanillaBannerSaveFields(BannerSaveFields* fields,
         !il2cpp::nativeFieldContract(banner,"MaxBannerTypes","System.Int32",
          true,sizeof(int32_t),&maximum,nullptr,error))
         return false;
-    api.field_static_get_value(maximum,&next.vanilla);
+    if (!il2cpp::readInt32Constant(maximum,
+                                   il2cpp::findClass({"System","Int32",{}}),
+                                   &next.vanilla)) {
+        *error="BannerSave: MaxBannerTypes nao pode ser lido";
+        return false;
+    }
     if (next.vanilla <= 0 || next.vanilla > 4096) {
         *error="BannerSave: MaxBannerTypes invalido ou constante nao resolvida";
         return false;
