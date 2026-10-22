@@ -18,10 +18,10 @@
   "counts": {
     "CommandLoader": {
       "clean_take_pr": 0,
-      "clean_three_way": 3,
+      "clean_three_way": 2,
       "already_equal": 29,
       "already_contains_pr": 0,
-      "manual_reconciled": 5,
+      "manual_reconciled": 6,
       "blocked": 2,
       "excluded": 3
     },
@@ -30,12 +30,24 @@
       "clean_three_way": 0,
       "already_equal": 15,
       "already_contains_pr": 0,
-      "manual_reconciled": 1,
-      "blocked": 3,
+      "manual_reconciled": 4,
+      "blocked": 0,
       "excluded": 5
     }
   },
   "integrated": [
+    {
+      "pr": 117,
+      "path": "app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp",
+      "result": "manual_source_reconciled",
+      "sha256": "7c7cacf1f1442f7b2ffe96c4e7cb5b3f2322e231553059a56d8fa939fccd6246"
+    },
+    {
+      "pr": 117,
+      "path": "app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp",
+      "result": "manual_source_reconciled",
+      "sha256": "b5bcd8ea9d1e7920313a61561608fac4e1ce0b860c325db725e62b73906fab43"
+    },
     {
       "pr": 117,
       "path": "app/src/main/cpp/experiments/csharp/ManagedRuntime.h",
@@ -89,18 +101,6 @@
       "path": "app/src/main/cpp/experiments/csharp/SourceContentIdentity.h",
       "result": "clean_three_way",
       "sha256": "8e913576df6d0d1489c39fba7df571fcb98a809898c0772c46ee39d77f8b05a7"
-    },
-    {
-      "pr": 117,
-      "path": "app/src/main/cpp/experiments/csharp/SourceLoader.cpp",
-      "result": "manual_source_reconciled",
-      "sha256": "826ece271c3915d62354bac53ce51b4f15e99c3aa9955bfa10cc2389016bd7fe"
-    },
-    {
-      "pr": 117,
-      "path": "app/src/main/cpp/experiments/csharp/SourceLoader.h",
-      "result": "clean_three_way",
-      "sha256": "e143d785d1f19454acc36e1893e7064191a5be61568f9869903e8c6f4d484fe1"
     },
     {
       "pr": 117,
@@ -260,6 +260,12 @@
     },
     {
       "pr": 121,
+      "path": "app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp",
+      "result": "manual_source_reconciled",
+      "sha256": "7c7cacf1f1442f7b2ffe96c4e7cb5b3f2322e231553059a56d8fa939fccd6246"
+    },
+    {
+      "pr": 121,
       "path": "app/src/main/cpp/experiments/csharp/ManagedGoreCatalog.h",
       "result": "already_equal",
       "sha256": "ff605475f97951bf6f7884d82c08ee4f5fa7a604ea0a207e378d7239a5d45814"
@@ -287,6 +293,18 @@
       "path": "app/src/main/cpp/experiments/csharp/ManagedGoreRuntime.h",
       "result": "already_equal",
       "sha256": "5a7f781720b19086ad11084b75d997494c63cf25dca83c506bee699cdf308c87"
+    },
+    {
+      "pr": 121,
+      "path": "app/src/main/cpp/experiments/csharp/SourceLoader.cpp",
+      "result": "manual_source_reconciled",
+      "sha256": "08d356b1565c5f8e58e595de939a0ed4f410265fc95ae3c4a3f0150d7fa85bd0"
+    },
+    {
+      "pr": 121,
+      "path": "app/src/main/cpp/experiments/csharp/SourceLoader.h",
+      "result": "manual_source_reconciled",
+      "sha256": "5f2de1fafb5c15ee9bf1cf48611d78740591f4bbd19f264215b740d9372a77c4"
     },
     {
       "pr": 121,
@@ -373,19 +391,19 @@
     },
     {
       "pr": 117,
-      "path": "app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp",
+      "path": "app/src/main/cpp/experiments/csharp/SourceLoader.cpp",
       "reason": "three_way_conflict",
-      "base_sha256": "f766787ea721267528fc8c3b7b139824628cae77786f4d912ad56757f961bb04",
-      "local_sha256": "c066dd5b2ce4f14d75bb22470fd394792dab5109d007de2473bb7c49f3fd755a",
-      "incoming_sha256": "b6cfca97a970f1b6a073c6e708178e5126d3c0b3d9fc7df6b1531aaa3ec75c70"
+      "base_sha256": "9312a2e872fbedb5fa43646642d3ab8932b2b3142d8a797555c0403173e910f4",
+      "local_sha256": "08d356b1565c5f8e58e595de939a0ed4f410265fc95ae3c4a3f0150d7fa85bd0",
+      "incoming_sha256": "2764e2fc54eb4017fee68c303f84ffc73e48409984aef9e0a226c254433bc43d"
     },
     {
       "pr": 117,
-      "path": "app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp",
+      "path": "app/src/main/cpp/experiments/csharp/SourceLoader.h",
       "reason": "three_way_conflict",
-      "base_sha256": "f462836e285e1198b79e0124bdff61c3c084567827142156e4d4ef1de8a7b52e",
-      "local_sha256": "fba68ee1bab08f236ea22accaf6d598c54cb7832930af43c4f62c339587eb51e",
-      "incoming_sha256": "b1ab7612d20a6374b4e1fbb3e7163406de96aad17a23fd7f619c55f0152121de"
+      "base_sha256": "fb84a08c1713055e4d1a304a872e26cec64d19de1319fe1d44d3e0b037a88043",
+      "local_sha256": "5f2de1fafb5c15ee9bf1cf48611d78740591f4bbd19f264215b740d9372a77c4",
+      "incoming_sha256": "7743988eafb45fbe5f7aeccb97bc5d9bde7cd62d8263447ecfefaf4ce38c5fc0"
     },
     {
       "pr": 121,
@@ -411,30 +429,6 @@
       "pr": 121,
       "path": "app/src/main/assets/managed/framework.sha256",
       "reason": "outside_safe_source_scope"
-    },
-    {
-      "pr": 121,
-      "path": "app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp",
-      "reason": "three_way_conflict",
-      "base_sha256": "f766787ea721267528fc8c3b7b139824628cae77786f4d912ad56757f961bb04",
-      "local_sha256": "c066dd5b2ce4f14d75bb22470fd394792dab5109d007de2473bb7c49f3fd755a",
-      "incoming_sha256": "ab2f576e61d8b5d3c750fe974b8f421e47ae59b4ee131ac1d40205e4622ccdf9"
-    },
-    {
-      "pr": 121,
-      "path": "app/src/main/cpp/experiments/csharp/SourceLoader.cpp",
-      "reason": "three_way_conflict",
-      "base_sha256": "9312a2e872fbedb5fa43646642d3ab8932b2b3142d8a797555c0403173e910f4",
-      "local_sha256": "826ece271c3915d62354bac53ce51b4f15e99c3aa9955bfa10cc2389016bd7fe",
-      "incoming_sha256": "1bcaa2e312c9443807fd3bb87b7992925dbf25d3cb2c97138370b270455db998"
-    },
-    {
-      "pr": 121,
-      "path": "app/src/main/cpp/experiments/csharp/SourceLoader.h",
-      "reason": "three_way_conflict",
-      "base_sha256": "fb84a08c1713055e4d1a304a872e26cec64d19de1319fe1d44d3e0b037a88043",
-      "local_sha256": "e143d785d1f19454acc36e1893e7064191a5be61568f9869903e8c6f4d484fe1",
-      "incoming_sha256": "f5e0e28b8f60304746a37bb19d31ec1e6feb125e8704a40671f143611d526e57"
     }
   ],
   "rules": {
