@@ -93,6 +93,17 @@ try
         !defaults.Contains("ITEM\tExampleItem\t", StringComparison.Ordinal))
         throw new InvalidOperationException("Full ExampleMod native handoff is incomplete");
 
+    string[] bannerTileTokens = defaults.Split('\n', StringSplitOptions.RemoveEmptyEntries)
+        .Where(line => line.StartsWith("TILE\tExampleEnemyBannerTile\t", StringComparison.Ordinal))
+        .Select(line => line.Split('\t')).SingleOrDefault()
+        ?? throw new InvalidOperationException("ExampleEnemyBannerTile missing from Roslyn handoff");
+    if (bannerTileTokens.Length < 6 || bannerTileTokens[3] != "2" ||
+        bannerTileTokens[4] != "18" ||
+        !defaults.Contains("NPC_BANNER\tExampleSlimeNPC\tExampleSlimeNPC\tExampleSlimeBanner", StringComparison.Ordinal) ||
+        !defaults.Contains("NPC_BANNER\tExampleInvasionEliteSlimeNPC\tExampleSlimeNPC\tExampleSlimeBanner", StringComparison.Ordinal))
+        throw new InvalidOperationException("Banner 1x3 tile or shared NPC descriptors missing");
+    Console.WriteLine("FULL_EXAMPLE_BANNER_TILE_1X3=PASS");
+
     Console.WriteLine("FULL_EXAMPLE_ROSLYN_AND_EXECUTION=PASS classes=" + verified);
     string compact = Path.Combine(framework, "compiler-references");
     File.WriteAllText(Path.Combine(framework, "framework-version.txt"), new string('a', 64));
