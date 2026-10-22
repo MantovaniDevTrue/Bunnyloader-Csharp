@@ -2184,6 +2184,10 @@ bool applyTileFlags(int type, const ManagedTileEntry& e) {
     apply(sets, "HasOutlines", 64);
     apply(sets, "IgnoredByNpcStepUp", 128);
     apply(room, "CountsAsTable", 256);
+    apply(main, "tileSolid", 512);
+    apply(main, "tileBlockLight", 1024);
+    apply(main, "tileMergeDirt", 2048);
+    apply(sets, "ChecksForMerge", 4096);
     apply(main, "tileObsidianKill", 8);
     return ok;
 }
