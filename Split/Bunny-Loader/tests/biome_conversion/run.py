@@ -24,6 +24,7 @@ with tempfile.TemporaryDirectory(prefix='bunny-biome-native-') as temp:
     build('adapter',[cpp/'experiments/csharp/NativeBiomeConversion.cpp',tests/'adapter_test.cpp'],['-I'+str(root/'tests/basic_items/include')])
     subprocess.run([str(out/'adapter')],check=True,timeout=15)
     subprocess.run([str(out/'adapter'),'bad-abi'],check=True,timeout=15)
+    subprocess.run([str(out/'adapter'),'missing-framing'],check=True,timeout=15)
     build('parser',[cpp/'experiments/csharp/SourceParser.cpp',tests/'parser_test.cpp'])
     subprocess.run([str(out/'parser'),str(root/'samples/BiomeConversionCSharp/Playable/content/main.cs')],check=True,timeout=15)
     build('libbunny.so',[tests/'bridge_test.cpp'],['-shared','-fPIC'])
