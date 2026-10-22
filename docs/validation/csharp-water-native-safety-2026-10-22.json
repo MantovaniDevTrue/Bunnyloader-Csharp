@@ -1,0 +1,554 @@
+{
+  "sourceCommit": "0496da6b15d8f850b02d67182e0820723ad0815b",
+  "nativeWaterChecks": {
+    "codePatch": 90,
+    "countAndAlphaTables": 101,
+    "sanitizers": [
+      "AddressSanitizer",
+      "UndefinedBehaviorSanitizer"
+    ]
+  },
+  "existingRegressionChecks": [
+    {
+      "name": "Compile and run managed localization contract suite",
+      "source": "check-csharp-localization.yml",
+      "code": 0,
+      "seconds": 3.75
+    },
+    {
+      "name": "Build MonoVM Roslyn verifier against CSharp SDK",
+      "source": "check-csharp-localization.yml",
+      "code": 0,
+      "seconds": 0.94
+    },
+    {
+      "name": "Syntax-check native language publisher",
+      "source": "check-csharp-localization.yml",
+      "code": 0,
+      "seconds": 0.97
+    },
+    {
+      "name": "Test native locale wire without Android or APK",
+      "source": "check-csharp-localization.yml",
+      "code": 0,
+      "seconds": 2.73
+    },
+    {
+      "name": "Resolve cross-mod and vanilla references in native host",
+      "source": "check-csharp-localization.yml",
+      "code": 0,
+      "seconds": 0.77
+    },
+    {
+      "name": "Verify CSharp localization mod enable and unload lifecycle",
+      "source": "check-csharp-localization.yml",
+      "code": 0,
+      "seconds": 1.02
+    },
+    {
+      "name": "Verify physical retirement key ownership policy",
+      "source": "check-csharp-localization.yml",
+      "code": 0,
+      "seconds": 0.97
+    },
+    {
+      "name": "Test CSharp rarity contracts without APK or game",
+      "source": "check-csharp-rarity-loader.yml",
+      "code": 0,
+      "seconds": 1.32
+    },
+    {
+      "name": "Compile playable ExampleModCSharp native rarity examples",
+      "source": "check-csharp-rarity-loader.yml",
+      "code": 0,
+      "seconds": 1.23
+    },
+    {
+      "name": "Verify native rarity registry and parser without JS",
+      "source": "check-csharp-rarity-loader.yml",
+      "code": 0,
+      "seconds": 6.08
+    },
+    {
+      "name": "Verify shared JS/CSharp rarity allocation",
+      "source": "check-csharp-rarity-loader.yml",
+      "code": 0,
+      "seconds": 0.03
+    },
+    {
+      "name": "Verify original JS tooltip interop with CSharp native rarity cache",
+      "source": "check-csharp-rarity-loader.yml",
+      "code": 0,
+      "seconds": 0.03
+    },
+    {
+      "name": "Compile rarity native host integration and lifecycle regressions",
+      "source": "check-csharp-rarity-loader.yml",
+      "code": 0,
+      "seconds": 20.22
+    },
+    {
+      "name": "Verify native Terraria integration signatures compile",
+      "source": "check-csharp-angler-quest-host.yml",
+      "code": 0,
+      "seconds": 0.77
+    },
+    {
+      "name": "Compile shared Mono quest callback bridge",
+      "source": "check-csharp-angler-quest-host.yml",
+      "code": 0,
+      "seconds": 0.92
+    },
+    {
+      "name": "Verify native Mono worker and queued callback identity compile",
+      "source": "check-csharp-angler-quest-host.yml",
+      "code": 0,
+      "seconds": 1.17
+    },
+    {
+      "name": "Test managed assembly generation and concurrent unload/rebind",
+      "source": "check-csharp-angler-quest-host.yml",
+      "code": 0,
+      "seconds": 0.46
+    },
+    {
+      "name": "Test per-mod deferred Mono queue invalidation",
+      "source": "check-csharp-angler-quest-host.yml",
+      "code": 0,
+      "seconds": 0.42
+    },
+    {
+      "name": "Verify selective NPC effect revocation and FIFO preservation",
+      "source": "check-csharp-angler-quest-host.yml",
+      "code": 0,
+      "seconds": 0.27
+    },
+    {
+      "name": "Verify selective live projectile ingress revocation",
+      "source": "check-csharp-angler-quest-host.yml",
+      "code": 0,
+      "seconds": 0.42
+    },
+    {
+      "name": "Test live Mono cache revocation on source-mod unload",
+      "source": "check-csharp-angler-quest-host.yml",
+      "code": 0,
+      "seconds": 0.52
+    },
+    {
+      "name": "Verify native source handoff and game-thread lifecycle compile",
+      "source": "check-csharp-angler-quest-host.yml",
+      "code": 0,
+      "seconds": 3.03
+    },
+    {
+      "name": "Verify independent CSharp and mixed mod loader session reset",
+      "source": "check-csharp-angler-quest-host.yml",
+      "code": 0,
+      "seconds": 1.42
+    },
+    {
+      "name": "Compile and run native state tests",
+      "source": "check-csharp-angler-quest-host.yml",
+      "code": 0,
+      "seconds": 1.67
+    },
+    {
+      "name": "Execute angler quest hooks against host IL2CPP fixture",
+      "source": "check-csharp-angler-quest-host.yml",
+      "code": 0,
+      "seconds": 1.52
+    },
+    {
+      "name": "Execute native fishing against host IL2CPP value layout",
+      "source": "check-csharp-angler-quest-host.yml",
+      "code": 0,
+      "seconds": 1.12
+    },
+    {
+      "name": "Verify BunnySourceSdk and Compiler sources",
+      "source": "check-csharp-angler-quest-host.yml",
+      "code": 0,
+      "seconds": 3.16
+    },
+    {
+      "name": "Compile and run managed DustLoader contracts",
+      "source": "check-csharp-dust.yml",
+      "code": 0,
+      "seconds": 1.14
+    },
+    {
+      "name": "Compile and run C++ DustLoader ABI contracts",
+      "source": "check-csharp-dust.yml",
+      "code": 0,
+      "seconds": 0.21
+    },
+    {
+      "name": "Verify Roslyn source compiler assembly",
+      "source": "check-csharp-dust.yml",
+      "code": 0,
+      "seconds": 0.77
+    },
+    {
+      "name": "Verify DustLoader source parser",
+      "source": "check-csharp-dust.yml",
+      "code": 0,
+      "seconds": 0.67
+    },
+    {
+      "name": "Verify DustLoader compilation through real Roslyn and Mono source contract",
+      "source": "check-csharp-dust.yml",
+      "code": 0,
+      "seconds": 1.94
+    },
+    {
+      "name": "Verify bounded Dust worker mailbox and stale-instance protection",
+      "source": "check-csharp-dust.yml",
+      "code": 0,
+      "seconds": 0.87
+    },
+    {
+      "name": "Verify Dust lifecycle and bounded release tracking",
+      "source": "check-csharp-dust.yml",
+      "code": 0,
+      "seconds": 0.27
+    },
+    {
+      "name": "Verify only managed Dust hooks start MonoVM bindings",
+      "source": "check-csharp-dust.yml",
+      "code": 0,
+      "seconds": 0.32
+    },
+    {
+      "name": "Verify checked Dust index with fast native hint and stable Main.dust fallback",
+      "source": "check-csharp-dust.yml",
+      "code": 0,
+      "seconds": 0.22
+    },
+    {
+      "name": "Verify frame-coherent native Dust callback decisions",
+      "source": "check-csharp-dust.yml",
+      "code": 0,
+      "seconds": 0.03
+    },
+    {
+      "name": "Validate native Dust callback flag masks by phase",
+      "source": "check-csharp-dust.yml",
+      "code": 0,
+      "seconds": 0.03
+    },
+    {
+      "name": "Verify deadline-bound MonoVM Dust handshake and per-frame budget",
+      "source": "check-csharp-dust.yml",
+      "code": 0,
+      "seconds": 0.87
+    },
+    {
+      "name": "Compile and run pure CSharp lifecycle tests",
+      "source": "test-csharp-invasion.yml",
+      "code": 0,
+      "seconds": 0.97
+    },
+    {
+      "name": "Validate versioned invasion replication packets, late join and client revision",
+      "source": "test-csharp-invasion.yml",
+      "code": 0,
+      "seconds": 0.92
+    },
+    {
+      "name": "Verify epoch-bound native spawn pipeline",
+      "source": "test-csharp-invasion.yml",
+      "code": 0,
+      "seconds": 0.92
+    },
+    {
+      "name": "Test actual Bunny NPC dispatcher and ExampleInvasion integration",
+      "source": "test-csharp-invasion.yml",
+      "code": 0,
+      "seconds": 2.09
+    },
+    {
+      "name": "Audit native NPC identity handoff and verified spawn admission",
+      "source": "test-csharp-invasion.yml",
+      "code": 0,
+      "seconds": 0.03
+    },
+    {
+      "name": "Verify reward drops for completed invasions using original Bunny item API",
+      "source": "test-csharp-invasion.yml",
+      "code": 0,
+      "seconds": 0.57
+    },
+    {
+      "name": "Test atomic per-world invasion sidecars and session isolation",
+      "source": "test-csharp-invasion.yml",
+      "code": 0,
+      "seconds": 0.62
+    },
+    {
+      "name": "Simulate CSharp-to-native-to-CSharp invasion round trip",
+      "source": "test-csharp-invasion.yml",
+      "code": 0,
+      "seconds": 2.57
+    },
+    {
+      "name": "Simulate simultaneous native invasions and isolated NPC scoring",
+      "source": "test-csharp-invasion.yml",
+      "code": 0,
+      "seconds": 1.08
+    },
+    {
+      "name": "Audit world-ready host and autonomous MonoVM invasion integration",
+      "source": "test-csharp-invasion.yml",
+      "code": 0,
+      "seconds": 0.02
+    },
+    {
+      "name": "Verify real Terraria NPC hook authority and kill ingress",
+      "source": "test-csharp-invasion.yml",
+      "code": 0,
+      "seconds": 0.02
+    },
+    {
+      "name": "Test reliable native NPC death dispatch under queue congestion",
+      "source": "test-csharp-invasion.yml",
+      "code": 0,
+      "seconds": 0.87
+    },
+    {
+      "name": "Verify pure native spawn policy and source contracts",
+      "source": "test-csharp-invasion.yml",
+      "code": 0,
+      "seconds": 0.21
+    },
+    {
+      "name": "Test bounded terrain spawn placement on real Bunny tile layout",
+      "source": "test-csharp-invasion.yml",
+      "code": 0,
+      "seconds": 0.22
+    },
+    {
+      "name": "Run game-thread native mailbox policy and world epoch tests",
+      "source": "test-csharp-invasion.yml",
+      "code": 0,
+      "seconds": 0.57
+    },
+    {
+      "name": "Syntax-check native invasion host against real Bunny headers",
+      "source": "test-csharp-invasion.yml",
+      "code": 0,
+      "seconds": 0.51
+    },
+    {
+      "name": "Audit item-only CSharp mod registration and OnUse dispatch",
+      "source": "test-csharp-invasion.yml",
+      "code": 0,
+      "seconds": 0.02
+    },
+    {
+      "name": "Test native multiplayer peer expiry without Android",
+      "source": "test-csharp-invasion.yml",
+      "code": 0,
+      "seconds": 0.04
+    },
+    {
+      "name": "Audit host-to-client world snapshots and late join network state",
+      "source": "test-csharp-invasion.yml",
+      "code": 0,
+      "seconds": 0.02
+    },
+    {
+      "name": "Audit secure native client-to-server item invocation and dedicated host",
+      "source": "test-csharp-invasion.yml",
+      "code": 0,
+      "seconds": 0.02
+    },
+    {
+      "name": "Audit opt-in CSharp item-use dispatch and ExampleInvasion invoker",
+      "source": "test-csharp-invasion.yml",
+      "code": 0,
+      "seconds": 0.02
+    },
+    {
+      "name": "Audit native world persistence lifecycle and atomic saves",
+      "source": "test-csharp-invasion.yml",
+      "code": 0,
+      "seconds": 0.02
+    },
+    {
+      "name": "Validate CSharp NPC world authority in native C++",
+      "source": "test-csharp-invasion.yml",
+      "code": 0,
+      "seconds": 0.03
+    },
+    {
+      "name": "Compile actual shared tile draw cache and Dust emission bridges",
+      "source": "combined integration",
+      "code": 0,
+      "seconds": 0.77
+    },
+    {
+      "name": "Execute full ExampleMod native bootstrap and actual invasion HUD binding/drawing",
+      "source": "integration-regression",
+      "code": 0,
+      "seconds": 5.78
+    },
+    {
+      "name": "Audit CSharp native tooltip activation, line colors and glyph drawing",
+      "source": "integration-regression",
+      "code": 0,
+      "seconds": 0.03
+    }
+  ],
+  "surface": {
+    "components": 470,
+    "nativeLoader": 336,
+    "protocol": 178,
+    "originalOracle": {
+      "projections": 45,
+      "priorities": 144,
+      "fadeCases": 5,
+      "doublePrecisionCase": 1,
+      "animationCalls": 53
+    },
+    "actualCSharpWorker": "pass",
+    "actualQuickJS": "pass",
+    "mixedProcess": "pass",
+    "lifecycleSessionHost": "pass"
+  },
+  "publicSdkTypes": 161,
+  "exampleSources": 108,
+  "nativeBootstrapRegistrations": 53,
+  "publicSdkReference": "pass",
+  "matrixAudit": "pass",
+  "apkGenerated": false,
+  "androidDeviceTested": false,
+  "fpsMeasured": false,
+  "schema": 1,
+  "date": "2026-10-22",
+  "branch": "feat/csharp-loader-completion-15-20261021",
+  "previousPreservedCommit": "753bb31a714e1f099417b5bda1c851458263a68f",
+  "implementationCommits": [
+    "8f325b0e",
+    "cdeac6c1",
+    "0496da6b"
+  ],
+  "combinedRun": 39774698537,
+  "workflows": [
+    {
+      "conclusion": "success",
+      "databaseId": 39774705890,
+      "headSha": "0496da6b15d8f850b02d67182e0820723ad0815b",
+      "name": "CSharp Gore Source Validation",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39774706051,
+      "headSha": "0496da6b15d8f850b02d67182e0820723ad0815b",
+      "name": "CSharp AnglerQuest host-only regression",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39774705966,
+      "headSha": "0496da6b15d8f850b02d67182e0820723ad0815b",
+      "name": "CommandLoader CSharp host tests (no APK)",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39774706047,
+      "headSha": "0496da6b15d8f850b02d67182e0820723ad0815b",
+      "name": "CSharp RarityLoader ARM64 Native Compile",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39774705888,
+      "headSha": "0496da6b15d8f850b02d67182e0820723ad0815b",
+      "name": "Check CSharp RarityLoader Core",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39774705924,
+      "headSha": "0496da6b15d8f850b02d67182e0820723ad0815b",
+      "name": "CSharp DustLoader source contracts",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39774705935,
+      "headSha": "0496da6b15d8f850b02d67182e0820723ad0815b",
+      "name": "CSharp Invasion Unit Tests (no APK)",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39774705908,
+      "headSha": "0496da6b15d8f850b02d67182e0820723ad0815b",
+      "name": "CSharp World Update SDK Check",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39774706132,
+      "headSha": "0496da6b15d8f850b02d67182e0820723ad0815b",
+      "name": "CSharp Localization Core",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39774705956,
+      "headSha": "0496da6b15d8f850b02d67182e0820723ad0815b",
+      "name": "DustLoader CSharp native ARM64 compile only",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39774698537,
+      "headSha": "0496da6b15d8f850b02d67182e0820723ad0815b",
+      "name": "CSharp combined source-only integration checks (no APK)",
+      "status": "completed"
+    }
+  ],
+  "combinedJobs": [
+    {
+      "name": "native-android-link-no-apk",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39774698537/job/119810597906"
+    },
+    {
+      "name": "managed-and-contracts",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39774698537/job/119810598337"
+    },
+    {
+      "name": "native-host",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39774698537/job/119810598370"
+    },
+    {
+      "name": "native-arm64-syntax",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39774698537/job/119810598426"
+    }
+  ],
+  "implementedLoaders": 3,
+  "totalLoaders": 15,
+  "implementedWaterInternalContracts": [
+    "Recreated LocalUserGameState alpha arrays before native DrawWaters count publication",
+    "Native DrawWaters two-loop contract and failure without partial patch"
+  ],
+  "waterStyleLoaderComplete": false,
+  "waterfallStyleLoaderComplete": false,
+  "waterManagedApiExposed": false,
+  "exampleModVersion": "0.1.66",
+  "cacheVersion": "roslyn-net8-source-v57-surface-session-lifecycle",
+  "bmodGenerated": false
+}

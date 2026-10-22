@@ -16,8 +16,13 @@ A transação de arrays foi extraída do código já testado de superfície para
 implementação compartilhada; o wrapper e seus contratos foram preservados.
 
 Código, testes e continuidade: [csharp-water-native-safety.md](csharp-water-native-safety.md).
-CI e Android devem ser registrados separadamente; não houve APK, bmod, nova
-versão de ExampleMod ou alteração de ABI pública gerenciada nesta etapa.
+O código `0496da6b15d8f850b02d67182e0820723ad0815b` passou nos onze workflows;
+os quatro jobs do [CI 39774698537](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39774698537)
+aprovaram regressões, sintaxe ARM64 e link completo de libbunny.so sem APK.
+São 191 verificações nativas novas (90 + 101), também com ASan/UBSan; 65
+regressões existentes aprovadas. [Evidência](validation/csharp-water-native-safety-2026-10-22.json).
+CI e Android continuam separados: não houve APK, bmod, nova versão de ExampleMod
+ou alteração de ABI pública gerenciada nesta etapa. Validação Android pendente.
 
 ## Continuidade sobre 8173aaac — superfície com C#/JS reais e exemplo original
 

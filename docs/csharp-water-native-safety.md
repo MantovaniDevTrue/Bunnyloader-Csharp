@@ -68,8 +68,9 @@ evitando patch/log a cada quadro, e não chama o desenho inseguro nesse interval
 - 90 verificações do código de transação real: páginas mmap RX, dois padrões,
   três condições de continuação, duplicação, falta de limite, memória inacessível,
   falhas de mprotect, conflito e reparo de permissões.
-- O serviço ModWater real com metadata/heap IL2CPP controlados: overloads errados,
-  Boolean com largura errada, cinco tabelas inválidas, assets ausentes, thread
+- 101 verificações do serviço ModWater real com metadata/heap IL2CPP controlados: overloads errados,
+  Boolean com largura errada, símbolos IL2CPP ausentes identificados pelo nome,
+  cinco tabelas inválidas, assets ausentes com slot identificado, thread
   errada, falha isolada de hook, publicação monotônica, transação dos dois arrays,
   falhas de alocação/roots, owner/array trocado, caminho sem alocações e guard.
 - O arquivo JS de produção em execução Node: ordem das cinco tabelas, recusa,
@@ -80,8 +81,10 @@ evitando patch/log a cada quadro, e não chama o desenho inseguro nesse interval
 O fixture não inicializa nem vincula QuickJS. Isso demonstra a independência dos
 serviços nativos testados, **não** a conclusão do loader C# de água, que ainda
 precisa da API pública, bridges de callbacks e exemplos originais completos.
-O CI fonte-only também compila as unidades novas para ARM64 e faz o link de
-libbunny.so sem gerar APK. Registrar o resultado do run antes de afirmar aprovação.
+O código `0496da6b15d8f850b02d67182e0820723ad0815b` foi aprovado nos onze
+workflows, incluindo os quatro jobs do [CI 39774698537](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39774698537):
+compilação ARM64, link completo de libbunny.so sem APK e regressões.
+[Evidência com commits, runs e resultados](validation/csharp-water-native-safety-2026-10-22.json).
 
 Continuar pelo registro compartilhado e publicação das três tabelas de assets;
 depois ligar os callbacks completos da água/cachoeira listados em
