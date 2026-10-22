@@ -5,11 +5,27 @@ on:
     branches:
       - feat/csharp-bannerloader-source-only-20261022
     paths:
-      - experiments/csharp/BunnyCsSdk/BunnyBannerRegistry.cs
-      - experiments/csharp/BunnyCsSdk/BunnyCsSdk.csproj
+      - experiments/csharp/BunnyCsSdk/**
+      - experiments/csharp/BunnySourceSdk/**
+      - experiments/csharp/BunnySourceCompiler/**
+      - app/src/main/cpp/experiments/csharp/ManagedBannerRegistry.h
+      - app/src/main/cpp/experiments/csharp/SourceLoader.cpp
+      - app/src/main/cpp/experiments/csharp/SourceParser.cpp
       - samples/ExampleModCSharp/Examples/Banners/**
+      - samples/ExampleModCSharp/Playable/content/Content/NPCs/**
+      - samples/ExampleModCSharp/Playable/content/Content/Items/Placeable/Banners/**
       - tests/banners/**
       - .github/workflows/check-csharp-bannerloader-source-only.yml
+  pull_request:
+    paths:
+      - experiments/csharp/BunnyCsSdk/**
+      - experiments/csharp/BunnySourceSdk/**
+      - experiments/csharp/BunnySourceCompiler/**
+      - app/src/main/cpp/experiments/csharp/ManagedBannerRegistry.h
+      - app/src/main/cpp/experiments/csharp/SourceLoader.cpp
+      - samples/ExampleModCSharp/Playable/content/Content/NPCs/**
+      - samples/ExampleModCSharp/Playable/content/Content/Items/Placeable/Banners/**
+      - tests/banners/**
   workflow_dispatch: {}
 
 permissions:
@@ -18,16 +34,36 @@ permissions:
 jobs:
   banner-source-contracts:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 10.0.x
-      - name: Compile actual Bunny CSharp SDK
-        run: dotnet build experiments/csharp/BunnyCsSdk/BunnyCsSdk.csproj -c Release --nologo
+          dotnet-version: |
+            8.0.x
+            10.0.x
+      - name: Compile actual CSharp SDK and Roslyn compiler
+        run: |
+          dotnet build experiments/csharp/BunnyCsSdk/BunnyCsSdk.csproj -c Release --nologo
+          dotnet build experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj -c Release --nologo
+          dotnet build experiments/csharp/BunnySourceCompiler/BunnySourceCompiler.csproj -c Release --nologo
       - name: Execute banner registry and persistence contracts
         run: dotnet run --project tests/banners/Banners.HostTests.csproj -c Release --no-launch-profile
+      - name: Compile complete editable ExampleMod and run real managed defaults
+        run: |
+          dotnet build tests/ready_prs/FullExampleManaged.csproj -c Release --nologo
+          dotnet run --project tests/ready_prs/FullExampleRuntime/FullExampleRuntime.csproj -c Release -- samples/ExampleModCSharp/Playable
+      - name: Compile and run native banner registry tests
+        run: |
+          c++ -std=c++20 -O1 -Wall -Wextra -Werror -pthread \
+            -Iapp/src/main/cpp tests/banners/native_registry.cpp -o /tmp/bunny-banner-registry
+          /tmp/bunny-banner-registry
+      - name: Compile and run actual early CSharp parser tests
+        run: |
+          c++ -std=c++20 -O1 -Wall -Wextra -Werror \
+            -Iapp/src/main/cpp tests/banners/native_parser.cpp \
+            app/src/main/cpp/experiments/csharp/SourceParser.cpp -o /tmp/bunny-banner-parser
+          /tmp/bunny-banner-parser
       - name: Verify APK gate remains closed
         shell: bash
         run: |
