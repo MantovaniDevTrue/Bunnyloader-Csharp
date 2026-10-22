@@ -4,6 +4,7 @@
 #include "native_surface_loader_test.cpp"
 #include "experiments/csharp/ManagedSurfaceBackgrounds.cpp"
 #include "experiments/csharp/UniversalHookMailbox.h"
+#include "experiments/csharp/UniversalSystemStages.h"
 #include <condition_variable>
 
 namespace {
@@ -14,6 +15,8 @@ bool surfaceWakePending=false,surfaceStop=false;
 std::thread surfaceWorker;
 std::atomic<int> surfaceWorkerCalls=0,surfaceOriginalCalls=0;
 int surfaceManagedSlot=-1;
+bool surfaceTestWorldStage=false;
+bool surfaceDenyInstall=false;
 void wakeSurfaceWorker(){std::lock_guard lock(surfaceWakeMutex);surfaceWakePending=true;surfaceWakeChanged.notify_one();}
 void dispatchSurfaceWorker(){
     const auto result=surfaceMailbox.dispatch(surfaceManagedSlot,0,[]{++surfaceOriginalCalls;return true;},wakeSurfaceWorker,std::chrono::seconds(2));
@@ -21,10 +24,13 @@ void dispatchSurfaceWorker(){
 }
 }
 extern "C" __attribute__((visibility("default"))) int bunny_universal_hook_install_stage(const char* name,int slot) {
+    if(surfaceDenyInstall)return -12;
+    if(!std::strcmp(name,"EntitiesEnd")){surfaceTestWorldStage=true;return 1008;}
     if(std::strcmp(name,"SurfaceBackground"))return -3;
     surfaceManagedSlot=slot;bl::csharp::managedSurfaceDispatch(dispatchSurfaceWorker);return 1013;
 }
 extern "C" __attribute__((visibility("default"))) void bunny_universal_hook_remove(int handle) {
+    if(handle==1008){surfaceTestWorldStage=false;return;}
     CHECK(handle==1013);bl::csharp::removeManagedSurfaceDispatch();
 }
 extern "C" __attribute__((visibility("default"))) int bunny_universal_hook_original(int slot,int64_t ticket) {
@@ -71,6 +77,15 @@ extern "C" __attribute__((visibility("default"))) double bunny_test_surface_draw
 }
 extern "C" __attribute__((visibility("default"))) void bunny_test_surface_reset(){surface::resetWorld();}
 extern "C" __attribute__((visibility("default"))) int bunny_test_surface_calls(){return surfaceWorkerCalls.load();}
+extern "C" __attribute__((visibility("default"))) int bunny_test_surface_world_stage(){return surfaceTestWorldStage?1:0;}
+extern "C" __attribute__((visibility("default"))) void bunny_test_surface_deny_installs(int deny){surfaceDenyInstall=deny!=0;}
+extern "C" __attribute__((visibility("default"))) void bunny_test_surface_pause_world() {
+    // The host has no ARM64 instruction stream. Exercise the production stage
+    // lifetime policy here; source CI additionally compiles/links the real loop.
+    CHECK(bl::csharp::isSessionBackgroundStage(13));
+    for(int i=0;i<bl::csharp::UniversalSystemStageCount;++i)if(i!=13)CHECK(!bl::csharp::isSessionBackgroundStage(i));
+    surfaceTestWorldStage=false;surface::resetWorld();
+}
 extern "C" __attribute__((visibility("default"))) void bunny_test_surface_cleanup() {
     {std::lock_guard lock(surfaceWakeMutex);surfaceStop=true;surfaceWakeChanged.notify_one();}
     surfaceWorker.join();CHECK(surfaceWorkerCalls==surfaceOriginalCalls);

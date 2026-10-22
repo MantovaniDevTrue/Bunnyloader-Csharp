@@ -13,6 +13,7 @@ inline int64_t universalHookLateCompletionCount() {
 bool universalHooksAccepting();
 void pumpUniversalHookInstallsOnGameThread();
 void disableUniversalHooks();
+void pauseUniversalHooksForWorldExit();
 void enableUniversalHooks();
 bool registerUniversalHookMod(const std::string& id, const std::string& assembly);
 void wakeUniversalHookWorker();

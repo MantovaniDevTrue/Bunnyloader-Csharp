@@ -24,7 +24,7 @@ Três dos quinze loaders estão implementados nos fontes: BackgroundTexture,
 UndergroundBackground e SurfaceBackground. Testes executam C# e JavaScript reais
 juntos no host; os doze restantes continuam pendentes. Nenhum dos três foi
 validado no Android nesta integração. SystemUpdate/Gore são integrações adicionais.
-ExampleMod fonte 0.1.66, cache v56, 108 fontes. O gate continua bloqueando APK.
+ExampleMod fonte 0.1.66, cache v57, 108 fontes. O gate continua bloqueando APK.
 
 ## Histórico — regra de cinco loaders, substituída nesta execução
 

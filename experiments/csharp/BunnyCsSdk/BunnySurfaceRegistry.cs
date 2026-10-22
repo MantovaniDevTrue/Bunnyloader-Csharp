@@ -45,6 +45,9 @@ internal static class BunnySurfaceRegistry
     {
         Volatile.Write(ref snapshot,entries.ToArray());
         BunnyHookScope? next=entries.Count==0?null:entries[0].Scope;
+        if(owner is not null && next is not null && !ReferenceEquals(owner,next) && hook is not null && !hook.IsDisposed) {
+            BunnyHookScope.Transfer(hook,owner,next);owner=next;
+        }
         if(!ReferenceEquals(owner,next) || hook is null || hook.IsDisposed) {
             hook?.Dispose();hook=null;owner=null;
             if(next is not null){hook=next.HookSystemStage("SurfaceBackground",Dispatch);owner=next;}

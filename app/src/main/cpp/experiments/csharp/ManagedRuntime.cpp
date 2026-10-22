@@ -297,6 +297,7 @@ void* g_universalDispatchInt32Pair = nullptr;
 void* g_universalDispatchExtended = nullptr;
 void* g_universalClear = nullptr;
 void* g_universalUnloadMod = nullptr;
+void* g_universalPauseWorld = nullptr;
 void* g_universalRemove = nullptr;
 void* g_universalError = nullptr;
 void* g_universalSnapshot = nullptr;
@@ -1378,7 +1379,7 @@ int64_t executeManagedEntityOnWorker(const ManagedEntityJob& job) {
 
 bool prepareUniversalHookSdk() {
     if (g_universalRegister && g_universalSnapshot && g_universalDispatch && g_universalDispatchInt32 && g_universalDispatchInt32Pair && g_universalDispatchExtended && g_universalClear && g_universalUnloadMod &&
-        g_universalRemove) return true;
+        g_universalRemove && g_universalPauseWorld) return true;
     if (!g_domain || !g_status.methodExecuted || !g_api.openAssembly || !g_api.image ||
         !g_api.findClass || !g_api.findMethod || !g_api.invoke || !g_api.unbox) return false;
     const auto slash = g_checkpointPath.find_last_of('/');
@@ -1391,6 +1392,7 @@ bool prepareUniversalHookSdk() {
     if (!dispatcher || !hooks) return false;
     g_universalRegister = g_api.findMethod(dispatcher, "Register", 2);
     g_universalClear = g_api.findMethod(dispatcher, "UnloadAll", 0);
+    g_universalPauseWorld = g_api.findMethod(dispatcher, "PauseWorld", 0);
     g_universalUnloadMod = g_api.findMethod(dispatcher, "Unload", 1);
     g_universalError = g_api.findMethod(dispatcher, "get_LastError", 0);
     g_universalSnapshot = g_api.findMethod(dispatcher, "GetStatusSnapshot", 1);
@@ -1401,7 +1403,7 @@ bool prepareUniversalHookSdk() {
     g_universalRemove = g_api.findMethod(hooks, "RemoveSlot", 1);
     return g_universalRegister && g_universalSnapshot && g_universalDispatch && g_universalDispatchInt32 &&
            g_universalDispatchInt32Pair && g_universalDispatchExtended &&
-           g_universalClear && g_universalUnloadMod && g_universalRemove;
+           g_universalClear && g_universalUnloadMod && g_universalRemove && g_universalPauseWorld;
 }
 
 void writeUniversalRegistrationStatus(const std::string& id, const char* state, const std::string& detail) {
@@ -1547,11 +1549,13 @@ bool pollUniversalHooksOnWorker() {
             std::lock_guard<std::mutex> lock(g_pinnedMutex);
             for (const auto& mod : g_universalMods) ids.push_back(mod.id);
         }
+        void* boxed=g_api.invoke(g_universalPauseWorld,nullptr,nullptr,&exception);
+        void* value=!exception && boxed?g_api.unbox(boxed):nullptr;
+        int retained=0;if(value)std::memcpy(&retained,value,sizeof(retained));
         for (const std::string& id : ids)
             writeUniversalRegistrationStatus(id, "paused", managedHookSnapshot(id));
-        g_api.invoke(g_universalClear, nullptr, nullptr, &exception);
         std::lock_guard<std::mutex> lock(g_pinnedMutex);
-        if (!g_universalEnabled) g_universalPolling.store(false, std::memory_order_release);
+        if (!g_universalEnabled) g_universalPolling.store(retained>0, std::memory_order_release);
     }
     else if (targeted && g_api.newString) {
         void* id = g_api.newString(g_domain, targetUnload.c_str());

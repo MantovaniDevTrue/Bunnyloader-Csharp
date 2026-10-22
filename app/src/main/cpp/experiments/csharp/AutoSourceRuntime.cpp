@@ -1562,7 +1562,7 @@ void noteAutoGameUpdate() {
         if (managedLiveHitStatus().enabled)
             pauseManagedLiveHit();
         pauseManagedPlayerHurtBindings();
-        disableUniversalHooks();
+        pauseUniversalHooksForWorldExit();
         resetNativeAccessOnGameThread();
         pauseUniversalHookMods();
         pauseManagedEntitySourceCallbacks();

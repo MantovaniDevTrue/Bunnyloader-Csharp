@@ -1397,7 +1397,8 @@
       "preservedFeatures": [
         "Tres camadas Far/Middle/Close com seis imagens originais; transicao por fades Single calculados em Double, parallax, altura, SkyManager e clipping nativos.",
         "Animacao Middle estatica original: quatro frames, avanco a cada treze chamadas efetivas; lookup UID/caminho relativo e completo, sem GUID fixo.",
-        "SDK reutilizavel e callbacks MonoVM via protocolo revisado; nenhum JavaScript executado pelo mod C#. JS e C# compartilham o registro nativo."
+        "SDK reutilizavel e callbacks MonoVM via protocolo revisado; nenhum JavaScript executado pelo mod C#. JS e C# compartilham o registro nativo.",
+        "O host preserva a instancia/animacao do estilo no menu ao pausar o mundo, reinicia os modulos de gameplay em assembly nova na reentrada e descarrega ambos no unload real."
       ],
       "missingFeatures": [],
       "nativeDependencies": [
@@ -1418,7 +1419,8 @@
         "tests/surface_backgrounds/Program.cs",
         "tests/surface_backgrounds/quickjs_surface_test.cpp",
         "tests/surface_backgrounds/MixedProgram.cs",
-        "tests/surface_backgrounds/original_surface_comparison.cjs"
+        "tests/surface_backgrounds/original_surface_comparison.cjs",
+        "tests/surface_backgrounds/SessionProgram.cs"
       ],
       "automatedEvidence": [
         "docs/csharp-surface-backgrounds.md: exemplo C# executado no CLR host via P/Invoke e worker separado com UniversalHookMailbox de producao; JS original executado no QuickJS real, inclusive processo misto. Metadata/heap IL2CPP controlados; nao Android."

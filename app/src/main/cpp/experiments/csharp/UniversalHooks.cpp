@@ -461,18 +461,22 @@ void pumpUniversalHookInstallsOnGameThread() {
     install.done = true;
     install.wake.notify_one();
 }
-void disableUniversalHooks() {
+namespace {
+void stopUniversalHooks(bool preserveSessionBackgrounds) {
     std::lock_guard<std::mutex> lock(install.mutex);
     accepting.store(false, std::memory_order_release);
     epoch.fetch_add(1, std::memory_order_acq_rel);
     universalHookMailbox().cancel();
     for (auto& entry : entries) entry.active.store(false, std::memory_order_release);
-    disableAllUniversalSystemStages();
+    if(preserveSessionBackgrounds)pauseWorldUniversalSystemStages();else disableAllUniversalSystemStages();
     install.pending = false;
     install.result = -10;
     install.done = true;
     install.wake.notify_one();
 }
+}
+void disableUniversalHooks(){stopUniversalHooks(false);}
+void pauseUniversalHooksForWorldExit(){stopUniversalHooks(true);}
 void enableUniversalHooks() { accepting.store(true, std::memory_order_release); }
 
 int requestInstall(const char* type, const char* method, int slot, int isStatic,

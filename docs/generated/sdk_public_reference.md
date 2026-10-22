@@ -2132,6 +2132,7 @@ string LastError { get; }
 | Method | Execution |
 | --- | --- |
 | `static bool Unload(string id)` | experimental_worker_sync_void0 |
+| `static int PauseWorld()` | experimental_worker_sync_void0 |
 | `static int Register(string id, string path)` | experimental_worker_sync_void0 |
 | `static string GetStatusSnapshot(string id)` | experimental_worker_sync_void0 |
 | `static void UnloadAll()` | experimental_worker_sync_void0 |

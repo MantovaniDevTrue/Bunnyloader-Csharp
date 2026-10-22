@@ -1,7 +1,7 @@
 # SurfaceBackgroundLoader C# — serviço compartilhado e exemplo original
 
 Continuidade sobre `8173aaac`, sem APK. SDK e exemplo editável 0.1.66, cache
-`roslyn-net8-source-v56-native-surface-backgrounds`. Este é o terceiro dos quinze
+`roslyn-net8-source-v57-surface-session-lifecycle`. Este é o terceiro dos quinze
 loaders implementado nos fontes. Os doze restantes continuam bloqueando o APK.
 Android, desempenho e o deadline real no MonoVM continuam sem validação nova.
 
@@ -54,9 +54,17 @@ SceneEffect conserva o peso já calculado no ranking. Menu continua utilizando
 
 O caminho C# funciona sem contexto/VM QuickJS. Remover um provider aposenta só
 os estilos de sua linguagem. O último scope C# pode sair enquanto JS continua;
-remover JS preserva o dispatcher C#. Remover o primeiro scope reassocia o estágio
-ao próximo. Mundo novo apaga ativação de cena e invalida respostas pendentes,
-preservando a seleção independente de menu. Texturas de saída ficam retidas por
+remover JS preserva o dispatcher C#. Remover o primeiro scope transfere a posse do hook
+ao próximo, sem desinstalar/reinstalar o estágio e sem pedir permissão nativa de
+instalação durante teardown. Mundo novo apaga ativação de cena e invalida respostas pendentes,
+preservando a seleção independente de menu. O host mantém módulos de superfície
+e seu scope de renderização ativos ao sair do mundo. `PauseWorld()` remove os
+módulos/scopes de gameplay; na reentrada estes usam um contexto coletável novo
+para preservar o reset anterior de instâncias e estáticos. O estilo de superfície
+continua na instância/contexto original, conservando sua animação de menu. Unload
+real do mod fecha também esse scope e sua assembly. O código nativo deixa apenas
+o estágio 13 ativo durante essa pausa, sem habilitar hooks de gameplay no menu.
+Texturas de saída ficam retidas por
 leases durante o fade; dependência ausente tem diagnóstico e fallback seguro.
 
 ## Testes executáveis
@@ -64,7 +72,7 @@ leases durante o fade; dependência ausente tem diagnóstico e fallback seguro.
 | Comando | Evidência |
 | --- | --- |
 | `BUNNY_SURFACE_SANITIZE=1 bash tests/surface_backgrounds/run.sh` | Componentes e seis detours de produção, Nullable/Color/SpriteBatch reais sob metadata controlada, transações de arrays/leases, revisão, deadline, capacidade e comparação com JS original em Node |
-| `bash tests/surface_backgrounds/run_managed.sh` | Exemplo C# real, P/Invoke, worker separado e `UniversalHookMailbox` de produção; 53 chamadas de animação, fades, desenho próprio, exceção, menu/mundo e rebinding |
+| `bash tests/surface_backgrounds/run_managed.sh` | Exemplo C# real, P/Invoke, worker separado e `UniversalHookMailbox` de produção; 53 chamadas de animação, fades, desenho próprio, exceção, menu/mundo e rebinding; Session.HostTests registra o DLL real, executa PauseWorld, desenha no menu, reentra três vezes com estáticos de gameplay reiniciados e só então descarrega o mod |
 | `bash tests/surface_backgrounds/run_quickjs.sh` | Exemplo JS original no QuickJS do projeto; depois C# e JS reais juntos no mesmo processo, slots C#/JS/C#/JS, prioridades e ambas as ordens de unload |
 | `python3 tools/ci/test_ready_prs.py` | Regressões existentes; o inventário mantém todos os exemplos anteriores e acrescenta um comando e um módulo de estilo |
 

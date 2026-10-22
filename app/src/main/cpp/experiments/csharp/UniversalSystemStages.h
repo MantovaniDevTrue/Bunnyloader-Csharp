@@ -6,5 +6,7 @@ inline constexpr bool isPublicUniversalSystemStage(int index) {return index>=0 &
 int installUniversalSystemStageOnGameThread(const std::string& name, int slot);
 void removeUniversalSystemStage(int handle);
 void disableAllUniversalSystemStages();
+void pauseWorldUniversalSystemStages();
+inline constexpr bool isSessionBackgroundStage(int index){return index==13;}
 bool isUniversalHookGameThread();
 }

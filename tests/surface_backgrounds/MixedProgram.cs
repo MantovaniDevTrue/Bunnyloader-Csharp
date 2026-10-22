@@ -17,6 +17,7 @@ static class Program
  [DllImport("bunny",EntryPoint="bunny_test_surface_js_second")]private static extern int SecondJs();
  [DllImport("bunny",EntryPoint="bunny_test_surface_js_stop")]private static extern void StopJs();
  [DllImport("bunny",EntryPoint="bunny_test_surface_cleanup")]private static extern void Cleanup();
+ [DllImport("bunny",EntryPoint="bunny_test_surface_deny_installs")]private static extern void DenyInstalls(int deny);
  private static void Check(bool value,string message){if(!value)throw new Exception(message);}
  private static void SetId(BunnyHookModule style,string uid)=>typeof(BunnyHookModule).GetProperty(nameof(BunnyHookModule.ModId))!.GetSetMethod(true)!.Invoke(style,new object[]{uid});
  public static void Main()
@@ -31,7 +32,7 @@ static class Program
    using var secondScope=new BunnyHookScope();var second=new ExampleSurfaceBackgroundStyle();SetId(second,"second-csharp-surface-uid");second.Load(secondScope);
    Check(second.Slot==js+1 && SecondJs()==second.Slot+1,"C#/JS/C#/JS interleaving preserves lookup gaps");
    JsPriority(8);Check(Pick(4)==second.Slot+1,"JS weight wins against same managed priority");
-   cs.Unload();scope.Dispose();BunnySurfaceBackgrounds.Activate<ExampleSurfaceBackgroundStyle>(second.ModId,BunnyBackgroundPriority.BossHigh,1);
+   DenyInstalls(1);cs.Unload();scope.Dispose();DenyInstalls(0);BunnySurfaceBackgrounds.Activate<ExampleSurfaceBackgroundStyle>(second.ModId,BunnyBackgroundPriority.BossHigh,1);
    Check(Pick(4)==second.Slot,"surviving managed scope rebinds with JS provider untouched");
    Scene(second.Slot,0);Check(Layer(0)==10,"real C# after first module unload");
    StopJs();Check(Pick(4)==second.Slot && Layer(2)==15,"unloading QuickJS preserves managed native service");

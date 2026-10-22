@@ -16,8 +16,19 @@ fades, desenho, exceções, troca de scope e as duas ordens de unload. Os fixtur
 continuam usando metadata IL2CPP controlada. Não são teste de Android/FPS.
 
 **3/15 implementados nos fontes; 12 pendentes; zero Android.** ExampleMod 0.1.66,
-cache v56, 108 fontes, inventário esperado 77 conteúdos + 12 módulos = 89 tipos.
+cache v57, 108 fontes, inventário esperado 77 conteúdos + 12 módulos = 89 tipos.
 Guia/API/QA e continuidade em [csharp-surface-backgrounds.md](csharp-surface-backgrounds.md).
+A revisão final encontrou uma lacuna de ciclo de vida: a pausa anterior descarregava
+todos os módulos ao sair do mundo e impediria callbacks do fundo C# no menu. Foi
+corrigida com scope de renderização persistente, PauseWorld no worker e pausa
+nativa que conserva somente o estágio 13. Session.HostTests carrega o DLL real,
+confirma a mesma instância/animação no menu, reentra três vezes com estáticos de
+gameplay reiniciados e descarrega também o renderizador no unload verdadeiro.
+A troca de dono dos hooks compartilhados de superfície/subsolo agora transfere
+o handle entre scopes, sem reinstalação proibida no contexto de unload. Um teste
+recusa toda nova instalação nesse momento e confirma a continuidade do estilo.
+Os onze workflows de `d199f15a` passaram, incluindo os quatro jobs combinados
+39765902423, antes desse ajuste final; o ajuste exige sua própria nova validação.
 O APK e o `.bmod` continuam bloqueados. Abaixo, registros históricos preservados.
 
 ## Continuidade sobre eb6c44b4 — serviço nativo dos seis hooks de superfície

@@ -3946,6 +3946,10 @@
           "execution": "experimental_worker_sync_void0"
         },
         {
+          "signature": "static int PauseWorld()",
+          "execution": "experimental_worker_sync_void0"
+        },
+        {
           "signature": "static int Register(string id, string path)",
           "execution": "experimental_worker_sync_void0"
         },

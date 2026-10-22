@@ -35,6 +35,7 @@ static class Program
  [DllImport("bunny",EntryPoint="bunny_test_surface_draw_value")]private static extern double Value(int index);
  [DllImport("bunny",EntryPoint="bunny_test_surface_reset")]private static extern void Reset();
  [DllImport("bunny",EntryPoint="bunny_test_surface_calls")]private static extern int Calls();
+ [DllImport("bunny",EntryPoint="bunny_test_surface_deny_installs")]private static extern void DenyInstalls(int deny);
  [DllImport("bunny",EntryPoint="bunny_test_surface_cleanup")]private static extern void Cleanup();
  private static void Check(bool value,string message){if(!value)throw new Exception(message);}
  private static void SetId(BunnyHookModule style,string uid)=>typeof(BunnyHookModule).GetProperty(nameof(BunnyHookModule.ModId))!.GetSetMethod(true)!.Invoke(style,new object[]{uid});
@@ -55,7 +56,7 @@ static class Program
    Check(Layer(2)==15 && DrawCount()>0,"actual Example close default parallax and projection");
    BunnySurfaceBackgrounds.Activate<ExampleSurfaceBackgroundStyle>(second.ModId,BunnyBackgroundPriority.BossHigh);
    Check(Pick(4)==second.Slot,"second mod independently activates");
-   first.Unload();firstScope.Dispose();Scene(second.Slot,0);Check(Layer(0)==10,"owner scope unload rebinds dispatcher without losing second style");
+   DenyInstalls(1);first.Unload();firstScope.Dispose();Scene(second.Slot,0);Check(Layer(0)==10,"owner scope transfer works while native hook installation is forbidden during teardown");DenyInstalls(0);
    var custom=new ExampleCustomSurface();SetId(custom,"custom-surface-uid");using var customScope=new BunnyHookScope();custom.Load(customScope);
    Scene(custom.Slot,0);Check(Layer(2)==10 && Value(0)==31 && Value(1)==41 && Value(2)==.25 && Value(4)==3 && Value(5)==.5,"custom queued source rectangle, rotation, origin, effects and depth");
    custom.Unload();

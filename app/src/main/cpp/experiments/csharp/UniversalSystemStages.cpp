@@ -82,7 +82,7 @@ void invokeStage(int index, uintptr_t context = 0) {
     if (!stage.active.load(std::memory_order_acquire)) return;
     const int slot = stage.slot.load(std::memory_order_acquire);
     const bool gameThread=isUniversalHookGameThread();
-    const bool background=(index==12 || index==13) && universalHooksAccepting() && !universalNativeAccessInProgress;
+    const bool background=(isSessionBackgroundStage(index) || (index==12 && universalHooksAccepting())) && !universalNativeAccessInProgress;
     if(slot<0 || (!gameThread && !background))return;
     const int64_t now = std::chrono::duration_cast<std::chrono::nanoseconds>(
         Clock::now().time_since_epoch()).count();
@@ -407,15 +407,23 @@ extern "C" __attribute__((visibility("default"))) int bunny_system_time_rate_wri
 #endif
 }
 
-void disableAllUniversalSystemStages() {
+namespace {
+void stopSystemStages(bool preserveSessionBackgrounds) {
 #if defined(__aarch64__)
-    for (auto& stage : stages) {
+    for (int i=0;i<kCount;++i) {
+        if(preserveSessionBackgrounds && isSessionBackgroundStage(i))continue;
+        auto& stage=stages[i];
         stage.active.store(false, std::memory_order_release);
         stage.slot.store(-1, std::memory_order_release);
     }
     timeMailbox.cancel();
     removeManagedUndergroundDispatch();
-    removeManagedSurfaceDispatch();
+    if(!preserveSessionBackgrounds)removeManagedSurfaceDispatch();
+#else
+    (void)preserveSessionBackgrounds;
 #endif
 }
+}
+void disableAllUniversalSystemStages(){stopSystemStages(false);}
+void pauseWorldUniversalSystemStages(){stopSystemStages(true);}
 }
