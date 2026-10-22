@@ -12,6 +12,7 @@ on:
       - "Split/Bunny-Loader/tests/hair_loader/**"
       - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/SourceParser.cpp"
       - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/SourceLoader.*"
+      - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp"
       - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/SourceContentIdentity.h"
       - "Split/Bunny-Loader/samples/ExampleModCSharp/Examples/Hairs/**"
       - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairRegistry.h"
@@ -113,6 +114,10 @@ jobs:
           assert "NativeHairLifecycleIncomplete" in source
           assert source.index("NativeHairLifecycleIncomplete") < source.index("prepareNativeContent()")
           assert "ModHair" in (root / "SourceParser.cpp").read_text()
+          runtime = (root / "AutoSourceRuntime.cpp").read_text()
+          assert "if (mod.hairs > 0)" in runtime
+          assert "blocked-hair-lifecycle" in runtime
+          assert runtime.index("if (mod.hairs > 0)") < runtime.index('if (mod.id == kFixtureId)')
           print("HAIR_LOADER_ACTIVATION_GATE=PASS")
           PY
       - name: Test native multi-mod and JS hair ID reservations
