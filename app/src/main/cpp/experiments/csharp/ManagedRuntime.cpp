@@ -2411,6 +2411,8 @@ void pauseManagedAchievementEventSession() {
     std::lock_guard<std::mutex> lock(g_pinnedMutex);
     if (g_achievementSession.active())
         g_achievementSession.pause();
+    // Controls and dirty-profile flushes must survive world transitions.
+    g_achievementRpcQueue.discardPendingEvents();
 }
 
 void resumeManagedAchievementEventSession() {
