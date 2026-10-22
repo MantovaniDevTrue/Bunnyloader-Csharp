@@ -6,6 +6,7 @@
     <Compile Remove="wing_fixture/**/*.cs" />
     <Compile Remove="tile_fixture/**/*.cs" />
     <Compile Remove="tile_parity/**/*.cs" />
+    <Compile Remove="placeable_stage/**/*.cs" />
     <Compile Remove="recipe_group_fixture/**/*.cs" />
     <Compile Remove="callback_fixture/**/*.cs" />
     <Compile Remove="owned_recipe_fixture/**/*.cs" />
