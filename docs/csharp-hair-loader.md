@@ -1,4 +1,4 @@
-# HairLoader C# — contrato gerenciado, sem APK
+# HairLoader C# — descoberta de fonte, manifesto e hooks nativos (sem APK)
 
 **Estado: implementação em andamento, não disponível no Terraria Android.**
 
@@ -20,8 +20,10 @@ Base técnica: `ModHair` do tModLoader (API pública) e `HairLoader.js` /
   copiado para `Playable/`, para evitar um exemplo não funcional no Android.
 - `Reset()`, snapshots ordenados e resolução de cabelo salvo por nome estável.
 - Inclusão do contrato no `BunnySourceSdk.csproj` realmente compilado pelo Roslyn.
-- Bloqueio explícito do `SourceParser.cpp` para impedir que um `ModHair`
-  C# pareça instalado antes da ponte nativa real.
+- O `SourceParser.cpp` reconhece `ModHair` e `BunnyHair` no domínio
+  `HAIR` junto com outros tipos do pacote, mas o `SourceLoader.cpp` recusa
+  a ativação **antes** de registrar qualquer conteúdo enquanto a ponte
+  completa (UI, save, rede, unload) não estiver conectada.
 - Testes C# sem NuGet, smoke do parser C++ e GitHub Actions apenas de fonte,
   sem Gradle/Android/APK.
 - `NativeHairRegistry.h`: pré-registro atômico de lotes, IDs por sessão,
@@ -39,6 +41,13 @@ Base técnica: `ModHair` do tModLoader (API pública) e `HairLoader.js` /
   validação de metadados, fallback conservador e reavaliação do Stylist
   limitada a intervalos de 250 ms para evitar consultas Mono por frame.
   **Os hooks ainda não são acionados pelo carregador de produção.**
+- `HairManifestSession.Prepare()`: reconhece subclasses concretas a partir
+  dos tipos do assembly C# compilado, ordena pelo nome, recebe um primeiro
+  ID reservado pelo host e desfaz todas as instâncias em falhas.
+- `CompiledHairProbe.Export()`: a ponte preparada para o worker Roslyn/MonoVM,
+  escrita no `BunnySourceCompiler`, exige UID e diretório reais do mod,
+  confere arquivos e bloqueia symlinks; remove sidecars antigos de execuções
+  que falharam. **Ainda não é invocada pelo ciclo de produção**.
 - `ExportNativeManifest()` + `NativeHairManifest.h`: protocolo V1
   determinístico de oito campos por cabelo, com classe/UID, caminho PNG,
   gênero e disponibilidade na criação; o parser C++ recusa registros
@@ -51,8 +60,10 @@ Base técnica: `ModHair` do tModLoader (API pública) e `HairLoader.js` /
 
 ## Contrato que ainda precisa estar completo antes de APK
 
-1. Integrar o `ModHair` no **SourceParser**, `SourceLoader` e MonoVM;
-   os descritores de fonte ainda não passam pelos registros nativos.
+1. Ligar `CompiledHairProbe.Export` ao worker MonoVM e ao
+   `AutoSourceRuntime`; reservar a faixa global de IDs entre vários mods,
+   passar o manifesto tipado ao `NativeHairManifest` e remover o bloqueio
+   do `SourceLoader` **somente depois** de validar todo o ciclo.
 2. Acionar o instalador de texturas na thread IL2CPP, com resolução real do
    diretório do mod e instalação antes da UI. Validar retorno de erro, unload,
    reinstalação e falhas de texture load no Android. O instalador C++ está
@@ -83,6 +94,7 @@ Na raiz deste repositório:
 ```sh
 dotnet build Split/Bunny-Loader/experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj -c Release
 dotnet run --project Split/Bunny-Loader/tests/hair_loader/HairLoader.Tests.csproj -c Release
+dotnet run --project Split/Bunny-Loader/tests/hair_loader/HairCompiler.Tests.csproj -c Release
 g++ -std=c++20 -I Split/Bunny-Loader/app/src/main/cpp \
   Split/Bunny-Loader/tests/hair_loader/parser_guard.cpp \
   Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/SourceParser.cpp \
@@ -108,9 +120,12 @@ done
 ```
 
 Esses testes **não** comprovam renderização, salvamento nem sincronização no
-Terraria. Eles verificam o contrato C#, o núcleo nativo isolado, proteção de
-carregamento e sintaxe C++ da instalação de texturas. Nenhum APK,
+Terraria. Eles verificam o contrato C#, a descoberta por Roslyn, a
+serialização de manifesto, o núcleo nativo isolado, a proteção de
+carregamento e a sintaxe C++ dos hooks. Nenhum APK,
 bmod ou pacote jogável deve ser publicado a partir desta etapa.
+O job Android de `build-bunny-csharp-88-7.yml` recusa explicitamente
+esta branch. A PR #134 permanece Draft.
 
 Documentação da referência:
 https://docs.tmodloader.net/docs/stable/class_mod_hair.html
