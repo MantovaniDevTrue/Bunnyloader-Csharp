@@ -15,6 +15,7 @@ from pathlib import Path, PurePosixPath
 UPSTREAM_COMMIT = "a0132963026e3b35e45f33ffffa01a75eb8535d5"
 BASELINE_JS_COUNT = 206
 COMPLETE = "Validado no Android"
+SOURCE_READY = frozenset(("Implementado, aguardando validação", "Validado por testes automatizados", COMPLETE))
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_MATRIX = ROOT / "docs/generated/example_completion/matrix.json"
 
@@ -30,8 +31,15 @@ def _relative_file(value: str, root: Path, extension: str) -> bool:
 
 
 def check_release(matrix: dict, project: Path, upstream: Path | None,
-                  upstream_commit: str = UPSTREAM_COMMIT) -> list[str]:
-    """Rejeita ausencias sem promover automaticamente estados da matriz."""
+                  upstream_commit: str = UPSTREAM_COMMIT,
+                  phase: str = "source") -> list[str]:
+    """Fase source autoriza o primeiro APK de QA somente depois da porta integral.
+
+    A fase release requer as provas Android adicionais. Este codigo nunca
+    gera APKs; apenas devolve as pendencias detectadas.
+    """
+    if phase not in ("source", "release"):
+        raise ValueError("Fase de auditoria invalida: " + phase)
     errors: list[str] = []
     references = matrix.get("references", {})
     revision = references.get("upstream", {}).get("commit")
@@ -65,15 +73,16 @@ def check_release(matrix: dict, project: Path, upstream: Path | None,
         if name in ids:
             errors.append(f"{name}: arquivo JS duplicado")
         ids.add(name)
-        if row.get("status") != COMPLETE:
+        allowed = SOURCE_READY if phase == "source" else (COMPLETE,)
+        if row.get("status") not in allowed:
             errors.append(f"{name}: {row.get('status', 'sem estado')}")
         if row.get("missingFeatures"):
             errors.append(f"{name}: recursos originais ainda faltam")
         if row.get("technicalBlockEvidence"):
             errors.append(f"{name}: possui bloqueio tecnico aberto")
-        if not row.get("automatedEvidence") and not row.get("automatedTests"):
-            errors.append(f"{name}: sem evidencia de teste automatizado")
-        if not row.get("deviceEvidence"):
+        if not row.get("automatedEvidence"):
+            errors.append(f"{name}: sem resultado comprovado de teste automatizado")
+        if phase == "release" and not row.get("deviceEvidence"):
             errors.append(f"{name}: sem evidencia Android do comportamento integral")
         paths = row.get("cSharp")
         if not isinstance(paths, list) or not paths:
@@ -139,6 +148,7 @@ def main() -> int:
     parser.add_argument("--project-root", type=Path, default=ROOT)
     parser.add_argument("--upstream-root", type=Path, required=True)
     parser.add_argument("--upstream-commit", default=UPSTREAM_COMMIT)
+    parser.add_argument("--phase", choices=("source", "release"), default="source")
     args = parser.parse_args()
     try:
         report = json.loads(args.matrix.read_text(encoding="utf-8"))
@@ -146,7 +156,7 @@ def main() -> int:
         print(f"EXAMPLEMOD_APK_GATE=BLOCKED: matriz invalida: {error}")
         return 1
     problems = check_release(report, args.project_root, args.upstream_root,
-                             args.upstream_commit)
+                             args.upstream_commit, phase=args.phase)
     if problems:
         print(f"EXAMPLEMOD_APK_GATE=BLOCKED: {len(problems)} pendencias")
         for problem in problems[:30]:
