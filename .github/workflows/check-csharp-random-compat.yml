@@ -1,13 +1,25 @@
 name: Check Bunny CSharp Random Compat (no APK)
 on:
+  push:
+    branches: [main]
+    paths:
+      - "Split/Bunny-Loader/experiments/csharp/BunnyCsSdk/TerrariaRandomCompat.cs"
+      - "Split/Bunny-Loader/experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj"
+      - "Split/Bunny-Loader/tests/random_compat/**"
+      - "Split/Bunny-Loader/samples/RandomCompatCSharp/**"
+      - "Split/Bunny-Loader/docs/generated/sdk_public_reference.*"
+      - ".github/workflows/check-csharp-random-compat.yml"
   pull_request:
     paths:
       - "Split/Bunny-Loader/experiments/csharp/BunnyCsSdk/TerrariaRandomCompat.cs"
       - "Split/Bunny-Loader/experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj"
       - "Split/Bunny-Loader/tests/random_compat/**"
       - "Split/Bunny-Loader/samples/RandomCompatCSharp/**"
+      - "Split/Bunny-Loader/docs/generated/sdk_public_reference.*"
       - ".github/workflows/check-csharp-random-compat.yml"
   workflow_dispatch:
+permissions:
+  contents: read
 jobs:
   random-sdk:
     runs-on: ubuntu-latest
