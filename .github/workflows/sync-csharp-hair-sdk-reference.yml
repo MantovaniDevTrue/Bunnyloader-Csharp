@@ -1,0 +1,62 @@
+name: Synchronize HairLoader CSharp SDK Reference (NO APK)
+
+on:
+  push:
+    branches:
+      - feature/csharp-hair-loader-no-apk-20261022
+    paths:
+      - .github/workflows/sync-csharp-hair-sdk-reference.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: csharp-hair-sdk-reference
+  cancel-in-progress: false
+
+jobs:
+  regenerate-reference:
+    if: github.ref == 'refs/heads/feature/csharp-hair-loader-no-apk-20261022'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          ref: feature/csharp-hair-loader-no-apk-20261022
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Generate exact managed SDK reflection output
+        working-directory: Split/Bunny-Loader
+        run: |
+          dotnet run --project tools/sdk_reference/SdkReference.csproj -c Release -- --write
+          dotnet run --project tools/sdk_reference/SdkReference.csproj -c Release -- --check
+      - name: Verify that only documentation snapshots changed
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --name-only > /tmp/hair-reference-changes
+          if grep -Ev '^Split/Bunny-Loader/docs/generated/sdk_public_reference\.(json|md)$' /tmp/hair-reference-changes; then
+            echo "Unexpected file modified by SDK reflection"
+            exit 1
+          fi
+      - name: Commit generated snapshots on the experimental branch only
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add Split/Bunny-Loader/docs/generated/sdk_public_reference.json
+          git add Split/Bunny-Loader/docs/generated/sdk_public_reference.md
+          if git diff --cached --quiet; then
+            echo "SDK_PUBLIC_REFERENCE=ALREADY_CURRENT"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "docs(csharp): regenerate HairLoader public SDK reflection reference"
+          git push origin HEAD:feature/csharp-hair-loader-no-apk-20261022
+      - name: Confirm no Android artifacts
+        run: |
+          test ! -d Split/Bunny-Loader/app/build/outputs/apk
+          test ! -d app/build/outputs/apk
