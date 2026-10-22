@@ -37,6 +37,24 @@ public sealed class ExampleSlimeNPC : BunnyNPC {
 
     defs.clear();
     error.clear();
+    const std::string bannerTile = R"(using BunnyLoader.Source;
+namespace ExampleModCSharp;
+public sealed class ExampleEnemyBannerTile : BunnyBannerTile {
+    public override void SetStaticDefaults() {
+        base.SetStaticDefaults();
+        Texture = "Content/Tiles/Banners/ExampleEnemyBannerTile.png";
+        DisplayName = "Example Slime Banner";
+    }
+})";
+    assert(bl::csharp::parseCSharpSource(bannerTile, &defs, &error));
+    assert(defs.size() == 1);
+    assert(defs.front().name == "ExampleEnemyBannerTile");
+    assert(defs.front().base == "BunnyTile");
+    assert(defs.front().properties.at("Texture") ==
+           "Content/Tiles/Banners/ExampleEnemyBannerTile.png");
+
+    defs.clear();
+    error.clear();
     auto bad = source;
     auto pos = bad.find("BannerItem = \"ExampleSlimeBanner\"");
     assert(pos != std::string::npos);
