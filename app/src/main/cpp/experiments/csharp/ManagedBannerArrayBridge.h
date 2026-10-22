@@ -31,6 +31,7 @@ inline bool growGameArraysOnMainThread(std::string* error) {
 
     auto& a = il2cpp::api();
     if (!a.field_static_get_value || !a.field_static_set_value ||
+        !a.field_get_flags || !a.object_get_class ||
         !a.gc_wbarrier_set_field || !a.gchandle_new || !a.gchandle_free) {
         *error = "IL2CPP: API de campos, barreiras e GC handles ausente";
         return false;
