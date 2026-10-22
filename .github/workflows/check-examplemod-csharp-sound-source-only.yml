@@ -11,6 +11,7 @@ on:
       - "experiments/csharp/BunnyCsSdk/BunnySounds.cs"
       - "experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj"
       - "samples/ExampleModCSharp/Playable/content/Common/Audio/**"
+      - "samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleWaveBolt.cs"
       - "tests/summon_lifecycle/managed_sound_*"
       - "tests/summon_lifecycle/ManagedSoundPInvokeTest.cs"
       - "tests/summon_lifecycle/sound_router_test.cpp"
@@ -87,6 +88,7 @@ jobs:
                 <HintPath>/tmp/bunny-sound-sdk/BunnySourceSdk.dll</HintPath>
               </Reference>
               <Compile Include="$GITHUB_WORKSPACE/samples/ExampleModCSharp/Playable/content/Common/Audio/ExampleSoundEffects.cs" />
+              <Compile Include="$GITHUB_WORKSPACE/samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleWaveBolt.cs" />
             </ItemGroup>
           </Project>
           EOF
