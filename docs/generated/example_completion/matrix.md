@@ -30,7 +30,7 @@ O JSON ao lado conserva APIs, propriedades, dependencias, testes, lacunas e evid
 | Mounts | 4 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
 | NPCs | 5 | 0 (0.0%) | 0 (0.0%) | 1 (20.0%) | 0 |
 | Pets | 6 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
-| Placeable | 36 | 1 (2.78%) | 0 (0.0%) | 0 (0.0%) | 0 |
+| Placeable | 36 | 2 (5.56%) | 0 (0%) | 0 (0%) | 0 |
 | Players | 7 | 0 (0.0%) | 0 (0.0%) | 1 (14.29%) | 0 |
 | Prefixes | 3 | 0 (0.0%) | 0 (0.0%) | 2 (66.67%) | 0 |
 | Projectiles | 20 | 1 (5.0%) | 0 (0.0%) | 1 (5.0%) | 0 |
@@ -38,7 +38,7 @@ O JSON ao lado conserva APIs, propriedades, dependencias, testes, lacunas e evid
 | Rarities | 2 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
 | Systems | 6 | 0 (0.0%) | 0 (0.0%) | 1 (16.67%) | 0 |
 | TileEntities | 2 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
-| Tiles | 37 | 1 (2.7%) | 0 (0.0%) | 0 (0.0%) | 0 |
+| Tiles | 37 | 2 (5.41%) | 0 (0%) | 0 (0%) | 0 |
 | Tools | 5 | 1 (20.0%) | 0 (0.0%) | 1 (20.0%) | 0 |
 | Walls | 2 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
 | Weapons | 18 | 3 (16.67%) | 0 (0.0%) | 1 (5.56%) | 0 |
@@ -131,7 +131,7 @@ O JSON ao lado conserva APIs, propriedades, dependencias, testes, lacunas e evid
 | Content/Items/Placeable/ExampleSignItem.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Items/Placeable/ExampleSinkItem.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Items/Placeable/ExampleStatue.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
-| Content/Items/Placeable/ExampleTileItem.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
+| Content/Items/Placeable/ExampleTileItem.js | samples/ExampleModCSharp/Playable/content/Content/Items/Placeable/ExampleTileItem.cs | Implementado, aguardando validação | Aguardando roteiro Android | tests/basic_items/Program.cs: exampletile.original-flags-map-and-recipe; tools/example_completion/stage_tile_assets.py |
 | Content/Items/Placeable/ExampleTorch.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Items/Placeable/ExampleTransparentShapedTileItem.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Items/Placeable/ExampleTrap.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem, ExampleTrapBase, ExampleTrapBase | Sem validacao funcional C# deste exemplo inteiro. |
@@ -229,7 +229,7 @@ O JSON ao lado conserva APIs, propriedades, dependencias, testes, lacunas e evid
 | Content/Tiles/ExampleSign.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModTile | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Tiles/ExampleSink.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModTile | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Tiles/ExampleStatue.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModTile | Sem validacao funcional C# deste exemplo inteiro. |
-| Content/Tiles/ExampleTile.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModTile | Sem validacao funcional C# deste exemplo inteiro. |
+| Content/Tiles/ExampleTile.js | samples/ExampleModCSharp/Playable/content/Content/Tiles/ExampleTile.cs | Implementado, aguardando validação | Aguardando roteiro Android | tests/basic_items/Program.cs: exampletile.original-flags-map-and-recipe; tools/example_completion/stage_tile_assets.py |
 | Content/Tiles/ExampleTorch.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModTile | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Tiles/ExampleTransparentShapedTile.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModTile | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Tiles/ExampleTrap.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModTile | Sem validacao funcional C# deste exemplo inteiro. |
