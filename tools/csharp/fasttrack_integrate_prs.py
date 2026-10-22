@@ -66,7 +66,7 @@ def merge(base, ours, theirs):
         )
     if outcome.returncode == 0:
         return outcome.stdout, "clean_three_way"
-    if outcome.returncode == 1:
+    if 1 <= outcome.returncode <= 127:
         return ours, "three_way_conflict"
     raise RuntimeError("git merge-file failed: " + outcome.stderr.decode("utf-8", "replace")[:500])
 
