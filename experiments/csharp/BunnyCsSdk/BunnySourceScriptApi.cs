@@ -40,6 +40,8 @@ public abstract class BunnyProjectile
 {
     public BunnyNativeDefaults NativeDefaults { get; } = new();
     public string NativeDefaultsDefinition => NativeDefaults.Definition;
+    private DamageClass? damageType;
+    public DamageClass DamageType { get => damageType ?? (Minion ? DamageClass.Summon : DamageClass.Ranged); set => damageType = value ?? throw new System.ArgumentNullException(nameof(value)); }
     public string DisplayName { get; set; } = "";
     public string Texture { get; set; } = "";
     public int Width { get; set; } = 8;
@@ -83,6 +85,8 @@ public abstract class BunnyWeapon : BunnyShootSource
     public BunnySoundStyle? CustomUseSound { get; set; }
     public BunnyNativeDefaults NativeDefaults { get; } = new();
     public string NativeDefaultsDefinition => NativeDefaults.Definition;
+    private DamageClass? damageType;
+    public DamageClass DamageType { get => damageType ?? (Summon ? DamageClass.Summon : DamageClass.Ranged); set => damageType = value ?? throw new System.ArgumentNullException(nameof(value)); }
     public string DisplayName { get; set; } = "";
     public string Texture { get; set; } = "";
     public int Damage { get; set; } = 20;

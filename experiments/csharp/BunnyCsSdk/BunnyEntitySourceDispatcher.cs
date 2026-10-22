@@ -55,6 +55,9 @@ public static class BunnyEntitySourceDispatcher
         public readonly NpcInstance[] NpcSlots = new NpcInstance[512];
         public readonly ProjectileInstance[] ProjectileSlots = new ProjectileInstance[4096];
         public string LastError = "";
+        public int DamageClassesRegistered;
+        public string DamageClassStats = "";
+        public bool Revoked;
         public string LastUse = "None";
         public long NpcCalls, ProjectileCalls, NpcHits, NpcKills, ProjectileHits, ProjectileKills, Faults;
     }
@@ -69,7 +72,7 @@ public static class BunnyEntitySourceDispatcher
         for (int i = 0; i < Contexts.Count; ++i)
         {
             if (Contexts[i].Mod == modId)
-                return Contexts[i].Path == assemblyPath ? i : -1;
+                return !Contexts[i].Revoked && Contexts[i].Path == assemblyPath ? i : -1;
         }
         if (Contexts.Count >= 16) return -1;
         try
@@ -119,6 +122,13 @@ public static class BunnyEntitySourceDispatcher
                     context.InvasionOrder.Add(system);
                 }
             }
+            context.DamageClassesRegistered = DamageClassLoader.RegisterAssembly(modId, assembly);
+            try { context.DamageClassStats = DamageClassLoader.ExportDefaultStatSnapshot(assembly); }
+            catch
+            {
+                DamageClassLoader.UnregisterMod(modId);
+                throw;
+            }
             if (hasDust && BunnyDustSourceDispatcher.RegisterLoaded(modId, assembly) < 0)
                 context.LastError = "BunnyDust registration: " +
                     BunnyDustSourceDispatcher.LastRegistrationError;
@@ -130,6 +140,29 @@ public static class BunnyEntitySourceDispatcher
             LastRegistrationError = error.GetType().Name + ": " + error.Message;
             return -1;
         }
+    }
+
+    /// <summary>Desarma o catálogo gerenciado de um mod revogado no MonoVM.</summary>
+    public static bool Unregister(string modId)
+    {
+        if (string.IsNullOrWhiteSpace(modId)) return false;
+        foreach (Context context in Contexts)
+        {
+            if (context.Mod != modId || context.Revoked) continue;
+            DamageClassLoader.UnregisterMod(modId);
+            context.Revoked = true;
+            context.DamageClassStats = "";
+            context.NamedNpcs.Clear();
+            context.NamedProjectiles.Clear();
+            context.Npcs.Clear();
+            context.Projectiles.Clear();
+            context.ItemUsers.Clear();
+            context.RegisteredItemUses.Clear();
+            Array.Clear(context.NpcSlots);
+            Array.Clear(context.ProjectileSlots);
+            return true;
+        }
+        return false;
     }
 
     internal static bool TryRegisterDustAssembly(Assembly assembly)
@@ -684,6 +717,13 @@ public static class BunnyEntitySourceDispatcher
         }
     }
 
+    public static string DamageStats(int modSlot)
+    {
+        if ((uint)modSlot >= (uint)Contexts.Count) return "";
+        Context context = Contexts[modSlot];
+        return context.Revoked ? "" : context.DamageClassStats;
+    }
+
     public static string Status(int modSlot)
     {
         if ((uint)modSlot >= (uint)Contexts.Count) return LastRegistrationError;
@@ -700,6 +740,7 @@ public static class BunnyEntitySourceDispatcher
                 " SpawnFailed=" + invasion.Pipeline.FailedCount;
         }
         return "lastUse=" + context.LastUse + invasionState +
+            " damageClasses=" + context.DamageClassesRegistered +
             " npc=" + context.NpcCalls + " projectile=" + context.ProjectileCalls +
             " npcHits=" + context.NpcHits + " npcKills=" + context.NpcKills +
             " projectileHits=" + context.ProjectileHits + " projectileKills=" + context.ProjectileKills +

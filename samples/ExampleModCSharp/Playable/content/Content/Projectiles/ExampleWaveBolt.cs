@@ -1,5 +1,6 @@
 using System;
 using BunnyLoader.Source;
+using ExampleModCSharp.DamageClasses;
 
 namespace ExampleModCSharp;
 
@@ -8,6 +9,7 @@ public sealed class ExampleWaveBolt : BunnyProjectile
     public override void SetDefaults()
     {
         DisplayName = "Example C# Wave Bolt";
+        DamageType = new ExampleDamageClass();
         Texture = "Content/Projectiles/SourceBolt.png";
         Width = 10;
         Height = 10;
