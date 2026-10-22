@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using BunnyLoader.Source;
 
@@ -12,6 +13,27 @@ namespace BunnyLoader.SourceCompiler;
 /// </summary>
 public static class CompiledHairProbe
 {
+    /// <summary>
+    /// Proteção na própria etapa MonoVM após compilar: o parser de fontes
+    /// pode não reconhecer herança indireta ou classes criadas por geradores.
+    /// Nenhum SetDefaults de outro conteúdo do mesmo mod é executado se
+    /// existir cabelo C# antes de todos os hooks nativos estarem disponíveis.
+    /// </summary>
+    public static void RejectUninstalledHairTypes(Assembly compiledMod)
+    {
+        if (compiledMod is null) throw new ArgumentNullException(nameof(compiledMod));
+        Type[] hairs = compiledMod.GetTypes()
+            .Where(type => type.IsClass && !type.IsAbstract &&
+                !type.ContainsGenericParameters && typeof(ModHair).IsAssignableFrom(type))
+            .OrderBy(type => type.FullName, StringComparer.Ordinal)
+            .ToArray();
+        if (hairs.Length == 0) return;
+        throw new InvalidOperationException(
+            "[CSharp][HairLoader] NativeHairLifecycleIncomplete Classes=" +
+            string.Join(",", hairs.Select(type => type.FullName)) +
+            "; aguardando UI, save, rede e unload IL2CPP");
+    }
+
     public static HairManifestSession Export(
         Assembly compiledMod, string modUid, string modRoot,
         string destination, int reservedFirstHairType)
