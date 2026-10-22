@@ -91,6 +91,19 @@ incluindo sintaxe ARM64 e linkagem completa. A revisão JS seguinte preserva
 encurtados omitem camadas e entradas extras são ignoradas pelo desenho.
 Getters que lançam exceção são testados sem perder a mensagem original.
 
+### Evidência final do código desta execução
+
+O código `46e6d545f8b267e2c7e2bb94ab813f780e277a3f` passou nos **onze workflows**.
+[CI combinado 39716948102](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39716948102):
+quatro jobs aprovados, incluindo os testes mistos C#/JS, sintaxe ARM64 e
+linkagem completa com os sete exports da nova bridge. Registro reproduzível:
+`docs/validation/csharp-backgrounds-2026-10-22.json`. O commit posterior só
+conserva esta evidência documental; não altera o código validado.
+
+Continuar pelo contrato completo da superfície em `csharp-surface-background-audit.md`.
+Manter 2/15 implementados nos fontes, treze pendentes e zero validados Android.
+Não gerar APK ou `.bmod` e não converter a aprovação do CI em gameplay validado.
+
 Branch: `feat/csharp-loader-completion-15-20261021`.
 Base: `5a18a67899c1f6ee88a34097be3adb6e7877edd4`.
 O trabalho preserva as correções da integração anterior, inclusive contagem

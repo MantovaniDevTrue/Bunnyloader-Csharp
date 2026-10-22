@@ -1,0 +1,122 @@
+{
+  "schema": 1,
+  "date": "2026-10-22",
+  "branch": "feat/csharp-loader-completion-15-20261021",
+  "sourceCommit": "46e6d545f8b267e2c7e2bb94ab813f780e277a3f",
+  "exampleModSources": "0.1.65",
+  "combinedRun": 39716948102,
+  "workflows": [
+    {
+      "conclusion": "success",
+      "databaseId": 39716953346,
+      "headSha": "46e6d545f8b267e2c7e2bb94ab813f780e277a3f",
+      "name": "CSharp RarityLoader ARM64 Native Compile",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39716953356,
+      "headSha": "46e6d545f8b267e2c7e2bb94ab813f780e277a3f",
+      "name": "CSharp AnglerQuest host-only regression",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39716953468,
+      "headSha": "46e6d545f8b267e2c7e2bb94ab813f780e277a3f",
+      "name": "CSharp Gore Source Validation",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39716953314,
+      "headSha": "46e6d545f8b267e2c7e2bb94ab813f780e277a3f",
+      "name": "CSharp World Update SDK Check",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39716953502,
+      "headSha": "46e6d545f8b267e2c7e2bb94ab813f780e277a3f",
+      "name": "CommandLoader CSharp host tests (no APK)",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39716953486,
+      "headSha": "46e6d545f8b267e2c7e2bb94ab813f780e277a3f",
+      "name": "CSharp DustLoader source contracts",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39716953423,
+      "headSha": "46e6d545f8b267e2c7e2bb94ab813f780e277a3f",
+      "name": "CSharp Localization Core",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39716953402,
+      "headSha": "46e6d545f8b267e2c7e2bb94ab813f780e277a3f",
+      "name": "CSharp Invasion Unit Tests (no APK)",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39716953419,
+      "headSha": "46e6d545f8b267e2c7e2bb94ab813f780e277a3f",
+      "name": "Check CSharp RarityLoader Core",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39716953552,
+      "headSha": "46e6d545f8b267e2c7e2bb94ab813f780e277a3f",
+      "name": "DustLoader CSharp native ARM64 compile only",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39716948102,
+      "headSha": "46e6d545f8b267e2c7e2bb94ab813f780e277a3f",
+      "name": "CSharp combined source-only integration checks (no APK)",
+      "status": "completed"
+    }
+  ],
+  "checks": {
+    "combinedRegressions": 65,
+    "systemUpdateManaged": 115,
+    "deliveryAndEvidenceTests": 6,
+    "exampleSourceFiles": 106,
+    "verifiedManagedTypes": 87,
+    "exampleCompileModes": 4,
+    "documentedPublicSdkTypes": 158,
+    "nativeAsanUbsan": "passed; leak detector enabled",
+    "nativeCSharpOnly": "passed without QuickJS",
+    "mixedCSharpAndOriginalJavaScript": "passed with real QuickJS and native production bridges; controlled IL2CPP metadata",
+    "arm64Syntax": "passed",
+    "completeNativeLink": "passed"
+  },
+  "scope": {
+    "plannedLoaders": 15,
+    "implementedInSources": 2,
+    "pending": 13,
+    "androidValidated": 0,
+    "additionalIntegrations": [
+      "SystemUpdateLoader",
+      "GoreLoader"
+    ]
+  },
+  "artifacts": {
+    "apkGenerated": false,
+    "bmodGenerated": false,
+    "releasePublished": false
+  },
+  "limitations": [
+    "No Terraria/MonoVM Android execution of the new background loader; host uses CLR and controlled IL2CPP metadata.",
+    "No new 60 FPS guarantee.",
+    "SurfaceBackground/SceneEffect/Biome and remaining ten targets still pending; command only tests the ExampleMod underground style."
+  ],
+  "continuation": "docs/csharp-surface-background-audit.md"
+}
