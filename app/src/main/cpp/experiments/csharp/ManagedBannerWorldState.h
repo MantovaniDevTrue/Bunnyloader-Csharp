@@ -17,6 +17,7 @@ struct WorldCounter {
     uint16_t claimable = 0;
     bool fresh = false;
 
+    bool operator==(const WorldCounter&) const = default;
     bool empty() const { return kills == 0 && claimable == 0; }
 };
 
