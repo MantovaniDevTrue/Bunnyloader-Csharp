@@ -338,6 +338,7 @@ struct CloudWorkerJob {
     float positionX = 0.f;
     int maxTilesX = 0;
     std::string tileCounts;
+    int biomeEvents = 1;
     std::string biomes;
     int type = -1, slot = -1, spriteDir = 0;
     uint32_t cloudGeneration = 0;
@@ -1574,7 +1575,7 @@ bool executeManagedCloudOnWorker(const CloudWorkerJob& job,
         if (!biome) return false;
         g_biomeRegisterMethod = g_api.findMethod(biome, "RegisterFromPath", 2);
         g_biomeTilesMethod = g_api.findMethod(biome, "TilesWire", 1);
-        g_biomeEvaluateMethod = g_api.findMethod(biome, "EvaluateWire", 8);
+        g_biomeEvaluateMethod = g_api.findMethod(biome, "EvaluateTicksWire", 9);
         g_biomeUnregisterMethod = g_api.findMethod(biome, "Unregister", 1);
         g_biomeClearMethod = g_api.findMethod(biome, "Clear", 0);
         g_biomeResetWorldMethod = g_api.findMethod(biome, "ResetWorld", 0);
@@ -1691,6 +1692,7 @@ bool executeManagedCloudOnWorker(const CloudWorkerJob& job,
 
     if (job.kind == 5 && weightReply) {
         int maxTiles = job.maxTilesX;
+        int updates = job.biomeEvents;
         float position = job.positionX;
         bool menu = job.gameMenu;
         bool active = job.playerActive;
@@ -1698,7 +1700,7 @@ bool executeManagedCloudOnWorker(const CloudWorkerJob& job,
         void* tiles = g_api.newString(g_domain, job.tileCounts.c_str());
         if (!tiles) return false;
         void* args[] = {mod, &menu, &active, &position, &maxTiles,
-                         &sky, &surface, tiles};
+                         &sky, &surface, tiles, &updates};
         return managedText(g_biomeEvaluateMethod, args, weightReply);
     }
 
@@ -2527,8 +2529,10 @@ bool takeManagedBiomeManifest(const std::string& modId,
 bool requestManagedBiomeSnapshot(const std::string& modId,
     bool gameMenu, bool playerActive, float positionX, int maxTilesX,
     bool zoneSkyHeight, bool zoneOverworldHeight,
-    const std::string& tileCountsWire, uint64_t generation) {
-    if (generation == 0 || tileCountsWire.size() > 4096 ||
+    const std::string& tileCountsWire, uint32_t updateEvents,
+    uint64_t generation) {
+    if (generation == 0 || updateEvents == 0 || updateEvents > 64 ||
+        tileCountsWire.size() > 4096 ||
         !std::isfinite(positionX) ||
         maxTilesX < 0 || maxTilesX > 100000 ||
         (!gameMenu && !playerActive) ||
@@ -2561,6 +2565,7 @@ bool requestManagedBiomeSnapshot(const std::string& modId,
         job.skyHeight = zoneSkyHeight;
         job.overworldHeight = zoneOverworldHeight;
         job.tileCounts = tileCountsWire;
+        job.biomeEvents = static_cast<int>(updateEvents);
         g_cloudQueue.push_back(std::move(job));
         g_biomeSnapshotsPending.insert(modId);
         g_pinnedWake.notify_one();
