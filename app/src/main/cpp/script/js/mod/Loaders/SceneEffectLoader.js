@@ -88,7 +88,7 @@ class SceneEffectLoader {
                 }
                 if (result.surfaceBackground.from === null) {
                     const style = Safe.Run(name + '.SurfaceBackgroundStyle', () => effect.SurfaceBackgroundStyle);
-                    if (style instanceof ModSurfaceBackgroundStyle) result.surfaceBackground = { value: style.Slot, priority, from: effect };
+                    if (style instanceof ModSurfaceBackgroundStyle) result.surfaceBackground = { value: style.Slot, priority, from: effect, weight: rank - priority };
                 }
                 if (result.undergroundBackground.from === null) {
                     const style = Safe.Run(name + '.UndergroundBackgroundStyle', () => effect.UndergroundBackgroundStyle);

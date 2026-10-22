@@ -34,6 +34,15 @@ public static class BunnyBackgroundTextures
         return slot;
     }
 
+    /// <summary>Resolve a full mod UID/relative path through the same native asset registry.</summary>
+    public static int GetSlot(string fullPath)
+    {
+        if(fullPath is null)throw new ArgumentNullException(nameof(fullPath));
+        int separator=fullPath.IndexOf('/');
+        if(separator<=0 || separator==fullPath.Length-1)throw new ArgumentException("Expected mod UID/relative asset path",nameof(fullPath));
+        return GetSlot(fullPath.Substring(0,separator),fullPath.Substring(separator+1));
+    }
+
     public static bool TryGetSlot(string modId, string path, out int slot)
     {
         Validate(modId, path);

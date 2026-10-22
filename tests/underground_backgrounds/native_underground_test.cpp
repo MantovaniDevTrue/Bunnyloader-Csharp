@@ -37,7 +37,7 @@ std::map<std::pair<std::string,std::string>,Il2CppClass*> additionalClasses;
 int gameTid=0,destroyed=0,nativeVanilla=3,vanillaCalls=0,fillCalls=0,writes=0,failRoot=-1;
 Il2CppArray *values=nullptr,*oldValues=nullptr;
 Il2CppObject* localObject=nullptr;
-int (*managedCallback)(int,int64_t)=nullptr;int managedSlot=-1;int64_t ticket=0;
+int (*managedCallback)(int,int64_t)=nullptr;[[maybe_unused]] int managedSlot=-1;[[maybe_unused]] int64_t ticket=0;
 std::map<int,bl::runtime::underground::Slots> configured;
 std::function<void()> duringFill;
 template<class T>void set(FieldInfo& field,T value){field.data.resize(sizeof(T));std::memcpy(field.data.data(),&value,sizeof(T));}
@@ -93,11 +93,15 @@ void initialize(){
 }
 extern "C" __attribute__((visibility("default"))) int bunny_test_underground_initialize(){initialize();std::string error;return bl::runtime::underground::install(&error)?1:0;}
 extern "C" __attribute__((visibility("default"))) void bunny_test_underground_callback(int(*callback)(int,int64_t)){managedCallback=callback;}
+#ifndef BUNNY_TEST_EXTERNAL_STAGE_BRIDGE
 extern "C" __attribute__((visibility("default"))) int bunny_universal_hook_install_stage(const char* name,int slot){if(std::strcmp(name,"UndergroundBackground"))return -3;managedSlot=slot;bl::csharp::managedUndergroundDispatch([]{assert(managedCallback);managedCallback(managedSlot,++ticket);});return 1012;}
 extern "C" __attribute__((visibility("default"))) void bunny_universal_hook_remove(int handle){assert(handle==1012);bl::csharp::removeManagedUndergroundDispatch();}
 extern "C" __attribute__((visibility("default"))) int bunny_universal_hook_original(int,int64_t){return 1;}
+#endif
 extern "C" __attribute__((visibility("default"))) int64_t bunny_universal_hook_stat(int){return 0;}
+#ifndef BUNNY_TEST_EXTERNAL_TEXTURE_LOOKUP
 extern "C" __attribute__((visibility("default"))) int bunny_background_texture_slot(const char*,const char* path){const std::string p=path;const auto digit=p.back();return p.find("ExampleBiomeUnderground")!=p.npos && digit>='0' && digit<='3'?10+digit-'0':-1;}
+#endif
 extern "C" __attribute__((visibility("default"))) int bunny_test_underground_draw(int vanilla){nativeVanilla=vanilla;const int selected=reinterpret_cast<bl::runtime::underground::Picker>(installed.at(&pick))(500,&pick);
  set(current,int32_t(selected));
  if(selected>=22)reinterpret_cast<bl::runtime::underground::Getter>(installed.at(&getValues))(object(&mainClass),&getValues);

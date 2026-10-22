@@ -124,6 +124,7 @@ abstract class; base: `System.Object`.
 | Method | Execution |
 | --- | --- |
 | `static bool TryGetSlot(string modId, string path, out int slot)` | managed_helper |
+| `static int GetSlot(string fullPath)` | managed_helper |
 | `static int GetSlot(string modId, string path)` | managed_helper |
 | `static int GetSlot<T>(string modId)` | managed_helper |
 
@@ -1929,6 +1930,64 @@ abstract class; base: `System.Object`.
 | --- | --- |
 | `static BunnySoundClip Register(string modId, BunnySoundStyle style)` | managed_helper |
 | `static void UnloadMod(string modId)` | managed_helper |
+
+## BunnyLoader.Source.BunnySurfaceBackgroundStyle
+
+abstract class; base: `BunnyLoader.Source.BunnyHookModule`.
+
+```csharp
+int Slot { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `bool PreDrawCloseBackground(ref BunnySurfaceDrawContext context)` | managed_helper |
+| `int ChooseCloseTexture(ref Double scale, ref Double parallax, ref Double a, ref Double b)` | managed_helper |
+| `int ChooseFarTexture()` | managed_helper |
+| `int ChooseMiddleTexture()` | managed_helper |
+| `string DiagnosticStatus()` | managed_helper |
+| `void Load(BunnyHookScope hooks)` | managed_helper |
+| `void ModifyFarFades(Span<float> fades, Double transitionSpeed)` | managed_helper |
+| `void SetStaticDefaults()` | compile_policy |
+| `void Unload()` | managed_helper |
+
+## BunnyLoader.Source.BunnySurfaceBackgrounds
+
+abstract class; base: `System.Object`.
+
+```csharp
+int VanillaCount { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `static BunnySurfaceBackgroundStyle Get(int slot)` | managed_helper |
+| `static int GetSlot(string modId, string className)` | managed_helper |
+| `static int GetSlot<T>(string modId)` | managed_helper |
+| `static void Activate<T>(string modId, BunnyBackgroundPriority priority, Double weight)` | managed_helper |
+| `static void Deactivate<T>(string modId)` | managed_helper |
+| `static void Set(string modId, string className, BunnyBackgroundPriority priority, Double weight, bool active, bool menu)` | managed_helper |
+
+## BunnyLoader.Source.BunnySurfaceDrawContext
+
+struct; base: `System.ValueType`.
+
+```csharp
+BunnyColor BaseColor { get; }
+BunnyColor FadedColor { get; }
+Double Alpha { get; }
+Double BackgroundTop { get; }
+Double ScreenX { get; }
+Double ScreenY { get; }
+Double VerticalAdjustment { get; }
+Double WorldSurface { get; }
+int PushTop { get; }
+int ScreenWidth { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `void Draw(int textureSlot, BunnyVector2 position, BunnyColor color, Nullable<BunnyRectangle> source, float rotation, BunnyVector2 origin, float scale, int effects, float layerDepth)` | managed_helper |
 
 ## BunnyLoader.Source.BunnyTile
 

@@ -693,6 +693,8 @@ public static class BunnyUniversalHookDispatcher
         catch (Exception error) { LastError = context.Id + ": world teardown: " + error.Message; }
         try { BunnyUndergroundRegistry.DetachScope(context.Scope); }
         catch (Exception error) { LastError = context.Id + ": underground teardown: " + error; }
+        try { BunnySurfaceRegistry.DetachScope(context.Scope); }
+        catch (Exception error) { LastError = context.Id + ": surface teardown: " + error; }
         context.Scope.Dispose();
         foreach (BunnyHookModule module in context.Modules)
             try { module.Unload(); }

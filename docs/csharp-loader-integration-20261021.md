@@ -1,5 +1,25 @@
 # Continuidade dos loaders C# — 2026-10-21
 
+## Continuidade sobre 8173aaac — superfície com C#/JS reais e exemplo original
+
+Conectados os dois providers ao registro nativo: C# → Mono worker → estágio 13 →
+ManagedSurfaceBackgrounds → serviço nativo; JS → QuickJS → bridge própria → mesmo
+serviço. Preservados os índices anteriores e o caminho C# sem VM JavaScript.
+O SDK público oferece todos os callbacks originais, seleção por UID/classe/menu,
+contexto de desenho limitado ao callback e lookup de textura por caminho completo.
+O exemplo preserva seis imagens, as três camadas e a animação estática de quatro
+frames a cada treze chamadas, com comentários de uso e razão dos mecanismos.
+
+Testes novos executam C# via P/Invoke no worker separado e QuickJS real, depois
+ambos no mesmo processo: intercalam quatro registros, validam prioridade/peso,
+fades, desenho, exceções, troca de scope e as duas ordens de unload. Os fixtures
+continuam usando metadata IL2CPP controlada. Não são teste de Android/FPS.
+
+**3/15 implementados nos fontes; 12 pendentes; zero Android.** ExampleMod 0.1.66,
+cache v56, 108 fontes, inventário esperado 77 conteúdos + 12 módulos = 89 tipos.
+Guia/API/QA e continuidade em [csharp-surface-backgrounds.md](csharp-surface-backgrounds.md).
+O APK e o `.bmod` continuam bloqueados. Abaixo, registros históricos preservados.
+
 ## Continuidade sobre eb6c44b4 — serviço nativo dos seis hooks de superfície
 
 `SurfaceBackgrounds` agora registra UID/classe, consulta o Count real, valida

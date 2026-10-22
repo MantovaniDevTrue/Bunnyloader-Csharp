@@ -73,7 +73,7 @@ int main(int argc, char** argv) {
         }
         ++checked;
     }
-    assert(commands == 5);
+    assert(commands == 6);
     assert(targets.at("ExampleBuffPotion") == "ExampleDefenseBuff");
     assert(targets.at("ExampleWand") == "ExampleBolt");
     // Calls on either side of native references must remain deferred to Mono.

@@ -19,12 +19,12 @@ com hashes em `docs/generated/examplemod-1.9.0-upload-inventory.json`. As metas
 globais JS/PC e a identidade dos exemplos anteriores continuam preservadas.
 Nenhuma porcentagem de conclusão total é deduzida da aprovação do CI.
 
-Continuidade de 22/10: [fundo subterrâneo nativo e exemplo original C#](csharp-underground-backgrounds.md).
-Dois dos quinze loaders estão implementados nos fontes e testados no host;
-SurfaceBackgroundLoader tem núcleo nativo com seis hooks, mas faltam SDK e bridges das linguagens; doze ainda estão
-pendentes. [Componentes de superfície e próximos contratos](csharp-surface-native-components.md).
-Nenhum dos dois está validado no Android. As
-integrações adicionais SystemUpdate/Gore continuam fora dessa contagem.
+Continuidade de 22/10: [fundo de superfície C# e bridges compartilhadas](csharp-surface-backgrounds.md).
+Três dos quinze loaders estão implementados nos fontes: BackgroundTexture,
+UndergroundBackground e SurfaceBackground. Testes executam C# e JavaScript reais
+juntos no host; os doze restantes continuam pendentes. Nenhum dos três foi
+validado no Android nesta integração. SystemUpdate/Gore são integrações adicionais.
+ExampleMod fonte 0.1.66, cache v56, 108 fontes. O gate continua bloqueando APK.
 
 ## Histórico — regra de cinco loaders, substituída nesta execução
 

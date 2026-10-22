@@ -5,6 +5,8 @@
 #include "experiments/csharp/SystemTimeRateMailbox.h"
 #include "experiments/csharp/ManagedUndergroundBackgrounds.h"
 #include "content/backgrounds/UndergroundBackgrounds.h"
+#include "experiments/csharp/ManagedSurfaceBackgrounds.h"
+#include "content/backgrounds/SurfaceBackgrounds.h"
 #include "content/systems/SystemTimeRates.h"
 #include "core/Log.h"
 #include "hook/HookManager.h"
@@ -80,7 +82,7 @@ void invokeStage(int index, uintptr_t context = 0) {
     if (!stage.active.load(std::memory_order_acquire)) return;
     const int slot = stage.slot.load(std::memory_order_acquire);
     const bool gameThread=isUniversalHookGameThread();
-    const bool background=index==12 && universalHooksAccepting() && !universalNativeAccessInProgress;
+    const bool background=(index==12 || index==13) && universalHooksAccepting() && !universalNativeAccessInProgress;
     if(slot<0 || (!gameThread && !background))return;
     const int64_t now = std::chrono::duration_cast<std::chrono::nanoseconds>(
         Clock::now().time_since_epoch()).count();
@@ -258,6 +260,7 @@ Stage stages[kCount] = {
     {"TimeRate", 0, {0, 0, 0, 0}, nullptr, nullptr},
     {"ClockAdvance", 0xb8c, {0x1e602960, 0xfd024500, 0x97efb85d, 0xf94002e0}, csBridge9, &g_blCSharpSystemOriginal9},
     {"UndergroundBackground", 0, {0, 0, 0, 0}, nullptr, nullptr},
+    {"SurfaceBackground", 0, {0, 0, 0, 0}, nullptr, nullptr},
 };
 
 const MethodInfo* worldMethod() {
@@ -288,6 +291,11 @@ int installUniversalSystemStageOnGameThread(const std::string& name, int slot) {
         std::string error;
         if(!runtime::underground::install(&error)){BL_ERROR("%s",error.c_str());return -7;}
         managedUndergroundDispatch([]{invokeStage(12);});
+    }
+    if(index==13) {
+        std::string error;
+        if(!runtime::surface::install(&error)){BL_ERROR("%s",error.c_str());return -7;}
+        managedSurfaceDispatch([]{invokeStage(13);});
     }
     if (index < 9 && !rootInstalled.load(std::memory_order_acquire)) {
         const MethodInfo* method = worldMethod();
@@ -368,6 +376,7 @@ void removeUniversalSystemStage(int handle) {
         stages[index].active.store(false, std::memory_order_release);
         stages[index].slot.store(-1, std::memory_order_release);
         if(index==12)removeManagedUndergroundDispatch();
+        if(index==13)removeManagedSurfaceDispatch();
         if (index == 10) {
             stages[11].active.store(false, std::memory_order_release);
             timeMailbox.cancel();
@@ -406,6 +415,7 @@ void disableAllUniversalSystemStages() {
     }
     timeMailbox.cancel();
     removeManagedUndergroundDispatch();
+    removeManagedSurfaceDispatch();
 #endif
 }
 }

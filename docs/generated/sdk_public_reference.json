@@ -227,6 +227,10 @@
           "execution": "managed_helper"
         },
         {
+          "signature": "static int GetSlot(string fullPath)",
+          "execution": "managed_helper"
+        },
+        {
           "signature": "static int GetSlot(string modId, string path)",
           "execution": "managed_helper"
         },
@@ -3542,6 +3546,115 @@
         },
         {
           "signature": "static void UnloadMod(string modId)",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnySurfaceBackgroundStyle",
+      "kind": "abstract class",
+      "baseType": "BunnyLoader.Source.BunnyHookModule",
+      "constructors": [],
+      "properties": [
+        "int Slot { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "bool PreDrawCloseBackground(ref BunnySurfaceDrawContext context)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "int ChooseCloseTexture(ref Double scale, ref Double parallax, ref Double a, ref Double b)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "int ChooseFarTexture()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "int ChooseMiddleTexture()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "string DiagnosticStatus()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void Load(BunnyHookScope hooks)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void ModifyFarFades(Span\u003Cfloat\u003E fades, Double transitionSpeed)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void SetStaticDefaults()",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "void Unload()",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnySurfaceBackgrounds",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [
+        "int VanillaCount { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "static BunnySurfaceBackgroundStyle Get(int slot)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static int GetSlot(string modId, string className)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static int GetSlot\u003CT\u003E(string modId)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static void Activate\u003CT\u003E(string modId, BunnyBackgroundPriority priority, Double weight)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static void Deactivate\u003CT\u003E(string modId)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static void Set(string modId, string className, BunnyBackgroundPriority priority, Double weight, bool active, bool menu)",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnySurfaceDrawContext",
+      "kind": "struct",
+      "baseType": "System.ValueType",
+      "constructors": [],
+      "properties": [
+        "BunnyColor BaseColor { get; }",
+        "BunnyColor FadedColor { get; }",
+        "Double Alpha { get; }",
+        "Double BackgroundTop { get; }",
+        "Double ScreenX { get; }",
+        "Double ScreenY { get; }",
+        "Double VerticalAdjustment { get; }",
+        "Double WorldSurface { get; }",
+        "int PushTop { get; }",
+        "int ScreenWidth { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "void Draw(int textureSlot, BunnyVector2 position, BunnyColor color, Nullable\u003CBunnyRectangle\u003E source, float rotation, BunnyVector2 origin, float scale, int effects, float layerDepth)",
           "execution": "managed_helper"
         }
       ]

@@ -12,7 +12,8 @@ FieldInfo surfaceCount{"Count",{&integer}},mainInstance{"instance",{&mainClass}}
  bgLoops{"bgLoops",{&integer},0,sizeof(Il2CppObject)},bgStart{"bgStartX",{&integer},0,sizeof(Il2CppObject)+4},
  bgTop{"bgTopY",{&real},0,sizeof(Il2CppObject)+8},scAdj{"scAdj",{&real},0,sizeof(Il2CppObject)+12};
 int shownStyle=0,originalChoice=0,originalPicks=0,originalBacks=0,originalFronts=0,originalFogs=0,alphaCalls=0;
-int styleA=-1,styleB=-1,fadeCallbackCalls=0,farCalls=0,middleCalls=0,closeCalls=0,frame=0;
+[[maybe_unused]] int styleA=-1,styleB=-1;
+int fadeCallbackCalls=0,farCalls=0,middleCalls=0,closeCalls=0,frame=0;
 bool reject=false,suppress=false,custom=false,badFades=false;
 std::function<void(const surface::Request&)> duringRequest;
 Il2CppObject* surfaceMain=nullptr;
@@ -110,6 +111,7 @@ void drawMiddle(){reinterpret_cast<surface::StepTwo>(installed.at(&stepTwo))(sur
 float drawClose(){return reinterpret_cast<surface::Fog>(installed.at(&fogPower))(&fogPower);}
 }
 namespace bl::il2cpp {Il2CppClass* findNested(Il2CppClass* cls,std::string_view name){return cls==&surfaceId && name=="Sets"?&surfaceSets:nullptr;}}
+#ifndef BUNNY_SURFACE_LOADER_LIBRARY_ONLY
 int main() {
     configureLoader();std::string error;
     // Reject the entire native binding before hooking anything. Nullable<float>
@@ -179,3 +181,4 @@ int main() {
     allocations.clear();
     std::cout<<"SURFACE_REAL_NATIVE_SIX_HOOKS_SHARED_REGISTRY_FADES_DRAW_CALLBACKS_MENU_WORLD_UNLOAD_PASS checks="<<checked<<"\n";
 }
+#endif

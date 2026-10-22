@@ -16,6 +16,10 @@ static class Program
         const string path="Assets/Textures/Backgrounds/ExampleBiomeSurfaceFar";
         Require(BunnyBackgroundTextures.GetSlot<ExampleBackgroundTexture>("csharp-test-uid")==3,"generic lookup failed");
         Require(BunnyBackgroundTextures.GetSlot("second-test-uid",path+".png")==4,"cross-mod lookup failed");
+        Require(BunnyBackgroundTextures.GetSlot("csharp-test-uid/"+path)==3 &&
+            BunnyBackgroundTextures.GetSlot("second-test-uid/"+path+".png")==4,"full UID/path overload bypassed the shared native registry");
+        try { BunnyBackgroundTextures.GetSlot("missing-path-separator");throw new Exception("incomplete full path accepted"); }
+        catch(ArgumentException) { }
         Require(!BunnyBackgroundTextures.TryGetSlot("csharp-test-uid","Missing",out int absent)&&absent==-1,"missing asset accepted");
         try { BunnyBackgroundTextures.GetSlot("csharp-test-uid","Missing");throw new Exception("missing accepted"); }
         catch(InvalidOperationException e) { Require(e.Message.Contains("Mod=csharp-test-uid")&&e.Message.Contains("Path=Missing")&&e.Message.Contains("Stage=ResolveSlot"),"diagnostic incomplete"); }

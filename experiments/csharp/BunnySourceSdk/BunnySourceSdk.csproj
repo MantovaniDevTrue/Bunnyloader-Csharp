@@ -11,6 +11,9 @@
     <NoWarn>$(NoWarn);1591</NoWarn>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../BunnyCsSdk/BunnySurfaceBackgroundStyle.cs" Link="BunnySurfaceBackgroundStyle.cs" />
+    <Compile Include="../BunnyCsSdk/BunnySurfaceDrawContext.cs" Link="BunnySurfaceDrawContext.cs" />
+    <Compile Include="../BunnyCsSdk/BunnySurfaceRegistry.cs" Link="BunnySurfaceRegistry.cs" />
     <Compile Include="../BunnyCsSdk/BunnyUndergroundBackgroundStyle.cs" Link="BunnyUndergroundBackgroundStyle.cs" />
     <Compile Include="../BunnyCsSdk/BunnyBackgroundTexture.cs" Link="BunnyBackgroundTexture.cs" />
     <Compile Include="../BunnyCsSdk/BunnyContentDeclaration.cs" Link="BunnyContentDeclaration.cs" />

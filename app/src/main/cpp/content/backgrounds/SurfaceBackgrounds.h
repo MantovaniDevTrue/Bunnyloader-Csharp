@@ -4,7 +4,7 @@
 
 namespace bl::runtime::surface {
 enum class Language { Managed, JavaScript };
-enum class Operation { Fades, Far, Middle, Close };
+enum class Operation { Fades=0, Far=1, Middle=2, Close=3 };
 struct Candidate {int slot=-1,priority=0;double weight=.5;};
 struct CustomDraw {int texture=-1;DrawPlan plan;Color color;};
 struct Request {

@@ -1,3 +1,9 @@
+> Atualização: as pendências de SDK, exemplo e bridges descritas neste registro
+> histórico foram implementadas na continuidade sobre `8173aaac`. Estado atual,
+> testes mistos e QA em [csharp-surface-backgrounds.md](csharp-surface-backgrounds.md).
+> Esta página preserva a evidência da etapa C++ anterior, sem reclassificá-la como
+> execução C#/JS ou teste Android.
+
 # Serviço nativo de SurfaceBackground — continuidade de 22/10
 
 Implementação sobre `eb6c44b4` em `content/backgrounds/SurfaceBackgrounds.*` e

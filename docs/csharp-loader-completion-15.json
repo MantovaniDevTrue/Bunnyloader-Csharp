@@ -89,9 +89,12 @@
       "loader": "SurfaceBackgroundLoader",
       "reference": "app/src/main/cpp/script/js/mod/Loaders/SurfaceBackgroundLoader.js",
       "referenceSha256": "4538e3d819e0d0c6a0b5be387fd0d2b10b306e8d44c09c9ef71b1a56c620c2a0",
-      "implementation": "partial",
+      "implementation": "implemented",
       "android": "not-tested",
-      "publicApi": [],
+      "publicApi": [
+        "experiments/csharp/BunnyCsSdk/BunnySurfaceBackgroundStyle.cs",
+        "experiments/csharp/BunnyCsSdk/BunnySurfaceDrawContext.cs"
+      ],
       "nativeBridge": [
         "app/src/main/cpp/content/backgrounds/SurfaceGeometry.cpp",
         "app/src/main/cpp/content/backgrounds/SurfaceTables.cpp",
@@ -99,120 +102,214 @@
         "app/src/main/cpp/il2cpp/NullableLayout.h",
         "app/src/main/cpp/il2cpp/CheckedFieldWrite.h",
         "app/src/main/cpp/content/backgrounds/SurfaceBackgrounds.cpp",
-        "app/src/main/cpp/content/backgrounds/SurfaceProperties.h"
+        "app/src/main/cpp/content/backgrounds/SurfaceProperties.h",
+        "app/src/main/cpp/experiments/csharp/ManagedSurfaceBackgrounds.cpp",
+        "app/src/main/cpp/script/api/SurfaceBackgrounds.cpp"
       ],
-      "example": [],
+      "example": [
+        "samples/ExampleModCSharp/Playable/content/Content/Biomes/ExampleSurfaceBackgroundStyle.cs",
+        "samples/ExampleModCSharp/Playable/content/Common/Commands/ExampleSurfaceBackgroundCommand.cs"
+      ],
       "contracts": [
         {
           "name": "VanillaCount",
-          "implemented": false,
-          "tests": []
+          "implemented": true,
+          "tests": [
+            "tests/surface_backgrounds/native_surface_test.cpp",
+            "tests/surface_backgrounds/native_surface_loader_test.cpp",
+            "tests/surface_backgrounds/mailbox_surface_test.cpp",
+            "tests/surface_backgrounds/Program.cs",
+            "tests/surface_backgrounds/quickjs_surface_test.cpp",
+            "tests/surface_backgrounds/MixedProgram.cs",
+            "tests/surface_backgrounds/original_surface_comparison.cjs"
+          ]
         },
         {
           "name": "Add",
-          "implemented": false,
-          "tests": []
+          "implemented": true,
+          "tests": [
+            "tests/surface_backgrounds/native_surface_test.cpp",
+            "tests/surface_backgrounds/native_surface_loader_test.cpp",
+            "tests/surface_backgrounds/mailbox_surface_test.cpp",
+            "tests/surface_backgrounds/Program.cs",
+            "tests/surface_backgrounds/quickjs_surface_test.cpp",
+            "tests/surface_backgrounds/MixedProgram.cs",
+            "tests/surface_backgrounds/original_surface_comparison.cjs"
+          ]
         },
         {
           "name": "Get",
-          "implemented": false,
-          "tests": []
+          "implemented": true,
+          "tests": [
+            "tests/surface_backgrounds/native_surface_test.cpp",
+            "tests/surface_backgrounds/native_surface_loader_test.cpp",
+            "tests/surface_backgrounds/mailbox_surface_test.cpp",
+            "tests/surface_backgrounds/Program.cs",
+            "tests/surface_backgrounds/quickjs_surface_test.cpp",
+            "tests/surface_backgrounds/MixedProgram.cs",
+            "tests/surface_backgrounds/original_surface_comparison.cjs"
+          ]
         },
         {
           "name": "Wake",
-          "implemented": false,
-          "tests": []
+          "implemented": true,
+          "tests": [
+            "tests/surface_backgrounds/native_surface_test.cpp",
+            "tests/surface_backgrounds/native_surface_loader_test.cpp",
+            "tests/surface_backgrounds/mailbox_surface_test.cpp",
+            "tests/surface_backgrounds/Program.cs",
+            "tests/surface_backgrounds/quickjs_surface_test.cpp",
+            "tests/surface_backgrounds/MixedProgram.cs",
+            "tests/surface_backgrounds/original_surface_comparison.cjs"
+          ]
         },
         {
           "name": "Wake/Sleep while vanilla/mod fades are active",
-          "implemented": false,
-          "tests": []
+          "implemented": true,
+          "tests": [
+            "tests/surface_backgrounds/native_surface_test.cpp",
+            "tests/surface_backgrounds/native_surface_loader_test.cpp",
+            "tests/surface_backgrounds/mailbox_surface_test.cpp",
+            "tests/surface_backgrounds/Program.cs",
+            "tests/surface_backgrounds/quickjs_surface_test.cpp",
+            "tests/surface_backgrounds/MixedProgram.cs",
+            "tests/surface_backgrounds/original_surface_comparison.cjs"
+          ]
         },
         {
           "name": "Atomic growth and recreated LocalUserGameState arrays",
-          "implemented": false,
+          "implemented": true,
           "tests": [
             "tests/surface_backgrounds/native_surface_test.cpp",
-            "tests/surface_backgrounds/original_surface_comparison.cjs"
+            "tests/surface_backgrounds/original_surface_comparison.cjs",
+            "tests/surface_backgrounds/native_surface_loader_test.cpp",
+            "tests/surface_backgrounds/mailbox_surface_test.cpp",
+            "tests/surface_backgrounds/Program.cs",
+            "tests/surface_backgrounds/quickjs_surface_test.cpp",
+            "tests/surface_backgrounds/MixedProgram.cs"
           ]
         },
         {
           "name": "Vanilla forest/medium/high and menu background arbitration",
-          "implemented": false,
+          "implemented": true,
           "tests": [
             "tests/surface_backgrounds/native_surface_test.cpp",
-            "tests/surface_backgrounds/original_surface_comparison.cjs"
+            "tests/surface_backgrounds/original_surface_comparison.cjs",
+            "tests/surface_backgrounds/native_surface_loader_test.cpp",
+            "tests/surface_backgrounds/mailbox_surface_test.cpp",
+            "tests/surface_backgrounds/Program.cs",
+            "tests/surface_backgrounds/quickjs_surface_test.cpp",
+            "tests/surface_backgrounds/MixedProgram.cs"
           ]
         },
         {
           "name": "Nullable BackLayer overrides and native far alpha routine",
-          "implemented": false,
+          "implemented": true,
           "tests": [
             "tests/surface_backgrounds/native_surface_test.cpp",
-            "tests/surface_backgrounds/original_surface_comparison.cjs"
+            "tests/surface_backgrounds/original_surface_comparison.cjs",
+            "tests/surface_backgrounds/native_surface_loader_test.cpp",
+            "tests/surface_backgrounds/mailbox_surface_test.cpp",
+            "tests/surface_backgrounds/Program.cs",
+            "tests/surface_backgrounds/quickjs_surface_test.cpp",
+            "tests/surface_backgrounds/MixedProgram.cs"
           ]
         },
         {
           "name": "Managed ModifyFarFades after original FrontLayer",
-          "implemented": false,
+          "implemented": true,
           "tests": [
             "tests/surface_backgrounds/native_surface_test.cpp",
-            "tests/surface_backgrounds/original_surface_comparison.cjs"
+            "tests/surface_backgrounds/original_surface_comparison.cjs",
+            "tests/surface_backgrounds/native_surface_loader_test.cpp",
+            "tests/surface_backgrounds/mailbox_surface_test.cpp",
+            "tests/surface_backgrounds/Program.cs",
+            "tests/surface_backgrounds/quickjs_surface_test.cpp",
+            "tests/surface_backgrounds/MixedProgram.cs"
           ]
         },
         {
           "name": "Far/Middle render placement using native geometry and alpha",
-          "implemented": false,
+          "implemented": true,
           "tests": [
             "tests/surface_backgrounds/native_surface_test.cpp",
-            "tests/surface_backgrounds/original_surface_comparison.cjs"
+            "tests/surface_backgrounds/original_surface_comparison.cjs",
+            "tests/surface_backgrounds/native_surface_loader_test.cpp",
+            "tests/surface_backgrounds/mailbox_surface_test.cpp",
+            "tests/surface_backgrounds/Program.cs",
+            "tests/surface_backgrounds/quickjs_surface_test.cpp",
+            "tests/surface_backgrounds/MixedProgram.cs"
           ]
         },
         {
           "name": "PreDrawCloseBackground suppression and custom drawing",
-          "implemented": false,
-          "tests": []
+          "implemented": true,
+          "tests": [
+            "tests/surface_backgrounds/native_surface_test.cpp",
+            "tests/surface_backgrounds/native_surface_loader_test.cpp",
+            "tests/surface_backgrounds/mailbox_surface_test.cpp",
+            "tests/surface_backgrounds/Program.cs",
+            "tests/surface_backgrounds/quickjs_surface_test.cpp",
+            "tests/surface_backgrounds/MixedProgram.cs",
+            "tests/surface_backgrounds/original_surface_comparison.cjs"
+          ]
         },
         {
           "name": "Close scale/parallax/a/b, SkyManager depth and surface clipping",
-          "implemented": false,
+          "implemented": true,
           "tests": [
             "tests/surface_backgrounds/native_surface_test.cpp",
-            "tests/surface_backgrounds/original_surface_comparison.cjs"
+            "tests/surface_backgrounds/original_surface_comparison.cjs",
+            "tests/surface_backgrounds/native_surface_loader_test.cpp",
+            "tests/surface_backgrounds/mailbox_surface_test.cpp",
+            "tests/surface_backgrounds/Program.cs",
+            "tests/surface_backgrounds/quickjs_surface_test.cpp",
+            "tests/surface_backgrounds/MixedProgram.cs"
           ]
         },
         {
           "name": "Original four-frame Middle animation and full mod path lookup",
-          "implemented": false,
+          "implemented": true,
           "tests": [
             "tests/surface_backgrounds/native_surface_test.cpp",
-            "tests/surface_backgrounds/original_surface_comparison.cjs"
+            "tests/surface_backgrounds/original_surface_comparison.cjs",
+            "tests/surface_backgrounds/native_surface_loader_test.cpp",
+            "tests/surface_backgrounds/mailbox_surface_test.cpp",
+            "tests/surface_backgrounds/Program.cs",
+            "tests/surface_backgrounds/quickjs_surface_test.cpp",
+            "tests/surface_backgrounds/MixedProgram.cs"
           ]
         },
         {
           "name": "Safe current/previous texture ownership and dependency failures",
-          "implemented": false,
-          "tests": []
+          "implemented": true,
+          "tests": [
+            "tests/surface_backgrounds/native_surface_test.cpp",
+            "tests/surface_backgrounds/native_surface_loader_test.cpp",
+            "tests/surface_backgrounds/mailbox_surface_test.cpp",
+            "tests/surface_backgrounds/Program.cs",
+            "tests/surface_backgrounds/quickjs_surface_test.cpp",
+            "tests/surface_backgrounds/MixedProgram.cs",
+            "tests/surface_backgrounds/original_surface_comparison.cjs"
+          ]
         }
       ],
-      "missing": [
-        "Native-to-MonoVM protocol with revision/deadline, public SDK and genuine managed custom drawing callback.",
-        "Connect both language bridges to the shared native style registry; current JavaScript loader remains unchanged.",
-        "Original CSharp surface example with six textures, four-frame animation and full mod-path asset lookup.",
-        "Real CSharp P/Invoke and QuickJS integration together, unload, module/scope rebinding and managed exception isolation.",
-        "Review source cache if managed SDK/protocol changes, then validate actual Android metadata, rendering, gameplay and FPS."
-      ],
-      "auditDocument": "docs/csharp-surface-background-audit.md",
+      "missing": [],
+      "auditDocument": "docs/csharp-surface-backgrounds.md",
       "infrastructure": {
-        "status": "native-engine-service-and-six-detours-implemented;language-bridges-and-managed-sdk-pending",
-        "documentation": "docs/csharp-surface-native-runtime.md",
+        "status": "shared-native-service-managed-worker-sdk-and-quickjs-adapter-implemented",
+        "documentation": "docs/csharp-surface-backgrounds.md",
         "tests": [
           "tests/surface_backgrounds/native_surface_test.cpp",
-          "tests/surface_backgrounds/original_surface_comparison.cjs",
-          "tests/surface_backgrounds/native_surface_loader_test.cpp"
+          "tests/surface_backgrounds/native_surface_loader_test.cpp",
+          "tests/surface_backgrounds/mailbox_surface_test.cpp",
+          "tests/surface_backgrounds/Program.cs",
+          "tests/surface_backgrounds/quickjs_surface_test.cpp",
+          "tests/surface_backgrounds/MixedProgram.cs",
+          "tests/surface_backgrounds/original_surface_comparison.cjs"
         ],
         "android": "not-tested",
-        "publicApiExposed": false
+        "publicApiExposed": true
       }
     },
     {
