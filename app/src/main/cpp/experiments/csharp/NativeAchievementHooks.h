@@ -30,5 +30,6 @@ bool installNativeAchievementHooks(std::string* error);
 // mundo do jogador local. A transição entre mundos altera apenas essa flag.
 void setNativeAchievementWorldActive(bool active);
 void flushNativeAchievementProgressOnExit();
+void pumpNativeAchievementPersistence(bool inWorld);
 
 }
