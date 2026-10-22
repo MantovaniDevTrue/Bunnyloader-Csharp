@@ -16,9 +16,12 @@ int main() {
         auto f = nativeDamageClassFlags(key);
         assert(f.resolved && f.summon && !f.ranged && !f.melee && !f.magic);
     }
-    for (std::string_view key : {"V0", "V1", "V8", "V9",
-                                  "C:ExampleModCSharp.DamageClasses.ExampleDamageClass",
-                                  "V10", ""}) {
+    for (std::string_view key : {"V1",
+                                  "C:ExampleModCSharp.DamageClasses.ExampleDamageClass"}) {
+        auto f = nativeDamageClassFlags(key);
+        assert(f.resolved && !f.melee && !f.ranged && !f.magic && !f.summon);
+    }
+    for (std::string_view key : {"V0", "V8", "V9", "V10", ""}) {
         auto f = nativeDamageClassFlags(key);
         assert(!f.resolved);
         assert(!f.melee && !f.ranged && !f.magic && !f.summon);
