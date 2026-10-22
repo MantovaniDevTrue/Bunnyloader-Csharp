@@ -84,6 +84,7 @@ void nullableChecks() {
     bytes[0]=2;CHECK(!nf.decode(bytes.data(),nf.size(),&present,&decoded,4,&error));CHECK(error.find("InvalidNativeNullableFlag")!=error.npos);
     CHECK(!nf.encode(true,&amount,8,&bytes,&error));
     nrFlag.offset=sizeof(Il2CppObject)+12;bl::il2cpp::NullableLayout invalid;CHECK(!invalid.bind(&nullableRect,&rect,&error));nrFlag.offset=sizeof(Il2CppObject)+16;
+    nrFlag.offset=100;CHECK(!invalid.bind(&nullableRect,&rect,nullptr));nrFlag.offset=sizeof(Il2CppObject)+16;
     niValue.type.cls=&real;CHECK(!invalid.bind(&nullableInt,&integer,&error));CHECK(error.find("NativeNullableValueMismatch")!=error.npos);niValue.type.cls=&integer;
     nfValue.type.byref=true;CHECK(!invalid.bind(&nullableFloat,&real,&error));CHECK(error.find("NativeIndirectionMismatch")!=error.npos);nfValue.type.byref=false;
     auto exportName=exports.field_get_name;exports.field_get_name=nullptr;CHECK(!invalid.bind(&nullableInt,&integer,&error));exports.field_get_name=exportName;
@@ -195,6 +196,7 @@ void drawingChecks() {
     drawLayer.returned.byref=true;CHECK(!drawing.bind(&batchType,&skyType,&error));drawLayer.returned.byref=false;
     drawLayer.flags=0x400;CHECK(!drawing.bind(&batchType,&skyType,&error));drawLayer.flags=0;
     cr.type.cls=&integer;CHECK(!drawing.bind(&batchType,&skyType,&error));cr.type.cls=&byteType;
+    cr.type.cls=&integer;CHECK(!drawing.bind(&batchType,&skyType,nullptr));cr.type.cls=&byteType;
     cr.type.byref=true;CHECK(!drawing.bind(&batchType,&skyType,&error));CHECK(error.find("NativeColorChannelTypeMismatch")!=error.npos);cr.type.byref=false;
     auto* x=xField.type.cls;xField.type.cls=&integer;CHECK(!drawing.bind(&batchType,&skyType,&error));xField.type.cls=x;
     nrValue.type.cls=&integer;CHECK(!drawing.bind(&batchType,&skyType,&error));nrValue.type.cls=&rect;

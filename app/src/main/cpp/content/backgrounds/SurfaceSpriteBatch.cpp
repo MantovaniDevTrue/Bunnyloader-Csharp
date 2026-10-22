@@ -60,6 +60,7 @@ bool invoke(const MethodInfo* method,Il2CppObject* owner,void** args,std::string
 }
 }
 bool SurfaceSpriteBatch::bind(Il2CppClass* batch,Il2CppClass* sky,std::string* error) {
+    std::string ignored;if(!error)error=&ignored;
     drawMethod=nullptr;skyMethod=nullptr;auto& a=il2cpp::api();
     std::string missing;const auto require=[&](auto fn,const char* name){if(!fn){if(!missing.empty())missing+=",";missing+=name;}};
     require(a.class_get_methods,"class_get_methods");require(a.method_get_name,"method_get_name");

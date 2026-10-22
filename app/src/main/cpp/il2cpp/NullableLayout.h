@@ -15,6 +15,7 @@ public:
     struct alignas(16) Buffer:std::array<unsigned char,Capacity> {};
     size_t size() const {return ready?layout.size:0;}
     bool bind(Il2CppClass* nullable,Il2CppClass* value,std::string* error) {
+        std::string ignored;if(!error)error=&ignored;
         ready=false;auto& a=api();CheckedProperty diagnostic;diagnostic.label=CheckedProperty::name(nullable);
         auto fail=[&](const std::string& actual,const char* reason){return diagnostic.reject(error,"BindNullable","ClosedSystem.Nullable<T>:BooleanAndExactT",actual,reason);};
         if(!nullable || !value || !a.class_get_fields || !a.field_get_type || !a.field_get_flags || !a.field_get_offset ||
