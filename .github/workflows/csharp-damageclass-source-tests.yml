@@ -16,6 +16,9 @@ on:
       - 'tests/DamageClassParity/native_damageclass_parser.cpp'
       - 'tests/DamageClassParity/native_damage_type_registry.cpp'
       - 'app/src/main/cpp/experiments/csharp/NativeDamageTypeRegistry.h'
+      - 'app/src/main/cpp/experiments/csharp/NativeContent.cpp'
+      - 'app/src/main/cpp/experiments/csharp/NativeDefaults.h'
+      - 'app/src/main/cpp/experiments/csharp/NativeDamageClassFlags.h'
       - 'experiments/csharp/BunnyCsSdk/BunnyItem.cs'
       - 'experiments/csharp/BunnyCsSdk/BunnySourceScriptApi.cs'
       - 'experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs'
@@ -37,6 +40,9 @@ on:
       - 'tests/DamageClassParity/native_damageclass_parser.cpp'
       - 'tests/DamageClassParity/native_damage_type_registry.cpp'
       - 'app/src/main/cpp/experiments/csharp/NativeDamageTypeRegistry.h'
+      - 'app/src/main/cpp/experiments/csharp/NativeContent.cpp'
+      - 'app/src/main/cpp/experiments/csharp/NativeDefaults.h'
+      - 'app/src/main/cpp/experiments/csharp/NativeDamageClassFlags.h'
       - 'experiments/csharp/BunnyCsSdk/BunnyItem.cs'
       - 'experiments/csharp/BunnyCsSdk/BunnySourceScriptApi.cs'
       - 'experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs'
@@ -95,6 +101,10 @@ jobs:
             tests/DamageClassParity/native_damage_type_registry.cpp \
             -o "$RUNNER_TEMP/damage_type_registry"
           "$RUNNER_TEMP/damage_type_registry"
+          c++ -std=c++20 -O2 -Wall -Wextra -Werror -Iapp/src/main/cpp \
+            tests/DamageClassParity/native_damageclass_flags.cpp \
+            -o "$RUNNER_TEMP/damageclass_flags"
+          "$RUNNER_TEMP/damageclass_flags"
           JAVA_INCLUDE="$(dirname "$(dirname "$(readlink -f "$(command -v javac)")")")/include"
           for source in SourceLoader.cpp AutoSourceRuntime.cpp; do
             g++ -std=c++20 -O0 -Wall -Wextra -Werror -fsyntax-only \
@@ -102,6 +112,15 @@ jobs:
               -Itests/basic_items/include -Iapp/src/main/cpp \
               "app/src/main/cpp/experiments/csharp/$source"
           done
+      - name: Syntax-check native Item and Projectile DamageType hooks
+        shell: bash
+        run: |
+          set -euo pipefail
+          JAVA_INCLUDE="$(dirname "$(dirname "$(readlink -f "$(command -v javac)")")")/include"
+          g++ -std=c++20 -O0 -Wall -Wextra -Werror -fsyntax-only \
+            -I"$JAVA_INCLUDE" -I"$JAVA_INCLUDE/linux" \
+            -Itests/basic_items/include -Iapp/src/main/cpp \
+            app/src/main/cpp/experiments/csharp/NativeContent.cpp
       - name: Ensure no APK was produced
         shell: bash
         run: |
