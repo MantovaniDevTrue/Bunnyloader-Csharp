@@ -43,6 +43,7 @@ struct Api {
     FieldInfo* (*class_get_fields)(Il2CppClass*, void**) = nullptr;
     const char* (*field_get_name)(FieldInfo*) = nullptr;
     uint32_t (*field_get_flags)(FieldInfo*) = nullptr;
+    Il2CppObject* (*field_get_value_object)(FieldInfo*, Il2CppObject*) = nullptr;
     Il2CppClass* (*method_get_class)(const MethodInfo*) = nullptr;
     // Arrays: tipo e tamanho do elemento. Um Player[] guarda ponteiros (8 B);
     // um Vector2[] guarda os structs em linha (8 B de dados). Sem o tamanho
