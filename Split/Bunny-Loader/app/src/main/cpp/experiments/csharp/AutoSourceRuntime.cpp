@@ -717,6 +717,13 @@ void run() {
         if (!mod.loaded || !mod.sourceFiles) continue;
         AutoSourceStatus status;
         status.modId = mod.id;
+        if (mod.hairs > 0) {
+            // Segunda barreira: nunca iniciar Roslyn/cache/aplicação de
+            // um pacote que contorne o preflight incompleto do SourceLoader.
+            note(&status, "blocked-hair-lifecycle",
+                 "NativeHairLifecycleIncomplete: SourceLoader/MonoVM/IL2CPP UI, save e rede");
+            continue;
+        }
         if (mod.id == kFixtureId) {
             note(&status, "manual-fixture");
             continue;
