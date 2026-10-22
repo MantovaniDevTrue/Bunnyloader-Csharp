@@ -90,3 +90,27 @@ O workflow `check-csharp-bannerloader-source-only.yml` compila o SDK, Roslyn, o 
 **Importante:** O codec de sidecar ainda não está ligado à gravação/leitura do arquivo de mundo; o preparador de arrays ainda não está ligado ao ciclo de mundo. Os três hooks nativos possuem código real de instalação, mas **continuam desativados no gameplay**. Esses são bloqueios obrigatórios — testes de host não significam QA Android.
 
 O bloqueio de APK permanece absoluto até o contrato todo ficar completo, inclusive persistência real, rede, tile 1×3, contadores, efeitos e testes end-to-end.
+## Lote 4 — persistencia real, restauracao nativa e fronteira de save/rede
+
+O arquivo `ManagedBannerWorldFile.h` reutiliza a semantica do sidecar C# ja existente em `InvasionSaveFile.h`: grava um arquivo **.wld.banners.bl** ao lado do mundo (somente save local, nunca cloud), com limite de 1 MiB, bytes BNR1/CRC32, nome temporario exclusivo, `fsync`, `rename` atomico e permissao 0600. Nao segue symlinks de leitura, nao aceita diretorios, `..\` ou caminhos que nao terminem em `.wld`. Erros de integridade nao substituem os dados previamente validados em memoria. A gravacao preserva o sidecar anterior quando a codificacao falha.
+
+`ManagedBannerWorldSession.h` mantem sessao por epoch de mundo: carrega uma vez na entrada, conserva os contadores de mods ausentes, recusa commit de cliente nao autoritativo e bloqueia a sobrescrita automatica quando encontra sidecar corrompido. Mudanca de mundo limpa path, epoch e cache.
+
+`NativeInvasionWorldPath.cpp` foi reaproveitado **sem nova deteccao paralela**: `AutoSourceRuntime.cpp` ja chama `updateNativeInvasionWorldPath` uma vez por worldEpoch quando a sessao C# fica pronta. Nessa mesma funcao, `banners::worldSession().begin(...)` carrega o novo sidecar. Em saida, o cache e desligado.
+
+`ManagedBannerGameCounters.h` le os tres arrays verdadeiros de `BannerSystem` com verificacao de classe, rank, tipo e limite; a captura usa `WorldLedger::capture`. A restauracao prepara antes os arrays, resolve `RefreshHasBannerAvailable()`, `RefreshAnyNewClaimableBanners()` e `bannerState`, aplica exclusivamente os IDs das bandeiras de mod, refaz os indicadores e reverte o trio de valores se um refresh nativo produzir excecao. Vanilla nao recebe gravacoes por esse processo.
+
+`SourceLoader.cpp` oferece `restoreBannerWorldCountersOnGameThread(epoch)` e `saveBannerWorldCountersOnGameThread(epoch, authoritative)`. `AutoSourceRuntime.cpp` as agenda apenas para a sessao correta, sem polling caro de arquivos, com retry limitado pela cadencia da thread principal.
+
+A separacao entre save e rede utiliza `ManagedBannerSaveDispatch.h` e `ManagedBannerSaveHooks.h`. O hook de `NetBannersModule.WriteFullState` guarda um marcador **thread_local**; o de `BannerSystem.Save` primeiro chama o metodo original e so depois agenda o sidecar quando nao esta dentro de um pacote de rede. A gravacao verdadeira e processada na thread do jogo, vinculada ao worldEpoch, sem IO pelo callback de rede. Os dois hooks possuem preflight de assinaturas e confirmacao de metodo estatico; nenhum dos dois e instalado antes da preparacao do BannerSystem.
+
+**Gate de gameplay ainda fechado:** `lookupsActive` continua `false`; a restauracao no mundo e a gravacao local nao entram em producao ate a ativacao final. Isto evita chamar o refresh vanilla com contadores de mod enquanto faltam tile 1x3, efeitos de proximidade, entrega por abates, representacao e sincronizacao da rede com IDs por UID. O teste host nao substitui verificacao real da ABI arm64 da versao 1.4.5.8.6.
+
+### Testes automatizados novos
+
+- `native_world_disk.cpp`: dois mundos, save atomico, permissao, symlink, corrupcao e cloud.
+- `native_world_session.cpp`: UID por mundo, troca de worldEpoch, cliente sem autoridade e bloqueio de sidecar danificado.
+- `native_save_dispatch.cpp`: aninhamento de pacotes de rede, isolamento thread-local, descarte de pedidos de worldEpoch antigo e consumo unico.
+- `check-csharp-bannerloader-source-only.yml`: compila `AutoSourceRuntime.cpp`, `SourceLoader.cpp` e `NativeInvasionWorldPath.cpp` na mesma checagem de sintaxe C++; executa todos os testes acima, o ExampleMod Roslyn e garante **nenhum APK**.
+
+Nao realizar `assemble`, criar release nem abrir PR que acione geracao de APK antes de validar TODOS os gates restantes.
