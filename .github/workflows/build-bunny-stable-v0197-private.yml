@@ -299,3 +299,5 @@ jobs:
               --notes "Private full APK. Upstream a0132963 with stable native audio optimizations preserved." --prerelease
           fi
           rm -f "$RUNNER_TEMP/$OUT" "$RUNNER_TEMP/$OUT.sha256" "$APK"
+
+# build trigger 2026-10-22 stable-0197
