@@ -12,6 +12,9 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../BunnyCsSdk/BunnyContentDeclaration.cs" Link="BunnyContentDeclaration.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyCommand.cs" Link="BunnyCommand.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyCommandWorker.cs" Link="BunnyCommandWorker.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyGore.cs" Link="BunnyGore.cs" />
     <Compile Include="../BunnyCsSdk/BunnyArmorEffects.cs" Link="BunnyArmorEffects.cs" />
     <Compile Include="../BunnyCsSdk/BunnyItemBehavior.cs" Link="BunnyItemBehavior.cs" />
     <Compile Include="../BunnyCsSdk/BunnyLocalization.cs" Link="BunnyLocalization.cs" />
