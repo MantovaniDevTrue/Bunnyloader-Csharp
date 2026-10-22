@@ -144,5 +144,65 @@ Check("ExampleMod C# recipe really compiles and computes", () =>
     Near(ExampleStatModifierRecipe.CalculateInheritedDamage(100f), 130f, "sample inherited damage");
 });
 
+Check("StatModifier is a value type with independent mutable fields", () =>
+{
+    StatModifier first = new(1.2f, 1.3f, 4f, 5f);
+    StatModifier second = first;
+    second.Base += 10f;
+    second.Flat -= 2f;
+    Near(first.Base, 5f, "copied original Base");
+    Near(first.Flat, 4f, "copied original Flat");
+    Near(second.Base, 15f, "copy Base");
+    Near(second.Flat, 2f, "copy Flat");
+});
+
+Check("Negative Base and Flat keep the tModLoader operation order", () =>
+{
+    StatModifier penalty = new(0.8f, 1.5f, -3f, -5f);
+    Near(penalty.ApplyTo(100f), 111f, "negative modifiers");
+    Near(penalty.Undo(111f), 100f, "negative undo");
+});
+
+Check("Scale accepts negative and greater-than-one fractions without clamping", () =>
+{
+    StatModifier original = new(1.2f, 1.5f, 3f, 2f);
+    StatModifier doubled = original.Scale(2f);
+    Near(doubled.Additive, 1.4f, "doubled additive");
+    Near(doubled.Multiplicative, 2f, "doubled multiplicative");
+    Near(doubled.Flat, 6f, "doubled Flat");
+    Near(doubled.Base, 4f, "doubled Base");
+    StatModifier reversed = original.Scale(-1f);
+    Near(reversed.Additive, 0.8f, "negative additive");
+    Near(reversed.Multiplicative, 0.5f, "negative multiplicative");
+    Near(reversed.Flat, -3f, "negative Flat");
+    Near(reversed.Base, -2f, "negative Base");
+});
+
+Check("Zero multiplier and Undo follow native float arithmetic", () =>
+{
+    StatModifier modifier = StatModifier.Default * 0f;
+    Near(modifier.ApplyTo(123f), 0f, "zero multiply");
+    Verify(float.IsPositiveInfinity(modifier.Undo(10f)), "Undo must not silently clamp zero");
+});
+
+Check("StatInheritanceData copies are independent and parameters are positional", () =>
+{
+    StatInheritanceData first = new(0.2f, 0.4f, 0.6f, 0.8f, 1f);
+    StatInheritanceData second = first;
+    second.damageInheritance = 0f;
+    Near(first.damageInheritance, 0.2f, "copied damage");
+    Near(first.critChanceInheritance, 0.4f, "crit");
+    Near(first.attackSpeedInheritance, 0.6f, "speed");
+    Near(first.armorPenInheritance, 0.8f, "armor pen");
+    Near(first.knockbackInheritance, 1f, "knockback");
+    Near(second.damageInheritance, 0f, "changed copy");
+});
+
+Check("ExampleMod attack speed inheritance uses delta from one", () =>
+{
+    Near(ExampleStatModifierRecipe.CalculateInheritedAttackSpeed(1.05f, 1.2f),
+        1.15f, "example speed");
+});
+
 Console.WriteLine($"StatModifier parity: {passed} passed, {failed} failed.");
 return failed == 0 ? 0 : 1;
