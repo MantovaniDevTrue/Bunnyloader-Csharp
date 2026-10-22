@@ -1,4 +1,5 @@
 #include "experiments/csharp/NativeHairStartup.h"
+#include "experiments/csharp/NativeHairHandoff.h"
 
 #include <cstdlib>
 #include <fstream>
@@ -18,12 +19,16 @@ static void require(bool value, const char* label) {
 
 int main(int argc, char** argv) {
     require(argc == 2, "arquivo de manifesto gerado pelo compilador C# informado");
-    std::ifstream source(argv[1], std::ios::binary);
-    require(source.good(), "arquivo C# criado pela execucao Mono/Roslyn presente");
-    std::string managed((std::istreambuf_iterator<char>(source)),
-                        std::istreambuf_iterator<char>());
+    std::string managed, error;
+    require(ReadNativeHairManifest(argv[1], "examplemodcsharp", &managed, &error),
+            "arquivo C# aberto pelo leitor nativo seguro com UID");
     require(managed.size() > 50 && managed.size() < 512 * 1024,
             "payload limitado ao tamanho suportado pelo host C++");
+    require(!ReadNativeHairManifest(argv[1], "../examplemodcsharp", &managed, &error) &&
+            error == "HairHandoffUnsafePathOrUid",
+            "UID com traversal nunca forma um filename");
+    require(ReadNativeHairManifest(argv[1], "examplemodcsharp", &managed, &error),
+            "UID valido continua legivel apos rejeicao");
 
     NativeHairSlotSnapshot snapshot;
     snapshot.valid = true;
@@ -34,7 +39,6 @@ int main(int argc, char** argv) {
         ++reads;
         return snapshot;
     });
-    std::string error;
     NativeHairStartup::Block reserved;
     require(startup.Begin("examplemodcsharp", 2, &reserved, &error) &&
             reserved.first == 300 && reserved.count == 2,
