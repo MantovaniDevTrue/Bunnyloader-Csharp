@@ -199,6 +199,10 @@ bool requestAchievementModUnload(const std::string& modId,
                                  std::string* error) {
     if (!error) return false;
     error->clear();
+    if (!nativeAchievementModRegistered(modId)) {
+        *error = "Cannot unload mod until native achievement registration completes";
+        return false;
+    }
     ModInfo selected;
     {
         std::lock_guard<std::mutex> guard(mutex);
