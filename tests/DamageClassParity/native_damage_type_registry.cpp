@@ -31,6 +31,9 @@ int main() {
     assert(valid.load());
     assert(!registry.lookup(false, 900, &state));
     assert(!registry.lookup(true, 800, &state));
+    assert(!registry.publish("mod-new", {{"mod-new", 900, false, "V2"}}));
+    assert(registry.publish("mod-new", {{"mod-new", 902, false, "V2"}}));
+    assert(registry.lookup(false, 902, &state));
     assert(registry.lookup(false, 901, &state) && state.mod == "mod-b");
     assert(registry.lookup(true, 801, &state));
     registry.reset();
