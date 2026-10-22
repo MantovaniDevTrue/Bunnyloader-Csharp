@@ -19,6 +19,10 @@ on:
       - 'app/src/main/cpp/experiments/csharp/NativeContent.cpp'
       - 'app/src/main/cpp/experiments/csharp/NativeDefaults.h'
       - 'app/src/main/cpp/experiments/csharp/NativeDamageClassFlags.h'
+      - 'app/src/main/cpp/experiments/csharp/NativeDamageClassStats.h'
+      - 'tests/DamageClassParity/native_damageclass_stats.cpp'
+      - 'experiments/csharp/BunnyCsSdk/BunnyEntitySourceDispatcher.cs'
+      - 'experiments/csharp/BunnyCsSdk/DamageClassLoader.cs'
       - 'experiments/csharp/BunnyCsSdk/BunnyItem.cs'
       - 'experiments/csharp/BunnyCsSdk/BunnySourceScriptApi.cs'
       - 'experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs'
@@ -43,6 +47,10 @@ on:
       - 'app/src/main/cpp/experiments/csharp/NativeContent.cpp'
       - 'app/src/main/cpp/experiments/csharp/NativeDefaults.h'
       - 'app/src/main/cpp/experiments/csharp/NativeDamageClassFlags.h'
+      - 'app/src/main/cpp/experiments/csharp/NativeDamageClassStats.h'
+      - 'tests/DamageClassParity/native_damageclass_stats.cpp'
+      - 'experiments/csharp/BunnyCsSdk/BunnyEntitySourceDispatcher.cs'
+      - 'experiments/csharp/BunnyCsSdk/DamageClassLoader.cs'
       - 'experiments/csharp/BunnyCsSdk/BunnyItem.cs'
       - 'experiments/csharp/BunnyCsSdk/BunnySourceScriptApi.cs'
       - 'experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs'
@@ -105,6 +113,10 @@ jobs:
             tests/DamageClassParity/native_damageclass_flags.cpp \
             -o "$RUNNER_TEMP/damageclass_flags"
           "$RUNNER_TEMP/damageclass_flags"
+          c++ -std=c++20 -O2 -Wall -Wextra -Werror -pthread -Iapp/src/main/cpp \
+            tests/DamageClassParity/native_damageclass_stats.cpp \
+            -o "$RUNNER_TEMP/damageclass_stats"
+          "$RUNNER_TEMP/damageclass_stats"
           JAVA_INCLUDE="$(dirname "$(dirname "$(readlink -f "$(command -v javac)")")")/include"
           for source in SourceLoader.cpp AutoSourceRuntime.cpp; do
             g++ -std=c++20 -O0 -Wall -Wextra -Werror -fsyntax-only \
