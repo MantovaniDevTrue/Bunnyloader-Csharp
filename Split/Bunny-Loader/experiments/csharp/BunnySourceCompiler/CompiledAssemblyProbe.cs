@@ -74,6 +74,11 @@ public static class CompiledAssemblyProbe
 
             Assembly assembly = Assembly.Load(File.ReadAllBytes(assemblyPath));
             Type[] contentTypes = assembly.GetTypes();
+            // O parser C++ reconhece herança direta. Esta checagem ocorre
+            // sobre a assembly compilada e também detecta ModHair indireto
+            // ou gerado. Não execute SetDefaults de um pacote parcialmente
+            // suportado enquanto o ciclo IL2CPP estiver incompleto.
+            CompiledHairProbe.RejectUninstalledHairTypes(assembly);
             Type? console = assembly.GetType("BunnyLoader.Interactive.ConsoleEntry", false);
             if (console != null)
             {
