@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Teste isolado do bloqueio de APK. Nao executa Gradle nem gera binarios."""
+import hashlib
 import tempfile
 import unittest
 from pathlib import Path
@@ -25,6 +26,7 @@ class ReleaseGateTests(unittest.TestCase):
             (content / f"Example{index:03}.js").write_text("export class Example {}\n")
             self.rows.append({
                 "id": relative,
+                "javaScript": {"upstreamBlob": blob},
                 "status": COMPLETE,
                 "cSharp": ["samples/ExampleModCSharp/Playable/content/Example.cs"],
                 "missingFeatures": [],
@@ -63,6 +65,11 @@ class ReleaseGateTests(unittest.TestCase):
         path = self.upstream / "samples/ExampleMod/content/Content/NewExample.js"
         path.write_text("export class NewExample {}\n")
         self.assertTrue(any("upstream" in x for x in self.check()))
+
+    def test_modified_js_with_same_filename_blocks(self):
+        original = self.upstream / "samples/ExampleMod/content/Content/Example000.js"
+        original.write_text("export class Changed {}\\n")
+        self.assertTrue(any("JS original mudou" in x for x in self.check()))
 
     def test_stale_snapshot_and_duplicate_block(self):
         self.matrix["references"]["upstream"]["commit"] = "old"
