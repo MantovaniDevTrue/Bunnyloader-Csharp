@@ -2,6 +2,7 @@
 
 #include "experiments/csharp/NativeCloudBiomePolicy.h"
 
+#include <cstdint>
 #include <string>
 
 namespace bl::csharp {
@@ -14,7 +15,7 @@ bool stageNativeBiomeOwnerOnGameThread(const std::string& modId,
 // No blocking calls to MonoVM. A new snapshot invalidates previous flags;
 // only owned, current-generation responses may affect the cloud weight cache.
 bool pumpNativeBiomeOwnersOnGameThread(const NativeCloudBiomeFacts& facts,
-    bool newSnapshot, std::string* biomeKeys);
+    bool newSnapshot, uint32_t playerUpdateEvents, std::string* biomeKeys);
 
 bool nativeBiomeOwnersStagedOnGameThread();
 void resetNativeBiomeWorldStateOnGameThread();
