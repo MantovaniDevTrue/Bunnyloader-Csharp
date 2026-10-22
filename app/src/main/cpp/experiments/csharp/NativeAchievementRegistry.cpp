@@ -1,5 +1,7 @@
 #include "experiments/csharp/NativeAchievementRegistry.h"
 #include "experiments/csharp/NativeAchievementProgress.h"
+#include "experiments/csharp/NativeAchievementLocale.h"
+#include "experiments/csharp/NativeAchievementLocaleJson.h"
 #include "experiments/csharp/ContentTexture.h"
 #include "content/common/ContentAssets.h"
 #include "mods/ModLoader.h"
@@ -13,6 +15,8 @@
 #include <cmath>
 #include <cstdint>
 #include <cstring>
+#include <fstream>
+#include <iterator>
 #include <map>
 #include <string>
 #include <utility>
@@ -32,6 +36,7 @@ struct NativeMethods {
     Il2CppObject* manager = nullptr;
     const MethodInfo* achievementCtor = nullptr;
     const MethodInfo* localizedCtor = nullptr;
+    const MethodInfo* setLocalizedValue = nullptr;
     const MethodInfo* conditionFactory = nullptr;
     const MethodInfo* flagFactory = nullptr;
     const MethodInfo* completeFlag = nullptr;
@@ -198,6 +203,8 @@ bool preflight(std::string* error) {
         "void .ctor(string name)", true, error);
     resolved.localizedCtor = require(resolved.localizedText,
         "void .ctor(string key, string text)", true, error);
+    resolved.setLocalizedValue = require(resolved.localizedText,
+        "void SetValue(string text)", true, error);
     resolved.conditionFactory = require(resolved.condition,
         "AchievementCondition Create(string name, int maxValue)", false, error);
     resolved.flagFactory = require(resolved.flagCondition,
@@ -225,6 +232,7 @@ bool preflight(std::string* error) {
     resolved.setFloatProgress = require(resolved.floatCondition,
         "void set_Value(float value)", true, error);
     if (!resolved.achievementCtor || !resolved.localizedCtor ||
+        !resolved.setLocalizedValue ||
         !resolved.conditionFactory || !resolved.floatFactory ||
         !resolved.flagFactory || !resolved.completeFlag ||
         !resolved.addCondition || !resolved.trackCondition ||
@@ -592,6 +600,94 @@ Il2CppObject* nativeAchievementIconAsset(const Il2CppObject* achievement) {
     const auto it = iconsByAchievement.find(achievement);
     if (it == iconsByAchievement.end()) return nullptr;
     return il2cpp::api().gchandle_get_target(it->second);
+}
+
+bool updateNativeAchievementTranslations(
+    const std::vector<AchievementMetadata>& definitions,
+    const std::string& culture, std::string* error) {
+    if (!error) return false;
+    error->clear();
+    if (!prepared) {
+        *error = "Native achievement registry not initialized";
+        return false;
+    }
+    if (culture.empty() || culture.size() > 32) {
+        *error = "Invalid Terraria culture";
+        return false;
+    }
+    for (char ch : culture)
+        if (!((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') ||
+              (ch >= '0' && ch <= '9') || ch == '-')) {
+            *error = "Unsafe Terraria culture rejected";
+            return false;
+        }
+
+    std::map<std::string, std::map<std::string, AchievementTranslation>> modLocales;
+    const auto load = [&](const std::string& mod, const std::string& lang,
+                          std::map<std::string, AchievementTranslation>* result) {
+        const std::string root = bl::mods::rootOf(mod);
+        if (root.empty()) return false;
+        std::ifstream file(root + "/content/Localization/" + lang + ".json",
+                           std::ios::binary | std::ios::ate);
+        if (!file) return false;
+        const auto size = file.tellg();
+        if (size <= 0 || size > 512 * 1024) return false;
+        std::string source(static_cast<std::size_t>(size), '\0');
+        file.seekg(0);
+        if (!file.read(source.data(), size)) return false;
+        return parseAchievementTranslations(source, result);
+    };
+    for (const auto& definition : definitions) {
+        const auto slash = definition.name.find('/');
+        if (slash == std::string::npos) continue;
+        const std::string mod = definition.name.substr(0, slash);
+        if (modLocales.contains(mod)) continue;
+        std::map<std::string, AchievementTranslation> fallback;
+        load(mod, "en-US", &fallback);
+        std::map<std::string, AchievementTranslation> localized;
+        if (culture != "en-US") load(mod, culture, &localized);
+        for (const auto& [id, texts] : localized) {
+            auto& target = fallback[id];
+            if (!texts.title.empty()) target.title = texts.title;
+            if (!texts.description.empty()) target.description = texts.description;
+        }
+        modLocales.emplace(mod, std::move(fallback));
+    }
+
+    auto& api = il2cpp::api();
+    for (const auto& definition : definitions) {
+        auto found = entries.find(definition.name);
+        if (found == entries.end() || !found->second.registered) continue;
+        auto slash = definition.name.find('/');
+        if (slash == std::string::npos) continue;
+        const auto& mod = modLocales.at(definition.name.substr(0, slash));
+        auto translated = mod.find(definition.name.substr(slash + 1));
+        const std::string& title = translated != mod.end() && !translated->second.title.empty()
+            ? translated->second.title : definition.title;
+        const std::string& description =
+            translated != mod.end() && !translated->second.description.empty()
+            ? translated->second.description : definition.description;
+        Il2CppObject* titleRoot = api.gchandle_get_target(found->second.titleRoot);
+        Il2CppObject* descriptionRoot = api.gchandle_get_target(
+            found->second.descriptionRoot);
+        if (!titleRoot || !descriptionRoot) {
+            *error = "Native achievement localized text GC root missing";
+            return false;
+        }
+        auto* titleValue = api.string_new(title.c_str());
+        auto* descriptionValue = api.string_new(description.c_str());
+        if (!titleValue || !descriptionValue) {
+            *error = "Native achievement text allocation failed";
+            return false;
+        }
+        void* titleArgs[]{titleValue};
+        void* descriptionArgs[]{descriptionValue};
+        if (!invoke(methods.setLocalizedValue, titleRoot, titleArgs, nullptr, error) ||
+            !invoke(methods.setLocalizedValue, descriptionRoot,
+                    descriptionArgs, nullptr, error))
+            return false;
+    }
+    return true;
 }
 
 NativeAchievementRegistryStatus nativeAchievementRegistryStatus() {
