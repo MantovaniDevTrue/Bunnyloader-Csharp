@@ -2,6 +2,8 @@
 #include "experiments/csharp/ManagedBannerRegistry.h"
 #include "experiments/csharp/ManagedBannerLookupHooks.h"
 #include "experiments/csharp/ManagedBannerArrayBridge.h"
+#include "experiments/csharp/ManagedBannerGameCounters.h"
+#include "experiments/csharp/ManagedBannerWorldSession.h"
 #include "experiments/csharp/NativeTileWirePolicy.h"
 #include "experiments/csharp/SourceLoader.h"
 #include "experiments/csharp/NativeRarityRegistry.h"
@@ -1725,6 +1727,43 @@ bool prepareBannerWorldArraysOnGameThread(std::string* error) {
     }
     // Nao ativar antes do sidecar, refresh, rede e tile completos.
     banners::setBannerLookupsActive(false);
+    return true;
+}
+
+bool sourceHasBannerMappings() {
+    return !banners::registry(runtime::kVanillaNpcCount)
+        .snapshot()->bannerToItem.empty();
+}
+
+bool restoreBannerWorldCountersOnGameThread(uint64_t worldEpoch,
+                                            std::string* error) {
+    if (!error || !worldEpoch) return false;
+    if (!sourceHasBannerMappings()) return true;
+    banners::WorldEntries values;
+    if (!banners::worldSession().view(worldEpoch, &values)) {
+        *error = "BannerLoader: mundo sem sidecar confiavel ou cloud save";
+        return false;
+    }
+    if (!prepareBannerWorldArraysOnGameThread(error)) return false;
+    if (!banners::restoreGameBannerCounters(values, error)) return false;
+    return true;
+}
+
+bool saveBannerWorldCountersOnGameThread(uint64_t worldEpoch,
+                                         bool authoritative,
+                                         std::string* error) {
+    if (!error || !worldEpoch || !authoritative) return false;
+    if (!sourceHasBannerMappings()) return true;
+    banners::WorldEntries values;
+    if (!banners::worldSession().view(worldEpoch, &values)) {
+        *error = "BannerLoader: mundo sem sidecar confiavel ou cloud save";
+        return false;
+    }
+    if (!banners::captureGameBannerCounters(&values, error)) return false;
+    if (!banners::worldSession().commit(worldEpoch, authoritative, values)) {
+        *error = "BannerLoader: falha ao gravar sidecar sem perder o anterior";
+        return false;
+    }
     return true;
 }
 
