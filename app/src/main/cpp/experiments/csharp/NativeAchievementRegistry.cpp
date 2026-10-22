@@ -3,6 +3,7 @@
 #include "experiments/csharp/NativeAchievementLocale.h"
 #include "experiments/csharp/NativeAchievementLocaleJson.h"
 #include "experiments/csharp/NativeAchievementManagerAdapter.h"
+#include "experiments/csharp/NativeAchievementOwnership.h"
 #include "experiments/csharp/ContentTexture.h"
 #include "content/common/ContentAssets.h"
 #include "mods/ModLoader.h"
@@ -724,21 +725,14 @@ bool replaceNativeAchievementObjects(
 bool unregisterNativeAchievementMod(const std::string& modId, std::string* error) {
     if (!error) return false;
     error->clear();
-    if (!prepared || modId.empty() || modId.size() > 96) {
+    if (!prepared || !validAchievementModUid(modId)) {
         *error = "Native achievement mod unregister unavailable";
         return false;
     }
-    for (unsigned char ch : modId)
-        if (!((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') ||
-              (ch >= '0' && ch <= '9') || ch == '_' || ch == '-' || ch == '.')) {
-            *error = "Invalid achievement mod identity";
-            return false;
-        }
 
-    const auto prefix = modId + "/";
     std::vector<std::string> names;
     for (const auto& [name, entry] : entries) {
-        if (name.starts_with(prefix)) {
+        if (achievementOwnedByMod(name, modId)) {
             if (!entry.registered) {
                 *error = "Incomplete achievement registration, removal blocked";
                 return false;
