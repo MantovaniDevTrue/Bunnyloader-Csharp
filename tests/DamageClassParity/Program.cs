@@ -1,5 +1,7 @@
 using BunnyLoader.Source;
 using ExampleModCSharp.DamageClasses;
+using System.Reflection;
+using System.Reflection.Emit;
 
 int passed = 0;
 int failed = 0;
@@ -236,6 +238,65 @@ Check("Unload clears only custom classes and invalidates stale player snapshots"
     Verify(example.Type == -1 && half.Type == -1, "old type");
     Throws<InvalidOperationException>(() => { _ = p.GetTotalDamage(example); });
     Near(p.GetTotalCritChance(DamageClass.Melee), 4f, "fresh default");
+});
+
+// Dois assemblies separados: descarregar o primeiro não pode renumerar o segundo.
+static Assembly DynamicMod(string modName, string className)
+{
+    var builder = AssemblyBuilder.DefineDynamicAssembly(new AssemblyName(modName),
+        AssemblyBuilderAccess.Run);
+    var module = builder.DefineDynamicModule(modName);
+    TypeBuilder type = module.DefineType(className, TypeAttributes.Public |
+        TypeAttributes.Class, typeof(DamageClass));
+    type.DefineDefaultConstructor(MethodAttributes.Public);
+    type.CreateType();
+    return builder;
+}
+
+Assembly modA = DynamicMod("DamageParityModA", "DamageParityClassA");
+Assembly modB = DynamicMod("DamageParityModB", "DamageParityClassB");
+DamageClass? classA = null, classB = null;
+Check("Two independent C# assemblies register with stable distinct IDs", () =>
+{
+    Verify(DamageClassLoader.RegisterAssembly("mod-a", modA) == 1, "register A");
+    Verify(DamageClassLoader.RegisterAssembly("mod-b", modB) == 1, "register B");
+    classA = DamageClassLoader.GetDamageClass(10);
+    classB = DamageClassLoader.GetDamageClass(11);
+    Verify(classA != null && classB != null && classA.Type == 10 && classB.Type == 11, "ids");
+    Verify(DamageClassLoader.All.Count == 12, "two active classes");
+});
+Check("Unregister only first mod; second keeps original ID and effects", () =>
+{
+    var p = new DamageClassPlayer();
+    Verify(DamageClassLoader.UnregisterMod("mod-a"), "unregister A");
+    Verify(DamageClassLoader.GetDamageClass(10) is null, "A tombstone");
+    Verify(ReferenceEquals(DamageClassLoader.GetDamageClass(11), classB), "B unchanged");
+    Verify(classA!.Type == -1, "A invalid");
+    Verify(DamageClassLoader.All.Count == 11, "active snapshot skips tombstone");
+    Verify(classB!.CountsAsClass(classB), "B self-effect");
+    Near(p.GetTotalCritChance(classB), 4f, "B inherited generic crit");
+    Throws<InvalidOperationException>(() => { _ = p.GetTotalDamage(classA); });
+});
+Check("Re-register another mod never reuses retired class ID", () =>
+{
+    Verify(DamageClassLoader.RegisterAssembly("mod-a", DynamicMod("DamageParityModA2", "DamageParityClassA2")) == 1,
+        "register new A");
+    DamageClass? newA = DamageClassLoader.GetDamageClass(12);
+    Verify(newA != null && newA.Type == 12, "new ID");
+    Verify(DamageClassLoader.GetDamageClass(10) is null, "old ID stays vacant");
+    Verify(ReferenceEquals(DamageClassLoader.GetDamageClass(11), classB), "B stable");
+});
+Check("Per-mod unload is idempotent and global unload restores vanilla", () =>
+{
+    Verify(DamageClassLoader.UnregisterMod("mod-a"), "new A removed");
+    Verify(!DamageClassLoader.UnregisterMod("mod-a"), "double unload");
+    Verify(!DamageClassLoader.UnregisterMod("missing-mod"), "unknown mod");
+    Verify(DamageClassLoader.UnregisterMod("mod-b"), "B removed");
+    Verify(DamageClassLoader.GetDamageClass(11) is null, "B tombstone");
+    Verify(DamageClassLoader.All.Count == 10, "only vanilla active");
+    DamageClassLoader.Unload();
+    Verify(DamageClassLoader.DamageClassCount == 10 && DamageClassLoader.All.Count == 10,
+        "global reset releases tombstones");
 });
 
 Console.WriteLine($"DamageClass parity: {passed} passed, {failed} failed.");
