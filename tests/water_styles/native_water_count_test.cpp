@@ -141,6 +141,9 @@ int main() {
     CHECK(installed.contains(&drawWater));originalDraw=nativeDraw;
     const auto draw=reinterpret_cast<WaterDraw>(installed.at(&drawWater));
     draw(localObject,true,&drawWater);CHECK(originalDrawCalls==1);
+    originalDraw=nullptr;draw(localObject,true,&drawWater);
+    CHECK(originalDrawCalls==1 && logHas("NativeHookOriginalUnavailable"));
+    CHECK(!setWaterStyleCount(16) && installed.size()==1);originalDraw=nativeDraw;
     const int calls=protectionCalls;CHECK(setWaterStyleCount(16) && protectionCalls==calls);
     // A new local-user state is not evidence that the old arrays still exist.
     localObject=object(&localClass);set(localInstance,localObject);tables(15);

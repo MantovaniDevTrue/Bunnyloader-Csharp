@@ -44,16 +44,23 @@ void guardedDraw(void* self,bool background,const MethodInfo* method) {
     // These arrays are recreated with the local user state. A previously
     // patched native loop keeps its larger bound across world changes.
     if(!ensureWaterAlphaTables(g_count,&error)){waterFailure("BeforeDrawWaters",error);return;}
-    if(originalDraw)originalDraw(self,background,method);
+    const auto draw=__atomic_load_n(&originalDraw,__ATOMIC_ACQUIRE);
+    if(!draw){waterFailure("BeforeDrawWaters","Expected=InstalledOriginalDraw Actual=Null Reason=NativeHookOriginalUnavailable");return;}
+    draw(self,background,method);
 }
 
 bool installDrawGuard(const MethodInfo* method) {
-    if(guardedMethod==method)return true;
-    if(guardedMethod)return waterFailure("InstallDrawGuard","Expected=OriginalVerifiedMethod Actual=ChangedMethod Reason=ProcessRestartRequired");
-    if(!hook::install(method,guardedDraw,&originalDraw))
-        return waterFailure("InstallDrawGuard","Expected=NativeDrawGuardInstalled Actual=HookRejected Count="+
-            std::to_string(g_count)+" Reason=NativeHookInstallationRejected Consequence=BothLoopsAppliedRetryGuardRequired");
-    guardedMethod=method;return true;
+    if(guardedMethod && guardedMethod!=method)
+        return waterFailure("InstallDrawGuard","Expected=OriginalVerifiedMethod Actual=ChangedMethod Reason=ProcessRestartRequired");
+    if(!guardedMethod) {
+        if(!hook::install(method,guardedDraw,&originalDraw))
+            return waterFailure("InstallDrawGuard","Expected=NativeDrawGuardInstalled Actual=HookRejected Count="+
+                std::to_string(g_count)+" Reason=NativeHookInstallationRejected Consequence=BothLoopsAppliedRetryGuardRequired");
+        guardedMethod=method;
+    }
+    if(!__atomic_load_n(&originalDraw,__ATOMIC_ACQUIRE))
+        return waterFailure("InstallDrawGuard","Expected=InstalledOriginalDraw Actual=Null Reason=NativeHookOriginalUnavailable");
+    return true;
 }
 
 bool tablesReady(int total,Il2CppClass* main,std::string* error) {
@@ -71,7 +78,7 @@ bool tablesReady(int total,Il2CppClass* main,std::string* error) {
         if(i<3)for(int slot=kVanillaWaterStyleCount;slot<total;++slot) {
             auto* value=static_cast<Il2CppObject**>(arrayData(array))[slot];
             if(!value || !il2cpp::api().class_is_assignable_from(asset,il2cpp::api().object_get_class(value)))
-                return property.reject(error,"ValidateSlot","LoadedCompatibleTextureAsset",value?P::name(il2cpp::api().object_get_class(value)):"Null",
+                return property.reject(error,"ValidateSlot","CompatibleTextureAsset",value?P::name(il2cpp::api().object_get_class(value)):"Null",
                     "WaterTextureSlotUnavailable");
         }
     }

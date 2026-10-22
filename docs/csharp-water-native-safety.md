@@ -53,7 +53,9 @@ de cada DrawWaters. Se LocalUserGameState nasceu novamente, cresce os arrays
 para a contagem já publicada. Se isso falhar, não chama o original com arrays
 pequenos. Diagnósticos repetidos idênticos são emitidos na primeira ocorrência
 e nas potências de dois, com contagem de mensagens suprimidas. O original é
-chamado uma vez quando a preparação é válida; o guard relê o ponteiro encadeado.
+chamado uma vez quando a preparação é válida; o guard relê o ponteiro encadeado
+com acquire, acompanhando a publicação atômica feita pelo HookManager. Um
+original ausente é relatado e não provoca reinstalações duplicadas nem sucesso.
 
 O loader JS também só considera a instalação concluída quando a bridge retorna
 true. Uma recusa ou exceção adia a próxima tentativa por 60 chamadas de desenho,
