@@ -43,6 +43,9 @@ string Mode(Type type, MethodInfo method)
             "RegisterHooks" => "worker_registration",
             _ => "compile_policy"
         };
+    if (type == typeof(DamageClass) || type == typeof(DamageClassLoader) ||
+        type == typeof(DamageClassPlayer))
+        return "managed_stat_snapshot_no_android_damage_hook";
     if (type == typeof(BunnyEntitySourceDispatcher)) return "worker_async_entity";
     if (type == typeof(BunnyNPC) && method.Name is "OnSpawn" or "AI" or "OnHit" or "OnKill" or "OnDespawn")
         return "worker_async_entity";
