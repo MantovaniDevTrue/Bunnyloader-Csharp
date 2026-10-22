@@ -185,6 +185,31 @@ try
         BunnyEntitySourceDispatcher.Register(modId, output) >= 0)
         throw new InvalidOperationException("ExampleMod DamageClass per-mod cleanup failed");
     Console.WriteLine("FULL_EXAMPLE_DAMAGECLASS_MOD_UNLOAD=PASS stableIds=true");
+    string onlyRoot = Path.Combine(work, "damageclass-only-mod");
+    string onlyContent = Path.Combine(onlyRoot, "content");
+    Directory.CreateDirectory(onlyContent);
+    File.WriteAllText(Path.Combine(onlyContent, "SoloDamage.cs"),
+        "using BunnyLoader.Source; namespace OnlyDamage; " +
+        "public sealed class SoloDamage : DamageClass { " +
+        "public override StatInheritanceData GetModifierInheritance(DamageClass other) " +
+        "=> ReferenceEquals(other, Generic) ? StatInheritanceData.Full : StatInheritanceData.None; }");
+    string onlyOutput = Path.Combine(work, "compiled", "OnlyDamage.dll");
+    string onlyDiagnostics = Path.Combine(work, "only-diagnostics.txt");
+    if (Compiler.Compile(onlyRoot, onlyOutput, framework, onlyDiagnostics) != 1 ||
+        CompiledAssemblyProbe.Verify(onlyOutput, onlyDiagnostics, onlyRoot) != 1)
+        throw new InvalidOperationException("DamageClass-only mod must compile and verify: " +
+            File.ReadAllText(onlyDiagnostics));
+    int onlySlot = BunnyEntitySourceDispatcher.Register("damageclass-only-smoke", onlyOutput);
+    DamageClass? onlyClass = DamageClassLoader.GetDamageClass(11);
+    if (onlySlot < 0 || onlyClass?.GetType().FullName != "OnlyDamage.SoloDamage" ||
+        !onlyClass.GetModifierInheritance(DamageClass.Generic).Equals(StatInheritanceData.Full))
+        throw new InvalidOperationException("Managed-only DamageClass registration failed");
+    if (!BunnyEntitySourceDispatcher.Unregister("damageclass-only-smoke") ||
+        DamageClassLoader.GetDamageClass(11) != null ||
+        DamageClassLoader.All.Count != 10)
+        throw new InvalidOperationException("Managed-only DamageClass unload failed");
+    Console.WriteLine("DAMAGECLASS_ONLY_ASSEMBLY_COMPILE_AND_UNLOAD=PASS");
+
 
 }
 finally
