@@ -28,6 +28,13 @@ bool reconcileNativeAchievementObjects(
     const std::vector<AchievementMetadata>& definitions,
     std::string* error);
 
+// Single-game-thread replacement for a different character. The adapter
+// verifies and removes only the exact C# objects from AchievementManager.
+// Refuses mutation when the Terraria runtime dictionary ABI differs.
+bool replaceNativeAchievementObjects(
+    const std::vector<AchievementMetadata>& definitions,
+    std::string* error);
+
 // Retorna o mesmo Asset<Texture2D> nativo que o Bunny usa no menu JS.
 // Chamado apenas na thread Terraria; ponteiro permanece enraizado até unload.
 Il2CppObject* nativeAchievementIconAsset(const Il2CppObject* achievement);
