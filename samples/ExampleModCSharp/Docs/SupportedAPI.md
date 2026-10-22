@@ -42,7 +42,7 @@ Para eventos e movimento, consulte bl.csharp.sourceAutoStatus(), bl.csharp.sourc
 
 A .73 foi validada funcionalmente no Android para 985 callbacks processados de 985 aceitos, incluindo 879/879 de ExampleWaveBolt. Zero falhas, descartes e lockDrops. O FPS da .73 não foi informado nesta rodada. A .74 também foi validada em gameplay; o histórico atualizado está em [STATUS](../../../../../docs/STATUS.md). A telemetria adicional da .79 ainda precisa da validação específica indicada ali e nas notas dessa versão.
 
-Não copiar ModItem, ModProjectile, ModNPC, ModBuff, AI e outros métodos do tModLoader, nem afirmar compatibilidade automática com mods de PC, netcode ou APIs .NET não testadas.
+O tModLoader pode servir de referência para **forma das classes e semântica dos métodos**. Toda API adicionada ao Bunny precisa ser implementada e testada no SDK, no compilador e na ponte Android; não presumir compatibilidade automática de `ModItem`, `ModNPC`, netcode ou assemblies do PC.
 
 
 ## Contrato atual para novos exemplos
@@ -55,3 +55,18 @@ Não copiar ModItem, ModProjectile, ModNPC, ModBuff, AI e outros métodos do tMo
 - A API de mod não deve chamar comandos `bl.csharp.*` do console para se inicializar. Esses comandos servem a diagnóstico e controle do loader.
 
 Veja a [base para a API de modders](../../../../../docs/csharp-api-foundation-v79.md) para as correções de lifecycle e os próximos contratos a estabilizar.
+
+## BannerLoader C# — fonte já integrada, gameplay ainda bloqueado
+
+O `BunnyNPC.SetDefaults()` pode declarar `Banner` e `BannerItem` como nomes locais:
+
+```csharp
+Banner = "ExampleSlimeNPC";
+BannerItem = "ExampleSlimeBanner";
+```
+
+É o equivalente semântico a `Banner = Type` e `BannerItem = ModContent.ItemType<T>()` no tModLoader: o Terraria Android atribui o ID numérico depois da carga, então usar números fixos seria incorreto. Variantes podem referenciar a classe do mesmo NPC representante e compartilhar o contador de mortes. O ExampleMod usa `ExampleSlimeNPC` e `ExampleInvasionEliteSlimeNPC` como exemplos.
+
+O Roslyn emite `NPC_BANNER`, o SourceLoader valida referências locais e o registro C++ publica um snapshot imutável. **Ainda não existe hook de jogo para contar abates, conceder banners, salvar no mundo ou ativar `NearbyEffects`**. A textura do item é exatamente a do ExampleModBunny, mas o tile 1×3 original aguarda suporte de formato e ancoragem no Bunny C#.
+
+O código de base com testes e os bloqueios obrigatórios estão em `docs/csharp-banner-loader-source-gate.md`. Não distribuir APK nem descrever o item como funcional nesta fase.
