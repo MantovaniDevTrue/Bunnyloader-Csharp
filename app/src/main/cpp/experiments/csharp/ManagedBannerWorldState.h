@@ -69,7 +69,7 @@ public:
         append16(bytes, static_cast<uint16_t>(entries.size()));
         for (const auto& [key, state] : entries) {
             if (!keyValid(key) || state.kills < 0 ||
-                state.claimable == 0 && state.fresh || bytes.size() + key.size() + 12 > kMaxBytes)
+                (state.claimable == 0 && state.fresh) || bytes.size() + key.size() + 12 > kMaxBytes)
                 return false;
             append16(bytes, static_cast<uint16_t>(key.size()));
             bytes.insert(bytes.end(), key.begin(), key.end());
@@ -111,7 +111,7 @@ public:
                 !read16(data, &pos, &claimable) ||
                 pos >= data.size() - 4 || kills > INT32_MAX) return false;
             uint8_t fresh = data[pos++];
-            if (fresh > 1 || fresh && !claimable ||
+            if (fresh > 1 || (fresh && !claimable) ||
                 !staged.emplace(std::move(key), WorldCounter{
                     static_cast<int32_t>(kills), claimable, fresh != 0}).second)
                 return false;
