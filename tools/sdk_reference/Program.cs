@@ -25,6 +25,9 @@ string MethodName(MethodInfo method) => method.Name + (method.IsGenericMethodDef
 
 string Mode(Type type, MethodInfo method)
 {
+    if (type == typeof(BunnyUndergroundBackgroundStyle))
+        return method.Name == "FillTextureArray" ? "worker_sync_background_slots" : "managed_owned_registration";
+    if (type == typeof(BunnyUndergroundBackgrounds)) return "native_shared_background_registry";
     if (type == typeof(BunnyRecipeBehavior) || type == typeof(BunnyRecipeRuntime) || type == typeof(BunnyRecipeLoader)) return "worker_sync_recipe_snapshot";
     if (type == typeof(BunnyShootRuntime) || type == typeof(BunnyShootSource)) return "worker_sync_shoot_snapshot";
     if (type == typeof(BunnyShootContext) || type == typeof(BunnyShot)) return "worker_shoot_command_batch";

@@ -10,7 +10,9 @@ Esta branch é source-only. Nenhum APK ou release é autorizado enquanto os
 `BackgroundTextureLoader` registra imagens e disponibiliza slots. Ele não
 seleciona estilos nem desenha biomas: essas responsabilidades pertencem a
 `SurfaceBackgroundLoader`, `UndergroundBackgroundLoader` e `SceneEffectLoader`,
-contabilizados separadamente e ainda pendentes no programa de 15.
+contabilizados separadamente no programa de 15. O estilo subterrâneo agora
+possui [implementação própria](csharp-underground-backgrounds.md); superfície e
+SceneEffect continuam pendentes.
 
 - Autoload determinístico dos PNGs em pastas `Backgrounds/`, com limites de
   4096 imagens, profundidade 16 e rejeição de symlinks.
@@ -27,8 +29,10 @@ contabilizados separadamente e ainda pendentes no programa de 15.
   A consulta C#/PInvoke é somente leitura e pode ocorrer no worker.
 - Falha de um asset preserva os outros mods. O estado original da falha é
   mantido por asset; a aplicação de defaults recusa um mod com asset falho.
-- Descarregamento limpa referências/dimensões próprias e libera os assets,
-  preservando outros mods. Slots não são reutilizados durante o processo.
+- Descarregamento limpa referências/dimensões próprias e aposenta os assets,
+  preservando outros mods. Leases adiam a destruição de imagens ainda usadas
+  pelo estilo subterrâneo anterior; a thread Unity finaliza a liberação.
+  Slots não são reutilizados durante o processo.
 
 O caminho JavaScript usa o mesmo registro nativo. Get/TryGet, autoload,
 registro antecipado e consulta de imagens C# continuam disponíveis. C# não

@@ -20,6 +20,14 @@ LOADER = {'ModItem':'ModItem.js', 'ModProjectile':'ModProjectile.js', 'ModNPC':'
           'ModPrefix':'ModPrefix.js', 'ModSystem':'ModSystem.js', 'GlobalNPC':'GlobalNPC.js',
           'ModCommand':'ModCommand.js', 'ModConfig':'ModConfig.js', 'ModBossBar':'ModBossBar.js'}
 
+def unique_object(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError('Duplicate evidence key would hide an existing record: ' + key)
+        result[key] = value
+    return result
+
 def category(path):
     if path == 'main.js': return 'Systems'
     parts = path.split('/')
@@ -51,7 +59,7 @@ def facts(source):
 
 def build(upstream):
     refs = json.loads((SPEC/'references.json').read_text())
-    evidence = json.loads((SPEC/'evidence.json').read_text())
+    evidence = json.loads((SPEC/'evidence.json').read_text(), object_pairs_hook=unique_object)
     originals = {x['path']:x for x in refs['upstreamExampleFiles'] if x['path'].endswith('.js')}
     fork = {x['path']:x for x in refs['forkExampleFiles'] if x['path'].endswith('.js')}
     expected=refs.get('expectedJsCounts', {'canonical':199,'fork':178})

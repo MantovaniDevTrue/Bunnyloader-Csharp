@@ -10,7 +10,7 @@ O JSON ao lado conserva APIs, propriedades, dependencias, testes, lacunas e evid
 | Achievements | 2 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
 | Ammo | 1 | 1 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
 | Armor | 6 | 5 (83.33%) | 0 (0.0%) | 0 (0.0%) | 0 |
-| Biomes | 6 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
+| Biomes | 6 | 1 (16.67%) | 0 (0.0%) | 0 (0.0%) | 0 |
 | Bosses | 2 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
 | Buffs | 6 | 0 (0.0%) | 0 (0.0%) | 3 (50.0%) | 0 |
 | Clouds | 1 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
@@ -72,7 +72,7 @@ O JSON ao lado conserva APIs, propriedades, dependencias, testes, lacunas e evid
 | Content/Achievements/ManyWormsKilled.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModAchievement | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Biomes/ExampleSurfaceBackgroundStyle.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModSurfaceBackgroundStyle | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Biomes/ExampleSurfaceBiome.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModBiome | Sem validacao funcional C# deste exemplo inteiro. |
-| Content/Biomes/ExampleUndergroundBackgroundStyle.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModUndergroundBackgroundStyle | Sem validacao funcional C# deste exemplo inteiro. |
+| Content/Biomes/ExampleUndergroundBackgroundStyle.js | samples/ExampleModCSharp/Playable/content/Content/Biomes/ExampleUndergroundBackgroundStyle.cs | Validado por testes automatizados | Aguardando roteiro Android | tests/underground_backgrounds/native_underground_test.cpp; tests/underground_backgrounds/Program.cs; tests/underground_backgrounds/quickjs_underground_test.cpp; tests/underground_backgrounds/mailbox_underground_test.cpp |
 | Content/Biomes/ExampleUndergroundBiome.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModBiome | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Biomes/ExampleWaterStyle.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModWaterStyle | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Biomes/ExampleWaterfallStyle.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModWaterfallStyle | Sem validacao funcional C# deste exemplo inteiro. |

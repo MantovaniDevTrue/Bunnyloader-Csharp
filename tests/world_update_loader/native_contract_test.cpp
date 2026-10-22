@@ -1,4 +1,5 @@
 #include "il2cpp/Api.h"
+#include "experiments/csharp/UniversalSystemStages.h"
 #include <string>
 #include <vector>
 struct Il2CppClass { const char* name; int size; bool value=true; const char* ns="System"; };
@@ -75,5 +76,6 @@ int main(){
  assert(!bl::csharp::systemStageReferenceParameter(&method,0,&error));
  method.count=1;fixture.class_is_valuetype=nullptr;
  assert(!bl::csharp::systemStageReferenceParameter(&method,0,&error));
+ assert(!bl::csharp::isPublicUniversalSystemStage(11) && !bl::csharp::isPublicUniversalSystemStage(-1) && bl::csharp::isPublicUniversalSystemStage(12));
  std::cout<<"WORLD_UPDATE_NATIVE_FIELD_STORAGE_SIZE_AND_METHOD_ABI_CONTRACTS=PASS\n";
 }

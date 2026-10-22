@@ -99,6 +99,12 @@ enum; base: `System.Enum`.
 
 Values: MeleeDamage, RangedDamage, MagicDamage, MinionDamage, MoveSpeed.
 
+## BunnyLoader.Source.BunnyBackgroundPriority
+
+enum; base: `System.Enum`.
+
+Values: None, BiomeLow, BiomeMedium, BiomeHigh, Environment, Event, BossLow, BossMedium, BossHigh.
+
 ## BunnyLoader.Source.BunnyBackgroundTexture
 
 abstract class; base: `System.Object`.
@@ -614,6 +620,10 @@ int Id { get; }
 ## BunnyLoader.Source.BunnyHookModule
 
 abstract class; base: `System.Object`.
+
+```csharp
+string ModId { get; }
+```
 
 | Method | Execution |
 | --- | --- |
@@ -2018,6 +2028,39 @@ BunnyTooltipPlan()
 Dictionary<string, BunnyDrawableTooltipLine> Draw { get; }
 List<BunnyTooltipLine> Lines { get; }
 ```
+
+## BunnyLoader.Source.BunnyUndergroundBackgroundStyle
+
+abstract class; base: `BunnyLoader.Source.BunnyHookModule`.
+
+```csharp
+int Slot { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `string DiagnosticStatus()` | managed_owned_registration |
+| `void FillTextureArray(Span<int> textureSlots)` | worker_sync_background_slots |
+| `void Load(BunnyHookScope hooks)` | managed_owned_registration |
+| `void SetStaticDefaults()` | managed_owned_registration |
+| `void Unload()` | managed_owned_registration |
+
+## BunnyLoader.Source.BunnyUndergroundBackgrounds
+
+abstract class; base: `System.Object`.
+
+```csharp
+int VanillaCount { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `static BunnyUndergroundBackgroundStyle Get(int slot)` | native_shared_background_registry |
+| `static int GetSlot(string modId, string className)` | native_shared_background_registry |
+| `static int GetSlot<T>(string modId)` | native_shared_background_registry |
+| `static void Activate<T>(string modId, BunnyBackgroundPriority priority, Double weight)` | native_shared_background_registry |
+| `static void Deactivate<T>(string modId)` | native_shared_background_registry |
+| `static void Set(string modId, string className, BunnyBackgroundPriority priority, Double weight, bool active)` | native_shared_background_registry |
 
 ## BunnyLoader.Source.BunnyUniversalHookDispatcher
 

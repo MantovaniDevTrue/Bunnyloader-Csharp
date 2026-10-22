@@ -1,5 +1,6 @@
 #include "script/api/SystemHooks.h"
 #include "script/bridge/ScriptEngine.h"
+#include "script/api/UndergroundBackgrounds.h"
 #if BL_HAVE_QUICKJS && defined(__aarch64__)
 #include "il2cpp/Resolver.h"
 #include "il2cpp/Signature.h"
@@ -207,10 +208,12 @@ void installSystemBindings(void* context) {
     JSValue api = JS_GetPropertyStr(ctx, global, "bl");
     JS_SetPropertyStr(ctx, api, "installSystemStage", JS_NewCFunction(ctx, installSystemStage, "installSystemStage", 2));
     installSystemTimeRateBindings(context);
+    installUndergroundBackgroundBindings(context);
     JS_FreeValue(ctx, api);
     JS_FreeValue(ctx, global);
 }
 void releaseSystemBindings(void* context) {
+    releaseUndergroundBackgroundBindings(context);
     for (Stage& stage : stages) {
         if (stage.context != context) continue;
         JS_FreeValue(stage.context, stage.callback);

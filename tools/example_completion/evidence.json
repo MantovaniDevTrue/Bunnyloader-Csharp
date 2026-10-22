@@ -1350,164 +1350,41 @@
         "Salvar/sair, reabrir e verificar parede, mapa, drops e fabricação com o ExampleMod junto de um mod JS."
       ]
     },
-    "Content/Items/Weapons/Melee/ExampleMeleeWeapon.js": {
-      "status": "Implementado, aguardando validação",
+    "Content/Biomes/ExampleUndergroundBackgroundStyle.js": {
+      "status": "Validado por testes automatizados",
       "cSharp": [
-        "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Melee/ExampleMeleeWeapon.cs"
-      ],
-      "missingFeatures": [],
-      "preservedFeatures": [
-        "Espada nativa melee, dano50, repulsao6, critico6, swing20/20, autoReuse, valor50000 (sellPrice1gold), raridadeGreen e SoundID.Item1.",
-        "Assets originais do anexo1.8.0; nomes en-US/pt-BR originais via BunnyName. API publica e fontes comentadas, sem QuickJS."
-      ],
-      "nativeDependencies": [
-        "app/src/main/cpp/experiments/csharp/NativeDefaults.h",
-        "app/src/main/cpp/experiments/csharp/NativeHoldout.h",
-        "app/src/main/cpp/experiments/csharp/NativeContent.cpp",
-        "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp"
-      ],
-      "automatedTests": [
-        "tests/basic_items/Program.cs",
-        "tests/summon_lifecycle/native_defaults_test.cpp",
-        "tests/summon_lifecycle/holdout_test.cpp",
-        "tests/summon_lifecycle/source_registration_test.cpp",
-        "tests/summon_lifecycle/source_damage_test.cpp"
-      ],
-      "manualTests": [
-        "Documentation/NATIVE_DEFAULTS_V96.md: exemplos do ExampleMod, consumo e dano de municao, penetracao/imunidade/colisao, offsets/direcao/gravidade, idioma e Save/Exit."
-      ],
-      "automatedEvidence": [
-        "Descritores executados pelo Roslyn e aplicados pelo binder e hooks de producao em fixtures IL2CPP; nao executa o motor Terraria Android."
-      ],
-      "deviceEvidence": []
-    },
-    "Content/Items/Ammo/ExampleBullet.js": {
-      "status": "Implementado, aguardando validação",
-      "cSharp": [
-        "samples/ExampleModCSharp/Playable/content/Content/Items/Ammo/ExampleBullet.cs"
-      ],
-      "missingFeatures": [],
-      "preservedFeatures": [
-        "Municao Bullet nativa, consumivel/pilha9999, dano12, repulsao1, valor5000 (sellPrice10silver), Green, velocidade4.5 e referencia por nome ao projetil.",
-        "Assets originais do anexo1.8.0; nomes en-US/pt-BR originais via BunnyName. API publica e fontes comentadas, sem QuickJS."
-      ],
-      "nativeDependencies": [
-        "app/src/main/cpp/experiments/csharp/NativeDefaults.h",
-        "app/src/main/cpp/experiments/csharp/NativeHoldout.h",
-        "app/src/main/cpp/experiments/csharp/NativeContent.cpp",
-        "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp"
-      ],
-      "automatedTests": [
-        "tests/basic_items/Program.cs",
-        "tests/summon_lifecycle/native_defaults_test.cpp",
-        "tests/summon_lifecycle/holdout_test.cpp",
-        "tests/summon_lifecycle/source_registration_test.cpp",
-        "tests/summon_lifecycle/source_damage_test.cpp"
-      ],
-      "manualTests": [
-        "Documentation/NATIVE_DEFAULTS_V96.md: exemplos do ExampleMod, consumo e dano de municao, penetracao/imunidade/colisao, offsets/direcao/gravidade, idioma e Save/Exit."
-      ],
-      "automatedEvidence": [
-        "Descritores executados pelo Roslyn e aplicados pelo binder e hooks de producao em fixtures IL2CPP; nao executa o motor Terraria Android."
-      ],
-      "deviceEvidence": []
-    },
-    "Content/Projectiles/ExampleBulletProjectile.js": {
-      "status": "Implementado, aguardando validação",
-      "cSharp": [
-        "samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleBulletProjectile.cs"
-      ],
-      "missingFeatures": [],
-      "preservedFeatures": [
-        "IA nativa de bala aiStyle1, 8x8, escala1, penetracao5, timeLeft600, luz0.5, extraUpdates1, ranged/friendly, colisao/agua e imunidade local com cooldown-1.",
-        "Assets originais do anexo1.8.0; nomes en-US/pt-BR originais via BunnyName. API publica e fontes comentadas, sem QuickJS."
-      ],
-      "nativeDependencies": [
-        "app/src/main/cpp/experiments/csharp/NativeDefaults.h",
-        "app/src/main/cpp/experiments/csharp/NativeHoldout.h",
-        "app/src/main/cpp/experiments/csharp/NativeContent.cpp",
-        "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp"
-      ],
-      "automatedTests": [
-        "tests/basic_items/Program.cs",
-        "tests/summon_lifecycle/native_defaults_test.cpp",
-        "tests/summon_lifecycle/holdout_test.cpp",
-        "tests/summon_lifecycle/source_registration_test.cpp",
-        "tests/summon_lifecycle/source_damage_test.cpp"
-      ],
-      "manualTests": [
-        "Documentation/NATIVE_DEFAULTS_V96.md: exemplos do ExampleMod, consumo e dano de municao, penetracao/imunidade/colisao, offsets/direcao/gravidade, idioma e Save/Exit."
-      ],
-      "automatedEvidence": [
-        "Descritores executados pelo Roslyn e aplicados pelo binder e hooks de producao em fixtures IL2CPP; nao executa o motor Terraria Android."
-      ],
-      "deviceEvidence": []
-    },
-    "Content/Items/Weapons/Ranged/ExampleRocketLauncher.js": {
-      "status": "Implementado, aguardando validação",
-      "cSharp": [
-        "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Ranged/ExampleRocketLauncher.cs"
-      ],
-      "missingFeatures": [],
-      "preservedFeatures": [
-        "Lancador nativo: dano55, repulsao4, uso30/30, municaoRocket e RocketI resolvidos por nomes, velocidade5, valor400000, raridadeYellow, SoundID.Item11 e HoldoutOffset(-2,-2).",
-        "Assets originais do anexo1.8.0; nomes en-US/pt-BR originais via BunnyName. API publica e fontes comentadas, sem QuickJS."
-      ],
-      "nativeDependencies": [
-        "app/src/main/cpp/experiments/csharp/NativeDefaults.h",
-        "app/src/main/cpp/experiments/csharp/NativeHoldout.h",
-        "app/src/main/cpp/experiments/csharp/NativeContent.cpp",
-        "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp"
-      ],
-      "automatedTests": [
-        "tests/basic_items/Program.cs",
-        "tests/summon_lifecycle/native_defaults_test.cpp",
-        "tests/summon_lifecycle/holdout_test.cpp",
-        "tests/summon_lifecycle/source_registration_test.cpp",
-        "tests/summon_lifecycle/source_damage_test.cpp"
-      ],
-      "manualTests": [
-        "Documentation/NATIVE_DEFAULTS_V96.md: exemplos do ExampleMod, consumo e dano de municao, penetracao/imunidade/colisao, offsets/direcao/gravidade, idioma e Save/Exit."
-      ],
-      "automatedEvidence": [
-        "Descritores executados pelo Roslyn e aplicados pelo binder e hooks de producao em fixtures IL2CPP; nao executa o motor Terraria Android."
-      ],
-      "deviceEvidence": []
-    },
-    "Content/Items/Weapons/Ranged/ExampleGun.js": {
-      "status": "Implementado, aguardando validação",
-      "cSharp": [
-        "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Ranged/ExampleGun.cs"
-      ],
-      "preservedFeatures": [
-        "Defaults ranged, dano20/knockback5/crit0, uso10, autoReuse/noMelee, sellPrice10gold, raridadeGreen, muniçãoBullet e shootSpeed10 com fallbackPurificationPowder",
-        "Holdout(-18,0) nativo com direção/gravidade/rotação",
-        "Som original Ogg, volume0.9, pitchVariance0.2, MaxInstances3/ReplaceOldest pelo serviço nativo compartilhado sem QuickJS",
-        "Nomes originais en-US/pt-BR da localização do pacote"
+        "samples/ExampleModCSharp/Playable/content/Content/Biomes/ExampleUndergroundBackgroundStyle.cs"
       ],
       "missingFeatures": [],
       "assets": [
-        "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Ranged/ExampleGun.png",
-        "samples/ExampleModCSharp/Playable/content/Assets/Sounds/Items/Guns/ExampleGun.ogg"
+        "samples/ExampleModCSharp/Playable/content/Assets/Textures/Backgrounds/ExampleBiomeUnderground0.png",
+        "samples/ExampleModCSharp/Playable/content/Assets/Textures/Backgrounds/ExampleBiomeUnderground1.png",
+        "samples/ExampleModCSharp/Playable/content/Assets/Textures/Backgrounds/ExampleBiomeUnderground2.png",
+        "samples/ExampleModCSharp/Playable/content/Assets/Textures/Backgrounds/ExampleBiomeUnderground3.png"
+      ],
+      "preservedFeatures": [
+        "FillTextureArray original de quatro camadas; quinta camada default 6; prioridade e transicao atual/anterior pelo servico nativo compartilhado.",
+        "Consulta por UID/caminho em SetStaticDefaults; nenhum ID persistido e nenhum JavaScript executado pelo mod C#."
       ],
       "nativeDependencies": [
-        "app/src/main/cpp/experiments/csharp/NativeUseSounds.h",
-        "app/src/main/cpp/content/sounds/NativeSoundRouter.cpp",
-        "app/src/main/cpp/content/sounds/AndroidAudio.cpp",
-        "app/src/main/kotlin/dev/bunnyloader/game/SfxQueue.kt",
-        "app/src/main/kotlin/dev/bunnyloader/game/ModAudio.kt"
+        "app/src/main/cpp/content/backgrounds/UndergroundBackgrounds.cpp",
+        "app/src/main/cpp/experiments/csharp/ManagedUndergroundBackgrounds.cpp",
+        "app/src/main/cpp/content/backgrounds/BackgroundAssetLifetime.cpp"
       ],
       "automatedTests": [
-        "tests/basic_items/Program.cs",
-        "tests/basic_items/package_assets_test.py",
-        "tests/summon_lifecycle/use_sound_test.cpp",
-        "tests/summon_lifecycle/sound_router_test.cpp"
+        "tests/underground_backgrounds/native_underground_test.cpp",
+        "tests/underground_backgrounds/Program.cs",
+        "tests/underground_backgrounds/quickjs_underground_test.cpp",
+        "tests/underground_backgrounds/mailbox_underground_test.cpp"
+      ],
+      "automatedEvidence": [
+        "docs/csharp-underground-backgrounds.md: producao nativa com metadata controlada, P/Invoke do exemplo C# e exemplo JS original executado no QuickJS real; sem Terraria Android."
       ],
       "terrariaTests": [
-        "Usar ExampleGun com ExampleBullet, conferir consumo/dano/sprite; comparar som original/volume/variação e posição da arma ao virar/mirar.",
-        "Testar pausa/retorno, mais de uma arma/mod de áudio, limite de sobreposição3 e nenhuma regressão JavaScript."
+        "Seguir docs/csharp-underground-backgrounds.md; ativar o estilo do ExampleMod via /exampleunderground on; conferir quatro texturas, transicoes e save/exit.",
+        "BiomeLoader/SceneEffectLoader/ExampleUndergroundBiome continuam pendentes; comando de QA nao os substitui."
       ],
-      "validation": "Contratos gerenciados e binders/roteador C++ de produção exercitados no host com providers IL2CPP/Android controlados. Não executa SoundPool/decodificador Android, combate ou direção real no Terraria. Publicação suspensa até o port integral.",
+      "validation": "Contrato do estilo verificado no host; renderizacao, estabilidade e FPS no Android pendentes.",
       "deviceEvidence": []
     }
   },

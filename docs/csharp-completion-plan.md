@@ -19,6 +19,11 @@ com hashes em `docs/generated/examplemod-1.9.0-upload-inventory.json`. As metas
 globais JS/PC e a identidade dos exemplos anteriores continuam preservadas.
 Nenhuma porcentagem de conclusão total é deduzida da aprovação do CI.
 
+Continuidade de 22/10: [fundo subterrâneo nativo e exemplo original C#](csharp-underground-backgrounds.md).
+Dois dos quinze contratos estão implementados nos fontes e testados no host;
+treze permanecem pendentes. Nenhum dos dois está validado no Android. As
+integrações adicionais SystemUpdate/Gore continuam fora dessa contagem.
+
 ## Histórico — regra de cinco loaders, substituída nesta execução
 
 ### Registro anterior — cinco loaders completos por APK

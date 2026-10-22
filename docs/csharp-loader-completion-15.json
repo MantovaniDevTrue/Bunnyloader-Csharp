@@ -124,26 +124,119 @@
       "loader": "UndergroundBackgroundLoader",
       "reference": "app/src/main/cpp/script/js/mod/Loaders/UndergroundBackgroundLoader.js",
       "referenceSha256": "ee5adbbb735d221655a205af721a413ab27b18283d552b70bfcd0a7a74d195dd",
-      "implementation": "pending",
+      "implementation": "implemented",
       "android": "not-tested",
-      "publicApi": [],
-      "nativeBridge": [],
-      "example": [],
+      "publicApi": [
+        "experiments/csharp/BunnyCsSdk/BunnyUndergroundBackgroundStyle.cs"
+      ],
+      "nativeBridge": [
+        "app/src/main/cpp/content/backgrounds/UndergroundBackgrounds.cpp",
+        "app/src/main/cpp/experiments/csharp/ManagedUndergroundBackgrounds.cpp",
+        "app/src/main/cpp/content/backgrounds/BackgroundAssetLifetime.cpp"
+      ],
+      "example": [
+        "samples/ExampleModCSharp/Playable/content/Content/Biomes/ExampleUndergroundBackgroundStyle.cs",
+        "samples/ExampleModCSharp/Playable/content/Common/Commands/ExampleUndergroundBackgroundCommand.cs"
+      ],
       "contracts": [
         {
-          "name": "Add",
-          "implemented": false,
-          "tests": []
+          "name": "VanillaCount",
+          "implemented": true,
+          "tests": [
+            "tests/underground_backgrounds/native_underground_test.cpp",
+            "tests/underground_backgrounds/Program.cs",
+            "tests/underground_backgrounds/quickjs_underground_test.cpp"
+          ]
         },
         {
-          "name": "Get",
-          "implemented": false,
-          "tests": []
+          "name": "Add and Get by UID/class with shared JS/CSharp slots",
+          "implemented": true,
+          "tests": [
+            "tests/underground_backgrounds/native_underground_test.cpp",
+            "tests/underground_backgrounds/Program.cs",
+            "tests/underground_backgrounds/quickjs_underground_test.cpp"
+          ]
+        },
+        {
+          "name": "SetStaticDefaults and real managed FillTextureArray",
+          "implemented": true,
+          "tests": [
+            "tests/underground_backgrounds/native_underground_test.cpp",
+            "tests/underground_backgrounds/Program.cs",
+            "tests/underground_backgrounds/quickjs_underground_test.cpp"
+          ]
+        },
+        {
+          "name": "Vanilla picker once and priority/cave selection",
+          "implemented": true,
+          "tests": [
+            "tests/underground_backgrounds/native_underground_test.cpp",
+            "tests/underground_backgrounds/Program.cs",
+            "tests/underground_backgrounds/quickjs_underground_test.cpp"
+          ]
+        },
+        {
+          "name": "Current and previous texture getters; five layers and default hell transition",
+          "implemented": true,
+          "tests": [
+            "tests/underground_backgrounds/native_underground_test.cpp",
+            "tests/underground_backgrounds/Program.cs",
+            "tests/underground_backgrounds/quickjs_underground_test.cpp"
+          ]
+        },
+        {
+          "name": "Once per requested style per draw and repair of rebuilt arrays",
+          "implemented": true,
+          "tests": [
+            "tests/underground_backgrounds/native_underground_test.cpp",
+            "tests/underground_backgrounds/Program.cs",
+            "tests/underground_backgrounds/quickjs_underground_test.cpp"
+          ]
+        },
+        {
+          "name": "Unload, world reset and original fallback",
+          "implemented": true,
+          "tests": [
+            "tests/underground_backgrounds/native_underground_test.cpp",
+            "tests/underground_backgrounds/Program.cs",
+            "tests/underground_backgrounds/quickjs_underground_test.cpp"
+          ]
+        },
+        {
+          "name": "Checked IL2CPP fields/getters, hierarchy, types, sizes, offsets and overload signature",
+          "implemented": true,
+          "tests": [
+            "tests/underground_backgrounds/native_underground_test.cpp"
+          ]
+        },
+        {
+          "name": "Mono worker/render thread mailbox, bounded deadline, stale/duplicate/busy rejection",
+          "implemented": true,
+          "tests": [
+            "tests/underground_backgrounds/mailbox_underground_test.cpp",
+            "tests/underground_backgrounds/Program.cs"
+          ]
+        },
+        {
+          "name": "Transactional GC roots and asset leases through previous-style transition",
+          "implemented": true,
+          "tests": [
+            "tests/underground_backgrounds/native_underground_test.cpp",
+            "tests/backgrounds/native_background_test.cpp"
+          ]
+        },
+        {
+          "name": "Real QuickJS original ExampleMod style and shared provider isolation",
+          "implemented": true,
+          "tests": [
+            "tests/underground_backgrounds/quickjs_underground_test.cpp"
+          ]
         }
       ],
-      "missing": [
-        "Audit full behavior and native dependencies; implement and validate every original contract"
-      ]
+      "missing": [],
+      "originalReferenceSnapshot": "tests/underground_backgrounds/reference/UndergroundBackgroundLoader.js",
+      "validationDocument": "docs/csharp-underground-backgrounds.md",
+      "note": "Full underground style contract; biome activation/music/scene loaders are separate pending targets. QA command explicitly tests only the ExampleMod style. Automated fixtures are not Android validation."
     },
     {
       "loader": "WaterStyleLoader",

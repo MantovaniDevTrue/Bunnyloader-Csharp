@@ -67,6 +67,10 @@ jobs:
           bash tests/world_update_loader/run_quickjs.sh
       - name: Background texture registry CSharp native round trip and JS interoperability
         run: bash tests/backgrounds/run.sh
+      - name: Underground background real CSharp and original JavaScript callbacks
+        run: |
+          bash tests/underground_backgrounds/run.sh
+          bash tests/underground_backgrounds/run_quickjs.sh
       - name: Gore actual ExampleMod callbacks to production native registry
         run: bash tests/gore/run.sh
       - name: APK source completeness gate must reject this unfinished scope
@@ -121,7 +125,7 @@ jobs:
             "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "ndk;$NDK_VERSION"
           fi
           CXX="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android34-clang++"
-          for file in SourceParser SourceLoader AutoSourceRuntime ManagedRuntime NativeCommandChatHooks ManagedSoundLoader NativeRarityGameplay NativeDustEmission NativeCSharpItemUse UniversalSystemStages UniversalHooks ManagedGoreDiscovery ManagedGoreRuntime; do
+          for file in SourceParser SourceLoader AutoSourceRuntime ManagedRuntime NativeCommandChatHooks ManagedSoundLoader NativeRarityGameplay NativeDustEmission NativeCSharpItemUse UniversalSystemStages UniversalHooks ManagedGoreDiscovery ManagedGoreRuntime ManagedUndergroundBackgrounds; do
             "$CXX" -std=c++20 -fsyntax-only -fno-exceptions -fno-rtti -D__ANDROID__ -DANDROID -D_GNU_SOURCE -Iapp/src/main/cpp -Iapp/src/main/cpp/third_party/quickjs "app/src/main/cpp/experiments/csharp/$file.cpp"
           done
           "$CXX" -std=c++20 -fsyntax-only -fno-exceptions -fno-rtti -D__ANDROID__ -DANDROID -D_GNU_SOURCE -Iapp/src/main/cpp app/src/main/cpp/content/backgrounds/BackgroundTextures.cpp
@@ -129,6 +133,9 @@ jobs:
           "$CXX" -std=c++20 -fsyntax-only -fno-exceptions -fno-rtti -D__ANDROID__ -DANDROID -D_GNU_SOURCE -DBL_HAVE_QUICKJS=1 -Iapp/src/main/cpp -Iapp/src/main/cpp/third_party/quickjs app/src/main/cpp/script/api/SystemHooks.cpp
           "$CXX" -std=c++20 -fsyntax-only -fno-exceptions -fno-rtti -D__ANDROID__ -DANDROID -D_GNU_SOURCE -Iapp/src/main/cpp -Itests/world_update_loader/include app/src/main/cpp/hook/HookManager.cpp
           "$CXX" -std=c++20 -fsyntax-only -fno-exceptions -fno-rtti -D__ANDROID__ -DANDROID -D_GNU_SOURCE -DBL_HAVE_QUICKJS=1 -Iapp/src/main/cpp -Iapp/src/main/cpp/third_party/quickjs app/src/main/cpp/script/api/SystemTimeRates.cpp
+          for file in content/backgrounds/UndergroundBackgrounds content/backgrounds/BackgroundAssetLifetime script/api/UndergroundBackgrounds; do
+            "$CXX" -std=c++20 -fsyntax-only -fno-exceptions -fno-rtti -D__ANDROID__ -DANDROID -D_GNU_SOURCE -DBL_HAVE_QUICKJS=1 -Iapp/src/main/cpp -Iapp/src/main/cpp/third_party/quickjs "app/src/main/cpp/$file.cpp"
+          done
           echo CSHARP_SOURCE_COMBINED_ANDROID_ARM64_SYNTAX_PASS_NO_APK
   native-android-link-no-apk:
     runs-on: ubuntu-latest
@@ -153,7 +160,7 @@ jobs:
           test -n "$LIB"
           NM="$ANDROID_HOME/ndk/30.0.16248370/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-nm"
           "$NM" -D --defined-only "$LIB" > "$RUNNER_TEMP/bunny-native-symbols.txt"
-          for symbol in bunny_csharp_sound_register bunny_csharp_sound_play bunny_item_use_bind bunny_item_use_poll_context bunny_dust_emit bunny_background_texture_slot bunny_csharp_gore_type bunny_csharp_gore_type_any bunny_csharp_gore_spawn bunny_csharp_gore_configure bunny_csharp_gore_configure_v2 bunny_csharp_gore_last_error; do
+          for symbol in bunny_csharp_sound_register bunny_csharp_sound_play bunny_item_use_bind bunny_item_use_poll_context bunny_dust_emit bunny_background_texture_slot bunny_csharp_gore_type bunny_csharp_gore_type_any bunny_csharp_gore_spawn bunny_csharp_gore_configure bunny_csharp_gore_configure_v2 bunny_csharp_gore_last_error bunny_underground_reserve bunny_underground_find bunny_underground_select bunny_underground_fill_read bunny_underground_fill_write; do
             if ! grep -F -q "$symbol" "$RUNNER_TEMP/bunny-native-symbols.txt"; then
               echo "Missing native export: $symbol" >&2
               exit 1

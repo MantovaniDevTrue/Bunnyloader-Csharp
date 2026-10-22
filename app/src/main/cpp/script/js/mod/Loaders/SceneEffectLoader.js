@@ -79,7 +79,7 @@ class SceneEffectLoader {
             result.active = ranked.map((r) => r.effect);
 
             // Cada canal vem do primeiro que o preenche (a música de um, o fundo de outro).
-            for (const { effect } of ranked) {
+            for (const { effect, rank } of ranked) {
                 const name = effect.constructor.name;
                 const priority = effect.Priority | 0;
                 if (result.music.from === null) {
@@ -92,7 +92,7 @@ class SceneEffectLoader {
                 }
                 if (result.undergroundBackground.from === null) {
                     const style = Safe.Run(name + '.UndergroundBackgroundStyle', () => effect.UndergroundBackgroundStyle);
-                    if (style instanceof ModUndergroundBackgroundStyle) result.undergroundBackground = { value: style.Slot, priority, from: effect };
+                    if (style instanceof ModUndergroundBackgroundStyle) result.undergroundBackground = { value: style.Slot, priority, from: effect, weight: rank - priority };
                 }
                 if (result.waterStyle.from === null) {
                     const style = Safe.Run(name + '.WaterStyle', () => effect.WaterStyle);

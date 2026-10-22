@@ -446,6 +446,7 @@ int installOnGameThread() {
 #endif
 }
 }
+bool universalHooksAccepting() { return accepting.load(std::memory_order_acquire); }
 bool isUniversalHookGameThread() {
     return accepting.load(std::memory_order_acquire) && !inOriginal &&
         !universalNativeAccessInProgress &&
@@ -530,7 +531,7 @@ extern "C" __attribute__((visibility("default"))) int bunny_universal_hook_origi
     return ok ? 1 : 0;
 }
 extern "C" __attribute__((visibility("default"))) void bunny_universal_hook_remove(int index) {
-    if (index >= 1000 && index < 1011) removeUniversalSystemStage(index);
+    if (index >= 1000 && index < 1000 + UniversalSystemStageCount) removeUniversalSystemStage(index);
     else if (index >= 0 && index < MaxHooks) entries[index].active.store(false, std::memory_order_release);
 }
 extern "C" __attribute__((visibility("default"))) int64_t bunny_universal_hook_stat(int key) {

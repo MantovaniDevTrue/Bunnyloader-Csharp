@@ -3,6 +3,8 @@
 #include "experiments/csharp/UniversalHooks.h"
 #include "experiments/csharp/SystemStageContracts.h"
 #include "experiments/csharp/SystemTimeRateMailbox.h"
+#include "experiments/csharp/ManagedUndergroundBackgrounds.h"
+#include "content/backgrounds/UndergroundBackgrounds.h"
 #include "content/systems/SystemTimeRates.h"
 #include "core/Log.h"
 #include "hook/HookManager.h"
@@ -22,7 +24,7 @@ namespace bl::csharp {
 #if defined(__aarch64__)
 namespace {
 using Clock = std::chrono::steady_clock;
-constexpr int kCount = 12;
+constexpr int kCount = UniversalSystemStageCount;
 struct alignas(16) RegisterFrame {
     uint64_t general[31];
     uint64_t flags;
@@ -77,7 +79,9 @@ void invokeStage(int index, uintptr_t context = 0) {
     Stage& stage = stages[index];
     if (!stage.active.load(std::memory_order_acquire)) return;
     const int slot = stage.slot.load(std::memory_order_acquire);
-    if (slot < 0 || !isUniversalHookGameThread()) return;
+    const bool gameThread=isUniversalHookGameThread();
+    const bool background=index==12 && universalHooksAccepting() && !universalNativeAccessInProgress;
+    if(slot<0 || (!gameThread && !background))return;
     const int64_t now = std::chrono::duration_cast<std::chrono::nanoseconds>(
         Clock::now().time_since_epoch()).count();
     if (now < stage.retryAfterNs.load(std::memory_order_relaxed)) return;
@@ -88,7 +92,7 @@ void invokeStage(int index, uintptr_t context = 0) {
     const auto result = universalHookMailbox().dispatch(
         slot, context, [] { return true; }, wakeUniversalHookWorker,
         std::chrono::milliseconds(3), 0, false,
-        universalNativeService.load(std::memory_order_acquire));
+        gameThread?universalNativeService.load(std::memory_order_acquire):nullptr);
     if (result.accepted && !result.faulted) {
         stage.faults.store(0, std::memory_order_relaxed);
         return;
@@ -252,7 +256,8 @@ Stage stages[kCount] = {
     {"EntitiesEnd", 0, {0, 0, 0, 0}, nullptr, nullptr},
     {"UIEnd", 0, {0, 0, 0, 0}, nullptr, nullptr},
     {"TimeRate", 0, {0, 0, 0, 0}, nullptr, nullptr},
-    {"ClockAdvance", 0xb8c, {0x1e602960, 0xfd024500, 0x97efb85d, 0xf94002e0}, csBridge9, &g_blCSharpSystemOriginal9}
+    {"ClockAdvance", 0xb8c, {0x1e602960, 0xfd024500, 0x97efb85d, 0xf94002e0}, csBridge9, &g_blCSharpSystemOriginal9},
+    {"UndergroundBackground", 0, {0, 0, 0, 0}, nullptr, nullptr},
 };
 
 const MethodInfo* worldMethod() {
@@ -273,9 +278,17 @@ int installUniversalSystemStageOnGameThread(const std::string& name, int slot) {
     int index = -1;
     for (int i = 0; i < kCount; ++i)
         if (name == stages[i].name) { index = i; break; }
-    if (index < 0) return -3;
+    if(!isPublicUniversalSystemStage(index)) {
+        if(index==11)BL_ERROR("[CSharp][ERROR][NativeBridge] API=BunnyHookScope.HookSystemStage Name=ClockAdvance Stage=Install Expected=PublicCallbackStage Actual=InternalClockStage Result=Rejected Reason=InternalStageNotSubscribable");
+        return -3;
+    }
     auto& stage = stages[index];
     if (stage.active.load(std::memory_order_acquire)) return -8;
+    if(index==12) {
+        std::string error;
+        if(!runtime::underground::install(&error)){BL_ERROR("%s",error.c_str());return -7;}
+        managedUndergroundDispatch([]{invokeStage(12);});
+    }
     if (index < 9 && !rootInstalled.load(std::memory_order_acquire)) {
         const MethodInfo* method = worldMethod();
         if (!method || !il2cpp::methodPointer(method)) return -7;
@@ -354,6 +367,7 @@ void removeUniversalSystemStage(int handle) {
     if (index >= 0 && index < kCount) {
         stages[index].active.store(false, std::memory_order_release);
         stages[index].slot.store(-1, std::memory_order_release);
+        if(index==12)removeManagedUndergroundDispatch();
         if (index == 10) {
             stages[11].active.store(false, std::memory_order_release);
             timeMailbox.cancel();
@@ -391,6 +405,7 @@ void disableAllUniversalSystemStages() {
         stage.slot.store(-1, std::memory_order_release);
     }
     timeMailbox.cancel();
+    removeManagedUndergroundDispatch();
 #endif
 }
 }

@@ -1,4 +1,5 @@
 #include "content/backgrounds/BackgroundTextures.h"
+#include "content/backgrounds/BackgroundAssetLifetime.h"
 #include "content/common/ContentAssets.h"
 #include "content/common/TypeTables.h"
 #include "core/Log.h"
@@ -187,6 +188,15 @@ bool publish(std::string* error, const std::string& modFilter) {
             continue;
         }
         entry.asset = a.gchandle_new(asset, true);
+        if (entry.asset && !backgroundAssets::adopt(entry.slot,entry.asset)) {
+            a.gchandle_free(entry.asset);entry.asset=0;
+            content::destroyTextureAsset(asset);entry.failed=true;
+            if(modFilter.empty() || key.first==modFilter)complete=false;
+            fail(error,"RetainAsset","AssetLeaseOwnershipRejected","UniqueLiveSlotOwner",std::to_string(entry.slot));
+            entry.failure=*error+" Mod="+key.first+" Path="+key.second;
+            BL_ERROR("%s",entry.failure.c_str());
+            continue;
+        }
         if (!entry.asset) {
             content::destroyTextureAsset(asset); entry.failed = true; if (modFilter.empty() || key.first == modFilter) complete = false;
             fail(error, "RetainAsset", "GcRootAllocationFailed", "NonZeroGcHandle", "0");
@@ -258,8 +268,7 @@ void unload(const std::string& mod) {
                 if (entry.slot < static_cast<int>(arrays[2]->length)) static_cast<int32_t*>(arrayData(arrays[2]))[entry.slot] = 0;
             }
         }
-        if (asset) content::destroyTextureAsset(asset);
-        if (entry.asset) a.gchandle_free(entry.asset);
+        if(entry.asset)backgroundAssets::retire(entry.slot);
         it = entries.erase(it);
     }
 }

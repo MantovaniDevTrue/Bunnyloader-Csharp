@@ -1,5 +1,58 @@
 # Continuidade dos loaders C# — 2026-10-21
 
+## Continuidade de 22/10 — UndergroundBackgroundLoader
+
+Implementação nova sobre `7ff39991`, sem reiniciar a branch nem substituir
+os sistemas estáveis. API e contratos: [fundos subterrâneos](csharp-underground-backgrounds.md).
+O ExampleMod passa a **0.1.65 nos fontes**, 106 arquivos C#, 76 entradas de
+conteúdo e 11 módulos de hooks (87 tipos verificados). O SDK público tem
+158 tipos. Cache atualizado para `roslyn-net8-source-v55-native-underground-backgrounds`.
+
+O núcleo compartilha seleção, cinco camadas, getters atual/anterior, prioridade
+e leases de assets entre as duas linguagens. C# usa Mono e mensagem nativa por
+revisão; não inicializa QuickJS. O exemplo original JS também executa contra o
+mesmo serviço. `BunnyHookModule.ModId` fornece a identidade real para módulos
+de qualquer mod, sem classe/UID fixos. O dispatcher migra para outro scope
+antes de descarregar o proprietário anterior.
+
+Evidência local desta alteração:
+
+- 65 regressões combinadas aprovadas; bootstrap com 106 fontes/53 registros,
+  inventário exato de 76 conteúdos e teste de HUD real preservados.
+- Núcleo subterrâneo, C# real por P/Invoke e exemplo original JS no QuickJS
+  real aprovados. Teste separado usa threads de desenho e worker com o
+  `UniversalHookMailbox` de produção; resposta vencida, duplicada ou concorrente
+  não troca o snapshot vigente.
+- Transação de cinco raízes GC, rollback e unload com transição testados;
+  ASan/UBSan com leak detector habilitado aprovados no fixture do núcleo.
+- Registro de imagens de fundo, P/Invoke e compatibilidade JS aprovados após
+  a introdução dos leases. Liberação fora da thread Unity só agenda destruição.
+- ExampleMod completo aprovado nos quatro modos de compilação/verificação
+  gerenciada; referência pública regenerada e conferida; seis testes do gate
+  e da integridade das evidências aprovados.
+- Contratos nativos SystemUpdate/taxas/HookManager e sintaxe host dos caminhos
+  ARM64 aprovados. A linkagem NDK completa exige CI no novo SHA.
+
+A auditoria encontrou cinco chaves JS duplicadas no JSON histórico de
+evidências. As cópias antigas ocultavam os registros anteriores com os nomes
+Example e o relato geral do usuário sobre a .96. Foram mantidos os registros
+mais completos e o auditor agora rejeita duplicatas, com teste de regressão.
+Nenhum exemplo foi promovido a validado Android por esse relato geral.
+A matriz global foi regenerada preservando os **206 JS**, agora com o estilo
+subterrâneo mapeado e validação de host separada da execução no celular.
+
+**Estado do escopo: 2/15 implementados nos fontes (13,33%); 0/15 validados
+Android; treze pendentes.** SystemUpdate/Gore são integrações adicionais.
+Nenhum APK ou `.bmod` foi gerado. Não existe promessa de FPS da nova bridge.
+
+Próxima implementação: SurfaceBackgroundLoader sobre o serviço de assets e
+contratos de propriedade agora compartilhados; depois SceneEffect/Biome e
+os estilos água/cachoeiras/mapa. Não substituir o port de bioma/música pelo
+comando `/exampleunderground`: ele serve exclusivamente para QA do estilo.
+
+As seções abaixo preservam o histórico; suas contagens/versões se referem
+aos respectivos checkpoints.
+
 Branch: `feat/csharp-loader-completion-15-20261021`.
 Base: `5a18a67899c1f6ee88a34097be3adb6e7877edd4`.
 O trabalho preserva as correções da integração anterior, inclusive contagem

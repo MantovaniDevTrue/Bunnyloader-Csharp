@@ -136,9 +136,15 @@ int main(){
     assert(readiness("broken-uid",&error)==-1 && error.find("Mod=broken-uid")!=error.npos);
     assert(publish(&error,"js-uid") && readiness("js-uid",&error)==1);
     assert(find("js-uid","Assets/Backgrounds/Mid")==4);
-    unload("csharp-uid");assert(destroys==1&&find("csharp-uid","Assets/Backgrounds/Far")==-1);
+    const int lease=bl::runtime::backgroundAssets::retain(3);
+    assert(lease==3 && bl::runtime::backgroundAssets::retain(3)==3);
+    unload("csharp-uid");assert(destroys==0&&find("csharp-uid","Assets/Backgrounds/Far")==-1);
     assert(static_cast<void**>(arrayData(fieldAssets.array))[3]==nullptr);
     assert(static_cast<int32_t*>(arrayData(fieldWidths.array))[3]==0);
+    bl::runtime::backgroundAssets::release(lease);assert(destroys==0);
+    std::thread renderer([&]{bl::runtime::backgroundAssets::release(lease);});renderer.join();assert(destroys==0);
+    bl::runtime::backgroundAssets::sweep();assert(destroys==1);
+    assert(bl::runtime::backgroundAssets::retired(lease) && bl::runtime::backgroundAssets::retain(lease)==0);
     unload("js-uid");unload("auto-uid");unload("broken-uid");assert(destroys==3&&roots.empty());
     assert(reserve("csharp-uid","Assets/Backgrounds/Far",(folder/"far.png").string(),&error)>5);
     assert(publish(&error));unload("csharp-uid");

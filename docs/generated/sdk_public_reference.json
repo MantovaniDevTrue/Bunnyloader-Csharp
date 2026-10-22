@@ -180,6 +180,25 @@
       "methods": []
     },
     {
+      "name": "BunnyLoader.Source.BunnyBackgroundPriority",
+      "kind": "enum",
+      "baseType": "System.Enum",
+      "constructors": [],
+      "properties": [],
+      "values": [
+        "None",
+        "BiomeLow",
+        "BiomeMedium",
+        "BiomeHigh",
+        "Environment",
+        "Event",
+        "BossLow",
+        "BossMedium",
+        "BossHigh"
+      ],
+      "methods": []
+    },
+    {
       "name": "BunnyLoader.Source.BunnyBackgroundTexture",
       "kind": "abstract class",
       "baseType": "System.Object",
@@ -1132,7 +1151,9 @@
       "kind": "abstract class",
       "baseType": "System.Object",
       "constructors": [],
-      "properties": [],
+      "properties": [
+        "string ModId { get; }"
+      ],
       "values": [],
       "methods": [
         {
@@ -3728,6 +3749,74 @@
       ],
       "values": [],
       "methods": []
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyUndergroundBackgroundStyle",
+      "kind": "abstract class",
+      "baseType": "BunnyLoader.Source.BunnyHookModule",
+      "constructors": [],
+      "properties": [
+        "int Slot { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "string DiagnosticStatus()",
+          "execution": "managed_owned_registration"
+        },
+        {
+          "signature": "void FillTextureArray(Span\u003Cint\u003E textureSlots)",
+          "execution": "worker_sync_background_slots"
+        },
+        {
+          "signature": "void Load(BunnyHookScope hooks)",
+          "execution": "managed_owned_registration"
+        },
+        {
+          "signature": "void SetStaticDefaults()",
+          "execution": "managed_owned_registration"
+        },
+        {
+          "signature": "void Unload()",
+          "execution": "managed_owned_registration"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyUndergroundBackgrounds",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [
+        "int VanillaCount { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "static BunnyUndergroundBackgroundStyle Get(int slot)",
+          "execution": "native_shared_background_registry"
+        },
+        {
+          "signature": "static int GetSlot(string modId, string className)",
+          "execution": "native_shared_background_registry"
+        },
+        {
+          "signature": "static int GetSlot\u003CT\u003E(string modId)",
+          "execution": "native_shared_background_registry"
+        },
+        {
+          "signature": "static void Activate\u003CT\u003E(string modId, BunnyBackgroundPriority priority, Double weight)",
+          "execution": "native_shared_background_registry"
+        },
+        {
+          "signature": "static void Deactivate\u003CT\u003E(string modId)",
+          "execution": "native_shared_background_registry"
+        },
+        {
+          "signature": "static void Set(string modId, string className, BunnyBackgroundPriority priority, Double weight, bool active)",
+          "execution": "native_shared_background_registry"
+        }
+      ]
     },
     {
       "name": "BunnyLoader.Source.BunnyUniversalHookDispatcher",

@@ -202,6 +202,8 @@ public sealed class BunnyHookScope : IDisposable
 
 public abstract class BunnyHookModule
 {
+    /// <summary>Owning mod identity supplied by the source runtime, independent of the class name.</summary>
+    public string ModId { get; internal set; } = "";
     public abstract void Load(BunnyHookScope hooks);
     public virtual void Unload() { }
     public virtual string DiagnosticStatus() => "";
@@ -655,6 +657,7 @@ public static class BunnyUniversalHookDispatcher
             foreach (Type type in types)
             {
                 var module = (BunnyHookModule)Activator.CreateInstance(type)!;
+                module.ModId = id;
                 context.Modules.Add(module);
                 module.Load(context.Scope);
             }
@@ -688,6 +691,8 @@ public static class BunnyUniversalHookDispatcher
     {
         try { BunnyWorldUpdateRegistry.DetachScope(context.Scope); }
         catch (Exception error) { LastError = context.Id + ": world teardown: " + error.Message; }
+        try { BunnyUndergroundRegistry.DetachScope(context.Scope); }
+        catch (Exception error) { LastError = context.Id + ": underground teardown: " + error; }
         context.Scope.Dispose();
         foreach (BunnyHookModule module in context.Modules)
             try { module.Unload(); }
