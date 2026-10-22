@@ -67,7 +67,7 @@ jobs:
           fi
 
   publish-managed-reference:
-    name: Stage native-ready managed C# SDK and reference (NO APK)
+    name: Stage updated managed C# SDK and reference (NO APK)
     if: github.event_name == 'push' && github.ref_name == 'feat/csharp-damageclass-complete-20261022'
     needs: managed-parity
     runs-on: ubuntu-latest
@@ -118,7 +118,7 @@ jobs:
             echo "FORBIDDEN: APK generated"
             exit 1
           fi
-      - name: Commit only generated public C# reference
+      - name: Commit generated C# SDK DLL, checksum and public reference
         shell: bash
         run: |
           set -euo pipefail
