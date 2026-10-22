@@ -124,6 +124,10 @@ bool pumpNativeBiomeOwnersOnGameThread(const NativeCloudBiomeFacts& facts,
             if (owner.tilesValid)
                 owner.tileSnapshot = std::move(counts);
         }
+        if (owner.needsRequest && !owner.requested) {
+            std::string stale;
+            takeManagedBiomeSnapshot(mod, owner.generation, &stale);
+        }
         if (owner.needsRequest && !owner.requested &&
             owner.tilesValid && managedBiomeRegistrationReady(mod)) {
             if (requestManagedBiomeSnapshot(mod, facts.gameMenu,
