@@ -16,6 +16,8 @@ namespace bl::csharp {
 using AchievementMetadataPublisher = bool (*)(
     const std::string&, const std::string&, std::string*);
 void setManagedAchievementMetadataPublisher(AchievementMetadataPublisher callback);
+void pauseManagedAchievementEventSession();
+void resumeManagedAchievementEventSession();
 
 // Eventos: enqueue sem executar Mono na thread do Terraria; false requer
 // diagnóstico no chamador (fila cheia, ciclo de vida inativo ou argumento inválido).
