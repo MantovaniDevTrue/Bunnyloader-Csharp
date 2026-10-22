@@ -14,10 +14,14 @@
   dois assemblies e rollback de registro.
 - O compilador completo do ExampleMod registra ExampleDamageClass automaticamente
   pelo mesmo BunnyEntitySourceDispatcher dos outros conteúdos do mod.
+- Parser C++ agora reconhece classes `DamageClass` mesmo sem SetDefaults,
+  e mods compostos apenas por essas classes podem ser compilados e registrados;
+  teste dedicado executa compilação Roslyn e descarregamento do assembly mínimo.
 - O MonoVM agenda uma inicialização de assembly antes do primeiro TickWorld;
   não depende mais de receber AI de NPC para iniciar o registro.
 - O CI compila o SDK Android net8, executa 26 testes e o ExampleMod via Roslyn,
-  além de verificar a sintaxe de ManagedRuntime.cpp, sem Gradle ou APK.
+  além de verificar a sintaxe de ManagedRuntime.cpp, SourceLoader.cpp e
+  AutoSourceRuntime.cpp e executar teste nativo do parser, sem Gradle ou APK.
 
 ## O que falta para o DamageClassLoader ficar completo no Terraria Android
 
@@ -25,8 +29,9 @@
 combate completo nem usado para autorizar geração de APK.**
 
 - A revogação por mod já preserva IDs: remove classes do catálogo ativo,
-  não reutiliza o ID antigo e limpa no worker MonoVM. Falta QA Android e
-  garantir que todas as categorias de mod carreguem esse dispatcher.
+  não reutiliza o ID antigo e limpa no worker MonoVM. O parser e o carregador
+  também reconhecem mods sem entidade que contenham apenas DamageClass;
+  ainda falta verificar esse processo em arm64 no jogo.
 - Garantir um bloqueio de inicialização que aguarde o registro antes de
   criar itens; a fila de preload é assíncrona e não satisfaz essa garantia.
 - Resolver `DamageType` dos itens/projéteis C# e manter o tipo no
