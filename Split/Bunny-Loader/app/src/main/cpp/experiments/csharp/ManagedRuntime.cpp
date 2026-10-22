@@ -3230,7 +3230,7 @@ ManagedHairManifestResult exportManagedHairManifest(
     const auto safePath = [](const std::string& path) {
         return !path.empty() && path.size() <= 2048 && path.front() == '/' &&
                path.find("..") == std::string::npos &&
-               path.find('\\\\') == std::string::npos &&
+               path.find('\\') == std::string::npos &&
                path.find('\0') == std::string::npos;
     };
     const auto safeUid = [](const std::string& uid) {
