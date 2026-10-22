@@ -21,6 +21,8 @@ on:
       - 'app/src/main/cpp/experiments/csharp/NativeDamageClassFlags.h'
       - 'app/src/main/cpp/experiments/csharp/NativeDamageClassStats.h'
       - 'app/src/main/cpp/experiments/csharp/NativeDamageCombatProbe.h'
+      - 'app/src/main/cpp/experiments/csharp/NativeDamagePlayerProjection.h'
+      - 'tests/DamageClassParity/native_damage_player_projection.cpp'
       - 'tests/DamageClassParity/native_damage_combat_probe.cpp'
       - 'tests/DamageClassParity/native_damageclass_stats.cpp'
       - 'experiments/csharp/BunnyCsSdk/BunnyEntitySourceDispatcher.cs'
@@ -51,6 +53,8 @@ on:
       - 'app/src/main/cpp/experiments/csharp/NativeDamageClassFlags.h'
       - 'app/src/main/cpp/experiments/csharp/NativeDamageClassStats.h'
       - 'app/src/main/cpp/experiments/csharp/NativeDamageCombatProbe.h'
+      - 'app/src/main/cpp/experiments/csharp/NativeDamagePlayerProjection.h'
+      - 'tests/DamageClassParity/native_damage_player_projection.cpp'
       - 'tests/DamageClassParity/native_damage_combat_probe.cpp'
       - 'tests/DamageClassParity/native_damageclass_stats.cpp'
       - 'experiments/csharp/BunnyCsSdk/BunnyEntitySourceDispatcher.cs'
@@ -125,6 +129,10 @@ jobs:
             tests/DamageClassParity/native_damage_combat_probe.cpp \
             -o "$RUNNER_TEMP/damage_combat_probe"
           "$RUNNER_TEMP/damage_combat_probe"
+          c++ -std=c++20 -O2 -Wall -Wextra -Werror -Iapp/src/main/cpp \
+            tests/DamageClassParity/native_damage_player_projection.cpp \
+            -o "$RUNNER_TEMP/damage_player_projection"
+          "$RUNNER_TEMP/damage_player_projection"
           JAVA_INCLUDE="$(dirname "$(dirname "$(readlink -f "$(command -v javac)")")")/include"
           for source in SourceLoader.cpp AutoSourceRuntime.cpp; do
             g++ -std=c++20 -O0 -Wall -Wextra -Werror -fsyntax-only \
