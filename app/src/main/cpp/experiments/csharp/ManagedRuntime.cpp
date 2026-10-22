@@ -2202,7 +2202,26 @@ void* pinnedMonoWorker(void*) {
                     lock.lock();
                     if (job.session != g_cloudSession) continue;
                     if (job.kind == 6) {
-                        if (!ok) g_cloudDispatcherHealthy = false;
+                        if (!ok) {
+                            // If ResetWorld failed, native registrations
+                            // cannot claim that Mono still owns the classes.
+                            // Keep everything disabled until a full clear.
+                            g_cloudDispatcherHealthy = false;
+                            g_cloudClearPending = true;
+                            g_cloudClearRetryAt = {};
+                            for (auto& existing : g_cloudBindings) {
+                                existing.ready = false;
+                                existing.failed = true;
+                                existing.biomeReady = false;
+                                existing.biomeFailed = true;
+                            }
+                            g_cloudQueue.clear();
+                            g_cloudWeightReplies.clear();
+                            g_biomeActiveReplies.clear();
+                            g_cloudSpawnReplies.clear();
+                            g_cloudWeightsPending.clear();
+                            g_biomeSnapshotsPending.clear();
+                        }
                         continue;
                     }
                     if (job.binding < 0 ||
