@@ -210,7 +210,13 @@ void updateInWorld() {
     g_inWorld.store(!menu, std::memory_order_relaxed);
     systems::observeTimeRateMenu(menu);
     static bool lastMenu=true;
-    if(menu!=lastMenu){underground::resetWorld();surface::resetWorld();lastMenu=menu;}
+    if(menu!=lastMenu){
+        underground::resetWorld();
+        // Entry is reset by noteAutoWorldTilesLoaded before player callbacks.
+        // Resetting again here would erase activation from OnEnterWorld.
+        if(menu)surface::resetWorld();
+        lastMenu=menu;
+    }
 }
 
 // DoUpdate hook: le o arquivo de comando a cada frame e despacha.

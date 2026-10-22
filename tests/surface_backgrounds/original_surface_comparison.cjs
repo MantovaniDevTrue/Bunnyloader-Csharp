@@ -121,6 +121,12 @@ for (const speed of [0, .03, .25, 1, -.1]) {
   const converted = run('--fades', 2, speed, 1, .2, 0, .9);alphas.forEach((alpha, i) => near(converted[i], alpha));
 }
 style.Slot = 16;
+// A Double speed just below a Single midpoint must remain Double until the
+// final array write. Converting speed to float first rounds the wrong way.
+const initial = Math.fround(.5 + 2 ** -24), exactSpeed = 2 ** -25 - 2 ** -52;
+style.Slot = 0;const precise = [initial];style.ModifyFarFades(precise, exactSpeed);
+assert.equal(Math.fround(run('--fades', 0, exactSpeed, initial)[0]), Math.fround(precise[0]));
+style.Slot = 16;
 // Original example's animation is call-driven: 13 ChooseMiddle calls, not a
 // timer in Update(). Keep this oracle for the forthcoming managed callback.
 properties.instance.bgLoops = 1;lookup.length = 0;
@@ -130,4 +136,4 @@ for (let call = 1; call <= 53; ++call) {
 }
 assert(lookup.some(args => args.length === 1 && args[0] === 'ExampleMod/Assets/Textures/Backgrounds/ExampleBiomeSurfaceMid3'));
 assert.equal(failures.length, 0, JSON.stringify(failures));
-console.log(`SURFACE_ORIGINAL_JS_NATIVE_GEOMETRY_PASS projections=${projections} priorities=144 fades=5 animationCalls=53`);
+console.log(`SURFACE_ORIGINAL_JS_NATIVE_GEOMETRY_PASS projections=${projections} priorities=144 fades=5 doublePrecision=1 animationCalls=53`);

@@ -30,6 +30,6 @@ struct DrawPlan {
 bool backPlan(TextureSize texture,const BackGeometry& geometry,DrawPlan* result,std::string* error);
 bool closePlan(TextureSize texture,const CloseSettings& settings,const CloseGeometry& geometry,DrawPlan* result,std::string* error);
 Color multiply(Color color,double alpha);
-bool modifyDefaultFades(float* fades,size_t length,size_t slot,float speed,std::string* error);
+bool modifyDefaultFades(float* fades,size_t length,size_t slot,double speed,std::string* error);
 bool priorityAllows(int priority,int vanilla);
 }

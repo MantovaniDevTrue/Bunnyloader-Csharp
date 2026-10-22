@@ -55,7 +55,7 @@ bool callback(const surface::Request& request,surface::Reply* reply,std::string*
         ++fadeCallbackCalls;order.emplace_back("managedFade");reply->fades=request.fades;
         if(badFades){reply->fades.resize(1);return true;}
         CHECK(reply->fades[0]==.8f);
-        CHECK(surface::modifyDefaultFades(reply->fades.data(),reply->fades.size(),size_t(request.slot),float(request.speed),error));
+        CHECK(surface::modifyDefaultFades(reply->fades.data(),reply->fades.size(),size_t(request.slot),request.speed,error));
     } else if(request.operation==surface::Operation::Far){++farCalls;order.emplace_back("managedFar");reply->texture=10;}
     else if(request.operation==surface::Operation::Middle){++middleCalls;order.emplace_back("managedMiddle");reply->texture=11+(++frame/13)%4;}
     else {

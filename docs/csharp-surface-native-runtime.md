@@ -55,6 +55,11 @@ na sobrecarga verificada. Há limite de 128 sprites por callback; um comando
 não pode multiplicar loops nem invocar céu arbitrariamente. Isto prepara o
 callback real, mas ainda não constitui a API C# desse recurso.
 
+O cálculo padrão de fades mantém também uma velocidade Double até a escrita
+final no array Single. Um teste compara o original JS num valor imediatamente
+abaixo do ponto médio entre dois floats: converter a velocidade para Single
+antes da soma fazia o arredondamento seguir para o vizinho errado.
+
 ## Recursos, falhas e ciclo de vida
 
 - Escolha de textura e callbacks ocorrem sem o mutex do registro. Um teste
@@ -71,8 +76,10 @@ callback real, mas ainda não constitui a API C# desse recurso.
   informa DrawDispatcherBusy com limitação de repetição. Exceção ou resposta
   inválida de um estilo não interrompe a iteração de outros estilos.
 - Troca de mundo invalida epoch, seleção de cena e Step1 pendente, preservando a
-  seleção independente de menu. O reset está ligado tanto à mudança de menu
-  observada por Cheats quanto a noteAutoWorldTilesLoaded. Nenhum ID novo vai ao save.
+  seleção independente de menu. A saída para o menu é observada por Cheats;
+  a entrada reseta em noteAutoWorldTilesLoaded. Não há segundo reset tardio em
+  Cheats ao entrar, que apagaria uma ativação feita em OnEnterWorld.
+  Nenhum ID novo vai ao save.
 - Logs são limitados por slot/operação; erros de assinatura nullable preservam
   o detalhe do campo/tipo incompatível, sem reduzir a causa a registro falhou.
 

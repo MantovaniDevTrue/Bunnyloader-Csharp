@@ -42,14 +42,17 @@ Color multiply(Color color,double alpha) {
     auto channel=[&](uint8_t value){return static_cast<uint8_t>(std::clamp(double(value)*alpha,0.0,255.0));};
     return {channel(color.r),channel(color.g),channel(color.b),channel(color.a)};
 }
-bool modifyDefaultFades(float* fades,size_t length,size_t slot,float speed,std::string* error) {
+bool modifyDefaultFades(float* fades,size_t length,size_t slot,double speed,std::string* error) {
     if(!fades || !length || length>16384 || slot>=length || !std::isfinite(speed))
         return fail(error,"ModifyFarFades","InvalidFadeContract","Length:"+std::to_string(length)+",Slot:"+std::to_string(slot));
     // Inspect every input before writing; one invalid element cannot leave a
     // partially changed fade array for a different style or language.
-    for(size_t i=0;i<length;++i)if(!std::isfinite(fades[i]) || !std::isfinite(fades[i]+(i==slot?speed:-speed)))
+    const auto next=[&](size_t i){return i==slot?std::min(1.0,double(fades[i])+speed):std::max(0.0,double(fades[i])-speed);};
+    for(size_t i=0;i<length;++i)if(!std::isfinite(fades[i]) || !scalar(next(i)))
         return fail(error,"ModifyFarFades","NonFiniteFade","Index:"+std::to_string(i));
-    for(size_t i=0;i<length;++i)fades[i]=i==slot?std::min(1.f,fades[i]+speed):std::max(0.f,fades[i]-speed);
+    // Match the original JS Number calculation, then store Single once. A
+    // Double native transition speed must not be rounded before the addition.
+    for(size_t i=0;i<length;++i)fades[i]=float(next(i));
     return true;
 }
 bool priorityAllows(int priority,int vanilla) {

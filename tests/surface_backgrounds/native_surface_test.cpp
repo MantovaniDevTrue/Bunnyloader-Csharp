@@ -218,7 +218,7 @@ int main(int argc,char** argv) {
         else if(mode=="--choose" && argc==4){std::cout<<(priorityAllows(int(n(2)),int(n(3)))?1:0);return 0;}
         else if(mode=="--fades" && argc>=5) {
             std::vector<float> fades;for(int i=4;i<argc;++i)fades.push_back(float(n(i)));
-            if(!modifyDefaultFades(fades.data(),fades.size(),size_t(n(2)),float(n(3)),&error)){std::cerr<<error;return 2;}
+            if(!modifyDefaultFades(fades.data(),fades.size(),size_t(n(2)),n(3),&error)){std::cerr<<error;return 2;}
             for(float fade:fades)std::cout<<std::setprecision(9)<<fade<<' ';
             return 0;
         }
