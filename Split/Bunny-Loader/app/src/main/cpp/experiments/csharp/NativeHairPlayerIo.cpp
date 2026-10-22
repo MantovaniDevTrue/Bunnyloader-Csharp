@@ -196,7 +196,10 @@ bool bind(std::string* error) {
     refs.playerGetter = findMethodBySignature(refs.fileClass, parseSignature("Player get_Player()"));
     if (!refs.playerGetter) {
         FieldInfo* direct = findField(refs.fileClass, "Player");
-        if (direct && a.field_get_flags && !(a.field_get_flags(direct) & 0x10u)) {
+        auto* fieldClass = direct
+            ? a.class_from_il2cpp_type(a.field_get_type(direct)) : nullptr;
+        if (direct && fieldClass == refs.playerClass &&
+            a.field_get_flags && !(a.field_get_flags(direct) & 0x10u)) {
             refs.filePlayer = fieldOffset(refs.fileClass, "Player");
             const auto size = a.class_instance_size(refs.fileClass);
             if (refs.filePlayer < static_cast<int32_t>(sizeof(Il2CppObject)) ||
