@@ -4,7 +4,7 @@
 
 int main() {
     using namespace bl::csharp;
-    for (std::string_view key : {"V2", "V3"}) {
+    for (std::string_view key : {"V2"}) {
         auto f = nativeDamageClassFlags(key);
         assert(f.resolved && f.melee && !f.ranged && !f.magic && !f.summon);
     }
@@ -16,7 +16,7 @@ int main() {
         auto f = nativeDamageClassFlags(key);
         assert(f.resolved && f.summon && !f.ranged && !f.melee && !f.magic);
     }
-    for (std::string_view key : {"V1",
+    for (std::string_view key : {"V1", "V3",
                                   "C:ExampleModCSharp.DamageClasses.ExampleDamageClass"}) {
         auto f = nativeDamageClassFlags(key);
         assert(f.resolved && !f.melee && !f.ranged && !f.magic && !f.summon);
