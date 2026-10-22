@@ -24,6 +24,7 @@ inline BannerLookupMethod originalBannerToItem = nullptr;
 inline BannerLookupMethod originalBannerToNpc = nullptr;
 using BannerClearMethod = void (*)(const MethodInfo*);
 inline BannerClearMethod originalBannerClear = nullptr;
+inline std::atomic<bool> lookupsActive{false};
 
 inline void hookBannerClear(const MethodInfo* method) {
     // Clear reinicializa o progresso vanilla antes do novo mundo.
@@ -33,7 +34,6 @@ inline void hookBannerClear(const MethodInfo* method) {
     nearbyBannerCache().reset();
     if (originalBannerClear) originalBannerClear(method);
 }
-inline std::atomic<bool> lookupsActive{false};
 inline std::mutex hookInstallationGate;
 inline bool hooksInstalled = false;
 
