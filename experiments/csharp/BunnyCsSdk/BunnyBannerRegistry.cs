@@ -230,10 +230,11 @@ public sealed class BunnyBannerRegistry
     /// </summary>
     public void Load(IReadOnlyDictionary<string, BunnyBannerState>? snapshot)
     {
-        lock (gate)
+        // Primeiro valida em memoria temporaria: snapshot ruim nao apaga
+        // o progresso do mundo que ja estava carregado.
+        var staged = new Dictionary<string, BunnyBannerState>(StringComparer.Ordinal);
+        if (snapshot != null)
         {
-            saved.Clear();
-            if (snapshot == null) return;
             if (snapshot.Count > MaximumBannerSlots)
                 throw new ArgumentOutOfRangeException(nameof(snapshot));
             foreach (var entry in snapshot)
@@ -249,8 +250,13 @@ public sealed class BunnyBannerRegistry
                 BunnyBannerState value = BunnyBannerState.Normalize(
                     entry.Value.KillCount, entry.Value.Claimable, entry.Value.Fresh);
                 if (value.KillCount != 0 || value.Claimable != 0)
-                    saved[entry.Key] = value;
+                    staged[entry.Key] = value;
             }
+        }
+        lock (gate)
+        {
+            saved.Clear();
+            foreach (var entry in staged) saved.Add(entry.Key, entry.Value);
         }
     }
 
