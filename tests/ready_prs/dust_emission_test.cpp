@@ -20,6 +20,18 @@ bl::il2cpp::Api api;
 namespace bl::log { void write(int,const char*,...){} }
 namespace bl::il2cpp {
 Api& api(){return ::api;}
+Signature parseSignature(std::string_view text) {
+    Signature signature;
+    signature.valid = text.find("int NewDust(Vector2 Position, int Width, int Height") != std::string_view::npos;
+    return signature;
+}
+const MethodInfo* findMethodBySignature(Il2CppClass*,const Signature& signature,
+                                        bool*,const MethodInfo**) {
+    return signature.valid &&
+        std::strcmp(::colorTypeName,"Microsoft.Xna.Framework.Color")==0 &&
+        std::strcmp(::positionField.type.name,"Microsoft.Xna.Framework.Vector2")==0
+        ? &::spawn : nullptr;
+}
 std::string describeException(Il2CppObject*) { return "FixtureException"; }
 Il2CppClass* findClass(const TypeRef&) {return reinterpret_cast<Il2CppClass*>(1);}
 FieldInfo* findField(Il2CppClass*,std::string_view name) {
