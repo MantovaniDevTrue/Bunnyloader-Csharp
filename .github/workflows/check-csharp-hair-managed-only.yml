@@ -11,6 +11,8 @@ on:
       - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/SourceParser.cpp"
       - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairRegistry.h"
       - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairTextures.*"
+      - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairUi.*"
+      - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairUnlockState.h"
       - ".github/workflows/check-csharp-hair-managed-only.yml"
   workflow_dispatch:
 
@@ -50,6 +52,18 @@ jobs:
           g++ -std=c++20 -Wall -Wextra -Werror -fsyntax-only \
             -I Split/Bunny-Loader/app/src/main/cpp \
             Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairTextures.cpp
+      - name: Compile and run character creation and Stylist unlock tests
+        run: |
+          g++ -std=c++20 -Wall -Wextra -Werror \
+            -I Split/Bunny-Loader/app/src/main/cpp \
+            Split/Bunny-Loader/tests/hair_loader/native_unlock_state.cpp \
+            -o /tmp/bunny-hair-unlock
+          /tmp/bunny-hair-unlock
+      - name: Syntax check native HairstyleUnlocksHelper hooks
+        run: |
+          g++ -std=c++20 -Wall -Wextra -Werror -fsyntax-only \
+            -I Split/Bunny-Loader/app/src/main/cpp \
+            Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairUi.cpp
       - name: Guard against Android artifacts
         run: |
           test ! -d Split/Bunny-Loader/app/build/outputs/apk
