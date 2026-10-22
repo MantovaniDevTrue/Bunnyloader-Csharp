@@ -23,6 +23,7 @@ on:
       - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairStaging.h"
       - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairSlotProbe.*"
       - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairStartup.*"
+      - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairHandoff.*"
       - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairReservation.h"
       - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairSaveState.h"
       - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairSaveSession.h"
@@ -51,13 +52,16 @@ jobs:
         run: dotnet run --project Split/Bunny-Loader/tests/hair_loader/HairCompiler.Tests.csproj -c Release
       - name: Validate actual compiled CSharp hair manifest in native C++ startup
         run: |
-          dotnet run --project Split/Bunny-Loader/tests/hair_loader/HairCompiler.Tests.csproj -c Release -- /tmp/bunny-csharp-managed-hair-manifest
+          mkdir -p /tmp/bunny-csharp-hair-handoff
+          dotnet run --project Split/Bunny-Loader/tests/hair_loader/HairCompiler.Tests.csproj -c Release -- /tmp/bunny-csharp-hair-handoff/source-hair-examplemodcsharp.manifest
           g++ -std=c++20 -Wall -Wextra -Werror \
             -I Split/Bunny-Loader/app/src/main/cpp \
             Split/Bunny-Loader/tests/hair_loader/native_managed_handoff.cpp \
+            Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairHandoff.cpp \
             -o /tmp/bunny-hair-cross-language
-          /tmp/bunny-hair-cross-language /tmp/bunny-csharp-managed-hair-manifest
-          rm -f /tmp/bunny-csharp-managed-hair-manifest
+          /tmp/bunny-hair-cross-language /tmp/bunny-csharp-hair-handoff
+          rm -f /tmp/bunny-csharp-hair-handoff/source-hair-examplemodcsharp.manifest
+          rmdir /tmp/bunny-csharp-hair-handoff
       - name: Reject inherited ModHair before loading any mixed CSharp content
         run: dotnet run --project Split/Bunny-Loader/tests/hair_loader/HairRuntimeGate.Tests.csproj -c Release
       - name: Check unsupported hair classes fail fast in the actual C++ source parser
