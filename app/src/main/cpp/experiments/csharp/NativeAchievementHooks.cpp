@@ -42,6 +42,8 @@ struct AchievementBinding {
     std::vector<AchievementMetadata> metadata;
 };
 std::map<std::string, AchievementBinding> bindings;
+std::map<std::string, std::string> pendingFlush;
+std::atomic<uint64_t> rejectedFlushes{0};
 FieldInfo* playersField = nullptr;
 FieldInfo* localIndexField = nullptr;
 FieldInfo* networkModeField = nullptr;
@@ -275,8 +277,31 @@ void flushNativeAchievementProgressOnExit() {
     std::lock_guard<std::mutex> lock(bindingMutex);
     for (const auto& [mod, binding] : bindings) {
         if (!queueManagedAchievementFlush(mod, binding.assembly))
-            BL_WARN("[CSharp][AchievementLoader] Flush enfileirado recusado mod=%s",
-                    mod.c_str());
+            pendingFlush[mod] = binding.assembly;
+    }
+}
+
+void pumpNativeAchievementPersistence(bool inWorld) {
+    static unsigned int frames = 0;
+    if (++frames % (inWorld ? 300u : 60u) != 0u) return;
+    std::lock_guard<std::mutex> lock(bindingMutex);
+    for (auto it = pendingFlush.begin(); it != pendingFlush.end();) {
+        if (queueManagedAchievementFlush(it->first, it->second)) {
+            it = pendingFlush.erase(it);
+        } else {
+            const auto failures = rejectedFlushes.fetch_add(
+                1, std::memory_order_relaxed) + 1;
+            if (failures <= 4 || failures % 256 == 0)
+                BL_WARN("[CSharp][AchievementLoader] Save pending mod=%s retries=%llu",
+                        it->first.c_str(),
+                        static_cast<unsigned long long>(failures));
+            ++it;
+        }
+    }
+    if (inWorld && worldActive.load(std::memory_order_acquire)) {
+        for (const auto& [mod, binding] : bindings)
+            if (!queueManagedAchievementFlush(mod, binding.assembly))
+                pendingFlush[mod] = binding.assembly;
     }
 }
 
