@@ -276,3 +276,14 @@ normal solicita unload global nessa mesma thread.
 [Mod-fonte comentado de serviços](../Split/Bunny-Loader/samples/ContentLoaderCSharp/Playable/content/main.cs).
 Integração implementada nas fontes; validação Android e migração de gameplay pendentes.
 [Inventário oficial de todos os arquivos de loader](TMODLOADER-LOADERS.md).
+
+## BiomeConversionLoader
+
+[Categoria concreta e ponte de conversão](csharp-biome-conversion-loader.md):
+`ModBiomeConversion`, registro por tipo, `PostSetupContent` e tabelas nativas de
+troca de tiles/paredes. `native_queued_biome_conversion` significa pedido limitado
+à fila da thread do jogo, em single-player, cancelável na saída/unload.
+`managed_biome_conversion_lifecycle` identifica configuração e consultas C#;
+a configuração termina antes de publicar o snapshot nativo.
+[Exemplo explicado no código](../Split/Bunny-Loader/samples/BiomeConversionCSharp/Playable/content/main.cs).
+Sem novo registro de validação Android e sem APK.

@@ -84,14 +84,17 @@ public static class BunnyContentHostDispatcher
                 {
                     LoaderManager.AutoLoad(assembly);
                     var mod = BunnyContentLoader.Load(modId, assembly);
+                    BiomeConversionLoader.Publish(mod);
                     Registered.Add(modId, new Registration(path, hash, mod));
                     return mod.GetContent<ModType>().Count;
                 }
                 catch (Exception loadError)
                 {
+                    try { if (BunnyContentLoader.IsLoaded(modId)) BunnyContentLoader.Unload(modId); }
+                    catch (Exception cleanupError) { loadError = new AggregateException(loadError, cleanupError); }
                     try { ReleaseUnusedAssembly(assembly); }
                     catch (Exception cleanupError) { throw new AggregateException(loadError, cleanupError); }
-                    throw;
+                    throw loadError;
                 }
             }
             catch (Exception error)

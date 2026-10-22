@@ -78,3 +78,14 @@ execução do exemplo. O runner nativo exercita a fila de produção (timeout, l
 rollback e shutdown), SourceLoader sem APIs de jogo e ambos os gates de entrada
 no mundo. Usa doubles Mono/IL2CPP; não comprova o runtime no aparelho.
 [Contrato e limites de integração](../docs/csharp-content-loader.md).
+
+## BiomeConversionLoader
+
+```sh
+python3 Split/Bunny-Loader/tests/biome_conversion/run.py
+```
+
+Confere fontes tModLoader pinadas, executa paridade, Roslyn e P/Invoke real com
+o engine C++ de produção. Testa o adaptador IL2CPP com setters copy-on-write e
+assinaturas simuladas, limites, mundo/menu/multiplayer, unload e falhas isoladas.
+[Contrato do loader](../docs/csharp-biome-conversion-loader.md). Sem APK.

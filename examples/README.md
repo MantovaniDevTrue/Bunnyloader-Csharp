@@ -5,6 +5,7 @@ em `Split/Bunny-Loader/samples`; esta pasta oferece navegação.
 
 | Exemplo | Aprender | Evidência e limites |
 | --- | --- | --- |
+| [BiomeConversion](../Split/Bunny-Loader/samples/BiomeConversionCSharp/README.md) | Conversão nativa de tiles/paredes acionada por projétil C# | Implementado em fonte e testado em host; QA Android pendente |
 | [ContentLoader](../Split/Bunny-Loader/samples/ContentLoaderCSharp/README.md) | Loader<T>, aliases, singletons, embedding e mod-fonte com bootstrap automático | Host testado; QA Android pendente |
 | [StarterMod](../Split/Bunny-Loader/samples/StarterModCSharp/README.md) | Um material, uma receita, UID e projeto de editor | Compilação/empacotamento em host; não atribuir teste Android independente sem registro |
 | [DeclaredContent](../Split/Bunny-Loader/samples/DeclaredContentCSharp/README.md) | Base genérica e identidade por atributo | Parser e Roslyn; restrições sintáticas no SDK |

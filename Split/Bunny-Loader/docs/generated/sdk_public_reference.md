@@ -18,6 +18,19 @@ bool NeedsAutoloading { get; }
 | --- | --- |
 | `static AutoloadAttribute GetValue(Type type)` | managed_helper |
 
+## BunnyLoader.Source.BiomeConversionLoader
+
+abstract class; base: `System.Object`.
+
+```csharp
+int BiomeConversionCount { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `static ModBiomeConversion GetBiomeConversion(int type)` | managed_biome_conversion_lifecycle |
+| `static int Register(ModBiomeConversion conversion)` | managed_biome_conversion_lifecycle |
+
 ## BunnyLoader.Source.BunnyAccessory
 
 abstract class; base: `System.Object`.
@@ -773,6 +786,22 @@ abstract class; base: `BunnyLoader.Source.Loader`.
 | `T Get(int id)` | managed_content_lifecycle |
 | `int Register(T obj)` | managed_content_lifecycle |
 | `void Unload()` | managed_content_lifecycle |
+
+## BunnyLoader.Source.ModBiomeConversion
+
+abstract class; base: `BunnyLoader.Source.ModType`.
+
+```csharp
+int Type { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `bool Convert(int i, int j, int size, bool tiles, bool walls)` | native_queued_biome_conversion |
+| `void PostSetupContent()` | managed_biome_conversion_lifecycle |
+| `void RegisterTileConversion(int sourceType, int targetType)` | managed_biome_conversion_lifecycle |
+| `void RegisterWallConversion(int sourceType, int targetType)` | managed_biome_conversion_lifecycle |
+| `void SetupContent()` | managed_biome_conversion_lifecycle |
 
 ## BunnyLoader.Source.ModContent
 

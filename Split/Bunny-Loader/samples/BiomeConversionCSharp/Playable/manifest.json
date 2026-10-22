@@ -1,0 +1,22 @@
+{
+  "uid": "ecad3663-a177-4528-a3b3-0bb4ddc600da",
+  "id": "biomeconversion",
+  "name": "Biome Conversion CSharp",
+  "version": "0.1.0",
+  "authors": [
+    {
+      "name": "Bunny CSharp examples",
+      "role": "Example"
+    }
+  ],
+  "category": "Example",
+  "summary": "Native Dirt to Stone conversion with C# loader and projectile trigger.",
+  "license": "MIT",
+  "blVersion": 2,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "entry": "main.cs",
+  "dependencies": []
+}

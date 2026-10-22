@@ -23,6 +23,8 @@ string Parameters(MethodBase method) => string.Join(", ", method.GetParameters()
 string Mode(Type type, MethodInfo method)
 {
     string contentType = type.Name.Split('`')[0];
+    if (contentType == "ModBiomeConversion" && method.Name == "Convert") return "native_queued_biome_conversion";
+    if (contentType is "ModBiomeConversion" or "BiomeConversionLoader") return "managed_biome_conversion_lifecycle";
     if (contentType == "BunnyContentHostDispatcher") return "mono_owner_content_lifecycle";
     if (contentType is "ModTypeLookup" or "ModContent" or "ContentInstance") return "managed_content_registry";
     if (contentType is "Loader" or "ILoader" or "LoaderManager" or "ModType" or "BunnyContentLoader" or "BunnyContentMod") return "managed_content_lifecycle";

@@ -415,7 +415,7 @@ bool parseCSharpSource(const std::string& source,
         }
         // A lexical marker admits service-only assemblies, including an abstract custom category.
         // Roslyn verifies concrete ModType descendants; this marker never reserves native IDs.
-        if (base == "ModType") {
+        if (base == "ModType" || base == "ModBiomeConversion") {
             ParsedSourceType marker;
             marker.name = name;
             marker.base = "ModType";

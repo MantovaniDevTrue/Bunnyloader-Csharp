@@ -23,6 +23,26 @@
       ]
     },
     {
+      "name": "BunnyLoader.Source.BiomeConversionLoader",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [
+        "int BiomeConversionCount { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "static ModBiomeConversion GetBiomeConversion(int type)",
+          "execution": "managed_biome_conversion_lifecycle"
+        },
+        {
+          "signature": "static int Register(ModBiomeConversion conversion)",
+          "execution": "managed_biome_conversion_lifecycle"
+        }
+      ]
+    },
+    {
       "name": "BunnyLoader.Source.BunnyAccessory",
       "kind": "abstract class",
       "baseType": "System.Object",
@@ -1414,6 +1434,38 @@
         {
           "signature": "void Unload()",
           "execution": "managed_content_lifecycle"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.ModBiomeConversion",
+      "kind": "abstract class",
+      "baseType": "BunnyLoader.Source.ModType",
+      "constructors": [],
+      "properties": [
+        "int Type { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "bool Convert(int i, int j, int size, bool tiles, bool walls)",
+          "execution": "native_queued_biome_conversion"
+        },
+        {
+          "signature": "void PostSetupContent()",
+          "execution": "managed_biome_conversion_lifecycle"
+        },
+        {
+          "signature": "void RegisterTileConversion(int sourceType, int targetType)",
+          "execution": "managed_biome_conversion_lifecycle"
+        },
+        {
+          "signature": "void RegisterWallConversion(int sourceType, int targetType)",
+          "execution": "managed_biome_conversion_lifecycle"
+        },
+        {
+          "signature": "void SetupContent()",
+          "execution": "managed_biome_conversion_lifecycle"
         }
       ]
     },

@@ -36,6 +36,12 @@ FieldInfo* findField(Il2CppClass*,std::string_view name) {
 }
 }
 namespace bl::csharp {
+bool conversionBindingReady=true;
+bool nativeBiomeConversionReady() { return conversionBindingReady; }
+void resetBiomeConversionWorld() {}
+void beginBiomeConversionWorld() {}
+void pumpBiomeConversionsOnGameThread() {}
+
 BasicItemLoadStatus basicItemLoadStatus(){return content;}
 std::vector<SourceModStatus> sourceModStatuses(){return sources;}
 size_t pendingNativeVisualRenderer(){return 0;}
@@ -95,7 +101,8 @@ int main(int argc,char**) {
     service.managedContentDeclarations=1;sources={service};
     assert(!preWorldCSharpContentReady()); // Applied native defaults alone are not acknowledgement.
     g_statuses[0].managedReady=true;
-    assert(preWorldCSharpContentReady());
+    conversionBindingReady=false;assert(!preWorldCSharpContentReady());
+    conversionBindingReady=true;assert(preWorldCSharpContentReady());
     g_statuses[0].phase="failed";assert(!preWorldCSharpContentReady());
     g_statuses[0].phase="ready";g_statuses[0].error="Load failed";assert(!preWorldCSharpContentReady());
     g_statuses[0].error.clear();g_statuses[0].applied=false;assert(!preWorldCSharpContentReady());
