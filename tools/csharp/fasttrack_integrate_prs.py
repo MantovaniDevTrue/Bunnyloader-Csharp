@@ -17,6 +17,21 @@ REPORT = ROOT / "docs/csharp/FASTTRACK-INTEGRATION-REPORT.json"
 ALLOWED = (".cs", ".csproj", ".cpp", ".h", ".hpp", ".c", ".cmake", ".json", ".md", ".png", ".xml", ".props", ".targets")
 ROOTS = ("app/", "experiments/", "samples/", "tests/", "tools/", "docs/", "Split/Bunny-Loader/")
 MAX_BYTES = 5_000_000
+MANUAL_RECONCILIATIONS = {
+    (117, "app/src/main/cpp/experiments/csharp/ManagedSourceClassCount.h"):
+        (b"mod.screenEffects + mod.commands",),
+    (117, "app/src/main/cpp/experiments/csharp/SourceParser.cpp"):
+        (b'base != "BunnyCommand"', b'if (base == "BunnyCommand")'),
+    (117, "app/src/main/cpp/experiments/csharp/SourceLoader.cpp"):
+        (b'status->commandClasses.push_back', b'status->commands > 128',
+         b'status->commands==0', b'hasNativeContent && !prepareNativeContent()'),
+    (117, "experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs"):
+        (b"CommandManifestWriter.CountCommands(assembly)", b"CommandManifestWriter.Write(assembly, diagnosticsPath, assemblyPath)"),
+    (117, "experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj"):
+        (b'BunnyCommand.cs', b'BunnyCommandWorker.cs'),
+    (121, "experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj"):
+        (b'BunnyGore.cs',),
+}
 
 def git(*args, check=True):
     result = subprocess.run(["git", *args], cwd=ROOT, stdout=subprocess.PIPE,
@@ -87,7 +102,7 @@ def main():
         changes = git("diff", "--name-only", "--no-renames", "-z", BASE, head).stdout
         files = [entry.decode("utf-8", "strict") for entry in changes.split(b"\x00") if entry]
         stats = {"clean_take_pr": 0, "clean_three_way": 0, "already_equal": 0,
-                 "already_contains_pr": 0, "blocked": 0, "excluded": 0}
+                 "already_contains_pr": 0, "manual_reconciled": 0, "blocked": 0, "excluded": 0}
         for path in files:
             if not safe_path(path):
                 stats["excluded"] += 1
@@ -102,6 +117,14 @@ def main():
                 pending.append({"pr": number, "path": path, "reason": "size_limit"})
                 continue
             merged, reason = merge(original, current, incoming)
+            if reason == "three_way_conflict" and current is not None:
+                markers = MANUAL_RECONCILIATIONS.get((number, path), ())
+                if markers and all(marker in current for marker in markers):
+                    stats["manual_reconciled"] += 1
+                    results.append({"pr": number, "path": path,
+                                    "result": "manual_source_reconciled",
+                                    "sha256": sha(current)})
+                    continue
             if reason in ("three_way_conflict", "delete_or_add_collision", "binary_collision"):
                 stats["blocked"] += 1
                 pending.append({"pr": number, "path": path, "reason": reason,
