@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
 using System.Threading;
 
 namespace BunnyLoader.Source;
@@ -43,14 +45,14 @@ public static class WaterfallLighting
     [ThreadStatic] private static int remaining;
 
     // Invoked by the dispatcher around ModWaterfallStyle.AddLight only.
-    internal static void Dispatch(IWaterfallLightSink sink, Action action)
+    internal static void Dispatch(IWaterfallLightSink sink, ModWaterfallStyle style, int tileX, int tileY)
     {
-        IWaterfallLightSink? previous = current;
-        int previousRemaining = remaining;
+        if (current is not null)
+            throw new InvalidOperationException("Nested waterfall lighting dispatch is not supported.");
         current = sink;
         remaining = 12;
-        try { action(); }
-        finally { current = previous; remaining = previousRemaining; }
+        try { style.AddLight(tileX, tileY); }
+        finally { current = null; remaining = 0; }
     }
 
     /// <summary>
@@ -95,6 +97,33 @@ public sealed class WaterfallStyleLoader
     private long colorCalls;
     private long lightCalls;
     private long rejectedCalls;
+    [ThreadStatic] private static BufferedLightSink? threadLightBuffer;
+
+    private sealed class BufferedLightSink : IWaterfallLightSink
+    {
+        // Nine samples * twelve lights. One allocation per Mono worker thread,
+        // never one allocation per waterfall or per frame.
+        private readonly WaterfallLight[] values = new WaterfallLight[108];
+        private int count;
+
+        public void Enqueue(in WaterfallLight light)
+        {
+            if (count >= values.Length)
+                throw new InvalidOperationException("Waterfall light buffer exhausted.");
+            values[count++] = light;
+        }
+
+        public void Commit(IWaterfallLightSink sink)
+        {
+            for (int i = 0; i < count; i++)
+            {
+                WaterfallLight light = values[i];
+                sink.Enqueue(in light);
+            }
+        }
+
+        public void Clear() => count = 0;
+    }
 
     public int TotalCount => VanillaCount + Volatile.Read(ref published).Length;
     public long ColorCalls => Interlocked.Read(ref colorCalls);
@@ -149,6 +178,52 @@ public sealed class WaterfallStyleLoader
                 style.Slot = -1;
                 style.FullName = "";
                 style.Unload();
+                throw;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Discover the public waterfall types in a compiled Roslyn assembly, in deterministic
+    /// order. If one fails, roll back all styles from that mod without touching older mods.
+    /// This is the entry point for future MonoVM source content discovery.
+    /// </summary>
+    public IReadOnlyList<int> RegisterAssembly(string modId, Assembly assembly, Func<string, bool> textureExists)
+    {
+        ArgumentNullException.ThrowIfNull(assembly);
+        ArgumentNullException.ThrowIfNull(textureExists);
+        Type[] types = assembly.GetExportedTypes()
+            .Where(t => t.IsClass && !t.IsAbstract && typeof(ModWaterfallStyle).IsAssignableFrom(t))
+            .OrderBy(t => t.FullName, StringComparer.Ordinal).ToArray();
+        lock (gate)
+        {
+            int start = staged.Count;
+            var added = new List<int>(types.Length);
+            try
+            {
+                foreach (Type type in types)
+                {
+                    if (type.GetConstructor(Type.EmptyTypes) is null)
+                        throw new InvalidOperationException(type.FullName + ": public parameterless constructor required.");
+                    var style = (ModWaterfallStyle)Activator.CreateInstance(type)!;
+                    int slot = Register(modId, style, textureExists);
+                    if (slot >= 0) added.Add(slot);
+                }
+                return added.ToArray();
+            }
+            catch
+            {
+                for (int i = staged.Count - 1; i >= start; i--)
+                {
+                    ModWaterfallStyle style = staged[i];
+                    names.Remove(style.FullName);
+                    staged.RemoveAt(i);
+                    stagedDescriptors.RemoveAt(i);
+                    try { style.Unload(); }
+                    catch { /* Rollback must continue unloading the other registered types. */ }
+                    style.Slot = -1;
+                    style.FullName = "";
+                }
                 throw;
             }
         }
@@ -228,13 +303,17 @@ public sealed class WaterfallStyleLoader
             return false;
         ModWaterfallStyle? style = GetWaterfallStyle(slot);
         if (style is null) return false;
+        BufferedLightSink buffer = threadLightBuffer ??= new BufferedLightSink();
+        buffer.Clear();
         try
         {
             for (int s = 0, last = Math.Min(stopAtStep, 24); s <= last; s += 3)
             {
                 int y = checked(tileY + s);
-                WaterfallLighting.Dispatch(sink, () => style.AddLight(tileX, y));
+                WaterfallLighting.Dispatch(buffer, style, tileX, y);
             }
+            // A callback that throws cannot leave partially emitted lights in the native queue.
+            buffer.Commit(sink);
             Interlocked.Increment(ref lightCalls);
             return true;
         }
@@ -243,6 +322,7 @@ public sealed class WaterfallStyleLoader
             Interlocked.Increment(ref rejectedCalls);
             return false;
         }
+        finally { buffer.Clear(); }
     }
 
     /// <summary>Clear every mod/session-owned callback before another world or package reload.</summary>
@@ -255,6 +335,7 @@ public sealed class WaterfallStyleLoader
             {
                 var style = staged[i];
                 try { style.Unload(); }
+                catch { /* Always release remaining content after an individual mod fault. */ }
                 finally { style.Slot = -1; style.FullName = ""; }
             }
             staged.Clear();
