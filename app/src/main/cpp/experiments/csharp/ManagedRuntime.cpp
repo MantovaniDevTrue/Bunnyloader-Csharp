@@ -1226,6 +1226,9 @@ int64_t executeManagedEntityOnWorker(const ManagedEntityJob& job) {
                             binding.projectileTypes.size());
 #endif
     }
+    // Inicialização de assembly antes da primeira atualização de mundo.
+    // Nenhum callback de NPC/projétil é executado nesta fase.
+    if (job.kind == 7) return managedSlot;
     if (job.kind == 6) {
         int mode = job.owner, frames = job.life, player = job.target;
         int64_t worldSession = static_cast<int64_t>(job.identity);
@@ -3020,6 +3023,14 @@ bool registerManagedEntitySourceMod(
         g_entityProjectileTypeOwner[static_cast<size_t>(type)].store(index + 1,
                                                                      std::memory_order_release);
     g_entityModCount.store(index + 1, std::memory_order_release);
+    // A mesma rotina de inicialização do assembly registra as DamageClass.
+    // Evita aguardar o primeiro TickWorld para construir o catálogo C#.
+    ManagedEntityJob preload;
+    preload.binding = index;
+    preload.kind = 7;
+    preload.session = g_entitySession;
+    g_entityQueue.push_back(std::move(preload));
+    g_pinnedWake.notify_one();
     return true;
 }
 
