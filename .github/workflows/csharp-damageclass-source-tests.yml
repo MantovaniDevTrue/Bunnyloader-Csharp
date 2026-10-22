@@ -1,0 +1,54 @@
+name: CSharp DamageClass managed parity (NO APK)
+
+on:
+  push:
+    branches:
+      - feat/csharp-damageclass-complete-20261022
+    paths:
+      - 'experiments/csharp/BunnyCsSdk/DamageClass*.cs'
+      - 'experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj'
+      - 'samples/ExampleModCSharp/Playable/content/Common/DamageClasses/**'
+      - 'tests/DamageClassParity/**'
+      - '.github/workflows/csharp-damageclass-source-tests.yml'
+  pull_request:
+    paths:
+      - 'experiments/csharp/BunnyCsSdk/DamageClass*.cs'
+      - 'experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj'
+      - 'samples/ExampleModCSharp/Playable/content/Common/DamageClasses/**'
+      - 'tests/DamageClassParity/**'
+      - '.github/workflows/csharp-damageclass-source-tests.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: csharp-damageclass-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  managed-parity:
+    name: Complete managed SDK and ExampleMod source checks (NO APK)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install .NET 8 and 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+      - name: Run DamageClass parity tests
+        run: dotnet run --project tests/DamageClassParity/DamageClassParity.csproj -c Release
+      - name: Build Android managed SDK
+        run: dotnet build experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj -c Release --nologo
+      - name: Compile and probe entire ExampleMod with Roslyn
+        run: dotnet run --project tests/ready_prs/FullExampleRuntime/FullExampleRuntime.csproj -c Release -- samples/ExampleModCSharp/Playable
+      - name: Ensure no APK was produced
+        shell: bash
+        run: |
+          if find . -type f -name '*.apk' -print -quit | grep -q .; then
+            echo "FORBIDDEN: APK cannot be generated before Android integration is complete"
+            exit 1
+          fi
