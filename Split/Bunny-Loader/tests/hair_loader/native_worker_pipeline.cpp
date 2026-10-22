@@ -51,7 +51,7 @@ int main(int argc, char** argv) {
         std::cerr << "HAIR_WORKER_DEBUG phase=" << result.phase
                   << " error=" << result.error
                   << " reservedFirst=" << result.firstType
-                  << " count=" << result.count << '\\n';
+                  << " count=" << result.count << '\n';
     check(result.ready && result.count == 2 && result.firstType == 300 &&
           result.phase == "hair-worker-descriptors-ready",
           "worker consome arquivo exportado por C# e publica apenas descritores");
