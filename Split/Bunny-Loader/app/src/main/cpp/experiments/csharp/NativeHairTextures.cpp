@@ -97,9 +97,10 @@ TextureInstallResult InstallNativeHairTextures(
     std::vector<uint32_t> assetRoots;
     std::set<Il2CppObject*> uniqueAssets;
     auto cleanup = [&] {
-        for (const auto root : assetRoots) api.gchandle_free(root);
+        // Destruir enquanto os gchandles ainda seguram os assets vivos.
         for (Il2CppObject* asset : uniqueAssets)
             bl::runtime::content::destroyTextureAsset(asset);
+        for (const auto root : assetRoots) api.gchandle_free(root);
         api.gchandle_free(altRoot);
         api.gchandle_free(mainRoot);
     };
@@ -148,6 +149,20 @@ TextureInstallResult InstallNativeHairTextures(
         pending.push_back({entry.type, mainAsset, altAsset});
     }
 
+    // As tabelas originais ficam protegidas também: um rollback posterior
+    // deve restaurar objetos vivos mesmo se SetValue provocar uma coleta.
+    const uint32_t oldMainRoot = api.gchandle_new(
+        reinterpret_cast<Il2CppObject*>(originals[0]), false);
+    const uint32_t oldAltRoot = api.gchandle_new(
+        reinterpret_cast<Il2CppObject*>(originals[1]), false);
+    if (!oldMainRoot || !oldAltRoot) {
+        if (oldMainRoot) api.gchandle_free(oldMainRoot);
+        if (oldAltRoot) api.gchandle_free(oldAltRoot);
+        result.error = "VanillaHairArrayGcRootFailed";
+        cleanup();
+        return result;
+    }
+
     // Não tocar as tabelas originais. Publicar cópias e gravar os elementos
     // via Array.SetValue, que aplica a barreira de escrita do GC.
     api.field_static_set_value(mainField, grownMain);
@@ -165,9 +180,13 @@ TextureInstallResult InstallNativeHairTextures(
         api.field_static_set_value(altField, originals[1]);
         result.error = "PlayerHairAssetWriteFailedRolledBack";
         cleanup();
+        api.gchandle_free(oldAltRoot);
+        api.gchandle_free(oldMainRoot);
         return result;
     }
 
+    api.gchandle_free(oldAltRoot);
+    api.gchandle_free(oldMainRoot);
     for (const auto root : assetRoots) api.gchandle_free(root);
     api.gchandle_free(altRoot);
     api.gchandle_free(mainRoot);
