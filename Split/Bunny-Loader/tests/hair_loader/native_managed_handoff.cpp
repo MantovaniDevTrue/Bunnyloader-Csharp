@@ -6,6 +6,7 @@
 #include <iostream>
 #include <iterator>
 #include <string>
+#include <unistd.h>
 
 using namespace bl::csharp::hair;
 
@@ -29,6 +30,32 @@ int main(int argc, char** argv) {
             "UID com traversal nunca forma um filename");
     require(ReadNativeHairManifest(argv[1], "examplemodcsharp", &managed, &error),
             "UID valido continua legivel apos rejeicao");
+
+    require(!ReadNativeHairManifest(argv[1], "unknownmod", &managed, &error) &&
+            error == "HairHandoffManifestMissing" && managed.empty(),
+            "manifesto inexistente nao reutiliza conteudo anterior");
+
+    const std::string directory(argv[1]);
+    const std::string forged = directory + "/source-hair-forged.manifest";
+    require(::symlink((directory + "/source-hair-examplemodcsharp.manifest").c_str(),
+                      forged.c_str()) == 0, "prepara symlink no diretório privado");
+    require(!ReadNativeHairManifest(directory, "forged", &managed, &error) &&
+            error == "HairHandoffManifestUnavailable" && managed.empty(),
+            "leitor nativo rejeita symlink ainda que a origem seja valida");
+    ::unlink(forged.c_str());
+
+    const std::string big = directory + "/source-hair-overflow.manifest";
+    {
+        std::ofstream oversized(big, std::ios::binary);
+        oversized << "BUNNY_HAIR_MANIFEST_V1\\n" << std::string(512 * 1024, 'x');
+    }
+    require(!ReadNativeHairManifest(directory, "overflow", &managed, &error) &&
+            error == "HairHandoffManifestInvalid" && managed.empty(),
+            "arquivo acima de 512 KiB nunca entra no parser");
+    ::unlink(big.c_str());
+
+    require(ReadNativeHairManifest(argv[1], "examplemodcsharp", &managed, &error),
+            "manifesto real continua pronto apos tentativas invalidas");
 
     NativeHairSlotSnapshot snapshot;
     snapshot.valid = true;
