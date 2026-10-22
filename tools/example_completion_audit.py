@@ -56,20 +56,32 @@ def build(upstream):
     fork = {x['path']:x for x in refs['forkExampleFiles'] if x['path'].endswith('.js')}
     expected=refs.get('expectedJsCounts', {'canonical':199,'fork':178})
     if len(originals)!=expected['canonical'] or len(fork)!=expected['fork']: raise ValueError('Reference inventory changed: update pinned snapshot deliberately')
+    current=json.loads((SPEC/'current_upstream.json').read_text())
+    if current['count']!=len(current['files']) or current['count']<206:
+        raise ValueError('Current upstream ExampleMod JS inventory invalid')
+    originals={
+        'samples/ExampleMod/content/'+entry['path']:{
+            'path':'samples/ExampleMod/content/'+entry['path'],
+            'sha':entry['gitBlob'],'size':entry['size']
+        } for entry in current['files']
+    }
+    latest_assets=['content/'+entry['path'] for entry in current['assets']]
     snapshot_path=SPEC/'package-reference.json'
     package=json.loads(snapshot_path.read_text()) if snapshot_path.is_file() else None
     packaged={entry['id']:entry for entry in package['examples']} if package else {}
-    if package:
-        for relative, entry in packaged.items():
-            originals['samples/ExampleMod/content/'+relative]={'path':'samples/ExampleMod/content/'+relative,
-                'sha':entry['gitBlob'],'size':entry['size']}
+    if (upstream/'.git').is_dir():
+        import subprocess
+        pinned=subprocess.check_output(['git','-C',str(upstream),'rev-parse','HEAD'],text=True).strip()
+        if pinned != current['upstreamCommit']:
+            raise ValueError('Upstream checkout is not pinned to the audited commit')
+
     if set(evidence['examples'])-set(p.removeprefix('samples/ExampleMod/content/') for p in originals):
         raise ValueError('Evidence refers to nonexistent JS example')
     rows=[]
     for path,record in sorted(originals.items()):
         rel=path.removeprefix('samples/ExampleMod/content/')
         reference=packaged.get(rel)
-        detail=reference['facts'] if reference else facts((upstream/path).read_text())
+        detail=facts((upstream/path).read_text())
         state=evidence['examples'].get(rel,{})
         status=state.get('status',STATES[0])
         if status not in STATES: raise ValueError('Invalid state: '+rel)
@@ -103,14 +115,15 @@ def build(upstream):
         if reference and reference['comparison']=='Changed':
             missing=list(missing)+['Revisar diferencas de comportamento da referencia fornecida '+package['manifest']['version']+'.']
             if status in STATES[2:5]: status=STATES[1]
-        source_evidence=([{'package':package['origin'],'version':package['manifest']['version'],
-            'archiveSha256':package['archiveSha256'],'path':reference['path'],
-            'sha256':reference['sha256'],'comparison':reference['comparison']}]
-            if reference else [{'repository':refs['upstream']['repository'],'commit':refs['upstream']['commit'],
-                'path':path,'blob':record['sha']}])
-        related_assets=([entry['path'] for entry in package['files'] if entry['path']==reference['path'].removesuffix('.js')+'.png'
-            or entry['path'].startswith(reference['path'].removesuffix('.js')+'_')] if reference else
-            [entry['path'] for entry in refs['upstreamExampleFiles'] if entry['path'].startswith(path.removesuffix('.js')+'_') or entry['path']==path.removesuffix('.js')+'.png'])
+        source_evidence=[{'repository':current['upstreamRepository'],
+            'commit':current['upstreamCommit'],'path':path,'blob':record['sha']}]
+        if reference:
+            source_evidence.append({'package':package['origin'],'version':package['manifest']['version'],
+                'archiveSha256':package['archiveSha256'],'path':reference['path'],
+                'sha256':reference['sha256'],'comparison':reference['comparison']})
+        local=rel.removesuffix('.js')
+        related_assets=[name for name in latest_assets
+            if name=='content/'+local+'.png' or name.startswith('content/'+local+'_')]
         rows.append(dict(id=rel,category=category(rel),plannedLot=lot(category(rel)),
             javaScript={'path':path, 'forkPath': 'Split/Bunny-Loader/'+path if path in fork else None,
                 'upstreamBlob':record['sha'], 'forkBlob':fork.get(path,{}).get('sha'),
@@ -151,6 +164,9 @@ def build(upstream):
         modified=sorted(p for p,x in forkCore.items() if p in upstreamCore and upstreamCore[p]['sha']!=x['sha']),
         forkOnly=sorted(set(forkCore)-set(upstreamCore)),upstreamOnly=sorted(set(upstreamCore)-set(forkCore)))
     return dict(schemaVersion=1,references={**{k:refs[k] for k in ('fork','upstream','initialReferenceCount')},
+                'upstream':{'repository':current['upstreamRepository'],
+                            'commit':current['upstreamCommit'],
+                            'previousCommit':refs['upstream']['commit']},
                 **({'package':{'version':package['manifest']['version'],'sha256':package['archiveSha256']}} if package else {})},
         counts={'forkJsFiles':len(fork),'canonicalJsFiles':len(originals),'newUpstreamFiles':len(set(originals)-set(fork)),
                 'cSharpSourceFiles':len(csharp)},statePolicy='Validado no Android exige evidencia de jogo do exemplo inteiro; Validado por testes automatizados nao prova execucao no aparelho.',
