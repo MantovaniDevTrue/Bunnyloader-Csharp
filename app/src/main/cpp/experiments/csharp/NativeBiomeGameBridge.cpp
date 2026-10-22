@@ -21,6 +21,7 @@ struct Owner {
     NativeCloudBiomeFacts snapshot{};
     uint64_t generation = 1;
     int age = 0;
+    uint32_t eventsPending = 0;
     bool needsRequest = false;
     bool requested = false;
     bool tilesValid = false;
@@ -101,19 +102,20 @@ bool stageNativeBiomeOwnerOnGameThread(const std::string& modId,
 }
 
 bool pumpNativeBiomeOwnersOnGameThread(const NativeCloudBiomeFacts& facts,
-    bool newSnapshot, std::string* biomeKeys) {
-    if (!biomeKeys || !gameThread()) return false;
+    bool newSnapshot, uint32_t playerUpdateEvents, std::string* biomeKeys) {
+    if (!biomeKeys || !gameThread() || playerUpdateEvents > 64 ||
+        (playerUpdateEvents > 0 && !newSnapshot))
+        return false;
     if (!g_started || g_owners.empty()) return true;
 
     for (auto& [mod, owner] : g_owners) {
-        if (newSnapshot) {
-            ++owner.generation;
-            if (owner.generation == 0) ++owner.generation;
-            owner.activeKeys.clear();
+        if (newSnapshot && playerUpdateEvents > 0) {
+            if (owner.eventsPending > 64 - playerUpdateEvents)
+                return false;
+            owner.eventsPending += playerUpdateEvents;
             owner.snapshot = facts;
-            owner.age = 0;
-            owner.requested = false;
             owner.needsRequest = true;
+            owner.activeKeys.clear();
             std::string counts;
             std::string error;
             owner.tilesValid = facts.playerActive && !facts.gameMenu &&
@@ -121,20 +123,23 @@ bool pumpNativeBiomeOwnersOnGameThread(const NativeCloudBiomeFacts& facts,
                     mod, owner.tiles, &counts, &error);
             owner.snapshot.exampleBiomeRegistered = false;
             owner.snapshot.exampleBiomeTileCount = -1;
-            if (owner.tilesValid)
-                owner.tileSnapshot = std::move(counts);
-        }
-        if (owner.needsRequest && !owner.requested) {
-            std::string stale;
-            takeManagedBiomeSnapshot(mod, owner.generation, &stale);
+            if (!owner.tilesValid) return false;
+            owner.tileSnapshot = std::move(counts);
         }
         if (owner.needsRequest && !owner.requested &&
+            owner.eventsPending > 0 &&
             owner.tilesValid && managedBiomeRegistrationReady(mod)) {
-            if (requestManagedBiomeSnapshot(mod, facts.gameMenu,
-                    facts.playerActive, owner.snapshot.playerPositionX,
+            std::string stale;
+            takeManagedBiomeSnapshot(mod, owner.generation, &stale);
+            ++owner.generation;
+            if (owner.generation == 0) ++owner.generation;
+            if (requestManagedBiomeSnapshot(mod, owner.snapshot.gameMenu,
+                    owner.snapshot.playerActive, owner.snapshot.playerPositionX,
                     owner.snapshot.maxTilesX, owner.snapshot.zoneSkyHeight,
                     owner.snapshot.zoneOverworldHeight,
-                    owner.tileSnapshot, owner.generation)) {
+                    owner.tileSnapshot, owner.eventsPending, owner.generation)) {
+                owner.eventsPending = 0;
+                owner.age = 0;
                 owner.requested = true;
                 owner.needsRequest = false;
             }
@@ -149,9 +154,10 @@ bool pumpNativeBiomeOwnersOnGameThread(const NativeCloudBiomeFacts& facts,
                     owner.activeKeys = std::move(keys);
                 owner.requested = false;
             } else if (++owner.age > 180) {
-                owner.requested = false;
-                owner.needsRequest = false;
-                owner.activeKeys.clear();
+                // A timed-out response may still be running inside MonoVM.
+                // Do not quietly drop its OnInBiome callbacks or fabricate
+                // a new generation that could run the same events twice.
+                return false;
             }
         }
         for (const auto& key : owner.activeKeys) {
@@ -177,6 +183,7 @@ void resetNativeBiomeWorldStateOnGameThread() {
         owner.requested = false;
         owner.tilesValid = false;
         owner.age = 0;
+        owner.eventsPending = 0;
         owner.activeKeys.clear();
         owner.tileSnapshot.clear();
     }
