@@ -306,7 +306,10 @@ void pumpNativeAchievementPersistence(bool inWorld) {
 }
 
 void setNativeAchievementWorldActive(bool active) {
-    worldActive.store(active, std::memory_order_release);
+    const bool before = worldActive.exchange(active, std::memory_order_acq_rel);
+    if (before == active) return;
+    if (active) resumeManagedAchievementEventSession();
+    else pauseManagedAchievementEventSession();
 }
 
 bool installNativeAchievementHooks(std::string* error) {
