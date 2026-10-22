@@ -213,6 +213,15 @@ public:
         return true;
     }
 
+    void Swap(Registry& other) noexcept {
+        // Ambos os registries devem ter a mesma faixa vanilla inicial.
+        // Em staging são instâncias copiadas do mesmo registry.
+        if (firstModType_ != other.firstModType_) return;
+        std::swap(nextType_, other.nextType_);
+        byName_.swap(other.byName_);
+        byType_.swap(other.byType_);
+    }
+
     void Reset() {
         byName_.clear();
         byType_.clear();
