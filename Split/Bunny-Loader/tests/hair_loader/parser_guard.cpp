@@ -1,4 +1,5 @@
 #include "experiments/csharp/SourceParser.h"
+#include "experiments/csharp/SourceContentIdentity.h"
 
 #include <cstdlib>
 #include <iostream>
@@ -13,39 +14,60 @@ static void check(bool ok, const char* label) {
     std::cout << "OK: " << label << '\n';
 }
 
-static std::string parseError(const std::string& source, bool* loaded = nullptr) {
-    std::vector<bl::csharp::ParsedSourceType> types;
-    std::string error;
-    bool accepted = bl::csharp::parseCSharpSource(source, &types, &error, true);
-    if (loaded) *loaded = accepted;
-    return error;
+static bool parsed(const std::string& source,
+                   std::vector<bl::csharp::ParsedSourceType>* types,
+                   std::string* error) {
+    types->clear();
+    error->clear();
+    return bl::csharp::parseCSharpSource(source, types, error, true);
 }
 
 int main() {
-    bool accepted = false;
-    std::string error = parseError(
-        "namespace Demo; public sealed class ExampleHair : ModHair { }", &accepted);
-    check(!accepted && error.find("ModHair C#") != std::string::npos,
-          "ModHair sem hook nativo nao recebe registro falso");
+    using namespace bl::csharp;
+    std::vector<ParsedSourceType> types;
+    std::string error;
 
-    error = parseError(
-        "namespace Demo; public sealed class ExampleHair : BunnyHair { }", &accepted);
-    check(!accepted && error.find("ModHair C#") != std::string::npos,
-          "alias BunnyHair tambem fica bloqueado");
+    check(parsed("namespace Demo; public sealed class ExampleHair : ModHair { }",
+                 &types, &error) &&
+          types.size() == 1 && types[0].base == "ModHair" &&
+          types[0].namespaceName == "Demo" && types[0].name == "ExampleHair",
+          "ModHair tem registro de metadados com namespace e classe");
 
-    error = parseError(
-        "namespace Demo; public sealed class SampleItem : BunnyItem { "
-        "public override void SetDefaults() { DisplayName = \"Test\"; Texture = \"Content/Items/Test\"; } "
-        "} public sealed class SampleHair : ModHair { }", &accepted);
-    check(!accepted && error.find("ModHair C#") != std::string::npos,
-          "mod misto nao ignora penteado sem suporte");
+    check(parsed("namespace Demo; public sealed class ExampleHair : BunnyHair { }",
+                 &types, &error) &&
+          types.size() == 1 && types[0].base == "BunnyHair",
+          "alias BunnyHair usa o mesmo preflight");
 
-    error = parseError(
-        "namespace Demo; // class ExampleHair : ModHair { }\n"
-        "public sealed class SampleItem : BunnyItem { "
-        "public override void SetDefaults() { DisplayName = \"Test\"; Texture = \"Content/Items/Test\"; } "
-        "}", &accepted);
-    check(accepted && error.empty(), "comentario nao bloqueia item C# suportado");
+    check(parsed(
+          "namespace Demo; public sealed class SampleItem : BunnyItem { "
+          "public override void SetDefaults() { DisplayName = \"Test\"; Texture = \"Content/Items/Test\"; } "
+          "} public sealed class SampleHair : ModHair { "
+          "public override string Texture => \"Content/Hairs/SampleHair\"; "
+          "public override bool AvailableDuringCharacterCreation => true; }",
+          &types, &error) &&
+          types.size() == 2 && types[0].base == "BunnyItem" &&
+          types[1].base == "ModHair",
+          "mod misto tem duas classes detectadas, incluindo cabelo");
 
-    std::cout << "HairLoader parser preflight OK. Nenhum APK gerado.\n";
+    check(sourceContentDomain("ModHair") == "HAIR" &&
+          sourceContentDomain("BunnyHair") == "HAIR" &&
+          sourceIdentityForBase("BunnyHair", "SampleHair") == "HAIR:SampleHair" &&
+          sourceIdentityForWire("HAIR", "SampleHair") == "HAIR:SampleHair",
+          "identidade do cabelo nao colide com dominio ITEM");
+
+    check(parsed(
+          "namespace Demo; // class ExampleHair : ModHair { }\n"
+          "public sealed class SampleItem : BunnyItem { "
+          "public override void SetDefaults() { DisplayName = \"Test\"; Texture = \"Content/Items/Test\"; } "
+          "}", &types, &error) &&
+          types.size() == 1 && types[0].base == "BunnyItem",
+          "comentario nao cria classe ModHair fantasma");
+
+    check(!parsed("namespace Demo; public sealed class BrokenHair : ModHair {",
+                  &types, &error) &&
+          error.find("fechamento") != std::string::npos,
+          "classe mal formada nao passa silenciosamente");
+
+    std::cout << "Parser HairLoader: somente descoberta de classes; "
+              << "SourceLoader bloqueia ativacao ate o ciclo completo. NO APK.\n";
 }
