@@ -14,6 +14,7 @@ on:
       - app/src/main/cpp/experiments/csharp/ManagedBannerNearbyPolicy.h
       - app/src/main/cpp/experiments/csharp/ManagedBannerMetrics.h
       - app/src/main/cpp/experiments/csharp/ManagedBannerStrength.h
+      - app/src/main/cpp/experiments/csharp/ManagedBannerAnchors.h
       - app/src/main/cpp/experiments/csharp/ManagedBannerWorldFile.h
       - app/src/main/cpp/experiments/csharp/ManagedBannerWorldSession.h
       - app/src/main/cpp/experiments/csharp/ManagedBannerSaveHooks.h
