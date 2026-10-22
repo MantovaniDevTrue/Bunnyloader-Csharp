@@ -301,7 +301,7 @@
       "deviceEvidence": []
     },
     "Content/Items/Tools/ExampleHamaxe.js": {
-      "status": "Implementado, aguardando validação",
+      "status": "Parcial",
       "cSharp": [
         "samples/ExampleModCSharp/Playable/content/Content/Items/Tools/ExampleHamaxe.cs"
       ],
@@ -309,7 +309,9 @@
         "Atributos/defaults originais; animacao/melee/mineracao nativos e LegacySoundStyle Item1.",
         "Receita original: dez ExampleItems e WorkBenches."
       ],
-      "missingFeatures": [],
+      "missingFeatures": [
+        "MeleeEffects original: emissao de Dust Sparkle na hitbox durante o golpe, com chance de 1/10, ainda sem ponte C# nativa."
+      ],
       "nativeDependencies": [
         "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp",
         "app/src/main/cpp/experiments/csharp/SourceLoader.cpp",
@@ -325,7 +327,7 @@
       "terrariaTests": [
         "tests/basic_items/ANDROID.md"
       ],
-      "validation": "Host aprovado: oito casos C# reais, wire C# -> C++, binder LegacySoundStyle/Nullable, parser e receitas/retry. Auditoria CI run 38508838476; APK Android assinado aprovado no run 38508373513. Mineracao/som/combate/persistencia e FPS no aparelho continuam pendentes.",
+      "validation": "Port de defaults e receita aprovado, mas MeleeEffects/Sparkle continua ausente. Host aprovado: oito casos C# reais, wire C# -> C++, binder LegacySoundStyle/Nullable, parser e receitas/retry. Auditoria CI run 38508838476; APK Android assinado aprovado no run 38508373513. Mineracao/som/combate/persistencia e FPS no aparelho continuam pendentes.",
       "deviceEvidence": []
     },
     "Content/Items/ExampleItem.js": {
@@ -337,7 +339,8 @@
         "MaxStack 9999, value buyPrice(0,0,1,0), receita de 999 itens com dez DirtBlocks na Work Bench."
       ],
       "missingFeatures": [
-        "Helper ExampleCustomCurrency / moeda de lojas ainda nao implementado."
+        "Helper ExampleCustomCurrency / moeda de lojas ainda nao implementado.",
+        "ResearchUnlockCount=100 do item original no modo Jornada ainda sem registro C# no catalogo de sacrificios."
       ],
       "nativeDependencies": [
         "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp",
