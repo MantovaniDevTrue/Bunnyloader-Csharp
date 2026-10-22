@@ -87,9 +87,13 @@ sem QuickJS; não certifica um loader C# completo. Não há nova medição de FP
 3. Instalar os seis hooks auditados, preservando originais e ordem, incluindo
    DrawBG_ModifyBGFarBackLayerAlpha. O serviço de desenho fica depois de Step1,
    depois de Step2 e antes do Fog, com a cor modificada publicada corretamente.
+   A escrita desse struct Color precisa de contrato próprio verificado:
+   CheckedFieldWrite recusa structs sem layout de escrita, de propósito.
 4. Criar transação nativa/worker por revisão para ModifyFarFades, escolhas e
    PreDrawCloseBackground com comandos reais de desenho personalizado. Não
    substituir callback por flag fixa nem permitir resposta vencida.
+   O estágio 11 é o relógio interno e 12 é UndergroundBackground; preservar os
+   índices e ampliar Count/assinaturas/remoção ao acrescentar um estágio.
 5. Adaptar a bridge JS ao mesmo registro/serviço sem C# invocar QuickJS; ligar
    SDK natural/reutilizável e portar ExampleSurfaceBackgroundStyle com as seis
    texturas já existentes, incluindo quatro frames e avanço a cada 13 chamadas.
@@ -100,3 +104,8 @@ sem QuickJS; não certifica um loader C# completo. Não há nova medição de FP
 
 O CI source-only inclui estes testes e os três novos `.cpp` na checagem ARM64
 e linkagem nativa completa. Nenhuma tarefa de empacotamento foi acrescentada.
+
+Código `261ec3f1`: onze workflows aprovados; quatro jobs do CI combinado
+[39720850163](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39720850163),
+incluindo 470 verificações nativas, sanitizadores e linkagem ARM64 sem APK.
+Registro completo em [validation/csharp-surface-components-2026-10-22.json](validation/csharp-surface-components-2026-10-22.json).

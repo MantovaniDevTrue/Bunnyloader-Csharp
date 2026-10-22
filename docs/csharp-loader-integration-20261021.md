@@ -19,8 +19,13 @@ Não foi criada uma classe pública parcialmente conectada ao runtime.
 **Escopo: 2/15 implementados nos fontes, 1 parcial, 12 pendentes; 0 Android.**
 A matriz global mantém 206 referências e o exemplo de superfície como não
 portado. ExampleMod permanece 0.1.65/106 fontes; SDK público e cache não mudaram.
-Nenhum APK ou `.bmod` gerado. As aprovações CI abaixo pertencem ao código anterior;
-as novas unidades exigem CI próprio, sem herdar resultados de outro SHA.
+Nenhum APK ou `.bmod` gerado. O código final
+`261ec3f15304356e01fc14419bb8e79938ea518e` passou nos **onze workflows**.
+[CI combinado 39720850163](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39720850163):
+quatro jobs aprovados, com 470 verificações nativas novas, comparação com o JS
+original, sanitizadores, 65 regressões e linkagem completa ARM64 sem APK.
+[Evidência deste checkpoint](validation/csharp-surface-components-2026-10-22.json).
+O commit que registra essa evidência modifica somente documentação.
 
 ## Continuidade de 22/10 — UndergroundBackgroundLoader
 

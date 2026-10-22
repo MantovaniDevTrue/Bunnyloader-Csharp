@@ -1,0 +1,142 @@
+{
+  "schema": 1,
+  "date": "2026-10-22",
+  "branch": "feat/csharp-loader-completion-15-20261021",
+  "sourceCommit": "261ec3f15304356e01fc14419bb8e79938ea518e",
+  "priorPreservedCommit": "f2d98fcd0857c801f1e758a73a5af00ab1f7fb82",
+  "combinedRun": 39720850163,
+  "workflows": [
+    {
+      "conclusion": "success",
+      "databaseId": 39720858063,
+      "headSha": "261ec3f15304356e01fc14419bb8e79938ea518e",
+      "name": "CommandLoader CSharp host tests (no APK)",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39720858089,
+      "headSha": "261ec3f15304356e01fc14419bb8e79938ea518e",
+      "name": "CSharp RarityLoader ARM64 Native Compile",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39720858178,
+      "headSha": "261ec3f15304356e01fc14419bb8e79938ea518e",
+      "name": "CSharp DustLoader source contracts",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39720858034,
+      "headSha": "261ec3f15304356e01fc14419bb8e79938ea518e",
+      "name": "CSharp Gore Source Validation",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39720858222,
+      "headSha": "261ec3f15304356e01fc14419bb8e79938ea518e",
+      "name": "CSharp AnglerQuest host-only regression",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39720858131,
+      "headSha": "261ec3f15304356e01fc14419bb8e79938ea518e",
+      "name": "CSharp Localization Core",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39720858145,
+      "headSha": "261ec3f15304356e01fc14419bb8e79938ea518e",
+      "name": "CSharp World Update SDK Check",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39720858194,
+      "headSha": "261ec3f15304356e01fc14419bb8e79938ea518e",
+      "name": "CSharp Invasion Unit Tests (no APK)",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39720858215,
+      "headSha": "261ec3f15304356e01fc14419bb8e79938ea518e",
+      "name": "Check CSharp RarityLoader Core",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39720858136,
+      "headSha": "261ec3f15304356e01fc14419bb8e79938ea518e",
+      "name": "DustLoader CSharp native ARM64 compile only",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39720850163,
+      "headSha": "261ec3f15304356e01fc14419bb8e79938ea518e",
+      "name": "CSharp combined source-only integration checks (no APK)",
+      "status": "completed"
+    }
+  ],
+  "checks": {
+    "combinedRegressions": 65,
+    "surfaceNativeAssertions": 470,
+    "surfaceOriginalJavaScriptProjections": 45,
+    "surfaceOriginalJavaScriptPriorities": 144,
+    "surfaceOriginalJavaScriptFadeUpdates": 5,
+    "originalAnimationOracleCalls": 53,
+    "nativeSanitizers": "ASan, UBSan, float-divide-by-zero and leak detector passed",
+    "surfaceJavaScriptEngine": "Node/V8 reference execution; not a surface QuickJS bridge",
+    "undergroundCSharpOnlyAndMixedQuickJS": "passed unchanged production integration tests",
+    "backgroundRegistryCSharpAndJavaScript": "passed",
+    "exampleSourceFiles": 106,
+    "verifiedManagedTypes": 87,
+    "exampleCompileModes": 4,
+    "documentedPublicSdkTypes": 158,
+    "deliveryAndEvidenceTests": 6,
+    "arm64Syntax": "passed",
+    "completeArm64NativeLink": "passed; no APK"
+  },
+  "scope": {
+    "plannedLoaders": 15,
+    "implementedInSources": 2,
+    "partial": 1,
+    "pending": 12,
+    "androidValidated": 0,
+    "additionalIntegrations": [
+      "SystemUpdateLoader",
+      "GoreLoader"
+    ]
+  },
+  "surfaceIntegration": {
+    "nativeComponentsImplemented": true,
+    "engineHooksConnected": false,
+    "managedSdkExposed": false,
+    "originalCSharpExamplePorted": false,
+    "quickJsSharedSurfaceBridge": false
+  },
+  "versions": {
+    "exampleModSources": "0.1.65",
+    "sdkCache": "roslyn-net8-source-v55-native-underground-backgrounds",
+    "note": "No managed SDK/protocol or ExampleMod source version change in this continuation."
+  },
+  "artifacts": {
+    "apkGenerated": false,
+    "bmodGenerated": false,
+    "releasePublished": false
+  },
+  "limitations": [
+    "SurfaceBackgroundLoader is partial: its native drawing/table/layout components have execution tests, but there is no surface CSharp API, original CSharp example, shared registry, scene/menu binding or engine hooks yet.",
+    "Controlled host IL2CPP metadata and CLR/V8 tests are not Terraria/MonoVM Android execution or real GPU validation.",
+    "The 53-call original animation oracle does not demonstrate an implemented CSharp animation callback.",
+    "No new Android performance or 60 FPS measurement.",
+    "Packaging remains blocked until all fifteen complete loader contracts are implemented and required checks pass."
+  ],
+  "continuation": "docs/csharp-surface-native-components.md"
+}
