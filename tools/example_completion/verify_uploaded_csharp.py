@@ -72,8 +72,23 @@ def check_staged(root: Path) -> list[str]:
             errors.append(f"Fonte 0.1.63 alterada: {relative}")
         # Porting e intencional: classes que exigem novas APIs ainda nao
         # podem ser autocarregadas no Playable com um comportamento falso.
-        if (root / PLAYABLE / relative).is_file():
-            errors.append(f"Fonte duplicada em Playable antes da promocao: {relative}")
+        playable = root / PLAYABLE / relative
+        if playable.is_file():
+            # A promocao usa o arquivo exato do autor, com SDK e host conectados.
+            allowed = relative == "Common/Audio/ExampleSoundEffects.cs"
+            requirements = (
+                "experiments/csharp/BunnyCsSdk/BunnySounds.cs",
+                "app/src/main/cpp/experiments/csharp/ManagedSoundLoader.cpp",
+                "app/src/main/cpp/experiments/csharp/ManagedSoundLoader.h",
+            )
+            if not allowed or any(not (root / p).is_file() for p in requirements):
+                errors.append(f"Fonte duplicada em Playable antes da promocao: {relative}")
+            elif blob_sha(playable.read_bytes()) != sha:
+                errors.append(f"Promocao modificou a fonte original: {relative}")
+            else:
+                runtime = (root / "app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp").read_text()
+                if "managedSound::pump();" not in runtime or runtime.count("managedSound::worldExit();") < 2:
+                    errors.append(f"SoundLoader sem lifecycle nativo: {relative}")
     return errors
 
 
