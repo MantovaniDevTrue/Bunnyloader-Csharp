@@ -1,6 +1,7 @@
 #pragma once
 
 #include "experiments/csharp/ManagedBannerRegistry.h"
+#include "experiments/csharp/ManagedBannerNearbyPolicy.h"
 #include "content/npcs/ModNpcs.h"
 #include "hook/HookManager.h"
 #include "il2cpp/Resolver.h"
@@ -21,6 +22,17 @@ using BannerLookupMethod = int32_t (*)(int32_t, const MethodInfo*);
 inline BannerLookupMethod originalNpcToBanner = nullptr;
 inline BannerLookupMethod originalBannerToItem = nullptr;
 inline BannerLookupMethod originalBannerToNpc = nullptr;
+using BannerClearMethod = void (*)(const MethodInfo*);
+inline BannerClearMethod originalBannerClear = nullptr;
+
+inline void hookBannerClear(const MethodInfo* method) {
+    // Clear reinicializa o progresso vanilla antes do novo mundo.
+    // Fechamos imediatamente o gate C#; arrays de mod so voltam a ser
+    // publicados apos crescer e restaurar todos os dados da nova sessao.
+    lookupsActive.store(false, std::memory_order_release);
+    nearbyBannerCache().reset();
+    if (originalBannerClear) originalBannerClear(method);
+}
 inline std::atomic<bool> lookupsActive{false};
 inline std::mutex hookInstallationGate;
 inline bool hooksInstalled = false;
@@ -76,7 +88,9 @@ inline bool installBannerLookupHooks() {
         cls, parseSignature("int BannerToItem(int banner)"));
     const MethodInfo* bannerToNpc = findMethodBySignature(
         cls, parseSignature("int BannerToNPC(int i)"));
-    if (!npcToBanner || !bannerToItem || !bannerToNpc) {
+    const MethodInfo* clear = findMethodBySignature(
+        cls, parseSignature("void Clear()"));
+    if (!npcToBanner || !bannerToItem || !bannerToNpc || !clear) {
         BL_ERROR("[CSharp][BannerLoader] Assinaturas IL2CPP nao encontradas, nenhum lookup ativo");
         return false;
     }
@@ -90,8 +104,11 @@ inline bool installBannerLookupHooks() {
     if (!originalBannerToNpc &&
         !bl::hook::install(bannerToNpc, lookupBannerToNpc, &originalBannerToNpc))
         return false;
+    if (!originalBannerClear &&
+        !bl::hook::install(clear, hookBannerClear, &originalBannerClear))
+        return false;
     hooksInstalled = true;
-    BL_INFO("[CSharp][BannerLoader] 3 hooks de consulta instalados, sem ativacao do gameplay");
+    BL_INFO("[CSharp][BannerLoader] 3 consultas e Clear instalados, sem ativacao do gameplay");
     return true;
 }
 
