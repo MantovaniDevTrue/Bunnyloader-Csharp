@@ -127,6 +127,8 @@ struct NativeRefs {
     int playerRangedCrit = -1;
     int playerMagicCrit = -1;
     int playerMeleeSpeed = -1;
+    int playerArmorPenetration = -1;
+    int itemArmorPenetration = -1;
     int playerArmor = -1;
     int playerMaxRunSpeed = -1;
     int playerRunAcceleration = -1;
@@ -317,6 +319,7 @@ WeaponKnockbackFn g_originalWeaponKnockback = nullptr;
 bool g_combatPlayerDamageFieldsReady = false;
 bool g_combatPlayerCritFieldsReady = false;
 bool g_combatPlayerMeleeSpeedFieldReady = false;
+bool g_combatArmorPenFieldsReady = false;
 std::atomic<int> g_damageCombatSamples{0};
 std::atomic<int> g_critCombatSamples{0};
 std::atomic<int> g_knockbackCombatSamples{0};
@@ -422,7 +425,18 @@ void observeNativeWeaponCombat(const char* channel, Il2CppObject* player,
         validSpeed = projectNativeClassMeleeSpeedDelta(
             stats, bl::runtime::field<float>(player, g_refs.playerMeleeSpeed),
             &inheritedSpeed);
-    BL_INFO("[CSharp][DamageClass][Observe] Stage=%s Mod=%s ItemType=%d Class=%s Vanilla=%.3f DamageAdd=%.3f DamageMul=%.3f Crit=%.3f KnockbackAdd=%.3f KnockbackMul=%.3f Speed=%.3f ArmorPen=%.3f StandardCrit=%d LiveValid=%d Melee=%.3f Ranged=%.3f Magic=%.3f Summon=%.3f NonGenericDamageDelta=%.3f CritValid=%d SharedCrit=%.3f CritDelta=%.3f SpeedValid=%d MeleeSpeedDelta=%.3f Result=Unchanged",
+    int32_t playerPenetration = 0, itemPenetration = 0;
+    float projectedPenetration = 0.f;
+    bool validPenetration = false;
+    if (player && g_combatArmorPenFieldsReady) {
+        playerPenetration = bl::runtime::field<int32_t>(
+            player, g_refs.playerArmorPenetration);
+        itemPenetration = bl::runtime::field<int32_t>(
+            item, g_refs.itemArmorPenetration);
+        validPenetration = projectNativeArmorPenetration(
+            stats, playerPenetration, itemPenetration, &projectedPenetration);
+    }
+    BL_INFO("[CSharp][DamageClass][Observe] Stage=%s Mod=%s ItemType=%d Class=%s Vanilla=%.3f DamageAdd=%.3f DamageMul=%.3f Crit=%.3f KnockbackAdd=%.3f KnockbackMul=%.3f Speed=%.3f ArmorPen=%.3f StandardCrit=%d LiveValid=%d Melee=%.3f Ranged=%.3f Magic=%.3f Summon=%.3f NonGenericDamageDelta=%.3f CritValid=%d SharedCrit=%.3f CritDelta=%.3f SpeedValid=%d MeleeSpeedDelta=%.3f PenValid=%d PlayerPen=%d ItemPen=%d ProjectedPen=%.3f Result=Unchanged",
         channel, snapshot.source.mod.c_str(), itemType,
         snapshot.source.damageClass.c_str(), nativeValue,
         stats.damage.additive, stats.damage.multiplicative, stats.crit,
@@ -430,7 +444,9 @@ void observeNativeWeaponCombat(const char* channel, Il2CppObject* player,
         stats.attackSpeed, stats.armorPenetration, stats.standardCrit ? 1 : 0,
         valid ? 1 : 0, native.melee, native.ranged, native.magic,
         native.summon, observedDelta, validCrit ? 1 : 0,
-        sharedCrit, inheritedCrit, validSpeed ? 1 : 0, inheritedSpeed);
+        sharedCrit, inheritedCrit, validSpeed ? 1 : 0, inheritedSpeed,
+        validPenetration ? 1 : 0, playerPenetration, itemPenetration,
+        projectedPenetration);
 }
 
 int32_t hkNativeWeaponDamage(Il2CppObject* player, Il2CppObject* item,
@@ -1597,6 +1613,15 @@ bool prepareNativeContent() {
     if (!g_combatPlayerMeleeSpeedFieldReady)
         BL_WARN("[CSharp][DamageClass] Stage=BindPlayerSpeed Result=PassiveNoLiveStats Detail=%s",
                 nativeSpeedError.c_str());
+    std::string nativePenError;
+    g_combatArmorPenFieldsReady =
+        nativeFieldContract(player, "armorPenetration", "System.Int32", false, 4,
+                            nullptr, &r.playerArmorPenetration, &nativePenError) &&
+        nativeFieldContract(item, "armorPenetration", "System.Int32", false, 4,
+                            nullptr, &r.itemArmorPenetration, &nativePenError);
+    if (!g_combatArmorPenFieldsReady)
+        BL_WARN("[CSharp][DamageClass] Stage=BindArmorPen Result=PassiveNoLiveStats Detail=%s",
+                nativePenError.c_str());
     r.playerArmor = fieldOffset(player, "armor");
     r.playerMaxRunSpeed = fieldOffset(player, "maxRunSpeed");
     r.playerRunAcceleration = fieldOffset(player, "runAcceleration");
