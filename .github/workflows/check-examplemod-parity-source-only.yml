@@ -11,6 +11,7 @@ on:
       - "tools/example_completion/check_assets.py"
       - "tools/example_completion/current_upstream.json"
       - "samples/ExampleModCSharp/Playable/content/**"
+      - "samples/ExampleModCSharp/Porting/**"
       - "tests/basic_items/**"
       - "samples/ExampleModCSharp/Playable/content/Content/Tiles/ExampleTile.cs"
       - "samples/ExampleModCSharp/Playable/content/Content/Items/Placeable/ExampleTileItem.cs"
@@ -52,4 +53,6 @@ jobs:
         run: dotnet run --project tests/basic_items/ItemBatch.csproj -c Release
       - name: Compile and test original CSharp tile + placeable item
         run: dotnet run --project tests/basic_items/tile_parity/TileParity.csproj -c Release
+      - name: Verify staged CSharp placeables without loading incomplete tiles
+        run: dotnet run --project tests/basic_items/placeable_stage/PlaceableStage.csproj -c Release
 
