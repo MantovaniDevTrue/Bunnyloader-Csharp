@@ -2,6 +2,7 @@
 #include "experiments/csharp/UniversalHookMailbox.h"
 #include "experiments/csharp/UniversalHooks.h"
 #include "experiments/csharp/ManagedRuntime.h"
+#include "experiments/csharp/NativeBiomeManifest.h"
 #include "graphics/ScreenScene.h"
 #include "experiments/csharp/ManagedVisualMonoPump.h"
 #include "experiments/csharp/ManagedVisualState.h"
@@ -311,6 +312,64 @@ struct SceneLightReply {
     std::chrono::steady_clock::time_point updated{};
     uint64_t generation = 0;
 };
+
+// Dedicated jobs for the existing pinned MonoVM worker. The game thread
+// queues snapshots only; Unity/IL2CPP pointers never leave that thread.
+// Cloud jobs are lower priority than player damage, entity AI and recipes.
+struct CloudWorkerBinding {
+    std::string modId, assemblyPath;
+    std::vector<std::pair<int, std::string>> types;
+    bool ready = false;
+    bool failed = false;
+    std::vector<std::string> biomeNames;
+    bool biomeReady = false;
+    bool biomeFailed = false;
+};
+struct CloudWorkerJob {
+    int kind = 0; // 0 Register+Bind; 1 Weight snapshot; 2 OnSpawn; 3 Clear
+    int binding = -1;
+    uint64_t session = 0;
+    uint64_t weightGeneration = 0;
+    bool gameMenu = false;
+    bool anniversary = false;
+    bool playerActive = false;
+    bool skyHeight = false;
+    bool overworldHeight = false;
+    float positionX = 0.f;
+    int maxTilesX = 0;
+    std::string tileCounts;
+    int biomeEvents = 1;
+    std::string biomes;
+    int type = -1, slot = -1, spriteDir = 0;
+    uint32_t cloudGeneration = 0;
+    float scale = 1.f;
+};
+std::vector<CloudWorkerBinding> g_cloudBindings;
+std::deque<CloudWorkerJob> g_cloudQueue;
+std::map<std::string, std::pair<uint64_t, std::string>> g_cloudWeightReplies;
+std::map<std::string, std::string> g_biomeManifestReplies;
+std::map<std::string, std::pair<uint64_t, std::string>> g_biomeActiveReplies;
+std::set<std::string> g_biomeSnapshotsPending;
+std::set<std::string> g_cloudWeightsPending;
+std::deque<ManagedCloudSpawnReply> g_cloudSpawnReplies;
+uint64_t g_cloudSession = 1;
+bool g_cloudClearPending = false;
+bool g_biomeResetPending = false;
+bool g_cloudDispatcherHealthy = true;
+std::chrono::steady_clock::time_point g_cloudClearRetryAt{};
+void* g_cloudRegisterMethod = nullptr;
+void* g_cloudBindMethod = nullptr;
+void* g_cloudWeightsMethod = nullptr;
+void* g_cloudSpawnMethod = nullptr;
+void* g_cloudUnregisterMethod = nullptr;
+void* g_cloudClearMethod = nullptr;
+void* g_biomeRegisterMethod = nullptr;
+void* g_biomeTilesMethod = nullptr;
+void* g_biomeEvaluateMethod = nullptr;
+void* g_biomeUnregisterMethod = nullptr;
+void* g_biomeClearMethod = nullptr;
+void* g_biomeResetWorldMethod = nullptr;
+
 std::vector<SceneLightBinding> g_sceneLightBindings;
 std::deque<SceneLightRequest> g_sceneLightQueue;
 std::map<std::string, SceneLightReply> g_sceneLightResults;
@@ -1476,6 +1535,211 @@ bool executeManagedSceneOnWorker(const SceneLightRequest& request,
     return true;
 }
 
+// Executed ONLY on the pinned MonoVM worker. Native content hooks never
+// invoke managed code directly. CSharp BunnyCloudDispatcher is loaded from
+// BunnySourceSdk.dll beside the existing Mono checkpoint, just like entities.
+bool executeManagedCloudOnWorker(const CloudWorkerJob& job,
+                                 std::string* weightReply,
+                                 int* spriteReply) {
+    std::lock_guard<std::mutex> monoGuard(g_mutex);
+    if (!g_domain || !g_status.domainInitialized || !g_status.methodExecuted ||
+        !g_api.attach || !g_api.openAssembly || !g_api.image ||
+        !g_api.findClass || !g_api.findMethod || !g_api.invoke ||
+        !g_api.unbox || !g_api.newString) return false;
+    if (!g_api.attach(g_domain)) return false;
+
+    if (!g_cloudRegisterMethod || !g_cloudBindMethod ||
+        !g_cloudWeightsMethod || !g_cloudSpawnMethod ||
+        !g_cloudUnregisterMethod || !g_cloudClearMethod ||
+        !g_biomeRegisterMethod || !g_biomeTilesMethod ||
+        !g_biomeEvaluateMethod || !g_biomeUnregisterMethod ||
+        !g_biomeClearMethod || !g_biomeResetWorldMethod) {
+        const size_t slash = g_checkpointPath.find_last_of('/');
+        if (slash == std::string::npos) return false;
+        const std::string sdk =
+            g_checkpointPath.substr(0, slash + 1) + "BunnySourceSdk.dll";
+        if (!validAssembly(sdk)) return false;
+        void* assembly = g_api.openAssembly(g_domain, sdk.c_str());
+        void* image = assembly ? g_api.image(assembly) : nullptr;
+        void* cls = image ? g_api.findClass(image, "BunnyLoader.Source",
+                                            "BunnyCloudDispatcher") : nullptr;
+        if (!cls) return false;
+        g_cloudRegisterMethod = g_api.findMethod(cls, "RegisterFromPath", 2);
+        g_cloudBindMethod = g_api.findMethod(cls, "Bind", 3);
+        g_cloudWeightsMethod = g_api.findMethod(cls, "WeightsWire", 4);
+        g_cloudSpawnMethod = g_api.findMethod(cls, "OnSpawnWire", 5);
+        g_cloudUnregisterMethod = g_api.findMethod(cls, "Unregister", 1);
+        g_cloudClearMethod = g_api.findMethod(cls, "Clear", 0);
+        void* biome = image ? g_api.findClass(
+            image, "BunnyLoader.Source", "BunnyBiomeDispatcher") : nullptr;
+        if (!biome) return false;
+        g_biomeRegisterMethod = g_api.findMethod(biome, "RegisterFromPath", 2);
+        g_biomeTilesMethod = g_api.findMethod(biome, "TilesWire", 1);
+        g_biomeEvaluateMethod = g_api.findMethod(biome, "EvaluateTicksWire", 9);
+        g_biomeUnregisterMethod = g_api.findMethod(biome, "Unregister", 1);
+        g_biomeClearMethod = g_api.findMethod(biome, "Clear", 0);
+        g_biomeResetWorldMethod = g_api.findMethod(biome, "ResetWorld", 0);
+        if (!g_cloudRegisterMethod || !g_cloudBindMethod ||
+            !g_cloudWeightsMethod || !g_cloudSpawnMethod ||
+            !g_cloudUnregisterMethod || !g_cloudClearMethod ||
+            !g_biomeRegisterMethod || !g_biomeTilesMethod ||
+            !g_biomeEvaluateMethod || !g_biomeUnregisterMethod ||
+            !g_biomeClearMethod || !g_biomeResetWorldMethod)
+            return false;
+    }
+
+    if (job.kind == 3) {
+        void* cloudException = nullptr;
+        void* biomeException = nullptr;
+        g_api.invoke(g_cloudClearMethod, nullptr, nullptr, &cloudException);
+        g_api.invoke(g_biomeClearMethod, nullptr, nullptr, &biomeException);
+        return cloudException == nullptr && biomeException == nullptr;
+    }
+    if (job.kind == 6) {
+        void* exception = nullptr;
+        g_api.invoke(g_biomeResetWorldMethod, nullptr, nullptr, &exception);
+        return exception == nullptr;
+    }
+
+    CloudWorkerBinding binding;
+    {
+        std::lock_guard<std::mutex> lock(g_pinnedMutex);
+        if (job.session != g_cloudSession || job.binding < 0 ||
+            static_cast<size_t>(job.binding) >= g_cloudBindings.size())
+            return false;
+        binding = g_cloudBindings[static_cast<size_t>(job.binding)];
+    }
+
+    void* mod = g_api.newString(g_domain, binding.modId.c_str());
+    if (!mod) return false;
+    auto managedBool = [&](void* method, void** args) -> bool {
+        void* exception = nullptr;
+        void* boxed = g_api.invoke(method, nullptr, args, &exception);
+        const auto* raw = exception || !boxed ? nullptr :
+            static_cast<const uint8_t*>(g_api.unbox(boxed));
+        return raw && *raw != 0;
+    };
+    auto managedText = [&](void* method, void** args,
+                           std::string* output) -> bool {
+        if (!output) return false;
+        void* exception = nullptr;
+        void* reply = g_api.invoke(method, nullptr, args, &exception);
+        if (exception || !reply) return false;
+        using Utf8Fn = char* (*)(void*);
+        using FreeFn = void (*)(void*);
+        static auto toUtf8 = resolve<Utf8Fn>("mono_string_to_utf8");
+        static auto monoFree = resolve<FreeFn>("mono_free");
+        if (!toUtf8 || !monoFree) return false;
+        char* encoded = toUtf8(reply);
+        if (!encoded) return false;
+        const size_t length = strnlen(encoded, 8193);
+        bool ok = length > 0 && length <= 8192;
+        if (ok) output->assign(encoded, length);
+        monoFree(encoded);
+        return ok;
+    };
+
+    if (job.kind == 0) {
+        if (!validAssembly(binding.assemblyPath)) return false;
+        void* path = g_api.newString(g_domain, binding.assemblyPath.c_str());
+        if (!path) return false;
+        void* registerArgs[] = {mod, path};
+        // RegisterFromPath instantiates all CSharp BunnyCloud descendants;
+        // roll back the entire mod if any native ID could not be bound.
+        if (!managedBool(g_cloudRegisterMethod, registerArgs))
+            return false;
+        for (const auto& [type, className] : binding.types) {
+            int nativeType = type;
+            void* name = g_api.newString(g_domain, className.c_str());
+            if (!name) {
+                void* args[] = {mod};
+                void* exception = nullptr;
+                g_api.invoke(g_cloudUnregisterMethod, nullptr, args, &exception);
+                return false;
+            }
+            void* args[] = {mod, name, &nativeType};
+            if (!managedBool(g_cloudBindMethod, args)) {
+                void* removeArgs[] = {mod};
+                void* exception = nullptr;
+                g_api.invoke(g_cloudUnregisterMethod, nullptr, removeArgs, &exception);
+                return false;
+            }
+        }
+        return true;
+    }
+
+    if (job.kind == 4 && weightReply) {
+        if (!validAssembly(binding.assemblyPath)) return false;
+        void* path = g_api.newString(g_domain, binding.assemblyPath.c_str());
+        if (!path) return false;
+        void* args[] = {mod, path};
+        if (!managedBool(g_biomeRegisterMethod, args)) return false;
+        void* manifestArgs[] = {mod};
+        if (!managedText(g_biomeTilesMethod, manifestArgs, weightReply))
+            return false;
+        std::vector<NativeBiomeDescriptor> records;
+        std::string validationError;
+        if (!appendNativeBiomeManifest(binding.modId, *weightReply,
+                                       &records, &validationError) ||
+            records.size() != binding.biomeNames.size())
+            return false;
+        for (const auto& record : records)
+            if (std::find(binding.biomeNames.begin(), binding.biomeNames.end(),
+                          record.className) == binding.biomeNames.end())
+                return false;
+        return true;
+    }
+
+    if (job.kind == 5 && weightReply) {
+        int maxTiles = job.maxTilesX;
+        int updates = job.biomeEvents;
+        float position = job.positionX;
+        bool menu = job.gameMenu;
+        bool active = job.playerActive;
+        bool sky = job.skyHeight, surface = job.overworldHeight;
+        void* tiles = g_api.newString(g_domain, job.tileCounts.c_str());
+        if (!tiles) return false;
+        void* args[] = {mod, &menu, &active, &position, &maxTiles,
+                         &sky, &surface, tiles, &updates};
+        return managedText(g_biomeEvaluateMethod, args, weightReply);
+    }
+
+    if (job.kind == 1) {
+        void* biomes = g_api.newString(g_domain, job.biomes.c_str());
+        if (!biomes || !weightReply) return false;
+        bool menu = job.gameMenu, anniversary = job.anniversary;
+        void* args[] = {mod, &menu, &anniversary, biomes};
+        void* exception = nullptr;
+        void* reply = g_api.invoke(g_cloudWeightsMethod, nullptr, args, &exception);
+        if (exception || !reply) return false;
+        using Utf8Fn = char* (*)(void*);
+        using FreeFn = void (*)(void*);
+        static auto toUtf8 = resolve<Utf8Fn>("mono_string_to_utf8");
+        static auto monoFree = resolve<FreeFn>("mono_free");
+        if (!toUtf8 || !monoFree) return false;
+        char* encoded = toUtf8(reply);
+        if (!encoded) return false;
+        const size_t length = strnlen(encoded, 8193);
+        const bool ok = length > 0 && length <= 8192;
+        if (ok) weightReply->assign(encoded, length);
+        monoFree(encoded);
+        return ok;
+    }
+
+    if (job.kind == 2 && spriteReply) {
+        int type = job.type, slot = job.slot, sprite = job.spriteDir;
+        float scale = job.scale;
+        void* args[] = {mod, &type, &slot, &scale, &sprite};
+        void* exception = nullptr;
+        void* boxed = g_api.invoke(g_cloudSpawnMethod, nullptr, args, &exception);
+        const void* raw = exception || !boxed ? nullptr : g_api.unbox(boxed);
+        if (!raw) return false;
+        std::memcpy(spriteReply, raw, sizeof(*spriteReply));
+        return *spriteReply >= 0 && *spriteReply <= 3;
+    }
+    return false;
+}
+
 void* pinnedMonoWorker(void*) {
     {
         std::lock_guard<std::mutex> lock(g_pinnedMutex);
@@ -1895,10 +2159,139 @@ void* pinnedMonoWorker(void*) {
                     }
                     continue;
                 }
+                // Cloud work has a bounded FIFO. By this point urgent
+                // hurt, recipe and entity jobs have already been serviced.
+                // Never hold g_pinnedMutex while invoking Mono methods.
+                if (g_cloudClearPending) {
+                    const auto now = std::chrono::steady_clock::now();
+                    if (now < g_cloudClearRetryAt) {
+                        // Avoid a busy MonoVM retry loop when the pinned
+                        // worker starts before its managed domain is ready.
+                        g_pinnedWake.wait_until(lock, g_cloudClearRetryAt);
+                        continue;
+                    }
+                    CloudWorkerJob reset{};
+                    reset.kind = 3;
+                    lock.unlock();
+                    const bool cleared =
+                        executeManagedCloudOnWorker(reset, nullptr, nullptr);
+                    lock.lock();
+                    g_cloudDispatcherHealthy = cleared;
+                    if (cleared) {
+                        g_cloudClearPending = false;
+                    } else {
+                        // A failed early reset must not permanently disable
+                        // every later registration. Retry after Mono starts;
+                        // keep all cloud jobs blocked until Clear succeeds.
+                        g_cloudClearRetryAt =
+                            std::chrono::steady_clock::now() +
+                            std::chrono::milliseconds(250);
+                    }
+                    continue;
+                }
+                if (g_biomeResetPending) {
+                    g_biomeResetPending = false;
+                    const uint64_t epoch = g_cloudSession;
+                    CloudWorkerJob job{};
+                    job.kind = 6;
+                    lock.unlock();
+                    const bool ok = executeManagedCloudOnWorker(job, nullptr, nullptr);
+                    lock.lock();
+                    if (!ok) {
+                        g_cloudDispatcherHealthy = false;
+                        g_cloudClearPending = true;
+                        g_cloudClearRetryAt = {};
+                        for (auto& binding : g_cloudBindings) {
+                            binding.ready = false;
+                            binding.failed = true;
+                            binding.biomeReady = false;
+                            binding.biomeFailed = true;
+                        }
+                        g_cloudQueue.clear();
+                        g_cloudWeightReplies.clear();
+                        g_biomeActiveReplies.clear();
+                        g_cloudSpawnReplies.clear();
+                        g_cloudWeightsPending.clear();
+                        g_biomeSnapshotsPending.clear();
+                    }
+                    if (epoch != g_cloudSession) g_biomeResetPending = true;
+                    continue;
+                }
+                if (!g_cloudQueue.empty()) {
+                    CloudWorkerJob job = std::move(g_cloudQueue.front());
+                    g_cloudQueue.pop_front();
+                    const std::string mod = job.binding >= 0 &&
+                        static_cast<size_t>(job.binding) < g_cloudBindings.size()
+                        ? g_cloudBindings[static_cast<size_t>(job.binding)].modId
+                        : std::string{};
+                    const bool backendReady = g_cloudDispatcherHealthy;
+                    lock.unlock();
+                    std::string wire;
+                    int spriteDir = -1;
+                    const bool ok = backendReady &&
+                        executeManagedCloudOnWorker(job, &wire, &spriteDir);
+                    lock.lock();
+                    if (job.session != g_cloudSession) continue;
+                    if (job.kind == 6) {
+                        if (!ok) {
+                            // If ResetWorld failed, native registrations
+                            // cannot claim that Mono still owns the classes.
+                            // Keep everything disabled until a full clear.
+                            g_cloudDispatcherHealthy = false;
+                            g_cloudClearPending = true;
+                            g_cloudClearRetryAt = {};
+                            for (auto& existing : g_cloudBindings) {
+                                existing.ready = false;
+                                existing.failed = true;
+                                existing.biomeReady = false;
+                                existing.biomeFailed = true;
+                            }
+                            g_cloudQueue.clear();
+                            g_cloudWeightReplies.clear();
+                            g_biomeActiveReplies.clear();
+                            g_cloudSpawnReplies.clear();
+                            g_cloudWeightsPending.clear();
+                            g_biomeSnapshotsPending.clear();
+                        }
+                        continue;
+                    }
+                    if (job.binding < 0 ||
+                        static_cast<size_t>(job.binding) >= g_cloudBindings.size() ||
+                        g_cloudBindings[static_cast<size_t>(job.binding)].modId != mod)
+                        continue;
+                    CloudWorkerBinding& binding =
+                        g_cloudBindings[static_cast<size_t>(job.binding)];
+                    if (job.kind == 0) {
+                        binding.ready = ok;
+                        binding.failed = !ok;
+                    } else if (job.kind == 1) {
+                        g_cloudWeightsPending.erase(mod);
+                        if (ok && binding.ready)
+                            g_cloudWeightReplies[mod] = {job.weightGeneration, std::move(wire)};
+                    } else if (job.kind == 2 && ok && binding.ready &&
+                               g_cloudSpawnReplies.size() < 128) {
+                        g_cloudSpawnReplies.push_back({
+                            job.type, job.slot, job.cloudGeneration,
+                            job.scale, job.spriteDir, spriteDir
+                        });
+                    } else if (job.kind == 4) {
+                        binding.biomeReady = ok;
+                        binding.biomeFailed = !ok;
+                        if (ok) g_biomeManifestReplies[mod] = std::move(wire);
+                    } else if (job.kind == 5) {
+                        g_biomeSnapshotsPending.erase(mod);
+                        if (ok && binding.biomeReady)
+                            g_biomeActiveReplies[mod] =
+                                {job.weightGeneration, std::move(wire)};
+                    }
+                    continue;
+                }
                 if (!g_auditEnabled) {
                     if (g_universalPolling.load(std::memory_order_acquire) ||
                         g_liveHitStatus.enabled || g_liveIngress.depth() != 0 ||
-                        !g_managedHurtQueue.empty() || !g_entityQueue.empty())
+                        !g_managedHurtQueue.empty() || !g_entityQueue.empty() ||
+                        !g_cloudQueue.empty() || g_cloudClearPending ||
+                        g_biomeResetPending)
                         g_pinnedWake.wait_for(lock, std::chrono::milliseconds(2));
                     else
                         g_pinnedWake.wait(lock);
@@ -1912,7 +2305,8 @@ void* pinnedMonoWorker(void*) {
                 if (g_pinnedWake.wait_until(lock, deadline, [] {
                     return g_pinnedPending || g_vmComparePending ||
                         !g_liveHitQueue.empty() || g_liveIngress.depth() != 0 ||
-                        !g_entityQueue.empty() || !g_recipeRpcQueue.empty();
+                        !g_entityQueue.empty() || !g_recipeRpcQueue.empty() ||
+                        !g_cloudQueue.empty() || g_cloudClearPending;
                 }))
                     continue;
                 if (std::chrono::steady_clock::now() < until) continue;
@@ -2063,6 +2457,320 @@ void resumeUniversalHookMods() {
     std::lock_guard<std::mutex> lock(g_pinnedMutex);
     g_universalEnabled = true;
     if (!g_universalMods.empty()) g_universalPolling.store(true, std::memory_order_release);
+    g_pinnedWake.notify_one();
+}
+
+// Registration queues one job per mod, then each cloud's type IDs are
+// bound on the pinned MonoVM worker. This is intentionally not called by the
+// source loader until native CloudMasks and hooks are proven safe.
+bool registerManagedBiomeSourceMod(
+    const std::string& modId, const std::string& assemblyPath,
+    const std::vector<std::string>& biomeClasses) {
+    if (!validNativeBiomeIdentifier(modId, true) ||
+        assemblyPath.empty() || assemblyPath.size() > 2048 ||
+        assemblyPath.find("..") != std::string::npos ||
+        biomeClasses.empty() || biomeClasses.size() > 64)
+        return false;
+
+    std::set<std::string> uniqueClasses;
+    for (const auto& name : biomeClasses)
+        if (!validNativeBiomeIdentifier(name, false) ||
+            !uniqueClasses.insert(name).second)
+            return false;
+
+    std::lock_guard<std::mutex> lock(g_pinnedMutex);
+    if (!g_cloudDispatcherHealthy || g_cloudQueue.size() >= 64)
+        return false;
+
+    size_t index = g_cloudBindings.size();
+    for (size_t i = 0; i < g_cloudBindings.size(); ++i) {
+        if (g_cloudBindings[i].modId != modId) continue;
+        if (g_cloudBindings[i].assemblyPath != assemblyPath ||
+            !g_cloudBindings[i].biomeNames.empty())
+            return false;
+        index = i;
+        break;
+    }
+    if (index == g_cloudBindings.size()) {
+        if (g_cloudBindings.size() >= 16) return false;
+        g_cloudBindings.push_back({modId, assemblyPath, {}, false, false});
+    }
+    g_cloudBindings[index].biomeNames = biomeClasses;
+    CloudWorkerJob job{};
+    job.kind = 4;
+    job.binding = static_cast<int>(index);
+    job.session = g_cloudSession;
+    g_cloudQueue.push_back(std::move(job));
+    g_pinnedWake.notify_one();
+    return true;
+}
+
+bool managedBiomeRegistrationReady(const std::string& modId) {
+    std::unique_lock<std::mutex> lock(g_pinnedMutex, std::try_to_lock);
+    if (!lock.owns_lock() || !g_cloudDispatcherHealthy) return false;
+    for (const auto& binding : g_cloudBindings)
+        if (binding.modId == modId)
+            return binding.biomeReady && !binding.biomeFailed;
+    return false;
+}
+
+bool takeManagedBiomeManifest(const std::string& modId,
+                              std::string* result) {
+    if (!result) return false;
+    std::unique_lock<std::mutex> lock(g_pinnedMutex, std::try_to_lock);
+    if (!lock.owns_lock()) return false;
+    auto found = g_biomeManifestReplies.find(modId);
+    if (found == g_biomeManifestReplies.end()) return false;
+    *result = std::move(found->second);
+    g_biomeManifestReplies.erase(found);
+    return true;
+}
+
+bool requestManagedBiomeSnapshot(const std::string& modId,
+    bool gameMenu, bool playerActive, float positionX, int maxTilesX,
+    bool zoneSkyHeight, bool zoneOverworldHeight,
+    const std::string& tileCountsWire, uint32_t updateEvents,
+    uint64_t generation) {
+    if (generation == 0 || updateEvents == 0 || updateEvents > 64 ||
+        tileCountsWire.size() > 4096 ||
+        !std::isfinite(positionX) ||
+        maxTilesX < 0 || maxTilesX > 100000 ||
+        (!gameMenu && !playerActive) ||
+        tileCountsWire.find_first_not_of(
+            "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_=;-") !=
+            std::string::npos)
+        return false;
+
+    std::unique_lock<std::mutex> lock(g_pinnedMutex, std::try_to_lock);
+    if (!lock.owns_lock() || !g_cloudDispatcherHealthy ||
+        !g_pinnedStarted || g_pinnedPending || g_cloudQueue.size() >= 64 ||
+        g_biomeSnapshotsPending.count(modId) ||
+        g_biomeActiveReplies.count(modId))
+        return false;
+    for (size_t i = 0; i < g_cloudBindings.size(); ++i) {
+        const auto& binding = g_cloudBindings[i];
+        if (binding.modId != modId ||
+            !binding.biomeReady || binding.biomeFailed)
+            continue;
+
+        CloudWorkerJob job{};
+        job.kind = 5;
+        job.binding = static_cast<int>(i);
+        job.session = g_cloudSession;
+        job.weightGeneration = generation;
+        job.gameMenu = gameMenu;
+        job.playerActive = playerActive;
+        job.positionX = positionX;
+        job.maxTilesX = maxTilesX;
+        job.skyHeight = zoneSkyHeight;
+        job.overworldHeight = zoneOverworldHeight;
+        job.tileCounts = tileCountsWire;
+        job.biomeEvents = static_cast<int>(updateEvents);
+        g_cloudQueue.push_back(std::move(job));
+        g_biomeSnapshotsPending.insert(modId);
+        g_pinnedWake.notify_one();
+        return true;
+    }
+    return false;
+}
+
+bool takeManagedBiomeSnapshot(const std::string& modId,
+    uint64_t generation, std::string* result) {
+    if (!result || generation == 0) return false;
+    std::unique_lock<std::mutex> lock(g_pinnedMutex, std::try_to_lock);
+    if (!lock.owns_lock()) return false;
+    auto found = g_biomeActiveReplies.find(modId);
+    if (found == g_biomeActiveReplies.end()) return false;
+    const bool current = found->second.first == generation;
+    if (current) *result = std::move(found->second.second);
+    g_biomeActiveReplies.erase(found);
+    return current;
+}
+
+bool registerManagedCloudSourceMod(
+    const std::string& modId, const std::string& assemblyPath,
+    const std::vector<std::pair<int, std::string>>& clouds) {
+    if (modId.empty() || modId.size() > 72 ||
+        modId.find_first_not_of(
+            "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-") !=
+            std::string::npos ||
+        assemblyPath.empty() || assemblyPath.size() > 2048 ||
+        assemblyPath.find("..") != std::string::npos ||
+        clouds.empty() || clouds.size() > 128)
+        return false;
+    std::set<int> uniqueTypes;
+    std::set<std::string> uniqueNames;
+    for (const auto& [type, name] : clouds) {
+        if (type <= 0 || type > 16384 ||
+            name.empty() || name.size() > 72 ||
+            name.find_first_not_of(
+                "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_") !=
+                std::string::npos ||
+            !uniqueTypes.insert(type).second ||
+            !uniqueNames.insert(name).second)
+            return false;
+    }
+    std::lock_guard<std::mutex> lock(g_pinnedMutex);
+    if (g_cloudQueue.size() >= 64) return false;
+    size_t index = g_cloudBindings.size();
+    for (size_t i = 0; i < g_cloudBindings.size(); ++i) {
+        const auto& existing = g_cloudBindings[i];
+        if (existing.modId == modId) {
+            if (existing.assemblyPath != assemblyPath ||
+                !existing.types.empty()) return false;
+            index = i;
+        }
+        for (const auto& [type, unused] : existing.types)
+            if (uniqueTypes.count(type)) return false;
+    }
+    if (index == g_cloudBindings.size()) {
+        if (g_cloudBindings.size() >= 16) return false;
+        g_cloudBindings.push_back({modId, assemblyPath, clouds, false, false});
+    } else {
+        g_cloudBindings[index].types = clouds;
+    }
+    const int binding = static_cast<int>(index);
+    CloudWorkerJob job{};
+    job.kind = 0;
+    job.binding = binding;
+    job.session = g_cloudSession;
+    g_cloudQueue.push_back(std::move(job));
+    g_pinnedWake.notify_one();
+    return true;
+}
+
+bool managedCloudRegistrationReady(const std::string& modId) {
+    std::unique_lock<std::mutex> lock(g_pinnedMutex, std::try_to_lock);
+    if (!lock.owns_lock() || !g_cloudDispatcherHealthy) return false;
+    for (const auto& entry : g_cloudBindings)
+        if (entry.modId == modId) return entry.ready && !entry.failed;
+    return false;
+}
+
+bool requestManagedCloudWeights(const std::string& modId, bool gameMenu,
+    bool tenthAnniversaryWorld, const std::string& biomeKeys,
+    uint64_t batchGeneration) {
+    if (biomeKeys.size() > 4096 || batchGeneration == 0) return false;
+    std::unique_lock<std::mutex> lock(g_pinnedMutex, std::try_to_lock);
+    if (!lock.owns_lock() || !g_cloudDispatcherHealthy ||
+        !g_pinnedStarted || g_pinnedPending || g_cloudQueue.size() >= 64 ||
+        g_cloudWeightsPending.count(modId) || g_cloudWeightReplies.count(modId))
+        return false;
+    for (size_t i = 0; i < g_cloudBindings.size(); ++i) {
+        if (g_cloudBindings[i].modId != modId ||
+            !g_cloudBindings[i].ready || g_cloudBindings[i].failed)
+            continue;
+        CloudWorkerJob job{};
+        job.kind = 1;
+        job.weightGeneration = batchGeneration;
+        job.binding = static_cast<int>(i);
+        job.session = g_cloudSession;
+        job.gameMenu = gameMenu;
+        job.anniversary = tenthAnniversaryWorld;
+        job.biomes = biomeKeys;
+        g_cloudQueue.push_back(std::move(job));
+        g_cloudWeightsPending.insert(modId);
+        g_pinnedWake.notify_one();
+        return true;
+    }
+    return false;
+}
+
+bool takeManagedCloudWeights(const std::string& modId,
+    uint64_t batchGeneration, std::string* payload) {
+    if (!payload) return false;
+    std::unique_lock<std::mutex> lock(g_pinnedMutex, std::try_to_lock);
+    if (!lock.owns_lock()) return false;
+    auto found = g_cloudWeightReplies.find(modId);
+    if (found == g_cloudWeightReplies.end()) return false;
+    const bool fresh = found->second.first == batchGeneration;
+    if (fresh) *payload = std::move(found->second.second);
+    g_cloudWeightReplies.erase(found);
+    return fresh;
+}
+
+bool queueManagedCloudOnSpawn(const std::string& modId, int type, int slot,
+    uint32_t generation, float scale, int spriteDir) {
+    if (type <= 0 || type > 16384 || slot < 0 || slot >= 200 ||
+        generation == 0 || !std::isfinite(scale) || scale <= 0.f ||
+        scale > 10.f || (spriteDir & ~3) != 0)
+        return false;
+    std::unique_lock<std::mutex> lock(g_pinnedMutex, std::try_to_lock);
+    if (!lock.owns_lock() || !g_cloudDispatcherHealthy ||
+        !g_pinnedStarted || g_pinnedPending || g_cloudQueue.size() >= 64)
+        return false;
+    for (size_t i = 0; i < g_cloudBindings.size(); ++i) {
+        auto& binding = g_cloudBindings[i];
+        if (binding.modId != modId || !binding.ready || binding.failed)
+            continue;
+        bool owned = false;
+        for (const auto& [id, name] : binding.types)
+            if (id == type) { owned = true; break; }
+        if (!owned) return false;
+        CloudWorkerJob job{};
+        job.kind = 2;
+        job.binding = static_cast<int>(i);
+        job.session = g_cloudSession;
+        job.type = type;
+        job.slot = slot;
+        job.cloudGeneration = generation;
+        job.scale = scale;
+        job.spriteDir = spriteDir;
+        g_cloudQueue.push_back(std::move(job));
+        g_pinnedWake.notify_one();
+        return true;
+    }
+    return false;
+}
+
+bool takeManagedCloudOnSpawnReply(ManagedCloudSpawnReply* reply) {
+    if (!reply) return false;
+    std::unique_lock<std::mutex> lock(g_pinnedMutex, std::try_to_lock);
+    if (!lock.owns_lock() || g_cloudSpawnReplies.empty()) return false;
+    *reply = g_cloudSpawnReplies.front();
+    g_cloudSpawnReplies.pop_front();
+    return true;
+}
+
+// A world change cancels only in-flight cloud calculations. Keep the
+// registered C# assemblies and class/ID bindings: a world reload should not
+// require recompiling DLLs or losing already-registered BunnyCloud types.
+void resetManagedCloudWorldSession() {
+    std::lock_guard<std::mutex> lock(g_pinnedMutex);
+    ++g_cloudSession;
+    if (g_cloudSession == 0) ++g_cloudSession;
+    g_cloudQueue.clear();
+    g_cloudWeightsPending.clear();
+    g_cloudWeightReplies.clear();
+    g_cloudSpawnReplies.clear();
+    g_biomeActiveReplies.clear();
+    g_biomeSnapshotsPending.clear();
+    g_biomeResetPending = std::any_of(
+        g_cloudBindings.begin(), g_cloudBindings.end(),
+        [](const CloudWorkerBinding& binding) {
+            return binding.biomeReady && !binding.biomeFailed;
+        });
+    g_pinnedWake.notify_one();
+}
+
+void pauseManagedCloudCallbacks() {
+    std::lock_guard<std::mutex> lock(g_pinnedMutex);
+    ++g_cloudSession;
+    if (!g_cloudSession) ++g_cloudSession;
+    g_cloudQueue.clear();
+    g_cloudBindings.clear();
+    g_cloudWeightsPending.clear();
+    g_cloudWeightReplies.clear();
+    g_cloudSpawnReplies.clear();
+    g_biomeManifestReplies.clear();
+    g_biomeActiveReplies.clear();
+    g_biomeSnapshotsPending.clear();
+    // Reset the SDK static dispatcher on the worker, including registrations
+    // from an in-flight old-world job, before accepting new registrations.
+    g_cloudClearPending = true;
+    g_biomeResetPending = false;
+    g_cloudClearRetryAt = {};
+    g_cloudDispatcherHealthy = false;
     g_pinnedWake.notify_one();
 }
 

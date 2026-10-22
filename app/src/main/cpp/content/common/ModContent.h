@@ -21,4 +21,8 @@ void tickContentReady();
  */
 bool contentSettled();
 
+// Becomes true only after tickContentReady has completed every JS Ready/setup
+// callback on the game thread, or there were no JS callbacks registered.
+bool contentReadyCallbacksCompleted();
+
 } // namespace bl::runtime

@@ -119,12 +119,19 @@ public static class CompiledAssemblyProbe
             var screenEffectTypes = contentTypes
                 .Where(type => IsContentType(type, "BunnyScreenEffect"))
                 .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
+            var cloudTypes = contentTypes
+                .Where(type => IsContentType(type, "BunnyCloud"))
+                .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
+            var biomeTypes = contentTypes
+                .Where(type => IsContentType(type, "BunnyBiome"))
+                .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
             if (tileTypes.Length > 4096 || prefixTypes.Length > 4096 || npcTypes.Length > 4096 || accessoryTypes.Length > 4096 || playerTypes.Length > 4096 ||
                 projectileTypes.Length > 4096 ||
                 weaponTypes.Length > 4096 || basicItemTypes.Length > 4096 ||
-                buffTypes.Length > 4096 || potionTypes.Length > 4096 || screenEffectTypes.Length > 4096)
+                buffTypes.Length > 4096 || potionTypes.Length > 4096 || screenEffectTypes.Length > 4096 || cloudTypes.Length > 128 ||
+                biomeTypes.Length > 64)
                 throw new InvalidOperationException("C# content class count out of bounds");
-            if (tileTypes.Length + basicItemTypes.Length + projectileTypes.Length + weaponTypes.Length + buffTypes.Length + potionTypes.Length + accessoryTypes.Length + playerTypes.Length + npcTypes.Length + prefixTypes.Length + screenEffectTypes.Length == 0)
+            if (tileTypes.Length + basicItemTypes.Length + projectileTypes.Length + weaponTypes.Length + buffTypes.Length + potionTypes.Length + accessoryTypes.Length + playerTypes.Length + npcTypes.Length + prefixTypes.Length + screenEffectTypes.Length + cloudTypes.Length + biomeTypes.Length == 0)
                 throw new InvalidOperationException("C# assembly has no supported content types");
             bool fixture = projectileTypes.Any(t => t.FullName == "SourceCSharpMod.SourceBolt") &&
                 weaponTypes.Any(t => t.FullName == "SourceCSharpMod.SourceWand");
@@ -145,6 +152,8 @@ public static class CompiledAssemblyProbe
             object[] npcs = npcTypes.Select(CreateContent).ToArray();
             object[] prefixes = prefixTypes.Select(CreateContent).ToArray();
             object[] screenEffects = screenEffectTypes.Select(CreateContent).ToArray();
+            object[] clouds = cloudTypes.Select(CreateContent).ToArray();
+            object[] biomes = biomeTypes.Select(CreateBiomeContent).ToArray();
             foreach (object effect in screenEffects)
             {
                 string shader = (string)effect.GetType().GetProperty("ShaderFile")!.GetValue(effect)!;
@@ -152,6 +161,8 @@ public static class CompiledAssemblyProbe
                 if (string.IsNullOrWhiteSpace(shader) == string.IsNullOrWhiteSpace(pipeline))
                     throw new InvalidOperationException(effect.GetType().FullName + ": exactly one ShaderFile or PipelineFile required");
             }
+            WriteCloudMetadata(clouds, diagnosticsPath);
+            WriteBiomeMetadata(biomes, diagnosticsPath);
             WriteRuntimeDefaults(projectiles, weapons, buffs, potions,
                 accessories, players, npcs, prefixes, basicItems, tiles, diagnosticsPath);
             WriteProjectileMotionPolicies(assembly, projectileTypes, diagnosticsPath);
@@ -165,17 +176,18 @@ public static class CompiledAssemblyProbe
                 WriteKillPolicy(primaryProjectile!, diagnosticsPath);
             }
             File.AppendAllText(diagnosticsPath,
-                "\nASSEMBLY_EXEC_OK classes=" + (tiles.Length + projectiles.Length + weapons.Length + buffs.Length + potions.Length + accessories.Length + players.Length + npcs.Length + prefixes.Length + basicItems.Length + screenEffects.Length) +
+                "\nASSEMBLY_EXEC_OK classes=" + (tiles.Length + projectiles.Length + weapons.Length + buffs.Length + potions.Length + accessories.Length + players.Length + npcs.Length + prefixes.Length + basicItems.Length + screenEffects.Length + clouds.Length + biomes.Length) +
                 " projectiles=" + projectiles.Length + " weapons=" + weapons.Length +
                 " buffs=" + buffs.Length + " potions=" + potions.Length +
                 " accessories=" + accessories.Length + " players=" + players.Length +
                 " npcs=" + npcs.Length + " tiles=" + tiles.Length + " prefixes=" + prefixes.Length +
-                " screenEffects=" + screenEffects.Length +
+                " screenEffects=" + screenEffects.Length + " clouds=" + clouds.Length +
+                 " biomes=" + biomes.Length +
                 (fixture
                     ? " projectile=SourceBolt width=10 weapon=SourceWand damage=22 shoot=SourceBolt"
                     : " policy=generic-managed-defaults"));
             return projectiles.Length + weapons.Length + buffs.Length + potions.Length +
-                accessories.Length + players.Length + npcs.Length + prefixes.Length + basicItems.Length + tiles.Length + screenEffects.Length;
+                accessories.Length + players.Length + npcs.Length + prefixes.Length + basicItems.Length + tiles.Length + screenEffects.Length + clouds.Length + biomes.Length;
         }
         catch (Exception exception)
         {
@@ -194,6 +206,17 @@ public static class CompiledAssemblyProbe
             ?? throw new InvalidOperationException("Missing SetDefaults in " + type.Name);
         method.Invoke(instance, null);
         ValidateDeclaration(instance);
+        return instance;
+    }
+
+    private static object CreateBiomeContent(Type type)
+    {
+        object instance = Activator.CreateInstance(type)
+            ?? throw new InvalidOperationException("Cannot instantiate biome " + type.FullName);
+        type.GetMethod("SetStaticDefaults", BindingFlags.Public | BindingFlags.Instance)!
+            .Invoke(instance, null);
+        type.GetMethod("Validate", BindingFlags.Public | BindingFlags.Instance)!
+            .Invoke(instance, null);
         return instance;
     }
 
@@ -509,6 +532,92 @@ public static class CompiledAssemblyProbe
             "\nHOMING_POLICY_OK samples=129 radius=" +
             radius.ToString(CultureInfo.InvariantCulture) + " retarget=" +
             retarget.ToString(CultureInfo.InvariantCulture));
+    }
+
+    // Independent CSharp-only catalogue. The native source loader deliberately
+    // refuses these classes until it can install safe Terraria cloud masks.
+    // Never mix CLOUD lines into the existing managed-defaults V2 protocol.
+    private static void WriteBiomeMetadata(object[] biomes, string diagnosticsPath)
+    {
+        string directory = Path.GetDirectoryName(diagnosticsPath)
+            ?? throw new InvalidOperationException("Missing diagnostics directory");
+        string path = Path.Combine(directory, "source-biomes-v1.txt");
+        if (biomes.Length == 0)
+        {
+            if (File.Exists(path)) File.Delete(path);
+            return;
+        }
+        var names = new HashSet<string>(StringComparer.Ordinal);
+        var rows = new List<string> { "BUNNY_BIOMES_V1" };
+        foreach (object biome in biomes)
+        {
+            Type type = biome.GetType();
+            string name = type.Name;
+            if (name.Length == 0 || name.Length > 72 ||
+                name.Any(ch => !char.IsAsciiLetterOrDigit(ch) && ch != '_') ||
+                !names.Add(name))
+                throw new InvalidOperationException("Invalid or repeated BunnyBiome " + name);
+
+            var tiles = type.GetProperty("CountedTiles")!.GetValue(biome)
+                as IEnumerable<string>
+                ?? throw new InvalidOperationException("BunnyBiome missing CountedTiles " + name);
+            string[] tileNames = tiles.ToArray();
+            if (tileNames.Length > 32 || tileNames.Any(tile =>
+                    tile.Length == 0 || tile.Length > 72 ||
+                    tile.Any(ch => !char.IsAsciiLetterOrDigit(ch) && ch != '_')) ||
+                tileNames.Distinct(StringComparer.Ordinal).Count() != tileNames.Length)
+                throw new InvalidOperationException("Invalid BunnyBiome tile dependencies " + name);
+            rows.Add(string.Join("\t", "BIOME", name, string.Join(",", tileNames)));
+        }
+        File.WriteAllText(path + ".tmp", string.Join("\n", rows) + "\n");
+        File.Move(path + ".tmp", path, true);
+        File.AppendAllText(diagnosticsPath, "\nBIOMES_SOURCE_ONLY_OK count=" +
+            biomes.Length + " activation=NativeBiomeRegistryNotInstalled");
+    }
+
+    private static void WriteCloudMetadata(object[] clouds, string diagnosticsPath)
+    {
+        string directory = Path.GetDirectoryName(diagnosticsPath)
+            ?? throw new InvalidOperationException("Missing diagnostics directory");
+        string path = Path.Combine(directory, "source-clouds-v1.txt");
+        if (clouds.Length == 0)
+        {
+            if (File.Exists(path)) File.Delete(path);
+            return;
+        }
+        var names = new HashSet<string>(StringComparer.Ordinal);
+        var rows = new List<string> { "BUNNY_CLOUDS_V1" };
+        foreach (object cloud in clouds)
+        {
+            Type type = cloud.GetType();
+            string name = type.Name;
+            if (name.Length == 0 || name.Length > 72 ||
+                name.Any(ch => !char.IsAsciiLetterOrDigit(ch) && ch != '_') ||
+                !names.Add(name))
+                throw new InvalidOperationException("Invalid or duplicate BunnyCloud name: " + name);
+
+            MethodInfo validate = type.GetMethod("Validate",
+                BindingFlags.Public | BindingFlags.Instance)
+                ?? throw new InvalidOperationException("Missing BunnyCloud.Validate: " + name);
+            validate.Invoke(cloud, null);
+            MethodInfo setStaticDefaults = type.GetMethod("SetStaticDefaults",
+                BindingFlags.Public | BindingFlags.Instance)
+                ?? throw new InvalidOperationException("Missing BunnyCloud.SetStaticDefaults: " + name);
+            setStaticDefaults.Invoke(cloud, null);
+
+            string texture = (string)(type.GetProperty("Texture")!.GetValue(cloud)
+                ?? throw new InvalidOperationException("Missing BunnyCloud.Texture: " + name));
+            bool rare = (bool)(type.GetProperty("RareCloud")!.GetValue(cloud)
+                ?? throw new InvalidOperationException("Missing BunnyCloud.RareCloud: " + name));
+            rows.Add(string.Join("\t", "CLOUD", name, texture, rare ? "1" : "0"));
+        }
+
+        string temp = path + ".tmp";
+        File.WriteAllText(temp, string.Join("\n", rows) + "\n");
+        File.Move(temp, path, true);
+        File.AppendAllText(diagnosticsPath,
+            "\nCLOUDS_SOURCE_ONLY_OK count=" + clouds.Length +
+            " activation=NativeCloudHooksAndMasksNotInstalled");
     }
 
     private static void WriteRuntimeDefaults(object[] projectiles, object[] weapons,

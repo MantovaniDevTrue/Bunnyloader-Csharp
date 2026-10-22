@@ -13,6 +13,8 @@ inline std::string_view sourceContentDomain(std::string_view base) {
     if (base == "BunnyPrefix") return "PREFIX";
     if (base == "BunnyPlayer") return "PLAYER";
     if (base == "BunnyTile") return "TILE";
+    if (base == "BunnyCloud") return "CLOUD";
+    if (base == "BunnyBiome") return "BIOME";
     if (base == "BunnyScreenEffect") return "SCREEN_EFFECT";
     return {};
 }

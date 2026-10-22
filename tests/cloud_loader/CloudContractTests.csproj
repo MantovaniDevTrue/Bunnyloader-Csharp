@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../experiments/csharp/BunnyCsSdk/BunnyCloud.cs" Link="BunnyCloud.cs" />
+    <Compile Include="../../experiments/csharp/BunnyCsSdk/BunnyCloudDispatcher.cs" Link="BunnyCloudDispatcher.cs" />
+    <Compile Include="managed_examples/*.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../experiments/csharp/BunnySourceCompiler/BunnySourceCompiler.csproj" />
+  </ItemGroup>
+</Project>

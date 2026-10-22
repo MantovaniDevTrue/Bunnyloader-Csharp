@@ -18,6 +18,10 @@
     <Compile Include="../BunnyCsSdk/BunnyRecipeBehavior.cs" Link="BunnyRecipeBehavior.cs" />
     <Compile Include="../BunnyCsSdk/BunnyRecipeSource.cs" Link="BunnyRecipeSource.cs" />
     <Compile Include="../BunnyCsSdk/BunnyItem.cs" Link="BunnyItem.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyCloud.cs" Link="BunnyCloud.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyCloudDispatcher.cs" Link="BunnyCloudDispatcher.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyBiome.cs" Link="BunnyBiome.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyBiomeDispatcher.cs" Link="BunnyBiomeDispatcher.cs" />
     <Compile Include="../BunnyCsSdk/BunnyNativeDefaults.cs" Link="BunnyNativeDefaults.cs" />
     <Compile Include="../BunnyCsSdk/BunnyHoldout.cs" Link="BunnyHoldout.cs" />
     <Compile Include="../BunnyCsSdk/BunnySoundStyle.cs" Link="BunnySoundStyle.cs" />

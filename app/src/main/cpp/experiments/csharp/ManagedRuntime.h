@@ -34,6 +34,47 @@ bool readManagedScreenScene(const std::string& modId,
                             ManagedScreenLightResult* result);
 void pauseManagedScreenSceneCallbacks();
 
+struct ManagedCloudSpawnReply {
+    int type = -1;
+    int slot = -1;
+    uint32_t generation = 0;
+    float scale = 1.f;
+    int originalSpriteDir = 0;
+    int spriteDir = -1;
+};
+
+// Worker MonoVM reutilizado: registra classes e executa os métodos
+// BunnyCloudDispatcher na thread fixada, jamais dentro de Cloud.addCloud.
+// Chamadas do Terraria recebem apenas snapshots de dados primitivos.
+bool registerManagedCloudSourceMod(
+    const std::string& modId, const std::string& assemblyPath,
+    const std::vector<std::pair<int, std::string>>& clouds);
+bool managedCloudRegistrationReady(const std::string& modId);
+bool requestManagedCloudWeights(const std::string& modId, bool gameMenu,
+    bool tenthAnniversaryWorld, const std::string& biomeKeys,
+    uint64_t batchGeneration);
+bool takeManagedCloudWeights(const std::string& modId,
+    uint64_t batchGeneration, std::string* payload);
+bool queueManagedCloudOnSpawn(const std::string& modId, int type, int slot,
+    uint32_t generation, float scale, int spriteDir);
+bool takeManagedCloudOnSpawnReply(ManagedCloudSpawnReply* reply);
+bool registerManagedBiomeSourceMod(
+    const std::string& modId, const std::string& assemblyPath,
+    const std::vector<std::string>& biomeClasses);
+bool managedBiomeRegistrationReady(const std::string& modId);
+bool takeManagedBiomeManifest(const std::string& modId, std::string* result);
+bool requestManagedBiomeSnapshot(const std::string& modId,
+    bool gameMenu, bool playerActive, float positionX, int maxTilesX,
+    bool zoneSkyHeight, bool zoneOverworldHeight,
+    const std::string& tileCountsWire, uint32_t updateEvents,
+    uint64_t generation);
+bool takeManagedBiomeSnapshot(
+    const std::string& modId, uint64_t generation, std::string* result);
+
+void resetManagedCloudWorldSession();
+void pauseManagedCloudCallbacks();
+
+
 
 struct ManagedHurtResult {
     int damage = 0;
