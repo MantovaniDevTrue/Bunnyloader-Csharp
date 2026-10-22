@@ -51,6 +51,7 @@
 #include "menu/NetRequests.h"
 #include "experiments/csharp/MonoServiceDispatch.h"
 #include "experiments/csharp/SourceLoader.h"
+#include "experiments/csharp/ManagedBannerWorldSession.h"
 #include "experiments/csharp/ManagedDustBindingSelection.h"
 #include "experiments/csharp/ManagedSourceClassCount.h"
 #include "il2cpp/Api.h"
@@ -1398,11 +1399,40 @@ void noteAutoGameUpdate() {
     pumpReliableNpcKillsOnGameThread();
     pumpNativeItemUseBindingsOnGameThread();
     static uint64_t lastSaveWorldSession = 0;
+    static uint64_t restoredBannerWorld = 0;
+    static unsigned bannerRestoreTicks = 0;
+    static unsigned bannerRestoreFailures = 0;
     if (!invasionWorldReady) {
         lastSaveWorldSession = 0;
+        restoredBannerWorld = 0;
+        bannerRestoreTicks = 0;
+        bannerRestoreFailures = 0;
     } else if (lastSaveWorldSession != invasionWorldEpoch) {
         updateNativeInvasionWorldPath(true, invasionWorldEpoch);
         lastSaveWorldSession = invasionWorldEpoch;
+        bannerRestoreTicks = 0;
+        bannerRestoreFailures = 0;
+    }
+    if (invasionWorldReady && worldIsAuthoritative(runtime::netMode()) &&
+        restoredBannerWorld != invasionWorldEpoch && sourceHasBannerMappings() &&
+        ++bannerRestoreTicks >= 60) {
+        bannerRestoreTicks = 0;
+        const auto disk = banners::worldSession().status();
+        if (disk != banners::DiskResult::Ok &&
+            disk != banners::DiskResult::Missing) {
+            BL_WARN("[CSharp][BannerLoader] restauracao cancelada: world sidecar indisponivel (%d)",
+                    static_cast<int>(disk));
+            restoredBannerWorld = invasionWorldEpoch;
+        } else {
+            std::string bannerError;
+            if (restoreBannerWorldCountersOnGameThread(invasionWorldEpoch, &bannerError)) {
+                restoredBannerWorld = invasionWorldEpoch;
+                BL_INFO("[CSharp][BannerLoader] contadores restaurados para worldEpoch=%llu",
+                        static_cast<unsigned long long>(invasionWorldEpoch));
+            } else if (++bannerRestoreFailures == 1 || bannerRestoreFailures % 10 == 0) {
+                BL_WARN("[CSharp][BannerLoader] restauracao adiada: %s", bannerError.c_str());
+            }
+        }
     }
     universalNativeService.store(pumpNativeAccessOnGameThread,std::memory_order_release);
     pumpNativeAccessOnGameThread();
