@@ -6,6 +6,7 @@
 #include "experiments/csharp/ManagedBannerWorldSession.h"
 #include "experiments/csharp/ManagedBannerSaveHooks.h"
 #include "experiments/csharp/ManagedBannerMetrics.h"
+#include "experiments/csharp/ManagedBannerStrength.h"
 #include "experiments/csharp/NativeTileWirePolicy.h"
 #include "experiments/csharp/SourceLoader.h"
 #include "experiments/csharp/NativeRarityRegistry.h"
@@ -1738,6 +1739,10 @@ bool prepareBannerWorldArraysOnGameThread(std::string* error) {
     // Nao ativar antes do sidecar, refresh, rede e tile completos.
     banners::setBannerLookupsActive(false);
     return true;
+}
+
+bool prepareBannerStrengthOnGameThread(std::string* error) {
+    return banners::enableManagedBannerStrengthOnMainThread(error);
 }
 
 bool sourceHasBannerMappings() {
