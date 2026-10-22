@@ -23,6 +23,7 @@ public sealed class BunnyAchievementStore
     public BunnyAchievementStore(BunnyAchievementRegistry registry)
         => this.registry = registry ?? throw new ArgumentNullException(nameof(registry));
 
+    private string? configuredModUid;
     public bool IsConfigured => configured;
     public string Filename => filename ?? "";
 
@@ -54,9 +55,67 @@ public sealed class BunnyAchievementStore
             registry.Load(saved);
         }
         filename = path;
+        configuredModUid = modUid;
         persistedVersion = registry.ProgressChanges;
         lastWrite = DateTime.UtcNow;
         configured = true;
+    }
+
+    public void SwitchProfile(string directory, string modUid)
+    {
+        if (!configured || filename == null || configuredModUid != modUid)
+            throw new InvalidOperationException("Achievement profile not configured for this mod");
+        if (string.IsNullOrWhiteSpace(directory) ||
+            !Path.IsPathFullyQualified(directory) ||
+            directory.Length > 2048 || !Directory.Exists(directory))
+            throw new ArgumentException("Achievement profile directory must exist", nameof(directory));
+
+        string destination = Path.Combine(Path.GetFullPath(directory), modUid + ".bach");
+        if (string.Equals(filename, destination, StringComparison.Ordinal))
+            return;
+
+        string? incoming = null;
+        if (File.Exists(destination))
+        {
+            var info = new FileInfo(destination);
+            if (info.Length < 1 || info.Length > MaxBytes)
+                throw new InvalidDataException("Achievement profile size invalid");
+            incoming = new UTF8Encoding(false, true).GetString(File.ReadAllBytes(destination));
+        }
+
+        // Worker FIFO serializes the transition. A failed restore must leave
+        // the current character and its save path untouched.
+        string previous = registry.Save();
+        try
+        {
+            registry.Load(incoming);
+        }
+        catch
+        {
+            registry.Load(previous);
+            throw;
+        }
+
+        try
+        {
+            // Save the OLD profile using its original path and dirty revision.
+            // Do not write anything to the new profile before committing.
+            if (persistedVersion != registry.ProgressChanges)
+            {
+                registry.Load(previous);
+                Flush();
+                registry.Load(incoming);
+            }
+        }
+        catch
+        {
+            registry.Load(previous);
+            throw;
+        }
+
+        filename = destination;
+        persistedVersion = registry.ProgressChanges;
+        lastWrite = DateTime.UtcNow;
     }
 
     public bool Flush(bool force = false)
