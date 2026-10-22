@@ -13,6 +13,8 @@
     <ProjectReference Include="../../experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj" />
     <ProjectReference Include="../../experiments/csharp/BunnySourceCompiler/BunnySourceCompiler.csproj" />
     <Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/Items/ExampleItem.cs" Link="Examples/ExampleItem.cs" />
+    <Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/Tiles/ExampleTile.cs" Link="Examples/ExampleTile.cs" />
+    <Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/Items/Placeable/ExampleTileItem.cs" Link="Examples/ExampleTileItem.cs" />
     <Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/Items/Tools/*.cs" Link="Examples/%(Filename)%(Extension)" />
   </ItemGroup>
 </Project>
