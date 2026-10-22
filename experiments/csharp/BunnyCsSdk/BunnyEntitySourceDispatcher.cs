@@ -688,7 +688,18 @@ public static class BunnyEntitySourceDispatcher
     {
         if ((uint)modSlot >= (uint)Contexts.Count) return LastRegistrationError;
         Context context = Contexts[modSlot];
-        return "lastUse=" + context.LastUse +
+        string invasionState = "";
+        if (context.InvasionOrder.Count > 0)
+        {
+            BunnyInvasionSystem invasion = context.InvasionOrder[0];
+            BunnyInvasionSnapshot snapshot = invasion.Pipeline.Controller.Snapshot();
+            invasionState = " Invasion=" + snapshot.Phase +
+                " Progress=" + snapshot.Progress + "/" + invasion.Pipeline.Controller.Definition.Goal +
+                " Active=" + snapshot.Active + " Pending=" + snapshot.Pending +
+                " Cooldown=" + snapshot.Cooldown +
+                " SpawnFailed=" + invasion.Pipeline.FailedCount;
+        }
+        return "lastUse=" + context.LastUse + invasionState +
             " npc=" + context.NpcCalls + " projectile=" + context.ProjectileCalls +
             " npcHits=" + context.NpcHits + " npcKills=" + context.NpcKills +
             " projectileHits=" + context.ProjectileHits + " projectileKills=" + context.ProjectileKills +
