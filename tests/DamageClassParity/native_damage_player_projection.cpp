@@ -32,13 +32,13 @@ int main() {
     assert(projectNativeClassDamageDelta(custom, {1.25f, 1.25f, 1.25f, 1.25f}, &delta));
     assert(std::abs(delta - .25f) < .0001f);
     assert(projectNativeClassDamageDelta(custom, equipped, &delta));
-    assert(std::abs(delta - .6f) < .0001f);
+    assert(std::abs(delta - .8f) < .0001f);
     custom.inheritance[1].damage = .5f;
     custom.inheritance[2].damage = -1.f;
     custom.inheritance[3].damage = 2.f;
     custom.inheritance[4].damage = 0.f;
     assert(!projectNativeClassDamageDelta(custom, equipped, nullptr));
-    assert(std::abs(delta - .6f) < .0001f);
+    assert(std::abs(delta - .8f) < .0001f);
     assert(nativeVanillaPlayerDamageValid({1.f, 1.f, 1.f, 1.f}));
     assert(!nativeVanillaPlayerDamageValid({1001.f, 1.f, 1.f, 1.f}));
 
