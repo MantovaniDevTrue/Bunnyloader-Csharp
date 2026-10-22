@@ -42,6 +42,18 @@ try
     if (verified < 50)
         throw new InvalidOperationException("Full ExampleMod managed validation returned " +
             verified + "\n" + File.ReadAllText(diagnostics));
+    string damageTypeWire = File.ReadAllText(Path.Combine(
+        Path.GetDirectoryName(diagnostics)!, "source-runtime-values.txt"));
+    foreach (string row in new[] {
+        "DAMAGE_TYPE\tITEM\tExampleWaveWand\tC:ExampleModCSharp.DamageClasses.ExampleDamageClass",
+        "DAMAGE_TYPE\tPROJECTILE\tExampleWaveBolt\tC:ExampleModCSharp.DamageClasses.ExampleDamageClass",
+        "DAMAGE_TYPE\tITEM\tExampleWand\tV4",
+        "DAMAGE_TYPE\tPROJECTILE\tExampleBulletProjectile\tV4",
+        "DAMAGE_TYPE\tPROJECTILE\tExampleMinion\tV6"
+    })
+        if (!damageTypeWire.Split('\n').Contains(row, StringComparer.Ordinal))
+            throw new InvalidOperationException("DamageType native wire missing: " + row);
+    Console.WriteLine("FULL_EXAMPLE_DAMAGE_TYPE_WIRE=PASS customWeaponProjectile=true vanillaFallbacks=true");
 
     string modId = "full-example-dust-validation";
     int entitySlot = BunnyEntitySourceDispatcher.Register(modId, output);
