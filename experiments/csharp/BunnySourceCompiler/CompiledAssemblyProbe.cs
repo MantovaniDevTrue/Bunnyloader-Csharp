@@ -22,7 +22,9 @@ public static class CompiledAssemblyProbe
             if ("Bunny" + kind != baseName)
                 throw new InvalidOperationException(type.FullName + ": BunnyContent kind does not match " + baseName);
         }
-        else if (type.BaseType?.FullName != "BunnyLoader.Source." + baseName)
+        else if (type.BaseType?.FullName != "BunnyLoader.Source." + baseName &&
+                 !(baseName == "BunnyTile" &&
+                   type.BaseType?.FullName == "BunnyLoader.Source.BunnyBannerTile"))
             throw new InvalidOperationException(type.FullName +
                 ": inherited content requires [BunnyContent(BunnyContentKind." +
                 baseName.Substring(5) + ", displayName, texture)] for native registration");
