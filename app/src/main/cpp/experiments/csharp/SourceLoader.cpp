@@ -1,6 +1,7 @@
 #include "experiments/csharp/SourceLimits.h"
 #include "experiments/csharp/ManagedBannerRegistry.h"
 #include "experiments/csharp/ManagedBannerLookupHooks.h"
+#include "experiments/csharp/ManagedBannerArrayBridge.h"
 #include "experiments/csharp/NativeTileWirePolicy.h"
 #include "experiments/csharp/SourceLoader.h"
 #include "experiments/csharp/NativeRarityRegistry.h"
@@ -1717,6 +1718,10 @@ bool applyManagedSourceDefaults(
 }
 
 std::vector<SourceModStatus> sourceModStatuses() { return g_statuses; }
+
+bool prepareBannerWorldArraysOnGameThread(std::string* error) {
+    return banners::growGameArraysOnMainThread(error);
+}
 
 bool sourceRuntimeApplied(const std::string& modId) {
     for (const auto& mod : g_statuses)
