@@ -11,7 +11,7 @@ static void Check(bool value, string label)
 string root = Path.Combine(Path.GetTempPath(), "bunny-hair-compiler-" +
     Guid.NewGuid().ToString("N"));
 string mod = Path.Combine(root, "mod");
-string assets = Path.Combine(mod, "Content", "Hairs");
+string assets = Path.Combine(mod, "content", "Content", "Hairs");
 Directory.CreateDirectory(assets);
 try
 {
@@ -87,6 +87,18 @@ try
     Check(idRejected && !File.Exists(destination),
           "ID na faixa vanilla é recusado e não cria manifesto");
 
+    if (args.Length == 1)
+    {
+        // Hand-off em CI para o parser C++ real: os bytes vêm do SDK
+        // C# compilado, não de strings ou entradas inventadas pelo teste.
+        string handoff = Path.GetFullPath(args[0]);
+        if (Path.GetDirectoryName(handoff) != root &&
+            !handoff.StartsWith(Path.GetTempPath(), StringComparison.Ordinal))
+            throw new InvalidOperationException("Destino de teste não autorizado.");
+        CompiledHairProbe.Export(Assembly.GetExecutingAssembly(),
+            "examplemodcsharp", mod, handoff, 300);
+        Console.WriteLine("HAIR_MANAGED_HANDOFF=" + handoff);
+    }
     Console.WriteLine("HairCompiledProbe: verificações passaram sem APK.");
 }
 finally
