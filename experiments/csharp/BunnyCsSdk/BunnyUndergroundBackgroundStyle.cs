@@ -144,7 +144,7 @@ internal static class BunnyUndergroundRegistry
             }catch(Exception error) {
                 int failures=Interlocked.Increment(ref entry.Failures);
                 if((failures & (failures-1))==0)Console.Error.WriteLine("[CSharp][ERROR][UndergroundBackground] Mod="+entry.Style.ModId+" Class="+entry.Style.GetType().FullName+
-                    " Method=FillTextureArray Stage=Invoke ContentId="+slot+" SuppressedTotal="+(failures-1)+" Result=UsingLastValidFill Exception="+error);
+                    " Method=FillTextureArray Stage=Invoke ContentId="+slot+" SuppressedTotal="+(failures-1)+" Result=CallbackRejected Consequence=NativeFallback Exception="+error);
             }
             break;
         }

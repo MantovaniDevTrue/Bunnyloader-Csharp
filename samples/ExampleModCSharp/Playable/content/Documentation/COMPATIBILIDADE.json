@@ -2378,7 +2378,9 @@
         "tests/underground_backgrounds/native_underground_test.cpp",
         "tests/underground_backgrounds/Program.cs",
         "tests/underground_backgrounds/quickjs_underground_test.cpp",
-        "tests/underground_backgrounds/mailbox_underground_test.cpp"
+        "tests/underground_backgrounds/mailbox_underground_test.cpp",
+        "tests/underground_backgrounds/MixedProgram.cs",
+        "tests/underground_backgrounds/mixed_underground_test.cpp"
       ],
       "terrariaTests": [
         "Seguir docs/csharp-underground-backgrounds.md; ativar o estilo do ExampleMod via /exampleunderground on; conferir quatro texturas, transicoes e save/exit.",

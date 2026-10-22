@@ -15,6 +15,7 @@ static void eval(JSContext* ctx,const std::string& source){
  JS_FreeValue(ctx,value);
 }
 static std::string read(const char* name){std::ifstream in(name);assert(in);std::stringstream text;text<<in.rdbuf();return text.str();}
+#ifndef BUNNY_QJS_NO_MAIN
 int main(){
  using namespace bl::runtime::underground;initialize();std::string error;
  auto* rt=JS_NewRuntime();auto* ctx=JS_NewContext(rt);assert(rt && ctx);
@@ -51,3 +52,4 @@ int main(){
  for(auto& [slot,own]:entries){(void)slot;release(own);}for(void* p:allocations)std::free(p);
  std::cout<<"ORIGINAL_EXAMPLE_JS_REAL_QUICKJS_NATIVE_UNDERGROUND_SHARED_IDS_PRIORITY_CURRENT_PREVIOUS_AND_ISOLATED_ERRORS=PASS\n";
 }
+#endif

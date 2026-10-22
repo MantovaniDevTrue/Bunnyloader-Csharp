@@ -1375,7 +1375,9 @@
         "tests/underground_backgrounds/native_underground_test.cpp",
         "tests/underground_backgrounds/Program.cs",
         "tests/underground_backgrounds/quickjs_underground_test.cpp",
-        "tests/underground_backgrounds/mailbox_underground_test.cpp"
+        "tests/underground_backgrounds/mailbox_underground_test.cpp",
+        "tests/underground_backgrounds/MixedProgram.cs",
+        "tests/underground_backgrounds/mixed_underground_test.cpp"
       ],
       "automatedEvidence": [
         "docs/csharp-underground-backgrounds.md: producao nativa com metadata controlada, P/Invoke do exemplo C# e exemplo JS original executado no QuickJS real; sem Terraria Android."

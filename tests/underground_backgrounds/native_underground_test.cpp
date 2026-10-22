@@ -168,6 +168,10 @@ int main(){
  set(current,int32_t(b));set(previous,int32_t(b));
  bl::runtime::backgroundAssets::retire(10);assert(destroyed==0);
  static_cast<Il2CppObject**>(arrayData(ownedArray))[10]=nullptr;
+ const int beforeLostSelection=fillCalls;
+ assert(select(b,1,.5,true,&error));nativeVanilla=9;
+ assert(reinterpret_cast<Picker>(installed.at(&pick))(500,&pick)==9 && fillCalls==beforeLostSelection);
+ assert(select(b,3,.5,true,&error));
  assert(bunny_test_underground_draw(3)==3 && destroyed==0 && bunny_test_underground_patch(b,1)==5);
  set(current,int32_t(3));set(previous,int32_t(3));assert(bunny_test_underground_draw(3)==3 && destroyed==1);
  assert(!logs.empty());for(auto& [slot,own]:entries){(void)slot;release(own);}assert(handles.empty());

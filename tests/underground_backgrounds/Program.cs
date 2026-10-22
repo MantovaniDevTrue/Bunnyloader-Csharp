@@ -3,6 +3,13 @@ using System.Reflection;
 using BunnyLoader.Source;
 using ExampleModCSharp.Biomes;
 
+sealed class ExampleRejectedUndergroundStyle:BunnyUndergroundBackgroundStyle
+{
+ public int Calls;
+ public override void FillTextureArray(Span<int> textureSlots)
+ {Calls++;throw new InvalidOperationException("example-managed-fill-failure");}
+}
+
 static class Program
 {
  [UnmanagedFunctionPointer(CallingConvention.Cdecl)]private delegate int Callback(int slot,long ticket);
@@ -28,6 +35,20 @@ static class Program
   Check(Draw(3)==first.Slot && Draw(1)==1,"low priority only replaces ordinary cave");
   BunnyUndergroundBackgrounds.Activate<ExampleUndergroundBackgroundStyle>("second-uid",BunnyBackgroundPriority.BiomeHigh);
   Check(Draw(1)==second.Slot && Patch(second.Slot,0)==5 && Patch(first.Slot,1)==5,"actual example Fill to native current/previous layer buffers");
+  var rejected=new ExampleRejectedUndergroundStyle();setId.Invoke(rejected,new object[]{"rejected-uid"});
+  using var rejectedScope=new BunnyHookScope();rejected.Load(rejectedScope);
+  BunnyUndergroundBackgrounds.Activate<ExampleRejectedUndergroundStyle>("rejected-uid",BunnyBackgroundPriority.BossHigh);
+  var stderr=Console.Error;using var errors=new StringWriter();
+  try {
+   Console.SetError(errors);
+   Check(Draw(1)==rejected.Slot && rejected.Calls==1,"exception does not report a successful fill");
+   var report=errors.ToString();
+   Check(report.Contains("Mod=rejected-uid") && report.Contains("Class=ExampleRejectedUndergroundStyle") &&
+    report.Contains("Method=FillTextureArray") && report.Contains("example-managed-fill-failure") &&
+    report.Contains("Result=CallbackRejected"),"full original managed exception context");
+  }finally{Console.SetError(stderr);}
+  rejected.Unload();
+  Check(Draw(1)==second.Slot,"failed style unload leaves independent working style active");
   first.Unload();firstScope.Dispose();
   Check(Draw(3)==second.Slot && Patch(second.Slot,0)==5,"first owner unload rebinds dispatcher to second scope");
   Reset();Check(Draw(3)==3,"world reset deactivates previous world selection");

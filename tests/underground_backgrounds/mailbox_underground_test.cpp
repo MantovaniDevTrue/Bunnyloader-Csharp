@@ -48,15 +48,19 @@ int main(){
  {std::lock_guard lock(wakeMutex);stop=true;wakeChanged.notify_one();}worker.join();
  assert(executed==1 && originals==1);
  // Failed dispatch closes its revision. A delayed response cannot mutate it.
- int64_t expired=0;int expiredSlot=-1;
+ static int64_t expired=0;static int expiredSlot=-1;
  bl::csharp::managedUndergroundDispatch(+[]{
-  int64_t token=0;int item=-1;assert(bl::csharp::bunny_underground_fill_read(&token,&item));
-  // Session is intentionally left without a response.
+  assert(bl::csharp::bunny_underground_fill_read(&expired,&expiredSlot));
+  // Same production mailbox, with no worker taking the request this time.
+  const auto result=mailbox.dispatch(12,0,[]{return true;},[]{},std::chrono::milliseconds(2));
+  assert(result.accepted && result.timedOut && result.faulted);
  });
  Slots result{};assert(!bl::csharp::fill(slot,&result,&error));
- assert(!bl::csharp::bunny_underground_fill_read(&expired,&expiredSlot));
- assert(!bl::csharp::bunny_underground_fill_write(1,slot,10,11,12,13,6));
- assert(error.find("CallbackFailedOrDeadlineExceeded")!=error.npos);
+ assert(expired>0 && expiredSlot==slot);
+ int64_t closed;int closedSlot;
+ assert(!bl::csharp::bunny_underground_fill_read(&closed,&closedSlot));
+ assert(!bl::csharp::bunny_underground_fill_write(expired,expiredSlot,10,11,12,13,6));
+ assert(error.find("CallbackReplyMissing")!=error.npos);
  // A second renderer cannot replace the in-flight request's revision.
  std::atomic<bool> entered=false,finish=false;
  static std::atomic<bool>* enteredPtr;static std::atomic<bool>* finishPtr;

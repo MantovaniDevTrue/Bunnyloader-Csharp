@@ -44,8 +44,11 @@ bool failure(std::string* error,const char* stage,const char* reason,const std::
     if(error)*error="[Native][ERROR][UndergroundBackground] Stage="+std::string(stage)+" Expected="+expected+" Actual="+actual+" Result=Rejected Reason="+reason;
     return false;
 }
-void diagnostic(const std::string& error) {
-    static std::atomic<unsigned> count{0};const unsigned n=count.fetch_add(1)+1;
+void diagnostic(const std::string& error,int slot=-1,int operation=0) {
+    // A broken style cannot consume another mod's first error. This bounded
+    // index uses registered slot/operation, never variable exception text.
+    static std::map<std::pair<int,int>,unsigned> counts;
+    const unsigned n=++counts[{slot,operation}];
     if(n && !(n&(n-1)))BL_ERROR("%s SuppressedTotal=%u",error.c_str(),n-1);
 }
 bool identity(const std::string& text) {
@@ -185,23 +188,24 @@ int choose(int vanilla,double magma) {
     for(auto& [slot,own]:entries)if((own.retired || own.unavailable) && slot!=current && slot!=old)release(own);
     if(serial!=frame || best.slot<0 || entry(best.slot)->retired)return vanilla;
     auto* selected=entry(best.slot);
-    // A missing owner must stop selection; only an explicit successful fill
-    // can recover it when that dependency is loaded again.
+    if(best.priority<3) {
+        Il2CppArray *xs=nullptr,*styles=nullptr;int width=0;std::array<unsigned char,8> position{};float x=0;
+        if(!refs.position.read(nullptr,position.data(),&error) || !refs.width.read(nullptr,&width,&error) ||
+           !refs.caveX.read(nullptr,&xs,&error) || !refs.caveStyle.read(nullptr,&styles,&error) ||
+           !refs.caveX.array(xs,3,&error) || !refs.caveStyle.array(styles,4,&error)){diagnostic(error);return vanilla;}
+        std::memcpy(&x,position.data()+refs.xOffset,4);
+        if(!std::isfinite(x))return vanilla;
+        const double tile=std::floor((double(x)+std::floor(double(width)/2))/16);
+        const auto* limits=static_cast<const int32_t*>(arrayData(xs));const auto* values=static_cast<const int32_t*>(arrayData(styles));
+        const int64_t cave=int64_t(values[tile>limits[0]?(tile>limits[1]?(tile>limits[2]?3:2):1):0])+3;
+        if(!((best.priority>=1 && vanilla==cave) || (best.priority>=2 && (vanilla==1 || vanilla==11))))return vanilla;
+    }
+    // Recover an unloaded dependency only after winning vanilla arbitration.
     if(selected->unavailable) {
-        if(!prepare(*selected,best.slot,lock,&error))diagnostic(error+" Mod="+selected->mod+" Class="+selected->name+" Consequence=VanillaFallback");
+        if(!prepare(*selected,best.slot,lock,&error))diagnostic(error+" Mod="+selected->mod+" Class="+selected->name+" Consequence=VanillaFallback",best.slot,1);
         if(selected->unavailable || serial!=frame)return vanilla;
     }
-    if(best.priority>=3)return best.slot;
-    Il2CppArray *xs=nullptr,*styles=nullptr;int width=0;std::array<unsigned char,8> position{};float x=0;
-    if(!refs.position.read(nullptr,position.data(),&error) || !refs.width.read(nullptr,&width,&error) ||
-       !refs.caveX.read(nullptr,&xs,&error) || !refs.caveStyle.read(nullptr,&styles,&error) ||
-       !refs.caveX.array(xs,3,&error) || !refs.caveStyle.array(styles,4,&error)){diagnostic(error);return vanilla;}
-    std::memcpy(&x,position.data()+refs.xOffset,4);
-    if(!std::isfinite(x))return vanilla;
-    const double tile=std::floor((double(x)+std::floor(double(width)/2))/16);
-    const auto* limits=static_cast<const int32_t*>(arrayData(xs));const auto* values=static_cast<const int32_t*>(arrayData(styles));
-    const int64_t cave=int64_t(values[tile>limits[0]?(tile>limits[1]?(tile>limits[2]?3:2):1):0])+3;
-    return (best.priority>=1 && vanilla==cave) || (best.priority>=2 && (vanilla==1 || vanilla==11))?best.slot:vanilla;
+    return best.slot;
 }
 int hkPick(double magma,const MethodInfo* method) {
     const int vanilla=originalPick(magma,method);
@@ -220,12 +224,13 @@ Il2CppArray* patch(void* self,Il2CppArray* values,bool old) {
     if(menu || !enabled)return values;
     if(!own->retired && own->frame!=frame && !prepare(*own,style,lock,&error))
         diagnostic(error+" Mod="+own->mod+" Class="+own->name+" ContentId="+std::to_string(style)+
-            (hasTexture(*own)?" Consequence=UsingLastValidFill":" Consequence=OriginalGetterFallback"));
+            (hasTexture(*own)?" Consequence=UsingLastValidFill":" Consequence=OriginalGetterFallback"),style,1);
     if(serial!=frame || !hasTexture(*own))return values;
     Il2CppObject* local=nullptr;Il2CppArray* numbers=nullptr;
     const auto& numberProperty=old?refs.oldBack:refs.back;
     if(!refs.local.read(nullptr,&local,&error) || !numberProperty.read(local,&numbers,&error) ||
-       !numberProperty.array(numbers,5,&error) || !(old?refs.oldValues:refs.values).array(values,5,&error)){diagnostic(error);return values;}
+       !numberProperty.array(numbers,5,&error) || !(old?refs.oldValues:refs.values).array(values,5,&error)){
+        diagnostic(error+" Mod="+own->mod+" Class="+own->name+" ContentId="+std::to_string(style),style,2);return values;}
     auto& a=il2cpp::api();auto** textures=static_cast<Il2CppObject**>(arrayData(values));auto* ids=static_cast<int32_t*>(arrayData(numbers));
     for(size_t i=0;i<5;++i)if(own->roots[i]) {
         auto* texture=a.gchandle_get_target(own->roots[i]);

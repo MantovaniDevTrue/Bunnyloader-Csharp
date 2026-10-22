@@ -114,11 +114,62 @@
           "name": "Wake",
           "implemented": false,
           "tests": []
+        },
+        {
+          "name": "Wake/Sleep while vanilla/mod fades are active",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Atomic growth and recreated LocalUserGameState arrays",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Vanilla forest/medium/high and menu background arbitration",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Nullable BackLayer overrides and native far alpha routine",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Managed ModifyFarFades after original FrontLayer",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Far/Middle render placement using native geometry and alpha",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "PreDrawCloseBackground suppression and custom drawing",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Close scale/parallax/a/b, SkyManager depth and surface clipping",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Original four-frame Middle animation and full mod path lookup",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Safe current/previous texture ownership and dependency failures",
+          "implemented": false,
+          "tests": []
         }
       ],
       "missing": [
-        "Audit full behavior and native dependencies; implement and validate every original contract"
-      ]
+        "Implement every audited surface drawing, fade, menu, nullable ABI and original animation contract; see audit document."
+      ],
+      "auditDocument": "docs/csharp-surface-background-audit.md"
     },
     {
       "loader": "UndergroundBackgroundLoader",
@@ -231,12 +282,26 @@
           "tests": [
             "tests/underground_backgrounds/quickjs_underground_test.cpp"
           ]
+        },
+        {
+          "name": "Actual CSharp example and original JavaScript in the same QuickJS/native host; both unload orders",
+          "implemented": true,
+          "tests": [
+            "tests/underground_backgrounds/mixed_underground_test.cpp",
+            "tests/underground_backgrounds/MixedProgram.cs"
+          ]
         }
       ],
       "missing": [],
       "originalReferenceSnapshot": "tests/underground_backgrounds/reference/UndergroundBackgroundLoader.js",
       "validationDocument": "docs/csharp-underground-backgrounds.md",
-      "note": "Full underground style contract; biome activation/music/scene loaders are separate pending targets. QA command explicitly tests only the ExampleMod style. Automated fixtures are not Android validation."
+      "note": "Full underground style contract; biome activation/music/scene loaders are separate pending targets. QA command explicitly tests only the ExampleMod style. Automated fixtures are not Android validation.",
+      "automatedValidation": {
+        "commit": "23101aad6b8fd3b3cc2c8628cdfffaef3dedc9fc",
+        "runId": 39713260819,
+        "result": "passed",
+        "scope": "Four source-only jobs: managed/native contracts, ARM64 syntax and full native library link. No APK or Android execution. Later isolation/mixed-runtime changes require their own CI."
+      }
     },
     {
       "loader": "WaterStyleLoader",

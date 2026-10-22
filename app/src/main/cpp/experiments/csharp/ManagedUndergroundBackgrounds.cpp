@@ -24,7 +24,9 @@ bool fill(int slot,runtime::underground::Slots* values,std::string* error) {
     callback();
     std::lock_guard lock(mutex);
     if(revision!=session || !live || !done) {
-        live=false;*error="[CSharp][WARN][UndergroundBackground] Stage=FillTextureArray Result=Fallback Reason=CallbackFailedOrDeadlineExceeded ContentId="+std::to_string(slot);return false;
+        const char* reason=revision!=session?"CallbackSessionInvalidated":!live?"CallbackCancelled":"CallbackReplyMissing";
+        live=false;*error="[CSharp][WARN][UndergroundBackground] Stage=FillTextureArray Expected=CompletedCurrentRevision Actual=NoValidReply Result=Fallback Reason="+
+            std::string(reason)+" ContentId="+std::to_string(slot);return false;
     }
     *values=proposed;live=false;return true;
 }

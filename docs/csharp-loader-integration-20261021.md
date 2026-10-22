@@ -53,6 +53,29 @@ comando `/exampleunderground`: ele serve exclusivamente para QA do estilo.
 As seções abaixo preservam o histórico; suas contagens/versões se referem
 aos respectivos checkpoints.
 
+### CI do checkpoint e complemento de isolamento
+
+O commit `23101aad6b8fd3b3cc2c8628cdfffaef3dedc9fc` passou nos onze workflows.
+[CI combinado 39713260819](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39713260819)
+aprovou quatro jobs, incluindo sintaxe ARM64 e linkagem completa sem APK.
+
+O complemento seguinte limita erros por estilo/operação, evitando que um mod
+suprima o primeiro diagnóstico de outro. A recuperação de textura aposentada
+só tenta Fill depois de ganhar a arbitragem vanilla. Os diagnósticos de resposta
+ausente/cancelada/sessão invalidada agora descrevem o fato observado. O teste
+de timeout usa o mailbox de produção; uma exceção C# real preserva mensagem,
+classe, UID e stack sem afetar o estilo independente.
+
+`Mixed.HostTests` também executa o exemplo C# real e o original JS no mesmo
+processo com QuickJS real, prioridade/peso, transição e ambas as ordens de
+unload/reload. Mantém o teste separado sem QuickJS para provar independência.
+Essas alterações precisam de CI próprio, sem herdar aprovação do SHA anterior.
+
+O próximo loader tem [auditoria detalhada](csharp-surface-background-audit.md)
+e contratos adicionais na matriz. Não basta Add/Get/Wake: nullable, quatro
+arrays, menu, fades, três fases de desenho e animação original continuam
+pendentes. Nenhuma API de superfície incompleta foi exposta.
+
 Branch: `feat/csharp-loader-completion-15-20261021`.
 Base: `5a18a67899c1f6ee88a34097be3adb6e7877edd4`.
 O trabalho preserva as correções da integração anterior, inclusive contagem
