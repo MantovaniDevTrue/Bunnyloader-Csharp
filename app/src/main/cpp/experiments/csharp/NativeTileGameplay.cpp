@@ -248,9 +248,28 @@ void hkGetItemDrops(int32_t x, int32_t y, uint32_t tile,
         *drop=0;*stack=0;*extra=0;*extraStack=0;return;
     }
     int itemType = behavior.itemType;
-    if (itemType <= 0)
-        itemType = basicItemForTile(behavior.spec.mod + "/" + behavior.spec.name);
-    if (itemType <= 0) return;
+    const std::string tileKey = behavior.spec.mod + "/" + behavior.spec.name;
+    if (behavior.spec.shape == 2) {
+        runtime::TileArrays world{};
+        if (!runtime::tileArrays(&world) || !world.lookup || !world.frameX ||
+            x < 0 || y < 0 || x >= world.width || y >= world.height) {
+            *drop = 0; *stack = 0; *extra = 0; *extraStack = 0;
+            return;
+        }
+        const auto offset = static_cast<size_t>(y) * static_cast<size_t>(world.width) +
+                            static_cast<size_t>(x);
+        const auto frameX = static_cast<int>(world.frameX[world.lookup[offset]]);
+        const int style = tile_policy::bannerStyleFromFrameX(frameX);
+        itemType = style >= 0 ? basicItemForTileStyle(tileKey, style) : -1;
+    } else if (itemType <= 0) {
+        itemType = basicItemForTile(tileKey);
+    }
+    if (itemType <= 0) {
+        if (behavior.spec.shape == 2) {
+            *drop = 0; *stack = 0; *extra = 0; *extraStack = 0;
+        }
+        return;
+    }
     *drop = itemType;
     *stack = 1;
     *extra = 0;
