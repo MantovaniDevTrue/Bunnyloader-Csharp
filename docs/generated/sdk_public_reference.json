@@ -1944,6 +1944,7 @@
         "BunnyNativeDefaults NativeDefaults { get; }",
         "BunnyQuestCatchRules QuestCatchRules { get; set; }",
         "BunnySoundStyle CustomUseSound { get; set; }",
+        "DamageClass DamageType { get; set; }",
         "Dictionary\u003Cstring, string\u003E QuestCatchLocationTranslations { get; }",
         "Dictionary\u003Cstring, string\u003E QuestDescriptionTranslations { get; }",
         "Dictionary\u003Cstring, string\u003E TooltipTranslations { get; }",
@@ -2771,6 +2772,7 @@
       "properties": [
         "BunnyMinionMovement MinionMovement { get; set; }",
         "BunnyNativeDefaults NativeDefaults { get; }",
+        "DamageClass DamageType { get; set; }",
         "bool Friendly { get; set; }",
         "bool IgnoreWater { get; set; }",
         "bool Minion { get; set; }",
@@ -4062,6 +4064,7 @@
         "BunnyHoldout Holdout { get; set; }",
         "BunnyNativeDefaults NativeDefaults { get; }",
         "BunnySoundStyle CustomUseSound { get; set; }",
+        "DamageClass DamageType { get; set; }",
         "bool Summon { get; set; }",
         "float ShootSpeed { get; set; }",
         "int Damage { get; set; }",

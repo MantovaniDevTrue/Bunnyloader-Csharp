@@ -1051,6 +1051,7 @@ BunnyItemBehavior Behavior { get; }
 BunnyNativeDefaults NativeDefaults { get; }
 BunnyQuestCatchRules QuestCatchRules { get; set; }
 BunnySoundStyle CustomUseSound { get; set; }
+DamageClass DamageType { get; set; }
 Dictionary<string, string> QuestCatchLocationTranslations { get; }
 Dictionary<string, string> QuestDescriptionTranslations { get; }
 Dictionary<string, string> TooltipTranslations { get; }
@@ -1489,6 +1490,7 @@ abstract class; base: `System.Object`.
 ```csharp
 BunnyMinionMovement MinionMovement { get; set; }
 BunnyNativeDefaults NativeDefaults { get; }
+DamageClass DamageType { get; set; }
 bool Friendly { get; set; }
 bool IgnoreWater { get; set; }
 bool Minion { get; set; }
@@ -2177,6 +2179,7 @@ abstract class; base: `BunnyLoader.Source.BunnyShootSource`.
 BunnyHoldout Holdout { get; set; }
 BunnyNativeDefaults NativeDefaults { get; }
 BunnySoundStyle CustomUseSound { get; set; }
+DamageClass DamageType { get; set; }
 bool Summon { get; set; }
 float ShootSpeed { get; set; }
 int Damage { get; set; }
