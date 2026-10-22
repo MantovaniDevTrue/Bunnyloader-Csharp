@@ -191,8 +191,11 @@ TextureInstallResult InstallNativeHairTextures(
 
     // Não tocar as tabelas originais. Publicar cópias e gravar os elementos
     // via Array.SetValue, que aplica a barreira de escrita do GC.
-    api.field_static_set_value(mainField, grownMain);
-    api.field_static_set_value(altField, grownAlt);
+    // il2cpp_field_static_set_value recebe o ENDEREÇO do valor do campo,
+    // não o ponteiro do objeto. Sem '&' o runtime interpreta o cabeçalho
+    // do Il2CppArray como se fosse a referência ao array.
+    api.field_static_set_value(mainField, &grownMain);
+    api.field_static_set_value(altField, &grownAlt);
     bool applied = true;
     for (const PendingAsset& asset : pending) {
         if (!bl::runtime::content::setTableElement(mainField, asset.type, asset.main) ||
@@ -202,8 +205,8 @@ TextureInstallResult InstallNativeHairTextures(
         }
     }
     if (!applied) {
-        api.field_static_set_value(mainField, originals[0]);
-        api.field_static_set_value(altField, originals[1]);
+        api.field_static_set_value(mainField, &originals[0]);
+        api.field_static_set_value(altField, &originals[1]);
         result.error = "PlayerHairAssetWriteFailedRolledBack";
         cleanup();
         api.gchandle_free(oldAltRoot);
