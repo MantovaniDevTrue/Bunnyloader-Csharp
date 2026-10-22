@@ -1195,5 +1195,1432 @@
       "gitBlob": "fb1e1194ccfd01fc8e7ac48297b85b61db870189",
       "size": 2963
     }
+  ],
+  "assets": [
+    {
+      "path": "Assets/Fonts/ExampleFont.0.png",
+      "gitBlob": "364885204e275299bb771a33f9847b3c20f73a73",
+      "size": 191338
+    },
+    {
+      "path": "Assets/Fonts/ExampleFont.json",
+      "gitBlob": "fdd86689ea0c03610d5f143e8f2bf51c7112e3fc",
+      "size": 16489
+    },
+    {
+      "path": "Assets/Music/MysteriousMystery.ogg",
+      "gitBlob": "8458a97eb8e48fc5935ea42fa9ec92a0aadb97f3",
+      "size": 3955962
+    },
+    {
+      "path": "Assets/Music/Ropocalypse2.ogg",
+      "gitBlob": "4dff5596ac244e513dce2a55c0c5bc134946dfc4",
+      "size": 1980564
+    },
+    {
+      "path": "Assets/Sounds/Items/Guns/ExampleGun.ogg",
+      "gitBlob": "f8b6b72799e7ce1bde60206ddab8ae2c1718b0eb",
+      "size": 9698
+    },
+    {
+      "path": "Assets/Textures/Backgrounds/ExampleBiomeSurfaceClose.png",
+      "gitBlob": "6c5cbc1a3ec63b40fdefc14dd103b9e6cd418015",
+      "size": 16023
+    },
+    {
+      "path": "Assets/Textures/Backgrounds/ExampleBiomeSurfaceFar.png",
+      "gitBlob": "fe832602d17e9040d45479676602f9bd15879e53",
+      "size": 11780
+    },
+    {
+      "path": "Assets/Textures/Backgrounds/ExampleBiomeSurfaceMid0.png",
+      "gitBlob": "65c63d5d08eb571e525c7de18c3c538e52ce3c24",
+      "size": 25707
+    },
+    {
+      "path": "Assets/Textures/Backgrounds/ExampleBiomeSurfaceMid1.png",
+      "gitBlob": "463801a779dc6d5308663487b4a375eb07c97cb0",
+      "size": 25726
+    },
+    {
+      "path": "Assets/Textures/Backgrounds/ExampleBiomeSurfaceMid2.png",
+      "gitBlob": "1263d6327093b8665d4f5954e15729e682d1107e",
+      "size": 25775
+    },
+    {
+      "path": "Assets/Textures/Backgrounds/ExampleBiomeSurfaceMid3.png",
+      "gitBlob": "cebf79dc07e802a411fb9a57e3be6b31a1c8c036",
+      "size": 25717
+    },
+    {
+      "path": "Assets/Textures/Backgrounds/ExampleBiomeUnderground0.png",
+      "gitBlob": "33f721810f5b1f30ae47b2298f376cab93396119",
+      "size": 500
+    },
+    {
+      "path": "Assets/Textures/Backgrounds/ExampleBiomeUnderground1.png",
+      "gitBlob": "851f849b6f4e5df3f7167fab9229c6f737ae90bb",
+      "size": 1165
+    },
+    {
+      "path": "Assets/Textures/Backgrounds/ExampleBiomeUnderground2.png",
+      "gitBlob": "856964d3f101df11fa1162e081de7ac091c205a2",
+      "size": 551
+    },
+    {
+      "path": "Assets/Textures/Backgrounds/ExampleBiomeUnderground3.png",
+      "gitBlob": "bc2eab151d2cd2043767b05033a217168976838a",
+      "size": 1930
+    },
+    {
+      "path": "Assets/Textures/Menu/ExampleModTitle.png",
+      "gitBlob": "73a01570ec9be7cfa2c2db594a48558b83d0baaf",
+      "size": 22371
+    },
+    {
+      "path": "Assets/Textures/Menu/ExampleSun.png",
+      "gitBlob": "e90a97d4230f9838df18af9b67e52414f1cb064e",
+      "size": 3395
+    },
+    {
+      "path": "Assets/Textures/Menu/ExampliumMoon.png",
+      "gitBlob": "249cc52e9a591edb7749f6472b30c4c0cb2e33a7",
+      "size": 771
+    },
+    {
+      "path": "Assets/TouchButtons/LearningExample.png",
+      "gitBlob": "3cff199acebfe786d1f87e100974c2b6efb1bf49",
+      "size": 269
+    },
+    {
+      "path": "Assets/TouchButtons/RandomBuff.png",
+      "gitBlob": "faa29a7f47d43d26209f1d25c119743deaed62db",
+      "size": 242
+    },
+    {
+      "path": "Common/UI/ExampleCoinsUI/ButtonDelete.png",
+      "gitBlob": "0fc9846175e4054fe4f467b25ed1281543558233",
+      "size": 242
+    },
+    {
+      "path": "Common/UI/ExampleCoinsUI/ButtonPlay.png",
+      "gitBlob": "e89836d5b447102a9437540ddce2b0c418129daf",
+      "size": 259
+    },
+    {
+      "path": "Common/UI/ExampleResourceUI/ExampleResourceFrame.png",
+      "gitBlob": "1e2f413f5cf460fb996a4ad35c439c8a697d0f8f",
+      "size": 348
+    },
+    {
+      "path": "Common/UI/ResourceOverlay/BarsLifeOverlay_Fill.png",
+      "gitBlob": "32c8ec3b2cd26d023e60bf029b0a703b67d68a00",
+      "size": 192
+    },
+    {
+      "path": "Common/UI/ResourceOverlay/BarsLifeOverlay_Panel.png",
+      "gitBlob": "4f6f48d2e32ab808608ea48c896e2d1f65c6ace9",
+      "size": 149
+    },
+    {
+      "path": "Common/UI/ResourceOverlay/BarsManaOverlay_Fill.png",
+      "gitBlob": "c431446cd4a97194b7da786cd29b79fb83f48435",
+      "size": 196
+    },
+    {
+      "path": "Common/UI/ResourceOverlay/BarsManaOverlay_Panel.png",
+      "gitBlob": "66854d9057f657005fcae8f5a05fd5728cae0c19",
+      "size": 174
+    },
+    {
+      "path": "Common/UI/ResourceOverlay/ClassicLifeOverlay.png",
+      "gitBlob": "7c6e4b0c89797bd70e53fc7ff1ec135939886fba",
+      "size": 312
+    },
+    {
+      "path": "Common/UI/ResourceOverlay/ClassicManaOverlay.png",
+      "gitBlob": "d530ae70f2316e86f68ef29bae7ef275314199a3",
+      "size": 320
+    },
+    {
+      "path": "Common/UI/ResourceOverlay/FancyLifeOverlay_Panel.png",
+      "gitBlob": "5c94623c0bb343c79338eeb009c9553cbbe6f7d1",
+      "size": 230
+    },
+    {
+      "path": "Common/UI/ResourceOverlay/FancyManaOverlay_Panel.png",
+      "gitBlob": "a651ade29884ba52b0a115e4f25ab36bcc8e0c07",
+      "size": 258
+    },
+    {
+      "path": "Content/Achievements/ExampleBossKilled.png",
+      "gitBlob": "1f37a3980772364c7c2385cd812ebc4e5d58d611",
+      "size": 9956
+    },
+    {
+      "path": "Content/Achievements/ManyWormsKilled.png",
+      "gitBlob": "eefd2a20982887e20867643c0433006d33c9aa50",
+      "size": 4303
+    },
+    {
+      "path": "Content/Biomes/ExampleRain.png",
+      "gitBlob": "20ea4f40fc5ee02784626fc28364b7eb96244773",
+      "size": 607
+    },
+    {
+      "path": "Content/Biomes/ExampleSurfaceBiome_Background.png",
+      "gitBlob": "92f22ed6c5d5f152f325d26e146c07691c632c3d",
+      "size": 1992
+    },
+    {
+      "path": "Content/Biomes/ExampleSurfaceBiome_Icon.png",
+      "gitBlob": "2cca4f7e71f13b1ab10b93817a360b99a8dc6edb",
+      "size": 2947
+    },
+    {
+      "path": "Content/Biomes/ExampleWaterfallStyle.png",
+      "gitBlob": "44773d1db83d148ea4fc1fed9d949f4261075c3a",
+      "size": 968
+    },
+    {
+      "path": "Content/Biomes/ExampleWaterStyle_Block.png",
+      "gitBlob": "a2cb4d91e410fac4f3ecf8edf1aaaf0a130ba226",
+      "size": 383
+    },
+    {
+      "path": "Content/Biomes/ExampleWaterStyle_Slope.png",
+      "gitBlob": "2ecbe45663ca39c0441eb89533fd6a6fc1e90e37",
+      "size": 2916
+    },
+    {
+      "path": "Content/Biomes/ExampleWaterStyle.png",
+      "gitBlob": "ce278091f503e8866f1192d11630cf520b6bbc3d",
+      "size": 4699
+    },
+    {
+      "path": "Content/Buffs/Blocky.png",
+      "gitBlob": "18d9f697f32a7d6bea17b7333a0351cf9e3a641a",
+      "size": 3071
+    },
+    {
+      "path": "Content/Buffs/ExampleDefenseBuff.png",
+      "gitBlob": "84c84423d87ac1412900114c8bd04af3685c5b9f",
+      "size": 454
+    },
+    {
+      "path": "Content/Buffs/ExampleDefenseDebuff.png",
+      "gitBlob": "609b925dd8a015572a02c9b6d8bf7f4db5fea890",
+      "size": 3036
+    },
+    {
+      "path": "Content/Buffs/ExampleMinecartBuff.png",
+      "gitBlob": "d80eb6322e70f89c2af66236b5d8ba94323b69e9",
+      "size": 590
+    },
+    {
+      "path": "Content/Buffs/ExampleMinionBuff.png",
+      "gitBlob": "0d4cfbc29781c9f5266307b083f1f781656b9784",
+      "size": 565
+    },
+    {
+      "path": "Content/Buffs/ExampleMountBuff.png",
+      "gitBlob": "25fa13be9899877ffc91daf749ada827bba3fc0c",
+      "size": 965
+    },
+    {
+      "path": "Content/Clouds/ExampleAdvancedCloud.png",
+      "gitBlob": "4ac9f45ad1517a6bc430cb1ba33fabea9c021556",
+      "size": 17233
+    },
+    {
+      "path": "Content/Clouds/ExampleCloud.png",
+      "gitBlob": "239fd8bd921a70017f6b9328423a43604b8c5eee",
+      "size": 8590
+    },
+    {
+      "path": "Content/Dusts/ExampleBubble.png",
+      "gitBlob": "7c04fad488ec175a97377e930e9b017f7adc3847",
+      "size": 477
+    },
+    {
+      "path": "Content/Dusts/ExampleSolutionDust.png",
+      "gitBlob": "fef06befb7e09977750ea173bdc4759e85cbf15b",
+      "size": 2924
+    },
+    {
+      "path": "Content/Dusts/Sparkle.png",
+      "gitBlob": "34555cc23ab3591f1d81c384c99455195c45ac0a",
+      "size": 184
+    },
+    {
+      "path": "Content/Effects/ExampleRiftEffect.frag",
+      "gitBlob": "a3aa680d902e6f2ad8033f6c423b3d173d26dd4a",
+      "size": 897
+    },
+    {
+      "path": "Content/EmoteBubbles/ExampleAnimatedEmote.png",
+      "gitBlob": "4acdad27f80d434d0267036f864485ef99773364",
+      "size": 217
+    },
+    {
+      "path": "Content/EmoteBubbles/ExampleItemEmote.png",
+      "gitBlob": "fd7a9820b57d019622f4ff792ca5459c40e539a7",
+      "size": 389
+    },
+    {
+      "path": "Content/Gores/ExampleBoss_GoreBack.png",
+      "gitBlob": "f4af1ea2521a61d2edc87eaa6514256a4433a431",
+      "size": 826
+    },
+    {
+      "path": "Content/Gores/ExampleBoss_GoreFront.png",
+      "gitBlob": "ee99cb25cbeb9b5243893d5106f08dfa27e1d9d4",
+      "size": 1193
+    },
+    {
+      "path": "Content/Gores/ExampleDroplet.png",
+      "gitBlob": "ec8419d108f8f13015d0b35605a4aa5bdaaeb1b6",
+      "size": 639
+    },
+    {
+      "path": "Content/Gores/ExamplePerson_Gore_Arm.png",
+      "gitBlob": "36605a692ed065ab760c005085a150e1564bb643",
+      "size": 935
+    },
+    {
+      "path": "Content/Gores/ExamplePerson_Gore_Head.png",
+      "gitBlob": "41c633376dad2bb5cf5d787110560d8ea9d55644",
+      "size": 3240
+    },
+    {
+      "path": "Content/Gores/ExamplePerson_Gore_Leg.png",
+      "gitBlob": "da269f3ac04c37d0fc46ea93f0f65be2ca71c376",
+      "size": 2287
+    },
+    {
+      "path": "Content/Gores/ExamplePerson_Gore_Party_Arm.png",
+      "gitBlob": "745e7575b5f9a7bd12d14cc317cffc8695674f88",
+      "size": 970
+    },
+    {
+      "path": "Content/Gores/ExamplePerson_Gore_Party_Head.png",
+      "gitBlob": "0e27c8497ea5c13c53dda8780eeb1cef52a9c6f3",
+      "size": 3992
+    },
+    {
+      "path": "Content/Gores/ExamplePerson_Gore_Party_Leg.png",
+      "gitBlob": "254722e7f57ad7ca709ed959e8e381cda4ea7bfc",
+      "size": 2897
+    },
+    {
+      "path": "Content/Gores/ExamplePerson_Gore_Shimmer_Arm.png",
+      "gitBlob": "b43825b87333af1c52e38dc73d3bb5b078fdab37",
+      "size": 1401
+    },
+    {
+      "path": "Content/Gores/ExamplePerson_Gore_Shimmer_Head.png",
+      "gitBlob": "8647f7eb24732dd0d15ae50da097e8f6fb181cb9",
+      "size": 5497
+    },
+    {
+      "path": "Content/Gores/ExamplePerson_Gore_Shimmer_Leg.png",
+      "gitBlob": "669dad4a49a152475aae9800f61c89300524b59e",
+      "size": 3975
+    },
+    {
+      "path": "Content/Gores/ExamplePerson_Gore_Shimmer_Party_Arm.png",
+      "gitBlob": "22ced6df66dcfd65f992cb95f6426db799aaa4d8",
+      "size": 1400
+    },
+    {
+      "path": "Content/Gores/ExamplePerson_Gore_Shimmer_Party_Head.png",
+      "gitBlob": "417445e69547673566e332ee923214bf6793a4ed",
+      "size": 5607
+    },
+    {
+      "path": "Content/Gores/ExamplePerson_Gore_Shimmer_Party_Leg.png",
+      "gitBlob": "c4b580073ae382503a74810568dd5e969115c38e",
+      "size": 4215
+    },
+    {
+      "path": "Content/Gores/ExampleTree_Leaf.png",
+      "gitBlob": "1c13fbe6bb845b89cbbc8e79ff37e4518b82342a",
+      "size": 663
+    },
+    {
+      "path": "Content/Hairs/ExampleHair_Alt.png",
+      "gitBlob": "30a316fec59f5be23673cbe9368ae1fa1be4aee1",
+      "size": 4178
+    },
+    {
+      "path": "Content/Hairs/ExampleHair.png",
+      "gitBlob": "8796fdd9a499fb1911cdd4eaf997a058cbec1666",
+      "size": 4490
+    },
+    {
+      "path": "Content/Items/Accessories/ExampleBeard_Beard.png",
+      "gitBlob": "7bfaa102a3d54ce9ed4a306813750fd611538174",
+      "size": 1342
+    },
+    {
+      "path": "Content/Items/Accessories/ExampleBeard.png",
+      "gitBlob": "0f8e3eb467c80242d0f92495170b2fac98d61c57",
+      "size": 170
+    },
+    {
+      "path": "Content/Items/Accessories/ExampleBoots_Shoes.png",
+      "gitBlob": "12800b24e35a45a30939a833d06be4e21eae3e39",
+      "size": 5861
+    },
+    {
+      "path": "Content/Items/Accessories/ExampleBoots.png",
+      "gitBlob": "74127acdcdd1a1007813fe3fcfac3cf6001bef70",
+      "size": 4649
+    },
+    {
+      "path": "Content/Items/Accessories/ExampleResourceAccessory.png",
+      "gitBlob": "c5a63ae99937aeffc509244b608bc12abf29f921",
+      "size": 351
+    },
+    {
+      "path": "Content/Items/Accessories/ExampleShield_Shield.png",
+      "gitBlob": "73a8eb42826ea2fccea21a6775f294cc15335647",
+      "size": 2092
+    },
+    {
+      "path": "Content/Items/Accessories/ExampleShield.png",
+      "gitBlob": "1b97e298bdefef6ca85dfcdfedc35fa1c95070f3",
+      "size": 489
+    },
+    {
+      "path": "Content/Items/Accessories/ExampleStatAccessory.png",
+      "gitBlob": "3133c0edf8e51d5ef027125339ba6407e61385a1",
+      "size": 577
+    },
+    {
+      "path": "Content/Items/Accessories/ExampleStatBonusAccessory.png",
+      "gitBlob": "3133c0edf8e51d5ef027125339ba6407e61385a1",
+      "size": 577
+    },
+    {
+      "path": "Content/Items/Accessories/ExampleWings_Wings.png",
+      "gitBlob": "9908a9a3a32ccea9ae81b6ecf62ab821f853f462",
+      "size": 3192
+    },
+    {
+      "path": "Content/Items/Accessories/ExampleWings.png",
+      "gitBlob": "462dab32347e12e5585bcc654345dada0618ec21",
+      "size": 521
+    },
+    {
+      "path": "Content/Items/Accessories/WaspNest_Back.png",
+      "gitBlob": "f36c1c57d30988bc5b5d8535c76089cfea01d6ea",
+      "size": 4682
+    },
+    {
+      "path": "Content/Items/Accessories/WaspNest.png",
+      "gitBlob": "72da3067cc5383feae1f826a624cf3cbb84d485f",
+      "size": 3321
+    },
+    {
+      "path": "Content/Items/Ammo/ExampleBullet.png",
+      "gitBlob": "265a7a16bacd2386d66e4f3236b818ac621e4c43",
+      "size": 261
+    },
+    {
+      "path": "Content/Items/Armor/ExampleBreastplate_Body.png",
+      "gitBlob": "a29c6aab52d10742775680361cd58a72a47bec77",
+      "size": 1258
+    },
+    {
+      "path": "Content/Items/Armor/ExampleBreastplate.png",
+      "gitBlob": "ddafcb69e20de41c7784b12e594755eaf4326b13",
+      "size": 425
+    },
+    {
+      "path": "Content/Items/Armor/ExampleCostume_Body.png",
+      "gitBlob": "a18e1f849f6bbc266ce5eed307eadda953e431a3",
+      "size": 4151
+    },
+    {
+      "path": "Content/Items/Armor/ExampleCostume_Head.png",
+      "gitBlob": "d693ce1d3070b2cfd11ac8d479297716e27b2e1f",
+      "size": 3973
+    },
+    {
+      "path": "Content/Items/Armor/ExampleCostume_Legs.png",
+      "gitBlob": "e474151fd18e2229d32b79f486f8586e03960c6b",
+      "size": 4021
+    },
+    {
+      "path": "Content/Items/Armor/ExampleCostume.png",
+      "gitBlob": "bd9010adf04eacb2a4180686066f04088a9c9976",
+      "size": 2866
+    },
+    {
+      "path": "Content/Items/Armor/ExampleCostumeAlt_Body.png",
+      "gitBlob": "05274372c18b40f2b25606d0e508848a5da56469",
+      "size": 4052
+    },
+    {
+      "path": "Content/Items/Armor/ExampleCostumeAlt_Head.png",
+      "gitBlob": "8285b6c21e587a54939f8ce12df92814ed97f664",
+      "size": 3911
+    },
+    {
+      "path": "Content/Items/Armor/ExampleCostumeAlt_Legs.png",
+      "gitBlob": "9c35b2283629058b6a66dbd3e35e66477a244e9f",
+      "size": 4234
+    },
+    {
+      "path": "Content/Items/Armor/ExampleHelmet_Head.png",
+      "gitBlob": "7ff8113a75c95df1ca8f773c678bdcc9be10cf88",
+      "size": 1307
+    },
+    {
+      "path": "Content/Items/Armor/ExampleHelmet.png",
+      "gitBlob": "b936f3d860d0900dfc15c5d5a75ba6b342c9566c",
+      "size": 338
+    },
+    {
+      "path": "Content/Items/Armor/ExampleLeggings_Legs.png",
+      "gitBlob": "d71e682cb98ad2efb963276bd6f52bd1533bc860",
+      "size": 1625
+    },
+    {
+      "path": "Content/Items/Armor/ExampleLeggings.png",
+      "gitBlob": "b5140151dcb69ddfc8aebd4f9444202d6323af03",
+      "size": 288
+    },
+    {
+      "path": "Content/Items/Armor/SimpleAccessory_Balloon.png",
+      "gitBlob": "a9d97e72db13f79a5aab4ea16bbc54ae492c97b4",
+      "size": 3561
+    },
+    {
+      "path": "Content/Items/Armor/Vanity/ExampleBossMask_Head.png",
+      "gitBlob": "01ad27dccb218bf3b0fb3aaca7de7ae96a811080",
+      "size": 1656
+    },
+    {
+      "path": "Content/Items/Armor/Vanity/ExampleBossMask.png",
+      "gitBlob": "a2a08ec702a02fe370719beecb3148d2e8446c28",
+      "size": 522
+    },
+    {
+      "path": "Content/Items/Armor/Vanity/ExampleRobe_Body.png",
+      "gitBlob": "e687184a00a1a9d16accbd5324935fbe2ad309e9",
+      "size": 1946
+    },
+    {
+      "path": "Content/Items/Armor/Vanity/ExampleRobe_Legs.png",
+      "gitBlob": "a6e21213c9b075172de73d602b713c1d76c7c67b",
+      "size": 2437
+    },
+    {
+      "path": "Content/Items/Armor/Vanity/ExampleRobe.png",
+      "gitBlob": "72a48172f559091079fd8c4a9e48e99570a5680a",
+      "size": 680
+    },
+    {
+      "path": "Content/Items/Consumables/ExampleBossBag.png",
+      "gitBlob": "e668c9264d7f43171f6df39754eb523cfd823475",
+      "size": 670
+    },
+    {
+      "path": "Content/Items/Consumables/ExampleBossSummonItem.png",
+      "gitBlob": "537c70cb0f72d7d6247a4c95098c9522ca2c8035",
+      "size": 459
+    },
+    {
+      "path": "Content/Items/Consumables/ExampleBuffPotion.png",
+      "gitBlob": "69a07baabe87d08f33e8edda65518ced942a6a64",
+      "size": 348
+    },
+    {
+      "path": "Content/Items/Consumables/ExampleLifeFruit.png",
+      "gitBlob": "cd94e2b3cb4fca298be88f4a44d7674ca1c9e7a8",
+      "size": 647
+    },
+    {
+      "path": "Content/Items/Consumables/ExampleManaCrystal.png",
+      "gitBlob": "18d73ebbc73bd79aad45102462b31548b60e9aa8",
+      "size": 270
+    },
+    {
+      "path": "Content/Items/ExampleGolfBall.png",
+      "gitBlob": "fcf69d1b892ff38e4f87046e3f7dd4bcaf1dd664",
+      "size": 456
+    },
+    {
+      "path": "Content/Items/ExampleItem.png",
+      "gitBlob": "00a22272b0e961aadb19991628cf057956245240",
+      "size": 424
+    },
+    {
+      "path": "Content/Items/ExamplePickup.png",
+      "gitBlob": "2e99d3d65d7505d5d8f323cef962d4a2360829a6",
+      "size": 3133
+    },
+    {
+      "path": "Content/Items/Materials/ExampleSoul.png",
+      "gitBlob": "eb8caa6c430f966d658555d0b28edccd428fcbd8",
+      "size": 945
+    },
+    {
+      "path": "Content/Items/Mounts/ExampleMinecart.png",
+      "gitBlob": "4fa702673d65f6b9681613e802f1c0358c1e3e64",
+      "size": 529
+    },
+    {
+      "path": "Content/Items/Mounts/ExampleMountItem.png",
+      "gitBlob": "8eedb63a4aa1f6e38ec714aa0ced4846af039215",
+      "size": 308
+    },
+    {
+      "path": "Content/Items/Placeable/Banners/ExampleSlimeBanner.png",
+      "gitBlob": "3b3dbd1526b6be603f7c9ca1892c9295762157d4",
+      "size": 306
+    },
+    {
+      "path": "Content/Items/Placeable/ExampleAnimatedGlowmaskTileItem.png",
+      "gitBlob": "6982f9b2a7301692712fcc84aa98fb5e9baf963c",
+      "size": 527
+    },
+    {
+      "path": "Content/Items/Placeable/ExampleAnimatedTileItem.png",
+      "gitBlob": "9ed851e82bbecc2ee3b2cc3a873d94a73d6dd3d1",
+      "size": 3086
+    },
+    {
+      "path": "Content/Items/Placeable/ExampleBar.png",
+      "gitBlob": "7c4229bdebd77920c6a043402a3748e0d5a8083e",
+      "size": 472
+    },
+    {
+      "path": "Content/Items/Placeable/ExampleCampfire.png",
+      "gitBlob": "083ace1874a1d57e4f8520a76eacbd457ef49371",
+      "size": 2983
+    },
+    {
+      "path": "Content/Items/Placeable/ExampleCutTile.png",
+      "gitBlob": "813abbcfbe7f36882c220ad0712c5f6c777e44c8",
+      "size": 3035
+    },
+    {
+      "path": "Content/Items/Placeable/ExampleGemsparkBlock.png",
+      "gitBlob": "e767a0bccc134b8cfde397ff94960d3ce8b5bb28",
+      "size": 2885
+    },
+    {
+      "path": "Content/Items/Placeable/ExampleHerbSeeds.png",
+      "gitBlob": "12b89960d73c47209050958c49b5eacfbf579989",
+      "size": 2916
+    },
+    {
+      "path": "Content/Items/Placeable/ExampleLamp.png",
+      "gitBlob": "09bf107ae40c7b43b1ecc1fe66d3c61fd5c5d6b2",
+      "size": 405
+    },
+    {
+      "path": "Content/Items/Placeable/ExampleLivingFire.png",
+      "gitBlob": "8380a518cdc92f7e5a2ff294b1986859ca10dec0",
+      "size": 155
+    },
+    {
+      "path": "Content/Items/Placeable/ExampleMusicBox.png",
+      "gitBlob": "f7e5c25abd9b5f88c68722ea170201ef243a59ed",
+      "size": 3021
+    },
+    {
+      "path": "Content/Items/Placeable/ExampleOreItem.png",
+      "gitBlob": "9fb662f0b29818bbc06e81f82a6a604b378aa9f9",
+      "size": 345
+    },
+    {
+      "path": "Content/Items/Placeable/ExamplePylonItem.png",
+      "gitBlob": "45b96ac3699b85375dc0686ca43d2ee1880fd30e",
+      "size": 540
+    },
+    {
+      "path": "Content/Items/Placeable/ExampleSignItem.png",
+      "gitBlob": "fffbd4dc268616907d960b4f9f15673796e43c76",
+      "size": 2074
+    },
+    {
+      "path": "Content/Items/Placeable/ExampleSinkItem.png",
+      "gitBlob": "6ab13993f915534aebd2d814bd9137104f0258f5",
+      "size": 307
+    },
+    {
+      "path": "Content/Items/Placeable/ExampleStatue.png",
+      "gitBlob": "9d006af2a77b8d3b9923609cd3fc47538b61899c",
+      "size": 228
+    },
+    {
+      "path": "Content/Items/Placeable/ExampleTileItem.png",
+      "gitBlob": "a0e4fe1ca99fc64a73618f09b8b9800a5fab0b81",
+      "size": 178
+    },
+    {
+      "path": "Content/Items/Placeable/ExampleTorch_Flame.png",
+      "gitBlob": "c000734e1d9d2daa3121a6c87231b4361408f62c",
+      "size": 199
+    },
+    {
+      "path": "Content/Items/Placeable/ExampleTorch.png",
+      "gitBlob": "0a85da2fcc9be23287ba30606b323905dd6f4595",
+      "size": 230
+    },
+    {
+      "path": "Content/Items/Placeable/ExampleTransparentShapedTileItem.png",
+      "gitBlob": "3bb453be1e6061751f7b229f79c1a766ecec086e",
+      "size": 439
+    },
+    {
+      "path": "Content/Items/Placeable/ExampleTrapChlorophyteBullet.png",
+      "gitBlob": "f1d2d3da53ee003ea627476e08b2891074b12528",
+      "size": 2915
+    },
+    {
+      "path": "Content/Items/Placeable/ExampleTrapIchorBullet.png",
+      "gitBlob": "7a419194ecf8f893b3c58852d4b6db31f8c98c71",
+      "size": 2944
+    },
+    {
+      "path": "Content/Items/Placeable/ExampleWall.png",
+      "gitBlob": "e7e741c395c1436d8d04c9346ab92c7cef761117",
+      "size": 151
+    },
+    {
+      "path": "Content/Items/Placeable/ExampleWallAdvanced.png",
+      "gitBlob": "5aef5e5d755bb3746b48053254278ffb8e69d63f",
+      "size": 2981
+    },
+    {
+      "path": "Content/Items/Placeable/Furniture/ExampleBed.png",
+      "gitBlob": "8f61bdf25f37d1b8645cd625ca5adfa3984dd1e8",
+      "size": 337
+    },
+    {
+      "path": "Content/Items/Placeable/Furniture/ExampleChair.png",
+      "gitBlob": "0148f2e6f50ce832e92f8d4348f614a6cdf06b52",
+      "size": 350
+    },
+    {
+      "path": "Content/Items/Placeable/Furniture/ExampleChandelier.png",
+      "gitBlob": "0a723922b1a73a68d3d75ed4e06d025e6ba53fa8",
+      "size": 2986
+    },
+    {
+      "path": "Content/Items/Placeable/Furniture/ExampleChest.png",
+      "gitBlob": "0cc58c6cedd918dc52e945bfb8dc4c24df4d90ed",
+      "size": 595
+    },
+    {
+      "path": "Content/Items/Placeable/Furniture/ExampleChestKey.png",
+      "gitBlob": "88c98b2f9514791838ad6e81b1ae1319af4ccaa6",
+      "size": 472
+    },
+    {
+      "path": "Content/Items/Placeable/Furniture/ExampleClock.png",
+      "gitBlob": "38e8b341be6e99eb57bc22ce1c902f71342b34ab",
+      "size": 2971
+    },
+    {
+      "path": "Content/Items/Placeable/Furniture/ExampleDoor.png",
+      "gitBlob": "8e7d9a9633bd2ad0de8ab255af0d0dbaadcd149c",
+      "size": 225
+    },
+    {
+      "path": "Content/Items/Placeable/Furniture/ExampleDresser.png",
+      "gitBlob": "868866e2c1093201a50d1e2ec22a6ccd92535f5a",
+      "size": 2976
+    },
+    {
+      "path": "Content/Items/Placeable/Furniture/ExamplePlatform.png",
+      "gitBlob": "906ad846e8baa25f9c5eb861269649e8d9bfbb2f",
+      "size": 217
+    },
+    {
+      "path": "Content/Items/Placeable/Furniture/ExampleTable.png",
+      "gitBlob": "19f0636fe104adb4e5d453db64d96d739b3474d6",
+      "size": 368
+    },
+    {
+      "path": "Content/Items/Placeable/Furniture/ExampleToilet.png",
+      "gitBlob": "6a7705d3a8f807f6d3f720fe6c57e07a4edf857f",
+      "size": 210
+    },
+    {
+      "path": "Content/Items/Placeable/Furniture/ExampleWideBanner.png",
+      "gitBlob": "39c4e6df7ad902af087846983eee0613b2860911",
+      "size": 238
+    },
+    {
+      "path": "Content/Items/Placeable/Furniture/ExampleWorkbench.png",
+      "gitBlob": "6513d300152c4dc039dfb1f572434b1212a2371d",
+      "size": 370
+    },
+    {
+      "path": "Content/Items/Placeable/Furniture/MinionBossRelic.png",
+      "gitBlob": "3aeadb14031e367dc7ac2e5df34a98d2d3c42e60",
+      "size": 898
+    },
+    {
+      "path": "Content/Items/Placeable/Furniture/MinionBossTrophy.png",
+      "gitBlob": "d0f937d513c43370ec20d18fbb4b5af821f3ba8b",
+      "size": 657
+    },
+    {
+      "path": "Content/Items/Quests/ExampleQuestFish.png",
+      "gitBlob": "e3649ce837bf5992017d8928d780ae5e278e54a5",
+      "size": 3288
+    },
+    {
+      "path": "Content/Items/Tools/ExampleDrill.png",
+      "gitBlob": "22e9a30cf1da74668cd7195b492e813cc3054164",
+      "size": 300
+    },
+    {
+      "path": "Content/Items/Tools/ExampleFishingRod.png",
+      "gitBlob": "957c2be27e8a69f0c82c7ede755b9c61134f5d90",
+      "size": 352
+    },
+    {
+      "path": "Content/Items/Tools/ExampleHamaxe.png",
+      "gitBlob": "98ae9963a80e2ea6e85f7cb912f3db8e45236441",
+      "size": 884
+    },
+    {
+      "path": "Content/Items/Tools/ExampleHookItem.png",
+      "gitBlob": "cb9fed5f0f06f5129d64a01b68261a368f5b1acd",
+      "size": 631
+    },
+    {
+      "path": "Content/Items/Tools/ExamplePickaxe.png",
+      "gitBlob": "ba46cf6b0ee6ce4137b39467f108a65dcee4c510",
+      "size": 731
+    },
+    {
+      "path": "Content/Items/Weapons/ExampleCustomResourceWeapon.png",
+      "gitBlob": "d0f7199f09ae5f5c27802d3b56ee7f839b0a9644",
+      "size": 706
+    },
+    {
+      "path": "Content/Items/Weapons/ExampleMultiplePrefixCategoryWeapon.png",
+      "gitBlob": "b38ba07bba19f65261f03b326df9fe1913833290",
+      "size": 456
+    },
+    {
+      "path": "Content/Items/Weapons/Magic/ExampleLaserWeapon.png",
+      "gitBlob": "1aee393b942be553fe88d87c8cd622620ae425ac",
+      "size": 291
+    },
+    {
+      "path": "Content/Items/Weapons/Magic/ExampleMagicWeapon.png",
+      "gitBlob": "d214056a6a95678ec5c423abb5bbc2601126b990",
+      "size": 713
+    },
+    {
+      "path": "Content/Items/Weapons/Melee/ExampleFlail.png",
+      "gitBlob": "92191bb3fe2329ffa59a78b778cc593fb6313a1e",
+      "size": 3101
+    },
+    {
+      "path": "Content/Items/Weapons/Melee/ExampleMeleeWeapon.png",
+      "gitBlob": "b54922e201fda026ad0836235008ead16aebac92",
+      "size": 720
+    },
+    {
+      "path": "Content/Items/Weapons/Melee/ExampleShortsword.png",
+      "gitBlob": "e6248d378cf9f07cedab3cf344439fd993daabfb",
+      "size": 223
+    },
+    {
+      "path": "Content/Items/Weapons/Melee/ExampleSpear.png",
+      "gitBlob": "2c8ad34cad13f3a01696b9e9ebc3282aac925113",
+      "size": 5626
+    },
+    {
+      "path": "Content/Items/Weapons/Melee/ExampleSwingingEnergySword.png",
+      "gitBlob": "2aaf2d1db2f1598c609a0209d52c03d9ec0c3040",
+      "size": 7302
+    },
+    {
+      "path": "Content/Items/Weapons/Melee/ExampleWhip.png",
+      "gitBlob": "7afb4ea1b30603c5661db1dd97d2b3e2c848f98a",
+      "size": 577
+    },
+    {
+      "path": "Content/Items/Weapons/Melee/ExampleYoyo.png",
+      "gitBlob": "311cf335073764108a817ea3e26a2c87b4ca6078",
+      "size": 2957
+    },
+    {
+      "path": "Content/Items/Weapons/Ranged/ExampleGun.png",
+      "gitBlob": "8adb09d50ab62380ca9d7d189f5d02a951a338af",
+      "size": 316
+    },
+    {
+      "path": "Content/Items/Weapons/Ranged/ExampleRocketLauncher.png",
+      "gitBlob": "2c70195bb34d657129e7fca4dbfa3252ee7e8c7c",
+      "size": 565
+    },
+    {
+      "path": "Content/Items/Weapons/Ranged/ExampleShotgun.png",
+      "gitBlob": "f08389a03221073fb6849c2408dba53a7f6c225e",
+      "size": 244
+    },
+    {
+      "path": "Content/Items/Weapons/Summon/ExampleMinionItem.png",
+      "gitBlob": "0ca12b04275a81156f5b74be4b28b9698462569d",
+      "size": 531
+    },
+    {
+      "path": "Content/Items/Weapons/Summon/ExampleSentryItem.png",
+      "gitBlob": "8c261959b2aa9f5878fdbd57f91c67b5fd162270",
+      "size": 681
+    },
+    {
+      "path": "Content/Mounts/ExampleMinecartMount_Front.png",
+      "gitBlob": "bef30561de8a3a04d151539cf1e1f270e7bf42d7",
+      "size": 991
+    },
+    {
+      "path": "Content/Mounts/ExampleMount_Back.png",
+      "gitBlob": "4750dc4d54a47bed6329eee1d3bcdef684c950dd",
+      "size": 12620
+    },
+    {
+      "path": "Content/Mounts/ExampleMount_Front.png",
+      "gitBlob": "4750dc4d54a47bed6329eee1d3bcdef684c950dd",
+      "size": 12620
+    },
+    {
+      "path": "Content/NPCs/ExampleBoss/ExampleBoss_BestiaryIcon.png",
+      "gitBlob": "17a59fc47a97bfc273a9fe49c87647b19a7aaf47",
+      "size": 4704
+    },
+    {
+      "path": "Content/NPCs/ExampleBoss/ExampleBoss_Head_Boss_2.png",
+      "gitBlob": "4be1e915b20a75ce4bc6f8b9714a94242de29d4b",
+      "size": 569
+    },
+    {
+      "path": "Content/NPCs/ExampleBoss/ExampleBoss_Head_Boss.png",
+      "gitBlob": "175635dbf22b31b8961894638d0d53ecf3ee4bab",
+      "size": 568
+    },
+    {
+      "path": "Content/NPCs/ExampleBoss/ExampleBoss.png",
+      "gitBlob": "50e774251ad0180b9d42d4a24d30a034efe2b5ae",
+      "size": 18106
+    },
+    {
+      "path": "Content/NPCs/ExamplePerson/ExamplePerson_Head.png",
+      "gitBlob": "41a44f5fd42780ac9f589d69522556775b3caa95",
+      "size": 185
+    },
+    {
+      "path": "Content/NPCs/ExamplePerson/ExamplePerson_Party.png",
+      "gitBlob": "65df927f1a7c57387c2fc615ee84d6e27ed245d3",
+      "size": 6851
+    },
+    {
+      "path": "Content/NPCs/ExamplePerson/ExamplePerson_Portrait.png",
+      "gitBlob": "560f4d4f781ed446db04fd48364dba00b1aa5c4c",
+      "size": 2258
+    },
+    {
+      "path": "Content/NPCs/ExamplePerson/ExamplePerson_Shimmer_Head.png",
+      "gitBlob": "84c96192db7709008a9b67883fc583b28306e425",
+      "size": 1268
+    },
+    {
+      "path": "Content/NPCs/ExamplePerson/ExamplePerson_Shimmer_Party.png",
+      "gitBlob": "3632c5fe6e7fe80093b9f6eca50c218829d4c200",
+      "size": 5275
+    },
+    {
+      "path": "Content/NPCs/ExamplePerson/ExamplePerson_Shimmer_Portrait.png",
+      "gitBlob": "378f80e2585de6f97254937b9db17d86793ab26f",
+      "size": 2251
+    },
+    {
+      "path": "Content/NPCs/ExamplePerson/ExamplePerson_Shimmer.png",
+      "gitBlob": "153c8ae3d55dbc1f164f103f109703ef071786f0",
+      "size": 5207
+    },
+    {
+      "path": "Content/NPCs/ExamplePerson/ExamplePerson.png",
+      "gitBlob": "5a3dd26a87b5e98e15db27528a40ddea895e89ad",
+      "size": 6962
+    },
+    {
+      "path": "Content/NPCs/ExampleSlimeNPC.png",
+      "gitBlob": "9165d6d253a3d3bdb2bb417c910ff639b9a1ccf4",
+      "size": 431
+    },
+    {
+      "path": "Content/Pets/ExampleLightPet/ExampleLightPetBuff.png",
+      "gitBlob": "7c04fad488ec175a97377e930e9b017f7adc3847",
+      "size": 477
+    },
+    {
+      "path": "Content/Pets/ExampleLightPet/ExampleLightPetItem.png",
+      "gitBlob": "7c04fad488ec175a97377e930e9b017f7adc3847",
+      "size": 477
+    },
+    {
+      "path": "Content/Pets/ExampleLightPet/ExampleLightPetProjectile.png",
+      "gitBlob": "7c04fad488ec175a97377e930e9b017f7adc3847",
+      "size": 477
+    },
+    {
+      "path": "Content/Pets/ExamplePet/ExamplePetBuff.png",
+      "gitBlob": "8415db4e77c8eed6bdbc3ab869c54ca635036449",
+      "size": 4005
+    },
+    {
+      "path": "Content/Pets/ExamplePet/ExamplePetItem.png",
+      "gitBlob": "0e62fad3860c0fce32a2a7fcf65286b883a98c9d",
+      "size": 4083
+    },
+    {
+      "path": "Content/Pets/ExamplePet/ExamplePetProjectile.png",
+      "gitBlob": "afdbe615aa8dc882382c22279f23ba3960c7c0fb",
+      "size": 8685
+    },
+    {
+      "path": "Content/Projectiles/ExampleAdvancedAnimatedProjectile.png",
+      "gitBlob": "3342b22c0ba7a38584b96eb645d7bac644cd14c6",
+      "size": 4169
+    },
+    {
+      "path": "Content/Projectiles/ExampleBobber.png",
+      "gitBlob": "aa42e9d08e0ae893f1c62bbda94e35c1c58ca9f0",
+      "size": 222
+    },
+    {
+      "path": "Content/Projectiles/ExampleBulletProjectile.png",
+      "gitBlob": "c0208fefc92711e5f065477f1bd4037dc9144fa4",
+      "size": 252
+    },
+    {
+      "path": "Content/Projectiles/ExampleDrillProjectile.png",
+      "gitBlob": "21037f7052f33d7c6a86aefd721d19bd5b99c0fa",
+      "size": 317
+    },
+    {
+      "path": "Content/Projectiles/ExampleFlailProjectile.png",
+      "gitBlob": "a4fd09549c404c921ded499b3284dacfc8637679",
+      "size": 3088
+    },
+    {
+      "path": "Content/Projectiles/ExampleGolfBallProjectile.png",
+      "gitBlob": "41838ebcbfcff07542ceb424374bd10db1088891",
+      "size": 115
+    },
+    {
+      "path": "Content/Projectiles/ExampleHookChain.png",
+      "gitBlob": "c651e182971fc9a851fd4dd3932e1b102cc77e7d",
+      "size": 2825
+    },
+    {
+      "path": "Content/Projectiles/ExampleHookProjectile.png",
+      "gitBlob": "7502a41623207933599f1d0eae5580507006b8fe",
+      "size": 3021
+    },
+    {
+      "path": "Content/Projectiles/ExampleLaserBeam.png",
+      "gitBlob": "9a6416c32a7dfb4121f23a2e1dd60f337dccc280",
+      "size": 504
+    },
+    {
+      "path": "Content/Projectiles/ExampleLaserHoldout.png",
+      "gitBlob": "3d410f1e90564fc5076f2e42a8963e3d1d3e2330",
+      "size": 930
+    },
+    {
+      "path": "Content/Projectiles/ExampleLastPrismBeam.png",
+      "gitBlob": "4bcb09bbf2c79b9a78f509ae232c0a8a5706bcdd",
+      "size": 526
+    },
+    {
+      "path": "Content/Projectiles/ExampleMinion.png",
+      "gitBlob": "3b8fd2cb1084d11d9d2abf77203dd7c6a0bd7cab",
+      "size": 510
+    },
+    {
+      "path": "Content/Projectiles/ExampleSentry.png",
+      "gitBlob": "b3d1af2cf8ad70054798b99b2cf2ad54fbf3f06d",
+      "size": 3903
+    },
+    {
+      "path": "Content/Projectiles/ExampleSentryShot.png",
+      "gitBlob": "34ac6598582abd8bb43b9de1ce5e6bd0fc62bda0",
+      "size": 2863
+    },
+    {
+      "path": "Content/Projectiles/ExampleShortswordProjectile.png",
+      "gitBlob": "e6248d378cf9f07cedab3cf344439fd993daabfb",
+      "size": 223
+    },
+    {
+      "path": "Content/Projectiles/ExampleSpearProjectile.png",
+      "gitBlob": "88030f8ad09a2220d56dbaded3c24b48530b24ae",
+      "size": 551
+    },
+    {
+      "path": "Content/Projectiles/ExampleSwingingEnergySwordProjectile.png",
+      "gitBlob": "1f8bada8fd10e3cfa2f14d0ff18d010f4eb8c250",
+      "size": 4091
+    },
+    {
+      "path": "Content/Projectiles/ExampleWhipProjectile.png",
+      "gitBlob": "d0c7d1c3c632bf3fd7088b543bacfcd17e27de37",
+      "size": 476
+    },
+    {
+      "path": "Content/Projectiles/ExampleYoyoProjectile.png",
+      "gitBlob": "b19f03081a58288d072ad6566547f8c828fafe90",
+      "size": 2901
+    },
+    {
+      "path": "Content/TileEntities/BasicTileEntityItem.png",
+      "gitBlob": "c434deb5a5697a94ae6c731b1a232da7ba174ce4",
+      "size": 2877
+    },
+    {
+      "path": "Content/TileEntities/BasicTileEntityTile.png",
+      "gitBlob": "8dd6a9d441a081df4748f9717e8e6b4ffcb9822f",
+      "size": 3278
+    },
+    {
+      "path": "Content/Tiles/Banners/ExampleEnemyBannerTile.png",
+      "gitBlob": "9c9bcdf36687d25599d71cf05e741c3511fc8e2c",
+      "size": 3741
+    },
+    {
+      "path": "Content/Tiles/ExampleAnimatedGlowmaskTile_Glow.png",
+      "gitBlob": "10c3530139d12f91f2dfe2ca6d628fc8db9d297d",
+      "size": 2283
+    },
+    {
+      "path": "Content/Tiles/ExampleAnimatedGlowmaskTile.png",
+      "gitBlob": "7dd717727b1272d6f45491a1d2a31f211b41566b",
+      "size": 2635
+    },
+    {
+      "path": "Content/Tiles/ExampleAnimatedTile_Flame.png",
+      "gitBlob": "af4b580ea62598987e6a0c7bfab0330760e69aae",
+      "size": 3113
+    },
+    {
+      "path": "Content/Tiles/ExampleAnimatedTile.png",
+      "gitBlob": "5f3c1100d27c549ae3b1e9fd5b6d1cf1b45b75ab",
+      "size": 3876
+    },
+    {
+      "path": "Content/Tiles/ExampleBar.png",
+      "gitBlob": "f073c958b05a17abe694e3d5a9b56c6769c45403",
+      "size": 243
+    },
+    {
+      "path": "Content/Tiles/ExampleCampfire_Flame.png",
+      "gitBlob": "f32300725bd51109bbe3339d6ec022fc1efab5d6",
+      "size": 3817
+    },
+    {
+      "path": "Content/Tiles/ExampleCampfire_Highlight.png",
+      "gitBlob": "4e2ba9edb56927be2592534c81875b1f377919af",
+      "size": 3254
+    },
+    {
+      "path": "Content/Tiles/ExampleCampfire.png",
+      "gitBlob": "2ae099b498827826543919959e50f5d3f10fb80a",
+      "size": 4308
+    },
+    {
+      "path": "Content/Tiles/ExampleCutTile.png",
+      "gitBlob": "0d64d47a72ecd35cb4efd385e5f89ea338517c57",
+      "size": 3159
+    },
+    {
+      "path": "Content/Tiles/ExampleGemsparkBlockOff.png",
+      "gitBlob": "81d4b7f54afe18bb90a36d54007cee799a052dc6",
+      "size": 4105
+    },
+    {
+      "path": "Content/Tiles/ExampleGemsparkBlockOn.png",
+      "gitBlob": "ca433ce0cce13b820761a1eba20d07862f63365a",
+      "size": 4140
+    },
+    {
+      "path": "Content/Tiles/ExampleHerb.png",
+      "gitBlob": "1da91a77ae707bfd01df865046b6bb0a476e9bec",
+      "size": 3274
+    },
+    {
+      "path": "Content/Tiles/ExampleLamp_Flame.png",
+      "gitBlob": "4902d93e222ebae0bd8dc8ed9970f7b9f304f96d",
+      "size": 227
+    },
+    {
+      "path": "Content/Tiles/ExampleLamp.png",
+      "gitBlob": "02e5fc756c19f126b496599163186da112033de0",
+      "size": 1097
+    },
+    {
+      "path": "Content/Tiles/ExampleLivingFireTile.png",
+      "gitBlob": "f94aa1328f2b63968a379f1d34a0cfcb10372c22",
+      "size": 3644
+    },
+    {
+      "path": "Content/Tiles/ExampleMusicBoxTile_Highlight.png",
+      "gitBlob": "6f989d1ead6cfc457b72ae1cfbeed91b10e9ec16",
+      "size": 2968
+    },
+    {
+      "path": "Content/Tiles/ExampleMusicBoxTile.png",
+      "gitBlob": "96f66551ee7f3fc700159ab6458c63258878aa14",
+      "size": 3616
+    },
+    {
+      "path": "Content/Tiles/ExampleOre.png",
+      "gitBlob": "7cae644b408871f596fee5c844c483458f10d2e6",
+      "size": 16292
+    },
+    {
+      "path": "Content/Tiles/ExamplePylonTile_Crystal.png",
+      "gitBlob": "ba82ab18db6400714c095d9e30d33d446cf89f77",
+      "size": 1781
+    },
+    {
+      "path": "Content/Tiles/ExamplePylonTile_CrystalHighlight.png",
+      "gitBlob": "d75be09d17d8c910036f21d744cdf7897abfceb2",
+      "size": 596
+    },
+    {
+      "path": "Content/Tiles/ExamplePylonTile_MapIcon.png",
+      "gitBlob": "2c40e9e1722a635e1601cc470758fdf776f092bf",
+      "size": 370
+    },
+    {
+      "path": "Content/Tiles/ExamplePylonTile.png",
+      "gitBlob": "3a6e3cb659e1d3cda5a554bf14de04cd20f4dae6",
+      "size": 446
+    },
+    {
+      "path": "Content/Tiles/ExampleSign.png",
+      "gitBlob": "47c0a7a47d8ce631ee67dba28acd832bdb2da4c4",
+      "size": 2304
+    },
+    {
+      "path": "Content/Tiles/ExampleSink.png",
+      "gitBlob": "b420ed6b1618230909ea3b1349254b46843907c0",
+      "size": 340
+    },
+    {
+      "path": "Content/Tiles/ExampleStatue.png",
+      "gitBlob": "21ae4db3f2594ec13142c6124c81bd932b754aa1",
+      "size": 3786
+    },
+    {
+      "path": "Content/Tiles/ExampleTile.png",
+      "gitBlob": "004130be8f7be70fb412f0862fe8f820aebd146f",
+      "size": 17463
+    },
+    {
+      "path": "Content/Tiles/ExampleTorch_Flame.png",
+      "gitBlob": "c7f41dd00c5b22bfebcb0dc13e43f17f5270eac9",
+      "size": 3038
+    },
+    {
+      "path": "Content/Tiles/ExampleTorch.png",
+      "gitBlob": "b06fd591e0de52709ea01c95ce22e96040de6c00",
+      "size": 3475
+    },
+    {
+      "path": "Content/Tiles/ExampleTransparentShapedTile.png",
+      "gitBlob": "4bb96f3e96af016a461de78068c60b375033af3b",
+      "size": 2616
+    },
+    {
+      "path": "Content/Tiles/ExampleTrap.png",
+      "gitBlob": "0a6a73bb4f07cb28ddf0592b1d24635713e662a4",
+      "size": 3696
+    },
+    {
+      "path": "Content/Tiles/Furniture/ExampleBed_Highlight.png",
+      "gitBlob": "a1c3bb78a6a074f33b0a61ec414503e51d0f89a6",
+      "size": 327
+    },
+    {
+      "path": "Content/Tiles/Furniture/ExampleBed.png",
+      "gitBlob": "0baa5d1aad4572aec93ad6a768139aaaf7e53b52",
+      "size": 842
+    },
+    {
+      "path": "Content/Tiles/Furniture/ExampleChair_Highlight.png",
+      "gitBlob": "8199dd3186107e7768d786533e4648f8ed1a48b2",
+      "size": 229
+    },
+    {
+      "path": "Content/Tiles/Furniture/ExampleChair.png",
+      "gitBlob": "07836cf7608c07ceea8c8384a5f24a10035a99a8",
+      "size": 444
+    },
+    {
+      "path": "Content/Tiles/Furniture/ExampleChandelier_Flame.png",
+      "gitBlob": "1a05bab89e05c120f02ad6254245601221fbfb4e",
+      "size": 4206
+    },
+    {
+      "path": "Content/Tiles/Furniture/ExampleChandelier_Glow.png",
+      "gitBlob": "43467979b9b1d53b90703392a0fcabe248614ee2",
+      "size": 3513
+    },
+    {
+      "path": "Content/Tiles/Furniture/ExampleChandelier.png",
+      "gitBlob": "b8171c1a806e37361d2130da5544abba6694a64d",
+      "size": 9416
+    },
+    {
+      "path": "Content/Tiles/Furniture/ExampleChest_Highlight.png",
+      "gitBlob": "3878a4fc2243939d8ab60d8eb5e4ab104af4dcbe",
+      "size": 3381
+    },
+    {
+      "path": "Content/Tiles/Furniture/ExampleChest.png",
+      "gitBlob": "730c86ce51d6c9c8a8e49c321f9889f8c1add0ef",
+      "size": 1689
+    },
+    {
+      "path": "Content/Tiles/Furniture/ExampleClock.png",
+      "gitBlob": "3cbcac53be5426402fc6f13252fbc20509984742",
+      "size": 3558
+    },
+    {
+      "path": "Content/Tiles/Furniture/ExampleDoorClosed_Highlight.png",
+      "gitBlob": "ad3ee86f9aca87f9cdd5c17c8eacc6c04cae0fa3",
+      "size": 273
+    },
+    {
+      "path": "Content/Tiles/Furniture/ExampleDoorClosed.png",
+      "gitBlob": "13f4b064ab70b3ef965698965d524eaf7bfe9220",
+      "size": 334
+    },
+    {
+      "path": "Content/Tiles/Furniture/ExampleDoorOpen_Highlight.png",
+      "gitBlob": "31e9855f536abcb4f89431ad83a6de313e27c87a",
+      "size": 273
+    },
+    {
+      "path": "Content/Tiles/Furniture/ExampleDoorOpen.png",
+      "gitBlob": "4925fad23048cf2b381a1e81d39e9abdba4bedb8",
+      "size": 489
+    },
+    {
+      "path": "Content/Tiles/Furniture/ExampleDresser_Highlight.png",
+      "gitBlob": "a98ab8a5d419878a9d3d2027134c94134eca90c3",
+      "size": 270
+    },
+    {
+      "path": "Content/Tiles/Furniture/ExampleDresser.png",
+      "gitBlob": "936eb4a22c06e281e8d62137b92cd69c29ec8038",
+      "size": 3208
+    },
+    {
+      "path": "Content/Tiles/Furniture/ExamplePlatform.png",
+      "gitBlob": "6c68520d975c7e2be29bd6bd4d52d519eaad209d",
+      "size": 738
+    },
+    {
+      "path": "Content/Tiles/Furniture/ExampleTable.png",
+      "gitBlob": "dc8991e7a564a4810afc9f4af6b2e10d8a1653cf",
+      "size": 681
+    },
+    {
+      "path": "Content/Tiles/Furniture/ExampleToilet_Highlight.png",
+      "gitBlob": "6ce47fca2395fa76557ead5cbc38b808a9512511",
+      "size": 238
+    },
+    {
+      "path": "Content/Tiles/Furniture/ExampleToilet.png",
+      "gitBlob": "f084c78d392d0ef130b912942a35a397969ba232",
+      "size": 263
+    },
+    {
+      "path": "Content/Tiles/Furniture/ExampleWideBannerTile.png",
+      "gitBlob": "e848d4ac0faa4339a9f44a075d46c81c9f0524b8",
+      "size": 427
+    },
+    {
+      "path": "Content/Tiles/Furniture/ExampleWorkbench_Highlight.png",
+      "gitBlob": "c6862a30f0662ece4e52c8ac8b761f2a701dcfcd",
+      "size": 2957
+    },
+    {
+      "path": "Content/Tiles/Furniture/ExampleWorkbench.png",
+      "gitBlob": "bab243f2e40b2508035aca7ce5f5985ce40cb819",
+      "size": 477
+    },
+    {
+      "path": "Content/Tiles/Furniture/MinionBossRelic.png",
+      "gitBlob": "348ec755c586765a1affdcb4b339585e6a4ecc87",
+      "size": 712
+    },
+    {
+      "path": "Content/Tiles/Furniture/MinionBossTrophy.png",
+      "gitBlob": "109b13cc4962fef0079d58e35126d2ec63d31e69",
+      "size": 1145
+    },
+    {
+      "path": "Content/Tiles/Furniture/RelicPedestal.png",
+      "gitBlob": "37bda1b81a33383711d24e4493e58fa918a475f5",
+      "size": 960
+    },
+    {
+      "path": "Content/Tiles/Plants/ExampleSapling.png",
+      "gitBlob": "15dc7363bec74207460365d2b0fc7c2d078e7d87",
+      "size": 3509
+    },
+    {
+      "path": "Content/Tiles/Plants/ExampleTree_Branches.png",
+      "gitBlob": "2c23b8f7821a6ff5b00169c529d1447596e51c70",
+      "size": 1064
+    },
+    {
+      "path": "Content/Tiles/Plants/ExampleTree_Tops.png",
+      "gitBlob": "bd627b75ab59687aa85a342539b920c7fd7515ea",
+      "size": 1150
+    },
+    {
+      "path": "Content/Tiles/Plants/ExampleTree.png",
+      "gitBlob": "daf79cfae7b33316304a3c5f6a5e51fddfe852ce",
+      "size": 1915
+    },
+    {
+      "path": "Content/Walls/ExampleWall.png",
+      "gitBlob": "9740e41fc22180cc16829f122ec52faf266df441",
+      "size": 3781
+    },
+    {
+      "path": "Content/Walls/ExampleWallAdvanced.png",
+      "gitBlob": "6409ea2961c021ec645567dd6758479f42284c67",
+      "size": 13395
+    },
+    {
+      "path": "Localization/en-US.json",
+      "gitBlob": "2c6a68794643436503f8a31f38aa614c49cad4b9",
+      "size": 18179
+    },
+    {
+      "path": "Localization/pt-BR.json",
+      "gitBlob": "c2df7f6b00091a1541c701ab3e72c4eeecd93f57",
+      "size": 19252
+    }
   ]
 }
