@@ -54,12 +54,16 @@ Base técnica: `ModHair` do tModLoader (API pública) e `HairLoader.js` /
   recusa tamanho maior que 512 KiB e só aceita UID válido. O CI gera
   manifestos reais em C# e os importa em `NativeHairStartup` no C++,
   validando identidade, textura principal/_Alt, gênero e disponibilidade.
-  **O worker MonoVM de produção ainda não invoca o exportador.**
+  `CountFromFile` verifica a quantidade concreta de cabelos na assembly,
+  inclusive herança indireta, sem executar `SetStaticDefaults`.
+  `ExportFromFile` é a entrada tipada com cinco argumentos para o MonoVM.
+  **SourceLoader ainda não libera a ativação nem chama a preparação.**
 - `ExportNativeManifest()` + `NativeHairManifest.h`: protocolo V1
   determinístico de oito campos por cabelo, com classe/UID, caminho PNG,
   gênero e disponibilidade na criação; o parser C++ recusa registros
-  parciais, IDs divergentes ou caminhos inseguros. A ponte Mono que envia
-  os dados permanece pendente.
+  parciais, IDs divergentes ou caminhos inseguros. A ponte tipada
+  MonoVM/C++ existe, mas o disparo automático do SourceLoader e a
+  instalação de texturas/hooks ainda estão pendentes.
 - O instalador de texturas recusa qualquer ID ocupado por outro mod.
 - `CompiledAssemblyProbe.Verify` agora chama
   `CompiledHairProbe.RejectUninstalledHairTypes` sobre os tipos **da
@@ -79,6 +83,21 @@ Base técnica: `ModHair` do tModLoader (API pública) e `HairLoader.js` /
   `Examples/Hairs/ExampleHair.cs` além dos seis espelhos da fixture e
   confirma que o cabelo **não** integra `Playable/`.
 
+- `ManagedRuntime::inspectManagedHairClassCount` e
+  `exportManagedHairManifest`: endpoints nativos que usam o
+  `BunnySourceCompiler` carregado no MonoVM para consultar a contagem
+  real de classes e executar a exportação, com resultados tipados,
+  verificação de caminhos/UID e proteção de mutex do runtime Mono.
+- `NativeHairWorkerPipeline.{h,cpp}`: combina a contagem MonoVM,
+  a reserva pela mailbox, `ExportFromFile`, o leitor seguro
+  `NativeHairHandoff`, o `CommitManifest` e o `Seal`. Falha de
+  arquivo, exceção, contagem divergente ou colisão tardia restaura
+  as reservas sem publicar o lote. O teste usa o manifesto produzido
+  pelo compilador C# real e simula falhas no lado do worker.
+- `tests/hair_loader/Directory.Build.props`: separa os diretórios
+  `obj/bin` por projeto. Antes, projetos de teste distintos compilados
+  na mesma pasta podiam executar o binário de outro projeto; o CI agora
+  exige a existência do manifesto produzido antes de iniciar o C++.
 - `NativeHairStartup.{h,cpp}`: cria o registro somente após duas
   verificações de ocupação, em `Begin` e `Seal`. A fábrica
   `MakeNativeHairStartupForWorker()` usa `NativeHairSlotMailbox`
