@@ -13,10 +13,6 @@ public sealed class ExampleSlimeBanner : BunnyItem
         MaxStack = 9999;
         Value = 10;
         Tooltip = "Uma bandeira do Example Slime.";
-
-        // No tModLoader, este item usa DefaultToPlaceableTile do tile 1x3.
-        // O BunnyTile atual so suporta Single e Style2x1. Nao substituir
-        // por um tile 1x1 nem pelo banner vanilla: isso alteraria o visual.
-        // A colocacao real sera ativada com o tile 1x3 nativo completo.
+        DefaultToPlaceableTile("ExampleEnemyBannerTile", 1);
     }
 }
