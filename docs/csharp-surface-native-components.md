@@ -1,9 +1,11 @@
 # Componentes nativos de superfície — 22/10/2026
 
-Checkpoint sobre `f2d98fcd`, na mesma branch da PR130. Nenhum sistema anterior
-foi substituído. O SurfaceBackgroundLoader **ainda está parcial**: os componentes
-abaixo têm código de produção e testes de execução, mas não estão conectados
-aos seis hooks, ao MonoVM ou à seleção de cena/menu. Não existe ainda uma
+Checkpoint inicial sobre `f2d98fcd`, na mesma branch da PR130. A continuação
+sobre `eb6c44b4` acrescenta o [serviço nativo dos seis hooks](csharp-surface-native-runtime.md),
+registro, seleção/menu, callbacks C++ e retenção durante fades. Nenhum sistema
+anterior foi substituído. O SurfaceBackgroundLoader **ainda está parcial**:
+o serviço nativo executa nos testes, mas faltam os adaptadores de MonoVM/QuickJS
+e seu carregamento automático pelas linguagens. Não existe ainda uma
 API pública C# de superfície nem um exemplo C# falsamente apresentado como port.
 Os quinze alvos continuam contabilizados: **2 implementados nos fontes, 1 parcial,
 12 pendentes; 0 validados no Android**. APK e `.bmod` continuam bloqueados.
@@ -78,17 +80,15 @@ sem QuickJS; não certifica um loader C# completo. Não há nova medição de FP
 
 ## Continuidade exata
 
-1. Implementar registro compartilhado de estilos por UID/classe e contagem real
-   `SurfaceBackgroundID.Count`, sem colisões entre linguagens. Arbitrar cena e
-   menu separadamente e manter Wake/Sleep durante qualquer fade visível.
-2. Ligar os contratos reais de LocalUserGameState/Main/Sets ao `growTables`.
-   Resolver métodos nullable dos hooks e validar sua ABI antes de detours:
-   a codificação para runtime_invoke não comprova ABI de passagem por registrador.
-3. Instalar os seis hooks auditados, preservando originais e ordem, incluindo
-   DrawBG_ModifyBGFarBackLayerAlpha. O serviço de desenho fica depois de Step1,
-   depois de Step2 e antes do Fog, com a cor modificada publicada corretamente.
-   A escrita desse struct Color precisa de contrato próprio verificado:
-   CheckedFieldWrite recusa structs sem layout de escrita, de propósito.
+1. O núcleo agora registra UID/classe, consulta Count real, arbitra prioridade,
+   cena/menu e mantém Wake/Sleep. Adaptar as duas bridges para esse registro:
+   o loader JS atual continua preservado e **ainda não o utiliza**.
+2. Os seis detours e os contratos de Main/LocalUserGameState/Sets estão no núcleo,
+   com nullable não-HFA de oito bytes validado para AAPCS64. Os testes executam
+   os detours no host; confirmar a metadata real e a renderização no Android.
+3. Manter as transações de quatro tabelas, cores, geometria fracionária e leases
+   já implementadas ao ligar o SDK. Não voltar a presumir scAdj inteiro nem
+   descartar a verificação de setters e layouts de cores.
 4. Criar transação nativa/worker por revisão para ModifyFarFades, escolhas e
    PreDrawCloseBackground com comandos reais de desenho personalizado. Não
    substituir callback por flag fixa nem permitir resposta vencida.

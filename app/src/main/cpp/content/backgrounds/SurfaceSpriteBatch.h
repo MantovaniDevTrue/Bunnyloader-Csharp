@@ -16,6 +16,7 @@ class SurfaceSpriteBatch {
     il2cpp::NullableLayout rectangle;
 public:
     bool bind(Il2CppClass* batch,Il2CppClass* sky,std::string* error);
-    bool draw(Il2CppObject* batch,Il2CppObject* sky,Il2CppObject* texture,const DrawPlan& plan,Color color,std::string* error) const;
+    bool draw(Il2CppObject* batch,Il2CppObject* sky,Il2CppObject* texture,const DrawPlan& plan,Color color,std::string* error,
+              bool(*isCurrent)(void*)=nullptr,void* context=nullptr) const;
 };
 }

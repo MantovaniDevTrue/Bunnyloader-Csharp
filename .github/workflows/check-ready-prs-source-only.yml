@@ -135,7 +135,7 @@ jobs:
           "$CXX" -std=c++20 -fsyntax-only -fno-exceptions -fno-rtti -D__ANDROID__ -DANDROID -D_GNU_SOURCE -DBL_HAVE_QUICKJS=1 -Iapp/src/main/cpp -Iapp/src/main/cpp/third_party/quickjs app/src/main/cpp/script/api/SystemHooks.cpp
           "$CXX" -std=c++20 -fsyntax-only -fno-exceptions -fno-rtti -D__ANDROID__ -DANDROID -D_GNU_SOURCE -Iapp/src/main/cpp -Itests/world_update_loader/include app/src/main/cpp/hook/HookManager.cpp
           "$CXX" -std=c++20 -fsyntax-only -fno-exceptions -fno-rtti -D__ANDROID__ -DANDROID -D_GNU_SOURCE -DBL_HAVE_QUICKJS=1 -Iapp/src/main/cpp -Iapp/src/main/cpp/third_party/quickjs app/src/main/cpp/script/api/SystemTimeRates.cpp
-          for file in content/backgrounds/UndergroundBackgrounds content/backgrounds/BackgroundAssetLifetime content/backgrounds/SurfaceGeometry content/backgrounds/SurfaceTables content/backgrounds/SurfaceSpriteBatch script/api/UndergroundBackgrounds; do
+          for file in content/backgrounds/UndergroundBackgrounds content/backgrounds/BackgroundAssetLifetime content/backgrounds/SurfaceGeometry content/backgrounds/SurfaceTables content/backgrounds/SurfaceSpriteBatch content/backgrounds/SurfaceBackgrounds script/api/UndergroundBackgrounds; do
             "$CXX" -std=c++20 -fsyntax-only -fno-exceptions -fno-rtti -D__ANDROID__ -DANDROID -D_GNU_SOURCE -DBL_HAVE_QUICKJS=1 -Iapp/src/main/cpp -Iapp/src/main/cpp/third_party/quickjs "app/src/main/cpp/$file.cpp"
           done
           echo CSHARP_SOURCE_COMBINED_ANDROID_ARM64_SYNTAX_PASS_NO_APK

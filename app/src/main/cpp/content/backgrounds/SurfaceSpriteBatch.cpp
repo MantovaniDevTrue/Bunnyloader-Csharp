@@ -128,7 +128,7 @@ bool SurfaceSpriteBatch::bind(Il2CppClass* batch,Il2CppClass* sky,std::string* e
     staged.batchClass=batch;staged.skyClass=sky;staged.textureClass=param(draw,0);
     staged.drawMethod=draw;staged.skyMethod=depth;*this=staged;return true;
 }
-bool SurfaceSpriteBatch::draw(Il2CppObject* batch,Il2CppObject* sky,Il2CppObject* texture,const DrawPlan& p,Color color,std::string* error) const {
+bool SurfaceSpriteBatch::draw(Il2CppObject* batch,Il2CppObject* sky,Il2CppObject* texture,const DrawPlan& p,Color color,std::string* error,bool(*isCurrent)(void*),void* context) const {
     auto& a=il2cpp::api();
     if(!drawMethod || !skyMethod)return failure(error,"Draw","DrawingContractUnavailable","BoundDrawAndSkyContracts","Unbound");
     auto instance=[&](Il2CppObject* value,Il2CppClass* type){return value && a.class_is_assignable_from(type,a.object_get_class(value));};
@@ -139,7 +139,9 @@ bool SurfaceSpriteBatch::draw(Il2CppObject* batch,Il2CppObject* sky,Il2CppObject
        std::abs(p.startX)>std::numeric_limits<float>::max() || std::abs(p.topY)>std::numeric_limits<float>::max() ||
        !std::isfinite(double(p.startX)+double(p.step)*std::max(0,p.loops-1)) ||
        std::abs(double(p.startX)+double(p.step)*std::max(0,p.loops-1))>std::numeric_limits<float>::max() ||
-       (p.drawSky && (!std::isfinite(p.skyDepth) || p.skyDepth<=0)))
+       (p.drawSky && (!std::isfinite(p.skyDepth) || p.skyDepth<=0)) || p.sourceX<0 || p.sourceY<0 ||
+       !std::isfinite(p.rotation) || !std::isfinite(p.originX) || !std::isfinite(p.originY) ||
+       !std::isfinite(p.layerDepth) || p.layerDepth<0 || p.layerDepth>1 || p.effects<0 || p.effects>3)
         return failure(error,"Draw","InvalidDrawPlan","FiniteBoundedDrawPlan","InvalidValueOrLoopCount");
     struct Roots {
         std::array<uint32_t,3> values{};
@@ -150,19 +152,23 @@ bool SurfaceSpriteBatch::draw(Il2CppObject* batch,Il2CppObject* sky,Il2CppObject
         roots.values[i]=a.gchandle_new(objects[i],false);
         if(!roots.values[i])return failure(error,"Draw","GcRootAllocationFailed","RootedDrawObjects","RootIndex:"+std::to_string(i));
     }
+    auto current=[&]{return !isCurrent || isCurrent(context) || failure(error,"Draw","DrawSessionExpired","CurrentEngineDrawSession","Cancelled");};
+    if(!current())return false;
     if(p.drawSky) {
         auto* rootedBatch=a.gchandle_get_target(roots.values[0]);float depth=p.skyDepth;void* args[]={rootedBatch,&depth};
         if(!invoke(skyMethod,a.gchandle_get_target(roots.values[2]),args,error,"DrawToDepth"))return false;
     }
     alignas(16) std::array<unsigned char,8> position{},origin{};
     alignas(16) std::array<unsigned char,16> rectangleValue{};
-    const int32_t parts[]={0,0,p.width,p.height};
+    const int32_t parts[]={p.sourceX,p.sourceY,p.width,p.height};
     for(size_t i=0;i<4;++i)std::memcpy(rectangleValue.data()+rectangleOffsets[i],parts+i,4);
     il2cpp::NullableLayout::Buffer source{};
-    if(!rectangle.encode(true,rectangleValue.data(),rectangleValue.size(),&source,error))return false;
-    uint32_t packed=colors.pack(color.r,color.g,color.b,color.a);float rotation=0,scale=p.scale,layerDepth=0;int32_t effects=0;
+    if(!rectangle.encode(p.hasSource,rectangleValue.data(),rectangleValue.size(),&source,error))return false;
+    uint32_t packed=colors.pack(color.r,color.g,color.b,color.a);float rotation=p.rotation,scale=p.scale,layerDepth=p.layerDepth;int32_t effects=p.effects;
+    std::memcpy(origin.data()+pointOffsets[0],&p.originX,4);std::memcpy(origin.data()+pointOffsets[1],&p.originY,4);
     const float y=float(p.topY);std::memcpy(position.data()+pointOffsets[1],&y,4);
     for(int k=0;k<p.loops;++k) {
+        if(!current())return false;
         const float x=float(p.startX+p.step*k);
         std::memcpy(position.data()+pointOffsets[0],&x,4);
         void* args[]={a.gchandle_get_target(roots.values[1]),position.data(),source.data(),&packed,&rotation,origin.data(),&scale,&effects,&layerDepth};

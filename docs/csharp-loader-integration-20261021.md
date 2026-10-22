@@ -1,5 +1,29 @@
 # Continuidade dos loaders C# — 2026-10-21
 
+## Continuidade sobre eb6c44b4 — serviço nativo dos seis hooks de superfície
+
+`SurfaceBackgrounds` agora registra UID/classe, consulta o Count real, valida
+nullable não-HFA antes de detours e liga os seis métodos originais aos serviços
+de tabelas/desenho. Há prioridade/peso, menu independente, fades após original,
+comandos personalizados, snapshot enraizado e retenção da textura anterior
+durante unload. `scAdj` preserva frações; um callback de mundo vencido não publica
+fades nem continua desenhando. Binding inválido não instala hooks; falha parcial
+de instalação fica em wrappers somente-original até retry.
+
+Código, testes e pendências: [csharp-surface-native-runtime.md](csharp-surface-native-runtime.md).
+O fixture executa o núcleo/detours reais com providers C++ controlados, incluindo
+outra thread alterando o registro durante callback. São 336 verificações desse
+executável, mais 470 dos componentes e o oráculo JS, aprovadas localmente com
+ASan/UBSan/divisão por zero/leaks. As 65 regressões, fundos e subsolo anteriores
+passaram. A aprovação CI desse código deve ser registrada pelo SHA próprio.
+
+**Continua 2/15 implementados, 1 parcial e 12 pendentes; zero Android.**
+As bridges MonoVM/QuickJS de superfície, SDK e exemplo C# não foram criados nesta
+etapa. O loader JS anterior foi preservado. Próxima tarefa: conectar ambas as
+linguagens a este registro antes de expor C#, com revisão/deadline, rebinding de
+scopes e port integral da animação/imagens. ExampleMod0.1.65, cache v55 e 106 fontes
+permanecem iguais. Nenhum APK ou `.bmod` gerado.
+
 ## Continuidade de 22/10 — componentes de SurfaceBackgroundLoader
 
 Sobre `f2d98fcd`, preservados os commits anteriores e todos os exemplos existentes.

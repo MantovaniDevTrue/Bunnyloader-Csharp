@@ -30,8 +30,10 @@ MethodInfo pick{nullptr,"DrawBackground_PickUndergroundBackgroundStyle",&mainCla
 std::map<uint32_t,Il2CppObject*> handles;uint32_t nextHandle=1;
 std::map<Il2CppObject*,Il2CppObject*> images;
 std::map<const MethodInfo*,void*> installed;
+const MethodInfo* rejectedHook=nullptr;
 std::vector<void*> allocations;
 std::vector<std::string> logs;
+std::map<std::pair<std::string,std::string>,Il2CppClass*> additionalClasses;
 int gameTid=0,destroyed=0,nativeVanilla=3,vanillaCalls=0,fillCalls=0,writes=0,failRoot=-1;
 Il2CppArray *values=nullptr,*oldValues=nullptr;
 Il2CppObject* localObject=nullptr;
@@ -50,7 +52,7 @@ namespace bl::log {void write(int,const char* format,...){char buffer[2048];va_l
 namespace bl::runtime {int gameThreadId(){return gameTid;}}
 namespace bl::il2cpp {
 Api& api(){return exports;}
-Il2CppClass* findClassQuiet(const std::string& ns,const std::string& name){for(auto* c:{&mainClass,&localClass,&texture,&assetOwner})if(ns==c->ns && name==c->name)return c;return nullptr;}
+Il2CppClass* findClassQuiet(const std::string& ns,const std::string& name){for(auto* c:{&mainClass,&localClass,&texture,&assetOwner})if(ns==c->ns && name==c->name)return c;auto it=additionalClasses.find({ns,name});return it==additionalClasses.end()?nullptr:it->second;}
 FieldInfo* findField(Il2CppClass* c,std::string_view name){for(auto* f:c->fields)if(name==f->name)return f;return nullptr;}
 }
 namespace bl::runtime::content {
@@ -59,7 +61,7 @@ void destroyTextureAsset(Il2CppObject*){++destroyed;}
 Il2CppObject* textureAssetValue(Il2CppObject* a){auto it=images.find(a);return it==images.end()?nullptr:it->second;}
 }
 namespace bl::hook {
-bool install(const MethodInfo* method,void* replacement,void** original){if(installed.contains(method))return false;installed[method]=replacement;*original=method->pointer;return true;}
+bool install(const MethodInfo* method,void* replacement,void** original){if(method==rejectedHook || installed.contains(method))return false;installed[method]=replacement;*original=method->pointer;return true;}
 }
 void initialize(){
  exports.class_get_name=[](Il2CppClass* c){return c->name;};exports.class_get_namespace=[](Il2CppClass* c){return c->ns;};

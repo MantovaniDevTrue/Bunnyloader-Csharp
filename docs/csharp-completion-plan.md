@@ -21,7 +21,7 @@ Nenhuma porcentagem de conclusão total é deduzida da aprovação do CI.
 
 Continuidade de 22/10: [fundo subterrâneo nativo e exemplo original C#](csharp-underground-backgrounds.md).
 Dois dos quinze loaders estão implementados nos fontes e testados no host;
-SurfaceBackgroundLoader tem infraestrutura nativa parcial, e doze ainda estão
+SurfaceBackgroundLoader tem núcleo nativo com seis hooks, mas faltam SDK e bridges das linguagens; doze ainda estão
 pendentes. [Componentes de superfície e próximos contratos](csharp-surface-native-components.md).
 Nenhum dos dois está validado no Android. As
 integrações adicionais SystemUpdate/Gore continuam fora dessa contagem.

@@ -13,7 +13,8 @@ struct CloseGeometry {
     double screenX=0,screenY=0,worldSurface=0;
     int screenWidth=0;
     double stepTop=0;
-    int scAdj=0,push=0;
+    double scAdj=0;
+    int push=0;
 };
 // One compact plan per layer, rather than an allocation per repeated sprite.
 struct DrawPlan {
@@ -21,6 +22,10 @@ struct DrawPlan {
     double startX=0,topY=0,step=0;
     float scale=1,skyDepth=0;
     bool drawSky=false;
+    int sourceX=0,sourceY=0;
+    bool hasSource=true;
+    float rotation=0,originX=0,originY=0,layerDepth=0;
+    int effects=0;
 };
 bool backPlan(TextureSize texture,const BackGeometry& geometry,DrawPlan* result,std::string* error);
 bool closePlan(TextureSize texture,const CloseSettings& settings,const CloseGeometry& geometry,DrawPlan* result,std::string* error);

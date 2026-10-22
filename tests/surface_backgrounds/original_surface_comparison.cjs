@@ -83,7 +83,7 @@ let projections = 0;
 for (const x of [-50000, -1280, -256, -1, 0, 160, 50000]) {
   for (const scale of [.5, 1.25, 2]) {
     for (const below of [false, true]) {
-      const parallax = .5, a = 1851, b = 1749, top = .1234, adj = -11, push = 7;
+      const parallax = .5, a = 1851, b = 1749, top = .1234, adj = -11.375, push = 7;
       properties.screenPosition = {X: x, Y: below ? 1616 : 200};properties.instance.scAdj = adj;
       const originalChoose = style.ChooseCloseTexture;
       style.ChooseCloseTexture = function(s, p, ar, br) {

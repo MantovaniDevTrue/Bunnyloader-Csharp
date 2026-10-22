@@ -22,6 +22,7 @@
 #include "experiments/csharp/AutoSourceCache.h"
 #include "experiments/csharp/AutoSourceRuntime.h"
 #include "content/backgrounds/UndergroundBackgrounds.h"
+#include "content/backgrounds/SurfaceBackgrounds.h"
 #include "content/dusts/ModDusts.h"
 #include "content/backgrounds/BackgroundTextures.h"
 #include "experiments/csharp/NativeVisualRenderer.h"
@@ -1337,6 +1338,7 @@ void retryWorldManagedPrefixesWhenReady() {
 
 void noteAutoWorldTilesLoaded() {
     runtime::underground::resetWorld();
+    runtime::surface::resetWorld();
     angler::invalidateWorldSession();
     std::lock_guard<std::mutex> sessionGuard(g_worldTransitionMutex);
     nativeCommandMailbox().newWorld();

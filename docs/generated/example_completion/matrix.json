@@ -2220,24 +2220,27 @@
       "status": "Não implementado",
       "assets": [],
       "automatedEvidence": [
-        "docs/csharp-surface-native-components.md: componentes executados com metadata IL2CPP controlada e comparação com original JS em Node. Não valida loader completo, C# ou Android."
+        "docs/csharp-surface-native-runtime.md: seis hooks de produção e callbacks C++ em metadata controlada; comparação do original JS em Node. Não prova C# ou Android."
       ],
       "preservedFeatures": [
-        "Infraestrutura nativa parcial: desenho SpriteBatch verificado, geometria, fades, tabelas transacionais e valores nullable. Ainda sem conexão aos hooks de superfície ou ao C#."
+        "Nucleo nativo com registro por UID/classe, seis detours, fades, menu, geometria fracionaria, comandos de desenho e leases. Providers C++ controlados executam nos testes; ainda nao ha port C# nem bridges das linguagens."
       ],
       "missingFeatures": [
-        "Port C# completo do estilo, seis hooks e registro compartilhado, integração de menu/cena, callbacks no worker, desenho personalizado, leases durante fade/unload e animação original de quatro frames."
+        "Port C# completo do estilo, adaptadores MonoVM/QuickJS para o registro compartilhado, callbacks no worker com deadline e SDK, animação original de quatro frames e teste real das duas linguagens."
       ],
       "nativeDependencies": [
         "app/src/main/cpp/content/backgrounds/SurfaceGeometry.cpp",
         "app/src/main/cpp/content/backgrounds/SurfaceTables.cpp",
         "app/src/main/cpp/content/backgrounds/SurfaceSpriteBatch.cpp",
         "app/src/main/cpp/il2cpp/NullableLayout.h",
-        "app/src/main/cpp/il2cpp/CheckedFieldWrite.h"
+        "app/src/main/cpp/il2cpp/CheckedFieldWrite.h",
+        "app/src/main/cpp/content/backgrounds/SurfaceBackgrounds.cpp",
+        "app/src/main/cpp/content/backgrounds/SurfaceProperties.h"
       ],
       "automatedTests": [
         "tests/surface_backgrounds/native_surface_test.cpp",
-        "tests/surface_backgrounds/original_surface_comparison.cjs"
+        "tests/surface_backgrounds/original_surface_comparison.cjs",
+        "tests/surface_backgrounds/native_surface_loader_test.cpp"
       ],
       "terrariaTests": [
         "Ainda não existe comando/API C# de superfície utilizável: concluir os contratos de docs/csharp-surface-native-components.md antes de QA Android."

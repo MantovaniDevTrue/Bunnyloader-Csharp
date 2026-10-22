@@ -97,7 +97,9 @@
         "app/src/main/cpp/content/backgrounds/SurfaceTables.cpp",
         "app/src/main/cpp/content/backgrounds/SurfaceSpriteBatch.cpp",
         "app/src/main/cpp/il2cpp/NullableLayout.h",
-        "app/src/main/cpp/il2cpp/CheckedFieldWrite.h"
+        "app/src/main/cpp/il2cpp/CheckedFieldWrite.h",
+        "app/src/main/cpp/content/backgrounds/SurfaceBackgrounds.cpp",
+        "app/src/main/cpp/content/backgrounds/SurfaceProperties.h"
       ],
       "example": [],
       "contracts": [
@@ -194,20 +196,20 @@
         }
       ],
       "missing": [
-        "Shared UID/class registry, real vanilla count, menu/scene arbitration and wake/sleep lifecycle.",
-        "Bind real LocalUserGameState/Main/Sets fields and six hooks; verify nullable detour ABI before installation.",
-        "Managed worker revision protocol, reusable public SDK and genuine custom drawing callback.",
-        "Original CSharp surface example including four-frame animation; actual CSharp and QuickJS bridges.",
-        "Current/outgoing asset leases, unload, stale replies and dependency failure integration.",
-        "Full loader integration tests, source cache review and Android gameplay/FPS validation."
+        "Native-to-MonoVM protocol with revision/deadline, public SDK and genuine managed custom drawing callback.",
+        "Connect both language bridges to the shared native style registry; current JavaScript loader remains unchanged.",
+        "Original CSharp surface example with six textures, four-frame animation and full mod-path asset lookup.",
+        "Real CSharp P/Invoke and QuickJS integration together, unload, module/scope rebinding and managed exception isolation.",
+        "Review source cache if managed SDK/protocol changes, then validate actual Android metadata, rendering, gameplay and FPS."
       ],
       "auditDocument": "docs/csharp-surface-background-audit.md",
       "infrastructure": {
-        "status": "implemented-components-not-yet-connected-to-engine-hooks-or-managed-sdk",
-        "documentation": "docs/csharp-surface-native-components.md",
+        "status": "native-engine-service-and-six-detours-implemented;language-bridges-and-managed-sdk-pending",
+        "documentation": "docs/csharp-surface-native-runtime.md",
         "tests": [
           "tests/surface_backgrounds/native_surface_test.cpp",
-          "tests/surface_backgrounds/original_surface_comparison.cjs"
+          "tests/surface_backgrounds/original_surface_comparison.cjs",
+          "tests/surface_backgrounds/native_surface_loader_test.cpp"
         ],
         "android": "not-tested",
         "publicApiExposed": false

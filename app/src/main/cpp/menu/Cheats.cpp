@@ -15,6 +15,7 @@
 #include "content/common/GameRefs.h"
 #include "content/systems/SystemTimeRates.h"
 #include "content/backgrounds/UndergroundBackgrounds.h"
+#include "content/backgrounds/SurfaceBackgrounds.h"
 #include "content/backgrounds/BackgroundAssetLifetime.h"
 #include "content/common/ModContent.h"
 #include "content/textures/TexturePacks.h"
@@ -209,7 +210,7 @@ void updateInWorld() {
     g_inWorld.store(!menu, std::memory_order_relaxed);
     systems::observeTimeRateMenu(menu);
     static bool lastMenu=true;
-    if(menu!=lastMenu){underground::resetWorld();lastMenu=menu;}
+    if(menu!=lastMenu){underground::resetWorld();surface::resetWorld();lastMenu=menu;}
 }
 
 // DoUpdate hook: le o arquivo de comando a cada frame e despacha.

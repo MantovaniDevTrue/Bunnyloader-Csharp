@@ -207,12 +207,13 @@ void drawingChecks() {
     auto invokeExport=exports.runtime_invoke;exports.runtime_invoke=nullptr;CHECK(!drawing.bind(&batchType,&skyType,&error));CHECK(error.find("Missing=runtime_invoke")!=error.npos);exports.runtime_invoke=invokeExport;
 }
 }
+#ifndef BUNNY_SURFACE_COMPONENT_LIBRARY_ONLY
 int main(int argc,char** argv) {
     using namespace bl::runtime::surface;
     if(argc>1) {
         DrawPlan p;std::string error;bool valid=false;
         const std::string mode=argv[1];auto n=[&](int i){return std::strtod(argv[i],nullptr);};
-        if(mode=="--close" && argc==15)valid=closePlan({int(n(9)),int(n(10))},{n(11),n(12),n(13),n(14)},{n(2),n(3),n(4),int(n(5)),n(6),int(n(7)),int(n(8))},&p,&error);
+        if(mode=="--close" && argc==15)valid=closePlan({int(n(9)),int(n(10))},{n(11),n(12),n(13),n(14)},{n(2),n(3),n(4),int(n(5)),n(6),n(7),int(n(8))},&p,&error);
         else if(mode=="--back" && argc==9)valid=backPlan({int(n(7)),int(n(8))},{int(n(2)),n(3),n(4),n(5),n(6)},&p,&error);
         else if(mode=="--choose" && argc==4){std::cout<<(priorityAllows(int(n(2)),int(n(3)))?1:0);return 0;}
         else if(mode=="--fades" && argc>=5) {
@@ -229,3 +230,4 @@ int main(int argc,char** argv) {
     allocations.clear();
     CHECK(handles.empty());std::cout<<"SURFACE_NATIVE_DRAW_TABLE_NULLABLE_PASS checks="<<checked<<"\n";
 }
+#endif

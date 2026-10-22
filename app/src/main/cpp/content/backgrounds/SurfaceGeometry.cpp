@@ -21,7 +21,7 @@ bool backPlan(TextureSize texture,const BackGeometry& g,DrawPlan* result,std::st
 bool closePlan(TextureSize texture,const CloseSettings& s,const CloseGeometry& g,DrawPlan* result,std::string* error) {
     if(!result || !textureValid(texture) || g.screenWidth<=0 || g.screenWidth>32768 || !scalar(s.scale*2) || s.scale<=0 ||
        !std::isfinite(s.parallax) || s.parallax<=0 || !scalar(1/s.parallax) || float(1/s.parallax)<=0 || !std::isfinite(s.a) || !std::isfinite(s.b) ||
-       !std::isfinite(g.screenX) || !std::isfinite(g.screenY) || !std::isfinite(g.worldSurface) || !std::isfinite(g.stepTop))
+       !std::isfinite(g.screenX) || !std::isfinite(g.screenY) || !std::isfinite(g.worldSurface) || !std::isfinite(g.stepTop) || !std::isfinite(g.scAdj))
         return fail(error,"PlanCloseLayer","InvalidCloseGeometry","ScreenWidth:"+std::to_string(g.screenWidth)+",Scale:"+std::to_string(s.scale)+",Parallax:"+std::to_string(s.parallax));
     const double scale=s.scale*2,width=std::floor(texture.width*scale),x=g.screenX*s.parallax;
     if(!(width>0) || !scalar(width))return fail(error,"PlanCloseLayer","InvalidCloseProjection","Width:"+std::to_string(width));
