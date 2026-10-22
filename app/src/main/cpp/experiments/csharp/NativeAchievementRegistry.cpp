@@ -596,6 +596,23 @@ bool replaceNativeAchievementObjects(
         return false;
     }
 
+    // The game may replace Main.Achievements when a player is loaded.
+    // Never mutate a stale manager instance or a different user's manager.
+    const auto& il = il2cpp::api();
+    auto* mainClass = il2cpp::findClass({"Terraria", "Main", {}});
+    auto* managerField = mainClass
+        ? il2cpp::findField(mainClass, "Achievements") : nullptr;
+    Il2CppObject* activeManager = nullptr;
+    if (!managerField || !il.field_static_get_value) {
+        *error = "Current Terraria achievement manager unavailable";
+        return false;
+    }
+    il.field_static_get_value(managerField, &activeManager);
+    if (activeManager != methods.manager) {
+        *error = "Terraria achievement manager instance changed; rebind required";
+        return false;
+    }
+
     NativeAchievementManagerAdapter adapter;
     if (!adapter.prepare(methods.manager, error)) return false;
     for (const auto& definition : definitions) {
