@@ -43,6 +43,7 @@ Il2CppObject* nativeAchievementIconAsset(const Il2CppObject* achievement);
 // Safely detach only this mod's exact native Achievement objects. Other
 // mods and vanilla achievements are not touched. Failure attempts rollback.
 bool unregisterNativeAchievementMod(const std::string& modId, std::string* error);
+bool nativeAchievementModRegistered(const std::string& modId);
 
 void releaseRetiredNativeAchievements();
 
