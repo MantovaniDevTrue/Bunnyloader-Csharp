@@ -261,3 +261,13 @@ de mundo não equivalem a unload completo dos assemblies ou dos estáticos.
 Consulte [ExampleSlimeNPC](../Split/Bunny-Loader/samples/ExampleModCSharp/Playable/content/Content/NPCs/ExampleSlimeNPC.cs)
 e [ExampleWaveBolt](../Split/Bunny-Loader/samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleWaveBolt.cs).
 O [roteiro Android](SDK-VALIDACAO.md) explica `entity-combat-status.txt`.
+
+## Núcleo de loaders no estilo tModLoader
+
+O lote de [Loader/LoaderManager/ModTypeLookup](csharp-content-loader.md) fornece
+loaders de dados gerenciados, aliases, singletons e ciclo transacional por mod.
+[Exemplo com explicações dentro do código](../Split/Bunny-Loader/samples/ContentLoaderCSharp/ExampleDefinitions.cs).
+Os contratos `managed_content_registry` e `managed_content_lifecycle` na referência
+gerada são chamadas C# síncronas; não são hooks IL2CPP nem atribuem IDs do Terraria.
+A integração automática com o host Android permanece pendente.
+[Inventário oficial de todos os arquivos de loader](TMODLOADER-LOADERS.md).

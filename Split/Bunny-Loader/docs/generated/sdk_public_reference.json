@@ -4,6 +4,25 @@
   "warning": "Public SDK surface and execution contracts. Compilation is not Android validation. Managed entity AI is experimental, asynchronous, and requires native Android validation. Multiplayer is not implied.",
   "types": [
     {
+      "name": "BunnyLoader.Source.AutoloadAttribute",
+      "kind": "class",
+      "baseType": "System.Attribute",
+      "constructors": [
+        "AutoloadAttribute(bool value)"
+      ],
+      "properties": [
+        "ModSide Side { get; set; }",
+        "bool NeedsAutoloading { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "static AutoloadAttribute GetValue(Type type)",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
       "name": "BunnyLoader.Source.BunnyAccessory",
       "kind": "abstract class",
       "baseType": "System.Object",
@@ -284,6 +303,64 @@
         "Prefix"
       ],
       "methods": []
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyContentLoader",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [
+        "ModSide ExecutionSide { get; set; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "static BunnyContentMod Load(string modName, Assembly assembly)",
+          "execution": "managed_content_lifecycle"
+        },
+        {
+          "signature": "static BunnyContentMod Load(string modName, Assembly assembly, Action\u003CBunnyContentMod\u003E configure)",
+          "execution": "managed_content_lifecycle"
+        },
+        {
+          "signature": "static BunnyContentMod Load(string modName, string assemblyPath)",
+          "execution": "managed_content_lifecycle"
+        },
+        {
+          "signature": "static bool IsLoaded(string modName)",
+          "execution": "managed_content_lifecycle"
+        },
+        {
+          "signature": "static bool Unload(string modName)",
+          "execution": "managed_content_lifecycle"
+        },
+        {
+          "signature": "static void UnloadAll()",
+          "execution": "managed_content_lifecycle"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyContentMod",
+      "kind": "class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [
+        "Assembly Assembly { get; }",
+        "bool IsLoaded { get; }",
+        "string Name { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "IReadOnlyList\u003CT\u003E GetContent()",
+          "execution": "managed_content_lifecycle"
+        },
+        {
+          "signature": "bool AddContent(ModType instance)",
+          "execution": "managed_content_lifecycle"
+        }
+      ]
     },
     {
       "name": "BunnyLoader.Source.BunnyDodgeHook",
@@ -1177,6 +1254,266 @@
         {
           "signature": "void SetDefaults()",
           "execution": "compile_policy"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.ContentInstance\u00601",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [
+        "IReadOnlyList\u003CT\u003E Instances { get; }",
+        "T Instance { get; }"
+      ],
+      "values": [],
+      "methods": []
+    },
+    {
+      "name": "BunnyLoader.Source.ILoader",
+      "kind": "abstract class",
+      "baseType": null,
+      "constructors": [],
+      "properties": [],
+      "values": [],
+      "methods": [
+        {
+          "signature": "void ResizeArrays()",
+          "execution": "managed_content_lifecycle"
+        },
+        {
+          "signature": "void Unload()",
+          "execution": "managed_content_lifecycle"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.IModType",
+      "kind": "abstract class",
+      "baseType": null,
+      "constructors": [],
+      "properties": [
+        "BunnyContentMod Mod { get; }",
+        "string FullName { get; }",
+        "string Name { get; }"
+      ],
+      "values": [],
+      "methods": []
+    },
+    {
+      "name": "BunnyLoader.Source.LegacyNameAttribute",
+      "kind": "class",
+      "baseType": "System.Attribute",
+      "constructors": [
+        "LegacyNameAttribute(string[] names)"
+      ],
+      "properties": [],
+      "values": [],
+      "methods": [
+        {
+          "signature": "static IEnumerable\u003Cstring\u003E GetLegacyNamesOfType(Type type)",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.Loader",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [
+        "int TotalCount { get; }",
+        "int VanillaCount { get; set; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "void Initialize(int vanillaCount)",
+          "execution": "managed_content_lifecycle"
+        },
+        {
+          "signature": "void ResizeArrays()",
+          "execution": "managed_content_lifecycle"
+        },
+        {
+          "signature": "void Unload()",
+          "execution": "managed_content_lifecycle"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.LoaderManager",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [],
+      "values": [],
+      "methods": [
+        {
+          "signature": "static T Get()",
+          "execution": "managed_content_lifecycle"
+        },
+        {
+          "signature": "static void AutoLoad()",
+          "execution": "managed_content_lifecycle"
+        },
+        {
+          "signature": "static void AutoLoad(Assembly assembly)",
+          "execution": "managed_content_lifecycle"
+        },
+        {
+          "signature": "static void Clear()",
+          "execution": "managed_content_lifecycle"
+        },
+        {
+          "signature": "static void ResizeArrays()",
+          "execution": "managed_content_lifecycle"
+        },
+        {
+          "signature": "static void Unload()",
+          "execution": "managed_content_lifecycle"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.Loader\u00601",
+      "kind": "abstract class",
+      "baseType": "BunnyLoader.Source.Loader",
+      "constructors": [],
+      "properties": [],
+      "values": [],
+      "methods": [
+        {
+          "signature": "T Get(int id)",
+          "execution": "managed_content_lifecycle"
+        },
+        {
+          "signature": "int Register(T obj)",
+          "execution": "managed_content_lifecycle"
+        },
+        {
+          "signature": "void Unload()",
+          "execution": "managed_content_lifecycle"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.ModContent",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [],
+      "values": [],
+      "methods": [
+        {
+          "signature": "static IReadOnlyList\u003CT\u003E GetContent()",
+          "execution": "managed_content_registry"
+        },
+        {
+          "signature": "static T Find(string fullName)",
+          "execution": "managed_content_registry"
+        },
+        {
+          "signature": "static T Find(string modName, string contentName)",
+          "execution": "managed_content_registry"
+        },
+        {
+          "signature": "static T GetInstance()",
+          "execution": "managed_content_registry"
+        },
+        {
+          "signature": "static bool TryFind(string fullName, out T value)",
+          "execution": "managed_content_registry"
+        },
+        {
+          "signature": "static bool TryFind(string modName, string contentName, out T value)",
+          "execution": "managed_content_registry"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.ModSide",
+      "kind": "enum",
+      "baseType": "System.Enum",
+      "constructors": [],
+      "properties": [],
+      "values": [
+        "Both",
+        "Client",
+        "Server",
+        "NoSync"
+      ],
+      "methods": []
+    },
+    {
+      "name": "BunnyLoader.Source.ModType",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [
+        "BunnyContentMod Mod { get; }",
+        "string FullName { get; }",
+        "string Name { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "bool IsLoadingEnabled(BunnyContentMod mod)",
+          "execution": "managed_content_lifecycle"
+        },
+        {
+          "signature": "string PrettyPrintName()",
+          "execution": "managed_content_lifecycle"
+        },
+        {
+          "signature": "void Load()",
+          "execution": "managed_content_lifecycle"
+        },
+        {
+          "signature": "void SetStaticDefaults()",
+          "execution": "managed_content_lifecycle"
+        },
+        {
+          "signature": "void SetupContent()",
+          "execution": "managed_content_lifecycle"
+        },
+        {
+          "signature": "void Unload()",
+          "execution": "managed_content_lifecycle"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.ModTypeLookup\u00601",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [],
+      "values": [],
+      "methods": [
+        {
+          "signature": "static T Get(string fullName)",
+          "execution": "managed_content_registry"
+        },
+        {
+          "signature": "static T Get(string modName, string contentName)",
+          "execution": "managed_content_registry"
+        },
+        {
+          "signature": "static bool TryGetValue(string fullName, out T value)",
+          "execution": "managed_content_registry"
+        },
+        {
+          "signature": "static bool TryGetValue(string modName, string contentName, out T value)",
+          "execution": "managed_content_registry"
+        },
+        {
+          "signature": "static void Register(T instance)",
+          "execution": "managed_content_registry"
+        },
+        {
+          "signature": "static void RegisterLegacyNames(T instance, string[] legacyNames)",
+          "execution": "managed_content_registry"
         }
       ]
     },

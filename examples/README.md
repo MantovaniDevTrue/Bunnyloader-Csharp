@@ -5,6 +5,7 @@ em `Split/Bunny-Loader/samples`; esta pasta oferece navegação.
 
 | Exemplo | Aprender | Evidência e limites |
 | --- | --- | --- |
+| [ContentLoader](../Split/Bunny-Loader/samples/ContentLoaderCSharp/README.md) | Loader<T>, nomes antigos, singletons e bootstrap/unload explícitos | Exemplo gerenciado executável; integração Android automática pendente |
 | [StarterMod](../Split/Bunny-Loader/samples/StarterModCSharp/README.md) | Um material, uma receita, UID e projeto de editor | Compilação/empacotamento em host; não atribuir teste Android independente sem registro |
 | [DeclaredContent](../Split/Bunny-Loader/samples/DeclaredContentCSharp/README.md) | Base genérica e identidade por atributo | Parser e Roslyn; restrições sintáticas no SDK |
 | [NativeAccessory](../Split/Bunny-Loader/samples/NativeAccessoryCSharp/README.md) | Acessório independente e efeitos nativos | Host sem QuickJS; validação varia por efeito |

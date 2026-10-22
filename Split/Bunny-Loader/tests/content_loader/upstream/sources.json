@@ -1,0 +1,36 @@
+{
+  "commit": "fcafebc0b792b90e110bac7c1fc67cac81cb60ed",
+  "repository": "tModLoader/tModLoader",
+  "files": [
+    {
+      "name": "Loader.cs",
+      "path": "patches/tModLoader/Terraria/ModLoader/Loader.cs",
+      "blobSha": "6b01afbad266b28f5c844e2016db038588ad9304",
+      "transformation": "Prepend one #nullable disable line for the test harness; all remaining bytes match the pinned upstream blob."
+    },
+    {
+      "name": "ModTypeLookup.cs",
+      "path": "patches/tModLoader/Terraria/ModLoader/ModTypeLookup.cs",
+      "blobSha": "44e689a3eb33987b5f8425d23e20bb2908eb1125",
+      "transformation": "Prepend one #nullable disable line for the test harness; all remaining bytes match the pinned upstream blob."
+    },
+    {
+      "name": "ContentInstance.cs",
+      "path": "patches/tModLoader/Terraria/ModLoader/ContentInstance.cs",
+      "blobSha": "3f76aba675055ff25f5c890cdf2515d03e3870a4",
+      "transformation": "Prepend one #nullable disable line for the test harness; all remaining bytes match the pinned upstream blob."
+    },
+    {
+      "name": "IModType.cs",
+      "path": "patches/tModLoader/Terraria/ModLoader/IModType.cs",
+      "blobSha": "437ddfa3092554ae1686339751973b8447ece2c9",
+      "transformation": "Prepend one #nullable disable line for the test harness; all remaining bytes match the pinned upstream blob."
+    },
+    {
+      "name": "LegacyNameAttribute.cs",
+      "path": "patches/tModLoader/Terraria/ModLoader/LegacyNameAttribute.cs",
+      "blobSha": "cf380e802ab3ccfb71afc6e6208fec8b4e046d06",
+      "transformation": "Prepend one #nullable disable line for the test harness; all remaining bytes match the pinned upstream blob."
+    }
+  ]
+}

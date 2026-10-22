@@ -1,0 +1,48 @@
+name: CSharp tModLoader loader core (NO APK)
+on:
+  push:
+    branches: [feat/csharp-content-loader-no-apk-20261022]
+  pull_request:
+    paths:
+      - 'Split/Bunny-Loader/experiments/csharp/BunnyCsSdk/**'
+      - 'Split/Bunny-Loader/experiments/csharp/BunnySourceSdk/**'
+      - 'Split/Bunny-Loader/tests/content_loader/**'
+      - 'Split/Bunny-Loader/samples/ContentLoaderCSharp/**'
+      - 'Split/Bunny-Loader/docs/generated/sdk_public_reference.*'
+      - '.github/workflows/check-csharp-content-loader.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  managed-loader-core:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - dotnet: '8.0.x'
+            framework: net8.0
+          - dotnet: '10.0.x'
+            framework: net10.0
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ matrix.dotnet }}
+      - name: Verify pinned upstream test sources
+        run: python3 Split/Bunny-Loader/tests/content_loader/check_upstream.py
+      - name: Run full SDK and differential loader tests
+        run: dotnet run --project Split/Bunny-Loader/tests/content_loader -c Release -p:TargetFramework=${{ matrix.framework }}
+      - name: Run documented example
+        run: dotnet run --project Split/Bunny-Loader/samples/ContentLoaderCSharp -c Release -p:TargetFramework=${{ matrix.framework }}
+      - name: Check compiled public reference
+        if: matrix.framework == 'net8.0'
+        working-directory: Split/Bunny-Loader
+        run: dotnet run --project tools/sdk_reference -c Release -- --check
+      - name: Refuse any generated Android package
+        run: |
+          if find . -type f -name '*.apk' -print -quit | grep -q .; then
+            echo 'APK forbidden for this batch'
+            exit 1
+          fi

@@ -4,6 +4,20 @@ Generated from the compiled BunnySourceSdk. Update with `dotnet run --project to
 
 Execution terms are defined in [the SDK guide](../../../../docs/SDK-CSharp.md). Public methods do not imply Android validation, arbitrary per-frame AI, or multiplayer support. Only members declared on each type are listed; inherited members follow its base type.
 
+## BunnyLoader.Source.AutoloadAttribute
+
+class; base: `System.Attribute`.
+
+```csharp
+AutoloadAttribute(bool value)
+ModSide Side { get; set; }
+bool NeedsAutoloading { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `static AutoloadAttribute GetValue(Type type)` | managed_helper |
+
 ## BunnyLoader.Source.BunnyAccessory
 
 abstract class; base: `System.Object`.
@@ -157,6 +171,38 @@ string Texture { get; }
 enum; base: `System.Enum`.
 
 Values: Item, Tile, Weapon, Projectile, Buff, BuffPotion, Accessory, Player, NPC, Prefix.
+
+## BunnyLoader.Source.BunnyContentLoader
+
+abstract class; base: `System.Object`.
+
+```csharp
+ModSide ExecutionSide { get; set; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `static BunnyContentMod Load(string modName, Assembly assembly)` | managed_content_lifecycle |
+| `static BunnyContentMod Load(string modName, Assembly assembly, Action<BunnyContentMod> configure)` | managed_content_lifecycle |
+| `static BunnyContentMod Load(string modName, string assemblyPath)` | managed_content_lifecycle |
+| `static bool IsLoaded(string modName)` | managed_content_lifecycle |
+| `static bool Unload(string modName)` | managed_content_lifecycle |
+| `static void UnloadAll()` | managed_content_lifecycle |
+
+## BunnyLoader.Source.BunnyContentMod
+
+class; base: `System.Object`.
+
+```csharp
+Assembly Assembly { get; }
+bool IsLoaded { get; }
+string Name { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `IReadOnlyList<T> GetContent()` | managed_content_lifecycle |
+| `bool AddContent(ModType instance)` | managed_content_lifecycle |
 
 ## BunnyLoader.Source.BunnyDodgeHook
 
@@ -636,6 +682,135 @@ string Texture { get; set; }
 | Method | Execution |
 | --- | --- |
 | `void SetDefaults()` | compile_policy |
+
+## BunnyLoader.Source.ContentInstance`1
+
+abstract class; base: `System.Object`.
+
+```csharp
+IReadOnlyList<T> Instances { get; }
+T Instance { get; }
+```
+
+## BunnyLoader.Source.ILoader
+
+abstract class.
+
+| Method | Execution |
+| --- | --- |
+| `void ResizeArrays()` | managed_content_lifecycle |
+| `void Unload()` | managed_content_lifecycle |
+
+## BunnyLoader.Source.IModType
+
+abstract class.
+
+```csharp
+BunnyContentMod Mod { get; }
+string FullName { get; }
+string Name { get; }
+```
+
+## BunnyLoader.Source.LegacyNameAttribute
+
+class; base: `System.Attribute`.
+
+```csharp
+LegacyNameAttribute(string[] names)
+```
+
+| Method | Execution |
+| --- | --- |
+| `static IEnumerable<string> GetLegacyNamesOfType(Type type)` | managed_helper |
+
+## BunnyLoader.Source.Loader
+
+abstract class; base: `System.Object`.
+
+```csharp
+int TotalCount { get; }
+int VanillaCount { get; set; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `void Initialize(int vanillaCount)` | managed_content_lifecycle |
+| `void ResizeArrays()` | managed_content_lifecycle |
+| `void Unload()` | managed_content_lifecycle |
+
+## BunnyLoader.Source.LoaderManager
+
+abstract class; base: `System.Object`.
+
+| Method | Execution |
+| --- | --- |
+| `static T Get()` | managed_content_lifecycle |
+| `static void AutoLoad()` | managed_content_lifecycle |
+| `static void AutoLoad(Assembly assembly)` | managed_content_lifecycle |
+| `static void Clear()` | managed_content_lifecycle |
+| `static void ResizeArrays()` | managed_content_lifecycle |
+| `static void Unload()` | managed_content_lifecycle |
+
+## BunnyLoader.Source.Loader`1
+
+abstract class; base: `BunnyLoader.Source.Loader`.
+
+| Method | Execution |
+| --- | --- |
+| `T Get(int id)` | managed_content_lifecycle |
+| `int Register(T obj)` | managed_content_lifecycle |
+| `void Unload()` | managed_content_lifecycle |
+
+## BunnyLoader.Source.ModContent
+
+abstract class; base: `System.Object`.
+
+| Method | Execution |
+| --- | --- |
+| `static IReadOnlyList<T> GetContent()` | managed_content_registry |
+| `static T Find(string fullName)` | managed_content_registry |
+| `static T Find(string modName, string contentName)` | managed_content_registry |
+| `static T GetInstance()` | managed_content_registry |
+| `static bool TryFind(string fullName, out T value)` | managed_content_registry |
+| `static bool TryFind(string modName, string contentName, out T value)` | managed_content_registry |
+
+## BunnyLoader.Source.ModSide
+
+enum; base: `System.Enum`.
+
+Values: Both, Client, Server, NoSync.
+
+## BunnyLoader.Source.ModType
+
+abstract class; base: `System.Object`.
+
+```csharp
+BunnyContentMod Mod { get; }
+string FullName { get; }
+string Name { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `bool IsLoadingEnabled(BunnyContentMod mod)` | managed_content_lifecycle |
+| `string PrettyPrintName()` | managed_content_lifecycle |
+| `void Load()` | managed_content_lifecycle |
+| `void SetStaticDefaults()` | managed_content_lifecycle |
+| `void SetupContent()` | managed_content_lifecycle |
+| `void Unload()` | managed_content_lifecycle |
+
+## BunnyLoader.Source.ModTypeLookup`1
+
+abstract class; base: `System.Object`.
+
+| Method | Execution |
+| --- | --- |
+| `static T Get(string fullName)` | managed_content_registry |
+| `static T Get(string modName, string contentName)` | managed_content_registry |
+| `static bool TryGetValue(string fullName, out T value)` | managed_content_registry |
+| `static bool TryGetValue(string modName, string contentName, out T value)` | managed_content_registry |
+| `static void Register(T instance)` | managed_content_registry |
+| `static void RegisterLegacyNames(T instance, string[] legacyNames)` | managed_content_registry |
 
 ## BunnyLoader.Source.PrefixCategory
 

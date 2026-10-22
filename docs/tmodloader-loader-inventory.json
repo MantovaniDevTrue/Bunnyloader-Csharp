@@ -1,0 +1,570 @@
+{
+  "schemaVersion": 1,
+  "upstream": {
+    "repository": "tModLoader/tModLoader",
+    "ref": "1.4.5",
+    "commit": "fcafebc0b792b90e110bac7c1fc67cac81cb60ed"
+  },
+  "snapshotDate": "2026-10-22",
+  "scope": "All files ending Loader.cs under patches/tModLoader/Terraria/ModLoader at the pinned commit. Files may declare multiple loaders. JS implementations do not establish C# parity. Other source files may also declare helpers or loader-like services.",
+  "apkAllowed": false,
+  "completeTModLoaderPort": false,
+  "loaders": [
+    {
+      "file": "patches/tModLoader/Terraria/ModLoader/AccessorySlotLoader.cs",
+      "blobSha": "c3232726e7b970e87151eb89521dea517a204680",
+      "classes": [
+        "AccessorySlotLoader"
+      ],
+      "status": "not_audited_against_csharp",
+      "relatedPRs": [],
+      "androidVerified": null
+    },
+    {
+      "file": "patches/tModLoader/Terraria/ModLoader/BiomeConversionLoader.cs",
+      "blobSha": "f0a0715e4dbd608c814ec80d6ec7e07dd5584c0b",
+      "classes": [
+        "BiomeConversionLoader"
+      ],
+      "status": "not_audited_against_csharp",
+      "relatedPRs": [],
+      "androidVerified": null
+    },
+    {
+      "file": "patches/tModLoader/Terraria/ModLoader/BiomeLoader.cs",
+      "blobSha": "382569ecc5a66841c67a726d7703891e8dd658aa",
+      "classes": [
+        "BiomeLoader"
+      ],
+      "status": "active_pr_do_not_duplicate",
+      "relatedPRs": [
+        {
+          "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/pull/125",
+          "title": "WIP sem APK: CloudLoader C# nativo — parser, Roslyn, dispatcher e política Android"
+        }
+      ],
+      "androidVerified": null
+    },
+    {
+      "file": "patches/tModLoader/Terraria/ModLoader/BossBarLoader.cs",
+      "blobSha": "450eb1de245b9291ec19e1fd3df2df494b6edd42",
+      "classes": [
+        "BossBarLoader"
+      ],
+      "status": "not_audited_against_csharp",
+      "relatedPRs": [],
+      "androidVerified": null
+    },
+    {
+      "file": "patches/tModLoader/Terraria/ModLoader/BuffLoader.cs",
+      "blobSha": "bf9381ab4dc3a7177abc604cd4cfcd863354b126",
+      "classes": [
+        "BuffLoader"
+      ],
+      "status": "not_audited_against_csharp",
+      "relatedPRs": [],
+      "androidVerified": null
+    },
+    {
+      "file": "patches/tModLoader/Terraria/ModLoader/BuilderToggleLoader.cs",
+      "blobSha": "69d7765f6042b9588a83aec2ea29bffe049ba258",
+      "classes": [
+        "BuilderToggleLoader"
+      ],
+      "status": "not_audited_against_csharp",
+      "relatedPRs": [],
+      "androidVerified": null
+    },
+    {
+      "file": "patches/tModLoader/Terraria/ModLoader/CloudLoader.cs",
+      "blobSha": "df6ce1c79ada1594ee86bf5e6958b765e9b3fcd7",
+      "classes": [
+        "CloudLoader"
+      ],
+      "status": "active_pr_do_not_duplicate",
+      "relatedPRs": [
+        {
+          "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/pull/125",
+          "title": "WIP sem APK: CloudLoader C# nativo — parser, Roslyn, dispatcher e política Android"
+        }
+      ],
+      "androidVerified": null
+    },
+    {
+      "file": "patches/tModLoader/Terraria/ModLoader/CommandLoader.cs",
+      "blobSha": "9cafc3f03b7c3dd2a66b79e6c14a47369348ff65",
+      "classes": [
+        "CommandLoader"
+      ],
+      "status": "active_pr_do_not_duplicate",
+      "relatedPRs": [
+        {
+          "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/pull/117",
+          "title": "PRONTA PRA TESTE EM JOGO — CommandLoader C# nativo (sem APK)"
+        }
+      ],
+      "androidVerified": null
+    },
+    {
+      "file": "patches/tModLoader/Terraria/ModLoader/DamageClassLoader.cs",
+      "blobSha": "33f0e97b20a6890f228b0c28c2dd96f263fb8b18",
+      "classes": [
+        "DamageClassLoader"
+      ],
+      "status": "active_pr_do_not_duplicate",
+      "relatedPRs": [
+        {
+          "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/pull/135",
+          "title": "WIP: DamageClassLoader C# — vanilla 10 classes, inheritance parity and complete Android bridge gate (NO APK)"
+        }
+      ],
+      "androidVerified": null
+    },
+    {
+      "file": "patches/tModLoader/Terraria/ModLoader/DustLoader.cs",
+      "blobSha": "78a762a7b593ab6dffcca09fab2c2038afab8063",
+      "classes": [
+        "DustLoader"
+      ],
+      "status": "active_pr_do_not_duplicate",
+      "relatedPRs": [
+        {
+          "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/pull/115",
+          "title": "PRONTA PRA TESTAR (EXPERIMENTAL) — DustLoader C# / MonoVM [sem APK]"
+        }
+      ],
+      "androidVerified": null
+    },
+    {
+      "file": "patches/tModLoader/Terraria/ModLoader/EmoteBubbleLoader.cs",
+      "blobSha": "de55902269e661c402b799e9b32ddadf7b5de542",
+      "classes": [
+        "EmoteBubbleLoader"
+      ],
+      "status": "not_audited_against_csharp",
+      "relatedPRs": [],
+      "androidVerified": null
+    },
+    {
+      "file": "patches/tModLoader/Terraria/ModLoader/EquipLoader.cs",
+      "blobSha": "318e88bc42da4644793abfc14a7e0d36a2c5ca97",
+      "classes": [
+        "EquipLoader"
+      ],
+      "status": "not_audited_against_csharp",
+      "relatedPRs": [],
+      "androidVerified": null
+    },
+    {
+      "file": "patches/tModLoader/Terraria/ModLoader/ExtraJumpLoader.cs",
+      "blobSha": "2599939856935e1fd8646385cc29583a119ac813",
+      "classes": [
+        "ExtraJumpLoader"
+      ],
+      "status": "not_audited_against_csharp",
+      "relatedPRs": [],
+      "androidVerified": null
+    },
+    {
+      "file": "patches/tModLoader/Terraria/ModLoader/GoreLoader.cs",
+      "blobSha": "0ffad39da4a56dcc5505ee5aaa1076fd91459481",
+      "classes": [
+        "GoreLoader"
+      ],
+      "status": "active_pr_do_not_duplicate",
+      "relatedPRs": [
+        {
+          "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/pull/121",
+          "title": "GoreLoader C# — pronta pra testar no jogo V2"
+        }
+      ],
+      "androidVerified": null
+    },
+    {
+      "file": "patches/tModLoader/Terraria/ModLoader/HairLoader.cs",
+      "blobSha": "9108bdc4b369a7c69cfecce9b2626eaa7b13e693",
+      "classes": [
+        "HairLoader"
+      ],
+      "status": "active_pr_do_not_duplicate",
+      "relatedPRs": [
+        {
+          "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/pull/134",
+          "title": "WIP: HairLoader C# + native UI/asset/manifest groundwork (NO APK)"
+        }
+      ],
+      "androidVerified": null
+    },
+    {
+      "file": "patches/tModLoader/Terraria/ModLoader/InfoDisplayLoader.cs",
+      "blobSha": "dcc9ceebcee98b31a5d94c611845f3305d3d36c8",
+      "classes": [
+        "InfoDisplayLoader"
+      ],
+      "status": "not_audited_against_csharp",
+      "relatedPRs": [],
+      "androidVerified": null
+    },
+    {
+      "file": "patches/tModLoader/Terraria/ModLoader/ItemLoader.cs",
+      "blobSha": "b873ff09b8f8345cf1a000a305be4bcf5c10df04",
+      "classes": [
+        "ItemLoader"
+      ],
+      "status": "not_audited_against_csharp",
+      "relatedPRs": [],
+      "androidVerified": null
+    },
+    {
+      "file": "patches/tModLoader/Terraria/ModLoader/KeybindLoader.cs",
+      "blobSha": "261d9f5dd87d615c7fa39498cd6601353056d9f3",
+      "classes": [
+        "KeybindLoader"
+      ],
+      "status": "active_pr_do_not_duplicate",
+      "relatedPRs": [
+        {
+          "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/pull/120",
+          "title": "WIP sem APK — KeybindLoader C# nativo: controles, editor, texturas e CI"
+        }
+      ],
+      "androidVerified": null
+    },
+    {
+      "file": "patches/tModLoader/Terraria/ModLoader/LiquidLoader.cs",
+      "blobSha": "ec3410c4d105265b522f43ee5af7a3653c88ee3a",
+      "classes": [
+        "LiquidLoader"
+      ],
+      "status": "not_audited_against_csharp",
+      "relatedPRs": [],
+      "androidVerified": null
+    },
+    {
+      "file": "patches/tModLoader/Terraria/ModLoader/Loader.cs",
+      "blobSha": "6b01afbad266b28f5c844e2016db038588ad9304",
+      "classes": [
+        "Loader",
+        "Loader<T>",
+        "LoaderManager"
+      ],
+      "status": "implemented_managed_core_pending_host_integration",
+      "relatedPRs": [
+        {
+          "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/pull/134",
+          "title": "WIP: HairLoader C# + native UI/asset/manifest groundwork (NO APK)"
+        },
+        {
+          "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/pull/135",
+          "title": "WIP: DamageClassLoader C# — vanilla 10 classes, inheritance parity and complete Android bridge gate (NO APK)"
+        },
+        {
+          "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/pull/125",
+          "title": "WIP sem APK: CloudLoader C# nativo — parser, Roslyn, dispatcher e política Android"
+        },
+        {
+          "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/pull/131",
+          "title": "WIP: SceneEffectLoader — núcleo de ranking nativo (parcial, sem APK)"
+        },
+        {
+          "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/pull/126",
+          "title": "SystemUpdateLoader C# 19/19 — pronta pra testar no jogo V2 (PR em rascunho, sem APK)"
+        },
+        {
+          "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/pull/120",
+          "title": "WIP sem APK — KeybindLoader C# nativo: controles, editor, texturas e CI"
+        },
+        {
+          "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/pull/121",
+          "title": "GoreLoader C# — pronta pra testar no jogo V2"
+        },
+        {
+          "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/pull/102",
+          "title": "[RETESTE NECESSÁRIO — DISCO] C# RarityLoader — ExampleModBunny"
+        },
+        {
+          "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/pull/117",
+          "title": "PRONTA PRA TESTE EM JOGO — CommandLoader C# nativo (sem APK)"
+        },
+        {
+          "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/pull/118",
+          "title": "pronto pra testar no jogo — SoundLoader C# (QA Android pendente)"
+        },
+        {
+          "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/pull/100",
+          "title": "C# PrefixLoader: bounded item AllowPrefix worker, native weights and ARM64 (draft)"
+        },
+        {
+          "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/pull/114",
+          "title": "PRONTA PRA TESTAR NO JOGO — AnglerQuestLoader C# (QA Android)"
+        },
+        {
+          "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/pull/115",
+          "title": "PRONTA PRA TESTAR (EXPERIMENTAL) — DustLoader C# / MonoVM [sem APK]"
+        },
+        {
+          "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/pull/101",
+          "title": "Pronta pra testar no jogo — LocalizationLoader C#"
+        }
+      ],
+      "androidVerified": null
+    },
+    {
+      "file": "patches/tModLoader/Terraria/ModLoader/LocalizationLoader.cs",
+      "blobSha": "26fe1dbe93d62398f6d972b545363e6bc33a5f79",
+      "classes": [
+        "LocalizationLoader"
+      ],
+      "status": "active_pr_do_not_duplicate",
+      "relatedPRs": [
+        {
+          "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/pull/101",
+          "title": "Pronta pra testar no jogo — LocalizationLoader C#"
+        }
+      ],
+      "androidVerified": null
+    },
+    {
+      "file": "patches/tModLoader/Terraria/ModLoader/MapLayerLoader.cs",
+      "blobSha": "e6746232d2ced261bd11edb2cf8bea37b7f2c0b2",
+      "classes": [
+        "MapLayerLoader"
+      ],
+      "status": "not_audited_against_csharp",
+      "relatedPRs": [],
+      "androidVerified": null
+    },
+    {
+      "file": "patches/tModLoader/Terraria/ModLoader/MapLoader.cs",
+      "blobSha": "d40b716b84ca2f383556ff60c4d86c6f8a8dbc2a",
+      "classes": [
+        "MapLoader"
+      ],
+      "status": "not_audited_against_csharp",
+      "relatedPRs": [],
+      "androidVerified": null
+    },
+    {
+      "file": "patches/tModLoader/Terraria/ModLoader/MenuLoader.cs",
+      "blobSha": "f0a1604fed150e62430f97131ef0de473cee0451",
+      "classes": [
+        "MenuLoader"
+      ],
+      "status": "not_audited_against_csharp",
+      "relatedPRs": [],
+      "androidVerified": null
+    },
+    {
+      "file": "patches/tModLoader/Terraria/ModLoader/ModLoader.cs",
+      "blobSha": "f2786533e51bc41c2720d82092deb6562156addf",
+      "classes": [
+        "ModLoader"
+      ],
+      "status": "not_audited_against_csharp",
+      "relatedPRs": [],
+      "androidVerified": null
+    },
+    {
+      "file": "patches/tModLoader/Terraria/ModLoader/MountLoader.cs",
+      "blobSha": "dc438692749b883daab7f20cdbc2d6de84fbe4d5",
+      "classes": [
+        "MountLoader"
+      ],
+      "status": "not_audited_against_csharp",
+      "relatedPRs": [],
+      "androidVerified": null
+    },
+    {
+      "file": "patches/tModLoader/Terraria/ModLoader/MusicLoader.cs",
+      "blobSha": "8d13d1c5ed630a69a79a68d033b79277df6c54f8",
+      "classes": [
+        "MusicLoader"
+      ],
+      "status": "not_audited_against_csharp",
+      "relatedPRs": [],
+      "androidVerified": null
+    },
+    {
+      "file": "patches/tModLoader/Terraria/ModLoader/NPCHeadLoader.cs",
+      "blobSha": "2e1f370ec5048b0a6b7cbc0d47af99a91b8a9a78",
+      "classes": [
+        "NPCHeadLoader"
+      ],
+      "status": "not_audited_against_csharp",
+      "relatedPRs": [],
+      "androidVerified": null
+    },
+    {
+      "file": "patches/tModLoader/Terraria/ModLoader/NPCLoader.cs",
+      "blobSha": "a689e5875b98510f2ad4dfa307b66b5221a85d94",
+      "classes": [
+        "NPCLoader"
+      ],
+      "status": "not_audited_against_csharp",
+      "relatedPRs": [],
+      "androidVerified": null
+    },
+    {
+      "file": "patches/tModLoader/Terraria/ModLoader/PlayerDrawLayerLoader.cs",
+      "blobSha": "f45c8f0b85109b1a6ca9ed0dba11749936dab9ca",
+      "classes": [
+        "PlayerDrawLayerLoader"
+      ],
+      "status": "not_audited_against_csharp",
+      "relatedPRs": [],
+      "androidVerified": null
+    },
+    {
+      "file": "patches/tModLoader/Terraria/ModLoader/PlayerLoader.cs",
+      "blobSha": "84b834e74e08657fab6d71081a8e4be68ebabd23",
+      "classes": [
+        "PlayerLoader"
+      ],
+      "status": "not_audited_against_csharp",
+      "relatedPRs": [],
+      "androidVerified": null
+    },
+    {
+      "file": "patches/tModLoader/Terraria/ModLoader/PrefixLoader.cs",
+      "blobSha": "8518bb8db90a8f1b52167488c671251498cd402e",
+      "classes": [
+        "PrefixLoader"
+      ],
+      "status": "active_pr_do_not_duplicate",
+      "relatedPRs": [
+        {
+          "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/pull/100",
+          "title": "C# PrefixLoader: bounded item AllowPrefix worker, native weights and ARM64 (draft)"
+        }
+      ],
+      "androidVerified": null
+    },
+    {
+      "file": "patches/tModLoader/Terraria/ModLoader/ProjectileLoader.cs",
+      "blobSha": "9443be51a0b8256c876379645ea18066916df250",
+      "classes": [
+        "ProjectileLoader"
+      ],
+      "status": "not_audited_against_csharp",
+      "relatedPRs": [],
+      "androidVerified": null
+    },
+    {
+      "file": "patches/tModLoader/Terraria/ModLoader/PylonLoader.cs",
+      "blobSha": "0fe552be85cf5ed72ba94bda351b87cfd9dd3ff9",
+      "classes": [
+        "PylonLoader"
+      ],
+      "status": "not_audited_against_csharp",
+      "relatedPRs": [],
+      "androidVerified": null
+    },
+    {
+      "file": "patches/tModLoader/Terraria/ModLoader/RarityLoader.cs",
+      "blobSha": "56a45ee4723a676199a30e66eaf63e96ecd012b9",
+      "classes": [
+        "RarityLoader"
+      ],
+      "status": "active_pr_do_not_duplicate",
+      "relatedPRs": [
+        {
+          "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/pull/102",
+          "title": "[RETESTE NECESSÁRIO — DISCO] C# RarityLoader — ExampleModBunny"
+        }
+      ],
+      "androidVerified": null
+    },
+    {
+      "file": "patches/tModLoader/Terraria/ModLoader/RecipeLoader.cs",
+      "blobSha": "447e2d1c9ca2a5762e7992904796d536944b14da",
+      "classes": [
+        "RecipeLoader"
+      ],
+      "status": "not_audited_against_csharp",
+      "relatedPRs": [],
+      "androidVerified": null
+    },
+    {
+      "file": "patches/tModLoader/Terraria/ModLoader/ResourceDisplaySetLoader.cs",
+      "blobSha": "f02b4f15f23b62e12bc24490dcdc5805fdebc9aa",
+      "classes": [
+        "ResourceDisplaySetLoader"
+      ],
+      "status": "not_audited_against_csharp",
+      "relatedPRs": [],
+      "androidVerified": null
+    },
+    {
+      "file": "patches/tModLoader/Terraria/ModLoader/ResourceOverlayLoader.cs",
+      "blobSha": "491a72dc15d5e226a5740b8ee71988cd5700aa0f",
+      "classes": [
+        "ResourceOverlayLoader"
+      ],
+      "status": "not_audited_against_csharp",
+      "relatedPRs": [],
+      "androidVerified": null
+    },
+    {
+      "file": "patches/tModLoader/Terraria/ModLoader/SceneEffectLoader.cs",
+      "blobSha": "845be95e88b54e1de774c2dd93d8e0c58ce8be03",
+      "classes": [
+        "SceneEffectLoader<T>",
+        "SceneEffectLoader"
+      ],
+      "status": "active_pr_do_not_duplicate",
+      "relatedPRs": [
+        {
+          "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/pull/131",
+          "title": "WIP: SceneEffectLoader — núcleo de ranking nativo (parcial, sem APK)"
+        }
+      ],
+      "androidVerified": null
+    },
+    {
+      "file": "patches/tModLoader/Terraria/ModLoader/SystemLoader.cs",
+      "blobSha": "40e0d402fcb8daac210064b1becbb18fc7f4a07f",
+      "classes": [
+        "SystemLoader"
+      ],
+      "status": "active_pr_do_not_duplicate",
+      "relatedPRs": [
+        {
+          "url": "https://github.com/MantovaniDevTrue/Bunny-Loader-Csharp/pull/1",
+          "title": "WIP: ModSystem C# 35/58 hooks — localization, nearby tiles, world lifecycle and fast native dispatch"
+        }
+      ],
+      "androidVerified": null
+    },
+    {
+      "file": "patches/tModLoader/Terraria/ModLoader/TileLoader.cs",
+      "blobSha": "58208585c3fcdd2d4d02a74a868040c768298b75",
+      "classes": [
+        "TileLoader"
+      ],
+      "status": "not_audited_against_csharp",
+      "relatedPRs": [],
+      "androidVerified": null
+    },
+    {
+      "file": "patches/tModLoader/Terraria/ModLoader/WallLoader.cs",
+      "blobSha": "80511a36f74797447b7a2b833b142af2c7ef95ef",
+      "classes": [
+        "WallLoader"
+      ],
+      "status": "not_audited_against_csharp",
+      "relatedPRs": [],
+      "androidVerified": null
+    },
+    {
+      "file": "patches/tModLoader/Terraria/ModLoader/WaterStyleLoader.cs",
+      "blobSha": "94aca33b06b4acac6a823769822244af1a97b82f",
+      "classes": [
+        "WaterFallStylesLoader",
+        "WaterStylesLoader"
+      ],
+      "status": "not_audited_against_csharp",
+      "relatedPRs": [],
+      "androidVerified": null
+    }
+  ]
+}

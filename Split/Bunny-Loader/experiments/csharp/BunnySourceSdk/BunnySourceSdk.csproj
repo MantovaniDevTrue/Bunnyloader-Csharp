@@ -10,6 +10,9 @@
     <NoWarn>$(NoWarn);1591</NoWarn>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../BunnyCsSdk/ModTypeLookup.cs" Link="ModTypeLookup.cs" />
+    <Compile Include="../BunnyCsSdk/Loader.cs" Link="Loader.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyContentLoader.cs" Link="BunnyContentLoader.cs" />
     <Compile Include="../BunnyCsSdk/BunnyContentDeclaration.cs" Link="BunnyContentDeclaration.cs" />
     <Compile Include="../BunnyCsSdk/BunnyArmorEffects.cs" Link="BunnyArmorEffects.cs" />
     <Compile Include="../BunnyCsSdk/BunnyItemBehavior.cs" Link="BunnyItemBehavior.cs" />
