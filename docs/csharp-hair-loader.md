@@ -74,6 +74,14 @@ Base técnica: `ModHair` do tModLoader (API pública) e `HairLoader.js` /
   `Examples/Hairs/ExampleHair.cs` além dos seis espelhos da fixture e
   confirma que o cabelo **não** integra `Playable/`.
 
+- `NativeHairStartup.{h,cpp}`: ponte segura, ainda desacoplada do
+  `SourceLoader`, que usa `ReadNativeHairOccupiedSlots` da thread IL2CPP
+  em `Begin` e novamente em `Seal`, após `CommitManifest`. O caller só
+  obtém `ReadyDescriptors()` quando o lote inteiro foi confirmado; sem
+  texture tables, callback ou rechecagem dos slots, não publica registros.
+  A classe não instala hooks sozinha e não pode ser usada fora da game thread
+  real sem fornecer um leitor de slots compatível. Os testes host simulam
+  a sequência snapshot → reserva → manifesto MonoVM → Seal → Reset.
 - `NativeHairSlotProbe.{h,cpp}`: consulta na game thread as tabelas
   reais `TextureAssets.PlayerHair` e `PlayerHairAlt` e copia apenas
   bits de ocupação para `TypeReservations`. Quando o layout ou as
@@ -125,9 +133,9 @@ Base técnica: `ModHair` do tModLoader (API pública) e `HairLoader.js` /
    `AutoSourceRuntime`; usar `TypeReservations` para reservar cada
    faixa global **depois** do loader JS e importar manifestos via
    `ParseAndRegisterManifest(..., firstReservedType)` em `Registry`.
-   `NativeHairStaging` e `NativeHairSlotProbe` já validam
-   atomicamente a reserva/importação/rechecagem de slots com testes
-   host, mas ainda precisam ser conectados
+   `NativeHairStartup`, `NativeHairStaging` e `NativeHairSlotProbe`
+   já validam atomicamente a reserva/importação/rechecagem de slots
+   com testes host, mas ainda precisam ser conectados
    à sequência real de startup, compilação e instalação IL2CPP.
    Remover o bloqueio do `SourceLoader` **somente depois** de validar
    o ciclo completo.
@@ -207,6 +215,10 @@ g++ -std=c++20 -Wall -Wextra -Werror -fsyntax-only \
 g++ -std=c++20 -Wall -Wextra -Werror -fsyntax-only \
   -I Split/Bunny-Loader/app/src/main/cpp \
   Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairSlotProbe.cpp
+g++ -std=c++20 -Wall -Wextra -Werror \
+  -I Split/Bunny-Loader/app/src/main/cpp \
+  Split/Bunny-Loader/tests/hair_loader/native_startup.cpp \
+  -o /tmp/native-hair-startup && /tmp/native-hair-startup
 g++ -std=c++20 -Wall -Wextra -Werror \
   -I Split/Bunny-Loader/app/src/main/cpp \
   Split/Bunny-Loader/tests/hair_loader/native_slot_snapshot.cpp \
