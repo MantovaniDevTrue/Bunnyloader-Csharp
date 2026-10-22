@@ -1,6 +1,6 @@
-Check.Run();
-
 using BunnyLoader.Source;
+
+Check.Run();
 
 static class Check
 {
