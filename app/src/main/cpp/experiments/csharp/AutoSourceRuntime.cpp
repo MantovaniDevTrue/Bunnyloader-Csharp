@@ -85,6 +85,7 @@ using PlayWorldFn=void (*)(const MethodInfo*);
 PlayWorldFn g_originalPlayWorld=nullptr;
 std::atomic<bool> g_worldTilesLoaded{false};
 std::atomic<bool> g_worldSessionReady{false};
+std::atomic<bool> g_nativeAchievementRegistered{false};
 std::atomic<int> g_worldReadyFrames{0};
 std::atomic<bool> g_worldPrefixesRestored{false};
 std::atomic<bool> g_worldPlayerMessagesShown{false};
@@ -1275,15 +1276,19 @@ void noteAutoGameUpdate() {
         g_initialCSharpRegistrationFinished.load(std::memory_order_acquire)) {
         const uint64_t currentRevision = nativeAchievementMetadataRevision();
         static uint64_t appliedRevision = 0;
-        static unsigned int attempt = 0;
+        static uint64_t attemptedRevision = 0;
+        static unsigned int retryFrames = 0;
         if (currentRevision != appliedRevision && currentRevision != 0 &&
-            ++attempt % 60u == 1u) {
+            (attemptedRevision != currentRevision || ++retryFrames % 60u == 0u)) {
+            attemptedRevision = currentRevision;
             // O MonoVM publica dados; somente a thread Terraria manipula
             // AchievementManager e objetos IL2CPP. Nunca executar por quadro.
             const auto definitions = nativeAchievementMetadataSnapshot();
             std::string error;
             if (registerNativeAchievementObjects(definitions, &error)) {
                 appliedRevision = currentRevision;
+                retryFrames = 0;
+                g_nativeAchievementRegistered.store(true, std::memory_order_release);
                 BL_INFO("[CSharp][AchievementLoader] Registry=Ready Count=%zu Revision=%llu",
                         definitions.size(),
                         static_cast<unsigned long long>(currentRevision));
@@ -1336,7 +1341,8 @@ void noteAutoGameUpdate() {
             }
         }
         setNativeAchievementWorldActive(inWorld && achievementProfileReady() &&
-                                           nativeAchievementHooksReady());
+            g_nativeAchievementRegistered.load(std::memory_order_acquire) &&
+            nativeAchievementHooksReady());
     }
     if (g_worldSessionReady.load(std::memory_order_acquire)) {
         graphics::pumpCSharpScreenEffects();
