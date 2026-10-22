@@ -22,6 +22,7 @@
 #include "experiments/csharp/ManagedRuntime.h"
 #include "experiments/csharp/MonoServiceDispatch.h"
 #include "experiments/csharp/SourceLoader.h"
+#include "experiments/csharp/NativeHairSlotMailbox.h"
 #include "experiments/csharp/ManagedSourceClassCount.h"
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
@@ -1137,6 +1138,7 @@ void retryWorldManagedPrefixesWhenReady() {
 }
 
 void noteAutoWorldTilesLoaded() {
+    bl::csharp::hair::CancelNativeHairSlotRequests();
     std::lock_guard<std::mutex> sessionGuard(g_worldTransitionMutex);
     clearManagedVisualCommands();
     resetNativeVisualRenderer();
@@ -1165,6 +1167,7 @@ void noteAutoWorldTilesLoaded() {
 void flushDeferredWorldEntry();
 
 void noteAutoGameUpdate() {
+    bl::csharp::hair::PumpNativeHairSlotsOnGameThread();
     if (managedEntitySourceModsRegistered() &&
         runtime::modNpcsSettled() && runtime::modProjectilesSettled()) {
         installNpcAiHost();
@@ -1215,6 +1218,7 @@ void noteAutoGameUpdate() {
         clearManagedVisualCommands();
         resetNativeVisualRenderer();
         g_visualUpdateTick.store(0, std::memory_order_relaxed);
+        bl::csharp::hair::CancelNativeHairSlotRequests();
         g_worldExits.fetch_add(1, std::memory_order_relaxed);
         g_worldEpoch.fetch_add(1, std::memory_order_acq_rel);
         g_worldSessionReady.store(false, std::memory_order_release);
