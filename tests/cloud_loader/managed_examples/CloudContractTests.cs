@@ -86,9 +86,9 @@ static class CloudContractTests
         Require(BunnyCloudDispatcher.SpawnChance("cloud-test-a", 202, outside) == 0,
             "Faulting chance is suppressed");
         Require(BunnyCloudDispatcher.SpawnChance("cloud-test-a", 202, outside) == 0,
-            "Faulting cloud remains blocked");
-        Require(BunnyCloudDispatcher.Diagnostics("cloud-test-a").Contains("Faults=1"),
-            "Fault is counted only once");
+            "Faulting cloud may retry, but still has weight zero");
+        Require(BunnyCloudDispatcher.Diagnostics("cloud-test-a").Contains("Faults=2"),
+            "Each failed evaluation is isolated and counted, like JS Safe.Run");
 
         Require(BunnyCloudDispatcher.TryOnSpawn("cloud-test-a", 201, 8, 0.75f,
             (int)BunnyCloudSpriteEffects.FlipHorizontally, out int adjusted) &&
