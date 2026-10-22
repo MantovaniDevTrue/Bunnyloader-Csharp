@@ -872,6 +872,16 @@ int basicItemForTile(const std::string& key) {
     return -1;
 }
 
+int basicItemForTileStyle(const std::string& key, int style) {
+    if (key.empty() || style < 0 || style > 1024) return -1;
+    std::lock_guard lock(mutex);
+    for (const auto& [id, entry] : definitions)
+        if (entry.placeable && !entry.wallPlaceable &&
+            entry.placeStyle == style && entry.placeTileKey == key)
+            return id;
+    return -1;
+}
+
 int basicItemForWall(const std::string& key) {
     std::lock_guard lock(mutex);
     for(const auto& [type,entry]:definitions)
