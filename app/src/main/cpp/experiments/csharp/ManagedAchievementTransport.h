@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <cstdint>
 #include <deque>
 #include <memory>
 #include <string>
@@ -22,6 +23,7 @@ struct AchievementJob {
     std::string assembly;
     std::string payload;
     int operation = 0;
+    std::uint64_t generation = 0;
     int value = 0;
     int count = 1;
     std::shared_ptr<AchievementReply> reply;
