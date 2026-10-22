@@ -46,14 +46,15 @@ public:
 
     static bool valid(const AchievementJob& job) {
         if (!validModId(job.mod) || job.assembly.empty() || job.assembly.size() > 1024 ||
-            job.operation < 0 || job.operation > 10 ||
+            job.operation < 0 || job.operation > 11 ||
             job.payload.size() > MaxPayloadBytes) return false;
         if (job.operation >= 1 && job.operation <= 4)
             return job.value >= (job.operation == 1 ? -32768 : 0) &&
                    job.count >= 1 && job.count <= 9999 &&
                    (job.payload == "0" || job.payload == "1");
         if (job.operation == 6) return true;
-        if (job.operation == 9) return !job.payload.empty() && job.payload.size() <= 2048 && job.payload.front() == '/';
+        if (job.operation == 9 || job.operation == 11)
+            return !job.payload.empty() && job.payload.size() <= 2048 && job.payload.front() == '/';
         return job.payload.empty();
     }
 
