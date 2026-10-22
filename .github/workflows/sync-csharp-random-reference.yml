@@ -1,0 +1,31 @@
+name: Regenerate CSharp Random SDK Reference (no APK)
+on:
+  push:
+    branches:
+      - feat/csharp-tml-random-utils-full
+    paths:
+      - .github/workflows/sync-csharp-random-reference.yml
+permissions:
+  contents: write
+jobs:
+  update-reference:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Regenerate public reference from actual assembly
+        working-directory: Split/Bunny-Loader
+        run: dotnet run --project tools/sdk_reference/SdkReference.csproj -c Release -- --write
+      - name: Commit generated CSharp public API reference
+        run: |
+          git add Split/Bunny-Loader/docs/generated/sdk_public_reference.json Split/Bunny-Loader/docs/generated/sdk_public_reference.md
+          if git diff --cached --quiet; then
+            echo "CSharp public reference already current"
+            exit 0
+          fi
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -m "docs(csharp): regenerate public SDK reference for random compatibility"
+          git push origin HEAD:refs/heads/feat/csharp-tml-random-utils-full
