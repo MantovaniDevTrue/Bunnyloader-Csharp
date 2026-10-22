@@ -6,6 +6,7 @@
 #include "experiments/csharp/ManagedRuntime.h"
 #include "core/Log.h"
 
+#include <algorithm>
 #include <atomic>
 #include <cerrno>
 #include <mutex>
@@ -21,13 +22,18 @@ namespace {
 struct ModInfo {
     std::string id;
     std::string assembly;
+    bool enabled = true;
 };
 struct ManifestInfo {
     std::string id;
     std::string assembly;
     std::string manifest;
 };
-enum class Phase { Pending, Loading, Completed, Ready, Switching, SwitchCompleted, Blocked };
+enum class Phase {
+    Pending, Loading, Completed, Ready, Switching, SwitchCompleted,
+    ModUnloading, ModUnloadReady, ModUnloadFinishing, ModUnloadFinalized,
+    ModReloading, ModReloadReady, ModReloadApplying, Blocked
+};
 std::mutex mutex;
 std::vector<ModInfo> mods;
 std::vector<ManifestInfo> loaded;
@@ -35,6 +41,8 @@ std::string persistentRoot;
 std::string selectedProfile;
 std::string targetProfile;
 std::string loadError;
+std::string lifecycleMod;
+std::string lifecycleManifest;
 Phase phase = Phase::Pending;
 std::atomic<bool> active{false};
 unsigned int attempts = 0;
@@ -118,6 +126,56 @@ void switchProfile(std::string directory, std::string previousDirectory,
     phase = Phase::SwitchCompleted;
 }
 
+void prepareModUnload(ModInfo target) {
+    std::string result;
+    std::string error;
+    if (!invokeManagedAchievementControl(
+            target.id, target.assembly, 10, "", &result, 15000) ||
+        result != "OK")
+        error = "Final achievement save failed: " + result.substr(0, 120);
+    std::lock_guard<std::mutex> guard(mutex);
+    if (phase != Phase::ModUnloading || lifecycleMod != target.id) return;
+    loadError = std::move(error);
+    phase = Phase::ModUnloadReady;
+}
+
+void finishModUnload(ModInfo target) {
+    std::string result;
+    std::string error;
+    if (!invokeManagedAchievementControl(
+            target.id, target.assembly, 7, "", &result, 15000) ||
+        !result.starts_with("BACH1\n"))
+        error = "Managed achievement unload failed: " + result.substr(0, 120);
+    std::lock_guard<std::mutex> guard(mutex);
+    if (phase != Phase::ModUnloadFinishing || lifecycleMod != target.id) return;
+    loadError = std::move(error);
+    phase = Phase::ModUnloadFinalized;
+}
+
+void prepareModReload(ModInfo target, std::string directory) {
+    std::string result;
+    std::string error;
+    if (!invokeManagedAchievementControl(
+            target.id, target.assembly, 0, "", &result, 15000) ||
+        !result.starts_with("BACH_META_V2\n")) {
+        error = "Managed achievement rebind failed: " + result.substr(0, 120);
+    } else if (!invokeManagedAchievementControl(
+            target.id, target.assembly, 9, directory, &result, 15000) ||
+        result != "READY") {
+        error = "Managed profile reload failed: " + result.substr(0, 120);
+    } else if (!invokeManagedAchievementControl(
+            target.id, target.assembly, 8, "", &result, 15000) ||
+        !result.starts_with("BACH_META_V2\n")) {
+        error = "Reloaded achievement metadata invalid: " +
+                result.substr(0, 120);
+    }
+    std::lock_guard<std::mutex> guard(mutex);
+    if (phase != Phase::ModReloading || lifecycleMod != target.id) return;
+    lifecycleManifest = error.empty() ? std::move(result) : "";
+    loadError = std::move(error);
+    phase = Phase::ModReloadReady;
+}
+
 }
 
 bool queueAchievementProfileMod(const std::string& modId,
@@ -134,6 +192,69 @@ bool queueAchievementProfileMod(const std::string& modId,
     if (mods.size() >= 64) return false;
     persistentRoot = root;
     mods.push_back({modId, assembly});
+    return true;
+}
+
+bool requestAchievementModUnload(const std::string& modId,
+                                 std::string* error) {
+    if (!error) return false;
+    error->clear();
+    ModInfo selected;
+    {
+        std::lock_guard<std::mutex> guard(mutex);
+        if (phase != Phase::Ready || !active.load(std::memory_order_acquire)) {
+            *error = "Achievement profile is not ready for mod unload";
+            return false;
+        }
+        auto found = std::find_if(mods.begin(), mods.end(),
+            [&](const ModInfo& mod) { return mod.id == modId && mod.enabled; });
+        if (found == mods.end()) {
+            *error = "Active achievement mod not found";
+            return false;
+        }
+        selected = *found;
+        lifecycleMod = modId;
+        loadError.clear();
+        phase = Phase::ModUnloading;
+        active.store(false, std::memory_order_release);
+    }
+    setNativeAchievementWorldActive(false);
+    std::thread([selected = std::move(selected)]() {
+        prepareModUnload(selected);
+    }).detach();
+    return true;
+}
+
+bool requestAchievementModReload(const std::string& modId,
+                                 std::string* error) {
+    if (!error) return false;
+    error->clear();
+    ModInfo selected;
+    std::string directory;
+    {
+        std::lock_guard<std::mutex> guard(mutex);
+        if (phase != Phase::Ready || selectedProfile.empty()) {
+            *error = "Achievement profile is not ready for mod reload";
+            return false;
+        }
+        auto found = std::find_if(mods.begin(), mods.end(),
+            [&](const ModInfo& mod) { return mod.id == modId && !mod.enabled; });
+        if (found == mods.end()) {
+            *error = "Disabled achievement mod not found";
+            return false;
+        }
+        selected = *found;
+        directory = persistentRoot + "/profiles/" + selectedProfile;
+        lifecycleMod = modId;
+        lifecycleManifest.clear();
+        loadError.clear();
+        phase = Phase::ModReloading;
+        active.store(false, std::memory_order_release);
+    }
+    setNativeAchievementWorldActive(false);
+    std::thread([selected = std::move(selected), directory = std::move(directory)]() {
+        prepareModReload(selected, directory);
+    }).detach();
     return true;
 }
 
