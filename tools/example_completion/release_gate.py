@@ -44,7 +44,7 @@ def check_release(matrix: dict, project: Path, upstream: Path | None,
     if not isinstance(rows, list):
         return errors + ["Matriz sem lista de exemplos"]
     expected_count = matrix.get("counts", {}).get("canonicalJsFiles")
-    if expected_count != BASELINE_JS_COUNT or len(rows) != BASELINE_JS_COUNT:
+    if not isinstance(expected_count, int) or expected_count < BASELINE_JS_COUNT or len(rows) != expected_count:
         errors.append(
             f"Inventario incompleto: matriz={expected_count}, linhas={len(rows)}, "
             f"minimo obrigatorio={BASELINE_JS_COUNT}"
