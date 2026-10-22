@@ -8,6 +8,6 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj" />
-    <Compile Include="../../samples/ExampleModCSharp/Playable/content/Common/Players/ExampleRandomCompatProbePlayer.cs" Link="ExampleRandomCompatProbePlayer.cs" />
+    <Compile Include="../../samples/RandomCompatSmokeCSharp/Playable/content/Common/Players/RandomCompatProbePlayer.cs" Link="RandomCompatProbePlayer.cs" />
   </ItemGroup>
 </Project>
