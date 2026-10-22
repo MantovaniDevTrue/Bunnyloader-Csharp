@@ -1271,23 +1271,35 @@ void noteAutoGameUpdate() {
         static NativeCloudBiomeFacts cloudFacts{};
         static bool cloudSnapshotReady = false;
         static bool cloudAnniversary = false;
-        static bool pendingBiomeUpdate = false;
+        static uint32_t pendingBiomeUpdates = 0;
         const uint64_t epoch = g_worldEpoch.load(std::memory_order_acquire);
         if (cloudSnapshotEpoch != epoch) {
             cloudSnapshotEpoch = epoch;
             cloudSnapshotTicks = 0;
             cloudSnapshotReady = false;
             cloudBiomeKeys.clear();
-            pendingBiomeUpdate = false;
+            pendingBiomeUpdates = 0;
             resetNativeBiomeWorldStateOnGameThread();
         }
-        if (takeNativeBiomePlayerUpdatesOnGameThread() > 0)
-            pendingBiomeUpdate = true;
+        const uint32_t observedUpdates =
+            takeNativeBiomePlayerUpdatesOnGameThread();
+        if (takeNativeBiomeUpdateOverflowOnGameThread() ||
+            observedUpdates > 64 - pendingBiomeUpdates) {
+            pauseNativeCloudHooks();
+            pauseNativeBiomeUpdateHookOnGameThread();
+            resetNativeBiomeWorldStateOnGameThread();
+            resetManagedCloudWorldSession();
+            cloudSnapshotReady = false;
+            pendingBiomeUpdates = 0;
+            BL_WARN("[CSharp][BiomeLoader] Stage=UpdateBiomes Result=Paused Reason=CallbackOverflow");
+        } else {
+            pendingBiomeUpdates += observedUpdates;
+        }
         bool newSnapshot = false;
         const bool needsBiomeTick = nativeBiomeOwnersStagedOnGameThread();
         const bool due = ++cloudSnapshotTicks % 20u == 0;
-        if ((!cloudSnapshotReady && (!needsBiomeTick || pendingBiomeUpdate)) ||
-            (due && (!needsBiomeTick || pendingBiomeUpdate))) {
+        if ((!cloudSnapshotReady && (!needsBiomeTick || pendingBiomeUpdates > 0)) ||
+            (due && (!needsBiomeTick || pendingBiomeUpdates > 0))) {
             NativeCloudBiomeFacts facts{};
             std::string error;
             if (!readNativeCloudVanillaBiomeFacts(false, &facts, &error)) {
@@ -1306,14 +1318,14 @@ void noteAutoGameUpdate() {
                 cloudAnniversary = facts.tenthAnniversaryWorld;
                 cloudSnapshotReady = true;
                 newSnapshot = true;
-                pendingBiomeUpdate = false;
             }
         }
         if (cloudSnapshotReady && (nativeCloudHooksEnabled() ||
                 nativeBiomeOwnersStagedOnGameThread())) {
             std::string verifiedKeys = cloudBiomeKeys;
             if (!pumpNativeBiomeOwnersOnGameThread(
-                    cloudFacts, newSnapshot, &verifiedKeys)) {
+                    cloudFacts, newSnapshot,
+                    newSnapshot ? pendingBiomeUpdates : 0, &verifiedKeys)) {
                 pauseNativeCloudHooks();
                 pauseNativeBiomeUpdateHookOnGameThread();
                 resetNativeBiomeWorldStateOnGameThread();
@@ -1321,6 +1333,7 @@ void noteAutoGameUpdate() {
                 cloudSnapshotReady = false;
                 BL_WARN("[CSharp][CloudLoader] Stage=BiomeFlags Result=Paused Reason=InvalidManagedBiomeSnapshot");
             } else {
+                if (newSnapshot) pendingBiomeUpdates = 0;
                 if (nativeCloudHooksEnabled())
                     pumpNativeCloudManagedCallbacksOnGameThread(
                         false, cloudAnniversary, verifiedKeys);
