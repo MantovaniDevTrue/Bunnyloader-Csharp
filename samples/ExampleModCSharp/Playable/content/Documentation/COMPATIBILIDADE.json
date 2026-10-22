@@ -2219,21 +2219,30 @@
       ],
       "status": "Não implementado",
       "assets": [],
-      "automatedEvidence": [],
-      "preservedFeatures": [],
+      "automatedEvidence": [
+        "docs/csharp-surface-native-components.md: componentes executados com metadata IL2CPP controlada e comparação com original JS em Node. Não valida loader completo, C# ou Android."
+      ],
+      "preservedFeatures": [
+        "Infraestrutura nativa parcial: desenho SpriteBatch verificado, geometria, fades, tabelas transacionais e valores nullable. Ainda sem conexão aos hooks de superfície ou ao C#."
+      ],
       "missingFeatures": [
-        "Sem contrato C# reutilizavel equivalente para ModSurfaceBackgroundStyle"
+        "Port C# completo do estilo, seis hooks e registro compartilhado, integração de menu/cena, callbacks no worker, desenho personalizado, leases durante fade/unload e animação original de quatro frames."
       ],
       "nativeDependencies": [
-        "app/src/main/cpp/script/js/mod/ModSurfaceBackgroundStyle.js"
+        "app/src/main/cpp/content/backgrounds/SurfaceGeometry.cpp",
+        "app/src/main/cpp/content/backgrounds/SurfaceTables.cpp",
+        "app/src/main/cpp/content/backgrounds/SurfaceSpriteBatch.cpp",
+        "app/src/main/cpp/il2cpp/NullableLayout.h",
+        "app/src/main/cpp/il2cpp/CheckedFieldWrite.h"
       ],
-      "automatedTests": [],
+      "automatedTests": [
+        "tests/surface_backgrounds/native_surface_test.cpp",
+        "tests/surface_backgrounds/original_surface_comparison.cjs"
+      ],
       "terrariaTests": [
-        "Comparar cada hook/propriedade listado com o comportamento JS original no Terraria 1.4.5.8.6.",
-        "Carregar junto de um mod JS; entrar/sair do mundo e conferir falhas e desempenho.",
-        "Verificar persistencia, remocao do mod e morte/respawn quando o exemplo mantiver estado."
+        "Ainda não existe comando/API C# de superfície utilizável: concluir os contratos de docs/csharp-surface-native-components.md antes de QA Android."
       ],
-      "validation": "Sem validacao funcional C# deste exemplo inteiro.",
+      "validation": "Infraestrutura em desenvolvimento; o exemplo C# não foi portado. Nenhum teste Android ou FPS novo.",
       "deviceEvidence": [],
       "technicalBlockEvidence": [],
       "sourceEvidence": [

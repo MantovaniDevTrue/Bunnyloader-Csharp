@@ -1388,6 +1388,35 @@
       ],
       "validation": "Contrato do estilo verificado no host; renderizacao, estabilidade e FPS no Android pendentes.",
       "deviceEvidence": []
+    },
+    "Content/Biomes/ExampleSurfaceBackgroundStyle.js": {
+      "status": "Não implementado",
+      "cSharp": [],
+      "preservedFeatures": [
+        "Infraestrutura nativa parcial: desenho SpriteBatch verificado, geometria, fades, tabelas transacionais e valores nullable. Ainda sem conexão aos hooks de superfície ou ao C#."
+      ],
+      "missingFeatures": [
+        "Port C# completo do estilo, seis hooks e registro compartilhado, integração de menu/cena, callbacks no worker, desenho personalizado, leases durante fade/unload e animação original de quatro frames."
+      ],
+      "nativeDependencies": [
+        "app/src/main/cpp/content/backgrounds/SurfaceGeometry.cpp",
+        "app/src/main/cpp/content/backgrounds/SurfaceTables.cpp",
+        "app/src/main/cpp/content/backgrounds/SurfaceSpriteBatch.cpp",
+        "app/src/main/cpp/il2cpp/NullableLayout.h",
+        "app/src/main/cpp/il2cpp/CheckedFieldWrite.h"
+      ],
+      "automatedTests": [
+        "tests/surface_backgrounds/native_surface_test.cpp",
+        "tests/surface_backgrounds/original_surface_comparison.cjs"
+      ],
+      "automatedEvidence": [
+        "docs/csharp-surface-native-components.md: componentes executados com metadata IL2CPP controlada e comparação com original JS em Node. Não valida loader completo, C# ou Android."
+      ],
+      "terrariaTests": [
+        "Ainda não existe comando/API C# de superfície utilizável: concluir os contratos de docs/csharp-surface-native-components.md antes de QA Android."
+      ],
+      "validation": "Infraestrutura em desenvolvimento; o exemplo C# não foi portado. Nenhum teste Android ou FPS novo.",
+      "deviceEvidence": []
     }
   },
   "additionalCSharpDeviceEvidence": {

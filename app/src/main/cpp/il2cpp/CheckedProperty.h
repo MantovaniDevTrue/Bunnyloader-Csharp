@@ -9,7 +9,7 @@ namespace bl::il2cpp {
 // Android build. Never read a scalar as an object pointer to inspect its type.
 class CheckedProperty {
 public:
-    enum class Kind { Boolean, Int32, Double, Vector2, IntArray, TextureArray, AssetArray, Reference };
+    enum class Kind { Boolean, Int32, Single, Double, Vector2, IntArray, SingleArray, BooleanArray, TextureArray, AssetArray, Reference };
     FieldInfo* field=nullptr;
     const MethodInfo* getter=nullptr;
     Il2CppClass* declared=nullptr;
@@ -31,9 +31,12 @@ public:
         switch(expected) {
         case Kind::Boolean:return "System.Boolean:1";
         case Kind::Int32:return "System.Int32:4";
+        case Kind::Single:return "System.Single:4";
         case Kind::Double:return "System.Double:8";
         case Kind::Vector2:return "Microsoft.Xna.Framework.Vector2:8";
         case Kind::IntArray:return "System.Int32[]:Rank1";
+        case Kind::SingleArray:return "System.Single[]:Rank1";
+        case Kind::BooleanArray:return "System.Boolean[]:Rank1";
         case Kind::TextureArray:return "Texture2D[]:Rank1";
         case Kind::AssetArray:return "Asset<Texture2D>[]:Rank1";
         case Kind::Reference:return "CompatibleManagedReference";
@@ -84,6 +87,7 @@ public:
         bool valid=false;
         if(expected==Kind::Boolean)valid=value && actual=="System.Boolean" && size==1;
         else if(expected==Kind::Int32)valid=value && actual=="System.Int32" && size==4;
+        else if(expected==Kind::Single)valid=value && actual=="System.Single" && size==4;
         else if(expected==Kind::Double)valid=value && actual=="System.Double" && size==8;
         else if(expected==Kind::Vector2)valid=value && actual=="Microsoft.Xna.Framework.Vector2" && size==8;
         else if(expected==Kind::Reference)valid=!value && referenceClass && a.class_is_assignable_from(referenceClass,declared);
@@ -93,8 +97,11 @@ public:
             const bool elementValue=element && a.class_is_valuetype(element);
             uint32_t elementAlign=0;
             const int elementSize=elementValue?a.class_value_size(element,&elementAlign):int(sizeof(void*));
+            const bool primitive=expected==Kind::IntArray || expected==Kind::SingleArray || expected==Kind::BooleanArray;
+            const char* primitiveName=expected==Kind::BooleanArray?"System.Boolean":expected==Kind::SingleArray?"System.Single":"System.Int32";
+            const int primitiveSize=expected==Kind::BooleanArray?1:4;
             valid=!value && a.class_get_rank(declared)==1 && element && (
-                expected==Kind::IntArray ? elementValue && elementName=="System.Int32" && elementSize==4 :
+                primitive ? elementValue && elementName==primitiveName && elementSize==primitiveSize :
                 !elementValue && referenceClass && element==referenceClass);
         }
         if(!valid)return reject(error,"Bind",expectedName(expected),actual+":"+std::to_string(size),"NativeTypeOrSizeMismatch");

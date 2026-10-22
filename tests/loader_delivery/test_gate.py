@@ -18,7 +18,7 @@ class GateTests(unittest.TestCase):
         result = subprocess.run(['python3',str(ROOT/'tools/ci/check_loader_delivery_gate.py'),'--root',str(ROOT)],capture_output=True,text=True)
         self.assertNotEqual(result.returncode,0)
         self.assertIn('APK_BLOCKED_INCOMPLETE_LOADER_SCOPE',result.stdout)
-        self.assertIn('SurfaceBackgroundLoader: implementation=pending',result.stdout)
+        self.assertIn('SurfaceBackgroundLoader: implementation=partial',result.stdout)
 
     def test_omitting_or_duplicating_a_loader_does_not_unlock_delivery(self):
         del self.manifest['loaders'][-1]

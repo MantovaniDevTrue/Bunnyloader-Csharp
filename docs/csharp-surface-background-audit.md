@@ -5,7 +5,9 @@ Referência preservada:
 SHA-256 `4538e3d819e0d0c6a0b5be387fd0d2b10b306e8d44c09c9ef71b1a56c620c2a0`.
 Complementos: `ModSurfaceBackgroundStyle.js` e o
 `Content/Biomes/ExampleSurfaceBackgroundStyle.js` do anexo 1.9.0.
-**Estado: pendente**, sem API pública incompleta anunciada como implementada.
+**Estado: parcial na infraestrutura nativa**, sem API pública incompleta
+anunciada como implementada. Componentes executáveis e limites registrados em
+[csharp-surface-native-components.md](csharp-surface-native-components.md).
 
 ## Contratos que não podem ser omitidos
 
@@ -69,9 +71,12 @@ o protocolo de worker com revisão. `CheckedProperty` atual só oferece leituras
 necessárias ao subsolo; superfície precisa contratos de Single/arrays Single
 e setters verificados. Não expor esses setters antes de ligá-los ao runtime.
 
-Criar primeiro os testes do serviço com metadata controlada para valores
-nullable, arrays recriados, equações de desenho e preservação de cores/estado.
-Depois executar o exemplo original no QuickJS real contra o serviço
-compartilhado e o exemplo C# por P/Invoke. Testes Android deverão comparar
+Os testes desses componentes agora executam metadata controlada, valores
+nullable, arrays recriados, equações de desenho e o overload real de desenho
+por `runtime_invoke` no fixture. O original JS executado no Node fornece a
+comparação de geometria/fades/prioridade e o contrato da animação. Isto ainda
+não é integração C#/QuickJS: faltam registro, hooks e dispatchers. Depois
+executar o exemplo original no QuickJS real contra o serviço compartilhado e
+o exemplo C# por P/Invoke. Testes Android deverão comparar
 camadas/fades/animação do ExampleMod, menu e coexistência JS/C#, com medição
 de quadros. Nenhum dos testes de subsolo comprova esses contratos novos.

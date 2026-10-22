@@ -89,10 +89,16 @@
       "loader": "SurfaceBackgroundLoader",
       "reference": "app/src/main/cpp/script/js/mod/Loaders/SurfaceBackgroundLoader.js",
       "referenceSha256": "4538e3d819e0d0c6a0b5be387fd0d2b10b306e8d44c09c9ef71b1a56c620c2a0",
-      "implementation": "pending",
+      "implementation": "partial",
       "android": "not-tested",
       "publicApi": [],
-      "nativeBridge": [],
+      "nativeBridge": [
+        "app/src/main/cpp/content/backgrounds/SurfaceGeometry.cpp",
+        "app/src/main/cpp/content/backgrounds/SurfaceTables.cpp",
+        "app/src/main/cpp/content/backgrounds/SurfaceSpriteBatch.cpp",
+        "app/src/main/cpp/il2cpp/NullableLayout.h",
+        "app/src/main/cpp/il2cpp/CheckedFieldWrite.h"
+      ],
       "example": [],
       "contracts": [
         {
@@ -123,27 +129,42 @@
         {
           "name": "Atomic growth and recreated LocalUserGameState arrays",
           "implemented": false,
-          "tests": []
+          "tests": [
+            "tests/surface_backgrounds/native_surface_test.cpp",
+            "tests/surface_backgrounds/original_surface_comparison.cjs"
+          ]
         },
         {
           "name": "Vanilla forest/medium/high and menu background arbitration",
           "implemented": false,
-          "tests": []
+          "tests": [
+            "tests/surface_backgrounds/native_surface_test.cpp",
+            "tests/surface_backgrounds/original_surface_comparison.cjs"
+          ]
         },
         {
           "name": "Nullable BackLayer overrides and native far alpha routine",
           "implemented": false,
-          "tests": []
+          "tests": [
+            "tests/surface_backgrounds/native_surface_test.cpp",
+            "tests/surface_backgrounds/original_surface_comparison.cjs"
+          ]
         },
         {
           "name": "Managed ModifyFarFades after original FrontLayer",
           "implemented": false,
-          "tests": []
+          "tests": [
+            "tests/surface_backgrounds/native_surface_test.cpp",
+            "tests/surface_backgrounds/original_surface_comparison.cjs"
+          ]
         },
         {
           "name": "Far/Middle render placement using native geometry and alpha",
           "implemented": false,
-          "tests": []
+          "tests": [
+            "tests/surface_backgrounds/native_surface_test.cpp",
+            "tests/surface_backgrounds/original_surface_comparison.cjs"
+          ]
         },
         {
           "name": "PreDrawCloseBackground suppression and custom drawing",
@@ -153,12 +174,18 @@
         {
           "name": "Close scale/parallax/a/b, SkyManager depth and surface clipping",
           "implemented": false,
-          "tests": []
+          "tests": [
+            "tests/surface_backgrounds/native_surface_test.cpp",
+            "tests/surface_backgrounds/original_surface_comparison.cjs"
+          ]
         },
         {
           "name": "Original four-frame Middle animation and full mod path lookup",
           "implemented": false,
-          "tests": []
+          "tests": [
+            "tests/surface_backgrounds/native_surface_test.cpp",
+            "tests/surface_backgrounds/original_surface_comparison.cjs"
+          ]
         },
         {
           "name": "Safe current/previous texture ownership and dependency failures",
@@ -167,9 +194,24 @@
         }
       ],
       "missing": [
-        "Implement every audited surface drawing, fade, menu, nullable ABI and original animation contract; see audit document."
+        "Shared UID/class registry, real vanilla count, menu/scene arbitration and wake/sleep lifecycle.",
+        "Bind real LocalUserGameState/Main/Sets fields and six hooks; verify nullable detour ABI before installation.",
+        "Managed worker revision protocol, reusable public SDK and genuine custom drawing callback.",
+        "Original CSharp surface example including four-frame animation; actual CSharp and QuickJS bridges.",
+        "Current/outgoing asset leases, unload, stale replies and dependency failure integration.",
+        "Full loader integration tests, source cache review and Android gameplay/FPS validation."
       ],
-      "auditDocument": "docs/csharp-surface-background-audit.md"
+      "auditDocument": "docs/csharp-surface-background-audit.md",
+      "infrastructure": {
+        "status": "implemented-components-not-yet-connected-to-engine-hooks-or-managed-sdk",
+        "documentation": "docs/csharp-surface-native-components.md",
+        "tests": [
+          "tests/surface_backgrounds/native_surface_test.cpp",
+          "tests/surface_backgrounds/original_surface_comparison.cjs"
+        ],
+        "android": "not-tested",
+        "publicApiExposed": false
+      }
     },
     {
       "loader": "UndergroundBackgroundLoader",

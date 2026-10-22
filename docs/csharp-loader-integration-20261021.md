@@ -1,5 +1,27 @@
 # Continuidade dos loaders C# — 2026-10-21
 
+## Continuidade de 22/10 — componentes de SurfaceBackgroundLoader
+
+Sobre `f2d98fcd`, preservados os commits anteriores e todos os exemplos existentes.
+Implementados três serviços C++ de geometria/fades, ampliação transacional das
+quatro tabelas e desenho SpriteBatch/SkyManager com metadata verificada. Novos
+contratos internos de escrita e Nullable validam tipos, offsets, tamanhos,
+alinhamento e referências antes de montar argumentos ou escrever memória.
+Detalhes, testes e continuação em
+[csharp-surface-native-components.md](csharp-surface-native-components.md).
+
+O fixture invoca os `.cpp` de produção, incluindo o overload real de desenho
+pela API IL2CPP controlada. O original JS imutável executa em Node/V8 para
+comparar projeções, prioridades e fades. Não é prova de loader integrado ao
+Terraria: ainda faltam hooks, registro compartilhado, SDK/worker e exemplo C#.
+Não foi criada uma classe pública parcialmente conectada ao runtime.
+
+**Escopo: 2/15 implementados nos fontes, 1 parcial, 12 pendentes; 0 Android.**
+A matriz global mantém 206 referências e o exemplo de superfície como não
+portado. ExampleMod permanece 0.1.65/106 fontes; SDK público e cache não mudaram.
+Nenhum APK ou `.bmod` gerado. As aprovações CI abaixo pertencem ao código anterior;
+as novas unidades exigem CI próprio, sem herdar resultados de outro SHA.
+
 ## Continuidade de 22/10 — UndergroundBackgroundLoader
 
 Implementação nova sobre `7ff39991`, sem reiniciar a branch nem substituir
