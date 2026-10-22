@@ -287,9 +287,19 @@ void pumpAchievementProfileOnGameThread(bool inWorld) {
 
     std::vector<ModInfo> toLoad;
     std::string directory;
+    bool finishUnload = false;
     {
         std::lock_guard<std::mutex> guard(mutex);
         if (mods.empty() || phase == Phase::Blocked) return;
+        if (!selectedProfile.empty() && selectedProfile != key &&
+            phase != Phase::Ready && phase != Phase::Switching &&
+            phase != Phase::SwitchCompleted) {
+            phase = Phase::Blocked;
+            active.store(false, std::memory_order_release);
+            setNativeAchievementWorldActive(false);
+            BL_WARN("[CSharp][AchievementLoader] personagem mudou durante ciclo do mod");
+            return;
+        }
 
         if (phase == Phase::Pending) {
             if (!ensureDirectory(persistentRoot) ||
@@ -325,12 +335,99 @@ void pumpAchievementProfileOnGameThread(bool inWorld) {
             BL_INFO("[CSharp][AchievementLoader] Perfil isolado restaurado; mods=%zu",
                     mods.size());
             return;
+        } else if (phase == Phase::ModUnloadReady) {
+            if (!loadError.empty()) {
+                phase = Phase::Blocked;
+                BL_WARN("[CSharp][AchievementLoader] save final recusado: %s",
+                        loadError.c_str());
+                return;
+            }
+            if (!prepareNativeAchievementBindingUnload(lifecycleMod, &error)) {
+                // Retentar no próximo ciclo sem bloquear a thread GL.
+                return;
+            }
+            if (!unregisterNativeAchievementMod(lifecycleMod, &error) ||
+                !unregisterNativeAchievementBinding(lifecycleMod, &error)) {
+                phase = Phase::Blocked;
+                BL_WARN("[CSharp][AchievementLoader] unload nativo bloqueado: %s",
+                        error.c_str());
+                return;
+            }
+            auto found = std::find_if(mods.begin(), mods.end(),
+                [&](const ModInfo& mod) { return mod.id == lifecycleMod; });
+            if (found == mods.end()) {
+                phase = Phase::Blocked;
+                BL_WARN("[CSharp][AchievementLoader] unload sem mod registrado");
+                return;
+            }
+            toLoad.push_back(*found);
+            phase = Phase::ModUnloadFinishing;
+            finishUnload = true;
+        } else if (phase == Phase::ModUnloadFinalized) {
+            if (!loadError.empty()) {
+                phase = Phase::Blocked;
+                BL_WARN("[CSharp][AchievementLoader] unload MonoVM recusado: %s",
+                        loadError.c_str());
+                return;
+            }
+            auto found = std::find_if(mods.begin(), mods.end(),
+                [&](const ModInfo& mod) { return mod.id == lifecycleMod; });
+            if (found != mods.end()) found->enabled = false;
+            lifecycleMod.clear();
+            phase = Phase::Ready;
+            const bool anyEnabled = std::any_of(mods.begin(), mods.end(),
+                [](const ModInfo& mod) { return mod.enabled; });
+            active.store(anyEnabled, std::memory_order_release);
+            BL_INFO("[CSharp][AchievementLoader] mod descarregado; restantes=%d",
+                    anyEnabled ? 1 : 0);
+            return;
+        } else if (phase == Phase::ModReloadReady) {
+            if (!loadError.empty()) {
+                phase = Phase::Blocked;
+                BL_WARN("[CSharp][AchievementLoader] reload MonoVM recusado: %s",
+                        loadError.c_str());
+                return;
+            }
+            auto found = std::find_if(mods.begin(), mods.end(),
+                [&](const ModInfo& mod) { return mod.id == lifecycleMod; });
+            if (found == mods.end()) {
+                phase = Phase::Blocked;
+                return;
+            }
+            std::vector<AchievementMetadata> verified;
+            if (!parseAchievementMetadata(lifecycleManifest, found->id,
+                                          &verified, &error) ||
+                !registerNativeAchievementMod(
+                    found->id, found->assembly, lifecycleManifest, &error)) {
+                phase = Phase::Blocked;
+                BL_WARN("[CSharp][AchievementLoader] reload metadata recusado: %s",
+                        error.c_str());
+                return;
+            }
+            phase = Phase::ModReloadApplying;
+            return;
+        } else if (phase == Phase::ModReloadApplying) {
+            if (!nativeAchievementModRegistered(lifecycleMod)) return;
+            auto found = std::find_if(mods.begin(), mods.end(),
+                [&](const ModInfo& mod) { return mod.id == lifecycleMod; });
+            if (found == mods.end()) {
+                phase = Phase::Blocked;
+                return;
+            }
+            found->enabled = true;
+            lifecycleMod.clear();
+            lifecycleManifest.clear();
+            phase = Phase::Ready;
+            active.store(true, std::memory_order_release);
+            BL_INFO("[CSharp][AchievementLoader] mod recarregado e ativado");
+            return;
         } else if (phase == Phase::Ready && selectedProfile != key) {
             active.store(false, std::memory_order_release);
             setNativeAchievementWorldActive(false);
             targetProfile = key;
             directory = persistentRoot + "/profiles/" + targetProfile;
-            toLoad = mods;
+            for (const auto& mod : mods)
+                if (mod.enabled) toLoad.push_back(mod);
             phase = Phase::Switching;
             BL_INFO("[CSharp][AchievementLoader] preparando troca de personagem");
         } else if (phase == Phase::SwitchCompleted) {
@@ -382,6 +479,12 @@ void pumpAchievementProfileOnGameThread(bool inWorld) {
             reportedMismatch = false;
             return;
         }
+    }
+    if (finishUnload && toLoad.size() == 1) {
+        std::thread([target = std::move(toLoad.front())]() {
+            finishModUnload(target);
+        }).detach();
+        return;
     }
     if (!directory.empty()) {
         const bool isSwitch = !targetProfile.empty();
