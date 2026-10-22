@@ -165,6 +165,25 @@ static class BiomeContractTests
                 "ExampleFaultingBiome.OnLeave", StringComparison.Ordinal),
             "OnLeave exceptions are isolated after a false evaluation");
 
+        int ticksBeforeBatch = ExampleSurfaceBiome.Ticks;
+        int entersBeforeBatch = ExampleSurfaceBiome.Enters;
+        Require(BunnyBiomeDispatcher.EvaluateTicksWire(
+            "example-mod", false, true, 3200 * 16f, 6400,
+            false, true, "ExampleTile=40", 20) == active,
+            "Batch of twenty real player-biome updates returns correct keys");
+        Require(ExampleSurfaceBiome.Ticks == ticksBeforeBatch + 20 &&
+                ExampleSurfaceBiome.Enters == entersBeforeBatch,
+            "Batched updates execute twenty OnInBiome callbacks, no duplicate enter");
+        Require(BunnyBiomeDispatcher.EvaluateTicksWire(
+            "example-mod", false, true, 3200 * 16f, 6400,
+            false, true, "ExampleTile=40", 0) == "" &&
+            BunnyBiomeDispatcher.EvaluateTicksWire(
+            "example-mod", false, true, 3200 * 16f, 6400,
+            false, true, "ExampleTile=40", 65) == "",
+            "Reject invalid frame counts without executing arbitrary callbacks");
+        Require(ExampleSurfaceBiome.Ticks == ticksBeforeBatch + 20,
+            "Invalid frame counts cannot mutate biome lifecycle");
+
         string dir = Path.Combine(Path.GetTempPath(),
             "bunny-biome-source-test-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(dir);
