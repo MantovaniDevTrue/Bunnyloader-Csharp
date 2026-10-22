@@ -9,13 +9,14 @@
 - `DamageClassPlayer` com `ref` para os cinco atributos e cálculos
   `GetTotal*` correspondentes a Terraria.Player.TML.cs.
 - ExampleMod: `Common/DamageClasses/ExampleDamageClass.cs`.
-- 22 testes incluindo Custom DamageClass, herança negativa e parcial,
-  reset de atributos, unload, IDs e rollback de registro.
+- 26 testes incluindo Custom DamageClass, herança negativa e parcial,
+  reset de atributos, unload por mod, IDs não reutilizados, testes com
+  dois assemblies e rollback de registro.
 - O compilador completo do ExampleMod registra ExampleDamageClass automaticamente
   pelo mesmo BunnyEntitySourceDispatcher dos outros conteúdos do mod.
 - O MonoVM agenda uma inicialização de assembly antes do primeiro TickWorld;
   não depende mais de receber AI de NPC para iniciar o registro.
-- O CI compila o SDK Android net8, executa 22 testes e o ExampleMod via Roslyn,
+- O CI compila o SDK Android net8, executa 26 testes e o ExampleMod via Roslyn,
   além de verificar a sintaxe de ManagedRuntime.cpp, sem Gradle ou APK.
 
 ## O que falta para o DamageClassLoader ficar completo no Terraria Android
@@ -23,11 +24,11 @@
 **Este código não é a ponte nativa. Não deve ser descrito como loader de
 combate completo nem usado para autorizar geração de APK.**
 
-- Registrar e descarregar subclasses `DamageClass` **por mod** durante a
-  ativação/desativação, garantindo ownership em multiplayer e hot-reload.
-  A descoberta em BunnyEntitySourceDispatcher já funciona para assemblies
-  vinculados a entidades, mas a fila de preload não é confirmação de que
-  todos os outros sistemas aguardam a conclusão antes de criar os itens.
+- A revogação por mod já preserva IDs: remove classes do catálogo ativo,
+  não reutiliza o ID antigo e limpa no worker MonoVM. Falta QA Android e
+  garantir que todas as categorias de mod carreguem esse dispatcher.
+- Garantir um bloqueio de inicialização que aguarde o registro antes de
+  criar itens; a fila de preload é assíncrona e não satisfaz essa garantia.
 - Resolver `DamageType` dos itens/projéteis C# e manter o tipo no
   clone, no spawn e na sincronização de rede.
 - Ler e aplicar `GetTotalDamage`, crítico, knockback, armorPen e
