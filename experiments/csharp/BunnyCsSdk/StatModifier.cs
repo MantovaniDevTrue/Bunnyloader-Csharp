@@ -9,7 +9,7 @@ namespace BunnyLoader.Source;
 /// </summary>
 /// <remarks>
 /// Contrato matemático adaptado de tModLoader (licença MIT):
-/// https://github.com/tModLoader/tModLoader/blob/stable/patches/tModLoader/Terraria/ModLoader/StatModifier.cs
+/// https://github.com/tModLoader/tModLoader/blob/1.4.5/patches/tModLoader/Terraria/ModLoader/StatModifier.cs
 /// Use new StatModifier() ou StatModifier.Default para a identidade.
 /// default(StatModifier) produz campos zeroados, como no tModLoader, e NÃO é a identidade.
 /// </remarks>
