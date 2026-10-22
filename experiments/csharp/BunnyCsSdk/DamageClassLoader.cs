@@ -195,9 +195,9 @@ public static class DamageClassLoader
         if (assembly is null) throw new ArgumentNullException(nameof(assembly));
         var classes = DamageClasses.Where(cls => cls.Type >= DefaultClassCount &&
             !RetiredClasses.Contains(cls) && cls.GetType().Assembly == assembly).ToArray();
-        if (classes.Length == 0) return "DAMAGE_CLASS_STATS_V1\n";
+        if (classes.Length == 0) return "DAMAGE_CLASS_STATS_V2\n";
         var player = new DamageClassPlayer();
-        var result = new StringBuilder("DAMAGE_CLASS_STATS_V1\n");
+        var result = new StringBuilder("DAMAGE_CLASS_STATS_V2\n");
         static string F(float value)
         {
             if (!float.IsFinite(value) || MathF.Abs(value) > 100000f)
@@ -221,7 +221,21 @@ public static class DamageClassLoader
                 F(player.GetTotalArmorPenetration(cls)),
                 cls.UseStandardCritCalcs ? "1" : "0"
             };
-            result.Append(string.Join("\t", fields)).Append('\n');
+            var inheritance = new[] {
+                DamageClass.Generic, DamageClass.Melee, DamageClass.Ranged,
+                DamageClass.Magic, DamageClass.Summon
+            };
+            var wire = new List<string>(fields);
+            foreach (DamageClass vanilla in inheritance)
+            {
+                StatInheritanceData part = cls.GetModifierInheritance(vanilla);
+                wire.Add(F(part.damageInheritance));
+                wire.Add(F(part.critChanceInheritance));
+                wire.Add(F(part.attackSpeedInheritance));
+                wire.Add(F(part.armorPenInheritance));
+                wire.Add(F(part.knockbackInheritance));
+            }
+            result.Append(string.Join("\t", wire)).Append('\n');
         }
         return result.ToString();
     }
