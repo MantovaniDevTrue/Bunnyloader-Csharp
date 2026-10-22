@@ -19,6 +19,7 @@ on:
       - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairUi.*"
       - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairUnlockState.h"
       - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairManifest.h"
+      - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairNetworkState.h"
       - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairReservation.h"
       - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairSaveState.h"
       - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairSaveSession.h"
@@ -118,6 +119,13 @@ jobs:
           g++ -std=c++20 -Wall -Wextra -Werror -fsyntax-only \
             -I Split/Bunny-Loader/app/src/main/cpp \
             Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairPlayerIo.cpp
+      - name: Validate hair network ownership and vanilla/mod transitions
+        run: |
+          g++ -std=c++20 -Wall -Wextra -Werror \
+            -I Split/Bunny-Loader/app/src/main/cpp \
+            Split/Bunny-Loader/tests/hair_loader/native_network_state.cpp \
+            -o /tmp/bunny-hair-network-contract
+          /tmp/bunny-hair-network-contract
       - name: Guard against Android artifacts
         run: |
           test ! -d Split/Bunny-Loader/app/build/outputs/apk
