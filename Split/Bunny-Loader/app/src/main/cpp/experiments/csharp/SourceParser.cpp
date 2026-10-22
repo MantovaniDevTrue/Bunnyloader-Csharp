@@ -195,12 +195,20 @@ bool parseClass(const std::vector<Token>& tokens, size_t begin, size_t end,
     if (base != "BunnyItem" && base != "BunnyProjectile" && base != "BunnyWeapon" &&
         base != "BunnyBuff" && base != "BunnyBuffPotion" &&
         base != "BunnyPlayer" && base != "BunnyAccessory" &&
-        base != "BunnyNPC" && base != "BunnyPrefix" && base != "BunnyTile") return true;
+        base != "BunnyNPC" && base != "BunnyPrefix" && base != "BunnyTile" &&
+        base != "ModHair" && base != "BunnyHair") return true;
     ParsedSourceType def;
     def.name = name;
     def.base = base;
     def.namespaceName = namespaceName;
     def.properties = declaredProperties;
+    if (base == "ModHair" || base == "BunnyHair") {
+        // A detecção do tipo é antecipada; valores dinâmicos e condições
+        // ficam a cargo do Roslyn/MonoVM. SourceLoader bloqueia a ativação
+        // até que todos os hooks e a persistência estejam conectados.
+        definitions->push_back(std::move(def));
+        return true;
+    }
     bool foundDefaults = false;
     size_t member = begin + 1;
     while (member < end) {
@@ -413,15 +421,11 @@ bool parseCSharpSource(const std::string& source,
             }
             base = declaredBase;
         }
-        if (!abstract && (base == "ModHair" || base == "BunnyHair")) {
-            *error = name + ": ModHair C# ainda nao possui instalacao IL2CPP, UI, save e rede; loader bloqueado, sem APK.";
-            return false;
-        }
         if (!abstract && (base == "BunnyItem" || base == "BunnyProjectile" || base == "BunnyWeapon" ||
             base == "BunnyBuff" || base == "BunnyBuffPotion" ||
             base == "BunnyPlayer" || base == "BunnyAccessory" ||
             base == "BunnyNPC" || base == "BunnyPrefix" ||
-            base == "BunnyTile")) {
+            base == "BunnyTile" || base == "ModHair" || base == "BunnyHair")) {
             std::string qualifiedNamespace = fileNamespace;
             for (const auto& scope : namespaces) {
                 if (!qualifiedNamespace.empty()) qualifiedNamespace += ".";
