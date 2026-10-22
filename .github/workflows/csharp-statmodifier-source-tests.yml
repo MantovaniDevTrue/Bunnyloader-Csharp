@@ -1,0 +1,110 @@
+name: CSharp StatModifier source tests (NO APK)
+
+on:
+  push:
+    branches:
+      - feat/csharp-statmodifier-parity-20261022
+    paths:
+      - 'experiments/csharp/BunnyCsSdk/**'
+      - 'experiments/csharp/BunnySourceSdk/**'
+      - 'samples/ExampleModCSharp/Playable/content/Common/Recipes/09_StatModifier.cs'
+      - 'tests/StatModifierParity/**'
+      - '.github/workflows/csharp-statmodifier-source-tests.yml'
+  pull_request:
+    paths:
+      - 'experiments/csharp/BunnyCsSdk/**'
+      - 'experiments/csharp/BunnySourceSdk/**'
+      - 'samples/ExampleModCSharp/Playable/content/Common/Recipes/09_StatModifier.cs'
+      - 'tests/StatModifierParity/**'
+      - '.github/workflows/csharp-statmodifier-source-tests.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: statmodifier-sdk-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  statmodifier-source-parity:
+    name: SDK and example C# only (no Gradle, no APK)
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install .NET 8 and .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+      - name: Restore C# SDK and test project
+        run: dotnet restore tests/StatModifierParity/StatModifierParity.csproj
+      - name: Compile SDK and execute parity tests
+        run: dotnet run --project tests/StatModifierParity/StatModifierParity.csproj --configuration Release --no-restore
+      - name: Compile the complete ExampleMod with the Android-targeted source SDK
+        run: dotnet run --project tests/ready_prs/FullExampleRuntime/FullExampleRuntime.csproj --configuration Release -- samples/ExampleModCSharp/Playable
+
+  stage-managed-sdk:
+    name: Stage rebuilt Android C# SDK DLL only (NO APK)
+    if: github.event_name == 'push' && github.ref_name == 'feat/csharp-statmodifier-parity-20261022'
+    needs: statmodifier-source-parity
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Install .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Rebuild Android source SDK from the checked out sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet build experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj -c Release --nologo
+          sdk=experiments/csharp/BunnySourceSdk/bin/Release/net8.0/BunnySourceSdk.dll
+          dest=app/src/main/assets/managed/BunnySourceSdk.dll
+          test -s "$sdk"
+          grep -a -q StatModifier "$sdk"
+          grep -a -q StatInheritanceData "$sdk"
+          cp "$sdk" "$dest"
+          python3 - <<'PY'
+          from pathlib import Path
+          from hashlib import sha256
+          folder = Path('app/src/main/assets/managed')
+          manifest = folder / 'framework.sha256'
+          entries = {}
+          for row in manifest.read_text(encoding='utf-8').splitlines():
+              if not row:
+                  continue
+              name, digest = row.split('\t', 1)
+              if name in entries:
+                  raise SystemExit('Duplicate assembly name in manifest')
+              entries[name] = digest
+          if 'BunnySourceSdk.dll' not in entries:
+              raise SystemExit('BunnySourceSdk.dll missing from manifest')
+          entries['BunnySourceSdk.dll'] = sha256((folder / 'BunnySourceSdk.dll').read_bytes()).hexdigest()
+          manifest.write_text(''.join(f'{name}\t{digest}\n' for name, digest in entries.items()), encoding='utf-8')
+          PY
+          if find . -type f -name '*.apk' -print -quit | grep -q .; then
+            echo "FORBIDDEN: APK generated while the SDK is not approved"
+            exit 1
+          fi
+      - name: Commit the validated DLL and its manifest to the feature branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/src/main/assets/managed/BunnySourceSdk.dll app/src/main/assets/managed/framework.sha256
+          if ! git diff --cached --quiet; then
+            git commit -m "build(csharp): stage validated StatModifier SDK DLL only (no APK)"
+            git push origin "HEAD:feat/csharp-statmodifier-parity-20261022"
+          fi
+          echo "STATMODIFIER_SOURCE_AND_MANAGED_SDK=PASS NO_APK=TRUE"
