@@ -76,15 +76,18 @@ try
         throw new InvalidOperationException("Auto-registered ExampleDamageClass defaults differ");
     string snapshot = BunnyEntitySourceDispatcher.DamageStats(entitySlot);
     string[] statLines = snapshot.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-    if (statLines.Length != 2 || statLines[0] != "DAMAGE_CLASS_STATS_V1")
+    if (statLines.Length != 2 || statLines[0] != "DAMAGE_CLASS_STATS_V2")
         throw new InvalidOperationException("Managed default DamageClass stat snapshot header/count");
     string[] stats = statLines[1].Split('\t');
-    if (stats.Length != 14 || stats[0] != "CLASS" ||
+    if (stats.Length != 39 || stats[0] != "CLASS" ||
         stats[1] != "ExampleModCSharp.DamageClasses.ExampleDamageClass" ||
         stats[10] != "8" || stats[11] != "1" || stats[12] != "10" || stats[13] != "1")
         throw new InvalidOperationException("ExampleDamageClass five stat channels differ from live managed registry: " +
             statLines[1]);
-    Console.WriteLine("FULL_EXAMPLE_DAMAGECLASS_FIVE_STAT_SNAPSHOT=PASS crit=8 armorPen=10");
+    if (stats.Skip(14).Take(5).Any(x => x != "1") ||
+        stats.Skip(19).Take(20).Any(x => x != "0"))
+        throw new InvalidOperationException("DamageClass source inheritance matrix mismatch");
+    Console.WriteLine("FULL_EXAMPLE_DAMAGECLASS_FIVE_STAT_SNAPSHOT=PASS crit=8 armorPen=10 inheritance=generic-only");
     if (!BunnyEntitySourceDispatcher.Status(entitySlot).Contains("damageClasses=1", StringComparison.Ordinal))
         throw new InvalidOperationException("Managed entity context missing DamageClass registration");
     if (BunnyEntitySourceDispatcher.Register(modId, output) != entitySlot ||
