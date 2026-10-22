@@ -16,6 +16,9 @@ on:
       - app/src/main/cpp/experiments/csharp/ManagedBannerStrength.h
       - app/src/main/cpp/experiments/csharp/ManagedBannerAnchors.h
       - app/src/main/cpp/experiments/csharp/ManagedBannerAnchorPolicy.h
+      - app/src/main/cpp/il2cpp/Api.cpp
+      - app/src/main/cpp/il2cpp/Api.h
+      - app/src/main/cpp/il2cpp/ConstantField.h
       - app/src/main/cpp/experiments/csharp/ManagedBannerSaveSlice.h
       - app/src/main/cpp/experiments/csharp/ManagedBannerWorldFile.h
       - app/src/main/cpp/experiments/csharp/ManagedBannerWorldSession.h
@@ -189,7 +192,8 @@ jobs:
             app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp \
             app/src/main/cpp/experiments/csharp/NativeContent.cpp \
             app/src/main/cpp/experiments/csharp/NativeTileGameplay.cpp \
-            app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp
+            app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp \
+            app/src/main/cpp/il2cpp/Api.cpp
       - name: Verify banner artwork is byte-for-byte identical to ExampleModBunny
         run: |
           cmp samples/ExampleMod/content/Content/Tiles/Banners/ExampleEnemyBannerTile.png \
