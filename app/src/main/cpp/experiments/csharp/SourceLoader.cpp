@@ -380,7 +380,7 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
         }
     }
     const bool hasNativeContent = std::any_of(defs.begin(), defs.end(),
-        [](const ParsedSourceType& def) { return def.base != "BunnyCommand"; });
+        [](const ParsedSourceType& def) { return def.base != "BunnyCommand" && def.base != "DamageClass"; });
     if (hasNativeContent && !prepareNativeContent()) {
         status->error = "Host API de conteudo nativo indisponivel";
         return false;
@@ -680,12 +680,19 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
             status->commandClasses.push_back(def.namespaceName.empty() ? def.name :
                 def.namespaceName + "." + def.name);
     status->commands = static_cast<int>(status->commandClasses.size());
+    status->damageClasses = static_cast<int>(std::count_if(defs.begin(), defs.end(),
+        [](const ParsedSourceType& def) { return def.base == "DamageClass"; }));
+    if (status->damageClasses > 118) {
+        status->error = "DamageClass: limite de 118 classes C# por mod";
+        return false;
+    }
     if (status->commands > 128) {
         status->error = "ModCommand: maximo de 128 classes por mod";
         return false;
     }
     if (status->dusts+status->items+status->tiles+status->projectiles+status->buffs+
-        status->npcs+status->prefixes+status->rarities+status->players+status->screenEffects+status->commands==0) {
+        status->npcs+status->prefixes+status->rarities+status->players+status->screenEffects+
+        status->commands+status->damageClasses==0) {
         status->error = "mod C# sem conteudo registrado";
         return false;
     }
