@@ -10,8 +10,8 @@ O catálogo mora no repositório JonataOliveiraa/Bunny-Loader-Mods, separado do
 código do app (um pedido de remoção contra um mod não derruba o app):
 
     main                index.json + mods/<uid>/ (a vitrine: manifest, ícone,
-                        capa, description.md, autores...) e ports/ (as fontes
-                        dos pacotes de textura portados).
+                        capa, description.md, autores...) e ports/ (a origem
+                        dos pacotes de textura e de fonte portados).
     Releases            uma por versão de mod, tag mod-<id>-v<versão>, com o .bl.
 
 Cada entrada do index.json leva o manifesto inteiro do mod (`manifest`): o app
@@ -64,6 +64,7 @@ VERSION = re.compile(r"^\d+(\.\d+)*([-+][0-9A-Za-z.]+)?$")
 STORE_ROOT_FILES = ["manifest.json", "icon.png", "icon.gif",
                     "banner.gif", "banner.png", "banner.webp", "banner.jpg", "banner.jpeg",
                     "description.md", "changelog.md", "license.md"]
+LOCALIZED_PAGE = re.compile(r"^(?:description|changelog)_[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*\.md$")
 HEX_COLOR = re.compile(r"^#?([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$")
 STORE_DIRS = ["authors/", "thumbnails/"]
 MD_IMAGE = re.compile(r"!\[[^\]]*\]\(([^)\s]+)")
@@ -152,6 +153,9 @@ class Package:
             if not any(n.startswith(("content/Images/", "Content/Images/")) and n.lower().endswith(".png")
                        for n in self.names):
                 raise Fail(f"{path.name}: pacote de textura sem PNGs em content/Images")
+        elif kind in {"font", "fonts", "fonte", "fontes"}:
+            if not any(re.match(r"^[cC]ontent/Fonts/[^/]+\.json$", n) for n in self.names):
+                raise Fail(f"{path.name}: pacote de fonte sem .json em content/Fonts")
         else:
             entry = f"content/{m.get('entry', 'main.js')}"
             if entry not in self.names:
@@ -179,6 +183,8 @@ class Package:
     def store_files(self) -> list[str]:
         """O que a ficha do mod precisa antes de baixar o pacote inteiro."""
         files = [f for f in STORE_ROOT_FILES if f in self.names]
+        # A ficha baixa a descricao Markdown da cultura selecionada.
+        files += sorted(n for n in self.names if LOCALIZED_PAGE.fullmatch(n))
         files += sorted(n for n in self.names if any(n.startswith(d) for d in STORE_DIRS))
         for page in self.manifest.get("pages", []):
             f = page.get("file", "")

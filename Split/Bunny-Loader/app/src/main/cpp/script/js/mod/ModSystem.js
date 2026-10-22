@@ -1,4 +1,7 @@
 class ModSystem {
+    // Load antes do OnModLoad, como o ModType do tModLoader (onde se
+    // registram os ModTouchButton/ModKeybind).
+    Load() {}
     OnModLoad() {}
     OnModUnload() {}
     OnLocalizationsLoaded() {}
@@ -35,6 +38,8 @@ class ModSystem {
     PostUpdateTime() {}
     PostUpdateEverything() {}
     UpdateUI(gameTime) {}
+    // As camadas do desenho da interface, neste quadro (InterfaceLayerList).
+    ModifyInterfaceLayers(layers) {}
     PostUpdateInput() {}
     PreUpdateEntities() {}
     PreUpdatePlayers() {}
@@ -77,6 +82,7 @@ class ModSystem {
         const inst = new cls();
         Templates.Adopt(cls, inst);
         SystemLoader.Add(inst);
+        SystemLoader.Invoke(inst, 'Load');
         SystemLoader.Invoke(inst, 'OnModLoad');
         Ready.Add(() => SystemLoader.Invoke(inst, 'ResizeArrays'), 'resize');
         Ready.Add(() => SystemLoader.Invoke(inst, 'AddRecipeGroups'), 'groups');

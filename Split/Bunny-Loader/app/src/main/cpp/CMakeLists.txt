@@ -53,7 +53,7 @@ set(BL_MOD_CLASSES_PARTS
     Enums/AffectionLevel Enums/SoundLimitBehavior Enums/SceneEffectPriority Enums/EquipType Enums/PrefixCategory
     Enums/CommandType Enums/TooltipNames Enums/TreeTypes
     Mod ModLoader
-    Loaders/LocalizationLoader ModLocalization
+    Loaders/LocalizationLoader ModLocalization Condition
     StatModifier HitModifiers HitInfo HurtModifiers HurtInfo StatInheritanceData DamageClass Loaders/DamageClassLoader
     Loaders/RecipeLoader ModRecipe
     Loaders/ItemLoader Loaders/ItemDrawLoader Loaders/ItemDataLoader Loaders/ItemNetworkHooks Loaders/TileEntityItemHooks Loaders/EquipLoader Loaders/ArmorSetLoader Loaders/WingLoader Loaders/ItemPickupLoader
@@ -63,6 +63,7 @@ set(BL_MOD_CLASSES_PARTS
     TagCompound GenPass Loaders/SystemUpdateHooks Loaders/SystemDrawHooks Loaders/SystemWorldHooks Loaders/SystemNetworkHooks Loaders/SystemLoader ModSystem
     Loaders/CombatLoader Loaders/PvpItemNetwork Loaders/PlayerItemHooks Loaders/ItemCombatHooks Loaders/ItemUseHooks Loaders/ItemHealingHooks Loaders/PlayerUpdateHooks Loaders/PlayerJumpHooks
     Loaders/PlayerDrawHooks Loaders/PlayerWorldHooks Loaders/PlayerNetworkHooks Loaders/PlayerLoader ModPlayer
+    Loaders/TouchButtonLayouts Loaders/TouchButtonHooks Loaders/TouchButtonLoader ModTouchButton Loaders/KeybindLoader
     Loaders/BackgroundTextureLoader Loaders/SurfaceBackgroundLoader Loaders/UndergroundBackgroundLoader
     ModSurfaceBackgroundStyle ModUndergroundBackgroundStyle
     Loaders/WaterfallStyleLoader Loaders/WaterStyleLoader ModWaterfallStyle ModWaterStyle
@@ -81,9 +82,16 @@ set(BL_MOD_CLASSES_PARTS
     NPCLoot NPCSpawnInfo SpawnPool SpawnCondition Loaders/SpawnLoader Loaders/NPCLoader Loaders/BestiaryLoader ModNPC Loaders/BannerLoader
     NPCHappiness NPCShop Loaders/TownNPCLoader
     Loaders/GoreLoader ModGore
+    Loaders/DustLoader ModDust
+    UI/StyleDimension UI/CalculatedStyle UI/UIEvent UI/UIMouseEvent UI/UIScrollWheelEvent UI/UIElementEvent
+    UI/UIElement UI/UIState UI/UserInterface UI/UINative UI/UIPanel UI/UIText UI/UITextPanel
+    UI/UIImage UI/UIImageButton UI/UIImageFramed UI/UIScrollbar UI/UIListInner UI/UIList
+    UI/UICommon UI/InterfaceScaleType UI/GameInterfaceLayer UI/LegacyGameInterfaceLayer UI/InterfaceLayerList Loaders/InterfaceLayerLoader
+    UI/PlayerStatsSnapshot UI/ResourceOverlayDrawContext Loaders/ResourceOverlayLoader ModResourceOverlay
     Core/GlobalType Core/GlobalRegistry GlobalItem GlobalNPC GlobalProjectile Core/GlobalRegistries
     Loaders/GlobalItemLoader Loaders/GlobalNPCLoader Loaders/GlobalProjectileLoader
     GlobalLoot Loaders/GlobalLootLoader
+    Core/GlobalList GlobalTile GlobalBuff GlobalBossBar GlobalRecipe Core/GlobalLists Loaders/GlobalTileLoader
     NetWriter NetReader ModPacket Core/ModNet
     Loaders/SoundLoader SoundStyle SoundEngine Loaders/VanillaMusic Loaders/ModMusic MusicLoader
     Loaders/MenuLoader ModMenu Loaders/ConfigLoader ModConfig Loaders/ModConfigMenu Loaders/MenuThemeSetting Loaders/HostSettingsMenu Loaders/ServerSyncLoader Loaders/ServerSyncMenu

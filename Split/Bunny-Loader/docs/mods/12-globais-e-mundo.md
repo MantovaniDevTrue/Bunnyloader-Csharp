@@ -8,6 +8,8 @@ multiplayer:
 - `GlobalItem`, `GlobalNPC`, `GlobalProjectile`: code that runs for the
   **vanilla** items, NPCs and projectiles (and the mod ones), like making the
   copper sword stronger or making every slime drop extra gel;
+- `GlobalTile`, `GlobalBuff`, `GlobalBossBar`, `GlobalRecipe`: the same for
+  every tile, buff, boss bar and recipe;
 - **drops**: changing a vanilla NPC's table, or adding a rule that applies to
   all of them;
 - `ModSystem`: what belongs to the whole mod, and the world cycle (load, save,
@@ -293,6 +295,67 @@ The combination rules were checked against
 [tModLoader's ProjectileLoader](https://github.com/tModLoader/tModLoader/blob/stable/patches/tModLoader/Terraria/ModLoader/ProjectileLoader.cs).
 The adapted signatures are in the [GlobalProjectile reference](../referencia/classes.md#globalprojectile).
 
+## Tiles, buffs, boss bars and recipes
+
+`GlobalTile`, `GlobalBuff`, `GlobalBossBar` and `GlobalRecipe` work like the
+other Globals, but with **one instance per class** and no `AppliesToEntity`:
+the methods receive the type, and the code picks by it. The full list is in
+the [reference](../referencia/classes.md#globaltile-globalbuff-globalbossbar-and-globalrecipe).
+
+```js
+const { TileID, BuffID, ItemID } = Terraria.ID;
+
+export class SturdyGlass extends GlobalTile {
+    // Glass does not break, and explosions spare it.
+    CanKillTile(i, j, type, blockDamaged) { return type !== TileID.Glass; }
+    CanExplode(i, j, type) { return type !== TileID.Glass; }
+}
+
+export class ShortChill extends GlobalBuff {
+    // With more than 5 buffs, Chilled lasts at most 3 seconds.
+    UpdatePlayer(type, player, buffIndex) {
+        if (type === BuffID.Chilled && buffIndex.value >= 5) {
+            player.buffTime[buffIndex.value] = Math.min(player.buffTime[buffIndex.value], 180);
+        }
+    }
+}
+
+export class NoTorchesAtNight extends GlobalRecipe {
+    RecipeAvailable(recipe) {
+        return Terraria.Main.dayTime || recipe.createItem.type !== ItemID.Torch;
+    }
+}
+```
+
+The cost depends on the method: `CanKillTile`, `KillTile`, `ReApplyPlayer`,
+`OnCraft` and the like run on an event; `RandomUpdate` enters JS for every tile
+the world update picks (hundreds per frame), `UpdateNPC` for every NPC every
+frame, and `RecipeAvailable` for every recipe the crafting menu would show,
+each time it is rebuilt. Methods that would run per tile on screen every frame
+(drawing, light) do not exist on `GlobalTile`.
+
+On a single recipe, tModLoader 1.4's way: `AddCondition` with a
+[`Condition`](../referencia/classes.md#condition), and the callbacks.
+
+```js
+new ModRecipe()
+    .SetResult(ItemID.AlphabetStatueJ)
+    .AddIngredient(ItemID.StoneBlock, 10)
+    .AddIngredient(ItemID.Chain)
+    .AddCondition(Condition.TimeNight)
+    .AddCondition('Conditions.LowHealth', () => player.statLife < player.statLifeMax / 2)
+    .AddConsumeIngredientCallback((recipe, type, amount) => { if (type === ItemID.Chain) amount.value = 0; })
+    .AddOnCraftCallback((recipe, item) => { /* after crafting */ })
+    .Register();
+```
+
+The Example Mod has one of each: `Common/GlobalTiles/ShakeTrees.js` (what
+falls when shaking a tree) and `SunflowerChanges.js` (the Sunflower grows on
+the Example Block), `Common/GlobalBuffs/ExampleGlobalBuff.js` (remaining time
+in every tip, the Campfire icon shaking), `Common/GlobalBossBars/ExampleGlobalBossBar.js`
+(the Eye of Cthulhu's bar), `Common/GlobalRecipes/ExampleGlobalRecipe.js`, and
+the conditions and callbacks in `Content/ExampleRecipes.js`.
+
 ## Drops
 
 A vanilla NPC's drop table changes in a `GlobalNPC`'s `ModifyNPCLoot`. It runs
@@ -350,6 +413,7 @@ export class ExampleLoot extends GlobalLoot {
 
 | Method | When it runs |
 |---|---|
+| `Load()` | On registration, once, right before `OnModLoad` (as in tModLoader: register touch buttons here). |
 | `OnModLoad()` | On registration, once. |
 | `ClearWorld()` | On entering any world, before loading it (and before generating one). |
 | `OnWorldLoad()` | The world opened. On a multiplayer client, when the world arrives from the server. |
@@ -404,6 +468,64 @@ export class DownedBossSystem extends ModSystem {
   `ModPlayer` uses the same `TagCompound` in `SaveData`/`LoadData`.
 - The file belongs to the server: in multiplayer, the client receives the
   state through `NetSend`/`NetReceive` (see [Network](#network)).
+
+### World generation: structures
+
+`ModifyWorldGenTasks(tasks)` gets the game's generation steps as a JavaScript
+array. Find a game step by name and insert yours after it, as Calamity does:
+
+```js
+export class ExampleStructureSystem extends ModSystem {
+    ModifyWorldGenTasks(tasks) {
+        const index = tasks.findIndex((task) => task.Name === 'Sunflowers');
+        tasks.splice(index + 1, 0, new PassLegacy('Example Structure', (progress, configuration) => {
+            progress.Message = ModLocalization.Translate('WorldGen.ExampleStructure');
+            ExampleStructure.Generate();
+        }));
+    }
+}
+```
+
+The Example Mod's castle
+([`Content/Structures/ExampleStructure.js`](../../samples/ExampleMod/content/Content/Structures/ExampleStructure.js))
+follows what the big mods do:
+
+- **Draw the structure as text.** One map of blocks and one of walls, of the
+  same size, read from top to bottom. A letter stands for a block, a wall or
+  the top-left corner of a piece of furniture. Calamity keeps its structures
+  as schematic files with the same idea: block and wall per cell.
+- **Search with a limit.** Draw positions with `WorldGen.genRand` (the same
+  seed builds the same world) and give up after N attempts. Check flat,
+  natural ground, no liquid and `GenVars.structures.CanPlace(area, padding)`,
+  which knows the game's structures and those of the other mods.
+- **Clear the area first.** `WorldGen.KillTile(..., noItem: true)` on every
+  cell, then `ClearEverything()`: a tree or a piece of furniture cut in half
+  at the edge would be left broken.
+- **Blocks and walls, then the frame, then the furniture.** `ResetToType` and
+  `tile.wall`, `WorldGen.RangeFrame` over the area, and only then
+  `WorldGen.PlaceObject`/`PlaceChest`: furniture needs the blocks to anchor
+  to. The game places furniture by its `Origin`, so convert the map's corner
+  with `TileObjectData.GetTileData(type, 0, 0).Origin`.
+- **Walls only inside.** A wall draws a half-block border into an empty
+  neighboring cell: behind the outer blocks (sides, roofs, battlements,
+  foundation), that border sticks out of the structure.
+- **Fill the chest** with the index `PlaceChest` returns. On mobile, the
+  slots of `Main.chest[i].item` are `ChestItem` (type and stack), not `Item`:
+  `SetDefaults(id)` and `stack`. The game's `Tile Cleanup` step rewrites
+  every chest as a wooden chest; as in tModLoader, the loader keeps the type
+  of mod chests placed before it.
+- **Protect the area** with
+  `GenVars.structures.AddProtectedStructure(area, padding)`: the later steps
+  (trees, micro biomes) do not build over it.
+- Fill the ground under the foundation, so the structure does not float.
+
+Insert after `Sunflowers` for the surface (the trees and plants come after
+and respect the area). The names are the game's (`Final Cleanup`, `Micro
+Biomes`...); look them up defensively, as another version may not have
+them. In an existing world, the Example Mod's `/castle` command
+([`ExampleStructureCommand.js`](../../samples/ExampleMod/content/Common/Commands/ExampleStructureCommand.js))
+builds the castle under the player: in multiplayer the server builds it and
+sends the area with `NetMessage.SendTileSquare`.
 
 ## Multiplayer: who runs what
 
@@ -517,8 +639,10 @@ syncs carries one more packet. Keep what goes over the network small.
 - `GlobalItem`'s `NetSend`/`NetReceive` (items on the ground and in the
   inventory);
 - per-entity `SaveData`/`LoadData` (of an item or a town NPC);
-- `GlobalTile`, `GlobalBuff`, `GlobalWall`;
+- `GlobalWall`; on `GlobalTile`, the drawing and light methods,
+  `NearbyEffects`, `TileFrame`, `CanReplace`/`ReplaceTile` and the
+  spelunker/danger ones;
 - on `GlobalNPC`: `UpdateLifeRegen`, `SaveData`/`LoadData`, the town NPC
   attacks (`TownNPCAttack*`) and the chat buttons;
-- on `ModSystem`: `ModifyWorldGenTasks`, `ModifyInterfaceLayers`, the separate
+- on `ModSystem`: the separate
   `Pre/PostUpdate` for players, NPCs, projectiles and items.
