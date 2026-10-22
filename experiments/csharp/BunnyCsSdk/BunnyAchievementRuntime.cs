@@ -125,7 +125,7 @@ public static class BunnyAchievementRuntime
             }
             if (operation == 7)
             {
-                if (mod.Store.IsConfigured) mod.Store.Flush(force: true);
+                if (mod.Store.IsConfigured) mod.Store.Flush();
                 string saved = achievements.Save();
                 mods.Remove(modId);
                 return saved;
