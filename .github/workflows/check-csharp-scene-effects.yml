@@ -1,0 +1,28 @@
+name: CSharp Scene Effect Check
+on:
+  pull_request:
+    paths:
+      - 'app/src/main/cpp/content/scene/**'
+      - 'experiments/csharp/BunnyCsSdk/BunnyScene*.cs'
+      - 'experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj'
+      - 'tests/scene_effects/**'
+      - '.github/workflows/check-csharp-scene-effects.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  host:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Ranking nativo do SceneEffect com g++
+        run: bash tests/scene_effects/run.sh
+      - name: Ranking nativo do SceneEffect com clang++
+        run: CXX=clang++ bash tests/scene_effects/run.sh
+      - name: Compilar o BunnySourceSdk com o BunnySceneEffect
+        run: dotnet build experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj -c Release --nologo
+      - name: Ranking gerenciado do SceneEffect
+        run: dotnet run --project tests/scene_effects/SceneRanking.HostTests.csproj -c Release --nologo
