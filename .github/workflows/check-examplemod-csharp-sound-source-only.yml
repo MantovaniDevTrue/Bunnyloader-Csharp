@@ -64,6 +64,45 @@ jobs:
             exit 1
           fi
 
+  android-arm64-object:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile exact production C++ sources for ARM64 without Android package
+        shell: bash
+        run: |
+          set -euo pipefail
+          NDK_VERSION=27.2.12479018
+          NDK_DIR="$ANDROID_HOME/ndk/$NDK_VERSION"
+          CXX="$NDK_DIR/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android34-clang++"
+          if test ! -x "$CXX"; then
+            yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+            "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "ndk;$NDK_VERSION"
+          fi
+          test -x "$CXX"
+          mkdir -p /tmp/examplemod-sound-arm64
+          for mode in 0 1; do
+            for target in AutoSourceRuntime ManagedSoundLoader NativeSoundRouter; do
+              case "$target" in
+                NativeSoundRouter) src="app/src/main/cpp/content/sounds/NativeSoundRouter.cpp" ;;
+                *) src="app/src/main/cpp/experiments/csharp/$target.cpp" ;;
+              esac
+              "$CXX" -std=c++20 -O0 -fPIC -fno-exceptions -fno-rtti \
+                -DBL_HAVE_QUICKJS="$mode" \
+                -Iapp/src/main/cpp -Iapp/src/main/cpp/third_party/quickjs \
+                -c "$src" -o "/tmp/examplemod-sound-arm64/$target-$mode.o"
+            done
+          done
+          "$NDK_DIR/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-nm" -g \
+            /tmp/examplemod-sound-arm64/ManagedSoundLoader-0.o |
+            grep -q bunny_csharp_sound_register
+          if find . -type f \( -name '*.apk' -o -name '*.aab' \) | grep -q .; then
+            echo "APK proibido ate ExampleMod CSharp completo" >&2
+            exit 1
+          fi
+          echo 'EXAMPLEMOD_SOUND_ANDROID_ARM64_OBJECTS_PASS_NO_APK'
+
   managed-sdk:
     runs-on: ubuntu-latest
     steps:
