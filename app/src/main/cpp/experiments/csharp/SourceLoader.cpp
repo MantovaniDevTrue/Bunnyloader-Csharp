@@ -1154,7 +1154,7 @@ bool applyManagedSourceDefaults(
                 (tile_wire::hasAnimationPolicy(fields.size()) &&
                  (!integer(fields[14], &tile.animationFrames) ||
                   !integer(fields[15], &tile.animationFrameTicks))) ||
-                tile.shape < 0 || tile.shape > 1 ||
+                tile.shape < 0 || tile.shape > 2 ||
                 tile.coordinateHeight != 18 ||
                 tile.adjacentTile < -1 || tile.adjacentTile >= 754 ||
                 tile.mapR < 0 || tile.mapR > 255 ||
