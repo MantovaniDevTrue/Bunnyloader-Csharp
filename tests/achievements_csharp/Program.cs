@@ -314,6 +314,44 @@ finally
     Directory.Delete(switchRoot, true);
 }
 
+string hotRoot = Path.Combine(Path.GetTempPath(),
+    "bunny-achievement-hot-reload-" + Guid.NewGuid().ToString("N"));
+Directory.CreateDirectory(hotRoot);
+try
+{
+    Check(Bind("hotone", 0).StartsWith("BACH_META_V2\n"),
+        "hot reload fixture one bound");
+    string otherBaseline = Bind("hottwo", 0);
+    Check(otherBaseline.StartsWith("BACH_META_V2\n"),
+        "independent hot reload fixture two bound");
+    Check(Bind("hotone", 9, payload: hotRoot) == "READY",
+        "hot reload fixture save directory configured");
+    Check(Bind("hotone", 1, 10, 1, "1").StartsWith("BACH_META_V2\n"),
+        "hot reload fixture NPC progression recorded");
+    string before = Bind("hotone", 8);
+    Check(Bind("hotone", 10) == "OK" &&
+          File.Exists(Path.Combine(hotRoot, "hotone.bach")),
+        "hot reload initial achievement progress persisted");
+    Check(Bind("hotone", 7).StartsWith("BACH1\n"),
+        "hot reload managed mod unloaded");
+    Check(Bind("hotone", 1, 10, 1, "1").StartsWith("ERROR|"),
+        "unloaded mod never receives an NPC event");
+    Check(Bind("hottwo", 8) == otherBaseline,
+        "unloading one mod does not mutate another mod registry");
+    Check(Bind("hotone", 0).StartsWith("BACH_META_V2\n") &&
+          Bind("hotone", 9, payload: hotRoot) == "READY",
+        "hot reloaded assembly restored from per-mod profile");
+    Check(Bind("hotone", 8) == before,
+        "hot reload retains exact individual condition metadata");
+    Check(Bind("hotone", 7).StartsWith("BACH1\n") &&
+          Bind("hottwo", 7).StartsWith("BACH1\n"),
+        "multiple mods unload without losing persisted progress");
+}
+finally
+{
+    Directory.Delete(hotRoot, true);
+}
+
 Console.WriteLine("BUNNY_CSHARP_ACHIEVEMENTS_CORE=PASS checks=" + checkedCases);
 
 sealed class TwoConditions : BunnyAchievement
