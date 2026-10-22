@@ -63,7 +63,15 @@ completo nem autorizar geração de APK.**
   observam os campos reais meleeDamage, rangedDamage, magicDamage e minionDamage
   do jogador, com contrato IL2CPP opcional e validação dos números. A projeção
   considera herança parcial, negativa e ampliada de classes personalizadas.
-  Não altera o cálculo do Terraria nem é chamada do Mono por disparo.
+  O diagnóstico separa uma parcela comum aproximada (mínimo dos quatro
+  multiplicadores) antes de projetar as parcelas individuais, evitando
+  contabilizar repetidamente bônus iguais em classes híbridas. Também
+  lê opcionalmente meleeCrit/rangedCrit/magicCrit e meleeSpeed, com
+  validação de tipo IL2CPP, para observar herança de crítico e velocidade.
+  A parcela comum inferida não distingue exatamente os buffs individuais
+  e por isso não deve ser usada como cálculo definitivo de dano.
+  Os três hooks continuam retornando o resultado vanilla inalterado,
+  limitam os logs por canal e não invocam Mono por disparo.
 - Integrar de fato esses atributos aos resultados do Terraria.Player, incluindo
   equipamentos, buffs, reset por jogador, crítico, knockback, velocidade e
   penetração de armadura. A projeção atual é somente diagnóstico e não
