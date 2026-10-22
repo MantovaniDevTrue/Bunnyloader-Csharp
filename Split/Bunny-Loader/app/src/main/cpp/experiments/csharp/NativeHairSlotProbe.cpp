@@ -44,7 +44,7 @@ NativeHairSlotSnapshot ReadNativeHairOccupiedSlots() {
 
     for (const Il2CppArray* array : arrays) {
         auto* slots = static_cast<Il2CppObject* const*>(
-            il2cpp::arrayData(const_cast<Il2CppArray*>(array)));
+            arrayData(const_cast<Il2CppArray*>(array)));
         for (int id = Registry::kVanillaCount; id <= Registry::kLastType; ++id) {
             if (static_cast<uintptr_t>(id) < array->length && slots[id])
                 snapshot.occupied.set(static_cast<size_t>(id));
