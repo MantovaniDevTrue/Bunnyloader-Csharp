@@ -78,3 +78,15 @@ O workflow `check-csharp-bannerloader-source-only.yml` compila o SDK, Roslyn, o 
 3. Contagem de kills, entregas a cada limite vanilla, refresh e efeitos de banners proximos; tile pendurado 1x3 com suas texturas, estilos, drops e ancoras.
 4. Persistencia real no sidecar do mundo, isolamento multi-mod, envio de rede por UID, autoridade servidor e recuperacao de mods ausentes.
 5. Testes automatizados de todos os pontos acima, verificacao de link nativo ARM64, Android QA separado e performance. **Apenas depois do codigo integral e verificacoes exigidas** considerar gerar um APK.
+
+## Lote 3 — hooks, sidecar e cinco arrays (estado real)
+
+- `ManagedBannerLookupHooks.h` implementa os detours das três assinaturas de `Terraria.GameContent.BannerSystem`, com a ABI IL2CPP (último argumento `MethodInfo*`), encadeamento para o original, verificação de assinatura antes da instalação e fallback completo para IDs vanilla. O gate `lookupsActive` começa **false**.
+- `ManagedBannerWorldState.h` implementa um formato binário `BNR1`, endian little, CRC32, UID/NomeDaClasse, entradas limitadas a 4096 e dados limitados a 1 MiB. Decodificação é transacional. Converte contadores de variantes para o mesmo NPC representante, conserva entradas de mods ausentes e migra IDs entre sessões.
+- `ManagedBannerArrayBridge.h` prepara as três tabelas estáticas do BannerSystem e os dois arrays de `SceneMetrics` em uma transação na thread do jogo: confere tipos, ranks, campos, offsets e tamanhos; aloca tudo antes de publicar; protege clones via GC handles e grava campos de instância pela barreira do coletor. Descarta a operação sem substituir qualquer slot caso o preflight/alocação falhe.
+- `prepareBannerWorldArraysOnGameThread` é o ponto explícito para o futuro scheduler do mundo. A rotina adia a instalação de detours até a thread do jogo e mantém `lookupsActive = false` mesmo após sucesso, porque ainda falta a integração do save real, contador, refresh, rede e tile pendurado.
+- Testes de host novos: `native_lookups.cpp`, `native_world_state.cpp`, `native_array_plan.cpp`. O workflow segue **somente código-fonte**; jamais Gradle/assembleDebug.
+
+**Importante:** O codec de sidecar ainda não está ligado à gravação/leitura do arquivo de mundo; o preparador de arrays ainda não está ligado ao ciclo de mundo. Os três hooks nativos possuem código real de instalação, mas **continuam desativados no gameplay**. Esses são bloqueios obrigatórios — testes de host não significam QA Android.
+
+O bloqueio de APK permanece absoluto até o contrato todo ficar completo, inclusive persistência real, rede, tile 1×3, contadores, efeitos e testes end-to-end.
