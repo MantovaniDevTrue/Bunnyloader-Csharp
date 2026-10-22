@@ -6,6 +6,8 @@ on:
       - feature/csharp-hair-loader-no-apk-20261022
     paths:
       - "Split/Bunny-Loader/experiments/csharp/BunnyCsSdk/ModHair.cs"
+      - "Split/Bunny-Loader/experiments/csharp/BunnyCsSdk/HairManifestSession.cs"
+      - "Split/Bunny-Loader/experiments/csharp/BunnySourceCompiler/**"
       - "Split/Bunny-Loader/experiments/csharp/BunnySourceSdk/**"
       - "Split/Bunny-Loader/tests/hair_loader/**"
       - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/SourceParser.cpp"
@@ -33,6 +35,8 @@ jobs:
         run: dotnet build Split/Bunny-Loader/experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj -c Release --nologo
       - name: Run the hair identity, texture and unlocking tests
         run: dotnet run --project Split/Bunny-Loader/tests/hair_loader/HairLoader.Tests.csproj -c Release
+      - name: Test real Roslyn compiler ModHair export and fail-closed source assets
+        run: dotnet run --project Split/Bunny-Loader/tests/hair_loader/HairCompiler.Tests.csproj -c Release
       - name: Check unsupported hair classes fail fast in the actual C++ source parser
         run: |
           g++ -std=c++20 -Wall -Wextra \
