@@ -15,6 +15,7 @@
 #include <cstdint>
 #include <cstring>
 #include <mutex>
+#include <map>
 #include <string>
 
 namespace bl::csharp::banners {
@@ -138,6 +139,7 @@ inline void applyBannerSceneMetrics(Il2CppObject* metrics) {
     if (!il2cpp::nativeArrayContract(buffs,"Boolean",1,262144)) return;
     auto* flags=static_cast<uint8_t*>(arrayData(buffs));
     const auto mappings=registry(runtime::kVanillaNpcCount).snapshot();
+    std::map<int,bool> strengths;
     for (const auto& candidate : matches) {
         if (candidate.banner<runtime::kVanillaNpcCount ||
             static_cast<uintptr_t>(candidate.banner)>=buffs->length ||
@@ -152,8 +154,11 @@ inline void applyBannerSceneMetrics(Il2CppObject* metrics) {
             runtime::modTileKey(candidate.tileType),style);
         const auto match=mappings->itemToBanner.find(item);
         if (item<=0 || match==mappings->itemToBanner.end() ||
-            match->second!=candidate.banner || !bannerStrengthEnabled(item))
-            continue;
+            match->second!=candidate.banner) continue;
+        auto strength=strengths.find(item);
+        if (strength==strengths.end())
+            strength=strengths.emplace(item,bannerStrengthEnabled(item)).first;
+        if (!strength->second) continue;
         flags[candidate.banner]=1;
         *(reinterpret_cast<uint8_t*>(metrics)+hasOffset)=1;
     }
