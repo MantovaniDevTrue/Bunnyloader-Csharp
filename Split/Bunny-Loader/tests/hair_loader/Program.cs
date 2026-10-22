@@ -48,6 +48,9 @@ static class Check
         True(progress.AutoDefaultsCalls == 1, "AutoStaticDefaults exatamente uma vez");
         True(registered.MainTexture == registered.AltTexture, "textura alternativa ausente usa a principal");
         True(progress.Type == registered.Type, "ID chega à instância C#");
+        True(progress.TypeSeenAtStaticDefaults == registered.Type &&
+             progress.TypeSeenAtAutoDefaults == registered.Type,
+             "Type existe antes dos defaults, como no tModLoader");
         True(loader.TryGet(registered.Type, out ModHair? loaded) &&
              ReferenceEquals(progress, loaded), "lookup por tipo");
         True(loader.TryResolveSavedHair("mod-a/ProgressHair", out int restored) &&
@@ -90,6 +93,13 @@ static class Check
             "recusa gênero desconhecido");
         True(loader.GetDefinitions().Count == 2,
             "falhas não consumiram IDs nem registraram parcialmente");
+        var broken = new ThrowingHair();
+        Throws<InvalidOperationException>(() =>
+            loader.Register("mod-c", broken, Exists), "falha em SetStaticDefaults é propagada");
+        True(broken.Type == -1 && loader.GetDefinitions().Count == 2,
+            "falha nos defaults reverte o Type e não polui o registro");
+        True(loader.Register("mod-c", new ProgressHair(), Exists).Type == 230,
+            "ID não é consumido por SetStaticDefaults inválido");
         True(!loader.TryResolveSavedHair("mod-c/Absent", out int absent) && absent == 0,
             "mod desabilitado cai no cabelo vanilla");
 
@@ -117,9 +127,19 @@ public sealed class ProgressHair : ModHair
     public bool BossDowned { get; set; }
     public int StaticDefaultsCalls { get; private set; }
     public int AutoDefaultsCalls { get; private set; }
+    public int TypeSeenAtStaticDefaults { get; private set; } = -1;
+    public int TypeSeenAtAutoDefaults { get; private set; } = -1;
 
-    public override void AutoStaticDefaults() => AutoDefaultsCalls++;
-    public override void SetStaticDefaults() => StaticDefaultsCalls++;
+    public override void AutoStaticDefaults()
+    {
+        AutoDefaultsCalls++;
+        TypeSeenAtAutoDefaults = Type;
+    }
+    public override void SetStaticDefaults()
+    {
+        StaticDefaultsCalls++;
+        TypeSeenAtStaticDefaults = Type;
+    }
 
     public override IEnumerable<Condition> GetUnlockConditions()
     {
@@ -143,4 +163,10 @@ public sealed class InvalidPathHair : ModHair
 public sealed class BadGenderHair : ModHair
 {
     public override Gender RandomizedCharacterCreationGender => (Gender)89;
+}
+
+public sealed class ThrowingHair : ModHair
+{
+    public override void SetStaticDefaults() =>
+        throw new InvalidOperationException("Falha intencional do exemplo.");
 }
