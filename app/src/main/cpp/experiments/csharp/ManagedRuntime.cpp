@@ -2,6 +2,7 @@
 #include "experiments/csharp/UniversalHookMailbox.h"
 #include "experiments/csharp/UniversalHooks.h"
 #include "experiments/csharp/ManagedRuntime.h"
+#include "experiments/csharp/NativeDamageTypeRegistry.h"
 #include "experiments/csharp/NativeCommandMailbox.h"
 #include "experiments/csharp/NativeCommandResult.h"
 #include "experiments/csharp/ManagedLocalizationEpochFence.h"
@@ -5012,6 +5013,7 @@ ManagedSourceCompileResult compileManagedSource(
 
 void invalidateManagedDeferredSourceMod(const std::string& modId) {
     if (modId.empty()) return;
+    nativeDamageTypes().unload(modId);
     std::lock_guard<std::mutex> lock(g_pinnedMutex);
     g_revokedDeferredMods.insert(modId);
     for (auto& binding : g_universalMods) {
