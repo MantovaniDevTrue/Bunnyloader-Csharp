@@ -5,6 +5,7 @@
 #include <map>
 #include <memory>
 #include <mutex>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -22,6 +23,7 @@ class NativeDamageTypeRegistry {
     using Key = std::pair<bool, int>;
     using Bindings = std::map<Key, NativeDamageTypeBinding>;
     std::mutex mutex_;
+    std::set<Key> retired_;
     std::shared_ptr<const Bindings> active_ = std::make_shared<const Bindings>();
 
 public:
@@ -33,6 +35,7 @@ public:
         for (const auto& entry : staged) {
             if (entry.mod != mod || entry.contentType < 0 ||
                 entry.contentType >= 32768 || entry.damageClass.empty() ||
+                retired_.contains(Key{entry.projectile, entry.contentType}) ||
                 !next->emplace(Key{entry.projectile, entry.contentType}, entry).second)
                 return false;
         }
@@ -55,7 +58,10 @@ public:
         auto next = std::make_shared<Bindings>(
             *std::atomic_load_explicit(&active_, std::memory_order_acquire));
         for (auto it = next->begin(); it != next->end();) {
-            if (it->second.mod == mod) it = next->erase(it);
+            if (it->second.mod == mod) {
+                retired_.insert(it->first);
+                it = next->erase(it);
+            }
             else ++it;
         }
         std::atomic_store_explicit(&active_, std::shared_ptr<const Bindings>(std::move(next)),
@@ -64,6 +70,7 @@ public:
 
     void reset() {
         std::lock_guard guard(mutex_);
+        retired_.clear();
         std::atomic_store_explicit(&active_, std::make_shared<const Bindings>(),
                                    std::memory_order_release);
     }
