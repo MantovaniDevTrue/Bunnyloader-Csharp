@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <cstdint>
 #include <map>
 #include <vector>
 
@@ -50,6 +51,12 @@ bool sourceRuntimeApplied(const std::string& modId);
 // Exige a thread de jogo. So prepara arrays; os hooks e a rede continuam
 // fechados ate a instalacao completa do BannerLoader.
 bool prepareBannerWorldArraysOnGameThread(std::string* error);
+bool restoreBannerWorldCountersOnGameThread(uint64_t worldEpoch,
+                                            std::string* error);
+bool saveBannerWorldCountersOnGameThread(uint64_t worldEpoch,
+                                         bool authoritative,
+                                         std::string* error);
+bool sourceHasBannerMappings();
 
 }
 
