@@ -142,6 +142,11 @@ public static class BunnyAchievementRuntime
                 mod.Store.Flush();
                 return "OK";
             }
+            if (operation == 11)
+            {
+                mod.Store.SwitchProfile(payload, modId);
+                return Manifest(achievements);
+            }
 
             throw new InvalidOperationException("Operação não implementada");
         }
@@ -205,5 +210,6 @@ public enum BunnyAchievementOperation
     Unload = 7,
     Metadata = 8,
     ConfigureStorage = 9,
-    Flush = 10
+    Flush = 10,
+    SwitchProfile = 11
 }
