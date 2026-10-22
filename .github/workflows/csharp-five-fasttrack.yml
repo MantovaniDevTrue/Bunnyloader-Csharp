@@ -77,6 +77,13 @@ jobs:
           set -euo pipefail
           dotnet build experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj -c Release --nologo
           dotnet build experiments/csharp/BunnySourceCompiler/BunnySourceCompiler.csproj -c Release --nologo
+      - name: Validate original Command and Gore managed examples
+        run: |
+          set -euo pipefail
+          dotnet run --project tests/commands/Commands.HostTests.csproj -c Release
+          dotnet run --project tests/commands/CommandManifest.HostTests.csproj -c Release
+          dotnet run --project tests/commands/Actions.HostTests.csproj -c Release
+          dotnet build tests/csharp_gore_examples/GoreExamples.csproj -c Release --nologo
       - name: C++ source tests and diagnostic build
         run: |
           set -euo pipefail
@@ -88,12 +95,12 @@ jobs:
           print('INTEGRATION_SUMMARY', stats)
           PY
           for test in \
-            tests/native-and-managed/commands/native_command_clock_test.cpp \
-            tests/native-and-managed/commands/native_mailbox_test.cpp \
-            tests/native-and-managed/csharp_gore_catalog_test.cpp; do
+            tests/commands/native_command_clock_test.cpp \
+            tests/commands/native_mailbox_test.cpp \
+            tests/csharp_gore_catalog_test.cpp; do
             if test -f "$test"; then
               echo "Building $test"
-              g++ -std=c++20 -O1 -Wall -Wextra -Werror -Iapp/src/main/cpp/experiments/csharp "$test" -o "/tmp/$(basename "$test" .cpp)"
+              g++ -std=c++20 -O1 -Wall -Wextra -Werror -Iapp/src/main/cpp "$test" -o "/tmp/$(basename "$test" .cpp)"
               "/tmp/$(basename "$test" .cpp)"
             fi
           done
