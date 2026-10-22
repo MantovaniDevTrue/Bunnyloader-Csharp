@@ -8,6 +8,8 @@
 #include "il2cpp/GuardedCall.h"
 #include "experiments/csharp/NativeBasicItems.h"
 #include "experiments/csharp/NativeDefaults.h"
+#include "experiments/csharp/NativeDamageTypeRegistry.h"
+#include "experiments/csharp/NativeDamageClassFlags.h"
 #include "experiments/csharp/NativeVisualRenderer.h"
 #include "experiments/csharp/NativeTileGameplay.h"
 #include "experiments/csharp/NativeTileFlags.h"
@@ -79,6 +81,10 @@ struct NativeRefs {
     int projWidth = -1;
     int projHeight = -1;
     int itemAccessory = -1;
+    int itemMelee = -1;
+    int itemMagic = -1;
+    int projMelee = -1;
+    int projMagic = -1;
     int itemShieldSlot = -1;
     int itemShoeSlot = -1;
     int playerHellfireTreads = -1;
@@ -359,6 +365,29 @@ bool enableManagedPrefixEligibility(int type) {
     return true;
 }
 
+bool g_nativeDamageClassFieldsReady=false;
+
+void applyNativeDamageClassFlags(Il2CppObject* object, bool projectile, int contentType) {
+    if (!object || !g_nativeDamageClassFieldsReady) return;
+    NativeDamageTypeBinding binding;
+    if (!nativeDamageTypes().lookup(projectile, contentType, &binding)) return;
+    const NativeDamageClassFlags flags = nativeDamageClassFlags(binding.damageClass);
+    if (!flags.resolved) return;
+    const auto& r=g_refs;
+    if (projectile) {
+        bl::runtime::field<uint8_t>(object,r.projMelee) = flags.melee;
+        bl::runtime::field<uint8_t>(object,r.projRanged) = flags.ranged;
+        bl::runtime::field<uint8_t>(object,r.projMagic) = flags.magic;
+        // Projectile.minion is lifecycle state, not the Summon damage class:
+        // only the existing native minion controller may set this flag.
+        return;
+    }
+    bl::runtime::field<uint8_t>(object,r.itemMelee) = flags.melee;
+    bl::runtime::field<uint8_t>(object,r.itemRanged) = flags.ranged;
+    bl::runtime::field<uint8_t>(object,r.itemMagic) = flags.magic;
+    bl::runtime::field<uint8_t>(object,r.itemSummon) = flags.summon;
+}
+
 void hkItemDefaults(Il2CppObject* self, int32_t type, int32_t variant, const MethodInfo* method) {
     NativeDefaultsAfter nativeDefaults{self,false,type};
     if (self && isBasicItem(type)) {
@@ -369,6 +398,8 @@ void hkItemDefaults(Il2CppObject* self, int32_t type, int32_t variant, const Met
         }
         if (basicItemHasDamage(type)||basicItemIsAccessory(type)) enableManagedPrefixEligibility(type);
         bl::runtime::finishModItem(self,type);
+        nativeDefaults.applyNow();
+        applyNativeDamageClassFlags(self,false,type);
         return;
     }
     const auto weapons=std::atomic_load_explicit(&g_weaponView,std::memory_order_acquire);
@@ -430,6 +461,8 @@ void hkItemDefaults(Il2CppObject* self, int32_t type, int32_t variant, const Met
     bl::runtime::field<int32_t>(self, r.itemMaxStack) = 1;
     enableManagedPrefixEligibility(type);
     bl::runtime::finishModItem(self, type);
+    nativeDefaults.applyNow();
+    applyNativeDamageClassFlags(self,false,type);
 }
 
 void hkProjectileStatsFromSource(Il2CppObject* projectile,Il2CppObject* source,const MethodInfo* method) {
@@ -528,6 +561,7 @@ void hkProjectileDefaults(Il2CppObject* self, int32_t type, const MethodInfo* me
         }
     }
     applyNativeDefaults(self,true,type);
+    applyNativeDamageClassFlags(self,true,type);
     bl::runtime::finishModProjectile(self, type);
 }
 
@@ -1373,6 +1407,18 @@ bool prepareNativeContent() {
     r.projWidth = fieldOffset(projectile, "width");
     r.projHeight = fieldOffset(projectile, "height");
     r.itemAccessory = fieldOffset(item, "accessory");
+    std::string damageFlagsError;
+    g_nativeDamageClassFieldsReady =
+        nativeFieldContract(item,"melee","System.Boolean",false,1,nullptr,&r.itemMelee,&damageFlagsError) &&
+        nativeFieldContract(item,"ranged","System.Boolean",false,1,nullptr,&r.itemRanged,&damageFlagsError) &&
+        nativeFieldContract(item,"magic","System.Boolean",false,1,nullptr,&r.itemMagic,&damageFlagsError) &&
+        nativeFieldContract(item,"summon","System.Boolean",false,1,nullptr,&r.itemSummon,&damageFlagsError) &&
+        nativeFieldContract(projectile,"melee","System.Boolean",false,1,nullptr,&r.projMelee,&damageFlagsError) &&
+        nativeFieldContract(projectile,"ranged","System.Boolean",false,1,nullptr,&r.projRanged,&damageFlagsError) &&
+        nativeFieldContract(projectile,"magic","System.Boolean",false,1,nullptr,&r.projMagic,&damageFlagsError);
+    if (!g_nativeDamageClassFieldsReady)
+        BL_WARN("[CSharp][DamageClass] Stage=BindNativeFlags Result=LegacyDefaultsUntilCompatible Detail=%s",
+                damageFlagsError.c_str());
     r.itemShieldSlot = fieldOffset(item, "shieldSlot");
     r.itemShoeSlot = fieldOffset(item, "shoeSlot");
     r.playerHellfireTreads = fieldOffset(player, "hellfireTreads");
