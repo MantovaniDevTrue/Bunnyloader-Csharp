@@ -8,6 +8,7 @@ on:
       - "Split/Bunny-Loader/experiments/csharp/BunnyCsSdk/ModHair.cs"
       - "Split/Bunny-Loader/experiments/csharp/BunnySourceSdk/**"
       - "Split/Bunny-Loader/tests/hair_loader/**"
+      - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/SourceParser.cpp"
       - ".github/workflows/check-csharp-hair-managed-only.yml"
   workflow_dispatch:
 
@@ -27,6 +28,14 @@ jobs:
         run: dotnet build Split/Bunny-Loader/experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj -c Release --nologo
       - name: Run the hair identity, texture and unlocking tests
         run: dotnet run --project Split/Bunny-Loader/tests/hair_loader/HairLoader.Tests.csproj -c Release
+      - name: Check unsupported hair classes fail fast in the actual C++ source parser
+        run: |
+          g++ -std=c++20 -Wall -Wextra \
+            -I Split/Bunny-Loader/app/src/main/cpp \
+            Split/Bunny-Loader/tests/hair_loader/parser_guard.cpp \
+            Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/SourceParser.cpp \
+            -o /tmp/bunny-hair-parser-check
+          /tmp/bunny-hair-parser-check
       - name: Guard against Android artifacts
         run: |
           test ! -d Split/Bunny-Loader/app/build/outputs/apk
