@@ -22,14 +22,18 @@ public static class DamageClassLoader
         DamageClass.MagicSummonHybrid, DamageClass.Throwing
     };
 
-    private static readonly IReadOnlyList<DamageClass> ReadOnlyClasses = new ReadOnlyCollection<DamageClass>(DamageClasses);
     private static readonly Dictionary<System.Type, DamageClass> Instances = new();
+    private static readonly Dictionary<string, List<DamageClass>> Owners = new(StringComparer.Ordinal);
+    private static readonly HashSet<DamageClass> RetiredClasses = new();
     private static readonly int DefaultClassCount = DamageClasses.Count;
+    private static IReadOnlyList<DamageClass> activeClasses =
+        Array.AsReadOnly(Array.Empty<DamageClass>());
     private static bool[,] effectInheritanceCache = new bool[0, 0];
     private static int generation;
 
+    /// <summary>Próximo ID. IDs de classes descarregadas não são reutilizados na sessão.</summary>
     public static int DamageClassCount => DamageClasses.Count;
-    public static IReadOnlyList<DamageClass> All => ReadOnlyClasses;
+    public static IReadOnlyList<DamageClass> All => activeClasses;
     public static int Generation => generation;
 
     static DamageClassLoader()
@@ -87,6 +91,16 @@ public static class DamageClassLoader
     public static int RegisterAssembly(Assembly assembly)
     {
         if (assembly is null) throw new ArgumentNullException(nameof(assembly));
+        return RegisterAssembly(assembly.FullName ?? assembly.GetName().Name ?? "assembly", assembly);
+    }
+
+    public static int RegisterAssembly(string modId, Assembly assembly)
+    {
+        if (string.IsNullOrWhiteSpace(modId) || modId.Length > 128)
+            throw new ArgumentException("ID de mod inválido", nameof(modId));
+        if (assembly is null) throw new ArgumentNullException(nameof(assembly));
+        if (Owners.ContainsKey(modId))
+            throw new InvalidOperationException("DamageClass de mod já registrada: " + modId);
         Type[] types = assembly.GetTypes()
             .Where(t => t.IsClass && !t.IsAbstract && !t.ContainsGenericParameters &&
                 typeof(DamageClass).IsAssignableFrom(t))
@@ -120,12 +134,14 @@ public static class DamageClassLoader
                 Instances.Add(cls.GetType(), cls);
             }
             RebuildEffectInheritanceCache();
+            Owners.Add(modId, incoming);
             unchecked { generation++; }
             return incoming.Count;
         }
         catch
         {
             // Não manter IDs publicados de um assembly parcialmente inválido.
+            Owners.Remove(modId);
             foreach (DamageClass cls in incoming)
             {
                 Instances.Remove(cls.GetType());
@@ -139,7 +155,40 @@ public static class DamageClassLoader
     }
 
 
-    /// <summary>Retira classes de mods ao descarregar; os IDs vanilla permanecem estáveis.</summary>
+    /// <summary>
+    /// Desativa somente as classes do mod. Os slots viram lápides e jamais são
+    /// reaproveitados durante a sessão; outros mods preservam seus IDs.
+    /// </summary>
+    public static bool UnregisterMod(string modId)
+    {
+        if (string.IsNullOrWhiteSpace(modId) ||
+            !Owners.TryGetValue(modId, out List<DamageClass>? classes)) return false;
+        foreach (DamageClass cls in classes)
+        {
+            RetiredClasses.Add(cls);
+            Instances.Remove(cls.GetType());
+        }
+        try
+        {
+            RebuildEffectInheritanceCache();
+        }
+        catch
+        {
+            foreach (DamageClass cls in classes)
+            {
+                RetiredClasses.Remove(cls);
+                Instances.Add(cls.GetType(), cls);
+            }
+            RebuildEffectInheritanceCache();
+            throw;
+        }
+        Owners.Remove(modId);
+        foreach (DamageClass cls in classes) cls.Type = -1;
+        unchecked { generation++; }
+        return true;
+    }
+
+    /// <summary>Reset global em shutdown; não substituir UnregisterMod no hot-reload.</summary>
     public static void Unload()
     {
         for (int i = DamageClasses.Count - 1; i >= DefaultClassCount; i--)
@@ -149,12 +198,15 @@ public static class DamageClassLoader
             cls.Type = -1;
             DamageClasses.RemoveAt(i);
         }
+        RetiredClasses.Clear();
+        Owners.Clear();
         RebuildEffectInheritanceCache();
         unchecked { generation++; }
     }
 
     public static DamageClass? GetDamageClass(int type) =>
-        type >= 0 && type < DamageClasses.Count ? DamageClasses[type] : null;
+        type >= 0 && type < DamageClasses.Count && !RetiredClasses.Contains(DamageClasses[type])
+            ? DamageClasses[type] : null;
 
     public static T GetInstance<T>() where T : DamageClass
     {
@@ -167,7 +219,8 @@ public static class DamageClassLoader
     {
         if (damageClass is null) throw new ArgumentNullException(nameof(damageClass));
         int id = damageClass.Type;
-        if (id < 0 || id >= DamageClasses.Count || !ReferenceEquals(DamageClasses[id], damageClass))
+        if (id < 0 || id >= DamageClasses.Count || RetiredClasses.Contains(damageClass) ||
+            !ReferenceEquals(DamageClasses[id], damageClass))
             throw new InvalidOperationException("DamageClass não registrada ou já descarregada");
     }
 
@@ -183,8 +236,17 @@ public static class DamageClassLoader
         int count = DamageClasses.Count;
         bool[,] next = new bool[count, count];
         for (int i = 0; i < count; i++)
+        {
+            if (RetiredClasses.Contains(DamageClasses[i])) continue;
             for (int j = 0; j < count; j++)
+            {
+                if (RetiredClasses.Contains(DamageClasses[j])) continue;
                 next[i, j] = i == j || DamageClasses[i].GetEffectInheritance(DamageClasses[j]);
+            }
+        }
+        var visible = Array.AsReadOnly(DamageClasses
+            .Where(cls => !RetiredClasses.Contains(cls)).ToArray());
         effectInheritanceCache = next;
+        activeClasses = visible;
     }
 }
