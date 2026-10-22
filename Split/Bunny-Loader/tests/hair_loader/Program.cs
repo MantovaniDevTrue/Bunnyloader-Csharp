@@ -45,6 +45,7 @@ static class Check
         True(registered.Type == HairLoader.VanillaHairCount, "primeiro tipo depois do vanilla");
         True(registered.FullName == "mod-a/ProgressHair", "identidade estável UID/classe");
         True(progress.StaticDefaultsCalls == 1, "SetStaticDefaults exatamente uma vez");
+        True(progress.AutoDefaultsCalls == 1, "AutoStaticDefaults exatamente uma vez");
         True(registered.MainTexture == registered.AltTexture, "textura alternativa ausente usa a principal");
         True(progress.Type == registered.Type, "ID chega à instância C#");
         True(loader.TryGet(registered.Type, out ModHair? loaded) &&
@@ -67,7 +68,7 @@ static class Check
         True(second.Type == registered.Type + 1, "tipos sequenciais determinísticos");
         True(second.AltTexture == "Content/Hairs/AltHair_Alt",
             "textura com chapéu permanece distinta");
-        True(second.RandomGender == HairGender.Female,
+        True(second.RandomGender == Gender.Female,
             "gênero aleatório compatível");
         True(!loader.GetUnlockedTypes(true, false).Contains(second.Type),
             "restrição de criação não altera Stylist");
@@ -115,7 +116,9 @@ public sealed class ProgressHair : ModHair
 {
     public bool BossDowned { get; set; }
     public int StaticDefaultsCalls { get; private set; }
+    public int AutoDefaultsCalls { get; private set; }
 
+    public override void AutoStaticDefaults() => AutoDefaultsCalls++;
     public override void SetStaticDefaults() => StaticDefaultsCalls++;
 
     public override IEnumerable<Condition> GetUnlockConditions()
@@ -127,7 +130,7 @@ public sealed class ProgressHair : ModHair
 public sealed class AltHair : BunnyHair
 {
     public override bool AvailableDuringCharacterCreation => false;
-    public override HairGender RandomizedCharacterCreationGender => HairGender.Female;
+    public override Gender RandomizedCharacterCreationGender => Gender.Female;
 }
 
 public sealed class NoTextureHair : ModHair { }
@@ -139,5 +142,5 @@ public sealed class InvalidPathHair : ModHair
 
 public sealed class BadGenderHair : ModHair
 {
-    public override HairGender RandomizedCharacterCreationGender => (HairGender)89;
+    public override Gender RandomizedCharacterCreationGender => (Gender)89;
 }
