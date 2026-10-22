@@ -37,7 +37,7 @@ for signature in (
 # o ciclo nativo (UI/save/rede) esteja concluído.
 experimental = {"Examples/Hairs/ExampleHair.cs"}
 actual_examples = {
-    str(path.relative_to(EXAMPLE)).replace("\\\\", "/")
+    path.relative_to(EXAMPLE).as_posix()
     for path in (EXAMPLE / "Examples").rglob("*.cs")
 }
 assert actual_examples == set(MIRRORS) | experimental, (
