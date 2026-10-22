@@ -109,6 +109,26 @@ class ReleaseGateTests(unittest.TestCase):
         self.rows[0]["automatedEvidence"] = []
         self.assertTrue(any("teste automatizado" in x for x in self.check()))
 
+    def test_snapshot_requires_every_new_upstream_file_and_exact_blob(self):
+        snapshot = {
+            "upstreamCommit": UPSTREAM_COMMIT,
+            "count": BASELINE_JS_COUNT,
+            "files": [
+                {"path": row["id"], "gitBlob": row["javaScript"]["upstreamBlob"]}
+                for row in self.rows
+            ]
+        }
+        self.assertEqual([], check_release(self.matrix, self.project, self.upstream,
+                                           inventory=snapshot))
+        snapshot["files"][0]["gitBlob"] = "0" * 40
+        problems = check_release(self.matrix, self.project, self.upstream,
+                                 inventory=snapshot)
+        self.assertTrue(any("inventario canonico atualizado" in x for x in problems))
+        snapshot["files"] = snapshot["files"][1:]
+        self.assertTrue(any("exemplos atuais sem linha" in x for x in
+                            check_release(self.matrix, self.project, self.upstream,
+                                          inventory=snapshot)))
+
     def test_upstream_checkout_mandatory(self):
         errors = check_release(self.matrix, self.project, None)
         self.assertTrue(any("obrigatorio" in x for x in errors))
