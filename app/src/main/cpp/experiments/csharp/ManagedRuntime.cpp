@@ -353,6 +353,7 @@ std::set<std::string> g_cloudWeightsPending;
 std::deque<ManagedCloudSpawnReply> g_cloudSpawnReplies;
 uint64_t g_cloudSession = 1;
 bool g_cloudClearPending = false;
+bool g_biomeResetPending = false;
 bool g_cloudDispatcherHealthy = true;
 std::chrono::steady_clock::time_point g_cloudClearRetryAt{};
 void* g_cloudRegisterMethod = nullptr;
@@ -2186,6 +2187,34 @@ void* pinnedMonoWorker(void*) {
                     }
                     continue;
                 }
+                if (g_biomeResetPending) {
+                    g_biomeResetPending = false;
+                    const uint64_t epoch = g_cloudSession;
+                    CloudWorkerJob job{};
+                    job.kind = 6;
+                    lock.unlock();
+                    const bool ok = executeManagedCloudOnWorker(job, nullptr, nullptr);
+                    lock.lock();
+                    if (!ok) {
+                        g_cloudDispatcherHealthy = false;
+                        g_cloudClearPending = true;
+                        g_cloudClearRetryAt = {};
+                        for (auto& binding : g_cloudBindings) {
+                            binding.ready = false;
+                            binding.failed = true;
+                            binding.biomeReady = false;
+                            binding.biomeFailed = true;
+                        }
+                        g_cloudQueue.clear();
+                        g_cloudWeightReplies.clear();
+                        g_biomeActiveReplies.clear();
+                        g_cloudSpawnReplies.clear();
+                        g_cloudWeightsPending.clear();
+                        g_biomeSnapshotsPending.clear();
+                    }
+                    if (epoch != g_cloudSession) g_biomeResetPending = true;
+                    continue;
+                }
                 if (!g_cloudQueue.empty()) {
                     CloudWorkerJob job = std::move(g_cloudQueue.front());
                     g_cloudQueue.pop_front();
@@ -2259,7 +2288,8 @@ void* pinnedMonoWorker(void*) {
                     if (g_universalPolling.load(std::memory_order_acquire) ||
                         g_liveHitStatus.enabled || g_liveIngress.depth() != 0 ||
                         !g_managedHurtQueue.empty() || !g_entityQueue.empty() ||
-                        !g_cloudQueue.empty() || g_cloudClearPending)
+                        !g_cloudQueue.empty() || g_cloudClearPending ||
+                        g_biomeResetPending)
                         g_pinnedWake.wait_for(lock, std::chrono::milliseconds(2));
                     else
                         g_pinnedWake.wait(lock);
@@ -2710,12 +2740,7 @@ void resetManagedCloudWorldSession() {
     g_cloudSpawnReplies.clear();
     g_biomeActiveReplies.clear();
     g_biomeSnapshotsPending.clear();
-    if (g_cloudQueue.size() < 64) {
-        CloudWorkerJob reset{};
-        reset.kind = 6;
-        reset.session = g_cloudSession;
-        g_cloudQueue.push_back(std::move(reset));
-    }
+    g_biomeResetPending = true;
     g_pinnedWake.notify_one();
 }
 
@@ -2734,6 +2759,7 @@ void pauseManagedCloudCallbacks() {
     // Reset the SDK static dispatcher on the worker, including registrations
     // from an in-flight old-world job, before accepting new registrations.
     g_cloudClearPending = true;
+    g_biomeResetPending = false;
     g_cloudClearRetryAt = {};
     g_cloudDispatcherHealthy = false;
     g_pinnedWake.notify_one();
