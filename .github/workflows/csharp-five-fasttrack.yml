@@ -14,6 +14,7 @@ on:
       - experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs
       - app/src/main/cpp/experiments/csharp/ManagedSourceClassCount.h
       - tests/commands/native_fasttrack_command_class_count.cpp
+      - app/src/main/cpp/experiments/csharp/SourceParser.cpp
   workflow_dispatch:
 
 permissions:
@@ -108,3 +109,8 @@ jobs:
               "/tmp/$(basename "$test" .cpp)"
             fi
           done
+          g++ -std=c++20 -O1 -Wall -Wextra -Werror -Iapp/src/main/cpp \
+            tests/commands/native_command_source_parser_test.cpp \
+            app/src/main/cpp/experiments/csharp/SourceParser.cpp \
+            -o /tmp/native_command_source_parser_test
+          /tmp/native_command_source_parser_test
