@@ -15,7 +15,13 @@ O fixture executa o núcleo/detours reais com providers C++ controlados, incluin
 outra thread alterando o registro durante callback. São 336 verificações desse
 executável, mais 470 dos componentes e o oráculo JS, aprovadas localmente com
 ASan/UBSan/divisão por zero/leaks. As 65 regressões, fundos e subsolo anteriores
-passaram. A aprovação CI desse código deve ser registrada pelo SHA próprio.
+passaram. O código final `bc5ed296da12621132687df0be24b4c9a880063c`
+passou nos **onze workflows**; [CI combinado 39726493557](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39726493557)
+aprovou os quatro jobs, inclusive sintaxe e linkagem ARM64 sem APK.
+[Evidência](validation/csharp-surface-native-hooks-2026-10-22.json).
+O ajuste final preserva também a velocidade Double no cálculo de fades e evita
+apagar ativações de OnEnterWorld num segundo reset tardio. O commit que registra
+esta evidência modifica somente documentação.
 
 **Continua 2/15 implementados, 1 parcial e 12 pendentes; zero Android.**
 As bridges MonoVM/QuickJS de superfície, SDK e exemplo C# não foram criados nesta

@@ -1,0 +1,147 @@
+{
+  "schema": 1,
+  "date": "2026-10-22",
+  "branch": "feat/csharp-loader-completion-15-20261021",
+  "sourceCommit": "bc5ed296da12621132687df0be24b4c9a880063c",
+  "previousPreservedCommit": "eb6c44b4f88ac421c94b42bc555fc143b8afafef",
+  "combinedRun": 39726493557,
+  "workflows": [
+    {
+      "conclusion": "success",
+      "databaseId": 39726497286,
+      "headSha": "bc5ed296da12621132687df0be24b4c9a880063c",
+      "name": "CSharp Gore Source Validation",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39726497328,
+      "headSha": "bc5ed296da12621132687df0be24b4c9a880063c",
+      "name": "CSharp DustLoader source contracts",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39726497277,
+      "headSha": "bc5ed296da12621132687df0be24b4c9a880063c",
+      "name": "CSharp World Update SDK Check",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39726497287,
+      "headSha": "bc5ed296da12621132687df0be24b4c9a880063c",
+      "name": "CSharp AnglerQuest host-only regression",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39726497289,
+      "headSha": "bc5ed296da12621132687df0be24b4c9a880063c",
+      "name": "CommandLoader CSharp host tests (no APK)",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39726497400,
+      "headSha": "bc5ed296da12621132687df0be24b4c9a880063c",
+      "name": "CSharp RarityLoader ARM64 Native Compile",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39726497379,
+      "headSha": "bc5ed296da12621132687df0be24b4c9a880063c",
+      "name": "CSharp Localization Core",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39726497301,
+      "headSha": "bc5ed296da12621132687df0be24b4c9a880063c",
+      "name": "Check CSharp RarityLoader Core",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39726497445,
+      "headSha": "bc5ed296da12621132687df0be24b4c9a880063c",
+      "name": "CSharp Invasion Unit Tests (no APK)",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39726497317,
+      "headSha": "bc5ed296da12621132687df0be24b4c9a880063c",
+      "name": "DustLoader CSharp native ARM64 compile only",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39726493557,
+      "headSha": "bc5ed296da12621132687df0be24b4c9a880063c",
+      "name": "CSharp combined source-only integration checks (no APK)",
+      "status": "completed"
+    }
+  ],
+  "checks": {
+    "surfaceComponentAssertions": 470,
+    "surfaceNativeLoaderAssertions": 336,
+    "originalJavaScriptProjections": 45,
+    "originalJavaScriptPriorities": 144,
+    "originalJavaScriptFadeCases": 5,
+    "doublePrecisionBoundaryCase": 1,
+    "originalAnimationOracleCalls": 53,
+    "nativeSanitizers": "ASan, UBSan, float-divide-by-zero and leak detector passed for both native surface executables",
+    "nativeLoader": "Production six detours, registry, fades, drawing, menu, callback/world invalidation, original forwarding, install retry and asset lifetime executed with controlled IL2CPP metadata and C++ providers",
+    "combinedRegressions": 65,
+    "existingBackgroundAndUndergroundCSharpNativeAndJavaScript": "passed",
+    "exampleSourceFiles": 106,
+    "verifiedManagedTypes": 87,
+    "exampleCompileModes": 4,
+    "documentedPublicSdkTypes": 158,
+    "arm64Syntax": "passed",
+    "completeArm64NativeLink": "passed; no APK"
+  },
+  "surfaceIntegration": {
+    "nativeServiceImplemented": true,
+    "sixDetoursExercisedInHostFixture": true,
+    "nativeLanguageOwnershipAndSelectionExercised": true,
+    "providersUsedInNewLoaderTest": "Controlled C++ function pointers, not actual MonoVM or QuickJS surface providers",
+    "newManagedSdkExposed": false,
+    "originalCSharpExamplePorted": false,
+    "surfaceQuickJsBridgeAdapted": false,
+    "automaticAppInstallationFromLanguages": false,
+    "actualAndroidExecution": false
+  },
+  "scope": {
+    "plannedLoaders": 15,
+    "implementedInSources": 2,
+    "partial": 1,
+    "pending": 12,
+    "androidValidated": 0,
+    "additionalIntegrations": [
+      "SystemUpdateLoader",
+      "GoreLoader"
+    ]
+  },
+  "versions": {
+    "exampleModSources": "0.1.65",
+    "sdkCache": "roslyn-net8-source-v55-native-underground-backgrounds",
+    "note": "No managed SDK, source protocol or ExampleMod CSharp example change in this continuation."
+  },
+  "artifacts": {
+    "apkGenerated": false,
+    "bmodGenerated": false,
+    "releasePublished": false
+  },
+  "limitations": [
+    "SurfaceBackgroundLoader remains partial until both language bridges share this registry, the managed protocol/SDK is implemented, and the full original example is ported.",
+    "The current JavaScript SurfaceBackgroundLoader remains unchanged and is not yet connected to this service; do not activate a CSharp bridge independently and create conflicting IDs.",
+    "Native fixture execution and ARM64 link do not validate actual Terraria metadata, Shadowhook execution, MonoVM callbacks, GPU behavior or FPS on Android.",
+    "No new Android performance or loading-time measurement.",
+    "The original animation oracle is not evidence of a CSharp animation port.",
+    "No APK or bmod before all fifteen complete loader contracts and required checks pass."
+  ],
+  "continuation": "docs/csharp-surface-native-runtime.md"
+}

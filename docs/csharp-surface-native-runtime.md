@@ -102,3 +102,8 @@ gerenciado preservando os índices existentes 11/12; SDK e inventário/cache se
 mudarem; port C# integral das seis imagens e animação original; bridge QuickJS
 para o registro compartilhado; execução real C#/JS juntas; QA de dispositivo.
 O exemplo de superfície continua não portado na matriz dos 206 JS.
+
+CI do código `bc5ed296`: onze workflows aprovados; os quatro jobs do combinado
+[39726493557](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39726493557)
+incluem sanitizadores, comparações, regressões, sintaxe e linkagem ARM64, sem APK.
+Evidência completa em [validation/csharp-surface-native-hooks-2026-10-22.json](validation/csharp-surface-native-hooks-2026-10-22.json).
