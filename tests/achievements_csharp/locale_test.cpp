@@ -2,6 +2,8 @@
 
 #include <cassert>
 #include <iostream>
+#include <fstream>
+#include <iterator>
 #include <map>
 #include <string>
 
@@ -49,5 +51,22 @@ int main() {
     invalid(std::string(512 * 1024 + 1, 'x'));
     assert(parseAchievementTranslations("{}", &translated));
     assert(translated.empty());
+    const auto checkAsset = [&](const std::string& locale,
+                                const std::string& expectedTitle) {
+        const std::string path =
+            "samples/ExampleModCSharp/Playable/content/Localization/" +
+            locale + ".json";
+        std::ifstream file(path, std::ios::binary);
+        assert(file.good());
+        std::string source((std::istreambuf_iterator<char>(file)),
+                           std::istreambuf_iterator<char>());
+        assert(parseAchievementTranslations(source, &translated));
+        assert(translated.size() == 2);
+        assert(translated["ExampleBossKilled"].title == expectedTitle);
+        assert(!translated["ManyWormsKilled"].description.empty());
+    };
+    checkAsset("en-US", "Slime King Defeated");
+    checkAsset("pt-BR", "Rei Slime Derrotado");
+
     std::cout << "CSHARP_ACHIEVEMENT_LOCALE_JSON_PASS=YES\n";
 }
