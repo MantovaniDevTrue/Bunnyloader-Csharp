@@ -13,6 +13,7 @@ on:
       - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairTextures.*"
       - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairUi.*"
       - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairUnlockState.h"
+      - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairManifest.h"
       - ".github/workflows/check-csharp-hair-managed-only.yml"
   workflow_dispatch:
 
@@ -64,6 +65,13 @@ jobs:
           g++ -std=c++20 -Wall -Wextra -Werror -fsyntax-only \
             -I Split/Bunny-Loader/app/src/main/cpp \
             Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairUi.cpp
+      - name: Validate typed Mono-to-native HairLoader manifests
+        run: |
+          g++ -std=c++20 -Wall -Wextra -Werror \
+            -I Split/Bunny-Loader/app/src/main/cpp \
+            Split/Bunny-Loader/tests/hair_loader/native_manifest.cpp \
+            -o /tmp/bunny-hair-manifest
+          /tmp/bunny-hair-manifest
       - name: Guard against Android artifacts
         run: |
           test ! -d Split/Bunny-Loader/app/build/outputs/apk
