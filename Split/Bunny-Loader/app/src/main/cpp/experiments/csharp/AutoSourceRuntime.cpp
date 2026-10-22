@@ -788,36 +788,6 @@ void run() {
                 continue;
             }
         }
-        // Every source assembly participates, including item-only and service-only mods.
-        // This background startup thread waits for owner acknowledgement; the game thread never
-        // invokes Mono or declares content ready from a queued request alone.
-        if (!g_runtimeWarmStarted.load(std::memory_order_acquire)) {
-            g_runtimeWarming.store(true, std::memory_order_release);
-            const auto state = probeManagedRuntimePinnedThread(work + "BunnyManagedProbe.dll", "PINNED_MONO");
-            g_runtimeWarming.store(false, std::memory_order_release);
-            if (!state.methodExecuted || state.result != 42) {
-                note(&status, "failed", "MonoVM startup failed: " + state.phase);
-                continue;
-            }
-            g_runtimeWarmStarted.store(true, std::memory_order_release);
-        }
-        struct ContentRollback {
-            std::string id;
-            bool loaded = false, committed = false;
-            ~ContentRollback() {
-                if (loaded && !committed) {
-                    std::string failure;
-                    if (!unloadManagedContentMod(id, &failure))
-                        BL_ERROR("C# managed rollback mod=%s failed: %s", id.c_str(), failure.c_str());
-                }
-            }
-        } contentRollback{mod.id};
-        note(&status, "loading-managed-content");
-        if (!loadManagedContentMod(mod.id, assembly, &error)) {
-            note(&status, "failed", error);
-            continue;
-        }
-        contentRollback.loaded = true;
         if (!status.cached && recoverRuntimeCacheIdentityAfterCompile(
                 work, root, mod.id, cacheDir, &runtimeIdentity, &key, &cacheFile))
             BL_INFO("[CSharp][Startup] Stage=RuntimeCacheIdentity Cache=ChangedAfterCompile");
@@ -849,6 +819,38 @@ void run() {
             note(&status, "failed", error);
             continue;
         }
+        // Cache recovery above may rebuild the DLL. Finish all recompilation before LoadFrom:
+        // Mono keeps loaded code even when the mod scope is unloaded.
+        // Every source assembly participates, including item-only and service-only mods.
+        // This background startup thread waits for owner acknowledgement; the game thread never
+        // invokes Mono or declares content ready from a queued request alone.
+        if (!g_runtimeWarmStarted.load(std::memory_order_acquire)) {
+            g_runtimeWarming.store(true, std::memory_order_release);
+            const auto state = probeManagedRuntimePinnedThread(work + "BunnyManagedProbe.dll", "PINNED_MONO");
+            g_runtimeWarming.store(false, std::memory_order_release);
+            if (!state.methodExecuted || state.result != 42) {
+                note(&status, "failed", "MonoVM startup failed: " + state.phase);
+                continue;
+            }
+            g_runtimeWarmStarted.store(true, std::memory_order_release);
+        }
+        struct ContentRollback {
+            std::string id;
+            bool loaded = false, committed = false;
+            ~ContentRollback() {
+                if (loaded && !committed) {
+                    std::string failure;
+                    if (!unloadManagedContentMod(id, &failure))
+                        BL_ERROR("C# managed rollback mod=%s failed: %s", id.c_str(), failure.c_str());
+                }
+            }
+        } contentRollback{mod.id};
+        note(&status, "loading-managed-content");
+        if (!loadManagedContentMod(mod.id, assembly, &error)) {
+            note(&status, "failed", error);
+            continue;
+        }
+        contentRollback.loaded = true;
         BL_INFO("[CSharp][Startup] Mod=%s Stage=DefaultsRequest Cache=%s CacheReason=%s CacheWrite=%s WaitTablesMs=%lld CacheReadMs=%lld CompileMs=%lld ApplyAndRecoveryMs=%lld",
                 mod.id.c_str(),status.cached?"Hit":"Miss",cacheReason.c_str(),cacheWrite.c_str(),
                 tablesMs,cacheMs,compileMs,elapsedMilliseconds(applyStarted));

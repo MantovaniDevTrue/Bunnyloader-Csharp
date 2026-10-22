@@ -96,7 +96,8 @@ conta separadamente serviços concretos e entidades legadas: ele não executa os
 produz somente o cabeçalho dos defaults; não precisa de uma entidade fictícia.
 
 `AutoSourceRuntime` aquece o MonoVM para todos os mods-fonte e pede o carregamento
-pela fila da thread persistente. A entrada no mundo exige confirmação de bootstrap,
+pela fila da thread persistente, após concluir eventual recuperação/recompilação
+de cache e aplicar os defaults. A entrada no mundo exige confirmação de bootstrap,
 `SetupContent` e aplicação dos defaults de cada mod, inclusive na rota de timeout
 de assets. Uma falha posterior descarrega o escopo gerenciado recém-carregado.
 Os tipos legados `BunnyNPC/BunnyItem/...` continuam no pipeline existente: o novo
