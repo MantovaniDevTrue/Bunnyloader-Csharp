@@ -1,6 +1,7 @@
 #include "experiments/csharp/NativeCloudIdProbe.h"
 
 #include "content/common/ContentAssets.h"
+#include "content/common/ModContent.h"
 #include "il2cpp/Api.h"
 #include "il2cpp/FieldContract.h"
 #include "il2cpp/Resolver.h"
@@ -72,6 +73,43 @@ NativeCloudIdPlan probeNativeCloudIdPlan(int cloudCount,
         vanillaCount, static_cast<int>(textures->length),
         static_cast<int>(cloudMasks->length), cloudCount,
         jsReadySetupFinished, mobileLoadMasksFinished);
+}
+
+NativeCloudIdPlan probeNativeCloudIdPlanAtReady(int cloudCount) {
+    if (!bl::runtime::contentReadyCallbacksCompleted())
+        return denied("CloudID: JS Ready/setup has not finished");
+
+    auto& api = il2cpp::api();
+    if (!api.field_static_get_value || !api.class_get_rank ||
+        !api.class_get_element_class)
+        return denied("CloudID: cannot read loaded TextureMaskManager");
+
+    auto* manager = il2cpp::findClass({"", "TextureMaskManager", {}});
+    auto* maskType = il2cpp::findClass({"", "TextureMask", {}});
+    auto* cloudId = il2cpp::findClass({"Terraria.ID", "CloudID", {}});
+    int vanillaCount = 0;
+    std::string why;
+    if (!cloudId ||
+        !il2cpp::readNativeId(cloudId, "Count", &vanillaCount, &why) ||
+        vanillaCount < 1 || vanillaCount > 10000)
+        return denied("CloudID: vanilla type count unavailable");
+
+    Il2CppArray* loaded = staticCloudArray(
+        manager, "CloudMasks", maskType);
+    if (!loaded || loaded->length < static_cast<uintptr_t>(vanillaCount))
+        return denied("CloudID: native cloud masks have not grown");
+
+    auto* items = static_cast<Il2CppObject**>(arrayData(loaded));
+    // A mask created by LoadMasks is an actual TextureMask instance,
+    // not merely an allocated empty array. All occupied vanilla types
+    // must be safe before any CSharp type can reach the mobile horizon.
+    for (int index = 0; index < vanillaCount; ++index) {
+        if (!items[index] ||
+            (api.object_get_class && api.object_get_class(items[index]) != maskType))
+            return denied("CloudID: vanilla TextureMask slot uninitialized");
+    }
+
+    return probeNativeCloudIdPlan(cloudCount, true, true);
 }
 
 } // namespace bl::csharp
