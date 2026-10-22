@@ -52,6 +52,7 @@
 #include "experiments/csharp/MonoServiceDispatch.h"
 #include "experiments/csharp/SourceLoader.h"
 #include "experiments/csharp/ManagedBannerWorldSession.h"
+#include "experiments/csharp/ManagedBannerLookupHooks.h"
 #include "experiments/csharp/ManagedDustBindingSelection.h"
 #include "experiments/csharp/ManagedSourceClassCount.h"
 #include "il2cpp/Api.h"
@@ -1415,6 +1416,7 @@ void noteAutoGameUpdate() {
     }
     if (invasionWorldReady && worldIsAuthoritative(runtime::netMode()) &&
         restoredBannerWorld != invasionWorldEpoch && sourceHasBannerMappings() &&
+        banners::lookupsActive.load(std::memory_order_acquire) &&
         ++bannerRestoreTicks >= 60) {
         bannerRestoreTicks = 0;
         const auto disk = banners::worldSession().status();
