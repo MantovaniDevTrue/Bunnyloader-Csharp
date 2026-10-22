@@ -1,6 +1,7 @@
 #include "experiments/csharp/NativeAchievementProfileLifecycle.h"
 
 #include "experiments/csharp/NativeAchievementProfile.h"
+#include "experiments/csharp/NativeAchievementRegistry.h"
 #include "experiments/csharp/NativeAchievementHooks.h"
 #include "experiments/csharp/ManagedRuntime.h"
 #include "core/Log.h"
@@ -26,12 +27,13 @@ struct ManifestInfo {
     std::string assembly;
     std::string manifest;
 };
-enum class Phase { Pending, Loading, Completed, Ready, Blocked };
+enum class Phase { Pending, Loading, Completed, Ready, Switching, SwitchCompleted, Blocked };
 std::mutex mutex;
 std::vector<ModInfo> mods;
 std::vector<ManifestInfo> loaded;
 std::string persistentRoot;
 std::string selectedProfile;
+std::string targetProfile;
 std::string loadError;
 Phase phase = Phase::Pending;
 std::atomic<bool> active{false};
@@ -76,6 +78,44 @@ void loadProfile(std::string directory, std::vector<ModInfo> localMods) {
     loaded = std::move(manifests);
     loadError = std::move(error);
     phase = Phase::Completed;
+}
+
+void switchProfile(std::string directory, std::string previousDirectory,
+                   std::vector<ModInfo> localMods) {
+    std::vector<ManifestInfo> manifests;
+    std::vector<ModInfo> changed;
+    std::string error;
+    if (!ensureDirectory(directory)) error = "New character save directory unavailable";
+    for (const auto& item : localMods) {
+        if (!error.empty()) break;
+        std::string response;
+        if (!invokeManagedAchievementControl(item.id, item.assembly, 11,
+                 directory, &response, 15000) ||
+            !response.starts_with("BACH_META_V2\n")) {
+            error = "SwitchProfile failed mod=" + item.id + " " +
+                    response.substr(0, 120);
+            break;
+        }
+        changed.push_back(item);
+        manifests.push_back({item.id, item.assembly, std::move(response)});
+    }
+    if (!error.empty()) {
+        // No game thread is permitted to resume gameplay. First reverse
+        // any successful managed switches while preserving original saves.
+        for (auto it = changed.rbegin(); it != changed.rend(); ++it) {
+            std::string result;
+            if (!invokeManagedAchievementControl(
+                    it->id, it->assembly, 11, previousDirectory,
+                    &result, 15000) ||
+                !result.starts_with("BACH_META_V2\n"))
+                error += " / MANAGED_ROLLBACK_UNKNOWN mod=" + it->id;
+        }
+    }
+    std::lock_guard<std::mutex> guard(mutex);
+    if (phase != Phase::Switching) return;
+    loaded = std::move(manifests);
+    loadError = std::move(error);
+    phase = Phase::SwitchCompleted;
 }
 
 }
@@ -130,16 +170,6 @@ void pumpAchievementProfileOnGameThread(bool inWorld) {
         std::lock_guard<std::mutex> guard(mutex);
         if (mods.empty() || phase == Phase::Blocked) return;
 
-        if (!selectedProfile.empty() && selectedProfile != key) {
-            phase = Phase::Blocked;
-            active.store(false, std::memory_order_release);
-            setNativeAchievementWorldActive(false);
-            if (!reportedMismatch) {
-                BL_WARN("[CSharp][AchievementLoader] personagem mudou; conteudo de conquistas pausado ate reiniciar");
-                reportedMismatch = true;
-            }
-            return;
-        }
         if (phase == Phase::Pending) {
             if (!ensureDirectory(persistentRoot) ||
                 !ensureDirectory(persistentRoot + "/profiles")) {
@@ -174,6 +204,57 @@ void pumpAchievementProfileOnGameThread(bool inWorld) {
             BL_INFO("[CSharp][AchievementLoader] Perfil isolado restaurado; mods=%zu",
                     mods.size());
             return;
+        } else if (phase == Phase::Ready && selectedProfile != key) {
+            active.store(false, std::memory_order_release);
+            setNativeAchievementWorldActive(false);
+            targetProfile = key;
+            directory = persistentRoot + "/profiles/" + targetProfile;
+            toLoad = mods;
+            phase = Phase::Switching;
+            BL_INFO("[CSharp][AchievementLoader] preparando troca de personagem");
+        } else if (phase == Phase::SwitchCompleted) {
+            if (key != targetProfile || !loadError.empty()) {
+                phase = Phase::Blocked;
+                BL_WARN("[CSharp][AchievementLoader] troca de perfil bloqueada: %s",
+                        loadError.empty() ? "character changed mid-switch" :
+                                            loadError.c_str());
+                return;
+            }
+            std::vector<AchievementMetadata> definitions;
+            for (const auto& item : loaded) {
+                std::vector<AchievementMetadata> current;
+                if (!parseAchievementMetadata(item.manifest, item.id,
+                                              &current, &error)) {
+                    phase = Phase::Blocked;
+                    BL_WARN("[CSharp][AchievementLoader] profile metadata invalid: %s",
+                            error.c_str());
+                    return;
+                }
+                definitions.insert(definitions.end(), current.begin(), current.end());
+            }
+            if (!replaceNativeAchievementObjects(definitions, &error)) {
+                phase = Phase::Blocked;
+                BL_WARN("[CSharp][AchievementLoader] native character swap rejected: %s",
+                        error.c_str());
+                return;
+            }
+            for (const auto& item : loaded) {
+                std::string bindError;
+                if (!registerNativeAchievementMod(
+                        item.id, item.assembly, item.manifest, &bindError)) {
+                    phase = Phase::Blocked;
+                    BL_WARN("[CSharp][AchievementLoader] profile rebind failed mod=%s: %s",
+                            item.id.c_str(), bindError.c_str());
+                    return;
+                }
+            }
+            selectedProfile = targetProfile;
+            targetProfile.clear();
+            loaded.clear();
+            phase = Phase::Ready;
+            active.store(true, std::memory_order_release);
+            BL_INFO("[CSharp][AchievementLoader] personagem trocado com rollback nativo disponivel");
+            return;
         } else if (phase == Phase::Ready) {
             // A flag pode ter sido suspensa se o getter ficou indisponível.
             active.store(true, std::memory_order_release);
@@ -182,9 +263,13 @@ void pumpAchievementProfileOnGameThread(bool inWorld) {
         }
     }
     if (!directory.empty()) {
+        const bool isSwitch = !targetProfile.empty();
+        const std::string original = persistentRoot + "/profiles/" + selectedProfile;
         std::thread([directory = std::move(directory),
-                     mods = std::move(toLoad)]() mutable {
-            loadProfile(std::move(directory), std::move(mods));
+                     original, mods = std::move(toLoad), isSwitch]() mutable {
+            if (isSwitch)
+                switchProfile(std::move(directory), original, std::move(mods));
+            else loadProfile(std::move(directory), std::move(mods));
         }).detach();
     }
 }
