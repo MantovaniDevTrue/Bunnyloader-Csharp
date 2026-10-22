@@ -126,6 +126,37 @@ static class Check
         Throws<ArgumentOutOfRangeException>(() => new HairLoader(227),
             "não invade intervalo de cabelos vanilla");
 
+        var prepared = HairManifestSession.Prepare("mod-test",
+            new[] { typeof(ProgressHair), typeof(string), typeof(ModHair), typeof(AltHair) },
+            Exists, 300);
+        True(prepared.Count == 2, "descoberta ignora tipos nao ModHair e classe abstrata");
+        True(prepared.Loader.TryResolveSavedHair("mod-test/AltHair", out int preparedAlt) &&
+             preparedAlt == 300, "ordem de registro C# independe da ordem da reflexao");
+        True(prepared.Loader.TryResolveSavedHair("mod-test/ProgressHair", out int preparedProgress) &&
+             preparedProgress == 301, "segundo ModHair recebe o ID sequencial correto");
+        True(prepared.Manifest.StartsWith(
+            "BUNNY_HAIR_MANIFEST_V1\\nHAIR\\t300\\tmod-test\\tAltHair\\t",
+            StringComparison.Ordinal), "manifesto da sessao inicia no ID nativo reservado");
+        True(prepared.Manifest.Contains(
+            "HAIR\\t301\\tmod-test\\tProgressHair\\t", StringComparison.Ordinal),
+            "manifesto de varias classes respeita ordem deterministica");
+
+        Throws<InvalidOperationException>(() => HairManifestSession.Prepare(
+            "mod-test", new[] { typeof(ProgressHair), typeof(ThrowingHair) }, Exists),
+            "um SetStaticDefaults falho rejeita a sessao inteira");
+        Throws<InvalidOperationException>(() => HairManifestSession.Prepare(
+            "mod-test", new[] { typeof(ProgressHair), typeof(NoTextureHair) }, Exists),
+            "asset ausente rejeita a sessao inteira");
+        Throws<InvalidOperationException>(() => HairManifestSession.Prepare(
+            "mod-test", new[] { typeof(MissingConstructorHair) }, Exists),
+            "ModHair sem construtor publico vazio e recusado");
+        Throws<InvalidOperationException>(() => HairManifestSession.Prepare(
+            "mod-test", new[] { typeof(DuplicateNameA), typeof(DuplicateNameB) },
+            name => true), "identidades estaveis duplicadas entre namespaces sao recusadas");
+        Throws<InvalidOperationException>(() => HairManifestSession.Prepare(
+            "mod-test", new[] { typeof(string), typeof(ModHair) }, Exists),
+            "sessao sem classe ModHair concreta falha explicitamente");
+
         Console.WriteLine("C# HairLoader: " + passed + " verificações gerenciadas passaram.");
     }
 }
@@ -177,4 +208,19 @@ public sealed class ThrowingHair : ModHair
 {
     public override void SetStaticDefaults() =>
         throw new InvalidOperationException("Falha intencional do exemplo.");
+}
+
+public sealed class MissingConstructorHair : ModHair
+{
+    public MissingConstructorHair(int unused) { }
+}
+
+public sealed class DuplicateNameA : ModHair
+{
+    public override string Name => "SharedHair";
+}
+
+public sealed class DuplicateNameB : ModHair
+{
+    public override string Name => "SharedHair";
 }
