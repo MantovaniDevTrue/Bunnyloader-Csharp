@@ -375,6 +375,11 @@ struct ManagedHairManifestResult {
 
 // Exporta um manifesto do ModHair usando o mesmo MonoVM e
 // BunnySourceCompiler do carregador real. Não instala texturas nem hooks.
+ManagedHairManifestResult inspectManagedHairClassCount(
+    const std::string& probeAssembly,
+    const std::string& compilerAssembly,
+    const std::string& modAssembly);
+
 ManagedHairManifestResult exportManagedHairManifest(
     const std::string& probeAssembly,
     const std::string& compilerAssembly,
