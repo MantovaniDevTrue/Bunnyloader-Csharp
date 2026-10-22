@@ -53,13 +53,21 @@ completo nem autorizar geração de APK.**
   Ainda falta preservar a classificação nos clones, verificar a rede e,
   principalmente, aplicar os cinco atributos personalizados ao combate.
   Esse mapeamento parcial não representa paridade completa de DamageClass.
-- `DamageClassLoader.ExportDefaultStatSnapshot` calcula e exporta os cinco
-  canais com herança e validação de números finitos. O MonoVM entrega o
-  snapshot ao registro nativo separado por mod, sem varredura por quadro.
+- `DamageClassLoader.ExportDefaultStatSnapshot` versão V2 calcula e exporta
+  os cinco canais, cada `StatModifier` e uma matriz de herança 5×5 para
+  Generic, Melee, Ranged, Magic e Summon. O MonoVM publica os valores
+  validados em registro C++ separado por mod, sem varredura por quadro.
   O ExampleDamageClass produz crítico 8 e armorPen 10; os testes C++
   incluem concorrência, unload e rejeição de entradas inválidas.
-- Integrar os atributos aos hooks reais do Terraria.Player, incluindo
-  equipamento, buffs e reset por jogador. **O snapshot atual só contém
+- Os hooks de GetWeaponDamage/Crit/Knockback preservam o resultado original e
+  observam os campos reais meleeDamage, rangedDamage, magicDamage e minionDamage
+  do jogador, com contrato IL2CPP opcional e validação dos números. A projeção
+  considera herança parcial, negativa e ampliada de classes personalizadas.
+  Não altera o cálculo do Terraria nem é chamada do Mono por disparo.
+- Integrar de fato esses atributos aos resultados do Terraria.Player, incluindo
+  equipamentos, buffs, reset por jogador, crítico, knockback, velocidade e
+  penetração de armadura. A projeção atual é somente diagnóstico e não
+  pode ser aplicada como soma ao vanilla sem validar o balanceamento. **O snapshot atual só contém
   valores padrão da classe**, não os totais de um jogador equipado.
   Somá-lo diretamente ao valor vanilla duplicaria modificadores.
 - Encaminhar efeitos, prefixos e tooltips pelos pontos nativos exatos
