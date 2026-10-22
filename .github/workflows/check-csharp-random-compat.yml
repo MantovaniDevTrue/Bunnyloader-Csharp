@@ -8,7 +8,7 @@ on:
       - "Split/Bunny-Loader/tests/random_compat/**"
       - "Split/Bunny-Loader/tests/random_compat_android_probe/**"
       - "Split/Bunny-Loader/samples/RandomCompatCSharp/**"
-      - "Split/Bunny-Loader/samples/ExampleModCSharp/Playable/content/Common/Players/ExampleRandomCompatProbePlayer.cs"
+      - "Split/Bunny-Loader/samples/RandomCompatSmokeCSharp/**"
       - "Split/Bunny-Loader/docs/generated/sdk_public_reference.*"
       - ".github/workflows/check-csharp-random-compat.yml"
   pull_request:
@@ -18,7 +18,7 @@ on:
       - "Split/Bunny-Loader/tests/random_compat/**"
       - "Split/Bunny-Loader/tests/random_compat_android_probe/**"
       - "Split/Bunny-Loader/samples/RandomCompatCSharp/**"
-      - "Split/Bunny-Loader/samples/ExampleModCSharp/Playable/content/Common/Players/ExampleRandomCompatProbePlayer.cs"
+      - "Split/Bunny-Loader/samples/RandomCompatSmokeCSharp/**"
       - "Split/Bunny-Loader/docs/generated/sdk_public_reference.*"
       - ".github/workflows/check-csharp-random-compat.yml"
   workflow_dispatch:
