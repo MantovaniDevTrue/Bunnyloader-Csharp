@@ -139,7 +139,7 @@ public static class BunnyAchievementRuntime
             }
             if (operation == 10)
             {
-                mod.Store.Flush(force: true);
+                mod.Store.Flush();
                 return "OK";
             }
 
