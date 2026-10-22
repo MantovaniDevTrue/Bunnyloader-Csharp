@@ -248,7 +248,7 @@
         "Loader<T>",
         "LoaderManager"
       ],
-      "status": "implemented_managed_core_pending_host_integration",
+      "status": "implemented_core_and_host_bootstrap_pending_android_qa",
       "relatedPRs": [
         {
           "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/pull/134",

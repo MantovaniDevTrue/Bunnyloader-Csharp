@@ -31,8 +31,9 @@ IDs reais de Item/NPC/Tile nem escreve tabelas IL2CPP.
 Diferenças deliberadas, para revisão:
 
 - Entradas de lifecycle antes internas são públicas para o host Bunny. O bootstrap
-  chama `BunnyContentLoader.Load(uid, assembly)` explicitamente e deve chamar
-  `Unload(uid)` ao desativar o mod. Este lote não instala um hook de startup Android.
+  usa `BunnyContentHostDispatcher` na thread persistente do MonoVM: descobre loaders,
+  chama `BunnyContentLoader.Load(uid, assembly)` e confirma apenas após `SetupContent`.
+  Consumidores que embutem o SDK fora do launcher podem chamar o ciclo explicitamente.
 - `LoaderManager.Get<T>` mantém a instância criada antes de AutoLoad; no original
   esse caso retorna uma instância temporária. Isso evita perder registros de um
   loader gerenciado criado por uma categoria customizada.
@@ -58,9 +59,10 @@ loaders de gameplay; não são tratados como concluídos por esta PR.
 ## Uso e lifecycle
 
 O [exemplo executável comentado](../Split/Bunny-Loader/samples/ContentLoaderCSharp/ExampleDefinitions.cs)
-mostra a mesma organização de categoria/loader do tModLoader. O bootstrap precisa
-existir no host/consumidor que integra esta API; o launcher atual não descobre
-automaticamente uma assembly contendo apenas os novos `ModType`.
+mostra a mesma organização de categoria/loader do tModLoader. O
+[mod-fonte de serviços](../Split/Bunny-Loader/samples/ContentLoaderCSharp/Playable/content/main.cs)
+usa a descoberta automática do launcher e não precisa de bootstrap escrito pelo modder.
+O executável de console mantém chamadas explícitas para demonstrar o contrato de embedding.
 
 1. Definir `ExecutionSide` (`Client` ou `Server`) antes de carregar loaders/conteúdo.
 2. `LoaderManager.AutoLoad(assembly)` encontra loaders concretos habilitados, ou
@@ -86,12 +88,42 @@ Dependências entre mods são carregadas na ordem definida pelo host. `SetupCont
 garante que todos os conteúdos **do mod atual** foram registrados, não que um mod
 futuro já tenha sido carregado. Use `TryFind` para dependências opcionais.
 
+## Bootstrap automático e encerramento
+
+O parser aceita categorias `ModType` sem reservar IDs nativos. O verificador Roslyn
+conta separadamente serviços concretos e entidades legadas: ele não executa os hooks
+`Load/Register/SetupContent` durante a compilação isolada. Uma assembly de serviços
+produz somente o cabeçalho dos defaults; não precisa de uma entidade fictícia.
+
+`AutoSourceRuntime` aquece o MonoVM para todos os mods-fonte e pede o carregamento
+pela fila da thread persistente. A entrada no mundo exige confirmação de bootstrap,
+`SetupContent` e aplicação dos defaults de cada mod, inclusive na rota de timeout
+de assets. Uma falha posterior descarrega o escopo gerenciado recém-carregado.
+Os tipos legados `BunnyNPC/BunnyItem/...` continuam no pipeline existente: o novo
+bootstrap não os instancia uma segunda vez nem os converte em `ModType`.
+
+A fila admite até 32 pedidos normais. Pedido ainda enfileirado que perdeu o prazo
+não roda; uma carga nova que termina atrasada é desfeita na mesma thread antes do
+próximo callback. Repetir uma carga confirmada com os mesmos bytes é idempotente.
+Trocar os bytes ou caminho de uma assembly ativa exige reiniciar; também se recusa
+substituição dos bytes de um caminho anteriormente carregado, pois `Assembly.LoadFrom`
+não descarrega código do domínio. Unload remove escopos, aliases, singletons e loaders
+sem outros donos; não é descarga da assembly CLR nem recarga de código a quente.
+
+No encerramento normal da Activity, uma thread auxiliar solicita teardown ao dono
+Mono, com espera de até dez segundos antes de encerrar o processo. O shutdown fecha
+novas cargas, pausa callbacks legados e descarrega escopos em ordem inversa. Um
+shutdown que perde o prazo permanece enfileirado; a Activity ainda pode matar o
+processo antes de um hook travado terminar. Morte abrupta pelo sistema não garante
+callbacks. Sair de um mundo preserva os mods carregados, como no tModLoader.
+
 ## Validação e limite de entrega
 
 ```sh
 dotnet run --project Split/Bunny-Loader/tests/content_loader -c Release
 dotnet run --project Split/Bunny-Loader/samples/ContentLoaderCSharp -c Release
 python3 Split/Bunny-Loader/tests/content_loader/check_upstream.py
+python3 Split/Bunny-Loader/tests/content_loader/run_native.py
 ```
 
 A suíte compila o SDK inteiro e o exemplo. Além dos testes de integração/falhas,
@@ -103,11 +135,15 @@ confere o hash Git de cada fonte após remover essa linha. Os shims de dono,
 localização e TypeCaching ficam exclusivamente nos testes.
 
 O workflow `check-csharp-content-loader.yml` testa .NET 8 e 10, executa o exemplo,
-confere a referência pública e recusa a presença de APK. Não chama Gradle/NDK,
-não assina pacotes e não publica builds.
+confere a referência pública, testa a fila/parser/SourceLoader/gate de produção
+com doubles nativos e compila entrypoints contra JNI real. O NDK compila apenas
+objetos ARM64 das fontes de integração; não há link, Gradle, assinatura ou pacote.
+O workflow recusa a presença de APK. Os testes nativos não substituem Mono/IL2CPP
+reais no aparelho; o encerramento Kotlin ainda requer validação Android.
 
 **Estado de entrega: núcleo gerenciado testável; PR Draft para integração/revisão.**
-A ligação automática deste núcleo com o lifecycle do MonoVM/SourceLoader e sua
-validação no Android ainda não estão realizadas. A matriz permanece sem qualquer
+A ligação automática com MonoVM/SourceLoader e o pedido de teardown estão
+implementados nas fontes, com testes de host. A validação integrada no Android
+ainda não foi realizada; as categorias de gameplay existentes não foram migradas. A matriz permanece sem qualquer
 novo `androidVerified`. **Não gerar APK, não mesclar como loader Android concluído,
 não publicar `.bmod` nem release enquanto a integração e a validação estiverem pendentes.**

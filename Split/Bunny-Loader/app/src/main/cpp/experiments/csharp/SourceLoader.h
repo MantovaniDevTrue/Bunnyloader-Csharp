@@ -12,6 +12,7 @@ struct SourceModStatus {
     std::string id;
     std::string error;
     int sourceFiles = 0;
+    int managedContentDeclarations = 0;
     int items = 0;
     int tiles = 0;
     int projectiles = 0;

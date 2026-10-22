@@ -166,6 +166,18 @@ string DisplayName { get; }
 string Texture { get; }
 ```
 
+## BunnyLoader.Source.BunnyContentHostDispatcher
+
+abstract class; base: `System.Object`.
+
+```csharp
+string LastError { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `static int Dispatch(int operation, string modId, string assemblyPath)` | mono_owner_content_lifecycle |
+
 ## BunnyLoader.Source.BunnyContentKind
 
 enum; base: `System.Enum`.
@@ -748,6 +760,7 @@ abstract class; base: `System.Object`.
 | `static void AutoLoad()` | managed_content_lifecycle |
 | `static void AutoLoad(Assembly assembly)` | managed_content_lifecycle |
 | `static void Clear()` | managed_content_lifecycle |
+| `static void ReleaseAssembly(Assembly assembly)` | managed_content_lifecycle |
 | `static void ResizeArrays()` | managed_content_lifecycle |
 | `static void Unload()` | managed_content_lifecycle |
 

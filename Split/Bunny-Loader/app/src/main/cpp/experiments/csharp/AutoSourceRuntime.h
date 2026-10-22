@@ -12,6 +12,7 @@ struct AutoSourceStatus {
     std::string error;
     bool cached = false;
     bool applied = false;
+    bool managedReady = false;
     int curves = 0;
     int enabledCurves = 0;
     int hitPolicies = 0;

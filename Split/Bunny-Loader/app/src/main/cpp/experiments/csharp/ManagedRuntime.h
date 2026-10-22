@@ -10,6 +10,13 @@
 
 namespace bl::csharp {
 
+// Off-game-thread RPC to the persistent Mono owner. Returns only after managed acknowledgement.
+// Closing is irreversible in this process; changing code/hot-reload still requires a host restart.
+bool loadManagedContentMod(const std::string& id, const std::string& assembly, std::string* error, int timeoutMs = 30000);
+bool unloadManagedContentMod(const std::string& id, std::string* error);
+bool shutdownManagedContent(int timeoutMs = 10000);
+bool managedContentHostClosing();
+
 struct ManagedHurtResult {
     int damage = 0;
     int hitDirection = 0;
@@ -356,6 +363,7 @@ ManagedLiveBenchmarkStatus stopManagedLiveBenchmark();
 struct ManagedSourceCompileResult {
     int result = 0;
     int executedTypes = 0;
+    int managedContentTypes = 0;
     std::string phase = "idle";
     std::string error;
 };

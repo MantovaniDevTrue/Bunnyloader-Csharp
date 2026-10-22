@@ -153,6 +153,28 @@ public static class LoaderManager
         }
     }
 
+    /// <summary>Release loaders owned by an unloaded assembly; refuse to discard live registrations.</summary>
+    public static void ReleaseAssembly(Assembly assembly)
+    {
+        ArgumentNullException.ThrowIfNull(assembly);
+        lock (ContentCatalog.Gate)
+        {
+            if (mutating || constructing) throw new InvalidOperationException("Recursive loader lifecycle.");
+            mutating = true;
+            try
+            {
+                var errors = new List<Exception>();
+                foreach (var entry in loadersByType.Where(entry => entry.Key.Assembly == assembly).Reverse().ToArray())
+                {
+                    try { entry.Value.Unload(); loadersByType.Remove(entry.Key); }
+                    catch (Exception error) { errors.Add(error); }
+                }
+                if (errors.Count != 0) throw new AggregateException("Assembly loader unload errors.", errors);
+            }
+            finally { mutating = false; }
+        }
+    }
+
     public static void ResizeArrays() => ForEach(loader => loader.ResizeArrays());
     public static void Unload() => ForEach(loader => loader.Unload());
 

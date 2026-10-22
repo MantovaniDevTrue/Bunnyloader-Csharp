@@ -222,6 +222,7 @@ Throws<KeyNotFoundException>(() => ModContent.Find<Basic>("missing/content"), "F
 Throws<InvalidOperationException>(() => ModTypeLookup<Basic>.Register(new Basic("unowned")), "cannot publish unowned instance");
 Check(ModContent.GetContent<ModType>().Count == 0, "final catalog empty");
 checks += UpstreamParity.Run();
+checks += HostIntegration.Run();
 Console.WriteLine("BUNNY_CONTENT_LOADER_PASS checks=" + checks);
 
 [Autoload(false)]

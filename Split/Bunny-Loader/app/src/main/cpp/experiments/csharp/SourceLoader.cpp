@@ -1,5 +1,6 @@
 #include "experiments/csharp/SourceLimits.h"
 #include "experiments/csharp/SourceLoader.h"
+#include "experiments/csharp/ManagedSourceClassCount.h"
 
 #include "experiments/csharp/NativeContent.h"
 #include "experiments/csharp/NativeBasicItems.h"
@@ -24,6 +25,8 @@
 #include <fstream>
 #include <iterator>
 #include <map>
+#include <mutex>
+#include <set>
 #include <sstream>
 #include <string>
 #include <sys/stat.h>
@@ -33,6 +36,8 @@ namespace bl::csharp {
 namespace {
 
 std::vector<SourceModStatus> g_statuses;
+std::mutex g_statusMutex;
+std::set<std::string> g_applying;
 
 bool isSourceName(const std::string& name) {
     return name.size() > 3 && name.substr(name.size() - 3) == ".cs";
@@ -292,6 +297,7 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
     if (defs.size() > kSourceMaxTypes) { status->error = "tipos C# demais"; return false; }
     std::map<std::string, int> typed;
     for (const auto& def : defs) {
+        if (def.base == "ModType") { ++status->managedContentDeclarations; continue; }
         const std::string key = sourceIdentityForBase(def.base, def.name);
         if (key.empty() || !typed.emplace(key, -1).second) {
             status->error = "identidade nativa C# duplicada/invalida: " + key +
@@ -300,7 +306,7 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
             return false;
         }
     }
-    if (!prepareNativeContent()) {
+    if (!typed.empty() && !prepareNativeContent()) {
         status->error = "Host API de conteudo nativo indisponivel";
         return false;
     }
@@ -419,7 +425,7 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
     status->npcs = ctx.npcs;
     status->potions = ctx.potions;
     status->basicItems = ctx.basicItems;
-    if (status->items+status->tiles+status->projectiles+status->buffs+status->npcs+status->prefixes+status->players==0) {
+    if (status->items+status->tiles+status->projectiles+status->buffs+status->npcs+status->prefixes+status->players+status->managedContentDeclarations==0) {
         status->error = "mod C# sem conteudo registrado";
         return false;
     }
@@ -439,6 +445,7 @@ bool loadCSharpSourceMod(const bl::mods::LoadedMod& mod) {
     } else {
         BL_ERROR("C# source %s: %s", mod.id.c_str(), status.error.c_str());
     }
+    std::lock_guard<std::mutex> guard(g_statusMutex);
     g_statuses.push_back(std::move(status));
     return g_statuses.back().loaded;
 }
@@ -451,17 +458,30 @@ bool applyManagedSourceDefaults(
         *error = "Resultado gerenciado inexistente ou grande demais";
         return false;
     }
-    SourceModStatus* mod = nullptr;
-    for (auto& entry : g_statuses) {
-        if (entry.id == modId && entry.loaded) {
-            mod = &entry;
-            break;
+    SourceModStatus snapshot;
+    {
+        std::lock_guard<std::mutex> guard(g_statusMutex);
+        const auto found = std::find_if(g_statuses.begin(), g_statuses.end(), [&](const SourceModStatus& entry) {
+            return entry.id == modId && entry.loaded;
+        });
+        if (found == g_statuses.end() || found->runtimeApplied || g_applying.contains(modId)) {
+            *error = "Mod fonte nao carregado ou SetDefaults ja aplicado/em andamento";
+            return false;
         }
+        snapshot = *found;
+        g_applying.insert(modId);
     }
-    if (!mod || mod->runtimeApplied) {
-        *error = "Mod fonte nao carregado ou SetDefaults ja aplicado";
-        return false;
-    }
+    struct ApplyCompletion {
+        const std::string& id;
+        SourceModStatus& snapshot;
+        ~ApplyCompletion() {
+            std::lock_guard<std::mutex> guard(g_statusMutex);
+            g_applying.erase(id);
+            if (snapshot.runtimeApplied)
+                for (auto& entry : g_statuses) if (entry.id == id) entry.runtimeApplied = true;
+        }
+    } completion{modId, snapshot};
+    SourceModStatus* mod = &snapshot; // Never hold the global status lock over parsing/native calls.
     std::istringstream lines(runtimeValues);
     std::string header;
     if (!std::getline(lines, header) || header != "BUNNY_MANAGED_DEFAULTS_V2") {
@@ -806,6 +826,10 @@ bool applyManagedSourceDefaults(
         *error = "As classes compiladas nao correspondem ao conteudo registrado";
         return false;
     }
+    if (mod->managedContentDeclarations > 0 && expectedManagedSourceTypes(*mod) == 0) {
+        mod->runtimeApplied = true;
+        return true; // No Terraria native API is required for a managed service catalog.
+    }
     for (size_t i = 0; i < weapons.size(); ++i) {
         const auto projectile = projectilesByName.find(shootNames[i]);
         if (projectile == projectilesByName.end()) {
@@ -846,7 +870,10 @@ bool applyManagedSourceDefaults(
     return true;
 }
 
-std::vector<SourceModStatus> sourceModStatuses() { return g_statuses; }
+std::vector<SourceModStatus> sourceModStatuses() {
+    std::lock_guard<std::mutex> guard(g_statusMutex);
+    return g_statuses;
+}
 
 }
 

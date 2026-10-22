@@ -58,6 +58,7 @@ Java_dev_bunnyloader_csharp_ManagedProbeService_compileNative(
     const std::string status = "result=" + std::to_string(result.result) +
         "\nphase=" + result.phase +
         "\nexecutedTypes=" + std::to_string(result.executedTypes) +
+        "\nmanagedContentTypes=" + std::to_string(result.managedContentTypes) +
         "\nerror=" + result.error;
     return env->NewStringUTF(status.c_str());
 }

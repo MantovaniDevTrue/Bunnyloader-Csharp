@@ -49,5 +49,6 @@ tModLoader, mantendo as adaptações necessárias ao Terraria Mobile.
 
 O [primeiro lote de infraestrutura](csharp-content-loader.md) implementa
 `Loader`, `Loader<T>`, `ILoader`, `LoaderManager`, `ModTypeLookup<T>` e o ciclo
-gerenciado de registros. Testes gerenciados e paridade não validam integração
+gerenciado de registros, bootstrap automático no dono MonoVM e teardown global.
+Inclui mod-fonte de serviços e testes da fila e do gate de mundo. Testes de host não validam integração
 Android. O lote permanece sem APK e sem novos registros `androidVerified`.

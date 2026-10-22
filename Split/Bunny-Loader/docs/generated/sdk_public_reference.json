@@ -285,6 +285,22 @@
       "methods": []
     },
     {
+      "name": "BunnyLoader.Source.BunnyContentHostDispatcher",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [
+        "string LastError { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "static int Dispatch(int operation, string modId, string assemblyPath)",
+          "execution": "mono_owner_content_lifecycle"
+        }
+      ]
+    },
+    {
       "name": "BunnyLoader.Source.BunnyContentKind",
       "kind": "enum",
       "baseType": "System.Enum",
@@ -1363,6 +1379,10 @@
         },
         {
           "signature": "static void Clear()",
+          "execution": "managed_content_lifecycle"
+        },
+        {
+          "signature": "static void ReleaseAssembly(Assembly assembly)",
           "execution": "managed_content_lifecycle"
         },
         {

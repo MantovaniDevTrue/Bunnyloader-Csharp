@@ -51,4 +51,8 @@ object NativeBridge {
     // TODO(Fase 2): implementar em boot/jni_entry.cpp
     external fun init(config: NativeConfig): Boolean
     external fun lastError(): String
+    private external fun shutdownCSharpContentNative(): Boolean
+
+    /** Persistent Mono owner teardown; caller must use a background thread after stopping Unity. */
+    fun shutdownCSharpContent(): Boolean = !loaded || shutdownCSharpContentNative()
 }

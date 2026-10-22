@@ -413,6 +413,16 @@ bool parseCSharpSource(const std::string& source,
             }
             base = declaredBase;
         }
+        // A lexical marker admits service-only assemblies, including an abstract custom category.
+        // Roslyn verifies concrete ModType descendants; this marker never reserves native IDs.
+        if (base == "ModType") {
+            ParsedSourceType marker;
+            marker.name = name;
+            marker.base = "ModType";
+            marker.namespaceName = fileNamespace;
+            definitions->push_back(std::move(marker));
+            ++found;
+        }
         if (!abstract && (base == "BunnyItem" || base == "BunnyProjectile" || base == "BunnyWeapon" ||
             base == "BunnyBuff" || base == "BunnyBuffPotion" ||
             base == "BunnyPlayer" || base == "BunnyAccessory" ||

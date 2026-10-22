@@ -6,6 +6,13 @@ on:
     paths:
       - 'Split/Bunny-Loader/experiments/csharp/BunnyCsSdk/**'
       - 'Split/Bunny-Loader/experiments/csharp/BunnySourceSdk/**'
+      - 'Split/Bunny-Loader/experiments/csharp/BunnySourceCompiler/**'
+      - 'Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/**'
+      - 'Split/Bunny-Loader/app/src/main/cpp/boot/jni_entry.cpp'
+      - 'Split/Bunny-Loader/app/src/main/kotlin/dev/bunnyloader/GameActivity.kt'
+      - 'Split/Bunny-Loader/app/src/main/kotlin/dev/bunnyloader/nativebridge/NativeBridge.kt'
+      - 'Split/Bunny-Loader/tests/auto_source_startup.cpp'
+      - 'Split/Bunny-Loader/tests/sdk_foundation/**'
       - 'Split/Bunny-Loader/tests/content_loader/**'
       - 'Split/Bunny-Loader/samples/ContentLoaderCSharp/**'
       - 'Split/Bunny-Loader/docs/generated/sdk_public_reference.*'
@@ -51,3 +58,46 @@ jobs:
             echo 'APK forbidden for this batch'
             exit 1
           fi
+
+  native-content-lifecycle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Execute production native queue, source loader and world gate tests
+        run: python3 Split/Bunny-Loader/tests/content_loader/run_native.py
+      - name: Compile JNI entrypoints against real JNI headers
+        run: |
+          g++ -std=c++20 -Wall -Wextra -Werror -fsyntax-only \
+            -I"$JAVA_HOME/include" -I"$JAVA_HOME/include/linux" \
+            -ISplit/Bunny-Loader/tests/basic_items/include -ISplit/Bunny-Loader/app/src/main/cpp \
+            Split/Bunny-Loader/app/src/main/cpp/boot/jni_entry.cpp \
+            Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/MonoWorkerJni.cpp
+  android-arm64-objects:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile integration sources to Android ARM64 objects only
+        shell: bash
+        run: |
+          ndk="${ANDROID_NDK_LATEST_HOME:-${ANDROID_NDK_HOME:-}}"
+          if [ ! -x "$ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android26-clang++" ]; then
+            sdkmanager 'ndk;30.0.16248370'
+            ndk="$ANDROID_HOME/ndk/30.0.16248370"
+          fi
+          cxx="$ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android26-clang++"
+          mkdir -p /tmp/bunny-content-arm64
+          for file in experiments/csharp/ManagedRuntime.cpp experiments/csharp/SourceLoader.cpp experiments/csharp/AutoSourceRuntime.cpp experiments/csharp/MonoWorkerJni.cpp boot/jni_entry.cpp; do
+            "$cxx" -std=c++20 -fno-exceptions -fno-rtti -Wall -Wextra -Werror \
+              -ISplit/Bunny-Loader/app/src/main/cpp -c "Split/Bunny-Loader/app/src/main/cpp/$file" \
+              -o "/tmp/bunny-content-arm64/$(basename "$file").o"
+          done
+          for object in /tmp/bunny-content-arm64/*.o; do
+            readelf -h "$object" | grep -q 'Machine:.*AArch64'
+          done
+          if find . -type f -name '*.apk' -print -quit | grep -q .; then exit 1; fi

@@ -269,11 +269,13 @@ bool compile(const std::string& root, const std::string& id,
     std::remove((workDir + "source-runtime-values.txt").c_str());
     std::remove((workDir + "source-projectile-turns.txt").c_str());
     std::remove((workDir + "source-combat-policies.txt").c_str());
+    if (managedContentHostClosing()) { *error = "CSharp host shutting down"; return false; }
     if (!requestIsolatedMonoCompile(root, id, *error)) return false;
     const std::string path = workDir + "source-compile-status.txt";
     const auto started = std::chrono::steady_clock::now();
     const auto deadline = started + std::chrono::seconds(180);
     for (; std::chrono::steady_clock::now() < deadline;) {
+        if (managedContentHostClosing()) { *error = "CSharp host shutting down"; return false; }
         const std::string status = readText(path, 8192);
         if (status.find("state=failed\n") != std::string::npos &&
             (status.find("modId=" + id + "\n") != std::string::npos ||
@@ -714,6 +716,7 @@ void run() {
     std::vector<Curve> pending;
     std::vector<Combat> pendingCombat;
     for (const auto& mod : sourceModStatuses()) {
+        if (managedContentHostClosing()) return;
         if (!mod.loaded || !mod.sourceFiles) continue;
         AutoSourceStatus status;
         status.modId = mod.id;
@@ -759,9 +762,9 @@ void run() {
         std::string cacheWrite=status.cached?"NotNeeded":"Unavailable";
         const auto cacheMs = fingerprintMs + elapsedMilliseconds(readStarted);
         note(&status, "waiting-content");
-        bool ready = false;
+        bool ready = expectedManagedSourceTypes(mod) == 0;
         const auto tablesStarted = std::chrono::steady_clock::now();
-        while (std::chrono::steady_clock::now() - tablesStarted < 90s) {
+        while (!ready && std::chrono::steady_clock::now() - tablesStarted < 90s) {
             if (runtime::modProjectilesSettled()) {
                 ready = true;
                 break;
@@ -785,22 +788,36 @@ void run() {
                 continue;
             }
         }
-        if ((mod.projectiles > 0 || mod.npcs > 0) &&
-            !g_runtimeWarmStarted.exchange(true, std::memory_order_acq_rel)) {
-            const std::string probe = work + "BunnyManagedProbe.dll";
-            struct stat probeStat{};
-            if (stat(probe.c_str(), &probeStat) == 0 && S_ISREG(probeStat.st_mode)) {
-                g_runtimeWarming.store(true, std::memory_order_release);
-                std::thread([probe] {
-                    const ManagedRuntimeStatus state =
-                        probeManagedRuntimePinnedThread(probe, "PINNED_MONO");
-                    if (!state.methodExecuted || state.result != 42)
-                        BL_DEBUG("csharp startup: MonoVM prewarm pendente (%s)",
-                                 state.phase.c_str());
-                    g_runtimeWarming.store(false, std::memory_order_release);
-                }).detach();
+        // Every source assembly participates, including item-only and service-only mods.
+        // This background startup thread waits for owner acknowledgement; the game thread never
+        // invokes Mono or declares content ready from a queued request alone.
+        if (!g_runtimeWarmStarted.load(std::memory_order_acquire)) {
+            g_runtimeWarming.store(true, std::memory_order_release);
+            const auto state = probeManagedRuntimePinnedThread(work + "BunnyManagedProbe.dll", "PINNED_MONO");
+            g_runtimeWarming.store(false, std::memory_order_release);
+            if (!state.methodExecuted || state.result != 42) {
+                note(&status, "failed", "MonoVM startup failed: " + state.phase);
+                continue;
             }
+            g_runtimeWarmStarted.store(true, std::memory_order_release);
         }
+        struct ContentRollback {
+            std::string id;
+            bool loaded = false, committed = false;
+            ~ContentRollback() {
+                if (loaded && !committed) {
+                    std::string failure;
+                    if (!unloadManagedContentMod(id, &failure))
+                        BL_ERROR("C# managed rollback mod=%s failed: %s", id.c_str(), failure.c_str());
+                }
+            }
+        } contentRollback{mod.id};
+        note(&status, "loading-managed-content");
+        if (!loadManagedContentMod(mod.id, assembly, &error)) {
+            note(&status, "failed", error);
+            continue;
+        }
+        contentRollback.loaded = true;
         if (!status.cached && recoverRuntimeCacheIdentityAfterCompile(
                 work, root, mod.id, cacheDir, &runtimeIdentity, &key, &cacheFile))
             BL_INFO("[CSharp][Startup] Stage=RuntimeCacheIdentity Cache=ChangedAfterCompile");
@@ -863,6 +880,8 @@ void run() {
         }
         pending.insert(pending.end(), entries.begin(), entries.end());
         pendingCombat.insert(pendingCombat.end(), effects.begin(), effects.end());
+        contentRollback.committed = true;
+        status.managedReady = true;
         note(&status, entries.empty() && effects.empty() ? "ready" : "waiting-world");
     }
     if (pending.empty() && pendingCombat.empty()) {
@@ -1249,6 +1268,20 @@ void noteAutoGameUpdate() {
     }
 }
 
+bool managedContentBootstrapReady() {
+    if (managedContentHostClosing()) return false;
+    const auto states = autoSourceStatuses();
+    for (const auto& source : sourceModStatuses()) {
+        if (!source.loaded || source.sourceFiles == 0 || source.id == kFixtureId) continue;
+        const auto state = std::find_if(states.begin(), states.end(), [&](const AutoSourceStatus& entry) {
+            return entry.modId == source.id;
+        });
+        if (state == states.end() || !state->managedReady || !state->applied ||
+            !state->error.empty() || state->phase == "failed") return false;
+    }
+    return true;
+}
+
 bool preWorldCSharpContentReady() {
     bool hasCSharpMods = false;
     for (const auto& source : sourceModStatuses())
@@ -1260,6 +1293,7 @@ bool preWorldCSharpContentReady() {
     if (!g_initialCSharpRegistrationFinished.load(std::memory_order_acquire) ||
         !g_preWorldBindingsArmed.load(std::memory_order_acquire))
         return false;
+    if (!managedContentBootstrapReady()) return false;
     const auto content = basicItemLoadStatus();
     bool needsNpcDispatcher = false;
     {
@@ -1318,10 +1352,10 @@ void flushDeferredWorldEntry() {
         lastPendingReport=now;
         const bool initialRegistration=!g_initialCSharpRegistrationFinished.load(std::memory_order_acquire);
         bl::log::write(initialRegistration?ANDROID_LOG_DEBUG:ANDROID_LOG_WARN,
-                "[CSharp][WorldLoading] Stage=BeforeWorld ElapsedSeconds=%lld PendingCore=%d PendingNativePolicies=%zu PendingArmorSets=%d PendingEquipmentTextures=%d PendingRecipes=%d PendingPlacements=%d PendingVisuals=%zu MonoBindingsReady=%d ModItemsReady=%d",
+                "[CSharp][WorldLoading] Stage=BeforeWorld ElapsedSeconds=%lld PendingCore=%d PendingNativePolicies=%zu PendingArmorSets=%d PendingEquipmentTextures=%d PendingRecipes=%d PendingPlacements=%d PendingVisuals=%zu ManagedContentReady=%d MonoBindingsReady=%d ModItemsReady=%d",
                 static_cast<long long>(elapsed),pendingCore,pendingNativePolicies,pendingArmor,pendingEquipment,content.pendingRecipes,content.pendingPlacements,
-                pendingNativeVisualRenderer(),g_preWorldBindingsArmed.load(std::memory_order_acquire)?1:0,
-                bl::runtime::modItemsSettled()?1:0);
+                pendingNativeVisualRenderer(),managedContentBootstrapReady()?1:0,
+                g_preWorldBindingsArmed.load(std::memory_order_acquire)?1:0,bl::runtime::modItemsSettled()?1:0);
         static std::map<int,std::string> reportedNativePolicies;
         if(pendingNativePolicies)for(const auto& policy:nativeItemPolicyStatus())if(!policy.ready){
             const std::string reason=policy.error.empty()?policy.phase:policy.error.substr(0,180);
@@ -1334,7 +1368,8 @@ void flushDeferredWorldEntry() {
     }
     if (elapsed>=6&&(pendingCore==0||deferredNativePolicies)&&content.pendingPlacements==0&&
         g_initialCSharpRegistrationFinished.load(std::memory_order_acquire)&&
-        g_preWorldBindingsArmed.load(std::memory_order_acquire)&&bl::runtime::modItemsSettled()) {
+        g_preWorldBindingsArmed.load(std::memory_order_acquire)&&managedContentBootstrapReady()&&
+        bl::runtime::modItemsSettled()) {
         BL_WARN("[CSharp][WorldLoading] Stage=BeforeWorld Result=ContinueWithDeferredNativeAssets PendingNativePolicies=%zu PendingArmorSets=%d PendingEquipmentTextures=%d PendingRecipes=%d PendingVisuals=%zu",
                 pendingNativePolicies,pendingArmor,pendingEquipment,content.pendingRecipes,pendingNativeVisualRenderer());
         if (finishPreWorldCSharpPlayer()) {
