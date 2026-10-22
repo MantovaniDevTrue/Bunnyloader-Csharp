@@ -64,6 +64,10 @@ jobs:
             -Iapp/src/main/cpp tests/banners/native_parser.cpp \
             app/src/main/cpp/experiments/csharp/SourceParser.cpp -o /tmp/bunny-banner-parser
           /tmp/bunny-banner-parser
+      - name: Compile the actual SourceLoader integration without linking or packaging
+        run: |
+          c++ -std=c++20 -Wall -Wextra -Werror -fsyntax-only \
+            -Iapp/src/main/cpp app/src/main/cpp/experiments/csharp/SourceLoader.cpp
       - name: Verify APK gate remains closed
         shell: bash
         run: |
