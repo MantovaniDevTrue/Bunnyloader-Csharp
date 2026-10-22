@@ -17,7 +17,9 @@ public static class BunnyBiomeDispatcher
         public string Name { get; }
         public BunnyBiome Biome { get; }
         public string[] CountedTiles { get; }
-        public bool Disabled { get; set; }
+        public bool Active { get; set; }
+        public BunnyBiomeSnapshot? LastSnapshot { get; set; }
+        public int Faults { get; set; }
 
         public Entry(string name, BunnyBiome biome)
         {
@@ -130,23 +132,30 @@ public static class BunnyBiomeDispatcher
             var response = new StringBuilder("BUNNY_BIOMES_V1\n");
             foreach (Entry entry in entries)
             {
-                if (entry.Disabled) continue;
-                if (entry.CountedTiles.Any(name =>
-                    !counts.ContainsKey(name)))
-                    continue;
-                try
+                bool active = false;
+                // Missing native tile counts are *unknown*, never zero.
+                // An exception in IsBiomeActive is false for THIS evaluation
+                // only, matching ExampleModBunny's Safe.Run policy.
+                if (snapshot.PlayerActive &&
+                    !entry.CountedTiles.Any(name => !counts.ContainsKey(name)))
                 {
-                    if (snapshot.PlayerActive &&
-                        entry.Biome.IsBiomeActive(snapshot))
-                        response.Append("BIOME\t")
-                            .Append(entry.Name).Append('\n');
+                    try { active = entry.Biome.IsBiomeActive(snapshot); }
+                    catch (Exception ex) { Fault(entry, "IsBiomeActive", ex); }
                 }
-                catch (Exception ex)
+
+                bool before = entry.Active;
+                entry.Active = active;
+                if (!before && active)
+                    RunHook(entry, "OnEnter", snapshot, entry.Biome.OnEnter);
+                else if (before && !active)
+                    RunHook(entry, "OnLeave", snapshot, entry.Biome.OnLeave);
+
+                if (active)
                 {
-                    entry.Disabled = true;
-                    LastError = entry.Name + ".IsBiomeActive: " +
-                        ex.GetType().Name + ": " + ex.Message;
+                    RunHook(entry, "OnInBiome", snapshot, entry.Biome.OnInBiome);
+                    response.Append("BIOME\t").Append(entry.Name).Append('\n');
                 }
+                entry.LastSnapshot = snapshot;
             }
             return response.ToString();
         }
@@ -157,10 +166,49 @@ public static class BunnyBiomeDispatcher
         }
     }
 
-    public static bool Unregister(string modId) => Mods.Remove(modId);
+    private static void Fault(Entry entry, string phase, Exception ex)
+    {
+        entry.Faults++;
+        LastError = entry.Name + "." + phase + ": " +
+            ex.GetType().Name + ": " + ex.Message;
+    }
+
+    private static void RunHook(Entry entry, string phase,
+        BunnyBiomeSnapshot snapshot, Action<BunnyBiomeSnapshot> callback)
+    {
+        try { callback(snapshot); }
+        catch (Exception ex) { Fault(entry, phase, ex); }
+    }
+
+    private static void Leave(Entry entry)
+    {
+        if (entry.Active)
+        {
+            entry.Active = false;
+            if (entry.LastSnapshot != null)
+                RunHook(entry, "OnLeave", entry.LastSnapshot,
+                    entry.Biome.OnLeave);
+        }
+        entry.LastSnapshot = null;
+    }
+
+    public static void ResetWorld()
+    {
+        foreach (List<Entry> entries in Mods.Values)
+            foreach (Entry entry in entries) Leave(entry);
+    }
+
+    public static bool Unregister(string modId)
+    {
+        if (!Mods.TryGetValue(modId, out List<Entry>? entries))
+            return false;
+        foreach (Entry entry in entries) Leave(entry);
+        return Mods.Remove(modId);
+    }
 
     public static void Clear()
     {
+        ResetWorld();
         Mods.Clear();
         LastError = "";
     }
