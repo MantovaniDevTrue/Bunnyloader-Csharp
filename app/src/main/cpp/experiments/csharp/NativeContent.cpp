@@ -394,9 +394,9 @@ void hkItemDefaults(Il2CppObject* self, int32_t type, int32_t variant, const Met
             return;
         }
         if (basicItemHasDamage(type)||basicItemIsAccessory(type)) enableManagedPrefixEligibility(type);
-        bl::runtime::finishModItem(self,type);
         nativeDefaults.applyNow();
         applyNativeDamageClassFlags(self,false,type);
+        bl::runtime::finishModItem(self,type);
         return;
     }
     const auto weapons=std::atomic_load_explicit(&g_weaponView,std::memory_order_acquire);
@@ -457,9 +457,9 @@ void hkItemDefaults(Il2CppObject* self, int32_t type, int32_t variant, const Met
     bl::runtime::field<int32_t>(self, r.itemRare) = 2;
     bl::runtime::field<int32_t>(self, r.itemMaxStack) = 1;
     enableManagedPrefixEligibility(type);
-    bl::runtime::finishModItem(self, type);
     nativeDefaults.applyNow();
     applyNativeDamageClassFlags(self,false,type);
+    bl::runtime::finishModItem(self, type);
 }
 
 void hkProjectileStatsFromSource(Il2CppObject* projectile,Il2CppObject* source,const MethodInfo* method) {
