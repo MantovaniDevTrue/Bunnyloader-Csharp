@@ -446,6 +446,7 @@ struct ManagedEntityBinding {
     int useReports = 0;
     bool cleanupQueued = false;
     bool damageStatsPublished = false;
+    bool damageStatsAttempted = false;
 };
 
 struct ManagedEntityJob {
@@ -1274,15 +1275,16 @@ int64_t executeManagedEntityOnWorker(const ManagedEntityJob& job) {
                             binding.projectileTypes.size());
 #endif
     }
-    if (job.kind == 7) {
+    if (!binding.damageStatsAttempted) {
         bool needed = false;
         {
             std::lock_guard<std::mutex> guard(g_pinnedMutex);
             if (job.binding >= 0 &&
                 static_cast<size_t>(job.binding) < g_entityBindings.size()) {
-                const auto& owner = g_entityBindings[static_cast<size_t>(job.binding)];
-                needed = owner.armed && !owner.damageStatsPublished &&
+                auto& owner = g_entityBindings[static_cast<size_t>(job.binding)];
+                needed = owner.armed && !owner.damageStatsAttempted &&
                     owner.modId == binding.modId;
+                if (needed) owner.damageStatsAttempted = true;
             }
         }
         if (needed) {
@@ -1311,8 +1313,8 @@ int64_t executeManagedEntityOnWorker(const ManagedEntityJob& job) {
                 }
             }
         }
-        return managedSlot;
     }
+    if (job.kind == 7) return managedSlot;
     {
         std::lock_guard<std::mutex> guard(g_pinnedMutex);
         if (job.session != g_entitySession ||
