@@ -1247,6 +1247,34 @@ public static class CompiledAssemblyProbe
             if(holdout!=null)lines.Add(string.Join("\t","HOLDOUT",item.GetType().Name,
                 Value<float>(holdout,"X").ToString("R",CultureInfo.InvariantCulture),Value<float>(holdout,"Y").ToString("R",CultureInfo.InvariantCulture)));
         }
+        // DamageType é identidade por classe, não um ID de runtime do compilador.
+        // O MonoVM resolve os IDs dos mods no próprio processo Android.
+        string DamageTypeWire(object content)
+        {
+            var damageClass = Value<BunnyLoader.Source.DamageClass>(content, "DamageType");
+            if (damageClass is null)
+                throw new InvalidOperationException("DamageType cannot be null: " + content.GetType().FullName);
+            for (int i = 0; i < 10; ++i)
+                if (ReferenceEquals(damageClass, BunnyLoader.Source.DamageClassLoader.GetDamageClass(i)))
+                    return "V" + i.ToString(CultureInfo.InvariantCulture);
+            Type custom = damageClass.GetType();
+            if (custom.Assembly != content.GetType().Assembly ||
+                custom.IsAbstract || custom.ContainsGenericParameters ||
+                !typeof(BunnyLoader.Source.DamageClass).IsAssignableFrom(custom) ||
+                typeof(BunnyLoader.Source.VanillaDamageClass).IsAssignableFrom(custom) ||
+                custom.GetConstructor(Type.EmptyTypes) == null ||
+                custom.FullName is null ||
+                custom.FullName.Length > 240)
+                throw new InvalidOperationException("DamageType requires vanilla or concrete class from same assembly: " +
+                    content.GetType().FullName);
+            return "C:" + custom.FullName;
+        }
+        foreach (object owner in basicItems.Concat(weapons))
+            lines.Add(string.Join("\t", "DAMAGE_TYPE", "ITEM",
+                owner.GetType().Name, DamageTypeWire(owner)));
+        foreach (object owner in projectiles)
+            lines.Add(string.Join("\t", "DAMAGE_TYPE", "PROJECTILE",
+                owner.GetType().Name, DamageTypeWire(owner)));
         // A single public typed bridge serves all item families and projectiles.
         foreach(var definition in basicItems.Concat(weapons).Concat(potions).Concat(accessories)
             .Select(value=>(Value:value,Kind:"NATIVE_ITEM"))
