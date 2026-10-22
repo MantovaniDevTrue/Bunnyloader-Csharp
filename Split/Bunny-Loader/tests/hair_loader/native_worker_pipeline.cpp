@@ -80,7 +80,8 @@ int main(int argc, char** argv) {
 
     slots.occupied.set(300);
     auto occupied = PrepareOneCompiledHairMod(
-        &startup, "examplemodcsharp", 2, argv[1], exported, assetExists);
+        &startup, "examplemodcsharp", 2, argv[1],
+        [](int) { return 2; }, assetExists);
     check(!occupied.ready && occupied.firstType != 300 &&
           !startup.ReadyDescriptors(),
           "a reserva não pode ignorar slot já ocupado por JS");
