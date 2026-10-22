@@ -83,6 +83,40 @@ int main() {
     });
     check(readerCalls == previousCalls,
           "timeout não permite pump tardio publicar snapshot obsoleto");
+    NativeHairSlotSnapshot expired, fresh;
+    std::atomic<bool> oldReading{false};
+    std::thread expiredWorker([&] { expired = mailbox.Request(80ms); });
+    waitRequest(mailbox);
+    std::thread oldPump([&] {
+        mailbox.Pump([&] {
+            oldReading.store(true);
+            std::this_thread::sleep_for(150ms);
+            NativeHairSlotSnapshot oldData;
+            oldData.valid = true;
+            oldData.occupied.set(234);
+            return oldData;
+        });
+    });
+    const auto started = std::chrono::steady_clock::now() + 2s;
+    while (!oldReading.load() && std::chrono::steady_clock::now() < started)
+        std::this_thread::sleep_for(1ms);
+    check(oldReading.load(), "leitura IL2CPP antiga iniciada");
+    expiredWorker.join();
+    check(expired.error == "HairSlotMailboxTimedOut",
+          "pedido antigo expira enquanto o game thread lê");
+    std::thread nextWorker([&] { fresh = mailbox.Request(2s); });
+    waitRequest(mailbox);
+    oldPump.join();
+    mailbox.Pump([&] {
+        NativeHairSlotSnapshot current;
+        current.valid = true;
+        current.occupied.set(235);
+        return current;
+    });
+    nextWorker.join();
+    check(fresh.valid && fresh.IsOccupied(235) && !fresh.IsOccupied(234),
+          "leitura obsoleta não pode entregar resposta ao próximo request");
+
     const auto invalid = mailbox.Request(6s);
     check(invalid.error == "HairSlotMailboxInvalidTimeout",
           "worker não pode bloquear por tempo arbitrário");
