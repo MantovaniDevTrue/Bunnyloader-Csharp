@@ -7,6 +7,13 @@ on:
     paths:
       - "tools/example_completion/release_gate.py"
       - "tools/example_completion/test_release_gate.py"
+      - "tools/example_completion/stage_tile_assets.py"
+      - "tests/basic_items/**"
+      - "samples/ExampleModCSharp/Playable/content/Content/Tiles/ExampleTile.cs"
+      - "samples/ExampleModCSharp/Playable/content/Content/Items/Placeable/ExampleTileItem.cs"
+      - "experiments/csharp/BunnyCsSdk/BunnyTile.cs"
+      - "app/src/main/cpp/experiments/csharp/NativeContent.cpp"
+      - "app/src/main/cpp/experiments/csharp/SourceLoader.cpp"
       - ".github/workflows/check-examplemod-parity-source-only.yml"
   pull_request:
     paths:
@@ -28,3 +35,10 @@ jobs:
         run: python3 -m py_compile tools/example_completion/release_gate.py tools/example_completion/test_release_gate.py
       - name: Verify all deny and allow cases using isolated source fixtures
         run: python3 tools/example_completion/test_release_gate.py -v
+      - name: Stage original sprite bytes (no APK)
+        run: python3 tools/example_completion/stage_tile_assets.py --copy
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Compile and test original tile and item SDK source (no Android build)
+        run: dotnet run --project tests/basic_items/ItemBatch.csproj -c Release
