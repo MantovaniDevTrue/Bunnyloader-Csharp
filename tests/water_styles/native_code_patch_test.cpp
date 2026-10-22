@@ -102,7 +102,7 @@ int main() {
     CHECK(!result.applied && protectCalls==0 && result.detail.find("CodeMappingUnavailable")!=std::string::npos);
     CHECK(::mprotect(second,page,PROT_READ|PROT_EXEC)==0);
     prepare();const auto enumerate=exports.class_get_methods;exports.class_get_methods=nullptr;
-    CHECK(!patchLoopLimits(&method,changes).applied);exports.class_get_methods=enumerate;
+    result=patchLoopLimits(&method,changes);CHECK(!result.applied && result.detail.find("MissingExports:class_get_methods")!=std::string::npos);exports.class_get_methods=enumerate;
     CHECK(!patchLoopLimits(nullptr,changes).applied);CHECK(!patchLoopLimits(&method,{}).applied);
     for(const auto invalid:std::array<LoopLimitPatch,3>{{{23,4096,false},{4096,24,false},{23,23,false}}}) {
         std::array<LoopLimitPatch,1> change={invalid};result=patchLoopLimits(&method,change);

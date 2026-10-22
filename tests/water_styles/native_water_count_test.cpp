@@ -118,6 +118,8 @@ int main() {
     drawWater.pointer=code;following.pointer=code+8;CHECK(::mprotect(code,page,PROT_READ|PROT_EXEC)==0);
     CHECK(!setWaterStyleCount(-1) && logHas("CountOutsideCompiledImmediateRange"));
     CHECK(!setWaterStyleCount(4096) && code[0]==cmp(23));CHECK(!setWaterStyleCount(14));
+    const auto methodFlags=exports.method_get_flags;exports.method_get_flags=nullptr;
+    CHECK(!setWaterStyleCount(16) && logHas("MissingExports:method_get_flags"));exports.method_get_flags=methodFlags;
     const int originalTid=gameTid;gameTid=0;CHECK(!setWaterStyleCount(16) && logHas("WrongThread"));gameTid=originalTid;
     bool fromWorker=true;std::thread worker([&]{fromWorker=setWaterStyleCount(16);});worker.join();CHECK(!fromWorker && code[0]==cmp(23));
     drawWater.flags=0x10;CHECK(!setWaterStyleCount(16) && logHas("NativeMethodContractMismatch"));drawWater.flags=0;
@@ -128,7 +130,7 @@ int main() {
     for(auto* field:{&waterTexture,&blockTexture,&slopeTexture}) {
         auto saved=field->data;set(*field,array(&assetArray,15));CHECK(!setWaterStyleCount(16) && code[0]==cmp(23));field->data=saved;
         auto* values=*reinterpret_cast<Il2CppArray**>(field->data.data());auto** data=static_cast<Il2CppObject**>(arrayData(values));auto* value=data[15];data[15]=nullptr;
-        CHECK(!setWaterStyleCount(16) && logHas("WaterTextureSlotUnavailable") && code[0]==cmp(23));data[15]=value;
+        CHECK(!setWaterStyleCount(16) && logHas("WaterTextureSlotUnavailable") && logHas("Slot:15,Value:Null") && code[0]==cmp(23));data[15]=value;
         const auto flags=field->flags;field->flags=0;CHECK(!setWaterStyleCount(16) && logHas("NativeStorageMismatch"));field->flags=flags;
         const auto type=field->type;field->type.cls=&real;CHECK(!setWaterStyleCount(16) && logHas("NativeTypeOrSizeMismatch"));field->type=type;
     }

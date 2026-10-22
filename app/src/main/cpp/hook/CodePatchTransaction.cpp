@@ -72,7 +72,8 @@ CodePatchResult patchLoopLimits(const MethodInfo* method,std::span<const LoopLim
         return reject("Preflight","InvalidRequest","MethodAnd1..16Changes","Changes:"+std::to_string(patches.size()));
     auto& api=il2cpp::api();
     if(!api.method_get_class || !api.class_get_methods)
-        return reject("Preflight","MetadataUnavailable","method_get_class,class_get_methods","MissingExport");
+        return reject("Preflight","MetadataUnavailable","method_get_class,class_get_methods",
+            std::string("MissingExports:")+(!api.method_get_class?"method_get_class ":"")+(!api.class_get_methods?"class_get_methods":""));
     const auto pointer=[](const MethodInfo* value){return *reinterpret_cast<void* const*>(value);};
     const auto start=reinterpret_cast<uintptr_t>(pointer(method));
     if(!start || start%alignof(uint32_t) || start>std::numeric_limits<uintptr_t>::max()-maxMethodBytes)

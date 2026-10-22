@@ -23,6 +23,11 @@ bool bindAlphaTables(std::string* error) {
     if(alphaRefs.ready)return true;
     auto* main=il2cpp::findClassQuiet("Terraria","Main");
     auto* local=il2cpp::findClassQuiet("","LocalUserGameState");
+    if(!main || !local) {
+        if(error)*error="[Native][ERROR][WaterStyle] Stage=BindAlphaTables Expected=Terraria.Main,LocalUserGameState Actual=MissingClasses:"+
+            std::string(!main?"Terraria.Main ":"")+(!local?"LocalUserGameState":"")+" Result=Rejected Reason=NativeClassUnavailable";
+        return false;
+    }
     AlphaRefs next;
     if(!next.local.bind(local,"Instance",K::Reference,true,error,local) ||
        !next.tables[0].bind(main,local,"liquidAlpha",error) ||

@@ -68,6 +68,12 @@ bool tablesReady(int total,Il2CppClass* main,std::string* error) {
     auto* liquid=il2cpp::findClassQuiet("Terraria.GameContent.Liquid","LiquidRenderer");
     auto* textures=il2cpp::findClassQuiet("Terraria.GameContent","TextureAssets");
     auto* asset=content::textureAssetClass();
+    if(!liquid || !textures || !asset) {
+        if(error)*error="[Native][ERROR][WaterStyle] Stage=BindTextureTables Expected=LiquidRenderer,TextureAssets,Asset<Texture2D> Actual=MissingClasses:"+
+            std::string(!liquid?"Terraria.GameContent.Liquid.LiquidRenderer ":"")+(!textures?"Terraria.GameContent.TextureAssets ":"")+
+            (!asset?"ReLogic.Content.Asset<Texture2D>":"")+" Reason=NativeClassUnavailable";
+        return false;
+    }
     const std::array<Il2CppClass*,5> owners={liquid,textures,textures,main,main};
     const std::array<const char*,5> names={"_liquidTextures","Liquid","LiquidSlope","liquidAlpha","activeLiquidAlpha"};
     for(size_t i=0;i<owners.size();++i) {
@@ -78,7 +84,8 @@ bool tablesReady(int total,Il2CppClass* main,std::string* error) {
         if(i<3)for(int slot=kVanillaWaterStyleCount;slot<total;++slot) {
             auto* value=static_cast<Il2CppObject**>(arrayData(array))[slot];
             if(!value || !il2cpp::api().class_is_assignable_from(asset,il2cpp::api().object_get_class(value)))
-                return property.reject(error,"ValidateSlot","CompatibleTextureAsset",value?P::name(il2cpp::api().object_get_class(value)):"Null",
+                return property.reject(error,"ValidateSlot","CompatibleTextureAsset","Slot:"+std::to_string(slot)+",Value:"+
+                    (value?P::name(il2cpp::api().object_get_class(value)):"Null"),
                     "WaterTextureSlotUnavailable");
         }
     }
@@ -101,11 +108,16 @@ bool setWaterStyleCount(int total) {
     Il2CppClass* main = il2cpp::findClassQuiet("Terraria","Main");
     // Resolve the complete overload and instance storage before interpreting
     // its machine code. Equal parameter counts do not prove ABI compatibility.
-    if(!a.method_get_flags || !a.method_get_param_count || !a.method_get_param ||
-       !a.method_get_return_type || !a.class_value_size || !a.class_is_valuetype ||
-       !a.class_from_il2cpp_type || !a.class_get_name || !a.class_get_namespace ||
-       !a.type_get_name || !a.il2cpp_free || !a.class_get_methods || !a.method_get_name)
-        return waterFailure("BindMethod","Expected=CompleteTypedMethodMetadata Actual=MissingExports Reason=MetadataUnavailable");
+    std::string missing;
+    const auto require=[&](auto value,const char* name){if(!value){if(!missing.empty())missing+=',';missing+=name;}};
+#define WATER_METHOD_EXPORT(name) require(a.name,#name)
+    WATER_METHOD_EXPORT(method_get_flags);WATER_METHOD_EXPORT(method_get_param_count);WATER_METHOD_EXPORT(method_get_param);
+    WATER_METHOD_EXPORT(method_get_return_type);WATER_METHOD_EXPORT(class_value_size);WATER_METHOD_EXPORT(class_is_valuetype);
+    WATER_METHOD_EXPORT(class_from_il2cpp_type);WATER_METHOD_EXPORT(class_get_name);WATER_METHOD_EXPORT(class_get_namespace);
+    WATER_METHOD_EXPORT(type_get_name);WATER_METHOD_EXPORT(il2cpp_free);WATER_METHOD_EXPORT(class_get_methods);WATER_METHOD_EXPORT(method_get_name);
+#undef WATER_METHOD_EXPORT
+    if(!missing.empty())return waterFailure("BindMethod","Expected=CompleteTypedMethodMetadata Actual=MissingExports:"+missing+" Reason=MetadataUnavailable");
+    if(!main)return waterFailure("BindMethod","Expected=Terraria.Main Actual=MissingClass Reason=NativeClassUnavailable");
     const MethodInfo* m=main?il2cpp::findMethodBySignature(main,il2cpp::parseSignature("void DrawWaters(bool isBackground)")):nullptr;
     if(!m || (a.method_get_flags(m,nullptr)&0x10u) || (a.method_is_generic && a.method_is_generic(m)))
         return waterFailure("BindMethod","Expected=Instance:void DrawWaters(bool isBackground) Actual="+
