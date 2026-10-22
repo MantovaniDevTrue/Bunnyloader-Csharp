@@ -24,16 +24,32 @@ puro de ranking, em C++, sem IL2CPP, sem hooks e sem Android.
 - Peso de superfície/subsolo na escolha: `rank - prioridade`.
 - Fundo do mapa: primeiro caminho não vazio.
 
+## Ponte C# (escrita, sem validação no jogo)
+
+- `BunnySceneEffect` (SDK): `Priority`, `GetWeight`, `IsSceneEffectActive`,
+  `SpecialVisuals`, `SurfaceBackgroundStyle` e `UndergroundBackgroundStyle`
+  (o `Type` do estilo; resolvido por UID do mod + nome da classe).
+- O registro liga em `Terraria.Player.UpdateBiomes` pelo mecanismo de hook que
+  o SDK já tem (`HookVoid`), roda depois do original e só para o jogador local.
+- O vencedor de cada canal é ativado pelos serviços nativos que já existem
+  (`BunnySurfaceBackgrounds.Set` e `BunnyUndergroundBackgrounds.Set`) e o
+  anterior é desligado na troca. Sem JavaScript no caminho.
+- O ranking gerenciado (`BunnySceneRanking`) repete o do núcleo nativo, com o
+  mesmo conjunto de casos de teste (`tests/scene_effects/Program.cs`). Os dois
+  precisam andar juntos. A comparação de chaves do C# é por unidades UTF-16 e a
+  do C++ é por bytes UTF-8: só diferem para chaves com caracteres fora do plano
+  básico.
+- Música, água e fundo do mapa não existem nesta ponte: não há consumidor C#
+  para esses canais, e a PR não adiciona API vazia.
+
 ## O que falta (nada disto está feito)
 
-- Ponte gerenciada: `BunnySceneEffect` no SDK C# (`IsSceneEffectActive`,
-  `GetWeight`, `SpecialVisuals`, `MapBackgroundColor`) chamando este núcleo.
-- Hook de `Player.UpdateBiomes` com contratos IL2CPP verificados e a cena por
-  jogador (o campo `CurrentSceneEffect` do original).
-- Ligação com os consumidores: Surface, Underground, Water, Map e Music.
-- `BiomeLoader` (flags por jogador, OnEnter/OnLeave/OnInBiome, sincronização
-  em rede, localização, saída do mundo), que é quem dispara a cena a cada
-  quadro.
-- Fixtures com providers reais, exemplo C#, CI e validação no Android.
+- Validar no Android: o contrato de `Player.UpdateBiomes` (assinatura e quadro
+  em que roda) e o efeito dos `Set` a cada troca de vencedor.
+- Canais de música, água e mapa, quando os loaders deles existirem.
+- Exemplo C# com um `BunnySceneEffect` ligando os dois fundos do ExampleMod.
+- `BiomeLoader` (flags por jogador, OnEnter/OnLeave/OnInBiome, rede,
+  localização, saída do mundo) e a cena de jogadores remotos.
+- Fixtures com providers reais e a matriz atualizada para "implementado".
 
-O ambiente desta entrega não tinha .NET: nada do lado C# foi compilado aqui.
+Este código foi escrito sem compilador .NET local: quem compila é o CI.
