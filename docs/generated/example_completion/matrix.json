@@ -450,17 +450,18 @@
     "Placeable": {
       "total": 36,
       "states": {
-        "Não implementado": 34,
+        "Não implementado": 30,
+        "Parcial": 4,
         "Implementado, aguardando validação": 2
       },
       "implemented": 2,
       "validated": 0,
       "automated": 0,
       "automatedPercent": 0.0,
-      "partial": 0,
+      "partial": 4,
       "implementedPercent": 5.56,
       "validatedPercent": 0.0,
-      "partialPercent": 0.0,
+      "partialPercent": 11.11,
       "limitations": 0,
       "missingExamples": 34
     },
@@ -8080,31 +8081,39 @@
         "nativeSignatures": [],
         "imports": []
       },
-      "cSharp": [],
+      "cSharp": [
+        "samples/ExampleModCSharp/Porting/Content/Items/Placeable/ExampleCampfire.cs"
+      ],
       "requiredApis": [
         "AddRecipes",
         "ModItem",
         "SetDefaults"
       ],
-      "status": "Não implementado",
+      "status": "Parcial",
       "assets": [
         "content/Content/Items/Placeable/ExampleCampfire.png"
       ],
       "automatedEvidence": [],
-      "preservedFeatures": [],
+      "preservedFeatures": [
+        "Exact placeable default, Wood recipe group and 5 ExampleTorch inputs."
+      ],
       "missingFeatures": [
-        "Sem contrato C# reutilizavel equivalente para ModItem"
+        "ExampleCampfire tile still lacks C# NearbyEffects, frame, light and related native policy."
       ],
       "nativeDependencies": [
-        "app/src/main/cpp/script/js/mod/ModItem.js"
+        "experiments/csharp/BunnyCsSdk/BunnyItem.cs",
+        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp"
       ],
-      "automatedTests": [],
+      "automatedTests": [
+        "tests/basic_items/placeable_stage/PlaceableStage.csproj"
+      ],
       "terrariaTests": [
         "Comparar cada hook/propriedade listado com o comportamento JS original no Terraria 1.4.5.8.6.",
         "Carregar junto de um mod JS; entrar/sair do mundo e conferir falhas e desempenho.",
         "Verificar persistencia, remocao do mod e morte/respawn quando o exemplo mantiver estado."
       ],
-      "validation": "Sem validacao funcional C# deste exemplo inteiro.",
+      "validation": "O item esta em Porting para nao ativar a receita antes de existir o ModTile C# correspondente; aguarda host e Android.",
       "deviceEvidence": [],
       "technicalBlockEvidence": [],
       "sourceEvidence": [
@@ -8290,31 +8299,39 @@
         "nativeSignatures": [],
         "imports": []
       },
-      "cSharp": [],
+      "cSharp": [
+        "samples/ExampleModCSharp/Porting/Content/Items/Placeable/ExampleHerbSeeds.cs"
+      ],
       "requiredApis": [
         "AddRecipes",
         "ModItem",
         "SetDefaults"
       ],
-      "status": "Não implementado",
+      "status": "Parcial",
       "assets": [
         "content/Content/Items/Placeable/ExampleHerbSeeds.png"
       ],
       "automatedEvidence": [],
-      "preservedFeatures": [],
+      "preservedFeatures": [
+        "Exact native tile name, 12x14 item, value 80 and ExampleTileItem recipe."
+      ],
       "missingFeatures": [
-        "Sem contrato C# reutilizavel equivalente para ModItem"
+        "ExampleHerb tile germination, planting and substrate behaviors are not implemented in C#."
       ],
       "nativeDependencies": [
-        "app/src/main/cpp/script/js/mod/ModItem.js"
+        "experiments/csharp/BunnyCsSdk/BunnyItem.cs",
+        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp"
       ],
-      "automatedTests": [],
+      "automatedTests": [
+        "tests/basic_items/placeable_stage/PlaceableStage.csproj"
+      ],
       "terrariaTests": [
         "Comparar cada hook/propriedade listado com o comportamento JS original no Terraria 1.4.5.8.6.",
         "Carregar junto de um mod JS; entrar/sair do mundo e conferir falhas e desempenho.",
         "Verificar persistencia, remocao do mod e morte/respawn quando o exemplo mantiver estado."
       ],
-      "validation": "Sem validacao funcional C# deste exemplo inteiro.",
+      "validation": "O item esta em Porting para nao ativar a receita antes de existir o ModTile C# correspondente; aguarda host e Android.",
       "deviceEvidence": [],
       "technicalBlockEvidence": [],
       "sourceEvidence": [
@@ -8362,31 +8379,39 @@
         "nativeSignatures": [],
         "imports": []
       },
-      "cSharp": [],
+      "cSharp": [
+        "samples/ExampleModCSharp/Porting/Content/Items/Placeable/ExampleLamp.cs"
+      ],
       "requiredApis": [
         "AddRecipes",
         "ModItem",
         "SetDefaults"
       ],
-      "status": "Não implementado",
+      "status": "Parcial",
       "assets": [
         "content/Content/Items/Placeable/ExampleLamp.png"
       ],
       "automatedEvidence": [],
-      "preservedFeatures": [],
+      "preservedFeatures": [
+        "Exact native item placement, 10x24 size, value 500 and ExampleWorkbench recipe."
+      ],
       "missingFeatures": [
-        "Sem contrato C# reutilizavel equivalente para ModItem"
+        "ExampleLamp tile draw, light and placed furniture behavior have not been ported."
       ],
       "nativeDependencies": [
-        "app/src/main/cpp/script/js/mod/ModItem.js"
+        "experiments/csharp/BunnyCsSdk/BunnyItem.cs",
+        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp"
       ],
-      "automatedTests": [],
+      "automatedTests": [
+        "tests/basic_items/placeable_stage/PlaceableStage.csproj"
+      ],
       "terrariaTests": [
         "Comparar cada hook/propriedade listado com o comportamento JS original no Terraria 1.4.5.8.6.",
         "Carregar junto de um mod JS; entrar/sair do mundo e conferir falhas e desempenho.",
         "Verificar persistencia, remocao do mod e morte/respawn quando o exemplo mantiver estado."
       ],
-      "validation": "Sem validacao funcional C# deste exemplo inteiro.",
+      "validation": "O item esta em Porting para nao ativar a receita antes de existir o ModTile C# correspondente; aguarda host e Android.",
       "deviceEvidence": [],
       "technicalBlockEvidence": [],
       "sourceEvidence": [
@@ -8791,31 +8816,39 @@
         "nativeSignatures": [],
         "imports": []
       },
-      "cSharp": [],
+      "cSharp": [
+        "samples/ExampleModCSharp/Porting/Content/Items/Placeable/ExampleSinkItem.cs"
+      ],
       "requiredApis": [
         "AddRecipes",
         "ModItem",
         "SetDefaults"
       ],
-      "status": "Não implementado",
+      "status": "Parcial",
       "assets": [
         "content/Content/Items/Placeable/ExampleSinkItem.png"
       ],
       "automatedEvidence": [],
-      "preservedFeatures": [],
+      "preservedFeatures": [
+        "Exact native item placement, 24x30 size, value 3000 and WorkBenches recipe."
+      ],
       "missingFeatures": [
-        "Sem contrato C# reutilizavel equivalente para ModItem"
+        "ExampleSink tile's TileObjectData layout, placement and sink effects are not implemented."
       ],
       "nativeDependencies": [
-        "app/src/main/cpp/script/js/mod/ModItem.js"
+        "experiments/csharp/BunnyCsSdk/BunnyItem.cs",
+        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp"
       ],
-      "automatedTests": [],
+      "automatedTests": [
+        "tests/basic_items/placeable_stage/PlaceableStage.csproj"
+      ],
       "terrariaTests": [
         "Comparar cada hook/propriedade listado com o comportamento JS original no Terraria 1.4.5.8.6.",
         "Carregar junto de um mod JS; entrar/sair do mundo e conferir falhas e desempenho.",
         "Verificar persistencia, remocao do mod e morte/respawn quando o exemplo mantiver estado."
       ],
-      "validation": "Sem validacao funcional C# deste exemplo inteiro.",
+      "validation": "O item esta em Porting para nao ativar a receita antes de existir o ModTile C# correspondente; aguarda host e Android.",
       "deviceEvidence": [],
       "technicalBlockEvidence": [],
       "sourceEvidence": [

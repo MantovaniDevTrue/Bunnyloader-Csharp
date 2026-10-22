@@ -32,7 +32,7 @@ O JSON ao lado conserva APIs, propriedades, dependencias, testes, lacunas e evid
 | NPCs | 5 | 0 (0.0%) | 0 (0.0%) | 1 (20.0%) | 0 |
 | Networking | 1 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
 | Pets | 6 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
-| Placeable | 36 | 2 (5.56%) | 0 (0.0%) | 0 (0.0%) | 0 |
+| Placeable | 36 | 2 (5.56%) | 0 (0.0%) | 4 (11.11%) | 0 |
 | Players | 9 | 0 (0.0%) | 0 (0.0%) | 1 (11.11%) | 0 |
 | Prefixes | 3 | 0 (0.0%) | 0 (0.0%) | 2 (66.67%) | 0 |
 | Projectiles | 20 | 1 (5.0%) | 0 (0.0%) | 1 (5.0%) | 0 |
@@ -147,17 +147,17 @@ O JSON ao lado conserva APIs, propriedades, dependencias, testes, lacunas e evid
 | Content/Items/Placeable/ExampleAnimatedGlowmaskTileItem.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Items/Placeable/ExampleAnimatedTileItem.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Items/Placeable/ExampleBar.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
-| Content/Items/Placeable/ExampleCampfire.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
+| Content/Items/Placeable/ExampleCampfire.js | samples/ExampleModCSharp/Porting/Content/Items/Placeable/ExampleCampfire.cs | Parcial | ExampleCampfire tile still lacks C# NearbyEffects, frame, light and related native policy. | tests/basic_items/placeable_stage/PlaceableStage.csproj |
 | Content/Items/Placeable/ExampleCutTile.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Items/Placeable/ExampleGemsparkBlock.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
-| Content/Items/Placeable/ExampleHerbSeeds.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
-| Content/Items/Placeable/ExampleLamp.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
+| Content/Items/Placeable/ExampleHerbSeeds.js | samples/ExampleModCSharp/Porting/Content/Items/Placeable/ExampleHerbSeeds.cs | Parcial | ExampleHerb tile germination, planting and substrate behaviors are not implemented in C#. | tests/basic_items/placeable_stage/PlaceableStage.csproj |
+| Content/Items/Placeable/ExampleLamp.js | samples/ExampleModCSharp/Porting/Content/Items/Placeable/ExampleLamp.cs | Parcial | ExampleLamp tile draw, light and placed furniture behavior have not been ported. | tests/basic_items/placeable_stage/PlaceableStage.csproj |
 | Content/Items/Placeable/ExampleLivingFire.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Items/Placeable/ExampleMusicBox.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Items/Placeable/ExampleOreItem.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Items/Placeable/ExamplePylonItem.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Items/Placeable/ExampleSignItem.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
-| Content/Items/Placeable/ExampleSinkItem.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
+| Content/Items/Placeable/ExampleSinkItem.js | samples/ExampleModCSharp/Porting/Content/Items/Placeable/ExampleSinkItem.cs | Parcial | ExampleSink tile's TileObjectData layout, placement and sink effects are not implemented. | tests/basic_items/placeable_stage/PlaceableStage.csproj |
 | Content/Items/Placeable/ExampleStatue.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Items/Placeable/ExampleTileItem.js | samples/ExampleModCSharp/Playable/content/Content/Items/Placeable/ExampleTileItem.cs | Implementado, aguardando validação | Aguardando roteiro Android | tests/basic_items/Program.cs: exampletile.original-flags-map-and-recipe; tools/example_completion/stage_tile_assets.py |
 | Content/Items/Placeable/ExampleTorch.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
