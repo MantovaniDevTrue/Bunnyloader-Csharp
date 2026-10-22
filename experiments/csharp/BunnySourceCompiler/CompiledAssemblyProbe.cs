@@ -1113,6 +1113,20 @@ public static class CompiledAssemblyProbe
                 ai.ToString(CultureInfo.InvariantCulture),
                 animation.ToString(CultureInfo.InvariantCulture),
                 frames.ToString(CultureInfo.InvariantCulture)));
+            string banner = Value<string>(npc, "Banner");
+            string bannerItem = Value<string>(npc, "BannerItem");
+            if ((banner.Length == 0) != (bannerItem.Length == 0))
+                throw new InvalidOperationException(name + ": Banner e BannerItem devem ser definidos juntos");
+            if (banner.Length != 0)
+            {
+                CheckName(banner);
+                CheckName(bannerItem);
+                if (!npcs.Any(other => other.GetType().Name == banner))
+                    throw new InvalidOperationException(name + ": NPC representante nao encontrado: " + banner);
+                if (!basicItems.Any(other => other.GetType().Name == bannerItem))
+                    throw new InvalidOperationException(name + ": item de bandeira nao encontrado: " + bannerItem);
+                lines.Add(string.Join("\t", "NPC_BANNER", name, banner, bannerItem));
+            }
         }
 
         foreach (Type rarity in rarityTypes)
