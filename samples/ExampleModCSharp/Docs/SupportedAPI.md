@@ -70,3 +70,23 @@ BannerItem = "ExampleSlimeBanner";
 O Roslyn emite `NPC_BANNER`, o SourceLoader valida referências locais e o registro C++ publica um snapshot imutável. **Ainda não existe hook de jogo para contar abates, conceder banners, salvar no mundo ou ativar `NearbyEffects`**. A textura do item é exatamente a do ExampleModBunny, mas o tile 1×3 original aguarda suporte de formato e ancoragem no Bunny C#.
 
 O código de base com testes e os bloqueios obrigatórios estão em `docs/csharp-banner-loader-source-gate.md`. Não distribuir APK nem descrever o item como funcional nesta fase.
+
+### BunnyBannerTile — classe-base do ExampleModBunny
+
+A classe `BunnyBannerTile : BunnyTile` aplica os defaults originais (tile 1×3, `FrameImportant`, `NoAttach`, `LavaDeath`, `DisableSmartCursor`, cores de mapa). O host usa `TileObjectData.Style1x2Top`, `AnchorData` de blocos sólidos e a alternativa para plataformas sem precisar de JavaScript.
+
+```csharp
+public sealed class ExampleEnemyBannerTile : BunnyBannerTile
+{
+    public override void SetStaticDefaults()
+    {
+        base.SetStaticDefaults();
+        Texture = "Content/Tiles/Banners/ExampleEnemyBannerTile.png";
+        DisplayName = "Example Slime Banner";
+    }
+}
+```
+
+O item declara `DefaultToPlaceableTile("ExampleEnemyBannerTile", 1)`. O estilo **1** é obrigatório para esta textura original: o host busca o item pelo `frameX` e não pressupõe estilo 0. O Roslyn e o parser inicial nativo reconhecem subclasses diretas de `BunnyBannerTile` como `BunnyTile`, mesmo sem atributo adicional.
+
+**Estado atual:** ancoragem e persistência vanilla usam contratos nativos estritos. O registro pode rejeitar o tile se uma assinatura IL2CPP divergir no Android; isso é preferível a colocação incorreta. O desenho por vento `DrawMultiTileVinesInWind` e a entrega/multiplayer ainda NÃO estão finalizados. Não gerar APK até fechar os gates.
