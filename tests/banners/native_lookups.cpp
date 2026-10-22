@@ -9,6 +9,8 @@ using namespace bl::csharp::banners;
 static int vanillaNpcCalls = 0;
 static int vanillaItemCalls = 0;
 static int vanillaBannerNpcCalls = 0;
+static int vanillaClearCalls = 0;
+static void VanillaClear(const MethodInfo*) { ++vanillaClearCalls; }
 
 static int32_t VanillaNpc(int32_t value, const MethodInfo*) {
     ++vanillaNpcCalls;
@@ -59,6 +61,16 @@ int main() {
     assert(vanillaItemCalls == 3);
     assert(vanillaBannerNpcCalls == 3);
 
+    // O Clear do Terraria desliga os hooks de mod antes de reinicializar
+    // contadores. O original vanilla ainda e chamado exatamente uma vez.
+    originalBannerClear = VanillaClear;
+    assert(nearbyBannerCache().size() == 0);
+    hookBannerClear(nullptr);
+    assert(vanillaClearCalls == 1 && !lookupsActive.load());
+    assert(lookupNpcToBanner(firstModNpc, nullptr) == firstModNpc + 3);
+    setBannerLookupsActive(true);
+    assert(lookupsActive.load());
+
     reg.unload("example");
     assert(lookupNpcToBanner(firstModNpc, nullptr) == firstModNpc + 3);
     assert(lookupBannerToItem(firstModNpc, nullptr) == firstModNpc + 100);
@@ -69,5 +81,6 @@ int main() {
     originalNpcToBanner = nullptr;
     originalBannerToItem = nullptr;
     originalBannerToNpc = nullptr;
+    originalBannerClear = nullptr;
     std::cout << "Banner lookup dispatch PASS (inactive, mod, vanilla, unload)\n";
 }
