@@ -85,5 +85,6 @@ private:
 // O host utiliza o probe IL2CPP existente; os testes fornecem snapshots
 // isolados e não dependem de Terraria/GameAssembly.
 NativeHairStartup MakeNativeHairStartupForGameThread();
+NativeHairStartup MakeNativeHairStartupForWorker();
 
 } // namespace bl::csharp::hair
