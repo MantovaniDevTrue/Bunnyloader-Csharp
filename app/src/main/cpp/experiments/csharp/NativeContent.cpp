@@ -378,8 +378,6 @@ void applyNativeDamageClassFlags(Il2CppObject* object, bool projectile, int cont
         bl::runtime::field<uint8_t>(object,r.projMelee) = flags.melee;
         bl::runtime::field<uint8_t>(object,r.projRanged) = flags.ranged;
         bl::runtime::field<uint8_t>(object,r.projMagic) = flags.magic;
-        // Projectile.minion is lifecycle state, not the Summon damage class:
-        // only the existing native minion controller may set this flag.
         return;
     }
     bl::runtime::field<uint8_t>(object,r.itemMelee) = flags.melee;
