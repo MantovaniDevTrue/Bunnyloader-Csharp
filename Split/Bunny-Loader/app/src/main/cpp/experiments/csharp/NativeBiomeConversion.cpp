@@ -19,6 +19,7 @@ class World final : public BiomeConversionWorld {
     const MethodInfo *mt=nullptr,*mw=nullptr,*ft=nullptr,*fw=nullptr;
     FieldInfo *menu=nullptr,*net=nullptr,*tileSolid=nullptr,*wallHouse=nullptr;
     bool linked=false;
+    const char* failure="NotResolved";
     static bool typeIs(const Il2CppType* type,const char* name) {
         auto& a=il2cpp::api();
         if(!type || !a.type_get_name || !a.il2cpp_free) return false;
@@ -44,25 +45,51 @@ public:
     bool resolve() {
         if(linked)return true;
         auto& a=il2cpp::api();
-        if(!a.field_static_get_value || !a.class_value_size || !a.field_get_type || !a.field_get_flags)return false;
+        if(!a.field_static_get_value || !a.class_value_size || !a.field_get_type || !a.field_get_flags) {
+            failure="MetadataExportsUnavailable";return false;
+        }
         auto tile=il2cpp::findClass({"Terraria","Tile",{}});
         auto world=il2cpp::findClass({"Terraria","WorldGen",{}});
+        auto framing=il2cpp::findClass({"Terraria","Framing",{}});
         auto main=il2cpp::findClass({"Terraria","Main",{}});
-        if(!tile || !world || !main)return false;
-        uint32_t align=0;if(a.class_value_size(tile,&align)!=4)return false;
-        mt=method(tile,"set_type",{"System.UInt16"},false); mw=method(tile,"set_wall",{"System.UInt16"},false);
+        if(!tile){failure="TileClassMissing";return false;}
+        if(!world){failure="WorldGenClassMissing";return false;}
+        if(!framing){failure="FramingClassMissing";return false;}
+        if(!main){failure="MainClassMissing";return false;}
+        uint32_t align=0;
+        if(a.class_value_size(tile,&align)!=4){failure="TileSizeMismatch";return false;}
+        mt=method(tile,"set_type",{"System.UInt16"},false);
+        mw=method(tile,"set_wall",{"System.UInt16"},false);
         ft=method(world,"SquareTileFrame",{"System.Int32","System.Int32","System.Boolean"},true);
-        fw=method(world,"SquareWallFrame",{"System.Int32","System.Int32","System.Boolean"},true);
-        menu=il2cpp::findField(main,"gameMenu"); net=il2cpp::findField(main,"netMode");
-        tileSolid=il2cpp::findField(main,"tileSolid");wallHouse=il2cpp::findField(main,"wallHouse");
-        if(!mt || !mw || !ft || !fw || !menu || !net || !tileSolid || !wallHouse)return false;
-        for(auto* field:{menu,net,tileSolid,wallHouse})if(!(a.field_get_flags(field)&0x10))return false;
-        if(!typeIs(a.field_get_type(menu),"System.Boolean") || !typeIs(a.field_get_type(net),"System.Int32") ||
-           !typeIs(a.field_get_type(tileSolid),"System.Boolean[]") || !typeIs(a.field_get_type(wallHouse),"System.Boolean[]"))return false;
-        tileSetter=reinterpret_cast<Setter>(il2cpp::methodPointer(mt));wallSetter=reinterpret_cast<Setter>(il2cpp::methodPointer(mw));
-        tileFrame=reinterpret_cast<Frame>(il2cpp::methodPointer(ft));wallFrame=reinterpret_cast<Frame>(il2cpp::methodPointer(fw));
-        linked=true;return true;
+        fw=method(framing,"WallFrame",{"System.Int32","System.Int32","System.Boolean"},true);
+        if(!mt){failure="TileSetTypeSignature";return false;}
+        if(!mw){failure="TileSetWallSignature";return false;}
+        if(!ft){failure="WorldGenSquareTileFrameSignature";return false;}
+        if(!fw){failure="FramingWallFrameSignature";return false;}
+        menu=il2cpp::findField(main,"gameMenu");
+        net=il2cpp::findField(main,"netMode");
+        tileSolid=il2cpp::findField(main,"tileSolid");
+        wallHouse=il2cpp::findField(main,"wallHouse");
+        if(!menu){failure="MainGameMenuField";return false;}
+        if(!net){failure="MainNetModeField";return false;}
+        if(!tileSolid){failure="MainTileSolidField";return false;}
+        if(!wallHouse){failure="MainWallHouseField";return false;}
+        for(auto* field:{menu,net,tileSolid,wallHouse}) {
+            if(!(a.field_get_flags(field)&0x10)){failure="MainFieldNotStatic";return false;}
+        }
+        if(!typeIs(a.field_get_type(menu),"System.Boolean")){failure="MainGameMenuType";return false;}
+        if(!typeIs(a.field_get_type(net),"System.Int32")){failure="MainNetModeType";return false;}
+        if(!typeIs(a.field_get_type(tileSolid),"System.Boolean[]")){failure="MainTileSolidType";return false;}
+        if(!typeIs(a.field_get_type(wallHouse),"System.Boolean[]")){failure="MainWallHouseType";return false;}
+        tileSetter=reinterpret_cast<Setter>(il2cpp::methodPointer(mt));
+        wallSetter=reinterpret_cast<Setter>(il2cpp::methodPointer(mw));
+        tileFrame=reinterpret_cast<Frame>(il2cpp::methodPointer(ft));
+        wallFrame=reinterpret_cast<Frame>(il2cpp::methodPointer(fw));
+        linked=true;
+        failure="None";
+        return true;
     }
+    const char* resolveFailure() const {return failure;}
 public:
     bool ready() override {
         if(!resolve())return false;
@@ -83,8 +110,6 @@ public:
         runtime::TileArrays arrays;
         if(!runtime::tileArrays(&arrays))return;
         int32_t offset=y*arrays.width+x;
-        // Tile definitions are INTERNED on Mobile. Only these checked instance setters
-        // perform copy-on-write; assigning arrays.type[lookup[offset]] would corrupt peers.
         if(tile>=0)tileSetter(&offset,static_cast<uint16_t>(tile),mt);
         if(wall>=0)wallSetter(&offset,static_cast<uint16_t>(wall),mw);
         if(tile>=0)tileFrame(x,y,true,ft);
@@ -100,7 +125,7 @@ void pumpBiomeConversionsOnGameThread(){
     if(!engine.size())return;
     if(!world.resolve()) {
         static bool reported=false;
-        if(!reported){reported=true;BL_ERROR("[CSharp][BiomeConversion] Tile/setter/frame ABI unavailable; world gate held, conversion writes disabled");}
+        if(!reported){reported=true;BL_ERROR("[CSharp][BiomeConversion] ABI unavailable: %s; world gate held, conversion writes disabled",world.resolveFailure());}
         return;
     }
     bindingsReady.store(true,std::memory_order_release);
