@@ -95,8 +95,23 @@ try
         if (Path.GetDirectoryName(handoff) != root &&
             !handoff.StartsWith(Path.GetTempPath(), StringComparison.Ordinal))
             throw new InvalidOperationException("Destino de teste não autorizado.");
-        CompiledHairProbe.Export(Assembly.GetExecutingAssembly(),
-            "examplemodcsharp", mod, handoff, 300);
+        string nativeWorkDir = Path.GetDirectoryName(handoff)!;
+        Check(Path.GetFileName(handoff) == "source-hair-examplemodcsharp.manifest",
+              "nome seguro do manifesto fixado por UID");
+        CompiledHairProbe.ExportForNative(Assembly.GetExecutingAssembly(),
+            "examplemodcsharp", mod, nativeWorkDir, 300);
+        Check(File.Exists(handoff), "manifesto real escrito no nome nativo esperado");
+        bool unsafeUidRejected = false;
+        try
+        {
+            CompiledHairProbe.ExportForNative(Assembly.GetExecutingAssembly(),
+                "../examplemodcsharp", mod, nativeWorkDir, 300);
+        }
+        catch (ArgumentException)
+        {
+            unsafeUidRejected = true;
+        }
+        Check(unsafeUidRejected, "exportador MonoVM recusa UID com traversal");
         Console.WriteLine("HAIR_MANAGED_HANDOFF=" + handoff);
     }
     Console.WriteLine("HairCompiledProbe: verificações passaram sem APK.");
