@@ -20,6 +20,7 @@ on:
       - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairUnlockState.h"
       - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairManifest.h"
       - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairNetworkState.h"
+      - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairStaging.h"
       - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairReservation.h"
       - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairSaveState.h"
       - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairSaveSession.h"
@@ -126,6 +127,29 @@ jobs:
             Split/Bunny-Loader/tests/hair_loader/native_network_state.cpp \
             -o /tmp/bunny-hair-network-contract
           /tmp/bunny-hair-network-contract
+      - name: Validate cross-mod staged Hair manifests and occupied JS slots
+        run: |
+          g++ -std=c++20 -Wall -Wextra -Werror \
+            -I Split/Bunny-Loader/app/src/main/cpp \
+            Split/Bunny-Loader/tests/hair_loader/native_staging.cpp \
+            -o /tmp/bunny-hair-staging
+          /tmp/bunny-hair-staging
+      - name: Check IL2CPP static hair array setters receive value addresses
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeHairTextures.cpp")
+          s = p.read_text()
+          for f in ("mainField", "altField"):
+              assert f"api.field_static_set_value({f}, &grown" in s
+              assert f"api.field_static_set_value({f}, &originals[" in s
+          for unsafe in ("api.field_static_set_value(mainField, grownMain)",
+                         "api.field_static_set_value(altField, grownAlt)",
+                         "api.field_static_set_value(mainField, originals[0])",
+                         "api.field_static_set_value(altField, originals[1])"):
+              assert unsafe not in s, unsafe
+          print("HAIR_IL2CPP_FIELD_VALUE_POINTERS=PASS")
+          PY
       - name: Guard against Android artifacts
         run: |
           test ! -d Split/Bunny-Loader/app/build/outputs/apk
