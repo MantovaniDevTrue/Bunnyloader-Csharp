@@ -115,9 +115,23 @@ public sealed class BunnyBannerRegistry
             return false;
         lock (gate)
         {
-            if (!definitions.ContainsKey(key) || bindings.ContainsKey(key) ||
-                byNpc.ContainsKey(npcType))
+            if (!definitions.TryGetValue(key, out var definition) ||
+                bindings.ContainsKey(key) || byNpc.ContainsKey(npcType))
                 return false;
+
+            // No Terraria o ID da bandeira pertence ao NPC representante.
+            // Vincule o representante primeiro; variantes nao podem inventar
+            // um contador diferente nem apontar para outro mod.
+            string representativeKey = MakeKey(modUid, definition.BannerNpcClass);
+            if (!definitions.ContainsKey(representativeKey)) return false;
+            if (representativeKey == key)
+            {
+                if (npcType != bannerType) return false;
+            }
+            else if (!bindings.TryGetValue(representativeKey, out var representative) ||
+                     representative.NpcType != bannerType)
+                return false;
+
             if (itemByBanner.TryGetValue(bannerType, out int currentItem) && currentItem != itemType)
                 return false;
             if (bannerByItem.TryGetValue(itemType, out int currentBanner) && currentBanner != bannerType)
@@ -145,6 +159,11 @@ public sealed class BunnyBannerRegistry
     public int ItemToBanner(int itemType)
     {
         lock (gate) return bannerByItem.TryGetValue(itemType, out int banner) ? banner : 0;
+    }
+
+    public int BannerToNpc(int bannerType)
+    {
+        lock (gate) return itemByBanner.ContainsKey(bannerType) ? bannerType : 0;
     }
 
     public bool IsModBanner(int bannerType)
