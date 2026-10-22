@@ -8,5 +8,6 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj" />
+    <Compile Include="../../samples/RandomCompatCSharp/ExampleWeightedChoice.cs" Link="ExampleWeightedChoice.cs" />
   </ItemGroup>
 </Project>

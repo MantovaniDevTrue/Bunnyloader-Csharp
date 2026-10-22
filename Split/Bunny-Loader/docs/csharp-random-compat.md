@@ -28,7 +28,7 @@ bool chance = rng.NextBool(4);
 float speed = rng.NextFloat(3f, 6f);
 ```
 
-O exemplo que compila junto com o ExampleMod está em `samples/ExampleModCSharp/Playable/content/Common/Random/ExampleWeightedChoice.cs`. Ele **não cria drops sem uma fonte nativa válida**: apenas seleciona IDs. O chamador é responsável pelo evento de drop via API disponível em seu mod.
+O exemplo compilado no gate do SDK está em `samples/RandomCompatCSharp/ExampleWeightedChoice.cs`. Ele **não cria drops sem uma fonte nativa válida**: apenas seleciona IDs. O chamador é responsável pelo evento de drop via API disponível em seu mod.
 
 ## Gate do lote (sem APK)
 

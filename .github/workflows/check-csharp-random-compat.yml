@@ -5,7 +5,7 @@ on:
       - "Split/Bunny-Loader/experiments/csharp/BunnyCsSdk/TerrariaRandomCompat.cs"
       - "Split/Bunny-Loader/experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj"
       - "Split/Bunny-Loader/tests/random_compat/**"
-      - "Split/Bunny-Loader/samples/ExampleModCSharp/Playable/content/Common/Random/**"
+      - "Split/Bunny-Loader/samples/RandomCompatCSharp/**"
       - ".github/workflows/check-csharp-random-compat.yml"
   workflow_dispatch:
 jobs:
