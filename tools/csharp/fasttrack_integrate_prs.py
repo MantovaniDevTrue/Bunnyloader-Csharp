@@ -18,6 +18,20 @@ ALLOWED = (".cs", ".csproj", ".cpp", ".h", ".hpp", ".c", ".cmake", ".json", ".md
 ROOTS = ("app/", "experiments/", "samples/", "tests/", "tools/", "docs/", "Split/Bunny-Loader/")
 MAX_BYTES = 5_000_000
 MANUAL_RECONCILIATIONS = {
+    (117, "app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp"):
+        (b'#include "experiments/csharp/NativeCommandManifest.h"',
+         b'bindManagedCommandMod(mod.id, assembly, &commandError)',
+         b'installNativeCommandChatHooks()', b'nativeCommandMailbox().newWorld()'),
+    (117, "app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp"):
+        (b'bool prepareManagedCommandWorker()', b'executeManagedCommandOnWorker',
+         b'nativeCommandMailbox().takeRequests(8)', b'bool bindManagedCommandMod('),
+    (121, "app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp"):
+        (b'gore::worldBoundary()', b'gore::worldReady()', b'gore::pumpOnGameThread()'),
+    (121, "app/src/main/cpp/experiments/csharp/SourceLoader.cpp"):
+        (b'gore::discover(mod.dir', b'gore::install(mod.id',
+         b'status->goreSourcesDiscovered'),
+    (121, "app/src/main/cpp/experiments/csharp/SourceLoader.h"):
+        (b'int goreSourcesDiscovered = 0;',),
     (117, "app/src/main/cpp/experiments/csharp/ManagedSourceClassCount.h"):
         (b"mod.screenEffects + mod.commands",),
     (117, "app/src/main/cpp/experiments/csharp/SourceParser.cpp"):
