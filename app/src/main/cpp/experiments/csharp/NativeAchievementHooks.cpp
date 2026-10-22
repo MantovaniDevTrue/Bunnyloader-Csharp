@@ -10,6 +10,7 @@
 #include "il2cpp/Signature.h"
 
 #include <array>
+#include <set>
 #include <atomic>
 #include <cstdint>
 #include <cstring>
@@ -43,6 +44,7 @@ struct AchievementBinding {
 };
 std::map<std::string, AchievementBinding> bindings;
 std::map<std::string, std::string> pendingFlush;
+std::set<std::string> preparedUnloads;
 std::atomic<uint64_t> rejectedFlushes{0};
 FieldInfo* playersField = nullptr;
 FieldInfo* localIndexField = nullptr;
@@ -232,6 +234,30 @@ bool registerNativeAchievementMod(const std::string& modId,
     return true;
 }
 
+bool prepareNativeAchievementBindingUnload(const std::string& modId,
+                                           std::string* error) {
+    if (!error) return false;
+    error->clear();
+    if (worldActive.load(std::memory_order_acquire)) {
+        *error = "Pause achievement hooks before preparing unload";
+        return false;
+    }
+    std::lock_guard<std::mutex> lock(bindingMutex);
+    auto found = bindings.find(modId);
+    if (found == bindings.end()) {
+        *error = "Achievement mod binding not found";
+        return false;
+    }
+    if (preparedUnloads.contains(modId)) return true;
+    if (!queueManagedAchievementFlush(modId, found->second.assembly)) {
+        pendingFlush[modId] = found->second.assembly;
+        *error = "Final achievement flush FIFO full";
+        return false;
+    }
+    preparedUnloads.insert(modId);
+    return true;
+}
+
 bool unregisterNativeAchievementBinding(const std::string& modId,
                                         std::string* error) {
     if (!error) return false;
@@ -246,14 +272,12 @@ bool unregisterNativeAchievementBinding(const std::string& modId,
         *error = "Achievement mod not registered";
         return false;
     }
-    // Keep the managed store alive until its final dirty-save flush is
-    // accepted by the FIFO. A full queue never discards this binding.
-    if (!queueManagedAchievementFlush(it->first, it->second.assembly)) {
-        pendingFlush[it->first] = it->second.assembly;
-        *error = "Achievement final save pending; retry native binding detach";
+    if (!preparedUnloads.contains(modId)) {
+        *error = "Native achievement binding unload was not prepared";
         return false;
     }
     bindings.erase(it);
+    preparedUnloads.erase(modId);
     pendingFlush.erase(modId);
     const bool empty = bindings.empty();
     bindingsReady.store(!empty, std::memory_order_release);
