@@ -6,12 +6,14 @@ on:
       - feat/csharp-statmodifier-parity-20261022
     paths:
       - 'experiments/csharp/BunnyCsSdk/**'
+      - 'experiments/csharp/BunnySourceSdk/**'
       - 'samples/ExampleModCSharp/Playable/content/Common/Recipes/09_StatModifier.cs'
       - 'tests/StatModifierParity/**'
       - '.github/workflows/csharp-statmodifier-source-tests.yml'
   pull_request:
     paths:
       - 'experiments/csharp/BunnyCsSdk/**'
+      - 'experiments/csharp/BunnySourceSdk/**'
       - 'samples/ExampleModCSharp/Playable/content/Common/Recipes/09_StatModifier.cs'
       - 'tests/StatModifierParity/**'
       - '.github/workflows/csharp-statmodifier-source-tests.yml'
@@ -28,11 +30,15 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Install .NET 10
+      - name: Install .NET 8 and .NET 10
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '10.0.x'
+          dotnet-version: |
+            8.0.x
+            10.0.x
       - name: Restore C# SDK and test project
         run: dotnet restore tests/StatModifierParity/StatModifierParity.csproj
       - name: Compile SDK and execute parity tests
         run: dotnet run --project tests/StatModifierParity/StatModifierParity.csproj --configuration Release --no-restore
+      - name: Compile the complete ExampleMod with the Android-targeted source SDK
+        run: dotnet run --project tests/ready_prs/FullExampleRuntime/FullExampleRuntime.csproj --configuration Release -- samples/ExampleModCSharp/Playable
