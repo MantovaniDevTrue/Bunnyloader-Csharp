@@ -4,6 +4,7 @@
 #include "experiments/csharp/ManagedBannerArrayBridge.h"
 #include "experiments/csharp/ManagedBannerGameCounters.h"
 #include "experiments/csharp/ManagedBannerWorldSession.h"
+#include "experiments/csharp/ManagedBannerSaveHooks.h"
 #include "experiments/csharp/NativeTileWirePolicy.h"
 #include "experiments/csharp/SourceLoader.h"
 #include "experiments/csharp/NativeRarityRegistry.h"
@@ -1723,6 +1724,10 @@ bool prepareBannerWorldArraysOnGameThread(std::string* error) {
     if (state->bannerToItem.empty()) return true;
     if (!banners::installBannerLookupHooks()) {
         if (error) *error = "BannerSystem: falha ao instalar 3 hooks na thread do jogo";
+        return false;
+    }
+    if (!banners::installBannerSaveHooks()) {
+        if (error) *error = "BannerSystem: falha ao instalar hooks Save/WriteFullState";
         return false;
     }
     // Nao ativar antes do sidecar, refresh, rede e tile completos.
