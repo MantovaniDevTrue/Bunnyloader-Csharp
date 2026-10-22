@@ -68,6 +68,16 @@ public abstract class BunnyBuff
     public string DisplayName { get; set; } = "";
     public string Texture { get; set; } = "";
     public int DefenseBonus { get; set; } = 0;
+    /// <summary>Texto da dica. "{0}" vira DefenseBonus (equivale ao ModifyDescription do ExampleDefenseBuff).</summary>
+    public string Description { get; set; } = "";
+    /// <summary>Marca como debuff (Main.debuff): a enfermeira e as pocoes de remocao o tratam como ruim.</summary>
+    public bool IsDebuff { get; set; } = false;
+    /// <summary>Main.buffNoSave: nao e gravado no personagem.</summary>
+    public bool NoSave { get; set; } = false;
+    /// <summary>Main.buffNoTimeDisplay: esconde o tempo restante na barra.</summary>
+    public bool NoTimeDisplay { get; set; } = false;
+    /// <summary>Nome de um BunnyProjectile do mesmo mod (minion). O buff e renovado enquanto o jogador tiver esse projetil e removido sem ele.</summary>
+    public string MinionProjectile { get; set; } = "";
     public abstract void SetDefaults();
 }
 

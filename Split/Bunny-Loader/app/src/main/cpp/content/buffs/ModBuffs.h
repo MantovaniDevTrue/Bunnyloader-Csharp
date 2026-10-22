@@ -29,6 +29,9 @@ struct ModBuffDef {
     std::string texture;   // caminho absoluto do PNG (32x32 no jogo)
     std::vector<std::pair<std::string, std::string>> names;          // "pt-BR" -> nome
     std::vector<std::pair<std::string, std::string>> descriptions;   // "pt-BR" -> descricao
+    bool debuff = false;          // Main.debuff[type]
+    bool noSave = false;          // Main.buffNoSave[type]
+    bool noTimeDisplay = false;   // Main.buffNoTimeDisplay[type]
 };
 
 /** Reserva o proximo id. THREAD-SAFE. -1 se o mesmo mod ja registrou esse nome. */
