@@ -3218,6 +3218,67 @@ ManagedSourceCompileResult compileManagedSource(
     return out;
 }
 
+ManagedHairManifestResult inspectManagedHairClassCount(
+    const std::string& probeAssembly,
+    const std::string& compilerAssembly,
+    const std::string& modAssembly) {
+    ManagedHairManifestResult out;
+    if (!validAssembly(compilerAssembly) || !validAssembly(modAssembly)) {
+        out.phase = "hair-count-assembly-invalid";
+        out.error = "HairCountCompiledAssemblyUnavailable";
+        return out;
+    }
+    const auto initialized = probeManagedRuntime(probeAssembly);
+    if (!initialized.domainInitialized || !initialized.methodExecuted) {
+        out.phase = "hair-count-mono-unavailable";
+        out.error = initialized.error;
+        return out;
+    }
+    std::lock_guard<std::mutex> guard(g_mutex);
+    if (!g_domain || !g_api.openAssembly || !g_api.image ||
+        !g_api.findClass || !g_api.findMethod || !g_api.invoke ||
+        !g_api.newString || !g_api.unbox || !g_api.attach ||
+        !g_api.attach(g_domain)) {
+        out.phase = "hair-count-mono-host-unavailable";
+        out.error = "HairCountMonoApiUnavailable";
+        return out;
+    }
+    void* assembly = g_api.openAssembly(g_domain, compilerAssembly.c_str());
+    void* image = assembly ? g_api.image(assembly) : nullptr;
+    void* klass = image ? g_api.findClass(
+        image, "BunnyLoader.SourceCompiler", "CompiledHairProbe") : nullptr;
+    void* method = klass ? g_api.findMethod(klass, "CountFromFile", 1) : nullptr;
+    if (!method) {
+        out.phase = "hair-count-entrypoint-missing";
+        out.error = "CompiledHairProbe.CountFromFileUnavailable";
+        return out;
+    }
+    void* assemblyArg = g_api.newString(g_domain, modAssembly.c_str());
+    if (!assemblyArg) {
+        out.phase = "hair-count-argument-failed";
+        out.error = "HairCountMonoStringAllocationFailed";
+        return out;
+    }
+    void* args[] = {assemblyArg};
+    void* exception = nullptr;
+    void* boxed = g_api.invoke(method, nullptr, args, &exception);
+    void* value = !exception && boxed ? g_api.unbox(boxed) : nullptr;
+    if (!value) {
+        out.phase = "hair-count-managed-failed";
+        out.error = "CompiledHairProbe.CountFromFileRejected";
+        return out;
+    }
+    std::memcpy(&out.classes, value, sizeof(out.classes));
+    if (out.classes < 0 || out.classes > 2048) {
+        out.classes = 0;
+        out.phase = "hair-count-invalid";
+        out.error = "HairClassCountOutOfBounds";
+        return out;
+    }
+    out.phase = "hair-count-verified";
+    return out;
+}
+
 ManagedHairManifestResult exportManagedHairManifest(
     const std::string& probeAssembly,
     const std::string& compilerAssembly,
