@@ -48,6 +48,23 @@ try
     if (entitySlot < 0)
         throw new InvalidOperationException("Full Example entity registration failed: " +
             BunnyEntitySourceDispatcher.LastRegistrationError);
+    // A mesma montagem que cria NPCs e projéteis também registra classes de
+    // dano do assembly real, sem JS e sem registro manual no mod.
+    DamageClass registeredDamageClass = DamageClassLoader.GetDamageClass(10)
+        ?? throw new InvalidOperationException("ExampleDamageClass was not auto-registered");
+    if (registeredDamageClass.GetType().FullName !=
+            "ExampleModCSharp.DamageClasses.ExampleDamageClass" ||
+        !registeredDamageClass.CountsAsClass(DamageClass.Melee) ||
+        !registeredDamageClass.CountsAsClass(DamageClass.Magic) ||
+        registeredDamageClass.CountsAsClass(DamageClass.Summon))
+        throw new InvalidOperationException("Auto-registered ExampleDamageClass effects do not match");
+    var classStats = new DamageClassPlayer();
+    if (classStats.GetTotalCritChance(registeredDamageClass) != 8f ||
+        classStats.GetTotalArmorPenetration(registeredDamageClass) != 10f)
+        throw new InvalidOperationException("Auto-registered ExampleDamageClass defaults differ");
+    if (!BunnyEntitySourceDispatcher.Status(entitySlot).Contains("damageClasses=1", StringComparison.Ordinal))
+        throw new InvalidOperationException("Managed entity context missing DamageClass registration");
+    Console.WriteLine("FULL_EXAMPLE_DAMAGECLASS_AUTO_REGISTRATION=PASS id=10 crit=8 pen=10");
     var dustOwner = typeof(BunnyDustSourceDispatcher).GetMethod("ModForAssembly",
         System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)
         ?? throw new InvalidOperationException("BunnyDust owner lookup missing");
