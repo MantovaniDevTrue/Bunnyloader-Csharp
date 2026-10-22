@@ -195,9 +195,9 @@ public static class DamageClassLoader
         if (assembly is null) throw new ArgumentNullException(nameof(assembly));
         var classes = DamageClasses.Where(cls => cls.Type >= DefaultClassCount &&
             !RetiredClasses.Contains(cls) && cls.GetType().Assembly == assembly).ToArray();
-        if (classes.Length == 0) return "DAMAGE_CLASS_STATS_V1\\n";
+        if (classes.Length == 0) return "DAMAGE_CLASS_STATS_V1\n";
         var player = new DamageClassPlayer();
-        var result = new StringBuilder("DAMAGE_CLASS_STATS_V1\\n");
+        var result = new StringBuilder("DAMAGE_CLASS_STATS_V1\n");
         static string F(float value)
         {
             if (!float.IsFinite(value) || MathF.Abs(value) > 100000f)
@@ -207,7 +207,7 @@ public static class DamageClassLoader
         foreach (DamageClass cls in classes)
         {
             string name = cls.GetType().FullName ?? throw new InvalidOperationException("Unnamed DamageClass");
-            if (name.Length > 240 || name.IndexOfAny(new[] { '\\t', '\\n', '\\r' }) >= 0)
+            if (name.Length > 240 || name.IndexOfAny(new[] { '\t', '\n', '\r' }) >= 0)
                 throw new InvalidOperationException("Invalid DamageClass identity");
             StatModifier damage = player.GetTotalDamage(cls);
             StatModifier knockback = player.GetTotalKnockback(cls);
@@ -221,7 +221,7 @@ public static class DamageClassLoader
                 F(player.GetTotalArmorPenetration(cls)),
                 cls.UseStandardCritCalcs ? "1" : "0"
             };
-            result.Append(string.Join("\\t", fields)).Append('\\n');
+            result.Append(string.Join("\t", fields)).Append('\n');
         }
         return result.ToString();
     }
