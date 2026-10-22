@@ -78,5 +78,37 @@ int main() {
     }
     assert(queue.empty());
     assert(!queue.pop(&out));
+    AchievementJob gameplay;
+    gameplay.mod = "examplemod";
+    gameplay.assembly = "/tmp/mod.dll";
+    gameplay.operation = 1;
+    gameplay.value = 50;
+    gameplay.count = 1;
+    gameplay.generation = 100;
+    gameplay.payload = "1";
+
+    control.operation = 10;
+    control.payload.clear();
+    control.reply = std::make_shared<AchievementReply>();
+    assert(queue.push(gameplay));
+    assert(queue.push(control));
+    assert(queue.push(gameplay));
+    assert(queue.push(control));
+    assert(queue.discardPendingEvents() == 2);
+    assert(queue.size() == 2);
+    assert(queue.pop(&out) && out.operation == 10 && out.reply);
+    assert(queue.pop(&out) && out.operation == 10 && out.reply);
+    assert(queue.empty());
+    assert(queue.discardPendingEvents() == 0);
+
+    gameplay.operation = 2;
+    gameplay.payload = "1";
+    gameplay.value = 10;
+    gameplay.generation = 101;
+    assert(queue.push(gameplay));
+    assert(queue.discardPendingEvents() == 1);
+    assert(queue.push(control));
+    assert(queue.pop(&out) && out.operation == 10);
+    assert(queue.empty());
     std::cout << "CSHARP_ACHIEVEMENT_MONOVM_QUEUE_PASS=YES\n";
 }
