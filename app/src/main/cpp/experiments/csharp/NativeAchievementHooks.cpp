@@ -232,6 +232,29 @@ bool registerNativeAchievementMod(const std::string& modId,
     return true;
 }
 
+bool unregisterNativeAchievementBinding(const std::string& modId,
+                                        std::string* error) {
+    if (!error) return false;
+    error->clear();
+    if (worldActive.load(std::memory_order_acquire)) {
+        *error = "Stop achievement gameplay ingress before unloading a mod";
+        return false;
+    }
+    std::lock_guard<std::mutex> lock(bindingMutex);
+    const auto it = bindings.find(modId);
+    if (it == bindings.end()) {
+        *error = "Achievement mod not registered";
+        return false;
+    }
+    bindings.erase(it);
+    pendingFlush.erase(modId);
+    const bool empty = bindings.empty();
+    bindingsReady.store(!empty, std::memory_order_release);
+    if (empty) setManagedAchievementMetadataPublisher(nullptr);
+    metadataRevision.fetch_add(1, std::memory_order_release);
+    return true;
+}
+
 bool updateNativeAchievementProgress(const std::string& modId,
                                      const std::string& snapshot,
                                      std::string* error) {
