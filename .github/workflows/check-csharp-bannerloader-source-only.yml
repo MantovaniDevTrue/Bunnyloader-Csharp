@@ -10,6 +10,8 @@ on:
       - experiments/csharp/BunnySourceCompiler/**
       - app/src/main/cpp/experiments/csharp/ManagedBannerRegistry.h
       - app/src/main/cpp/experiments/csharp/ManagedBannerLookupHooks.h
+      - app/src/main/cpp/experiments/csharp/ManagedBannerWorldState.h
+      - app/src/main/cpp/experiments/csharp/ManagedBannerArrayBridge.h
       - app/src/main/cpp/experiments/csharp/SourceLoader.cpp
       - app/src/main/cpp/experiments/csharp/SourceParser.cpp
       - samples/ExampleModCSharp/Examples/Banners/**
@@ -24,6 +26,8 @@ on:
       - experiments/csharp/BunnySourceCompiler/**
       - app/src/main/cpp/experiments/csharp/ManagedBannerRegistry.h
       - app/src/main/cpp/experiments/csharp/ManagedBannerLookupHooks.h
+      - app/src/main/cpp/experiments/csharp/ManagedBannerWorldState.h
+      - app/src/main/cpp/experiments/csharp/ManagedBannerArrayBridge.h
       - app/src/main/cpp/experiments/csharp/SourceLoader.cpp
       - samples/ExampleModCSharp/Playable/content/Content/NPCs/**
       - samples/ExampleModCSharp/Playable/content/Content/Items/Placeable/Banners/**
@@ -72,6 +76,12 @@ jobs:
             -Iapp/src/main/cpp tests/banners/native_world_state.cpp \
             -o /tmp/bunny-banner-world-state
           /tmp/bunny-banner-world-state
+      - name: Test bounded BannerSystem array planner
+        run: |
+          c++ -std=c++20 -O1 -Wall -Wextra -Werror -pthread \
+            -Iapp/src/main/cpp tests/banners/native_array_plan.cpp \
+            -o /tmp/bunny-banner-array-plan
+          /tmp/bunny-banner-array-plan
       - name: Compile and run actual early CSharp parser tests
         run: |
           c++ -std=c++20 -O1 -Wall -Wextra -Werror \
