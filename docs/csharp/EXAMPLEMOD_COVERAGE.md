@@ -14,9 +14,9 @@ O catálogo usa cada hook JS como unidade inicial de revisão, com hash do fonte
 |---|---:|
 | não iniciado | 712 |
 | implementado sem validar | 0 |
-| validado automaticamente | 5 |
+| validado automaticamente | 4 |
 | validado no Android | 0 |
-| falhou | 1 |
+| falhou | 2 |
 | bloqueio comprovado | 0 |
 
 Inventários: 98 fontes C#, 206 fontes JS e 558 fontes oficiais tML. Esses números não medem conclusão.
@@ -28,7 +28,7 @@ Dust e invasão: o baseline contém correções posteriores aos logs Android de 
 | Comportamento | Estado | Observação |
 |---|---|---|
 | requirement:tooltip-without-js | falhou | Dependência confirmada por inspeção de Exports.js/TooltipLoader.js; substituir por renderer nativo. |
-| requirement:aim-before-shoot | validado automaticamente | Hook de produção executado no host antes do original: lados/vertical, remoto, getter/erro, máscara zero e unload. Android pendente. |
+| requirement:aim-before-shoot | falhou | APK versionCode 311: usuário confirmou falha Android no bind de Main.myPlayer (campo ausente), rejeitando lote SHOOT. Correção usa getter estático como NativeCommandChatHooks e passou no host; confirmação Android pendente. |
 | requirement:ExampleGun | validado automaticamente | Asserções dos valores/algoritmo do exemplo real e protocolo compilado no host. Trajetória, cano e consumo no motor Android pendentes. |
 | requirement:ExampleRocketLauncher | validado automaticamente | Asserções dos valores/algoritmo do exemplo real e protocolo compilado no host. Trajetória, cano e consumo no motor Android pendentes. |
 | requirement:ExampleShotgun | validado automaticamente | Asserções dos valores/algoritmo do exemplo real e protocolo compilado no host. Trajetória, cano e consumo no motor Android pendentes. |

@@ -20,9 +20,15 @@ struct AimBinding {
         }
         auto* vector=a.class_from_il2cpp_type(a.field_get_type(positionField));
         staged.mouse=native_static::resolve(main,"MouseWorld");
-        FieldInfo* localField=nullptr;
-        if(!nativeFieldContract(main,"myPlayer","System.Int32",true,4,&localField,nullptr,error))return false;
-        staged.localPlayer={localField,nullptr,nullptr,a.class_from_il2cpp_type(a.field_get_type(localField))};
+        // Android exposes myPlayer through get_myPlayer, as in NativeCommandChatHooks.
+        staged.localPlayer=native_static::resolve(main,"myPlayer");
+        auto* localType=staged.localPlayer.type;
+        const char* localNs=localType?a.class_get_namespace(localType):nullptr;
+        const char* localName=localType?a.class_get_name(localType):nullptr;
+        if(!staged.localPlayer||!localNs||!localName||std::strcmp(localNs,"System")||
+           std::strcmp(localName,"Int32")||!a.class_is_valuetype(localType)||native_static::size(staged.localPlayer)!=4) {
+            *error="FieldOrProperty=Main.myPlayer Expected=StaticInt32 Reason=NativeLocalPlayerContractMismatch";return false;
+        }
         // X/Y may use raw or boxed offsets; never assume that size alone proves layout.
         auto* x=findField(vector,"X");auto* y=findField(vector,"Y");
         auto scalar=[&](FieldInfo* field) {

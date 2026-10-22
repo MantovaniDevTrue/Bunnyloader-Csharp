@@ -59,7 +59,7 @@ android {
         applicationId = if (readyPreview) "com.bunnyloader.csharptest" else "com.bunnyloader"
         minSdk = 24
         targetSdk = 34
-        versionCode = if (readyPreview) 311 else 274
+        versionCode = if (readyPreview) 312 else 274
         versionName = if (readyPreview) "1.0.11-dust-invasion-qa" else "1.0"
         if (readyPreview) resValue("string", "preview_app_name", "Bunny Loader C# Test")
         manifestPlaceholders["bunnyLabel"] = if (readyPreview) "@string/preview_app_name" else "@string/app_name"

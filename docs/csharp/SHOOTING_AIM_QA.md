@@ -53,3 +53,7 @@ Alvo: Xiaomi Mi 11 Lite 5G NE, Android 14, Terraria 1.4.5.8.6, build 301720, arm
 6. Registrar boot, carga de mods, FPS, memória, logs e hash do APK/mod. Campos não medidos permanecem `null`.
 
 Problemas pendentes do objetivo global estão em `EXAMPLEMOD_COVERAGE.md`/`.json`. Em particular, o tooltip C# ainda depende de execução JS. Não declarar que todos os loaders estão completos.
+
+## Hotfix do APK versionCode 312
+
+O usuário encontrou no versionCode 311 `Field=myPlayer ... Actual=Missing`, rejeitando o lote SHOOT. A identidade local usa agora o resolvedor de campo/propriedade e aceita `Main.get_myPlayer()` estático com retorno Int32, como a ponte de comandos existente. O teste de produção usa propriedade como cenário padrão e cobre campo, getter ausente, retorno errado, getter de instância e exceção. O pacote ExampleMod 0.1.64 permanece idêntico; atualizar o APK. O print registra falha real e o status Android continua `falhou` até reteste do hotfix.

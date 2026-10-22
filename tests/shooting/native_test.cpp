@@ -18,9 +18,11 @@ Il2CppType sourceType{&reference},modifierType{&modifierClass};
 FieldInfo typeField{{&integerClass},16},whoField{{&integerClass},20},poolField{{&arrayClass},0,0x10};
 FieldInfo positionField{{&vectorClass},32},widthField{{&integerClass},40},directionField{{&integerClass},44},
  mouseField{{&vectorClass},0,0x10},localField{{&integerClass},0,0x10},xField{{&floatClass},0},yField{{&floatClass},4};
-int localIndex=2,expectedDirection=0,aimReads=0;bool mouseProperty=false,mouseException=false;
+int localIndex=2,expectedDirection=0,aimReads=0;bool mouseProperty=false,mouseException=false,localProperty=true,localMissing=false,localException=false;
 float mouseWorld[2]{200,100};
-Il2CppType vectorType{&vectorClass};
+Il2CppType vectorType{&vectorClass},localType{&integerClass};
+MethodInfo localGetter{nullptr,false,5};
+struct BoxedInt {Il2CppObject object;int value;} localBox{{&integerClass,nullptr},0};
 MethodInfo mouseGetter{nullptr,false,4};
 struct BoxedVector {Il2CppObject object;float xy[2];} mouseBox{{&vectorClass,nullptr},{}};
 MethodInfo useMethod{nullptr,true,1},spawnMethod{nullptr,false,2},timeMethod{reinterpret_cast<void*>(applyTime),true,3};
@@ -47,7 +49,7 @@ Api& api(){return fixture;}
 Il2CppClass* findClass(const TypeRef& type){return type.name=="Item"?&item:type.name=="Player"?&player:type.name=="Projectile"?&projectile:&mainClass;}
 FieldInfo* findField(Il2CppClass* cls,std::string_view name){return cls==&item&&name=="type"?&typeField:cls==&player&&name=="whoAmI"?&whoField:cls==&mainClass&&name=="projectile"?&poolField:
  cls==&player&&name=="position"?&positionField:cls==&player&&name=="width"?&widthField:cls==&player&&name=="direction"?&directionField:
- cls==&mainClass&&name=="MouseWorld"&&!mouseProperty?&mouseField:cls==&mainClass&&name=="myPlayer"?&localField:
+ cls==&mainClass&&name=="MouseWorld"&&!mouseProperty?&mouseField:cls==&mainClass&&name=="myPlayer"&&!localProperty?&localField:
  cls==&vectorClass&&name=="X"?&xField:cls==&vectorClass&&name=="Y"?&yField:nullptr;}
 Signature parseSignature(std::string_view text){Signature signature;signature.name=text;return signature;}
 const MethodInfo* findMethodBySignature(Il2CppClass*,const Signature& sig,bool*,const MethodInfo**) {
@@ -80,12 +82,14 @@ int main(int argc,char** argv) {
  else if(f==&localField)std::memcpy(out,&localIndex,4);
  else {assert(f==&mouseField);++aimReads;std::memcpy(out,mouseWorld,8);}};
  fixture.method_is_instance=[](const MethodInfo* m){return m->instance;};fixture.method_get_param=[](const MethodInfo* m,uint32_t index)->const Il2CppType*{assert(m==&spawnMethod);return index==0?&sourceType:&modifierType;};
- fixture.class_get_method_from_name=[](Il2CppClass* cls,const char* name,int count)->const MethodInfo*{return cls==&mainClass&&!std::strcmp(name,"get_MouseWorld")&&count==0?&mouseGetter:nullptr;};
- fixture.method_get_return_type=[](const MethodInfo* m)->const Il2CppType*{assert(m==&mouseGetter);return &vectorType;};
- fixture.method_get_param_count=[](const MethodInfo* m)->uint32_t{assert(m==&mouseGetter);return 0;};
+ fixture.class_get_method_from_name=[](Il2CppClass* cls,const char* name,int count)->const MethodInfo*{return cls!=&mainClass||count!=0?nullptr:!std::strcmp(name,"get_MouseWorld")?&mouseGetter:!std::strcmp(name,"get_myPlayer")&&!localMissing?&localGetter:nullptr;};
+ fixture.method_get_return_type=[](const MethodInfo* m)->const Il2CppType*{assert(m==&mouseGetter||m==&localGetter);return m==&localGetter?&localType:&vectorType;};
+ fixture.method_get_param_count=[](const MethodInfo* m)->uint32_t{assert(m==&mouseGetter||m==&localGetter);return 0;};
  fixture.object_get_class=[](Il2CppObject* object){return object->klass;};
  fixture.runtime_invoke=[](const MethodInfo* m,void* object,void** args,Il2CppObject** exception)->Il2CppObject*{
-  assert(m==&mouseGetter&&!object&&!args);++aimReads;if(mouseException){*exception=&source;return nullptr;}
+  assert(!object&&!args);
+  if(m==&localGetter){if(localException){*exception=&source;return nullptr;}localBox.value=localIndex;return &localBox.object;}
+  assert(m==&mouseGetter);++aimReads;if(mouseException){*exception=&source;return nullptr;}
   std::memcpy(mouseBox.xy,mouseWorld,8);return &mouseBox.object;
  };
  std::string error;Entry entry{"independent","ExampleShotgun","Actual/ExampleShotgun.cs","",6230,7};
@@ -143,6 +147,7 @@ int main(int argc,char** argv) {
  mouseException=true;mouseWorld[0]=200;use(p,2,i,18,true,&useMethod);spawned.clear();mouseException=false;
  originalUse=nullptr;originalSpawn=nullptr;mouseProperty=false;assert(prepare(&error));
  expectedDirection=1;mouseWorld[0]=200;use(p,2,i,18,true,&useMethod);spawned.clear();
+ localException=true;mouseWorld[0]=0;use(p,2,i,18,true,&useMethod);spawned.clear();localException=false;
  // Unregistered/vanilla items preserve direction even when local aim points the other way.
  type=1;std::memcpy(itemBytes+16,&type,4);mouseWorld[0]=0;use(p,2,i,18,true,&useMethod);spawned.clear();
  // Every bind is transactional and rejects malformed vector layouts and readonly direction.
@@ -150,7 +155,11 @@ int main(int argc,char** argv) {
  directionField.flags=0x20;assert(!prepare(&error));directionField.flags=0;
  yField.offset=0;assert(!prepare(&error));yField.offset=4;
  mouseField.type.cls=&integerClass;assert(!prepare(&error));mouseField.type.cls=&vectorClass;
- localField.flags=0;assert(!prepare(&error));localField.flags=0x10;
+ localMissing=true;assert(!prepare(&error));localMissing=false;
+ localGetter.instance=true;assert(!prepare(&error));localGetter.instance=false;
+ localType.cls=&floatClass;assert(!prepare(&error));localType.cls=&integerClass;
+ localProperty=false;localField.flags=0;assert(!prepare(&error));localField.flags=0x10;
+ assert(prepare(&error));originalUse=nullptr;originalSpawn=nullptr;localProperty=true;
  positionField.offset=124;assert(!prepare(&error));positionField.offset=32;
  xField.offset=sizeof(Il2CppObject);yField.offset=sizeof(Il2CppObject)+4;assert(prepare(&error));xField.offset=0;yField.offset=4;
  // Actual binder rejects mismatched widths, storage, bounds, factory ABI and method staticness.
@@ -164,5 +173,5 @@ int main(int argc,char** argv) {
  unload("native-only");assert(hasPolicies("independent"));assert(std::atomic_load(&policies)->count(6231)==0);
  type=6231;std::memcpy(itemBytes+16,&type,4);mouseWorld[0]=0;use(p,2,i,18,true,&useMethod);assert(!active.policy);
  unload("independent");assert(!hasPolicies("independent")&&std::atomic_load(&policies)->empty());
- std::cout<<"SHOOT_PRODUCTION_HOOKS_TRANSACTION_SOURCE_OWNER_AMMO_DAMAGE_AI_CANSHOOT_REENTRY_WARMUP_FAILURE_CONTRACTS_AND_COMPILED_SHOTGUN_AND_NATIVE_AIM_BEFORE_SHOOT_PASS\n";
+ std::cout<<"SHOOT_PRODUCTION_HOOKS_TRANSACTION_SOURCE_OWNER_AMMO_DAMAGE_AI_CANSHOOT_REENTRY_WARMUP_FAILURE_CONTRACTS_AND_COMPILED_SHOTGUN_AND_NATIVE_AIM_BEFORE_SHOOT_ANDROID_MYPLAYER_GETTER_PASS\n";
 }
