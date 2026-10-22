@@ -727,6 +727,17 @@ bool replaceNativeAchievementObjects(
     return true;
 }
 
+bool nativeAchievementModRegistered(const std::string& modId) {
+    if (!validAchievementModUid(modId)) return false;
+    bool found = false;
+    for (const auto& [name, entry] : entries) {
+        if (!achievementOwnedByMod(name, modId)) continue;
+        if (!entry.registered) return false;
+        found = true;
+    }
+    return found;
+}
+
 bool unregisterNativeAchievementMod(const std::string& modId, std::string* error) {
     if (!error) return false;
     error->clear();
