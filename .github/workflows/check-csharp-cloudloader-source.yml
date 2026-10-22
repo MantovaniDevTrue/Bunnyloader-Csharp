@@ -22,6 +22,8 @@ on:
       - app/src/main/cpp/experiments/csharp/NativeCloudIdPlan.h
       - app/src/main/cpp/experiments/csharp/NativeCloudIdProbe.h
       - app/src/main/cpp/experiments/csharp/NativeCloudIdProbe.cpp
+      - app/src/main/cpp/content/common/ModContent.h
+      - app/src/main/cpp/content/common/ModContent.cpp
       - app/src/main/cpp/experiments/csharp/NativeCloudBiomePolicy.h
       - app/src/main/cpp/experiments/csharp/NativeCloudBiomeSampler.h
       - app/src/main/cpp/experiments/csharp/NativeCloudBiomeSampler.cpp
@@ -76,6 +78,9 @@ jobs:
           grep -q 'PNGOnly=' app/src/main/cpp/experiments/csharp/SourceLoader.cpp
           grep -q 'appendNativeCloudAutoload' app/src/main/cpp/experiments/csharp/SourceLoader.cpp
           grep -q 'NativeBiomeRegistryNotInstalled' app/src/main/cpp/experiments/csharp/SourceLoader.cpp
+          grep -q 'contentReadyCallbacksCompleted' app/src/main/cpp/content/common/ModContent.cpp
+          grep -q 'g_callbacksCompleted.store(true' app/src/main/cpp/content/common/ModContent.cpp
+          grep -q 'probeNativeCloudIdPlanAtReady' app/src/main/cpp/experiments/csharp/NativeCloudIdProbe.cpp
           grep -q 'base == "BunnyBiome"' app/src/main/cpp/experiments/csharp/SourceParser.cpp
       - name: GCC strict regression (no Android SDK or APK)
         run: bash tests/cloud_loader/run_native.sh
@@ -126,6 +131,17 @@ jobs:
           g++ -std=c++20 -Wall -Wextra -Werror -pedantic -fsyntax-only \
             -Iapp/src/main/cpp \
             app/src/main/cpp/experiments/csharp/NativeBiomeUpdateHook.cpp
+
+      - name: Verify actual post-JS Ready lifecycle compilation without Android build
+        shell: bash
+        run: |
+          set -euo pipefail
+          clang++ -std=c++20 -Wall -Wextra -Wno-deprecated-declarations -fsyntax-only \
+            -Itests/cloud_loader/host_stubs -Iapp/src/main/cpp \
+            app/src/main/cpp/content/common/ModContent.cpp
+          g++ -std=c++20 -Wall -Wextra -Wno-deprecated-declarations -fsyntax-only \
+            -Itests/cloud_loader/host_stubs -Iapp/src/main/cpp \
+            app/src/main/cpp/content/common/ModContent.cpp
 
       - name: SourceLoader CSharp PNG gate compiles on Linux (Android log stub only)
         shell: bash
