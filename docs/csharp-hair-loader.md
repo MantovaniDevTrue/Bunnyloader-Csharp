@@ -74,6 +74,18 @@ Base técnica: `ModHair` do tModLoader (API pública) e `HairLoader.js` /
   `Examples/Hairs/ExampleHair.cs` além dos seis espelhos da fixture e
   confirma que o cabelo **não** integra `Playable/`.
 
+- `NativeHairStaging.h`: coordena o contrato pré-IL2CPP sem ativar
+  os hooks. `Begin` reserva um bloco por mod após observar slots vanilla/JS,
+  `CommitManifest` confere UID, contagem e tipos retornados do MonoVM com
+  `Registry::Swap` atômico, e `Seal` revalida a ocupação dos slots
+  imediatamente antes da futura instalação. O estado pode ser abortado
+  enquanto não publicado e é limpo em `Reset`. Falhas não publicam metade
+  de um manifesto. **Ainda não invocado por SourceLoader no Terraria.**
+- Correção importante em `NativeHairTextures.cpp`: chamadas
+  `il2cpp_field_static_set_value` agora recebem **endereços** das
+  referências dos arrays, tanto na instalação quanto no rollback.
+  Antes eram passados ponteiros aos objetos IL2CPP, o que não respeita a
+  assinatura da API. A verificação de fonte impede a regressão.
 - `NativeHairReservation.h`: reserva blocos contíguos em startup para
   diversos mods C#, ignorando slots ocupados em `PlayerHair` e
   `PlayerHairAlt` (inclusive cabelos registrados pelo Bunny JS).
@@ -105,8 +117,9 @@ Base técnica: `ModHair` do tModLoader (API pública) e `HairLoader.js` /
    `AutoSourceRuntime`; usar `TypeReservations` para reservar cada
    faixa global **depois** do loader JS e importar manifestos via
    `ParseAndRegisterManifest(..., firstReservedType)` em `Registry`.
-   A preservação de lacunas e a rejeição de colisões já possuem testes
-   host, mas ainda faltam o coordenador de startup e o hook do jogo.
+   `NativeHairStaging` já valida atomicamente a reserva/importação/
+   rechecagem dos slots com testes host, mas ainda precisa ser conectado
+   à sequência real de startup, compilação e instalação IL2CPP.
    Remover o bloqueio do `SourceLoader` **somente depois** de validar
    o ciclo completo.
 2. Acionar o instalador de texturas na thread IL2CPP, com resolução real do
@@ -146,6 +159,10 @@ dotnet build Split/Bunny-Loader/experiments/csharp/BunnySourceSdk/BunnySourceSdk
 dotnet run --project Split/Bunny-Loader/tests/hair_loader/HairLoader.Tests.csproj -c Release
 dotnet run --project Split/Bunny-Loader/tests/hair_loader/HairCompiler.Tests.csproj -c Release
 dotnet run --project Split/Bunny-Loader/tests/hair_loader/HairRuntimeGate.Tests.csproj -c Release
+g++ -std=c++20 -Wall -Wextra -Werror \
+  -I Split/Bunny-Loader/app/src/main/cpp \
+  Split/Bunny-Loader/tests/hair_loader/native_staging.cpp \
+  -o /tmp/native-hair-staging && /tmp/native-hair-staging
 g++ -std=c++20 -Wall -Wextra -Werror \
   -I Split/Bunny-Loader/app/src/main/cpp \
   Split/Bunny-Loader/tests/hair_loader/native_reservation.cpp \
