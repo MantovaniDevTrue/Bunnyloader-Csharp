@@ -112,5 +112,21 @@ inline void applyNativeDefaults(Il2CppObject* object,bool projectile,int type) {
     const auto table=std::atomic_load_explicit(&g_nativeDefaults,std::memory_order_acquire);const auto found=table->find({projectile,type});if(found==table->end())return;
     for(const auto& field:found->second)std::memcpy(reinterpret_cast<char*>(object)+field.offset,field.bytes.data(),field.bytes.size());
 }
-struct NativeDefaultsAfter {Il2CppObject* object;bool projectile;int type;~NativeDefaultsAfter(){applyNativeDefaults(object,projectile,type);if(!projectile)useSounds::apply(object,type);}};
+struct NativeDefaultsAfter {
+    Il2CppObject* object;
+    bool projectile;
+    int type;
+    bool applied = false;
+    ~NativeDefaultsAfter() {
+        if (applied) return;
+        applyNativeDefaults(object, projectile, type);
+        if (!projectile) useSounds::apply(object, type);
+    }
+    void applyNow() {
+        if (applied) return;
+        applied = true;
+        applyNativeDefaults(object, projectile, type);
+        if (!projectile) useSounds::apply(object, type);
+    }
+};
 }
