@@ -44,6 +44,36 @@ bool fieldArrayIsPlayer(Il2CppClass* main, Il2CppClass* player,
     return true;
 }
 
+struct CachedSceneMetrics {
+    FieldInfo* sceneField = nullptr;
+    Il2CppClass* metricsClass = nullptr;
+    int countsOffset = -1;
+};
+
+bool sceneMetricsContract(CachedSceneMetrics* output, std::string* error) {
+    static CachedSceneMetrics cached{};
+    if (cached.sceneField && cached.metricsClass &&
+        cached.countsOffset >= 0) {
+        *output = cached;
+        return true;
+    }
+    auto* main = il2cpp::findClass({"Terraria", "Main", {}});
+    auto* metrics = il2cpp::findClass({"Terraria", "SceneMetrics", {}});
+    FieldInfo* field = nullptr;
+    int offset = -1;
+    if (!main || !metrics ||
+        !il2cpp::nativeFieldContract(main, "PlayerSceneMetrics",
+            "Terraria.SceneMetrics", true, sizeof(void*),
+            &field, nullptr, error) ||
+        !il2cpp::nativeFieldContract(metrics, "_tileCounts",
+            "System.Int32[]", false, sizeof(void*),
+            nullptr, &offset, error))
+        return false;
+    cached = {field, metrics, offset};
+    *output = cached;
+    return true;
+}
+
 // Original ExampleBiomeTileCount.TileCountsAvailable reads the local
 // Main.PlayerSceneMetrics._tileCounts[ModContent.TileType("ExampleTile")].
 // This is O(1) and runs at most once per biome snapshot, NOT a tile scan.
@@ -53,29 +83,20 @@ int sampleExampleTileCount(Il2CppClass* main) {
         "ExampleModCSharp", "ExampleTile");
     if (type < 0 || type >= 65536) return -1;
 
-    Il2CppClass* sceneClass = il2cpp::findClass(
-        {"Terraria", "SceneMetrics", {}});
-    if (!sceneClass) return -1;
-    FieldInfo* metricsField = nullptr;
-    int countsOffset = -1;
+    (void)main;
+    CachedSceneMetrics refs{};
     std::string why;
-    if (!il2cpp::nativeFieldContract(main, "PlayerSceneMetrics",
-            "Terraria.SceneMetrics", true, sizeof(void*),
-            &metricsField, nullptr, &why) ||
-        !il2cpp::nativeFieldContract(sceneClass, "_tileCounts",
-            "System.Int32[]", false, sizeof(void*),
-            nullptr, &countsOffset, &why))
-        return -1;
+    if (!sceneMetricsContract(&refs, &why)) return -1;
 
     auto& api = il2cpp::api();
     Il2CppObject* scene = nullptr;
-    api.field_static_get_value(metricsField, &scene);
+    api.field_static_get_value(refs.sceneField, &scene);
     if (!scene || !api.object_get_class ||
-        api.object_get_class(scene) != sceneClass)
+        api.object_get_class(scene) != refs.metricsClass)
         return -1;
 
     Il2CppArray* counts = *reinterpret_cast<Il2CppArray**>(
-        reinterpret_cast<char*>(scene) + countsOffset);
+        reinterpret_cast<char*>(scene) + refs.countsOffset);
     if (!il2cpp::nativeArrayContract(counts, "Int32", sizeof(int32_t),
                                      65536) ||
         static_cast<uintptr_t>(type) >= counts->length)
@@ -105,31 +126,20 @@ bool readNativeBiomeTileCountsWire(const std::string& owner,
     if (!bl::runtime::modTilesSettled())
         return fail(error, "BiomeTiles: native tile tables not settled");
 
-    auto* main = il2cpp::findClass({"Terraria", "Main", {}});
-    auto* metrics = il2cpp::findClass({"Terraria", "SceneMetrics", {}});
-    if (!main || !metrics)
-        return fail(error, "BiomeTiles: missing SceneMetrics");
-
-    FieldInfo* sceneField = nullptr;
-    int countsOffset = -1;
-    if (!il2cpp::nativeFieldContract(main, "PlayerSceneMetrics",
-            "Terraria.SceneMetrics", true, sizeof(void*),
-            &sceneField, nullptr, error) ||
-        !il2cpp::nativeFieldContract(metrics, "_tileCounts",
-            "System.Int32[]", false, sizeof(void*),
-            nullptr, &countsOffset, error))
-        return false;
+    CachedSceneMetrics refs{};
+    if (!sceneMetricsContract(&refs, error))
+        return fail(error, "BiomeTiles: missing SceneMetrics contract");
 
     auto& a = il2cpp::api();
     if (!a.field_static_get_value || !a.object_get_class)
         return fail(error, "BiomeTiles: missing runtime exports");
     Il2CppObject* scene = nullptr;
-    a.field_static_get_value(sceneField, &scene);
-    if (!scene || a.object_get_class(scene) != metrics)
+    a.field_static_get_value(refs.sceneField, &scene);
+    if (!scene || a.object_get_class(scene) != refs.metricsClass)
         return fail(error, "BiomeTiles: player metrics not available");
 
     auto* tileCounts = *reinterpret_cast<Il2CppArray**>(
-        reinterpret_cast<char*>(scene) + countsOffset);
+        reinterpret_cast<char*>(scene) + refs.countsOffset);
     if (!il2cpp::nativeArrayContract(tileCounts, "Int32",
                                     sizeof(int32_t), 65536))
         return fail(error, "BiomeTiles: invalid native count table");
