@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework Condition="'$(BunnyTargetFramework)' == ''">net8.0</TargetFramework>
+    <TargetFramework Condition="'$(BunnyTargetFramework)' != ''">$(BunnyTargetFramework)</TargetFramework>
     <AssemblyName>BunnySourceSdk</AssemblyName>
     <Nullable>enable</Nullable>
     <ImplicitUsings>disable</ImplicitUsings>

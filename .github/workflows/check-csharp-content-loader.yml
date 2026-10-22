@@ -34,11 +34,11 @@ jobs:
         run: python3 Split/Bunny-Loader/tests/content_loader/check_upstream.py
       - name: Run full SDK and differential loader tests
         run: |
-          dotnet build Split/Bunny-Loader/tests/content_loader/ContentLoaderTests.csproj -c Release -p:TargetFramework=${{ matrix.framework }}
+          dotnet build Split/Bunny-Loader/tests/content_loader/ContentLoaderTests.csproj -c Release -p:BunnyTargetFramework=${{ matrix.framework }}
           dotnet Split/Bunny-Loader/tests/content_loader/bin/Release/${{ matrix.framework }}/ContentLoaderTests.dll
       - name: Run documented example
         run: |
-          dotnet build Split/Bunny-Loader/samples/ContentLoaderCSharp/ContentLoaderExample.csproj -c Release -p:TargetFramework=${{ matrix.framework }}
+          dotnet build Split/Bunny-Loader/samples/ContentLoaderCSharp/ContentLoaderExample.csproj -c Release -p:BunnyTargetFramework=${{ matrix.framework }}
           dotnet Split/Bunny-Loader/samples/ContentLoaderCSharp/bin/Release/${{ matrix.framework }}/ContentLoaderExample.dll
       - name: Check compiled public reference
         if: matrix.framework == 'net8.0'
