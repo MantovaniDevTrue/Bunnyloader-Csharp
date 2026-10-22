@@ -423,3 +423,52 @@ permanentemente bloqueado por geração antiga.
 Continuam pendentes a ativação segura dos assets após JS Ready/setup
 e `TextureMaskManager.LoadMasks`, sincronização exata por quadro
 e QA IL2CPP Android. **Sem APK, .bmod ou merge.**
+
+## Auditoria de fidelidade e retomada — lote mais recente
+
+- O host agora publica `contentReadyCallbacksCompleted()` somente
+  após executar a sequência real `Ready.js` no momento
+  `tickContentReady()`. Isso inclui `Ready.Add(..., 'setup')`,
+  onde o CloudLoader JavaScript expande seus próprios arrays; com
+  nenhum callback JS registrado, a prontidão de conteúdo também
+  fica definida no momento em que as tabelas nativas estão prontas.
+- `probeNativeCloudIdPlanAtReady()` não aceita mais sinais
+  inventados de prontidão: confere o término do Ready real,
+  `CloudID.Count`, as máscaras vanilla não-nulas, e os arrays
+  `TextureAssets.Cloud`/`CloudMasks` antes de fornecer IDs.
+  É uma etapa de **leitura, não uma ativação**.
+- `NativeCloudAssets.cpp` fixa cada objeto `TextureMask` na
+  tabela de GC handles **antes** de chamar seu construtor IL2CPP,
+  eliminando uma janela de coleta entre alocação e inicialização.
+- `NativeBiomeUpdateSignal` marca overflow do contador limitado.
+  A atualização do jogo pausa o conteúdo C# e limpa as sessões
+  se houver perda de sinais, em vez de afirmar que executou
+  todos os quadros.
+- O `BunnyBiomeDispatcher.EvaluateTicksWire` processa até 64
+  eventos `Player.UpdateBiomes` com um único parse de snapshot
+  no MonoVM; executa `IsBiomeActive` e os três callbacks para
+  cada evento no lote. `NativeBiomeGameBridge` acumula eventos
+  enquanto espera o worker, rejeitando overflow/timeout em vez de
+  perder callbacks sem aviso. A thread do Terraria continua livre
+  de chamadas gerenciadas durante os hooks.
+- `BunnyCloudDispatcher` segue melhor o `Safe.Run` do Bunny:
+  exceções em `SpawnChance` ou `OnSpawn` afetam só aquela
+  avaliação/evento, sem banir permanentemente uma nuvem que pode
+  se recuperar. Testes cobrem falha temporária e recuperação.
+
+### Limitações que não podem ser consideradas validadas
+
+O batching preserva a **contagem** de eventos, porém repete o
+snapshot mais recente para eventos agrupados. Isso não garante
+o mesmo instante de transição de bioma do JavaScript nativo,
+nem a execução imediata de efeitos `OnInBiome` por quadro.
+Para fidelidade 100%, ainda é necessária a captura ordenada do
+estado por evento, confirmação das latências máximas no MonoVM
+e medição de FPS no Android real.
+
+`SourceLoader.cpp` continua com os bloqueios
+`NativeCloudHooksAndMasksNotInstalled` e
+`NativeBiomeRegistryNotInstalled`; enquanto não existir uma
+instalação transacional completa antes do mundo e QA no
+Terraria Android, **não deve ser produzido APK, .bmod,
+merge, release nem classificação device_verified**.
