@@ -70,8 +70,12 @@ jobs:
           assert compile_part.index('const std::string status = readText(path, 8192)') < compile_part.index('std::this_thread::sleep_for(elapsed <')
           assert 'elapsed < 2s ? 35ms : 150ms' in auto
           assert 'g_runtimeWarming.store(true, std::memory_order_release)' in auto
-          assert 'probeManagedRuntimePinnedThread(probe, "PINNED_MONO")' in auto
-          assert auto.index('g_runtimeWarming.store(true, std::memory_order_release)') < auto.index('note(&status, "applying")')
+          assert 'probeManagedRuntimePinnedThread(work + "BunnyManagedProbe.dll", "PINNED_MONO")' in auto
+          # Cache repair may replace the DLL. Finish it before Mono caches assembly code;
+          # wait for managed SetupContent before enabling legacy entity callbacks.
+          assert auto.index('const bool rebuilt=compile(') < auto.index('g_runtimeWarming.store(true, std::memory_order_release)')
+          assert auto.index('if (!loadManagedContentMod(') < auto.index('registerManagedEntitySourceMod(mod.id, assembly,')
+          assert auto.index('contentRollback.committed = true') < auto.index('status.managedReady = true')
           assert 'g_preWorldBindingsArmed.load(std::memory_order_acquire)' in auto
           assert 'preWorldCSharpContentReady() && finishPreWorldCSharpPlayer()' in auto
           assert 'C# carregou sem problemas:' in auto
