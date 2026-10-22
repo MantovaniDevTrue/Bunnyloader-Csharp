@@ -108,6 +108,10 @@ uint32_t takeNativeBiomePlayerUpdatesOnGameThread() {
     return g_signal.takePending();
 }
 
+bool takeNativeBiomeUpdateOverflowOnGameThread() {
+    return gameThread() && g_signal.takeOverflow();
+}
+
 void pauseNativeBiomeUpdateHookOnGameThread() {
     g_signal.pause();
 }
