@@ -1,4 +1,5 @@
 #include "experiments/csharp/SourceLimits.h"
+#include "experiments/csharp/ManagedBannerRegistry.h"
 #include "experiments/csharp/NativeTileWirePolicy.h"
 #include "experiments/csharp/SourceLoader.h"
 #include "experiments/csharp/NativeRarityRegistry.h"
@@ -228,6 +229,14 @@ bool fields(const ParsedSourceType& type, NativeContentSpec* spec,
                     [](unsigned char c) { return (c < 32 && c != 10) || c == 127; }));
             if ((!text && value != "true" && value != "false") || badText) {
                 *error = type.name + ": valor invalido em " + key;
+                return false;
+            }
+            continue;
+        }
+        if (npc && (key == "Banner" || key == "BannerItem")) {
+            if (value.size() > 72 ||
+                value.find_first_not_of("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_") != std::string::npos) {
+                *error = type.name + ": classe de banner invalida: " + key;
                 return false;
             }
             continue;
@@ -700,6 +709,7 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
 void resetCSharpSourceModSession() {
     for (const auto& mod : g_statuses) {
         angler::registry().unload(mod.id);
+        banners::registry(runtime::kVanillaNpcCount).unload(mod.id);
         unbindNativeRecipeAssembly(mod.id);
         invalidateManagedLiveSourceMod(mod.id);
         invalidateManagedDeferredSourceMod(mod.id);
@@ -781,6 +791,8 @@ bool applyManagedSourceDefaults(
     std::vector<ManagedAccessoryEntry> accessories;
     std::vector<ManagedPlayerEntry> players;
     std::vector<ManagedNpcEntry> npcs;
+    std::vector<banners::Binding> bannerBindings;
+    std::set<std::string> seenBannerClasses;
     std::vector<ManagedPrefixEntry> prefixes;
     std::vector<localization::Entry> localized;
     std::set<std::string> seenLocale;
@@ -799,6 +811,35 @@ bool applyManagedSourceDefaults(
         std::vector<std::string> fields;
         std::string part;
         while (std::getline(parts, part, '\t')) fields.push_back(part);
+        if (!fields.empty() && fields[0] == "NPC_BANNER") {
+            if (fields.size() != 4 ||
+                !seenBannerClasses.insert(fields.size() > 1 ? fields[1] : "").second) {
+                *error = "[CSharp][BannerLoader] Stage=Decode Reason=InvalidOrDuplicateBannerDescriptor";
+                return false;
+            }
+            const std::string npcKey = sourceIdentityForWire("NPC", fields[1]);
+            const std::string ownerKey = sourceIdentityForWire("NPC", fields[2]);
+            const std::string itemKey = sourceIdentityForWire("ITEM", fields[3]);
+            const auto npc = mod->registeredKindTypes.find(npcKey);
+            const auto owner = mod->registeredKindTypes.find(ownerKey);
+            const auto item = mod->registeredKindTypes.find(itemKey);
+            const auto itemBase = mod->registeredBases.find(itemKey);
+            if (npc == mod->registeredKindTypes.end() ||
+                owner == mod->registeredKindTypes.end() ||
+                item == mod->registeredKindTypes.end() ||
+                itemBase == mod->registeredBases.end() ||
+                itemBase->second != "BunnyItem" ||
+                runtime::modNpcTypeByName(modId, fields[1]) != npc->second ||
+                runtime::modNpcTypeByName(modId, fields[2]) != owner->second ||
+                runtime::modItemTypeByKey(modId + "/" + fields[3]) != item->second ||
+                bannerBindings.size() >= kSourceMaxCategory) {
+                *error = "[CSharp][BannerLoader] Stage=Resolve Reason=MissingLocalNpcOrBannerItem";
+                return false;
+            }
+            bannerBindings.push_back({modId, fields[1], fields[2], fields[3],
+                                      npc->second, owner->second, item->second});
+            continue;
+        }
         if(!fields.empty()&&fields[0]=="LOCALE_MODULES") {
             int count=0;
             if (seenLocalizationModules || fields.size()!=2 ||
@@ -1551,6 +1592,10 @@ bool applyManagedSourceDefaults(
             }
         }
     }
+    if (!banners::registry(runtime::kVanillaNpcCount).validate(modId, bannerBindings, error)) {
+        *error = "[CSharp][BannerLoader] Stage=Preflight Result=Rejected Reason=" + *error;
+        return false;
+    }
     if (!applyManagedNativeBuffDefaultsBatch(modId, buffs, potions)) {
         *error = "Falha ao validar buffs e pocoes C# gerenciados";
         return false;
@@ -1653,6 +1698,10 @@ bool applyManagedSourceDefaults(
     if(!angler::registry().publish(modId,anglerQuests,error)) {
         *error="[CSharp][ERROR][AnglerQuest] Mod="+modId+
             " Stage=Publish Reason="+*error;
+        return false;
+    }
+    if (!banners::registry(runtime::kVanillaNpcCount).publish(modId, bannerBindings, error)) {
+        *error = "[CSharp][BannerLoader] Stage=Publish Result=Rejected Reason=" + *error;
         return false;
     }
     mod->runtimeApplied = true;
