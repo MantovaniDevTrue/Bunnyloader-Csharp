@@ -369,9 +369,8 @@ bool g_nativeDamageClassFieldsReady=false;
 
 void applyNativeDamageClassFlags(Il2CppObject* object, bool projectile, int contentType) {
     if (!object || !g_nativeDamageClassFieldsReady) return;
-    NativeDamageTypeBinding binding;
-    if (!nativeDamageTypes().lookup(projectile, contentType, &binding)) return;
-    const NativeDamageClassFlags flags = nativeDamageClassFlags(binding.damageClass);
+    NativeDamageClassFlags flags;
+    if (!nativeDamageTypes().lookupFlags(projectile, contentType, &flags)) return;
     if (!flags.resolved) return;
     const auto& r=g_refs;
     if (projectile) {
