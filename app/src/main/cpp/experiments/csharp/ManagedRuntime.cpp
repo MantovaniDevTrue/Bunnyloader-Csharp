@@ -3,6 +3,7 @@
 #include "experiments/csharp/UniversalHooks.h"
 #include "experiments/csharp/ManagedRuntime.h"
 #include "experiments/csharp/NativeDamageTypeRegistry.h"
+#include "experiments/csharp/NativeDamageClassStats.h"
 #include "experiments/csharp/NativeCommandMailbox.h"
 #include "experiments/csharp/NativeCommandResult.h"
 #include "experiments/csharp/ManagedLocalizationEpochFence.h"
@@ -444,6 +445,7 @@ struct ManagedEntityBinding {
     std::string lastUseOutcome;
     int useReports = 0;
     bool cleanupQueued = false;
+    bool damageStatsPublished = false;
 };
 
 struct ManagedEntityJob {
@@ -511,6 +513,7 @@ void* g_entityBind = nullptr;
 void* g_entityNpcTick = nullptr;
 void* g_entityWorldTick = nullptr;
 void* g_entityStatusMethod = nullptr;
+void* g_entityDamageStatsMethod = nullptr;
 void* g_entityProjectileTick = nullptr;
 void* g_entityNpcHit = nullptr;
 void* g_entityNpcKill = nullptr;
@@ -1179,12 +1182,14 @@ int64_t executeManagedEntityOnWorker(const ManagedEntityJob& job) {
         g_entityNpcTick = g_api.findMethod(klass, "TickNpc", 13);
         g_entityWorldTick = g_api.findMethod(klass, "TickWorld", 7);
         g_entityStatusMethod = g_api.findMethod(klass, "Status", 1);
+        g_entityDamageStatsMethod = g_api.findMethod(klass, "DamageStats", 1);
         g_entityProjectileTick = g_api.findMethod(klass, "TickProjectile", 14);
         g_entityNpcHit = g_api.findMethod(klass, "HitNpc", 6);
         g_entityNpcKill = g_api.findMethod(klass, "KillNpc", 4);
         g_entityProjectileHit = g_api.findMethod(klass, "HitProjectile", 7);
         g_entityProjectileKill = g_api.findMethod(klass, "KillProjectile", 5);
         if (!g_entityRegister || !g_entityUnregister || !g_entityBind ||
+            !g_entityDamageStatsMethod ||
             !g_entityNpcTick || !g_entityWorldTick || !g_entityProjectileTick ||
             !g_entityNpcHit || !g_entityNpcKill ||
             !g_entityProjectileHit || !g_entityProjectileKill) return -1;
@@ -1269,7 +1274,45 @@ int64_t executeManagedEntityOnWorker(const ManagedEntityJob& job) {
                             binding.projectileTypes.size());
 #endif
     }
-    if (job.kind == 7) return managedSlot;
+    if (job.kind == 7) {
+        bool needed = false;
+        {
+            std::lock_guard<std::mutex> guard(g_pinnedMutex);
+            if (job.binding >= 0 &&
+                static_cast<size_t>(job.binding) < g_entityBindings.size()) {
+                const auto& owner = g_entityBindings[static_cast<size_t>(job.binding)];
+                needed = owner.armed && !owner.damageStatsPublished &&
+                    owner.modId == binding.modId;
+            }
+        }
+        if (needed) {
+            void* args[] = {&managedSlot};
+            void* error = nullptr;
+            void* managed = g_api.invoke(g_entityDamageStatsMethod, nullptr, args, &error);
+            auto utf8 = resolve<char* (*)(void*)>("mono_string_to_utf8");
+            auto release = resolve<void (*)(void*)>("mono_free");
+            if (managed && !error && utf8 && release) {
+                char* str = utf8(managed);
+                if (str) {
+                    const size_t length = strnlen(str, 32769);
+                    if (length <= 32768) {
+                        std::lock_guard<std::mutex> guard(g_pinnedMutex);
+                        if (job.binding >= 0 &&
+                            static_cast<size_t>(job.binding) < g_entityBindings.size()) {
+                            auto& owner = g_entityBindings[static_cast<size_t>(job.binding)];
+                            if (owner.armed && !owner.damageStatsPublished &&
+                                owner.modId == binding.modId &&
+                                nativeDamageClassStats().publish(binding.modId,
+                                    std::string_view(str, length)))
+                                owner.damageStatsPublished = true;
+                        }
+                    }
+                    release(str);
+                }
+            }
+        }
+        return managedSlot;
+    }
     {
         std::lock_guard<std::mutex> guard(g_pinnedMutex);
         if (job.session != g_entitySession ||
@@ -5027,6 +5070,7 @@ void invalidateManagedDeferredSourceMod(const std::string& modId) {
     nativeDamageTypes().unload(modId);
     std::lock_guard<std::mutex> lock(g_pinnedMutex);
     g_revokedDeferredMods.insert(modId);
+    nativeDamageClassStats().unload(modId);
     for (auto& binding : g_universalMods) {
         if (binding.id != modId) continue;
         binding.registered = true;
