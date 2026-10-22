@@ -90,7 +90,7 @@ Check("CombineWith is additive, not compound", () =>
 
 Check("Scale centers multipliers around one", () =>
 {
-    StatModifier modifier = new(1.2f, 1.5f, 3f, 2f).Scale(0.5f);
+    StatModifier modifier = new StatModifier(1.2f, 1.5f, 3f, 2f).Scale(0.5f);
     Near(modifier.Additive, 1.1f, "Additive");
     Near(modifier.Multiplicative, 1.25f, "Multiplicative");
     Near(modifier.Flat, 1.5f, "Flat");
