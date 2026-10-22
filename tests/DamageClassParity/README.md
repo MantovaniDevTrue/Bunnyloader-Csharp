@@ -23,12 +23,13 @@
 - O CI compila o SDK Android net8, executa 26 testes e o ExampleMod via Roslyn,
   além de verificar a sintaxe de ManagedRuntime.cpp, SourceLoader.cpp e
   AutoSourceRuntime.cpp, executar testes nativos do parser e registro
-  por mod, e validar o wire `DAMAGE_TYPE`, sem Gradle ou APK.
+  por mod, o wire `DAMAGE_TYPE`, o mapeamento vanilla de sinalizadores
+  e a sintaxe de NativeContent.cpp, sem Gradle ou APK.
 
 ## O que falta para o DamageClassLoader ficar completo no Terraria Android
 
-**Este código não é a ponte nativa. Não deve ser descrito como loader de
-combate completo nem usado para autorizar geração de APK.**
+**A ponte nativa ainda é parcial. Não descrever como loader de combate
+completo nem autorizar geração de APK.**
 
 - A revogação por mod já preserva IDs: remove classes do catálogo ativo,
   não reutiliza o ID antigo e limpa no worker MonoVM. O parser e o carregador
@@ -39,9 +40,17 @@ combate completo nem usado para autorizar geração de APK.**
 - `DamageType` agora existe em `BunnyItem`, `BunnyWeapon` e `BunnyProjectile`.
   O compilador emite `DAMAGE_TYPE` com ID vanilla ou nome completo da classe,
   e o runtime nativo valida ownership, cacheia por tipo e revoga por mod.
-  Ainda falta **consumir** esse binding nos hooks reais de item/projétil,
-  preservar a classificação nos clones e verificar sincronização de rede.
-  O binding, sozinho, **não altera o dano real** do Terraria.
+  Os hooks nativos de Item.SetDefaults/Projectile.SetDefaults agora consultam
+  o binding em snapshot sem copiar strings por projétil: Melee, Ranged, Magic
+  e Summon usam seus sinalizadores compatíveis do Terraria mobile.
+  NativeDefaults roda antes da classificação, e Item.RebuildTooltip depois.
+  Generic e classes customizadas não são classificadas incorretamente como
+  Ranged; MeleeNoSpeed é neutra até existir cálculo nativo que preserve a
+  ausência de bônus de velocidade. IDs V0, híbridos e Throwing mantêm os
+  defaults existentes onde não há correspondência exata.
+  Ainda falta preservar a classificação nos clones, verificar a rede e,
+  principalmente, aplicar os cinco atributos personalizados ao combate.
+  Esse mapeamento parcial não representa paridade completa de DamageClass.
 - Ler e aplicar `GetTotalDamage`, crítico, knockback, armorPen e
   attackSpeed aos campos reais de Terraria.Player no tempo correto.
 - Encaminhar efeitos, prefixos e tooltips pelos pontos nativos exatos
