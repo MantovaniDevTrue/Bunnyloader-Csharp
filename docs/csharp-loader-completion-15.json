@@ -314,6 +314,13 @@
         ],
         "android": "not-tested",
         "publicApiExposed": true
+      },
+      "automatedValidation": {
+        "commit": "32d6ffa2f3a513bec5aadae0a86b7f0ea33c70df",
+        "runId": 39769307079,
+        "result": "passed",
+        "scope": "All eleven workflows, production native detours/protocol, real CSharp worker and original QuickJS, mixed process, collectible mod host world/menu lifecycle, 65 regressions, ARM64 syntax and complete native library link. No APK or Android execution.",
+        "evidence": "docs/validation/csharp-surface-managed-bridges-2026-10-22.json"
       }
     },
     {
@@ -478,11 +485,74 @@
           "name": "Current",
           "implemented": false,
           "tests": []
+        },
+        {
+          "name": "Transactional Liquid/LiquidSlope/LiquidRenderer asset publication and fallbacks",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Recreated LocalUserGameState alpha arrays before native DrawWaters count publication",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Native DrawWaters two-loop contract and failure without partial patch",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Scene priority, fountain, blood moon, vanilla background and menu arbitration",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Visible water waterfall selection and native drawing after original",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Splash dust callback",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Droplet spawn, vanilla Update alias and type restoration",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Both lighting engines, checked Vector3 and .91 multiplier",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "MakeRain temporary style, conditional NewRain variants and restoration",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "NewRainForced custom variants",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Rain texture cache, temporary DrawRain asset and restoration",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Biome hair dye interpolation, alpha and Shimmer exception",
+          "implemented": false,
+          "tests": []
         }
       ],
       "missing": [
-        "Audit full behavior and native dependencies; implement and validate every original contract"
-      ]
+        "Implement every audited callback/engine contract in docs/csharp-water-rendering-audit.md with reusable SDK/native service and both language adapters.",
+        "Port original examples and five water/rain/waterfall PNGs; existing ExampleDroplet PNG/Gore API does not prove vanilla Update alias.",
+        "Real managed/native/QuickJS execution, failures without partial state, source regressions, ARM64 and separate Android QA."
+      ],
+      "auditDocument": "docs/csharp-water-rendering-audit.md"
     },
     {
       "loader": "WaterfallStyleLoader",
@@ -513,11 +583,44 @@
           "name": "Light",
           "implemented": false,
           "tests": []
+        },
+        {
+          "name": "Texture publication, fallback and shared ownership",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Nested DrawWaterfall color gate",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Color by-reference SpriteBatch overload and restoration",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "VertexColors by-reference four-corner overload and restoration",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Color by-value SpriteBatch overload",
+          "implemented": false,
+          "tests": []
+        },
+        {
+          "name": "Visible waterfall lighting: currentMax, type zero, three-tile steps and 24-tile cap",
+          "implemented": false,
+          "tests": []
         }
       ],
       "missing": [
-        "Audit full behavior and native dependencies; implement and validate every original contract"
-      ]
+        "Implement every audited callback/engine contract in docs/csharp-water-rendering-audit.md with reusable SDK/native service and both language adapters.",
+        "Port original examples and five water/rain/waterfall PNGs; existing ExampleDroplet PNG/Gore API does not prove vanilla Update alias.",
+        "Real managed/native/QuickJS execution, failures without partial state, source regressions, ARM64 and separate Android QA."
+      ],
+      "auditDocument": "docs/csharp-water-rendering-audit.md"
     },
     {
       "loader": "MapBackgroundLoader",

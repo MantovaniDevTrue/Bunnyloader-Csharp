@@ -79,6 +79,11 @@ leases durante o fade; dependência ausente tem diagnóstico e fallback seguro.
 | `bash tests/surface_backgrounds/run_quickjs.sh` | Exemplo JS original no QuickJS do projeto; depois C# e JS reais juntos no mesmo processo, slots C#/JS/C#/JS, prioridades e ambas as ordens de unload |
 | `python3 tools/ci/test_ready_prs.py` | Regressões existentes; o inventário mantém todos os exemplos anteriores e acrescenta um comando e um módulo de estilo |
 
+O código `32d6ffa2` passou nos onze workflows; os quatro jobs do CI combinado
+[39769307079](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39769307079)
+foram aprovados. Evidência: `docs/validation/csharp-surface-managed-bridges-2026-10-22.json`.
+As seis imagens foram comparadas byte a byte com o arquivo original.
+
 O CI source-only executa também sintaxe ARM64 e link completo de `libbunny.so`,
 conferindo doze novos exports. Não executa `assemble`, assinatura ou publicação.
 Fonte IL2CPP controlada e CLR host não equivalem a Terraria ou MonoVM Android.

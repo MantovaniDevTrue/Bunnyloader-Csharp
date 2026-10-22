@@ -1,0 +1,208 @@
+{
+  "schema": 1,
+  "date": "2026-10-22",
+  "branch": "feat/csharp-loader-completion-15-20261021",
+  "sourceCommit": "32d6ffa2f3a513bec5aadae0a86b7f0ea33c70df",
+  "previousPreservedCommit": "8173aaac86e08f580111ac3aac9ccfb7815b2d67",
+  "implementationCommits": [
+    "d199f15a",
+    "e88ba048",
+    "32d6ffa2"
+  ],
+  "combinedRun": 39769307079,
+  "workflows": [
+    {
+      "conclusion": "success",
+      "databaseId": 39769312899,
+      "headSha": "32d6ffa2f3a513bec5aadae0a86b7f0ea33c70df",
+      "name": "CSharp AnglerQuest host-only regression",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39769312708,
+      "headSha": "32d6ffa2f3a513bec5aadae0a86b7f0ea33c70df",
+      "name": "CSharp Gore Source Validation",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39769312738,
+      "headSha": "32d6ffa2f3a513bec5aadae0a86b7f0ea33c70df",
+      "name": "CommandLoader CSharp host tests (no APK)",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39769312820,
+      "headSha": "32d6ffa2f3a513bec5aadae0a86b7f0ea33c70df",
+      "name": "CSharp DustLoader source contracts",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39769312707,
+      "headSha": "32d6ffa2f3a513bec5aadae0a86b7f0ea33c70df",
+      "name": "CSharp Localization Core",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39769312864,
+      "headSha": "32d6ffa2f3a513bec5aadae0a86b7f0ea33c70df",
+      "name": "CSharp RarityLoader ARM64 Native Compile",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39769312814,
+      "headSha": "32d6ffa2f3a513bec5aadae0a86b7f0ea33c70df",
+      "name": "CSharp Invasion Unit Tests (no APK)",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39769312730,
+      "headSha": "32d6ffa2f3a513bec5aadae0a86b7f0ea33c70df",
+      "name": "CSharp World Update SDK Check",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39769312713,
+      "headSha": "32d6ffa2f3a513bec5aadae0a86b7f0ea33c70df",
+      "name": "Check CSharp RarityLoader Core",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39769312695,
+      "headSha": "32d6ffa2f3a513bec5aadae0a86b7f0ea33c70df",
+      "name": "DustLoader CSharp native ARM64 compile only",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "databaseId": 39769307079,
+      "headSha": "32d6ffa2f3a513bec5aadae0a86b7f0ea33c70df",
+      "name": "CSharp combined source-only integration checks (no APK)",
+      "status": "completed"
+    }
+  ],
+  "combinedJobs": [
+    {
+      "name": "native-arm64-syntax",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39769307079/job/119792527883"
+    },
+    {
+      "name": "native-android-link-no-apk",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39769307079/job/119792528286"
+    },
+    {
+      "name": "native-host",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39769307079/job/119792528328"
+    },
+    {
+      "name": "managed-and-contracts",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39769307079/job/119792528331"
+    }
+  ],
+  "automatedValidation": {
+    "surfaceComponents": 470,
+    "surfaceNativeLoader": 336,
+    "surfaceProtocol": 178,
+    "originalJsQuickJs": 225,
+    "originalGeometryOracle": {
+      "projections": 45,
+      "priorities": 144,
+      "fadeCases": 5,
+      "doublePrecisionBoundaryCases": 1,
+      "animationCalls": 53
+    },
+    "actualManagedWorker": true,
+    "originalJavaScriptOnRealQuickJs": true,
+    "bothLanguagesInOneProcess": true,
+    "realCollectibleModuleHostPauseMenuAndThreeReentries": true,
+    "gameplayStaticsResetAndRenderInstancePreserved": true,
+    "ownerTransferWithoutNativeReinstallDuringTeardown": true,
+    "managedOriginalExceptionRelayedToNativeLog": true,
+    "mandatoryExistingRegressionChecks": 65,
+    "fullExampleSources": 108,
+    "nativeBootstrapRegistrations": 53,
+    "managedContentTypes": 77,
+    "managedHookModules": 12,
+    "managedVerifiedTypes": 89,
+    "sdkPublicTypes": 161,
+    "androidCompactAndPackagedClrReferenceCompilation": true,
+    "arm64Syntax": true,
+    "completeAndroidNativeLibraryLink": true,
+    "sourceDeliveryGateTests": 6
+  },
+  "assets": [
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Assets/Textures/Backgrounds/ExampleBiomeSurfaceFar.png",
+      "width": 1024,
+      "height": 408,
+      "sha256": "78579e82472bbfc42435bcd65301cb5ef1765fb25ce09a289569855df3e35709",
+      "matchesOriginalArchive": true
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Assets/Textures/Backgrounds/ExampleBiomeSurfaceMid0.png",
+      "width": 1024,
+      "height": 600,
+      "sha256": "0e76cb90fe3ccf2ce3c87fde7a3a9ed7f810992338a6d2fe2c3d7be396761c83",
+      "matchesOriginalArchive": true
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Assets/Textures/Backgrounds/ExampleBiomeSurfaceMid1.png",
+      "width": 1024,
+      "height": 600,
+      "sha256": "1e09641e19174a45bb063c469cbe29cba8748e382bb20ba0c04af001ed7da6b3",
+      "matchesOriginalArchive": true
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Assets/Textures/Backgrounds/ExampleBiomeSurfaceMid2.png",
+      "width": 1024,
+      "height": 600,
+      "sha256": "311601ece48f3eb05cd9d1251806289ba283a9d8249f40bb59e010e4f1930650",
+      "matchesOriginalArchive": true
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Assets/Textures/Backgrounds/ExampleBiomeSurfaceMid3.png",
+      "width": 1024,
+      "height": 600,
+      "sha256": "1d81159043c79d5d827995cd839fcf5fd8d839742fab193271de6c5bf5ed24b3",
+      "matchesOriginalArchive": true
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Assets/Textures/Backgrounds/ExampleBiomeSurfaceClose.png",
+      "width": 952,
+      "height": 480,
+      "sha256": "ebd3908386964d71c389eaed2e154416e4bee2f332f99bdda7d41cffe99a3d99",
+      "matchesOriginalArchive": true
+    }
+  ],
+  "exampleModSourceVersion": "0.1.66",
+  "cacheVersion": "roslyn-net8-source-v57-surface-session-lifecycle",
+  "loaderScope": {
+    "total": 15,
+    "implementedInSource": 3,
+    "pending": 12,
+    "validatedOnAndroid": 0
+  },
+  "limits": [
+    "Host CLR and controlled IL2CPP metadata are not actual Terraria/MonoVM Android execution.",
+    "Host managed draw tests use a two-second mailbox budget for JIT/scheduling; production remains three milliseconds.",
+    "No Android rendering, gameplay, cold compile timing, memory or 60 FPS measurement in this integration.",
+    "WaterStyle, WaterfallStyle and the remaining ten target loaders are pending.",
+    "No APK, bmod, signing or release generated/published; gate remains closed."
+  ]
+}

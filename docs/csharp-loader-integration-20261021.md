@@ -27,8 +27,16 @@ gameplay reiniciados e descarrega também o renderizador no unload verdadeiro.
 A troca de dono dos hooks compartilhados de superfície/subsolo agora transfere
 o handle entre scopes, sem reinstalação proibida no contexto de unload. Um teste
 recusa toda nova instalação nesse momento e confirma a continuidade do estilo.
-Os onze workflows de `d199f15a` passaram, incluindo os quatro jobs combinados
-39765902423, antes desse ajuste final; o ajuste exige sua própria nova validação.
+O código final `32d6ffa2f3a513bec5aadae0a86b7f0ea33c70df` passou nos **onze
+workflows**. [CI combinado 39769307079](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/39769307079)
+aprovou os quatro jobs, incluindo os testes novos, 65 regressões, sintaxe ARM64
+e link completo sem APK. [Evidência](validation/csharp-surface-managed-bridges-2026-10-22.json).
+As exceções originais do C# também chegam ao relatório nativo, com sessão revisada,
+sem depender de Console.Error; falhas tardias/duplicadas não alteram o novo pedido.
+As seis imagens foram conferidas byte a byte contra o arquivo original.
+A próxima dupla foi auditada integralmente em [água/cachoeira](csharp-water-rendering-audit.md),
+com contratos internos antes ausentes acrescentados à matriz, todos ainda pendentes.
+Não confundir essa auditoria com implementação ou limitação comprovada do Android.
 O APK e o `.bmod` continuam bloqueados. Abaixo, registros históricos preservados.
 
 ## Continuidade sobre eb6c44b4 — serviço nativo dos seis hooks de superfície
