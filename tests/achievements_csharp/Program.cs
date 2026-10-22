@@ -267,6 +267,53 @@ finally
     Directory.Delete(profileRoot, true);
 }
 
+string switchRoot = Path.Combine(Path.GetTempPath(),
+    "bunny-switch-achievement-" + Guid.NewGuid().ToString("N"));
+string oneDir = Path.Combine(switchRoot, "one");
+string twoDir = Path.Combine(switchRoot, "two");
+string damagedDir = Path.Combine(switchRoot, "damaged");
+Directory.CreateDirectory(oneDir);
+Directory.CreateDirectory(twoDir);
+Directory.CreateDirectory(damagedDir);
+try
+{
+    var switching = new BunnyAchievementRegistry();
+    var currentFlag = switching.Register("switchmod", new FlagCondition());
+    var switchingStore = new BunnyAchievementStore(switching);
+    switchingStore.Configure(oneDir, "switchmod");
+    currentFlag.Activate();
+    Check(currentFlag.IsCompleted, "profile one completed its flag");
+    switchingStore.SwitchProfile(twoDir, "switchmod");
+    Check(!currentFlag.IsCompleted && currentFlag.Conditions[0].Value == 0,
+        "empty profile two resets completed flag without completion callbacks");
+    Check(File.Exists(Path.Combine(oneDir, "switchmod.bach")),
+        "profile one dirty progress is flushed before switching");
+    switchingStore.SwitchProfile(oneDir, "switchmod");
+    Check(currentFlag.IsCompleted,
+        "switching back restores original character's flag");
+    Check(!File.Exists(Path.Combine(twoDir, "switchmod.bach")),
+        "clean empty second profile does not trigger redundant writes");
+    string invalidPath = Path.Combine(damagedDir, "switchmod.bach");
+    File.WriteAllText(invalidPath, "CORRUPT|INVALID", System.Text.Encoding.UTF8);
+    bool refused = false;
+    try { switchingStore.SwitchProfile(damagedDir, "switchmod"); }
+    catch (FormatException) { refused = true; }
+    Check(refused && currentFlag.IsCompleted &&
+        switchingStore.Filename == Path.Combine(oneDir, "switchmod.bach"),
+        "corrupt incoming profile never changes current progress or its save path");
+    Check(File.ReadAllText(invalidPath).Contains("CORRUPT|INVALID"),
+        "damaged save is never overwritten during failed profile switch");
+
+    var dispatch = typeof(BunnyAchievementRuntime).GetMethod(
+        "Dispatch", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
+    Check(dispatch != null && (int)BunnyAchievementOperation.SwitchProfile == 11,
+        "new native MonoVM profile operation remains stable");
+}
+finally
+{
+    Directory.Delete(switchRoot, true);
+}
+
 Console.WriteLine("BUNNY_CSHARP_ACHIEVEMENTS_CORE=PASS checks=" + checkedCases);
 
 sealed class TwoConditions : BunnyAchievement
