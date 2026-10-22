@@ -26,6 +26,48 @@ inline MetricsResetFn originalBannerMetricsReset = nullptr;
 inline bool bannerMetricsHookInstalled = false;
 inline std::mutex bannerMetricsHookMutex;
 
+struct BannerMetricsFields {
+    Il2CppClass* scene = nullptr;
+    FieldInfo* screen = nullptr;
+    FieldInfo* width = nullptr;
+    FieldInfo* height = nullptr;
+    FieldInfo* scanWidth = nullptr;
+    FieldInfo* scanHeight = nullptr;
+    int buffOffset = -1;
+    int hasOffset = -1;
+};
+inline BannerMetricsFields bannerMetricsFields{};
+
+inline bool resolveBannerMetricsFields(BannerMetricsFields* out) {
+    if (!out) return false;
+    auto* scene = il2cpp::findClass({"Terraria", "SceneMetrics", {}});
+    auto* main = il2cpp::findClass({"Terraria", "Main", {}});
+    if (!scene || !main) return false;
+    std::string error;
+    FieldInfo* buff = nullptr;
+    FieldInfo* has = nullptr;
+    BannerMetricsFields fields{};
+    fields.scene = scene;
+    if (!il2cpp::nativeFieldContract(scene,"NPCBannerBuff","System.Boolean[]",
+                                     false,sizeof(void*),&buff,&fields.buffOffset,&error) ||
+        !il2cpp::nativeFieldContract(scene,"hasBanner","System.Boolean",
+                                     false,1,&has,&fields.hasOffset,&error) ||
+        !il2cpp::nativeFieldContract(main,"screenPosition",
+                                     "Microsoft.Xna.Framework.Vector2",true,8,
+                                     &fields.screen,nullptr,&error) ||
+        !il2cpp::nativeFieldContract(main,"screenWidth","System.Int32",true,4,
+                                     &fields.width,nullptr,&error) ||
+        !il2cpp::nativeFieldContract(main,"screenHeight","System.Int32",true,4,
+                                     &fields.height,nullptr,&error) ||
+        !il2cpp::nativeFieldContract(main,"buffScanAreaWidth","System.Int32",true,4,
+                                     &fields.scanWidth,nullptr,&error) ||
+        !il2cpp::nativeFieldContract(main,"buffScanAreaHeight","System.Int32",true,4,
+                                     &fields.scanHeight,nullptr,&error))
+        return false;
+    *out = fields;
+    return true;
+}
+
 inline bool bannerStrengthEnabled(int itemType) {
     if (itemType <= 0) return false;
     auto& api = il2cpp::api();
@@ -82,39 +124,16 @@ inline void applyBannerSceneMetrics(Il2CppObject* metrics) {
     auto& api = il2cpp::api();
     if (!api.field_get_flags || !api.field_static_get_value ||
         !api.object_get_class) return;
-    auto* scene = il2cpp::findClass({"Terraria", "SceneMetrics", {}});
-    auto* main = il2cpp::findClass({"Terraria", "Main", {}});
-    if (!scene || !main || api.object_get_class(metrics) != scene) return;
-    std::string error;
-    FieldInfo* buff = nullptr;
-    FieldInfo* has = nullptr;
-    int buffOffset = -1, hasOffset = -1;
-    if (!il2cpp::nativeFieldContract(scene,"NPCBannerBuff","System.Boolean[]",
-                                     false,sizeof(void*),&buff,&buffOffset,&error) ||
-        !il2cpp::nativeFieldContract(scene,"hasBanner","System.Boolean",
-                                     false,1,&has,&hasOffset,&error))
-        return;
-    FieldInfo *posField=nullptr, *widthField=nullptr, *heightField=nullptr;
-    FieldInfo *scanWidthField=nullptr, *scanHeightField=nullptr;
-    if (!il2cpp::nativeFieldContract(main,"screenPosition",
-                                     "Microsoft.Xna.Framework.Vector2",true,8,
-                                     &posField,nullptr,&error) ||
-        !il2cpp::nativeFieldContract(main,"screenWidth","System.Int32",true,4,
-                                     &widthField,nullptr,&error) ||
-        !il2cpp::nativeFieldContract(main,"screenHeight","System.Int32",true,4,
-                                     &heightField,nullptr,&error) ||
-        !il2cpp::nativeFieldContract(main,"buffScanAreaWidth","System.Int32",true,4,
-                                     &scanWidthField,nullptr,&error) ||
-        !il2cpp::nativeFieldContract(main,"buffScanAreaHeight","System.Int32",true,4,
-                                     &scanHeightField,nullptr,&error))
+    const auto& fields=bannerMetricsFields;
+    if (!fields.scene || api.object_get_class(metrics)!=fields.scene)
         return;
     struct Vec {float x,y;} pos{};
     int width=0,height=0,scanWidth=0,scanHeight=0;
-    api.field_static_get_value(posField,&pos);
-    api.field_static_get_value(widthField,&width);
-    api.field_static_get_value(heightField,&height);
-    api.field_static_get_value(scanWidthField,&scanWidth);
-    api.field_static_get_value(scanHeightField,&scanHeight);
+    api.field_static_get_value(fields.screen,&pos);
+    api.field_static_get_value(fields.width,&width);
+    api.field_static_get_value(fields.height,&height);
+    api.field_static_get_value(fields.scanWidth,&scanWidth);
+    api.field_static_get_value(fields.scanHeight,&scanHeight);
     if (!std::isfinite(pos.x)||!std::isfinite(pos.y) ||
         pos.x<0 || pos.y<0 || pos.x>2000000 || pos.y>2000000 ||
         width<1 || width>8192 || height<1 || height>8192 ||
@@ -136,7 +155,7 @@ inline void applyBannerSceneMetrics(Il2CppObject* metrics) {
     if (matches.empty()) return;
 
     Il2CppArray* buffs=nullptr;
-    std::memcpy(&buffs,reinterpret_cast<const char*>(metrics)+buffOffset,sizeof(buffs));
+    std::memcpy(&buffs,reinterpret_cast<const char*>(metrics)+fields.buffOffset,sizeof(buffs));
     if (!il2cpp::nativeArrayContract(buffs,"Boolean",1,262144)) return;
     auto* flags=static_cast<uint8_t*>(arrayData(buffs));
     const auto mappings=registry(runtime::kVanillaNpcCount).snapshot();
@@ -161,7 +180,7 @@ inline void applyBannerSceneMetrics(Il2CppObject* metrics) {
             strength=strengths.emplace(item,bannerStrengthEnabled(item)).first;
         if (!strength->second) continue;
         flags[candidate.banner]=1;
-        *(reinterpret_cast<uint8_t*>(metrics)+hasOffset)=1;
+        *(reinterpret_cast<uint8_t*>(metrics)+fields.hasOffset)=1;
     }
 }
 
@@ -180,6 +199,9 @@ inline bool installBannerMetricsHook() {
     auto& api=il2cpp::api();
     if (!reset || !api.method_is_instance || !api.method_is_instance(reset))
         return false;
+    BannerMetricsFields fields{};
+    if (!resolveBannerMetricsFields(&fields)) return false;
+    bannerMetricsFields=fields;
     if (!bl::hook::install(reset,hookBannerMetricsReset,&originalBannerMetricsReset))
         return false;
     bannerMetricsHookInstalled=true;
