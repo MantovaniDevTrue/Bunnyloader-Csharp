@@ -8,7 +8,7 @@ namespace BunnyLoader.Source;
 /// </summary>
 /// <remarks>
 /// Adaptado de tModLoader (MIT):
-/// https://github.com/tModLoader/tModLoader/blob/stable/patches/tModLoader/Terraria/ModLoader/StatInheritanceData.cs
+/// https://github.com/tModLoader/tModLoader/blob/1.4.5/patches/tModLoader/Terraria/ModLoader/StatInheritanceData.cs
 /// </remarks>
 public struct StatInheritanceData
 {
