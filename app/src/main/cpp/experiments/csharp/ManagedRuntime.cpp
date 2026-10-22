@@ -1214,9 +1214,7 @@ int64_t executeManagedEntityOnWorker(const ManagedEntityJob& job) {
         if (managedSlot < 0 || managedSlot >= 16) return -1;
         {
             std::lock_guard<std::mutex> guard(g_pinnedMutex);
-            if (job.session != g_entitySession ||
-                !g_entityBindings[static_cast<size_t>(job.binding)].armed) {
-                // Registro terminou após o pedido de unload: limpar sem bindar entidades.
+            if (!g_entityBindings[static_cast<size_t>(job.binding)].armed) {
                 auto& owner = g_entityBindings[static_cast<size_t>(job.binding)];
                 owner.managedSlot = managedSlot;
                 if (!owner.cleanupQueued) {
@@ -1247,7 +1245,7 @@ int64_t executeManagedEntityOnWorker(const ManagedEntityJob& job) {
             !bindTypes(1, binding.projectileTypes)) return -1;
         {
             std::lock_guard<std::mutex> guard(g_pinnedMutex);
-            if (job.session == g_entitySession && job.binding >= 0 &&
+            if (job.binding >= 0 &&
                 static_cast<size_t>(job.binding) < g_entityBindings.size() &&
                 g_entityBindings[static_cast<size_t>(job.binding)].modId == binding.modId) {
                 auto& owner = g_entityBindings[static_cast<size_t>(job.binding)];
@@ -1271,9 +1269,12 @@ int64_t executeManagedEntityOnWorker(const ManagedEntityJob& job) {
                             binding.projectileTypes.size());
 #endif
     }
-    // Inicialização de assembly antes da primeira atualização de mundo.
-    // Nenhum callback de NPC/projétil é executado nesta fase.
     if (job.kind == 7) return managedSlot;
+    {
+        std::lock_guard<std::mutex> guard(g_pinnedMutex);
+        if (job.session != g_entitySession ||
+            !g_entityBindings[static_cast<size_t>(job.binding)].armed) return -1;
+    }
     if (job.kind == 6) {
         int mode = job.owner, frames = job.life, player = job.target;
         int64_t worldSession = static_cast<int64_t>(job.identity);
@@ -3112,6 +3113,16 @@ void pauseManagedEntitySourceCallbacks() {
         binding.lastUseOutcome.clear();
     }
     g_entityQueue.swap(unloadJobs);
+    for (size_t index = 0; index < g_entityBindings.size(); ++index) {
+        const auto& binding = g_entityBindings[index];
+        if (!binding.armed || binding.managedSlot >= 0) continue;
+        ManagedEntityJob preload;
+        preload.binding = static_cast<int>(index);
+        preload.kind = 7;
+        preload.session = g_entitySession;
+        g_entityQueue.push_back(std::move(preload));
+    }
+    if (!g_entityQueue.empty()) g_pinnedWake.notify_one();
     g_entityNpcPending.fill(false);
     g_entityProjectilePending.fill(false);
     g_entityNpcResults.fill({});
