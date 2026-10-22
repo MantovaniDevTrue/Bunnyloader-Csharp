@@ -1,12 +1,12 @@
 # Matriz completa ExampleModBunny → C#
 
-Referencia canonica: **206 JS**, fork: **178 JS**, referencia inicial informada: **169 JS**.
+Referencia canonica: **232 JS**, fork: **178 JS**, referencia inicial informada: **169 JS**.
 As porcentagens contam arquivos JS completos; portas parciais ficam em coluna propria. Compilacao nunca promove Validado.
 O JSON ao lado conserva APIs, propriedades, dependencias, testes, lacunas e evidencias por arquivo.
 
 | Categoria | Total | Implementados | Validados | Parciais | Limitacoes tecnicas |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| Accessories | 7 | 3 (42.86%) | 0 (0.0%) | 4 (57.14%) | 0 |
+| Accessories | 8 | 3 (37.5%) | 0 (0.0%) | 4 (50.0%) | 0 |
 | Achievements | 2 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
 | Ammo | 1 | 1 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
 | Armor | 6 | 5 (83.33%) | 0 (0.0%) | 0 (0.0%) | 0 |
@@ -14,10 +14,11 @@ O JSON ao lado conserva APIs, propriedades, dependencias, testes, lacunas e evid
 | Bosses | 2 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
 | Buffs | 6 | 0 (0.0%) | 0 (0.0%) | 3 (50.0%) | 0 |
 | Clouds | 1 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
-| Commands | 2 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
+| Commands | 4 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
 | Configs | 1 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
-| Consumables | 3 | 0 (0.0%) | 0 (0.0%) | 1 (33.33%) | 0 |
+| Consumables | 5 | 0 (0.0%) | 0 (0.0%) | 1 (20.0%) | 0 |
 | DamageClasses | 1 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
+| Dusts | 5 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
 | Effects | 1 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
 | EmoteBubbles | 2 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
 | GlobalBossBars | 1 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
@@ -29,24 +30,29 @@ O JSON ao lado conserva APIs, propriedades, dependencias, testes, lacunas e evid
 | Materials | 1 | 1 (100.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
 | Mounts | 4 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
 | NPCs | 5 | 0 (0.0%) | 0 (0.0%) | 1 (20.0%) | 0 |
+| Networking | 1 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
 | Pets | 6 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
-| Placeable | 36 | 2 (5.56%) | 0 (0%) | 0 (0%) | 0 |
-| Players | 7 | 0 (0.0%) | 0 (0.0%) | 1 (14.29%) | 0 |
+| Placeable | 36 | 2 (5.56%) | 0 (0.0%) | 0 (0.0%) | 0 |
+| Players | 9 | 0 (0.0%) | 0 (0.0%) | 1 (11.11%) | 0 |
 | Prefixes | 3 | 0 (0.0%) | 0 (0.0%) | 2 (66.67%) | 0 |
 | Projectiles | 20 | 1 (5.0%) | 0 (0.0%) | 1 (5.0%) | 0 |
 | Quests | 1 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
 | Rarities | 2 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
-| Systems | 6 | 0 (0.0%) | 0 (0.0%) | 1 (16.67%) | 0 |
+| Structures | 1 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
+| Systems | 7 | 0 (0.0%) | 0 (0.0%) | 1 (14.29%) | 0 |
 | TileEntities | 2 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
-| Tiles | 37 | 2 (5.41%) | 0 (0%) | 0 (0%) | 0 |
+| Tiles | 37 | 2 (5.41%) | 0 (0.0%) | 0 (0.0%) | 0 |
 | Tools | 5 | 1 (20.0%) | 0 (0.0%) | 1 (20.0%) | 0 |
+| UI | 10 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
 | Walls | 2 | 0 (0.0%) | 0 (0.0%) | 0 (0.0%) | 0 |
-| Weapons | 18 | 3 (16.67%) | 0 (0.0%) | 1 (5.56%) | 0 |
+| Weapons | 19 | 3 (15.79%) | 0 (0.0%) | 1 (5.26%) | 0 |
 
 ## Todos os arquivos
 
 | Original JS | C# | Estado | Falta | Testes / evidencia |
 | --- | --- | --- | --- | --- |
+| Common/Commands/ExampleCoinsCommand.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModCommand | Sem validacao funcional C# deste exemplo inteiro. |
+| Common/Commands/ExampleStructureCommand.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModCommand | Sem validacao funcional C# deste exemplo inteiro. |
 | Common/Commands/ExampleTimeCommand.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModCommand | Sem validacao funcional C# deste exemplo inteiro. |
 | Common/Commands/HealCommand.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModCommand | Sem validacao funcional C# deste exemplo inteiro. |
 | Common/Configs/ExampleConfig.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModConfig | Sem validacao funcional C# deste exemplo inteiro. |
@@ -58,16 +64,30 @@ O JSON ao lado conserva APIs, propriedades, dependencias, testes, lacunas e evid
 | Common/GlobalRecipes/ExampleGlobalRecipe.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para GlobalRecipe | Sem validacao funcional C# deste exemplo inteiro. |
 | Common/GlobalTiles/ShakeTrees.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para GlobalTile | Sem validacao funcional C# deste exemplo inteiro. |
 | Common/GlobalTiles/SunflowerChanges.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para GlobalTile | Sem validacao funcional C# deste exemplo inteiro. |
+| Common/Networking/MessageType.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para este modulo/helper | Sem validacao funcional C# deste exemplo inteiro. |
 | Common/Players/ExampleCostumePlayer.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModPlayer | Sem validacao funcional C# deste exemplo inteiro. |
 | Common/Players/ExampleDashPlayer.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModPlayer | Sem validacao funcional C# deste exemplo inteiro. |
 | Common/Players/ExampleFishingPlayer.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModPlayer | Sem validacao funcional C# deste exemplo inteiro. |
 | Common/Players/ExampleLowLifePlayer.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModPlayer | Sem validacao funcional C# deste exemplo inteiro. |
 | Common/Players/ExamplePlayer.js | samples/ExampleModCSharp/Playable/content/Common/Players/ExampleWelcomePlayer.cs; samples/ExampleModCSharp/Playable/content/Common/Players/ExampleVitalPlayer.cs | Parcial | Todos os hooks/estado persistente do ModPlayer original; exemplos atuais nao sao portas integrais. | tests/combat_batch/Program.cs; tests/visual_queue/VisualAccessoryProgram.cs (quando aplicavel); .github/workflows/build-bunny-csharp-source-loader.yml |
+| Common/Players/ExampleResourcePlayer.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModPlayer | Sem validacao funcional C# deste exemplo inteiro. |
+| Common/Players/ExampleStatIncreasePlayer.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModPlayer | Sem validacao funcional C# deste exemplo inteiro. |
 | Common/Players/ExampleTouchButtonPlayer.js | — | Não implementado | ProcessTriggers C#; JustPressed/Current; estado por jogador; tocar/segurar/double-tap; random buff e texto localizado. | Sem validacao funcional C# deste exemplo inteiro. |
 | Common/Players/WingsGlowmask.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para PlayerDrawLayer | Sem validacao funcional C# deste exemplo inteiro. |
 | Common/Systems/DownedBossSystem.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModSystem | Sem validacao funcional C# deste exemplo inteiro. |
 | Common/Systems/ExampleBiomeTileCount.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModSystem | Sem validacao funcional C# deste exemplo inteiro. |
+| Common/Systems/ExampleStructureSystem.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModSystem | Sem validacao funcional C# deste exemplo inteiro. |
 | Common/Systems/TouchButtonSystem.js | — | Não implementado | API C# publica de registro de botoes; labels/icones; registro Load; integracao e persistencia do layout de controles. | Sem validacao funcional C# deste exemplo inteiro. |
+| Common/UI/ExampleCoinsUI/ExampleCoinsUIState.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para UIState | Sem validacao funcional C# deste exemplo inteiro. |
+| Common/UI/ExampleCoinsUI/ExampleCoinsUISystem.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModSystem | Sem validacao funcional C# deste exemplo inteiro. |
+| Common/UI/ExampleCoinsUI/ExampleDraggableUIPanel.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para UIPanel | Sem validacao funcional C# deste exemplo inteiro. |
+| Common/UI/ExampleCoinsUI/ExampleUIHoverImageButton.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para UIImageButton | Sem validacao funcional C# deste exemplo inteiro. |
+| Common/UI/ExampleCoinsUI/MoneyCounterGlobalItem.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para GlobalItem | Sem validacao funcional C# deste exemplo inteiro. |
+| Common/UI/ExampleCoinsUI/UIMoneyDisplay.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para UIElement | Sem validacao funcional C# deste exemplo inteiro. |
+| Common/UI/ExampleResourceUI/ExampleResourceBar.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para UIState | Sem validacao funcional C# deste exemplo inteiro. |
+| Common/UI/ExampleResourceUI/ExampleResourceUISystem.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModSystem | Sem validacao funcional C# deste exemplo inteiro. |
+| Common/UI/ResourceOverlay/VanillaLifeOverlay.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModResourceOverlay | Sem validacao funcional C# deste exemplo inteiro. |
+| Common/UI/ResourceOverlay/VanillaManaOverlay.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModResourceOverlay | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Achievements/ExampleBossKilled.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModAchievement | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Achievements/ManyWormsKilled.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModAchievement | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Biomes/ExampleSurfaceBackgroundStyle.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModSurfaceBackgroundStyle | Sem validacao funcional C# deste exemplo inteiro. |
@@ -85,6 +105,11 @@ O JSON ao lado conserva APIs, propriedades, dependencias, testes, lacunas e evid
 | Content/Buffs/ExampleMountBuff.js | — | Não implementado | Arquivo C# e registro nativo de montaria, item, movement, frames, efeitos e estado por jogador. | Pendência obrigatória do conjunto solicitado; não é bloqueio técnico comprovado. |
 | Content/Clouds/ExampleAdvancedCloud.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModCloud | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/DamageClasses/ExampleDamageClass.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para DamageClass | Sem validacao funcional C# deste exemplo inteiro. |
+| Content/Dusts/ExampleAdvancedDust.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModDust | Sem validacao funcional C# deste exemplo inteiro. |
+| Content/Dusts/ExampleBubble.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModDust | Sem validacao funcional C# deste exemplo inteiro. |
+| Content/Dusts/ExampleCustomDrawDust.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModDust | Sem validacao funcional C# deste exemplo inteiro. |
+| Content/Dusts/ExampleSolutionDust.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModDust | Sem validacao funcional C# deste exemplo inteiro. |
+| Content/Dusts/Sparkle.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModDust | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Effects/ExampleRiftEffect.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModScreenEffect | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/EmoteBubbles/ExampleAnimatedEmote.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModEmoteBubble | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/EmoteBubbles/ExampleItemEmote.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModEmoteBubble | Sem validacao funcional C# deste exemplo inteiro. |
@@ -93,6 +118,7 @@ O JSON ao lado conserva APIs, propriedades, dependencias, testes, lacunas e evid
 | Content/Hairs/ExampleHair.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModHair | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Items/Accessories/ExampleBeard.js | samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleBeard.cs | Implementado, aguardando validação | Aguardando roteiro Android | tests/basic_items/Program.cs; tests/basic_items/native_item_binding_test.cpp; tests/basic_items/content_texture_test.cpp: real source parser, shared registration texture contract and CI asset presence; tests/run_native_item_policies.py: wire real, BL_HAVE_QUICKJS=0; tests/test_csharp_no_javascript_dependency.py |
 | Content/Items/Accessories/ExampleBoots.js | samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleTrailblazerBootsAccessory.cs; samples/ExampleModCSharp/Playable/content/Common/Players/ExampleTrailblazerBootsPlayer.cs | Parcial | rocketBoots, waterWalk, iceSkate, desertBoots, fireWalk, noFallDmg, lavaRose/lavaMax do original.; Rastro em montarias permitidas pelo JS original; C# atual restringe a personagem sem montaria. | tests/combat_batch/Program.cs; tests/visual_queue/VisualAccessoryProgram.cs (quando aplicavel); .github/workflows/build-bunny-csharp-source-loader.yml |
+| Content/Items/Accessories/ExampleResourceAccessory.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Items/Accessories/ExampleShield.js | samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleGuardianShieldAccessory.cs; samples/ExampleModCSharp/Playable/content/Common/Players/ExampleGuardianShieldPlayer.cs | Parcial | Dash e double-tap originais ainda nao portados.; Valores/efeitos originais do ExampleShield diferem dos atributos preservados do Guardian Shield. | tests/combat_batch/Program.cs; tests/visual_queue/VisualAccessoryProgram.cs (quando aplicavel); .github/workflows/build-bunny-csharp-source-loader.yml |
 | Content/Items/Accessories/ExampleStatAccessory.js | samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleStatAccessory.cs | Parcial | Migrar o caminho de comportamento/equipamento C# que ainda depende de CSharpItemBehaviorLoader/QuickJS para servicos nativos. | tests/basic_items/Program.cs; tests/basic_items/item_behavior_bridge_test.js; tests/basic_items/native_item_binding_test.cpp; tests/basic_items/content_texture_test.cpp: real source parser, shared registration texture contract and CI asset presence |
 | Content/Items/Accessories/ExampleStatBonusAccessory.js | samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleVitalAccessory.cs; samples/ExampleModCSharp/Playable/content/Common/Players/ExampleVitalPlayer.cs | Parcial | Atributos e condicoes originais deste acessorio; o Vital e uma demonstracao diferente. | tests/combat_batch/Program.cs; tests/visual_queue/VisualAccessoryProgram.cs (quando aplicavel); .github/workflows/build-bunny-csharp-source-loader.yml |
@@ -108,6 +134,8 @@ O JSON ao lado conserva APIs, propriedades, dependencias, testes, lacunas e evid
 | Content/Items/Consumables/ExampleBossBag.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Items/Consumables/ExampleBossSummonItem.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Items/Consumables/ExampleBuffPotion.js | samples/ExampleModCSharp/Playable/content/Content/Items/Consumables/ExampleBuffPotion.cs | Parcial | DrinkParticleColors, som Item3, pilha/valor/raridade/duracao original e defaults de uso completos. | tests/combat_batch/Program.cs; tests/visual_queue/VisualAccessoryProgram.cs (quando aplicavel); .github/workflows/build-bunny-csharp-source-loader.yml |
+| Content/Items/Consumables/ExampleLifeFruit.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
+| Content/Items/Consumables/ExampleManaCrystal.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Items/ExampleGolfBall.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Items/ExampleItem.js | samples/ExampleModCSharp/Playable/content/Content/Items/ExampleItem.cs | Parcial | Helper ExampleCustomCurrency / moeda de lojas ainda nao implementado.; ResearchUnlockCount=100 do item original no modo Jornada ainda sem registro C# no catalogo de sacrificios. | tests/basic_items/Program.cs; tests/basic_items/basic_wire_test.cpp; tests/basic_items/native_item_binding_test.cpp; tests/basic_items/recipe_bridge_test.js; tests/basic_items/basic_source_parser_test.cpp |
 | Content/Items/ExamplePickup.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
@@ -158,6 +186,7 @@ O JSON ao lado conserva APIs, propriedades, dependencias, testes, lacunas e evid
 | Content/Items/Tools/ExampleHookItem.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Items/Tools/ExamplePickaxe.js | samples/ExampleModCSharp/Playable/content/Content/Items/Tools/ExamplePickaxe.cs | Implementado, aguardando validação | Aguardando roteiro Android | tests/basic_items/Program.cs; tests/basic_items/basic_wire_test.cpp; tests/basic_items/native_item_binding_test.cpp; tests/basic_items/recipe_bridge_test.js; tests/basic_items/basic_source_parser_test.cpp |
 | Content/Items/Weapons/ExampleCustomDamageWeapon.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
+| Content/Items/Weapons/ExampleCustomResourceWeapon.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Items/Weapons/ExampleMultiplePrefixCategoryWeapon.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Items/Weapons/Magic/ExampleLaserWeapon.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Items/Weapons/Magic/ExampleLastPrism.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModItem | Sem validacao funcional C# deste exemplo inteiro. |
@@ -211,6 +240,7 @@ O JSON ao lado conserva APIs, propriedades, dependencias, testes, lacunas e evid
 | Content/Projectiles/ExampleYoyoProjectile.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModProjectile | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Rarities/ExampleHigherTierModRarity.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModRarity | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Rarities/ExampleModRarity.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModRarity | Sem validacao funcional C# deste exemplo inteiro. |
+| Content/Structures/ExampleStructure.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para este modulo/helper | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/TileEntities/BasicTileEntity.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModTileEntity, ModTile, ModItem | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/TileEntities/SimplePylonTileEntity.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para TEModdedPylon | Sem validacao funcional C# deste exemplo inteiro. |
 | Content/Tiles/Banners/ExampleEnemyBannerTile.js | — | Não implementado | Sem contrato C# reutilizavel equivalente para ModBannerTile | Sem validacao funcional C# deste exemplo inteiro. |
