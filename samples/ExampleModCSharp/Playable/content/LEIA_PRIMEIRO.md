@@ -1,3 +1,20 @@
+# CommandLoader C# — PR #117: pronta pra teste em jogo (ainda não validada)
+
+Os exemplos agora estão incluídos no conteúdo carregável deste ExampleMod C#:
+`Common/Commands/ExampleEchoCommand.cs` (`/echo teste`, `/dizer teste`),
+`ExampleHealCommand.cs` (`/heal 30`, `/curar 30`) e
+`ExampleTimeCommand.cs` (`/addTime 3600`).
+
+Este status significa apenas que o código dos comandos e as pontes C#/C++
+estão implementados para iniciar a validação no Terraria Android. A execução
+com IL2CPP real, rede cliente/servidor, `/help` e troca de mundos ainda
+NÃO foram confirmadas em aparelho. Use um mundo descartável; confirme
+funcionamento e logs antes de classificar como release estável.
+
+**Nenhum APK foi gerado por esta PR.** Não promover nem mesclar antes do QA.
+
+---
+
 # Hook QA 0.1.47
 
 A APK .85 comprovou os metadados dos candidatos H3/H4/H5. Observe o estado no relatorio Bunny Loader apos entrar e sair do mundo de teste. Nao utilizar este ExampleMod para jogatina habitual. Guia em `Documentation/HOOK_QA_ANDROID.md`.

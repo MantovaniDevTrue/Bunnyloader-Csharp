@@ -24,6 +24,7 @@
 #include "content/dusts/ModDusts.h"
 #include "experiments/csharp/NativeVisualRenderer.h"
 #include "experiments/csharp/NativeRarityGameplay.h"
+#include "experiments/csharp/ManagedGoreRuntime.h"
 #include "graphics/CSharpScreenEffects.h"
 #include "experiments/csharp/NativeContent.h"
 #include "experiments/csharp/NativeBasicItems.h"
@@ -50,6 +51,8 @@
 #include "experiments/csharp/SourceLoader.h"
 #include "experiments/csharp/ManagedDustBindingSelection.h"
 #include "experiments/csharp/ManagedSourceClassCount.h"
+#include "experiments/csharp/NativeCommandManifest.h"
+#include "experiments/csharp/NativeCommandChatHooks.h"
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
 #include "mods/ModLoader.h"
@@ -834,6 +837,16 @@ void run() {
         std::string cacheReason=runtimeIdentity.empty()?"RuntimeIdentityUnavailable":"NotChecked";
         status.cached = !runtimeIdentity.empty() &&
             readCache(cacheFile, mod.id, key, assembly, &defaults, &curves, &combat, &cacheReason);
+        if (status.cached && mod.commands > 0) {
+            std::vector<NativeCommandSpec> cachedCommands;
+            std::string commandError;
+            if (!parseNativeCommandManifest(
+                    readText(assembly + ".commands", 96 * 1024), assembly,
+                    mod.commandClasses, &cachedCommands, &commandError)) {
+                status.cached = false;
+                cacheReason = "CommandManifest:" + commandError;
+            }
+        }
         std::string cacheWrite=status.cached?"NotNeeded":"Unavailable";
         const auto cacheMs = fingerprintMs + elapsedMilliseconds(readStarted);
         if (!status.cached) {
@@ -866,7 +879,7 @@ void run() {
             note(&status, "failed", "Tabelas de projetil nao ficaram prontas");
             continue;
         }
-        if ((mod.projectiles > 0 || mod.npcs > 0 || hasUniversalHooks || mod.screenEffects > 0 ||
+        if ((mod.projectiles > 0 || mod.npcs > 0 || hasUniversalHooks || mod.screenEffects > 0 || mod.commands > 0 ||
              (defaults.find("LOCALE\t") != std::string::npos ||
               defaults.find("LOCALE_MODULES\t") != std::string::npos ||
               defaults.find("LOCALE_RUNTIME\t") != std::string::npos)) &&
@@ -1022,6 +1035,24 @@ void run() {
         if (!parseCombat(mod.id, combat, mod, &effects)) {
             note(&status, "failed", "Tabela automatica OnHitNPC/OnKill invalida");
             continue;
+        }
+        if (mod.commands > 0) {
+            std::vector<NativeCommandSpec> commandSpecs;
+            std::string commandError;
+            if (!parseNativeCommandManifest(
+                    readText(assembly + ".commands", 96 * 1024), assembly,
+                    mod.commandClasses, &commandSpecs, &commandError) ||
+                !nativeCommandMailbox().registerMod(mod.id, commandSpecs, &commandError, false)) {
+                note(&status, "failed", "ModCommand: " + commandError);
+                continue;
+            }
+            if (!bindManagedCommandMod(mod.id, assembly, &commandError)) {
+                nativeCommandMailbox().unregisterMod(mod.id);
+                note(&status, "failed", "ModCommand: " + commandError);
+                continue;
+            }
+            BL_INFO("[CSharp][CommandLoader] Mod=%s Stage=Verified Commands=%d Names=%zu",
+                    mod.id.c_str(), mod.commands, commandSpecs.size());
         }
         status.curves = static_cast<int>(entries.size());
         for (const auto& effect : effects) {
@@ -1299,6 +1330,9 @@ void retryWorldManagedPrefixesWhenReady() {
 }
 
 void noteAutoWorldTilesLoaded() {
+    nativeCommandMailbox().newWorld();
+    resetManagedCommandSession();
+    gore::worldBoundary();
     angler::invalidateWorldSession();
     std::lock_guard<std::mutex> sessionGuard(g_worldTransitionMutex);
     resetNativeTileSessionState();
@@ -1340,6 +1374,9 @@ void noteAutoWorldTilesLoaded() {
 void flushDeferredWorldEntry();
 
 void noteAutoGameUpdate() {
+    if (nativeCommandMailbox().hasCommands()) installNativeCommandChatHooks();
+    pumpNativeCommandRepliesOnGameThread();
+    gore::pumpOnGameThread();
     pumpNativeRarityGameplay();
     const bool invasionWorldReady = g_worldSessionReady.load(std::memory_order_acquire);
     const uint64_t invasionWorldEpoch = g_worldEpoch.load(std::memory_order_acquire);
@@ -1469,6 +1506,9 @@ void noteAutoGameUpdate() {
             return;
         }
         std::lock_guard<std::mutex> sessionGuard(g_worldTransitionMutex);
+        nativeCommandMailbox().newWorld();
+        resetManagedCommandSession();
+        gore::worldBoundary();
         clearManagedVisualCommands();
         graphics::clearCSharpScreenEffects();
         pauseManagedScreenSceneCallbacks();
@@ -1521,6 +1561,7 @@ void noteAutoGameUpdate() {
         if (context.netMode < 0 || context.netMode > 3 ||
             context.gameMenu == 1) return;
         g_worldSessionReady.store(true, std::memory_order_release);
+        gore::worldReady();
         requestBasicItemInstanceRefresh("WorldLoaded");
         enableUniversalHooks();
         resumeUniversalHookMods();

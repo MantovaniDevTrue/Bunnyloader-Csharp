@@ -1,0 +1,124 @@
+name: CSharp five-loader fast-track source integration
+
+on:
+  push:
+    branches:
+      - integration/csharp-five-loader-fasttrack-20261022
+    paths:
+      - tools/csharp/fasttrack_integrate_prs.py
+      - .github/workflows/csharp-five-fasttrack.yml
+      - experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj
+      - experiments/csharp/BunnyCsSdk/BunnyCommand.cs
+      - experiments/csharp/BunnyCsSdk/BunnyCommandWorker.cs
+      - experiments/csharp/BunnyCsSdk/BunnyGore.cs
+      - experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs
+      - app/src/main/cpp/experiments/csharp/ManagedSourceClassCount.h
+      - tests/commands/native_fasttrack_command_class_count.cpp
+      - app/src/main/cpp/experiments/csharp/SourceParser.cpp
+      - app/src/main/cpp/experiments/csharp/SourceLoader.cpp
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: csharp-fasttrack-five
+  cancel-in-progress: false
+
+jobs:
+  merge-source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout isolated PR119 integration base
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+      - name: Stage PR117 and PR121 using pinned three-way source merge
+        run: |
+          set -euo pipefail
+          python3 -m py_compile tools/csharp/fasttrack_integrate_prs.py
+          python3 tools/csharp/fasttrack_integrate_prs.py
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          f = Path('docs/csharp/FASTTRACK-INTEGRATION-REPORT.json')
+          j = json.loads(f.read_text())
+          assert j['rules']['no_last_writer_wins']
+          assert j['rules']['no_apk_or_release']
+          assert j['source_prs'][0]['number'] == 117
+          assert j['source_prs'][1]['number'] == 121
+          print('MANUAL_RECONCILIATION', len(j['manual_reconciliation']))
+          for x in j['manual_reconciliation'][:60]:
+              print(x['pr'], x['path'], x['reason'])
+          PY
+      - name: Verify staged source safety
+        run: |
+          set -euo pipefail
+          if git diff --name-only | grep -E '^app/src/main/assets/managed/|\.apk$|\.bmod$|\.tmod$|\.tl$|\.so$|\.dll$'; then
+            echo 'Refusing binary / release / runtime payload.' >&2
+            exit 1
+          fi
+          git diff --check
+      - name: Commit source and reproducible conflict report to isolated branch
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- app experiments samples tests tools docs
+          if git diff --cached --quiet; then
+            echo "NO_NEW_SOURCE_CHANGES"
+            exit 0
+          fi
+          git commit -m "feat(csharp): reconcile clean Command and Gore changes onto five-loader QA baseline"
+          git push origin HEAD:integration/csharp-five-loader-fasttrack-20261022
+      - name: Set up .NET 8 for CSharp compile validation
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Build the unified managed SDK and Roslyn compiler
+        run: |
+          set -euo pipefail
+          dotnet build experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj -c Release --nologo
+          dotnet build experiments/csharp/BunnySourceCompiler/BunnySourceCompiler.csproj -c Release --nologo
+      - name: Validate original Command and Gore managed examples
+        run: |
+          set -euo pipefail
+          dotnet run --project tests/commands/Commands.HostTests.csproj -c Release
+          dotnet run --project tests/commands/CommandManifest.HostTests.csproj -c Release
+          dotnet run --project tests/commands/Actions.HostTests.csproj -c Release
+          dotnet build tests/csharp_gore_examples/GoreExamples.csproj -c Release --nologo
+      - name: C++ source tests and diagnostic build
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          j=json.loads(Path('docs/csharp/FASTTRACK-INTEGRATION-REPORT.json').read_text())
+          stats=j['counts']
+          print('INTEGRATION_SUMMARY', stats)
+          PY
+          for test in \
+            tests/commands/native_command_clock_test.cpp \
+            tests/commands/native_fasttrack_command_class_count.cpp \
+            tests/commands/native_mailbox_test.cpp \
+            tests/commands/native_command_manifest_test.cpp \
+            tests/commands/native_command_result_test.cpp \
+            tests/csharp_gore_catalog_test.cpp; do
+            if test -f "$test"; then
+              echo "Building $test"
+              g++ -std=c++20 -O1 -Wall -Wextra -Werror -Iapp/src/main/cpp "$test" -o "/tmp/$(basename "$test" .cpp)"
+              "/tmp/$(basename "$test" .cpp)"
+            fi
+          done
+          g++ -std=c++20 -O1 -Wall -Wextra -Werror -Iapp/src/main/cpp \
+            tests/commands/native_command_source_parser_test.cpp \
+            app/src/main/cpp/experiments/csharp/SourceParser.cpp \
+            -o /tmp/native_command_source_parser_test
+          /tmp/native_command_source_parser_test
+          g++ -std=c++20 -O1 -Wall -Wextra -Werror -Iapp/src/main/cpp \
+            tests/csharp_gore_discovery_test.cpp \
+            app/src/main/cpp/experiments/csharp/ManagedGoreDiscovery.cpp \
+            -o /tmp/native_gore_discovery_test
+          /tmp/native_gore_discovery_test
