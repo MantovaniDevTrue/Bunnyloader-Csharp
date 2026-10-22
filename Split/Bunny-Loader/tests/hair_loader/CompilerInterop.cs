@@ -26,6 +26,8 @@ try
         Assembly.GetExecutingAssembly(), "examplemodcsharp",
         mod, destination, 300);
 
+    Check(CompiledHairProbe.CountFromFile(Assembly.GetExecutingAssembly().Location) == 2,
+          "MonoVM conta ModHair concretos sem executar SetStaticDefaults");
     int directMonoCount = CompiledHairProbe.ExportFromFile(
         Assembly.GetExecutingAssembly().Location, "examplemodcsharp", mod, root, 300);
     Check(directMonoCount == 2 &&
