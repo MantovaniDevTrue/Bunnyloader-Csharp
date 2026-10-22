@@ -222,10 +222,11 @@ bool statements(const std::vector<Token>& ts, size_t first, size_t last,
 }
 
 bool parseClass(const std::vector<Token>& tokens, size_t begin, size_t end,
-                const std::string& name, const std::string& base,
+                const std::string& name, const std::string& declaredBase,
                 const std::string& namespaceName,
                 std::vector<ParsedSourceType>* definitions, std::string* error,
                 const std::map<std::string, std::string>& declaredProperties = {}) {
+    const std::string base = declaredBase == "BunnyBannerTile" ? "BunnyTile" : declaredBase;
     if (base != "BunnyItem" && base != "BunnyProjectile" && base != "BunnyWeapon" &&
         base != "BunnyBuff" && base != "BunnyBuffPotion" &&
         base != "BunnyPlayer" && base != "BunnyAccessory" &&
