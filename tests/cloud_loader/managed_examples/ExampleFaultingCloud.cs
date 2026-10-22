@@ -10,6 +10,9 @@ namespace ExampleModCSharp.CloudExamples;
 /// </summary>
 public sealed class ExampleFaultingCloud : BunnyCloud
 {
+    public static bool FailChance { get; set; } = true;
+    public static bool FailSpawn { get; set; } = true;
+
     public override void SetDefaults()
     {
         Texture = "Content/Clouds/FaultingProbe";
@@ -17,6 +20,15 @@ public sealed class ExampleFaultingCloud : BunnyCloud
 
     public override float SpawnChance(BunnyCloudEnvironment environment)
     {
-        throw new InvalidOperationException("Falha simulada em SpawnChance");
+        if (FailChance)
+            throw new InvalidOperationException("Falha simulada em SpawnChance");
+        return 2f;
+    }
+
+    public override void OnSpawn(BunnyCloudSpawn cloud)
+    {
+        if (FailSpawn)
+            throw new InvalidOperationException("Falha simulada em OnSpawn");
+        cloud.SpriteEffects = BunnyCloudSpriteEffects.None;
     }
 }
