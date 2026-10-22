@@ -75,11 +75,14 @@ inline bool projectNativeClassDamageDelta(
     const float sources[] = {
         player.melee, player.ranged, player.magic, player.summon
     };
-    float weighted = 0.f;
+    const float common = std::min({sources[0], sources[1], sources[2], sources[3]});
+    const float genericInheritance = cls.inheritance[0].damage;
+    if (!std::isfinite(genericInheritance)) return false;
+    float weighted = (common - 1.f) * genericInheritance;
     for (int source = 0; source < 4; ++source) {
         const float inheritance = cls.inheritance[static_cast<size_t>(source + 1)].damage;
         if (!std::isfinite(inheritance)) return false;
-        weighted += (sources[source] - 1.f) * inheritance;
+        weighted += (sources[source] - common) * inheritance;
     }
     if (!std::isfinite(weighted) || std::abs(weighted) > 100000.f) return false;
     *delta = weighted;
