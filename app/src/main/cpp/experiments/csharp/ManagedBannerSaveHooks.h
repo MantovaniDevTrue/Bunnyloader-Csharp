@@ -46,8 +46,11 @@ inline bool installBannerSaveHooks() {
         banner, parseSignature("void Save(BinaryWriter writer)"));
     const MethodInfo* full = findMethodBySignature(
         network, parseSignature("NetPacket WriteFullState()"));
-    if (!save || !full) {
-        BL_ERROR("[CSharp][BannerLoader] Save/WriteFullState nativos nao encontrados");
+    auto& api = il2cpp::api();
+    if (!save || !full || !api.method_get_flags ||
+        (api.method_get_flags(save, nullptr) & 0x10u) == 0 ||
+        (api.method_get_flags(full, nullptr) & 0x10u) == 0) {
+        BL_ERROR("[CSharp][BannerLoader] Save/WriteFullState estaticos nao verificados");
         return false;
     }
     if (!originalBannerSave &&
