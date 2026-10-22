@@ -72,6 +72,32 @@ TextureInstallResult InstallNativeHairTextures(
         return result;
     }
 
+    // O JavaScript do próprio Bunny ou um segundo loader já pode ocupar
+    // 228+. Nunca substituir cabelos alheios: tabelas são compartilhadas.
+    if (!api.object_get_class || !api.class_get_element_class ||
+        !api.class_is_valuetype) {
+        result.error = "PlayerHairArrayTypeApiUnavailable";
+        return result;
+    }
+    for (Il2CppArray* table : originals) {
+        auto* arrayType = api.object_get_class(reinterpret_cast<Il2CppObject*>(table));
+        auto* elementType = arrayType ? api.class_get_element_class(arrayType) : nullptr;
+        if (!elementType || api.class_is_valuetype(elementType)) {
+            result.error = "PlayerHairArrayElementTypeInvalid";
+            return result;
+        }
+    }
+    for (const Entry& entry : entries) {
+        for (Il2CppArray* table : originals) {
+            if (static_cast<uintptr_t>(entry.type) >= table->length) continue;
+            auto* values = static_cast<Il2CppObject* const*>(arrayData(table));
+            if (values[entry.type]) {
+                result.error = "PlayerHairIdAlreadyOwned:" + entry.fullName;
+                return result;
+            }
+        }
+    }
+
     const auto last = static_cast<uintptr_t>(entries.back().type + 1);
     const uintptr_t total = std::max({originals[0]->length, originals[1]->length, last});
     Il2CppArray* grownMain = bl::runtime::TypeTables::resizedCopy(originals[0], total);
