@@ -15,6 +15,50 @@
     "doesNotProve": "Equivalencia integral de cada arquivo JS; FPS sustentado desta versao nao foi medido neste relato."
   },
   "examples": {
+    "Content/Tiles/ExampleTile.js": {
+      "status": "Implementado, aguardando validação",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Tiles/ExampleTile.cs"
+      ],
+      "preservedFeatures": [
+        "Main.tileSolid, tileBlockLight, tileMergeDirt e TileID.Sets.ChecksForMerge via flags IL2CPP nativas",
+        "DustID.Stone e mapa (0,200,255); sprite original conferido por SHA Git"
+      ],
+      "missingFeatures": [],
+      "nativeDependencies": [
+        "experiments/csharp/BunnyCsSdk/BunnyTile.cs",
+        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeContent.cpp"
+      ],
+      "automatedTests": [
+        "tests/basic_items/Program.cs: exampletile.original-flags-map-and-recipe",
+        "tools/example_completion/stage_tile_assets.py"
+      ],
+      "validation": "Port de fonte concluido, sem validacao Android. PNG original exige staging deterministico para o pacote C#; nenhuma APK gerada.",
+      "deviceEvidence": []
+    },
+    "Content/Items/Placeable/ExampleTileItem.js": {
+      "status": "Implementado, aguardando validação",
+      "cSharp": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Placeable/ExampleTileItem.cs"
+      ],
+      "preservedFeatures": [
+        "DefaultToPlaceableTile pelo nome local; dimensoes 12x12 e receita 10 blocos por ExampleItem e WorkBenches",
+        "PNG original conferido por SHA Git e staging sem conversao"
+      ],
+      "missingFeatures": [],
+      "nativeDependencies": [
+        "experiments/csharp/BunnyCsSdk/BunnyItem.cs",
+        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp"
+      ],
+      "automatedTests": [
+        "tests/basic_items/Program.cs: exampletile.original-flags-map-and-recipe",
+        "tools/example_completion/stage_tile_assets.py"
+      ],
+      "validation": "Port de fonte concluido; recursos binarios devem ser copiados antes do teste Android. Sem APK gerada ou validacao em aparelho.",
+      "deviceEvidence": []
+    },
     "Content/Items/Accessories/ExampleShield.js": {
       "status": "Parcial",
       "cSharp": [
