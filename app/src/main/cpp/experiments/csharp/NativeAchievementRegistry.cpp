@@ -666,7 +666,7 @@ bool replaceNativeAchievementObjects(
         return okay;
     };
 
-    const cleanupAfterFailure = [&](bool rollbackComplete) {
+    const auto cleanupAfterFailure = [&](bool rollbackComplete) {
         for (auto& [_, entry] : staged) {
             if (rollbackComplete) release(entry);
             else retiredEntries.push_back(std::move(entry));
