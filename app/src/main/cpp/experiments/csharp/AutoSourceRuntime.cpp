@@ -53,6 +53,7 @@
 #include "experiments/csharp/SourceLoader.h"
 #include "experiments/csharp/ManagedBannerWorldSession.h"
 #include "experiments/csharp/ManagedBannerLookupHooks.h"
+#include "experiments/csharp/ManagedBannerSaveDispatch.h"
 #include "experiments/csharp/ManagedDustBindingSelection.h"
 #include "experiments/csharp/ManagedSourceClassCount.h"
 #include "il2cpp/Api.h"
@@ -1404,12 +1405,14 @@ void noteAutoGameUpdate() {
     static unsigned bannerRestoreTicks = 0;
     static unsigned bannerRestoreFailures = 0;
     if (!invasionWorldReady) {
+        banners::saveDispatch().leaveWorld();
         lastSaveWorldSession = 0;
         restoredBannerWorld = 0;
         bannerRestoreTicks = 0;
         bannerRestoreFailures = 0;
     } else if (lastSaveWorldSession != invasionWorldEpoch) {
         updateNativeInvasionWorldPath(true, invasionWorldEpoch);
+        banners::saveDispatch().enterWorld(invasionWorldEpoch);
         lastSaveWorldSession = invasionWorldEpoch;
         bannerRestoreTicks = 0;
         bannerRestoreFailures = 0;
@@ -1435,6 +1438,16 @@ void noteAutoGameUpdate() {
                 BL_WARN("[CSharp][BannerLoader] restauracao adiada: %s", bannerError.c_str());
             }
         }
+    }
+    if (invasionWorldReady &&
+        banners::saveDispatch().consumeOnMainThread(invasionWorldEpoch) &&
+        worldIsAuthoritative(runtime::netMode()) &&
+        banners::lookupsActive.load(std::memory_order_acquire)) {
+        std::string bannerSaveError;
+        if (!saveBannerWorldCountersOnGameThread(invasionWorldEpoch, true,
+                                                  &bannerSaveError))
+            BL_WARN("[CSharp][BannerLoader] sidecar world-save falhou: %s",
+                    bannerSaveError.c_str());
     }
     universalNativeService.store(pumpNativeAccessOnGameThread,std::memory_order_release);
     pumpNativeAccessOnGameThread();
