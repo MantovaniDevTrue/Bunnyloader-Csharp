@@ -386,9 +386,11 @@ try {
   Equal("ExampleItem",exampleMaterial[1]);
   var tile=rows.Single(row=>row.StartsWith("TILE\tExampleWorkbench\t")).Split('\t');
   var item=rows.Single(row=>row.StartsWith("ITEM\tExampleWorkbench\t")).Split('\t');
-  Equal(13,tile.Length); Equal("1",tile[3]);Equal("18",tile[4]);Equal("18",tile[5]);
+  Equal(21,tile.Length); Equal("1",tile[3]);Equal("18",tile[4]);Equal("18",tile[5]);
   Equal("Platinum",tile[6]);Equal("200",tile[7]);Equal("200",tile[8]);Equal("200",tile[9]);
   Equal("1",tile[11]);Equal("3",tile[12]);
+  Equal("0",tile[13]);Equal("1",tile[14]);Equal("0",tile[15]);Equal("-",tile[16]);
+  Equal("1",tile[17]);Equal("1",tile[18]);Equal("0",tile[19]);Equal("0",tile[20]);
   Equal(22,item.Length);Equal("mExampleWorkbench:0",item[21]);
   Equal("1,-1,v36:1,mExampleItem:10",item[19]);
   foreach (string armorName in new[]{"ExampleHelmet","ExampleBreastplate","ExampleLeggings"}) {
