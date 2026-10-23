@@ -1311,6 +1311,7 @@ string Definition { get; }
 | `BunnyNativeDefaults SetFloat(string field, float value)` | managed_helper |
 | `BunnyNativeDefaults SetId(string field, string idClass, string name)` | managed_helper |
 | `BunnyNativeDefaults SetInt(string field, int value)` | managed_helper |
+| `BunnyNativeDefaults SetItemDrinkParticleColors(BunnyColor[] colors)` | managed_helper |
 | `BunnyNativeDefaults SetItemStaticBool(string name, bool value)` | managed_helper |
 | `BunnyNativeDefaults SetProjectile(string field, string key)` | managed_helper |
 | `BunnyNativeDefaults SetProjectileStaticBool(string name, bool value)` | managed_helper |
