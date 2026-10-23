@@ -2,6 +2,7 @@
 #include "experiments/csharp/NativeDefaults.h"
 #include "experiments/csharp/SourceLimits.h"
 #include "experiments/csharp/NativeBasicItems.h"
+#include "experiments/csharp/NativeRarityGameplay.h"
 #include "experiments/csharp/NativeArmorPolicies.h"
 #include "experiments/csharp/NativeItemPolicies.h"
 #include "experiments/csharp/ManagedPrefixBridge.h"
@@ -816,6 +817,14 @@ std::string basicItemTooltipPlan(int type) {
     const auto it=definitions.find(type);
     return it==definitions.end()?std::string{}:it->second.tooltipPlan;
 }
+bool hasNativeTooltipPlans() {
+    std::lock_guard lock(mutex);
+    for(const auto& [type,entry]:definitions) {
+        (void)type;
+        if(entry.nativeTooltip)return true;
+    }
+    return false;
+}
 std::optional<NativeTooltipPlan> basicItemNativeTooltip(int type) {
     std::lock_guard lock(mutex);
     const auto it=definitions.find(type);
@@ -927,6 +936,7 @@ bool hasManagedRecipeCallbacks(const std::string& modId) {
 }
 void pumpBasicRecipesOnGameThread() {
     pumpNativeArmorPoliciesOnGameThread();
+    pumpNativeTooltipGameplay();
     static unsigned ticks=0, knownGeneration=0, fastPasses=0;
     const unsigned generation=contentGeneration.load(std::memory_order_acquire);
     if(generation!=knownGeneration) {
