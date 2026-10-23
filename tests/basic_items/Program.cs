@@ -249,10 +249,22 @@ try {
     (f[0] is "WEAPON" or "ACCESSORY" or "POTION"?"ITEM":f[0])+":"+f[1]).ToArray();
   var nativeIdentities=identities.Where(identity=>!identity.StartsWith("LOCALIZATION:",StringComparison.Ordinal))
    .ToHashSet(StringComparer.Ordinal);
-  if(nativeIdentities.Count!=actual.Length)
-    throw new Exception("native wire rows="+actual.Length+" recognized="+nativeIdentities.Count+
-      " extras="+string.Join(",",actual.Where(x=>!nativeIdentities.Contains(x)).Take(30)));
-  if(!nativeIdentities.SetEquals(actual))throw new Exception("compiled types and native wire identities differ");
+  var policies = new Dictionary<string,string>(StringComparer.Ordinal) {
+   ["SHOOT"]="ITEM",["QUEST_FISH"]="ITEM",["QUEST_LOCALE"]="ITEM",["QUEST_CATCH"]="PLAYER"
+  };
+  var sourceRecords=actual.Where(identity=>{
+   var split=identity.IndexOf(':');
+   if(split<=0)throw new Exception("invalid source wire record: "+identity);
+   var kind=identity[..split];var name=identity[(split+1)..];
+   if(!policies.TryGetValue(kind,out string? owner))return true;
+   if(!nativeIdentities.Contains(owner+":"+name))
+    throw new Exception("orphan native policy: "+identity+" requires "+owner);
+   return false;
+  }).ToArray();
+  Equal(nativeIdentities.Count,sourceRecords.Length);
+  if(!nativeIdentities.SetEquals(sourceRecords))throw new Exception(
+   "compiled types and native wire identities differ: "+
+   string.Join(",",sourceRecords.Where(x=>!nativeIdentities.Contains(x))));
   File.Copy(Path.Combine(scratch,"source-runtime-values.txt"),"build/basic-items/full-source-runtime-values.txt",true);
   var minionRows=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt"));
   var minion=minionRows.Single(row=>row.StartsWith("PROJECTILE\tExampleMinion\t",StringComparison.Ordinal)).Split('\t');
