@@ -787,7 +787,7 @@ void hkLoadWorldTiles(Il2CppObject* reader, Il2CppArray* importance, const Metho
                 restored, kept.size(), objectsKept, plantsCleared, cellsRebuilt, builtOver);
     }
     restoreModWalls(path, world ? &t : nullptr);
-    if (world) bl::csharp::noteAutoWorldTilesLoaded();
+    if (world) bl::csharp::noteAutoWorldTilesLoaded(path);
 }
 
 } // namespace

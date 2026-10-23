@@ -1,5 +1,6 @@
 #include "experiments/csharp/SourceLimits.h"
 #include "experiments/csharp/ManagedRuntime.h"
+#include "experiments/csharp/MonoWorldMailbox.h"
 #include "experiments/csharp/ManagedVisualMonoPump.h"
 #include "experiments/csharp/ManagedVisualState.h"
 #include "experiments/csharp/ManagedLiveEventQueue.h"
@@ -259,6 +260,7 @@ std::chrono::steady_clock::time_point g_auditStart;
 std::mutex g_pinnedMutex;
 std::condition_variable g_pinnedWake;
 std::condition_variable g_pinnedResultWake;
+worldsave::MonoWorldMailbox g_worldMailbox;
 struct ManagedHurtBinding {
     std::string modId;
     std::string assemblyPath;
@@ -1106,6 +1108,143 @@ int64_t executeManagedEntityOnWorker(const ManagedEntityJob& job) {
     return encoded;
 }
 
+
+worldsave::MonoWorldReply invokeManagedWorldOnPinnedMono(
+    const worldsave::MonoWorldRequest& request) {
+    worldsave::MonoWorldReply reply;
+    std::lock_guard<std::mutex> monoGuard(g_mutex);
+    if (!g_domain || !g_status.domainInitialized || !g_status.methodExecuted ||
+        !g_api.attach || !g_api.openAssembly || !g_api.image || !g_api.findClass ||
+        !g_api.findMethod || !g_api.invoke || !g_api.unbox || !g_api.newString) {
+        reply.error = "MonoVM not ready for world system";
+        return reply;
+    }
+    if (!g_api.attach(g_domain)) {
+        reply.error = "Unable to attach pinned MonoVM owner";
+        return reply;
+    }
+
+    using MonoStringToUtf8 = char* (*)(void*);
+    using MonoReleaseString = void (*)(void*);
+    MonoStringToUtf8 toUtf8 = resolve<MonoStringToUtf8>("mono_string_to_utf8");
+    MonoReleaseString release = resolve<MonoReleaseString>("mono_free");
+    if (!toUtf8 || !release) {
+        reply.error = "Mono string ABI unavailable";
+        return reply;
+    }
+    auto getString = [&](void* monoString) -> std::string {
+        if (!monoString) return {};
+        char* chars = toUtf8(monoString);
+        if (!chars) return {};
+        const size_t size = strnlen(chars, worldsave::MonoWorldMailbox::MaxPayload + 512);
+        const bool bounded = size < worldsave::MonoWorldMailbox::MaxPayload + 512;
+        std::string text = bounded ? std::string(chars, size) : std::string();
+        release(chars);
+        return text;
+    };
+
+    const size_t slash = g_checkpointPath.find_last_of('/');
+    if (slash == std::string::npos) {
+        reply.error = "BunnySourceSdk folder missing";
+        return reply;
+    }
+    const std::string sdk = g_checkpointPath.substr(0, slash + 1) + "BunnySourceSdk.dll";
+    if (!validAssembly(sdk)) {
+        reply.error = "BunnySourceSdk unavailable";
+        return reply;
+    }
+    void* assembly = g_api.openAssembly(g_domain, sdk.c_str());
+    void* image = assembly ? g_api.image(assembly) : nullptr;
+    void* klass = image ? g_api.findClass(image, "BunnyLoader.Source",
+                                             "BunnyWorldMonoHost") : nullptr;
+    if (!klass) {
+        reply.error = "BunnyWorldMonoHost missing";
+        return reply;
+    }
+    const char* methodName = "";
+    int argsCount = 0;
+    switch (request.action) {
+        case worldsave::MonoWorldAction::Register:
+            methodName = "RegisterMod"; argsCount = 2; break;
+        case worldsave::MonoWorldAction::Enter:
+            methodName = "Enter"; argsCount = 3; break;
+        case worldsave::MonoWorldAction::Prepare:
+            methodName = "Prepare"; argsCount = 1; break;
+        case worldsave::MonoWorldAction::Confirm:
+            methodName = "Confirm"; argsCount = 2; break;
+        case worldsave::MonoWorldAction::Leave:
+            methodName = "Leave"; argsCount = 1; break;
+        case worldsave::MonoWorldAction::NetSend:
+            methodName = "NetSend"; argsCount = 1; break;
+        case worldsave::MonoWorldAction::NetReceive:
+            methodName = "NetReceive"; argsCount = 2; break;
+    }
+    void* method = g_api.findMethod(klass, methodName, argsCount);
+    if (!method) {
+        reply.error = "World MonoVM callback missing";
+        return reply;
+    }
+
+    int64_t epoch = static_cast<int64_t>(request.epoch);
+    uint8_t authoritative = request.authoritative ? 1 : 0;
+    void* modUid = request.modUid.empty()
+        ? nullptr : g_api.newString(g_domain, request.modUid.c_str());
+    void* modAssembly = request.assemblyPath.empty()
+        ? nullptr : g_api.newString(g_domain, request.assemblyPath.c_str());
+    void* base64 = request.payload.empty()
+        ? nullptr : g_api.newString(g_domain, request.payload.c_str());
+    if ((request.action == worldsave::MonoWorldAction::Register &&
+         (!modUid || !modAssembly)) ||
+        (request.action == worldsave::MonoWorldAction::Confirm && !base64)) {
+        reply.error = "Unable to allocate managed world arguments";
+        return reply;
+    }
+
+    void* registerArgs[] = {modUid, modAssembly};
+    void* enterArgs[] = {&epoch, base64, &authoritative};
+    void* prepareArgs[] = {&epoch};
+    void* confirmArgs[] = {&epoch, base64};
+    void* leaveArgs[] = {&epoch};
+    void** chosen = request.action == worldsave::MonoWorldAction::Register ? registerArgs :
+                    request.action == worldsave::MonoWorldAction::Enter ? enterArgs :
+                    request.action == worldsave::MonoWorldAction::Prepare ? prepareArgs :
+                    request.action == worldsave::MonoWorldAction::Confirm ||
+                    request.action == worldsave::MonoWorldAction::NetReceive ? confirmArgs :
+                    request.action == worldsave::MonoWorldAction::NetSend ? prepareArgs :
+                    leaveArgs;
+    void* exception = nullptr;
+    void* boxed = g_api.invoke(method, nullptr, chosen, &exception);
+    if (exception) {
+        reply.error = "World MonoVM callback raised managed exception";
+        return reply;
+    }
+    if (request.action == worldsave::MonoWorldAction::Prepare ||
+        request.action == worldsave::MonoWorldAction::NetSend) {
+        if (boxed) {
+            reply.payload = getString(boxed);
+            reply.success = !reply.payload.empty() &&
+                reply.payload.size() <= (
+                    request.action == worldsave::MonoWorldAction::NetSend
+                        ? worldsave::MonoWorldMailbox::MaxNetPayload
+                        : worldsave::MonoWorldMailbox::MaxPayload);
+        }
+    } else if (boxed) {
+        void* unboxed = g_api.unbox(boxed);
+        reply.success = unboxed && *static_cast<uint8_t*>(unboxed) != 0;
+    }
+    if (!reply.success) {
+        void* getError = g_api.findMethod(klass, "get_LastError", 0);
+        void* errorException = nullptr;
+        void* textValue = getError ? g_api.invoke(getError, nullptr, nullptr,
+                                                  &errorException) : nullptr;
+        reply.error = errorException ? "World MonoVM diagnostic failed" :
+                      getString(textValue);
+        if (reply.error.empty()) reply.error = "World MonoVM callback rejected";
+        if (reply.error.size() > 512) reply.error.resize(512);
+    }
+    return reply;
+}
+
 void* pinnedMonoWorker(void*) {
     {
         std::lock_guard<std::mutex> lock(g_pinnedMutex);
@@ -1121,6 +1260,18 @@ void* pinnedMonoWorker(void*) {
         {
             std::unique_lock<std::mutex> lock(g_pinnedMutex);
             while (!g_pinnedPending) {
+                std::shared_ptr<worldsave::MonoWorldTicket> worldRequest;
+                if (g_worldMailbox.take(&worldRequest)) {
+                    if (!g_worldMailbox.current(worldRequest)) {
+                        g_worldMailbox.finish(worldRequest, {});
+                        continue;
+                    }
+                    lock.unlock();
+                    auto reply = invokeManagedWorldOnPinnedMono(worldRequest->request);
+                    lock.lock();
+                    g_worldMailbox.finish(worldRequest, std::move(reply));
+                    continue;
+                }
                 if (!g_managedHurtQueue.empty()) {
                     ManagedHurtJob job = std::move(g_managedHurtQueue.front());
                     g_managedHurtQueue.pop_front();
@@ -1492,7 +1643,8 @@ void* pinnedMonoWorker(void*) {
                 }
                 if (!g_auditEnabled) {
                     if (g_liveHitStatus.enabled || g_liveIngress.depth() != 0 ||
-                        !g_managedHurtQueue.empty() || !g_entityQueue.empty())
+                        !g_managedHurtQueue.empty() || !g_entityQueue.empty() ||
+                        g_worldMailbox.pending())
                         g_pinnedWake.wait_for(lock, std::chrono::milliseconds(2));
                     else
                         g_pinnedWake.wait(lock);
@@ -1506,7 +1658,7 @@ void* pinnedMonoWorker(void*) {
                 if (g_pinnedWake.wait_until(lock, deadline, [] {
                     return g_pinnedPending || g_vmComparePending ||
                         !g_liveHitQueue.empty() || g_liveIngress.depth() != 0 ||
-                        !g_entityQueue.empty();
+                        !g_entityQueue.empty() || g_worldMailbox.pending();
                 }))
                     continue;
                 if (std::chrono::steady_clock::now() < until) continue;
@@ -1545,6 +1697,21 @@ void* pinnedMonoWorker(void*) {
     return nullptr;
 }
 
+}
+
+bool requestManagedWorldOnMono(const worldsave::MonoWorldRequest& request,
+                               worldsave::MonoWorldReply* reply, int timeoutMs) {
+    if (!reply || timeoutMs <= 0 || timeoutMs > 5000 ||
+        request.epoch > static_cast<uint64_t>(INT64_MAX)) return false;
+    auto ticket = g_worldMailbox.submit(request);
+    if (!ticket) return false;
+    g_pinnedWake.notify_one();
+    return g_worldMailbox.wait(ticket, std::chrono::milliseconds(timeoutMs), reply);
+}
+
+void invalidateManagedWorldMonoRequests() {
+    g_worldMailbox.invalidate();
+    g_pinnedWake.notify_all();
 }
 
 bool registerManagedEntitySourceMod(

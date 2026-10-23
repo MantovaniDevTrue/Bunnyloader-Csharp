@@ -113,6 +113,12 @@ public static class CompiledAssemblyProbe
             var npcTypes = contentTypes
                 .Where(type => IsContentType(type, "BunnyNPC"))
                 .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
+            var worldTypes = contentTypes
+                .Where(type => IsContentType(type, "BunnyWorldSystem"))
+                .OrderBy(type => type.FullName, StringComparer.Ordinal).ToArray();
+            if (worldTypes.Length > 512 || worldTypes.Any(type =>
+                type.GetConstructor(Type.EmptyTypes) == null))
+                throw new InvalidOperationException("WorldSystem requires a public empty constructor");
             var prefixTypes = contentTypes
                 .Where(type => IsContentType(type, "BunnyPrefix"))
                 .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
@@ -121,7 +127,7 @@ public static class CompiledAssemblyProbe
                 weaponTypes.Length > 4096 || basicItemTypes.Length > 4096 ||
                 buffTypes.Length > 4096 || potionTypes.Length > 4096)
                 throw new InvalidOperationException("C# content class count out of bounds");
-            if (tileTypes.Length + basicItemTypes.Length + projectileTypes.Length + weaponTypes.Length + buffTypes.Length + potionTypes.Length + accessoryTypes.Length + playerTypes.Length + npcTypes.Length + prefixTypes.Length == 0)
+            if (tileTypes.Length + basicItemTypes.Length + projectileTypes.Length + weaponTypes.Length + buffTypes.Length + potionTypes.Length + accessoryTypes.Length + playerTypes.Length + npcTypes.Length + prefixTypes.Length + worldTypes.Length == 0)
                 throw new InvalidOperationException("C# assembly has no supported content types");
             bool fixture = projectileTypes.Any(t => t.FullName == "SourceCSharpMod.SourceBolt") &&
                 weaponTypes.Any(t => t.FullName == "SourceCSharpMod.SourceWand");
@@ -159,11 +165,13 @@ public static class CompiledAssemblyProbe
                 " buffs=" + buffs.Length + " potions=" + potions.Length +
                 " accessories=" + accessories.Length + " players=" + players.Length +
                 " npcs=" + npcs.Length + " tiles=" + tiles.Length + " prefixes=" + prefixes.Length +
+                " worldSystems=" + worldTypes.Length +
                 (fixture
                     ? " projectile=SourceBolt width=10 weapon=SourceWand damage=22 shoot=SourceBolt"
                     : " policy=generic-managed-defaults"));
             return projectiles.Length + weapons.Length + buffs.Length + potions.Length +
-                accessories.Length + players.Length + npcs.Length + prefixes.Length + basicItems.Length + tiles.Length;
+                accessories.Length + players.Length + npcs.Length + prefixes.Length + basicItems.Length + tiles.Length +
+                worldTypes.Length;
         }
         catch (Exception exception)
         {

@@ -22,6 +22,10 @@
     <Compile Include="../BunnyCsSdk/BunnyHooks.cs" Link="BunnyHooks.cs" />
     <Compile Include="../BunnyCsSdk/BunnyVisual.cs" Link="BunnyVisual.cs" />
     <Compile Include="../BunnyCsSdk/BunnyPlayerHurtDispatcher.cs" Link="BunnyPlayerHurtDispatcher.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyWorldData.cs" Link="BunnyWorldData.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyWorldDispatcher.cs" Link="BunnyWorldDispatcher.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyWorldMonoHost.cs" Link="BunnyWorldMonoHost.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyWorldNetworkCodec.cs" Link="BunnyWorldNetworkCodec.cs" />
   </ItemGroup>
 </Project>
 

@@ -1,0 +1,314 @@
+name: Check CSharp WorldSave source only
+on:
+  push:
+    branches:
+      - feature/csharp-worldsave-source-only-20261020
+    paths:
+      - "Split/Bunny-Loader/experiments/csharp/BunnyCsSdk/BunnyWorldData.cs"
+      - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeWorldCoordinator.cpp"
+      - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeWorldCoordinator.h"
+      - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp"
+      - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp"
+      - "Split/Bunny-Loader/app/src/main/cpp/content/tiles/ModTileSave.cpp"
+      - "Split/Bunny-Loader/experiments/csharp/BunnyCsSdk/BunnyWorldMonoHost.cs"
+      - "Split/Bunny-Loader/experiments/csharp/BunnyCsSdk/BunnyWorldNetworkCodec.cs"
+      - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeWorldNetwork.cpp"
+      - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeWorldNetwork.h"
+      - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeWorldNetTransport.cpp"
+      - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeWorldNetTransport.h"
+      - "Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/WorldNetAsync.h"
+      - "Split/Bunny-Loader/experiments/csharp/BunnyCsSdk/BunnyWorldDispatcher.cs"
+      - "Split/Bunny-Loader/experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj"
+      - "Split/Bunny-Loader/tests/world_save/**"
+      - ".github/workflows/check-csharp-worldsave-source.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  managed-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - name: Compile the real source SDK without Android
+        run: dotnet build Split/Bunny-Loader/experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj -c Release --nologo
+      - name: Test deterministic world codec and rejection cases
+        run: dotnet run --project Split/Bunny-Loader/tests/world_save/BunnyWorldData.Smoke.csproj -c Release
+      - name: Compile isolated ExampleModBunny world system assembly
+        run: dotnet build Split/Bunny-Loader/tests/world_save/WorldSaveExampleMod.csproj -c Release --nologo
+      - name: Exercise managed MonoVM entrypoint against compiled example mod
+        run: dotnet run --project Split/Bunny-Loader/tests/world_save/BunnyWorldData.Smoke.csproj -c Release -- --mono-host-tests "$PWD/Split/Bunny-Loader/tests/world_save/bin/Release/net8.0/WorldSaveExampleMod.dll"
+      - name: Generate BWC1 fixture from real CSharp SDK
+        run: dotnet run --project Split/Bunny-Loader/tests/world_save/BunnyWorldData.Smoke.csproj -c Release -- --emit-fixture /tmp/bunny_worldsave_interop.bwc
+      - name: Compile native store with strict diagnostics
+        run: |
+          g++ -std=c++20 -O2 -Wall -Wextra -Werror -pedantic -pthread \
+            -I Split/Bunny-Loader/app/src/main/cpp \
+            Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeWorldStore.cpp \
+            Split/Bunny-Loader/tests/world_save/native_world_store_test.cpp \
+            -o /tmp/bunny_world_store_test
+          /tmp/bunny_world_store_test /tmp/bunny_worldsave_interop.bwc
+      - name: Native sanitizer regression (no APK)
+        run: |
+          g++ -std=c++20 -O1 -g -Wall -Wextra -Werror -pedantic -pthread \
+            -fsanitize=address,undefined -fno-omit-frame-pointer \
+            -I Split/Bunny-Loader/app/src/main/cpp \
+            Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeWorldStore.cpp \
+            Split/Bunny-Loader/tests/world_save/native_world_store_test.cpp \
+            -o /tmp/bunny_world_store_sanitized
+          ASAN_OPTIONS=detect_leaks=1 /tmp/bunny_world_store_sanitized /tmp/bunny_worldsave_interop.bwc
+      - name: Verify native CSharp parser recognizes world-only mods
+        run: |
+          g++ -std=c++20 -O1 -g -Wall -Wextra -Werror -pedantic \
+            -fsanitize=address,undefined -fno-omit-frame-pointer \
+            -I Split/Bunny-Loader/app/src/main/cpp \
+            Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/SourceParser.cpp \
+            Split/Bunny-Loader/tests/world_save/world_source_parser_test.cpp \
+            -o /tmp/world_source_parser_test
+          ASAN_OPTIONS=detect_leaks=1 /tmp/world_source_parser_test
+      - name: Verify stable Bunny source mod UID to world UUID conversion
+        run: |
+          g++ -std=c++20 -O2 -Wall -Wextra -Werror -pedantic \
+            -I Split/Bunny-Loader/app/src/main/cpp \
+            Split/Bunny-Loader/tests/world_save/stable_world_uid_test.cpp \
+            -o /tmp/stable_world_uid_test
+          /tmp/stable_world_uid_test
+      - name: Verify asynchronous native world network scheduler
+        run: |
+          g++ -std=c++20 -O1 -g -Wall -Wextra -Werror -pedantic -pthread \
+            -fsanitize=address,undefined -fno-omit-frame-pointer \
+            -I Split/Bunny-Loader/app/src/main/cpp \
+            Split/Bunny-Loader/tests/world_save/world_net_async_test.cpp \
+            -o /tmp/world_net_async_test
+          ASAN_OPTIONS=detect_leaks=1 /tmp/world_net_async_test
+      - name: Native MonoVM mailbox with ASan and UBSan
+        run: |
+          g++ -std=c++20 -O1 -g -Wall -Wextra -Werror -pedantic -pthread \
+            -fsanitize=address,undefined -fno-omit-frame-pointer \
+            -I Split/Bunny-Loader/app/src/main/cpp \
+            Split/Bunny-Loader/tests/world_save/mono_world_mailbox_test.cpp \
+            -o /tmp/mono_world_mailbox_test
+          ASAN_OPTIONS=detect_leaks=1 /tmp/mono_world_mailbox_test
+      - name: Ensure native game lifecycle binds trusted world and epoch
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root = Path("Split/Bunny-Loader/app/src/main/cpp")
+          auto = (root / "experiments/csharp/AutoSourceRuntime.cpp").read_text()
+          tile = (root / "content/tiles/ModTileSave.cpp").read_text()
+          assert "noteAutoWorldTilesLoaded(path)" in tile
+          assert "worldsave::activeWorldStore().beginWorld(" in auto
+          assert "worldsave::activeWorldStore().endWorld(departingEpoch)" in auto
+          assert "g_worldEpoch.fetch_add(1, std::memory_order_acq_rel) + 1" in auto
+          assert 'if (world) bl::csharp::noteAutoWorldTilesLoaded(path);' in tile
+          print("WORLD_TRUSTED_PATH_EPOCH_LIFECYCLE_PASS")
+          PY
+      - name: Native atomic world transaction with worker mock
+        run: |
+          g++ -std=c++20 -O1 -g -Wall -Wextra -Werror -pedantic -pthread \
+            -fsanitize=address,undefined -fno-omit-frame-pointer \
+            -I Split/Bunny-Loader/app/src/main/cpp \
+            Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeWorldStore.cpp \
+            Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeWorldCoordinator.cpp \
+            Split/Bunny-Loader/tests/world_save/native_world_coordinator_test.cpp \
+            -o /tmp/native_world_coordinator_test
+          ASAN_OPTIONS=detect_leaks=1 /tmp/native_world_coordinator_test /tmp/bunny_worldsave_interop.bwc
+      - name: Generate native BWN1 fixture from the managed SDK
+        run: dotnet run --project Split/Bunny-Loader/tests/world_save/BunnyWorldData.Smoke.csproj -c Release -- --emit-network-fixture /tmp/bunny_worldnet_interop.bwn
+      - name: Native BWN1 wire validator and MonoVM transport simulation
+        run: |
+          g++ -std=c++20 -O1 -g -Wall -Wextra -Werror -pedantic -pthread \
+            -fsanitize=address,undefined -fno-omit-frame-pointer \
+            -I Split/Bunny-Loader/app/src/main/cpp \
+            Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeWorldNetwork.cpp \
+            Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeWorldCoordinator.cpp \
+            Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeWorldStore.cpp \
+            Split/Bunny-Loader/tests/world_save/native_world_network_test.cpp \
+            -o /tmp/native_world_network_test
+          ASAN_OPTIONS=detect_leaks=1 /tmp/native_world_network_test /tmp/bunny_worldnet_interop.bwn
+      - name: Native MonoVM runtime syntax compilation (no Android package)
+        run: |
+          g++ -std=c++20 -Wall -Wextra -Werror -fsyntax-only \
+            -I Split/Bunny-Loader/app/src/main/cpp \
+            Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp
+      - name: Guard native world-only preload and registration
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root = Path("Split/Bunny-Loader/app/src/main/cpp/experiments/csharp")
+          auto = (root / "AutoSourceRuntime.cpp").read_text()
+          loader = (root / "SourceLoader.cpp").read_text()
+          probe = Path("Split/Bunny-Loader/experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs").read_text()
+          assert 'mod.worldSystems > 0) &&' in auto
+          assert 'request.action = worldsave::MonoWorldAction::Register' in auto
+          assert 'requestManagedWorldOnMono(request, &reply, 1500)' in auto
+          assert 'g_worldRegistrationReady.load(std::memory_order_acquire)' in auto
+          assert 'pendingWorldModules.size() == expectedWorldModules' in auto
+          assert 'status->worldSystemClasses.push_back(fullName)' in loader
+          assert 'worldTypes.Length == 0' in probe
+          print("WORLD_ONLY_MOD_REGISTER_GATE_PASS")
+          PY
+      - name: Native Terraria NetManager hooks host-only syntax compile
+        run: |
+          JAVA_ROOT="$(dirname "$(dirname "$(readlink -f "$(command -v javac)")")")"
+          g++ -std=c++20 -Wall -Wextra -Werror -fsyntax-only \
+            -I "$JAVA_ROOT/include" -I "$JAVA_ROOT/include/linux" \
+            -I Split/Bunny-Loader/tests/world_save/host_include \
+            -I Split/Bunny-Loader/app/src/main/cpp \
+            Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeWorldNetTransport.cpp
+      - name: Compile CSharp Terraria hook translation unit in host-only syntax mode
+        run: |
+          JAVA_ROOT="$(dirname "$(dirname "$(readlink -f "$(command -v javac)")")")"
+          g++ -std=c++20 -Wall -Wextra -Werror -fsyntax-only \
+            -I "$JAVA_ROOT/include" -I "$JAVA_ROOT/include/linux" \
+            -I Split/Bunny-Loader/tests/world_save/host_include \
+            -I Split/Bunny-Loader/app/src/main/cpp \
+            Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp
+      - name: Audit exact IL2CPP save/load hook contract
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          x = Path("Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp").read_text()
+          assert "void LoadWorld(bool canCheckFileState)" in x
+          assert "void InternalSaveWorld(bool useCloudSaving, bool resetTime)" in x
+          assert "api.method_is_instance(load)" in x
+          assert "g_origNativeWorldLoad(check, method);" in x
+          assert "g_origNativeWorldSave(cloud, reset, method);" in x
+          assert "worldsave::enterManagedWorld(epoch, true, &error)" in x
+          assert "worldsave::saveManagedWorld(epoch, true, &error)" in x
+          assert "worldsave::leaveManagedWorld(departingEpoch, &unloadError)" in x
+          assert "void SaveAndQuitCallBack(object threadContext)" in x
+          assert "g_origNativeQuitCallback(context, method);" in x
+          assert "hkNativeCSharpWorldQuitCallback" in x
+          assert "g_worldDataEnteredEpoch.load(std::memory_order_acquire) != epoch" in x
+          print("BUNNY_WORLD_IL2CPP_HOOK_SOURCE_PASS")
+          PY
+      - name: Audit world network IL2CPP method static and instance contracts
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          n=Path("Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/NativeWorldNetTransport.cpp").read_text()
+          assert "api.method_is_instance(read)" in n
+          assert "api.method_is_instance(send)" in n
+          assert "!api.method_is_instance(g_packetCtor)" in n
+          assert "!api.method_is_instance(g_writeBytes)" in n
+          assert "!api.method_is_instance(g_getPosition)" in n
+          assert "g_getInstance && api.method_is_instance(g_getInstance)" in n
+          assert "!api.runtime_invoke" in n and "!api.array_new" in n
+          print("WORLD_NATIVE_NET_METHOD_CONTRACT_PASS")
+          PY
+      - name: Native multiplayer lifecycle and hot path source gate
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          r = Path("Split/Bunny-Loader/app/src/main/cpp/experiments/csharp")
+          a = (r/"AutoSourceRuntime.cpp").read_text()
+          n = (r/"NativeWorldNetTransport.cpp").read_text()
+          assert "void clearWorld()" in a
+          assert "hkNativeCSharpWorldClear" in a
+          assert "request.authoritative = false" in a
+          assert "void onNativeWorldNetReceived" in a
+          assert "void onNativeWorldSyncSent" in a
+          assert "worldNetQueue().send(epoch, remoteClient, ignoreClient)" in a
+          assert "worldNetQueue().receive(epoch, bytes, length)" in a
+          assert "worldNetQueue().pump(currentEpoch" in a
+          assert "g_worldDataEnteredEpoch.load(std::memory_order_acquire) != epoch" in a
+          assert "readActivationContext().netMode != 2" in a
+          assert "g_nativeWorldNetHooksReady.load(std::memory_order_acquire)" in a
+          assert "bool nativeWorldNetActive()" in a
+          assert "if (!bl::csharp::nativeWorldNetActive() || !reader || readLength < 2)" in n
+          assert 'message == 7 && netMode() == 2' in n
+          assert 'kWorldNetworkModuleId' in n
+          assert 'remoteClient < -1' in n
+          assert 'ignoreClient < -1' in n
+          print("WORLD_NATIVE_NET_WORLD7_SECURITY_PERFORMANCE_PASS")
+          PY
+      - name: Check multiplayer world remains active outside main menu
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          s=Path("Split/Bunny-Loader/app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp").read_text()
+          assert 'if (context.gameMenu != 1) {' in s
+          assert 'if (context.netMode != 0) return;' in s
+          assert 'worldNetQueue().invalidate();' in s
+          assert 'invalidateManagedWorldMonoRequests();' in s
+          assert 'g_worldDataEnteredEpoch.exchange(' in s
+          print("WORLD_MULTIPLAYER_SESSION_RETENTION_PASS")
+          PY
+      - name: Keep this job host-only
+        run: echo "SOURCE_ONLY_NO_ANDROID_PACKAGING"
+
+  android-arm64-source-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Android NDK without packaging an APK
+        run: |
+          SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | sort -V | tail -n 1)"
+          test -x "$SDKMANAGER"
+          "$SDKMANAGER" --install "ndk;30.0.16248370"
+      - name: Compile native WorldSave and WorldNet objects for arm64-v8a
+        run: |
+          set -euo pipefail
+          NDK="$ANDROID_HOME/ndk/30.0.16248370/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          JAVA_ROOT="$(dirname "$(dirname "$(readlink -f "$(command -v javac)")")")"
+          ROOT="Split/Bunny-Loader/app/src/main/cpp"
+          mkdir -p /tmp/bunny-worldsave-arm64
+          "$NDK/clang++" --version
+          "$NDK/llvm-readelf" --version
+          for src in NativeWorldStore NativeWorldCoordinator NativeWorldNetwork \
+                     NativeWorldNetTransport AutoSourceRuntime ManagedRuntime; do
+            echo "Cross-compiling $src for Android arm64"
+            "$NDK/clang++" --target=aarch64-linux-android24 -std=c++20 \
+              -O0 -fno-exceptions -fno-rtti -fPIC -Wall -Wextra -Werror -pthread \
+              -I "$ROOT" -I "$JAVA_ROOT/include" -I "$JAVA_ROOT/include/linux" \
+              -c "$ROOT/experiments/csharp/$src.cpp" \
+              -o "/tmp/bunny-worldsave-arm64/$src.o"
+            "$NDK/llvm-readelf" -h "/tmp/bunny-worldsave-arm64/$src.o" | grep 'Machine:'
+          done
+          echo "WORLD_ARM64_ANDROID_NDK_OBJECTS_PASS_NO_APK"
+
+
+  android-arm64-linked-library:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+      - name: Install Android Native CMake toolchain
+        run: |
+          set -euo pipefail
+          SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | sort -V | tail -n 1)"
+          test -x "$SDKMANAGER"
+          "$SDKMANAGER" --install "platforms;android-34" "ndk;30.0.16248370" "cmake;3.22.1"
+      - name: Stage canonical quickjs-ng sources
+        run: |
+          git clone --depth 1 --branch v0.17.0 https://github.com/quickjs-ng/quickjs.git \
+            Split/Bunny-Loader/app/src/main/cpp/third_party/quickjs
+          test -f Split/Bunny-Loader/app/src/main/cpp/third_party/quickjs/quickjs.c
+      - name: Link actual native libraries only (no APK/bmod)
+        working-directory: Split/Bunny-Loader
+        run: |
+          set -euo pipefail
+          gradle --no-daemon :app:externalNativeBuildDebug -Pbl.uiOnly=true
+          find app/build -type f \( -name libbunny.so -o -name libbunnymonoprobe.so \) \
+            -print | sort
+          test "$(find app/build -type f -name libbunny.so | wc -l)" -ge 1
+          test "$(find app/build -type f -name libbunnymonoprobe.so | wc -l)" -ge 1
+          if find app/build -type f \( -name '*.apk' -o -name '*.bmod' \) | grep -q .; then
+            echo "Unexpected game package generated" >&2
+            exit 1
+          fi
+          echo "WORLD_ANDROID_NATIVE_FULL_LINK_PASS_NO_APK"

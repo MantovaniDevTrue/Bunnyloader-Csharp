@@ -292,12 +292,20 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
     if (defs.size() > kSourceMaxTypes) { status->error = "tipos C# demais"; return false; }
     std::map<std::string, int> typed;
     for (const auto& def : defs) {
-        const std::string key = sourceIdentityForBase(def.base, def.name);
+        const std::string fullName = def.namespaceName.empty()
+            ? def.name : def.namespaceName + "." + def.name;
+        const std::string key = def.base == "BunnyWorldSystem"
+            ? "BunnyWorldSystem:" + fullName
+            : sourceIdentityForBase(def.base, def.name);
         if (key.empty() || !typed.emplace(key, -1).second) {
             status->error = "identidade nativa C# duplicada/invalida: " + key +
                 " namespace=" + def.namespaceName +
                 " fonte=content/" + sourcePaths[key];
             return false;
+        }
+        if (def.base == "BunnyWorldSystem") {
+            status->worldSystemClasses.push_back(fullName);
+            ++status->worldSystems;
         }
     }
     if (!prepareNativeContent()) {
@@ -404,6 +412,8 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
     }
     for (const auto& name : status->playerClasses)
         typed.erase(sourceIdentityForBase("BunnyPlayer", name));
+    for (const auto& name : status->worldSystemClasses)
+        typed.erase("BunnyWorldSystem:" + name);
     status->players = static_cast<int>(status->playerClasses.size());
     status->accessories = ctx.accessories;
     status->registeredKindTypes = typed;
@@ -419,7 +429,7 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
     status->npcs = ctx.npcs;
     status->potions = ctx.potions;
     status->basicItems = ctx.basicItems;
-    if (status->items+status->tiles+status->projectiles+status->buffs+status->npcs+status->prefixes+status->players==0) {
+    if (status->items+status->tiles+status->projectiles+status->buffs+status->npcs+status->prefixes+status->players+status->worldSystems==0) {
         status->error = "mod C# sem conteudo registrado";
         return false;
     }
