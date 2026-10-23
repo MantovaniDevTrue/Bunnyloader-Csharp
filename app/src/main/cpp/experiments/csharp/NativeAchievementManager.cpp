@@ -312,7 +312,7 @@ bool NativeAchievementManager::install(
         }
         auto& api = il2cpp::api();
         Il2CppObject* object = api.object_new(refs.achievement);
-        Il2CppObject* key = api.string_new(definition.name.c_str());
+        Il2CppString* key = api.string_new(definition.name.c_str());
         void* ctorArgs[] = {key};
         if (!object || !key || !invoke(refs.ctor, object, ctorArgs)) {
             *error = "NativeAchievementCtorFailed";
@@ -377,7 +377,7 @@ bool NativeAchievementManager::install(
             return rollback() ? false : (*error += " RollbackFailed", false);
         }
         staging.entries.push_back(std::move(entry));
-        Il2CppObject* name = api.string_new(definition.name.c_str());
+        Il2CppString* name = api.string_new(definition.name.c_str());
         int index = definition.index;
         int category = definition.category;
         void* iconArgs[] = {name, &index};
