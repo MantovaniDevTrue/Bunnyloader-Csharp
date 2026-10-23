@@ -29,10 +29,12 @@ public sealed class BunnyItemBehavior
         Armor.WireEffects+"|"+Armor.WireImmunity+"|"+(armorSet?.ToWire()??"-|-|-|-|-|-");
     private int defense;
     private string wings="null";
+    /// <summary>Distingue defesa explicitamente zero dos defaults herdados do item vanilla.</summary>
+    public bool HasDefenseOverride { get; private set; }
     public int Defense
     {
         get => defense;
-        set { if(value<0||value>1000)throw new ArgumentOutOfRangeException(nameof(value));defense=value; }
+        set { if(value<0||value>1000)throw new ArgumentOutOfRangeException(nameof(value));defense=value;HasDefenseOverride=true; }
     }
     public void DefineArmorSet(BunnyArmorSet set)
     { if(set is null)throw new ArgumentNullException(nameof(set));if(armorSet is not null)throw new InvalidOperationException("Conjunto ja definido");armorSet=set; }

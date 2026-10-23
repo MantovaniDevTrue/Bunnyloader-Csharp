@@ -329,7 +329,7 @@ int main(int argc,char** argv) {
   assert(registerBasicItemPlaceholder(entry.type,entry.name,&error,argv[2]));auto base=entry;base.behavior.clear();base.armor={};base.recipes.clear();
   assert(applyNativeBasicItemDefaults("mod",{base},&error));
   // SourceLoader installs defense separately after the basic defaults batch.
-  if(entry.defense>0)assert(setBasicItemDefense(entry.type,entry.defense,&error));
+  if(entry.defenseSpecified || entry.defense>0)assert(setBasicItemDefense(entry.type,entry.defense,&error));
   all.push_back(entry);
  }
  assert(!all.empty());std::shared_ptr<NativeItemPolicyBatch> batch;assert(prepareNativeItemPolicies(all,&batch,&error));commitNativeItemPolicies(batch);
@@ -403,6 +403,12 @@ int main(int argc,char** argv) {
   assert(applyBasicItemToObject(&actual.header,armor.type));
   assert(actual.values[BasicValue]==50000 && actual.values[BasicRare]==2 && actual.values[BasicWidth]==18 && actual.values[BasicHeight]==18);
   assert(actual.defense==(std::string(name)=="ExampleBreastplate"?6:5));
+  const int oldDefense=actual.defense;
+  std::memset(actual.defenseSentinel,0x6b,sizeof(actual.defenseSentinel));
+  assert(setBasicItemDefense(armor.type,0,&error));
+  assert(applyBasicItemToObject(&actual.header,armor.type)&&actual.defense==0);
+  for(auto value:actual.defenseSentinel)assert(value==0x6b);
+  assert(setBasicItemDefense(armor.type,oldDefense,&error));
  }
  const auto& soul=find("ExampleSoul");FakeItem item{};item.type=soul.type;assert(applyBasicItemToObject(&item.header,soul.type));assert(item.clonedReference==&soundObject&&barriers>0);
  auto alpha=hook<uint32_t(*)(Il2CppObject*,uint32_t,const MethodInfo*)>("Item","Color GetAlpha(Color newColor)");assert(alpha(&item.header,0,nullptr)==expectedNativeColor(0x32ffffffu));

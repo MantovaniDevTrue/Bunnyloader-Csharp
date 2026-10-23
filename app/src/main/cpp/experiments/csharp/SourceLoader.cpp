@@ -1644,7 +1644,7 @@ bool applyManagedSourceDefaults(
     for(const auto& item:basicItems)retainedArmorTypes.push_back(item.type);
     retainNativeArmorPoliciesForMod(modId,retainedArmorTypes);
     for (const auto& item : basicItems) {
-        if (item.defense>0 && !setBasicItemDefense(item.type,item.defense,error)) return false;
+        if ((item.defenseSpecified || item.defense>0) && !setBasicItemDefense(item.type,item.defense,error)) return false;
     }
     for(const auto& quest:anglerQuests) {
         if(std::none_of(basicItems.begin(),basicItems.end(),

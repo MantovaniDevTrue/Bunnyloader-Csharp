@@ -65,3 +65,24 @@ exercitam ambos os protocolos A1/A2, metadados crus/boxed, falhas de limpeza,
 100 recargas antes do próximo frame e recuperação de Add que alterou All
 antes de lançar uma exceção. O registro é reencontrado por IDs e delegate,
 sem depender de um índice antigo na lista.
+
+## Defesa zero explícita
+
+`Defense = 0;` em `SetDefaults` substitui a defesa anterior durante a
+reaplicação dos defaults, inclusive em instâncias existentes. O compilador
+preserva a diferença entre zero explícito e campo omitido no contrato nativo:
+`0` é uma atribuição; `-` (ou ausência da coluna) não é uma atribuição.
+`HasDefenseOverride` permite consultar essa diferença no SDK.
+
+```csharp
+public override void SetDefaults()
+{
+    Behavior.CloneVanillaDefaults("CopperHelmet");
+    // Remova esta atribuição para herdar os defaults do item vanilla em
+    // uma instância nova; mantenha-a para zerar a defesa deliberadamente.
+    Defense = 0;
+}
+```
+
+Isso não encerra a retirada de todos os defaults de itens no unload. A
+revogação das políticas adicionais de armadura é um ciclo separado.

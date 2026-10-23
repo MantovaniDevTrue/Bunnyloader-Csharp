@@ -8,6 +8,8 @@ cd "$(dirname "$0")/.."
 "${RUNNER_TEMP:-/tmp}/bunny-armor-source-parser"
 python3 -m unittest discover -s tests/examplemod -p 'test_*.py'
 "${DOTNET:-dotnet}" run --project tests/basic_items/ItemBatch.csproj -c Release
+# Parse the real Roslyn item wire, including zero versus omitted defense.
+python3 tests/run_basic_item_wire.py build/basic-items/source-runtime-values.txt
 # Fixtures de ABI e os três itens reais compilados pelo Roslyn são distintos.
 python3 tests/run_native_armor_policies.py \
   build/basic-items/armor-source-runtime-values.txt \

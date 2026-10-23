@@ -38,6 +38,17 @@ int main(int argc,char** argv){
     auto broken=fields;broken[22]="pt-BR:GG";assert(!parseBasicItemWire(broken,&entry,&error));
     broken[22]=fields[22]+";"+fields[22];assert(!parseBasicItemWire(broken,&entry,&error));
   }
+  // Reusing the output must also reset the presence flag after an omitted field.
+  auto defense=fields;defense.resize(24,"-");defense[23]="0";
+  assert(parseBasicItemWire(defense,&entry,&error)&&entry.defenseSpecified&&entry.defense==0);
+  defense[23]="1000";
+  assert(parseBasicItemWire(defense,&entry,&error)&&entry.defenseSpecified&&entry.defense==1000);
+  for(const std::string value:{"-1","1001","0.5","zero"}) {
+   defense[23]=value;assert(!parseBasicItemWire(defense,&entry,&error));
+  }
+  defense[23]="-";
+  assert(parseBasicItemWire(defense,&entry,&error)&&!entry.defenseSpecified);
+  assert(parseBasicItemWire(fields,&entry,&error)&&!entry.defenseSpecified);
   auto native=fields;
   while(native.size()<24)native.push_back("-");
   native[15]="32";

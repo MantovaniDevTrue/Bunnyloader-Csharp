@@ -1062,6 +1062,7 @@ Func<BunnyQuestContext, bool> QuestCanCatchWhen { get; set; }
 bool Accessory { get; set; }
 bool AutoReuse { get; set; }
 bool Consumable { get; set; }
+bool HasDefenseOverride { get; }
 bool Melee { get; set; }
 bool NoMelee { get; set; }
 bool QuestAvailableInHardmode { get; set; }
@@ -1124,6 +1125,7 @@ class; base: `System.Object`.
 BunnyItemBehavior()
 BunnyArmorEffects Armor { get; }
 bool ColorFromPlayerHair { get; set; }
+bool HasDefenseOverride { get; }
 bool Robe { get; set; }
 int Defense { get; set; }
 string NativeAccessoryEffectsDefinition { get; }

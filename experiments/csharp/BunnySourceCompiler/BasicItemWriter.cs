@@ -69,7 +69,7 @@ internal static class BasicItemWriter
         }
         int defense=Get<int>("Defense");
         if(defense<0||defense>1000)throw new InvalidOperationException(name+": Defense fora do limite");
-        if(defense>0) {
+        if(Get<bool>("HasDefenseOverride")) {
             while(parts.Count<23)parts.Add("-");
             parts.Add(defense.ToString(CultureInfo.InvariantCulture));
         }

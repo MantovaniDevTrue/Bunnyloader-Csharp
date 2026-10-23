@@ -598,6 +598,20 @@ try {
   Equal("ITEM",fields[0]);Equal("BareArmor",fields[1]);Equal(24,fields.Length);
   Equal("-",fields[20]);Equal("-",fields[21]);Equal("-",fields[22]);Equal("7",fields[23]);
  });
+ Check("defense.explicit-zero-and-inherited-clone",()=>{
+  string root=Path.Combine(scratch,"defense-zero");Directory.CreateDirectory(Path.Combine(root,"content"));
+  foreach(bool explicitZero in new[]{false,true}) {
+   File.WriteAllText(Path.Combine(root,"content","CloneArmor.cs"),
+    "using BunnyLoader.Source; public sealed class CloneArmor:BunnyItem { public override void SetDefaults(){DisplayName=\"Clone Armor\";Texture=\"Items/CloneArmor\";Behavior.CloneVanillaDefaults(\"CopperHelmet\");"+(explicitZero?"Defense=0;":"")+"} }");
+   string output=Path.Combine(scratch,explicitZero?"zero.dll":"inherit.dll"),diag=output+".txt";
+   Equal(1,Compiler.Compile(root,output,runtime,diag));Equal(1,CompiledAssemblyProbe.Verify(output,diag));
+   var fields=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt"))[1].Split('\t');
+   if(explicitZero) {Equal(24,fields.Length);Equal("0",fields[23]);}
+   else Equal(21,fields.Length);
+  }
+  var fresh=new ExampleItem();Equal(false,fresh.HasDefenseOverride);
+  fresh.Defense=0;Equal(true,fresh.HasDefenseOverride);Equal(0,fresh.Defense);
+ });
  Check("compiler.192-content-classes-and-expanded-wire",()=>{
   string root=Path.Combine(scratch,"capacity");Directory.CreateDirectory(Path.Combine(root,"content"));
   for(int i=0;i<192;i++)File.WriteAllText(Path.Combine(root,"content",$"Item{i:D3}.cs"),

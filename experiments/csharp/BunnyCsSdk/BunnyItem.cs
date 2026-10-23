@@ -92,6 +92,8 @@ public abstract class BunnyItem : BunnyShootSource
     public BunnyQuestCatchRules QuestCatchRules { get; set; }
     public Func<BunnyQuestContext,bool>? QuestAvailableWhen { get; set; }
     public Func<BunnyQuestContext,bool>? QuestCanCatchWhen { get; set; }
+    /// <summary>True quando SetDefaults atribuiu Defense, inclusive zero.</summary>
+    public bool HasDefenseOverride => Behavior.HasDefenseOverride;
     public int Defense { get => Behavior.Defense; set => Behavior.Defense=value; }
     private int wallDamage=0;
     public int Damage { get => wallDamage; set { wallDamage=value; OverrideInteger(5); } }

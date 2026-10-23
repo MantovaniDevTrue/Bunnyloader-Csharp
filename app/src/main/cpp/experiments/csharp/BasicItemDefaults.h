@@ -23,7 +23,7 @@ struct BasicRecipe { int stack=1, station=-1; std::vector<BasicRecipeIngredient>
     bool operator==(const BasicRecipe&) const = default; };
 struct BasicAccessoryEffect { std::string field,operation; float value=0; };
 struct BasicItemEntry {
-    std::string name; int type=-1; int defense=0;
+    std::string name; int type=-1; int defense=0; bool defenseSpecified=false;
     std::array<int,BasicFieldCount> values{0,0,1,0,0,0,0,0,0,0,0,0,0,0};
     float knockBack=0;
     std::string useSound,tooltip,behavior,modDir,modId,sourceFile,tooltipPlan;
@@ -256,9 +256,13 @@ inline bool parseBasicItemWire(const std::vector<std::string>& fields,BasicItemE
             }
         }
     }
-    if(fields.size()>=24 && fields[23]!="-" &&
-        (!basicInteger(fields[23],&out.defense)||out.defense<1||out.defense>1000)) {
-        *error=out.name+": defesa nativa fora do limite";return false;
+    // A missing field or '-' inherits vanilla defaults. The numeric value 0 is
+    // an explicit override, required when hot reload removes an old defense bonus.
+    if(fields.size()>=24 && fields[23]!="-") {
+        if(!basicInteger(fields[23],&out.defense)||out.defense<0||out.defense>1000) {
+            *error=out.name+": defesa nativa fora do limite";return false;
+        }
+        out.defenseSpecified=true;
     }
     if(fields.size()>=25&&!parseBasicAccessoryEffects(fields[24],&out,error))return false;
     if(fields.size()>=26&&fields[25]!="-"&&!parseBasicArmorPolicy(fields[25],&out.armor)) {
