@@ -47,3 +47,17 @@ The threshold cannot force Terraria to kill a projectile whose original collisio
 ## Native descriptor-size compatibility fix
 
 `parseProjectileTuning` previously rejected the already-shipped 19-field collision descriptor because it recognized only lengths 16, 17 and 18. The parser now accepts 16, 17, 18, 19 and 21, while rejecting 20 or other unsupported lengths. A host-native C++ smoke test validates the exact length matrix plus a rejected non-finite tuning value. These checks are necessary because compiling the Android library alone does not exercise the runtime source loader.
+
+## Per-instance collision survival budget (22-field descriptor)
+
+`BunnyProjectile.TileCollisionSurvivalLimit` is an optional `SetDefaults()` value from 0 to 64. Zero (default) means unlimited native policy applications. A positive limit means exactly that many eligible tile impacts can use `KeepAlive`, `Bounce`, or `Stop`; after the limit, the projectile uses Terraria's original collision behavior on subsequent impacts.
+
+```csharp
+TileCollisionMode = BunnyProjectileTileCollisionMode.Bounce;
+BounceRestitution = 0.65f;
+TileCollisionSurvivalLimit = 3;
+```
+
+The counter resides in the already-existing native slot record for the live projectile. It resets on first observation, Terraria pool reuse (`SetDefaults` notification), and world reset. Only valid, retained native collision events consume the budget; rejected/slow `BounceMinimumSpeed` impacts do not. If a limited projectile has no confirmed active generation/owner/type, it falls back to vanilla rather than inheriting a stale counter. No MonoVM call or world scan is required for the physics decision.
+
+The optional 22-field descriptor carries the existing bounce parameters (or their defaults) followed by the positive survival limit. Legacy 8/12/13/14/16/17/18/19/21-field descriptors remain unchanged. The SDK/compiler, native decoder and native validator all verify bounds. Native budget tests cover exhaustion and reset, while the compiled .NET probe verifies the actual 22-field serialization. These checks are source/native contracts, **not** device-tested Terraria behavior.

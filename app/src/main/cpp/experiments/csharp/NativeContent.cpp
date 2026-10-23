@@ -194,6 +194,7 @@ struct NativeProjectileDefaults {
     int tileCollisionMode = 0;
     float bounceRestitution = 1.f;
     float bounceMinimumSpeed = 0.f;
+    int tileCollisionSurvivalLimit = 0;
     int frames = 1;
     int animationFrameTicks=6,minionScanTicks=8;
     float minionTargetRange=700.f;
@@ -1322,7 +1323,8 @@ ManagedTileCollisionSettings nativeManagedProjectileTileCollisionSettings(int ty
     const auto found=view->find(type);
     if(found==view->end())return {};
     const auto& defaults=found->second.defaults;
-    return {defaults.tileCollisionMode,defaults.bounceRestitution,defaults.bounceMinimumSpeed};
+    return {defaults.tileCollisionMode,defaults.bounceRestitution,
+            defaults.bounceMinimumSpeed,defaults.tileCollisionSurvivalLimit};
 }
 
 int nativeManagedMinionBuff(int projectileType) {
@@ -1739,6 +1741,8 @@ bool applyManagedNativeDefaultsBatch(
             data.bounceMinimumSpeed < 0.f || data.bounceMinimumSpeed > 64.f ||
             (data.tileCollisionMode != 2 &&
              (data.bounceRestitution != 1.f || data.bounceMinimumSpeed != 0.f)) ||
+            data.tileCollisionSurvivalLimit < 0 || data.tileCollisionSurvivalLimit > 64 ||
+            (data.tileCollisionMode == 0 && data.tileCollisionSurvivalLimit != 0) ||
             data.frames < 1 || data.frames > 32 ||
             !stagedProjectiles.emplace(entry.type, NativeProjectileDefaults{
                 data.width, data.height, data.aiStyle, data.penetrate,
@@ -1746,6 +1750,7 @@ bool applyManagedNativeDefaultsBatch(
                 data.minion, data.minionContactDamage, data.minionSlots,
                 data.tileCollide, data.ignoreWater, data.tileCollisionMode,
                 data.bounceRestitution, data.bounceMinimumSpeed,
+                data.tileCollisionSurvivalLimit,
                 data.frames,data.animationFrameTicks,data.minionScanTicks,data.minionTargetRange}).second ||
             data.width < 1 || data.width > 512 ||
             data.height < 1 || data.height > 512 ||

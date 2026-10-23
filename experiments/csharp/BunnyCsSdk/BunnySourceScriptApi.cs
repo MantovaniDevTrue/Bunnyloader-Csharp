@@ -69,6 +69,7 @@ public abstract class BunnyProjectile
     public BunnyProjectileTileCollisionMode TileCollisionMode { get; set; } = BunnyProjectileTileCollisionMode.Vanilla;
     public float BounceRestitution { get; set; } = 1f;
     public float BounceMinimumSpeed { get; set; } = 0f;
+    public int TileCollisionSurvivalLimit { get; set; } = 0;
     public bool IgnoreWater { get; set; } = true;
     public int Penetrate { get; set; } = 1;
     public int TimeLeft { get; set; } = 360;

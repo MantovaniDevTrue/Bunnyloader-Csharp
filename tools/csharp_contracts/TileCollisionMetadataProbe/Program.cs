@@ -41,6 +41,35 @@ public sealed class ProbeStop : BunnyProjectile
     }
 }
 
+public sealed class ProbeLimitedBounce : BunnyProjectile
+{
+    public override void SetDefaults()
+    {
+        TileCollisionMode = BunnyProjectileTileCollisionMode.Bounce;
+        TileCollisionSurvivalLimit = 3;
+    }
+}
+
+public sealed class ProbeLimitedStop : BunnyProjectile
+{
+    public override void SetDefaults()
+    {
+        TileCollisionMode = BunnyProjectileTileCollisionMode.Stop;
+        TileCollisionSurvivalLimit = 1;
+    }
+}
+
+public sealed class ProbeLimitedTunedBounce : BunnyProjectile
+{
+    public override void SetDefaults()
+    {
+        TileCollisionMode = BunnyProjectileTileCollisionMode.Bounce;
+        BounceRestitution = 0.5f;
+        BounceMinimumSpeed = 4f;
+        TileCollisionSurvivalLimit = 2;
+    }
+}
+
 public sealed class ProbeVanilla : BunnyProjectile
 {
     public override void SetDefaults()
@@ -61,7 +90,7 @@ public static class Program
         {
             string diagnostics = Path.Combine(folder, "diagnostics.txt");
             int count = CompiledAssemblyProbe.Verify(typeof(Program).Assembly.Location, diagnostics);
-            if (count != 5)
+            if (count != 8)
                 throw new InvalidOperationException("Probe rejected: " + File.ReadAllText(diagnostics));
             string[] rows = File.ReadAllLines(Path.Combine(folder, "source-runtime-values.txt"));
             string[] keep = rows.Single(x => x.StartsWith("PROJECTILE\tProbeKeepAlive\t",
@@ -84,6 +113,17 @@ public static class Program
             if (tuned.Length != 21 || tuned[18] != "2" ||
                 tuned[19] != "0.75" || tuned[20] != "3")
                 throw new InvalidOperationException("Custom bounce wire contract mismatched");
+            foreach (var data in new[] {
+                (Name:"ProbeLimitedBounce", Mode:"2", Rest:"1", Speed:"0", Limit:"3"),
+                (Name:"ProbeLimitedStop", Mode:"3", Rest:"1", Speed:"0", Limit:"1"),
+                (Name:"ProbeLimitedTunedBounce", Mode:"2", Rest:"0.5", Speed:"4", Limit:"2")
+            }) {
+                string[] row = rows.Single(x =>
+                    x.StartsWith("PROJECTILE\t" + data.Name + "\t", StringComparison.Ordinal)).Split('\t');
+                if (row.Length != 22 || row[18] != data.Mode || row[19] != data.Rest ||
+                    row[20] != data.Speed || row[21] != data.Limit)
+                    throw new InvalidOperationException(data.Name + " survival limit wire contract mismatched");
+            }
             if (vanilla.Length != 8)
                 throw new InvalidOperationException("Vanilla projectile wire ABI changed");
             Console.WriteLine("PROJECTILE_TILE_COLLISION_WIRE_PASS");

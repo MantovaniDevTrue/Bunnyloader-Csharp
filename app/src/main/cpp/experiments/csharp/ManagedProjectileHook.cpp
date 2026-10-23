@@ -185,6 +185,8 @@ struct TileMovementScope {
 thread_local TileMovementScope* g_tileMovementScope = nullptr;
 void enqueueManagedProjectileTileCollision(Il2CppObject* projectile, int type,
                                            Vector2 before, Vector2 after);
+bool managedTileCollisionBudgetAvailable(Il2CppObject* projectile,int type,int limit);
+void recordManagedTileCollisionSurvival(Il2CppObject* projectile,int type,int limit);
 
 void hkManagedTileKill(Il2CppObject* projectile, const MethodInfo* method) {
     auto* scope = g_tileMovementScope;
@@ -218,7 +220,8 @@ void hkManagedTileMovement(Il2CppObject* projectile, Vector2 wet, const MethodIn
     const auto collision=nativeManagedProjectileTileCollisionSettings(type);
     const int mode=collision.mode;
     if(!managedTileCollisionModeSupported(mode) ||
-       !runtime::field<uint8_t>(projectile,g_tileCollideOffset)) {
+       !runtime::field<uint8_t>(projectile,g_tileCollideOffset) ||
+       !managedTileCollisionBudgetAvailable(projectile,type,collision.survivalLimit)) {
         original(projectile,wet,method);return;
     }
     int netMode=-1;
@@ -243,6 +246,10 @@ void hkManagedTileMovement(Il2CppObject* projectile, Vector2 wet, const MethodIn
                 {scope.velocity.x,scope.velocity.y},{current.x,current.y},true,
                 scope.restitution,scope.minimumSpeed);
             runtime::field<Vector2>(projectile,game.entity.velocity)={adjusted.x,adjusted.y};
+            if(shouldDeferManagedTileCollisionKill(mode,
+                {scope.velocity.x,scope.velocity.y},{current.x,current.y},true,
+                scope.minimumSpeed))
+                recordManagedTileCollisionSurvival(projectile,type,collision.survivalLimit);
             enqueueManagedProjectileTileCollision(projectile,type,scope.velocity,
                                                    {adjusted.x,adjusted.y});
         }
@@ -451,6 +458,7 @@ struct ManagedEntityProjectileSlot {
     int generation = 0;
     bool killQueued = false;
     bool spawnPending = false;
+    int survivedTileCollisions = 0;
     SummonMovement movement{};
     Slot targetCache{};
     unsigned targetScanTicks = 0;
@@ -460,6 +468,31 @@ struct ManagedEntityProjectileSlot {
 };
 std::array<ManagedEntityProjectileSlot, 4096> g_managedEntityProjectileSlots{};
 int g_managedEntityProjectileGeneration = 1;
+
+bool managedTileCollisionBudgetAvailable(Il2CppObject* projectile,int type,int limit) {
+    if(limit==0)return true;
+    if(limit<0||limit>64)return false;
+    const auto& game=runtime::game();
+    const int slot=runtime::field<int>(projectile,game.entity.whoAmI);
+    if(slot<0||static_cast<size_t>(slot)>=g_managedEntityProjectileSlots.size())return false;
+    const auto& state=g_managedEntityProjectileSlots[static_cast<size_t>(slot)];
+    return state.object==projectile && state.type==type &&
+        state.owner==runtime::field<int>(projectile,game.proj.owner) &&
+        state.generation>0 && !state.killQueued &&
+        managedTileCollisionBudgetAllows(state.survivedTileCollisions,limit);
+}
+
+void recordManagedTileCollisionSurvival(Il2CppObject* projectile,int type,int limit) {
+    if(limit==0||limit<0||limit>64)return;
+    const auto& game=runtime::game();
+    const int slot=runtime::field<int>(projectile,game.entity.whoAmI);
+    if(slot<0||static_cast<size_t>(slot)>=g_managedEntityProjectileSlots.size())return;
+    auto& state=g_managedEntityProjectileSlots[static_cast<size_t>(slot)];
+    if(state.object==projectile && state.type==type &&
+       state.owner==runtime::field<int>(projectile,game.proj.owner) &&
+       state.generation>0 && !state.killQueued)
+        recordManagedTileCollisionBudget(&state.survivedTileCollisions,limit);
+}
 
 void enqueueManagedProjectileTileCollision(Il2CppObject* projectile, int type,
                                            Vector2 before, Vector2 after) {

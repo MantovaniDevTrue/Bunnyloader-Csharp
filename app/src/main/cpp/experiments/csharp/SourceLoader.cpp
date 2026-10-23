@@ -848,7 +848,7 @@ bool applyManagedSourceDefaults(
         }
         if (fields[0] == "PROJECTILE" && (fields.size() == 8 || fields.size() == 12 || fields.size() == 13 || fields.size() == 14 ||
                  fields.size() == 16 || fields.size() == 17 || fields.size() == 18 ||
-                 fields.size() == 19 || fields.size() == 21)) {
+                 fields.size() == 19 || fields.size() == 21 || fields.size() == 22)) {
             ManagedProjectileEntry record;
             record.name = fields[1];
             record.type = registered->second;
@@ -902,7 +902,7 @@ bool applyManagedSourceDefaults(
                 }
                 record.values.minionContactDamage = contact == 1;
             }
-            if((fields.size()==18 || fields.size()==19 || fields.size()==21) &&
+            if((fields.size()==18 || fields.size()==19 || fields.size()==21 || fields.size()==22) &&
                 fields[17] != "-" && !parseSummonMovement(fields[17],&record.values.movement,&detail)) {
                 *error="[CSharp][ERROR][Summon] Mod="+modId+" Class="+record.name+" Stage=DecodeMovement Result=Rejected "+detail;return false;
             }
@@ -913,17 +913,27 @@ bool applyManagedSourceDefaults(
                 *error = "Contrato OnTileCollide nativo invalido: " + record.name;
                 return false;
             }
-            if (fields.size() == 21 &&
+            if (fields.size() >= 21 &&
                 (!real(fields[19], &record.values.bounceRestitution) ||
                  !real(fields[20], &record.values.bounceMinimumSpeed) ||
-                 record.values.tileCollisionMode != 2 ||
                  record.values.bounceRestitution < 0.f ||
                  record.values.bounceRestitution > 2.f ||
                  record.values.bounceMinimumSpeed < 0.f ||
                  record.values.bounceMinimumSpeed > 64.f ||
-                 (record.values.bounceRestitution == 1.f &&
+                 (record.values.tileCollisionMode != 2 &&
+                  (record.values.bounceRestitution != 1.f ||
+                   record.values.bounceMinimumSpeed != 0.f)) ||
+                 (fields.size() == 21 &&
+                  record.values.bounceRestitution == 1.f &&
                   record.values.bounceMinimumSpeed == 0.f))) {
                 *error = "Contrato de rebote C# invalido: " + record.name;
+                return false;
+            }
+            if (fields.size() == 22 &&
+                (!integer(fields[21], &record.values.tileCollisionSurvivalLimit) ||
+                 record.values.tileCollisionSurvivalLimit < 1 ||
+                 record.values.tileCollisionSurvivalLimit > 64)) {
+                *error = "Limite de sobrevivencia em colisao C# invalido: " + record.name;
                 return false;
             }
             projectilesByName.emplace(record.name, record.type);

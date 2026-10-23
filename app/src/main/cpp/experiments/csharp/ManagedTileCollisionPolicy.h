@@ -9,6 +9,16 @@ struct TileCollisionVector {
     float y = 0.f;
 };
 
+inline bool managedTileCollisionBudgetAllows(int survived,int limit) {
+    return limit==0 || (limit>0 && limit<=64 && survived>=0 && survived<limit);
+}
+
+inline bool recordManagedTileCollisionBudget(int* survived,int limit) {
+    if(!survived || !managedTileCollisionBudgetAllows(*survived,limit))return false;
+    if(limit>0)++*survived;
+    return true;
+}
+
 inline bool managedTileCollisionModeSupported(int mode) {
     return mode >= 1 && mode <= 3;
 }
