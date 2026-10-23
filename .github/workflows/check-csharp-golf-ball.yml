@@ -62,3 +62,7 @@ jobs:
         run: |
           g++ -std=c++20 -O1 -Wall -Wextra -Werror -Iapp/src/main/cpp tests/tooltip_native/panel_layout_test.cpp -o /tmp/bunny-tooltip-panel
           /tmp/bunny-tooltip-panel
+      - name: Bind native GUIPanel DrawBacking through IL2CPP metadata only
+        run: |
+          g++ -std=c++20 -O1 -Wall -Wextra -Werror -Iapp/src/main/cpp tests/tooltip_native/panel_backing_test.cpp -o /tmp/bunny-tooltip-panel-abi
+          /tmp/bunny-tooltip-panel-abi
