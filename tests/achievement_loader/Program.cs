@@ -96,7 +96,9 @@ internal static class Program
         string workerRevision2 = dll + "|bunny-revision=2";
         string Execute(string mod, string path, int kind, string value = "")
             => BunnyRecipeRuntime.Dispatch(mod, path, "__achievements__", 0, kind, value);
-        Check(Execute("worker-a", workerRevision1, 0) == "READY|3");
+        string first = Execute("worker-a", workerRevision1, 0);
+        if (first != "READY|3") throw new Exception("Worker bootstrap: " + first);
+        Check(first == "READY|3");
         Check(Execute("worker-b", workerRevision1, 0) == "READY|3");
         Check(Execute("worker-a", workerRevision1, 1, "0,900,1,0") == "EVENT|0");
         Check(Execute("worker-a", workerRevision1, 1, "0,900,1,1") == "EVENT|1");
