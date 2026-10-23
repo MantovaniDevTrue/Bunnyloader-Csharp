@@ -489,7 +489,11 @@ void rarityDrawString(Il2CppObject* batch, Il2CppObject* font, Il2CppString* tex
     }
     if(g_nativeTooltipActive&&g_nativeTooltipDrawSession.inserted&&text&&
        g_nativeTooltipDrawSession.tooltipTint&&
-       nativeTooltipStringMatches(text,g_nativeTooltipDrawSession.anchor)) {
+       nativeTooltipStringMatches(text,g_nativeTooltipDrawSession.anchor)&&
+       g_nativeTooltipDrawSession.isAnchorDraw(
+           std::u16string_view(text->chars,static_cast<size_t>(text->length)),
+           reinterpret_cast<uintptr_t>(batch),reinterpret_cast<uintptr_t>(font),
+           position.x,position.y)) {
         const auto old=nativeRarityToArgb(color);
         const uint8_t alpha=static_cast<uint8_t>(old>>24);
         if(shouldTintNativeRarityText(old,alpha))
@@ -587,7 +591,8 @@ bool nativeTooltipOnDraw(Il2CppObject* batch,Il2CppObject* font,Il2CppString* te
     NativeTooltipWaveLayout layout;
     if(!session.inserted&&
        !nativeTooltipWaveLayout(font,*session.animated,&layout,&height))return false;
-    const float adjusted=session.adjust(current,position->y,height*scale,
+    const float adjusted=session.adjust(current,reinterpret_cast<uintptr_t>(batch),
+        reinterpret_cast<uintptr_t>(font),position->x,position->y,height*scale,
         [&](const NativeTooltipLine& wave,float y) {
             const uint32_t argb=nativeRarityToArgb(color);
             NativeTooltipPaint paint;

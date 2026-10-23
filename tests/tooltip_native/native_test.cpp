@@ -103,22 +103,42 @@ int main(int argc,char** argv) {
     NativeTooltipDrawSession session;
     assert(session.begin(*item.nativeTooltip));
     assert(session.tooltipTint&&session.tooltipRgb==0xFFD75Au);
+    constexpr uintptr_t tooltipBatch=1001,tooltipFont=2002;
+    constexpr uintptr_t foreignBatch=1002,foreignFont=2003;
     int overlays=0;
     auto insert=[&](const NativeTooltipLine& line,float y) {
         assert(line.name=="BunnyLoader"&&y==210);
         ++overlays;return true;
     };
-    assert(session.adjust(u"Exemplo de Tooltip",190,20,insert)==190);
-    assert(session.adjust(u"Acima, uma cor por letra. Esta linha, em dourado",210,20,insert)==230);
+    auto adjust=[&](std::u16string_view text,uintptr_t batch,uintptr_t font,
+                    float x,float y,float height) {
+        return session.adjust(text,batch,font,x,y,height,insert);
+    };
+    assert(adjust(u"Exemplo de Tooltip",tooltipBatch,tooltipFont,100,190,20)==190);
+    assert(adjust(u"Acima, uma cor por letra. Esta linha, em dourado",
+                  tooltipBatch,tooltipFont,100,210,20)==230);
     assert(overlays==1&&session.inserted);
-    assert(session.adjust(u"Acima, uma cor por letra. Esta linha, em dourado",210,20,insert)==230);
-    assert(session.adjust(u"Preço",230,20,insert)==250);
+    assert(session.isAnchorDraw(u"Acima, uma cor por letra. Esta linha, em dourado",
+                                tooltipBatch,tooltipFont,100,230));
+    assert(adjust(u"Acima, uma cor por letra. Esta linha, em dourado",
+                  tooltipBatch,tooltipFont,100,210,20)==230);
+    assert(adjust(u"Preço",tooltipBatch,tooltipFont,100,230,0)==250);
+    assert(adjust(u"Outra UI",foreignBatch,tooltipFont,100,240,0)==240);
+    assert(adjust(u"Outro mod",tooltipBatch,foreignFont,100,240,0)==240);
+    assert(adjust(u"Fora X",tooltipBatch,tooltipFont,180,240,0)==240);
+    assert(adjust(u"Acima",tooltipBatch,tooltipFont,100,600,0)==600);
+    assert(adjust(u"Acima",tooltipBatch,tooltipFont,100,200,0)==220);
+    assert(!session.isAnchorDraw(u"Acima, uma cor por letra. Esta linha, em dourado",
+                                 foreignBatch,tooltipFont,100,230));
+    assert(!session.isAnchorDraw(u"Acima, uma cor por letra. Esta linha, em dourado",
+                                 tooltipBatch,tooltipFont,200,230));
     assert(overlays==1);
     NativeTooltipDrawSession skipped;
     assert(skipped.begin(*item.nativeTooltip));
-    assert(skipped.adjust(u"Outra descrição",210,20,insert)==210&&!skipped.inserted);
+    assert(skipped.adjust(u"Outra descrição",tooltipBatch,tooltipFont,100,210,20,insert)==210&&!skipped.inserted);
     auto cannotInsert=[&](const NativeTooltipLine&,float){return false;};
-    assert(skipped.adjust(u"Acima, uma cor por letra. Esta linha, em dourado",210,20,cannotInsert)==210);
+    assert(skipped.adjust(u"Acima, uma cor por letra. Esta linha, em dourado",
+                          tooltipBatch,tooltipFont,100,210,20,cannotInsert)==210);
     assert(!skipped.inserted);
     NativeTooltipPlan foreign=*item.nativeTooltip;
     foreign.lines[1].rainbow=false;
