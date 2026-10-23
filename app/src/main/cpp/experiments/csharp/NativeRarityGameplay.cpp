@@ -6,6 +6,7 @@
 #include "experiments/csharp/NativeTooltipPanelTexturePath.h"
 #include "experiments/csharp/NativeTooltipPanelColors.h"
 #include "experiments/csharp/NativeTooltipPanelSettings.h"
+#include "experiments/csharp/NativeTooltipPanelInspection.h"
 #include "experiments/csharp/NativeRarityPalette.h"
 #include "experiments/csharp/NativeRarityColorWire.h"
 #include "experiments/csharp/NativeRarityTextColor.h"
@@ -1272,11 +1273,31 @@ bool nativeTooltipJavascriptOwner(bool active) {
 
 void pumpNativeTooltipGameplay() {
     static unsigned attempts=0;
-    if(g_nativeTooltipHookReady.load(std::memory_order_acquire)||
-       ++attempts%60u!=0||!hasNativeTooltipPlans())return;
+    if(!g_nativeTooltipHookReady.load(std::memory_order_acquire)) {
+        if(++attempts%60u!=0||!hasNativeTooltipPlans())return;
+        std::string error;
+        if(!installNativeTooltipHook(&error)&&attempts%600u==0)
+            BL_WARN("[CSharp][Tooltip] Stage=NativeDrawHook Result=Pending Detail=%s",error.c_str());
+        return;
+    }
+    static unsigned panelTicks=0;
+    static bool panelVerified=false;
+    static bool panelLogged=false;
+    if(panelVerified||++panelTicks%600u!=0||!hasNativeTooltipPlans())return;
     std::string error;
-    if(!installNativeTooltipHook(&error)&&attempts%600u==0)
-        BL_WARN("[CSharp][Tooltip] Stage=NativeDrawHook Result=Pending Detail=%s",error.c_str());
+    auto* settings=bl::il2cpp::findClassQuiet("","Settings");
+    auto* panel=bl::il2cpp::findClassQuiet("","GUIPanel");
+    NativeTooltipPanelInspection result;
+    const bool inspected=settings&&panel&&
+        inspectNativeTooltipPanel(settings,panel,0,0,&result,&error);
+    if(inspected) {
+        panelVerified=true;
+        BL_INFO("[CSharp][Tooltip] Stage=BackingMetadata Result=Validated Draw=Disabled");
+    } else if(!panelLogged) {
+        panelLogged=true;
+        BL_INFO("[CSharp][Tooltip] Stage=BackingMetadata Result=Pending Draw=Disabled Detail=%s",
+                error.empty()?"PanelClassOrSettingsUnavailable":error.c_str());
+    }
 }
 void pumpNativeRarityGameplay() {
     retireRarityTableOnGameThread();
