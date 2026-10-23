@@ -85,3 +85,8 @@ exmod_tl/
 # Bold, da Monotype (sem ela o build usa app/src/fontFallback).
 app/libs/unity-classes.jar
 app/src/main/res/font/bunny.ttf
+
+# Host CSharp contract builds (root integration layout).
+**/bin/
+**/obj/
+**/__pycache__/

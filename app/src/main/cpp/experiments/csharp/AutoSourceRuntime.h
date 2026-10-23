@@ -36,7 +36,7 @@ AutoWorldLifecycleStatus autoWorldLifecycleStatus();
 void startAutoSourceRuntime();
 bool preWorldCSharpContentReady();
 bool installCSharpWorldEntryGate();
-void noteAutoWorldTilesLoaded();
+void noteAutoWorldTilesLoaded(const std::string& worldPath);
 void noteAutoGameUpdate();
 bool submitInteractiveConsoleSource(const std::string& id, const std::string& root,
                                     const std::string& workDir, std::string* error);

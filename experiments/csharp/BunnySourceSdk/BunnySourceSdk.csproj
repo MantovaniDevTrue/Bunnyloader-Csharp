@@ -31,6 +31,7 @@
     <Compile Include="../BunnyCsSdk/BunnySoundStyle.cs" Link="BunnySoundStyle.cs" />
     <Compile Include="../BunnyCsSdk/BunnySounds.cs" Link="BunnySounds.cs" />
     <Compile Include="../BunnyCsSdk/BunnyWall.cs" Link="BunnyWall.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyGore.cs" Link="BunnyGore.cs" />
     <Compile Include="../BunnyCsSdk/BunnyTile.cs" Link="BunnyTile.cs" />
     <Compile Include="../BunnyCsSdk/BunnyTileRuntime.cs" Link="BunnyTileRuntime.cs" />
     <Compile Include="../BunnyCsSdk/BunnyDustEffects.cs" Link="BunnyDustEffects.cs" />
@@ -41,11 +42,17 @@
     <Compile Include="../BunnyCsSdk/BunnySourceScriptApi.cs" Link="BunnySourceScriptApi.cs" />
     <Compile Include="../BunnyCsSdk/BunnyEntitySourceDispatcher.cs" Link="BunnyEntitySourceDispatcher.cs" />
     <Compile Include="../BunnyCsSdk/BunnyPrimitives.cs" Link="BunnyPrimitives.cs" />
+    <Compile Include="../BunnyCsSdk/StatModifier.cs" Link="StatModifier.cs" />
+    <Compile Include="../BunnyCsSdk/StatInheritanceData.cs" Link="StatInheritanceData.cs" />
     <Compile Include="../BunnyCsSdk/BunnyRarity.cs" Link="BunnyRarity.cs" />
     <Compile Include="../BunnyCsSdk/BunnyRarityReference.cs" Link="BunnyRarityReference.cs" />
     <Compile Include="../BunnyCsSdk/BunnyRarityRuntime.cs" Link="BunnyRarityRuntime.cs" />
     <Compile Include="../BunnyCsSdk/BunnyNativeAccess.cs" Link="BunnyNativeAccess.cs" />
     <Compile Include="../BunnyCsSdk/BunnyUniversalHooks.cs" Link="BunnyUniversalHooks.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyTouchButtonLoader.cs" Link="BunnyTouchButtonLoader.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyTouchLayoutStore.cs" Link="BunnyTouchLayoutStore.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyTouchNativeHost.cs" Link="BunnyTouchNativeHost.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyWorldUpdateLoader.cs" Link="BunnyWorldUpdateLoader.cs" />
     <Compile Include="../BunnyCsSdk/BunnyHooks.cs" Link="BunnyHooks.cs" />
     <Compile Include="../BunnyCsSdk/BunnyVisual.cs" Link="BunnyVisual.cs" />
     <Compile Include="../BunnyCsSdk/BunnyPlayerHurtDispatcher.cs" Link="BunnyPlayerHurtDispatcher.cs" />
@@ -61,6 +68,10 @@
     <Compile Include="../BunnyCsSdk/BunnyInvasionWorldPersistence.cs" Link="BunnyInvasionWorldPersistence.cs" />
     <Compile Include="../BunnyCsSdk/BunnyNativeItemUse.cs" Link="BunnyNativeItemUse.cs" />
     <Compile Include="../BunnyCsSdk/BunnyUseContext.cs" Link="BunnyUseContext.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyWorldData.cs" Link="BunnyWorldData.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyWorldDispatcher.cs" Link="BunnyWorldDispatcher.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyWorldMonoHost.cs" Link="BunnyWorldMonoHost.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyWorldNetworkCodec.cs" Link="BunnyWorldNetworkCodec.cs" />
   </ItemGroup>
 </Project>
 
