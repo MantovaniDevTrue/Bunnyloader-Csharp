@@ -71,6 +71,12 @@ int main() {
     assert(box.width==18&&box.height==12&&box.anchorX==6.f&&box.anchorY==3.f);
     assert(bl::csharp::applyManagedTileCollisionBox(&box,0,0,0.f,0.f));
     assert(box.width==18&&box.height==12&&box.anchorX==6.f);
+    bl::csharp::ManagedTileCollisionBox fresh{4.f,6.f,42,30};
+    assert(bl::csharp::applyManagedTileCollisionBox(&fresh,18,12,2.f,-3.f));
+    assert(fresh.anchorX==6.f&&fresh.anchorY==3.f);
+    bl::csharp::ManagedTileCollisionBox nextCall{4.f,6.f,42,30};
+    assert(bl::csharp::applyManagedTileCollisionBox(&nextCall,18,12,2.f,-3.f));
+    assert(nextCall.anchorX==fresh.anchorX&&nextCall.anchorY==fresh.anchorY);
     const auto beforeInvalid=box;
     assert(!bl::csharp::applyManagedTileCollisionBox(&box,513,5,0.f,0.f));
     assert(!bl::csharp::applyManagedTileCollisionBox(&box,0,0,257.f,0.f));

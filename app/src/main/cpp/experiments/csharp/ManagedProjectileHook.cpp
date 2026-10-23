@@ -203,7 +203,9 @@ void hkManagedTileParams(Il2CppObject* projectile, Vector2* anchor, int* width,
     original(projectile,anchor,width,height,method);
     const auto* scope=g_tileMovementScope;
     if(!scope || !projectile || scope->projectile!=projectile ||
-       !anchor || !width || !height)return;
+       !anchor || !width || !height ||
+       (scope->boxWidth==0 && scope->boxHeight==0 &&
+        scope->anchorOffsetX==0.f && scope->anchorOffsetY==0.f))return;
     ManagedTileCollisionBox box{anchor->x,anchor->y,*width,*height};
     if(applyManagedTileCollisionBox(&box,scope->boxWidth,scope->boxHeight,
                                    scope->anchorOffsetX,scope->anchorOffsetY)) {
