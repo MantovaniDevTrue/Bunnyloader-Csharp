@@ -112,6 +112,8 @@ inline bool nativeTooltipPanelLayout(const NativeTooltipPanelRequest& request,
         if(overlap>0)y=overlap>y?0:y-std::trunc(overlap);
     }
     const float panelX=right?x:x-width;
+    if(request.bannerVisible&&y+height+2*padY>request.bannerBottom)
+        return false;
     if(!std::isfinite(x)||!std::isfinite(y)||
        panelX<0||y<0||panelX+width+2*padX>request.screenWidth||
        y+height+2*padY>request.screenHeight)return false;

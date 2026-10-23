@@ -45,7 +45,13 @@ int main() {
     input.bannerVisible=true;input.bannerBottom=260;
     assert(nativeTooltipPanelLayout(input,withCSharp,&panel));
     assert(panel.panelY==152&&panel.textY==152);
+    input.bannerBottom=85;
+    NativeTooltipPanelResult unchanged;
+    unchanged.textX=999;
+    assert(!nativeTooltipPanelLayout(input,withCSharp,&unchanged));
+    assert(unchanged.textX==999);
     input.bannerVisible=false;
+    input.bannerBottom=0;
 
     input.opaque=false;
     assert(nativeTooltipPanelLayout(input,withCSharp,&panel));
