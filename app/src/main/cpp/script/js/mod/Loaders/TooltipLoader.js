@@ -22,12 +22,18 @@ class TooltipLoader {
     static #glyphWidths = new Map();
 
     static #ManagedPlan(type) {
-        const old = TooltipLoader.#managedPlans.get(type);
-        if (old) return old;
         const native = globalThis.bl?.csharp?.tooltipPlan;
-        if (typeof native !== 'function') return null;
+        if (typeof native !== 'function') {
+            TooltipLoader.#managedPlans.delete(type);
+            return null;
+        }
         const wire = native(type);
-        if (!wire) return null;
+        if (!wire) {
+            TooltipLoader.#managedPlans.delete(type);
+            return null;
+        }
+        const old = TooltipLoader.#managedPlans.get(type);
+        if (old && old.wire === wire) return old.plan;
         try {
             const plan = JSON.parse(wire);
             if (!Array.isArray(plan) || plan.length > 24) return null;
@@ -36,9 +42,10 @@ class TooltipLoader {
                 p.text.length <= 512)) return null;
             if (TooltipLoader.#managedPlans.size >= 128)
                 TooltipLoader.#managedPlans.clear();
-            TooltipLoader.#managedPlans.set(type, plan);
+            TooltipLoader.#managedPlans.set(type, { wire, plan });
             return plan;
         } catch (_) {
+            TooltipLoader.#managedPlans.delete(type);
             return null;
         }
     }
@@ -231,8 +238,10 @@ class TooltipLoader {
         if (!item || item.type < 1) return false;
         if (RarityLoader.ByType.has(item.rare)) return true;
         const nativeReady = globalThis.bl?.csharp?.tooltipNativeReady;
-        if (!(typeof nativeReady === 'function' && nativeReady(item.type) === true) &&
-            TooltipLoader.#ManagedPlan(item.type)) return true;
+        const nativeCanDraw = typeof nativeReady === 'function' &&
+            nativeReady(item.type) === true &&
+            !Terraria.Main.SettingsEnabled_OpaqueBoxBehindTooltips;
+        if (!nativeCanDraw && TooltipLoader.#ManagedPlan(item.type)) return true;
         // Moeda própria na loja: o jogo do celular pinta o preço com uma cor
         // fixa (246, 100, 120) e ignora o CurrencyTextColor; aqui ele vale.
         if (item.shopSpecialCurrency !== -1 && Terraria.Main.npcShop > 0) return true;

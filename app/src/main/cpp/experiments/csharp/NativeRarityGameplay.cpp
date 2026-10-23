@@ -512,6 +512,7 @@ NativeTooltipMeasureFn g_nativeTooltipMeasure=nullptr;
 const MethodInfo* g_nativeTooltipMeasureMethod=nullptr;
 std::atomic<bool> g_nativeTooltipHookReady{false};
 native_static::Value g_nativeTooltipHover;
+native_static::Value g_nativeTooltipClock;
 int g_nativeTooltipTypeOffset=-1;
 using NativeTooltipStaticFn=void (*)(Il2CppObject*,int32_t,uint8_t,int32_t,int32_t,const MethodInfo*);
 using NativeTooltipInstanceFn=void (*)(Il2CppObject*,Il2CppObject*,int32_t,uint8_t,int32_t,int32_t,const MethodInfo*);
@@ -601,10 +602,7 @@ bool nativeTooltipOnDraw(Il2CppObject* batch,Il2CppObject* font,Il2CppString* te
             paint.x=position->x;paint.y=y;paint.scale=scale;
             paint.rotation=rotation;paint.originX=origin.x;paint.originY=origin.y;
             paint.depth=depth;paint.opacity=static_cast<uint8_t>(argb>>24);
-            auto clock=bl::il2cpp::findClass({"Terraria","Main",{}});
-            static native_static::Value globalTime;
-            if(!globalTime&&clock)globalTime=native_static::resolve(clock,"GlobalTimeWrappedHourly");
-            if(!native_static::read(globalTime,&paint.clock,sizeof(float))||
+            if(!native_static::read(g_nativeTooltipClock,&paint.clock,sizeof(float))||
                !std::isfinite(paint.clock))return false;
             for(char16_t ch:layout.units) {
                 if(ch!=u' '&&!nativeTooltipGlyphString(ch))return false;
@@ -982,8 +980,13 @@ bool installNativeTooltipHook(std::string* error) {
     if(!hover||hover.type!=item||native_static::size(hover)!=sizeof(Il2CppObject*)) {
         *error="Reason=NativeTooltipHoverUnavailable";return false;
     }
+    const auto clock=native_static::resolve(main,"GlobalTimeWrappedHourly");
+    if(!clock||native_static::size(clock)!=sizeof(float)) {
+        *error="Reason=NativeTooltipClockUnavailable";return false;
+    }
     auto* ptr=methodPointer(measure);
     if(!ptr){*error="Reason=NativeTooltipMeasurePointerMissing";return false;}
+    g_nativeTooltipClock=clock;
     g_nativeTooltipMeasureMethod=measure;
     g_nativeTooltipMeasure=reinterpret_cast<NativeTooltipMeasureFn>(ptr);
     g_nativeTooltipHover=hover;
