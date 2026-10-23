@@ -2,10 +2,12 @@
 #include "experiments/csharp/NativeAchievementMailbox.h"
 #include "experiments/csharp/NativeAchievementManifest.h"
 #include "experiments/csharp/NativeAchievementState.h"
+#include "experiments/csharp/NativeAchievementContracts.h"
 #include "experiments/csharp/ManagedRuntime.h"
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
 #include "hook/HookManager.h"
+#include "core/Log.h"
 
 #include <algorithm>
 #include <atomic>
@@ -30,6 +32,7 @@ Mailbox g_mailbox;
 std::map<std::string, std::pair<std::string, std::vector<Descriptor>>> g_registeredMetadata;
 std::map<std::string, std::vector<AchievementState>> g_liveStates;
 std::set<std::string> g_pendingState;
+std::map<std::string, ManagerContractResult> g_nativeContracts;
 NpcFn g_npcOriginal = nullptr;
 PickupFn g_pickupOriginal = nullptr;
 CraftFn g_craftOriginal = nullptr;
@@ -193,6 +196,7 @@ bool bindNativeAchievementAssembly(const std::string& mod, const std::string& as
         g_registeredMetadata.erase(it);
         g_liveStates.erase(mod);
         g_pendingState.erase(mod);
+        g_nativeContracts.erase(mod);
     }
     return true;
 }
@@ -202,6 +206,7 @@ void retireNativeAchievementMod(const std::string& mod) {
     g_registeredMetadata.erase(mod);
     g_liveStates.erase(mod);
     g_pendingState.erase(mod);
+    g_nativeContracts.erase(mod);
 }
 
 void clearNativeAchievementWorld() {
@@ -241,6 +246,10 @@ void pumpNativeAchievementGameplayOnGameThread() {
             if (!parseManifest(candidate.mod, definitions, &decoded) ||
                 decoded.size() != static_cast<size_t>(count) ||
                 !g_mailbox.activate(candidate, count)) continue;
+            ManagerContractResult contracts = inspectManagerContracts(decoded);
+            BL_DEBUG("[CSharp][AchievementLoader] Mod=%s ManagerContract=%s",
+                     candidate.mod.c_str(), contracts.diagnostic.c_str());
+            g_nativeContracts[candidate.mod] = std::move(contracts);
             g_registeredMetadata[candidate.mod] =
                 std::make_pair(candidate.assembly, std::move(decoded));
             g_pendingState.insert(candidate.mod);
