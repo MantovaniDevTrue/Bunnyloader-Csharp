@@ -51,3 +51,5 @@ prefixos passam a considerar os defaults efetivos do item nativo. O wire antigo
 continua aceito. O contrato e as limitações de autoria/unload estão em
 `content/Documentation/CLONE_DEFAULTS.md`; este lote não conclui o ItemLoader
 inteiro, a retirada de tabelas estáticas nem o renderer de tooltip sem JS.
+
+A revisão de viewport implementa fallback JS quando o cursor, escala, controlador ou dados de tela não permitem uma inserção nativa segura. O hook C++ valida e lê `Main.screenHeight` e só insere a linha com headroom suficiente para o texto extra; o teste host cobre bordas e escalas. Isso evita clip e deslocamentos fora da tela, mas não dimensiona nativamente o painel opaco e não equivale à validação visual Android. Sem APK.
