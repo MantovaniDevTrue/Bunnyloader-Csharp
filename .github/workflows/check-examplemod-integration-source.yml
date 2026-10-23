@@ -37,3 +37,46 @@ jobs:
         run: dotnet run --project tests/basic_items/tile_parity/TileParity.csproj -c Release
       - name: Staged placeable-item fidelity without incomplete tiles
         run: dotnet run --project tests/basic_items/placeable_stage/PlaceableStage.csproj -c Release
+
+  native-host:
+    name: Native bridge and tile/quest contracts (NO APK)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check merged native content and MonoVM source syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          g++ -std=c++20 -Wall -Wextra -Werror -pedantic -fsyntax-only \
+            -I app/src/main/cpp -I tests/basic_items/include \
+            -I "$JAVA_HOME/include" -I "$JAVA_HOME/include/linux" \
+            app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp \
+            app/src/main/cpp/experiments/csharp/SourceLoader.cpp \
+            app/src/main/cpp/experiments/csharp/NativeContent.cpp \
+            app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp
+      - name: Run native tile and wall policy regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in \
+            tests/world_loaders/tile_flags_test.cpp \
+            tests/world_loaders/wall_registry_test.cpp \
+            tests/world_loaders/wall_runtime_test.cpp \
+            tests/world_loaders/tile_animation_test.cpp; do
+            exe="$RUNNER_TEMP/$(basename "${file%.cpp}")"
+            g++ -std=c++20 -Wall -Wextra -Werror -pedantic -pthread \
+              -I app/src/main/cpp "$file" -o "$exe"
+            "$exe"
+          done
+      - name: Execute AnglerQuest and CSharp rarity pure-native checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          g++ -std=c++20 -Wall -Wextra -Werror -pedantic -pthread \
+            -I app/src/main/cpp tests/angler_quest/quest_registry_test.cpp \
+            -o "$RUNNER_TEMP/angler_registry"
+          "$RUNNER_TEMP/angler_registry"
+          g++ -std=c++20 -Wall -Wextra -Werror -pedantic -pthread \
+            -I app/src/main/cpp tests/rarity_loader/native_rarity_color_test.cpp \
+            -o "$RUNNER_TEMP/rarity_color"
+          "$RUNNER_TEMP/rarity_color"
