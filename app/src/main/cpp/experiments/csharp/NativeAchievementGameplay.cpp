@@ -1,5 +1,6 @@
 #include "experiments/csharp/NativeAchievementGameplay.h"
 #include "experiments/csharp/NativeAchievementMailbox.h"
+#include "experiments/csharp/NativeAchievementManifest.h"
 #include "experiments/csharp/ManagedRuntime.h"
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
@@ -10,6 +11,7 @@
 #include <charconv>
 #include <cstdint>
 #include <cstring>
+#include <map>
 #include <string>
 
 namespace bl::csharp {
@@ -22,6 +24,7 @@ using CraftFn = void (*)(Il2CppObject*, const MethodInfo*);
 using TileFn = void (*)(Il2CppObject*, uint16_t, const MethodInfo*);
 
 Mailbox g_mailbox;
+std::map<std::string, std::pair<std::string, std::vector<Descriptor>>> g_registeredMetadata;
 NpcFn g_npcOriginal = nullptr;
 PickupFn g_pickupOriginal = nullptr;
 CraftFn g_craftOriginal = nullptr;
@@ -176,11 +179,16 @@ void ensureHooks() {
 }
 
 bool bindNativeAchievementAssembly(const std::string& mod, const std::string& assembly) {
-    return g_mailbox.bind(mod, assembly);
+    if (!g_mailbox.bind(mod, assembly)) return false;
+    auto it = g_registeredMetadata.find(mod);
+    if (it != g_registeredMetadata.end() && it->second.first != assembly)
+        g_registeredMetadata.erase(it);
+    return true;
 }
 
 void retireNativeAchievementMod(const std::string& mod) {
     g_mailbox.retire(mod);
+    g_registeredMetadata.erase(mod);
 }
 
 void clearNativeAchievementWorld() {
@@ -201,7 +209,21 @@ void pumpNativeAchievementGameplayOnGameThread() {
             const char* end = result.data() + result.size();
             const auto parsed = std::from_chars(begin, end, count);
             if (parsed.ec != std::errc{} || parsed.ptr != end) count = -1;
-            g_mailbox.activate(candidate, count);
+            if (count == 0) {
+                g_mailbox.activate(candidate, count);
+                continue;
+            }
+            if (count <= 0 || count > 128) continue;
+            std::string definitions;
+            if (!invokeManagedRecipe(candidate.mod, candidate.assembly,
+                                     "__achievements__", 0, 5, "", &definitions, 2500))
+                continue;
+            std::vector<Descriptor> decoded;
+            if (!parseManifest(candidate.mod, definitions, &decoded) ||
+                decoded.size() != static_cast<size_t>(count) ||
+                !g_mailbox.activate(candidate, count)) continue;
+            g_registeredMetadata[candidate.mod] =
+                std::make_pair(candidate.assembly, std::move(decoded));
         }
         ensureHooks();
     }

@@ -100,6 +100,13 @@ internal static class Program
         if (first != "READY|3") throw new Exception("Worker bootstrap: " + first);
         Check(first == "READY|3");
         Check(Execute("worker-b", workerRevision1, 0) == "READY|3");
+        string definitions = Execute("worker-a", workerRevision1, 5);
+        Check(definitions.StartsWith("ACHMETA1\n", StringComparison.Ordinal));
+        Check(definitions.Split('\n').Count(row => row.StartsWith("A|", StringComparison.Ordinal)) == 3);
+        Check(definitions.Split('\n').Count(row => row.StartsWith("C|", StringComparison.Ordinal)) == 4);
+        Check(definitions.Length <= 12000);
+        Check(Execute("worker-a", workerRevision1, 5, "unexpected")
+            == "ERROR|Stage=AchievementManifest Reason=UnexpectedPayload");
         Check(Execute("worker-a", workerRevision1, 1, "0,900,1,0") == "EVENT|0");
         Check(Execute("worker-a", workerRevision1, 1, "0,900,1,1") == "EVENT|1");
         for (int i = 0; i < 3; i++)

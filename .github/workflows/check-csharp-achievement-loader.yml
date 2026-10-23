@@ -7,6 +7,7 @@ on:
       - experiments/csharp/BunnyCsSdk/BunnyRecipeCallbacks.cs
       - experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj
       - app/src/main/cpp/experiments/csharp/NativeAchievementMailbox.h
+      - app/src/main/cpp/experiments/csharp/NativeAchievementManifest.h
       - app/src/main/cpp/experiments/csharp/NativeAchievementGameplay.h
       - app/src/main/cpp/experiments/csharp/NativeAchievementGameplay.cpp
       - app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp
@@ -63,6 +64,13 @@ jobs:
             tests/achievement_loader/native_discovery_test.cpp \
             -o /tmp/bunny-achievement-discovery
           /tmp/bunny-achievement-discovery samples/ExampleModCSharp/AchievementsDemo/content/Content/Achievements/ManyWormsKilled.cs
+      - name: Verify bounded native achievement descriptors
+        run: |
+          g++ -std=c++20 -O2 -Wall -Wextra -Werror -pthread \
+            -Iapp/src/main/cpp \
+            tests/achievement_loader/native_manifest_test.cpp \
+            -o /tmp/bunny-achievement-manifest
+          /tmp/bunny-achievement-manifest
       - name: Test owner-safe native event mailbox
         run: |
           g++ -std=c++20 -O2 -Wall -Wextra -Werror -pthread \
