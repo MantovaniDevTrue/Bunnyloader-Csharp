@@ -9,6 +9,7 @@ on:
       - 'samples/ExampleModCSharp/Playable/**'
       - 'tests/golf_ball/**'
       - 'tests/drink_colors/**'
+      - 'tests/tooltip_native/**'
       - 'tests/examplemod/**'
       - '.github/workflows/check-csharp-golf-ball.yml'
   pull_request:
@@ -20,6 +21,7 @@ on:
       - 'samples/ExampleModCSharp/Playable/**'
       - 'tests/golf_ball/**'
       - 'tests/drink_colors/**'
+      - 'tests/tooltip_native/**'
       - 'tests/examplemod/**'
       - '.github/workflows/check-csharp-golf-ball.yml'
   workflow_dispatch:
@@ -42,3 +44,7 @@ jobs:
         run: |
           g++ -std=c++20 -O1 -Wall -Wextra -Werror -Iapp/src/main/cpp tests/drink_colors/native_test.cpp -o /tmp/bunny-drink-colors
           /tmp/bunny-drink-colors
+      - name: Decode compiled CSharp tooltip policy without JavaScript
+        run: |
+          g++ -std=c++20 -O1 -Wall -Wextra -Werror -Iapp/src/main/cpp tests/tooltip_native/native_test.cpp -o /tmp/bunny-tooltip-plan
+          /tmp/bunny-tooltip-plan build/basic-items/full-source-runtime-values.txt
