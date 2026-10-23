@@ -122,7 +122,7 @@ public static class BunnyRecipeLoader
     {
         try
         {
-            if(owner=="__achievements__" && index==0 && kind>=0 && kind<=5)
+            if(owner=="__achievements__" && index==0 && kind>=0 && kind<=6)
                 return BunnyAchievementWorker.Dispatch(modId,assemblyPath,kind,snapshot);
             if(kind==6)
             {

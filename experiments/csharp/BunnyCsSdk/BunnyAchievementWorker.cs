@@ -37,7 +37,7 @@ public static class BunnyAchievementWorker
         if (string.IsNullOrWhiteSpace(modId) || modId.Length > 96 ||
             modId.Any(c => !char.IsAsciiLetterOrDigit(c) && c != '_' && c != '-' && c != '.') ||
             string.IsNullOrEmpty(assemblyPath) || assemblyPath.Length > 4096 ||
-            snapshot == null || snapshot.Length > 12000 || kind is < 0 or > 5)
+            snapshot == null || snapshot.Length > 12000 || kind is < 0 or > 6)
             return "ERROR|Stage=AchievementTransport Reason=InvalidArguments";
         try
         {
@@ -103,6 +103,16 @@ public static class BunnyAchievementWorker
                         : "ERROR|Stage=AchievementManifest Reason=TooLarge";
                 }
 
+                if (kind == 6)
+                {
+                    if (snapshot.Length != 0)
+                        return "ERROR|Stage=AchievementState Reason=UnexpectedPayload";
+                    string result = ExportState(Registry.Definitions(modId));
+                    return result.Length <= 12000
+                        ? result
+                        : "ERROR|Stage=AchievementState Reason=TooLarge";
+                }
+
                 if (kind == 3)
                 {
                     if (!Decode(snapshot, out var records))
@@ -165,6 +175,24 @@ public static class BunnyAchievementWorker
         }
         results = list;
         return true;
+    }
+
+    private static string ExportState(IReadOnlyList<BunnyAchievement> achievements)
+    {
+        var result = new StringBuilder("ACHSTATE1");
+        foreach (BunnyAchievement entry in achievements)
+        {
+            result.Append("\nS|").Append(Hex(entry.Name))
+                .Append('|').Append(entry.Hidden ? '1' : '0')
+                .Append('|').Append(entry.IsCompleted ? '1' : '0');
+            foreach (BunnyAchievementCondition condition in entry.Conditions)
+            {
+                result.Append("\nV|").Append(Hex(condition.Key))
+                    .Append('|').Append(((int)condition.Kind).ToString(CultureInfo.InvariantCulture))
+                    .Append('|').Append(condition.Value.ToString("R", CultureInfo.InvariantCulture));
+            }
+        }
+        return result.ToString();
     }
 
     private static string ExportDefinitions(IReadOnlyList<BunnyAchievement> achievements)

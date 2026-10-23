@@ -105,12 +105,22 @@ internal static class Program
         Check(definitions.Split('\n').Count(row => row.StartsWith("A|", StringComparison.Ordinal)) == 3);
         Check(definitions.Split('\n').Count(row => row.StartsWith("C|", StringComparison.Ordinal)) == 4);
         Check(definitions.Length <= 12000);
+        string stateStart = Execute("worker-a", workerRevision1, 6);
+        Check(stateStart.StartsWith("ACHSTATE1\n", StringComparison.Ordinal));
+        Check(stateStart.Split('\n').Count(row => row.StartsWith("S|", StringComparison.Ordinal)) == 3);
+        Check(stateStart.Split('\n').Count(row => row.StartsWith("V|", StringComparison.Ordinal)) == 4);
+        Check(Execute("worker-a", workerRevision1, 6, "unexpected")
+            == "ERROR|Stage=AchievementState Reason=UnexpectedPayload");
         Check(Execute("worker-a", workerRevision1, 5, "unexpected")
             == "ERROR|Stage=AchievementManifest Reason=UnexpectedPayload");
         Check(Execute("worker-a", workerRevision1, 1, "0,900,1,0") == "EVENT|0");
         Check(Execute("worker-a", workerRevision1, 1, "0,900,1,1") == "EVENT|1");
         for (int i = 0; i < 3; i++)
             Check(Execute("worker-a", workerRevision1, 1, "0,10,1,1") == "EVENT|0");
+        string updatedState = Execute("worker-a", workerRevision1, 6);
+        Check(updatedState.Contains("|1|1\nV|", StringComparison.Ordinal));
+        Check(updatedState.Contains("|1|3\n", StringComparison.Ordinal) ||
+              updatedState.EndsWith("|1|3", StringComparison.Ordinal));
         string wire = Execute("worker-a", workerRevision1, 2);
         Check(wire.StartsWith("ACH1\n", StringComparison.Ordinal));
         Check(wire.Length <= 512);
