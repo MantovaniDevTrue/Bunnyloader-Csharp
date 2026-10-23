@@ -13,10 +13,12 @@ struct NativeTooltipPanelRenderer {
         *this={};
         if(!backing.bind(panel,error))return false;
         NativeTooltipPanelAlpha bound;
-        if(!bound.bind(color,error)||bound.colorType!=
-            bl::il2cpp::api().class_from_il2cpp_type(
-                bl::il2cpp::api().method_get_param(backing.method,3)))
+        if(!bound.bind(color,error))return false;
+        if(bound.colorType!=bl::il2cpp::api().class_from_il2cpp_type(
+                bl::il2cpp::api().method_get_param(backing.method,3))) {
+            if(error)*error="Reason=NativeTooltipPanelRendererColorTypeMismatch";
             return false;
+        }
         opacity=bound;
         return true;
     }

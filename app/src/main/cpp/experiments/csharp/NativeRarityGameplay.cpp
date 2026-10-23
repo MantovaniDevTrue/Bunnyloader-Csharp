@@ -8,6 +8,7 @@
 #include "experiments/csharp/NativeTooltipPanelSettings.h"
 #include "experiments/csharp/NativeTooltipPanelInspection.h"
 #include "experiments/csharp/NativeTooltipPanelAlpha.h"
+#include "experiments/csharp/NativeTooltipPanelRenderer.h"
 #include "experiments/csharp/NativeRarityPalette.h"
 #include "experiments/csharp/NativeRarityColorWire.h"
 #include "experiments/csharp/NativeRarityTextColor.h"

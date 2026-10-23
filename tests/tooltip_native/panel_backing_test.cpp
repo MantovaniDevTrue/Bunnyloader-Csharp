@@ -1,4 +1,4 @@
-#include "experiments/csharp/NativeTooltipPanelInspection.h"
+#include "experiments/csharp/NativeTooltipPanelRenderer.h"
 #include <cassert>
 #include <cstring>
 #include <iostream>
@@ -69,6 +69,8 @@ static int calls=0;
 static Il2CppObject* textureReceived=nullptr;
 static float gotX=0,gotY=0,gotW=0,gotH=0;
 static uint8_t channels[4]{};
+static std::vector<Il2CppObject*> renderedTextures;
+static std::vector<std::array<uint8_t,4>> renderedColors;
 
 namespace bl::il2cpp {
 Api& api(){return fixture;}
@@ -145,10 +147,14 @@ int main() {
         }
         assert(target==&method&&self==nullptr&&args[2]!=nullptr);
         textureReceived=*static_cast<Il2CppObject* const*>(args[2]);
+        renderedTextures.push_back(textureReceived);
         const auto* pos=static_cast<const float*>(args[0]);
         const auto* size=static_cast<const float*>(args[1]);
         gotX=pos[0];gotY=pos[1];gotW=size[0];gotH=size[1];
         std::memcpy(channels,args[3],4);
+        std::array<uint8_t,4> painted{};
+        std::memcpy(painted.data(),args[3],4);
+        renderedColors.push_back(painted);
         const auto* source=static_cast<const uint8_t*>(args[4]);
         for(int i=0;i<20;++i)assert(source[i]==0);
         ++calls;
@@ -268,5 +274,30 @@ int main() {
     method.names[2]="texture";
     assert(inspectNativeTooltipPanel(&settings,&panel,0,0,&inspected,&error));
     assert(inspected.resources.settings==&settingsNode.object);
-    std::cout<<"NATIVE_TOOLTIP_PANEL_BACKING=PASS invoke="<<calls<<" rejects=10 integrated=PASS colorMultiply=PASS\n";
+    NativeTooltipPanelRenderer renderer;
+    assert(renderer.bind(&panel,&color,&error));
+    NativeTooltipPanelResult bounds;
+    bounds.opaque=true;
+    bounds.panelX=22;bounds.panelY=40;
+    bounds.panelWidth=150;bounds.panelHeight=96;
+    const int before=calls;
+    const int beforeAlpha=multiplications;
+    assert(renderer.draw(bounds,inspected,0.5f));
+    assert(calls==before+2&&multiplications==beforeAlpha+2);
+    assert(renderedTextures[renderedTextures.size()-2]==&fillTexture.object);
+    assert(renderedTextures.back()==&borderTexture.object);
+    assert((renderedColors[renderedColors.size()-2]==std::array<uint8_t,4>{7,12,18,100}));
+    assert((renderedColors.back()==std::array<uint8_t,4>{25,30,35,90}));
+    assert(gotX==22&&gotY==40&&gotW==150&&gotH==96);
+    bounds.opaque=false;
+    assert(!renderer.draw(bounds,inspected,0.5f)&&calls==before+2);
+    bounds.opaque=true;
+    assert(!renderer.draw(bounds,inspected,-0.1f)&&calls==before+2);
+    auto incomplete=inspected;
+    incomplete.resources.borderTexture=nullptr;
+    assert(!renderer.draw(bounds,incomplete,0.5f)&&calls==before+2);
+    NativeTooltipPanelRenderer mismatch;
+    assert(!mismatch.bind(&panel,&unrelated,&error)&&!error.empty());
+    std::cout<<"NATIVE_TOOLTIP_PANEL_BACKING=PASS invoke="<<calls
+             <<" rejects=10 integrated=PASS colorMultiply=PASS pair=PASS\n";
 }
