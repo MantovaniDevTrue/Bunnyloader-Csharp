@@ -149,12 +149,15 @@ class TooltipLoader {
             if (TooltipLoader.#broken || !TooltipLoader.#Wants(item)) return original();
 
             const touch = ControlsTouchTagHandler.ControlsTouchSnippet;
+            const nativeOwner = globalThis.bl?.csharp?.tooltipJsOverride;
+            const priorOwner = typeof nativeOwner === 'function' ? nativeOwner(true) : false;
             try {
                 TooltipLoader.#Draw(item, diff);
             } catch (e) {
                 TooltipLoader.#broken = true;
                 bl.error("tooltip: the mod drawing failed, falling back to the game's: " + e + (e && e.stack ? '\n' + e.stack : ''));
             } finally {
+                if (typeof nativeOwner === 'function') nativeOwner(priorOwner);
                 touch.OpenButtonFromEquipment = false;
             }
             return undefined;
@@ -227,7 +230,9 @@ class TooltipLoader {
     static #Wants(item) {
         if (!item || item.type < 1) return false;
         if (RarityLoader.ByType.has(item.rare)) return true;
-        if (TooltipLoader.#ManagedPlan(item.type)) return true;
+        const nativeReady = globalThis.bl?.csharp?.tooltipNativeReady;
+        if (!(typeof nativeReady === 'function' && nativeReady(item.type) === true) &&
+            TooltipLoader.#ManagedPlan(item.type)) return true;
         // Moeda própria na loja: o jogo do celular pinta o preço com uma cor
         // fixa (246, 100, 120) e ignora o CurrencyTextColor; aqui ele vale.
         if (item.shopSpecialCurrency !== -1 && Terraria.Main.npcShop > 0) return true;

@@ -435,6 +435,7 @@ struct HoverTooltipRegion {
 thread_local HoverTooltipRegion g_hoverTooltipRegion;
 thread_local NativeTooltipDrawSession g_nativeTooltipDrawSession;
 thread_local bool g_nativeTooltipActive=false;
+thread_local bool g_nativeTooltipJavascriptOwner=false;
 
 bool rarityTextMatches(Il2CppString* text) {
     const auto* target = g_rarityTextTarget;
@@ -580,7 +581,8 @@ bool nativeTooltipOnDraw(Il2CppObject* batch,Il2CppObject* font,Il2CppString* te
                          RarityTextVec2* position,uint32_t color,float rotation,
                          RarityTextVec2 origin,float scale,int32_t effects,float depth,
                          const MethodInfo* method) {
-    if(!g_nativeTooltipActive||g_nativeTooltipRendering||!text||!position||
+    if(!g_nativeTooltipActive||g_nativeTooltipRendering||
+       g_nativeTooltipJavascriptOwner||!text||!position||
        text->length<=0||text->length>512||!std::isfinite(position->x)||
        !std::isfinite(position->y)||!std::isfinite(scale)||scale<=0)return false;
     auto& session=g_nativeTooltipDrawSession;
@@ -1234,6 +1236,20 @@ void retireRarityTableOnGameThread() {
         }
         g_tableOwned[slot]=false;it=g_retiredTypes.erase(it);
     }
+}
+
+bool nativeTooltipReadyForItem(int type) {
+    if(type<1||!g_nativeTooltipHookReady.load(std::memory_order_acquire))return false;
+    const auto plan=basicItemNativeTooltip(type);
+    if(!plan)return false;
+    NativeTooltipDrawSession session;
+    return session.begin(*plan);
+}
+
+bool nativeTooltipJavascriptOwner(bool active) {
+    const bool previous=g_nativeTooltipJavascriptOwner;
+    g_nativeTooltipJavascriptOwner=active;
+    return previous;
 }
 
 void pumpNativeTooltipGameplay() {
