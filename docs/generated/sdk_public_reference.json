@@ -86,6 +86,272 @@
       "methods": []
     },
     {
+      "name": "BunnyLoader.Source.BunnyAchievement",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [
+        "BunnyAchievementCategory Category { get; }",
+        "IReadOnlyList\u003CBunnyAchievementCondition\u003E Conditions { get; }",
+        "bool Hidden { get; }",
+        "bool IsCompleted { get; }",
+        "int Index { get; }",
+        "string Description { get; set; }",
+        "string FriendlyName { get; set; }",
+        "string Name { get; }",
+        "string Texture { get; set; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "BunnyAchievementCondition AddCondition(string key)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "BunnyAchievementCondition AddFloatCondition(float maximum, string key)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "BunnyAchievementCondition AddIntCondition(int maximum, string key)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "BunnyAchievementCondition AddItemCraftCondition(int[] ids)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "BunnyAchievementCondition AddItemPickupCondition(int[] ids)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "BunnyAchievementCondition AddNPCKilledCondition(int[] ids)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "BunnyAchievementCondition AddTileDestroyedCondition(int[] ids)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void OnCompleted()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void OnItemCraft(BunnyAchievementEvent e)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void OnItemPickup(BunnyAchievementEvent e)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void OnNPCKilled(BunnyAchievementEvent e)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void OnTileDestroyed(BunnyAchievementEvent e)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void SetStaticDefaults()",
+          "execution": "compile_policy"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyAchievementCategory",
+      "kind": "enum",
+      "baseType": "System.Enum",
+      "constructors": [],
+      "properties": [],
+      "values": [
+        "Slayer",
+        "Collector",
+        "Explorer",
+        "Challenger"
+      ],
+      "methods": []
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyAchievementCondition",
+      "kind": "class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [
+        "BunnyAchievementConditionKind Kind { get; }",
+        "IReadOnlyList\u003Cint\u003E ContentTypes { get; }",
+        "bool IsCompleted { get; }",
+        "float Maximum { get; }",
+        "float Value { get; set; }",
+        "string Key { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "void Complete()",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyAchievementConditionKind",
+      "kind": "enum",
+      "baseType": "System.Enum",
+      "constructors": [],
+      "properties": [],
+      "values": [
+        "Flag",
+        "Integer",
+        "Float",
+        "NpcKilled",
+        "ItemPickup",
+        "ItemCraft",
+        "TileDestroyed"
+      ],
+      "methods": []
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyAchievementEvent",
+      "kind": "struct",
+      "baseType": "System.ValueType",
+      "constructors": [
+        "BunnyAchievementEvent(BunnyAchievementEventKind Kind, int ContentType, int Stack, bool IsLocalPlayer)"
+      ],
+      "properties": [
+        "BunnyAchievementEventKind Kind { get; set; }",
+        "bool IsLocalPlayer { get; set; }",
+        "int ContentType { get; set; }",
+        "int Stack { get; set; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "bool Equals(BunnyAchievementEvent other)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool Equals(Object obj)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "int GetHashCode()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "string ToString()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void Deconstruct(out BunnyAchievementEventKind Kind, out int ContentType, out int Stack, out bool IsLocalPlayer)",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyAchievementEventKind",
+      "kind": "enum",
+      "baseType": "System.Enum",
+      "constructors": [],
+      "properties": [],
+      "values": [
+        "NpcKilled",
+        "ItemPickup",
+        "ItemCraft",
+        "TileDestroyed"
+      ],
+      "methods": []
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyAchievementRegistry",
+      "kind": "class",
+      "baseType": "System.Object",
+      "constructors": [
+        "BunnyAchievementRegistry()"
+      ],
+      "properties": [],
+      "values": [],
+      "methods": [
+        {
+          "signature": "BunnyAchievement Find(string modId, string name)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "IReadOnlyList\u003CBunnyAchievementSnapshot\u003E Snapshot(string modId)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool Unload(string modId, string revision)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "int Dispatch(string modId, BunnyAchievementEvent e)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "int Register(string modId, string revision, Assembly assembly)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "int Restore(string modId, IReadOnlyList\u003CBunnyAchievementSnapshot\u003E saved)",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyAchievementSnapshot",
+      "kind": "class",
+      "baseType": "System.Object",
+      "constructors": [
+        "BunnyAchievementSnapshot(string Name, string[] Keys, BunnyAchievementConditionKind[] Kinds, float[] Values)"
+      ],
+      "properties": [
+        "BunnyAchievementConditionKind[] Kinds { get; set; }",
+        "float[] Values { get; set; }",
+        "string Name { get; set; }",
+        "string[] Keys { get; set; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "BunnyAchievementSnapshot \u003CClone\u003E$()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool Equals(BunnyAchievementSnapshot other)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool Equals(Object obj)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "int GetHashCode()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "string ToString()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void Deconstruct(out string Name, out string[] Keys, out BunnyAchievementConditionKind[] Kinds, out float[] Values)",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyAchievementWorker",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [],
+      "values": [],
+      "methods": [
+        {
+          "signature": "static string Dispatch(string modId, string assemblyPath, int kind, string snapshot)",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
       "name": "BunnyLoader.Source.BunnyAfterHurtHook",
       "kind": "class",
       "baseType": "System.MulticastDelegate",

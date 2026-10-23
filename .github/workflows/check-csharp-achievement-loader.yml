@@ -1,0 +1,128 @@
+name: AchievementLoader CSharp host
+on:
+  push:
+    paths:
+      - experiments/csharp/BunnyCsSdk/BunnyAchievement.cs
+      - experiments/csharp/BunnyCsSdk/BunnyAchievementWorker.cs
+      - experiments/csharp/BunnyCsSdk/BunnyRecipeCallbacks.cs
+      - experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj
+      - app/src/main/cpp/experiments/csharp/NativeAchievementMailbox.h
+      - app/src/main/cpp/experiments/csharp/NativeAchievementAtlasPlan.h
+      - app/src/main/cpp/experiments/csharp/NativeAchievementAtlas.h
+      - app/src/main/cpp/experiments/csharp/NativeAchievementManager.h
+      - app/src/main/cpp/experiments/csharp/NativeAchievementManager.cpp
+      - app/src/main/cpp/experiments/csharp/NativeAchievementAtlas.cpp
+      - app/src/main/cpp/experiments/csharp/NativeAchievementContracts.h
+      - app/src/main/cpp/experiments/csharp/NativeAchievementRegistrationPlan.h
+      - app/src/main/cpp/experiments/csharp/NativeAchievementContracts.cpp
+      - app/src/main/cpp/experiments/csharp/NativeAchievementState.h
+      - app/src/main/cpp/experiments/csharp/NativeAchievementManifest.h
+      - app/src/main/cpp/experiments/csharp/NativeAchievementGameplay.h
+      - app/src/main/cpp/experiments/csharp/NativeAchievementGameplay.cpp
+      - app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp
+      - app/src/main/cpp/experiments/csharp/SourceParser.cpp
+      - app/src/main/cpp/experiments/csharp/SourceContentIdentity.h
+      - app/src/main/cpp/experiments/csharp/SourceLoader.cpp
+      - app/src/main/cpp/experiments/csharp/SourceLoader.h
+      - experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs
+      - docs/generated/sdk_public_reference.json
+      - docs/generated/sdk_public_reference.md
+      - samples/ExampleModCSharp/AchievementsDemo/**
+      - tests/achievement_loader/**
+      - .github/workflows/check-csharp-achievement-loader.yml
+  pull_request:
+    paths:
+      - experiments/csharp/BunnyCsSdk/BunnyAchievement.cs
+      - experiments/csharp/BunnyCsSdk/BunnyAchievementWorker.cs
+      - experiments/csharp/BunnyCsSdk/BunnyRecipeCallbacks.cs
+      - experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj
+      - app/src/main/cpp/experiments/csharp/NativeAchievementMailbox.h
+      - app/src/main/cpp/experiments/csharp/NativeAchievementAtlasPlan.h
+      - app/src/main/cpp/experiments/csharp/NativeAchievementAtlas.h
+      - app/src/main/cpp/experiments/csharp/NativeAchievementManager.h
+      - app/src/main/cpp/experiments/csharp/NativeAchievementManager.cpp
+      - app/src/main/cpp/experiments/csharp/NativeAchievementAtlas.cpp
+      - app/src/main/cpp/experiments/csharp/NativeAchievementContracts.h
+      - app/src/main/cpp/experiments/csharp/NativeAchievementRegistrationPlan.h
+      - app/src/main/cpp/experiments/csharp/NativeAchievementContracts.cpp
+      - app/src/main/cpp/experiments/csharp/NativeAchievementState.h
+      - app/src/main/cpp/experiments/csharp/NativeAchievementGameplay.h
+      - app/src/main/cpp/experiments/csharp/NativeAchievementGameplay.cpp
+      - app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp
+      - app/src/main/cpp/experiments/csharp/SourceParser.cpp
+      - app/src/main/cpp/experiments/csharp/SourceContentIdentity.h
+      - app/src/main/cpp/experiments/csharp/SourceLoader.cpp
+      - app/src/main/cpp/experiments/csharp/SourceLoader.h
+      - experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs
+      - docs/generated/sdk_public_reference.json
+      - docs/generated/sdk_public_reference.md
+      - samples/ExampleModCSharp/AchievementsDemo/**
+      - tests/achievement_loader/**
+      - .github/workflows/check-csharp-achievement-loader.yml
+permissions:
+  contents: read
+jobs:
+  achievement-host:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - run: dotnet run --project tests/achievement_loader/AchievementLoader.csproj -c Release
+      - run: dotnet build samples/ExampleModCSharp/AchievementsDemo/AchievementsDemo.csproj -c Release
+      - name: Verify achievement-only compiled assembly is a supported mod
+        run: dotnet run --project tests/achievement_loader/DiscoveryProbe.csproj -c Release -- samples/ExampleModCSharp/AchievementsDemo/bin/Release/net8.0/AchievementsDemo.dll
+      - run: dotnet run --project tools/sdk_reference/SdkReference.csproj -c Release -- --check
+      - name: Verify original Bunny achievement-only source is recognized
+        run: |
+          g++ -std=c++20 -O2 -Wall -Wextra -Werror -pthread \
+            -Iapp/src/main/cpp \
+            app/src/main/cpp/experiments/csharp/SourceParser.cpp \
+            tests/achievement_loader/native_discovery_test.cpp \
+            -o /tmp/bunny-achievement-discovery
+          /tmp/bunny-achievement-discovery samples/ExampleModCSharp/AchievementsDemo/content/Content/Achievements/ManyWormsKilled.cs
+      - name: Verify bounded native achievement descriptors
+        run: |
+          g++ -std=c++20 -O2 -Wall -Wextra -Werror -pthread \
+            -Iapp/src/main/cpp \
+            tests/achievement_loader/native_manifest_test.cpp \
+            -o /tmp/bunny-achievement-manifest
+          /tmp/bunny-achievement-manifest
+      - name: Validate native achievement live state synchronization
+        run: |
+          g++ -std=c++20 -O2 -Wall -Wextra -Werror -pthread \
+            -Iapp/src/main/cpp \
+            tests/achievement_loader/native_state_test.cpp \
+            -o /tmp/bunny-achievement-state
+          /tmp/bunny-achievement-state
+      - name: Verify rollback-safe native achievement plan
+        run: |
+          g++ -std=c++20 -O2 -Wall -Wextra -Werror -pthread \
+            -Iapp/src/main/cpp \
+            tests/achievement_loader/native_registration_plan_test.cpp \
+            -o /tmp/bunny-achievement-registration-plan
+          /tmp/bunny-achievement-registration-plan
+      - name: Verify original Bunny 592x64 atlas plan
+        run: |
+          g++ -std=c++20 -O2 -Wall -Wextra -Werror -pthread \
+            -Iapp/src/main/cpp \
+            tests/achievement_loader/native_atlas_plan_test.cpp \
+            -o /tmp/bunny-achievement-atlas-plan
+          /tmp/bunny-achievement-atlas-plan
+      - name: Test owner-safe native event mailbox
+        run: |
+          g++ -std=c++20 -O2 -Wall -Wextra -Werror -pthread \
+            -Iapp/src/main/cpp \
+            tests/achievement_loader/native_mailbox_test.cpp \
+            -o /tmp/bunny-achievement-mailbox
+          /tmp/bunny-achievement-mailbox
+      - name: Syntax-check achievement hooks against production headers
+        run: |
+          g++ -std=c++20 -O0 -Wall -Wextra -Werror -Wno-deprecated-declarations \
+            -fno-exceptions -fno-rtti -fsyntax-only \
+            -Itests/basic_items/include -Iapp/src/main/cpp \
+            app/src/main/cpp/experiments/csharp/NativeAchievementGameplay.cpp \
+            app/src/main/cpp/experiments/csharp/NativeAchievementContracts.cpp \
+            app/src/main/cpp/experiments/csharp/NativeAchievementAtlas.cpp \
+            app/src/main/cpp/experiments/csharp/NativeAchievementManager.cpp

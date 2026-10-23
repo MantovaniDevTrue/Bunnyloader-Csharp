@@ -43,6 +43,8 @@
     <Compile Include="../BunnyCsSdk/BunnyEntitySourceDispatcher.cs" Link="BunnyEntitySourceDispatcher.cs" />
     <Compile Include="../BunnyCsSdk/BunnyPrimitives.cs" Link="BunnyPrimitives.cs" />
     <Compile Include="../BunnyCsSdk/BunnyRarity.cs" Link="BunnyRarity.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyAchievement.cs" Link="BunnyAchievement.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyAchievementWorker.cs" Link="BunnyAchievementWorker.cs" />
     <Compile Include="../BunnyCsSdk/BunnyRarityReference.cs" Link="BunnyRarityReference.cs" />
     <Compile Include="../BunnyCsSdk/BunnyRarityRuntime.cs" Link="BunnyRarityRuntime.cs" />
     <Compile Include="../BunnyCsSdk/BunnyNativeAccess.cs" Link="BunnyNativeAccess.cs" />

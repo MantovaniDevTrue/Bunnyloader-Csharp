@@ -29,6 +29,7 @@
 #include "experiments/csharp/NativeBasicItems.h"
 #include "experiments/csharp/NativeDefaults.h"
 #include "experiments/csharp/NativeAnglerQuestGameplay.h"
+#include "experiments/csharp/NativeAchievementGameplay.h"
 #include "experiments/csharp/NativeAnglerQuestRegistry.h"
 #include "experiments/csharp/NativeArmorPolicies.h"
 #include "experiments/csharp/NativeItemPolicies.h"
@@ -881,7 +882,7 @@ void run() {
             note(&status, "failed", "Tabelas de projetil nao ficaram prontas");
             continue;
         }
-        if ((mod.projectiles > 0 || mod.npcs > 0 || hasUniversalHooks || mod.screenEffects > 0 || mod.commands > 0 ||
+        if ((mod.projectiles > 0 || mod.npcs > 0 || hasUniversalHooks || mod.screenEffects > 0 || mod.commands > 0 || mod.achievements > 0 ||
              (defaults.find("LOCALE\t") != std::string::npos ||
               defaults.find("LOCALE_MODULES\t") != std::string::npos ||
               defaults.find("LOCALE_RUNTIME\t") != std::string::npos)) &&
@@ -939,7 +940,7 @@ void run() {
                 localization::bindManagedAssembly(mod.id, callbackAssembly);
             static const runtime::RecipeCallbackProvider provider{prepareNativeRecipeCallbackProvider,trackNativeRecipeCallbacks};
             runtime::setRecipeCallbackProvider(&provider);
-            if((hasManagedRecipeCallbacks(mod.id)||hasManagedAnglerQuestCallbacks(mod.id)||shooting::hasPolicies(mod.id)||mod.tiles>0||mod.rarities>0)&&!g_runtimeWarmStarted.exchange(true,std::memory_order_acq_rel)) {
+            if((hasManagedRecipeCallbacks(mod.id)||hasManagedAnglerQuestCallbacks(mod.id)||shooting::hasPolicies(mod.id)||mod.tiles>0||mod.rarities>0||mod.achievements>0)&&!g_runtimeWarmStarted.exchange(true,std::memory_order_acq_rel)) {
                 const auto probe=work+"BunnyManagedProbe.dll";
                 g_runtimeWarming.store(true,std::memory_order_release);
                 std::thread([probe]{
@@ -974,6 +975,7 @@ void run() {
             }
         }
         if (!defaultsApplied) {
+            retireNativeAchievementMod(mod.id);
             retireNativeArmorPoliciesForMod(mod.id);
             retireNativeRaritySampling(mod.id);
             localization::retireMod(mod.id);
@@ -1073,6 +1075,9 @@ void run() {
         }
         pending.insert(pending.end(), entries.begin(), entries.end());
         pendingCombat.insert(pendingCombat.end(), effects.begin(), effects.end());
+        if (mod.achievements > 0 && !bindNativeAchievementAssembly(mod.id, callbackAssembly))
+            BL_WARN("[CSharp][AchievementLoader] Mod=%s Stage=Bind Result=Rejected",
+                    mod.id.c_str());
         note(&status, entries.empty() && effects.empty() ? "ready" : "waiting-world");
     }
     if (pending.empty() && pendingCombat.empty()) {
@@ -1348,6 +1353,7 @@ void noteAutoWorldTilesLoaded() {
     resetManagedCommandSession();
     managedSound::worldExit();
     resetNativeTileSessionState();
+    clearNativeAchievementWorld();
     clearManagedVisualCommands();
     resetNativeVisualRenderer();
     g_visualUpdateTick.store(0, std::memory_order_relaxed);
@@ -1391,7 +1397,10 @@ void noteAutoGameUpdate() {
         installNativeCommandChatHooks();
     pumpNativeCommandRepliesOnGameThread();
     pumpNativeRarityGameplay();
+
     const bool invasionWorldReady = g_worldSessionReady.load(std::memory_order_acquire);
+    setNativeAchievementWorldState(invasionWorldReady);
+    pumpNativeAchievementGameplayOnGameThread();
     const uint64_t invasionWorldEpoch = g_worldEpoch.load(std::memory_order_acquire);
     setNativeInvasionWorldState(invasionWorldReady, invasionWorldEpoch);
     setNativeItemUseWorldState(invasionWorldReady, invasionWorldEpoch);
@@ -1534,6 +1543,7 @@ void noteAutoGameUpdate() {
         g_visualUpdateTick.store(0, std::memory_order_relaxed);
         g_worldExits.fetch_add(1, std::memory_order_relaxed);
         resetNativeTileSessionState();
+    clearNativeAchievementWorld();
         angler::invalidateWorldSession();
         g_worldEpoch.fetch_add(1, std::memory_order_acq_rel);
         g_worldSessionReady.store(false, std::memory_order_release);
