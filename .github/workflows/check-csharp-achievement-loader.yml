@@ -7,6 +7,7 @@ on:
       - experiments/csharp/BunnyCsSdk/BunnyRecipeCallbacks.cs
       - experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj
       - app/src/main/cpp/experiments/csharp/NativeAchievementMailbox.h
+      - app/src/main/cpp/experiments/csharp/NativeAchievementState.h
       - app/src/main/cpp/experiments/csharp/NativeAchievementManifest.h
       - app/src/main/cpp/experiments/csharp/NativeAchievementGameplay.h
       - app/src/main/cpp/experiments/csharp/NativeAchievementGameplay.cpp
@@ -28,6 +29,7 @@ on:
       - experiments/csharp/BunnyCsSdk/BunnyRecipeCallbacks.cs
       - experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj
       - app/src/main/cpp/experiments/csharp/NativeAchievementMailbox.h
+      - app/src/main/cpp/experiments/csharp/NativeAchievementState.h
       - app/src/main/cpp/experiments/csharp/NativeAchievementGameplay.h
       - app/src/main/cpp/experiments/csharp/NativeAchievementGameplay.cpp
       - app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp
@@ -71,6 +73,13 @@ jobs:
             tests/achievement_loader/native_manifest_test.cpp \
             -o /tmp/bunny-achievement-manifest
           /tmp/bunny-achievement-manifest
+      - name: Validate native achievement live state synchronization
+        run: |
+          g++ -std=c++20 -O2 -Wall -Wextra -Werror -pthread \
+            -Iapp/src/main/cpp \
+            tests/achievement_loader/native_state_test.cpp \
+            -o /tmp/bunny-achievement-state
+          /tmp/bunny-achievement-state
       - name: Test owner-safe native event mailbox
         run: |
           g++ -std=c++20 -O2 -Wall -Wextra -Werror -pthread \

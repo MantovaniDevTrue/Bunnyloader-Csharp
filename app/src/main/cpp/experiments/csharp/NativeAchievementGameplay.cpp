@@ -1,6 +1,7 @@
 #include "experiments/csharp/NativeAchievementGameplay.h"
 #include "experiments/csharp/NativeAchievementMailbox.h"
 #include "experiments/csharp/NativeAchievementManifest.h"
+#include "experiments/csharp/NativeAchievementState.h"
 #include "experiments/csharp/ManagedRuntime.h"
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
@@ -13,6 +14,7 @@
 #include <cstdint>
 #include <cstring>
 #include <map>
+#include <set>
 #include <string>
 
 namespace bl::csharp {
@@ -26,6 +28,8 @@ using TileFn = void (*)(Il2CppObject*, uint16_t, const MethodInfo*);
 
 Mailbox g_mailbox;
 std::map<std::string, std::pair<std::string, std::vector<Descriptor>>> g_registeredMetadata;
+std::map<std::string, std::vector<AchievementState>> g_liveStates;
+std::set<std::string> g_pendingState;
 NpcFn g_npcOriginal = nullptr;
 PickupFn g_pickupOriginal = nullptr;
 CraftFn g_craftOriginal = nullptr;
@@ -185,14 +189,19 @@ void ensureHooks() {
 bool bindNativeAchievementAssembly(const std::string& mod, const std::string& assembly) {
     if (!g_mailbox.bind(mod, assembly)) return false;
     auto it = g_registeredMetadata.find(mod);
-    if (it != g_registeredMetadata.end() && it->second.first != assembly)
+    if (it != g_registeredMetadata.end() && it->second.first != assembly) {
         g_registeredMetadata.erase(it);
+        g_liveStates.erase(mod);
+        g_pendingState.erase(mod);
+    }
     return true;
 }
 
 void retireNativeAchievementMod(const std::string& mod) {
     g_mailbox.retire(mod);
     g_registeredMetadata.erase(mod);
+    g_liveStates.erase(mod);
+    g_pendingState.erase(mod);
 }
 
 void clearNativeAchievementWorld() {
@@ -234,10 +243,29 @@ void pumpNativeAchievementGameplayOnGameThread() {
                 !g_mailbox.activate(candidate, count)) continue;
             g_registeredMetadata[candidate.mod] =
                 std::make_pair(candidate.assembly, std::move(decoded));
+            g_pendingState.insert(candidate.mod);
         }
         ensureHooks();
     }
 
+    if (g_ticks % 12u == 0u && !g_pendingState.empty()) {
+        const std::string mod = *g_pendingState.begin();
+        g_pendingState.erase(g_pendingState.begin());
+        const auto active = g_registeredMetadata.find(mod);
+        if (active != g_registeredMetadata.end()) {
+            std::string wire;
+            if (invokeManagedRecipe(mod, active->second.first,
+                                    "__achievements__", 0, 6, "", &wire, 2500)) {
+                std::vector<AchievementState> current;
+                if (parseState(mod, wire, active->second.second, &current))
+                    g_liveStates[mod] = std::move(current);
+                else if (wire.starts_with("PENDING|"))
+                    g_pendingState.insert(mod);
+            } else {
+                g_pendingState.insert(mod);
+            }
+        }
+    }
     if (!g_achievementWorldReady.load(std::memory_order_acquire)) return;
     for (Delivery& event : g_mailbox.drain(2)) {
         std::string result;
@@ -247,8 +275,11 @@ void pumpNativeAchievementGameplayOnGameThread() {
             (event.event.local ? "1" : "0");
         if (!invokeManagedRecipe(event.mod, event.assembly, "__achievements__",
                                  0, 1, snapshot, &result, 1500) ||
-            result.starts_with("PENDING|"))
+            result.starts_with("PENDING|")) {
             g_mailbox.retry(std::move(event));
+        } else if (result.starts_with("EVENT|")) {
+            g_pendingState.insert(event.mod);
+        }
     }
 }
 
