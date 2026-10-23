@@ -35,23 +35,23 @@ struct NativeTooltipPanelAlpha {
         while(auto* candidate=a.class_get_methods(cls,&iterator)) {
             const char* member=a.method_get_name(candidate);
             if(!member||std::strcmp(member,"Multiply")||
-               a.method_get_param_count(candidate)!=2)continue;
+               a.method_get_param_count(candidate)!=2||
+               a.method_is_instance(candidate))continue;
+            auto* left=a.class_from_il2cpp_type(a.method_get_param(candidate,0));
+            auto* scale=a.class_from_il2cpp_type(a.method_get_param(candidate,1));
+            auto* returned=a.class_from_il2cpp_type(a.method_get_return_type(candidate));
+            if(left!=cls||returned!=cls||!scale)continue;
+            const char* sn=a.class_get_name(scale);
+            const char* ns=a.class_get_namespace(scale);
+            if(!sn||!ns||std::strcmp(sn,"Single")||std::strcmp(ns,"System"))
+                continue;
             if(resolved) {
                 *error="Reason=TooltipAlphaMultiplyOverloadAmbiguous";return false;
             }
             resolved=candidate;
         }
-        if(!resolved||a.method_is_instance(resolved)) {
+        if(!resolved) {
             *error="Reason=TooltipAlphaMultiplyUnavailable";return false;
-        }
-        auto* left=a.class_from_il2cpp_type(a.method_get_param(resolved,0));
-        auto* scale=a.class_from_il2cpp_type(a.method_get_param(resolved,1));
-        auto* returned=a.class_from_il2cpp_type(a.method_get_return_type(resolved));
-        if(left!=cls||returned!=cls||!scale||
-           !a.class_get_name||!a.class_get_namespace(scale)||
-           std::strcmp(a.class_get_namespace(scale),"System")||
-           std::strcmp(a.class_get_name(scale),"Single")) {
-            *error="Reason=TooltipAlphaMultiplySignatureMismatch";return false;
         }
         NativeColorLayout order;
         if(!order.bind(cls,error))return false;

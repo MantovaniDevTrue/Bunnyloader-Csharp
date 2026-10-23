@@ -208,6 +208,11 @@ int main() {
     multiply.types[1].cls=&integer;
     assert(!invalid.bind(&color,&error));
     multiply.types[1].cls=&number;
+    auto irrelevant=multiply;
+    irrelevant.types[1].cls=&color;
+    color.methods.push_back(&irrelevant);
+    assert(invalid.bind(&color,&error));
+    color.methods.pop_back();
     auto duplicate=multiply;
     color.methods.push_back(&duplicate);
     assert(!invalid.bind(&color,&error));
