@@ -1,0 +1,23 @@
+name: AchievementLoader CSharp host
+on:
+  push:
+    paths:
+      - experiments/csharp/BunnyCsSdk/BunnyAchievement.cs
+      - experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj
+      - tests/achievement_loader/**
+      - .github/workflows/check-csharp-achievement-loader.yml
+  pull_request:
+    paths:
+      - experiments/csharp/BunnyCsSdk/BunnyAchievement.cs
+      - experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj
+      - tests/achievement_loader/**
+      - .github/workflows/check-csharp-achievement-loader.yml
+jobs:
+  achievement-host:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - run: dotnet run --project tests/achievement_loader/AchievementLoader.csproj -c Release
