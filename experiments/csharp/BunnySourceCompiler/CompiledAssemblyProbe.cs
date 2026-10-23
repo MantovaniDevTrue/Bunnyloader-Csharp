@@ -586,6 +586,13 @@ public static class CompiledAssemblyProbe
             int tileCollisionMode = Convert.ToInt32(projectile.GetType().GetProperty("TileCollisionMode")!.GetValue(projectile), CultureInfo.InvariantCulture);
             if (tileCollisionMode < 0 || tileCollisionMode > 3 || (tileCollisionMode != 0 && !tileCollide))
                 throw new InvalidOperationException("Invalid projectile TileCollisionMode: " + name);
+            float restitution = Value<float>(projectile, "BounceRestitution");
+            float minimumSpeed = Value<float>(projectile, "BounceMinimumSpeed");
+            bool customBounce = restitution != 1f || minimumSpeed != 0f;
+            if (!float.IsFinite(restitution) || restitution < 0f || restitution > 2f ||
+                !float.IsFinite(minimumSpeed) || minimumSpeed < 0f || minimumSpeed > 64f ||
+                (customBounce && tileCollisionMode != 2))
+                throw new InvalidOperationException("Invalid projectile BounceRestitution/BounceMinimumSpeed: " + name);
             bool ignoreWater = Value<bool>(projectile, "IgnoreWater");
             if (!float.IsFinite(minionSlots) || (minion && (minionSlots <= 0 || minionSlots > 10)) ||
                 (!minion && minionSlots != 0))
@@ -609,6 +616,8 @@ public static class CompiledAssemblyProbe
                 if(motion!=null)entry+="\t"+string.Join(",",new[]{"FollowSpeed","AttackSpeed","CatchUpSpeed","FollowInertia","AttackInertia","FollowOffsetX","FollowOffsetY","CatchUpDistance","IdleDistance","IdleDamping","CatchUpInertia","TeleportDistance","FormationSpacing","AttackStopDistance","OwnerLeashDistance","RotationFactor","Separation"}.Select(property=>Value<float>(motion,property).ToString("R",CultureInfo.InvariantCulture)));
                 else if(tileCollisionMode != 0)entry+="\t-";
                 if(tileCollisionMode != 0)entry+="\t"+tileCollisionMode.ToString(CultureInfo.InvariantCulture);
+                if(customBounce)entry+="\t"+restitution.ToString("R",CultureInfo.InvariantCulture)+
+                    "\t"+minimumSpeed.ToString("R",CultureInfo.InvariantCulture);
             }
             lines.Add(entry);
         }

@@ -67,6 +67,8 @@ public abstract class BunnyProjectile
     public float MinionSlots { get; set; }
     public bool TileCollide { get; set; } = true;
     public BunnyProjectileTileCollisionMode TileCollisionMode { get; set; } = BunnyProjectileTileCollisionMode.Vanilla;
+    public float BounceRestitution { get; set; } = 1f;
+    public float BounceMinimumSpeed { get; set; } = 0f;
     public bool IgnoreWater { get; set; } = true;
     public int Penetrate { get; set; } = 1;
     public int TimeLeft { get; set; } = 360;

@@ -21,19 +21,34 @@ inline bool managedTileCollisionDetected(
 }
 
 inline bool shouldDeferManagedTileCollisionKill(
-    int mode, TileCollisionVector before, TileCollisionVector after, bool tileCollide) {
-    return managedTileCollisionModeSupported(mode) &&
-        managedTileCollisionDetected(before, after, tileCollide);
+    int mode, TileCollisionVector before, TileCollisionVector after,
+    bool tileCollide, float minimumSpeed = 0.f) {
+    if (!managedTileCollisionModeSupported(mode) ||
+        !managedTileCollisionDetected(before, after, tileCollide))
+        return false;
+    if (mode != 2 || minimumSpeed <= 0.f) return true;
+    if (!std::isfinite(minimumSpeed) || minimumSpeed > 64.f) return false;
+    const float magnitudeSquared = before.x * before.x + before.y * before.y;
+    return std::isfinite(magnitudeSquared) &&
+        magnitudeSquared >= minimumSpeed * minimumSpeed;
 }
 
 inline TileCollisionVector resolveManagedTileCollision(
-    int mode, TileCollisionVector before, TileCollisionVector after, bool tileCollide) {
-    if (!shouldDeferManagedTileCollisionKill(mode, before, after, tileCollide))
+    int mode, TileCollisionVector before, TileCollisionVector after,
+    bool tileCollide, float restitution = 1.f, float minimumSpeed = 0.f) {
+    if (!shouldDeferManagedTileCollisionKill(mode, before, after, tileCollide, minimumSpeed))
         return after;
     if (mode == 2) {
-        if (before.x != after.x) after.x = -before.x;
-        if (before.y != after.y) after.y = -before.y;
-    } else if (mode == 3) {
+        if (!std::isfinite(restitution) || restitution < 0.f || restitution > 2.f)
+            return after;
+        const TileCollisionVector next{
+            before.x != after.x ? -before.x * restitution : after.x,
+            before.y != after.y ? -before.y * restitution : after.y
+        };
+        if (!std::isfinite(next.x) || !std::isfinite(next.y)) return after;
+        return next;
+    }
+    if (mode == 3) {
         if (before.x != after.x) after.x = 0.f;
         if (before.y != after.y) after.y = 0.f;
     }

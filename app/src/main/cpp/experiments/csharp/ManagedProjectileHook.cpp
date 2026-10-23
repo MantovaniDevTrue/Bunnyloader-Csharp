@@ -178,6 +178,8 @@ struct TileMovementScope {
     Vector2 position{};
     Vector2 velocity{};
     int mode = 0;
+    float restitution = 1.f;
+    float minimumSpeed = 0.f;
     bool deferredKill = false;
 };
 thread_local TileMovementScope* g_tileMovementScope = nullptr;
@@ -192,7 +194,8 @@ void hkManagedTileKill(Il2CppObject* projectile, const MethodInfo* method) {
             {scope->velocity.x, scope->velocity.y},
             {runtime::field<Vector2>(projectile,runtime::game().entity.velocity).x,
              runtime::field<Vector2>(projectile,runtime::game().entity.velocity).y},
-            runtime::field<uint8_t>(projectile,g_tileCollideOffset) != 0)) {
+            runtime::field<uint8_t>(projectile,g_tileCollideOffset) != 0,
+            scope->minimumSpeed)) {
         scope->deferredKill = true;
         return;
     }
@@ -212,7 +215,8 @@ void hkManagedTileMovement(Il2CppObject* projectile, Vector2 wet, const MethodIn
        !runtime::field<uint8_t>(projectile,game.proj.active)) {
         original(projectile,wet,method);return;
     }
-    const int mode=nativeManagedProjectileTileCollisionMode(type);
+    const auto collision=nativeManagedProjectileTileCollisionSettings(type);
+    const int mode=collision.mode;
     if(!managedTileCollisionModeSupported(mode) ||
        !runtime::field<uint8_t>(projectile,g_tileCollideOffset)) {
         original(projectile,wet,method);return;
@@ -225,6 +229,8 @@ void hkManagedTileMovement(Il2CppObject* projectile, Vector2 wet, const MethodIn
     scope.position=runtime::field<Vector2>(projectile,game.entity.position);
     scope.velocity=runtime::field<Vector2>(projectile,game.entity.velocity);
     scope.mode=mode;
+    scope.restitution=collision.restitution;
+    scope.minimumSpeed=collision.minimumSpeed;
     scope.previous=g_tileMovementScope;
     g_tileMovementScope=&scope;
     original(projectile,wet,method);
@@ -234,7 +240,8 @@ void hkManagedTileMovement(Il2CppObject* projectile, Vector2 wet, const MethodIn
         if(managedTileCollisionDetected({scope.velocity.x,scope.velocity.y},
                                         {current.x,current.y},true)) {
             const auto adjusted=resolveManagedTileCollision(mode,
-                {scope.velocity.x,scope.velocity.y},{current.x,current.y},true);
+                {scope.velocity.x,scope.velocity.y},{current.x,current.y},true,
+                scope.restitution,scope.minimumSpeed);
             runtime::field<Vector2>(projectile,game.entity.velocity)={adjusted.x,adjusted.y};
             enqueueManagedProjectileTileCollision(projectile,type,scope.velocity,
                                                    {adjusted.x,adjusted.y});

@@ -192,6 +192,8 @@ struct NativeProjectileDefaults {
     bool tileCollide = true;
     bool ignoreWater = true;
     int tileCollisionMode = 0;
+    float bounceRestitution = 1.f;
+    float bounceMinimumSpeed = 0.f;
     int frames = 1;
     int animationFrameTicks=6,minionScanTicks=8;
     float minionTargetRange=700.f;
@@ -1315,10 +1317,12 @@ bool nativeManagedProjectileFields(int type,ProjectileGameplayFields* fields) {
     *fields=found->second.fields;return true;
 }
 int nativeManagedProjectileFrames(int type) {return nativeManagedProjectilePolicy(type).frames;}
-int nativeManagedProjectileTileCollisionMode(int type) {
+ManagedTileCollisionSettings nativeManagedProjectileTileCollisionSettings(int type) {
     const auto view=std::atomic_load_explicit(&g_projectileView,std::memory_order_acquire);
     const auto found=view->find(type);
-    return found==view->end()?0:found->second.defaults.tileCollisionMode;
+    if(found==view->end())return {};
+    const auto& defaults=found->second.defaults;
+    return {defaults.tileCollisionMode,defaults.bounceRestitution,defaults.bounceMinimumSpeed};
 }
 
 int nativeManagedMinionBuff(int projectileType) {
@@ -1729,12 +1733,19 @@ bool applyManagedNativeDefaultsBatch(
             (data.minionContactDamage && (!data.minion || !g_originalProjectileDamage)) ||
             data.tileCollisionMode < 0 || data.tileCollisionMode > 3 ||
             (data.tileCollisionMode != 0 && !data.tileCollide) ||
+            !std::isfinite(data.bounceRestitution) ||
+            data.bounceRestitution < 0.f || data.bounceRestitution > 2.f ||
+            !std::isfinite(data.bounceMinimumSpeed) ||
+            data.bounceMinimumSpeed < 0.f || data.bounceMinimumSpeed > 64.f ||
+            (data.tileCollisionMode != 2 &&
+             (data.bounceRestitution != 1.f || data.bounceMinimumSpeed != 0.f)) ||
             data.frames < 1 || data.frames > 32 ||
             !stagedProjectiles.emplace(entry.type, NativeProjectileDefaults{
                 data.width, data.height, data.aiStyle, data.penetrate,
                 data.timeLeft, true, false,
                 data.minion, data.minionContactDamage, data.minionSlots,
                 data.tileCollide, data.ignoreWater, data.tileCollisionMode,
+                data.bounceRestitution, data.bounceMinimumSpeed,
                 data.frames,data.animationFrameTicks,data.minionScanTicks,data.minionTargetRange}).second ||
             data.width < 1 || data.width > 512 ||
             data.height < 1 || data.height > 512 ||
