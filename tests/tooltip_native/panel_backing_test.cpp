@@ -64,6 +64,7 @@ static bl::il2cpp::Api fixture;
 struct BoxedColor {Il2CppObject obj;uint8_t bytes[4];};
 static BoxedColor colorResult{{&color,nullptr},{0,0,0,0}};
 static int multiplications=0;
+static bool multiplyFailure=false;
 static bool throwManaged=false;
 static int calls=0;
 static Il2CppObject* textureReceived=nullptr;
@@ -141,7 +142,7 @@ int main() {
             assert(alpha>=0.f&&alpha<=1.f);
             for(int i=0;i<4;++i)
                 colorResult.bytes[i]=static_cast<uint8_t>(static_cast<float>(input[i])*alpha);
-            *error=nullptr;
+            *error=multiplyFailure?&colorResult.obj:nullptr;
             ++multiplications;
             return &colorResult.obj;
         }
@@ -296,6 +297,12 @@ int main() {
     auto incomplete=inspected;
     incomplete.resources.borderTexture=nullptr;
     assert(!renderer.draw(bounds,incomplete,0.5f)&&calls==before+2);
+    multiplyFailure=true;
+    assert(!renderer.draw(bounds,inspected,0.5f)&&calls==before+2);
+    multiplyFailure=false;
+    throwManaged=true;
+    assert(!renderer.draw(bounds,inspected,0.5f)&&calls==before+3);
+    throwManaged=false;
     NativeTooltipPanelRenderer mismatch;
     assert(!mismatch.bind(&panel,&unrelated,&error)&&!error.empty());
     std::cout<<"NATIVE_TOOLTIP_PANEL_BACKING=PASS invoke="<<calls
