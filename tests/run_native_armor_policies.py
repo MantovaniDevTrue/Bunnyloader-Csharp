@@ -10,7 +10,7 @@ with tempfile.TemporaryDirectory(prefix="bunny-native-armor-") as temporary:
                     str(root/"app/src/main/cpp/content/common/TypeTables.cpp"),
                     str(root/"tests/basic_items/native_policy_support.cpp"),
         "-Wl,--gc-sections","-o",str(executable)],check=True)
-    for mode in [[],["--struct"],["--boxed"],["--type"],["--bounds"],["--static"],["--set-retry"],["--add-retry"],["--result-retry"],["--add-side-effect"],["--lookup"],["--abi"],["--narrow-ids"]]:
+    for mode in [[],["--struct"],["--boxed"],["--type"],["--bounds"],["--static"],["--set-retry"],["--add-retry"],["--result-retry"],["--add-side-effect"],["--lookup"],["--abi"],["--narrow-ids"],["--lifecycle"],["--lifecycle-boxed"]]:
         subprocess.run([str(executable),str(Path(sys.argv[1]).resolve())]+mode,check=True,timeout=30)
 
     if len(sys.argv)>2:

@@ -45,7 +45,23 @@ pelo parser nativo.
 `bash tests/armor_port_run.sh` compila os fontes reais, compara valores e
 tooltips com o JSON original, executa o parser e os loaders C++ de produção
 com o protocolo emitido pelo Roslyn. Cobre peças/conjunto, recarga, falhas de
-ABI, iluminação, cor e tabelas. As 22 variantes de armadura incluem o protocolo
+ABI, iluminação, cor e tabelas. As 24 variantes de armadura incluem o protocolo
 real localizado, espera pela chave e sete falhas de acesso a Language.Exists.
 São testes de host; aparência, idioma do bônus no aparelho, gameplay, rede e
 execução Android permanecem pendentes. Nenhum APK é gerado.
+
+Na versão fonte 0.1.70, desativar ou recarregar o mod retira imediatamente
+seus efeitos das consultas de equipamento. A limpeza de All, SetsContaining
+e dos handles de GC acontece na thread do jogo. Ela remove apenas registros
+do conjunto retirado, conserva outros conjuntos e pode continuar após uma
+falha parcial. Até terminar, o delegate emprestado do conjunto Pumpkin fica
+suprimido para os IDs retirados: não pode conceder um bônus vanilla por engano.
+
+Um snapshot completo sem itens também retira as políticas anteriores. IDs
+nativos podem permanecer reservados; o loader exige que as peças ainda façam
+parte do snapshot ativo. Isso também desativa um conjunto de outro mod que
+dependa de uma peça retirada, sem afetar os conjuntos independentes. Os testes
+exercitam ambos os protocolos A1/A2, metadados crus/boxed, falhas de limpeza,
+100 recargas antes do próximo frame e recuperação de Add que alterou All
+antes de lançar uma exceção. O registro é reencontrado por IDs e delegate,
+sem depender de um índice antigo na lista.

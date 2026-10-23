@@ -29,7 +29,7 @@
   },
   "counts": {
     "não iniciado": 687,
-    "validado automaticamente": 35,
+    "validado automaticamente": 36,
     "falhou": 3,
     "validado no Android": 1
   },
@@ -2068,11 +2068,11 @@
         "experiments/csharp/BunnyCsSdk/BunnyItemBehavior.cs": "4818cf866be995ec8902dd68aa00c49cd29e189fec03518fd9194d7c1c63d5de",
         "experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs": "c7fc67df1f7cda08465b88ca470aa12e46dfd702a33e3f4f0b4e58f6b6c5b020",
         "app/src/main/cpp/experiments/csharp/SourceParser.cpp": "6d35361d546a4887a5a8cac468abb0ace0d32990be145d3067b5a5b879ddb98c",
-        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp": "299273cc12a2b0bbadba645dfef8cbff23ea3c4392e2e9e1469604c09ca0434f",
+        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp": "6c2ecf1d4472c73453ae517904a1466bda1391d8e06fdd7eedafa7bd14d84329",
         "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp": "28266529611ef30f7de31852c7946f4f0169c4206a2db7e4f997745ef38a48fa",
         "app/src/main/cpp/experiments/csharp/NativeItemPolicies.cpp": "3f84104a106b11e24d2ed8b87b5e4608be2efd6d7f0aa469a7e6b908bab18cdd",
         "experiments/csharp/BunnyCsSdk/BunnyArmorEffects.cs": "01a3926c3815de24a34acacae327a38bb4f0cc7453a4bfdb4b07ffed6fff6283",
-        "app/src/main/cpp/experiments/csharp/NativeArmorPolicies.cpp": "5ab91ea6b21e5fb3473c930764edba9558223883e9fc386ed28a4f173e5b5a4a",
+        "app/src/main/cpp/experiments/csharp/NativeArmorPolicies.cpp": "75ec53b37bcfd9c56e2ac81b5e207612e5a879c55d76dc8e6d2ef07f55fe5344",
         "samples/ExampleModCSharp/Playable/content/Localization/en-US.json": "8831336bbc755396ea1c5e111028239116f699c301ca7807dab90450b07182e9",
         "samples/ExampleModCSharp/Playable/content/Localization/pt-BR.json": "d1e9a83f4fcda2724fce7523019510aa4ba1823b23e95606559038d709e7817b",
         "tests/armor_port_run.sh": "2f748a110c6c2acf343574d1118460417bf9884175ab39fe44356b0ac9170bad",
@@ -2080,8 +2080,8 @@
         "tests/basic_items/basic_source_parser_test.cpp": "e052d00d1d6f5202208411ab63750edd5e6136232ee95dbbd0d702ee9a8e22b4",
         "tests/basic_items/native_item_policies_test.cpp": "932cf1a20ebb0734a0045830cf88a8d01765d697201a7faa39c3efb8e8ee8e18",
         "tests/run_native_item_policies.py": "0e538c50af9cda61d6ba28cb6e47b2e18d91af790a349e990303df29b42fdc8b",
-        "tests/basic_items/native_armor_policy_test.cpp": "62348b0c5425635cbc4f2516e6fdd43826eb7e0e02c95f57627978103b3c9e2b",
-        "tests/run_native_armor_policies.py": "349fdec18016b2caf17d6b06510c0150fb25a567f620d4cb4b02e201c5d73b5b"
+        "tests/basic_items/native_armor_policy_test.cpp": "084570120b986e10d30e49f38891b2d714507cea5c97d67cba9d4ba1d90e21a5",
+        "tests/run_native_armor_policies.py": "9e2ed804920a14b267723ace6c609da11c223b807cebf0ff723da52587b41d93"
       }
     },
     {
@@ -2126,11 +2126,11 @@
         "experiments/csharp/BunnyCsSdk/BunnyItemBehavior.cs": "4818cf866be995ec8902dd68aa00c49cd29e189fec03518fd9194d7c1c63d5de",
         "experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs": "c7fc67df1f7cda08465b88ca470aa12e46dfd702a33e3f4f0b4e58f6b6c5b020",
         "app/src/main/cpp/experiments/csharp/SourceParser.cpp": "6d35361d546a4887a5a8cac468abb0ace0d32990be145d3067b5a5b879ddb98c",
-        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp": "299273cc12a2b0bbadba645dfef8cbff23ea3c4392e2e9e1469604c09ca0434f",
+        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp": "6c2ecf1d4472c73453ae517904a1466bda1391d8e06fdd7eedafa7bd14d84329",
         "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp": "28266529611ef30f7de31852c7946f4f0169c4206a2db7e4f997745ef38a48fa",
         "app/src/main/cpp/experiments/csharp/NativeItemPolicies.cpp": "3f84104a106b11e24d2ed8b87b5e4608be2efd6d7f0aa469a7e6b908bab18cdd",
         "experiments/csharp/BunnyCsSdk/BunnyArmorEffects.cs": "01a3926c3815de24a34acacae327a38bb4f0cc7453a4bfdb4b07ffed6fff6283",
-        "app/src/main/cpp/experiments/csharp/NativeArmorPolicies.cpp": "5ab91ea6b21e5fb3473c930764edba9558223883e9fc386ed28a4f173e5b5a4a",
+        "app/src/main/cpp/experiments/csharp/NativeArmorPolicies.cpp": "75ec53b37bcfd9c56e2ac81b5e207612e5a879c55d76dc8e6d2ef07f55fe5344",
         "samples/ExampleModCSharp/Playable/content/Localization/en-US.json": "8831336bbc755396ea1c5e111028239116f699c301ca7807dab90450b07182e9",
         "samples/ExampleModCSharp/Playable/content/Localization/pt-BR.json": "d1e9a83f4fcda2724fce7523019510aa4ba1823b23e95606559038d709e7817b",
         "tests/armor_port_run.sh": "2f748a110c6c2acf343574d1118460417bf9884175ab39fe44356b0ac9170bad",
@@ -2138,8 +2138,8 @@
         "tests/basic_items/basic_source_parser_test.cpp": "e052d00d1d6f5202208411ab63750edd5e6136232ee95dbbd0d702ee9a8e22b4",
         "tests/basic_items/native_item_policies_test.cpp": "932cf1a20ebb0734a0045830cf88a8d01765d697201a7faa39c3efb8e8ee8e18",
         "tests/run_native_item_policies.py": "0e538c50af9cda61d6ba28cb6e47b2e18d91af790a349e990303df29b42fdc8b",
-        "tests/basic_items/native_armor_policy_test.cpp": "62348b0c5425635cbc4f2516e6fdd43826eb7e0e02c95f57627978103b3c9e2b",
-        "tests/run_native_armor_policies.py": "349fdec18016b2caf17d6b06510c0150fb25a567f620d4cb4b02e201c5d73b5b"
+        "tests/basic_items/native_armor_policy_test.cpp": "084570120b986e10d30e49f38891b2d714507cea5c97d67cba9d4ba1d90e21a5",
+        "tests/run_native_armor_policies.py": "9e2ed804920a14b267723ace6c609da11c223b807cebf0ff723da52587b41d93"
       }
     },
     {
@@ -2184,11 +2184,11 @@
         "experiments/csharp/BunnyCsSdk/BunnyItemBehavior.cs": "4818cf866be995ec8902dd68aa00c49cd29e189fec03518fd9194d7c1c63d5de",
         "experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs": "c7fc67df1f7cda08465b88ca470aa12e46dfd702a33e3f4f0b4e58f6b6c5b020",
         "app/src/main/cpp/experiments/csharp/SourceParser.cpp": "6d35361d546a4887a5a8cac468abb0ace0d32990be145d3067b5a5b879ddb98c",
-        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp": "299273cc12a2b0bbadba645dfef8cbff23ea3c4392e2e9e1469604c09ca0434f",
+        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp": "6c2ecf1d4472c73453ae517904a1466bda1391d8e06fdd7eedafa7bd14d84329",
         "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp": "28266529611ef30f7de31852c7946f4f0169c4206a2db7e4f997745ef38a48fa",
         "app/src/main/cpp/experiments/csharp/NativeItemPolicies.cpp": "3f84104a106b11e24d2ed8b87b5e4608be2efd6d7f0aa469a7e6b908bab18cdd",
         "experiments/csharp/BunnyCsSdk/BunnyArmorEffects.cs": "01a3926c3815de24a34acacae327a38bb4f0cc7453a4bfdb4b07ffed6fff6283",
-        "app/src/main/cpp/experiments/csharp/NativeArmorPolicies.cpp": "5ab91ea6b21e5fb3473c930764edba9558223883e9fc386ed28a4f173e5b5a4a",
+        "app/src/main/cpp/experiments/csharp/NativeArmorPolicies.cpp": "75ec53b37bcfd9c56e2ac81b5e207612e5a879c55d76dc8e6d2ef07f55fe5344",
         "samples/ExampleModCSharp/Playable/content/Localization/en-US.json": "8831336bbc755396ea1c5e111028239116f699c301ca7807dab90450b07182e9",
         "samples/ExampleModCSharp/Playable/content/Localization/pt-BR.json": "d1e9a83f4fcda2724fce7523019510aa4ba1823b23e95606559038d709e7817b",
         "tests/armor_port_run.sh": "2f748a110c6c2acf343574d1118460417bf9884175ab39fe44356b0ac9170bad",
@@ -2196,8 +2196,8 @@
         "tests/basic_items/basic_source_parser_test.cpp": "e052d00d1d6f5202208411ab63750edd5e6136232ee95dbbd0d702ee9a8e22b4",
         "tests/basic_items/native_item_policies_test.cpp": "932cf1a20ebb0734a0045830cf88a8d01765d697201a7faa39c3efb8e8ee8e18",
         "tests/run_native_item_policies.py": "0e538c50af9cda61d6ba28cb6e47b2e18d91af790a349e990303df29b42fdc8b",
-        "tests/basic_items/native_armor_policy_test.cpp": "62348b0c5425635cbc4f2516e6fdd43826eb7e0e02c95f57627978103b3c9e2b",
-        "tests/run_native_armor_policies.py": "349fdec18016b2caf17d6b06510c0150fb25a567f620d4cb4b02e201c5d73b5b"
+        "tests/basic_items/native_armor_policy_test.cpp": "084570120b986e10d30e49f38891b2d714507cea5c97d67cba9d4ba1d90e21a5",
+        "tests/run_native_armor_policies.py": "9e2ed804920a14b267723ace6c609da11c223b807cebf0ff723da52587b41d93"
       }
     },
     {
@@ -2242,11 +2242,11 @@
         "experiments/csharp/BunnyCsSdk/BunnyItemBehavior.cs": "4818cf866be995ec8902dd68aa00c49cd29e189fec03518fd9194d7c1c63d5de",
         "experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs": "c7fc67df1f7cda08465b88ca470aa12e46dfd702a33e3f4f0b4e58f6b6c5b020",
         "app/src/main/cpp/experiments/csharp/SourceParser.cpp": "6d35361d546a4887a5a8cac468abb0ace0d32990be145d3067b5a5b879ddb98c",
-        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp": "299273cc12a2b0bbadba645dfef8cbff23ea3c4392e2e9e1469604c09ca0434f",
+        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp": "6c2ecf1d4472c73453ae517904a1466bda1391d8e06fdd7eedafa7bd14d84329",
         "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp": "28266529611ef30f7de31852c7946f4f0169c4206a2db7e4f997745ef38a48fa",
         "app/src/main/cpp/experiments/csharp/NativeItemPolicies.cpp": "3f84104a106b11e24d2ed8b87b5e4608be2efd6d7f0aa469a7e6b908bab18cdd",
         "experiments/csharp/BunnyCsSdk/BunnyArmorEffects.cs": "01a3926c3815de24a34acacae327a38bb4f0cc7453a4bfdb4b07ffed6fff6283",
-        "app/src/main/cpp/experiments/csharp/NativeArmorPolicies.cpp": "5ab91ea6b21e5fb3473c930764edba9558223883e9fc386ed28a4f173e5b5a4a",
+        "app/src/main/cpp/experiments/csharp/NativeArmorPolicies.cpp": "75ec53b37bcfd9c56e2ac81b5e207612e5a879c55d76dc8e6d2ef07f55fe5344",
         "samples/ExampleModCSharp/Playable/content/Localization/en-US.json": "8831336bbc755396ea1c5e111028239116f699c301ca7807dab90450b07182e9",
         "samples/ExampleModCSharp/Playable/content/Localization/pt-BR.json": "d1e9a83f4fcda2724fce7523019510aa4ba1823b23e95606559038d709e7817b",
         "tests/armor_port_run.sh": "2f748a110c6c2acf343574d1118460417bf9884175ab39fe44356b0ac9170bad",
@@ -2254,8 +2254,8 @@
         "tests/basic_items/basic_source_parser_test.cpp": "e052d00d1d6f5202208411ab63750edd5e6136232ee95dbbd0d702ee9a8e22b4",
         "tests/basic_items/native_item_policies_test.cpp": "932cf1a20ebb0734a0045830cf88a8d01765d697201a7faa39c3efb8e8ee8e18",
         "tests/run_native_item_policies.py": "0e538c50af9cda61d6ba28cb6e47b2e18d91af790a349e990303df29b42fdc8b",
-        "tests/basic_items/native_armor_policy_test.cpp": "62348b0c5425635cbc4f2516e6fdd43826eb7e0e02c95f57627978103b3c9e2b",
-        "tests/run_native_armor_policies.py": "349fdec18016b2caf17d6b06510c0150fb25a567f620d4cb4b02e201c5d73b5b"
+        "tests/basic_items/native_armor_policy_test.cpp": "084570120b986e10d30e49f38891b2d714507cea5c97d67cba9d4ba1d90e21a5",
+        "tests/run_native_armor_policies.py": "9e2ed804920a14b267723ace6c609da11c223b807cebf0ff723da52587b41d93"
       }
     },
     {
@@ -2394,11 +2394,11 @@
         "experiments/csharp/BunnyCsSdk/BunnyItemBehavior.cs": "4818cf866be995ec8902dd68aa00c49cd29e189fec03518fd9194d7c1c63d5de",
         "experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs": "c7fc67df1f7cda08465b88ca470aa12e46dfd702a33e3f4f0b4e58f6b6c5b020",
         "app/src/main/cpp/experiments/csharp/SourceParser.cpp": "6d35361d546a4887a5a8cac468abb0ace0d32990be145d3067b5a5b879ddb98c",
-        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp": "299273cc12a2b0bbadba645dfef8cbff23ea3c4392e2e9e1469604c09ca0434f",
+        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp": "6c2ecf1d4472c73453ae517904a1466bda1391d8e06fdd7eedafa7bd14d84329",
         "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp": "28266529611ef30f7de31852c7946f4f0169c4206a2db7e4f997745ef38a48fa",
         "app/src/main/cpp/experiments/csharp/NativeItemPolicies.cpp": "3f84104a106b11e24d2ed8b87b5e4608be2efd6d7f0aa469a7e6b908bab18cdd",
         "experiments/csharp/BunnyCsSdk/BunnyArmorEffects.cs": "01a3926c3815de24a34acacae327a38bb4f0cc7453a4bfdb4b07ffed6fff6283",
-        "app/src/main/cpp/experiments/csharp/NativeArmorPolicies.cpp": "5ab91ea6b21e5fb3473c930764edba9558223883e9fc386ed28a4f173e5b5a4a",
+        "app/src/main/cpp/experiments/csharp/NativeArmorPolicies.cpp": "75ec53b37bcfd9c56e2ac81b5e207612e5a879c55d76dc8e6d2ef07f55fe5344",
         "samples/ExampleModCSharp/Playable/content/Localization/en-US.json": "8831336bbc755396ea1c5e111028239116f699c301ca7807dab90450b07182e9",
         "samples/ExampleModCSharp/Playable/content/Localization/pt-BR.json": "d1e9a83f4fcda2724fce7523019510aa4ba1823b23e95606559038d709e7817b",
         "app/src/main/cpp/experiments/csharp/BasicArmorPolicy.h": "23b02cd1c763adbc6652d4bcf2954d62c625a0bd96b442ab34432c64ff9255ae",
@@ -2409,8 +2409,8 @@
         "tests/basic_items/basic_source_parser_test.cpp": "e052d00d1d6f5202208411ab63750edd5e6136232ee95dbbd0d702ee9a8e22b4",
         "tests/basic_items/native_item_policies_test.cpp": "932cf1a20ebb0734a0045830cf88a8d01765d697201a7faa39c3efb8e8ee8e18",
         "tests/run_native_item_policies.py": "0e538c50af9cda61d6ba28cb6e47b2e18d91af790a349e990303df29b42fdc8b",
-        "tests/basic_items/native_armor_policy_test.cpp": "62348b0c5425635cbc4f2516e6fdd43826eb7e0e02c95f57627978103b3c9e2b",
-        "tests/run_native_armor_policies.py": "349fdec18016b2caf17d6b06510c0150fb25a567f620d4cb4b02e201c5d73b5b"
+        "tests/basic_items/native_armor_policy_test.cpp": "084570120b986e10d30e49f38891b2d714507cea5c97d67cba9d4ba1d90e21a5",
+        "tests/run_native_armor_policies.py": "9e2ed804920a14b267723ace6c609da11c223b807cebf0ff723da52587b41d93"
       }
     },
     {
@@ -2455,11 +2455,11 @@
         "experiments/csharp/BunnyCsSdk/BunnyItemBehavior.cs": "4818cf866be995ec8902dd68aa00c49cd29e189fec03518fd9194d7c1c63d5de",
         "experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs": "c7fc67df1f7cda08465b88ca470aa12e46dfd702a33e3f4f0b4e58f6b6c5b020",
         "app/src/main/cpp/experiments/csharp/SourceParser.cpp": "6d35361d546a4887a5a8cac468abb0ace0d32990be145d3067b5a5b879ddb98c",
-        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp": "299273cc12a2b0bbadba645dfef8cbff23ea3c4392e2e9e1469604c09ca0434f",
+        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp": "6c2ecf1d4472c73453ae517904a1466bda1391d8e06fdd7eedafa7bd14d84329",
         "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp": "28266529611ef30f7de31852c7946f4f0169c4206a2db7e4f997745ef38a48fa",
         "app/src/main/cpp/experiments/csharp/NativeItemPolicies.cpp": "3f84104a106b11e24d2ed8b87b5e4608be2efd6d7f0aa469a7e6b908bab18cdd",
         "experiments/csharp/BunnyCsSdk/BunnyArmorEffects.cs": "01a3926c3815de24a34acacae327a38bb4f0cc7453a4bfdb4b07ffed6fff6283",
-        "app/src/main/cpp/experiments/csharp/NativeArmorPolicies.cpp": "5ab91ea6b21e5fb3473c930764edba9558223883e9fc386ed28a4f173e5b5a4a",
+        "app/src/main/cpp/experiments/csharp/NativeArmorPolicies.cpp": "75ec53b37bcfd9c56e2ac81b5e207612e5a879c55d76dc8e6d2ef07f55fe5344",
         "samples/ExampleModCSharp/Playable/content/Localization/en-US.json": "8831336bbc755396ea1c5e111028239116f699c301ca7807dab90450b07182e9",
         "samples/ExampleModCSharp/Playable/content/Localization/pt-BR.json": "d1e9a83f4fcda2724fce7523019510aa4ba1823b23e95606559038d709e7817b",
         "tests/armor_port_run.sh": "2f748a110c6c2acf343574d1118460417bf9884175ab39fe44356b0ac9170bad",
@@ -2467,8 +2467,8 @@
         "tests/basic_items/basic_source_parser_test.cpp": "e052d00d1d6f5202208411ab63750edd5e6136232ee95dbbd0d702ee9a8e22b4",
         "tests/basic_items/native_item_policies_test.cpp": "932cf1a20ebb0734a0045830cf88a8d01765d697201a7faa39c3efb8e8ee8e18",
         "tests/run_native_item_policies.py": "0e538c50af9cda61d6ba28cb6e47b2e18d91af790a349e990303df29b42fdc8b",
-        "tests/basic_items/native_armor_policy_test.cpp": "62348b0c5425635cbc4f2516e6fdd43826eb7e0e02c95f57627978103b3c9e2b",
-        "tests/run_native_armor_policies.py": "349fdec18016b2caf17d6b06510c0150fb25a567f620d4cb4b02e201c5d73b5b"
+        "tests/basic_items/native_armor_policy_test.cpp": "084570120b986e10d30e49f38891b2d714507cea5c97d67cba9d4ba1d90e21a5",
+        "tests/run_native_armor_policies.py": "9e2ed804920a14b267723ace6c609da11c223b807cebf0ff723da52587b41d93"
       }
     },
     {
@@ -2513,11 +2513,11 @@
         "experiments/csharp/BunnyCsSdk/BunnyItemBehavior.cs": "4818cf866be995ec8902dd68aa00c49cd29e189fec03518fd9194d7c1c63d5de",
         "experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs": "c7fc67df1f7cda08465b88ca470aa12e46dfd702a33e3f4f0b4e58f6b6c5b020",
         "app/src/main/cpp/experiments/csharp/SourceParser.cpp": "6d35361d546a4887a5a8cac468abb0ace0d32990be145d3067b5a5b879ddb98c",
-        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp": "299273cc12a2b0bbadba645dfef8cbff23ea3c4392e2e9e1469604c09ca0434f",
+        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp": "6c2ecf1d4472c73453ae517904a1466bda1391d8e06fdd7eedafa7bd14d84329",
         "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp": "28266529611ef30f7de31852c7946f4f0169c4206a2db7e4f997745ef38a48fa",
         "app/src/main/cpp/experiments/csharp/NativeItemPolicies.cpp": "3f84104a106b11e24d2ed8b87b5e4608be2efd6d7f0aa469a7e6b908bab18cdd",
         "experiments/csharp/BunnyCsSdk/BunnyArmorEffects.cs": "01a3926c3815de24a34acacae327a38bb4f0cc7453a4bfdb4b07ffed6fff6283",
-        "app/src/main/cpp/experiments/csharp/NativeArmorPolicies.cpp": "5ab91ea6b21e5fb3473c930764edba9558223883e9fc386ed28a4f173e5b5a4a",
+        "app/src/main/cpp/experiments/csharp/NativeArmorPolicies.cpp": "75ec53b37bcfd9c56e2ac81b5e207612e5a879c55d76dc8e6d2ef07f55fe5344",
         "samples/ExampleModCSharp/Playable/content/Localization/en-US.json": "8831336bbc755396ea1c5e111028239116f699c301ca7807dab90450b07182e9",
         "samples/ExampleModCSharp/Playable/content/Localization/pt-BR.json": "d1e9a83f4fcda2724fce7523019510aa4ba1823b23e95606559038d709e7817b",
         "tests/armor_port_run.sh": "2f748a110c6c2acf343574d1118460417bf9884175ab39fe44356b0ac9170bad",
@@ -2525,8 +2525,8 @@
         "tests/basic_items/basic_source_parser_test.cpp": "e052d00d1d6f5202208411ab63750edd5e6136232ee95dbbd0d702ee9a8e22b4",
         "tests/basic_items/native_item_policies_test.cpp": "932cf1a20ebb0734a0045830cf88a8d01765d697201a7faa39c3efb8e8ee8e18",
         "tests/run_native_item_policies.py": "0e538c50af9cda61d6ba28cb6e47b2e18d91af790a349e990303df29b42fdc8b",
-        "tests/basic_items/native_armor_policy_test.cpp": "62348b0c5425635cbc4f2516e6fdd43826eb7e0e02c95f57627978103b3c9e2b",
-        "tests/run_native_armor_policies.py": "349fdec18016b2caf17d6b06510c0150fb25a567f620d4cb4b02e201c5d73b5b"
+        "tests/basic_items/native_armor_policy_test.cpp": "084570120b986e10d30e49f38891b2d714507cea5c97d67cba9d4ba1d90e21a5",
+        "tests/run_native_armor_policies.py": "9e2ed804920a14b267723ace6c609da11c223b807cebf0ff723da52587b41d93"
       }
     },
     {
@@ -2571,11 +2571,11 @@
         "experiments/csharp/BunnyCsSdk/BunnyItemBehavior.cs": "4818cf866be995ec8902dd68aa00c49cd29e189fec03518fd9194d7c1c63d5de",
         "experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs": "c7fc67df1f7cda08465b88ca470aa12e46dfd702a33e3f4f0b4e58f6b6c5b020",
         "app/src/main/cpp/experiments/csharp/SourceParser.cpp": "6d35361d546a4887a5a8cac468abb0ace0d32990be145d3067b5a5b879ddb98c",
-        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp": "299273cc12a2b0bbadba645dfef8cbff23ea3c4392e2e9e1469604c09ca0434f",
+        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp": "6c2ecf1d4472c73453ae517904a1466bda1391d8e06fdd7eedafa7bd14d84329",
         "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp": "28266529611ef30f7de31852c7946f4f0169c4206a2db7e4f997745ef38a48fa",
         "app/src/main/cpp/experiments/csharp/NativeItemPolicies.cpp": "3f84104a106b11e24d2ed8b87b5e4608be2efd6d7f0aa469a7e6b908bab18cdd",
         "experiments/csharp/BunnyCsSdk/BunnyArmorEffects.cs": "01a3926c3815de24a34acacae327a38bb4f0cc7453a4bfdb4b07ffed6fff6283",
-        "app/src/main/cpp/experiments/csharp/NativeArmorPolicies.cpp": "5ab91ea6b21e5fb3473c930764edba9558223883e9fc386ed28a4f173e5b5a4a",
+        "app/src/main/cpp/experiments/csharp/NativeArmorPolicies.cpp": "75ec53b37bcfd9c56e2ac81b5e207612e5a879c55d76dc8e6d2ef07f55fe5344",
         "samples/ExampleModCSharp/Playable/content/Localization/en-US.json": "8831336bbc755396ea1c5e111028239116f699c301ca7807dab90450b07182e9",
         "samples/ExampleModCSharp/Playable/content/Localization/pt-BR.json": "d1e9a83f4fcda2724fce7523019510aa4ba1823b23e95606559038d709e7817b",
         "tests/armor_port_run.sh": "2f748a110c6c2acf343574d1118460417bf9884175ab39fe44356b0ac9170bad",
@@ -2583,8 +2583,8 @@
         "tests/basic_items/basic_source_parser_test.cpp": "e052d00d1d6f5202208411ab63750edd5e6136232ee95dbbd0d702ee9a8e22b4",
         "tests/basic_items/native_item_policies_test.cpp": "932cf1a20ebb0734a0045830cf88a8d01765d697201a7faa39c3efb8e8ee8e18",
         "tests/run_native_item_policies.py": "0e538c50af9cda61d6ba28cb6e47b2e18d91af790a349e990303df29b42fdc8b",
-        "tests/basic_items/native_armor_policy_test.cpp": "62348b0c5425635cbc4f2516e6fdd43826eb7e0e02c95f57627978103b3c9e2b",
-        "tests/run_native_armor_policies.py": "349fdec18016b2caf17d6b06510c0150fb25a567f620d4cb4b02e201c5d73b5b"
+        "tests/basic_items/native_armor_policy_test.cpp": "084570120b986e10d30e49f38891b2d714507cea5c97d67cba9d4ba1d90e21a5",
+        "tests/run_native_armor_policies.py": "9e2ed804920a14b267723ace6c609da11c223b807cebf0ff723da52587b41d93"
       }
     },
     {
@@ -2629,11 +2629,11 @@
         "experiments/csharp/BunnyCsSdk/BunnyItemBehavior.cs": "4818cf866be995ec8902dd68aa00c49cd29e189fec03518fd9194d7c1c63d5de",
         "experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs": "c7fc67df1f7cda08465b88ca470aa12e46dfd702a33e3f4f0b4e58f6b6c5b020",
         "app/src/main/cpp/experiments/csharp/SourceParser.cpp": "6d35361d546a4887a5a8cac468abb0ace0d32990be145d3067b5a5b879ddb98c",
-        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp": "299273cc12a2b0bbadba645dfef8cbff23ea3c4392e2e9e1469604c09ca0434f",
+        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp": "6c2ecf1d4472c73453ae517904a1466bda1391d8e06fdd7eedafa7bd14d84329",
         "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp": "28266529611ef30f7de31852c7946f4f0169c4206a2db7e4f997745ef38a48fa",
         "app/src/main/cpp/experiments/csharp/NativeItemPolicies.cpp": "3f84104a106b11e24d2ed8b87b5e4608be2efd6d7f0aa469a7e6b908bab18cdd",
         "experiments/csharp/BunnyCsSdk/BunnyArmorEffects.cs": "01a3926c3815de24a34acacae327a38bb4f0cc7453a4bfdb4b07ffed6fff6283",
-        "app/src/main/cpp/experiments/csharp/NativeArmorPolicies.cpp": "5ab91ea6b21e5fb3473c930764edba9558223883e9fc386ed28a4f173e5b5a4a",
+        "app/src/main/cpp/experiments/csharp/NativeArmorPolicies.cpp": "75ec53b37bcfd9c56e2ac81b5e207612e5a879c55d76dc8e6d2ef07f55fe5344",
         "samples/ExampleModCSharp/Playable/content/Localization/en-US.json": "8831336bbc755396ea1c5e111028239116f699c301ca7807dab90450b07182e9",
         "samples/ExampleModCSharp/Playable/content/Localization/pt-BR.json": "d1e9a83f4fcda2724fce7523019510aa4ba1823b23e95606559038d709e7817b",
         "tests/armor_port_run.sh": "2f748a110c6c2acf343574d1118460417bf9884175ab39fe44356b0ac9170bad",
@@ -2641,8 +2641,8 @@
         "tests/basic_items/basic_source_parser_test.cpp": "e052d00d1d6f5202208411ab63750edd5e6136232ee95dbbd0d702ee9a8e22b4",
         "tests/basic_items/native_item_policies_test.cpp": "932cf1a20ebb0734a0045830cf88a8d01765d697201a7faa39c3efb8e8ee8e18",
         "tests/run_native_item_policies.py": "0e538c50af9cda61d6ba28cb6e47b2e18d91af790a349e990303df29b42fdc8b",
-        "tests/basic_items/native_armor_policy_test.cpp": "62348b0c5425635cbc4f2516e6fdd43826eb7e0e02c95f57627978103b3c9e2b",
-        "tests/run_native_armor_policies.py": "349fdec18016b2caf17d6b06510c0150fb25a567f620d4cb4b02e201c5d73b5b"
+        "tests/basic_items/native_armor_policy_test.cpp": "084570120b986e10d30e49f38891b2d714507cea5c97d67cba9d4ba1d90e21a5",
+        "tests/run_native_armor_policies.py": "9e2ed804920a14b267723ace6c609da11c223b807cebf0ff723da52587b41d93"
       }
     },
     {
@@ -2687,11 +2687,11 @@
         "experiments/csharp/BunnyCsSdk/BunnyItemBehavior.cs": "4818cf866be995ec8902dd68aa00c49cd29e189fec03518fd9194d7c1c63d5de",
         "experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs": "c7fc67df1f7cda08465b88ca470aa12e46dfd702a33e3f4f0b4e58f6b6c5b020",
         "app/src/main/cpp/experiments/csharp/SourceParser.cpp": "6d35361d546a4887a5a8cac468abb0ace0d32990be145d3067b5a5b879ddb98c",
-        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp": "299273cc12a2b0bbadba645dfef8cbff23ea3c4392e2e9e1469604c09ca0434f",
+        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp": "6c2ecf1d4472c73453ae517904a1466bda1391d8e06fdd7eedafa7bd14d84329",
         "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp": "28266529611ef30f7de31852c7946f4f0169c4206a2db7e4f997745ef38a48fa",
         "app/src/main/cpp/experiments/csharp/NativeItemPolicies.cpp": "3f84104a106b11e24d2ed8b87b5e4608be2efd6d7f0aa469a7e6b908bab18cdd",
         "experiments/csharp/BunnyCsSdk/BunnyArmorEffects.cs": "01a3926c3815de24a34acacae327a38bb4f0cc7453a4bfdb4b07ffed6fff6283",
-        "app/src/main/cpp/experiments/csharp/NativeArmorPolicies.cpp": "5ab91ea6b21e5fb3473c930764edba9558223883e9fc386ed28a4f173e5b5a4a",
+        "app/src/main/cpp/experiments/csharp/NativeArmorPolicies.cpp": "75ec53b37bcfd9c56e2ac81b5e207612e5a879c55d76dc8e6d2ef07f55fe5344",
         "samples/ExampleModCSharp/Playable/content/Localization/en-US.json": "8831336bbc755396ea1c5e111028239116f699c301ca7807dab90450b07182e9",
         "samples/ExampleModCSharp/Playable/content/Localization/pt-BR.json": "d1e9a83f4fcda2724fce7523019510aa4ba1823b23e95606559038d709e7817b",
         "tests/armor_port_run.sh": "2f748a110c6c2acf343574d1118460417bf9884175ab39fe44356b0ac9170bad",
@@ -2699,8 +2699,8 @@
         "tests/basic_items/basic_source_parser_test.cpp": "e052d00d1d6f5202208411ab63750edd5e6136232ee95dbbd0d702ee9a8e22b4",
         "tests/basic_items/native_item_policies_test.cpp": "932cf1a20ebb0734a0045830cf88a8d01765d697201a7faa39c3efb8e8ee8e18",
         "tests/run_native_item_policies.py": "0e538c50af9cda61d6ba28cb6e47b2e18d91af790a349e990303df29b42fdc8b",
-        "tests/basic_items/native_armor_policy_test.cpp": "62348b0c5425635cbc4f2516e6fdd43826eb7e0e02c95f57627978103b3c9e2b",
-        "tests/run_native_armor_policies.py": "349fdec18016b2caf17d6b06510c0150fb25a567f620d4cb4b02e201c5d73b5b"
+        "tests/basic_items/native_armor_policy_test.cpp": "084570120b986e10d30e49f38891b2d714507cea5c97d67cba9d4ba1d90e21a5",
+        "tests/run_native_armor_policies.py": "9e2ed804920a14b267723ace6c609da11c223b807cebf0ff723da52587b41d93"
       }
     },
     {
@@ -2745,11 +2745,11 @@
         "experiments/csharp/BunnyCsSdk/BunnyItemBehavior.cs": "4818cf866be995ec8902dd68aa00c49cd29e189fec03518fd9194d7c1c63d5de",
         "experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs": "c7fc67df1f7cda08465b88ca470aa12e46dfd702a33e3f4f0b4e58f6b6c5b020",
         "app/src/main/cpp/experiments/csharp/SourceParser.cpp": "6d35361d546a4887a5a8cac468abb0ace0d32990be145d3067b5a5b879ddb98c",
-        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp": "299273cc12a2b0bbadba645dfef8cbff23ea3c4392e2e9e1469604c09ca0434f",
+        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp": "6c2ecf1d4472c73453ae517904a1466bda1391d8e06fdd7eedafa7bd14d84329",
         "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp": "28266529611ef30f7de31852c7946f4f0169c4206a2db7e4f997745ef38a48fa",
         "app/src/main/cpp/experiments/csharp/NativeItemPolicies.cpp": "3f84104a106b11e24d2ed8b87b5e4608be2efd6d7f0aa469a7e6b908bab18cdd",
         "experiments/csharp/BunnyCsSdk/BunnyArmorEffects.cs": "01a3926c3815de24a34acacae327a38bb4f0cc7453a4bfdb4b07ffed6fff6283",
-        "app/src/main/cpp/experiments/csharp/NativeArmorPolicies.cpp": "5ab91ea6b21e5fb3473c930764edba9558223883e9fc386ed28a4f173e5b5a4a",
+        "app/src/main/cpp/experiments/csharp/NativeArmorPolicies.cpp": "75ec53b37bcfd9c56e2ac81b5e207612e5a879c55d76dc8e6d2ef07f55fe5344",
         "samples/ExampleModCSharp/Playable/content/Localization/en-US.json": "8831336bbc755396ea1c5e111028239116f699c301ca7807dab90450b07182e9",
         "samples/ExampleModCSharp/Playable/content/Localization/pt-BR.json": "d1e9a83f4fcda2724fce7523019510aa4ba1823b23e95606559038d709e7817b",
         "tests/armor_port_run.sh": "2f748a110c6c2acf343574d1118460417bf9884175ab39fe44356b0ac9170bad",
@@ -2757,8 +2757,8 @@
         "tests/basic_items/basic_source_parser_test.cpp": "e052d00d1d6f5202208411ab63750edd5e6136232ee95dbbd0d702ee9a8e22b4",
         "tests/basic_items/native_item_policies_test.cpp": "932cf1a20ebb0734a0045830cf88a8d01765d697201a7faa39c3efb8e8ee8e18",
         "tests/run_native_item_policies.py": "0e538c50af9cda61d6ba28cb6e47b2e18d91af790a349e990303df29b42fdc8b",
-        "tests/basic_items/native_armor_policy_test.cpp": "62348b0c5425635cbc4f2516e6fdd43826eb7e0e02c95f57627978103b3c9e2b",
-        "tests/run_native_armor_policies.py": "349fdec18016b2caf17d6b06510c0150fb25a567f620d4cb4b02e201c5d73b5b"
+        "tests/basic_items/native_armor_policy_test.cpp": "084570120b986e10d30e49f38891b2d714507cea5c97d67cba9d4ba1d90e21a5",
+        "tests/run_native_armor_policies.py": "9e2ed804920a14b267723ace6c609da11c223b807cebf0ff723da52587b41d93"
       }
     },
     {
@@ -2803,11 +2803,11 @@
         "experiments/csharp/BunnyCsSdk/BunnyItemBehavior.cs": "4818cf866be995ec8902dd68aa00c49cd29e189fec03518fd9194d7c1c63d5de",
         "experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs": "c7fc67df1f7cda08465b88ca470aa12e46dfd702a33e3f4f0b4e58f6b6c5b020",
         "app/src/main/cpp/experiments/csharp/SourceParser.cpp": "6d35361d546a4887a5a8cac468abb0ace0d32990be145d3067b5a5b879ddb98c",
-        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp": "299273cc12a2b0bbadba645dfef8cbff23ea3c4392e2e9e1469604c09ca0434f",
+        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp": "6c2ecf1d4472c73453ae517904a1466bda1391d8e06fdd7eedafa7bd14d84329",
         "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp": "28266529611ef30f7de31852c7946f4f0169c4206a2db7e4f997745ef38a48fa",
         "app/src/main/cpp/experiments/csharp/NativeItemPolicies.cpp": "3f84104a106b11e24d2ed8b87b5e4608be2efd6d7f0aa469a7e6b908bab18cdd",
         "experiments/csharp/BunnyCsSdk/BunnyArmorEffects.cs": "01a3926c3815de24a34acacae327a38bb4f0cc7453a4bfdb4b07ffed6fff6283",
-        "app/src/main/cpp/experiments/csharp/NativeArmorPolicies.cpp": "5ab91ea6b21e5fb3473c930764edba9558223883e9fc386ed28a4f173e5b5a4a",
+        "app/src/main/cpp/experiments/csharp/NativeArmorPolicies.cpp": "75ec53b37bcfd9c56e2ac81b5e207612e5a879c55d76dc8e6d2ef07f55fe5344",
         "samples/ExampleModCSharp/Playable/content/Localization/en-US.json": "8831336bbc755396ea1c5e111028239116f699c301ca7807dab90450b07182e9",
         "samples/ExampleModCSharp/Playable/content/Localization/pt-BR.json": "d1e9a83f4fcda2724fce7523019510aa4ba1823b23e95606559038d709e7817b",
         "tests/armor_port_run.sh": "2f748a110c6c2acf343574d1118460417bf9884175ab39fe44356b0ac9170bad",
@@ -2815,8 +2815,8 @@
         "tests/basic_items/basic_source_parser_test.cpp": "e052d00d1d6f5202208411ab63750edd5e6136232ee95dbbd0d702ee9a8e22b4",
         "tests/basic_items/native_item_policies_test.cpp": "932cf1a20ebb0734a0045830cf88a8d01765d697201a7faa39c3efb8e8ee8e18",
         "tests/run_native_item_policies.py": "0e538c50af9cda61d6ba28cb6e47b2e18d91af790a349e990303df29b42fdc8b",
-        "tests/basic_items/native_armor_policy_test.cpp": "62348b0c5425635cbc4f2516e6fdd43826eb7e0e02c95f57627978103b3c9e2b",
-        "tests/run_native_armor_policies.py": "349fdec18016b2caf17d6b06510c0150fb25a567f620d4cb4b02e201c5d73b5b"
+        "tests/basic_items/native_armor_policy_test.cpp": "084570120b986e10d30e49f38891b2d714507cea5c97d67cba9d4ba1d90e21a5",
+        "tests/run_native_armor_policies.py": "9e2ed804920a14b267723ace6c609da11c223b807cebf0ff723da52587b41d93"
       }
     },
     {
@@ -3072,8 +3072,8 @@
         "experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs": "c7fc67df1f7cda08465b88ca470aa12e46dfd702a33e3f4f0b4e58f6b6c5b020",
         "app/src/main/cpp/experiments/csharp/NativeDefaults.h": "8edf57b6ea6c677aaecb7974deb3d3238d6b3d644be81a2ceb5452ba7083075a",
         "app/src/main/cpp/experiments/csharp/NativeContent.cpp": "2d546d1ff37ac910f557ce7e0ee8599f73e94d9e6ffa0441819742896d5e40ca",
-        "app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp": "c50a9fbf4a41bce328d3f2ab522215e6a497d93b04853dc5e6d9f1576a0ef9b7",
-        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp": "299273cc12a2b0bbadba645dfef8cbff23ea3c4392e2e9e1469604c09ca0434f",
+        "app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp": "27a2014b0794cc8946541349453cbdd49b7471cf6bfb71ab79fbdad411bed34e",
+        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp": "6c2ecf1d4472c73453ae517904a1466bda1391d8e06fdd7eedafa7bd14d84329",
         "samples/ExampleModCSharp/Playable/content/Content/Items/ExampleGolfBall.png": "613e23749e0ec212109b31781be80c69e6047949363bc44e54e43d118f21bd02",
         "samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleGolfBallProjectile.png": "47fe32e314de8f53fbb5c3b64089c32fa03a76d69ee685266558b8fa3c1f4964",
         "samples/ExampleModCSharp/Playable/content/Localization/en-US.json": "8831336bbc755396ea1c5e111028239116f699c301ca7807dab90450b07182e9",
@@ -3264,7 +3264,7 @@
         "experiments/csharp/BunnyCsSdk/BunnyItemBehavior.cs": "4818cf866be995ec8902dd68aa00c49cd29e189fec03518fd9194d7c1c63d5de",
         "experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs": "c7fc67df1f7cda08465b88ca470aa12e46dfd702a33e3f4f0b4e58f6b6c5b020",
         "app/src/main/cpp/experiments/csharp/SourceParser.cpp": "6d35361d546a4887a5a8cac468abb0ace0d32990be145d3067b5a5b879ddb98c",
-        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp": "299273cc12a2b0bbadba645dfef8cbff23ea3c4392e2e9e1469604c09ca0434f",
+        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp": "6c2ecf1d4472c73453ae517904a1466bda1391d8e06fdd7eedafa7bd14d84329",
         "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp": "28266529611ef30f7de31852c7946f4f0169c4206a2db7e4f997745ef38a48fa",
         "app/src/main/cpp/experiments/csharp/NativeItemPolicies.cpp": "3f84104a106b11e24d2ed8b87b5e4608be2efd6d7f0aa469a7e6b908bab18cdd",
         "tests/armor_port_run.sh": "2f748a110c6c2acf343574d1118460417bf9884175ab39fe44356b0ac9170bad",
@@ -3310,7 +3310,7 @@
         "experiments/csharp/BunnyCsSdk/BunnyItemBehavior.cs": "4818cf866be995ec8902dd68aa00c49cd29e189fec03518fd9194d7c1c63d5de",
         "experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs": "c7fc67df1f7cda08465b88ca470aa12e46dfd702a33e3f4f0b4e58f6b6c5b020",
         "app/src/main/cpp/experiments/csharp/SourceParser.cpp": "6d35361d546a4887a5a8cac468abb0ace0d32990be145d3067b5a5b879ddb98c",
-        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp": "299273cc12a2b0bbadba645dfef8cbff23ea3c4392e2e9e1469604c09ca0434f",
+        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp": "6c2ecf1d4472c73453ae517904a1466bda1391d8e06fdd7eedafa7bd14d84329",
         "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp": "28266529611ef30f7de31852c7946f4f0169c4206a2db7e4f997745ef38a48fa",
         "app/src/main/cpp/experiments/csharp/NativeItemPolicies.cpp": "3f84104a106b11e24d2ed8b87b5e4608be2efd6d7f0aa469a7e6b908bab18cdd",
         "tests/armor_port_run.sh": "2f748a110c6c2acf343574d1118460417bf9884175ab39fe44356b0ac9170bad",
@@ -3356,7 +3356,7 @@
         "experiments/csharp/BunnyCsSdk/BunnyItemBehavior.cs": "4818cf866be995ec8902dd68aa00c49cd29e189fec03518fd9194d7c1c63d5de",
         "experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs": "c7fc67df1f7cda08465b88ca470aa12e46dfd702a33e3f4f0b4e58f6b6c5b020",
         "app/src/main/cpp/experiments/csharp/SourceParser.cpp": "6d35361d546a4887a5a8cac468abb0ace0d32990be145d3067b5a5b879ddb98c",
-        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp": "299273cc12a2b0bbadba645dfef8cbff23ea3c4392e2e9e1469604c09ca0434f",
+        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp": "6c2ecf1d4472c73453ae517904a1466bda1391d8e06fdd7eedafa7bd14d84329",
         "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp": "28266529611ef30f7de31852c7946f4f0169c4206a2db7e4f997745ef38a48fa",
         "app/src/main/cpp/experiments/csharp/NativeItemPolicies.cpp": "3f84104a106b11e24d2ed8b87b5e4608be2efd6d7f0aa469a7e6b908bab18cdd",
         "tests/armor_port_run.sh": "2f748a110c6c2acf343574d1118460417bf9884175ab39fe44356b0ac9170bad",
@@ -3402,7 +3402,7 @@
         "experiments/csharp/BunnyCsSdk/BunnyItemBehavior.cs": "4818cf866be995ec8902dd68aa00c49cd29e189fec03518fd9194d7c1c63d5de",
         "experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs": "c7fc67df1f7cda08465b88ca470aa12e46dfd702a33e3f4f0b4e58f6b6c5b020",
         "app/src/main/cpp/experiments/csharp/SourceParser.cpp": "6d35361d546a4887a5a8cac468abb0ace0d32990be145d3067b5a5b879ddb98c",
-        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp": "299273cc12a2b0bbadba645dfef8cbff23ea3c4392e2e9e1469604c09ca0434f",
+        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp": "6c2ecf1d4472c73453ae517904a1466bda1391d8e06fdd7eedafa7bd14d84329",
         "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp": "28266529611ef30f7de31852c7946f4f0169c4206a2db7e4f997745ef38a48fa",
         "app/src/main/cpp/experiments/csharp/NativeItemPolicies.cpp": "3f84104a106b11e24d2ed8b87b5e4608be2efd6d7f0aa469a7e6b908bab18cdd",
         "tests/armor_port_run.sh": "2f748a110c6c2acf343574d1118460417bf9884175ab39fe44356b0ac9170bad",
@@ -6564,8 +6564,8 @@
         "experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs": "c7fc67df1f7cda08465b88ca470aa12e46dfd702a33e3f4f0b4e58f6b6c5b020",
         "app/src/main/cpp/experiments/csharp/NativeDefaults.h": "8edf57b6ea6c677aaecb7974deb3d3238d6b3d644be81a2ceb5452ba7083075a",
         "app/src/main/cpp/experiments/csharp/NativeContent.cpp": "2d546d1ff37ac910f557ce7e0ee8599f73e94d9e6ffa0441819742896d5e40ca",
-        "app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp": "c50a9fbf4a41bce328d3f2ab522215e6a497d93b04853dc5e6d9f1576a0ef9b7",
-        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp": "299273cc12a2b0bbadba645dfef8cbff23ea3c4392e2e9e1469604c09ca0434f",
+        "app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp": "27a2014b0794cc8946541349453cbdd49b7471cf6bfb71ab79fbdad411bed34e",
+        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp": "6c2ecf1d4472c73453ae517904a1466bda1391d8e06fdd7eedafa7bd14d84329",
         "samples/ExampleModCSharp/Playable/content/Content/Items/ExampleGolfBall.png": "613e23749e0ec212109b31781be80c69e6047949363bc44e54e43d118f21bd02",
         "samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleGolfBallProjectile.png": "47fe32e314de8f53fbb5c3b64089c32fa03a76d69ee685266558b8fa3c1f4964",
         "samples/ExampleModCSharp/Playable/content/Localization/en-US.json": "8831336bbc755396ea1c5e111028239116f699c301ca7807dab90450b07182e9",
@@ -6622,8 +6622,8 @@
         "experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs": "c7fc67df1f7cda08465b88ca470aa12e46dfd702a33e3f4f0b4e58f6b6c5b020",
         "app/src/main/cpp/experiments/csharp/NativeDefaults.h": "8edf57b6ea6c677aaecb7974deb3d3238d6b3d644be81a2ceb5452ba7083075a",
         "app/src/main/cpp/experiments/csharp/NativeContent.cpp": "2d546d1ff37ac910f557ce7e0ee8599f73e94d9e6ffa0441819742896d5e40ca",
-        "app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp": "c50a9fbf4a41bce328d3f2ab522215e6a497d93b04853dc5e6d9f1576a0ef9b7",
-        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp": "299273cc12a2b0bbadba645dfef8cbff23ea3c4392e2e9e1469604c09ca0434f",
+        "app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp": "27a2014b0794cc8946541349453cbdd49b7471cf6bfb71ab79fbdad411bed34e",
+        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp": "6c2ecf1d4472c73453ae517904a1466bda1391d8e06fdd7eedafa7bd14d84329",
         "samples/ExampleModCSharp/Playable/content/Content/Items/ExampleGolfBall.png": "613e23749e0ec212109b31781be80c69e6047949363bc44e54e43d118f21bd02",
         "samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleGolfBallProjectile.png": "47fe32e314de8f53fbb5c3b64089c32fa03a76d69ee685266558b8fa3c1f4964",
         "samples/ExampleModCSharp/Playable/content/Localization/en-US.json": "8831336bbc755396ea1c5e111028239116f699c301ca7807dab90450b07182e9",
@@ -10735,14 +10735,44 @@
         "experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs": "c7fc67df1f7cda08465b88ca470aa12e46dfd702a33e3f4f0b4e58f6b6c5b020",
         "app/src/main/cpp/experiments/csharp/NativeDefaults.h": "8edf57b6ea6c677aaecb7974deb3d3238d6b3d644be81a2ceb5452ba7083075a",
         "app/src/main/cpp/experiments/csharp/NativeContent.cpp": "2d546d1ff37ac910f557ce7e0ee8599f73e94d9e6ffa0441819742896d5e40ca",
-        "app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp": "c50a9fbf4a41bce328d3f2ab522215e6a497d93b04853dc5e6d9f1576a0ef9b7",
-        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp": "299273cc12a2b0bbadba645dfef8cbff23ea3c4392e2e9e1469604c09ca0434f",
+        "app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp": "27a2014b0794cc8946541349453cbdd49b7471cf6bfb71ab79fbdad411bed34e",
+        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp": "6c2ecf1d4472c73453ae517904a1466bda1391d8e06fdd7eedafa7bd14d84329",
         "tests/golf_ball/Program.cs": "da1f7e99a6dd5a895e32a5e275361fa760c977769311528f896d5ec9d3c0ffe9",
         "tests/golf_ball/native_test.cpp": "16e7fe848f556ae83fa46623240de339b9e9e3ca8a7767627b9f85246f2ee3b9",
         "tests/golf_ball/run.sh": "e518677066a1423f1837a1f375012fd928e5d8130708599e9cf293d846bf9e14",
         "tests/golf_ball/GolfBall.HostTests.csproj": "bedb47a1c50e53cfc0c8d467d491987ac3f2c314a3794c81a0a1a870cf55438a",
         "tests/basic_items/Program.cs": "b57118b45abe9f0bc53e6070057f714dfe3937e08ea4c54ef61891dd9cbc214a",
         "tests/ready_prs/managed_source_class_count_test.cpp": "0f6a67ee635e3c52447343b18d27c21a343f7c2cafc2f7e4e52c27e1087ff120"
+      }
+    },
+    {
+      "id": "requirement:armor-native-retirement",
+      "status": "validado automaticamente",
+      "behavior": "Retirada seletiva e recarga das políticas/conjuntos nativos de armadura",
+      "note": "Fixture C++ de produção com protocolo real: revogação imediata dos efeitos, limpeza na thread do jogo, outros mods preservados, dependências entre mods, snapshot vazio/peça retirada, A1/A2, metadados crus/boxed, falhas parciais, troca de texto/chave e 100 recargas antes do pump. Glue de SourceLoader/AutoSourceRuntime compilado; execução completa no Android pendente.",
+      "implementation": [
+        "app/src/main/cpp/experiments/csharp/NativeArmorPolicies.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeArmorPolicies.h",
+        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp",
+        "app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp"
+      ],
+      "tests": [
+        "tests/basic_items/native_armor_policy_test.cpp",
+        "tests/run_native_armor_policies.py",
+        "tests/armor_port_run.sh"
+      ],
+      "androidEvidence": [],
+      "validationScope": "host; Android pendente",
+      "validatedFilesSha256": {
+        "app/src/main/cpp/experiments/csharp/NativeArmorPolicies.cpp": "75ec53b37bcfd9c56e2ac81b5e207612e5a879c55d76dc8e6d2ef07f55fe5344",
+        "app/src/main/cpp/experiments/csharp/NativeArmorPolicies.h": "72fc925ba1ec866b12ceec5ec8305257dc53f2c58e07b503816bad8d84cf7a44",
+        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp": "6c2ecf1d4472c73453ae517904a1466bda1391d8e06fdd7eedafa7bd14d84329",
+        "app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp": "27a2014b0794cc8946541349453cbdd49b7471cf6bfb71ab79fbdad411bed34e",
+        "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp": "28266529611ef30f7de31852c7946f4f0169c4206a2db7e4f997745ef38a48fa",
+        "tests/basic_items/native_armor_policy_test.cpp": "084570120b986e10d30e49f38891b2d714507cea5c97d67cba9d4ba1d90e21a5",
+        "tests/run_native_armor_policies.py": "9e2ed804920a14b267723ace6c609da11c223b807cebf0ff723da52587b41d93",
+        "tests/armor_port_run.sh": "2f748a110c6c2acf343574d1118460417bf9884175ab39fe44356b0ac9170bad"
       }
     }
   ],

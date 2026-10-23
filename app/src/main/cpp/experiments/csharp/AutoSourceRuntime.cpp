@@ -971,6 +971,7 @@ void run() {
             }
         }
         if (!defaultsApplied) {
+            retireNativeArmorPoliciesForMod(mod.id);
             note(&status, "failed", error);
             continue;
         }

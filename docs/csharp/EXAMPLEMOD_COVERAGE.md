@@ -14,7 +14,7 @@ O catálogo usa cada hook JS como unidade inicial de revisão, com hash do fonte
 |---|---:|
 | não iniciado | 687 |
 | implementado sem validar | 0 |
-| validado automaticamente | 35 |
+| validado automaticamente | 36 |
 | validado no Android | 1 |
 | falhou | 3 |
 | bloqueio comprovado | 0 |
@@ -66,6 +66,7 @@ Dust e invasão: o baseline contém correções posteriores aos logs Android de 
 | requirement:angler-static-properties | validado automaticamente | Inspeção confirma getters estáticos e setter de npcChatCornerItem. Teste executa loader C++ real: propriedades com campos de instância homônimos, campos estáticos, tipos inválidos, exceções, seleção/chat e unload. Android pendente; não declara o loader inteiro concluído. |
 | requirement:rarity-mouse-text-cache-android-layout | validado automaticamente | Metadados do Android 301720 identificam estrutura mista de 48 bytes, com diff Byte e referências String. O binder normaliza offsets crus/boxed e aceita passagem indireta somente no ARM64. O tooltip identifica a classe aninhada por identidade, sem presumir namespace Terraria. Fixture executa scopes e forwarding reais sem QuickJS; não valida renderização visual, instalação dos hooks no aparelho nem o loader inteiro. |
 | requirement:projectile-static-defaults-lifecycle | validado automaticamente | O compilador executa o hook após SetDefaults do protótipo, rejeita new em vez de override e propaga exceções. Tabelas são aplicadas na thread do Terraria antes do spawn e antes do SetDefaults original. Retirada seletiva, campos removidos, recarga imediata, consumidores posteriores e 1000 publicações/retiradas concorrentes são exercitados pelo fixture nativo. A alteração cobre essas políticas; não encerra o lifecycle global de todos os loaders. |
+| requirement:armor-native-retirement | validado automaticamente | Fixture C++ de produção com protocolo real: revogação imediata dos efeitos, limpeza na thread do jogo, outros mods preservados, dependências entre mods, snapshot vazio/peça retirada, A1/A2, metadados crus/boxed, falhas parciais, troca de texto/chave e 100 recargas antes do pump. Glue de SourceLoader/AutoSourceRuntime compilado; execução completa no Android pendente. |
 
 Todos os hooks e o backlog oficial estão em [EXAMPLEMOD_COVERAGE.json](EXAMPLEMOD_COVERAGE.json).
 

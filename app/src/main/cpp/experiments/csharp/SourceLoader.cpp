@@ -14,6 +14,7 @@
 #include "content/projectiles/ModProjectiles.h"
 #include "graphics/CSharpScreenEffects.h"
 #include "experiments/csharp/NativeBasicItems.h"
+#include "experiments/csharp/NativeArmorPolicies.h"
 #include "experiments/csharp/NativeAnglerQuestRegistry.h"
 #include "experiments/csharp/NativeRecipeCallbacks.h"
 #include "experiments/csharp/ManagedRuntime.h"
@@ -701,6 +702,7 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
 void resetCSharpSourceModSession() {
     for (const auto& mod : g_statuses) {
         retireNativeDefaultsForMod(mod.id);
+        retireNativeArmorPoliciesForMod(mod.id);
         shooting::unload(mod.id);
         angler::registry().unload(mod.id);
         unbindNativeRecipeAssembly(mod.id);
@@ -715,6 +717,7 @@ bool loadCSharpSourceMod(const bl::mods::LoadedMod& mod) {
         [&](const SourceModStatus& entry) { return entry.id == mod.id; });
     if (previous != g_statuses.end()) {
         retireNativeDefaultsForMod(mod.id);
+        retireNativeArmorPoliciesForMod(mod.id);
         shooting::unload(mod.id);
         angler::registry().unload(mod.id);
         unbindNativeRecipeAssembly(mod.id);
@@ -731,6 +734,7 @@ bool loadCSharpSourceMod(const bl::mods::LoadedMod& mod) {
                 status.projectiles, status.buffs, status.potions, status.npcs, status.dusts);
     } else {
         retireNativeDefaultsForMod(mod.id);
+        retireNativeArmorPoliciesForMod(mod.id);
         shooting::unload(mod.id);
         BL_ERROR("C# source %s: %s", mod.id.c_str(), status.error.c_str());
     }
@@ -761,6 +765,11 @@ bool applyManagedSourceDefaults(
         *error = "Mod fonte nao carregado ou SetDefaults ja aplicado";
         return false;
     }
+    struct ArmorApplyGuard {
+        const std::string& owner;
+        bool touched=false,complete=false;
+        ~ArmorApplyGuard(){if(touched&&!complete)retireNativeArmorPoliciesForMod(owner);}
+    } armorApply{modId};
     std::istringstream lines(runtimeValues);
     std::string header;
     if (!std::getline(lines, header) || header != "BUNNY_MANAGED_DEFAULTS_V2") {
@@ -1630,6 +1639,10 @@ bool applyManagedSourceDefaults(
         }
     }
     if (!applyNativeBasicItemDefaults(modId,basicItems,error)) return false;
+    armorApply.touched=true;
+    std::vector<int> retainedArmorTypes;
+    for(const auto& item:basicItems)retainedArmorTypes.push_back(item.type);
+    retainNativeArmorPoliciesForMod(modId,retainedArmorTypes);
     for (const auto& item : basicItems) {
         if (item.defense>0 && !setBasicItemDefense(item.type,item.defense,error)) return false;
     }
@@ -1665,6 +1678,7 @@ bool applyManagedSourceDefaults(
         return false;
     }
     mod->runtimeApplied = true;
+    armorApply.complete=true;
     return true;
 }
 
