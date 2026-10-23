@@ -423,6 +423,27 @@
         "tests/run_native_item_policies.py": "0e538c50af9cda61d6ba28cb6e47b2e18d91af790a349e990303df29b42fdc8b",
         "tests/run_native_equip_effects.py": "e563138f53d70cf28620a6e102fa992c7696c7fe08327ec2a5e8494ebf8f60d5"
       }
+    },
+    "requirement:rarity-mouse-text-cache-android-layout": {
+      "status": "validado automaticamente",
+      "behavior": "RarityLoader: contrato de MouseTextCache struct de 48 bytes e escopo de cor nativo",
+      "note": "Metadados do Android 301720 identificam estrutura mista de 48 bytes, com diff Byte e referências String. O binder normaliza offsets crus/boxed e aceita passagem indireta somente no ARM64. O tooltip identifica a classe aninhada por identidade, sem presumir namespace Terraria. Fixture executa scopes e forwarding reais sem QuickJS; não valida renderização visual, instalação dos hooks no aparelho nem o loader inteiro.",
+      "implementation": [
+        "app/src/main/cpp/experiments/csharp/NativeRarityGameplay.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeRarityMouseTextCache.h",
+        "app/src/main/cpp/il2cpp/ValueLayout.h"
+      ],
+      "tests": [
+        "tests/rarity_loader/native_mouse_text_cache_test.cpp"
+      ],
+      "androidEvidence": [],
+      "validationScope": "host; Android pendente",
+      "validatedFilesSha256": {
+        "app/src/main/cpp/experiments/csharp/NativeRarityGameplay.cpp": "e07ee20485e039b2b4b7f77fe4e81e9256be39fc8c22fd6c8e02a995bfc27f7d",
+        "app/src/main/cpp/experiments/csharp/NativeRarityMouseTextCache.h": "3fa1b5ce8dc1fff9de80c0516054bb55264edcb5f68cdb4cb8a1ed54f2a32d7c",
+        "app/src/main/cpp/il2cpp/ValueLayout.h": "5fdd3b99f796147ab45a7d29121e4425d198b7cd5b3e8cb62a3651fa718f99b8",
+        "tests/rarity_loader/native_mouse_text_cache_test.cpp": "77064dbeb8704284860859a96aa8a3d0b1213fc4437b52816658ced92fead311"
+      }
     }
   }
 }

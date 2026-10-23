@@ -1,0 +1,75 @@
+{
+  "date": "2026-10-23",
+  "baselineCommit": "7d1cebf9d9b69ef79da486e1d52ca600a9d2179b",
+  "apkProduced": false,
+  "apkWorkflowDispatched": false,
+  "modVersion": "0.1.66",
+  "change": "MouseTextCache value ABI in native RarityLoader",
+  "checks": [
+    {
+      "name": "Test CSharp rarity contracts without APK or game",
+      "code": 0,
+      "seconds": 11.72
+    },
+    {
+      "name": "Compile playable ExampleModCSharp native rarity examples",
+      "code": 0,
+      "seconds": 3.71
+    },
+    {
+      "name": "Verify native rarity registry and parser without JS",
+      "code": 0,
+      "seconds": 13.9
+    },
+    {
+      "name": "Verify shared JS/CSharp rarity allocation",
+      "code": 0,
+      "seconds": 0.04
+    },
+    {
+      "name": "Verify original JS tooltip interop with CSharp native rarity cache",
+      "code": 0,
+      "seconds": 0.04
+    },
+    {
+      "name": "Compile rarity native host integration and lifecycle regressions",
+      "code": 0,
+      "seconds": 35.44
+    }
+  ],
+  "nativeFixture": {
+    "productionCodeIncluded": true,
+    "quickJsEnabled": false,
+    "rawMetadata": true,
+    "boxedMetadata": true,
+    "legacyReferenceClass": true,
+    "payloadSize": 48,
+    "rejectUnsupportedValueAbi": true,
+    "rejectWrongFieldShape": true,
+    "originalArgumentsForwarded": true,
+    "nestedScopeRestoration": true,
+    "addressSanitizer": "pass",
+    "undefinedBehaviorSanitizer": "pass"
+  },
+  "runtimeInspection": {
+    "game": "Terraria Android 1.4.5.8.6 (301720)",
+    "nestedType": "Main.MouseTextCache",
+    "namespace": "",
+    "valueSizeBytes": 48,
+    "mouseTextInnerRva": "0x1068C64",
+    "mouseTextDrawItemTooltipRva": "0x10697F8",
+    "observation": "Offline metadata and ARM64 instructions identify indirect argument in x1; metadata offsets require normalization before payload reads. No game binary or generated game dump is committed."
+  },
+  "apkReadiness": {
+    "exitCode": 1,
+    "pendingBehaviors": 709,
+    "expected": "blocked"
+  },
+  "limitations": [
+    "Host fixture simulates the ARM64 payload; it does not execute an ARM64 game process.",
+    "Hook installation and visible rarity colors still require Android validation.",
+    "The complete JS translation and all loaders remain unfinished."
+  ],
+  "androidValidated": false,
+  "fps": null
+}

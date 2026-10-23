@@ -75,6 +75,8 @@ jobs:
           g++ -std=c++20 -Wall -Wextra -Werror -O2 -pthread -I app/src/main/cpp \
             tests/rarity_loader/native_rarity_save_test.cpp -o /tmp/bunny-rarity-save
           /tmp/bunny-rarity-save
+          g++ -std=c++20 -Wall -Wextra -Werror -Wno-deprecated-declarations -O1 -ffunction-sections -fdata-sections -DBL_HAVE_QUICKJS=0 -I tests/basic_items/include -I app/src/main/cpp tests/rarity_loader/native_mouse_text_cache_test.cpp -Wl,--gc-sections -pthread -o /tmp/bunny-mouse-cache
+          /tmp/bunny-mouse-cache
       - name: Verify shared JS/CSharp rarity allocation
         run: node tests/rarity_loader/check_shared_rarity_js.cjs
       - name: Verify original JS tooltip interop with CSharp native rarity cache

@@ -2,6 +2,7 @@
 #include "experiments/csharp/NativeRarityPalette.h"
 #include "experiments/csharp/NativeRarityColorWire.h"
 #include "experiments/csharp/NativeRarityTextColor.h"
+#include "experiments/csharp/NativeRarityMouseTextCache.h"
 #include "experiments/csharp/NativeStaticValue.h"
 #include "il2cpp/ValueLayout.h"
 #include "experiments/csharp/NativeRarityRegistry.h"
@@ -613,28 +614,19 @@ bool installRarityGroundTextHook(std::string* error) {
     Il2CppClass* byteType = findClass({"System", "Byte", {}});
     Il2CppClass* boolType = findClass({"System", "Boolean", {}});
     if (!main || !cache || !item || !stringType || !intType ||
-        !byteType || !boolType || !a.class_is_valuetype ||
-        a.class_is_valuetype(cache) || !a.method_is_instance ||
+        !byteType || !boolType || !a.method_is_instance ||
         !a.method_get_param_count || !a.method_get_param ||
         !a.class_from_il2cpp_type) {
-        *error = "Reason=MouseTextCacheReferenceAbiUnavailable";
+        *error = "Reason=MouseTextCacheTypesUnavailable";
         return false;
     }
-    int rare = -1, text = -1, buff = -1, diff = -1, hoverType = -1;
-    if (!validateRarityTextField(cache, "rare", intType, &rare) ||
-        !validateRarityTextField(cache, "cursorText", stringType, &text) ||
-        !validateRarityTextField(cache, "buffTooltip", stringType, &buff) ||
-        !validateRarityTextField(item, "type", intType, &hoverType)) {
-        *error = "Reason=MouseTextCacheFieldsUnavailable";
+    NativeRarityMouseTextCache cacheLayout;
+    if (!cacheLayout.bind(cache, intType, byteType, boolType, stringType, error))
         return false;
-    }
-    int diffWidth = 1;
-    if (!validateRarityTextField(cache, "diff", byteType, &diff)) {
-        if (!validateRarityTextField(cache, "diff", intType, &diff)) {
-            *error = "Reason=MouseTextDiffAbiUnavailable";
-            return false;
-        }
-        diffWidth = 4;
+    int hoverType = -1;
+    if (!validateRarityTextField(item, "type", intType, &hoverType)) {
+        *error = "Reason=HoverItemTypeUnavailable";
+        return false;
     }
     auto hover = native_static::resolve(main, "HoverItem");
     if (!hover || hover.type != item ||
@@ -654,11 +646,11 @@ bool installRarityGroundTextHook(std::string* error) {
         return false;
     }
     if (!installRarityDrawStringHook(error)) return false;
-    g_cacheRareOffset = rare;
-    g_cacheTextOffset = text;
-    g_cacheBuffOffset = buff;
-    g_cacheDiffOffset = diff;
-    g_cacheDiffWidth = diffWidth;
+    g_cacheRareOffset = cacheLayout.rare;
+    g_cacheTextOffset = cacheLayout.text;
+    g_cacheBuffOffset = cacheLayout.buff;
+    g_cacheDiffOffset = cacheLayout.diff;
+    g_cacheDiffWidth = cacheLayout.diffWidth;
     g_hoverItemTypeOffset = hoverType;
     g_hoverItem = hover;
     const bool hooked = a.method_is_instance(mouse)
@@ -765,7 +757,8 @@ bool installRarityTooltipHook(std::string* error) {
         a.method_get_param_count(affix) != 0 ||
         !isReturn(method, "System", "Void") ||
         !isReturn(affix, "System", "String") ||
-        !parameterIs(cache, method, 0, "Terraria", "MouseTextCache") ||
+        !a.method_get_param || !a.class_from_il2cpp_type ||
+        a.class_from_il2cpp_type(a.method_get_param(method, 0)) != cache ||
         !parameterIs(nullptr, method, 1, "System", "Int32") ||
         !parameterIs(nullptr, method, 2, "System", "Byte") ||
         !parameterIs(nullptr, method, 3, "System", "Int32") ||
@@ -777,7 +770,12 @@ bool installRarityTooltipHook(std::string* error) {
     int expert = -1;
     int hoverType = -1;
     auto hover = native_static::resolve(main, "HoverItem");
-    if (!intType || !a.class_is_valuetype || a.class_is_valuetype(cache) ||
+    NativeRarityMouseTextCache cacheLayout;
+    auto* byteType = findClass({"System", "Byte", {}});
+    if (!cacheLayout.bind(cache, intType, byteType,
+            const_cast<Il2CppClass*>(boolType), const_cast<Il2CppClass*>(stringType), error))
+        return false;
+    if (!intType ||
         !validateRarityTextField(item, "expert",
             const_cast<Il2CppClass*>(boolType), &expert) ||
         !validateRarityTextField(item, "type", intType, &hoverType) ||

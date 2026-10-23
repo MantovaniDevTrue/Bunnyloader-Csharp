@@ -14,7 +14,7 @@ O catálogo usa cada hook JS como unidade inicial de revisão, com hash do fonte
 |---|---:|
 | não iniciado | 706 |
 | implementado sem validar | 0 |
-| validado automaticamente | 14 |
+| validado automaticamente | 15 |
 | validado no Android | 1 |
 | falhou | 3 |
 | bloqueio comprovado | 0 |
@@ -45,6 +45,7 @@ Dust e invasão: o baseline contém correções posteriores aos logs Android de 
 | requirement:android-invasion-spawn | falhou | Running com SpawnFailed crescente e NoSafeSpawnSite; busca/diagnósticos ajustados, reteste pendente. |
 | requirement:apk-after-loaders | validado automaticamente | Instrução do usuário em 2026-10-23. Validador executado: bloqueia o estado atual. Gradle e workflow configurados para chamar o validador; configuração Gradle não executada neste host. |
 | requirement:angler-static-properties | validado automaticamente | Inspeção confirma getters estáticos e setter de npcChatCornerItem. Teste executa loader C++ real: propriedades com campos de instância homônimos, campos estáticos, tipos inválidos, exceções, seleção/chat e unload. Android pendente; não declara o loader inteiro concluído. |
+| requirement:rarity-mouse-text-cache-android-layout | validado automaticamente | Metadados do Android 301720 identificam estrutura mista de 48 bytes, com diff Byte e referências String. O binder normaliza offsets crus/boxed e aceita passagem indireta somente no ARM64. O tooltip identifica a classe aninhada por identidade, sem presumir namespace Terraria. Fixture executa scopes e forwarding reais sem QuickJS; não valida renderização visual, instalação dos hooks no aparelho nem o loader inteiro. |
 
 Todos os hooks e o backlog oficial estão em [EXAMPLEMOD_COVERAGE.json](EXAMPLEMOD_COVERAGE.json).
 
