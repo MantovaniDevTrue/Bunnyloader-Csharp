@@ -1,4 +1,4 @@
-#include "experiments/csharp/NativeDrinkParticleColors.h"
+#include "experiments/csharp/NativeDefaults.h"
 #include <cassert>
 #include <cstring>
 #include <iostream>
@@ -17,6 +17,7 @@ Il2CppClass colorType{"Microsoft.Xna.Framework","Color",4,true,0,nullptr};
 Il2CppClass colorArray{"Microsoft.Xna.Framework","Color[]",0,false,1,&colorType};
 Il2CppClass outerArray{"Microsoft.Xna.Framework","Color[][]",0,false,1,&colorArray};
 Il2CppClass sets{"Terraria.ID","Sets",0,false,0,nullptr};
+Il2CppClass itemType{"Terraria","Item",64,false,0,nullptr};
 FieldInfo tableField{"DrinkParticleColors",{&outerArray},0,0x10};
 FieldInfo colorFields[4]={{"R",{&byteType},2,0},{"G",{&byteType},1,0},
                           {"B",{&byteType},0,0},{"A",{&byteType},3,0}};
@@ -30,7 +31,8 @@ uint32_t nextHandle=1;int barriers=0;int reads=0;
 namespace bl::il2cpp {
 Api& api(){return fixture;}
 Il2CppClass* findClass(const TypeRef& ref) {
-    return ref.ns=="Terraria.ID"&&ref.name=="ItemID"&&ref.nested=="Sets"?&sets:nullptr;
+    if(ref.ns=="Terraria.ID"&&ref.name=="ItemID"&&ref.nested=="Sets")return &sets;
+    return ref.ns=="Terraria"&&ref.name=="Item"?&itemType:nullptr;
 }
 FieldInfo* findField(Il2CppClass* cls,std::string_view name) {
     if(cls==&sets&&name=="DrinkParticleColors")return &tableField;
@@ -56,6 +58,7 @@ int main() {
         return &colorFields[index];
     };
     fixture.field_get_offset=[](FieldInfo* f){return f->offset;};
+    fixture.class_instance_size=[](Il2CppClass* c){return static_cast<uint32_t>(c->bytes);};
     fixture.field_static_get_value=[](FieldInfo* f,void* output){
         assert(f==&tableField);++reads;
         Il2CppArray* current=&table.array;
@@ -129,5 +132,20 @@ int main() {
     assert(applyNativeDrinkColors(a,10));
     assert(restoreNativeDrinkColors(a,10)&&table.cells[10]==nullptr);
     assert(roots.empty()&&g_nativeDrinkColors.empty());
+    NativeDefaultsRequest request{"ExampleBuffPotion","original",
+        "Content/Items/Consumables/ExampleBuffPotion.cs",
+        "ItemSet_DrinkParticleColors:c:FFF0F0F0,FFC8C8C8,FF8C8C8C",16,false};
+    assert(publishNativeDefaults({request},&error,nullptr));
+    pumpNativeStaticDefaultsOnGameThread();
+    assert(table.cells[16]&&table.cells[16]->length==3);
+    auto* bytes=static_cast<uint8_t*>(arrayData(table.cells[16]));
+    assert(bytes[0]==240&&bytes[4]==200&&bytes[8]==140);
+    retireNativeDefaultsForMod("original");
+    pumpNativeStaticDefaultsOnGameThread();
+    assert(table.cells[16]==nullptr&&g_nativeDrinkColors.empty()&&roots.empty());
+    const auto beforePublish=std::atomic_load(&g_nativeDefaults);
+    request.descriptor="ItemSet_DrinkParticleColors:c:FFGG0000";
+    assert(!publishNativeDefaults({request},&error,nullptr));
+    assert(std::atomic_load(&g_nativeDefaults)==beforePublish);
     std::cout<<"NATIVE_DRINK_PARTICLES=PASS barriers="<<barriers<<" metadataReads="<<reads<<"\n";
 }
