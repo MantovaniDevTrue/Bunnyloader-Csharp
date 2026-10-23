@@ -111,7 +111,7 @@ Check("recipe.clone-isolation-and-removal",()=>{
 Check("probe.items-only-full-wire",()=>{
  Directory.CreateDirectory("build/basic-items");string diag="build/basic-items/probe.txt";
  Equal(6,CompiledAssemblyProbe.Verify(Assembly.GetExecutingAssembly().Location,diag));
- var lines=File.ReadAllLines("build/basic-items/source-runtime-values.txt");Equal("BUNNY_MANAGED_DEFAULTS_V2",lines[0]);Equal(8,lines.Length);
+ var lines=File.ReadAllLines("build/basic-items/source-runtime-values.txt");Equal("BUNNY_MANAGED_DEFAULTS_V2",lines[0]);Equal(7,lines.Length);
  foreach(var line in lines.Skip(1).Where(l=>l.StartsWith("ITEM\t"))) {
   var fields=line.Split('\t');
   if(fields[1]=="ExampleItem") {
@@ -328,11 +328,11 @@ try {
   if(!identities.SetEquals(actual))throw new Exception("compiled types and native wire identities differ");
   File.Copy(Path.Combine(scratch,"source-runtime-values.txt"),"build/basic-items/full-source-runtime-values.txt",true);
   var minionRows=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt"));
-  // The native bootstrap defers SDK calls; verify the real managed defaults still apply every rarity.
-  foreach(var pair in new[]{("ExampleItem","ExampleModRarity"),("ExampleMeleeWeapon","ExampleModRarity"),
-      ("ExampleStatAccessory","ExampleHigherTierModRarity"),("ExampleWand","ExampleModRarity"),
-      ("ExampleBuffPotion","ExampleHigherTierModRarity")})
+  foreach(var pair in new[]{("ExampleStatAccessory","ExampleHigherTierModRarity"),
+      ("ExampleWand","ExampleModRarity")})
     Equal(true,minionRows.Contains("ITEM_RARITY\t"+pair.Item1+"\t"+pair.Item2));
+  foreach(var name in new[]{"ExampleItem","ExampleMeleeWeapon","ExampleBuffPotion"})
+    Equal(false,minionRows.Any(row=>row.StartsWith("ITEM_RARITY\t"+name+"\t",StringComparison.Ordinal)));
   var blockRows=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt"));
   var blockTile=blockRows.Single(row=>row.StartsWith("TILE\tExampleTile\t",StringComparison.Ordinal)).Split('\t');
   Equal("19968",blockTile[2]);Equal("0",blockTile[3]);Equal("Stone",blockTile[6]);
