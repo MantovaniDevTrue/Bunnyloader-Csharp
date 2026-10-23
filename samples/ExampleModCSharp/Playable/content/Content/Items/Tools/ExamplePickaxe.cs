@@ -20,7 +20,7 @@ public sealed class ExamplePickaxe : BunnyItem
         UseStyle = 1;       // ItemUseStyleID.Swing do Terraria Android.
         AutoReuse = true;
         Value = 50000;      // sellPrice(0,1,0,0): value interno e 5x o preco de venda.
-        Rare = 1;           // ItemRarityID.Green.
+        Rare = ItemRarityID.Green;           // ItemRarityID.Green.
         UseSound = "Item1"; // O host atribui o LegacySoundStyle real de SoundID.
     }
 

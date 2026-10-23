@@ -2209,6 +2209,10 @@ float G { get; }
 float R { get; }
 ```
 
+## BunnyLoader.Source.ItemRarityID
+
+abstract class; base: `System.Object`.
+
 ## BunnyLoader.Source.PrefixCategory
 
 enum; base: `System.Enum`.

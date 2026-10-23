@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+python3 tools/ci/check_examplemod_apk_readiness.py
 : "${PRIVATE_INPUTS_REPO:?}" "${GITHUB_SHA:?}" "${GITHUB_RUN_ID:?}"
 test "$(gh repo view "$PRIVATE_INPUTS_REPO" --json isPrivate --jq .isPrivate)" = true
 APK=app/build/outputs/apk/debug/app-debug.apk
@@ -43,10 +44,10 @@ cp build/ready-pr-tests/results.json build/ready-delivery/host-tests.json
 printf '%s\n' "$GITHUB_SHA" > build/ready-delivery/COMMIT.txt
 (cd build/ready-delivery && sha256sum *.apk *.bl *.md *.json COMMIT.txt > SHA256SUMS)
 TAG="ready-prs-qa-${GITHUB_SHA:0:12}"
-printf 'Build experimental 314 sobre 1.0.11 Dust/Invasion QA: corrige rejeição do cajado com velocidade zero. ExampleMod 0.1.65 permanece idêntico ao lote 313. Inclui cajado na mira, Dust Graphics.Color e busca limitada de NPCs.\n\nCommit: %s\nCI: https://github.com/%s/actions/runs/%s\n\nAPK assinado V3; ExampleMod editável. Android e multiplayer aguardam validação real. Não é release estável nem conclusão global dos loaders. Consulte TESTES-ANDROID.md.\n' "$GITHUB_SHA" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID" > build/ready-delivery/NOTES.md
+printf 'Build experimental sobre 1.0.11 Dust/Invasion QA. ExampleMod CSharp %s.\n\nCommit: %s\nCI: https://github.com/%s/actions/runs/%s\n\nAPK assinado V3; ExampleMod editável. Empacotamento condicionado ao fechamento da tradução/loaders. QA Android e multiplayer exigem validação real. Consulte TESTES-ANDROID.md.\n' "$MOD_VERSION" "$GITHUB_SHA" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID" > build/ready-delivery/NOTES.md
 if gh release view "$TAG" --repo "$PRIVATE_INPUTS_REPO" >/dev/null 2>&1; then
   gh release upload "$TAG" build/ready-delivery/* --repo "$PRIVATE_INPUTS_REPO" --clobber
 else
-  gh release create "$TAG" build/ready-delivery/* --repo "$PRIVATE_INPUTS_REPO" --prerelease --title 'Bunny C# 1.0.11 / 314 — correção de registro do cajado' --notes-file build/ready-delivery/NOTES.md
+  gh release create "$TAG" build/ready-delivery/* --repo "$PRIVATE_INPUTS_REPO" --prerelease --title 'Bunny C# 1.0.11 — ExampleMod traduzido para QA' --notes-file build/ready-delivery/NOTES.md
 fi
 printf 'PRIVATE_PREVIEW=https://github.com/%s/releases/tag/%s\n' "$PRIVATE_INPUTS_REPO" "$TAG"

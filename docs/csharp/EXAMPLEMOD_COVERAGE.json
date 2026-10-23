@@ -28,9 +28,9 @@
     "officialCommit": "c9545cf27d56c456321e1896274c02adf67d0140"
   },
   "counts": {
-    "não iniciado": 712,
+    "não iniciado": 706,
+    "validado automaticamente": 14,
     "falhou": 3,
-    "validado automaticamente": 6,
     "validado no Android": 1
   },
   "behaviors": [
@@ -1940,30 +1940,76 @@
       "origin": "Bunny JS 1.9.0",
       "source": "content/Content/Items/Accessories/WaspNest.js",
       "sourceSha256": "09cb1b853a027bba7f02659054e54d90b412f4421375f89c83e6165df504dc7e",
-      "behavior": "SetDefaults",
+      "behavior": "WaspNest.SetDefaults",
       "candidates": [
         "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/WaspNest.cs"
       ],
-      "status": "não iniciado",
-      "note": "Equivalência deste comportamento ainda não auditada.",
-      "implementation": [],
-      "tests": [],
-      "androidEvidence": []
+      "status": "validado automaticamente",
+      "note": "Valores originais (26x26, Green=2, sellPrice 2 gold) e strongBees funcional; Back autoload do JS tem política C++ equivalente. Testes nativos sem QuickJS cobrem slots/desenho, equipamento/vaidade e reset; Android pendente.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/WaspNest.cs",
+        "experiments/csharp/BunnyCsSdk/ItemRarityID.cs",
+        "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeItemPolicies.cpp"
+      ],
+      "tests": [
+        "tests/basic_items/Program.cs",
+        "tests/basic_items/native_item_policies_test.cpp",
+        "tests/basic_items/native_equip_effects_test.cpp",
+        "tests/run_native_item_policies.py",
+        "tests/run_native_equip_effects.py"
+      ],
+      "androidEvidence": [],
+      "validationScope": "host; Android pendente",
+      "validatedFilesSha256": {
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/WaspNest.cs": "91cbe546339393a7d5c29072ec364a0691590add599730ab080a5cf567e45ee4",
+        "experiments/csharp/BunnyCsSdk/ItemRarityID.cs": "799ccba31bb9270a27584f37fd1d76ef0cb930a6012198d79b2e09f8d3cb0865",
+        "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp": "28266529611ef30f7de31852c7946f4f0169c4206a2db7e4f997745ef38a48fa",
+        "app/src/main/cpp/experiments/csharp/NativeItemPolicies.cpp": "3f84104a106b11e24d2ed8b87b5e4608be2efd6d7f0aa469a7e6b908bab18cdd",
+        "tests/basic_items/Program.cs": "d7dcb2e146af0225981e76d270cd10dabe3dc2a2e95fd7ca1e18977195ebe8e2",
+        "tests/basic_items/native_item_policies_test.cpp": "60163349ef0e57bed71f02d576f8bf23ed6fd7192f84d96b95f5c20bb67a1e5d",
+        "tests/basic_items/native_equip_effects_test.cpp": "c3c735b6af17081b85d4f5251ba60872234868fb1d6b8293111936c247c12ce9",
+        "tests/run_native_item_policies.py": "0e538c50af9cda61d6ba28cb6e47b2e18d91af790a349e990303df29b42fdc8b",
+        "tests/run_native_equip_effects.py": "e563138f53d70cf28620a6e102fa992c7696c7fe08327ec2a5e8494ebf8f60d5"
+      }
     },
     {
       "id": "Content/Items/Accessories/WaspNest.js#UpdateAccessory",
       "origin": "Bunny JS 1.9.0",
       "source": "content/Content/Items/Accessories/WaspNest.js",
       "sourceSha256": "09cb1b853a027bba7f02659054e54d90b412f4421375f89c83e6165df504dc7e",
-      "behavior": "UpdateAccessory",
+      "behavior": "WaspNest.UpdateAccessory",
       "candidates": [
         "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/WaspNest.cs"
       ],
-      "status": "não iniciado",
-      "note": "Equivalência deste comportamento ainda não auditada.",
-      "implementation": [],
-      "tests": [],
-      "androidEvidence": []
+      "status": "validado automaticamente",
+      "note": "Valores originais (26x26, Green=2, sellPrice 2 gold) e strongBees funcional; Back autoload do JS tem política C++ equivalente. Testes nativos sem QuickJS cobrem slots/desenho, equipamento/vaidade e reset; Android pendente.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/WaspNest.cs",
+        "experiments/csharp/BunnyCsSdk/ItemRarityID.cs",
+        "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeItemPolicies.cpp"
+      ],
+      "tests": [
+        "tests/basic_items/Program.cs",
+        "tests/basic_items/native_item_policies_test.cpp",
+        "tests/basic_items/native_equip_effects_test.cpp",
+        "tests/run_native_item_policies.py",
+        "tests/run_native_equip_effects.py"
+      ],
+      "androidEvidence": [],
+      "validationScope": "host; Android pendente",
+      "validatedFilesSha256": {
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/WaspNest.cs": "91cbe546339393a7d5c29072ec364a0691590add599730ab080a5cf567e45ee4",
+        "experiments/csharp/BunnyCsSdk/ItemRarityID.cs": "799ccba31bb9270a27584f37fd1d76ef0cb930a6012198d79b2e09f8d3cb0865",
+        "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp": "28266529611ef30f7de31852c7946f4f0169c4206a2db7e4f997745ef38a48fa",
+        "app/src/main/cpp/experiments/csharp/NativeItemPolicies.cpp": "3f84104a106b11e24d2ed8b87b5e4608be2efd6d7f0aa469a7e6b908bab18cdd",
+        "tests/basic_items/Program.cs": "d7dcb2e146af0225981e76d270cd10dabe3dc2a2e95fd7ca1e18977195ebe8e2",
+        "tests/basic_items/native_item_policies_test.cpp": "60163349ef0e57bed71f02d576f8bf23ed6fd7192f84d96b95f5c20bb67a1e5d",
+        "tests/basic_items/native_equip_effects_test.cpp": "c3c735b6af17081b85d4f5251ba60872234868fb1d6b8293111936c247c12ce9",
+        "tests/run_native_item_policies.py": "0e538c50af9cda61d6ba28cb6e47b2e18d91af790a349e990303df29b42fdc8b",
+        "tests/run_native_equip_effects.py": "e563138f53d70cf28620a6e102fa992c7696c7fe08327ec2a5e8494ebf8f60d5"
+      }
     },
     {
       "id": "Content/Items/Ammo/ExampleBullet.js#SetDefaults",
@@ -3848,30 +3894,52 @@
       "origin": "Bunny JS 1.9.0",
       "source": "content/Content/Items/Tools/ExampleHamaxe.js",
       "sourceSha256": "9edc2f8f3b3e6a4bc4bae70df770bf891ad924b3fc018370bb5a9f6963bfb7c6",
-      "behavior": "AddRecipes",
+      "behavior": "ExampleHamaxe.AddRecipes",
       "candidates": [
         "samples/ExampleModCSharp/Playable/content/Content/Items/Tools/ExampleHamaxe.cs"
       ],
-      "status": "não iniciado",
-      "note": "Equivalência deste comportamento ainda não auditada.",
-      "implementation": [],
-      "tests": [],
-      "androidEvidence": []
+      "status": "validado automaticamente",
+      "note": "Valores e receita conferidos no C# real: Green=2, poderes/tempos/dano/knockback originais e 10 ExampleItem na Work Bench. Uso/mineração no Android pendentes.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Tools/ExampleHamaxe.cs",
+        "experiments/csharp/BunnyCsSdk/ItemRarityID.cs"
+      ],
+      "tests": [
+        "tests/basic_items/Program.cs"
+      ],
+      "androidEvidence": [],
+      "validationScope": "host; Android pendente",
+      "validatedFilesSha256": {
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Tools/ExampleHamaxe.cs": "dad11ffac6abb0104ef2b2bb4323bbc83d597ba2b9be9363464813fc043021b2",
+        "experiments/csharp/BunnyCsSdk/ItemRarityID.cs": "799ccba31bb9270a27584f37fd1d76ef0cb930a6012198d79b2e09f8d3cb0865",
+        "tests/basic_items/Program.cs": "d7dcb2e146af0225981e76d270cd10dabe3dc2a2e95fd7ca1e18977195ebe8e2"
+      }
     },
     {
       "id": "Content/Items/Tools/ExampleHamaxe.js#SetDefaults",
       "origin": "Bunny JS 1.9.0",
       "source": "content/Content/Items/Tools/ExampleHamaxe.js",
       "sourceSha256": "9edc2f8f3b3e6a4bc4bae70df770bf891ad924b3fc018370bb5a9f6963bfb7c6",
-      "behavior": "SetDefaults",
+      "behavior": "ExampleHamaxe.SetDefaults",
       "candidates": [
         "samples/ExampleModCSharp/Playable/content/Content/Items/Tools/ExampleHamaxe.cs"
       ],
-      "status": "não iniciado",
-      "note": "Equivalência deste comportamento ainda não auditada.",
-      "implementation": [],
-      "tests": [],
-      "androidEvidence": []
+      "status": "validado automaticamente",
+      "note": "Valores e receita conferidos no C# real: Green=2, poderes/tempos/dano/knockback originais e 10 ExampleItem na Work Bench. Uso/mineração no Android pendentes.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Tools/ExampleHamaxe.cs",
+        "experiments/csharp/BunnyCsSdk/ItemRarityID.cs"
+      ],
+      "tests": [
+        "tests/basic_items/Program.cs"
+      ],
+      "androidEvidence": [],
+      "validationScope": "host; Android pendente",
+      "validatedFilesSha256": {
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Tools/ExampleHamaxe.cs": "dad11ffac6abb0104ef2b2bb4323bbc83d597ba2b9be9363464813fc043021b2",
+        "experiments/csharp/BunnyCsSdk/ItemRarityID.cs": "799ccba31bb9270a27584f37fd1d76ef0cb930a6012198d79b2e09f8d3cb0865",
+        "tests/basic_items/Program.cs": "d7dcb2e146af0225981e76d270cd10dabe3dc2a2e95fd7ca1e18977195ebe8e2"
+      }
     },
     {
       "id": "Content/Items/Tools/ExampleHookItem.js#SetDefaults",
@@ -3891,30 +3959,52 @@
       "origin": "Bunny JS 1.9.0",
       "source": "content/Content/Items/Tools/ExamplePickaxe.js",
       "sourceSha256": "aa6a12cba05fc70cccffc2bd568e56c353872ede82c7fff14ffc4cfe1d608895",
-      "behavior": "AddRecipes",
+      "behavior": "ExamplePickaxe.AddRecipes",
       "candidates": [
         "samples/ExampleModCSharp/Playable/content/Content/Items/Tools/ExamplePickaxe.cs"
       ],
-      "status": "não iniciado",
-      "note": "Equivalência deste comportamento ainda não auditada.",
-      "implementation": [],
-      "tests": [],
-      "androidEvidence": []
+      "status": "validado automaticamente",
+      "note": "Valores e receita conferidos no C# real: Green=2, poderes/tempos/dano/knockback originais e 10 ExampleItem na Work Bench. Uso/mineração no Android pendentes.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Tools/ExamplePickaxe.cs",
+        "experiments/csharp/BunnyCsSdk/ItemRarityID.cs"
+      ],
+      "tests": [
+        "tests/basic_items/Program.cs"
+      ],
+      "androidEvidence": [],
+      "validationScope": "host; Android pendente",
+      "validatedFilesSha256": {
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Tools/ExamplePickaxe.cs": "5e879ea61d78a9113901865e492cc872a42a0531732d77fd933b0a4175149035",
+        "experiments/csharp/BunnyCsSdk/ItemRarityID.cs": "799ccba31bb9270a27584f37fd1d76ef0cb930a6012198d79b2e09f8d3cb0865",
+        "tests/basic_items/Program.cs": "d7dcb2e146af0225981e76d270cd10dabe3dc2a2e95fd7ca1e18977195ebe8e2"
+      }
     },
     {
       "id": "Content/Items/Tools/ExamplePickaxe.js#SetDefaults",
       "origin": "Bunny JS 1.9.0",
       "source": "content/Content/Items/Tools/ExamplePickaxe.js",
       "sourceSha256": "aa6a12cba05fc70cccffc2bd568e56c353872ede82c7fff14ffc4cfe1d608895",
-      "behavior": "SetDefaults",
+      "behavior": "ExamplePickaxe.SetDefaults",
       "candidates": [
         "samples/ExampleModCSharp/Playable/content/Content/Items/Tools/ExamplePickaxe.cs"
       ],
-      "status": "não iniciado",
-      "note": "Equivalência deste comportamento ainda não auditada.",
-      "implementation": [],
-      "tests": [],
-      "androidEvidence": []
+      "status": "validado automaticamente",
+      "note": "Valores e receita conferidos no C# real: Green=2, poderes/tempos/dano/knockback originais e 10 ExampleItem na Work Bench. Uso/mineração no Android pendentes.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Tools/ExamplePickaxe.cs",
+        "experiments/csharp/BunnyCsSdk/ItemRarityID.cs"
+      ],
+      "tests": [
+        "tests/basic_items/Program.cs"
+      ],
+      "androidEvidence": [],
+      "validationScope": "host; Android pendente",
+      "validatedFilesSha256": {
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Tools/ExamplePickaxe.cs": "5e879ea61d78a9113901865e492cc872a42a0531732d77fd933b0a4175149035",
+        "experiments/csharp/BunnyCsSdk/ItemRarityID.cs": "799ccba31bb9270a27584f37fd1d76ef0cb930a6012198d79b2e09f8d3cb0865",
+        "tests/basic_items/Program.cs": "d7dcb2e146af0225981e76d270cd10dabe3dc2a2e95fd7ca1e18977195ebe8e2"
+      }
     },
     {
       "id": "Content/Items/Weapons/ExampleCustomDamageWeapon.js#AddRecipes",
@@ -9540,11 +9630,12 @@
       "id": "requirement:aim-before-shoot",
       "status": "validado automaticamente",
       "behavior": "Player.direction sincronizado antes de ItemCheck_Shoot",
-      "note": "Falha myPlayer do APK 311 corrigida no 312; usuário relatou armas funcionando. No lote 313, regressões de mira passam no host; nova opção do cajado ainda aguarda Android.",
+      "note": "Falha myPlayer do APK 311 corrigida no 312; usuário relatou armas funcionando. No lote 313, regressões de mira passam no host; nova opção do cajado ainda aguarda Android. O resolvedor agora aceita getter estático válido mesmo quando há um campo de instância homônimo; a ausência de ambos continua rejeitada.",
       "implementation": [
         "app/src/main/cpp/experiments/csharp/NativeShootingAim.h",
         "app/src/main/cpp/experiments/csharp/NativeShooting.cpp",
-        "experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs"
+        "experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs",
+        "app/src/main/cpp/experiments/csharp/NativeStaticValue.h"
       ],
       "tests": [
         "tests/shooting/run.sh",
@@ -9564,7 +9655,8 @@
         "app/src/main/cpp/experiments/csharp/NativeShooting.cpp": "b10cc897e33c3b831ef9091d5bba246bcb7c1087adb452d5416813575b3ded51",
         "experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs": "ffbd184d04b6f237205318b88963dc92879b0bea81dee9d69404c174d4563da0",
         "tests/shooting/run.sh": "1d8995d8ac9f6c41073c41452cde4360098cc762cfe3f593366c31c9eb74842a",
-        "tests/shooting/native_test.cpp": "f1145f684b51104c82df24bbd01ecd297bfb07645264dd422aed4e49bad747e1"
+        "tests/shooting/native_test.cpp": "e6440784bfd84a4df41853de245f8a28d727ca6ef9179ff64a5bcd4eaeb72bd2",
+        "app/src/main/cpp/experiments/csharp/NativeStaticValue.h": "b7294d34a83e2c84a900933ae21148b88c4c931a47d2402b69a3aa3d76413463"
       }
     },
     {
@@ -9586,7 +9678,7 @@
       "validatedFilesSha256": {
         "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Ranged/ExampleGun.cs": "87be9263633bbf52aff6cce73cd848e8c6d3be78eebb0ab280042ae7d9ecd75f",
         "tests/shooting/Program.cs": "d294dc22e3004da1684bdd4ed9a325d22b4af74fa929933f18042e8b80c58834",
-        "tests/shooting/native_test.cpp": "f1145f684b51104c82df24bbd01ecd297bfb07645264dd422aed4e49bad747e1"
+        "tests/shooting/native_test.cpp": "e6440784bfd84a4df41853de245f8a28d727ca6ef9179ff64a5bcd4eaeb72bd2"
       }
     },
     {
@@ -9608,7 +9700,7 @@
       "validatedFilesSha256": {
         "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Ranged/ExampleRocketLauncher.cs": "df1a67d32f99a398b5d0e0363da62865328f9dfc7ef1c08c75fa4f76a0d0e3f2",
         "tests/shooting/Program.cs": "d294dc22e3004da1684bdd4ed9a325d22b4af74fa929933f18042e8b80c58834",
-        "tests/shooting/native_test.cpp": "f1145f684b51104c82df24bbd01ecd297bfb07645264dd422aed4e49bad747e1"
+        "tests/shooting/native_test.cpp": "e6440784bfd84a4df41853de245f8a28d727ca6ef9179ff64a5bcd4eaeb72bd2"
       }
     },
     {
@@ -9630,7 +9722,7 @@
       "validatedFilesSha256": {
         "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Ranged/ExampleShotgun.cs": "f2483447a74c07fe4db4c6527fd58d209739f855b4cd2c68ef6267ab82eaad34",
         "tests/shooting/Program.cs": "d294dc22e3004da1684bdd4ed9a325d22b4af74fa929933f18042e8b80c58834",
-        "tests/shooting/native_test.cpp": "f1145f684b51104c82df24bbd01ecd297bfb07645264dd422aed4e49bad747e1"
+        "tests/shooting/native_test.cpp": "e6440784bfd84a4df41853de245f8a28d727ca6ef9179ff64a5bcd4eaeb72bd2"
       }
     },
     {
@@ -9686,12 +9778,13 @@
       "id": "requirement:summon-staff-reference",
       "status": "validado automaticamente",
       "behavior": "Cajado: defaults, som, flags e origem na mira limitada",
-      "note": "Relato real após lote 313: ExampleMinionItem rejeitado no registro (versionCode não informado no trecho). Mínimo antigo de velocidade 1 reproduz a falha; APK 314 aceita zero nas três etapas. Ramo de registro e defaults individuais de produção testados no host; reteste Android pendente.",
+      "note": "Relato após 314 chegou ao binding e falhou em ItemRarityID.Cyan: classe do tModLoader ausente no Android. Correção em fontes implementa os 17 nomes em C++; teste usa todo o descritor compilado do cajado e reproduz a falha com o resolvedor anterior. Host aprovado; Novo APK bloqueado até concluir os loaders; Android pendente.",
       "implementation": [
         "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Summon/ExampleMinionItem.cs",
         "app/src/main/cpp/experiments/csharp/NativeDefaults.h",
         "app/src/main/cpp/experiments/csharp/NativeShooting.cpp",
-        "app/src/main/cpp/experiments/csharp/NativeContent.cpp"
+        "app/src/main/cpp/experiments/csharp/NativeContent.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeContentIds.h"
       ],
       "tests": [
         "tests/shooting/Program.cs",
@@ -9707,18 +9800,25 @@
           "apkVersionCode": null,
           "log": "[CSharp][ERROR][Register] Class=ExampleMinionItem Category=BunnyWeapon Stage=NativeRegister Expected=NonNegativeContentId Actual=-1 Result=LoadInterrupted Detail=NativeRegistrationRejected",
           "conclusion": "Falha real de registro; não comprova comportamento do cajado. Correção 314 ainda sem reteste Android."
+        },
+        {
+          "source": "Relatório enviado pelo usuário: 2026-10-23 00:29, sessão PID 6007, ExampleMod 0.1.65 + Lights And Shadows 1.0.0",
+          "apkVersionCode": null,
+          "log": "ExampleMinionItem Category=Item ContentId=6235 Field=rare Stage=BindDefaults Expected=ItemRarityID.Cyan Actual=Field=Cyan Reason=MissingStaticId Result=BatchRejected Reason=NativeIdResolutionFailed",
+          "conclusion": "Registro progrediu até defaults; lote C# rejeitado. Compilação verificada e contato nativo do minion não validam o carregamento completo. Correção seguinte sem APK; loader ainda sem reteste Android."
         }
       ],
       "validatedFilesSha256": {
         "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Summon/ExampleMinionItem.cs": "98694097f2e06ee2e0c46dd3940558e022f5ae85f6e33134850d561692002df9",
-        "app/src/main/cpp/experiments/csharp/NativeDefaults.h": "ddbe2d22cf813be7621c4e66e777665586ebcc0eb29ed62414a957110ac1c658",
+        "app/src/main/cpp/experiments/csharp/NativeDefaults.h": "f5c633d17cfc3cf13cf5664e7f967069d38ad9cff99c092385c09c5317c5c5a2",
         "app/src/main/cpp/experiments/csharp/NativeShooting.cpp": "b10cc897e33c3b831ef9091d5bba246bcb7c1087adb452d5416813575b3ded51",
         "tests/shooting/Program.cs": "d294dc22e3004da1684bdd4ed9a325d22b4af74fa929933f18042e8b80c58834",
-        "tests/shooting/native_test.cpp": "f1145f684b51104c82df24bbd01ecd297bfb07645264dd422aed4e49bad747e1",
-        "tests/summon_lifecycle/native_defaults_test.cpp": "74c9a8054e0a9090ebbe74bc6e6c1afbe02ffacf0582c9f29de354281f57e5ac",
+        "tests/shooting/native_test.cpp": "e6440784bfd84a4df41853de245f8a28d727ca6ef9179ff64a5bcd4eaeb72bd2",
+        "tests/summon_lifecycle/native_defaults_test.cpp": "07f273dc9c97e28bc5c24cc1b3aec59d6970b6ce580150659e6c9a6250000ea7",
         "app/src/main/cpp/experiments/csharp/NativeContent.cpp": "8b72c25b672b3355e3d51c0f59a56083bad71911a75621ba9fdc93d03059c95a",
         "tests/summon_lifecycle/source_damage_test.cpp": "cf2b0278d50b732b03be55c1ffa832af4cc10a1230cd16fa0d5ea2d0ebe2d0b4",
-        "tests/summon_lifecycle/run.sh": "f6d7474a7ee5beef661a17e2f2f66314e2edd7aa5915fb9d0611b0a4821f0a02"
+        "tests/summon_lifecycle/run.sh": "f6d7474a7ee5beef661a17e2f2f66314e2edd7aa5915fb9d0611b0a4821f0a02",
+        "app/src/main/cpp/experiments/csharp/NativeContentIds.h": "7c5543d9e13e08100ca27c2b168e57906a65a275fa7c077e29b34f930dcc90c3"
       }
     },
     {
@@ -9757,6 +9857,48 @@
           "log": "Invasion=Running Progress=0/30 Active=0 SpawnFailed=5; Reason=NoSafeSpawnSite"
         }
       ]
+    },
+    {
+      "id": "requirement:apk-after-loaders",
+      "status": "validado automaticamente",
+      "behavior": "Bloquear APK enquanto a tradução ou os loaders tiverem pendências",
+      "note": "Instrução do usuário em 2026-10-23. Validador executado: bloqueia o estado atual. Gradle e workflow configurados para chamar o validador; configuração Gradle não executada neste host.",
+      "implementation": [
+        "tools/ci/check_examplemod_apk_readiness.py",
+        "app/build.gradle.kts",
+        ".github/workflows/build-ready-prs-preview.yml"
+      ],
+      "tests": [
+        "tests/test_examplemod_apk_readiness.py"
+      ],
+      "validationScope": "host; Android pendente",
+      "androidEvidence": [],
+      "validatedFilesSha256": {
+        "tools/ci/check_examplemod_apk_readiness.py": "9ddd122894cada5142fdf6f704db89dc6afb332cab7d230c141c3537c78df1a9",
+        "app/build.gradle.kts": "1b01e6c8ce92e50e0f20b6c363ddb3a7bd1ec4ef63f748b9749117dccfb63b5e",
+        ".github/workflows/build-ready-prs-preview.yml": "bdf71aa8c43066c912263f5746b2cbcc47f52dc30fa58daa44f2a08b49b4737b",
+        "tests/test_examplemod_apk_readiness.py": "68516479a1228cdd6d48fe84917b18df263c96affa0459181b82d6127a1c888c"
+      }
+    },
+    {
+      "id": "requirement:angler-static-properties",
+      "status": "validado automaticamente",
+      "behavior": "Quest loader resolve propriedades estáticas Android e preserva campos legados",
+      "note": "Inspeção confirma getters estáticos e setter de npcChatCornerItem. Teste executa loader C++ real: propriedades com campos de instância homônimos, campos estáticos, tipos inválidos, exceções, seleção/chat e unload. Android pendente; não declara o loader inteiro concluído.",
+      "implementation": [
+        "app/src/main/cpp/experiments/csharp/NativeAnglerQuestGameplay.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeStaticValue.h"
+      ],
+      "tests": [
+        "tests/angler_quest/native_il2cpp_integration_test.cpp"
+      ],
+      "validationScope": "host; Android pendente",
+      "androidEvidence": [],
+      "validatedFilesSha256": {
+        "app/src/main/cpp/experiments/csharp/NativeAnglerQuestGameplay.cpp": "9a7fd3e21d6f80caa406f5656b93c9874125cc5985e618f593ff198263033d9a",
+        "app/src/main/cpp/experiments/csharp/NativeStaticValue.h": "b7294d34a83e2c84a900933ae21148b88c4c931a47d2402b69a3aa3d76413463",
+        "tests/angler_quest/native_il2cpp_integration_test.cpp": "4fe5b4bcdc4a158b3524a601317b5f696ce276aec872b2b1d757ea55e346485d"
+      }
     }
   ],
   "officialBacklog": [

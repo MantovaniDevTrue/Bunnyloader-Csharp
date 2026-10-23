@@ -4111,6 +4111,15 @@
       "methods": []
     },
     {
+      "name": "BunnyLoader.Source.ItemRarityID",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [],
+      "values": [],
+      "methods": []
+    },
+    {
       "name": "BunnyLoader.Source.PrefixCategory",
       "kind": "enum",
       "baseType": "System.Enum",

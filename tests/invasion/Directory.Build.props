@@ -1,0 +1,9 @@
+<Project>
+  <PropertyGroup>
+    <!-- Several executable fixtures share this directory. A shared obj/apphost
+         can launch the previous fixture during an incremental dotnet run. -->
+    <BaseIntermediateOutputPath>$(MSBuildThisFileDirectory)obj/$(MSBuildProjectName)/</BaseIntermediateOutputPath>
+    <BaseOutputPath>$(MSBuildThisFileDirectory)bin/$(MSBuildProjectName)/</BaseOutputPath>
+    <DefaultItemExcludes>$(DefaultItemExcludes);**/obj/**;**/bin/**</DefaultItemExcludes>
+  </PropertyGroup>
+</Project>

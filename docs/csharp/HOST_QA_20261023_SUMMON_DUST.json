@@ -436,5 +436,68 @@
     "modVersion": "0.1.65",
     "modPackageUnchanged": true,
     "androidValidation": "pending"
+  },
+  "hotfix315": {
+    "baseline": "9fceded1637fecf293f0ce79a0cbf711574a2d3a",
+    "hostOnly": true,
+    "deviceAvailable": false,
+    "results": [
+      {
+        "command": "bash tests/summon_lifecycle/run.sh",
+        "code": 0,
+        "scope": "Production full compiled staff defaults with missing native ItemRarityID, exact primitive values, all 17 public rarity constants and atomic rejection; full summon lifecycle suite"
+      },
+      {
+        "command": "Counterfactual full staff test with previous native-only ID resolver",
+        "expectedFailure": true,
+        "observedReturnCode": -6
+      },
+      {
+        "command": "g++ production NativeContent.cpp syntax check with warnings as errors",
+        "code": 0
+      },
+      {
+        "command": "Compare C++ table with official ItemRarityID.cs at c9545cf27d56c456321e1896274c02adf67d0140",
+        "code": 0,
+        "constantsMatched": 17
+      }
+    ],
+    "offlineMetadataAudit": {
+      "primitiveAndSoundFields": 38,
+      "symbolicIds": [
+        [
+          "AmmoID",
+          "Bullet"
+        ],
+        [
+          "AmmoID",
+          "Rocket"
+        ],
+        [
+          "ItemRarityID",
+          "Cyan"
+        ],
+        [
+          "ItemUseStyleID",
+          "Swing"
+        ],
+        [
+          "ProjectileID",
+          "PurificationPowder"
+        ],
+        [
+          "ProjectileID",
+          "RocketI"
+        ]
+      ],
+      "allNativeClassesAndNamedFieldsPresentExceptTmlOnlyItemRarityID": true,
+      "validationScope": "offline Android metadata presence only; no game execution"
+    },
+    "modVersion": "0.1.66",
+    "modContentUnchanged": false,
+    "androidValidation": "pending",
+    "apkProduced": false,
+    "packagingBlockedByUser": true,
+    "note": "Nome histórico do lote preparado; workflow de APK não iniciado. Usuário exige concluir os loaders antes de empacotar."
   }
 }

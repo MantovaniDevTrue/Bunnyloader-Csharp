@@ -1,5 +1,6 @@
 #pragma once
 #include "il2cpp/FieldContract.h"
+#include "experiments/csharp/NativeContentIds.h"
 #include "experiments/csharp/NativeUseSounds.h"
 #include <atomic>
 #include <charconv>
@@ -115,7 +116,7 @@ inline bool bindNativeDefaults(Il2CppClass* cls,const NativeDefaultsRequest& req
                 const auto& family=parts[2];
                 if(family!="AmmoID"&&family!="ProjectileID"&&family!="ItemID"&&family!="ItemUseStyleID"&&family!="ItemRarityID")return reject(name,"UnsupportedIdFamily","Terraria.ID content constant",family);
                 std::string why;
-                if(!il2cpp::readNativeId(il2cpp::findClass({"Terraria.ID",family,{}}),parts[3].c_str(),&value,&why))return reject(name,"NativeIdResolutionFailed",family+"."+parts[3],why);
+                if(!resolveNativeContentId(family,parts[3],&value,&why))return reject(name,"NativeIdResolutionFailed",family+"."+parts[3],why);
             } else return reject(name,"InvalidTypedDescriptor","i,b,f,d,p",record);
             if(((name=="width"||name=="height")&&(value<1||value>4096))||
                (name=="extraUpdates"&&(value<0||value>64))||(name=="maxStack"&&(value<1||value>9999))||

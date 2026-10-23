@@ -122,7 +122,7 @@
   {
     "source": "check-csharp-angler-quest-host.yml",
     "name": "Execute angler quest hooks against host IL2CPP fixture",
-    "command": "set -euo pipefail\ng++ -std=c++20 -Wall -Wextra -Werror -Wno-deprecated-declarations -pedantic -pthread \\\n  -I app/src/main/cpp -I tests/basic_items/include \\\n  tests/angler_quest/native_il2cpp_integration_test.cpp \\\n  app/src/main/cpp/experiments/csharp/NativeAnglerQuestGameplay.cpp \\\n  -o \"$RUNNER_TEMP/angler_il2cpp_integration_test\"\n\"$RUNNER_TEMP/angler_il2cpp_integration_test\"\n"
+    "command": "set -euo pipefail\ng++ -std=c++20 -Wall -Wextra -Werror -Wno-deprecated-declarations -pedantic -pthread \\\n  -I app/src/main/cpp -I tests/basic_items/include \\\n  tests/angler_quest/native_il2cpp_integration_test.cpp \\\n  app/src/main/cpp/experiments/csharp/NativeAnglerQuestGameplay.cpp \\\n  -o \"$RUNNER_TEMP/angler_il2cpp_integration_test\"\n\"$RUNNER_TEMP/angler_il2cpp_integration_test\"\n\"$RUNNER_TEMP/angler_il2cpp_integration_test\" --fields\n"
   },
   {
     "source": "check-csharp-angler-quest-host.yml",
@@ -323,5 +323,10 @@
     "name": "Audit CSharp native tooltip activation, line colors and glyph drawing",
     "source": "integration-regression",
     "command": "python3 tests/basic_items/check_csharp_tooltip_refresh.py"
+  },
+  {
+    "source": "ExampleMod APK readiness policy",
+    "name": "Prevent APK packaging with incomplete translated behaviors or loaders",
+    "command": "python3 tests/test_examplemod_apk_readiness.py"
   }
 ]

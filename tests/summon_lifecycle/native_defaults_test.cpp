@@ -8,14 +8,17 @@ struct FieldInfo {Il2CppType type;size_t offset;uint32_t flags=0;};
 bl::il2cpp::Api fixture;
 Il2CppClass byteClass{"System","Byte",1,true},boolClass{"System","Boolean",1,true},floatClass{"System","Single",4,true},intClass{"System","Int32",4,true},objectClass{"Terraria","Item",64,false};
 Il2CppClass styleClass{"Terraria.Audio","LegacySoundStyle",16,false},boolArrayClass{"System","Boolean[]",16,false,1,&boolClass},floatArrayClass{"System","Int32[]",16,false,1,&intClass};
-Il2CppObject soundStyle{&styleClass,nullptr};int barriers=0;
+Il2CppObject soundStyle{&styleClass,nullptr};int barriers=0,rarityClassLookups=0;
 struct BoolArray {Il2CppArray array;uint8_t cells[6400]{};} whole{{{&boolArrayClass,nullptr},nullptr,6400},{}},lockOn{{{&boolArrayClass,nullptr},nullptr,6400},{}};
 struct FloatArray {Il2CppArray array;int cells[6400]{};} slots{{{&floatArrayClass,nullptr},nullptr,6400},{}};
 std::map<std::string,FieldInfo> fields;
 namespace bl::il2cpp {
 Api& api(){return fixture;}
 FieldInfo* findField(Il2CppClass*,std::string_view name){auto it=fields.find(std::string(name));return it==fields.end()?nullptr:&it->second;}
-Il2CppClass* findClass(const TypeRef&){return &objectClass;}
+Il2CppClass* findClass(const TypeRef& ref){
+ if(ref.ns=="Terraria.ID"&&ref.name=="ItemRarityID"){++rarityClassLookups;return nullptr;}
+ return &objectClass;
+}
 }
 int resolve(const std::string& key){return key=="independent/ExampleBulletProjectile"?1200:-1;}
 int main(int argc,char** argv) {
@@ -30,6 +33,7 @@ int main(int argc,char** argv) {
   else if(f==&fields["GamepadWholeScreenUseRange"])*static_cast<Il2CppArray**>(output)=&whole.array;
   else if(f==&fields["LockOnIgnoresCollision"])*static_cast<Il2CppArray**>(output)=&lockOn.array;
   else if(f==&fields["StaffMinionSlotsRequired"])*static_cast<Il2CppArray**>(output)=&slots.array;
+  else if(f==&fields["Swing"])*static_cast<int*>(output)=1;
   else *static_cast<int*>(output)=97;
  };
  fixture.class_get_rank=[](const Il2CppClass* cls){return cls->rank;};fixture.class_get_element_class=[](Il2CppClass* cls){return cls->element;};
@@ -70,5 +74,44 @@ int main(int argc,char** argv) {
  auto stable=std::atomic_load(&g_nativeDefaults);whole.array.length=10;assert(!publishNativeDefaults({staff},&error,resolve)&&stable==std::atomic_load(&g_nativeDefaults));whole.array.length=6400;
  fields["Item44"].type.cls=&intClass;assert(!publishNativeDefaults({staff},&error,resolve));fields["Item44"].type.cls=&styleClass;
  fields["UseSound"].flags=0x20;assert(!publishNativeDefaults({staff},&error,resolve));fields["UseSound"].flags=0;
+ // Bind EVERY field from the actual compiled staff, with ItemRarityID absent
+ // and the real Android primitive types (rare:Int32, useStyle:Byte).
+ std::ifstream staffWire(argv[1]);std::string staffPayload;
+ while(std::getline(staffWire,row))if(row.rfind("NATIVE_ITEM\tExampleMinionItem\t",0)==0)staffPayload=row.substr(row.find_last_of('\t')+1);
+ assert(!staffPayload.empty());
+ fields["rare"]={{&intClass},20};fields["useStyle"]={{&byteClass},16};
+ fields["autoReuse"]={{&boolClass},17};fields["height"]={{&intClass},24};
+ fields["knockBack"]={{&floatClass},28};fields["mana"]={{&intClass},32};
+ fields["useAnimation"]={{&intClass},36};fields["value"]={{&intClass},48};
+ fields["width"]={{&intClass},52};fields["Swing"]={{&intClass},0,0x50};
+ staff.name="ExampleMinionItem";staff.descriptor=staffPayload;
+ assert(publishNativeDefaults({staff},&error,resolve));
+ std::memset(bytes,0xAA,sizeof bytes);applyNativeDefaults(reinterpret_cast<Il2CppObject*>(bytes),false,6231);
+ auto integerAt=[&](int offset){int n=0;std::memcpy(&n,bytes+offset,4);return n;};
+ float knockBack=0;std::memcpy(&knockBack,bytes+28,4);
+ assert(bytes[16]==1&&bytes[17]==0&&bytes[18]==0xAA&&bytes[19]==0xAA);
+ assert(integerAt(20)==9&&integerAt(24)==32&&knockBack==3&&integerAt(32)==10);
+ assert(integerAt(36)==36&&integerAt(48)==1500000&&integerAt(52)==32);
+ std::memcpy(&actual,bytes+40,sizeof actual);assert(actual==&soundStyle);
+ assert(whole.cells[6231]&&lockOn.cells[6231]&&slots.cells[6231]==1&&rarityClassLookups==0);
+ // All named public constants, including valid negative rarities. Unknown names
+ // must reject atomically; they must not fall back to White or another class.
+ const std::pair<const char*,int> rarities[]={{"Master",-13},{"Expert",-12},{"Quest",-11},{"Gray",-1},{"White",0},{"Blue",1},{"Green",2},{"Orange",3},{"LightRed",4},{"Pink",5},{"LightPurple",6},{"Lime",7},{"Yellow",8},{"Cyan",9},{"Red",10},{"Purple",11},{"Count",12}};
+ for(const auto& [name,value]:rarities){
+   staff.descriptor=std::string("rare:d:ItemRarityID:")+name;
+   assert(publishNativeDefaults({staff},&error,resolve));
+   applyNativeDefaults(reinterpret_cast<Il2CppObject*>(bytes),false,6231);assert(integerAt(20)==value);
+ }
+ stable=std::atomic_load(&g_nativeDefaults);
+ for(const auto& bad:{"rare:d:ItemRarityID:Cyan9","rare:d:ItemRarityID:cyan","useStyle:d:ItemUseStyleID:MissingStyle","rare:d:UnknownFamily:Cyan"}){
+   staff.descriptor=bad;assert(!publishNativeDefaults({staff},&error,resolve));
+   assert(stable==std::atomic_load(&g_nativeDefaults));
+ }
+ assert(error.find("UnsupportedIdFamily")!=std::string::npos&&rarityClassLookups==0);
+ staff.descriptor="useStyle:d:ItemUseStyleID:Swing";
+ fields["Swing"].type.cls=&floatClass;
+ assert(!publishNativeDefaults({staff},&error,resolve)&&stable==std::atomic_load(&g_nativeDefaults));
+ assert(error.find("NativeIdTypeMismatch")!=std::string::npos);fields["Swing"].type.cls=&intClass;
+ std::cout<<"NATIVE_DEFAULTS_FULL_COMPILED_STAFF_ANDROID_WITHOUT_ITEMRARITYID_ALL_RARITIES_AND_ATOMIC_REJECTION_PASS\n";
  std::cout<<"NATIVE_DEFAULTS_PRODUCTION_TYPED_WRITES_BYTE_SENTINELS_IDS_CROSS_MOD_TRANSACTIONAL_REJECTION_AND_COMPILED_EXAMPLE_BULLET_STATIC_SETS_AND_ROOTED_VANILLA_SOUND_PASS\n";
 }

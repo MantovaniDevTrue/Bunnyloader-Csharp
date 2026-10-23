@@ -12,9 +12,9 @@ O catálogo usa cada hook JS como unidade inicial de revisão, com hash do fonte
 
 | Estado | Comportamentos |
 |---|---:|
-| não iniciado | 712 |
+| não iniciado | 706 |
 | implementado sem validar | 0 |
-| validado automaticamente | 6 |
+| validado automaticamente | 14 |
 | validado no Android | 1 |
 | falhou | 3 |
 | bloqueio comprovado | 0 |
@@ -27,16 +27,24 @@ Dust e invasão: o baseline contém correções posteriores aos logs Android de 
 
 | Comportamento | Estado | Observação |
 |---|---|---|
+| Content/Items/Accessories/WaspNest.js#SetDefaults | validado automaticamente | Valores originais (26x26, Green=2, sellPrice 2 gold) e strongBees funcional; Back autoload do JS tem política C++ equivalente. Testes nativos sem QuickJS cobrem slots/desenho, equipamento/vaidade e reset; Android pendente. |
+| Content/Items/Accessories/WaspNest.js#UpdateAccessory | validado automaticamente | Valores originais (26x26, Green=2, sellPrice 2 gold) e strongBees funcional; Back autoload do JS tem política C++ equivalente. Testes nativos sem QuickJS cobrem slots/desenho, equipamento/vaidade e reset; Android pendente. |
+| Content/Items/Tools/ExampleHamaxe.js#AddRecipes | validado automaticamente | Valores e receita conferidos no C# real: Green=2, poderes/tempos/dano/knockback originais e 10 ExampleItem na Work Bench. Uso/mineração no Android pendentes. |
+| Content/Items/Tools/ExampleHamaxe.js#SetDefaults | validado automaticamente | Valores e receita conferidos no C# real: Green=2, poderes/tempos/dano/knockback originais e 10 ExampleItem na Work Bench. Uso/mineração no Android pendentes. |
+| Content/Items/Tools/ExamplePickaxe.js#AddRecipes | validado automaticamente | Valores e receita conferidos no C# real: Green=2, poderes/tempos/dano/knockback originais e 10 ExampleItem na Work Bench. Uso/mineração no Android pendentes. |
+| Content/Items/Tools/ExamplePickaxe.js#SetDefaults | validado automaticamente | Valores e receita conferidos no C# real: Green=2, poderes/tempos/dano/knockback originais e 10 ExampleItem na Work Bench. Uso/mineração no Android pendentes. |
 | requirement:tooltip-without-js | falhou | Dependência confirmada por inspeção de Exports.js/TooltipLoader.js; substituir por renderer nativo. |
-| requirement:aim-before-shoot | validado automaticamente | Falha myPlayer do APK 311 corrigida no 312; usuário relatou armas funcionando. No lote 313, regressões de mira passam no host; nova opção do cajado ainda aguarda Android. |
+| requirement:aim-before-shoot | validado automaticamente | Falha myPlayer do APK 311 corrigida no 312; usuário relatou armas funcionando. No lote 313, regressões de mira passam no host; nova opção do cajado ainda aguarda Android. O resolvedor agora aceita getter estático válido mesmo quando há um campo de instância homônimo; a ausência de ambos continua rejeitada. |
 | requirement:ExampleGun | validado automaticamente | Asserções dos valores/algoritmo do exemplo real e protocolo compilado no host. Trajetória, cano e consumo no motor Android pendentes. |
 | requirement:ExampleRocketLauncher | validado automaticamente | Asserções dos valores/algoritmo do exemplo real e protocolo compilado no host. Trajetória, cano e consumo no motor Android pendentes. |
 | requirement:ExampleShotgun | validado automaticamente | Asserções dos valores/algoritmo do exemplo real e protocolo compilado no host. Trajetória, cano e consumo no motor Android pendentes. |
 | requirement:dust-emission-binding | validado automaticamente | Corrigido e executado no host; reteste Android do novo lote pendente. Ver SUMMON_DUST_INVASION_QA.md. |
 | requirement:android-weapons-user-report | validado no Android | Usuário: As armas funcionou. Escopo: relato de funcionamento; contagem detalhada de pellets, multiplayer e FPS não informados. |
-| requirement:summon-staff-reference | validado automaticamente | Relato real após lote 313: ExampleMinionItem rejeitado no registro (versionCode não informado no trecho). Mínimo antigo de velocidade 1 reproduz a falha; APK 314 aceita zero nas três etapas. Ramo de registro e defaults individuais de produção testados no host; reteste Android pendente. |
+| requirement:summon-staff-reference | validado automaticamente | Relato após 314 chegou ao binding e falhou em ItemRarityID.Cyan: classe do tModLoader ausente no Android. Correção em fontes implementa os 17 nomes em C++; teste usa todo o descritor compilado do cajado e reproduz a falha com o resolvedor anterior. Host aprovado; Novo APK bloqueado até concluir os loaders; Android pendente. |
 | requirement:android-dust-emission | falhou | Relatório 0.1.64: NewDustSignatureUnavailable. Correção do namespace Graphics.Color no novo lote ainda não confirmada em aparelho. |
 | requirement:android-invasion-spawn | falhou | Running com SpawnFailed crescente e NoSafeSpawnSite; busca/diagnósticos ajustados, reteste pendente. |
+| requirement:apk-after-loaders | validado automaticamente | Instrução do usuário em 2026-10-23. Validador executado: bloqueia o estado atual. Gradle e workflow configurados para chamar o validador; configuração Gradle não executada neste host. |
+| requirement:angler-static-properties | validado automaticamente | Inspeção confirma getters estáticos e setter de npcChatCornerItem. Teste executa loader C++ real: propriedades com campos de instância homônimos, campos estáticos, tipos inválidos, exceções, seleção/chat e unload. Android pendente; não declara o loader inteiro concluído. |
 
 Todos os hooks e o backlog oficial estão em [EXAMPLEMOD_COVERAGE.json](EXAMPLEMOD_COVERAGE.json).
 

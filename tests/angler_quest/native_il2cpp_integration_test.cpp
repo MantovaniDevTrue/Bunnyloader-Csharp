@@ -40,7 +40,7 @@ struct FieldInfo {
 };
 
 namespace {
-Il2CppClass kInt{"System","Int32"}, kBool{"System","Boolean"};
+Il2CppClass kInt{"System","Int32"}, kBool{"System","Boolean"},kVoid{"System","Void"};
 Il2CppClass kIntArray{"System","Int32[]",&kInt}, kBoolArray{"System","Boolean[]",&kBool};
 Il2CppClass kMain{"Terraria","Main"}, kLang{"Terraria","Lang"};
 Il2CppClass kSets{"Terraria.ID","Sets"}, kLanguage{"Terraria.Localization","Language"};
@@ -50,6 +50,9 @@ Il2CppType kIntArrayType{"System.Int32[]",&kIntArray};
 Il2CppType kBoolArrayType{"System.Boolean[]",&kBoolArray};
 MethodInfo kSwap{"AnglerQuestSwap","System.Void",nullptr,false};
 MethodInfo kChat{"AnglerQuestChat","System.String","System.Boolean",false};
+MethodInfo kFinishedGetter{"get_anglerQuestFinished","System.Boolean",nullptr,false};
+MethodInfo kCornerGetter{"get_npcChatCornerItem","System.Int32",nullptr,false};
+MethodInfo kCornerSetter{"set_npcChatCornerItem","System.Void","System.Int32",false};
 MethodInfo kName{"GetItemNameValue","System.String","System.Int32",false};
 MethodInfo kCulture{"get_ActiveCulture","Terraria.Localization.GameCulture",nullptr,false};
 MethodInfo kCultureName{"get_Name","System.String",nullptr,true};
@@ -61,6 +64,9 @@ int32_t gCorner=0;
 int32_t gNetMode=0;
 uint8_t gFinished=0, gHard=0;
 bool gBadStaticField=false;
+bool gPropertiesOnly=true;
+int finishedGetterCalls=0,cornerSetterCalls=0;
+bool gThrowFinishedGetter=false,gThrowCornerSetter=false;
 bool gBadNetMode=false;
 bool gFailRackResize=false;
 bool gFailIdsAllocation=false;
@@ -108,6 +114,11 @@ const MethodInfo* findMethod(Il2CppClass* cls,const char* name,int count) {
     if(cls==&kLang && std::strcmp(name,"GetItemNameValue")==0 && count==1)return &kName;
     if(cls==&kLanguage && std::strcmp(name,"get_ActiveCulture")==0 && count==0)return &kCulture;
     if(cls==&kCultureClass && std::strcmp(name,"get_Name")==0 && count==0)return &kCultureName;
+    if(cls==&kMain&&gPropertiesOnly) {
+        if(std::strcmp(name,"get_anglerQuestFinished")==0&&count==0)return &kFinishedGetter;
+        if(!gBadStaticField&&std::strcmp(name,"get_npcChatCornerItem")==0&&count==0)return &kCornerGetter;
+        if(!gBadStaticField&&std::strcmp(name,"set_npcChatCornerItem")==0&&count==1)return &kCornerSetter;
+    }
     return nullptr;
 }
 FieldInfo* findField(Il2CppClass* cls,std::string_view name) {
@@ -131,7 +142,7 @@ void setupApi() {
     a.class_get_method_from_name=findMethod;
     a.class_get_parent=[](Il2CppClass*)->Il2CppClass*{return nullptr;};
     a.field_get_type=[](FieldInfo* field){return field->type;};
-    a.field_get_flags=[](FieldInfo* field)->uint32_t{return gBadStaticField && field==&fCorner ? 0u : 0x10u;};
+    a.field_get_flags=[](FieldInfo* field)->uint32_t{return (gBadStaticField&&field==&fCorner)||(gPropertiesOnly&&(field==&fCorner||field==&fFinished)) ? 0u : 0x10u;};
     a.class_from_il2cpp_type=[](const Il2CppType* t){return t->type;};
     a.class_get_element_class=[](Il2CppClass* cls){return cls->element;};
     a.class_get_rank=[](const Il2CppClass* cls) {return cls==&kBoolArray||cls==&kIntArray?1:0;};
@@ -160,11 +171,13 @@ void setupApi() {
     a.method_get_return_type=[](const MethodInfo* m)->const Il2CppType*{
         static Il2CppType ret{};
         ret.name=m->returnType;
+        ret.type=std::strcmp(m->returnType,"System.Boolean")==0?&kBool:std::strcmp(m->returnType,"System.Int32")==0?&kInt:std::strcmp(m->returnType,"System.Void")==0?&kVoid:nullptr;
         return &ret;
     };
     a.method_get_param=[](const MethodInfo* m,uint32_t)->const Il2CppType*{
         static Il2CppType argument{};
         argument.name=m->parameterType;
+        argument.type=m->parameterType&&std::strcmp(m->parameterType,"System.Int32")==0?&kInt:nullptr;
         return &argument;
     };
     a.type_get_name=[](const Il2CppType* type){return ::strdup(type->name);};
@@ -183,8 +196,16 @@ void setupApi() {
     a.gchandle_free=[](uint32_t handle){assert(gGcRoots.erase(handle)==1);};
     a.runtime_class_init=[](Il2CppClass*){};
     a.string_new=[](const char* value){return str(value);};
-    a.runtime_invoke=[](const MethodInfo* method,void*,void**,Il2CppObject** error) -> Il2CppObject*{
+    a.runtime_invoke=[](const MethodInfo* method,void*,void** arguments,Il2CppObject** error) -> Il2CppObject*{
         *error=nullptr;
+        if((method==&kFinishedGetter&&gThrowFinishedGetter)||(method==&kCornerSetter&&gThrowCornerSetter)){
+            static Il2CppObject exception{&kMain,nullptr};*error=&exception;return nullptr;
+        }
+        if(method==&kFinishedGetter){
+            struct Box {Il2CppObject object;uint8_t value;};static Box boxed{{&kBool,nullptr},0};
+            boxed.value=gFinished;++finishedGetterCalls;return &boxed.object;
+        }
+        if(method==&kCornerSetter){gCorner=*static_cast<int*>(arguments[0]);++cornerSetterCalls;return nullptr;}
         if(method==&kCulture)return &kCultureObject;
         if(method==&kCultureName)return reinterpret_cast<Il2CppObject*>(str(gCulture));
         if(method==&kName)return reinterpret_cast<Il2CppObject*>(str("FISH"));
@@ -260,7 +281,8 @@ namespace bl::log {
 void write(int,const char*,...){}
 }
 
-int main() {
+int main(int argc,char** argv) {
+    gPropertiesOnly=!(argc>1&&std::string(argv[1])=="--fields");
     setupApi();
     gIds=array(&kInt,3);
     auto* data=static_cast<int32_t*>(arrayData(gIds));
@@ -274,6 +296,15 @@ int main() {
         "The upside-down fish","Anywhere",3};
     quest.locales.emplace("pt-BR",std::make_pair("Peixe invertido","Qualquer lugar"));
     assert(reg.publish("examplemodcsharp",{quest},&error));
+    if(gPropertiesOnly) {
+        kFinishedGetter.returnType="System.Int32";
+        bl::csharp::angler::pumpOnGameThread();assert(!bl::csharp::angler::hooksInstalled());
+        kFinishedGetter.returnType="System.Boolean";kFinishedGetter.instance=true;
+        bl::csharp::angler::pumpOnGameThread();assert(!bl::csharp::angler::hooksInstalled());
+        kFinishedGetter.instance=false;kCornerSetter.returnType="System.Boolean";
+        bl::csharp::angler::pumpOnGameThread();assert(!bl::csharp::angler::hooksInstalled());
+        kCornerSetter.returnType="System.Void";
+    }
     gBadStaticField=true;
     bl::csharp::angler::pumpOnGameThread();
     assert(!bl::csharp::angler::hooksInstalled());
@@ -435,6 +466,14 @@ int main() {
     assert(stringAscii(hookedChat(1,&kChat))=="VANILLA");
     gCulture="en-US";
     assert(stringAscii(hookedChat(0,&kChat))=="The upside-down fish\n\n(Anywhere)");
+    if(gPropertiesOnly) {
+        gThrowFinishedGetter=true;
+        assert(stringAscii(hookedChat(0,&kChat))=="VANILLA");
+        gThrowFinishedGetter=false;gThrowCornerSetter=true;
+        assert(stringAscii(hookedChat(0,&kChat))=="VANILLA");
+        gThrowCornerSetter=false;
+        assert(stringAscii(hookedChat(0,&kChat))=="The upside-down fish\n\n(Anywhere)");
+    }
 
     bl::csharp::angler::invalidateWorldSession();
     gIds=array(&kInt,4);
@@ -490,5 +529,7 @@ int main() {
     bl::csharp::angler::pumpOnGameThread();
     assert(static_cast<const uint8_t*>(arrayData(gFlags))[850]==0);
     assert(static_cast<const uint8_t*>(arrayData(gRack))[850]==0);
-    std::cout<<"ANGLER_QUEST_IL2CPP_HOST_INTEGRATION_OK\n";
+    if(gPropertiesOnly)assert(finishedGetterCalls>0&&cornerSetterCalls>0);
+    else assert(finishedGetterCalls==0&&cornerSetterCalls==0);
+    std::cout<<"ANGLER_QUEST_IL2CPP_HOST_INTEGRATION_OK storage="<<(gPropertiesOnly?"StaticPropertiesWithShadowedInstanceFields":"StaticFields")<<"\n";
 }

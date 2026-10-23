@@ -30,7 +30,11 @@ public sealed class BunnyNativeDefaults
         if(!float.IsFinite(value))throw new ArgumentOutOfRangeException(nameof(value),"NativeDefaults requer Single finito");
         return Set(field,"f:"+value.ToString("R",CultureInfo.InvariantCulture));
     }
-    /// <summary>Campo inteiro com ID vanilla resolvido pelo nome e pelo tipo real da constante.</summary>
+    /// <summary>
+    /// Campo inteiro com ID simbólico. ItemRarityID usa a tabela pública do tModLoader
+    /// implementada pelo host nativo, pois essa classe não existe no Android.
+    /// As demais famílias resolvem constantes reais do jogo com tipo validado.
+    /// </summary>
     public BunnyNativeDefaults SetId(string field,string idClass,string name)
     {
         if(idClass!="AmmoID"&&idClass!="ProjectileID"&&idClass!="ItemID"&&idClass!="ItemUseStyleID"&&idClass!="ItemRarityID")

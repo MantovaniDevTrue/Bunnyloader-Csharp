@@ -67,6 +67,8 @@ jobs:
     timeout-minutes: 60
     steps:
     - *id001
+    - name: Require completed ExampleMod port and loaders before APK
+      run: python3 tools/ci/check_examplemod_apk_readiness.py
     - *id002
     - *id003
     - uses: gradle/actions/setup-gradle@v4

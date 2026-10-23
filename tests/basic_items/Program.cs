@@ -30,8 +30,19 @@ Check("sound.immutable-options-paths-and-original-gun",()=>{
  Reject(()=>new BunnySoundStyle("ok.wav",volume:float.NaN));Reject(()=>new BunnySoundStyle("ok.wav",pitch:float.PositiveInfinity));
  Reject(()=>new BunnySoundStyle("ok.wav",maxInstances:-1));Reject(()=>new BunnySoundStyle("ok.wav",limitBehavior:(BunnySoundLimitBehavior)3));
 });
-Check("pickaxe.original-defaults",()=>{var item=new ExamplePickaxe();item.SetDefaults();Equal(220,item.Pick);Equal(20,item.Damage);Equal(6f,item.KnockBack);Equal(10,item.UseTime);Equal(10,item.UseAnimation);Equal(true,item.Melee&&item.AutoReuse);Equal("Item1",item.UseSound);Equal(50000,item.Value);item.AddRecipes();Equal("1,18,mExampleItem:10",item.RecipeDefinitions.Single());});
-Check("hamaxe.original-defaults",()=>{var item=new ExampleHamaxe();item.SetDefaults();Equal(30,item.Axe);Equal(100,item.Hammer);Equal(25,item.Damage);Equal(15,item.UseTime);Equal(15,item.UseAnimation);Equal(50000,item.Value);Equal("Item1",item.UseSound);item.AddRecipes();Equal("1,18,mExampleItem:10",item.RecipeDefinitions.Single());});
+Check("pickaxe.original-defaults",()=>{var item=new ExamplePickaxe();item.SetDefaults();Equal(ItemRarityID.Green,item.Rare);Equal(220,item.Pick);Equal(20,item.Damage);Equal(6f,item.KnockBack);Equal(10,item.UseTime);Equal(10,item.UseAnimation);Equal(true,item.Melee&&item.AutoReuse);Equal("Item1",item.UseSound);Equal(50000,item.Value);item.AddRecipes();Equal("1,18,mExampleItem:10",item.RecipeDefinitions.Single());});
+Check("hamaxe.original-defaults",()=>{var item=new ExampleHamaxe();item.SetDefaults();Equal(ItemRarityID.Green,item.Rare);Equal(30,item.Axe);Equal(100,item.Hammer);Equal(25,item.Damage);Equal(15,item.UseTime);Equal(15,item.UseAnimation);Equal(50000,item.Value);Equal("Item1",item.UseSound);item.AddRecipes();Equal("1,18,mExampleItem:10",item.RecipeDefinitions.Single());});
+Check("rarity.public-tmod-constants-and-symbolic-native-default",()=>{
+ var expected=new Dictionary<string,int>{{"Master",-13},{"Expert",-12},{"Quest",-11},{"Gray",-1},{"White",0},{"Blue",1},{"Green",2},{"Orange",3},{"LightRed",4},{"Pink",5},{"LightPurple",6},{"Lime",7},{"Yellow",8},{"Cyan",9},{"Red",10},{"Purple",11},{"Count",12}};
+ var fields=typeof(ItemRarityID).GetFields(System.Reflection.BindingFlags.Public|System.Reflection.BindingFlags.Static);
+ Equal(expected.Count,fields.Length);foreach(var field in fields)Equal(expected[field.Name],(int)field.GetRawConstantValue()!);
+ Equal("rare:d:ItemRarityID:Cyan",new BunnyNativeDefaults().SetId("rare",nameof(ItemRarityID),nameof(ItemRarityID.Cyan)).Definition);
+});
+Check("wasp-nest.original-defaults-and-functional-effect",()=>{
+ var item=new WaspNest();item.SetDefaults();Equal(26,item.Width);Equal(26,item.Height);Equal(true,item.Accessory);
+ Equal(BunnyItem.SellPrice(gold:2),item.Value);Equal(ItemRarityID.Green,item.Rare);
+ Equal("strongBees:set:1",item.Behavior.NativeAccessoryEffectsDefinition);
+});
 Check("material.original-recipe",()=>{var item=new ExampleItem();item.SetDefaults();Equal(9999,item.MaxStack);Equal(100,item.Value);item.AddRecipes();Equal("999,18,v2:10",item.RecipeDefinitions.Single());});
 Check("minion.configurable-movement-and-finite-state",()=>{
  var custom=new BunnyMinionMovement(attackSpeed:16f,attackInertia:1f,followOffsetX:0f,followOffsetY:0f);
@@ -99,14 +110,15 @@ Check("recipe.clone-isolation-and-removal",()=>{
 });
 Check("probe.items-only-full-wire",()=>{
  Directory.CreateDirectory("build/basic-items");string diag="build/basic-items/probe.txt";
- Equal(5,CompiledAssemblyProbe.Verify(Assembly.GetExecutingAssembly().Location,diag));
- var lines=File.ReadAllLines("build/basic-items/source-runtime-values.txt");Equal("BUNNY_MANAGED_DEFAULTS_V2",lines[0]);Equal(7,lines.Length);
+ Equal(6,CompiledAssemblyProbe.Verify(Assembly.GetExecutingAssembly().Location,diag));
+ var lines=File.ReadAllLines("build/basic-items/source-runtime-values.txt");Equal("BUNNY_MANAGED_DEFAULTS_V2",lines[0]);Equal(8,lines.Length);
  foreach(var line in lines.Skip(1).Where(l=>l.StartsWith("ITEM\t"))) {
   var fields=line.Split('\t');
   if(fields[1]=="ExampleItem") {
    Equal(23,fields.Length);
    if(!fields[22].StartsWith("pt-BR:"))throw new Exception("Missing native pt-BR item tooltip");
-  } else Equal(20,fields.Length);
+  } else if(fields[1]=="WaspNest") { Equal(25,fields.Length);Equal("2",fields[6]); }
+  else Equal(20,fields.Length);
  }
  if(!lines.Any(l=>l.Contains("\tItem1\t")))throw new Exception("native sound missing");
 });

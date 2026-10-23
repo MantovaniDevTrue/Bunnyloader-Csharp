@@ -1,6 +1,18 @@
-# QA — cajado, Dust e busca da invasão (APK 314 / ExampleMod 0.1.65)
+# QA — cajado, Dust e invasão: correções em fontes, sem novo APK
 
 Base: hotfix 312, commit `d93468e5aae85a6be9af9488431694e6f84f8e52`, sobre 1.0.11 Dust/Invasion QA. O relato do usuário confirma armas funcionando com Lights And Shadows 1.0.0 e ExampleMod 0.1.64. O relatório identifica Xiaomi 2109119DG / Android 14 / Terraria 1.4.5.8.6 build 301720. Não informa versionCode e não mede FPS. Os novos comportamentos abaixo aguardam reteste no aparelho.
+
+## Correção de ItemRarityID preparada em fontes
+
+O novo relatório do aparelho (2026-10-23 00:29, PID 6007) chegou à etapa seguinte: `ExampleMinionItem ... Field=rare ... Expected=ItemRarityID.Cyan ... MissingStaticId ... NativeIdResolutionFailed`. A compilação dos 98 arquivos foi verificada, mas o lote de defaults C# foi rejeitado. O contato nativo do minion registrado no mesmo log não comprova sucesso desse lote nem da IA gerenciada. Os status de hooks/combate com PID 29250 são de uma sessão anterior.
+
+`Terraria.ID.ItemRarityID` é uma classe adicionada pelo tModLoader, ausente do runtime Android inspecionado. `Terraria.Enums.ItemRarityColor` existe e confirma, por exemplo, Cyan9. A ponte JS já tinha uma tabela auxiliar; o caminho C# tentava refletir a classe inexistente. O código preparado para a próxima build implementa os 17 nomes públicos de ItemRarityID em C++ (incluindo raridades negativas), conferidos com a referência oficial fixada em c9545cf27d56c456321e1896274c02adf67d0140. Não executa JS nem vincula assemblies do tModLoader. As demais famílias continuam usando campos reais do jogo e seus contratos de tipo. Nomes desconhecidos continuam rejeitados; não viram White/zero silenciosamente.
+
+O novo teste aplica **todo o descritor compilado do cajado** através de `publishNativeDefaults`/`applyNativeDefaults` de produção, com ItemRarityID ausente: rare=9, useStyle=1 (Byte), autoReuse=false, geometria, mana, animação, preço, knockback, som e flags estáticas. Também cobre os 17 nomes, negativos, nome desconhecido, tipo nativo incorreto e preservação do snapshot quando um lote falha. O teste parcial anterior de som/flags não alcançava rare. Recolocar o resolvedor anterior reproduz a rejeição do descritor completo.
+
+Uma auditoria offline adicional conferiu a presença dos 38 campos primitivos/som e dos seis IDs simbólicos usados nos descritores atuais de Item/Projectile. Isto é inspeção de metadata, não validação de gameplay. O carregamento completo e o comportamento continuam aguardando reteste no aparelho.
+
+**Build 315 não iniciado.** O usuário voltou a proibir APK antes de concluir os loaders. A correção fica nos fontes/testes; a revisão do ExampleMod passa a 0.1.66 com os ajustes de tradução documentados em EXAMPLEMOD_PORT_SCOPE.md. Em um futuro reteste autorizado, conferir a ausência de `NativeIdResolutionFailed`/`BatchRejected` e o carregamento C# concluído.
 
 ## Correção de registro do cajado no APK 314
 
@@ -8,7 +20,7 @@ Após a entrega do lote 313, o usuário enviou `ExampleMinionItem ... NativeRegi
 
 O ramo de registro de armas agora informa o contrato recusado em `lastError`: dano, tempo de uso, velocidade, ownership do projétil ou reserva do item. O teste executa esse ramo de produção e a aplicação individual de defaults com o descritor real compilado do cajado; confere publicação de velocidade zero e rejeições sem alterar o snapshot. Não simula a inicialização completa do jogo. Recolocar o mínimo antigo no teste reproduz a rejeição do cajado.
 
-Atualizar somente o APK para 314 se o ExampleMod 0.1.65 já estiver importado. O pacote do mod é idêntico ao lote anterior. **O carregamento e o comportamento no Android ainda precisam de reteste.**
+O 314 removeu o mínimo indevido de velocidade. O relatório seguinte chegou ao binding de defaults e revelou a falha ItemRarityID descrita acima; a correção seguinte ainda está somente em fontes.
 
 ## Cajado original
 
@@ -47,9 +59,9 @@ Quando não houver local, o log passa a registrar coordenadas preferidas, tamanh
 
 ## Testar no Android
 
-Atualizar APK e importar ExampleMod 0.1.65; reiniciar. Manter Lights And Shadows ativo para a regressão de convivência.
+Roteiro reservado ao futuro build, depois de fechar os loaders. Nenhum APK novo foi produzido nesta revisão. Manter Lights And Shadows ativo para a regressão de convivência.
 
-1. Confirmar primeiro que o mod carrega sem `ExampleMinionItem ... NativeRegister ... Actual=-1`. Obter o cajado e ter mana. Invocar apontando para locais distintos, perto e longe: o minion deve nascer na mira limitada pelo alcance. Conferir swing, som, custo, tooltip e receita na bancada vanilla. Repetir com vários minions, remover o buff, reinvocar e salvar/reentrar.
+1. Confirmar primeiro que o carregamento C# termina sem `NativeRegister ... Actual=-1` nem `NativeDefaults ... BatchRejected`/`NativeIdResolutionFailed`. Obter o cajado e ter mana. Invocar apontando para locais distintos, perto e longe: o minion deve nascer na mira limitada pelo alcance. Conferir swing, som, custo, tooltip e receita na bancada vanilla. Repetir com vários minions, remover o buff, reinvocar e salvar/reentrar.
 2. Usar ExampleDustCharm: devem aparecer partículas. Conferir ausência de NewDustSignatureUnavailable. O efeito visível é necessário para validar, não apenas Result=Queued.
 3. Usar ExampleInvasionBeacon nas condições permitidas, com chão próximo. Confirmar NPCs do ExampleMod, progresso ao derrotá-los e encerramento. Se falhar, enviar as novas linhas Stage=FindSpawnSite com contadores; não considerar Running como prova de spawn.
 4. Repetir Gun/Rocket/Shotgun para ambos os lados; conferir que a nova opção do cajado não move os tiros das outras armas para o cursor.

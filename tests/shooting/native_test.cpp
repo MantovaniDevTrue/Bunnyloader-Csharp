@@ -171,7 +171,9 @@ int main(int argc,char** argv) {
  localMissing=true;assert(!prepare(&error));localMissing=false;
  localGetter.instance=true;assert(!prepare(&error));localGetter.instance=false;
  localType.cls=&floatClass;assert(!prepare(&error));localType.cls=&integerClass;
- localProperty=false;localField.flags=0;assert(!prepare(&error));localField.flags=0x10;
+ // An inherited instance field does not replace a real static getter.
+ localProperty=false;localField.flags=0;assert(prepare(&error));originalUse=nullptr;originalSpawn=nullptr;
+ localMissing=true;assert(!prepare(&error));localMissing=false;localField.flags=0x10;
  assert(prepare(&error));originalUse=nullptr;originalSpawn=nullptr;localProperty=true;
  positionField.offset=124;assert(!prepare(&error));positionField.offset=32;
  xField.offset=sizeof(Il2CppObject);yField.offset=sizeof(Il2CppObject)+4;assert(prepare(&error));xField.offset=0;yField.offset=4;
