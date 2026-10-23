@@ -31,9 +31,10 @@ struct NativeTooltipDrawSession {
 
     template<class Insert>
     float adjust(std::u16string_view text,float y,float lineHeight,Insert&& insert) {
+        if(inserted)return std::isfinite(y)?y+shift:y;
         if(!animated||!std::isfinite(y)||!std::isfinite(lineHeight)||
            lineHeight<=0||lineHeight>100)return y;
-        if(!inserted && matches(text)) {
+        if(matches(text)) {
             if(!insert(*animated,y))return y;
             shift=lineHeight;
             inserted=true;
