@@ -92,8 +92,7 @@ struct NativeTooltipPanelBacking {
            !a.method_is_instance||!a.class_from_il2cpp_type||!a.runtime_invoke||
            !a.object_get_class||!a.class_is_assignable_from||!a.class_is_valuetype)
             return fail("NativeTooltipBackingMetadataUnavailable");
-        if(!typeIs(panel,"Terraria.UI","GUIPanel")&&
-           !typeIs(panel,"Terraria.UI.Gamepad","GUIPanel"))
+        if(!typeIs(panel,"","GUIPanel"))
             return fail("NativeTooltipBackingOwnerUnknown");
         const MethodInfo* found=nullptr;
         void* iterator=nullptr;

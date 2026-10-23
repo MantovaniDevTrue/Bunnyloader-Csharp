@@ -22,7 +22,7 @@ static Il2CppClass plain{"System","Void",0,true,{},{}};
 static Il2CppClass number{"System","Single",4,true,{},{}};
 static Il2CppClass integer{"System","Int32",4,true,{},{}};
 static Il2CppClass boolean{"System","Boolean",1,true,{},{}};
-static Il2CppClass panel{"Terraria.UI","GUIPanel",0,false,{},{}};
+static Il2CppClass panel{"","GUIPanel",0,false,{},{}};
 static Il2CppClass vec{"Microsoft.Xna.Framework","Vector2",8,true,{},{}};
 static Il2CppClass rect{"Microsoft.Xna.Framework","Rectangle",16,true,{},{}};
 static Il2CppClass nullable{"System","Nullable`1",20,true,{},{}};
@@ -123,6 +123,8 @@ int main() {
         assert(!rejected.bind(&panel,&error));
         assert(rejected.method==nullptr);
     };
+    auto originalNs=panel.ns;
+    panel.ns="Terraria.UI";mustReject();panel.ns=originalNs;
     method.instance=true;mustReject();method.instance=false;
     method.names[4]="frame";mustReject();method.names[4]="sourceFrame";
     method.result.cls=&integer;mustReject();method.result.cls=&plain;
