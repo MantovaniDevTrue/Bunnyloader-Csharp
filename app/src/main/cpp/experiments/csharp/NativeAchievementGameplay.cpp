@@ -219,6 +219,19 @@ void setNativeAchievementWorldState(bool ready) {
     if (previous && !ready) g_mailbox.newWorld();
 }
 
+bool getNativeAchievementState(const std::string& mod, const std::string& name,
+                               achievement::AchievementState* output) {
+    if (!output || name.substr(0, mod.size() + 1) != mod + "/") return false;
+    auto it = g_liveStates.find(mod);
+    if (it == g_liveStates.end()) return false;
+    for (const achievement::AchievementState& state : it->second) {
+        if (state.name != name) continue;
+        *output = state;
+        return true;
+    }
+    return false;
+}
+
 void pumpNativeAchievementGameplayOnGameThread() {
     if (!managedRecipeRuntimeReady()) return;
     if (++g_ticks % 30u == 0u) {

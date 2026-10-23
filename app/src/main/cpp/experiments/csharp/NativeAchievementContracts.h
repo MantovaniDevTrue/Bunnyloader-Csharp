@@ -11,6 +11,7 @@ struct ManagerContractResult {
     bool available = false;
     bool canConstruct = false;
     bool canRegister = false;
+    bool canUnregister = false;
     bool canReload = false;
     bool canPresent = false;
     std::string diagnostic;

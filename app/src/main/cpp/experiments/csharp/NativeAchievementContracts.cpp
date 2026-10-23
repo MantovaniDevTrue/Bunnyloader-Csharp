@@ -147,8 +147,9 @@ ManagerContractResult inspectManagerContracts(const std::vector<Descriptor>& des
     }
     output.canRegister = true;
 
-    if (!method(manager, "Unregister", "System.Void", true,
-                {"Terraria.Achievements.Achievement"})) {
+    output.canUnregister = method(manager, "Unregister", "System.Void", true,
+                                {"Terraria.Achievements.Achievement"}) != nullptr;
+    if (!output.canUnregister) {
         output.diagnostic = "NativeUnregisterUnavailable";
         return output;
     }
