@@ -70,3 +70,7 @@ jobs:
         run: |
           g++ -std=c++20 -O1 -Wall -Wextra -Werror -Iapp/src/main/cpp tests/tooltip_native/palette_test.cpp -o /tmp/bunny-tooltip-palette
           /tmp/bunny-tooltip-palette
+      - name: Inspect typed backing texture reference chain without JS
+        run: |
+          g++ -std=c++20 -O1 -Wall -Wextra -Werror -Iapp/src/main/cpp tests/tooltip_native/texture_path_test.cpp -o /tmp/bunny-tooltip-texture
+          /tmp/bunny-tooltip-texture
