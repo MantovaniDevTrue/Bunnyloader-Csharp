@@ -5,6 +5,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -36,11 +37,51 @@ inline bool readNumber(std::string_view field, int* result) {
     return parsed.ec == std::errc{} && parsed.ptr == field.data() + field.size();
 }
 
-inline bool readFloat(std::string_view field, float* result) {
-    if (!result || field.empty()) return false;
-    const auto parsed = std::from_chars(field.data(), field.data() + field.size(), *result);
-    return parsed.ec == std::errc{} && parsed.ptr == field.data() + field.size() &&
-           std::isfinite(*result) && *result > 0.f;
+inline bool readDecimal(std::string_view text, float* output, bool zeroAllowed) {
+    if (!output || text.empty() || text.size() > 48) return false;
+    size_t i = 0;
+    double mantissa = 0;
+    int fraction = 0, digits = 0;
+    while (i < text.size() && text[i] >= '0' && text[i] <= '9') {
+        if (++digits > 24) return false;
+        mantissa = mantissa * 10.0 + (text[i++] - '0');
+    }
+    if (i < text.size() && text[i] == '.') {
+        ++i;
+        while (i < text.size() && text[i] >= '0' && text[i] <= '9') {
+            if (++digits > 24) return false;
+            mantissa = mantissa * 10.0 + (text[i++] - '0');
+            ++fraction;
+        }
+    }
+    if (digits == 0) return false;
+    int exponent = 0, sign = 1;
+    if (i < text.size() && (text[i] == 'E' || text[i] == 'e')) {
+        ++i;
+        if (i < text.size() && (text[i] == '+' || text[i] == '-'))
+            sign = text[i++] == '-' ? -1 : 1;
+        int exponentDigits = 0;
+        while (i < text.size() && text[i] >= '0' && text[i] <= '9') {
+            if (++exponentDigits > 3) return false;
+            exponent = exponent * 10 + (text[i++] - '0');
+        }
+        if (exponentDigits == 0) return false;
+    }
+    if (i != text.size()) return false;
+    exponent = exponent * sign - fraction;
+    if (exponent < -75 || exponent > 75) return false;
+    const double value = mantissa * std::pow(10.0, exponent);
+    if (!std::isfinite(value) || value < 0 ||
+        value > static_cast<double>(std::numeric_limits<float>::max()))
+        return false;
+    const float parsed = static_cast<float>(value);
+    if (!std::isfinite(parsed) || (!zeroAllowed && parsed <= 0)) return false;
+    *output = parsed;
+    return true;
+}
+
+inline bool readFloat(std::string_view text, float* output) {
+    return readDecimal(text, output, false);
 }
 
 inline bool readText(std::string_view hex, std::string* result, size_t limit, bool allowEmpty) {

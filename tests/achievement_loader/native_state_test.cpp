@@ -31,6 +31,12 @@ int main() {
     auto over = valid;
     over.replace(over.find("|1|3\n"), 5, "|1|6\n");
     assert(!parseState("test", over, declarations, &parsed));
+    auto scientific = valid;
+    scientific.replace(scientific.find("|1|3\n"), 5, "|1|3E+0\n");
+    assert(parseState("test", scientific, declarations, &parsed));
+    auto badExponent = valid;
+    badExponent.replace(badExponent.find("|1|3\n"), 5, "|1|3E+999\n");
+    assert(!parseState("test", badExponent, declarations, &parsed));
     auto fractional = valid;
     fractional.replace(fractional.find("|1|3\n"), 5, "|1|2.5\n");
     assert(!parseState("test", fractional, declarations, &parsed));

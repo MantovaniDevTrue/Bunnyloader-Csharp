@@ -20,6 +20,14 @@ int main() {
     assert(!items[0].completed);
     assert(items[0].conditions.size() == 1);
     assert(items[0].conditions[0].maximum == 5.f);
+    float decimal = 0;
+    assert(readFloat("5E+0", &decimal) && decimal == 5.f);
+    assert(readDecimal("0", &decimal, true) && decimal == 0.f);
+    assert(!readFloat("0", &decimal));
+    assert(!readFloat("NaN", &decimal));
+    assert(!readFloat("Inf", &decimal));
+    assert(!readFloat("1,5", &decimal));
+    assert(!readFloat("1E999", &decimal));
     assert(items[0].conditions[0].kind == 1);
     auto kept = items;
     assert(!parseManifest("other", wire, &items));

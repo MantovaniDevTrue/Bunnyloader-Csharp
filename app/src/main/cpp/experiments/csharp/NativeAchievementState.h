@@ -65,10 +65,7 @@ inline bool parseState(std::string_view mod, std::string_view wire,
                 condition.key != original[state.conditions.size()].key ||
                 condition.kind != original[state.conditions.size()].kind)
                 return false;
-            const auto parsed = std::from_chars(fields[3].data(),
-                fields[3].data() + fields[3].size(), condition.value);
-            if (parsed.ec != std::errc{} || parsed.ptr != fields[3].data() + fields[3].size() ||
-                !std::isfinite(condition.value) || condition.value < 0 ||
+            if (!readDecimal(fields[3], &condition.value, true) ||
                 condition.value > original[state.conditions.size()].maximum ||
                 (condition.kind != 2 && std::trunc(condition.value) != condition.value))
                 return false;
