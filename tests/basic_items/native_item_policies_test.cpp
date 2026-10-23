@@ -13,6 +13,7 @@
 #include <functional>
 
 namespace {
+struct AnimationIdList {Il2CppObject header;std::vector<int32_t> ids;};
 struct World {Il2CppObject object;float position[2]{10,20};int width=20,height=30;bool active=true;FakeItem* inner=nullptr;};
 struct Match {int part,head,body,legs;bool male;};
 struct RenderPlayer {FakePlayer base;int who=0,width=20,height=42,direction=1;bool dead=false,invis=false;float rotation=0,position[2]{1010,1020};int frame[4]{0,112,40,56};Il2CppObject* mount=nullptr;};
@@ -32,8 +33,12 @@ auto& roots=*new std::map<unsigned,Il2CppObject*>;
 const auto nativePolicyGameThread=std::this_thread::get_id();
 std::function<void()> duringCloneSetup,duringStaticRead;
 std::map<int,Il2CppObject*> animations;
+int animationRemovals=0;
+std::function<void()> originalVoidAction;
+bool animationRegisterAfterAddFault=false,animationRemoveBeforeFault=false,animationRemoveAfterFault=false,animationSnapshotFault=false,animationListReturnWrong=false;
 FakePlayer localPlayer;
 unsigned nextRoot=1;
+Il2CppObject* failAnimationRootFor=nullptr;
 int allocations=0,assetLoads=0,arrayWrites=0,movementCalls=0,lightCalls=0,animationConstructors=0;
 bool android145=false,animationCtorFault=false,worldActiveProperty=true,activeReturnWrong=false,stopWorldOnUpdate=false;
 int activeReads=0,worldUpdates=0;
@@ -60,7 +65,7 @@ const MethodInfo* addMethod(Il2CppClass* c,const std::string& signature,bool ins
 const MethodInfo* getMethod(const std::string& c,const std::string& signature){return &methods.at(c+":"+signature);}
 template<class Fn>Fn hook(const std::string& c,const std::string& signature){return reinterpret_cast<Fn>(hooks.at(getMethod(c,signature)));}
 void originalMove(Il2CppObject*,const MethodInfo*){++movementCalls;}
-void originalVoid(const MethodInfo*){}
+void originalVoid(const MethodInfo*){if(originalVoidAction){auto action=std::move(originalVoidAction);originalVoidAction={};action();}}
 void originalWorld(Il2CppObject* world,int32_t,const MethodInfo*){++worldUpdates;if(stopWorldOnUpdate)reinterpret_cast<World*>(world)->active=false;}
 bool worldActive(Il2CppObject* world,const MethodInfo*){++activeReads;return reinterpret_cast<World*>(world)->active;}
 void originalLayer(void*,const MethodInfo*){}
@@ -112,6 +117,12 @@ void configurePolicies() {
  field(&playerClass,"wingTime",&floatClass,offsetof(FakePlayer,wingTime));field(&playerClass,"wingTimeMax",&intClass,offsetof(FakePlayer,wingTimeMax));
  field(&playerClass,"empressBrooch",&boolClass,offsetof(FakePlayer,empressBrooch));constant(field(&playerClass,"jumpSpeed",&floatClass,0,true),5.f);
  auto* main=cls("Main");constant(field(main,"essScale",&floatClass,0,true),2.f);
+ auto* animationBase=cls("DrawAnimation",false,sizeof(Il2CppObject));
+ arrayField(main,"itemAnimations",animationBase,7000);
+ auto* animationListClass=cls("List`1",false,sizeof(AnimationIdList));
+ auto* animationIds=new AnimationIdList;animationIds->header.klass=animationListClass;
+ constant(field(main,"itemAnimationsRegistered",animationListClass,0,true),&animationIds->header);
+ addMethod(animationListClass,"int[] ToArray()",true);addMethod(animationListClass,"void RemoveAt(int index)",true);
  auto* ids=cls("ItemID");constant(field(ids,"SoulofSight",&intClass,0,true),547);
  auto* itemSets=cls("ItemID/Sets");for(const char* n:{"AnimatesAsSoul","ItemIconPulse","ItemNoGravity"})arrayField(itemSets,n,&boolClass,7000);
  cls("ArmorIDs");
@@ -142,6 +153,7 @@ void configurePolicies() {
  addMethod(&itemClass,"void .ctor()",true);addMethod(&itemClass,"void SetDefaults(int Type, ItemVariant variant)",true);addMethod(&itemClass,"Color GetAlpha(Color newColor)",true);
  addMethod(&playerClass,"void WingMovement()",true);addMethod(&playerClass,"int SetMatch(Player.SetMatchRequest request, ref bool somethingSpecial)",false);
  addMethod(main,"Player get_LocalPlayer()",false);addMethod(main,"void RegisterItemAnimation(int index, DrawAnimation animation)",false);addMethod(main,"void InitializeItemAnimations()",false);
+ cls("DrawAnimationVertical",false,sizeof(Il2CppObject))->parent=animationBase;
  addMethod(cls("DrawAnimationVertical",false,sizeof(Il2CppObject)),android145?"void .ctor(int ticksperframe, int frameCount, bool pingPong)":"void .ctor(int ticksperframe, int frameCount)",true);
  addMethod(cls("WingStatsInitializer"),"void Load()",false);addMethod(world,"void UpdateItem(int i)",true);
  const auto* light=addMethod(cls("Lighting"),"void AddLight(Vector2 position, float r, float g, float b)",false);const_cast<MethodInfo*>(light)->pointer=reinterpret_cast<void*>(addLight);
@@ -172,23 +184,29 @@ void configurePolicies() {
  };
  apiInstance.method_get_param_count=[](const MethodInfo* m){
   const auto& name=methodNames.at(m).first;
+  if(name=="int[] ToArray()")return 0u;
+  if(name=="void RemoveAt(int index)")return 1u;
   if(name=="bool get_active()")return 0u;
   return name=="Color GetAlpha(Color newColor)"?1u:propertySetter.at(m)?1u:0u;
  };
  apiInstance.method_get_param=[](const MethodInfo* m,uint32_t)->const Il2CppType* {
+  if(methodNames.at(m).first=="void RemoveAt(int index)")return &intType;
   return methodNames.at(m).first=="Color GetAlpha(Color newColor)"?type(alphaParameter):propertyFields.at(m)->type;
  };
  apiInstance.method_get_return_type=[](const MethodInfo* m)->const Il2CppType* {
+  if(methodNames.at(m).first=="int[] ToArray()")return type(arrayClass(animationListReturnWrong?&boolClass:&intClass));
+  if(methodNames.at(m).first=="void RemoveAt(int index)")return type(cls("Void",true,0));
   if(methodNames.at(m).first=="bool get_active()")return activeReturnWrong?&intType:&boolType;
   if(methodNames.at(m).first=="Color GetAlpha(Color newColor)")return type(alphaReturn);
   return propertySetter.at(m)?type(cls("Void",true,0)):propertyFields.at(m)->type;
  };
- apiInstance.class_get_namespace=[](Il2CppClass* c){return c==cls("Color")?colorNamespace.c_str():"System";};
+ apiInstance.class_get_namespace=[](Il2CppClass* c){if(c==cls("List`1"))return "System.Collections.Generic";return c==cls("Color")?colorNamespace.c_str():"System";};
+ apiInstance.class_get_parent=[](Il2CppClass* c){return c->parent;};
  apiInstance.field_get_name=[](FieldInfo* f){return f->name;};apiInstance.type_get_name=[](const Il2CppType* t){return ::strdup(t->cls->name);};apiInstance.il2cpp_free=std::free;
  apiInstance.object_new=[](Il2CppClass* c){auto* o=static_cast<Il2CppObject*>(std::calloc(1,static_cast<size_t>(c->size)));o->klass=c;++allocations;return o;};
  apiInstance.runtime_class_init=[](Il2CppClass*){};
  apiInstance.method_is_instance=[](const MethodInfo* m){return methodNames.at(m).second;};
- apiInstance.gchandle_new=[](Il2CppObject* o,bool){assert(std::this_thread::get_id()==nativePolicyGameThread);roots[nextRoot]=o;return nextRoot++;};apiInstance.gchandle_free=[](unsigned h){assert(std::this_thread::get_id()==nativePolicyGameThread);roots.erase(h);};apiInstance.gchandle_get_target=[](unsigned h){assert(std::this_thread::get_id()==nativePolicyGameThread);return roots.at(h);};
+ apiInstance.gchandle_new=[](Il2CppObject* o,bool){assert(std::this_thread::get_id()==nativePolicyGameThread);if(o&&o==failAnimationRootFor)return 0u;roots[nextRoot]=o;return nextRoot++;};apiInstance.gchandle_free=[](unsigned h){assert(std::this_thread::get_id()==nativePolicyGameThread);roots.erase(h);};apiInstance.gchandle_get_target=[](unsigned h){assert(std::this_thread::get_id()==nativePolicyGameThread);return roots.at(h);};
  apiInstance.field_static_get_value=[](FieldInfo* f,void* out){if(duringStaticRead&&std::string(f->name)=="AnimatesAsSoul"){auto action=std::move(duringStaticRead);duringStaticRead={};action();}if(f->name==std::string("Item1")){void* value=&soundObject;std::memcpy(out,&value,sizeof(value));return;}const auto& v=statics.at(f);std::memcpy(out,v.data(),v.size());};
  apiInstance.field_static_set_value=[](FieldInfo* f,void* value){auto* c=f->type->cls;auto& v=statics[f];v.resize(width(c));if(c->value)std::memcpy(v.data(),value,v.size());else std::memcpy(v.data(),&value,v.size());};
  apiInstance.runtime_invoke=[](const MethodInfo* m,void* self,void** args,Il2CppObject** error)->Il2CppObject* {
@@ -205,7 +223,20 @@ void configurePolicies() {
    auto* box=static_cast<Il2CppObject*>(std::calloc(1,sizeof(Il2CppObject)+bytes));box->klass=f->type->cls;++allocations;
    std::memcpy(reinterpret_cast<char*>(box)+sizeof(Il2CppObject),storage.data(),bytes);return box;
   }
-  if(n.find("void Copy(")==0){auto* from=static_cast<Il2CppArray*>(args[0]);auto* to=static_cast<Il2CppArray*>(args[1]);const auto count=*static_cast<int*>(args[2]);std::memcpy(arrayData(to),arrayData(from),static_cast<size_t>(count)*width(from->obj.klass->element));++arrayWrites;}
+  if(n=="int[] ToArray()") {
+   if(animationSnapshotFault){*error=&exception;return nullptr;}
+   const auto& values=static_cast<AnimationIdList*>(self)->ids;
+   auto* snapshot=makeArray(&intClass,values.size());
+   if(!values.empty())std::memcpy(arrayData(snapshot),values.data(),values.size()*sizeof(int32_t));
+   return reinterpret_cast<Il2CppObject*>(snapshot);
+  }
+  else if(n=="void RemoveAt(int index)") {
+   if(animationRemoveBeforeFault){animationRemoveBeforeFault=false;*error=&exception;return nullptr;}
+   auto& values=static_cast<AnimationIdList*>(self)->ids;const auto index=*static_cast<int*>(args[0]);
+   assert(index>=0&&static_cast<size_t>(index)<values.size());values.erase(values.begin()+index);++animationRemovals;
+   if(animationRemoveAfterFault){animationRemoveAfterFault=false;*error=&exception;}
+  }
+  else if(n.find("void Copy(")==0){auto* from=static_cast<Il2CppArray*>(args[0]);auto* to=static_cast<Il2CppArray*>(args[1]);const auto count=*static_cast<int*>(args[2]);std::memcpy(arrayData(to),arrayData(from),static_cast<size_t>(count)*width(from->obj.klass->element));++arrayWrites;}
   else if(n.find("void SetValue(")==0){if(failSet){failSet=false;*error=&exception;return nullptr;}auto* a=static_cast<Il2CppArray*>(self);const int index=*static_cast<int*>(args[1]);assert(index>=0&&static_cast<uintptr_t>(index)<a->length);std::memcpy(static_cast<char*>(arrayData(a))+sizeof(void*)*static_cast<size_t>(index),&args[0],sizeof(void*));++arrayWrites;}
   else if(n.find("void SetDefaults(")==0){assert(*static_cast<int*>(args[0])==547);auto* item=static_cast<FakeItem*>(self);item->values[0]=28;item->values[1]=20;item->values[2]=99;item->values[3]=777;item->values[4]=3;item->values[5]=23;item->values[6]=7;item->defense=2;item->knockBack=3.5f;item->flags[0]=true;item->flags[2]=true;item->flags[5]=true;item->clonedReference=&soundObject;void* sound=&soundObject;std::memcpy(item->sound,&sound,sizeof(void*));if(duringCloneSetup){auto action=std::move(duringCloneSetup);duringCloneSetup={};action();}}
   else if(n.find("get_LocalPlayer")!=std::string::npos)return &localPlayer.header;
@@ -216,7 +247,14 @@ void configurePolicies() {
    animationParameters[static_cast<Il2CppObject*>(self)]={*static_cast<int*>(args[0]),*static_cast<int*>(args[1])};
   }
   else if(n.find("RegisterItemAnimation")!=std::string::npos){
-   auto* object=static_cast<Il2CppObject*>(args[1]);assert(animationParameters.contains(object));animations[*static_cast<int*>(args[0])]=object;
+   auto* object=static_cast<Il2CppObject*>(args[1]);assert(animationParameters.contains(object));const int contentId=*static_cast<int*>(args[0]);
+   Il2CppObject* list=nullptr;apiInstance.field_static_get_value(bl::il2cpp::findField(cls("Main"),"itemAnimationsRegistered"),&list);
+   auto& ids=reinterpret_cast<AnimationIdList*>(list)->ids;
+   if(std::find(ids.begin(),ids.end(),contentId)==ids.end())ids.push_back(contentId);
+   if(animationRegisterAfterAddFault){*error=&exception;return nullptr;}
+   Il2CppArray* table=nullptr;apiInstance.field_static_get_value(bl::il2cpp::findField(cls("Main"),"itemAnimations"),&table);
+   assert(table&&table->length>static_cast<uintptr_t>(contentId));
+   reinterpret_cast<Il2CppObject**>(arrayData(table))[contentId]=object;animations[contentId]=object;
   }
   return nullptr;
  };
@@ -705,6 +743,122 @@ int main(int argc,char** argv) {
  auto* shortFlags=makeArray(&boolClass,2);constant(soulFlagField("AnimatesAsSoul"),shortFlags);
  pumpNativeItemPoliciesOnGameThread();assert(pendingNativeItemPolicies()==0&&shortFlags->length==2);
  assert(soulFlag("ItemIconPulse",8403)==1&&nativeItemPolicyReady(8403));
+ // The actual production ownership code now sees both native registration
+ // structures. The fixture implements the Android Contains/Add/assign order.
+ auto animationArray=[&]{Il2CppArray* value=nullptr;apiInstance.field_static_get_value(bl::il2cpp::findField(cls("Main"),"itemAnimations"),&value);return value;};
+ auto animationList=[&]{Il2CppObject* value=nullptr;apiInstance.field_static_get_value(bl::il2cpp::findField(cls("Main"),"itemAnimationsRegistered"),&value);return reinterpret_cast<AnimationIdList*>(value);};
+ auto animationCell=[&](int contentId)->Il2CppObject*& {auto* a=animationArray();assert(a&&a->length>static_cast<uintptr_t>(contentId));return reinterpret_cast<Il2CppObject**>(arrayData(a))[contentId];};
+ auto listed=[&](int contentId){const auto& ids=animationList()->ids;return std::count(ids.begin(),ids.end(),contentId);};
+ auto eraseForeignIndex=[&](int contentId){auto& ids=animationList()->ids;ids.erase(std::remove(ids.begin(),ids.end(),contentId),ids.end());};
+ auto retireSoul=[&]{retireNativeItemPoliciesForMod("mod");for(int i=0;i<8&&pendingNativeItemPolicies();++i)pumpNativeItemPoliciesOnGameThread();assert(pendingNativeItemPolicies()==0);};
+ assert(animationCell(soul.type)==nullptr&&listed(soul.type)==0);
+ const auto otherAnimation=animationCell(8403);assert(otherAnimation&&listed(8403)==1);
+ const auto initialAnimationIds=animationList()->ids;
+ installStaticSoul();auto* ownedAnimation=animationCell(soul.type);assert(ownedAnimation&&listed(soul.type)==1);
+ const auto rootsBeforeAnimationRetire=roots.size();
+ std::thread animationRetire([&]{retireNativeItemPoliciesForMod("mod");});animationRetire.join();
+ assert(animationCell(soul.type)==ownedAnimation&&roots.size()==rootsBeforeAnimationRetire);
+ pumpNativeItemPoliciesOnGameThread();
+ assert(!animationCell(soul.type)&&listed(soul.type)==0&&animationList()->ids==initialAnimationIds);
+ assert(animationCell(8403)==otherAnimation);
+ // Restore both a pre-existing registered object and an unregistered object.
+ Il2CppObject foreignOriginal{cls("DrawAnimation"),nullptr},foreignReplacement{cls("DrawAnimation"),nullptr};
+ animationCell(soul.type)=&foreignOriginal;animationList()->ids.push_back(soul.type);
+ installStaticSoul();retireSoul();assert(animationCell(soul.type)==&foreignOriginal&&listed(soul.type)==1);
+ eraseForeignIndex(soul.type);installStaticSoul();retireSoul();
+ assert(animationCell(soul.type)==&foreignOriginal&&listed(soul.type)==0);
+ animationCell(soul.type)=nullptr;
+ // Failure to root a pre-existing object must not publish an index or lose
+ // the foreign baseline. The same pending installation can recover afterwards.
+ animationCell(soul.type)=&foreignOriginal;failAnimationRootFor=&foreignOriginal;
+ assert(applyNativeBasicItemDefaults("mod",{soul},&error));pumpNativeItemPoliciesOnGameThread();
+ assert(!nativeItemPolicyReady(soul.type)&&animationCell(soul.type)==&foreignOriginal&&listed(soul.type)==0);
+ failAnimationRootFor=nullptr;for(int i=0;i<8&&pendingNativeItemPolicies();++i)pumpNativeItemPoliciesOnGameThread();
+ assert(nativeItemPolicyReady(soul.type));retireSoul();
+ assert(animationCell(soul.type)==&foreignOriginal&&listed(soul.type)==0);animationCell(soul.type)=nullptr;
+ // A replacement object owns the current index. Preserve that object and list.
+ installStaticSoul();animationCell(soul.type)=&foreignReplacement;
+ const auto foreignIds=animationList()->ids;retireSoul();
+ assert(animationCell(soul.type)==&foreignReplacement&&animationList()->ids==foreignIds);
+ eraseForeignIndex(soul.type);animationCell(soul.type)=nullptr;
+ // Contains/Add can succeed before assignment throws. Unload and a subsequent
+ // successful retry both remove exactly the index introduced by this attempt.
+ animationRegisterAfterAddFault=true;assert(applyNativeBasicItemDefaults("mod",{soul},&error));
+ pumpNativeItemPoliciesOnGameThread();assert(!nativeItemPolicyReady(soul.type)&&!animationCell(soul.type)&&listed(soul.type)==1);
+ animationRegisterAfterAddFault=false;retireSoul();assert(!animationCell(soul.type)&&listed(soul.type)==0);
+ animationRegisterAfterAddFault=true;assert(applyNativeBasicItemDefaults("mod",{soul},&error));pumpNativeItemPoliciesOnGameThread();
+ animationRegisterAfterAddFault=false;for(int i=0;i<8&&pendingNativeItemPolicies();++i)pumpNativeItemPoliciesOnGameThread();
+ assert(nativeItemPolicyReady(soul.type)&&animationCell(soul.type)&&listed(soul.type)==1);retireSoul();assert(listed(soul.type)==0);
+ // Remove first. A failure before removal leaves the object/index intact; a
+ // failure after mutation is retried without removing an unrelated element.
+ installStaticSoul();ownedAnimation=animationCell(soul.type);animationRemoveBeforeFault=true;
+ retireNativeItemPoliciesForMod("mod");pumpNativeItemPoliciesOnGameThread();
+ assert(pendingNativeItemPolicies()>0&&animationCell(soul.type)==ownedAnimation&&listed(soul.type)==1);
+ pumpNativeItemPoliciesOnGameThread();assert(!animationCell(soul.type)&&listed(soul.type)==0&&pendingNativeItemPolicies()==0);
+ installStaticSoul();ownedAnimation=animationCell(soul.type);animationRemoveAfterFault=true;
+ const auto removalsBeforeFault=animationRemovals;retireNativeItemPoliciesForMod("mod");pumpNativeItemPoliciesOnGameThread();
+ assert(pendingNativeItemPolicies()>0&&animationCell(soul.type)==ownedAnimation&&listed(soul.type)==0);
+ pumpNativeItemPoliciesOnGameThread();assert(!animationCell(soul.type)&&pendingNativeItemPolicies()==0&&animationRemovals==removalsBeforeFault+1);
+ // Collection failures retain the last root and block a new installation.
+ installStaticSoul();ownedAnimation=animationCell(soul.type);
+ auto* savedAnimations=animationArray();auto* savedAnimationList=animationList();
+ auto* animationField=bl::il2cpp::findField(cls("Main"),"itemAnimations");
+ auto* animationListField=bl::il2cpp::findField(cls("Main"),"itemAnimationsRegistered");
+ retireNativeItemPoliciesForMod("mod");constant(animationField,static_cast<Il2CppArray*>(nullptr));pumpNativeItemPoliciesOnGameThread();
+ assert(pendingNativeItemPolicies()>0&&listed(soul.type)==1);
+ assert(applyNativeBasicItemDefaults("mod",{soul},&error));
+ auto* wrongAnimationArray=makeArray(&intClass,savedAnimations->length);constant(animationField,wrongAnimationArray);
+ pumpNativeItemPoliciesOnGameThread();assert(pendingNativeItemPolicies()>0&&listed(soul.type)==1);
+ constant(animationField,savedAnimations);constant(animationListField,static_cast<Il2CppObject*>(nullptr));pumpNativeItemPoliciesOnGameThread();
+ assert(pendingNativeItemPolicies()>0&&animationCell(soul.type)==ownedAnimation);
+ constant(animationListField,&savedAnimationList->header);animationListReturnWrong=true;pumpNativeItemPoliciesOnGameThread();
+ assert(pendingNativeItemPolicies()>0&&listed(soul.type)==1);animationListReturnWrong=false;
+ animationSnapshotFault=true;pumpNativeItemPoliciesOnGameThread();assert(pendingNativeItemPolicies()>0);animationSnapshotFault=false;
+ assert(std::any_of(roots.begin(),roots.end(),[&](const auto& root){return root.second==ownedAnimation;}));
+ for(int i=0;i<8&&pendingNativeItemPolicies();++i)pumpNativeItemPoliciesOnGameThread();
+ assert(nativeItemPolicyReady(soul.type)&&animationCell(soul.type)!=ownedAnimation&&listed(soul.type)==1);
+ assert(std::none_of(roots.begin(),roots.end(),[&](const auto& root){return root.second==ownedAnimation;}));retireSoul();
+ // An ambiguous externally duplicated index must be fixed before clearing its
+ // reference; never guess an index or write null under a still-registered ID.
+ installStaticSoul();ownedAnimation=animationCell(soul.type);animationList()->ids.push_back(soul.type);
+ retireNativeItemPoliciesForMod("mod");pumpNativeItemPoliciesOnGameThread();
+ assert(pendingNativeItemPolicies()>0&&listed(soul.type)==2&&animationCell(soul.type)==ownedAnimation);
+ animationList()->ids.pop_back();pumpNativeItemPoliciesOnGameThread();assert(!animationCell(soul.type)&&listed(soul.type)==0&&pendingNativeItemPolicies()==0);
+ // Recover the index after another registration shifts its position.
+ installStaticSoul();animationCell(1)=&foreignOriginal;animationList()->ids.insert(animationList()->ids.begin(),1);
+ auto shiftedIds=animationList()->ids;shiftedIds.erase(std::find(shiftedIds.begin(),shiftedIds.end(),soul.type));
+ retireSoul();assert(animationList()->ids==shiftedIds&&animationCell(1)==&foreignOriginal);
+ eraseForeignIndex(1);animationCell(1)=nullptr;
+ // Array and list copies retain the original ownership. Resolve their current
+ // cells and leave the detached collections alone.
+ installStaticSoul();auto* detachedAnimations=animationArray();auto* detachedList=animationList();ownedAnimation=animationCell(soul.type);
+ auto* copiedAnimations=makeArray(cls("DrawAnimation"),detachedAnimations->length+1);
+ std::memcpy(arrayData(copiedAnimations),arrayData(detachedAnimations),detachedAnimations->length*sizeof(void*));
+ auto* copiedAnimationList=new AnimationIdList;copiedAnimationList->header.klass=cls("List`1");copiedAnimationList->ids=detachedList->ids;
+ constant(animationField,copiedAnimations);constant(animationListField,&copiedAnimationList->header);retireSoul();
+ assert(!animationCell(soul.type)&&listed(soul.type)==0&&animationCell(8403)==otherAnimation);
+ assert(reinterpret_cast<Il2CppObject**>(arrayData(detachedAnimations))[soul.type]==ownedAnimation);
+ assert(std::count(detachedList->ids.begin(),detachedList->ids.end(),soul.type)==1);
+ // A real initializer replacing both collections creates a new baseline;
+ // reapply existing animations without constructing another DrawAnimation.
+ animationCell(soul.type)=&foreignOriginal;installStaticSoul();const auto constructorsBeforeReset=animationConstructors;
+ originalVoidAction=[&]{auto* resetArray=makeArray(cls("DrawAnimation"),animationArray()->length);
+  auto* resetList=new AnimationIdList;resetList->header.klass=cls("List`1");
+  constant(animationField,resetArray);constant(animationListField,&resetList->header);
+ };
+ animation(nullptr);assert(animationConstructors==constructorsBeforeReset&&listed(soul.type)==1&&listed(8403)==1);
+ retireSoul();assert(!animationCell(soul.type)&&listed(soul.type)==0&&animationCell(8403)==otherAnimation);
+ // A shortened array may discard our slot. Remove our added index without
+ // resurrecting that slot, retaining all lower registered entries.
+ auto shortSoul=soul;shortSoul.type=9000;shortSoul.name="ShortAnimation";
+ identities[9000]="short_animation/ShortAnimation";assert(registerBasicItemPlaceholder(9000,shortSoul.name,&error,argv[2]));
+ assert(applyNativeBasicItemDefaults("short_animation",{shortSoul},&error));
+ for(int i=0;i<8&&pendingNativeItemPolicies();++i)pumpNativeItemPoliciesOnGameThread();
+ assert(nativeItemPolicyReady(9000));
+ auto* shortAnimations=makeArray(cls("DrawAnimation"),9000);std::memcpy(arrayData(shortAnimations),arrayData(animationArray()),9000*sizeof(void*));
+ constant(animationField,shortAnimations);retireNativeItemPoliciesForMod("short_animation");pumpNativeItemPoliciesOnGameThread();
+ assert(pendingNativeItemPolicies()==0&&shortAnimations->length==9000&&listed(9000)==0&&animationCell(8403)==otherAnimation);
+ std::cout<<"NATIVE_ITEM_ANIMATION_REFERENCE_AND_LIST_RETIREMENT_PARTIAL_FAILURE_FOREIGN_BASELINE_AND_RESET_PASS\n";
  std::cout<<"NATIVE_ITEM_STATIC_FLAG_AND_WING_CELL_RETIREMENT_RETRY_FOREIGN_VALUE_AND_GENERATION_PASS\n";
  std::cout<<"NATIVE_ITEM_POLICY_UID_RETIRE_FULL_SNAPSHOT_PENDING_INFLIGHT_AND_OTHER_OWNER_PASS\n";
  std::cout<<"NATIVE_CLONE_EXPLICIT_ZERO_FALSE_EMPTY_SOUND_INHERITED_DEFENSE_REVOCATION_AND_OTHER_OWNER_PASS\n";

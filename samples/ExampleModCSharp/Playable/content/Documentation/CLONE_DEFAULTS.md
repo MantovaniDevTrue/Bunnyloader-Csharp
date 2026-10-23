@@ -107,7 +107,54 @@ A revogação dos callbacks continua imediata. A restauração nativa atende at�
 tipos com células por pump, em rotação, preservando os demais UIDs. O teste de
 host verifica um lote de 17 tipos em três pumps; isso não é medição de FPS Android.
 
-**Ainda pendente:** retirar o objeto e o índice já registrados em
-`Main.itemAnimations`/`itemAnimationsRegistered`, restaurar texturas/slots e as
-outras tabelas de equipamento, defaults básicos e todas as instâncias. As três
-flags restauradas não equivalem à retirada completa do registro de animação.
+A retirada do objeto e do índice em `Main` é descrita na seção seguinte.
+Texturas/slots, outras tabelas de equipamento, defaults básicos e todas as
+instâncias continuam pendentes; a restauração dessas três flags não cobre esses
+contratos.
+
+## Registro de animação em Main
+
+O contrato de `Behavior.Animate` também guarda o objeto anterior em
+`Main.itemAnimations[type]` e verifica se o ID já estava em
+`Main.itemAnimationsRegistered`. Os objetos de animação guardados têm raízes
+fortes até terminar a restauração pela thread do jogo. Arrays, listas e snapshots
+têm raízes temporárias durante cada leitura/chamada nativa. O exemplo segue igual:
+
+```csharp
+// O host registra a animação nativa e suas flags. Na retirada, restaura o
+// objeto anterior e remove o ID somente quando esta política o acrescentou.
+Behavior.Animate(4, 6, animatesAsSoul: true, pulse: true, noGravity: true);
+```
+
+O método Android `RegisterItemAnimation` faz Contains/Add na lista antes de
+gravar a referência no array. Por isso, o loader retém o estado anterior antes
+de invocá-lo. Se a chamada falhar depois do Add, uma nova tentativa pode concluir
+o registro sem duplicar o índice, ou o unload pode remover esse Add parcial.
+
+Na retirada, o loader encontra a posição atual do ID usando um snapshot tipado
+de `List<int>.ToArray` e chama `RemoveAt`. Não escreve os campos privados da
+lista. Remove primeiro o ID que acrescentou e só depois restaura a referência
+com a barreira do coletor. Uma exceção após remover o ID é recuperada sem remover
+outro elemento na tentativa seguinte. Se o ID já existia antes, sua posição e
+seus vizinhos são preservados. Outro objeto que substituiu a animação conserva
+a referência e o registro atuais; uma escrita com a mesma referência não pode
+ser distinguida de uma ausência de alteração.
+
+Array/lista ausentes, metadados incompatíveis e exceções de snapshot ou remoção
+mantêm a limpeza pendente. Uma duplicação externa do ID também é rejeitada:
+o loader não escolhe um índice ambíguo nem limpa o objeto sob um ID ainda
+registrado. A recuperação pode continuar quando o estado nativo for válido.
+Os métodos, retorno `Int32[]`, parâmetro de `RemoveAt` e array de `DrawAnimation`
+são verificados por metadados antes da publicação.
+
+Cópias dos arrays/listas são resolvidas de novo na limpeza. Se um array menor
+descartar o slot que esta política criou, o ID acrescentado é retirado sem
+recriar esse slot. Uma reinicialização que substitui as duas coleções estabelece
+uma nova base; o gancho reaplica a animação existente, sem construir outro
+`DrawAnimation`. Os testes verificam esses casos, outro UID, objetos anteriores
+registrados/não registrados e falhas antes/depois das mutações. A limpeza desses
+registros compartilha o orçamento de oito tipos por pump.
+
+Isso fecha este contrato nativo no host. Não demonstra instalação nem gameplay
+no Android; texturas/slots, demais tabelas e unload global de itens continuam
+pendentes. Nenhum APK foi gerado.
