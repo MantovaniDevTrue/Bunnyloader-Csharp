@@ -43,7 +43,8 @@ int main(int argc,char** argv) {
     const auto stage=item.tooltipPlan;
     auto reject=[&](const std::string& json) {
         NativeTooltipPlan unchanged;
-        unchanged.lines.push_back({"kept","unchanged"});
+        NativeTooltipLine saved;saved.name="kept";saved.text="unchanged";
+        unchanged.lines.push_back(saved);
         assert(!decodeNativeTooltipPlan(json,&unchanged,&error));
         assert(unchanged.lines.size()==1&&unchanged.lines[0].name=="kept");
     };
