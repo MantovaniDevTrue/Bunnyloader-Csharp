@@ -49,6 +49,131 @@ enum; base: `System.Enum`.
 
 Values: None, EquippedSprite, EnergyBarrier, RunningTrail.
 
+## BunnyLoader.Source.BunnyAchievement
+
+abstract class; base: `System.Object`.
+
+```csharp
+BunnyAchievementCategory Category { get; }
+IReadOnlyList<BunnyAchievementCondition> Conditions { get; }
+bool Hidden { get; }
+bool IsCompleted { get; }
+int Index { get; }
+string Description { get; set; }
+string FriendlyName { get; set; }
+string Name { get; }
+string Texture { get; set; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `BunnyAchievementCondition AddCondition(string key)` | managed_helper |
+| `BunnyAchievementCondition AddFloatCondition(float maximum, string key)` | managed_helper |
+| `BunnyAchievementCondition AddIntCondition(int maximum, string key)` | managed_helper |
+| `BunnyAchievementCondition AddItemCraftCondition(int[] ids)` | managed_helper |
+| `BunnyAchievementCondition AddItemPickupCondition(int[] ids)` | managed_helper |
+| `BunnyAchievementCondition AddNPCKilledCondition(int[] ids)` | managed_helper |
+| `BunnyAchievementCondition AddTileDestroyedCondition(int[] ids)` | managed_helper |
+| `void OnCompleted()` | managed_helper |
+| `void OnItemCraft(BunnyAchievementEvent e)` | managed_helper |
+| `void OnItemPickup(BunnyAchievementEvent e)` | managed_helper |
+| `void OnNPCKilled(BunnyAchievementEvent e)` | managed_helper |
+| `void OnTileDestroyed(BunnyAchievementEvent e)` | managed_helper |
+| `void SetStaticDefaults()` | compile_policy |
+
+## BunnyLoader.Source.BunnyAchievementCategory
+
+enum; base: `System.Enum`.
+
+Values: Slayer, Collector, Explorer, Challenger.
+
+## BunnyLoader.Source.BunnyAchievementCondition
+
+class; base: `System.Object`.
+
+```csharp
+BunnyAchievementConditionKind Kind { get; }
+IReadOnlyList<int> ContentTypes { get; }
+bool IsCompleted { get; }
+float Maximum { get; }
+float Value { get; set; }
+string Key { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `void Complete()` | managed_helper |
+
+## BunnyLoader.Source.BunnyAchievementConditionKind
+
+enum; base: `System.Enum`.
+
+Values: Flag, Integer, Float, NpcKilled, ItemPickup, ItemCraft, TileDestroyed.
+
+## BunnyLoader.Source.BunnyAchievementEvent
+
+struct; base: `System.ValueType`.
+
+```csharp
+BunnyAchievementEvent(BunnyAchievementEventKind Kind, int ContentType, int Stack, bool IsLocalPlayer)
+BunnyAchievementEventKind Kind { get; set; }
+bool IsLocalPlayer { get; set; }
+int ContentType { get; set; }
+int Stack { get; set; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `bool Equals(BunnyAchievementEvent other)` | managed_helper |
+| `bool Equals(Object obj)` | managed_helper |
+| `int GetHashCode()` | managed_helper |
+| `string ToString()` | managed_helper |
+| `void Deconstruct(out BunnyAchievementEventKind Kind, out int ContentType, out int Stack, out bool IsLocalPlayer)` | managed_helper |
+
+## BunnyLoader.Source.BunnyAchievementEventKind
+
+enum; base: `System.Enum`.
+
+Values: NpcKilled, ItemPickup, ItemCraft, TileDestroyed.
+
+## BunnyLoader.Source.BunnyAchievementRegistry
+
+class; base: `System.Object`.
+
+```csharp
+BunnyAchievementRegistry()
+```
+
+| Method | Execution |
+| --- | --- |
+| `BunnyAchievement Find(string modId, string name)` | managed_helper |
+| `IReadOnlyList<BunnyAchievementSnapshot> Snapshot(string modId)` | managed_helper |
+| `bool Unload(string modId, string revision)` | managed_helper |
+| `int Dispatch(string modId, BunnyAchievementEvent e)` | managed_helper |
+| `int Register(string modId, string revision, Assembly assembly)` | managed_helper |
+| `int Restore(string modId, IReadOnlyList<BunnyAchievementSnapshot> saved)` | managed_helper |
+
+## BunnyLoader.Source.BunnyAchievementSnapshot
+
+class; base: `System.Object`.
+
+```csharp
+BunnyAchievementSnapshot(string Name, string[] Keys, BunnyAchievementConditionKind[] Kinds, float[] Values)
+BunnyAchievementConditionKind[] Kinds { get; set; }
+float[] Values { get; set; }
+string Name { get; set; }
+string[] Keys { get; set; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `BunnyAchievementSnapshot <Clone>$()` | managed_helper |
+| `bool Equals(BunnyAchievementSnapshot other)` | managed_helper |
+| `bool Equals(Object obj)` | managed_helper |
+| `int GetHashCode()` | managed_helper |
+| `string ToString()` | managed_helper |
+| `void Deconstruct(out string Name, out string[] Keys, out BunnyAchievementConditionKind[] Kinds, out float[] Values)` | managed_helper |
+
 ## BunnyLoader.Source.BunnyAfterHurtHook
 
 class; base: `System.MulticastDelegate`.
