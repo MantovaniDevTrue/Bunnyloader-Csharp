@@ -102,7 +102,10 @@ jobs:
           native=Path('app/src/main/cpp/experiments/csharp/ManagedProjectileHook.cpp').read_text()
           assert 'public virtual void OnTileCollide(' in sdk
           assert 'public static bool CollideProjectile(' in dispatcher
-          assert 'g_api.findMethod(klass, "CollideProjectile", 9)' in host
+          assert 'public static int CollideProjectilePolicy(' in dispatcher
+          assert 'g_api.findMethod(klass, "CollideProjectilePolicy", 9)' in host
+          assert 'g_entityCollisionPolicyReady[slot].store(true' in host
+          assert 'takeManagedEntityTileCollisionPolicy(type,slot,state.generation' in native
           assert 'queueManagedEntityTileCollision(type,slot,state.generation' in native
           PY
       - name: Compile and run managed entity lifecycle callbacks
