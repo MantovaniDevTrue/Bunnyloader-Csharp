@@ -69,5 +69,18 @@ jobs:
         run: dotnet build experiments/csharp/BunnySourceCompiler/BunnySourceCompiler.csproj -c Release --nologo
       - name: Execute compiled BunnyProjectile collision metadata probe
         run: dotnet run --project tools/csharp_contracts/TileCollisionMetadataProbe/TileCollisionMetadataProbe.csproj -c Release --no-launch-profile
+      - name: Verify native OnTileCollide ingress wiring
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          sdk=Path('experiments/csharp/BunnyCsSdk/BunnySourceScriptApi.cs').read_text()
+          dispatcher=Path('experiments/csharp/BunnyCsSdk/BunnyEntitySourceDispatcher.cs').read_text()
+          host=Path('app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp').read_text()
+          native=Path('app/src/main/cpp/experiments/csharp/ManagedProjectileHook.cpp').read_text()
+          assert 'public virtual void OnTileCollide(' in sdk
+          assert 'public static bool CollideProjectile(' in dispatcher
+          assert 'g_api.findMethod(klass, "CollideProjectile", 9)' in host
+          assert 'queueManagedEntityTileCollision(type,slot,state.generation' in native
+          PY
       - name: Compile and run managed entity lifecycle callbacks
         run: dotnet run --project tools/csharp_contracts/EntityLifecycleProbe/EntityLifecycleProbe.csproj -c Release --no-launch-profile

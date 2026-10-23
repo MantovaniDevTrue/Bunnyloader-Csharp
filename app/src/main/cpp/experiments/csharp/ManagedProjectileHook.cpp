@@ -180,6 +180,8 @@ struct TileMovementScope {
     bool deferredKill = false;
 };
 thread_local TileMovementScope* g_tileMovementScope = nullptr;
+void enqueueManagedProjectileTileCollision(Il2CppObject* projectile, int type,
+                                           Vector2 before, Vector2 after);
 
 void hkManagedTileKill(Il2CppObject* projectile, const MethodInfo* method) {
     auto* scope = g_tileMovementScope;
@@ -221,6 +223,12 @@ void hkManagedTileMovement(Il2CppObject* projectile, Vector2 wet, const MethodIn
     g_tileMovementScope=&scope;
     original(projectile,wet,method);
     g_tileMovementScope=scope.previous;
+    if(runtime::field<uint8_t>(projectile,game.proj.active)) {
+        const Vector2 current=runtime::field<Vector2>(projectile,game.entity.velocity);
+        if(managedTileCollisionDetected({scope.velocity.x,scope.velocity.y},
+                                        {current.x,current.y},true))
+            enqueueManagedProjectileTileCollision(projectile,type,scope.velocity,current);
+    }
     if(scope.deferredKill && runtime::field<uint8_t>(projectile,game.proj.active)) {
         const auto velocity=runtime::field<Vector2>(projectile,game.entity.velocity);
         if(std::isfinite(velocity.x) && std::isfinite(velocity.y) &&
@@ -434,6 +442,19 @@ struct ManagedEntityProjectileSlot {
 };
 std::array<ManagedEntityProjectileSlot, 4096> g_managedEntityProjectileSlots{};
 int g_managedEntityProjectileGeneration = 1;
+
+void enqueueManagedProjectileTileCollision(Il2CppObject* projectile, int type,
+                                           Vector2 before, Vector2 after) {
+    const auto& game=runtime::game();
+    const int slot=runtime::field<int>(projectile,game.entity.whoAmI);
+    if(slot<0 || static_cast<size_t>(slot)>=g_managedEntityProjectileSlots.size())return;
+    const auto& state=g_managedEntityProjectileSlots[static_cast<size_t>(slot)];
+    const int owner=runtime::field<int>(projectile,game.proj.owner);
+    if(state.object!=projectile || state.type!=type || state.owner!=owner ||
+       state.generation<=0 || state.killQueued)return;
+    queueManagedEntityTileCollision(type,slot,state.generation,owner,
+        reinterpret_cast<uintptr_t>(projectile),before.x,before.y,after.x,after.y);
+}
 FieldInfo* g_managedEntityNetMode = nullptr;
 thread_local bool g_managedProjectileSlotThread = false;
 

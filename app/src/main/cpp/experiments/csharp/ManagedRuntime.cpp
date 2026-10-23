@@ -390,6 +390,8 @@ struct ManagedEntityJob {
     int target = -1;
     float targetX = 0.f;
     float targetY = 0.f;
+    float collisionOldVX = 0.f, collisionOldVY = 0.f;
+    float collisionNewVX = 0.f, collisionNewVY = 0.f;
 };
 
 struct ManagedEntityResult {
@@ -421,6 +423,11 @@ void* g_entityNpcHit = nullptr;
 void* g_entityNpcKill = nullptr;
 void* g_entityProjectileHit = nullptr;
 void* g_entityProjectileKill = nullptr;
+void* g_entityProjectileCollision = nullptr;
+std::atomic<uint64_t> g_entityCollisionQueued{0};
+std::atomic<uint64_t> g_entityCollisionDropped{0};
+std::atomic<uint64_t> g_entityCollisionExecuted{0};
+std::atomic<uint64_t> g_entityCollisionRejected{0};
 void* g_entityResetWorld = nullptr;
 uint64_t g_entityManagedResetSession = 0;
 std::atomic<int> g_entityCombatSubmitted{0};
@@ -1024,7 +1031,11 @@ void persistManagedEntityCombatSnapshot(uint64_t session, size_t pending) {
         "\nqueuePending=" + std::to_string(pending) +
         "\nnpcAiJobsProcessed=" + std::to_string(g_entityAiProcessed[0].load(std::memory_order_relaxed)) +
         "\nprojectileAiJobsProcessed=" + std::to_string(g_entityAiProcessed[1].load(std::memory_order_relaxed)) +
-        "\nworkerWrites=" + std::to_string(g_entityCombatStatusWrites.load(std::memory_order_relaxed)) + "\n";
+        "\nworkerWrites=" + std::to_string(g_entityCombatStatusWrites.load(std::memory_order_relaxed)) +
+        "\nprojectileTileCollision queued=" + std::to_string(g_entityCollisionQueued.load(std::memory_order_relaxed)) +
+        " executed=" + std::to_string(g_entityCollisionExecuted.load(std::memory_order_relaxed)) +
+        " rejected=" + std::to_string(g_entityCollisionRejected.load(std::memory_order_relaxed)) +
+        " dropped=" + std::to_string(g_entityCollisionDropped.load(std::memory_order_relaxed)) + "\n";
     for (size_t i = 0; i < 4; ++i) {
         text += std::string(names[i]) +
             " queued=" + std::to_string(g_entityCombatQueued[i].load(std::memory_order_relaxed)) +
@@ -1081,12 +1092,13 @@ int64_t executeManagedEntityOnWorker(const ManagedEntityJob& job) {
         g_entityNpcKill = g_api.findMethod(klass, "KillNpc", 4);
         g_entityProjectileHit = g_api.findMethod(klass, "HitProjectile", 7);
         g_entityProjectileKill = g_api.findMethod(klass, "KillProjectile", 5);
+        g_entityProjectileCollision = g_api.findMethod(klass, "CollideProjectile", 9);
         g_entityResetWorld = g_api.findMethod(klass, "ResetWorld", 0);
         if (!g_entityRegister || !g_entityBind ||
             !g_entityNpcTick || !g_entityProjectileTick ||
             !g_entityNpcHit || !g_entityNpcKill ||
             !g_entityProjectileHit || !g_entityProjectileKill ||
-            !g_entityResetWorld) return -1;
+            !g_entityProjectileCollision || !g_entityResetWorld) return -1;
     }
     if (g_entityManagedResetSession != job.session) {
         {
@@ -1147,6 +1159,16 @@ int64_t executeManagedEntityOnWorker(const ManagedEntityJob& job) {
     int life = job.life, maxLife = job.lifeMax, owner = job.owner;
     float x = job.x, y = job.y, vx = job.vx, vy = job.vy;
     float px = job.playerX, py = job.playerY;
+    if (job.kind == 6) {
+        float oldX = job.collisionOldVX, oldY = job.collisionOldVY;
+        float newX = job.collisionNewVX, newY = job.collisionNewVY;
+        void* args[] = {&managedSlot, &type, &slot, &generation, &owner,
+                        &oldX, &oldY, &newX, &newY};
+        void* exception = nullptr;
+        void* result = g_api.invoke(g_entityProjectileCollision, nullptr, args, &exception);
+        void* unboxed = (!exception && result) ? g_api.unbox(result) : nullptr;
+        return unboxed && *static_cast<uint8_t*>(unboxed) ? 1 : (exception ? -1 : 0);
+    }
     if (job.kind >= 2 && job.kind <= 5) {
         int damage = job.damage, target = job.target;
         void* npcHit[] = {&managedSlot, &type, &slot, &generation, &damage, nullptr};
@@ -1840,6 +1862,10 @@ void* pinnedMonoWorker(void*) {
                         if (job.kind == 0 || job.kind == 1)
                             g_entityAiProcessed[static_cast<size_t>(job.kind)]
                                 .fetch_add(1, std::memory_order_relaxed);
+                        if (job.kind == 6) {
+                            if (result == 1) g_entityCollisionExecuted.fetch_add(1, std::memory_order_relaxed);
+                            else g_entityCollisionRejected.fetch_add(1, std::memory_order_relaxed);
+                        }
                         if (job.kind >= 2 && job.kind <= 5) {
                             const int eventIndex=job.kind-2;
                             if (result == 0)
@@ -1864,11 +1890,13 @@ void* pinnedMonoWorker(void*) {
 #endif
                             }
                         }
+                    } else if (job.kind == 6) {
+                        g_entityCollisionDropped.fetch_add(1, std::memory_order_relaxed);
                     } else if (job.kind >= 2 && job.kind <= 5) {
                         g_entityCombatLost[static_cast<size_t>(job.kind - 2)]
                             .fetch_add(1, std::memory_order_relaxed);
                     }
-                    if (job.kind >= 0 && job.kind <= 5) {
+                    if (job.kind >= 0 && job.kind <= 6) {
                         static std::chrono::steady_clock::time_point nextAiSnapshot{};
                         static std::chrono::steady_clock::time_point nextCombatSnapshot{};
                         const auto now = std::chrono::steady_clock::now();
@@ -2147,6 +2175,43 @@ void pauseManagedEntitySourceCallbacks() {
     g_entityProjectileResults.fill({});
     g_entityNpcTicks.fill(0);
     g_entityProjectileTicks.fill(0);
+}
+
+bool queueManagedEntityTileCollision(int type, int slot, int generation, int owner,
+                                     uintptr_t identity, float oldVX, float oldVY,
+                                     float newVX, float newVY) {
+    if (generation < 1 || !identity || type < 0 || type >= 32768 ||
+        slot < 0 || slot >= 4096 ||
+        !std::isfinite(oldVX) || !std::isfinite(oldVY) ||
+        !std::isfinite(newVX) || !std::isfinite(newVY)) return false;
+    const int bound = g_entityProjectileTypeOwner[static_cast<size_t>(type)]
+        .load(std::memory_order_acquire);
+    if (bound <= 0) return false;
+    std::unique_lock<std::mutex> lock(g_pinnedMutex, std::try_to_lock);
+    if (!lock.owns_lock() || !g_pinnedStarted ||
+        static_cast<size_t>(bound - 1) >= g_entityBindings.size() ||
+        !g_entityBindings[static_cast<size_t>(bound - 1)].armed ||
+        g_entityQueue.size() >= 64) {
+        g_entityCollisionDropped.fetch_add(1, std::memory_order_relaxed);
+        return false;
+    }
+    ManagedEntityJob job;
+    job.binding = bound - 1;
+    job.kind = 6;
+    job.type = type;
+    job.slot = slot;
+    job.generation = generation;
+    job.owner = owner;
+    job.identity = identity;
+    job.session = g_entitySession;
+    job.collisionOldVX = oldVX;
+    job.collisionOldVY = oldVY;
+    job.collisionNewVX = newVX;
+    job.collisionNewVY = newVY;
+    g_entityQueue.push_back(job);
+    g_entityCollisionQueued.fetch_add(1, std::memory_order_relaxed);
+    g_pinnedWake.notify_one();
+    return true;
 }
 
 bool queueManagedEntityCombatEvent(int eventKind, int type, int slot, int generation,
