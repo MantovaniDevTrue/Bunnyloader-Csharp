@@ -5,7 +5,8 @@ const assert = require("node:assert/strict");
 const file = "app/src/main/cpp/script/js/mod/Loaders/TooltipLoader.js";
 const source = fs.readFileSync(file, "utf8");
 const publicSource = source.replaceAll("#Wants", "testWants")
-    .replaceAll("#ManagedPlan", "testManagedPlan");
+    .replaceAll("#ManagedPlan", "testManagedPlan")
+    .replaceAll("#NativeViewportSafe", "testNativeViewportSafe");
 
 let nativeReady = true;
 let currentWire = "";
@@ -19,7 +20,13 @@ const context = {
         tooltipNativeReady() { ++nativeQueries; return nativeReady; },
         tooltipPlan() { ++wireReads; return currentWire; }
     }},
-    Terraria: { Main: { SettingsEnabled_OpaqueBoxBehindTooltips: false, npcShop: 0 } },
+    Terraria: { Main: {
+        SettingsEnabled_OpaqueBoxBehindTooltips: false, npcShop: 0,
+        screenHeight: 1080, mouseY: 120, overloadedMousePositionY: -1
+    } },
+    Settings: { Instance: { Tooltips: {
+        Scale: 1, Distance: { Y: 16 }, DrawOffset: { Y: 24 }
+    } } },
     RarityLoader: { ByType: new Set() },
     DamageClassLoader: { IsHooked() { return false; }, ItemClass() { return null; } },
     ItemLoader: { Of() { return modItem; } },
@@ -59,6 +66,22 @@ nativeReady = true;
 context.Terraria.Main.SettingsEnabled_OpaqueBoxBehindTooltips = true;
 assert.equal(TooltipLoader.testWants(item), true);
 context.Terraria.Main.SettingsEnabled_OpaqueBoxBehindTooltips = false;
+assert.equal(TooltipLoader.testWants(item), false);
+const main = context.Terraria.Main;
+main.mouseY = 900;
+assert.equal(TooltipLoader.testWants(item), true);
+main.mouseY = 120;
+assert.equal(TooltipLoader.testWants(item), false);
+main.overloadedMousePositionY = 940;
+assert.equal(TooltipLoader.testWants(item), true);
+main.overloadedMousePositionY = -1;
+context.Settings.Instance.Tooltips.Scale = 3;
+assert.equal(TooltipLoader.testWants(item), true);
+context.Settings.Instance.Tooltips.Scale = 1;
+assert.equal(TooltipLoader.testWants(item), false);
+main.screenHeight = 300;
+assert.equal(TooltipLoader.testWants(item), true);
+main.screenHeight = 1080;
 assert.equal(TooltipLoader.testWants(item), false);
 
 context.RarityLoader.ByType.add(1);

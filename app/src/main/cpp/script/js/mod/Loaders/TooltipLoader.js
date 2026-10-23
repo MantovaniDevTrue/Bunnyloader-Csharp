@@ -234,13 +234,36 @@ class TooltipLoader {
         });
     }
 
+    static #NativeViewportSafe() {
+        const main = Terraria.Main;
+        const tips = Settings.Instance?.Tooltips;
+        if (!tips) return false;
+        const scale = Number(tips.Scale);
+        const height = Number(main.screenHeight);
+        const mouseY = Number(main.overloadedMousePositionY !== -1
+            ? main.overloadedMousePositionY : main.mouseY);
+        const offsetY = Number(tips.DrawOffset?.Y);
+        const distanceY = Number(tips.Distance?.Y);
+        if (![scale, height, mouseY, offsetY, distanceY].every(Number.isFinite) ||
+            scale < 0.5 || scale > 2.5 || height < 320 || mouseY < 0) return false;
+        const top = Math.max(mouseY + Math.trunc(offsetY), distanceY);
+        const reserve = Math.max(180, Math.ceil(240 * scale));
+        if (top < 0 || top + reserve > height) return false;
+        if (typeof Controller !== 'undefined' &&
+            Controller.ControllerActionManager?.AnyControllerConnected &&
+            typeof GUIInstance !== 'undefined' &&
+            GUIInstance.Active?.GUIControlsBanner?.ShowBanner) return false;
+        return true;
+    }
+
     static #Wants(item) {
         if (!item || item.type < 1) return false;
         if (RarityLoader.ByType.has(item.rare)) return true;
         const nativeReady = globalThis.bl?.csharp?.tooltipNativeReady;
         const nativeCanDraw = typeof nativeReady === 'function' &&
             nativeReady(item.type) === true &&
-            !Terraria.Main.SettingsEnabled_OpaqueBoxBehindTooltips;
+            !Terraria.Main.SettingsEnabled_OpaqueBoxBehindTooltips &&
+            TooltipLoader.#NativeViewportSafe();
         if (!nativeCanDraw && TooltipLoader.#ManagedPlan(item.type)) return true;
         // Moeda própria na loja: o jogo do celular pinta o preço com uma cor
         // fixa (246, 100, 120) e ignora o CurrencyTextColor; aqui ele vale.
