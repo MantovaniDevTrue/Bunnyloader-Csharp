@@ -14,7 +14,7 @@ O catálogo usa cada hook JS como unidade inicial de revisão, com hash do fonte
 |---|---:|
 | não iniciado | 678 |
 | implementado sem validar | 0 |
-| validado automaticamente | 49 |
+| validado automaticamente | 50 |
 | validado no Android | 1 |
 | falhou | 3 |
 | bloqueio comprovado | 0 |
@@ -80,6 +80,7 @@ Dust e invasão: o baseline contém correções posteriores aos logs Android de 
 | requirement:rarity-loader-bunny-contract | validado automaticamente | Contrato de raridade do Bunny: callbacks, integração visual nativa, prefixos, persistência e ciclo de vida. IDs estáveis são reativados; cores e dicionário retirados seletivamente. QA Android pendente. |
 | requirement:angler-quest-loader-bunny-contract | validado automaticamente | Contrato do AnglerQuestLoader Bunny: quest fish, flags/lista, seleção/chat, captura e callbacks/revisões/unload. Teardown durável, contextos coletáveis e outros UIDs verificados no host. QA Android pendente. |
 | requirement:clone-defaults-explicit-overrides-and-reload | validado automaticamente | Protocolo opcional C1 preserva campos omitidos e distingue zero/false/som vazio. Três revisões reais compiladas, limpeza da atribuição de defesa, revogação antes do frame, confirmação por geração, outro UID e 100 substituições testados. Classificação de prefixos usa defaults efetivos após NativeDefaults. Não declara unload global de itens, restauração de todos os campos extras ou retirada de tabelas estáticas; Android pendente. |
+| requirement:item-dynamic-policy-uid-retirement | validado automaticamente | Clone, cor, luz, asas, robe e hooks de reinicialização deixam de usar o UID retirado antes do pump. Retenção parcial/vazia, pending/in-flight install, outro UID e 100 recargas verificados com wire real; handles liberados na thread do jogo. SourceLoader/guard compilados. Tabelas estáticas, texturas/slots, animações já registradas, defaults básicos e unload global seguem pendentes. |
 
 Todos os hooks e o backlog oficial estão em [EXAMPLEMOD_COVERAGE.json](EXAMPLEMOD_COVERAGE.json).
 

@@ -59,3 +59,22 @@ as texturas, slots e tabelas estáticas de animação/equipamento já instaladas
 Esses ciclos de vida continuam sendo trabalho separado. A retirada do snapshot
 impede novas cópias e callbacks da política retirada; não é uma recriação geral
 da instância do Terraria.
+
+## Retirada por mod e snapshot completo
+
+O loader agora revoga as políticas dinâmicas por UID no reset, antes de recarregar
+um mod e quando o carregamento falha. Se a aplicação dos defaults falhar depois
+de publicar o lote básico, o guard também retira as políticas desse UID.
+No snapshot completo, tipos ausentes são retirados; um snapshot vazio retira
+todos. Outros UIDs e os tipos ainda presentes conservam suas políticas.
+
+A retirada impede novas cópias do clone e remove as consultas dinâmicas de cor,
+iluminação, asas e robe. Também impede que o gancho de reinicialização registre
+novamente a animação retirada. Uma instalação que já estava em execução não pode
+republicar o resultado antigo. Os handles do clone ficam retidos até o pump na
+thread do jogo; a thread que solicita unload não chama o coletor IL2CPP.
+
+Isso não desfaz as células estáticas ou texturas já instaladas, nem remove um
+registro de animação já existente no Terraria. A restauração dessas tabelas e
+slots, dos defaults básicos e de todas as instâncias continua pendente. O teste
+de host não comprova unload completo no Android.

@@ -53,3 +53,13 @@ continua aceito. O contrato e as limitações de autoria/unload estão em
 inteiro, a retirada de tabelas estáticas nem o renderer de tooltip sem JS.
 
 A revisão de viewport implementa fallback JS quando o cursor, escala, controlador ou dados de tela não permitem uma inserção nativa segura. O hook C++ valida e lê `Main.screenHeight` e só insere a linha com headroom suficiente para o texto extra; o teste host cobre bordas e escalas. Isso evita clip e deslocamentos fora da tela, mas não dimensiona nativamente o painel opaco e não equivale à validação visual Android. Sem APK.
+
+O lote de retirada das políticas dinâmicas de item adiciona ownership por UID,
+revogação imediata de snapshots e limpeza de handles pelo pump da thread do jogo.
+Reset, recarga, falha de carga e falha após publicação dos defaults básicos
+conectam essa retirada; o snapshot completo retém apenas os tipos presentes,
+inclusive quando está vazio. O fixture usa os fontes reais compilados e cobre
+instalação pendente/em execução, 100 recargas, outro UID e callbacks de clone,
+cor, luz, asas, robe e reinicialização de animação. Não restaura tabelas estáticas,
+texturas/slots, animações já registradas ou todos os defaults de instâncias;
+não declara unload global de ItemLoader nem validação Android. Sem APK.

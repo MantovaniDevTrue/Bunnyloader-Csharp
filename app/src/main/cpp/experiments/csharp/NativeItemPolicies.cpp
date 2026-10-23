@@ -16,6 +16,7 @@
 #include <atomic>
 #include <cstring>
 #include <mutex>
+#include <set>
 #include <sys/stat.h>
 
 namespace bl::csharp {
@@ -46,6 +47,7 @@ std::shared_ptr<const Snapshot> snapshot;
 std::mutex queueMutex;
 std::map<int,std::shared_ptr<Entry>> incoming;
 std::map<int,uint64_t> desiredGeneration;
+std::map<int,std::string> desiredOwner;
 uint64_t nextGeneration=0;
 // Old snapshots may own GC roots. The game thread, never ingress, releases them.
 std::vector<std::shared_ptr<const Snapshot>> retiringSnapshots;
@@ -245,7 +247,14 @@ bool registerAnimation(Entry& entry,std::string* error) {
     }
     return true;
 }
-void restoreAnimations(){for(auto& [type,entry]:entries){(void)type;if(entry->status.ready&&entry->policy.animated){std::string error;registerAnimation(*entry,&error);}}}
+// Hooks may run between ingress revocation and the next game-thread pump.
+// The mutable installation cache still owns roots then, but cannot republish them.
+bool isDesired(const Entry& entry) {
+    std::lock_guard lock(queueMutex);
+    const auto wanted=desiredGeneration.find(entry.source.type);
+    return wanted!=desiredGeneration.end()&&wanted->second==entry.generation;
+}
+void restoreAnimations(){for(auto& [type,entry]:entries){(void)type;if(entry->status.ready&&entry->policy.animated&&isDesired(*entry)){std::string error;registerAnimation(*entry,&error);}}}
 bool writeWingStats(const Entry& entry,std::string* error) {
     auto found=entry.slots.find("Wings");if(found==entry.slots.end()){*error="Reason=WingEquipSlotNotRegistered";return false;}
     auto* ids=nested("Wing");auto* sets=ids?findNested(ids,"Sets"):nullptr;
@@ -291,7 +300,7 @@ bool writeWingStats(const Entry& entry,std::string* error) {
     }
     std::memcpy(bytes,initialized.data(),layout.size);return true;
 }
-void restoreWingStats(){for(const auto& [type,entry]:entries){(void)type;if(entry->status.ready&&entry->policy.wing){std::string error;writeWingStats(*entry,&error);}}}
+void restoreWingStats(){for(const auto& [type,entry]:entries){(void)type;if(entry->status.ready&&entry->policy.wing&&isDesired(*entry)){std::string error;writeWingStats(*entry,&error);}}}
 struct WingRefs {int logic=-1,velocity=-1,gravity=-1,time=-1,maxTime=-1,brooch=-1;StaticValue jump;};
 WingRefs wingRefs;
 using PlayerFn=void (*)(Il2CppObject*,const MethodInfo*);
@@ -504,6 +513,24 @@ bool install(Entry& entry,std::string* error) {
     if(entry.policy.robe&&!prepareRobe(error))return false;
     return true;
 }
+// Caller holds queueMutex until all temporary snapshot references are dropped.
+void revokeSnapshotTypesLocked(const std::set<int>& types) {
+    if(types.empty())return;
+    const auto old=std::atomic_load_explicit(&snapshot,std::memory_order_acquire);
+    if(old) {
+        auto next=std::make_shared<Snapshot>();
+        for(const auto& [type,entry]:old->items) {
+            if(types.contains(type))continue;
+            next->items[type]=entry;
+            if(entry->policy.wing)next->wings[entry->slots.at("Wings")]=entry->policy.wings;
+            if(entry->policy.robe)next->robes[entry->slots.at("Body")]=entry->slots.at("Legs");
+        }
+        if(next->items.size()!=old->items.size()) {
+            retiringSnapshots.push_back(old);
+            std::atomic_store_explicit(&snapshot,std::shared_ptr<const Snapshot>(std::move(next)),std::memory_order_release);
+        }
+    }
+}
 void publish() {
     std::lock_guard lock(queueMutex);
     auto next=std::make_shared<Snapshot>();
@@ -522,11 +549,13 @@ void publish() {
 struct NativeItemPolicyBatch {
     std::vector<std::shared_ptr<item_native::Entry>> entries;
     std::vector<int> replacedTypes;
+    std::map<int,std::string> owners;
 };
 bool prepareNativeItemPolicies(const std::vector<BasicItemEntry>& entries,std::shared_ptr<NativeItemPolicyBatch>* batch,std::string* error) {
     auto prepared=std::make_shared<NativeItemPolicyBatch>();
     for(const auto& source:entries) {
         prepared->replacedTypes.push_back(source.type);
+        prepared->owners[source.type]=source.modId;
         if(source.behavior.empty())continue;
         auto entry=std::make_shared<item_native::Entry>();entry->source=source;
         if(!item_policy_wire::read(source,&entry->policy,error))return false;
@@ -541,6 +570,7 @@ void commitNativeItemPolicies(const std::shared_ptr<NativeItemPolicyBatch>& batc
     const uint64_t generation=++nextGeneration;
     for(int type:batch->replacedTypes) {
         desiredGeneration[type]=generation;
+        desiredOwner[type]=batch->owners.at(type);
         incoming[type]=nullptr; // Empty behavior is an explicit per-type replacement.
         statuses.erase(type);
     }
@@ -549,23 +579,30 @@ void commitNativeItemPolicies(const std::shared_ptr<NativeItemPolicyBatch>& batc
         auto entry=std::make_shared<Entry>(*prepared);entry->generation=generation;
         incoming[entry->source.type]=entry;statuses[entry->source.type]=entry->status;
     }
-    {
-        const auto old=std::atomic_load_explicit(&snapshot,std::memory_order_acquire);
-        if(old) {
-            auto next=std::make_shared<Snapshot>();
-            for(const auto& [type,entry]:old->items) {
-                if(std::find(batch->replacedTypes.begin(),batch->replacedTypes.end(),type)!=batch->replacedTypes.end())continue;
-                next->items[type]=entry;
-                if(entry->policy.wing)next->wings[entry->slots.at("Wings")]=entry->policy.wings;
-                if(entry->policy.robe)next->robes[entry->slots.at("Body")]=entry->slots.at("Legs");
-            }
-            if(next->items.size()!=old->items.size()) {
-                retiringSnapshots.push_back(old);
-                std::atomic_store_explicit(&snapshot,std::shared_ptr<const Snapshot>(std::move(next)),std::memory_order_release);
-            }
-        }
-    } // Drop ingress' temporary old-snapshot reference before releasing queueMutex.
+    revokeSnapshotTypesLocked({batch->replacedTypes.begin(),batch->replacedTypes.end()});
     pendingCount.store(std::count_if(statuses.begin(),statuses.end(),[](const auto& pair){return !pair.second.ready;}),std::memory_order_release);
+}
+void retainNativeItemPoliciesForMod(const std::string& mod,const std::vector<int>& activeTypes) {
+    using namespace item_native;
+    const std::set<int> retained(activeTypes.begin(),activeTypes.end());
+    std::lock_guard lock(queueMutex);
+    std::set<int> removed;
+    for(auto it=desiredOwner.begin();it!=desiredOwner.end();) {
+        if(it->second!=mod||retained.contains(it->first)){++it;continue;}
+        const int type=it->first;
+        removed.insert(type);
+        // entries and their roots belong to the game thread. Ingress only
+        // invalidates the generation and queues removal, including pending work.
+        desiredGeneration.erase(type);
+        incoming[type]=nullptr;
+        statuses.erase(type);
+        it=desiredOwner.erase(it);
+    }
+    revokeSnapshotTypesLocked(removed);
+    pendingCount.store(std::count_if(statuses.begin(),statuses.end(),[](const auto& pair){return !pair.second.ready;}),std::memory_order_release);
+}
+void retireNativeItemPoliciesForMod(const std::string& mod) {
+    retainNativeItemPoliciesForMod(mod,{});
 }
 bool applyNativeItemPolicyDefaults(Il2CppObject* item,int type) {
     using namespace item_native;const auto view=std::atomic_load_explicit(&snapshot,std::memory_order_acquire);if(!item||!view)return false;
@@ -607,7 +644,8 @@ void pumpNativeItemPoliciesOnGameThread() {
             entry->status.phase=entry->status.ready?"ready":"waiting-native-install";entry->status.error=error;
             bool current=false;
             {std::lock_guard lock(queueMutex);
-                current=desiredGeneration[type]==entry->generation;
+                const auto desired=desiredGeneration.find(type);
+                current=desired!=desiredGeneration.end()&&desired->second==entry->generation;
                 if(current)statuses[type]=entry->status;
             }
             if(!current){changed=true;continue;}

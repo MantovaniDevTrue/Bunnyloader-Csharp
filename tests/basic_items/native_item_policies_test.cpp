@@ -469,6 +469,7 @@ int main(int argc,char** argv) {
  assert(registerBasicItemPlaceholder(8401,"CloneContract",&error));
  auto applyRevision=[&](size_t number,int type,const std::string& owner) {
   auto entry=revisions[number];entry.type=type;
+  if(type==8402)entry.name="CloneContractSecond";
   assert(applyNativeBasicItemDefaults(owner,{entry},&error));
   if(entry.defenseSpecified)assert(setBasicItemDefense(type,entry.defense,&error));
   for(int i=0;i<5&&pendingNativeItemPolicies();++i)pumpNativeItemPoliciesOnGameThread();
@@ -539,6 +540,68 @@ int main(int argc,char** argv) {
  assert(nativeItemPolicyReady(8400)&&pendingNativeItemPolicies()==0);
  pumpNativeItemPoliciesOnGameThread();
  assert(applyBasicItemToObject(&other.header,8401)&&other.defense==2);
+ // Whole-mod retirement revokes published and queued policies without calling
+ // the fake GC on ingress. Another UID and retained types stay usable.
+ applyRevision(0,8400,"clone_mod");
+ identities[8402]="clone_mod/CloneContractSecond";
+ assert(registerBasicItemPlaceholder(8402,"CloneContractSecond",&error));
+ applyRevision(0,8402,"clone_mod");
+ const auto rootsBeforeRetain=roots.size();
+ std::thread retain([&]{retainNativeItemPoliciesForMod("clone_mod",{8400});});retain.join();
+ assert(roots.size()==rootsBeforeRetain);
+ FakeItem removedPart{};removedPart.type=8402;
+ assert(!applyNativeItemPolicyDefaults(&removedPart.header,8402));
+ assert(applyNativeItemPolicyDefaults(&inherited.header,8400));
+ pumpNativeItemPoliciesOnGameThread();assert(roots.size()<rootsBeforeRetain);
+ const auto rootsBeforeRetire=roots.size();
+ std::thread retire([&]{retireNativeItemPoliciesForMod("clone_mod");});retire.join();
+ assert(roots.size()==rootsBeforeRetire);
+ assert(!applyNativeItemPolicyDefaults(&inherited.header,8400));
+ assert(applyNativeItemPolicyDefaults(&other.header,8401));
+ for(const auto& status:nativeItemPolicyStatus())assert(status.mod!="clone_mod");
+ pumpNativeItemPoliciesOnGameThread();assert(roots.size()<rootsBeforeRetire);
+ // An admitted but not yet installed clone must never allocate/publish after unload.
+ assert(applyNativeBasicItemDefaults("clone_mod",{nextRevision},&error));
+ retireNativeItemPoliciesForMod("clone_mod");
+ const auto rootsBeforePending=roots.size();pumpNativeItemPoliciesOnGameThread();
+ assert(roots.size()==rootsBeforePending&&!applyNativeItemPolicyDefaults(&inherited.header,8400));
+ // Unload while the native clone constructor is running rejects its result.
+ assert(applyNativeBasicItemDefaults("clone_mod",{nextRevision},&error));
+ duringCloneSetup=[&]{std::thread writer([&]{retireNativeItemPoliciesForMod("clone_mod");});writer.join();};
+ pumpNativeItemPoliciesOnGameThread();
+ assert(!applyNativeItemPolicyDefaults(&inherited.header,8400));
+ for(const auto& status:nativeItemPolicyStatus())assert(status.mod!="clone_mod");
+ pumpNativeItemPoliciesOnGameThread();
+ // Empty full snapshots and repeated reload/unload coalesce before a frame.
+ std::thread reloadUnload([&]{for(int i=0;i<100;++i) {
+  assert(applyNativeBasicItemDefaults("clone_mod",{nextRevision},&error));
+  retainNativeItemPoliciesForMod("clone_mod",{});
+ }});reloadUnload.join();pumpNativeItemPoliciesOnGameThread();
+ assert(!applyNativeItemPolicyDefaults(&inherited.header,8400));
+ applyRevision(0,8400,"clone_mod");
+ assert(applyNativeItemPolicyDefaults(&inherited.header,8400));
+ assert(applyNativeItemPolicyDefaults(&other.header,8401));
+ // Retiring an unknown UID is a no-op, including ready roots and callbacks.
+ retireNativeItemPoliciesForMod("missing_mod");pumpNativeItemPoliciesOnGameThread();
+ assert(applyNativeItemPolicyDefaults(&inherited.header,8400));
+ // Retiring the original compiled ExampleMod batch removes every dynamic
+ // callback view, including the derived wing/robe lookup maps.
+ std::thread retireOriginal([&]{retireNativeItemPoliciesForMod("mod");});retireOriginal.join();
+ p.wingsLogic=wing;p.gravDir=1;p.velocity[1]=2;
+ const int retiredMovementCalls=movementCalls;movement(&p.header,nullptr);
+ assert(movementCalls==retiredMovementCalls+1);
+ request.part=1;special=0;assert(match(&request,&special,nullptr)==42&&!special);
+ assert(alpha(&item.header,0x12345678u,nullptr)==0x12345678u);
+ world.active=true;world.inner=&item;const int retiredLightCalls=lightCalls;
+ update(&world.object,0,nullptr);assert(lightCalls==retiredLightCalls);
+ animations.clear();animation(nullptr);assert(!animations.contains(soul.type));
+ auto* retiredWingTable=makeArray(cls("WingStats"),2);constant(statsField,retiredWingTable);
+ wingStats(nullptr);apiInstance.field_static_get_value(statsField,&stats);
+ assert(stats==retiredWingTable&&stats->length==2);
+ assert(applyNativeItemPolicyDefaults(&inherited.header,8400));
+ assert(applyNativeItemPolicyDefaults(&other.header,8401));
+ pumpNativeItemPoliciesOnGameThread();
+ std::cout<<"NATIVE_ITEM_POLICY_UID_RETIRE_FULL_SNAPSHOT_PENDING_INFLIGHT_AND_OTHER_OWNER_PASS\n";
  std::cout<<"NATIVE_CLONE_EXPLICIT_ZERO_FALSE_EMPTY_SOUND_INHERITED_DEFENSE_REVOCATION_AND_OTHER_OWNER_PASS\n";
  std::cout<<"NATIVE_ITEM_POLICIES_FULL_EXAMPLE_WIRE_NO_QUICKJS_PASS items="<<all.size()<<" movement=10000 boxed="<<!rawOffsets<<" mode="<<mode<<"\n";
 }

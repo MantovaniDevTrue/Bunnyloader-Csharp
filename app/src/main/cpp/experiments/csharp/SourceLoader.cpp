@@ -15,6 +15,7 @@
 #include "content/projectiles/ModProjectiles.h"
 #include "graphics/CSharpScreenEffects.h"
 #include "experiments/csharp/NativeBasicItems.h"
+#include "experiments/csharp/NativeItemPolicies.h"
 #include "experiments/csharp/NativeArmorPolicies.h"
 #include "experiments/csharp/NativeAnglerQuestRegistry.h"
 #include "experiments/csharp/NativeRecipeCallbacks.h"
@@ -704,6 +705,7 @@ void resetCSharpSourceModSession() {
     for (const auto& mod : g_statuses) {
         retireNativeDefaultsForMod(mod.id);
         retireBasicItemTooltipsForMod(mod.id);
+        retireNativeItemPoliciesForMod(mod.id);
         retireNativeArmorPoliciesForMod(mod.id);
         retireNativeRaritySampling(mod.id);
         localization::retireMod(mod.id);
@@ -722,6 +724,7 @@ bool loadCSharpSourceMod(const bl::mods::LoadedMod& mod) {
     if (previous != g_statuses.end()) {
         retireNativeDefaultsForMod(mod.id);
         retireBasicItemTooltipsForMod(mod.id);
+        retireNativeItemPoliciesForMod(mod.id);
         retireNativeArmorPoliciesForMod(mod.id);
         retireNativeRaritySampling(mod.id);
         localization::retireMod(mod.id);
@@ -742,6 +745,7 @@ bool loadCSharpSourceMod(const bl::mods::LoadedMod& mod) {
     } else {
         retireNativeDefaultsForMod(mod.id);
         retireBasicItemTooltipsForMod(mod.id);
+        retireNativeItemPoliciesForMod(mod.id);
         retireNativeArmorPoliciesForMod(mod.id);
         retireNativeRaritySampling(mod.id);
         localization::retireMod(mod.id);
@@ -778,16 +782,19 @@ bool applyManagedSourceDefaults(
         *error = "Mod fonte nao carregado ou SetDefaults ja aplicado";
         return false;
     }
-    struct ArmorApplyGuard {
+    struct DefaultsApplyGuard {
         const std::string& owner;
         bool touched=false,complete=false;
-        ~ArmorApplyGuard(){if(!complete) {
-            if(touched)retireNativeArmorPoliciesForMod(owner);
+        ~DefaultsApplyGuard(){if(!complete) {
+            if(touched) {
+                retireNativeArmorPoliciesForMod(owner);
+                retireNativeItemPoliciesForMod(owner);
+            }
             localization::retireMod(owner);
             angler::registry().unload(owner);
             retireNativeRaritySampling(owner);
         }}
-    } armorApply{modId};
+    } defaultsApply{modId};
     std::istringstream lines(runtimeValues);
     std::string header;
     if (!std::getline(lines, header) || header != "BUNNY_MANAGED_DEFAULTS_V2") {
@@ -1657,10 +1664,11 @@ bool applyManagedSourceDefaults(
         }
     }
     if (!applyNativeBasicItemDefaults(modId,basicItems,error)) return false;
-    armorApply.touched=true;
-    std::vector<int> retainedArmorTypes;
-    for(const auto& item:basicItems)retainedArmorTypes.push_back(item.type);
-    retainNativeArmorPoliciesForMod(modId,retainedArmorTypes);
+    defaultsApply.touched=true;
+    std::vector<int> retainedItemTypes;
+    for(const auto& item:basicItems)retainedItemTypes.push_back(item.type);
+    retainNativeArmorPoliciesForMod(modId,retainedItemTypes);
+    retainNativeItemPoliciesForMod(modId,retainedItemTypes);
     for (const auto& item : basicItems) {
         if ((item.defenseSpecified || item.defense>0) && !setBasicItemDefense(item.type,item.defense,error)) return false;
     }
@@ -1696,7 +1704,7 @@ bool applyManagedSourceDefaults(
         return false;
     }
     mod->runtimeApplied = true;
-    armorApply.complete=true;
+    defaultsApply.complete=true;
     return true;
 }
 
