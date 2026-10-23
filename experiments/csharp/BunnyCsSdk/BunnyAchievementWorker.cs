@@ -37,7 +37,7 @@ public static class BunnyAchievementWorker
         if (string.IsNullOrWhiteSpace(modId) || modId.Length > 96 ||
             modId.Any(c => !char.IsAsciiLetterOrDigit(c) && c != '_' && c != '-' && c != '.') ||
             string.IsNullOrEmpty(assemblyPath) || assemblyPath.Length > 4096 ||
-            snapshot == null || snapshot.Length > 12000 || kind is < 0 or > 4)
+            snapshot == null || snapshot.Length > 12000 || kind is < 0 or > 5)
             return "ERROR|Stage=AchievementTransport Reason=InvalidArguments";
         try
         {
@@ -91,6 +91,16 @@ public static class BunnyAchievementWorker
                     return wire.Length > 12000
                         ? "ERROR|Stage=AchievementSnapshot Reason=SnapshotTooLarge"
                         : wire;
+                }
+
+                if (kind == 5)
+                {
+                    if (snapshot.Length != 0)
+                        return "ERROR|Stage=AchievementManifest Reason=UnexpectedPayload";
+                    string result = ExportDefinitions(Registry.Definitions(modId));
+                    return result.Length <= 12000
+                        ? result
+                        : "ERROR|Stage=AchievementManifest Reason=TooLarge";
                 }
 
                 if (kind == 3)
@@ -155,6 +165,33 @@ public static class BunnyAchievementWorker
         }
         results = list;
         return true;
+    }
+
+    private static string ExportDefinitions(IReadOnlyList<BunnyAchievement> achievements)
+    {
+        var result = new StringBuilder("ACHMETA1");
+        foreach (BunnyAchievement entry in achievements)
+        {
+            string title = string.IsNullOrWhiteSpace(entry.FriendlyName)
+                ? entry.Name[(entry.Name.LastIndexOf('/') + 1)..]
+                : entry.FriendlyName;
+            result.Append("\nA|").Append(Hex(entry.Name))
+                .Append('|').Append(Hex(title))
+                .Append('|').Append(Hex(entry.Description ?? ""))
+                .Append('|').Append(Hex(entry.Texture))
+                .Append('|').Append(entry.Index.ToString(CultureInfo.InvariantCulture))
+                .Append('|').Append(((int)entry.Category).ToString(CultureInfo.InvariantCulture))
+                .Append('|').Append(entry.Hidden ? "1" : "0")
+                .Append('|').Append(entry.IsCompleted ? "1" : "0");
+            foreach (BunnyAchievementCondition condition in entry.Conditions)
+            {
+                result.Append("\nC|").Append(Hex(condition.Key))
+                    .Append('|').Append(((int)condition.Kind).ToString(CultureInfo.InvariantCulture))
+                    .Append('|').Append(condition.Maximum.ToString("R", CultureInfo.InvariantCulture))
+                    .Append('|').Append(string.Join(",", condition.ContentTypes));
+            }
+        }
+        return result.ToString();
     }
 
     private static string Hex(string text) => Convert.ToHexString(Encoding.UTF8.GetBytes(text));

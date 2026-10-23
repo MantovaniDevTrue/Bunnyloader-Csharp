@@ -232,6 +232,14 @@ public sealed class BunnyAchievementRegistry
         }
     }
 
+    internal IReadOnlyList<BunnyAchievement> Definitions(string modId)
+    {
+        lock (gate)
+            return mods.TryGetValue(modId, out var state)
+                ? state.Entries.Values.OrderBy(item => item.Name, StringComparer.Ordinal).ToArray()
+                : Array.Empty<BunnyAchievement>();
+    }
+
     public int Restore(string modId, IReadOnlyList<BunnyAchievementSnapshot> saved)
     {
         ArgumentNullException.ThrowIfNull(saved);
