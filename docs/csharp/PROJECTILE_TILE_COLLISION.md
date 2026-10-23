@@ -61,3 +61,18 @@ TileCollisionSurvivalLimit = 3;
 The counter resides in the already-existing native slot record for the live projectile. It resets on first observation, Terraria pool reuse (`SetDefaults` notification), and world reset. Only valid, retained native collision events consume the budget; rejected/slow `BounceMinimumSpeed` impacts do not. If a limited projectile has no confirmed active generation/owner/type, it falls back to vanilla rather than inheriting a stale counter. No MonoVM call or world scan is required for the physics decision.
 
 The optional 22-field descriptor carries the existing bounce parameters (or their defaults) followed by the positive survival limit. Legacy 8/12/13/14/16/17/18/19/21-field descriptors remain unchanged. The SDK/compiler, native decoder and native validator all verify bounds. Native budget tests cover exhaustion and reset, while the compiled .NET probe verifies the actual 22-field serialization. These checks are source/native contracts, **not** device-tested Terraria behavior.
+
+## Native platform fall-through policy (23-field optional extension)
+
+The original ExampleModBunny `ExampleSentry.js` uses `TileCollideStyle` to set `fallThrough.value = false` so the sentry rests on platforms. The C# subset now supports that specific platform decision without running MonoVM on the game thread:
+
+```csharp
+TileCollide = true;
+TilePlatformCollision = BunnyProjectilePlatformCollision.SolidPlatforms;
+```
+
+`Vanilla = 0` preserves the existing Terraria calculation, `SolidPlatforms = 1` sets `decidesManualFallThrough=true` and `shouldFallThrough=false` for the scope of `Projectile.HandleMovement`, and `PassThroughPlatforms = 2` sets `shouldFallThrough=true`. The native hook restores both original fields immediately after the original movement call, including when a collision policy is also applied. This avoids modifying platform state outside the relevant movement. The two fields are verified by typed IL2CPP field contracts; failure prevents enabling the mod rather than guessing offsets.
+
+Platform overrides also work with `TileCollisionMode=Vanilla` and do not consume collision survival counts. The source descriptor includes optional field 23 for the platform style and fills legacy policy defaults. Older descriptors are unchanged. The .NET probe covers both combinations while the native C++ smoke checks parser lengths.
+
+**Scope:** this is the no-fall-through/fall-through subset of `TileCollideStyle`, not support for custom collision width/height, hitbox anchor, `return false` collision bypass, or arbitrary scripted logic; multiplayer/gameplay/FPS are not yet device validated.

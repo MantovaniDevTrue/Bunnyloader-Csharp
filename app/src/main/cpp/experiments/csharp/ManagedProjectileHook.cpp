@@ -171,6 +171,8 @@ TileMovementFn g_originalTileMovement = nullptr;
 TileKillFn g_originalTileKill = nullptr;
 std::atomic<bool> g_tileCollisionHooksReady{false};
 int g_tileCollideOffset = -1;
+int g_tileManualFallThroughOffset = -1;
+int g_tileShouldFallThroughOffset = -1;
 FieldInfo* g_tileCollisionNetMode = nullptr;
 struct TileMovementScope {
     Il2CppObject* projectile = nullptr;
@@ -219,9 +221,11 @@ void hkManagedTileMovement(Il2CppObject* projectile, Vector2 wet, const MethodIn
     }
     const auto collision=nativeManagedProjectileTileCollisionSettings(type);
     const int mode=collision.mode;
-    if(!managedTileCollisionModeSupported(mode) ||
-       !runtime::field<uint8_t>(projectile,g_tileCollideOffset) ||
-       !managedTileCollisionBudgetAvailable(projectile,type,collision.survivalLimit)) {
+    const int platformMode=collision.platformMode;
+    const bool nativePolicy = managedTileCollisionModeSupported(mode) &&
+        managedTileCollisionBudgetAvailable(projectile,type,collision.survivalLimit);
+    if((!nativePolicy && platformMode == 0) ||
+       !runtime::field<uint8_t>(projectile,g_tileCollideOffset)) {
         original(projectile,wet,method);return;
     }
     int netMode=-1;
@@ -231,14 +235,28 @@ void hkManagedTileMovement(Il2CppObject* projectile, Vector2 wet, const MethodIn
     scope.projectile=projectile;
     scope.position=runtime::field<Vector2>(projectile,game.entity.position);
     scope.velocity=runtime::field<Vector2>(projectile,game.entity.velocity);
-    scope.mode=mode;
+    scope.mode=nativePolicy?mode:0;
     scope.restitution=collision.restitution;
     scope.minimumSpeed=collision.minimumSpeed;
     scope.previous=g_tileMovementScope;
     g_tileMovementScope=&scope;
+    uint8_t previousManual=0,previousFall=0;
+    const bool overridePlatforms=platformMode!=0 &&
+        g_tileManualFallThroughOffset>=0 && g_tileShouldFallThroughOffset>=0;
+    if(overridePlatforms) {
+        previousManual=runtime::field<uint8_t>(projectile,g_tileManualFallThroughOffset);
+        previousFall=runtime::field<uint8_t>(projectile,g_tileShouldFallThroughOffset);
+        runtime::field<uint8_t>(projectile,g_tileManualFallThroughOffset)=1;
+        runtime::field<uint8_t>(projectile,g_tileShouldFallThroughOffset)=
+            platformMode==2?1:0;
+    }
     original(projectile,wet,method);
+    if(overridePlatforms) {
+        runtime::field<uint8_t>(projectile,g_tileManualFallThroughOffset)=previousManual;
+        runtime::field<uint8_t>(projectile,g_tileShouldFallThroughOffset)=previousFall;
+    }
     g_tileMovementScope=scope.previous;
-    if(runtime::field<uint8_t>(projectile,game.proj.active)) {
+    if(nativePolicy && runtime::field<uint8_t>(projectile,game.proj.active)) {
         const Vector2 current=runtime::field<Vector2>(projectile,game.entity.velocity);
         if(managedTileCollisionDetected({scope.velocity.x,scope.velocity.y},
                                         {current.x,current.y},true)) {
@@ -854,7 +872,7 @@ void resetManagedSourceProjectileSlots() {
     g_managedEntityProjectileSlots.fill({});
 }
 
-bool installManagedProjectileTileCollisionHooks(std::string* error) {
+bool installManagedProjectileTileCollisionHooks(bool platformPolicy,std::string* error) {
     if(g_tileCollisionHooksReady.load(std::memory_order_acquire))return true;
     if(!error)return false;
     auto* projectile=il2cpp::findClass({"Terraria","Projectile",{}});
@@ -875,8 +893,21 @@ bool installManagedProjectileTileCollisionHooks(std::string* error) {
         *error="Campos nativos de colisao indisponiveis: "+details;
         return false;
     }
+    int manual=-1,should=-1;
+    if(platformPolicy &&
+       (!il2cpp::nativeFieldContract(projectile,"decidesManualFallThrough",
+          "System.Boolean",false,1,nullptr,&manual,&details) ||
+        !il2cpp::nativeFieldContract(projectile,"shouldFallThrough",
+          "System.Boolean",false,1,nullptr,&should,&details))) {
+        *error="Campos nativos de TileCollideStyle indisponiveis: "+details;
+        return false;
+    }
     g_tileCollideOffset=offset;
     g_tileCollisionNetMode=netMode;
+    if(platformPolicy) {
+        g_tileManualFallThroughOffset=manual;
+        g_tileShouldFallThroughOffset=should;
+    }
     if(!g_originalTileMovement && !hook::install(movement,hkManagedTileMovement,&g_originalTileMovement)) {
         *error="Falha ao conectar Projectile.HandleMovement";return false;
     }

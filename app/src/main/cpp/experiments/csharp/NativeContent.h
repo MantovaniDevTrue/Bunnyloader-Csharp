@@ -94,6 +94,7 @@ struct ManagedProjectileDefaults {
     float bounceRestitution = 1.f;
     float bounceMinimumSpeed = 0.f;
     int tileCollisionSurvivalLimit = 0;
+    int tilePlatformCollision = 0;
     int frames = 1;
     SummonMovement movement{};
     int animationFrameTicks=6, minionScanTicks=8;
@@ -140,6 +141,7 @@ struct ManagedTileCollisionSettings {
     float restitution = 1.f;
     float minimumSpeed = 0.f;
     int survivalLimit = 0;
+    int platformMode = 0;
 };
 ManagedTileCollisionSettings nativeManagedProjectileTileCollisionSettings(int type);
 ProjectilePolicy nativeManagedProjectilePolicy(int type);

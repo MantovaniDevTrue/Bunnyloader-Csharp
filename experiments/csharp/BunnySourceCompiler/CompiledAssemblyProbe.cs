@@ -589,6 +589,10 @@ public static class CompiledAssemblyProbe
             float restitution = Value<float>(projectile, "BounceRestitution");
             float minimumSpeed = Value<float>(projectile, "BounceMinimumSpeed");
             bool customBounce = restitution != 1f || minimumSpeed != 0f;
+            int platformMode = Convert.ToInt32(projectile.GetType().GetProperty("TilePlatformCollision")!.GetValue(projectile), CultureInfo.InvariantCulture);
+            if (platformMode < 0 || platformMode > 2 ||
+                (platformMode != 0 && !tileCollide))
+                throw new InvalidOperationException("Invalid projectile TilePlatformCollision: " + name);
             int survivalLimit = Value<int>(projectile, "TileCollisionSurvivalLimit");
             if (survivalLimit < 0 || survivalLimit > 64 ||
                 (survivalLimit != 0 && tileCollisionMode == 0))
@@ -608,21 +612,24 @@ public static class CompiledAssemblyProbe
                 Value<int>(projectile, "Penetrate").ToString(CultureInfo.InvariantCulture),
                 Value<int>(projectile, "TimeLeft").ToString(CultureInfo.InvariantCulture),
                 Value<bool>(projectile, "Friendly") ? "1" : "0");
-            if (minion || !tileCollide || !ignoreWater || frames > 1 || customPolicy || contactDamage || tileCollisionMode != 0)
+            if (minion || !tileCollide || !ignoreWater || frames > 1 || customPolicy || contactDamage || tileCollisionMode != 0 || platformMode != 0)
             {
                 entry += "\t" + (minion ? "1" : "0") + "\t" +
                     minionSlots.ToString("R", CultureInfo.InvariantCulture) + "\t" +
                     (tileCollide ? "1" : "0") + "\t" + (ignoreWater ? "1" : "0");
-                if (frames > 1 || customPolicy || contactDamage || tileCollisionMode != 0) entry += "\t" + frames.ToString(CultureInfo.InvariantCulture);
-                if(customPolicy || contactDamage || tileCollisionMode != 0)
+                if (frames > 1 || customPolicy || contactDamage || tileCollisionMode != 0 || platformMode != 0) entry += "\t" + frames.ToString(CultureInfo.InvariantCulture);
+                if(customPolicy || contactDamage || tileCollisionMode != 0 || platformMode != 0)
                     entry+="\t"+frameTicks.ToString(CultureInfo.InvariantCulture)+"\t"+scanTicks.ToString(CultureInfo.InvariantCulture)+"\t"+range.ToString("R",CultureInfo.InvariantCulture);
-                if (contactDamage || motion!=null || tileCollisionMode != 0) entry += "\t"+(contactDamage?"1":"0");
+                if (contactDamage || motion!=null || tileCollisionMode != 0 || platformMode != 0) entry += "\t"+(contactDamage?"1":"0");
                 if(motion!=null)entry+="\t"+string.Join(",",new[]{"FollowSpeed","AttackSpeed","CatchUpSpeed","FollowInertia","AttackInertia","FollowOffsetX","FollowOffsetY","CatchUpDistance","IdleDistance","IdleDamping","CatchUpInertia","TeleportDistance","FormationSpacing","AttackStopDistance","OwnerLeashDistance","RotationFactor","Separation"}.Select(property=>Value<float>(motion,property).ToString("R",CultureInfo.InvariantCulture)));
-                else if(tileCollisionMode != 0)entry+="\t-";
-                if(tileCollisionMode != 0)entry+="\t"+tileCollisionMode.ToString(CultureInfo.InvariantCulture);
-                if(customBounce || survivalLimit != 0)entry+="\t"+restitution.ToString("R",CultureInfo.InvariantCulture)+
+                else if(tileCollisionMode != 0 || platformMode != 0)entry+="\t-";
+                if(tileCollisionMode != 0 || platformMode != 0)entry+="\t"+tileCollisionMode.ToString(CultureInfo.InvariantCulture);
+                if(customBounce || survivalLimit != 0 || platformMode != 0)
+                    entry+="\t"+restitution.ToString("R",CultureInfo.InvariantCulture)+
                     "\t"+minimumSpeed.ToString("R",CultureInfo.InvariantCulture);
-                if(survivalLimit != 0)entry+="\t"+survivalLimit.ToString(CultureInfo.InvariantCulture);
+                if(survivalLimit != 0 || platformMode != 0)
+                    entry+="\t"+survivalLimit.ToString(CultureInfo.InvariantCulture);
+                if(platformMode != 0)entry+="\t"+platformMode.ToString(CultureInfo.InvariantCulture);
             }
             lines.Add(entry);
         }

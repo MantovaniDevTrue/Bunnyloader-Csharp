@@ -43,6 +43,13 @@ public enum BunnyProjectileTileCollisionMode
     Stop = 3
 }
 
+public enum BunnyProjectilePlatformCollision
+{
+    Vanilla = 0,
+    SolidPlatforms = 1,
+    PassThroughPlatforms = 2
+}
+
 public abstract class BunnyProjectile
 {
     public BunnyNativeDefaults NativeDefaults { get; } = new();
@@ -70,6 +77,7 @@ public abstract class BunnyProjectile
     public float BounceRestitution { get; set; } = 1f;
     public float BounceMinimumSpeed { get; set; } = 0f;
     public int TileCollisionSurvivalLimit { get; set; } = 0;
+    public BunnyProjectilePlatformCollision TilePlatformCollision { get; set; } = BunnyProjectilePlatformCollision.Vanilla;
     public bool IgnoreWater { get; set; } = true;
     public int Penetrate { get; set; } = 1;
     public int TimeLeft { get; set; } = 360;

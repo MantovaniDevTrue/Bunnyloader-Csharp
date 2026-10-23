@@ -195,6 +195,7 @@ struct NativeProjectileDefaults {
     float bounceRestitution = 1.f;
     float bounceMinimumSpeed = 0.f;
     int tileCollisionSurvivalLimit = 0;
+    int tilePlatformCollision = 0;
     int frames = 1;
     int animationFrameTicks=6,minionScanTicks=8;
     float minionTargetRange=700.f;
@@ -1324,7 +1325,8 @@ ManagedTileCollisionSettings nativeManagedProjectileTileCollisionSettings(int ty
     if(found==view->end())return {};
     const auto& defaults=found->second.defaults;
     return {defaults.tileCollisionMode,defaults.bounceRestitution,
-            defaults.bounceMinimumSpeed,defaults.tileCollisionSurvivalLimit};
+            defaults.bounceMinimumSpeed,defaults.tileCollisionSurvivalLimit,
+            defaults.tilePlatformCollision};
 }
 
 int nativeManagedMinionBuff(int projectileType) {
@@ -1743,6 +1745,8 @@ bool applyManagedNativeDefaultsBatch(
              (data.bounceRestitution != 1.f || data.bounceMinimumSpeed != 0.f)) ||
             data.tileCollisionSurvivalLimit < 0 || data.tileCollisionSurvivalLimit > 64 ||
             (data.tileCollisionMode == 0 && data.tileCollisionSurvivalLimit != 0) ||
+            data.tilePlatformCollision < 0 || data.tilePlatformCollision > 2 ||
+            (data.tilePlatformCollision != 0 && !data.tileCollide) ||
             data.frames < 1 || data.frames > 32 ||
             !stagedProjectiles.emplace(entry.type, NativeProjectileDefaults{
                 data.width, data.height, data.aiStyle, data.penetrate,
@@ -1750,7 +1754,7 @@ bool applyManagedNativeDefaultsBatch(
                 data.minion, data.minionContactDamage, data.minionSlots,
                 data.tileCollide, data.ignoreWater, data.tileCollisionMode,
                 data.bounceRestitution, data.bounceMinimumSpeed,
-                data.tileCollisionSurvivalLimit,
+                data.tileCollisionSurvivalLimit,data.tilePlatformCollision,
                 data.frames,data.animationFrameTicks,data.minionScanTicks,data.minionTargetRange}).second ||
             data.width < 1 || data.width > 512 ||
             data.height < 1 || data.height > 512 ||
@@ -1788,9 +1792,16 @@ bool applyManagedNativeDefaultsBatch(
             return false;
     }
     const bool needsTileCollisionHook = std::any_of(projectiles.begin(),projectiles.end(),
-        [](const ManagedProjectileEntry& entry) {return entry.values.tileCollisionMode != 0;});
+        [](const ManagedProjectileEntry& entry) {
+            return entry.values.tileCollisionMode != 0 ||
+                   entry.values.tilePlatformCollision != 0;
+        });
     std::string tileCollisionError;
-    if (needsTileCollisionHook && !installManagedProjectileTileCollisionHooks(error ? error : &tileCollisionError)) return false;
+    const bool needsPlatformPolicy = std::any_of(projectiles.begin(),projectiles.end(),
+        [](const ManagedProjectileEntry& entry) {return entry.values.tilePlatformCollision != 0;});
+    if (needsTileCollisionHook &&
+        !installManagedProjectileTileCollisionHooks(needsPlatformPolicy,error ? error : &tileCollisionError))
+        return false;
     auto nextView=std::make_shared<ProjectileDefinitions>(*std::atomic_load_explicit(&g_projectileView,std::memory_order_acquire));
     for (const auto& item : stagedProjectiles) {
         g_projectiles[item.first] = item.second;

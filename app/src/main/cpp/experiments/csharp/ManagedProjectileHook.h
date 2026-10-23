@@ -59,7 +59,7 @@ struct AutoCombatEffectStatus {
     int buffId = 0;
 };
 
-bool installManagedProjectileTileCollisionHooks(std::string* error);
+bool installManagedProjectileTileCollisionHooks(bool platformPolicy,std::string* error);
 
 bool enableAutoProjectileOnHit(const std::string& modId,
                                const std::string& projectileName,

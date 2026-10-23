@@ -24,7 +24,7 @@ inline bool validateProjectilePolicy(const ProjectilePolicy& p,std::string* erro
 }
 inline bool parseProjectileTuning(const std::vector<std::string>& fields,ProjectilePolicy* policy,std::string* error) {
     if(fields.size()!=16&&fields.size()!=17&&fields.size()!=18&&
-       fields.size()!=19&&fields.size()!=21&&fields.size()!=22){*error="Stage=DecodePolicy Expected=16or17or18or19or21or22Fields Actual="+std::to_string(fields.size())+" Reason=InvalidDescriptor";return false;}
+       fields.size()!=19&&fields.size()!=21&&fields.size()!=22&&fields.size()!=23){*error="Stage=DecodePolicy Expected=16or17or18or19or21or22or23Fields Actual="+std::to_string(fields.size())+" Reason=InvalidDescriptor";return false;}
     auto integer=[](const std::string& text,int* result){
         if(text.empty()||text.size()>11)return false;
         auto parsed=std::from_chars(text.data(),text.data()+text.size(),*result);
