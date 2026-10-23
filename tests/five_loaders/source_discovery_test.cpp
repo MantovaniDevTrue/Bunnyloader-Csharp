@@ -16,7 +16,10 @@ int main(int argc, char** argv) {
         if (file.path().extension() != ".cs") continue;
         std::ifstream stream(file.path());
         std::string source((std::istreambuf_iterator<char>(stream)), {});
-        assert(bl::csharp::parseCSharpSource(source, &types, &error, false));
+        if (!bl::csharp::parseCSharpSource(source, &types, &error, false)) {
+            std::fprintf(stderr, "%s: %s\n", file.path().c_str(), error.c_str());
+            return 1;
+        }
     }
     assert(types.size() == 5);
     int native = 0, hook = 0, world = 0;

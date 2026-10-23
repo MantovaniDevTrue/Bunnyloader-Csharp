@@ -8,7 +8,10 @@ public sealed class QaWand : BunnyWeapon
     {
         DisplayName = "QA5 - Varinha de Gore";
         Texture = "Content/Items/Weapons/QaWand.png";
-        Damage = (int)QaStats.Damage();
+        // O bootstrap reserva o tipo com um literal. O helper roda no
+        // SetDefaults gerenciado e o host recebe o resultado calculado (40).
+        Damage = 1;
+        QaStats.Apply(this);
         UseTime = 20;
         ShootSpeed = 8f;
         Shoot = nameof(QaBolt);

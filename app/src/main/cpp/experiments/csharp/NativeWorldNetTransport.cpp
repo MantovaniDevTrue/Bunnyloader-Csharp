@@ -43,7 +43,7 @@ int netMode() {
     return mode;
 }
 
-Il2CppObject* invoke(const MethodInfo* method, Il2CppObject* self,
+Il2CppObject* invoke(const MethodInfo* method, void* self,
                      void** args, bool* good) {
     if (good) *good = false;
     if (!method) return nullptr;
@@ -172,6 +172,10 @@ bool resolve() {
     g_modeField = il2cpp::findField(main, "netMode");
     g_packetClass = packetClass;
     g_byteClass = byte;
+    uint32_t packetAlignment = 0;
+    if (!api.class_is_valuetype || !api.class_is_valuetype(packetClass) ||
+        !api.class_value_size || api.class_value_size(packetClass, &packetAlignment) != 16 ||
+        !api.gchandle_new || !api.gchandle_free) return false;
     if (!read || !send || !g_packetCtor ||
         (!g_getWriter && g_writerOffset < 0) || !g_writeBytes ||
         !g_shrink || !g_readUInt16 || !g_readBytes || !g_getBaseStream ||
@@ -221,10 +225,31 @@ bool sendNativeWorldNetPacket(const std::vector<uint8_t>& data,
         return false;
     }
     auto& api = il2cpp::api();
+    if (!api.class_is_valuetype || !api.class_is_valuetype(g_packetClass) ||
+        !api.gchandle_new || !api.gchandle_free) {
+        *error = "Mobile NetPacket value ABI unavailable";
+        return false;
+    }
+    // NetPacket is a 16-byte value type in Mobile 301720. Its methods take
+    // the unboxed payload; sending the object header would corrupt the box.
+    struct Roots {
+        uint32_t values[4]{};
+        size_t used = 0;
+        bool pin(Il2CppObject* object) {
+            if (!object || used == 4) return false;
+            auto handle = il2cpp::api().gchandle_new(object, true);
+            if (!handle) return false;
+            values[used++] = handle;
+            return true;
+        }
+        ~Roots() { for (size_t i = 0; i < used; ++i) il2cpp::api().gchandle_free(values[i]); }
+    } roots;
     Il2CppObject* managerObject = manager();
+    if (!roots.pin(managerObject)) { *error = "NetManager GC root unavailable"; return false; }
     Il2CppObject* packet = api.object_new(g_packetClass);
+    if (!roots.pin(packet)) { *error = "NetPacket GC root unavailable"; return false; }
     Il2CppArray* bytes = api.array_new(g_byteClass, data.size());
-    if (!managerObject || !packet || !bytes) {
+    if (!roots.pin(reinterpret_cast<Il2CppObject*>(bytes))) {
         *error = "Terraria network objects unavailable";
         return false;
     }
@@ -233,22 +258,23 @@ bool sendNativeWorldNetPacket(const std::vector<uint8_t>& data,
     int capacity = static_cast<int>(data.size()) + 6;
     void* ctorArgs[] = {&moduleId, &capacity};
     bool ok = false;
-    invoke(g_packetCtor, packet, ctorArgs, &ok);
+    void* packetData = reinterpret_cast<char*>(packet) + sizeof(Il2CppObject);
+    invoke(g_packetCtor, packetData, ctorArgs, &ok);
     if (!ok) { *error = "NetPacket constructor rejected"; return false; }
     Il2CppObject* writer = nullptr;
-    if (g_getWriter) writer = invoke(g_getWriter, packet, nullptr, &ok);
+    if (g_getWriter) writer = invoke(g_getWriter, packetData, nullptr, &ok);
     else if (g_writerOffset >= 0) {
         writer = *reinterpret_cast<Il2CppObject**>(
             reinterpret_cast<char*>(packet) + g_writerOffset);
         ok = writer != nullptr;
     }
-    if (!ok || !writer) { *error = "NetPacket writer unavailable"; return false; }
+    if (!ok || !roots.pin(writer)) { *error = "NetPacket writer unavailable"; return false; }
     void* writeArgs[] = {bytes};
     invoke(g_writeBytes, writer, writeArgs, &ok);
     if (!ok) { *error = "NetPacket write rejected"; return false; }
-    invoke(g_shrink, packet, nullptr, &ok);
+    invoke(g_shrink, packetData, nullptr, &ok);
     if (!ok) { *error = "NetPacket finalization rejected"; return false; }
-    void* sendArgs[] = {packet, &remoteClient};
+    void* sendArgs[] = {packetData, &remoteClient};
     if (remoteClient >= 0)
         invoke(g_sendClient, managerObject, sendArgs, &ok);
     else {

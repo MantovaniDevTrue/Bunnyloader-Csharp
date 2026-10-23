@@ -1771,8 +1771,8 @@ void noteAutoGameUpdate() {
         if (context.netMode < 0 || context.netMode > 3 ||
             context.gameMenu == 1) return;
         g_worldSessionReady.store(true, std::memory_order_release);
-        gore::worldReady();
         requestBasicItemInstanceRefresh("WorldLoaded");
+        gore::worldReady();
         enableUniversalHooks();
         resumeUniversalHookMods();
         BL_INFO("csharp auto live: mundo carregado e jogador ativo confirmados");

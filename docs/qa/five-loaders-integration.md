@@ -16,6 +16,9 @@ not a different auto-glob net10 facade. The Gore test includes its audio helper.
 Mobile review used the extracted 301720 ELF and metadata, not a PC Terraria
 assembly: `dayRate` and `desiredWorldTilesUpdateRate` are `System.Int32`.
 The time hook handles Int32 explicitly and retains fractional accumulators.
+The WorldNetwork sender passes the 16-byte NetPacket payload to value-type
+methods and arguments, keeps the objects rooted across IL2CPP invocations, and
+checks error cleanup. Passing the boxed header would corrupt memory.
 The workflow verifies the exact ELF SHA-256 and all eight instruction anchors
 before it builds the APK. Static/instance checks protect the root, UI and time
 hook entrypoints. The touch signatures follow Mobile GUIVirtualInputController.
