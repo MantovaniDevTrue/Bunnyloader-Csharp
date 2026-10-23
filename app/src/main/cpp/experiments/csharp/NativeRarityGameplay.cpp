@@ -452,6 +452,11 @@ uint32_t nativeRarityToArgb(uint32_t native) {
         static_cast<uint32_t>(bytes[g_rarityDrawColor.channels[2]]);
 }
 
+bool nativeTooltipOnDraw(Il2CppObject* batch,Il2CppObject* font,Il2CppString* text,
+                         RarityTextVec2* position,uint32_t color,float rotation,
+                         RarityTextVec2 origin,float scale,int32_t effects,float depth,
+                         const MethodInfo* method);
+
 void rarityDrawString(Il2CppObject* batch, Il2CppObject* font, Il2CppString* text,
     RarityTextVec2 position, uint32_t color, float rotation, RarityTextVec2 origin,
     float scale, int32_t effects, float depth, const MethodInfo* method) {
@@ -502,12 +507,6 @@ thread_local Il2CppObject* g_nativeTooltipMeasureFont=nullptr;
 thread_local std::string g_nativeTooltipMeasuredText;
 thread_local NativeTooltipWaveLayout g_nativeTooltipLayout;
 std::array<uint32_t,128> g_nativeTooltipGlyphRoots{};
-
-bool nativeTooltipStringMatches(Il2CppString* value,const std::u16string& expected) {
-    return value&&value->length>=0&&value->length<=512&&
-        static_cast<size_t>(value->length)==expected.size()&&
-        std::memcmp(value->chars,expected.data(),expected.size()*sizeof(char16_t))==0;
-}
 
 Il2CppString* nativeTooltipGlyphString(char16_t ch) {
     auto& a=bl::il2cpp::api();
