@@ -2201,9 +2201,9 @@ bool takeManagedEntityTileCollisionPolicy(int type,int slot,int generation,int o
     std::unique_lock<std::mutex> lock(g_pinnedMutex,std::try_to_lock);
     if(!lock.owns_lock())return false;
     auto& reply=g_entityCollisionPolicyReplies[index];
-    const bool match=reply.ready && reply.type==type &&
-        reply.generation==generation && reply.owner==owner &&
-        reply.identity==identity;
+    const bool match=reply.ready && managedTileCollisionReplyMatches(
+        type,generation,owner,identity,
+        reply.type,reply.generation,reply.owner,reply.identity);
     const int mode=managedDeferredTileCollisionMode(static_cast<int>(reply.packed));
     reply={};
     g_entityCollisionPolicyReady[index].store(false,std::memory_order_release);

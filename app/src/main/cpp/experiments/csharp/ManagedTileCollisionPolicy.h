@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cmath>
+#include <cstdint>
 
 namespace bl::csharp {
 
@@ -17,6 +18,14 @@ inline bool recordManagedTileCollisionBudget(int* survived,int limit) {
     if(!survived || !managedTileCollisionBudgetAllows(*survived,limit))return false;
     if(limit>0)++*survived;
     return true;
+}
+
+inline bool managedTileCollisionReplyMatches(
+    int type,int generation,int owner,std::uintptr_t identity,
+    int replyType,int replyGeneration,int replyOwner,std::uintptr_t replyIdentity) {
+    return generation>0 && identity!=0 && type==replyType &&
+        generation==replyGeneration && owner==replyOwner &&
+        identity==replyIdentity;
 }
 
 inline int managedDeferredTileCollisionMode(int response) {

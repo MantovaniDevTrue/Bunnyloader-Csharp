@@ -57,6 +57,14 @@ int main() {
     assert(noRest.x==0.f && noRest.y==5.f);
     const auto rejectedRest=resolveManagedTileCollision(2,initial,wall,true,3.f);
     assert(rejectedRest.x==0.f && rejectedRest.y==5.f);
+    using bl::csharp::managedTileCollisionReplyMatches;
+    assert(managedTileCollisionReplyMatches(65,2001,2,0x1234,65,2001,2,0x1234));
+    assert(!managedTileCollisionReplyMatches(65,2001,2,0x1234,66,2001,2,0x1234));
+    assert(!managedTileCollisionReplyMatches(65,2001,2,0x1234,65,2002,2,0x1234));
+    assert(!managedTileCollisionReplyMatches(65,2001,2,0x1234,65,2001,3,0x1234));
+    assert(!managedTileCollisionReplyMatches(65,2001,2,0x1234,65,2001,2,0x5678));
+    assert(!managedTileCollisionReplyMatches(65,0,2,0x1234,65,0,2,0x1234));
+    assert(!managedTileCollisionReplyMatches(65,2001,2,0,65,2001,2,0));
     assert(bl::csharp::managedDeferredTileCollisionMode(-1)==0);
     assert(bl::csharp::managedDeferredTileCollisionMode(0)==0);
     assert(bl::csharp::managedDeferredTileCollisionMode(1)==0);

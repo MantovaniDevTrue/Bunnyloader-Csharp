@@ -40,6 +40,7 @@ public sealed class TestProjectile : BunnyProjectile
     public static int Spawns, Ai, Hits, Kills, Despawns, TileCollisions;
     public static float LastOldX, LastNewX;
     public static bool RequestBounce;
+    public static bool RequestVanilla;
 
     public override void SetDefaults() { }
 
@@ -50,6 +51,7 @@ public sealed class TestProjectile : BunnyProjectile
         LastOldX = oldVelocityX;
         LastNewX = newVelocityX;
         if (RequestBounce) state.NextTileCollisionMode = BunnyProjectileTileCollisionMode.Bounce;
+        if (RequestVanilla) state.NextTileCollisionMode = BunnyProjectileTileCollisionMode.Vanilla;
     }
 
     public override void OnSpawn(ref BunnyProjectileAiState state) => Spawns++;
@@ -103,6 +105,10 @@ public static class Program
         Check.Equal(BunnyEntitySourceDispatcher.CollideProjectilePolicy(mod, 65, 8, 2001, 2,
             8f, 0f, 0f, 0f), 3, "Bounce request was not encoded for later native impact");
         TestProjectile.RequestBounce = false;
+        TestProjectile.RequestVanilla = true;
+        Check.Equal(BunnyEntitySourceDispatcher.CollideProjectilePolicy(mod, 65, 8, 2001, 2,
+            8f, 0f, 0f, 0f), 0, "Unsupported same-frame vanilla mode was accepted");
+        TestProjectile.RequestVanilla = false;
         Check.Equal(BunnyEntitySourceDispatcher.CollideProjectilePolicy(mod, 65, 8, 2001, 2,
             8f, 0f, 0f, 0f), 1, "Default collision callback changed ABI");
         Check.Equal(BunnyEntitySourceDispatcher.CollideProjectilePolicy(mod, 65, 8, 2002, 2,
