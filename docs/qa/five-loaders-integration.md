@@ -20,7 +20,12 @@ assembly: `dayRate` and `desiredWorldTilesUpdateRate` are `System.Int32`.
 The time hook handles Int32 explicitly and retains fractional accumulators.
 The WorldNetwork sender passes the 16-byte NetPacket payload to value-type
 methods and arguments, keeps the objects rooted across IL2CPP invocations, and
-checks error cleanup. Passing the boxed header would corrupt memory.
+checks error cleanup.
+Mobile SaveAndQuitCallBack at RVA 0x173909c changes gameMenu at +0x310 before
+calling WorldFile.SaveWorld at +0x488. A quit-save fence prevents the UI observer
+from disposing the epoch/sidecar during this interval. A two-thread regression
+runs the real native coordinator/store with that exact ordering and restores the
+saved sidecar afterward. Passing the boxed header would corrupt memory.
 The workflow verifies the exact ELF SHA-256 and all eight instruction anchors
 before it builds the APK. The private runtime ELF has a different file layout
 from the inspection copy: six header bytes and later segment file offsets differ.

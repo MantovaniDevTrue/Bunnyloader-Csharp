@@ -24,6 +24,7 @@
 #include "content/dusts/ModDusts.h"
 #include "experiments/csharp/NativeWorldStore.h"
 #include "experiments/csharp/NativeWorldCoordinator.h"
+#include "experiments/csharp/WorldQuitSaveFence.h"
 #include "experiments/csharp/NativeWorldNetwork.h"
 #include "experiments/csharp/NativeWorldNetTransport.h"
 #include "experiments/csharp/StableWorldUid.h"
@@ -112,6 +113,7 @@ std::atomic<bool> g_runtimeWarmStarted{false};
 std::atomic<bool> g_runtimeWarming{false};
 std::mutex g_lock;
 std::mutex g_worldTransitionMutex;
+worldsave::WorldQuitSaveFence g_worldQuitSaveFence;
 std::vector<AutoSourceStatus> g_statuses;
 std::atomic<bool> g_started{false};
 std::atomic<bool> g_initialCSharpRegistrationFinished{false};
@@ -1604,11 +1606,16 @@ void noteAutoGameUpdate() {
             bl::runtime::retryPendingManagedPrefixesOnWorldReady();
     }
     flushDeferredWorldEntry();
+    // Saving and quitting changes the menu before it writes the world. Keep
+    // the epoch/store alive until the original native quit callback returns.
+    if (g_worldQuitSaveFence.active()) return;
     if (!g_worldTilesLoaded.load(std::memory_order_acquire)) {
         if (g_worldDataEnteredEpoch.load(std::memory_order_acquire) != 0 &&
             g_worldMenuPollFrames.fetch_add(1, std::memory_order_relaxed) % 30 == 0) {
             const auto context = readActivationContext();
             if (context.gameMenu == 1 && context.netMode == 0) {
+                std::lock_guard<std::mutex> sessionGuard(g_worldTransitionMutex);
+                if (g_worldQuitSaveFence.active()) return;
                 const uint64_t leaving = g_worldDataEnteredEpoch.exchange(
                     0, std::memory_order_acq_rel);
                 if (leaving != 0) {
@@ -1700,6 +1707,7 @@ void noteAutoGameUpdate() {
             return;
         }
         std::lock_guard<std::mutex> sessionGuard(g_worldTransitionMutex);
+        if (g_worldQuitSaveFence.active()) return;
         nativeCommandMailbox().newWorld();
         resetManagedCommandSession();
         managedSound::worldExit();
@@ -2001,6 +2009,7 @@ void hkNativeCSharpWorldSave(bool cloud, bool reset, const MethodInfo* method) {
 
 void hkNativeCSharpWorldQuitCallback(Il2CppObject* context, const MethodInfo* method) {
     if (!g_origNativeQuitCallback) return;
+    worldsave::WorldQuitSaveFence::Scope saving(g_worldQuitSaveFence, g_worldTransitionMutex);
     g_origNativeQuitCallback(context, method);
     const uint64_t epoch = g_worldDataEnteredEpoch.exchange(
         0, std::memory_order_acq_rel);

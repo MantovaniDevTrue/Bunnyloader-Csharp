@@ -39,6 +39,8 @@ build/five-checks/world-coordinator build/five-checks/world.bwc
 build/five-checks/world-network build/five-checks/network.bwn
 g++ "${flags[@]}" -ffunction-sections -fdata-sections -Itests/basic_items/include tests/five_loaders/mobile_netpacket_test.cpp "$cpp/NativeWorldNetwork.cpp" -Wl,--gc-sections -o build/five-checks/mobile-netpacket
 build/five-checks/mobile-netpacket build/five-checks/network.bwn
+native world-quit "$cpp/NativeWorldStore.cpp" "$cpp/NativeWorldCoordinator.cpp" tests/five_loaders/world_quit_save_test.cpp
+build/five-checks/world-quit build/five-checks/world.bwc
 native qa-discovery "$cpp/SourceParser.cpp" tests/five_loaders/source_discovery_test.cpp
 build/five-checks/qa-discovery samples/FiveLoadersCSharp/Playable/content
 printf 'FIVE_LOADERS_CONTRACTS_PASS\n'
