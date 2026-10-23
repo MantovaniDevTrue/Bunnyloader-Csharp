@@ -74,3 +74,7 @@ jobs:
         run: |
           g++ -std=c++20 -O1 -Wall -Wextra -Werror -Iapp/src/main/cpp tests/tooltip_native/texture_path_test.cpp -o /tmp/bunny-tooltip-texture
           /tmp/bunny-tooltip-texture
+      - name: Verify native tooltip backing and border managed Color sources
+        run: |
+          g++ -std=c++20 -O1 -Wall -Wextra -Werror -Iapp/src/main/cpp tests/tooltip_native/colors_test.cpp -o /tmp/bunny-tooltip-colors
+          /tmp/bunny-tooltip-colors
