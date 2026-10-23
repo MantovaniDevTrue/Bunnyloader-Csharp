@@ -298,7 +298,7 @@ public sealed class MinionStaff : BunnyWeapon
     string independentOut = Path.Combine(scratch, "IndependentExample.dll");
     string independentDiag = Path.Combine(scratch, "independent-diagnostics.txt");
     if (Compiler.Compile(independentRoot, independentOut, framework, independentDiag) != 1 ||
-        CompiledAssemblyProbe.Verify(independentOut, independentDiag) != 54)
+        CompiledAssemblyProbe.Verify(independentOut, independentDiag) != 59)
         throw new InvalidOperationException("Independent ExampleMod C# compile/verify failed: " +
             File.ReadAllText(independentDiag));
     string independentDefaults = File.ReadAllText(Path.Combine(scratch, "source-runtime-values.txt"));
@@ -306,8 +306,8 @@ public sealed class MinionStaff : BunnyWeapon
         File.ReadAllText(Path.Combine(independentRoot, "manifest.json")))
         .RootElement.GetProperty("version").GetString()!;
     string[] defaultRows = independentDefaults.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-    if (defaultRows.Length != 68 || defaultRows[0] != "BUNNY_MANAGED_DEFAULTS_V2")
-        throw new InvalidOperationException("Independent ExampleMod schema mismatch: Expected=68Rows,V2Header ActualRows=" +
+    if (defaultRows.Length != 76 || defaultRows[0] != "BUNNY_MANAGED_DEFAULTS_V2")
+        throw new InvalidOperationException("Independent ExampleMod schema mismatch: Expected=76Rows,V2Header ActualRows=" +
             defaultRows.Length + " ActualHeader=" + defaultRows.FirstOrDefault());
     string[] expectedDefaults = {
         "PROJECTILE\tExampleBolt\t12\t12\t1\t1\t240\t1\n",
@@ -698,6 +698,40 @@ public sealed class MinionStaff : BunnyWeapon
     Console.WriteLine("BUNNY_CSHARP_MANAGED_BUFF_POTION=PASS");
     Console.WriteLine("BUNNY_CSHARP_AUTO_COMBAT_INDEPENDENT=PASS");
     Console.WriteLine("BUNNY_CSHARP_INDEPENDENT_EXAMPLE=PASS");
+    var typedTile = new TileAnimatedTypeSmoke();
+    var legacyTile = new TileAnimatedLegacySmoke();
+    if ((typedTile.TileCallbackMask & (1 << 14)) == 0 ||
+        (legacyTile.TileCallbackMask & (1 << 14)) == 0)
+        throw new InvalidOperationException("BunnyTile overload override bit missing");
+    int tx = 0, ty = 0;
+    typedTile.AnimateIndividualTile(755, 4, 5, ref tx, ref ty);
+    if (typedTile.LastType != 755 || tx != 9 || ty != 10)
+        throw new InvalidOperationException("Native TileType lost in typed animation callback");
+    tx = 0;
+    ty = 0;
+    legacyTile.AnimateIndividualTile(755, 4, 5, ref tx, ref ty);
+    if (tx != 4 || ty != 5)
+        throw new InvalidOperationException("Legacy tile animation overload delegation failed");
+    string tileSmokeAssembly = typeof(TileAnimatedTypeSmoke).Assembly.Location;
+    string typedDraw = BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-typed-tile",
+        tileSmokeAssembly, nameof(TileAnimatedTypeSmoke), 13, 0,
+        "4,5,0,0,16,16,0,0,0,0,0,755");
+    string legacyDraw = BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-legacy-tile",
+        tileSmokeAssembly, nameof(TileAnimatedLegacySmoke), 13, 0,
+        "4,5,0,0,16,16,0,0,0,0,0,755");
+    string oldWireDraw = BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-legacy-tile",
+        tileSmokeAssembly, nameof(TileAnimatedLegacySmoke), 13, 0,
+        "4,5,0,0,16,16,0,0,0,0,0");
+    string badTypeDraw = BunnyLoader.Source.BunnyTileRuntime.Dispatch("smoke-typed-tile",
+        tileSmokeAssembly, nameof(TileAnimatedTypeSmoke), 13, 0,
+        "4,5,0,0,16,16,0,0,0,0,0,753");
+    if (typedDraw != "DRAW|0|0|16|16|0|9|10|0" ||
+        legacyDraw != "DRAW|0|0|16|16|0|4|5|0" ||
+        oldWireDraw != legacyDraw ||
+        badTypeDraw != "ERROR|Stage=DecodeTileDraw Reason=InvalidTileType")
+        throw new InvalidOperationException("Tile animation managed draw transport mismatch: " +
+            typedDraw + " / " + legacyDraw + " / " + oldWireDraw + " / " + badTypeDraw);
+    Console.WriteLine("BUNNY_CSHARP_TILE_ANIMATION_TYPE=PASS");
     Console.WriteLine("BUNNY_ROSLYN_CACHE=PASS");
 }
 finally
@@ -706,3 +740,26 @@ finally
 }
 
 
+
+sealed class TileAnimatedTypeSmoke : BunnyLoader.Source.BunnyTile
+{
+    public int LastType { get; private set; } = -1;
+    public override void SetStaticDefaults() { }
+    public override void AnimateIndividualTile(int type, int x, int y,
+        ref int addFrameX, ref int addFrameY)
+    {
+        LastType = type;
+        addFrameX += x + type - 750;
+        addFrameY += y + type - 750;
+    }
+}
+
+sealed class TileAnimatedLegacySmoke : BunnyLoader.Source.BunnyTile
+{
+    public override void SetStaticDefaults() { }
+    public override void AnimateIndividualTile(int x, int y, ref int addFrameX, ref int addFrameY)
+    {
+        addFrameX += x;
+        addFrameY += y;
+    }
+}

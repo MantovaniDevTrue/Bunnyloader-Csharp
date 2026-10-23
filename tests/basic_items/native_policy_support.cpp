@@ -39,3 +39,4 @@ bool setManagedNativeEquipSlot(int type,int,int slot){testing::legacySlots[type]
 namespace bl::mods {const std::string& dirOf(const std::string&) {return testing::modContentRoot;}
 std::string rootOf(const std::string&){const auto& root=testing::modContentRoot;return root.ends_with("/content")?root.substr(0,root.size()-8):root;}
 }
+namespace bl::il2cpp {std::string describeException(Il2CppObject*) {return "FixtureNativeException";}}

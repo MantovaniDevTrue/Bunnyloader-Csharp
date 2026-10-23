@@ -2,6 +2,11 @@
 #include "experiments/csharp/UniversalHookMailbox.h"
 #include "experiments/csharp/UniversalHooks.h"
 #include "experiments/csharp/ManagedRuntime.h"
+#include "experiments/csharp/ManagedLocalizationEpochFence.h"
+#include "experiments/csharp/ManagedLiveSourceRevocations.h"
+#include "experiments/csharp/ManagedDeferredModRevocation.h"
+#include "experiments/csharp/NativeRecipeCallbacks.h"
+#include "experiments/csharp/ManagedDustMailbox.h"
 #include "graphics/ScreenScene.h"
 #include "experiments/csharp/ManagedVisualMonoPump.h"
 #include "experiments/csharp/ManagedVisualState.h"
@@ -121,6 +126,7 @@ struct LiveEntry {
 };
 
 std::map<std::string, LiveEntry> g_sourceLiveEntries;
+ManagedLiveSourceRevocations g_liveSourceRevocations;
 uint64_t g_liveMethodCacheHits = 0;
 uint64_t g_liveMethodCacheMisses = 0;
 uint64_t g_liveAssemblyOpenAttempts = 0;
@@ -266,6 +272,7 @@ std::chrono::steady_clock::time_point g_auditStart;
 
 struct UniversalMod { std::string id, path; bool registered = false; };
 std::vector<UniversalMod> g_universalMods;
+std::deque<std::string> g_universalPendingUnloads;
 bool g_universalUnload = false;
 bool g_universalEnabled = true;
 void* g_universalRegister = nullptr;
@@ -274,6 +281,7 @@ void* g_universalDispatchInt32 = nullptr;
 void* g_universalDispatchInt32Pair = nullptr;
 void* g_universalDispatchExtended = nullptr;
 void* g_universalClear = nullptr;
+void* g_universalUnloadMod = nullptr;
 void* g_universalRemove = nullptr;
 void* g_universalError = nullptr;
 void* g_universalSnapshot = nullptr;
@@ -287,10 +295,38 @@ struct RecipeRpcJob {
     std::string mod,assembly,owner,snapshot;int index=0,kind=0;
     std::chrono::steady_clock::time_point deadline;
     std::shared_ptr<RecipeRpcCompletion> completion;
+    bool shooting=false;
+    bool tile=false;
+    bool rarity=false;
 };
+struct LocalizationJob {
+    std::string modId;
+    std::string assemblyPath;
+    std::string culture;
+    uint64_t generation = 0;
+    bool unload = false;
+    bool drain = false;
+};
+std::deque<LocalizationJob> g_localizationQueue;
+std::deque<std::string> g_localizationUnloads;
+std::map<std::string, LocalizationJob> g_localizationLiveBindings;
+std::string g_lastLocalizationPollMod;
+std::chrono::steady_clock::time_point g_nextLocalizationPoll{};
+ManagedLocalizationEpochFence g_localizationEpochFence;
+void* g_localizationDispatchMethod = nullptr;
+void* g_localizationDrainMethod = nullptr;
+void* g_localizationAckMethod = nullptr;
+void* g_localizationUnloadMethod = nullptr;
+std::atomic<ManagedLocalizationResultSink> g_localizationResultSink{nullptr};
 std::deque<RecipeRpcJob> g_recipeRpcQueue;
 std::condition_variable g_recipeRpcWake;
 void* g_recipeDispatchMethod=nullptr;
+void* g_shootDispatchMethod=nullptr;
+void* g_tileDispatchMethod=nullptr;
+void* g_rarityDispatchMethod=nullptr;
+std::map<std::string,std::shared_ptr<RecipeRpcCompletion>> g_shootWarmups;
+std::map<std::string,std::shared_ptr<RecipeRpcCompletion>> g_tileWarmups;
+std::map<std::string,std::shared_ptr<RecipeRpcCompletion>> g_rarityWarmups;
 std::atomic<bool> g_recipeRuntimeReady{false};
 
 
@@ -311,6 +347,7 @@ struct SceneLightReply {
     std::chrono::steady_clock::time_point updated{};
     uint64_t generation = 0;
 };
+std::set<std::string> g_revokedDeferredMods;
 std::vector<SceneLightBinding> g_sceneLightBindings;
 std::deque<SceneLightRequest> g_sceneLightQueue;
 std::map<std::string, SceneLightReply> g_sceneLightResults;
@@ -371,6 +408,7 @@ struct ManagedEntityBinding {
     std::vector<std::pair<int, std::string>> projectileTypes;
     int managedSlot = -1;
     bool armed = true;
+    bool invasionSupported = true;
 };
 
 struct ManagedEntityJob {
@@ -400,6 +438,26 @@ struct ManagedEntityResult {
     bool ready = false;
 };
 
+struct ManagedDustBinding {
+    std::string modId;
+    std::string assemblyPath;
+    std::vector<std::pair<int, std::string>> types;
+    int managedSlot = -1;
+    bool enabled = true;
+};
+ManagedDustMailbox g_dustMailbox;
+std::atomic<uint64_t> g_dustGameFrame{0};
+std::vector<ManagedDustBinding> g_dustBindings;
+std::deque<int> g_dustBootstrap;
+std::array<std::atomic<int>, 32768> g_dustOwners{};
+std::array<std::atomic<bool>, 16> g_dustReady{};
+std::atomic<int> g_dustModCount{0};
+void* g_dustRegisterMethod = nullptr;
+void* g_dustBindMethod = nullptr;
+void* g_dustInvokeMethod = nullptr;
+void* g_dustResetMethod = nullptr;
+bool g_dustWorldResetPending = false;
+
 std::vector<ManagedEntityBinding> g_entityBindings;
 std::deque<ManagedEntityJob> g_entityQueue;
 std::array<ManagedEntityResult, 512> g_entityNpcResults{};
@@ -415,6 +473,7 @@ uint64_t g_entitySession = 1;
 void* g_entityRegister = nullptr;
 void* g_entityBind = nullptr;
 void* g_entityNpcTick = nullptr;
+void* g_entityWorldTick = nullptr;
 void* g_entityProjectileTick = nullptr;
 void* g_entityNpcHit = nullptr;
 void* g_entityNpcKill = nullptr;
@@ -466,6 +525,8 @@ bool g_liveHitInFlight = false;
 int g_liveHitActiveBindingSlot = -2;
 uint64_t g_liveHitGeneration = 0;
 std::atomic<uint64_t> g_buffEffectGeneration{1};
+std::array<std::atomic<uint64_t>, ManagedLiveIngressQueue::kBindingCount>
+    g_buffOwnerGenerations{};
 std::atomic<bool> g_buffHookReady{false};
 ManagedNpcBuffEffectQueue g_buffEffectQueue;
 std::atomic<int> g_buffRequested{0};
@@ -965,6 +1026,9 @@ int64_t executeManagedHurtOnWorker(const ManagedHurtJob& job) {
     {
         std::lock_guard<std::mutex> lock(g_pinnedMutex);
         if (job.generation != g_managedHurtGeneration ||
+            job.modIndex < 0 ||
+            static_cast<size_t>(job.modIndex) >= g_managedHurtBindings.size() ||
+            !g_managedHurtBindings[static_cast<size_t>(job.modIndex)].active ||
             (job.completion && (job.completion->cancelled ||
              std::chrono::steady_clock::now() >= job.completion->deadline))) return -1;
     }
@@ -1072,14 +1136,15 @@ int64_t executeManagedEntityOnWorker(const ManagedEntityJob& job) {
         if (!klass) return -1;
         g_entityRegister = g_api.findMethod(klass, "Register", 2);
         g_entityBind = g_api.findMethod(klass, "Bind", 4);
-        g_entityNpcTick = g_api.findMethod(klass, "TickNpc", 12);
+        g_entityNpcTick = g_api.findMethod(klass, "TickNpc", 13);
+        g_entityWorldTick = g_api.findMethod(klass, "TickWorld", 7);
         g_entityProjectileTick = g_api.findMethod(klass, "TickProjectile", 14);
         g_entityNpcHit = g_api.findMethod(klass, "HitNpc", 6);
         g_entityNpcKill = g_api.findMethod(klass, "KillNpc", 4);
         g_entityProjectileHit = g_api.findMethod(klass, "HitProjectile", 7);
         g_entityProjectileKill = g_api.findMethod(klass, "KillProjectile", 5);
         if (!g_entityRegister || !g_entityBind ||
-            !g_entityNpcTick || !g_entityProjectileTick ||
+            !g_entityNpcTick || !g_entityWorldTick || !g_entityProjectileTick ||
             !g_entityNpcHit || !g_entityNpcKill ||
             !g_entityProjectileHit || !g_entityProjectileKill) return -1;
     }
@@ -1115,6 +1180,7 @@ int64_t executeManagedEntityOnWorker(const ManagedEntityJob& job) {
             std::lock_guard<std::mutex> guard(g_pinnedMutex);
             if (job.session == g_entitySession && job.binding >= 0 &&
                 static_cast<size_t>(job.binding) < g_entityBindings.size() &&
+                g_entityBindings[static_cast<size_t>(job.binding)].armed &&
                 g_entityBindings[static_cast<size_t>(job.binding)].modId == binding.modId)
                 g_entityBindings[static_cast<size_t>(job.binding)].managedSlot = managedSlot;
         }
@@ -1124,6 +1190,20 @@ int64_t executeManagedEntityOnWorker(const ManagedEntityJob& job) {
                             binding.modId.c_str(), binding.npcTypes.size(),
                             binding.projectileTypes.size());
 #endif
+    }
+    if (job.kind == 6) {
+        int mode = job.owner, frames = job.life, player = job.target;
+        int64_t worldSession = static_cast<int64_t>(job.identity);
+        float playerX = job.x, playerY = job.y;
+        void* args[] = {&managedSlot, &mode, &frames, &worldSession,
+                        &player, &playerX, &playerY};
+        void* exception = nullptr;
+        void* boxed = g_api.invoke(g_entityWorldTick, nullptr, args, &exception);
+        void* raw = exception || !boxed ? nullptr : g_api.unbox(boxed);
+        if (!raw) return -1;
+        int32_t count = -1;
+        std::memcpy(&count, raw, sizeof(count));
+        return count;
     }
     int type = job.type, slot = job.slot, generation = job.generation;
     int life = job.life, maxLife = job.lifeMax, owner = job.owner;
@@ -1150,8 +1230,10 @@ int64_t executeManagedEntityOnWorker(const ManagedEntityJob& job) {
         void* raw = g_api.unbox(boxed);
         return raw && *static_cast<uint8_t*>(raw) ? 1 : 0;
     }
+    int64_t nativeIdentity = static_cast<int64_t>(job.identity);
     void* npcArgs[] = {&managedSlot, &type, &slot, &generation,
-                       &life, &maxLife, &x, &y, &vx, &vy, &px, &py};
+                       &life, &maxLife, &x, &y, &vx, &vy, &px, &py,
+                       &nativeIdentity};
     int targetNpc = job.target;
     float targetX = job.targetX, targetY = job.targetY;
     void* projectileArgs[] = {&managedSlot, &type, &slot, &generation, &owner,
@@ -1169,7 +1251,8 @@ int64_t executeManagedEntityOnWorker(const ManagedEntityJob& job) {
 }
 
 bool prepareUniversalHookSdk() {
-    if (g_universalRegister && g_universalSnapshot && g_universalDispatch && g_universalDispatchInt32 && g_universalDispatchInt32Pair && g_universalDispatchExtended && g_universalClear && g_universalRemove) return true;
+    if (g_universalRegister && g_universalSnapshot && g_universalDispatch && g_universalDispatchInt32 && g_universalDispatchInt32Pair && g_universalDispatchExtended && g_universalClear && g_universalUnloadMod &&
+        g_universalRemove) return true;
     if (!g_domain || !g_status.methodExecuted || !g_api.openAssembly || !g_api.image ||
         !g_api.findClass || !g_api.findMethod || !g_api.invoke || !g_api.unbox) return false;
     const auto slash = g_checkpointPath.find_last_of('/');
@@ -1182,6 +1265,7 @@ bool prepareUniversalHookSdk() {
     if (!dispatcher || !hooks) return false;
     g_universalRegister = g_api.findMethod(dispatcher, "Register", 2);
     g_universalClear = g_api.findMethod(dispatcher, "UnloadAll", 0);
+    g_universalUnloadMod = g_api.findMethod(dispatcher, "Unload", 1);
     g_universalError = g_api.findMethod(dispatcher, "get_LastError", 0);
     g_universalSnapshot = g_api.findMethod(dispatcher, "GetStatusSnapshot", 1);
     g_universalDispatch = g_api.findMethod(hooks, "Invoke", 4);
@@ -1190,7 +1274,8 @@ bool prepareUniversalHookSdk() {
     g_universalDispatchExtended = g_api.findMethod(hooks, "InvokeExtended", 9);
     g_universalRemove = g_api.findMethod(hooks, "RemoveSlot", 1);
     return g_universalRegister && g_universalSnapshot && g_universalDispatch && g_universalDispatchInt32 &&
-           g_universalDispatchInt32Pair && g_universalDispatchExtended && g_universalClear && g_universalRemove;
+           g_universalDispatchInt32Pair && g_universalDispatchExtended &&
+           g_universalClear && g_universalUnloadMod && g_universalRemove;
 }
 
 void writeUniversalRegistrationStatus(const std::string& id, const char* state, const std::string& detail) {
@@ -1292,14 +1377,23 @@ bool pollUniversalHooksOnWorker() {
         return true;
     }
     UniversalMod next;
-    bool unload = false, found = false;
+    std::string targetUnload;
+    bool unload = false, found = false, targeted = false;
     {
         std::lock_guard<std::mutex> lock(g_pinnedMutex);
         unload = g_universalUnload;
         g_universalUnload = false;
-        if (!unload && g_universalEnabled) {
+        if (unload) {
+            g_universalPendingUnloads.clear();
+        } else if (!g_universalPendingUnloads.empty()) {
+            targetUnload = std::move(g_universalPendingUnloads.front());
+            g_universalPendingUnloads.pop_front();
+            targeted = true;
+        }
+        if (!unload && !targeted && g_universalEnabled) {
             for (auto& mod : g_universalMods) {
-                if (mod.registered) continue;
+                if (mod.registered || g_revokedDeferredMods.contains(mod.id))
+                    continue;
                 mod.registered = true;
                 next = mod;
                 found = true;
@@ -1307,17 +1401,20 @@ bool pollUniversalHooksOnWorker() {
             }
         }
     }
-    if (!unload && !found) return false;
+    if (!unload && !found && !targeted) return false;
     std::lock_guard<std::mutex> guard(g_mutex);
     if (!prepareUniversalHookSdk()) {
+        std::lock_guard<std::mutex> lock(g_pinnedMutex);
+        if (targeted) g_universalPendingUnloads.push_front(targetUnload);
         if (found) {
-            std::lock_guard<std::mutex> lock(g_pinnedMutex);
-            for (auto& mod : g_universalMods) if (mod.id == next.id) mod.registered = false;
+            for (auto& mod : g_universalMods)
+                if (mod.id == next.id) mod.registered = false;
         }
+        g_universalPolling.store(false, std::memory_order_release);
         return false;
     }
     void* exception = nullptr;
-    UniversalMonoContext context(!unload);
+    UniversalMonoContext context(!unload && !targeted);
     if (unload) {
         std::vector<std::string> ids;
         {
@@ -1330,7 +1427,29 @@ bool pollUniversalHooksOnWorker() {
         std::lock_guard<std::mutex> lock(g_pinnedMutex);
         if (!g_universalEnabled) g_universalPolling.store(false, std::memory_order_release);
     }
-    else if (g_api.newString) {
+    else if (targeted && g_api.newString) {
+        void* id = g_api.newString(g_domain, targetUnload.c_str());
+        void* args[] = {id};
+        void* boxed = id ? g_api.invoke(g_universalUnloadMod, nullptr, args, &exception) : nullptr;
+        void* value = !exception && boxed ? g_api.unbox(boxed) : nullptr;
+        if (!value) {
+            writeUniversalRegistrationStatus(targetUnload, "unload-failed",
+                "SDK Unload(id) unavailable or threw; restart required");
+        } else if (*static_cast<uint8_t*>(value) == 0) {
+            writeUniversalRegistrationStatus(targetUnload, "already-unloaded",
+                "no active managed hook scope for this mod");
+        } else {
+            writeUniversalRegistrationStatus(targetUnload, "unloaded",
+                "native hook scope released; Mono assembly remains loaded");
+        }
+    }
+    else if (found && g_api.newString) {
+        bool revoked = false;
+        {
+            std::lock_guard<std::mutex> lock(g_pinnedMutex);
+            revoked = g_revokedDeferredMods.contains(next.id);
+        }
+        if (revoked) return true;
         void* args[] = {g_api.newString(g_domain, next.id.c_str()), g_api.newString(g_domain, next.path.c_str())};
         void* boxed = args[0] && args[1] ? g_api.invoke(g_universalRegister, nullptr, args, &exception) : nullptr;
         int count = -1;
@@ -1365,44 +1484,125 @@ template<class Execute>
 bool processManagedRecipeRpc(std::unique_lock<std::mutex>& lock,Execute execute) {
     if(g_recipeRpcQueue.empty())return false;
     auto job=std::move(g_recipeRpcQueue.front());g_recipeRpcQueue.pop_front();
-    if(job.completion->cancelled||std::chrono::steady_clock::now()>=job.deadline){g_recipeRpcWake.notify_all();return true;}
+    if(job.completion->cancelled||std::chrono::steady_clock::now()>=job.deadline){
+        if((job.shooting||job.tile||job.rarity)&&job.kind==2&&!job.completion->cancelled){job.completion->done=true;job.completion->output="ERROR|Stage=Warmup Reason=WarmupDeadlineExceeded";}
+        g_recipeRpcWake.notify_all();return true;
+    }
     lock.unlock();auto output=execute(job);lock.lock();
     if(!job.completion->cancelled&&std::chrono::steady_clock::now()<job.deadline) {
         job.completion->output=std::move(output);job.completion->done=true;
+    } else if((job.shooting||job.tile||job.rarity)&&job.kind==2&&!job.completion->cancelled) {
+        job.completion->output="ERROR|Stage=Warmup Reason=WarmupDeadlineExceeded";job.completion->done=true;
     }
     g_recipeRpcWake.notify_all();return true;
 }
 
 std::string executeRecipeOnWorker(const RecipeRpcJob& job) {
+    if (!job.shooting && !job.tile && !job.rarity &&
+        !isNativeRecipeAssemblyCurrent(job.mod, job.assembly))
+        return "PENDING|Stage=Invoke Reason=AssemblyUnloadedOrRebound";
     std::lock_guard<std::mutex> monoGuard(g_mutex);
     if(!g_domain||!g_status.methodExecuted||!g_api.attach||!g_api.openAssembly||!g_api.image||
        !g_api.findClass||!g_api.findMethod||!g_api.newString||!g_api.invoke)return "PENDING|Stage=Invoke Reason=MonoRuntimeOrRequiredExportsNotReady";
     if(!g_api.attach(g_domain))return "ERROR|Stage=AttachThread Reason=MonoAttachFailed";
-    if(!g_recipeDispatchMethod) {
+    void*& dispatcher=job.rarity?g_rarityDispatchMethod:(job.tile?g_tileDispatchMethod:(job.shooting?g_shootDispatchMethod:g_recipeDispatchMethod));
+    const char* endpoint=job.rarity?"BunnyRarityRuntime":(job.tile?"BunnyTileRuntime":(job.shooting?"BunnyShootRuntime":"BunnyRecipeRuntime"));
+    if(!dispatcher) {
         const auto slash=g_checkpointPath.find_last_of('/');
         if(slash==std::string::npos)return "ERROR|Stage=ResolveSdk Reason=InvalidCheckpointPath";
         const auto sdk=g_checkpointPath.substr(0,slash+1)+"BunnySourceSdk.dll";
         if(!validAssembly(sdk))return "ERROR|Stage=ResolveSdk Path="+sdk+" Reason=SdkAssemblyMissingOrInvalid";
         auto* assembly=g_api.openAssembly(g_domain,sdk.c_str());
         auto* image=assembly?g_api.image(assembly):nullptr;
-        auto* cls=image?g_api.findClass(image,"BunnyLoader.Source","BunnyRecipeRuntime"):nullptr;
-        g_recipeDispatchMethod=cls?g_api.findMethod(cls,"Dispatch",6):nullptr;
-        if(!g_recipeDispatchMethod)return "ERROR|Stage=BindDispatcher Class=BunnyRecipeRuntime Method=Dispatch Expected=SixParameters Reason=MethodMissing";
+        auto* cls=image?g_api.findClass(image,"BunnyLoader.Source",endpoint):nullptr;
+        dispatcher=cls?g_api.findMethod(cls,"Dispatch",6):nullptr;
+        if(!dispatcher)return std::string("ERROR|Stage=BindDispatcher Class=")+endpoint+" Method=Dispatch Expected=SixParameters Reason=MethodMissing";
     }
     void* args[]={g_api.newString(g_domain,job.mod.c_str()),g_api.newString(g_domain,job.assembly.c_str()),
         g_api.newString(g_domain,job.owner.c_str()),const_cast<int*>(&job.index),const_cast<int*>(&job.kind),
         g_api.newString(g_domain,job.snapshot.c_str())};
     if(!args[0]||!args[1]||!args[2]||!args[5])return "ERROR|Stage=MarshalArguments Reason=MonoStringAllocationFailed";
-    void* exception=nullptr;auto* result=g_api.invoke(g_recipeDispatchMethod,nullptr,args,&exception);
+    void* exception=nullptr;auto* result=g_api.invoke(dispatcher,nullptr,args,&exception);
     if(exception||!result)return "ERROR|Reason=MonoDispatchException";
     using Utf8=char*(*)(void*);using Release=void(*)(void*);
     static auto utf8=resolve<Utf8>("mono_string_to_utf8");static auto release=resolve<Release>("mono_free");
     if(!utf8||!release)return "ERROR|Stage=DecodeResponse Expected=mono_string_to_utf8Andmono_free Reason=RequiredExportMissing";
     char* value=utf8(result);if(!value)return "ERROR|Stage=DecodeResponse Reason=MonoUtf8AllocationFailed";
-    const auto length=strnlen(value,16385);std::string output;
-    if(length<=16384)output.assign(value,length);
-    else output="ERROR|Stage=DecodeResponse ExpectedBytes=UpTo16384 ActualAtLeast=16385 Reason=ResponseTooLarge";
+    const size_t maximum=job.shooting?32768u:16384u;
+    const auto length=strnlen(value,maximum+1);std::string output;
+    if(length<=maximum)output.assign(value,length);
+    else output="ERROR|Stage=DecodeResponse ExpectedBytes=UpTo"+std::to_string(maximum)+" ActualAtLeast="+std::to_string(maximum+1)+" Reason=ResponseTooLarge";
     release(value);return output;
+}
+
+std::string executeManagedLocalizationOnWorker(const LocalizationJob& job) {
+    std::lock_guard<std::mutex> monoGuard(g_mutex);
+    if (!g_domain || !g_status.methodExecuted || !g_api.attach ||
+        !g_api.openAssembly || !g_api.image || !g_api.findClass ||
+        !g_api.findMethod || !g_api.newString || !g_api.invoke) return "PENDING|MonoNotReady";
+    if (!g_api.attach(g_domain)) return "ERROR|MonoAttachFailed";
+    if (!g_localizationDispatchMethod || !g_localizationUnloadMethod ||
+        !g_localizationDrainMethod || !g_localizationAckMethod) {
+        const auto slash = g_checkpointPath.find_last_of('/');
+        if (slash == std::string::npos) return "ERROR|InvalidSdkPath";
+        const std::string sdk = g_checkpointPath.substr(0, slash + 1) + "BunnySourceSdk.dll";
+        if (!validAssembly(sdk)) return "ERROR|MissingSdk";
+        void* assembly = g_api.openAssembly(g_domain, sdk.c_str());
+        void* image = assembly ? g_api.image(assembly) : nullptr;
+        void* klass = image ? g_api.findClass(image, "BunnyLoader.Source", "BunnyLocalizationRuntime") : nullptr;
+        if (!klass) return "ERROR|MissingLocalizationRuntime";
+        g_localizationDispatchMethod = g_api.findMethod(klass, "Dispatch", 3);
+        g_localizationDrainMethod = g_api.findMethod(klass, "Drain", 3);
+        g_localizationAckMethod = g_api.findMethod(klass, "Acknowledge", 4);
+        g_localizationUnloadMethod = g_api.findMethod(klass, "Unload", 1);
+        if (!g_localizationDispatchMethod || !g_localizationDrainMethod ||
+            !g_localizationUnloadMethod || !g_localizationAckMethod)
+            return "ERROR|MissingLocalizationMethods";
+    }
+    void* id = g_api.newString(g_domain, job.modId.c_str());
+    if (!id) return "ERROR|MonoIdAllocation";
+    void* exception = nullptr;
+    if (job.unload) {
+        void* args[] = {id};
+        g_api.invoke(g_localizationUnloadMethod, nullptr, args, &exception);
+        return exception ? "ERROR|MonoUnloadException" : "OK|Unload";
+    }
+    void* assembly = g_api.newString(g_domain, job.assemblyPath.c_str());
+    void* culture = g_api.newString(g_domain, job.culture.c_str());
+    if (!assembly || !culture) return "ERROR|MonoStringAllocation";
+    void* args[] = {id, assembly, culture};
+    void* value = g_api.invoke(job.drain ? g_localizationDrainMethod :
+                               g_localizationDispatchMethod, nullptr, args, &exception);
+    if (exception || !value) return "ERROR|MonoDispatchException";
+    using Utf8 = char* (*)(void*);
+    using Release = void (*)(void*);
+    static auto utf8 = resolve<Utf8>("mono_string_to_utf8");
+    static auto release = resolve<Release>("mono_free");
+    if (!utf8 || !release) return "ERROR|MonoStringExportsMissing";
+    char* text = utf8(value);
+    if (!text) return "ERROR|MonoStringDecode";
+    const size_t length = strnlen(text, 262145);
+    std::string result = length <= 262144 ? std::string(text, length) : "ERROR|ResponseTooLarge";
+    release(text);
+    return result;
+}
+
+bool acknowledgeManagedLocalizationOnWorker(const LocalizationJob& job,
+                                          const std::string& wire) {
+    std::lock_guard<std::mutex> monoGuard(g_mutex);
+    if (!g_domain || !g_api.attach || !g_api.newString || !g_api.invoke ||
+        !g_api.unbox || !g_localizationAckMethod || !g_api.attach(g_domain)) return false;
+    void* args[] = {
+        g_api.newString(g_domain, job.modId.c_str()),
+        g_api.newString(g_domain, job.assemblyPath.c_str()),
+        g_api.newString(g_domain, job.culture.c_str()),
+        g_api.newString(g_domain, wire.c_str())
+    };
+    for (void* arg : args) if (!arg) return false;
+    void* exception = nullptr;
+    void* result = g_api.invoke(g_localizationAckMethod, nullptr, args, &exception);
+    void* value = exception || !result ? nullptr : g_api.unbox(result);
+    return value && *static_cast<uint8_t*>(value) != 0;
 }
 
 bool executeManagedSceneOnWorker(const SceneLightRequest& request,
@@ -1476,6 +1676,116 @@ bool executeManagedSceneOnWorker(const SceneLightRequest& request,
     return true;
 }
 
+bool executeManagedDustOnWorker(int index,
+                               const ManagedDustMailbox::Request* request,
+                               ManagedDustState* updated, uint32_t* flags) {
+    std::lock_guard<std::mutex> monoGuard(g_mutex);
+    if (!g_domain || !g_status.domainInitialized || !g_status.methodExecuted ||
+        !g_api.attach || !g_api.openAssembly || !g_api.image ||
+        !g_api.findClass || !g_api.findMethod || !g_api.invoke ||
+        !g_api.unbox || !g_api.newString || !g_api.attach(g_domain)) return false;
+    ManagedDustBinding binding;
+    {
+        std::lock_guard<std::mutex> lock(g_pinnedMutex);
+        if (index < 0 || static_cast<size_t>(index) >= g_dustBindings.size() ||
+            !g_dustBindings[static_cast<size_t>(index)].enabled) return false;
+        binding = g_dustBindings[static_cast<size_t>(index)];
+    }
+    if (!g_dustRegisterMethod) {
+        const size_t slash = g_checkpointPath.find_last_of('/');
+        if (slash == std::string::npos) return false;
+        const std::string sdk = g_checkpointPath.substr(0, slash + 1) +
+                                "BunnySourceSdk.dll";
+        if (!validAssembly(sdk)) return false;
+        void* sdkAssembly = g_api.openAssembly(g_domain, sdk.c_str());
+        void* sdkImage = sdkAssembly ? g_api.image(sdkAssembly) : nullptr;
+        void* cls = sdkImage ? g_api.findClass(sdkImage, "BunnyLoader.Source",
+                                            "BunnyDustSourceDispatcher") : nullptr;
+        if (!cls) return false;
+        g_dustRegisterMethod = g_api.findMethod(cls, "Register", 2);
+        g_dustBindMethod = g_api.findMethod(cls, "Bind", 3);
+        g_dustInvokeMethod = g_api.findMethod(cls, "Invoke", 3);
+        g_dustResetMethod = g_api.findMethod(cls, "ResetWorld", 0);
+        if (!g_dustRegisterMethod || !g_dustBindMethod ||
+            !g_dustInvokeMethod || !g_dustResetMethod) {
+            g_dustRegisterMethod = nullptr;
+            return false;
+        }
+    }
+    int managedSlot = binding.managedSlot;
+    if (managedSlot < 0) {
+        if (!validAssembly(binding.assemblyPath)) return false;
+        void* argStrings[2] = {
+            g_api.newString(g_domain, binding.modId.c_str()),
+            g_api.newString(g_domain, binding.assemblyPath.c_str())
+        };
+        if (!argStrings[0] || !argStrings[1]) return false;
+        void* error = nullptr;
+        void* boxed = g_api.invoke(g_dustRegisterMethod, nullptr,
+                                   argStrings, &error);
+        void* raw = error || !boxed ? nullptr : g_api.unbox(boxed);
+        if (!raw) return false;
+        std::memcpy(&managedSlot, raw, sizeof(managedSlot));
+        if (managedSlot < 0 || managedSlot >= 16) return false;
+        for (const auto& [type, name] : binding.types) {
+            void* nameArg = g_api.newString(g_domain, name.c_str());
+            if (!nameArg) return false;
+            int nativeType = type;
+            void* args[3] = {&managedSlot, &nativeType, nameArg};
+            error = nullptr;
+            boxed = g_api.invoke(g_dustBindMethod, nullptr, args, &error);
+            raw = error || !boxed ? nullptr : g_api.unbox(boxed);
+            if (!raw || !*static_cast<uint8_t*>(raw)) return false;
+        }
+        {
+            std::lock_guard<std::mutex> lock(g_pinnedMutex);
+            if (static_cast<size_t>(index) >= g_dustBindings.size() ||
+                g_dustBindings[static_cast<size_t>(index)].modId != binding.modId)
+                return false;
+            g_dustBindings[static_cast<size_t>(index)].managedSlot = managedSlot;
+        }
+#ifdef __ANDROID__
+        __android_log_print(ANDROID_LOG_INFO, "BunnyCSharp",
+                            "[CSharp][DustLoader] Stage=MonoBind Mod=%s Types=%zu Result=Ready",
+                            binding.modId.c_str(), binding.types.size());
+#endif
+    }
+    if (index >= 0 && static_cast<size_t>(index) < g_dustReady.size())
+        g_dustReady[static_cast<size_t>(index)].store(true, std::memory_order_release);
+    if (!request) return true;
+    if (!updated || !flags || request->binding != index ||
+        !managedDustStateValid(request->state)) return false;
+    ManagedDustState localState = request->state;
+    int phase = request->phase;
+    void* statePointer = &localState;
+    void* args[] = {&managedSlot, &phase, &statePointer};
+    void* error = nullptr;
+    void* boxed = g_api.invoke(g_dustInvokeMethod, nullptr, args, &error);
+    void* raw = error || !boxed ? nullptr : g_api.unbox(boxed);
+    if (!raw) return false;
+    int result = 0;
+    std::memcpy(&result, raw, sizeof(result));
+    if (result < 0 || result > 63 ||
+        !managedDustStateValid(localState) ||
+        !managedDustSameInstance(request->state, localState)) return false;
+    *updated = localState;
+    *flags = static_cast<uint32_t>(result);
+    return true;
+}
+
+void executeManagedDustResetOnWorker() {
+    std::lock_guard<std::mutex> monoGuard(g_mutex);
+    if (!g_domain || !g_dustResetMethod || !g_api.attach ||
+        !g_api.invoke || !g_api.attach(g_domain)) return;
+    void* error = nullptr;
+    g_api.invoke(g_dustResetMethod, nullptr, nullptr, &error);
+#ifdef __ANDROID__
+    if (error)
+        __android_log_print(ANDROID_LOG_WARN, "BunnyCSharp",
+                            "[CSharp][DustLoader] Stage=ResetWorld Result=ManagedException");
+#endif
+}
+
 void* pinnedMonoWorker(void*) {
     {
         std::lock_guard<std::mutex> lock(g_pinnedMutex);
@@ -1491,6 +1801,60 @@ void* pinnedMonoWorker(void*) {
         {
             std::unique_lock<std::mutex> lock(g_pinnedMutex);
             while (!g_pinnedPending) {
+                if(processManagedRecipeRpc(lock,executeRecipeOnWorker))continue;
+                const bool localizationReady =
+                    g_recipeRuntimeReady.load(std::memory_order_acquire);
+                const bool livePolling = localizationReady &&
+                    !g_localizationLiveBindings.empty() &&
+                    std::chrono::steady_clock::now() >= g_nextLocalizationPoll;
+                if (localizationReady &&
+                    (!g_localizationUnloads.empty() || !g_localizationQueue.empty() ||
+                     livePolling)) {
+                    LocalizationJob job;
+                    if (!g_localizationUnloads.empty()) {
+                        job.modId = std::move(g_localizationUnloads.front());
+                        g_localizationUnloads.pop_front();
+                        job.unload = true;
+                    } else if (!g_localizationQueue.empty()) {
+                        job = std::move(g_localizationQueue.front());
+                        g_localizationQueue.pop_front();
+                    } else {
+                        auto it = g_localizationLiveBindings.upper_bound(g_lastLocalizationPollMod);
+                        if (it == g_localizationLiveBindings.end())
+                            it = g_localizationLiveBindings.begin();
+                        job = it->second;
+                        job.drain = true;
+                        g_lastLocalizationPollMod = it->first;
+                        g_nextLocalizationPoll = std::chrono::steady_clock::now() +
+                            std::chrono::milliseconds(250);
+                    }
+                    if (!job.unload && !g_localizationEpochFence.current(job.modId, job.generation))
+                        continue;
+                    lock.unlock();
+                    std::string result = executeManagedLocalizationOnWorker(job);
+                    if (!job.unload && result.rfind("OK|", 0) == 0) {
+                        auto sink = g_localizationResultSink.load(std::memory_order_acquire);
+                        if (!sink || !sink(job.modId, job.assemblyPath, job.culture,
+                                           job.generation, result))
+                            result = "ERROR|DynamicWireRejectedOrStale";
+                        else if (!acknowledgeManagedLocalizationOnWorker(job, result))
+                            result = "ERROR|DynamicWireAckFailed";
+                    }
+                    if (result.rfind("OK|", 0) != 0 && result != "UNCHANGED") {
+#ifdef __ANDROID__
+                        __android_log_print(ANDROID_LOG_WARN, "BunnyCSharp",
+                            "[CSharp][Localization] Mod=%s Stage=ManagedNotify Result=%s",
+                            job.modId.c_str(), result.c_str());
+#else
+                        std::fprintf(stderr,
+                            "[CSharp][Localization] Mod=%s Stage=ManagedNotify Result=%s\n",
+                            job.modId.c_str(), result.c_str());
+#endif
+                    }
+                    lock.lock();
+                    continue;
+                }
+
                 if (g_universalPolling.load(std::memory_order_acquire)) {
                     lock.unlock();
                     const bool handled = pollUniversalHooksOnWorker();
@@ -1542,6 +1906,10 @@ void* pinnedMonoWorker(void*) {
                     }
                     lock.lock();
                     if (job.completion) {
+                        const bool bindingActive = job.modIndex >= 0 &&
+                            static_cast<size_t>(job.modIndex) < g_managedHurtBindings.size() &&
+                            g_managedHurtBindings[static_cast<size_t>(job.modIndex)].active;
+                        if (!bindingActive) job.completion->cancelled = true;
                         job.completion->expired = std::chrono::steady_clock::now() >= job.completion->deadline;
                         if (job.completion->cancelled || job.generation != g_managedHurtGeneration ||
                             job.completion->expired)
@@ -1611,6 +1979,13 @@ void* pinnedMonoWorker(void*) {
                     const std::string dll = binding ? binding->assemblyPath : g_liveHitAssembly;
                     const std::string callbackClass = binding ?
                         binding->callbackClass : "BunnyLiveEvents";
+                    if (g_revokedDeferredMods.contains(modId)) {
+                        addManagedCounter(g_liveHitStatus.dropped);
+                        if (binding) addManagedCounter(binding->dropped);
+                        g_liveHitInFlight = false;
+                        g_liveHitActiveBindingSlot = -2;
+                        continue;
+                    }
                     const uint64_t generation = g_liveHitGeneration;
                     const bool samplePerf = g_perfState.load(std::memory_order_relaxed) == 2;
                     const size_t perfSlot = binding ?
@@ -1683,8 +2058,11 @@ void* pinnedMonoWorker(void*) {
                     lock.lock();
                     g_liveHitInFlight = false;
                     g_liveHitActiveBindingSlot = -2;
-                    if ((binding || g_liveHitStatus.modId == modId) &&
-                        g_liveHitGeneration == generation && g_liveHitStatus.enabled) {
+                    const bool bindingArmed = !binding ||
+                        binding->armedType.load(std::memory_order_acquire) == binding->type;
+                    if (g_liveHitGeneration == generation &&
+                        managedLiveCallbackCurrent(g_liveHitStatus.enabled, bindingArmed,
+                            g_revokedDeferredMods.contains(modId))) {
                         if (automatic && !event.isKill && callback.usedV4 &&
                             callback.ready && callback.phase == "ready" &&
                             callback.value >= 1000000 && callback.value < 3000000) {
@@ -1706,7 +2084,11 @@ void* pinnedMonoWorker(void*) {
                                     event.npc.posX, event.npc.posY,
                                     buff, ticks,
                                     g_buffEffectGeneration.load(std::memory_order_acquire),
-                                    nowMs, direction, tenths
+                                    nowMs, direction, tenths,
+                                    event.bindingSlot,
+                                    g_buffOwnerGenerations[
+                                        static_cast<size_t>(event.bindingSlot + 1)].load(
+                                            std::memory_order_acquire)
                                 };
                                 if (g_buffEffectQueue.push(request))
                                     g_buffRequested.fetch_add(1, std::memory_order_relaxed);
@@ -1797,13 +2179,61 @@ void* pinnedMonoWorker(void*) {
                 }
                 // Recipe UI has a 3ms deadline; do not queue it behind an AI backlog.
                 if(processManagedRecipeRpc(lock,executeRecipeOnWorker))continue;
+                if (g_dustWorldResetPending) {
+                    g_dustWorldResetPending = false;
+                    lock.unlock();
+                    executeManagedDustResetOnWorker();
+                    lock.lock();
+                    continue;
+                }
+                if (!g_dustBootstrap.empty()) {
+                    const int index = g_dustBootstrap.front();
+                    g_dustBootstrap.pop_front();
+                    lock.unlock();
+                    executeManagedDustOnWorker(index, nullptr, nullptr, nullptr);
+                    lock.lock();
+                    continue;
+                }
+                ManagedDustMailbox::Request dustJobs[8]{};
+                const size_t dustCount = g_dustMailbox.take(dustJobs, 8);
+                if (dustCount > 0) {
+                    lock.unlock();
+                    for (size_t i = 0; i < dustCount; ++i) {
+                        ManagedDustState updated{};
+                        uint32_t callbackFlags = 0;
+                        const auto& job = dustJobs[i];
+                        const uint64_t now = g_dustGameFrame.load(std::memory_order_acquire);
+                        const bool timely = job.phase == 5 ||
+                            (now >= job.frame &&
+                             now - job.frame <= ManagedDustMailbox::kMaxResultAgeFrames);
+                        const bool invoked = timely && g_dustMailbox.current(job) &&
+                            executeManagedDustOnWorker(job.binding, &job,
+                                                       &updated, &callbackFlags);
+                        if (invoked && job.phase != 5) {
+                            if (!g_dustMailbox.complete(job, updated, callbackFlags))
+                                g_dustMailbox.discard(job);
+                        } else {
+                            g_dustMailbox.discard(job);
+                        }
+                    }
+                    lock.lock();
+                    continue;
+                }
+
                 if (!g_entityQueue.empty()) {
                     ManagedEntityJob job = std::move(g_entityQueue.front());
                     g_entityQueue.pop_front();
                     lock.unlock();
                     const int64_t result = executeManagedEntityOnWorker(job);
                     lock.lock();
-                    if (job.session == g_entitySession && job.slot >= 0) {
+                    if (job.kind == 6 && job.session == g_entitySession &&
+                        result == -2 && job.binding >= 0 &&
+                        static_cast<size_t>(job.binding) < g_entityBindings.size())
+                        g_entityBindings[static_cast<size_t>(job.binding)].invasionSupported = false;
+                    const bool stillArmed = job.binding >= 0 &&
+                        static_cast<size_t>(job.binding) < g_entityBindings.size() &&
+                        g_entityBindings[static_cast<size_t>(job.binding)].armed;
+                    if (job.session == g_entitySession && job.slot >= 0 && stillArmed) {
                         if (job.kind == 0 && static_cast<size_t>(job.slot) < g_entityNpcResults.size()) {
                             g_entityNpcPending[static_cast<size_t>(job.slot)] = false;
                             g_entityNpcResults[static_cast<size_t>(job.slot)] = {
@@ -1846,9 +2276,18 @@ void* pinnedMonoWorker(void*) {
 #endif
                             }
                         }
-                    } else if (job.kind >= 2 && job.kind <= 5) {
-                        g_entityCombatLost[static_cast<size_t>(job.kind - 2)]
-                            .fetch_add(1, std::memory_order_relaxed);
+                    } else {
+                        if (job.session == g_entitySession && !stillArmed && job.slot >= 0) {
+                            if (job.kind == 0 &&
+                                static_cast<size_t>(job.slot) < g_entityNpcPending.size())
+                                g_entityNpcPending[static_cast<size_t>(job.slot)] = false;
+                            if (job.kind == 1 &&
+                                static_cast<size_t>(job.slot) < g_entityProjectilePending.size())
+                                g_entityProjectilePending[static_cast<size_t>(job.slot)] = false;
+                        }
+                        if (job.kind >= 2 && job.kind <= 5)
+                            g_entityCombatLost[static_cast<size_t>(job.kind - 2)]
+                                .fetch_add(1, std::memory_order_relaxed);
                     }
                     if (job.kind >= 0 && job.kind <= 5) {
                         static std::chrono::steady_clock::time_point nextAiSnapshot{};
@@ -1879,12 +2318,12 @@ void* pinnedMonoWorker(void*) {
                         request.binding >= 0 &&
                         static_cast<size_t>(request.binding) < g_sceneLightBindings.size()) {
                         auto& binding = g_sceneLightBindings[static_cast<size_t>(request.binding)];
-                        if (ok) {
+                        if (binding.enabled && ok) {
                             g_sceneLightResults[binding.modId] = {
                                 computed, std::chrono::steady_clock::now(), request.generation
                             };
                             binding.failures = 0;
-                        } else if (++binding.failures >= 3 && binding.enabled) {
+                        } else if (binding.enabled && ++binding.failures >= 3) {
                             binding.enabled = false;
 #ifdef __ANDROID__
                             __android_log_print(ANDROID_LOG_WARN, "BunnyCSharp",
@@ -1898,21 +2337,36 @@ void* pinnedMonoWorker(void*) {
                 if (!g_auditEnabled) {
                     if (g_universalPolling.load(std::memory_order_acquire) ||
                         g_liveHitStatus.enabled || g_liveIngress.depth() != 0 ||
-                        !g_managedHurtQueue.empty() || !g_entityQueue.empty())
+                        !g_managedHurtQueue.empty() || !g_entityQueue.empty() ||
+                        !g_dustBootstrap.empty() || g_dustWorldResetPending)
                         g_pinnedWake.wait_for(lock, std::chrono::milliseconds(2));
+                    else if (g_dustModCount.load(std::memory_order_acquire) > 0)
+                        g_pinnedWake.wait_for(lock, std::chrono::milliseconds(8));
+                    else if (g_recipeRuntimeReady.load(std::memory_order_acquire) &&
+                             !g_localizationLiveBindings.empty())
+                        g_pinnedWake.wait_until(lock, g_nextLocalizationPoll);
                     else
                         g_pinnedWake.wait(lock);
                     continue;
                 }
                 const int seconds = kAuditSamples[g_auditIndex];
                 const auto until = g_auditStart + std::chrono::seconds(seconds);
-                const auto deadline = (g_liveHitStatus.enabled || g_universalPolling.load(std::memory_order_acquire))
+                auto deadline = (g_liveHitStatus.enabled || g_universalPolling.load(std::memory_order_acquire))
                     ? std::min(until, std::chrono::steady_clock::now() +
                         std::chrono::milliseconds(2)) : until;
+                if (g_recipeRuntimeReady.load(std::memory_order_acquire) &&
+                    !g_localizationLiveBindings.empty())
+                    deadline = std::min(deadline, g_nextLocalizationPoll);
+                if (g_dustModCount.load(std::memory_order_acquire)>0)
+                    deadline=std::min(deadline,std::chrono::steady_clock::now()+std::chrono::milliseconds(8));
                 if (g_pinnedWake.wait_until(lock, deadline, [] {
                     return g_pinnedPending || g_vmComparePending ||
                         !g_liveHitQueue.empty() || g_liveIngress.depth() != 0 ||
-                        !g_entityQueue.empty() || !g_recipeRpcQueue.empty();
+                        !g_entityQueue.empty() || !g_recipeRpcQueue.empty() ||
+                        (g_recipeRuntimeReady.load(std::memory_order_acquire) &&
+                         (!g_localizationQueue.empty() || !g_localizationUnloads.empty())) ||
+                        !g_dustBootstrap.empty() || g_dustWorldResetPending ||
+                        g_dustMailbox.hasQueued();
                 }))
                     continue;
                 if (std::chrono::steady_clock::now() < until) continue;
@@ -1956,6 +2410,49 @@ void* pinnedMonoWorker(void*) {
 }
 
 
+void setManagedLocalizationResultSink(ManagedLocalizationResultSink sink) {
+    g_localizationResultSink.store(sink, std::memory_order_release);
+}
+
+bool queueManagedLocalizationLoaded(const std::string& modId,
+                                    const std::string& assemblyPath,
+                                    const std::string& culture,
+                                    uint64_t generation) {
+    if (modId.empty() || modId.size() > 64 ||
+        assemblyPath.empty() || assemblyPath.size() > 2048 ||
+        culture.size() < 2 || culture.size() > 20 || generation == 0) return false;
+    std::lock_guard<std::mutex> lock(g_pinnedMutex);
+    if (!g_localizationEpochFence.permits(modId, generation)) return false;
+    g_localizationQueue.erase(std::remove_if(
+        g_localizationQueue.begin(), g_localizationQueue.end(),
+        [&](const LocalizationJob& job) {
+            return job.modId == modId && job.generation < generation;
+        }), g_localizationQueue.end());
+    if (g_localizationQueue.size() >= 64) return false;
+    g_localizationEpochFence.activate(modId, generation);
+    g_localizationLiveBindings[modId] = {modId, assemblyPath, culture, generation, false, false};
+    g_nextLocalizationPoll = std::chrono::steady_clock::now() +
+        std::chrono::milliseconds(250);
+    g_localizationQueue.push_back({modId, assemblyPath, culture, generation, false, false});
+    g_pinnedWake.notify_one();
+    return true;
+}
+
+void unloadManagedLocalizationCallbacks(const std::string& modId) {
+    if (modId.empty() || modId.size() > 64) return;
+    std::lock_guard<std::mutex> lock(g_pinnedMutex);
+    g_localizationQueue.erase(std::remove_if(g_localizationQueue.begin(),
+        g_localizationQueue.end(), [&](const LocalizationJob& job) {
+            return job.modId == modId;
+        }), g_localizationQueue.end());
+    g_localizationEpochFence.retire(modId);
+    g_localizationLiveBindings.erase(modId);
+    if (std::find(g_localizationUnloads.begin(), g_localizationUnloads.end(), modId)
+        == g_localizationUnloads.end())
+        g_localizationUnloads.push_back(modId);
+    g_pinnedWake.notify_one();
+}
+
 bool registerManagedScreenSceneMod(const std::string& id,
                                    const std::string& assembly,
                                    const std::string& nameSpace,
@@ -1972,6 +2469,7 @@ bool registerManagedScreenSceneMod(const std::string& id,
         !identifier(nameSpace) || !identifier(className) || !identifier(method))
         return false;
     std::lock_guard<std::mutex> guard(g_pinnedMutex);
+    if (g_revokedDeferredMods.contains(id)) return false;
     for (auto& binding : g_sceneLightBindings) {
         if (binding.modId != id) continue;
         if (binding.assemblyPath != assembly || binding.nameSpace != nameSpace ||
@@ -2042,6 +2540,7 @@ void wakeUniversalHookWorker() { g_pinnedWake.notify_one(); }
 bool registerUniversalHookMod(const std::string& id, const std::string& assembly) {
     if (id.empty() || id.size() > 128 || !validAssembly(assembly)) return false;
     std::lock_guard<std::mutex> lock(g_pinnedMutex);
+    if (g_revokedDeferredMods.contains(id)) return false;
     for (const auto& mod : g_universalMods) if (mod.id == id) return mod.path == assembly;
     if (g_universalMods.size() >= 16) return false;
     g_universalMods.push_back({id, assembly, false});
@@ -2066,19 +2565,108 @@ void resumeUniversalHookMods() {
     g_pinnedWake.notify_one();
 }
 
+bool registerManagedDustSourceMod(
+    const std::string& modId, const std::string& assemblyPath,
+    const std::vector<std::pair<int, std::string>>& dustTypes) {
+    if (modId.empty() || modId.size() > 128 || !validAssembly(assemblyPath) ||
+        dustTypes.empty() || dustTypes.size() > 4096) return false;
+    for (const auto& [type, name] : dustTypes)
+        if (type < 332 || type >= 32768 || name.empty() || name.size() > 72)
+            return false;
+    std::lock_guard<std::mutex> lock(g_pinnedMutex);
+    for (const auto& entry : g_dustBindings)
+        if (entry.modId == modId)
+            return entry.assemblyPath == assemblyPath && entry.types == dustTypes;
+    if (g_dustBindings.size() >= 16) return false;
+    for (const auto& [type, name] : dustTypes)
+        if (g_dustOwners[static_cast<size_t>(type)].load(
+                std::memory_order_acquire) != 0) return false;
+    const int owner = static_cast<int>(g_dustBindings.size()) + 1;
+    g_dustBindings.push_back({modId, assemblyPath, dustTypes, -1, true});
+    for (const auto& [type, name] : dustTypes)
+        g_dustOwners[static_cast<size_t>(type)].store(
+            owner, std::memory_order_release);
+    g_dustModCount.store(owner, std::memory_order_release);
+    g_dustBootstrap.push_back(owner - 1);
+    g_pinnedWake.notify_one();
+    return true;
+}
+
+bool hasManagedDustType(int type) {
+    return type >= 332 && type < 32768 &&
+           g_dustOwners[static_cast<size_t>(type)].load(
+               std::memory_order_acquire) > 0;
+}
+
+bool managedDustWorkerReady(int type) {
+    if (type < 332 || type >= 32768) return false;
+    const int owner = g_dustOwners[static_cast<size_t>(type)].load(
+        std::memory_order_acquire) - 1;
+    return owner >= 0 && static_cast<size_t>(owner) < g_dustReady.size() &&
+           g_dustReady[static_cast<size_t>(owner)].load(std::memory_order_acquire);
+}
+
+bool queueManagedDustCallback(int type, int phase,
+                              const ManagedDustState& state, uint64_t frame) {
+    if (!hasManagedDustType(type) || type != state.type) return false;
+    const int owner = g_dustOwners[static_cast<size_t>(type)].load(
+        std::memory_order_acquire) - 1;
+    g_dustGameFrame.store(frame, std::memory_order_release);
+    bool wake = false;
+    if (!g_dustMailbox.offer(owner, phase, state, frame, &wake)) return false;
+    if (wake) g_pinnedWake.notify_one();
+    return true;
+}
+
+bool invokeManagedDustSameFrame(int type, int phase,
+                                const ManagedDustState& state, uint64_t frame,
+                                std::chrono::steady_clock::time_point deadline,
+                                ManagedDustMailbox::Response* response) {
+    if (!response || phase < 0 || phase > 4 ||
+        !hasManagedDustType(type) || type != state.type ||
+        !managedDustStateValid(state) ||
+        std::chrono::steady_clock::now() >= deadline)
+        return false;
+    const int owner = g_dustOwners[static_cast<size_t>(type)].load(
+        std::memory_order_acquire) - 1;
+    bool wake = false;
+    if (!g_dustMailbox.offer(owner, phase, state, frame, &wake, true))
+        return false;
+    g_dustGameFrame.store(frame, std::memory_order_release);
+    g_pinnedWake.notify_one();
+    return g_dustMailbox.await(owner, phase, state, frame, deadline, response);
+}
+
+bool receiveManagedDustCallback(int type, int phase, int slot, int generation,
+                                uint64_t frame, ManagedDustMailbox::Response* response) {
+    if (!hasManagedDustType(type)) return false;
+    const int owner = g_dustOwners[static_cast<size_t>(type)].load(
+        std::memory_order_acquire) - 1;
+    return g_dustMailbox.consume(owner, phase, slot, type, generation,
+                                 frame, response);
+}
+
+void resetManagedDustSourceWorld() {
+    g_dustGameFrame.store(0, std::memory_order_release);
+    g_dustMailbox.resetWorld();
+    std::lock_guard<std::mutex> lock(g_pinnedMutex);
+    g_dustWorldResetPending = true;
+    g_pinnedWake.notify_one();
+}
+
 bool registerManagedEntitySourceMod(
     const std::string& modId, const std::string& assemblyPath,
     const std::vector<std::pair<int, std::string>>& npcTypes,
     const std::vector<std::pair<int, std::string>>& projectileTypes) {
     if (modId.empty() || modId.size() > 128 || assemblyPath.empty() ||
         assemblyPath.size() > 2048 || assemblyPath.find("..") != std::string::npos ||
-        modId.find_first_not_of("0123456789abcdefABCDEF-") != std::string::npos ||
-        (npcTypes.empty() && projectileTypes.empty())) return false;
+        modId.find_first_not_of("0123456789abcdefABCDEF-") != std::string::npos) return false;
     for (const auto& list : {&npcTypes, &projectileTypes})
         for (const auto& [type, name] : *list)
             if (type < 0 || type >= 32768 || name.empty() || name.size() > 128)
                 return false;
     std::lock_guard<std::mutex> guard(g_pinnedMutex);
+    if (g_revokedDeferredMods.contains(modId)) return false;
     for (const auto& binding : g_entityBindings)
         if (binding.modId == modId)
             return binding.assemblyPath == assemblyPath;
@@ -2257,6 +2845,35 @@ bool tickManagedEntityProjectile(int type, int slot, int generation, int owner,
                              targetNpc, targetX, targetY);
 }
 
+void scheduleManagedInvasionWorldTicks(uint64_t worldSession, int mode,
+                                       int playerIndex, float playerX, float playerY) {
+    if (worldSession == 0 || !managedEntitySourceModsRegistered() ||
+        (mode < 0 || mode > 3) ||
+        playerIndex < 0 || !std::isfinite(playerX) || !std::isfinite(playerY)) return;
+    std::unique_lock<std::mutex> lock(g_pinnedMutex, std::try_to_lock);
+    if (!lock.owns_lock() || !g_pinnedStarted || g_entityQueue.size() >= 16) return;
+    const int bindings = g_entityModCount.load(std::memory_order_acquire);
+    for (int index = 0; index < bindings; ++index) {
+        if (static_cast<size_t>(index) >= g_entityBindings.size() ||
+            g_entityQueue.size() >= 16) break;
+        if (!g_entityBindings[static_cast<size_t>(index)].armed ||
+            !g_entityBindings[static_cast<size_t>(index)].invasionSupported)
+            continue;
+        ManagedEntityJob job;
+        job.binding = index;
+        job.kind = 6;
+        job.owner = mode;
+        job.life = 30;
+        job.identity = static_cast<uintptr_t>(worldSession);
+        job.target = playerIndex;
+        job.x = playerX;
+        job.y = playerY;
+        job.session = g_entitySession;
+        g_entityQueue.push_back(std::move(job));
+    }
+    g_pinnedWake.notify_one();
+}
+
 bool registerManagedPlayerHurtMod(const std::string& modId,
                                   const std::string& assemblyPath) {
     if (modId.empty() || modId.size() > 128 || assemblyPath.empty() ||
@@ -2265,6 +2882,7 @@ bool registerManagedPlayerHurtMod(const std::string& modId,
         assemblyPath.find("..") != std::string::npos)
         return false;
     std::lock_guard<std::mutex> lock(g_pinnedMutex);
+    if (g_revokedDeferredMods.contains(modId)) return false;
     for (auto& entry : g_managedHurtBindings) {
         if (entry.modId != modId) continue;
         if (entry.assemblyPath != assemblyPath) return false;
@@ -2308,23 +2926,162 @@ ManagedHurtSchedulerStatus managedHurtSchedulerStatus() {
 
 bool managedRecipeRuntimeReady(){return g_recipeRuntimeReady.load(std::memory_order_acquire);}
 
-bool invokeManagedRecipe(const std::string& mod,const std::string& assembly,
+static bool invokeManagedCallback(bool shooting,const std::string& mod,const std::string& assembly,
                          const std::string& owner,int index,int kind,const std::string& snapshot,
-                         std::string* output,int budgetMicroseconds) {
+                         std::string* output,int budgetMicroseconds,bool tile=false,bool rarity=false) {
     if(!output)return false;
-    if(budgetMicroseconds<1||budgetMicroseconds>3000||index<0||index>=16||kind<0||kind>3||
-       snapshot.size()>512||assembly.empty()||assembly.size()>4096){*output="ERROR|Stage=SubmitRecipeCallback Reason=InvalidTransportArguments";return false;}
+    if(budgetMicroseconds<1||budgetMicroseconds>3000||index<0||index>=16||kind<0||kind>6||
+       snapshot.size()>(rarity?32768u:(shooting?1024u:512u))||assembly.empty()||assembly.size()>4096){*output="ERROR|Stage=SubmitRecipeCallback Reason=InvalidTransportArguments";return false;}
     std::unique_lock<std::mutex> lock(g_pinnedMutex,std::try_to_lock);
     if(!lock.owns_lock()){*output="PENDING|Stage=SubmitRecipeCallback Reason=WorkerQueueBusy";return false;}
     if(!g_pinnedStarted){*output="PENDING|Stage=SubmitRecipeCallback Reason=WorkerNotStarted";return false;}
     if(g_recipeRpcQueue.size()>=16){*output="PENDING|Stage=SubmitRecipeCallback Reason=QueueCapacityExceeded Expected=Below16";return false;}
     const auto until=std::chrono::steady_clock::now()+std::chrono::microseconds(budgetMicroseconds);
     auto completion=std::make_shared<RecipeRpcCompletion>();
-    g_recipeRpcQueue.push_back({mod,assembly,owner,snapshot,index,kind,until,completion});g_pinnedWake.notify_one();
+    g_recipeRpcQueue.push_back({mod,assembly,owner,snapshot,index,kind,until,completion,shooting,tile,rarity});g_pinnedWake.notify_one();
     if(!g_recipeRpcWake.wait_until(lock,until,[&]{return completion->done;})) {
         completion->cancelled=true;*output="PENDING|Stage=WaitRecipeCallback Reason=DeadlineExceeded BudgetUs="+std::to_string(budgetMicroseconds);return false;
     }
     *output=std::move(completion->output);return !output->empty();
+}
+
+bool invokeManagedRecipe(const std::string& mod,const std::string& assembly,
+    const std::string& owner,int index,int kind,const std::string& snapshot,std::string* output,int budgetMicroseconds) {
+    return invokeManagedCallback(false,mod,assembly,owner,index,kind,snapshot,output,budgetMicroseconds);
+}
+bool invokeManagedShoot(const std::string& mod,const std::string& assembly,const std::string& owner,
+    int kind,const std::string& snapshot,std::string* output) {
+    if(kind<0||kind>1){if(output)*output="ERROR|Reason=InvalidShootCallbackKind";return false;}
+    const bool result=invokeManagedCallback(true,mod,assembly,owner,0,kind,snapshot,output,3000);
+    if(output) { // Preserve the actual cause while identifying the correct API in transport diagnostics.
+        size_t pos=0;while((pos=output->find("RecipeCallback",pos))!=std::string::npos){output->replace(pos,14,"ShootCallback");pos+=13;}
+    }
+    return result;
+}
+bool invokeManagedTile(const std::string& mod,const std::string& assembly,
+    const std::string& owner,int callback,int x,int y,std::string* output,int budgetMicroseconds) {
+    if(callback<0||callback>12||x<0||y<0||x>100000||y>100000) {
+        if(output)*output="ERROR|Stage=TileCallback Reason=InvalidCoordinatesOrKind";
+        return false;
+    }
+    return invokeManagedCallback(false,mod,assembly,owner,callback,0,
+        std::to_string(x)+","+std::to_string(y),output,budgetMicroseconds,true);
+}
+bool invokeManagedTileDraw(const std::string& mod,const std::string& assembly,
+    const std::string& owner,const std::string& snapshot,
+    std::string* output,int budgetMicroseconds) {
+    if(snapshot.size()>512||snapshot.empty()) {
+        if (output) *output = "ERROR|Stage=TileDraw Reason=InvalidSnapshot";
+        return false;
+    }
+    return invokeManagedCallback(false,mod,assembly,owner,13,0,
+        snapshot,output,budgetMicroseconds,true);
+}
+bool queueManagedRarityWarmup(const std::string& mod,const std::string& assembly,
+    const std::string& identities) {
+    if(mod.empty()||mod.size()>96||assembly.empty()||assembly.size()>4096||
+       identities.empty()||identities.size()>32768)return false;
+    std::lock_guard lock(g_pinnedMutex);
+    const auto key=mod+"|"+assembly;
+    if(g_rarityWarmups.count(key))return false;
+    if(g_rarityWarmups.size()>=4096||g_recipeRpcQueue.size()>=4096)return false;
+    auto completion=std::make_shared<RecipeRpcCompletion>();
+    g_rarityWarmups.emplace(key,completion);
+    g_recipeRpcQueue.push_back({mod,assembly,"",identities,0,2,
+        std::chrono::steady_clock::now()+std::chrono::seconds(60),completion,false,false,true});
+    g_pinnedWake.notify_one();
+    return true;
+}
+int managedRarityWarmupState(const std::string& mod,const std::string& assembly,
+    std::string* error) {
+    std::unique_lock lock(g_pinnedMutex,std::try_to_lock);
+    if(!lock.owns_lock())return 0;
+    const auto found=g_rarityWarmups.find(mod+"|"+assembly);
+    if(found==g_rarityWarmups.end()){
+        if(error)*error="Stage=Warmup Reason=RarityModNotQueued";
+        return -1;
+    }
+    if(!found->second->done)return 0;
+    if(found->second->output.starts_with("READY|"))return 1;
+    if(error)*error=found->second->output;
+    return -1;
+}
+bool invokeManagedRarity(const std::string& mod,const std::string& assembly,
+    const std::string& owner,int kind,const std::string& snapshot,
+    std::string* output,int budgetMicroseconds) {
+    if(owner.empty()||owner.size()>72||kind<0||kind>1) {
+        if(output)*output="ERROR|Stage=RarityCallback Reason=InvalidOwnerOrKind";
+        return false;
+    }
+    return invokeManagedCallback(false,mod,assembly,owner,0,kind,
+        snapshot,output,budgetMicroseconds,false,true);
+}
+bool queueManagedTileEvent(const std::string& mod,const std::string& assembly,
+    const std::string& owner,int callback,int x,int y) {
+    if(callback<2||callback>12||x<0||y<0||x>100000||y>100000||assembly.empty())return false;
+    std::unique_lock<std::mutex> lock(g_pinnedMutex,std::try_to_lock);
+    if(!lock.owns_lock()||!g_pinnedStarted||g_recipeRpcQueue.size()>=16)return false;
+    auto result=std::make_shared<RecipeRpcCompletion>();
+    g_recipeRpcQueue.push_back({mod,assembly,owner,std::to_string(x)+","+std::to_string(y),
+        callback,0,std::chrono::steady_clock::now()+std::chrono::milliseconds(100),result,false,true});
+    g_pinnedWake.notify_one();return true;
+}
+bool queueManagedTileNearby(const std::string& mod,const std::string& assembly,
+    const std::string& owner,int x,int y,bool closer) {
+    if(x<0||y<0||x>100000||y>100000||assembly.empty())return false;
+    std::unique_lock<std::mutex> lock(g_pinnedMutex,std::try_to_lock);
+    if(!lock.owns_lock()||!g_pinnedStarted||g_recipeRpcQueue.size()>=16)return false;
+    auto result=std::make_shared<RecipeRpcCompletion>();
+    g_recipeRpcQueue.push_back({mod,assembly,owner,
+        std::to_string(x)+","+std::to_string(y)+","+(closer?"1":"0"),
+        11,0,std::chrono::steady_clock::now()+std::chrono::milliseconds(100),
+        result,false,true});
+    g_pinnedWake.notify_one();return true;
+}
+bool queueManagedTileWarmup(const std::string& mod,const std::string& assembly,const std::string& owner) {
+    if(mod.empty()||owner.empty()||assembly.empty()||assembly.size()>4096)return false;
+    std::lock_guard lock(g_pinnedMutex);
+    const auto key=mod+"|"+assembly+"|"+owner;
+    if(g_tileWarmups.count(key))return true;
+    if(g_tileWarmups.size()>=4096||g_recipeRpcQueue.size()>=4096)return false;
+    auto result=std::make_shared<RecipeRpcCompletion>();
+    g_tileWarmups.emplace(key,result);
+    g_recipeRpcQueue.push_back({mod,assembly,owner,"",0,2,
+        std::chrono::steady_clock::now()+std::chrono::seconds(60),result,false,true});
+    g_pinnedWake.notify_one();return true;
+}
+int managedTileWarmupState(const std::string& mod,const std::string& assembly,
+    const std::string& owner,std::string* error) {
+    std::unique_lock lock(g_pinnedMutex,std::try_to_lock);
+    if(!lock.owns_lock())return 0;
+    const auto key=mod+"|"+assembly+"|"+owner;
+    const auto found=g_tileWarmups.find(key);
+    if(found==g_tileWarmups.end()){if(error)*error="Stage=Warmup Reason=TileOwnerNotQueued";return -1;}
+    if(!found->second->done)return 0;
+    if(found->second->output=="READY")return 1;
+    if(error)*error=found->second->output;
+    return -1;
+}
+static std::string shootWarmupKey(const std::string& mod,const std::string& assembly,const std::string& owner) {
+    return mod+"|"+assembly+"|"+owner;
+}
+bool queueManagedShootWarmup(const std::string& mod,const std::string& assembly,const std::string& owner) {
+    if(mod.empty()||owner.empty()||assembly.empty()||assembly.size()>4096)return false;
+    std::lock_guard lock(g_pinnedMutex);const auto key=shootWarmupKey(mod,assembly,owner);
+    if(g_shootWarmups.count(key))return true;
+    if(g_shootWarmups.size()>=4096||g_recipeRpcQueue.size()>=4096)return false;
+    auto completion=std::make_shared<RecipeRpcCompletion>();
+    g_shootWarmups.emplace(key,completion);
+    g_recipeRpcQueue.push_back({mod,assembly,owner,"",0,2,std::chrono::steady_clock::now()+std::chrono::seconds(60),completion,true});
+    g_pinnedWake.notify_one();return true;
+}
+int managedShootWarmupState(const std::string& mod,const std::string& assembly,const std::string& owner,std::string* error) {
+    std::unique_lock lock(g_pinnedMutex,std::try_to_lock);if(!lock.owns_lock())return 0;
+    const auto found=g_shootWarmups.find(shootWarmupKey(mod,assembly,owner));
+    if(found==g_shootWarmups.end()){*error="Stage=Warmup Reason=OwnerNotQueued";return -1;}
+    if(!found->second->done)return 0;
+    if(found->second->output=="READY")return 1;
+    *error=found->second->output;return -1;
 }
 
 bool modifyManagedPlayerHurt(const std::string& modId, int damage,
@@ -2713,6 +3470,10 @@ bool enableManagedLiveHit(const std::string& modId,
         return false;
     }
     std::lock_guard<std::mutex> lock(g_pinnedMutex);
+    if (g_revokedDeferredMods.contains(modId)) {
+        *error = "Live Mono callbacks were revoked; restart Bunny Loader";
+        return false;
+    }
     if (!g_pinnedStarted || g_pinnedBusy || g_liveBenchmarkAttempted ||
         g_liveHitInFlight || !g_liveHitQueue.empty() ||
         g_liveIngress.depth() != 0) {
@@ -2950,6 +3711,7 @@ bool takeManagedNpcBuffForNpc(int npcIndex, int npcType,
         const int64_t nowMs = std::chrono::duration_cast<std::chrono::milliseconds>(
             now.time_since_epoch()).count();
         if (request.generation != g_buffEffectGeneration.load(std::memory_order_acquire) ||
+            !managedNpcBuffOwnerCurrent(request, g_buffOwnerGenerations) ||
             nowMs < request.createdAtMs || nowMs - request.createdAtMs > 1500) {
             g_buffEffectQueue.pop();
             g_buffStale.fetch_add(1, std::memory_order_relaxed);
@@ -3017,6 +3779,10 @@ bool bindManagedLiveAdditional(const std::string& modId,
         return false;
     }
     std::lock_guard<std::mutex> lock(g_pinnedMutex);
+    if (g_revokedDeferredMods.contains(modId)) {
+        *error = "Live Mono callbacks were revoked; restart Bunny Loader";
+        return false;
+    }
     if (!g_liveHitStatus.enabled || !g_liveHitStatus.automatic ||
         g_liveBenchmark.running || g_liveBenchmarkAttempted ||
         (g_liveHitStatus.eventLimit > 0 && g_liveHitStatus.queued >= g_liveHitStatus.eventLimit)) {
@@ -3139,6 +3905,10 @@ bool resumeManagedLiveMod(const std::string& modId, std::string* error) {
         return false;
     }
     std::lock_guard<std::mutex> lock(g_pinnedMutex);
+    if (g_revokedDeferredMods.contains(modId)) {
+        *error = "Live Mono callbacks were revoked; restart Bunny Loader";
+        return false;
+    }
     if (!g_liveHitStatus.enabled || !g_liveHitStatus.automatic ||
         g_liveHitStatus.phase == "draining" ||
         g_liveBenchmark.running || g_liveBenchmarkAttempted ||
@@ -3788,7 +4558,7 @@ ManagedSourceCompileResult compileManagedSource(
     trace("compiled-assembly-execution-start");
     void* verifierClass = image ? g_api.findClass(
         image, "BunnyLoader.SourceCompiler", "CompiledAssemblyProbe") : nullptr;
-    void* verifier = verifierClass ? g_api.findMethod(verifierClass, "Verify", 2) : nullptr;
+    void* verifier = verifierClass ? g_api.findMethod(verifierClass, "Verify", 3) : nullptr;
     if (!verifier) {
         out.phase = "compiled-assembly-verifier-missing";
         out.error = "CompiledAssemblyProbe.Verify indisponivel";
@@ -3797,14 +4567,15 @@ ManagedSourceCompileResult compileManagedSource(
     }
     void* verifyArgumentsManaged[] = {
         g_api.newString(g_domain, outputAssembly.c_str()),
-        g_api.newString(g_domain, diagnosticsPath.c_str())
+        g_api.newString(g_domain, diagnosticsPath.c_str()),
+        g_api.newString(g_domain, modRoot.c_str())
     };
-    if (!verifyArgumentsManaged[0] || !verifyArgumentsManaged[1]) {
+    if (!verifyArgumentsManaged[0] || !verifyArgumentsManaged[1] || !verifyArgumentsManaged[2]) {
         out.phase = "compiled-assembly-verifier-arguments-failed";
         trace(out.phase.c_str());
         return out;
     }
-    void* verifyArguments[] = { verifyArgumentsManaged[0], verifyArgumentsManaged[1] };
+    void* verifyArguments[] = { verifyArgumentsManaged[0], verifyArgumentsManaged[1], verifyArgumentsManaged[2] };
     void* verifyException = nullptr;
     const auto verifyStarted = std::chrono::steady_clock::now();
     void* verifiedBoxed = g_api.invoke(verifier, nullptr, verifyArguments, &verifyException);
@@ -3839,8 +4610,165 @@ ManagedSourceCompileResult compileManagedSource(
     return out;
 }
 
+void invalidateManagedDeferredSourceMod(const std::string& modId) {
+    if (modId.empty()) return;
+    std::lock_guard<std::mutex> lock(g_pinnedMutex);
+    g_revokedDeferredMods.insert(modId);
+    for (auto& binding : g_universalMods) {
+        if (binding.id != modId) continue;
+        binding.registered = true;
+        if (std::find(g_universalPendingUnloads.begin(),
+                      g_universalPendingUnloads.end(), modId) ==
+            g_universalPendingUnloads.end())
+            g_universalPendingUnloads.push_back(modId);
+        g_universalPolling.store(true, std::memory_order_release);
+        g_pinnedWake.notify_one();
+        break;
+    }
+
+    const bool primaryRevoked = g_liveHitStatus.modId == modId &&
+        g_liveHitStatus.enabled;
+    if (g_liveHitStatus.modId == modId)
+        g_buffOwnerGenerations[0].fetch_add(1, std::memory_order_release);
+    if (primaryRevoked) {
+        const int discarded = g_liveIngress.pauseBinding(-1, g_liveHitType);
+        addManagedCounter(g_liveHitStatus.dropped, discarded);
+        addManagedCounter(g_liveHitStatus.dropped, g_liveHitQueue.size());
+        g_liveHitQueue.clear();
+        g_liveHitStatus.phase = "primary-mod-revoked";
+    }
+    const int liveCount = g_additionalLiveCount.load(std::memory_order_acquire);
+    bool anyAdditionalArmed = false;
+    for (int i = 0; i < liveCount; ++i) {
+        auto& binding = g_additionalLiveBindings[static_cast<size_t>(i)];
+        if (binding.modId == modId) {
+            g_buffOwnerGenerations[static_cast<size_t>(i + 1)].fetch_add(
+                1, std::memory_order_release);
+            const int discarded = g_liveIngress.pauseBinding(i, binding.armedType);
+            addManagedCounter(binding.dropped, discarded);
+            addManagedCounter(g_liveHitStatus.dropped, discarded);
+            if (binding.type >= 0 &&
+                static_cast<size_t>(binding.type) < g_additionalLiveByType.size() &&
+                g_additionalLiveByType[static_cast<size_t>(binding.type)].load(
+                    std::memory_order_acquire) == i + 1)
+                g_additionalLiveByType[static_cast<size_t>(binding.type)].store(
+                    0, std::memory_order_release);
+        }
+        if (binding.armedType.load(std::memory_order_acquire) == binding.type)
+            anyAdditionalArmed = true;
+    }
+    if (managedLiveSessionCanStop(
+            g_liveHitStatus.enabled,
+            g_revokedDeferredMods.contains(g_liveHitStatus.modId),
+            g_liveHitType.load(std::memory_order_acquire) < 0,
+            anyAdditionalArmed)) {
+        g_liveHitStatus.enabled = false;
+        g_liveHitAutomatic.store(false, std::memory_order_release);
+        g_liveHitStatus.phase = "mod-revoked";
+    }
+
+    for (auto& binding : g_sceneLightBindings)
+        if (binding.modId == modId) binding.enabled = false;
+    g_sceneLightResults.erase(modId);
+    eraseManagedModBoundJobs(g_sceneLightQueue, g_sceneLightBindings, modId);
+
+    for (auto& binding : g_managedHurtBindings)
+        if (binding.modId == modId) binding.active = false;
+    const auto cancelledHurt = std::erase_if(g_managedHurtQueue, [&](auto& job) {
+        if (job.modIndex < 0 ||
+            static_cast<size_t>(job.modIndex) >= g_managedHurtBindings.size() ||
+            g_managedHurtBindings[static_cast<size_t>(job.modIndex)].modId != modId)
+            return false;
+        if (job.completion) {
+            job.completion->cancelled = true;
+            job.completion->done = true;
+        }
+        return true;
+    });
+    g_hurtScheduler.cancelledBeforeRun += cancelledHurt;
+    if (cancelledHurt) g_managedHurtResultWake.notify_all();
+    const auto cancelledRecipes = std::erase_if(g_recipeRpcQueue, [&](auto& job) {
+        if (job.mod != modId) return false;
+        if (job.completion) {
+            job.completion->cancelled = true;
+            job.completion->output = "PENDING|Stage=Unload Reason=ModRevoked";
+            job.completion->done = true;
+        }
+        return true;
+    });
+    if (cancelledRecipes) g_recipeRpcWake.notify_all();
+
+    for (size_t index = 0; index < g_entityBindings.size(); ++index) {
+        auto& binding = g_entityBindings[index];
+        if (binding.modId != modId || !binding.armed) continue;
+        binding.armed = false;
+        for (const auto& type : binding.npcTypes) {
+            auto& owner = g_entityNpcTypeOwner[static_cast<size_t>(type.first)];
+            if (owner.load(std::memory_order_acquire) == static_cast<int>(index + 1))
+                owner.store(0, std::memory_order_release);
+        }
+        for (const auto& type : binding.projectileTypes) {
+            auto& owner = g_entityProjectileTypeOwner[static_cast<size_t>(type.first)];
+            if (owner.load(std::memory_order_acquire) == static_cast<int>(index + 1))
+                owner.store(0, std::memory_order_release);
+        }
+    }
+    for (const auto& job : g_entityQueue) {
+        if (job.binding < 0 ||
+            static_cast<size_t>(job.binding) >= g_entityBindings.size() ||
+            g_entityBindings[static_cast<size_t>(job.binding)].modId != modId ||
+            job.slot < 0) continue;
+        if (job.kind == 0 && static_cast<size_t>(job.slot) < g_entityNpcPending.size())
+            g_entityNpcPending[static_cast<size_t>(job.slot)] = false;
+        if (job.kind == 1 &&
+            static_cast<size_t>(job.slot) < g_entityProjectilePending.size())
+            g_entityProjectilePending[static_cast<size_t>(job.slot)] = false;
+    }
+    eraseManagedModBoundJobs(g_entityQueue, g_entityBindings, modId);
+    for (auto& result : g_entityNpcResults) {
+        if (!result.ready || result.type < 0 || result.type >= 32768) continue;
+        const int owner = g_entityNpcTypeOwner[static_cast<size_t>(result.type)].load(
+            std::memory_order_acquire);
+        if (owner != 0) continue;
+        for (const auto& binding : g_entityBindings) {
+            if (binding.modId != modId) continue;
+            if (std::any_of(binding.npcTypes.begin(), binding.npcTypes.end(),
+                [&](const auto& entry) { return entry.first == result.type; })) {
+                result = {};
+                break;
+            }
+        }
+    }
+    for (auto& result : g_entityProjectileResults) {
+        if (!result.ready || result.type < 0 || result.type >= 32768) continue;
+        const int owner = g_entityProjectileTypeOwner[static_cast<size_t>(result.type)].load(
+            std::memory_order_acquire);
+        if (owner != 0) continue;
+        for (const auto& binding : g_entityBindings) {
+            if (binding.modId != modId) continue;
+            if (std::any_of(binding.projectileTypes.begin(), binding.projectileTypes.end(),
+                [&](const auto& entry) { return entry.first == result.type; })) {
+                result = {};
+                break;
+            }
+        }
+    }
+}
+
+void invalidateManagedLiveSourceMod(const std::string& modId) {
+    std::lock_guard<std::mutex> guard(g_mutex);
+    g_liveSourceRevocations.revoke(modId, g_sourceLiveEntries);
+}
+
 LiveSourceStatus liveSourceStatus(const std::string& modId) {
     std::lock_guard<std::mutex> guard(g_mutex);
+    if (g_liveSourceRevocations.revoked(modId)) {
+        LiveSourceStatus status;
+        status.modId = modId;
+        status.phase = "restart-required";
+        status.error = "Live Mono assembly remains loaded after mod unload";
+        return status;
+    }
     const auto found = g_sourceLiveEntries.find(modId);
     if (found != g_sourceLiveEntries.end()) return found->second.status;
     LiveSourceStatus status;
@@ -3862,6 +4790,11 @@ LiveSourceStatus invokeLiveSourceTick(const std::string& modId,
         tick < 0 || tick > 1000000 ||
         state < -1000000 || state > 1000000) {
         invalid.error = "Invalid mod identity or callback arguments";
+        return invalid;
+    }
+    if (g_liveSourceRevocations.revoked(modId)) {
+        invalid.phase = "restart-required";
+        invalid.error = "Live Mono assembly remains loaded after mod unload";
         return invalid;
     }
     if (!g_domain || !g_status.domainInitialized || !g_status.methodExecuted ||
@@ -3964,6 +4897,11 @@ LiveCallbackResult invokeLiveSourceEvent(const std::string& modId,
         return result;
     }
     std::lock_guard<std::mutex> lock(g_mutex);
+    if (g_liveSourceRevocations.revoked(modId)) {
+        result.phase = "restart-required";
+        result.error = "Live Mono assembly remains loaded after mod unload";
+        return result;
+    }
     if (!g_domain || !g_status.domainInitialized || !g_status.methodExecuted ||
         !g_api.attach || !g_api.invoke || !g_api.unbox) {
         result.phase = "waiting-mono";
@@ -4080,7 +5018,8 @@ bool invokeLiveSourceNpcAi(const std::string& modId,
     if (!velocityTenths || playerDeltaX < -100000 || playerDeltaX > 100000 ||
         npcLife <= 0 || npcLife > 1000000) return false;
     std::lock_guard<std::mutex> guard(g_mutex);
-    if (!g_domain || !g_status.domainInitialized || !g_status.methodExecuted ||
+    if (g_liveSourceRevocations.revoked(modId) ||
+        !g_domain || !g_status.domainInitialized || !g_status.methodExecuted ||
         !g_api.attach || !g_api.invoke || !g_api.unbox) return false;
     const auto found = g_sourceLiveEntries.find(modId);
     if (found == g_sourceLiveEntries.end()) return false;

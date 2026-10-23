@@ -34,7 +34,7 @@ class PackageAssetTests(unittest.TestCase):
     def test_each_previously_copied_asset_is_mandatory(self):
         for relative in ('Buffs/ExampleDefenseBuff','Projectiles/SourceBolt','Items/Weapons/SourceWand',
                          'Items/Consumables/ExampleBuffPotion','Items/Accessories/ExampleFocusAccessory',
-                         'NPCs/ExampleSlimeNPC'):
+                         'NPCs/ExampleSlimeNPC','Walls/ExampleWallAdvanced','Items/Placeable/ExampleWallAdvanced'):
             member='content/Content/'+relative+'.png'
             with self.subTest(asset=member), self.assertRaises(ValueError) as error:
                 validate(self.altered(omit=member))

@@ -15,7 +15,7 @@ public static class Compiler
     private const int MaxFiles = 4096;
     private const int MaxFileBytes = 1024 * 1024;
     private const int MaxTotalBytes = 32 * 1024 * 1024;
-    private const string CacheVersion = "roslyn-net8-source-v29-custom-use-sound";
+    private const string CacheVersion = "roslyn-net8-source-v52-verified-reference-mode";
     private static readonly string[] ReferenceNames =
     {
         "System.Private.CoreLib.dll",
@@ -54,6 +54,22 @@ public static class Compiler
                 "COMPILER_EXCEPTION " + exception.ToString());
             return -1;
         }
+    }
+
+    private static bool VerifiedCompactReferences(string runtimeDir, string referenceDir)
+    {
+        if (!Directory.Exists(referenceDir)) return false;
+        string identityFile = Path.Combine(runtimeDir, "framework-version.txt");
+        string approvalFile = Path.Combine(runtimeDir, "compiler-references.approved");
+        if (!File.Exists(identityFile) || !File.Exists(approvalFile)) return false;
+        try
+        {
+            string identity = File.ReadAllText(identityFile).Trim();
+            return identity.Length >= 32 &&
+                File.ReadAllText(approvalFile).Trim() == identity;
+        }
+        catch (IOException) { return false; }
+        catch (UnauthorizedAccessException) { return false; }
     }
 
     private static int CompileCore(
@@ -128,12 +144,14 @@ public static class Compiler
         }
         Stage(diagnosticsFile, "listing-framework-assemblies");
         string referenceDir = Path.Combine(runtimeDir, "compiler-references");
-        bool compactReferences = Directory.Exists(referenceDir);
+        bool compactReferences = VerifiedCompactReferences(runtimeDir, referenceDir);
         string[] framework = ReferenceNames
-            .Where(name => !compactReferences || name != "System.Private.CoreLib.dll")
-            .Select(name => Path.Combine(compactReferences ? referenceDir : runtimeDir, name))
+            .Select(name => Path.Combine(
+                compactReferences && name != "System.Private.CoreLib.dll" &&
+                    name != "BunnySourceSdk.dll" ? referenceDir : runtimeDir,
+                name))
             .Where(File.Exists).ToArray();
-        int expectedReferences = ReferenceNames.Length - (compactReferences ? 1 : 0);
+        int expectedReferences = ReferenceNames.Length;
         if ((compactReferences && framework.Length != expectedReferences) ||
             (!compactReferences && (!framework.Contains(sdkFile) ||
                 !framework.Contains(Path.Combine(runtimeDir, "System.Private.CoreLib.dll")) ||

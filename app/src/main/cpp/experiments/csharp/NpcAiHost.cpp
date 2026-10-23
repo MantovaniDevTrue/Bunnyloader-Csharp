@@ -5,8 +5,10 @@
 #include "core/Log.h"
 #include "experiments/csharp/CSharpModLoader.h"
 #include "experiments/csharp/ManagedRuntime.h"
+#include "experiments/csharp/ReliableNpcKill.h"
 #include "experiments/csharp/ManagedProjectileHook.h"
 #include "experiments/csharp/TerrariaHost.h"
+#include "experiments/csharp/WorldAuthority.h"
 #include "hook/HookManager.h"
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
@@ -215,7 +217,7 @@ void runNativeAi(Il2CppObject* npc) {
 
     int netMode = -1;
     il2cpp::api().field_static_get_value(r.netMode, &netMode);
-    if (netMode != 0) return;
+    if (!worldIsAuthoritative(netMode)) return;
 
     const int type = runtime::field<int>(npc, r.type);
     if (!runtime::isModNpc(type) || !csharpmods::hasOwnedNpcBehavior(type)) return;
@@ -326,7 +328,7 @@ void runManagedSourceNpcAi(Il2CppObject* npc) {
     }
     int netMode = -1;
     il2cpp::api().field_static_get_value(r.netMode, &netMode);
-    if (netMode != 0) return;
+    if (!worldIsAuthoritative(netMode)) return;
     const int slot = runtime::field<int>(npc, runtime::game().entity.whoAmI);
     if (slot < 0 || static_cast<size_t>(slot) >= g_managedSourceNpcSlots.size()) return;
     ManagedNpcSlot& identity = g_managedSourceNpcSlots[static_cast<size_t>(slot)];
@@ -390,7 +392,7 @@ void runLiveNpcAi(Il2CppObject* npc) {
     }
     int netMode = -1;
     il2cpp::api().field_static_get_value(r.netMode, &netMode);
-    if (netMode != 0 || !runtime::field<uint8_t>(npc, r.active)) return;
+    if (!worldIsAuthoritative(netMode) || !runtime::field<uint8_t>(npc, r.active)) return;
     const auto& game = runtime::game();
     const int slot = runtime::field<int>(npc, game.entity.whoAmI);
     if (slot < 0 || slot >= 512) return;
@@ -523,7 +525,9 @@ void hookCheckActive(Il2CppObject* npc, const MethodInfo* method) {
     if (npc && !runtime::field<uint8_t>(npc, refs().active)) {
         const int type = runtime::field<int>(npc, refs().type);
         const int slot = runtime::field<int>(npc, runtime::game().entity.whoAmI);
-        if (hasManagedEntityNpcType(type) && slot >= 0 &&
+        int mode = -1;
+        il2cpp::api().field_static_get_value(refs().netMode, &mode);
+        if (worldIsAuthoritative(mode) && hasManagedEntityNpcType(type) && slot >= 0 &&
             static_cast<size_t>(slot) < g_managedSourceNpcSlots.size() &&
             runtime::field<int>(npc, refs().life) <= 0) {
             ManagedNpcSlot& state = g_managedSourceNpcSlots[static_cast<size_t>(slot)];
@@ -536,8 +540,8 @@ void hookCheckActive(Il2CppObject* npc, const MethodInfo* method) {
                     state.lastLife = life;
                 }
                 state.killQueued = true;
-                queueManagedEntityCombatEvent(3, type, slot, state.generation, -1,
-                    reinterpret_cast<uintptr_t>(npc), 0, -1);
+                queueReliableNpcKill(type, slot, state.generation,
+                    reinterpret_cast<uintptr_t>(npc));
             }
         }
         retireObject(npc);
@@ -551,7 +555,7 @@ void hookLoot(Il2CppObject* npc, const MethodInfo* method) {
         const int slot = runtime::field<int>(npc, runtime::game().entity.whoAmI);
         int mode = -1;
         il2cpp::api().field_static_get_value(refs().netMode, &mode);
-        if (mode == 0 && hasManagedEntityNpcType(type) && slot >= 0 &&
+        if (worldIsAuthoritative(mode) && hasManagedEntityNpcType(type) && slot >= 0 &&
             static_cast<size_t>(slot) < g_managedSourceNpcSlots.size()) {
             ManagedNpcSlot& state = g_managedSourceNpcSlots[static_cast<size_t>(slot)];
             if (state.object == npc && state.type == type && !state.killQueued) {
@@ -563,8 +567,8 @@ void hookLoot(Il2CppObject* npc, const MethodInfo* method) {
                     state.lastLife = life;
                 }
                 state.killQueued = true;
-                queueManagedEntityCombatEvent(3, type, slot, state.generation, -1,
-                    reinterpret_cast<uintptr_t>(npc), 0, -1);
+                queueReliableNpcKill(type, slot, state.generation,
+                    reinterpret_cast<uintptr_t>(npc));
             }
         }
     }

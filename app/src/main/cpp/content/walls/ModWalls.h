@@ -18,6 +18,8 @@ struct ModWallDef {
 };
 
 int registerModWall(ModWallDef def);
+int registerModWall(ModWallDef def,std::string* error);
+bool modWallAssetReady(int type);
 
 bool isModWall(int type);
 
@@ -29,6 +31,9 @@ bool modWallsSettled();
 
 using WallsInstalledHook = void (*)(int first, int last);
 void setWallsInstalledHook(WallsInstalledHook hook);
+// Independent content-service listener; never replaces the JavaScript listener.
+void setNativeWallsInstalledHook(WallsInstalledHook hook);
+void requestNativeWallDefaults();
 
 int modWallTypeByName(const std::string& mod, const std::string& name);
 

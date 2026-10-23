@@ -6,7 +6,8 @@
 #include <fstream>
 #include <iostream>
 
-int initialized=0,jsLoaded=0,csLoaded=0,builtinLoaded=0;
+int initialized=0,jsLoaded=0,csLoaded=0,builtinLoaded=0,sourceResets=0;
+std::vector<std::string> activeCSharp;
 bool failJs=false;
 namespace bl::script {
 ScriptEngine& engine(){static ScriptEngine value;return value;}
@@ -15,7 +16,7 @@ bool ScriptEngine::loadMod(const std::string&,const std::vector<std::string>& fi
 bool ScriptEngine::loadBuiltinMod(const std::string&,const std::string&){assert(ready_);++builtinLoaded;return true;}
 }
 namespace bl::runtime {void configureTexturePacks(const std::string&,const std::vector<ModSpec>&){}}
-namespace bl::csharp {bool loadCSharpSourceMod(const mods::LoadedMod& mod){assert(mod.entry.ends_with(".cs"));++csLoaded;return true;}}
+namespace bl::csharp {void resetCSharpSourceModSession(){++sourceResets;activeCSharp.clear();} bool loadCSharpSourceMod(const mods::LoadedMod& mod){assert(mod.entry.ends_with(".cs"));++csLoaded;activeCSharp.push_back(mod.id);return true;}}
 namespace bl::log {void write(int,const char*,...) {}}
 int main(int argc,char** argv) {
     assert(argc==3);const std::string mode=argv[2];failJs=mode=="--js-fails";
@@ -31,7 +32,7 @@ int main(int argc,char** argv) {
     std::vector<bl::ModSpec> specs={{"cs1","main.cs"},{"cs2","main.cs"}};
     if(mode!="--only-csharp")specs={{"cs1","main.cs"},{"js1","main.js"},{"cs2","main.cs"},{"js2","main.js"}};
     bl::mods::loadAll(root.string(),specs);
-    assert(csLoaded==2);
+    assert(csLoaded==2&&sourceResets==1);
     if(mode=="--only-csharp")assert(initialized==0&&jsLoaded==0&&!bl::script::engine().ready());
     else if(failJs)assert(initialized==2&&jsLoaded==0);
     else assert(initialized==1&&jsLoaded==2);
@@ -39,6 +40,13 @@ int main(int argc,char** argv) {
         const auto* mod=bl::mods::get(i);assert(mod);
         if(mod->entry.ends_with(".cs"))assert(mod->loaded&&mod->enabled);
         else assert(mod->loaded==!failJs&&mod->enabled==!failJs);
+    }
+    if(mode=="--only-csharp") {
+        bl::mods::loadAll(root.string(),{{"cs1","main.cs"}});
+        assert(sourceResets==2&&csLoaded==3);
+        assert(activeCSharp.size()==1&&activeCSharp.front()=="cs1");
+        assert(bl::mods::loadedCount()==1);
+        assert(initialized==0&&jsLoaded==0);
     }
     std::cout<<"CSHARP_MOD_LOADING_NEVER_INITIALIZES_JS_AND_MIXED_LOADING_PRESERVED_PASS "<<mode<<"\n";
 }
