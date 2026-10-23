@@ -127,7 +127,8 @@ int main(int argc,char** argv) {
     assert(adjust(u"Outro mod",tooltipBatch,foreignFont,100,240,0)==240);
     assert(adjust(u"Fora X",tooltipBatch,tooltipFont,180,240,0)==240);
     assert(adjust(u"Acima",tooltipBatch,tooltipFont,100,600,0)==600);
-    assert(adjust(u"Acima",tooltipBatch,tooltipFont,100,200,0)==220);
+    assert(adjust(u"Acima",tooltipBatch,tooltipFont,100,200,0)==200);
+    assert(adjust(u"Sombra",tooltipBatch,tooltipFont,101,208,0)==228);
     assert(!session.isAnchorDraw(u"Acima, uma cor por letra. Esta linha, em dourado",
                                  foreignBatch,tooltipFont,100,230));
     assert(!session.isAnchorDraw(u"Acima, uma cor por letra. Esta linha, em dourado",
