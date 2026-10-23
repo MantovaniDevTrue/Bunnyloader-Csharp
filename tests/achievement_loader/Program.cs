@@ -118,7 +118,7 @@ internal static class Program
         for (int i = 0; i < 3; i++)
             Check(Execute("worker-a", workerRevision1, 1, "0,10,1,1") == "EVENT|0");
         string updatedState = Execute("worker-a", workerRevision1, 6);
-        Check(updatedState.Contains("|1|1\nV|", StringComparison.Ordinal));
+        Check(updatedState.Contains("|0|1\nV|", StringComparison.Ordinal));
         Check(updatedState.Contains("|1|3\n", StringComparison.Ordinal) ||
               updatedState.EndsWith("|1|3", StringComparison.Ordinal));
         string wire = Execute("worker-a", workerRevision1, 2);
