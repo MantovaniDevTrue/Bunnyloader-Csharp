@@ -21,6 +21,13 @@ Check("native-defaults.public-builder-values-and-invalid-input",()=>{
  Reject(()=>defaults.SetId("ammo","ArbitraryClass","Pointer"));Reject(()=>defaults.SetProjectile("shoot","bad/key/again"));
  Equal("mana:i:20",new BunnyNativeDefaults().SetInt("mana",10).SetInt("mana",20).Definition);
 });
+Check("potion.original-drink-particle-colors-managed",()=>{
+ var defaults=new BunnyNativeDefaults().SetItemDrinkParticleColors(
+     new BunnyColor(240,240,240),new BunnyColor(200,200,200),new BunnyColor(140,140,140));
+ Equal("ItemSet_DrinkParticleColors:c:FFF0F0F0,FFC8C8C8,FF8C8C8C",defaults.Definition);
+ Reject(()=>new BunnyNativeDefaults().SetItemDrinkParticleColors());
+ Reject(()=>new BunnyNativeDefaults().SetItemDrinkParticleColors(new BunnyColor[9]));
+});
 Check("sound.immutable-options-paths-and-original-gun",()=>{
  var sound=new BunnySoundStyle("Assets/Sounds/Items/Guns/ExampleGun.ogg",volume:0.9f,pitchVariance:0.2f,maxInstances:3);
  Equal(0.9f,sound.Volume);Equal(0.2f,sound.PitchVariance);Equal(3,sound.MaxInstances);

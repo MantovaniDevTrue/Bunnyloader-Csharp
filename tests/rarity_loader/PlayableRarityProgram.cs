@@ -35,6 +35,9 @@ potion.SetDefaults();
 Check(potion.ModRarityClassName.Length == 0 &&
     potion.NativeDefaultsDefinition.Contains("rare:d:ItemRarityID:Orange", StringComparison.Ordinal),
     "Buff potion must use original vanilla Orange rarity");
+Check(potion.Duration == 5400 &&
+    potion.NativeDefaultsDefinition.Contains("ItemSet_DrinkParticleColors:c:FFF0F0F0,FFC8C8C8,FF8C8C8C", StringComparison.Ordinal),
+    "Buff potion must preserve original duration and three drink colors");
 
 Console.WriteLine("PLAYABLE_RARITY_EXAMPLES=PASS");
 
