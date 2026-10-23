@@ -9,6 +9,8 @@ on:
       - app/src/main/cpp/experiments/csharp/NativeAchievementMailbox.h
       - app/src/main/cpp/experiments/csharp/NativeAchievementAtlasPlan.h
       - app/src/main/cpp/experiments/csharp/NativeAchievementAtlas.h
+      - app/src/main/cpp/experiments/csharp/NativeAchievementManager.h
+      - app/src/main/cpp/experiments/csharp/NativeAchievementManager.cpp
       - app/src/main/cpp/experiments/csharp/NativeAchievementAtlas.cpp
       - app/src/main/cpp/experiments/csharp/NativeAchievementContracts.h
       - app/src/main/cpp/experiments/csharp/NativeAchievementRegistrationPlan.h
@@ -37,6 +39,8 @@ on:
       - app/src/main/cpp/experiments/csharp/NativeAchievementMailbox.h
       - app/src/main/cpp/experiments/csharp/NativeAchievementAtlasPlan.h
       - app/src/main/cpp/experiments/csharp/NativeAchievementAtlas.h
+      - app/src/main/cpp/experiments/csharp/NativeAchievementManager.h
+      - app/src/main/cpp/experiments/csharp/NativeAchievementManager.cpp
       - app/src/main/cpp/experiments/csharp/NativeAchievementAtlas.cpp
       - app/src/main/cpp/experiments/csharp/NativeAchievementContracts.h
       - app/src/main/cpp/experiments/csharp/NativeAchievementRegistrationPlan.h
@@ -120,4 +124,5 @@ jobs:
             -Itests/basic_items/include -Iapp/src/main/cpp \
             app/src/main/cpp/experiments/csharp/NativeAchievementGameplay.cpp \
             app/src/main/cpp/experiments/csharp/NativeAchievementContracts.cpp \
-            app/src/main/cpp/experiments/csharp/NativeAchievementAtlas.cpp
+            app/src/main/cpp/experiments/csharp/NativeAchievementAtlas.cpp \
+            app/src/main/cpp/experiments/csharp/NativeAchievementManager.cpp
