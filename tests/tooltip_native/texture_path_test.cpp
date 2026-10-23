@@ -17,10 +17,10 @@ struct Node {
     Il2CppObject* first=nullptr;
     Il2CppObject* second=nullptr;
 };
-static Il2CppClass settings{"","Settings"},tips{"","TooltipSettings"};
-static Il2CppClass backing{"","TooltipBacking"},imageSlot{"","TooltipImageLayout"};
-static Il2CppClass texture{"Microsoft.Xna.Framework.Graphics","Texture2D"};
-static Il2CppClass wrong{"System","String"},primitive{"System","Int32",true};
+static Il2CppClass settings{"","Settings",false,{},nullptr},tips{"","TooltipSettings",false,{},nullptr};
+static Il2CppClass backing{"","TooltipBacking",false,{},nullptr},imageSlot{"","TooltipImageLayout",false,{},nullptr};
+static Il2CppClass texture{"Microsoft.Xna.Framework.Graphics","Texture2D",false,{},nullptr};
+static Il2CppClass wrong{"System","String",false,{},nullptr},primitive{"System","Int32",true,{},nullptr};
 static FieldInfo settingsTips{"Tooltips",{&tips},sizeof(Il2CppObject)};
 static FieldInfo tipsBacking{"Backing",{&backing},sizeof(Il2CppObject)};
 static FieldInfo backingFill{"Backing",{&imageSlot},sizeof(Il2CppObject)};
