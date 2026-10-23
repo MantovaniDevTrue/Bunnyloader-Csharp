@@ -847,7 +847,7 @@ bool applyManagedSourceDefaults(
             return false;
         }
         if (fields[0] == "PROJECTILE" && (fields.size() == 8 || fields.size() == 12 || fields.size() == 13 || fields.size() == 14 ||
-                 fields.size() == 16 || fields.size() == 17 || fields.size() == 18)) {
+                 fields.size() == 16 || fields.size() == 17 || fields.size() == 18 || fields.size() == 19)) {
             ManagedProjectileEntry record;
             record.name = fields[1];
             record.type = registered->second;
@@ -895,14 +895,21 @@ bool applyManagedSourceDefaults(
             if (fields.size() == 14 || fields.size() >= 17) {
                 int contact = 0;
                 const auto& value = fields[fields.size()==14?13:16];
-                if (!integer(value, &contact) || (contact != 0 && contact != 1) || !record.values.minion) {
+                if (!integer(value, &contact) || (contact != 0 && contact != 1) || (contact == 1 && !record.values.minion)) {
                     *error = "MinionContactDamage invalido: " + record.name;
                     return false;
                 }
                 record.values.minionContactDamage = contact == 1;
             }
-            if(fields.size()==18&&!parseSummonMovement(fields[17],&record.values.movement,&detail)) {
+            if((fields.size()==18 || fields.size()==19) &&
+                fields[17] != "-" && !parseSummonMovement(fields[17],&record.values.movement,&detail)) {
                 *error="[CSharp][ERROR][Summon] Mod="+modId+" Class="+record.name+" Stage=DecodeMovement Result=Rejected "+detail;return false;
+            }
+            if (fields.size() == 19 &&
+                (!integer(fields[18], &record.values.tileCollisionMode) ||
+                 record.values.tileCollisionMode != 1 || !record.values.tileCollide)) {
+                *error = "Contrato OnTileCollide nativo invalido: " + record.name;
+                return false;
             }
             projectilesByName.emplace(record.name, record.type);
             projectiles.push_back(std::move(record));

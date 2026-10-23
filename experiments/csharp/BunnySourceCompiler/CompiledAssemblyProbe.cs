@@ -583,6 +583,9 @@ public static class CompiledAssemblyProbe
                 throw new InvalidOperationException("[CSharp][ERROR][ProjectilePolicy] Class="+projectile.GetType().FullName+" Stage=SetDefaults Expected=AnimationFrameTicks1..120,MinionScanTicks1..120,MinionTargetRange1..4000 Actual="+frameTicks+","+scanTicks+","+range+" Reason=OutOfRange");
             float minionSlots = Value<float>(projectile, "MinionSlots");
             bool tileCollide = Value<bool>(projectile, "TileCollide");
+            int tileCollisionMode = Convert.ToInt32(projectile.GetType().GetProperty("TileCollisionMode")!.GetValue(projectile), CultureInfo.InvariantCulture);
+            if (tileCollisionMode < 0 || tileCollisionMode > 1 || (tileCollisionMode != 0 && !tileCollide))
+                throw new InvalidOperationException("Invalid projectile TileCollisionMode: " + name);
             bool ignoreWater = Value<bool>(projectile, "IgnoreWater");
             if (!float.IsFinite(minionSlots) || (minion && (minionSlots <= 0 || minionSlots > 10)) ||
                 (!minion && minionSlots != 0))
@@ -594,16 +597,18 @@ public static class CompiledAssemblyProbe
                 Value<int>(projectile, "Penetrate").ToString(CultureInfo.InvariantCulture),
                 Value<int>(projectile, "TimeLeft").ToString(CultureInfo.InvariantCulture),
                 Value<bool>(projectile, "Friendly") ? "1" : "0");
-            if (minion || !tileCollide || !ignoreWater || frames > 1 || customPolicy || contactDamage)
+            if (minion || !tileCollide || !ignoreWater || frames > 1 || customPolicy || contactDamage || tileCollisionMode != 0)
             {
                 entry += "\t" + (minion ? "1" : "0") + "\t" +
                     minionSlots.ToString("R", CultureInfo.InvariantCulture) + "\t" +
                     (tileCollide ? "1" : "0") + "\t" + (ignoreWater ? "1" : "0");
-                if (frames > 1 || customPolicy || contactDamage) entry += "\t" + frames.ToString(CultureInfo.InvariantCulture);
-                if(customPolicy || contactDamage)
+                if (frames > 1 || customPolicy || contactDamage || tileCollisionMode != 0) entry += "\t" + frames.ToString(CultureInfo.InvariantCulture);
+                if(customPolicy || contactDamage || tileCollisionMode != 0)
                     entry+="\t"+frameTicks.ToString(CultureInfo.InvariantCulture)+"\t"+scanTicks.ToString(CultureInfo.InvariantCulture)+"\t"+range.ToString("R",CultureInfo.InvariantCulture);
-                if (contactDamage || motion!=null) entry += "\t"+(contactDamage?"1":"0");
+                if (contactDamage || motion!=null || tileCollisionMode != 0) entry += "\t"+(contactDamage?"1":"0");
                 if(motion!=null)entry+="\t"+string.Join(",",new[]{"FollowSpeed","AttackSpeed","CatchUpSpeed","FollowInertia","AttackInertia","FollowOffsetX","FollowOffsetY","CatchUpDistance","IdleDistance","IdleDamping","CatchUpInertia","TeleportDistance","FormationSpacing","AttackStopDistance","OwnerLeashDistance","RotationFactor","Separation"}.Select(property=>Value<float>(motion,property).ToString("R",CultureInfo.InvariantCulture)));
+                else if(tileCollisionMode != 0)entry+="\t-";
+                if(tileCollisionMode != 0)entry+="\t"+tileCollisionMode.ToString(CultureInfo.InvariantCulture);
             }
             lines.Add(entry);
         }

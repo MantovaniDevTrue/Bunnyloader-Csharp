@@ -51,5 +51,11 @@ jobs:
         run: |
           g++ -std=c++20 -Wall -Wextra -Werror -Iapp/src/main/cpp tools/csharp_contracts/entity_bind_smoke.cpp -o /tmp/bunny-entity-bind-smoke
           /tmp/bunny-entity-bind-smoke
+      - name: Verify native projectile collision decision
+        run: |
+          g++ -std=c++20 -Wall -Wextra -Werror -Iapp/src/main/cpp tools/csharp_contracts/tile_collision_smoke.cpp -o /tmp/bunny-tile-collision-smoke
+          /tmp/bunny-tile-collision-smoke
+      - name: Build managed source compiler with collision metadata
+        run: dotnet build experiments/csharp/BunnySourceCompiler/BunnySourceCompiler.csproj -c Release --nologo
       - name: Compile and run managed entity lifecycle callbacks
         run: dotnet run --project tools/csharp_contracts/EntityLifecycleProbe/EntityLifecycleProbe.csproj -c Release --no-launch-profile

@@ -191,6 +191,7 @@ struct NativeProjectileDefaults {
     float minionSlots = 0.f;
     bool tileCollide = true;
     bool ignoreWater = true;
+    int tileCollisionMode = 0;
     int frames = 1;
     int animationFrameTicks=6,minionScanTicks=8;
     float minionTargetRange=700.f;
@@ -1314,6 +1315,11 @@ bool nativeManagedProjectileFields(int type,ProjectileGameplayFields* fields) {
     *fields=found->second.fields;return true;
 }
 int nativeManagedProjectileFrames(int type) {return nativeManagedProjectilePolicy(type).frames;}
+int nativeManagedProjectileTileCollisionMode(int type) {
+    const auto view=std::atomic_load_explicit(&g_projectileView,std::memory_order_acquire);
+    const auto found=view->find(type);
+    return found==view->end()?0:found->second.defaults.tileCollisionMode;
+}
 
 int nativeManagedMinionBuff(int projectileType) {
     const auto buffs=std::atomic_load_explicit(&g_buffView,std::memory_order_acquire);
@@ -1721,12 +1727,14 @@ bool applyManagedNativeDefaultsBatch(
             (!data.minion && data.minionSlots != 0.f) ||
             (data.movement.enabled&&(!data.minion||data.aiStyle!=0)) ||
             (data.minionContactDamage && (!data.minion || !g_originalProjectileDamage)) ||
+            data.tileCollisionMode < 0 || data.tileCollisionMode > 1 ||
+            (data.tileCollisionMode != 0 && !data.tileCollide) ||
             data.frames < 1 || data.frames > 32 ||
             !stagedProjectiles.emplace(entry.type, NativeProjectileDefaults{
                 data.width, data.height, data.aiStyle, data.penetrate,
                 data.timeLeft, true, false,
                 data.minion, data.minionContactDamage, data.minionSlots,
-                data.tileCollide, data.ignoreWater,
+                data.tileCollide, data.ignoreWater, data.tileCollisionMode,
                 data.frames,data.animationFrameTicks,data.minionScanTicks,data.minionTargetRange}).second ||
             data.width < 1 || data.width > 512 ||
             data.height < 1 || data.height > 512 ||
@@ -1763,6 +1771,9 @@ bool applyManagedNativeDefaultsBatch(
             data.shootSpeed < 1.f || data.shootSpeed > 40.f)
             return false;
     }
+    const bool needsTileCollisionHook = std::any_of(projectiles.begin(),projectiles.end(),
+        [](const ManagedProjectileEntry& entry) {return entry.values.tileCollisionMode != 0;});
+    if (needsTileCollisionHook && !installManagedProjectileTileCollisionHooks(error)) return false;
     auto nextView=std::make_shared<ProjectileDefinitions>(*std::atomic_load_explicit(&g_projectileView,std::memory_order_acquire));
     for (const auto& item : stagedProjectiles) {
         g_projectiles[item.first] = item.second;

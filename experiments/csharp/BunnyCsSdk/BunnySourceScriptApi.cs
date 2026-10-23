@@ -35,6 +35,12 @@ public struct BunnyProjectileAiState
     public bool HasTarget => TargetNpc >= 0;
 }
 
+public enum BunnyProjectileTileCollisionMode
+{
+    Vanilla = 0,
+    KeepAlive = 1
+}
+
 public abstract class BunnyProjectile
 {
     public BunnyNativeDefaults NativeDefaults { get; } = new();
@@ -58,6 +64,7 @@ public abstract class BunnyProjectile
     public BunnyMinionMovement? MinionMovement { get; set; }
     public float MinionSlots { get; set; }
     public bool TileCollide { get; set; } = true;
+    public BunnyProjectileTileCollisionMode TileCollisionMode { get; set; } = BunnyProjectileTileCollisionMode.Vanilla;
     public bool IgnoreWater { get; set; } = true;
     public int Penetrate { get; set; } = 1;
     public int TimeLeft { get; set; } = 360;
