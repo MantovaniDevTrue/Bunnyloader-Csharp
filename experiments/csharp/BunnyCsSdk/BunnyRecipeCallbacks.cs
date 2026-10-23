@@ -74,6 +74,7 @@ public static class BunnyRecipeLoader
     {
         mods.Remove(modId);
         BunnyQuestRuntime.EvictMod(modId);
+        BunnyAchievementWorker.Evict(modId, mod.Path);
         mod.Recipes.Clear();
         mod.Context.Unload();
     }
@@ -121,6 +122,8 @@ public static class BunnyRecipeLoader
     {
         try
         {
+            if(owner=="__achievements__" && index==0 && kind>=0 && kind<=4)
+                return BunnyAchievementWorker.Dispatch(modId,assemblyPath,kind,snapshot);
             if(kind==6)
             {
                 if(index!=0||owner!="__unload__"||snapshot.Length!=0)
