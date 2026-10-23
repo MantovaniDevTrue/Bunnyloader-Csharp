@@ -1,0 +1,39 @@
+name: ExampleMod CSharp integrated source tests — NO APK
+
+on:
+  push:
+    branches:
+      - integration/examplemod-csharp-source-20261022
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: examplemod-integrated-source
+  cancel-in-progress: false
+
+jobs:
+  source-only:
+    name: Managed SDK + source parity (no Android artifacts)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Check pinned source assets and code-level parity rules
+        run: |
+          python3 tools/example_completion/test_release_gate.py -v
+          python3 tools/example_completion/check_assets.py
+          python3 tests/basic_items/tile_parity/check_native_tile_flags.py
+      - name: Compile real public Bunny CSharp SDK
+        run: dotnet build experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj -c Release --nologo
+      - name: Compile real managed source compiler
+        run: dotnet build experiments/csharp/BunnySourceCompiler/BunnySourceCompiler.csproj -c Release --nologo
+      - name: Existing native-item SDK regressions
+        run: dotnet run --project tests/basic_items/ItemBatch.csproj -c Release
+      - name: Source ExampleTile + item
+        run: dotnet run --project tests/basic_items/tile_parity/TileParity.csproj -c Release
+      - name: Staged placeable-item fidelity without incomplete tiles
+        run: dotnet run --project tests/basic_items/placeable_stage/PlaceableStage.csproj -c Release
