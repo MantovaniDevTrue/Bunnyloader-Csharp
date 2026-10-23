@@ -1,52 +1,159 @@
-name: Build Split Bunny Full Runtime
+name: Build Bunny Loader 0.1.9.7.1 Private
 
 on:
   push:
     branches:
-      - bunny-ui-tileentity-phase1
-      - bunny-upstream-2026-10-01
       - bunny-upstream-latest-icons
     paths:
-      - ".github/workflows/build-split-full.yml"
-      - "Split/Bunny-Loader/**"
+      - ".github/workflows/build-bunny-stable-v019711-private.yml"
   workflow_dispatch:
-  release:
-    types:
-      - published
 
 permissions:
   contents: write
 
-jobs:
-  build-full:
-    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch' || github.event.release.tag_name == 'runtime-1.4.5.8.6'
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
+concurrency:
+  group: bunny-stable-v01971
+  cancel-in-progress: true
 
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
     env:
-      RUNTIME_TAG: runtime-1.4.5.8.6
+      UPSTREAM_REPO: https://github.com/JonataOliveiraa/Bunny-Loader.git
+      UPSTREAM_BASE: c4a3e918bddcf72e856e186f93775a171348c6d7
+      UPSTREAM_HEAD: a0132963026e3b35e45f33ffffa01a75eb8535d5
+      PRIVATE_REPO: MantovaniDevTrue/Bunnyloader-Csharp-Builds
+      INPUT_TAG: bunny-private-build-inputs-v1
       RUNTIME_ASSET: BunnyRuntime_Terraria_1.4.5.8.6.zip
       RUNTIME_SHA256: 2eb8d02dea144cb2fff6a27b94cc371e50ffd9aa44ba4dcd123337691a54c0ab
+      SPRITE_APK: BunnyLoader-v0.1.9.1-MusicPrewarm.apk
+      SPRITE_APK_SHA256: aaf7c46046e776a966122d7f4e26469ebb72ad2fc21f0c6e57f98189e0c93c00
 
     steps:
-      - name: Checkout workspace
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Setup Java 17
-        uses: actions/setup-java@v4
+      - name: Apply upstream delta and keep stable audio
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="$GITHUB_WORKSPACE/Split/Bunny-Loader"
+          UP="$RUNNER_TEMP/upstream"
+          KEEP="$RUNNER_TEMP/stable-audio"
+          rm -rf "$UP" "$KEEP"
+          mkdir -p "$KEEP"
+
+          keep_paths=(
+            "app/src/main/cpp/content/sounds/AndroidAudio.cpp"
+            "app/src/main/cpp/content/sounds/AndroidAudio.h"
+            "app/src/main/cpp/content/sounds/NativeMusicRouter.cpp"
+            "app/src/main/cpp/content/sounds/NativeMusicRouter.h"
+            "app/src/main/cpp/script/api/Sounds.cpp"
+            "app/src/main/cpp/script/js/mod/Loaders/ModMusic.js"
+            "app/src/main/cpp/script/js/mod/Loaders/VanillaMusic.js"
+            "app/src/main/kotlin/dev/bunnyloader/game/ModAudio.kt"
+          )
+          for rel in "${keep_paths[@]}"; do
+            if [ -f "$ROOT/$rel" ]; then
+              mkdir -p "$KEEP/$(dirname "$rel")"
+              cp -a "$ROOT/$rel" "$KEEP/$rel"
+            fi
+          done
+
+          git clone --filter=blob:none --no-checkout "$UPSTREAM_REPO" "$UP"
+          git -C "$UP" fetch --depth 1 origin "$UPSTREAM_BASE" "$UPSTREAM_HEAD"
+          git -C "$UP" checkout --detach "$UPSTREAM_HEAD"
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import os, shutil, subprocess
+
+          root = Path(os.environ["GITHUB_WORKSPACE"]) / "Split" / "Bunny-Loader"
+          up = Path(os.environ["RUNNER_TEMP"]) / "upstream"
+          base = os.environ["UPSTREAM_BASE"]
+          head = os.environ["UPSTREAM_HEAD"]
+
+          diff = subprocess.check_output(
+              ["git", "diff", "--name-status", "-M", base, head],
+              cwd=up, text=True
+          )
+          changed = 0
+          for line in diff.splitlines():
+              if not line.strip():
+                  continue
+              parts = line.split("\t")
+              status = parts[0]
+              if status.startswith("R"):
+                  old, new = parts[1], parts[2]
+                  old_dst = root / old
+                  if old_dst.exists() or old_dst.is_symlink():
+                      old_dst.unlink()
+                  src, dst = up / new, root / new
+              elif status == "D":
+                  dst = root / parts[1]
+                  if dst.exists() or dst.is_symlink():
+                      dst.unlink()
+                  changed += 1
+                  continue
+              else:
+                  src, dst = up / parts[1], root / parts[1]
+              dst.parent.mkdir(parents=True, exist_ok=True)
+              shutil.copy2(src, dst)
+              changed += 1
+          print(f"UPSTREAM_FILES_APPLIED={changed}")
+          PY
+
+          for rel in "${keep_paths[@]}"; do
+            if [ -f "$KEEP/$rel" ]; then
+              mkdir -p "$ROOT/$(dirname "$rel")"
+              cp -a "$KEEP/$rel" "$ROOT/$rel"
+            fi
+          done
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          p = Path("Split/Bunny-Loader/app/build.gradle.kts")
+          s = p.read_text()
+          s = re.sub(r'versionCode\s*=\s*\d+', 'versionCode = 18', s, count=1)
+          s = re.sub(r'versionName\s*=\s*"[^"]+"', 'versionName = "0.1.9.7.1"', s, count=1)
+          p.write_text(s)
+          PY
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Split/Bunny-Loader
+          if ! git diff --cached --quiet; then
+            git commit -m "Update Bunny Loader stable to 0.1.9.7 upstream a0132963"
+            git push origin HEAD:bunny-upstream-latest-icons
+          fi
+
+      - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "17"
 
-      - name: Restore stable debug signing key
-        uses: actions/cache@v4
+      - uses: gradle/actions/setup-gradle@v4
         with:
-          path: ~/.android/debug.keystore
-          key: bunny-loader-debug-signing-v1
+          gradle-version: "8.9"
+
+      - name: Stage verified Unity 2021.3.56f2 player classes
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.BUNNY_PRIVATE_BUILD_TOKEN }}
+          PRIVATE_INPUTS_REPO: MantovaniDevTrue/Bunnyloader-Csharp-Builds
+          RUNTIME_TAG: bunny-private-build-inputs-v1
+        run: |
+          set -euo pipefail
+          bash Split/Bunny-Loader/tools/android/stage_unity_classes.sh
 
       - name: Install Android toolchain
         shell: bash
         run: |
+          set -euo pipefail
           SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
           if [ ! -x "$SDKMANAGER" ]; then
             SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | sort -V | tail -n 1)"
@@ -54,18 +161,14 @@ jobs:
           yes | "$SDKMANAGER" --licenses >/dev/null || true
           "$SDKMANAGER" "platforms;android-34" "build-tools;34.0.0" "ndk;30.0.16248370" "cmake;3.22.1"
 
-      - name: Setup Gradle 8.9
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: "8.9"
-
       - name: Ensure QuickJS
         shell: bash
         run: |
+          set -euo pipefail
           rm -rf Split/Bunny-Loader/app/src/main/cpp/third_party/quickjs
           git clone --depth 1 --branch v0.17.0 https://github.com/quickjs-ng/quickjs.git Split/Bunny-Loader/app/src/main/cpp/third_party/quickjs
 
-      - name: Configure Maven Central mirror
+      - name: Configure Maven mirror
         shell: bash
         run: |
           python3 - <<'PY'
@@ -76,374 +179,150 @@ jobs:
           p.write_text(s)
           PY
 
-      - name: Setup persistent APK signing
+      - name: Download private build inputs
         shell: bash
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.BUNNY_PRIVATE_BUILD_TOKEN }}
         run: |
-          TAG="bunny-signing-key-v1"
-          ASSET="bunny-release.jks"
-          DIR="$RUNNER_TEMP/bunny-signing"
-          KEY="$DIR/$ASSET"
-          PASS="BunnyLoaderStable2026"
-          ALIAS="bunnyrelease"
-          mkdir -p "$DIR"
+          set -euo pipefail
+          test -n "${GH_TOKEN:-}"
+          test "$(gh api "repos/$PRIVATE_REPO" --jq '.private')" = "true"
+          INPUT_DIR="$RUNNER_TEMP/bunny-inputs"
+          mkdir -p "$INPUT_DIR"
+          gh release download "$INPUT_TAG" --repo "$PRIVATE_REPO" --pattern "$RUNTIME_ASSET" --dir "$INPUT_DIR"
+          gh release download "$INPUT_TAG" --repo "$PRIVATE_REPO" --pattern "$SPRITE_APK" --dir "$INPUT_DIR"
+          echo "$RUNTIME_SHA256  $INPUT_DIR/$RUNTIME_ASSET" | sha256sum -c -
+          echo "$SPRITE_APK_SHA256  $INPUT_DIR/$SPRITE_APK" | sha256sum -c -
 
-          if gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
-            gh release download "$TAG" --repo "${{ github.repository }}" --pattern "$ASSET" --dir "$DIR"
-          else
-            keytool -genkeypair -noprompt \
-              -keystore "$KEY" \
-              -storepass "$PASS" \
-              -keypass "$PASS" \
-              -alias "$ALIAS" \
-              -keyalg RSA \
-              -keysize 4096 \
-              -validity 36500 \
-              -dname "CN=Bunny Loader Update Key,O=MantovaniDevTrue"
-            gh release create "$TAG" "$KEY#$ASSET" \
-              --repo "${{ github.repository }}" \
-              --title "Bunny Loader signing key v1" \
-              --notes "Private APK update signing key. Keep this repository private." \
-              --prerelease
-          fi
-
-          echo "BUNNY_SIGNING_STORE=$KEY" >> "$GITHUB_ENV"
-          echo "BUNNY_SIGNING_PASSWORD=$PASS" >> "$GITHUB_ENV"
-          echo "BUNNY_SIGNING_ALIAS=$ALIAS" >> "$GITHUB_ENV"
-
-      - name: Download private Terraria runtime
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          mkdir -p "$RUNNER_TEMP/bunny-runtime"
-          gh release download "$RUNTIME_TAG"             --repo "${{ github.repository }}"             --pattern "$RUNTIME_ASSET"             --dir "$RUNNER_TEMP/bunny-runtime"
-
-          cd "$RUNNER_TEMP/bunny-runtime"
-          echo "$RUNTIME_SHA256  $RUNTIME_ASSET" | sha256sum -c -
-
-      - name: Integrate runtime
+      - name: Integrate Terraria runtime
         shell: bash
         run: |
-          RUNTIME="$RUNNER_TEMP/bunny-runtime/$RUNTIME_ASSET"
-          TMP="$RUNNER_TEMP/bunny-runtime/extracted"
+          set -euo pipefail
+          INPUT_DIR="$RUNNER_TEMP/bunny-inputs"
+          TMP="$RUNNER_TEMP/bunny-runtime"
           rm -rf "$TMP"
           mkdir -p "$TMP"
-          unzip -q "$RUNTIME" -d "$TMP"
-
+          unzip -q "$INPUT_DIR/$RUNTIME_ASSET" -d "$TMP"
           JNI="Split/Bunny-Loader/app/src/main/jniLibs/arm64-v8a"
           ASSETS="Split/Bunny-Loader/terraria1456_assets/src/main/assets"
-
           mkdir -p "$JNI" "$ASSETS/bin"
           cp "$TMP/lib/arm64-v8a/libil2cpp.so" "$JNI/"
           cp "$TMP/lib/arm64-v8a/libunity.so" "$JNI/"
           cp "$TMP/lib/arm64-v8a/libmain.so" "$JNI/"
           cp "$TMP/lib/arm64-v8a/libc++_shared.so" "$JNI/"
-
           rm -rf "$ASSETS/bin/Data"
           cp -a "$TMP/assets/bin/Data" "$ASSETS/bin/Data"
 
-          test -f "$JNI/libil2cpp.so"
-          test -f "$JNI/libunity.so"
-          test -f "$ASSETS/bin/Data/Managed/Metadata/global-metadata.dat"
-
-      - name: Restore vanilla cheat sprites
+      - name: Restore vanilla sprites
         shell: bash
         run: |
-          python3 -m pip install --disable-pip-version-check --quiet requests beautifulsoup4 pillow
-
+          set -euo pipefail
+          INPUT_DIR="$RUNNER_TEMP/bunny-inputs"
+          TMP="$RUNNER_TEMP/bunny-sprites"
+          rm -rf "$TMP"
+          mkdir -p "$TMP"
+          unzip -q "$INPUT_DIR/$SPRITE_APK" "assets/sprites/*" -d "$TMP"
           ROOT="Split/Bunny-Loader/_sprites"
           rm -rf "$ROOT/item" "$ROOT/npc" "$ROOT/buff"
-          mkdir -p "$ROOT/item" "$ROOT/npc" "$ROOT/buff"
-
-          SRC="$RUNNER_TEMP/terraria-legacy-sprites"
-          rm -rf "$SRC"
-          git clone --depth 1 --filter=blob:none --sparse https://github.com/JevonLee/Stardew.git "$SRC"
-          git -C "$SRC" sparse-checkout set Art/Terraria/images
-
-          python3 - <<'PY'
-          from pathlib import Path
-          from concurrent.futures import ThreadPoolExecutor, as_completed
-          from io import BytesIO
-          from urllib.parse import unquote
-          import os
-          import re
-          import unicodedata
-
-          import requests
-          from bs4 import BeautifulSoup
-          from PIL import Image
-
-          root = Path("Split/Bunny-Loader/_sprites")
-          item_out = root / "item"
-          npc_out = root / "npc"
-          buff_out = root / "buff"
-          old = Path(os.environ["RUNNER_TEMP"]) / "terraria-legacy-sprites" / "Art" / "Terraria" / "images"
-
-          for prefix, out, minimum, maximum in (
-              ("Item", item_out, 1, 6195),
-              ("NPC", npc_out, 0, 696),
-              ("Buff", buff_out, 1, 400),
-          ):
-              for src in old.glob(f"{prefix}_*.png"):
-                  match = re.fullmatch(rf"{prefix}_(\d+)\.png", src.name)
-                  if not match:
-                      continue
-                  content_id = int(match.group(1))
-                  if minimum <= content_id <= maximum:
-                      (out / f"{content_id}.png").write_bytes(src.read_bytes())
-
-          session = requests.Session()
-          session.headers.update({
-              "User-Agent": "BunnyLoaderSpriteBuilder/0.1 (+https://github.com/JonataOliveiraa/Bunny-Loader)"
-          })
-
-          page = session.get("https://terraria.wiki.gg/wiki/List_of_item_sprite_sizes", timeout=60)
-          page.raise_for_status()
-          soup = BeautifulSoup(page.text, "html.parser")
-
-          names = {}
-          for tr in soup.find_all("tr"):
-              cells = tr.find_all(["td", "th"])
-              if len(cells) < 2:
-                  continue
-              match = re.fullmatch(r"(\d+)", cells[0].get_text(" ", strip=True))
-              if not match:
-                  continue
-              item_id = int(match.group(1))
-              if 1 <= item_id <= 6195:
-                  names[item_id] = cells[1].get_text(" ", strip=True)
-
-          params = {
-              "action": "query",
-              "generator": "categorymembers",
-              "gcmtitle": "Category:Item images",
-              "gcmtype": "file",
-              "gcmlimit": "500",
-              "prop": "imageinfo",
-              "iiprop": "url",
-              "format": "json",
-              "formatversion": "2",
-          }
-
-          files = {}
-          while True:
-              response = session.get("https://terraria.wiki.gg/api.php", params=params, timeout=60)
-              response.raise_for_status()
-              data = response.json()
-              for page_info in data.get("query", {}).get("pages", []):
-                  title = page_info.get("title", "")
-                  info = page_info.get("imageinfo") or []
-                  if not title.startswith("File:") or not info:
-                      continue
-                  filename = title[5:]
-                  stem = filename.rsplit(".", 1)[0]
-                  url = info[0].get("url")
-                  if url:
-                      files.setdefault(stem, url)
-              cont = data.get("continue")
-              if not cont:
-                  break
-              params.update(cont)
-
-          def norm(value):
-              value = unicodedata.normalize("NFKD", value).casefold()
-              value = value.replace("’", "'").replace("‘", "'")
-              return "".join(ch for ch in value if ch.isalnum())
-
-          by_norm = {}
-          for stem, url in files.items():
-              by_norm.setdefault(norm(stem), []).append((stem, url))
-
-          def find_item_url(name):
-              for candidate in (name, name + " (item)", name + " item"):
-                  values = by_norm.get(norm(candidate))
-                  if values:
-                      return values[0][1]
-              base = norm(name)
-              candidates = []
-              for key, values in by_norm.items():
-                  suffix = key[len(base):] if key.startswith(base) else ""
-                  if suffix in ("item", "inventory", "animated"):
-                      candidates.extend(values)
-              return candidates[0][1] if len(candidates) == 1 else None
-
-          missing_items = [item_id for item_id in sorted(names) if not (item_out / f"{item_id}.png").is_file()]
-
-          def fetch_item(item_id):
-              name = names[item_id]
-              url = find_item_url(name)
-              if not url:
-                  return item_id, name, "sem URL"
-              try:
-                  response = requests.get(url, timeout=45, headers={"User-Agent": session.headers["User-Agent"]})
-                  response.raise_for_status()
-                  with Image.open(BytesIO(response.content)) as image:
-                      image.seek(0)
-                      image.convert("RGBA").save(item_out / f"{item_id}.png", "PNG", optimize=True)
-                  return item_id, name, None
-              except Exception as exc:
-                  return item_id, name, str(exc)
-
-          item_failures = []
-          with ThreadPoolExecutor(max_workers=16) as pool:
-              futures = [pool.submit(fetch_item, item_id) for item_id in missing_items]
-              for future in as_completed(futures):
-                  item_id, name, error = future.result()
-                  if error:
-                      item_failures.append((item_id, name, error))
-
-          def table_image_urls(page_url, minimum, maximum):
-              response = session.get(page_url, timeout=60)
-              response.raise_for_status()
-              page_soup = BeautifulSoup(response.text, "html.parser")
-              result = {}
-              for tr in page_soup.find_all("tr"):
-                  cells = tr.find_all(["td", "th"])
-                  if not cells:
-                      continue
-                  content_id = None
-                  for cell in cells[:3]:
-                      match = re.search(r"-?[0-9]+", cell.get_text(" ", strip=True))
-                      if match:
-                          content_id = int(match.group(0))
-                          break
-                  if content_id is None or content_id < minimum or content_id > maximum:
-                      continue
-                  image = tr.find("img")
-                  if image is None:
-                      continue
-                  src = image.get("data-src") or image.get("src")
-                  if not src:
-                      continue
-                  if src.startswith("//"):
-                      src = "https:" + src
-                  elif src.startswith("/"):
-                      src = "https://terraria.wiki.gg" + src
-                  result[content_id] = src
-              return result
-
-          def fetch_table_images(page_url, out, minimum, maximum):
-              urls = table_image_urls(page_url, minimum, maximum)
-              failures = []
-              for content_id in range(minimum, maximum + 1):
-                  dest = out / f"{content_id}.png"
-                  if dest.is_file():
-                      continue
-                  url = urls.get(content_id)
-                  if not url:
-                      failures.append((content_id, "sem imagem na tabela"))
-                      continue
-                  try:
-                      response = session.get(url, timeout=45)
-                      response.raise_for_status()
-                      with Image.open(BytesIO(response.content)) as image:
-                          image.seek(0)
-                          image.convert("RGBA").save(dest, "PNG", optimize=True)
-                  except Exception as exc:
-                      failures.append((content_id, str(exc)))
-              return failures
-
-          npc_failures = fetch_table_images(
-              "https://terraria.wiki.gg/wiki/NPC_IDs",
-              npc_out,
-              688,
-              696,
-          )
-          buff_failures = fetch_table_images(
-              "https://terraria.wiki.gg/wiki/Buff_IDs",
-              buff_out,
-              355,
-              400,
-          )
-
-          item_count = len(list(item_out.glob("*.png")))
-          npc_count = len(list(npc_out.glob("*.png")))
-          buff_count = len(list(buff_out.glob("*.png")))
-          print(f"sprites vanilla: item={item_count} npc={npc_count} buff={buff_count}")
-
-          for label, failures in (
-              ("item", item_failures),
-              ("npc", npc_failures),
-              ("buff", buff_failures),
-          ):
-              if failures:
-                  print(f"falhas {label}: {len(failures)}")
-                  for failure in failures[:80]:
-                      print(" ", failure)
-
-          if item_count < 6100:
-              raise SystemExit(f"pacote de itens incompleto: {item_count}")
-          if npc_count < 697:
-              raise SystemExit(f"pacote de NPCs incompleto: {npc_count}")
-          if buff_count < 400:
-              raise SystemExit(f"pacote de buffs incompleto: {buff_count}")
-          PY
+          mkdir -p "$ROOT"
+          cp -a "$TMP/assets/sprites/item" "$ROOT/"
+          cp -a "$TMP/assets/sprites/npc" "$ROOT/"
+          cp -a "$TMP/assets/sprites/buff" "$ROOT/"
 
       - name: Rebuild CheatBridge dex
         working-directory: Split/Bunny-Loader
         shell: bash
         run: |
+          set -euo pipefail
           OUT=".cheatbridge"
           AJAR="$ANDROID_HOME/platforms/android-34/android.jar"
           D8="$ANDROID_HOME/build-tools/34.0.0/d8"
           rm -rf "$OUT"
           mkdir -p "$OUT/classes"
-
-          javac -source 8 -target 8 -nowarn -encoding UTF-8 \
-            -classpath "$AJAR" \
-            -d "$OUT/classes" \
+          javac -source 8 -target 8 -nowarn -encoding UTF-8 -classpath "$AJAR" -d "$OUT/classes" \
+            app/src/main/java/bunny/TranslationCatalog.java \
+            app/src/main/java/bunny/MenuLocalization.java \
             tools/cheatbridge/bunny/CheatBridge.java \
             tools/cheatbridge/bunny/CheatData.java \
             tools/cheatbridge/bunny/DevTools.java
-
           mapfile -t CLASSES < <(find "$OUT/classes" -name "*.class" -type f)
           "$D8" --release --min-api 26 --lib "$AJAR" --output "$OUT" "${CLASSES[@]}"
+          python3 tools/bin2header.py "$OUT/classes.dex" bl_cheatbridge_dex > app/src/main/cpp/menu/CheatBridgeDex.h
 
-          python3 tools/bin2header.py "$OUT/classes.dex" bl_cheatbridge_dex \
-            > app/src/main/cpp/menu/CheatBridgeDex.h
-
-          test -s app/src/main/cpp/menu/CheatBridgeDex.h
-          echo "CheatBridge rebuilt: $(stat -c%s "$OUT/classes.dex") bytes"
-
-      - name: Build full Bunny APK
+      - name: Build with v3 signing
         working-directory: Split/Bunny-Loader
         shell: bash
+        env:
+          BUNNY_KEYSTORE_B64: ${{ secrets.BUNNY_KEYSTORE_B64 }}
+          BUNNY_SIGNING_PASSWORD: ${{ secrets.BUNNY_SIGNING_PASSWORD }}
+          BUNNY_SIGNING_ALIAS: ${{ secrets.BUNNY_SIGNING_ALIAS }}
         run: |
+          set -euo pipefail
+          test -n "${BUNNY_KEYSTORE_B64:-}"
+          test -n "${BUNNY_SIGNING_PASSWORD:-}"
+          test -n "${BUNNY_SIGNING_ALIAS:-}"
+          umask 077
+          mkdir -p "$RUNNER_TEMP/bunny-v3"
+          export BUNNY_SIGNING_STORE="$RUNNER_TEMP/bunny-v3/bunny-v3.jks"
+          trap 'rm -f "$BUNNY_SIGNING_STORE"' EXIT
+          printf '%s' "$BUNNY_KEYSTORE_B64" | base64 --decode > "$BUNNY_SIGNING_STORE"
+          keytool -list -keystore "$BUNNY_SIGNING_STORE" -storepass:env BUNNY_SIGNING_PASSWORD -alias "$BUNNY_SIGNING_ALIAS" >/dev/null
+          unset BUNNY_KEYSTORE_B64
           gradle :app:assembleDebug --stacktrace --no-daemon
 
       - name: Validate APK
         shell: bash
         run: |
+          set -euo pipefail
           APK="Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk"
-          "$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --verbose "$APK"
+          "$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --verbose --print-certs "$APK"
           "$ANDROID_HOME/build-tools/34.0.0/zipalign" -c -v 4 "$APK"
+          python3 - "$APK" <<'PY'
+          import sys, zipfile
+          with zipfile.ZipFile(sys.argv[1]) as z:
+              dex=[z.read(n) for n in z.namelist() if n.startswith("classes") and n.endswith(".dex")]
+          assert dex, "No Android DEX found"
+          for item in (
+              b"Lcom/unity3d/player/UnityPlayer;",
+              b"Lcom/unity3d/player/NativeLoader;",
+              b"Lcom/unity3d/player/IUnityPlayerLifecycleEvents;"
+          ):
+              assert any(item in d for d in dex), "Unity class missing from APK: " + item.decode()
+          print("BUNNY_UNITY_JNI_BOOT_CLASSES=PASS")
+          PY
           unzip -l "$APK" | grep -q "lib/arm64-v8a/libbunny.so"
           unzip -l "$APK" | grep -q "lib/arm64-v8a/libil2cpp.so"
-          unzip -l "$APK" | grep -q "lib/arm64-v8a/libunity.so"
           unzip -l "$APK" | grep -q "assets/bin/Data/Managed/Metadata/global-metadata.dat"
           ITEM_SPRITES="$(unzip -l "$APK" | grep -Ec 'assets/sprites/item/[0-9]+[.]png$')"
           NPC_SPRITES="$(unzip -l "$APK" | grep -Ec 'assets/sprites/npc/[0-9]+[.]png$')"
           BUFF_SPRITES="$(unzip -l "$APK" | grep -Ec 'assets/sprites/buff/[0-9]+[.]png$')"
+          echo "sprites item=$ITEM_SPRITES npc=$NPC_SPRITES buff=$BUFF_SPRITES"
           test "$ITEM_SPRITES" -ge 6100
           test "$NPC_SPRITES" -ge 697
           test "$BUFF_SPRITES" -ge 400
-          echo "Vanilla cheat sprites in APK: item=$ITEM_SPRITES npc=$NPC_SPRITES buff=$BUFF_SPRITES"
 
-      - name: Collect APK
+      - name: Deliver private APK
         shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.BUNNY_PRIVATE_BUILD_TOKEN }}
         run: |
-          mkdir -p Split/build/output
-          cp Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk             Split/build/output/Split-BunnyLoader-full-debug.apk
-          sha256sum Split/build/output/Split-BunnyLoader-full-debug.apk             > Split/build/output/Split-BunnyLoader-full-debug.apk.sha256
+          set -euo pipefail
+          test "$(gh api "repos/$PRIVATE_REPO" --jq '.private')" = "true"
+          TAG="bunny-loader-stable-0.1.9.7.1"
+          OUT="Bunny.Loader.0.1.9.7.1.apk"
+          APK="Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk"
+          cp "$APK" "$RUNNER_TEMP/$OUT"
+          sha256sum "$RUNNER_TEMP/$OUT" > "$RUNNER_TEMP/$OUT.sha256"
+          if gh release view "$TAG" --repo "$PRIVATE_REPO" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$RUNNER_TEMP/$OUT" "$RUNNER_TEMP/$OUT.sha256" --repo "$PRIVATE_REPO" --clobber
+            gh release edit "$TAG" --repo "$PRIVATE_REPO" --title "Bunny Loader 0.1.9.7.1"
+          else
+            gh release create "$TAG" "$RUNNER_TEMP/$OUT" "$RUNNER_TEMP/$OUT.sha256" \
+              --repo "$PRIVATE_REPO" --target main --title "Bunny Loader 0.1.9.7.1" \
+              --notes "Private full APK. Upstream a0132963 with stable native audio optimizations and Unity JNI boot classes restored." --prerelease
+          fi
+          rm -f "$RUNNER_TEMP/$OUT" "$RUNNER_TEMP/$OUT.sha256" "$APK"
 
-      - name: Upload full APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: Split-BunnyLoader-full-debug
-          path: |
-            Split/build/output/Split-BunnyLoader-full-debug.apk
-            Split/build/output/Split-BunnyLoader-full-debug.apk.sha256
-          if-no-files-found: error
-          retention-days: 14
+# build trigger 2026-10-22 stable-0197
+
+# unity-jni-hotfix-trigger-2
