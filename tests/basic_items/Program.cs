@@ -249,7 +249,9 @@ try {
     (f[0] is "WEAPON" or "ACCESSORY" or "POTION"?"ITEM":f[0])+":"+f[1]).ToArray();
   var nativeIdentities=identities.Where(identity=>!identity.StartsWith("LOCALIZATION:",StringComparison.Ordinal))
    .ToHashSet(StringComparer.Ordinal);
-  Equal(nativeIdentities.Count,actual.Length);
+  if(nativeIdentities.Count!=actual.Length)
+    throw new Exception("native wire rows="+actual.Length+" recognized="+nativeIdentities.Count+
+      " extras="+string.Join(",",actual.Where(x=>!nativeIdentities.Contains(x)).Take(30)));
   if(!nativeIdentities.SetEquals(actual))throw new Exception("compiled types and native wire identities differ");
   File.Copy(Path.Combine(scratch,"source-runtime-values.txt"),"build/basic-items/full-source-runtime-values.txt",true);
   var minionRows=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt"));
