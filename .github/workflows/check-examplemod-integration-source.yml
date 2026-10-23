@@ -57,15 +57,15 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
-      - name: Generate actual CSharp ExampleTile native wire for C++ contract
-        run: dotnet run --project tests/basic_items/tile_parity/TileParity.csproj -c Release
+      - name: Generate native wire from the full original ExampleMod source
+        run: dotnet run --project tests/basic_items/ItemBatch.csproj -c Release
       - name: Verify native tile flags against real compiled CSharp ExampleTile
         run: |
           set -euo pipefail
           g++ -std=c++20 -Wall -Wextra -Werror -pedantic -pthread \
             -I app/src/main/cpp tests/world_loaders/tile_flags_test.cpp \
             -o "$RUNNER_TEMP/native_tile_flags"
-          "$RUNNER_TEMP/native_tile_flags" build/tile-parity/source-runtime-values.txt
+          "$RUNNER_TEMP/native_tile_flags" build/basic-items/full-source-runtime-values.txt
       - name: Verify native wall and animation policies
         run: |
           set -euo pipefail
@@ -75,7 +75,11 @@ jobs:
             exe="$RUNNER_TEMP/$(basename "${file%.cpp}")"
             g++ -std=c++20 -Wall -Wextra -Werror -pedantic -pthread \
               -I app/src/main/cpp -I tests/basic_items/include "$file" -o "$exe"
-            "$exe"
+            if [[ "$file" == *"wall_runtime_test.cpp" ]]; then
+              "$exe" build/basic-items/full-source-runtime-values.txt
+            else
+              "$exe"
+            fi
           done
       - name: Execute AnglerQuest and CSharp rarity pure-native checks
         shell: bash
