@@ -703,6 +703,7 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
 void resetCSharpSourceModSession() {
     for (const auto& mod : g_statuses) {
         retireNativeDefaultsForMod(mod.id);
+        retireBasicItemTooltipsForMod(mod.id);
         retireNativeArmorPoliciesForMod(mod.id);
         retireNativeRaritySampling(mod.id);
         localization::retireMod(mod.id);
@@ -720,6 +721,7 @@ bool loadCSharpSourceMod(const bl::mods::LoadedMod& mod) {
         [&](const SourceModStatus& entry) { return entry.id == mod.id; });
     if (previous != g_statuses.end()) {
         retireNativeDefaultsForMod(mod.id);
+        retireBasicItemTooltipsForMod(mod.id);
         retireNativeArmorPoliciesForMod(mod.id);
         retireNativeRaritySampling(mod.id);
         localization::retireMod(mod.id);
@@ -739,6 +741,7 @@ bool loadCSharpSourceMod(const bl::mods::LoadedMod& mod) {
                 status.projectiles, status.buffs, status.potions, status.npcs, status.dusts);
     } else {
         retireNativeDefaultsForMod(mod.id);
+        retireBasicItemTooltipsForMod(mod.id);
         retireNativeArmorPoliciesForMod(mod.id);
         retireNativeRaritySampling(mod.id);
         localization::retireMod(mod.id);

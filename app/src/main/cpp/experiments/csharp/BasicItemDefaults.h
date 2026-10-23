@@ -1,5 +1,7 @@
 #pragma once
 #include "experiments/csharp/BasicArmorPolicy.h"
+#include "experiments/csharp/NativeTooltipPlan.h"
+#include <optional>
 #include <array>
 #include <string>
 #include <vector>
@@ -27,6 +29,7 @@ struct BasicItemEntry {
     std::array<int,BasicFieldCount> values{0,0,1,0,0,0,0,0,0,0,0,0,0,0};
     float knockBack=0;
     std::string useSound,tooltip,behavior,modDir,modId,sourceFile,tooltipPlan;
+    std::optional<NativeTooltipPlan> nativeTooltip;
     std::map<std::string,std::string> localizedTooltips;
     std::vector<BasicAccessoryEffect> accessoryEffects;
     BasicArmorPolicy armor;
@@ -288,10 +291,11 @@ inline bool parseBasicItemWire(const std::vector<std::string>& fields,BasicItemE
             }
             out.tooltipPlan.push_back(static_cast<char>((a<<4)|b));
         }
-        if(out.tooltipPlan.size()<2||out.tooltipPlan.front()!='['||
-           out.tooltipPlan.back()!=']') {
-            *error=out.name+": invalid tooltip plan envelope";return false;
+        NativeTooltipPlan decoded;
+        if(!decodeNativeTooltipPlan(out.tooltipPlan,&decoded,error)) {
+            *error=out.name+": "+*error;return false;
         }
+        out.nativeTooltip=std::move(decoded);
     }
     if(!validateBasicItem(out,error)||!parseBasicRecipes(fields[19],&out,error))return false;
     *item=std::move(out);return true;

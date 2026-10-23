@@ -22,6 +22,8 @@ BasicItemLoadStatus basicItemLoadStatus();
 bool basicItemHasDamage(int type);
 bool basicItemIsAccessory(int type);
 std::string basicItemTooltipPlan(int type);
+std::optional<NativeTooltipPlan> basicItemNativeTooltip(int type);
+void retireBasicItemTooltipsForMod(const std::string& modId);
 void applyBasicItemAccessoryEffects(Il2CppObject* player,int itemType);
 bool setBasicItemDefense(int type,int value,std::string* error);
 bool setBasicItemEquipSlot(int type,const std::string& kind,int slot,std::string* error);

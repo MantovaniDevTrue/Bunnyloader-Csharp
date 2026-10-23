@@ -816,6 +816,20 @@ std::string basicItemTooltipPlan(int type) {
     const auto it=definitions.find(type);
     return it==definitions.end()?std::string{}:it->second.tooltipPlan;
 }
+std::optional<NativeTooltipPlan> basicItemNativeTooltip(int type) {
+    std::lock_guard lock(mutex);
+    const auto it=definitions.find(type);
+    return it==definitions.end()?std::nullopt:it->second.nativeTooltip;
+}
+void retireBasicItemTooltipsForMod(const std::string& modId) {
+    std::lock_guard lock(mutex);
+    for(auto& [type,entry]:definitions) {
+        (void)type;
+        if(entry.modId!=modId)continue;
+        entry.tooltipPlan.clear();
+        entry.nativeTooltip.reset();
+    }
+}
 
 bool basicItemIsAccessory(int type) {std::lock_guard lock(mutex);auto it=definitions.find(type);return it!=definitions.end()&&(it->second.values[BasicFlags]&32);}
 std::vector<BasicItemEntry> pendingBasicItemBehaviors() {
