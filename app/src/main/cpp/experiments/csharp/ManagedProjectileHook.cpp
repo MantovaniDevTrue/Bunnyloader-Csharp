@@ -9,6 +9,7 @@
 #include "experiments/csharp/SourceLoader.h"
 #include "hook/HookManager.h"
 #include "il2cpp/Api.h"
+#include "il2cpp/FieldContract.h"
 #include "il2cpp/Resolver.h"
 #include "il2cpp/Signature.h"
 #include "experiments/csharp/NativeSummonRuntime.h"
@@ -169,6 +170,8 @@ using TileKillFn = void (*)(Il2CppObject*, const MethodInfo*);
 TileMovementFn g_originalTileMovement = nullptr;
 TileKillFn g_originalTileKill = nullptr;
 std::atomic<bool> g_tileCollisionHooksReady{false};
+int g_tileCollideOffset = -1;
+FieldInfo* g_tileCollisionNetMode = nullptr;
 struct TileMovementScope {
     Il2CppObject* projectile = nullptr;
     TileMovementScope* previous = nullptr;
@@ -186,7 +189,7 @@ void hkManagedTileKill(Il2CppObject* projectile, const MethodInfo* method) {
             {scope->velocity.x, scope->velocity.y},
             {runtime::field<Vector2>(projectile,runtime::game().entity.velocity).x,
              runtime::field<Vector2>(projectile,runtime::game().entity.velocity).y},
-            runtime::field<uint8_t>(projectile,runtime::game().proj.tileCollide) != 0)) {
+            runtime::field<uint8_t>(projectile,g_tileCollideOffset) != 0)) {
         scope->deferredKill = true;
         return;
     }
@@ -201,10 +204,13 @@ void hkManagedTileMovement(Il2CppObject* projectile, Vector2 wet, const MethodIn
         original(projectile,wet,method);return;
     }
     const auto& game=runtime::game();
+    int netMode=-1;
+    if(g_tileCollisionNetMode)il2cpp::api().field_static_get_value(g_tileCollisionNetMode,&netMode);
+    if(netMode!=0){original(projectile,wet,method);return;}
     const int type=runtime::field<int>(projectile,game.proj.type);
     if(!hasManagedEntityProjectileType(type) || nativeManagedProjectileTileCollisionMode(type)!=1 ||
        !runtime::field<uint8_t>(projectile,game.proj.active) ||
-       !runtime::field<uint8_t>(projectile,game.proj.tileCollide)) {
+       !runtime::field<uint8_t>(projectile,g_tileCollideOffset)) {
         original(projectile,wet,method);return;
     }
     TileMovementScope scope{};
@@ -788,6 +794,17 @@ bool installManagedProjectileTileCollisionHooks(std::string* error) {
         *error="Projectile.HandleMovement/Projectile.Kill ou GameRefs indisponiveis";
         return false;
     }
+    int offset=-1;
+    std::string details;
+    auto* main=il2cpp::findClass({"Terraria","Main",{}});
+    FieldInfo* netMode=main?il2cpp::findField(main,"netMode"):nullptr;
+    if(!netMode || !il2cpp::nativeFieldContract(projectile,"tileCollide",
+        "System.Boolean",false,1,nullptr,&offset,&details)) {
+        *error="Campos nativos de colisao indisponiveis: "+details;
+        return false;
+    }
+    g_tileCollideOffset=offset;
+    g_tileCollisionNetMode=netMode;
     if(!g_originalTileMovement && !hook::install(movement,hkManagedTileMovement,&g_originalTileMovement)) {
         *error="Falha ao conectar Projectile.HandleMovement";return false;
     }

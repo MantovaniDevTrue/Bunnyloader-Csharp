@@ -51,6 +51,16 @@ jobs:
         run: |
           g++ -std=c++20 -Wall -Wextra -Werror -Iapp/src/main/cpp tools/csharp_contracts/entity_bind_smoke.cpp -o /tmp/bunny-entity-bind-smoke
           /tmp/bunny-entity-bind-smoke
+      - name: Validate projectile collision hook field bindings
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          source = Path('app/src/main/cpp/experiments/csharp/ManagedProjectileHook.cpp').read_text()
+          assert 'nativeFieldContract(projectile,"tileCollide"' in source
+          assert 'g_tileCollideOffset' in source
+          assert 'g_tileCollisionNetMode' in source
+          assert 'game.proj.tileCollide' not in source
+          PY
       - name: Verify native projectile collision decision
         run: |
           g++ -std=c++20 -Wall -Wextra -Werror -Iapp/src/main/cpp tools/csharp_contracts/tile_collision_smoke.cpp -o /tmp/bunny-tile-collision-smoke
