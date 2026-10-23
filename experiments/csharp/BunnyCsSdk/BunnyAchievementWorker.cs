@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace BunnyLoader.Source;
@@ -13,6 +14,7 @@ public static class BunnyAchievementWorker
     {
         public string Path = "";
         public Assembly Assembly = null!;
+        public string Revision = "";
     }
 
     private static readonly object Gate = new();
@@ -25,7 +27,7 @@ public static class BunnyAchievementWorker
         {
             if (!Bindings.TryGetValue(modId, out var binding) ||
                 binding.Path != assemblyPath) return;
-            Registry.Unload(modId, assemblyPath);
+            Registry.Unload(modId, binding.Revision);
             Bindings.Remove(modId);
         }
     }
@@ -56,8 +58,9 @@ public static class BunnyAchievementWorker
                     if (snapshot.Length != 0)
                         return "ERROR|Stage=AchievementBind Reason=UnexpectedPayload";
                     Assembly assembly = BunnyRecipeLoader.LoadAssembly(modId, assemblyPath);
-                    int count = Registry.Register(modId, assemblyPath, assembly);
-                    Bindings[modId] = new Binding { Path = assemblyPath, Assembly = assembly };
+                    string revision = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(assemblyPath)));
+                    int count = Registry.Register(modId, revision, assembly);
+                    Bindings[modId] = new Binding { Path = assemblyPath, Revision = revision, Assembly = assembly };
                     return "READY|" + count.ToString(CultureInfo.InvariantCulture);
                 }
 
