@@ -6,6 +6,7 @@
 #include <array>
 #include <cstring>
 #include <string>
+#include <utility>
 #include <string_view>
 
 namespace bl::csharp {
@@ -64,7 +65,7 @@ struct NativeTooltipPanelBacking {
         using namespace il2cpp;
         auto& a=api();
         ValueLayout layout;
-        if(!bytes||!typeIs(cls,"System","Nullable\`1")||
+        if(!bytes||!typeIs(cls,"System","Nullable`1")||
            !resolveValueLayout(cls,&layout,error)||layout.size!=20)return false;
         auto* flag=findField(cls,"hasValue");
         auto* value=findField(cls,"value");
@@ -118,7 +119,7 @@ struct NativeTooltipPanelBacking {
            !typeIs(types[2],"Microsoft.Xna.Framework.Graphics","Texture2D")||
            a.class_is_valuetype(types[2])||
            !typeIs(types[3],"Microsoft.Xna.Framework","Color")||
-           !typeIs(types[4],"System","Nullable\`1"))
+           !typeIs(types[4],"System","Nullable`1"))
             return fail("NativeTooltipBackingTypeMismatch");
         NativeColorLayout channels;
         if(!channels.bind(types[3],error))return false;
