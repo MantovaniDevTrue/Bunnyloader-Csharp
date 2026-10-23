@@ -12,6 +12,7 @@ on:
       - app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp
       - docs/generated/sdk_public_reference.json
       - docs/generated/sdk_public_reference.md
+      - samples/ExampleModCSharp/AchievementsDemo/**
       - tests/achievement_loader/**
       - .github/workflows/check-csharp-achievement-loader.yml
   pull_request:
@@ -26,6 +27,7 @@ on:
       - app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp
       - docs/generated/sdk_public_reference.json
       - docs/generated/sdk_public_reference.md
+      - samples/ExampleModCSharp/AchievementsDemo/**
       - tests/achievement_loader/**
       - .github/workflows/check-csharp-achievement-loader.yml
 permissions:
@@ -39,6 +41,7 @@ jobs:
         with:
           dotnet-version: 8.0.x
       - run: dotnet run --project tests/achievement_loader/AchievementLoader.csproj -c Release
+      - run: dotnet build samples/ExampleModCSharp/AchievementsDemo/AchievementsDemo.csproj -c Release
       - run: dotnet run --project tools/sdk_reference/SdkReference.csproj -c Release -- --check
       - name: Test owner-safe native event mailbox
         run: |
