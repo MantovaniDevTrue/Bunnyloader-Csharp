@@ -402,5 +402,39 @@
     "bunny-summon-native-bootstrap.log": "DUST_EMISSION_GAME_THREAD_CONTRACT=PASS bounded=32 count=16 stale=Rejected typeMismatch=Rejected noQuickJS=1\nFULL_EXAMPLE_NATIVE_BOOTSTRAP_PASS files=98 registrations=52 assets=Present dependencies=Resolved managedCalls=DeferredToMono\nFULL_EXAMPLE_NATIVE_MANAGED_COUNT=PASS expected=72 rarities=2 dust=1 wall=1 localization=1 commands=3\nINVASION_HUD_PRODUCTION_BIND_AND_DRAW_PASS androidGraphicsColor=Drawn alternateColor=Drawn invalidAbi=Rejected missingLookups=0\n"
   },
   "androidRetestPending": true,
-  "fps": null
+  "fps": null,
+  "hotfix314": {
+    "baseline": "0798da3f9774bc64d7d8f3df563b5099592259fa",
+    "hostOnly": true,
+    "deviceAvailable": false,
+    "changes": [
+      "Shared finite shootSpeed 0..40 validator in registration, individual defaults and batch defaults",
+      "Actionable native weapon registration errors propagated through NativeRegisterContext.lastError"
+    ],
+    "results": [
+      {
+        "command": "bash tests/summon_lifecycle/run.sh",
+        "code": 0,
+        "scope": "Production weapon registration branch and single managed defaults, real compiled staff descriptor; zero accepted; negative, NaN, infinity and foreign projectile rejected; existing summon lifecycle suite passes"
+      },
+      {
+        "command": "Counterfactual host test with previous minimum speed 1",
+        "expectedFailure": true,
+        "observedReturnCode": -6,
+        "scope": "Assertion staff>=0 fails, reproducing the rejected registration"
+      },
+      {
+        "command": "g++ -std=c++20 -Wall -Wextra -Werror -Wno-deprecated-declarations -DBL_HAVE_QUICKJS=0 -fsyntax-only -I tests/basic_items/include -I app/src/main/cpp app/src/main/cpp/experiments/csharp/NativeContent.cpp",
+        "code": 0
+      },
+      {
+        "command": "bash tests/shooting/run.sh",
+        "code": 0,
+        "scope": "62 managed checks plus production shooting hooks, source/owner/ammo/damage, cursor limiter and native aim regressions"
+      }
+    ],
+    "modVersion": "0.1.65",
+    "modPackageUnchanged": true,
+    "androidValidation": "pending"
+  }
 }

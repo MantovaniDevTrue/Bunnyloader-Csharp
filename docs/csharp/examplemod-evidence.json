@@ -166,26 +166,39 @@
     "requirement:summon-staff-reference": {
       "status": "validado automaticamente",
       "behavior": "Cajado: defaults, som, flags e origem na mira limitada",
-      "note": "Corrigido e executado no host; reteste Android do novo lote pendente. Ver SUMMON_DUST_INVASION_QA.md.",
+      "note": "Relato real após lote 313: ExampleMinionItem rejeitado no registro (versionCode não informado no trecho). Mínimo antigo de velocidade 1 reproduz a falha; APK 314 aceita zero nas três etapas. Ramo de registro e defaults individuais de produção testados no host; reteste Android pendente.",
       "implementation": [
         "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Summon/ExampleMinionItem.cs",
         "app/src/main/cpp/experiments/csharp/NativeDefaults.h",
-        "app/src/main/cpp/experiments/csharp/NativeShooting.cpp"
+        "app/src/main/cpp/experiments/csharp/NativeShooting.cpp",
+        "app/src/main/cpp/experiments/csharp/NativeContent.cpp"
       ],
       "tests": [
         "tests/shooting/Program.cs",
         "tests/shooting/native_test.cpp",
-        "tests/summon_lifecycle/native_defaults_test.cpp"
+        "tests/summon_lifecycle/native_defaults_test.cpp",
+        "tests/summon_lifecycle/source_damage_test.cpp",
+        "tests/summon_lifecycle/run.sh"
       ],
       "validationScope": "host; Android pendente",
-      "androidEvidence": [],
+      "androidEvidence": [
+        {
+          "source": "Trecho enviado pelo usuário nesta conversa após a entrega do lote 313",
+          "apkVersionCode": null,
+          "log": "[CSharp][ERROR][Register] Class=ExampleMinionItem Category=BunnyWeapon Stage=NativeRegister Expected=NonNegativeContentId Actual=-1 Result=LoadInterrupted Detail=NativeRegistrationRejected",
+          "conclusion": "Falha real de registro; não comprova comportamento do cajado. Correção 314 ainda sem reteste Android."
+        }
+      ],
       "validatedFilesSha256": {
         "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Summon/ExampleMinionItem.cs": "98694097f2e06ee2e0c46dd3940558e022f5ae85f6e33134850d561692002df9",
         "app/src/main/cpp/experiments/csharp/NativeDefaults.h": "ddbe2d22cf813be7621c4e66e777665586ebcc0eb29ed62414a957110ac1c658",
         "app/src/main/cpp/experiments/csharp/NativeShooting.cpp": "b10cc897e33c3b831ef9091d5bba246bcb7c1087adb452d5416813575b3ded51",
         "tests/shooting/Program.cs": "d294dc22e3004da1684bdd4ed9a325d22b4af74fa929933f18042e8b80c58834",
         "tests/shooting/native_test.cpp": "f1145f684b51104c82df24bbd01ecd297bfb07645264dd422aed4e49bad747e1",
-        "tests/summon_lifecycle/native_defaults_test.cpp": "74c9a8054e0a9090ebbe74bc6e6c1afbe02ffacf0582c9f29de354281f57e5ac"
+        "tests/summon_lifecycle/native_defaults_test.cpp": "74c9a8054e0a9090ebbe74bc6e6c1afbe02ffacf0582c9f29de354281f57e5ac",
+        "app/src/main/cpp/experiments/csharp/NativeContent.cpp": "8b72c25b672b3355e3d51c0f59a56083bad71911a75621ba9fdc93d03059c95a",
+        "tests/summon_lifecycle/source_damage_test.cpp": "cf2b0278d50b732b03be55c1ffa832af4cc10a1230cd16fa0d5ea2d0ebe2d0b4",
+        "tests/summon_lifecycle/run.sh": "f6d7474a7ee5beef661a17e2f2f66314e2edd7aa5915fb9d0611b0a4821f0a02"
       }
     },
     "requirement:android-dust-emission": {

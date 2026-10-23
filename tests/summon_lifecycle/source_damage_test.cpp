@@ -5,6 +5,9 @@
 #include <thread>
 #include <vector>
 #include <barrier>
+#include <fstream>
+#include <sstream>
+#include <limits>
 struct Il2CppClass {};
 struct MethodInfo {};
 struct ItemFixture {Il2CppObject obj;int damage;};
@@ -21,11 +24,24 @@ std::string describeException(Il2CppObject*){return "FixtureException";}
 }
 int defaultsNotifications=0,originalDefaultsCalls=0;
 namespace bl::csharp {void notifyManagedSourceProjectileDefaults(Il2CppObject*){++defaultsNotifications;assert(originalDefaultsCalls<defaultsNotifications);}}
-namespace bl::runtime {void finishModProjectile(Il2CppObject* object,int){
+int itemReservations=0;
+std::map<std::string,int> reservedItems;
+namespace bl::runtime {
+bool modProjectileBelongsTo(int type,const std::string& mod){return type==1136&&mod=="fixture";}
+int registerModItem(ModItemDef def){
+ ++itemReservations;
+ assert(def.mod=="fixture"&&def.texture=="staff.png"&&!def.names.empty());
+ const auto key=def.mod+"/"+def.name;
+ if(reservedItems.contains(key))return -1;
+ return reservedItems[key]=6230+static_cast<int>(reservedItems.size());
+}
+int modItemTypeByKey(const std::string& key){auto it=reservedItems.find(key);return it==reservedItems.end()?-1:it->second;}
+int modProjectileTypeByName(const std::string& mod,const std::string& name){return mod=="fixture"&&name=="ExampleMinion"?1136:-1;}
+void finishModProjectile(Il2CppObject* object,int){
  auto& p=*reinterpret_cast<ProjectileFixture*>(object);p.width=static_cast<int>(p.width*p.scale);p.height=static_cast<int>(p.height*p.scale);p.maxPenetrate=p.penetrate;
 }}
 namespace bl::log {void write(int,const char*,...) {}}
-int main() {
+int main(int argc,char** argv) {
  using namespace bl::csharp;
  g_refs.projectileType=offsetof(ProjectileFixture,type);g_refs.projectileDamage=offsetof(ProjectileFixture,damage);
  g_refs.itemDamage=offsetof(ItemFixture,damage);g_originalDamageField=offsetof(ProjectileFixture,original);
@@ -85,4 +101,52 @@ int main() {
  stop.store(true);for(auto& reader:readers)reader.join();assert(!broken.load()&&reads.load()>=3);
  std::cout<<"PROJECTILE_SNAPSHOT_CONCURRENT_PUBLICATION_PASS revisions=2000 readers=3\n";
  std::cout<<"PROJECTILE_PRODUCTION_STATS_SOURCE_WEAPON_BASELINE_SCALED_DAMAGE_NO_SOURCE_ZERO_AND_FOREIGN_TYPES_PASS\n";
+ // Run the production weapon registration branch using the real compiled staff
+ // descriptor, rather than only checking bootstrap parsing or a mirrored rule.
+ assert(argc==2);std::ifstream wire(argv[1]);assert(wire.good());
+ std::string row,staffRow;
+ while(std::getline(wire,row))if(row.rfind("WEAPON\tExampleMinionItem\t",0)==0)staffRow=row;
+ assert(!staffRow.empty());std::istringstream descriptor(staffRow);
+ std::string tag,name,target;int summon=0;
+ NativeContentSpec spec{};spec.kind=NativeWeapon;
+ descriptor>>tag>>name>>spec.damage>>spec.useTime>>spec.shootSpeed>>target>>summon;
+ assert(name=="ExampleMinionItem"&&target=="ExampleMinion"&&summon==1);
+ assert(spec.damage==30&&spec.useTime==36&&spec.shootSpeed==0.f);
+ spec.name=name.c_str();spec.shootType=1136;
+ NativeRegisterContext ctx{};ctx.modId="fixture";ctx.sourceFile="content/ExampleMinionItem.cs";
+ const int staff=registerNativeWeapon(ctx,spec,"staff.png","Example Minion Staff");
+ assert(staff>=0&&ctx.items==1&&ctx.lastError.empty()&&itemReservations==1);
+ auto view=std::atomic_load(&g_weaponView);
+ assert(view->at(staff).shootSpeed==0.f&&view->at(staff).shootType==1136);
+ // Apply the same zero-speed value through the real single managed-default path.
+ g_ready=true;ManagedProjectileDefaults projectileDefaults{8,8,1,1,360,true};
+ ManagedWeaponDefaults weaponDefaults{30,36,0.f};
+ assert(applyManagedNativeDefaults("fixture","ExampleMinion",1136,projectileDefaults,name,staff,weaponDefaults));
+ assert(std::atomic_load(&g_weaponView)->at(staff).shootSpeed==0.f);
+ const auto accepted=std::atomic_load(&g_weaponView);
+ for(float invalid:{-0.01f,40.01f,std::numeric_limits<float>::infinity(),
+                    -std::numeric_limits<float>::infinity(),std::numeric_limits<float>::quiet_NaN()}) {
+   spec.shootSpeed=invalid;weaponDefaults.shootSpeed=invalid;
+   assert(registerNativeWeapon(ctx,spec,"staff.png","Staff")==-1);
+   assert(ctx.lastError.find("WeaponShootSpeedOutOfRange")!=std::string::npos);
+   assert(ctx.lastError.find("FiniteShootSpeed:0..40")!=std::string::npos);
+   assert(!applyManagedNativeDefaults("fixture","ExampleMinion",1136,projectileDefaults,name,staff,weaponDefaults));
+   assert(ctx.items==1&&itemReservations==1&&std::atomic_load(&g_weaponView)==accepted);
+ }
+ assert(validWeaponShootSpeed(0.f)&&validWeaponShootSpeed(0.5f)&&validWeaponShootSpeed(40.f));
+ spec.shootSpeed=0;spec.shootType=99;
+ assert(registerNativeWeapon(ctx,spec,"staff.png","Staff")==-1);
+ assert(ctx.lastError.find("WeaponProjectileOwnershipMismatch")!=std::string::npos&&itemReservations==1);
+ spec.shootType=1136;spec.damage=0;
+ assert(registerNativeWeapon(ctx,spec,"staff.png","Staff")==-1);
+ assert(ctx.lastError.find("WeaponDamageOutOfRange")!=std::string::npos&&itemReservations==1);
+ spec.damage=30;spec.useTime=1;
+ assert(registerNativeWeapon(ctx,spec,"staff.png","Staff")==-1);
+ assert(ctx.lastError.find("WeaponUseTimeOutOfRange")!=std::string::npos&&itemReservations==1);
+ spec.useTime=36;
+ assert(registerNativeWeapon(ctx,spec,"staff.png","Staff")==-1);
+ assert(ctx.lastError.find("NativeItemReservationRejected")!=std::string::npos&&ctx.items==1);
+ assert(std::atomic_load(&g_weaponView)==accepted);
+ std::cout<<"PRODUCTION_WEAPON_REGISTRATION_AND_MANAGED_DEFAULTS_ZERO_SPEED_COMPILED_STAFF_PASS\n";
+
 }

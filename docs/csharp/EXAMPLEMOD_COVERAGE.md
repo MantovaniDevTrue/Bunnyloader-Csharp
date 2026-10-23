@@ -34,7 +34,7 @@ Dust e invasão: o baseline contém correções posteriores aos logs Android de 
 | requirement:ExampleShotgun | validado automaticamente | Asserções dos valores/algoritmo do exemplo real e protocolo compilado no host. Trajetória, cano e consumo no motor Android pendentes. |
 | requirement:dust-emission-binding | validado automaticamente | Corrigido e executado no host; reteste Android do novo lote pendente. Ver SUMMON_DUST_INVASION_QA.md. |
 | requirement:android-weapons-user-report | validado no Android | Usuário: As armas funcionou. Escopo: relato de funcionamento; contagem detalhada de pellets, multiplayer e FPS não informados. |
-| requirement:summon-staff-reference | validado automaticamente | Corrigido e executado no host; reteste Android do novo lote pendente. Ver SUMMON_DUST_INVASION_QA.md. |
+| requirement:summon-staff-reference | validado automaticamente | Relato real após lote 313: ExampleMinionItem rejeitado no registro (versionCode não informado no trecho). Mínimo antigo de velocidade 1 reproduz a falha; APK 314 aceita zero nas três etapas. Ramo de registro e defaults individuais de produção testados no host; reteste Android pendente. |
 | requirement:android-dust-emission | falhou | Relatório 0.1.64: NewDustSignatureUnavailable. Correção do namespace Graphics.Color no novo lote ainda não confirmada em aparelho. |
 | requirement:android-invasion-spawn | falhou | Running com SpawnFailed crescente e NoSafeSpawnSite; busca/diagnósticos ajustados, reteste pendente. |
 
