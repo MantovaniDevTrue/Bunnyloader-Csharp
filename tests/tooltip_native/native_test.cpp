@@ -123,6 +123,9 @@ int main(int argc,char** argv) {
     NativeTooltipPlan foreign=*item.nativeTooltip;
     foreign.lines[1].rainbow=false;
     assert(!skipped.begin(foreign));
+    foreign=*item.nativeTooltip;
+    foreign.lines[1].draw=true;
+    assert(!skipped.begin(foreign));
     assert(!skipped.inserted&&!skipped.animated);
     foreign=*item.nativeTooltip;
     foreign.lines[1].name="AnotherMod";

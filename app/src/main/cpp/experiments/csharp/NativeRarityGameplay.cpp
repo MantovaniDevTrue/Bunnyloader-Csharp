@@ -954,7 +954,7 @@ bool installNativeTooltipHook(std::string* error) {
         "Vector2 MeasureString(string text)")):nullptr;
     if(!tooltip||!measure||!font||!item||!intType||!stringType||
        !a.method_is_instance||!a.method_get_param_count||
-       !a.method_get_param||!a.class_from_il2cpp_type||
+       !a.method_get_param||!a.method_get_return_type||!a.class_from_il2cpp_type||
        a.method_get_param_count(tooltip)!=5||
        a.method_get_param_count(measure)!=1||
        !a.method_is_instance(measure)||

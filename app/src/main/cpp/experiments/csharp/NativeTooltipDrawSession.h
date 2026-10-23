@@ -21,6 +21,7 @@ struct NativeTooltipDrawSession {
         tooltipRgb=0;tooltipTint=false;
         if(plan.lines.size()!=3||plan.lines[0].name!="ItemName"||
            plan.lines[1].name!="BunnyLoader"||!plan.lines[1].rainbow||
+           plan.lines[1].draw||
            plan.lines[2].name!="Tooltip0"||plan.lines[2].text.empty())return false;
         if(!nativeTooltipUtf16(plan.lines[2].text,&anchor)||anchor.empty()||anchor.size()>512)
             return false;
