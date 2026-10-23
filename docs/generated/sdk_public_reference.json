@@ -338,6 +338,20 @@
       ]
     },
     {
+      "name": "BunnyLoader.Source.BunnyAchievementWorker",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [],
+      "values": [],
+      "methods": [
+        {
+          "signature": "static string Dispatch(string modId, string assemblyPath, int kind, string snapshot)",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
       "name": "BunnyLoader.Source.BunnyAfterHurtHook",
       "kind": "class",
       "baseType": "System.MulticastDelegate",

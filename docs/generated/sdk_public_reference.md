@@ -174,6 +174,14 @@ string[] Keys { get; set; }
 | `string ToString()` | managed_helper |
 | `void Deconstruct(out string Name, out string[] Keys, out BunnyAchievementConditionKind[] Kinds, out float[] Values)` | managed_helper |
 
+## BunnyLoader.Source.BunnyAchievementWorker
+
+abstract class; base: `System.Object`.
+
+| Method | Execution |
+| --- | --- |
+| `static string Dispatch(string modId, string assemblyPath, int kind, string snapshot)` | managed_helper |
+
 ## BunnyLoader.Source.BunnyAfterHurtHook
 
 class; base: `System.MulticastDelegate`.
