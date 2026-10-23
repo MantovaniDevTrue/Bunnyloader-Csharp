@@ -49,6 +49,9 @@ internal static class TransportIntegration
 
     public static int Main()
     {
+        // Isolate repeated host runs from an earlier aborted test sidecar.
+        foreach (int id in new[] { 11,12,13 })
+            System.IO.File.Delete("/tmp/bunny-invasion-ci-" + id + ".wld.invasions.bl");
         ExampleInvasion.WorldExit();
         SetWorld(1, 11);
         Check(BunnyInvasionNativeTransport.WorldSession == 11, "managed PInvoke session");

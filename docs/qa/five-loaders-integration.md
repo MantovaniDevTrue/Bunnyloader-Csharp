@@ -10,7 +10,9 @@ Integration preserves the base's command, localization, dust, invasion, rarity,
 world-entry and early compiler paths. It adds the missing Android SDK touch
 sources, native-free world/hook classification, standalone update module
 discovery/verification, and serialized Mono calls for touch callbacks. Gore
-examples now use their manifest UID. Tests reference the net8 Android SDK,
+examples now use their manifest UID. Optional Gore requests return false
+with a host diagnostic when the native visual ABI is absent, so an NPC death
+callback does not lose invasion scoring in a host-only environment. Tests reference the net8 Android SDK,
 not a different auto-glob net10 facade. The Gore test includes its audio helper.
 
 Mobile review used the extracted 301720 ELF and metadata, not a PC Terraria

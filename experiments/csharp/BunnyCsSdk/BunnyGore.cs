@@ -38,6 +38,8 @@ public readonly struct BunnyGoreSettings
 /// </summary>
 public static class BunnyGore
 {
+    /// <summary>Última indisponibilidade da ponte, útil em testes sem Terraria.</summary>
+    public static string LastHostError { get; private set; } = "";
     /// <summary>
     /// Retorna o ID nativo registrado para um PNG por nome sem .png, ou zero
     /// quando o nome nao pertence ao mod. Dois mods podem usar o mesmo nome
@@ -65,7 +67,8 @@ public static class BunnyGore
     /// A funcao nativa chama Terraria.Gore.NewGore na thread do jogo;
     /// true significa que o pedido foi aceito na fila, nao que ele ja
     /// foi desenhado. Nao chama IL2CPP diretamente no worker MonoVM.
-    /// Nao aceita pedidos fora do mundo ou com fila cheia.
+    /// Nao aceita pedidos fora do mundo, com fila cheia ou sem ponte nativa.
+    /// A falta do efeito opcional nunca interrompe OnKill; consulte LastHostError.
     /// </summary>
     public static bool TrySpawn(string modId, string name, float x, float y,
                                 float velocityX, float velocityY, float scale = 1f)
@@ -76,7 +79,14 @@ public static class BunnyGore
             !float.IsFinite(scale) || scale < 0.1f || scale > 4f)
             return false;
 
-        return NativeSpawn(modId, name, x, y, velocityX, velocityY, scale) == 1;
+        try
+        {
+            bool accepted = NativeSpawn(modId, name, x, y, velocityX, velocityY, scale) == 1;
+            LastHostError = accepted ? "" : "NativeRequestRejected";
+            return accepted;
+        }
+        catch (DllNotFoundException) { LastHostError = "LibBunnyUnavailable"; return false; }
+        catch (EntryPointNotFoundException) { LastHostError = "GoreAbiUnavailable"; return false; }
     }
 
     /// <summary>
@@ -89,9 +99,16 @@ public static class BunnyGore
                                     BunnyGoreSettings settings)
     {
         Validate(modId, name);
-        return NativeConfigure(modId, name, settings.SpecialAI,
-            settings.DisappearSpeed, settings.DisappearSpeedAlpha,
-            settings.IsDrip ? 1 : 0, settings.SafeGore ? 1 : 0) == 1;
+        try
+        {
+            bool accepted = NativeConfigure(modId, name, settings.SpecialAI,
+                settings.DisappearSpeed, settings.DisappearSpeedAlpha,
+                settings.IsDrip ? 1 : 0, settings.SafeGore ? 1 : 0) == 1;
+            LastHostError = accepted ? "" : "NativeRequestRejected";
+            return accepted;
+        }
+        catch (DllNotFoundException) { LastHostError = "LibBunnyUnavailable"; return false; }
+        catch (EntryPointNotFoundException) { LastHostError = "GoreAbiUnavailable"; return false; }
     }
 
     private static void Validate(string modId, string name)

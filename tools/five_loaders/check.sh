@@ -7,6 +7,7 @@ export MSBUILDDISABLENODEREUSE=1
 build() { dotnet build "$1" -c Release --nologo -m:1 -nr:false -p:BuildInParallel=false -p:UseSharedCompilation=false; }
 run() { dotnet run --project "$1" -c Release --no-build -- "${@:2}"; }
 for project in experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj tests/StatModifierParity/StatModifierParity.csproj tests/world_update_loader/WorldUpdateLoader.csproj tests/keybind_loader/KeybindLoaderTests.csproj tests/csharp_gore_examples/GoreExamples.csproj tests/world_save/BunnyWorldData.Smoke.csproj tests/world_save/WorldSaveExampleMod.csproj; do build "$project"; done
+run tests/csharp_gore_examples/GoreExamples.csproj
 run tests/StatModifierParity/StatModifierParity.csproj
 run tests/world_update_loader/WorldUpdateLoader.csproj
 run tests/keybind_loader/KeybindLoaderTests.csproj

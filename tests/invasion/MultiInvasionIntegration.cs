@@ -27,6 +27,9 @@ internal static class MultiInvasionIntegration
 
     public static int Main()
     {
+        // Isolate repeated host runs from an earlier aborted test sidecar.
+        foreach (int id in new[] { 81 })
+            System.IO.File.Delete("/tmp/bunny-invasion-ci-" + id + ".wld.invasions.bl");
         World(1, 81);
         int mod = BunnyEntitySourceDispatcher.Register(
             "mod-a", typeof(OtherInvasionSystem).Assembly.Location);
