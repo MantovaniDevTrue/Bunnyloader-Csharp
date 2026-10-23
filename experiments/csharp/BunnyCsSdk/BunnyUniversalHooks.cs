@@ -127,7 +127,7 @@ public sealed class BunnyHookScope : IDisposable
         lock (gate)
         {
             if (disposed) throw new ObjectDisposedException(nameof(BunnyHookScope));
-            BunnyMethodHook handle = BunnyHooks.RegisterExtended(type, method, callback, isStatic, 1);
+            BunnyMethodHook handle = BunnyHooks.RegisterExtended(type, method, callback, isStatic, BunnyExtendedHookModes.Int32Zero);
             handles.Add(handle);
             return handle;
         }
@@ -137,7 +137,7 @@ public sealed class BunnyHookScope : IDisposable
         lock (gate)
         {
             if (disposed) throw new ObjectDisposedException(nameof(BunnyHookScope));
-            BunnyMethodHook handle = BunnyHooks.RegisterExtended(type, method, callback, isStatic, 2);
+            BunnyMethodHook handle = BunnyHooks.RegisterExtended(type, method, callback, isStatic, BunnyExtendedHookModes.VoidInt32);
             handles.Add(handle);
             return handle;
         }
@@ -147,7 +147,7 @@ public sealed class BunnyHookScope : IDisposable
         lock (gate)
         {
             if (disposed) throw new ObjectDisposedException(nameof(BunnyHookScope));
-            BunnyMethodHook handle = BunnyHooks.RegisterExtended(type, method, callback, isStatic, 3);
+            BunnyMethodHook handle = BunnyHooks.RegisterExtended(type, method, callback, isStatic, BunnyExtendedHookModes.VoidInt32Pair);
             handles.Add(handle);
             return handle;
         }
@@ -157,7 +157,7 @@ public sealed class BunnyHookScope : IDisposable
         lock (gate)
         {
             if (disposed) throw new ObjectDisposedException(nameof(BunnyHookScope));
-            BunnyMethodHook handle = BunnyHooks.RegisterExtended(type, method, callback, isStatic, 4);
+            BunnyMethodHook handle = BunnyHooks.RegisterExtended(type, method, callback, isStatic, BunnyExtendedHookModes.Int32Triple);
             handles.Add(handle);
             return handle;
         }
@@ -167,7 +167,7 @@ public sealed class BunnyHookScope : IDisposable
         lock (gate)
         {
             if (disposed) throw new ObjectDisposedException(nameof(BunnyHookScope));
-            BunnyMethodHook handle = BunnyHooks.RegisterExtended(type, method, callback, isStatic, 5);
+            BunnyMethodHook handle = BunnyHooks.RegisterExtended(type, method, callback, isStatic, BunnyExtendedHookModes.VoidInt32Triple);
             handles.Add(handle);
             return handle;
         }
@@ -361,11 +361,11 @@ public static class BunnyHooks
         if (callback is null) throw new ArgumentNullException(nameof(callback));
         BunnyMethodHook handle = callback switch
         {
-            BunnyInt32ZeroHook c when mode == 1 => new BunnyMethodHook(c),
-            BunnyVoidInt32Hook c when mode == 2 => new BunnyMethodHook(c),
-            BunnyVoidInt32PairHook c when mode == 3 => new BunnyMethodHook(c),
-            BunnyInt32TripleHook c when mode == 4 => new BunnyMethodHook(c),
-            BunnyVoidInt32TripleHook c when mode == 5 => new BunnyMethodHook(c),
+            BunnyInt32ZeroHook c when mode == BunnyExtendedHookModes.Int32Zero => new BunnyMethodHook(c),
+            BunnyVoidInt32Hook c when mode == BunnyExtendedHookModes.VoidInt32 => new BunnyMethodHook(c),
+            BunnyVoidInt32PairHook c when mode == BunnyExtendedHookModes.VoidInt32Pair => new BunnyMethodHook(c),
+            BunnyInt32TripleHook c when mode == BunnyExtendedHookModes.Int32Triple => new BunnyMethodHook(c),
+            BunnyVoidInt32TripleHook c when mode == BunnyExtendedHookModes.VoidInt32Triple => new BunnyMethodHook(c),
             _ => throw new ArgumentException("Callback incompativel com assinatura", nameof(callback))
         };
         lock (RegistrationLock)
@@ -498,14 +498,14 @@ public static class BunnyHooks
     {
         success = 0;
         returnedValue = 0;
-        if (slot < 0 || slot >= Slots.Length || ticket <= 0 || currentTicket != 0 || mode < 1 || mode > 5) return;
+        if (slot < 0 || slot >= Slots.Length || ticket <= 0 || currentTicket != 0 || mode < BunnyExtendedHookModes.Min || mode > BunnyExtendedHookModes.Max) return;
         BunnyMethodHook? handle = Volatile.Read(ref Slots[slot]);
         if (handle is null) return;
-        if ((mode == 1 && handle.Int32ZeroCallback is null) ||
-            (mode == 2 && handle.VoidInt32Callback is null) ||
-            (mode == 3 && handle.VoidInt32PairCallback is null) ||
-            (mode == 4 && handle.Int32TripleCallback is null) ||
-            (mode == 5 && handle.VoidInt32TripleCallback is null)) return;
+        if ((mode == BunnyExtendedHookModes.Int32Zero && handle.Int32ZeroCallback is null) ||
+            (mode == BunnyExtendedHookModes.VoidInt32 && handle.VoidInt32Callback is null) ||
+            (mode == BunnyExtendedHookModes.VoidInt32Pair && handle.VoidInt32PairCallback is null) ||
+            (mode == BunnyExtendedHookModes.Int32Triple && handle.Int32TripleCallback is null) ||
+            (mode == BunnyExtendedHookModes.VoidInt32Triple && handle.VoidInt32TripleCallback is null)) return;
         currentSlot = slot;
         currentTicket = ticket;
         currentSelf = self;
@@ -513,11 +513,11 @@ public static class BunnyHooks
         {
             switch (mode)
             {
-                case 1: returnedValue = handle.Int32ZeroCallback!(new BunnyOriginalInt32(slot, ticket), self); break;
-                case 2: handle.VoidInt32Callback!(new BunnyOriginalVoid(slot, ticket), self, first); break;
-                case 3: handle.VoidInt32PairCallback!(new BunnyOriginalVoid(slot, ticket), self, first, second); break;
-                case 4: returnedValue = handle.Int32TripleCallback!(new BunnyOriginalInt32(slot, ticket), self, first, second, third); break;
-                case 5: handle.VoidInt32TripleCallback!(new BunnyOriginalVoid(slot, ticket), self, first, second, third); break;
+                case BunnyExtendedHookModes.Int32Zero: returnedValue = handle.Int32ZeroCallback!(new BunnyOriginalInt32(slot, ticket), self); break;
+                case BunnyExtendedHookModes.VoidInt32: handle.VoidInt32Callback!(new BunnyOriginalVoid(slot, ticket), self, first); break;
+                case BunnyExtendedHookModes.VoidInt32Pair: handle.VoidInt32PairCallback!(new BunnyOriginalVoid(slot, ticket), self, first, second); break;
+                case BunnyExtendedHookModes.Int32Triple: returnedValue = handle.Int32TripleCallback!(new BunnyOriginalInt32(slot, ticket), self, first, second, third); break;
+                case BunnyExtendedHookModes.VoidInt32Triple: handle.VoidInt32TripleCallback!(new BunnyOriginalVoid(slot, ticket), self, first, second, third); break;
             }
             Calls++;
             success = 1;
