@@ -13,6 +13,10 @@ int main() {
     assert(bl::csharp::validateBasicItem(item, &error));
     item.values[bl::csharp::BasicRare] = 4108;
     assert(!bl::csharp::validateBasicItem(item, &error));
+    item.values[bl::csharp::BasicRare] = -11;
+    assert(bl::csharp::validateBasicItem(item, &error));
+    item.values[bl::csharp::BasicRare] = -10;
+    assert(!bl::csharp::validateBasicItem(item, &error));
     item.values[bl::csharp::BasicRare] = -12;
     assert(!bl::csharp::validateBasicItem(item, &error));
 
@@ -24,6 +28,8 @@ int main() {
     bl::csharp::BasicItemEntry parsed;
     assert(!bl::csharp::parseBasicItemWire(fields, &parsed, &error));
     assert(error.find("SetRarity") != std::string::npos);
+    fields[6] = "-11";
+    assert(bl::csharp::parseBasicItemWire(fields, &parsed, &error));
     fields[6] = "11";
     error.clear();
     assert(bl::csharp::parseBasicItemWire(fields, &parsed, &error));

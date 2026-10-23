@@ -173,6 +173,11 @@ public abstract class BunnyItem : BunnyShootSource
     public void DefaultToQuestFish()
     {
         QuestFish = true;
+        // Item.DefaultToQuestFish do Android 301720: questItem=true,
+        // width=height=26 e rare=Quest (-11). Flags IsQuestFish/weapon rack
+        // pertencem ao AnglerQuestLoader; questItem é um campo da instância.
+        Width = 26; Height = 26; Rare = ItemRarityID.Quest;
+        NativeDefaults.SetBool("questItem",true);
         MaxStack = 1;
         Value = 0;
     }

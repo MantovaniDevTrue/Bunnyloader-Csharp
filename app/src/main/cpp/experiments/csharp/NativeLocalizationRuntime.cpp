@@ -528,6 +528,17 @@ void bindManagedAssembly(const std::string& modId, const std::string& assemblyPa
     }
 }
 
+void retireMod(const std::string& modId) {
+    std::lock_guard<std::mutex> lock(gate);
+    session.replace(modId,{});
+    // Always revoke the worker epoch, including a reload into the same DLL path.
+    if(managedAssemblies.erase(modId)!=0)
+        bl::csharp::unloadManagedLocalizationCallbacks(modId);
+    managedEpochs.erase(modId);
+    lastManagedNotification.erase(modId);
+    pendingManagedNotification.erase(modId);
+}
+
 void stage(const std::string& modId,std::vector<Entry> entries) {
     std::lock_guard<std::mutex> lock(gate);
     session.replace(modId,std::move(entries));

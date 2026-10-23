@@ -14,6 +14,7 @@ struct NativeRarityIdentity {
     std::string mod;
     std::string name;
     bool managed = true;
+    bool active = true; // IDs remain reserved for stable saves after unload.
 };
 
 class NativeRarityRegistry {
@@ -29,8 +30,16 @@ public:
         key.push_back('/');
         key.append(name);
         std::lock_guard<std::mutex> guard(mutex_);
-        if (keys_.contains(key)) return -1;
         const auto current = std::atomic_load_explicit(&published_, std::memory_order_acquire);
+        if (const auto old=keys_.find(key);old!=keys_.end()) {
+            const size_t slot=static_cast<size_t>(old->second-kVanillaCount);
+            if((*current)[slot].active)return -1;
+            auto next=std::make_shared<std::vector<NativeRarityIdentity>>(*current);
+            (*next)[slot].active=true;
+            std::shared_ptr<const std::vector<NativeRarityIdentity>> immutable=next;
+            std::atomic_store_explicit(&published_,std::move(immutable),std::memory_order_release);
+            return old->second;
+        }
         if (current->size() >= kMaximumCustom) return -1;
         const int type = kVanillaCount + static_cast<int>(current->size());
         auto next = std::make_shared<std::vector<NativeRarityIdentity>>(*current);
@@ -39,6 +48,21 @@ public:
         std::shared_ptr<const std::vector<NativeRarityIdentity>> immutable = next;
         std::atomic_store_explicit(&published_, std::move(immutable), std::memory_order_release);
         return type;
+    }
+
+    // Revokes lookup/callback eligibility without reassigning a saved numeric ID.
+    void retireMod(std::string_view mod) {
+        std::lock_guard<std::mutex> guard(mutex_);
+        const auto current=snapshot();
+        auto next=std::make_shared<std::vector<NativeRarityIdentity>>(*current);
+        bool changed=false;
+        for(auto& entry:*next)if(entry.managed&&entry.mod==mod&&entry.active) {
+            entry.active=false;changed=true;
+        }
+        if(changed) {
+            std::shared_ptr<const std::vector<NativeRarityIdentity>> immutable=next;
+            std::atomic_store_explicit(&published_,std::move(immutable),std::memory_order_release);
+        }
     }
 
     int reserveExternalType() {
@@ -60,7 +84,9 @@ public:
         key.append(name);
         std::lock_guard<std::mutex> guard(mutex_);
         const auto it = keys_.find(key);
-        return it == keys_.end() ? -1 : it->second;
+        if(it==keys_.end())return -1;
+        const auto current=std::atomic_load_explicit(&published_,std::memory_order_acquire);
+        return (*current)[static_cast<size_t>(it->second-kVanillaCount)].active?it->second:-1;
     }
 
     NativeRarityIdentity identityForType(int type) const {

@@ -23,6 +23,7 @@
 #include <cstdint>
 #include <cstring>
 #include <mutex>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -40,6 +41,7 @@ struct RarityMod {
     std::string assembly;
     std::vector<RaritySample> rarities;
     size_t cursor = 0;
+    uint64_t generation = 0;
     bool ready = false;
     bool failed = false;
 };
@@ -47,6 +49,8 @@ struct RarityMod {
 std::mutex g_mutex;
 std::vector<RarityMod> g_mods;
 NativeRarityPalette g_palette;
+uint64_t g_nextGeneration=0;
+std::set<int> g_retiredTypes;
 NativeColorLayout g_colorLayout;
 std::atomic<bool> g_hookReady{false};
 unsigned g_tick = 0;
@@ -57,6 +61,7 @@ using RarityInitFn = void (*)(const MethodInfo*);
 RarityInitFn g_originalRarityInitialize = nullptr;
 std::atomic<bool> g_tableHookReady{false};
 std::array<bool, NativeRarityPalette::kMaximumCustom> g_tableOwned{};
+std::array<uint32_t, NativeRarityPalette::kMaximumCustom> g_tableLastColor{};
 Il2CppObject* g_lastRarityTable = nullptr;
 
 bool parameterIs(Il2CppClass* cls, const MethodInfo* method, uint32_t index,
@@ -87,6 +92,8 @@ struct RarityTable {
     FieldInfo* field = nullptr;
     const MethodInfo* contains = nullptr;
     const MethodInfo* set = nullptr;
+    const MethodInfo* get = nullptr;
+    const MethodInfo* remove = nullptr;
     Il2CppClass* color = nullptr;
 };
 RarityTable g_table;
@@ -113,6 +120,8 @@ bool bindRarityTable(std::string* error) {
     }
     const auto* contains = a.class_get_method_from_name(tableClass, "ContainsKey", 1);
     const auto* set = a.class_get_method_from_name(tableClass, "set_Item", 2);
+    const auto* get = a.class_get_method_from_name(tableClass, "get_Item", 1);
+    const auto* remove = a.class_get_method_from_name(tableClass, "Remove", 1);
     if (!contains || !set || !a.method_is_instance(contains) || !a.method_is_instance(set) ||
         !parameterIs(nullptr, contains, 0, "System", "Int32") ||
         !parameterIs(nullptr, set, 0, "System", "Int32") ||
@@ -126,7 +135,14 @@ bool bindRarityTable(std::string* error) {
     NativeColorLayout validated;
     if (!validated.bind(color, error)) return false;
     g_colorLayout = validated;
-    g_table = {field, contains, set, color};
+    if(!get||!remove||!a.method_is_instance(get)||!a.method_is_instance(remove)||
+       !parameterIs(nullptr,get,0,"System","Int32")||
+       !parameterIs(nullptr,remove,0,"System","Int32")||
+       !isReturn(remove,"System","Boolean")||
+       a.class_from_il2cpp_type(a.method_get_return_type(get))!=color) {
+        *error="Reason=RarityDictionaryRetirementMethodsMismatch";return false;
+    }
+    g_table = {field, contains, set, get, remove, color};
     return true;
 }
 
@@ -152,12 +168,21 @@ bool writeRarityTable(int type, uint32_t argb) {
     if (exception || !exists) return false;
     bool present = *(reinterpret_cast<const uint8_t*>(exists) + sizeof(Il2CppObject)) != 0;
     if (present && !g_tableOwned[static_cast<size_t>(slot)]) return false;
+    if(present&&g_table.get) {
+        auto* boxed=a.runtime_invoke(g_table.get,table,hasArgs,&exception);
+        if(exception||!boxed)return false;
+        uint32_t previous=0;std::memcpy(&previous,reinterpret_cast<const uint8_t*>(boxed)+sizeof(Il2CppObject),sizeof(previous));
+        if(previous!=g_tableLastColor[static_cast<size_t>(slot)]) {
+            g_tableOwned[static_cast<size_t>(slot)]=false;return false;
+        }
+    }
     if (!present) g_tableOwned[static_cast<size_t>(slot)] = false;
     uint32_t value = g_colorLayout.fromArgb(argb);
     void* arguments[] = {&key, &value};
     exception = nullptr;
     a.runtime_invoke(g_table.set, table, arguments, &exception);
     if (exception) return false;
+    g_tableLastColor[static_cast<size_t>(slot)] = value;
     g_tableOwned[static_cast<size_t>(slot)] = true;
     return true;
 }
@@ -169,7 +194,7 @@ void initializeRarityTable(const MethodInfo* method) {
     if (!g_tableHookReady.load(std::memory_order_acquire)) return;
     const auto entries = nativeRarities().snapshot();
     for (const auto& entry : *entries) {
-        if (!entry.managed) continue;
+        if (!entry.managed || !entry.active) continue;
         uint32_t color = 0;
         if (g_palette.read(entry.type, &color))
             writeRarityTable(entry.type, color);
@@ -230,7 +255,7 @@ bool prefixRarity(Il2CppObject* item, int32_t requested, bool* topTier, const Me
         return g_originalPrefix(item, requested, topTier, method);
     const int32_t base = bl::runtime::field<int32_t>(item, g_rareOffset);
     const auto identity = nativeRarities().identityForType(base);
-    if (!identity.managed || identity.mod.empty())
+    if (!identity.managed || !identity.active || identity.mod.empty())
         return g_originalPrefix(item, requested, topTier, method);
     const bool succeeded = g_originalPrefix(item, requested, topTier, method);
     if (!succeeded) {
@@ -246,6 +271,7 @@ bool prefixRarity(Il2CppObject* item, int32_t requested, bool* topTier, const Me
                 if (mod.id == identity.mod && mod.ready && !mod.failed) {
                     owner.id = mod.id;
                     owner.assembly = mod.assembly;
+                    owner.generation = mod.generation;
                     break;
                 }
         }
@@ -267,9 +293,14 @@ bool prefixRarity(Il2CppObject* item, int32_t requested, bool* topTier, const Me
         const bool called = invokeManagedRarity(owner.id, owner.assembly, identity.name,
             1, payload + "," + std::to_string(vanilla), &response, 1800);
         int resultingType = base;
-        if (called && decodeRarityPrefixWire(response, &resultingType) &&
+        std::lock_guard guard(g_mutex);
+        const bool current=std::any_of(g_mods.begin(),g_mods.end(),[&](const auto& m){
+            return m.id==owner.id&&m.generation==owner.generation;
+        });
+        if (current && called && decodeRarityPrefixWire(response, &resultingType) &&
             (resultingType < NativeRarityRegistry::kVanillaCount ||
-             !nativeRarities().stableKeyForType(resultingType).empty()))
+             (nativeRarities().identityForType(resultingType).active &&
+              !nativeRarities().stableKeyForType(resultingType).empty())))
             bl::runtime::field<int32_t>(item, g_rareOffset) = resultingType;
         else
             bl::runtime::field<int32_t>(item, g_rareOffset) = base;
@@ -911,7 +942,7 @@ std::string discoSnapshot() {
 bool nativeManagedRarityColor(int type, uint32_t* argb) {
     if (!argb) return false;
     const auto identity = nativeRarities().identityForType(type);
-    return identity.managed && !identity.mod.empty() && g_palette.read(type, argb);
+    return identity.managed && identity.active && !identity.mod.empty() && g_palette.read(type, argb);
 }
 
 bool registerNativeRaritySampling(const std::string& mod, const std::string& assembly) {
@@ -921,16 +952,61 @@ bool registerNativeRaritySampling(const std::string& mod, const std::string& ass
     entry.assembly = assembly;
     const auto snapshot = nativeRarities().snapshot();
     for (const auto& rarity : *snapshot)
-        if (rarity.managed && rarity.mod == mod) entry.rarities.push_back({rarity.type, rarity.name});
+        if (rarity.managed && rarity.active && rarity.mod == mod) entry.rarities.push_back({rarity.type, rarity.name});
     if (entry.rarities.empty()) return false;
     std::lock_guard guard(g_mutex);
     for (const auto& previous : g_mods)
         if (previous.id == mod) return false;
+    entry.generation=++g_nextGeneration;
     g_mods.push_back(std::move(entry));
     return true;
 }
 
+void retireNativeRaritySampling(const std::string& mod) {
+    unloadManagedRarityCallbacks(mod);
+    nativeRarities().retireMod(mod);
+    const auto snapshot=nativeRarities().snapshot();
+    std::lock_guard guard(g_mutex);
+    std::erase_if(g_mods,[&](const auto& entry){return entry.id==mod;});
+    for(const auto& entry:*snapshot)if(entry.managed&&entry.mod==mod) {
+        g_palette.invalidate(entry.type);
+        g_retiredTypes.insert(entry.type);
+    }
+}
+
+// This is always pumped, even with no mods. No IL2CPP calls happen on unload's
+// worker thread. A third party replacing our value keeps ownership of its cell.
+void retireRarityTableOnGameThread() {
+    std::lock_guard guard(g_mutex);
+    if(g_retiredTypes.empty())return;
+    auto& a=bl::il2cpp::api();
+    if(!g_table.field||!a.field_static_get_value||!a.runtime_invoke)return;
+    Il2CppObject* table=nullptr;a.field_static_get_value(g_table.field,&table);
+    if(!table)return;
+    if(table!=g_lastRarityTable) {g_tableOwned.fill(false);g_lastRarityTable=table;}
+    for(auto it=g_retiredTypes.begin();it!=g_retiredTypes.end();) {
+        const size_t slot=static_cast<size_t>(*it-NativeRarityPalette::kFirstCustom);
+        if(!g_tableOwned[slot]) {it=g_retiredTypes.erase(it);continue;}
+        int32_t key=*it;void* args[]={&key};Il2CppObject* exception=nullptr;
+        auto* present=a.runtime_invoke(g_table.contains,table,args,&exception);
+        if(exception||!present) {++it;continue;}
+        bool exists=*(reinterpret_cast<const uint8_t*>(present)+sizeof(Il2CppObject))!=0;
+        if(exists) {
+            if(!g_table.get||!g_table.remove) {++it;continue;}
+            auto* boxed=a.runtime_invoke(g_table.get,table,args,&exception);
+            if(exception||!boxed) {++it;continue;}
+            uint32_t value=0;std::memcpy(&value,reinterpret_cast<const uint8_t*>(boxed)+sizeof(Il2CppObject),sizeof(value));
+            if(value==g_tableLastColor[slot]) {
+                auto* removed=a.runtime_invoke(g_table.remove,table,args,&exception);
+                if(exception||!removed||!*(reinterpret_cast<const uint8_t*>(removed)+sizeof(Il2CppObject))) {++it;continue;}
+            }
+        }
+        g_tableOwned[slot]=false;it=g_retiredTypes.erase(it);
+    }
+}
+
 void pumpNativeRarityGameplay() {
+    retireRarityTableOnGameThread();
     ++g_tick;
     if (g_hoverFallbackReady.load(std::memory_order_acquire))
         refreshRarityHoverFallback();
@@ -946,6 +1022,7 @@ void pumpNativeRarityGameplay() {
             if (mod.failed) continue;
             current.id = mod.id;
             current.assembly = mod.assembly;
+            current.generation = mod.generation;
             if (mod.ready && !mod.rarities.empty()) {
                 current.rarities.push_back(mod.rarities[mod.cursor % mod.rarities.size()]);
                 mod.cursor = (mod.cursor + 1) % mod.rarities.size();
@@ -962,7 +1039,7 @@ void pumpNativeRarityGameplay() {
         if (state == 0) return;
         std::lock_guard guard(g_mutex);
         for (auto& mod : g_mods) {
-            if (mod.id != current.id) continue;
+            if (mod.id != current.id || mod.generation != current.generation) continue;
             mod.ready = state == 1;
             mod.failed = state < 0;
             if (mod.failed)
@@ -982,6 +1059,10 @@ void pumpNativeRarityGameplay() {
                 current.id.c_str(), response.c_str());
         return;
     }
+    std::lock_guard publication(g_mutex);
+    if(!std::any_of(g_mods.begin(),g_mods.end(),[&](const auto& entry){
+        return entry.id==current.id&&entry.generation==current.generation;
+    }))return;
     uint32_t argb = 0;
     if (!decodeRarityColorWire(response, &argb) || !g_palette.publish(sample.type, argb)) {
         if (g_tick % 600u == 0)
@@ -989,6 +1070,7 @@ void pumpNativeRarityGameplay() {
                 current.id.c_str(), response.c_str());
         return;
     }
+    g_retiredTypes.erase(sample.type); // New generation now owns this reserved ID.
     if (g_tableHookReady.load(std::memory_order_acquire))
         writeRarityTable(sample.type, argb);
     if (!g_tableHookReady.load(std::memory_order_acquire) && (g_tick % 60u == 0)) {

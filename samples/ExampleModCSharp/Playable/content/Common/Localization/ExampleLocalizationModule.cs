@@ -5,6 +5,8 @@ using ExampleModCSharp.Content.Items.Armor;
 
 namespace ExampleModCSharp.Common.Localization;
 
+// O callback é reexecutado quando o idioma muda. O loader fornece UID/idioma
+// e descarta respostas de uma revisão antiga após recarga ou unload.
 public sealed class ExampleLocalizationModule : BunnyLocalizationModule
 {
     public string LastAppliedCulture { get; private set; } = "";

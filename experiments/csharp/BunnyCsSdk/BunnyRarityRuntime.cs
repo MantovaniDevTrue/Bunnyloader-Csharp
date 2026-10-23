@@ -69,7 +69,7 @@ public static class BunnyRarityRuntime
                 }
                 if (entries.Count == 0 || Mods.ContainsKey(modId))
                     return "ERROR|Stage=BindRarity Reason=EmptyOrAlreadyBound";
-                Assembly assembly = Assembly.Load(File.ReadAllBytes(assemblyPath));
+                Assembly assembly = BunnyRecipeLoader.LoadAssembly(modId, assemblyPath);
                 var byName = new Dictionary<string, BunnyRarity>(StringComparer.Ordinal);
                 var byId = new Dictionary<int, BunnyRarity>();
                 Type[] classes = assembly.GetTypes()

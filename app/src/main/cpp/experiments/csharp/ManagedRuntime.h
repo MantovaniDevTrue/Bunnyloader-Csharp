@@ -38,6 +38,9 @@ bool hasManagedDustType(int type);
 bool managedDustWorkerReady(int type);
 
 bool managedRecipeRuntimeReady();
+// Durable, owner-scoped worker teardown; never waits for Mono on the caller.
+void unloadManagedRarityCallbacks(const std::string& mod);
+void queueManagedRecipeUnload(const std::string& mod,const std::string& assembly);
 bool queueManagedRarityWarmup(const std::string& mod, const std::string& assembly,
     const std::string& identities);
 int managedRarityWarmupState(const std::string& mod, const std::string& assembly,

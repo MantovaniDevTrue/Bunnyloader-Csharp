@@ -338,5 +338,10 @@
     "source": "check-csharp-armor-port.yml",
     "name": "Verify original armor prices tooltips and production native equipment policies",
     "command": "bash tests/armor_port_run.sh"
+  },
+  {
+    "source": "check-csharp-three-loaders.yml",
+    "name": "Verify three loader revisions, native retirement, durable worker teardown and collectible shared assemblies",
+    "command": "bash tests/three_loaders/run.sh"
   }
 ]

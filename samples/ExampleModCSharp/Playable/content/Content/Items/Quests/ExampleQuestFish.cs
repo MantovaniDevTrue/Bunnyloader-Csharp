@@ -2,6 +2,8 @@ using BunnyLoader.Source;
 
 namespace ExampleModCSharp;
 
+// O AnglerQuestLoader publica este item nas tabelas nativas do Pescador e
+// retira lista, flags e delegates quando o mod sai. Veja Documentation/THREE_LOADERS.md.
 public sealed class ExampleQuestFish : BunnyItem
 {
     public override void SetDefaults()

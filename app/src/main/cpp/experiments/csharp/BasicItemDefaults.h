@@ -53,10 +53,13 @@ inline bool validBasicAccessoryEffect(const BasicAccessoryEffect& e) {
     return (e.operation=="add"||e.operation=="mul")&&e.value>=-10&&e.value<=10&&(e.operation!="mul"||e.value>=0);
 }
 inline bool validateBasicItem(const BasicItemEntry& item,std::string* error) {
-    const int min[]={0,0,1,0,-1,0,-100,0,0,0,0,0,0,0};
+    const int min[]={0,0,1,0,-11,0,-100,0,0,0,0,0,0,0};
     const int max[]={256,256,9999,100000000,4107,1000,100,600,600,20,1000,200,1000,127};
     for(size_t i=0;i<BasicFieldCount;++i) if(item.values[i]<min[i]||item.values[i]>max[i]) {
         *error=item.name+": "+kBasicFieldNames[i]+" fora do limite";return false;
+    }
+    if(item.values[BasicRare]>-11&&item.values[BasicRare]<-1) {
+        *error=item.name+": rare nativo negativo invalido";return false;
     }
     if(!std::isfinite(item.knockBack)||item.knockBack<0||item.knockBack>50) { *error=item.name+": KnockBack invalido";return false; }
     if(item.accessoryEffects.size()>16||(!item.accessoryEffects.empty()&&!(item.values[BasicFlags]&32))) {

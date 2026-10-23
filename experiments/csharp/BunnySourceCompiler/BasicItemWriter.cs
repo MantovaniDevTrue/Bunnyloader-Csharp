@@ -18,12 +18,12 @@ internal static class BasicItemWriter
             ?? throw new InvalidOperationException(name+": propriedade ausente "+p));
         string[] keys={"Width","Height","MaxStack","Value","Rare","Damage","Crit","UseTime",
             "UseAnimation","UseStyle","Pick","Axe","Hammer"};
-        int[] min={0,0,1,0,-1,0,-100,0,0,0,0,0,0};
+        int[] min={0,0,1,0,-11,0,-100,0,0,0,0,0,0};
         int[] max={256,256,9999,100000000,11,1000,100,600,600,20,1000,200,1000};
         var parts=new List<string>{"ITEM",name};
         for(int i=0;i<keys.Length;i++) {
             int value=Get<int>(keys[i]);
-            if(value<min[i]||value>max[i])throw new InvalidOperationException(name+": "+keys[i]+" fora do limite");
+            if(value<min[i]||value>max[i]||(keys[i]=="Rare"&&value>-11&&value< -1))throw new InvalidOperationException(name+": "+keys[i]+" fora do limite");
             parts.Add(value.ToString(CultureInfo.InvariantCulture));
         }
         int flags=(Get<bool>("Melee")?1:0)|(Get<bool>("NoMelee")?2:0)|(Get<bool>("AutoReuse")?4:0)|

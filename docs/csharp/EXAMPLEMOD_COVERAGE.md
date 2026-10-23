@@ -12,9 +12,9 @@ O catálogo usa cada hook JS como unidade inicial de revisão, com hash do fonte
 
 | Estado | Comportamentos |
 |---|---:|
-| não iniciado | 687 |
+| não iniciado | 678 |
 | implementado sem validar | 0 |
-| validado automaticamente | 36 |
+| validado automaticamente | 48 |
 | validado no Android | 1 |
 | falhou | 3 |
 | bloqueio comprovado | 0 |
@@ -27,6 +27,7 @@ Dust e invasão: o baseline contém correções posteriores aos logs Android de 
 
 | Comportamento | Estado | Observação |
 |---|---|---|
+| Common/Players/ExampleFishingPlayer.js#CatchFish | validado automaticamente | Peixe e regra de pesca conferidos no Bunny JS anexado. Helper Android 301720 inspecionado: questItem=true, 26x26 e rare=-11; protocolo real, flags/lista, disponibilidade/chat/captura e unload verificados no host. Gameplay Android pendente. |
 | Content/Items/Accessories/WaspNest.js#SetDefaults | validado automaticamente | Valores originais (26x26, Green=2, sellPrice 2 gold) e strongBees funcional; Back autoload do JS tem política C++ equivalente. Testes nativos sem QuickJS cobrem slots/desenho, equipamento/vaidade e reset; Android pendente. |
 | Content/Items/Accessories/WaspNest.js#UpdateAccessory | validado automaticamente | Valores originais (26x26, Green=2, sellPrice 2 gold) e strongBees funcional; Back autoload do JS tem política C++ equivalente. Testes nativos sem QuickJS cobrem slots/desenho, equipamento/vaidade e reset; Android pendente. |
 | Content/Items/Armor/ExampleBreastplate.js#AddRecipes | validado automaticamente | Valores, receitas e textos originais das peças conferidos no protocolo Roslyn; efeitos de peça e os quatro bônus do conjunto executados nos hooks C++ sem QuickJS. A localização do texto de conjunto é validada separadamente em AddArmorSets. Aparência e execução Android pendentes. |
@@ -46,12 +47,20 @@ Dust e invasão: o baseline contém correções posteriores aos logs Android de 
 | Content/Items/Materials/ExampleSoul.js#PostUpdate | validado automaticamente | Protocolo Roslyn dos fontes reais e hooks C++ sem QuickJS verificam clone, valores, animação 4/6, três tabelas, RGBA e iluminação RGB no centro com essScale; Android e aparência pendentes. |
 | Content/Items/Materials/ExampleSoul.js#SetDefaults | validado automaticamente | Protocolo Roslyn dos fontes reais e hooks C++ sem QuickJS verificam clone, valores, animação 4/6, três tabelas, RGBA e iluminação RGB no centro com essScale; Android e aparência pendentes. |
 | Content/Items/Materials/ExampleSoul.js#SetStaticDefaults | validado automaticamente | Protocolo Roslyn dos fontes reais e hooks C++ sem QuickJS verificam clone, valores, animação 4/6, três tabelas, RGBA e iluminação RGB no centro com essScale; Android e aparência pendentes. |
+| Content/Items/Quests/ExampleQuestFish.js#AnglerQuestChat | validado automaticamente | Peixe e regra de pesca conferidos no Bunny JS anexado. Helper Android 301720 inspecionado: questItem=true, 26x26 e rare=-11; protocolo real, flags/lista, disponibilidade/chat/captura e unload verificados no host. Gameplay Android pendente. |
+| Content/Items/Quests/ExampleQuestFish.js#IsAnglerQuestAvailable | validado automaticamente | Peixe e regra de pesca conferidos no Bunny JS anexado. Helper Android 301720 inspecionado: questItem=true, 26x26 e rare=-11; protocolo real, flags/lista, disponibilidade/chat/captura e unload verificados no host. Gameplay Android pendente. |
+| Content/Items/Quests/ExampleQuestFish.js#SetDefaults | validado automaticamente | Peixe e regra de pesca conferidos no Bunny JS anexado. Helper Android 301720 inspecionado: questItem=true, 26x26 e rare=-11; protocolo real, flags/lista, disponibilidade/chat/captura e unload verificados no host. Gameplay Android pendente. |
+| Content/Items/Quests/ExampleQuestFish.js#SetStaticDefaults | validado automaticamente | Peixe e regra de pesca conferidos no Bunny JS anexado. Helper Android 301720 inspecionado: questItem=true, 26x26 e rare=-11; protocolo real, flags/lista, disponibilidade/chat/captura e unload verificados no host. Gameplay Android pendente. |
 | Content/Items/Tools/ExampleHamaxe.js#AddRecipes | validado automaticamente | Valores e receita conferidos no C# real: Green=2, poderes/tempos/dano/knockback originais e 10 ExampleItem na Work Bench. Uso/mineração no Android pendentes. |
 | Content/Items/Tools/ExampleHamaxe.js#SetDefaults | validado automaticamente | Valores e receita conferidos no C# real: Green=2, poderes/tempos/dano/knockback originais e 10 ExampleItem na Work Bench. Uso/mineração no Android pendentes. |
 | Content/Items/Tools/ExamplePickaxe.js#AddRecipes | validado automaticamente | Valores e receita conferidos no C# real: Green=2, poderes/tempos/dano/knockback originais e 10 ExampleItem na Work Bench. Uso/mineração no Android pendentes. |
 | Content/Items/Tools/ExamplePickaxe.js#SetDefaults | validado automaticamente | Valores e receita conferidos no C# real: Green=2, poderes/tempos/dano/knockback originais e 10 ExampleItem na Work Bench. Uso/mineração no Android pendentes. |
 | Content/Projectiles/ExampleGolfBallProjectile.js#SetDefaults | validado automaticamente | Tradução dos valores originais, assets e nomes en-US/pt-BR. Compilação Roslyn do mod real e execução do hook C++ de produção sem QuickJS verificam as tabelas antes do SetDefaults original. Física, renderização e rede no Android ainda não foram validadas. |
 | Content/Projectiles/ExampleGolfBallProjectile.js#SetStaticDefaults | validado automaticamente | Tradução dos valores originais, assets e nomes en-US/pt-BR. Compilação Roslyn do mod real e execução do hook C++ de produção sem QuickJS verificam as tabelas antes do SetDefaults original. Física, renderização e rede no Android ainda não foram validadas. |
+| Content/Rarities/ExampleHigherTierModRarity.js#GetPrefixedRarity | validado automaticamente | Callbacks originais de cor fixa/disco e transição de raridade conferidos no pacote Bunny JS anexado. Registro, cores, ABI, persistência e retirada têm testes host; confirmação visual Android pendente. |
+| Content/Rarities/ExampleHigherTierModRarity.js#RarityColor | validado automaticamente | Callbacks originais de cor fixa/disco e transição de raridade conferidos no pacote Bunny JS anexado. Registro, cores, ABI, persistência e retirada têm testes host; confirmação visual Android pendente. |
+| Content/Rarities/ExampleModRarity.js#GetPrefixedRarity | validado automaticamente | Callbacks originais de cor fixa/disco e transição de raridade conferidos no pacote Bunny JS anexado. Registro, cores, ABI, persistência e retirada têm testes host; confirmação visual Android pendente. |
+| Content/Rarities/ExampleModRarity.js#RarityColor | validado automaticamente | Callbacks originais de cor fixa/disco e transição de raridade conferidos no pacote Bunny JS anexado. Registro, cores, ABI, persistência e retirada têm testes host; confirmação visual Android pendente. |
 | requirement:tooltip-without-js | falhou | Dependência confirmada por inspeção de Exports.js/TooltipLoader.js; substituir por renderer nativo. |
 | requirement:aim-before-shoot | validado automaticamente | Falha myPlayer do APK 311 corrigida no 312; usuário relatou armas funcionando. No lote 313, regressões de mira passam no host; nova opção do cajado ainda aguarda Android. O resolvedor agora aceita getter estático válido mesmo quando há um campo de instância homônimo; a ausência de ambos continua rejeitada. |
 | requirement:ExampleGun | validado automaticamente | Asserções dos valores/algoritmo do exemplo real e protocolo compilado no host. Trajetória, cano e consumo no motor Android pendentes. |
@@ -67,6 +76,9 @@ Dust e invasão: o baseline contém correções posteriores aos logs Android de 
 | requirement:rarity-mouse-text-cache-android-layout | validado automaticamente | Metadados do Android 301720 identificam estrutura mista de 48 bytes, com diff Byte e referências String. O binder normaliza offsets crus/boxed e aceita passagem indireta somente no ARM64. O tooltip identifica a classe aninhada por identidade, sem presumir namespace Terraria. Fixture executa scopes e forwarding reais sem QuickJS; não valida renderização visual, instalação dos hooks no aparelho nem o loader inteiro. |
 | requirement:projectile-static-defaults-lifecycle | validado automaticamente | O compilador executa o hook após SetDefaults do protótipo, rejeita new em vez de override e propaga exceções. Tabelas são aplicadas na thread do Terraria antes do spawn e antes do SetDefaults original. Retirada seletiva, campos removidos, recarga imediata, consumidores posteriores e 1000 publicações/retiradas concorrentes são exercitados pelo fixture nativo. A alteração cobre essas políticas; não encerra o lifecycle global de todos os loaders. |
 | requirement:armor-native-retirement | validado automaticamente | Fixture C++ de produção com protocolo real: revogação imediata dos efeitos, limpeza na thread do jogo, outros mods preservados, dependências entre mods, snapshot vazio/peça retirada, A1/A2, metadados crus/boxed, falhas parciais, troca de texto/chave e 100 recargas antes do pump. Glue de SourceLoader/AutoSourceRuntime compilado; execução completa no Android pendente. |
+| requirement:localization-loader-bunny-contract | validado automaticamente | Contrato JSON do Bunny: fallback, referências, textos globais, callbacks, idioma e retirada por UID. Revisões nativas usam o contexto compartilhado; respostas antigas são rejeitadas. HJSON/tooling de desktop não incluídos; Android pendente. |
+| requirement:rarity-loader-bunny-contract | validado automaticamente | Contrato de raridade do Bunny: callbacks, integração visual nativa, prefixos, persistência e ciclo de vida. IDs estáveis são reativados; cores e dicionário retirados seletivamente. QA Android pendente. |
+| requirement:angler-quest-loader-bunny-contract | validado automaticamente | Contrato do AnglerQuestLoader Bunny: quest fish, flags/lista, seleção/chat, captura e callbacks/revisões/unload. Teardown durável, contextos coletáveis e outros UIDs verificados no host. QA Android pendente. |
 
 Todos os hooks e o backlog oficial estão em [EXAMPLEMOD_COVERAGE.json](EXAMPLEMOD_COVERAGE.json).
 

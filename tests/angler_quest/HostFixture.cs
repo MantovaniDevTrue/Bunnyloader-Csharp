@@ -21,6 +21,10 @@ try
         !values.Contains("\nITEM\tExampleQuestFish\t", StringComparison.Ordinal))
         throw new InvalidOperationException("Primary quest fish item missing from V2 output");
     string[] lines = values.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+    string[] primary=lines.Single(line=>line.StartsWith("ITEM\tExampleQuestFish\t",StringComparison.Ordinal)).Split('\t');
+    if(primary[2]!="26"||primary[3]!="26"||primary[6]!="-11"||
+       !lines.Contains("NATIVE_ITEM\tExampleQuestFish\tquestItem:b:1"))
+        throw new InvalidOperationException("DefaultToQuestFish lost native dimensions, Quest rarity or instance flag");
     string[] fish = lines.Single(line => line.StartsWith("QUEST_FISH\tExampleQuestFish\t", StringComparison.Ordinal)).Split('\t');
     if (fish.Length != 7 || fish[1] != "ExampleQuestFish" || fish[2] != "0" || fish[3] != "1" || fish[6] != "0")
         throw new InvalidOperationException("Quest availability or identity does not match the original fish");

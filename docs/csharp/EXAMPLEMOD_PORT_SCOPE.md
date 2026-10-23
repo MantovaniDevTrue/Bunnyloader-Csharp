@@ -21,3 +21,15 @@ O lote de armaduras sobe os fontes para **0.1.68**. Corrige o valor interno das 
 O lote de localização sobe os fontes para **0.1.69** e implementa a pendência anterior de AddArmorSets no host. `BunnyArmorSet.UseLocalizedText` recebe uma chave relativa, serializada no formato opcional A2; A1 continua compatível. O exemplo lê o JSON original e formata o bônus com a constante de dano. O nativo qualifica a chave com o UID do dono e espera por Language.Exists antes de registrar o LocalizedText. Inspeção do código Android 301720 confirma que Builder.Add chama Language.GetText e armazena o resultado em Description. O fixture usa o protocolo real e cobre en-US, pt-BR, fallback e sete falhas de lookup, preservando efeitos e evitando novos registros na troca de idioma. Essa evidência de host não confirma a aparência nem a execução no aparelho e não encerra o loader inteiro. Nenhum APK gerado.
 
 O lote de retirada de armaduras sobe os fontes para **0.1.70**. A retirada por UID revoga as políticas imediatamente e agenda a limpeza nativa para a thread do jogo, preservando outros mods. SourceLoader conecta esse caminho ao reset, recarga, falha e snapshot completo, incluindo o vazio; uma falha posterior à aplicação dos defaults também revoga as armaduras. O pump remove apenas os conjuntos retirados de All/lookup e libera seus handles depois da limpeza. Mantém a supressão do delegate Pumpkin durante falhas parciais e recupera Add por identidade após deslocamento de índices. Peças com ID reservado mas ausentes do snapshot ativo não reativam conjuntos, inclusive dependências entre mods. Há regressões com o protocolo real, A1/A2, metadados crus/boxed e 100 recargas em outra thread antes do pump; a execução Android continua pendente. Nenhum APK gerado.
+
+O lote dos três loaders fecha os contratos Bunny JS de **LocalizationLoader,
+RarityLoader e AnglerQuestLoader** nos fontes e no host. São 69 checks aprovados,
+incluindo uma DLL real recompilada no mesmo caminho, revisão compartilhada pelos
+três loaders, retirada durável, respostas obsoletas, preservação de outro UID e
+contextos coletáveis. A conferência do helper Android também corrigiu o peixe:
+26×26, raridade Quest (-11) e `questItem=true` tipado. Nove comportamentos dos
+fontes originais receberam evidência automática, com três requisitos de ciclo
+completo do contrato Bunny. O escopo exato, referências e limites estão em
+`THREE_LOADER_COMPLETION.md`; o relatório é
+`HOST_QA_20261023_THREE_LOADERS.json`. QA Android, ferramentas HJSON de desktop e
+a conclusão dos outros loaders não são declarados. Nenhum APK gerado.

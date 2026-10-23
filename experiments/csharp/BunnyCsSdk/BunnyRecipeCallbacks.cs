@@ -80,7 +80,7 @@ public static class BunnyRecipeLoader
     private static readonly Dictionary<string,Mod> mods=new(StringComparer.Ordinal);
     [ThreadStatic] private static List<BunnyRecipe>? capture;
     internal static void Capture(BunnyRecipe recipe) { capture?.Add(recipe); }
-    internal static Assembly LoadAssembly(string modId,string assemblyPath)
+    internal static string AssemblyFilePath(string assemblyPath)
     {
         const string marker="|bunny-revision=";
         int suffix=assemblyPath.LastIndexOf(marker,StringComparison.Ordinal);
@@ -93,6 +93,11 @@ public static class BunnyRecipeLoader
                 throw new InvalidOperationException("Invalid managed assembly revision");
             filePath=assemblyPath[..suffix];
         }
+        return filePath;
+    }
+    internal static Assembly LoadAssembly(string modId,string assemblyPath)
+    {
+        string filePath=AssemblyFilePath(assemblyPath);
         if(!mods.TryGetValue(modId,out Mod? mod)||mod.Path!=assemblyPath)
         {
             if(mod!=null)Evict(modId,mod);

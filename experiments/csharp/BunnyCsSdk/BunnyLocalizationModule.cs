@@ -208,10 +208,17 @@ public static class BunnyLocalizationRuntime
                 if (!Mods.TryGetValue(modId, out ModState? state) ||
                     state.AssemblyPath != assemblyPath)
                 {
-                    var file = new FileInfo(assemblyPath);
+                    string physicalPath=BunnyRecipeLoader.AssemblyFilePath(assemblyPath);
+                    var file = new FileInfo(physicalPath);
                     if (!file.Exists || file.Length <= 0 || file.Length > 32 * 1024 * 1024)
                         return "ERROR|InvalidAssembly";
-                    Assembly assembly = Assembly.LoadFrom(assemblyPath);
+                    // Native sessions supply the same revision token as quests/recipes.
+                    // Sharing that collectible context also preserves mod static state and
+                    // lets live registrations identify their real calling assembly.
+                    Assembly assembly = assemblyPath.Contains("|bunny-revision=",StringComparison.Ordinal)
+                        ? BunnyRecipeLoader.LoadAssembly(modId,assemblyPath)
+                        : Assembly.LoadFrom(physicalPath); // Legacy unversioned SDK calls.
+
                     Type[] types = assembly.GetTypes()
                         .Where(type => type.IsClass && !type.IsAbstract &&
                             !type.ContainsGenericParameters &&

@@ -6,6 +6,7 @@ namespace bl::csharp {
 
 bool registerNativeRaritySampling(const std::string& mod, const std::string& assembly);
 void pumpNativeRarityGameplay();
+void retireNativeRaritySampling(const std::string& mod);
 bool nativeManagedRarityColor(int type, uint32_t* argb);
 
 }

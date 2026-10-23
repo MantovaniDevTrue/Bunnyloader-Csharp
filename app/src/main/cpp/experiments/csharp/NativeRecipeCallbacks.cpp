@@ -207,10 +207,7 @@ void bindNativeRecipeAssembly(const std::string& mod,const std::string& assembly
 void unbindNativeRecipeAssembly(const std::string& mod){
     const std::string old=assemblyBindings.current(mod);
     if(old.empty())return;
-    if(managedRecipeRuntimeReady()) {
-        std::string response;
-        invokeManagedRecipe(mod,old,"__unload__",0,6,"",&response,1500);
-    }
+    queueManagedRecipeUnload(mod,old);
     assemblyBindings.unbindIfCurrent(mod,old);
 }
 bool hasManagedAnglerQuestCallbacks(const std::string& mod) {

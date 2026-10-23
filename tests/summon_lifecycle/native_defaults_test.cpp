@@ -43,6 +43,11 @@ int main(int argc,char** argv) {
  NativeDefaultsRequest request{"ThirdPartyBullet","consumer","Ammo.cs","useStyle:i:5;ranged:b:1;shootSpeed:f:4.5;shoot:p:independent/ExampleBulletProjectile;ammo:d:AmmoID:Bullet",6230,false};
  std::string error;assert(publishNativeDefaults({request},&error,resolve));
  alignas(8) unsigned char bytes[64];std::memset(bytes,0xAA,sizeof bytes);applyNativeDefaults(reinterpret_cast<Il2CppObject*>(bytes),false,6230);
+ fields["questItem"]={{&boolClass},30};
+ auto quest=request;quest.name="QuestFish";quest.descriptor="questItem:b:1";quest.type=6234;
+ if(!publishNativeDefaults({quest},&error,resolve)){std::cerr<<error<<"\n";assert(false);}
+ applyNativeDefaults(reinterpret_cast<Il2CppObject*>(bytes),false,6234);
+ assert(bytes[30]==1&&bytes[31]==0xAA);
  assert(bytes[16]==5&&bytes[17]==0xAA&&bytes[18]==1&&bytes[19]==0xAA&&bytes[28]==97&&bytes[29]==0xAA);
  float speed=0;int shoot=0;std::memcpy(&speed,bytes+20,4);std::memcpy(&shoot,bytes+24,4);assert(speed==4.5f&&shoot==1200);
  const auto good=std::atomic_load(&g_nativeDefaults);
@@ -51,6 +56,7 @@ int main(int argc,char** argv) {
    assert(std::atomic_load(&g_nativeDefaults)==good);
    assert(error.find("Class=ThirdPartyBullet")!=std::string::npos&&error.find("File=Ammo.cs")!=std::string::npos);
  };
+ reject("questItem:i:1","NativeIntegerTypeOrRangeMismatch");
  reject("identity:i:1","UnsupportedField");reject("useStyle:i:256","NativeIntegerTypeOrRangeMismatch");
  reject("ranged:i:1","NativeIntegerTypeOrRangeMismatch");reject("shootSpeed:f:NaN","NativeTypeOrValueMismatch");
  reject("shoot:p:absent/Projectile","ProjectileDependencyMissing");reject("useStyle:i:1;useStyle:i:2","UnsupportedField");

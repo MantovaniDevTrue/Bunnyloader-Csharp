@@ -2,6 +2,7 @@
 #include "experiments/csharp/NativeTileWirePolicy.h"
 #include "experiments/csharp/SourceLoader.h"
 #include "experiments/csharp/NativeRarityRegistry.h"
+#include "experiments/csharp/NativeRarityGameplay.h"
 #include "experiments/csharp/ManagedDustContract.h"
 
 #include "experiments/csharp/NativeContent.h"
@@ -703,6 +704,8 @@ void resetCSharpSourceModSession() {
     for (const auto& mod : g_statuses) {
         retireNativeDefaultsForMod(mod.id);
         retireNativeArmorPoliciesForMod(mod.id);
+        retireNativeRaritySampling(mod.id);
+        localization::retireMod(mod.id);
         shooting::unload(mod.id);
         angler::registry().unload(mod.id);
         unbindNativeRecipeAssembly(mod.id);
@@ -718,6 +721,8 @@ bool loadCSharpSourceMod(const bl::mods::LoadedMod& mod) {
     if (previous != g_statuses.end()) {
         retireNativeDefaultsForMod(mod.id);
         retireNativeArmorPoliciesForMod(mod.id);
+        retireNativeRaritySampling(mod.id);
+        localization::retireMod(mod.id);
         shooting::unload(mod.id);
         angler::registry().unload(mod.id);
         unbindNativeRecipeAssembly(mod.id);
@@ -735,7 +740,12 @@ bool loadCSharpSourceMod(const bl::mods::LoadedMod& mod) {
     } else {
         retireNativeDefaultsForMod(mod.id);
         retireNativeArmorPoliciesForMod(mod.id);
+        retireNativeRaritySampling(mod.id);
+        localization::retireMod(mod.id);
         shooting::unload(mod.id);
+        angler::registry().unload(mod.id);
+        unbindNativeRecipeAssembly(mod.id);
+        invalidateManagedDeferredSourceMod(mod.id);
         BL_ERROR("C# source %s: %s", mod.id.c_str(), status.error.c_str());
     }
     if (previous != g_statuses.end()) {
@@ -768,7 +778,12 @@ bool applyManagedSourceDefaults(
     struct ArmorApplyGuard {
         const std::string& owner;
         bool touched=false,complete=false;
-        ~ArmorApplyGuard(){if(touched&&!complete)retireNativeArmorPoliciesForMod(owner);}
+        ~ArmorApplyGuard(){if(!complete) {
+            if(touched)retireNativeArmorPoliciesForMod(owner);
+            localization::retireMod(owner);
+            angler::registry().unload(owner);
+            retireNativeRaritySampling(owner);
+        }}
     } armorApply{modId};
     std::istringstream lines(runtimeValues);
     std::string header;
