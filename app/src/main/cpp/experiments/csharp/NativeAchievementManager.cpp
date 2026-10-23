@@ -286,19 +286,34 @@ bool NativeAchievementManager::install(
     staging.revision = plan.revision;
     auto rollback = [&] {
         bool okay = true;
+        Owner retained;
+        retained.revision = plan.revision;
         for (auto it = staging.entries.rbegin(); it != staging.entries.rend(); ++it) {
-            auto& object = *it;
-            Il2CppObject* alive = il2cpp::api().gchandle_get_target(object.root);
-            if (alive) {
-                void* args[] = {alive};
-                if (!invoke(refs.unregisterAchievement, refs.manager, args))
-                    okay = false;
+            auto& owned = *it;
+            Il2CppObject* object = il2cpp::api().gchandle_get_target(owned.root);
+            Il2CppObject* registered = nullptr;
+            if (!object || !lookup(refs, owned.name, &registered)) {
+                okay = false;
+                retained.entries.push_back(std::move(owned));
+                continue;
+            }
+            bool cleared = registered == nullptr;
+            if (registered == object) {
+                void* args[] = {object};
+                Il2CppObject* after = nullptr;
+                cleared = invoke(refs.unregisterAchievement, refs.manager, args) &&
+                          lookup(refs, owned.name, &after) && after == nullptr;
+            }
+            if (cleared) freeRoots(owned.root, owned.conditions);
+            else {
+                okay = false;
+                retained.entries.push_back(std::move(owned));
             }
         }
-        if (okay) {
-            for (const auto& object : staging.entries)
-                freeRoots(object.root, object.conditions);
-            staging.entries.clear();
+        staging.entries.clear();
+        if (!retained.entries.empty()) {
+            std::reverse(retained.entries.begin(), retained.entries.end());
+            mods_.emplace(plan.owner, std::move(retained));
         }
         return okay;
     };
@@ -372,7 +387,12 @@ bool NativeAchievementManager::install(
         }
         void* registerArgs[] = {object};
         if (!invoke(refs.registerAchievement, refs.manager, registerArgs)) {
-            releaseEntry();
+            Il2CppObject* potentiallyRegistered = nullptr;
+            if (lookup(refs, definition.name, &potentiallyRegistered) &&
+                potentiallyRegistered == object)
+                staging.entries.push_back(std::move(entry));
+            else
+                releaseEntry();
             *error = "ManagerRegisterFailed";
             return rollback() ? false : (*error += " RollbackFailed", false);
         }
@@ -440,14 +460,19 @@ bool NativeAchievementManager::retire(const std::string& mod, std::string* error
             return false;
         }
         Il2CppObject* current = nullptr;
-        if (!lookup(refs, entry->name, &current) || current != target) {
+        if (!lookup(refs, entry->name, &current) ||
+            (current && current != target)) {
             *error = "AchievementOwnerMismatch";
             return false;
         }
-        void* args[] = {target};
-        if (!invoke(refs.unregisterAchievement, refs.manager, args)) {
-            *error = "NativeUnregisterFailed";
-            return false;
+        if (current) {
+            void* args[] = {target};
+            Il2CppObject* after = nullptr;
+            if (!invoke(refs.unregisterAchievement, refs.manager, args) ||
+                !lookup(refs, entry->name, &after) || after != nullptr) {
+                *error = "NativeUnregisterFailed";
+                return false;
+            }
         }
     }
     for (auto& entry : it->second.entries)
