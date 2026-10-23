@@ -147,6 +147,12 @@ ManagerContractResult inspectManagerContracts(const std::vector<Descriptor>& des
     }
     output.canRegister = true;
 
+    if (!method(manager, "Unregister", "System.Void", true,
+                {"Terraria.Achievements.Achievement"})) {
+        output.diagnostic = "NativeUnregisterUnavailable";
+        return output;
+    }
+
     if (method(manager, "Load", "System.Void", true,
                 {"System.String", "System.Boolean"}) &&
         referenceField(manager, "_savePath", "System.String", false) &&
