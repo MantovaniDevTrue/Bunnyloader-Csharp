@@ -8,6 +8,7 @@ on:
       - experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj
       - app/src/main/cpp/experiments/csharp/NativeAchievementMailbox.h
       - app/src/main/cpp/experiments/csharp/NativeAchievementContracts.h
+      - app/src/main/cpp/experiments/csharp/NativeAchievementRegistrationPlan.h
       - app/src/main/cpp/experiments/csharp/NativeAchievementContracts.cpp
       - app/src/main/cpp/experiments/csharp/NativeAchievementState.h
       - app/src/main/cpp/experiments/csharp/NativeAchievementManifest.h
@@ -32,6 +33,7 @@ on:
       - experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj
       - app/src/main/cpp/experiments/csharp/NativeAchievementMailbox.h
       - app/src/main/cpp/experiments/csharp/NativeAchievementContracts.h
+      - app/src/main/cpp/experiments/csharp/NativeAchievementRegistrationPlan.h
       - app/src/main/cpp/experiments/csharp/NativeAchievementContracts.cpp
       - app/src/main/cpp/experiments/csharp/NativeAchievementState.h
       - app/src/main/cpp/experiments/csharp/NativeAchievementGameplay.h
@@ -84,6 +86,13 @@ jobs:
             tests/achievement_loader/native_state_test.cpp \
             -o /tmp/bunny-achievement-state
           /tmp/bunny-achievement-state
+      - name: Verify rollback-safe native achievement plan
+        run: |
+          g++ -std=c++20 -O2 -Wall -Wextra -Werror -pthread \
+            -Iapp/src/main/cpp \
+            tests/achievement_loader/native_registration_plan_test.cpp \
+            -o /tmp/bunny-achievement-registration-plan
+          /tmp/bunny-achievement-registration-plan
       - name: Test owner-safe native event mailbox
         run: |
           g++ -std=c++20 -O2 -Wall -Wextra -Werror -pthread \
