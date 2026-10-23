@@ -513,6 +513,7 @@ const MethodInfo* g_nativeTooltipMeasureMethod=nullptr;
 std::atomic<bool> g_nativeTooltipHookReady{false};
 native_static::Value g_nativeTooltipHover;
 native_static::Value g_nativeTooltipClock;
+native_static::Value g_nativeTooltipScreenHeight;
 int g_nativeTooltipTypeOffset=-1;
 using NativeTooltipStaticFn=void (*)(Il2CppObject*,int32_t,uint8_t,int32_t,int32_t,const MethodInfo*);
 using NativeTooltipInstanceFn=void (*)(Il2CppObject*,Il2CppObject*,int32_t,uint8_t,int32_t,int32_t,const MethodInfo*);
@@ -592,8 +593,12 @@ bool nativeTooltipOnDraw(Il2CppObject* batch,Il2CppObject* font,Il2CppString* te
     if(!session.inserted && !session.matches(current))return false;
     float height=0;
     NativeTooltipWaveLayout layout;
-    if(!session.inserted&&
-       !nativeTooltipWaveLayout(font,*session.animated,&layout,&height))return false;
+    if(!session.inserted) {
+        if(!nativeTooltipWaveLayout(font,*session.animated,&layout,&height))return false;
+        int32_t screenHeight=0;
+        if(!native_static::read(g_nativeTooltipScreenHeight,&screenHeight,sizeof(screenHeight))||
+           !nativeTooltipHasHeadroom(position->y,height,scale,screenHeight))return false;
+    }
     const float adjusted=session.adjust(current,reinterpret_cast<uintptr_t>(batch),
         reinterpret_cast<uintptr_t>(font),position->x,position->y,height*scale,
         [&](const NativeTooltipLine& wave,float y) {
@@ -984,9 +989,14 @@ bool installNativeTooltipHook(std::string* error) {
     if(!clock||native_static::size(clock)!=sizeof(float)) {
         *error="Reason=NativeTooltipClockUnavailable";return false;
     }
+    const auto screenHeight=native_static::resolve(main,"screenHeight");
+    if(!screenHeight||native_static::size(screenHeight)!=sizeof(int32_t)) {
+        *error="Reason=NativeTooltipScreenHeightUnavailable";return false;
+    }
     auto* ptr=methodPointer(measure);
     if(!ptr){*error="Reason=NativeTooltipMeasurePointerMissing";return false;}
     g_nativeTooltipClock=clock;
+    g_nativeTooltipScreenHeight=screenHeight;
     g_nativeTooltipMeasureMethod=measure;
     g_nativeTooltipMeasure=reinterpret_cast<NativeTooltipMeasureFn>(ptr);
     g_nativeTooltipHover=hover;

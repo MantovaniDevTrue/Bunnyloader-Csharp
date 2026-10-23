@@ -1,5 +1,6 @@
 #pragma once
 #include "experiments/csharp/NativeTooltipWave.h"
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
 #include <optional>
@@ -7,6 +8,14 @@
 #include <string_view>
 
 namespace bl::csharp {
+
+inline bool nativeTooltipHasHeadroom(float anchorY,float lineHeight,float scale,int screenHeight) {
+    if(!std::isfinite(anchorY)||!std::isfinite(lineHeight)||!std::isfinite(scale)||
+       anchorY<0||lineHeight<=0||lineHeight>100||
+       scale<=0||scale>4||screenHeight<320)return false;
+    const float needed=std::max(72.f,2.5f*lineHeight*scale+16.f);
+    return anchorY+needed<=static_cast<float>(screenHeight);
+}
 
 struct NativeTooltipDrawSession {
     std::optional<NativeTooltipLine> animated;

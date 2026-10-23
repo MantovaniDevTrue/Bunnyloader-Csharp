@@ -108,6 +108,14 @@ int main(int argc,char** argv) {
     std::u16string emoji;
     assert(nativeTooltipUtf16("Olá 🐇",&emoji));
     assert(emoji.size()==6&&emoji[4]>=0xD800&&emoji[4]<=0xDBFF);
+    assert(nativeTooltipHasHeadroom(210,20,1,1080));
+    assert(nativeTooltipHasHeadroom(210,20,1,280)==false);
+    assert(nativeTooltipHasHeadroom(950,20,1,1080));
+    assert(!nativeTooltipHasHeadroom(1020,20,1,1080));
+    assert(!nativeTooltipHasHeadroom(210,20,3,1080));
+    assert(!nativeTooltipHasHeadroom(-1,20,1,1080));
+    assert(!nativeTooltipHasHeadroom(210,0,1,1080));
+    assert(!nativeTooltipHasHeadroom(210,20,1,200));
     NativeTooltipDrawSession session;
     assert(session.begin(*item.nativeTooltip));
     assert(session.tooltipTint&&session.tooltipRgb==0xFFD75Au);
