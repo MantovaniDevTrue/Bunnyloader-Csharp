@@ -55,7 +55,7 @@ A confirmação no Android continua pendente; não foi gerado APK.
 
 Este lote não implementa o unload global dos itens nem a restauração de todos
 os campos extras de uma instância já modificada por um clone. A restauração das três flags de animação e de WingStats é descrita abaixo;
-texturas, slots e demais tabelas estáticas de equipamento continuam pendentes. A retirada do snapshot
+a restauração dos equipamentos declarados em Behavior.EquipTexture é descrita ao final. O unload global continua pendente. A retirada do snapshot
 impede novas cópias e callbacks da política retirada; não é uma recriação geral
 da instância do Terraria.
 
@@ -73,9 +73,9 @@ novamente a animação retirada. Uma instalação que já estava em execução n
 republicar o resultado antigo. Os handles do clone ficam retidos até o pump na
 thread do jogo; a thread que solicita unload não chama o coletor IL2CPP.
 
-A extensão abaixo restaura três flags e WingStats. A retirada de texturas/slots,
-demais tabelas, registro de animação já existente no Terraria, defaults básicos
-e todas as instâncias continua pendente. O teste de host não comprova unload
+As seções seguintes cobrem flags, WingStats, registro de animação e equipamentos
+declarativos. Defaults básicos, demais tabelas e todas as instâncias continuam
+pendentes. O teste de host não comprova unload
 completo no Android.
 
 ## Restauração das flags de animação e estatísticas de asas
@@ -108,9 +108,8 @@ tipos com células por pump, em rotação, preservando os demais UIDs. O teste d
 host verifica um lote de 17 tipos em três pumps; isso não é medição de FPS Android.
 
 A retirada do objeto e do índice em `Main` é descrita na seção seguinte.
-Texturas/slots, outras tabelas de equipamento, defaults básicos e todas as
-instâncias continuam pendentes; a restauração dessas três flags não cobre esses
-contratos.
+A seção final cobre texturas/slots declarativos. Outras tabelas de equipamento,
+defaults básicos e todas as instâncias continuam pendentes.
 
 ## Registro de animação em Main
 
@@ -156,5 +155,52 @@ registrados/não registrados e falhas antes/depois das mutações. A limpeza des
 registros compartilha o orçamento de oito tipos por pump.
 
 Isso fecha este contrato nativo no host. Não demonstra instalação nem gameplay
-no Android; texturas/slots, demais tabelas e unload global de itens continuam
-pendentes. Nenhum APK foi gerado.
+no Android; demais tabelas e unload global de itens continuam pendentes.
+Nenhum APK foi gerado.
+
+
+## Equipamentos declarativos na recarga
+
+O loader retira as texturas publicadas por `Behavior.EquipTexture`, os mapas
+`Item.headType/bodyType/legType`, as flags de cabelo, mãos e enquadramento que
+escreveu e os bindings dos slots do item. O mesmo ocorre quando uma revisão
+remove a declaração de equipamento. Uma nova revisão pode trocar o caminho ou
+as flags sem reaproveitar a textura em cache da revisão anterior:
+
+```csharp
+// Em SetDefaults: quatro tabelas nativas de corpo usam a textura declarada.
+// ShowHands respeita a diferença entre MissingHand e HidesHands no Android.
+Behavior.EquipTexture(BunnyEquipKind.Body,
+    "Content/Items/Armor/Vanity/ExampleRobe_Body", BunnyEquipDrawFlags.ShowHands);
+// Ao remover esta declaração numa revisão, o host retira o equipamento antigo.
+// Ao trocar o caminho, publica o novo asset depois de concluir a limpeza antiga.
+```
+
+O host guarda referências fortes ao asset anterior e ao publicado. Na retirada,
+restaura cada tabela somente se a referência atual ainda for a que publicou;
+alterações de outros mods ficam preservadas. Usa as tabelas atuais, inclusive
+cópias posteriores à publicação. Um array válido menor descarta o slot sem ser
+recriado. Tabela ausente, contrato incompatível ou falha de SetValue mantém a
+limpeza pendente e bloqueia a próxima instalação. O refresher periódico não
+reinstala o equipamento retirado. Uma escrita parcial continua reservando o
+mesmo slot para a tentativa seguinte.
+
+Bindings retirados limpam o slot em instâncias reaplicadas somente se ainda
+contiverem o slot publicado. Valores diferentes são preservados. Essa limpeza
+solicita a atualização de instâncias já usada pelo host; não prova que todas as
+instâncias possíveis do Terraria foram enumeradas.
+
+Os contadores de slots são marcas de alocação compartilhadas: não diminuem nem
+reciclam slots, porque outros mods podem ter alocado depois. Muitas recargas
+podem esgotar o limite nativo de slots; o loader mantém a instalação pendente
+com diagnóstico, sem truncar o valor. O adapter legado BunnyAccessory de
+Shield/Shoes continua separado deste contrato de retirada por UID.
+
+A limpeza libera as raízes do coletor na thread do jogo. Não destrói à força o
+objeto Unity: outras referências podem usá-lo; descarte global de recursos e
+memória GPU continua pendente. Igualdade da mesma referência/valor não permite
+distinguir uma escrita externa idêntica. Os testes de host cobrem restauração,
+referência anterior, interferência externa, tabela copiada/ausente/encurtada,
+falha de escrita, troca de caminho, snapshot sem equipamento e ausência de
+reinstalação após 250 pumps. Android, unload global e o adapter legado ainda
+exigem validação própria. Nenhum APK foi gerado.

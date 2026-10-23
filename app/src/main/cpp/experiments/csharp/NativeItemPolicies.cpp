@@ -114,11 +114,6 @@ bool grow(const StaticValue& f,int total) {
     auto* next=runtime::TypeTables::resizedCopy(array,static_cast<uintptr_t>(total));if(!next)return false;
     return native_static::write(f,&next,sizeof(next));
 }
-bool boolTable(const StaticValue& f,int slot,bool value) {
-    auto* array=table(f);auto& a=api();
-    if(!array||slot<0||!primitive(a.class_get_element_class(a.object_get_class(reinterpret_cast<Il2CppObject*>(array))),"Boolean",1)||!grow(f,slot+1))return false;
-    write<uint8_t>(arrayData(table(f)),static_cast<size_t>(slot),value?1:0);return true;
-}
 struct AnimationRegistry {
     StaticValue field;Il2CppClass* element=nullptr;
     std::shared_ptr<Root> array,list;
@@ -285,6 +280,8 @@ bool restoreOwnedStaticCells(int type) {
 bool pendingStaticRetirement(int type) {
     std::lock_guard lock(queueMutex);return staticRetirements.contains(type);
 }
+bool hasOwnedEquipment(int type);
+bool retireOwnedEquipment(int type);
 void pumpStaticRetirements() {
     // Bound native work and rotate past unavailable tables; an unload with many
     // items must not restore every struct in a single frame or starve other UIDs.
@@ -296,13 +293,14 @@ void pumpStaticRetirements() {
         if(request==requests.end())request=requests.begin();
         const auto [type,revision]=*request++;
         const auto cell=ownedStaticCells.lower_bound({type,{}});
-        if((cell!=ownedStaticCells.end()&&cell->first.first==type)||ownedAnimations.contains(type)) {
+        if((cell!=ownedStaticCells.end()&&cell->first.first==type)||ownedAnimations.contains(type)||hasOwnedEquipment(type)) {
             if(attempted==8)break;
             ++attempted;cursor=type;
         }
         const bool animationRestored=restoreOwnedAnimation(type);
+        const bool equipmentRestored=retireOwnedEquipment(type);
         const bool cellsRestored=restoreOwnedStaticCells(type);
-        if(!animationRestored||!cellsRestored)continue;
+        if(!animationRestored||!equipmentRestored||!cellsRestored)continue;
         std::lock_guard lock(queueMutex);const auto latest=staticRetirements.find(type);
         if(latest!=staticRetirements.end()&&latest->second==revision) {
             staticRetirements.erase(latest);staticRetirementOwners.erase(type);
@@ -321,10 +319,58 @@ struct EquipKind {
 };
 struct Equipment {
     int type=-1,slot=-1;bool published=false;std::string kind,path;int flags=0;
+    bool policyOwned=false;
+    struct TextureCell {StaticValue field;std::shared_ptr<Root> original,last;};
+    std::map<std::string,TextureCell> textures;
     std::shared_ptr<Root> asset;
 };
 std::map<std::string,EquipKind> kinds;
 std::map<std::pair<int,std::string>,Equipment> equipment;
+bool hasOwnedEquipment(int type) {
+    for(auto it=equipment.lower_bound({type,{}});it!=equipment.end()&&it->first.first==type;++it)
+        if(it->second.policyOwned)return true;
+    return false;
+}
+bool retireOwnedEquipment(int type) {
+    bool complete=true;
+    for(auto it=equipment.lower_bound({type,{}});it!=equipment.end()&&it->first.first==type;) {
+        auto& equip=it->second;
+        if(!equip.policyOwned){++it;continue;}
+        // Resolve the current table: an initializer may have replaced its array.
+        // Never grow or resurrect a discarded slot just to undo a publication.
+        for(auto cell=equip.textures.begin();cell!=equip.textures.end();) {
+            auto* array=table(cell->second.field);
+            if(!array){complete=false;++cell;continue;}
+            if(static_cast<uintptr_t>(equip.slot)<array->length) {
+                auto* current=read<Il2CppObject*>(arrayData(array),sizeof(void*)*equip.slot);
+                if(current==cell->second.last->get()&&
+                   !setTexture(cell->second.field,equip.slot,cell->second.original?cell->second.original->get():nullptr)) {
+                    complete=false;++cell;continue;
+                }
+            }
+            cell=equip.textures.erase(cell);
+        }
+        retireBasicItemEquipSlot(type,equip.kind,equip.slot);
+        if(equip.textures.empty())it=equipment.erase(it);
+        else ++it;
+    }
+    // Counts are shared high water marks. Shrinking them would invalidate slots
+    // subsequently allocated by another mod, so retired slots are not recycled.
+    return complete;
+}
+bool writeEquipmentTexture(Equipment& equip,const std::string& name,const StaticValue& field) {
+    if(!equip.policyOwned)return setTexture(field,equip.slot,equip.asset->get());
+    auto* array=table(field);if(!array||equip.slot<0||static_cast<uintptr_t>(equip.slot)>=array->length)return false;
+    auto* current=read<Il2CppObject*>(arrayData(array),sizeof(void*)*equip.slot);
+    auto found=equip.textures.find(name);
+    auto original=found!=equip.textures.end()&&current==found->second.last->get()?found->second.original:nullptr;
+    if(current&&(found==equip.textures.end()||current!=found->second.last->get())) {
+        original=std::make_shared<Root>(current);if(!original->get())return false;
+    }
+    // Record before invoking managed SetValue: it may write and then throw.
+    equip.textures[name]={field,std::move(original),equip.asset};
+    return setTexture(field,equip.slot,equip.asset->get());
+}
 struct KindInfo { const char* ids;const char* itemTypes;std::vector<const char*> textures;bool composite=false; };
 KindInfo kindInfo(const std::string& kind) {
     if(kind=="Head")return {"Head","headType",{"ArmorHead"}};
@@ -388,20 +434,28 @@ bool installEquipment(Equipment& equip,std::string* error) {
     }
     for(const auto& f:textures)if(!grow(f,total))return fail("EquipmentTextureGrowthFailed");
     if(mapping&&!grow(mapping,total))return fail("EquipmentItemMapGrowthFailed");
-    for(const auto& f:textures)if(!setTexture(f,equip.slot,equip.asset->get()))return fail("EquipmentTextureWriteFailed");
-    if(mapping)write<int32_t>(arrayData(table(mapping)),static_cast<size_t>(equip.slot)*4,equip.type);
-    if(info.composite&&!boolTable(staticArray(sets,"UsesNewFramingCode"),equip.slot,true))return fail("EquipmentFramingUnavailable");
-    if((equip.flags&1)&&!boolTable(staticArray(sets,"UseHairColor"),equip.slot,true))return fail("EquipmentHairFlagUnavailable");
+    // Reserve before the first cell write. A partial managed write followed by
+    // an exception must retry the same slot, even if another item allocates next.
+    if(!native_static::writeInteger(countField,total))return fail("EquipmentCountWriteFailed");
+    kind.total=total;equip.published=true;
+    for(size_t i=0;i<textures.size();++i)if(!writeEquipmentTexture(equip,info.textures[i],textures[i]))return fail("EquipmentTextureWriteFailed");
+    if(mapping&&!writeOwnedStaticCell(equip.type,"Equip/"+equip.kind+"/Map",mapping,equip.slot,&equip.type,sizeof(int32_t)))return fail("EquipmentItemMapWriteFailed");
+    auto flag=[&](const char* name,bool value) {
+        auto field=staticArray(sets,name);const uint8_t byte=value?1:0;
+        if(!field||!primitive(a.class_get_element_class(field.type),"Boolean",1)||!grow(field,equip.slot+1))return false;
+        return writeOwnedStaticCell(equip.type,"Equip/"+equip.kind+"/"+name,field,equip.slot,&byte,1);
+    };
+    if(info.composite&&!flag("UsesNewFramingCode",true))return fail("EquipmentFramingUnavailable");
+    if((equip.flags&1)&&!flag("UseHairColor",true))return fail("EquipmentHairFlagUnavailable");
     if(equip.flags&2) {
         // Android 1.4.5 uses MissingHand (show the skin hands). HidesHands in
         // other contracts expresses the opposite policy; never reuse its value.
         auto hands=staticArray(sets,"MissingHand");
         const bool missingHand=bool(hands);
         if(!hands)hands=staticArray(sets,"HidesHands");
-        if(!boolTable(hands,equip.slot,missingHand))return fail("EquipmentHandFlagUnavailable");
+        if(!flag(missingHand?"MissingHand":"HidesHands",missingHand))return fail("EquipmentHandFlagUnavailable");
     }
-    if(!native_static::writeInteger(countField,total))return fail("EquipmentCountWriteFailed");
-    kind.total=total;equip.published=true;return true;
+    return true;
 }
 using VoidFn=void (*)(const MethodInfo*);
 VoidFn originalAnimations=nullptr,originalWingStats=nullptr;
@@ -708,7 +762,7 @@ bool install(Entry& entry,std::string* error) {
     }
     for(const auto& source:entry.policy.equips) {
         const auto key=std::make_pair(entry.source.type,source.kind);auto& equip=equipment[key];
-        if(equip.type<0){equip.type=entry.source.type;equip.kind=source.kind;equip.path=entry.source.modDir+"/content/"+source.path+".png";equip.flags=source.flags;}
+        if(equip.type<0){equip.type=entry.source.type;equip.kind=source.kind;equip.path=entry.source.modDir+"/content/"+source.path+".png";equip.flags=source.flags;equip.policyOwned=true;}
         if(!installEquipment(equip,error)||!setBasicItemEquipSlot(entry.source.type,source.kind,equip.slot,error))return false;
         entry.slots[source.kind]=equip.slot;
     }
@@ -917,7 +971,12 @@ void pumpNativeItemPoliciesOnGameThread() {
         auto it=equipment.upper_bound(last);
         for(size_t n=0;n<std::min(size_t{8},equipment.size());++n) {
             if(it==equipment.end())it=equipment.begin();
-            auto& [key,equip]=*it++;last=key;std::string error;installEquipment(equip,&error);
+            auto& [key,equip]=*it++;last=key;
+            if(equip.policyOwned) {
+                const auto owner=entries.find(equip.type);
+                if(pendingStaticRetirement(equip.type)||owner==entries.end()||!isDesired(*owner->second))continue;
+            }
+            std::string error;installEquipment(equip,&error);
         }
     }
 }

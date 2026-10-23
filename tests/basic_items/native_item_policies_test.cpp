@@ -39,6 +39,7 @@ bool animationRegisterAfterAddFault=false,animationRemoveBeforeFault=false,anima
 FakePlayer localPlayer;
 unsigned nextRoot=1;
 Il2CppObject* failAnimationRootFor=nullptr;
+std::vector<std::string> loadedEquipmentPaths;
 int allocations=0,assetLoads=0,arrayWrites=0,movementCalls=0,lightCalls=0,animationConstructors=0;
 bool android145=false,animationCtorFault=false,worldActiveProperty=true,activeReturnWrong=false,stopWorldOnUpdate=false;
 int activeReads=0,worldUpdates=0;
@@ -258,7 +259,7 @@ void configurePolicies() {
   }
   return nullptr;
  };
- bl::testing::loadAsset=[](const std::string&)->Il2CppObject* {++assetLoads;if(failAsset){failAsset=false;return nullptr;}auto* object=new Il2CppObject{bl::testing::assetClass,nullptr};
+ bl::testing::loadAsset=[](const std::string& path)->Il2CppObject* {loadedEquipmentPaths.push_back(path);++assetLoads;if(failAsset){failAsset=false;return nullptr;}auto* object=new Il2CppObject{bl::testing::assetClass,nullptr};
   bl::testing::assetSizes[object]={52,72};return object;};
  (void)byte;(void)uint;
 }
@@ -700,22 +701,24 @@ int main(int argc,char** argv) {
  retireNativeItemPoliciesForMod("mod");pumpNativeItemPoliciesOnGameThread();
  assert(soulFlag("AnimatesAsSoul",soul.type)==0);
  // Restore the entire WingStats struct, including bytes not authored by Bunny.
- auto* wingBaselineTable=makeArray(cls("WingStats"),static_cast<size_t>(wing)+1);
+ int64_t nextWing=0;assert(native_static::readInteger(native_static::resolve(cls("Wing"),"Count"),&nextWing));
+ auto* wingBaselineTable=makeArray(cls("WingStats"),static_cast<size_t>(nextWing)+1);
  std::array<unsigned char,24> wingBaseline{};wingBaseline.fill(0x3b);
- std::memcpy(static_cast<char*>(arrayData(wingBaselineTable))+24*static_cast<size_t>(wing),wingBaseline.data(),24);
+ std::memcpy(static_cast<char*>(arrayData(wingBaselineTable))+24*static_cast<size_t>(nextWing),wingBaseline.data(),24);
  constant(statsField,wingBaselineTable);
  assert(applyNativeBasicItemDefaults("mod",{wings},&error));
  for(int i=0;i<8&&pendingNativeItemPolicies();++i)pumpNativeItemPoliciesOnGameThread();
  assert(nativeItemPolicyReady(wings.type));
  apiInstance.field_static_get_value(statsField,&stats);
- auto* wingCell=static_cast<unsigned char*>(arrayData(stats))+24*static_cast<size_t>(wing);
+ assert(slot(wings.type,"Wings")==nextWing);
+ auto* wingCell=static_cast<unsigned char*>(arrayData(stats))+24*static_cast<size_t>(nextWing);
  assert(std::memcmp(wingCell,wingBaseline.data(),24)!=0);
  retireNativeItemPoliciesForMod("mod");pumpNativeItemPoliciesOnGameThread();
  assert(std::memcmp(wingCell,wingBaseline.data(),24)==0);
  assert(applyNativeBasicItemDefaults("mod",{wings},&error));
  for(int i=0;i<8&&pendingNativeItemPolicies();++i)pumpNativeItemPoliciesOnGameThread();
  apiInstance.field_static_get_value(statsField,&stats);
- wingCell=static_cast<unsigned char*>(arrayData(stats))+24*static_cast<size_t>(wing);
+ wingCell=static_cast<unsigned char*>(arrayData(stats))+24*static_cast<size_t>(slot(wings.type,"Wings"));
  wingCell[23]=0x7d;std::array<unsigned char,24> foreignWing;std::memcpy(foreignWing.data(),wingCell,24);
  retireNativeItemPoliciesForMod("mod");pumpNativeItemPoliciesOnGameThread();
  assert(std::memcmp(wingCell,foreignWing.data(),24)==0);
@@ -858,6 +861,88 @@ int main(int argc,char** argv) {
  auto* shortAnimations=makeArray(cls("DrawAnimation"),9000);std::memcpy(arrayData(shortAnimations),arrayData(animationArray()),9000*sizeof(void*));
  constant(animationField,shortAnimations);retireNativeItemPoliciesForMod("short_animation");pumpNativeItemPoliciesOnGameThread();
  assert(pendingNativeItemPolicies()==0&&shortAnimations->length==9000&&listed(9000)==0&&animationCell(8403)==otherAnimation);
+
+ // Exercise real compiled equipment descriptors through UID retirement. Shared
+ // counts stay monotonic; only our owned cells and bindings are restored.
+ auto equipField=[&](const char* owner,const char* name) {
+  return native_static::resolve(owner==std::string("Item")?&itemClass:cls(owner),name);
+ };
+ auto equipArray=[&](const native_static::Value& field) {
+  Il2CppArray* value=nullptr;assert(native_static::read(field,&value,sizeof(value)));return value;
+ };
+ auto textureCell=[&](const native_static::Value& field,int index)->Il2CppObject*& {
+  return reinterpret_cast<Il2CppObject**>(arrayData(equipArray(field)))[index];
+ };
+ auto newRobe=robe;newRobe.type=8600;newRobe.name="ReloadRobe";
+ identities[8600]="equip_lifecycle/ReloadRobe";assert(registerBasicItemPlaceholder(8600,newRobe.name,&error,argv[2]));
+ int64_t bodyCount=0;assert(native_static::readInteger(equipField("Body","Count"),&bodyCount));
+ const auto bodyTexture=equipField("TextureAssets","ArmorBodyComposite");
+ const auto otherBodyTexture=equipField("TextureAssets","ArmorBody");
+ auto* originalBodyArray=equipArray(bodyTexture);
+ auto* preparedBodyArray=makeArray(bl::testing::assetClass,static_cast<uintptr_t>(bodyCount)+1);
+ std::memcpy(arrayData(preparedBodyArray),arrayData(originalBodyArray),originalBodyArray->length*sizeof(void*));
+ Il2CppObject baselineEquipment{bl::testing::assetClass,nullptr},foreignEquipment{bl::testing::assetClass,nullptr};
+ reinterpret_cast<Il2CppObject**>(arrayData(preparedBodyArray))[bodyCount]=&baselineEquipment;
+ assert(native_static::write(bodyTexture,&preparedBodyArray,sizeof(preparedBodyArray)));
+ auto installRobe=[&]{assert(applyNativeBasicItemDefaults("equip_lifecycle",{newRobe},&error));
+  for(int i=0;i<16&&pendingNativeItemPolicies();++i)pumpNativeItemPoliciesOnGameThread();
+  assert(nativeItemPolicyReady(8600));
+ };
+ installRobe();const int oldBody=slot(8600,"Body"),oldLegs=slot(8600,"Legs");assert(oldBody==bodyCount);
+ auto* oldEquipmentAsset=textureCell(bodyTexture,oldBody);assert(oldEquipmentAsset!=&baselineEquipment);
+ FakeItem equipped{};assert(applyBasicItemToObject(&equipped.header,8600)&&equipped.bodySlot==oldBody&&equipped.legSlot==oldLegs);
+ textureCell(otherBodyTexture,oldBody)=&foreignEquipment;
+ auto* savedBodyArray=equipArray(bodyTexture);
+ Il2CppArray* missingEquipment=nullptr;assert(native_static::write(bodyTexture,&missingEquipment,sizeof(missingEquipment)));
+ std::thread equipRetire([&]{retireNativeItemPoliciesForMod("equip_lifecycle");});equipRetire.join();
+ pumpNativeItemPoliciesOnGameThread();assert(!nativeItemPolicyReady(8600)&&pendingNativeItemPolicies()>0);
+ assert(applyBasicItemToObject(&equipped.header,8600)&&equipped.bodySlot==-1&&equipped.legSlot==-1);
+ equipped.bodySlot=77;assert(applyBasicItemToObject(&equipped.header,8600)&&equipped.bodySlot==77);
+ const int loadsDuringCleanup=assetLoads;
+ // Queue replacement while the old native table is missing. The periodic
+ // refresher must not reload the old asset or publish the new generation early.
+ const auto bodyPath=newRobe.behavior.find("ExampleRobe_Body");assert(bodyPath!=std::string::npos);
+ newRobe.behavior.replace(bodyPath,std::string("ExampleRobe_Body").size(),"ExampleRobe_Legs");
+ assert(applyNativeBasicItemDefaults("equip_lifecycle",{newRobe},&error));
+ const auto replacementPathStart=loadedEquipmentPaths.size();
+ for(int i=0;i<125;++i)pumpNativeItemPoliciesOnGameThread();
+ assert(!nativeItemPolicyReady(8600)&&assetLoads==loadsDuringCleanup);
+ assert(native_static::write(bodyTexture,&savedBodyArray,sizeof(savedBodyArray)));
+ failSet=true;pumpNativeItemPoliciesOnGameThread();assert(!nativeItemPolicyReady(8600));
+ for(int i=0;i<30&&pendingNativeItemPolicies();++i)pumpNativeItemPoliciesOnGameThread();
+ assert(nativeItemPolicyReady(8600)&&slot(8600,"Body")>oldBody&&slot(8600,"Legs")>oldLegs);
+ assert(loadedEquipmentPaths.size()==replacementPathStart+2);
+ for(size_t i=replacementPathStart;i<loadedEquipmentPaths.size();++i)assert(loadedEquipmentPaths[i].ends_with("ExampleRobe_Legs.png"));
+ assert(textureCell(bodyTexture,oldBody)==&baselineEquipment&&textureCell(otherBodyTexture,oldBody)==&foreignEquipment);
+ assert(std::none_of(roots.begin(),roots.end(),[&](const auto& root){return root.second==oldEquipmentAsset;}));
+ const auto bodyMap=equipField("Item","bodyType");
+ assert(reinterpret_cast<int32_t*>(arrayData(equipArray(bodyMap)))[oldBody]==0);
+ const auto framing=equipField("Body/Sets","UsesNewFramingCode");
+ assert(reinterpret_cast<uint8_t*>(arrayData(equipArray(framing)))[oldBody]==0);
+ // Preserve a foreign mapping and resolve a copied current texture array.
+ const int replacementBody=slot(8600,"Body");
+ reinterpret_cast<int32_t*>(arrayData(equipArray(bodyMap)))[replacementBody]=123456;
+ auto* beforeCopy=equipArray(bodyTexture);auto* afterCopy=makeArray(bl::testing::assetClass,beforeCopy->length+1);
+ std::memcpy(arrayData(afterCopy),arrayData(beforeCopy),beforeCopy->length*sizeof(void*));
+ assert(native_static::write(bodyTexture,&afterCopy,sizeof(afterCopy)));
+ retireNativeItemPoliciesForMod("equip_lifecycle");
+ for(int i=0;i<16&&pendingNativeItemPolicies();++i)pumpNativeItemPoliciesOnGameThread();
+ assert(pendingNativeItemPolicies()==0&&textureCell(bodyTexture,replacementBody)==nullptr);
+ assert(reinterpret_cast<int32_t*>(arrayData(equipArray(bodyMap)))[replacementBody]==123456);
+ assert(textureCell(bodyTexture,oldBody)==&baselineEquipment&&textureCell(otherBodyTexture,oldBody)==&foreignEquipment);
+ const int loadsAfterRetirement=assetLoads;for(int i=0;i<250;++i)pumpNativeItemPoliciesOnGameThread();
+ assert(assetLoads==loadsAfterRetirement&&bl::testing::legacySlots.at(7200)==2&&bl::testing::legacySlots.at(7201)==2);
+ // Omission in a new defaults snapshot also retires equipment; a shorter
+ // valid texture array discards its slot without cleanup growing it again.
+ installRobe();const int discardedBody=slot(8600,"Body");
+ auto* shortenedBody=makeArray(bl::testing::assetClass,static_cast<uintptr_t>(discardedBody));
+ assert(native_static::write(bodyTexture,&shortenedBody,sizeof(shortenedBody)));
+ auto noEquipment=newRobe;noEquipment.behavior.clear();
+ assert(applyNativeBasicItemDefaults("equip_lifecycle",{noEquipment},&error));
+ for(int i=0;i<16&&pendingNativeItemPolicies();++i)pumpNativeItemPoliciesOnGameThread();
+ assert(pendingNativeItemPolicies()==0&&equipArray(bodyTexture)==shortenedBody&&shortenedBody->length==static_cast<uintptr_t>(discardedBody));
+ assert(applyNativeItemPolicyDefaults(&other.header,8401));
+ std::cout<<"NATIVE_EQUIPMENT_UID_RETIREMENT_RETRY_SLOT_REVOCATION_COPIED_TABLE_FOREIGN_VALUE_AND_NO_RESURRECTION_PASS\n";
  std::cout<<"NATIVE_ITEM_ANIMATION_REFERENCE_AND_LIST_RETIREMENT_PARTIAL_FAILURE_FOREIGN_BASELINE_AND_RESET_PASS\n";
  std::cout<<"NATIVE_ITEM_STATIC_FLAG_AND_WING_CELL_RETIREMENT_RETRY_FOREIGN_VALUE_AND_GENERATION_PASS\n";
  std::cout<<"NATIVE_ITEM_POLICY_UID_RETIRE_FULL_SNAPSHOT_PENDING_INFLIGHT_AND_OTHER_OWNER_PASS\n";
