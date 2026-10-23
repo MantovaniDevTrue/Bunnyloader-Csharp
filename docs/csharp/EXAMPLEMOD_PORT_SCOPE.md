@@ -33,3 +33,5 @@ completo do contrato Bunny. O escopo exato, referências e limites estão em
 `THREE_LOADER_COMPLETION.md`; o relatório é
 `HOST_QA_20261023_THREE_LOADERS.json`. QA Android, ferramentas HJSON de desktop e
 a conclusão dos outros loaders não são declarados. Nenhum APK gerado.
+
+O lote de partículas da poção traduz `ExampleBuffPotion.SetStaticDefaults` de Bunny JS 1.9.0 para C# com as três cores originais (240/200/140 em RGB) no array nativo `ItemID.Sets.DrinkParticleColors`. O SDK produz um descritor tipado e o C++ valida a tabela `Color[][]`, o tamanho real de `Color` e os canais com metadata IL2CPP antes da publicação. Aloca e aplica `Color[]` na thread do jogo com barreira do coletor, retém os objetos para restaurar a célula no unload sem atingir outro mod e rejeita lote inválido sem publicação parcial. Os testes de host usam o publicador de produção e verificam aplicação, recompilação, rollback, cores, ABI e preservação de modificações externas. Essas provas não substituem teste Android de partículas, inventário ou carga em memória. O tooltip animado nativo independente de JS e os outros comportamentos do ExampleMod continuam pendentes; nenhum APK foi gerado.
