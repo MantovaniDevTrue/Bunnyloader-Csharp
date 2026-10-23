@@ -141,9 +141,10 @@ struct NativeTooltipPanelBacking {
         const std::array<float,2> pos{panel.panelX,panel.panelY};
         const std::array<float,2> size{panel.panelWidth,panel.panelHeight};
         const uint32_t rgba=colorLayout.pack(r,g,b,alpha);
+        Il2CppObject* textureArgument=texture;
         std::array<uint8_t,20> emptyNullable{};
         void* args[]={const_cast<float*>(pos.data()),const_cast<float*>(size.data()),
-                      texture,const_cast<uint32_t*>(&rgba),emptyNullable.data()};
+                      &textureArgument,const_cast<uint32_t*>(&rgba),emptyNullable.data()};
         Il2CppObject* exception=nullptr;
         a.runtime_invoke(method,nullptr,args,&exception);
         return exception==nullptr;

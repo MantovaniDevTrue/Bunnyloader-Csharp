@@ -42,6 +42,7 @@ static MethodInfo method{"DrawBacking",false,
 static bl::il2cpp::Api fixture;
 static bool throwManaged=false;
 static int calls=0;
+static Il2CppObject* textureReceived=nullptr;
 static float gotX=0,gotY=0,gotW=0,gotH=0;
 static uint8_t channels[4]{};
 
@@ -91,6 +92,7 @@ int main() {
     fixture.class_is_assignable_from=[](Il2CppClass* base,Il2CppClass* actual){return base==actual;};
     fixture.runtime_invoke=[](const MethodInfo* target,void* self,void** args,Il2CppObject** error)->Il2CppObject*{
         assert(target==&method&&self==nullptr&&args[2]!=nullptr);
+        textureReceived=*static_cast<Il2CppObject* const*>(args[2]);
         const auto* pos=static_cast<const float*>(args[0]);
         const auto* size=static_cast<const float*>(args[1]);
         gotX=pos[0];gotY=pos[1];gotW=size[0];gotH=size[1];
@@ -111,6 +113,7 @@ int main() {
     Il2CppObject graphic{&texture,nullptr},badGraphic{&unrelated,nullptr};
     assert(bridge.draw(layout,&graphic,20,30,40,150));
     assert(calls==1&&gotX==10&&gotY==30&&gotW==171&&gotH==103);
+    assert(textureReceived==&graphic);
     assert(channels[0]==20&&channels[1]==30&&channels[2]==40&&channels[3]==150);
     assert(!bridge.draw(layout,&badGraphic,1,2,3,4)&&calls==1);
     layout.opaque=false;assert(!bridge.draw(layout,&graphic,1,2,3,4)&&calls==1);
