@@ -14,9 +14,9 @@ O catálogo usa cada hook JS como unidade inicial de revisão, com hash do fonte
 |---|---:|
 | não iniciado | 712 |
 | implementado sem validar | 0 |
-| validado automaticamente | 4 |
-| validado no Android | 0 |
-| falhou | 2 |
+| validado automaticamente | 6 |
+| validado no Android | 1 |
+| falhou | 3 |
 | bloqueio comprovado | 0 |
 
 Inventários: 98 fontes C#, 206 fontes JS e 558 fontes oficiais tML. Esses números não medem conclusão.
@@ -28,11 +28,15 @@ Dust e invasão: o baseline contém correções posteriores aos logs Android de 
 | Comportamento | Estado | Observação |
 |---|---|---|
 | requirement:tooltip-without-js | falhou | Dependência confirmada por inspeção de Exports.js/TooltipLoader.js; substituir por renderer nativo. |
-| requirement:aim-before-shoot | falhou | APK versionCode 311: usuário confirmou falha Android no bind de Main.myPlayer (campo ausente), rejeitando lote SHOOT. Correção usa getter estático como NativeCommandChatHooks e passou no host; confirmação Android pendente. |
+| requirement:aim-before-shoot | validado automaticamente | Falha myPlayer do APK 311 corrigida no 312; usuário relatou armas funcionando. No lote 313, regressões de mira passam no host; nova opção do cajado ainda aguarda Android. |
 | requirement:ExampleGun | validado automaticamente | Asserções dos valores/algoritmo do exemplo real e protocolo compilado no host. Trajetória, cano e consumo no motor Android pendentes. |
 | requirement:ExampleRocketLauncher | validado automaticamente | Asserções dos valores/algoritmo do exemplo real e protocolo compilado no host. Trajetória, cano e consumo no motor Android pendentes. |
 | requirement:ExampleShotgun | validado automaticamente | Asserções dos valores/algoritmo do exemplo real e protocolo compilado no host. Trajetória, cano e consumo no motor Android pendentes. |
-| requirement:dust-emission-binding | validado automaticamente | Usa Signature.cpp de produção no host; rejeita método de instância/Color incompatível, permite nomes de parâmetros Android diferentes. Dust visível em aparelho ainda pendente. |
+| requirement:dust-emission-binding | validado automaticamente | Corrigido e executado no host; reteste Android do novo lote pendente. Ver SUMMON_DUST_INVASION_QA.md. |
+| requirement:android-weapons-user-report | validado no Android | Usuário: As armas funcionou. Escopo: relato de funcionamento; contagem detalhada de pellets, multiplayer e FPS não informados. |
+| requirement:summon-staff-reference | validado automaticamente | Corrigido e executado no host; reteste Android do novo lote pendente. Ver SUMMON_DUST_INVASION_QA.md. |
+| requirement:android-dust-emission | falhou | Relatório 0.1.64: NewDustSignatureUnavailable. Correção do namespace Graphics.Color no novo lote ainda não confirmada em aparelho. |
+| requirement:android-invasion-spawn | falhou | Running com SpawnFailed crescente e NoSafeSpawnSite; busca/diagnósticos ajustados, reteste pendente. |
 
 Todos os hooks e o backlog oficial estão em [EXAMPLEMOD_COVERAGE.json](EXAMPLEMOD_COVERAGE.json).
 

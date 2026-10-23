@@ -4,6 +4,7 @@
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
 #include "il2cpp/Signature.h"
+#include "core/Log.h"
 
 #include <algorithm>
 #include <cmath>
@@ -60,25 +61,33 @@ bool findNativeInvasionSpawnSite(int preferredX, int preferredY,
                     "bool LavaCollision(Vector2 Position, int Width, int Height)"));
         }
     }
-    if (!collisionMethod || !wetMethod || !lavaMethod) return false;
+    if (!collisionMethod || !wetMethod || !lavaMethod) {
+        BL_WARN("[CSharp][Invasion] Stage=FindSpawnSite Result=Rejected Detail=CollisionContractUnavailable Solid=%d Wet=%d Lava=%d",collisionMethod!=nullptr,wetMethod!=nullptr,lavaMethod!=nullptr);
+        return false;
+    }
+    int candidates=0,collisionRejected=0,wetRejected=0,lavaRejected=0,invokeFailed=0;
     struct Vec2 { float x, y; };
     *result = findInvasionSpawnSiteChecked(view, preferredX, preferredY,
         [&](int x, int groundY) {
+            ++candidates;
             Vec2 position{static_cast<float>(x - 40),
                           static_cast<float>(groundY - 96)};
             int width = 80;
             int height = 88;
             void* args[] = {&position, &width, &height};
+            int stage=0;
             for (const MethodInfo* collision : {collisionMethod, wetMethod, lavaMethod}) {
                 Il2CppObject* exception = nullptr;
                 Il2CppObject* boxed = a.runtime_invoke(
                     collision, nullptr, args, &exception);
-                if (exception || !boxed) return false;
+                if (exception || !boxed){++invokeFailed;return false;}
                 const auto* bytes = reinterpret_cast<const uint8_t*>(boxed);
-                if (bytes[sizeof(Il2CppObject)] != 0) return false;
+                if (bytes[sizeof(Il2CppObject)] != 0){if(stage==0)++collisionRejected;else if(stage==1)++wetRejected;else ++lavaRejected;return false;}
+                ++stage;
             }
             return true;
         });
+    if(!result->valid)BL_WARN("[CSharp][Invasion] Stage=FindSpawnSite Result=Rejected PreferredX=%d PreferredY=%d WorldWidth=%d WorldHeight=%d Candidates=%d SolidRejected=%d WetRejected=%d LavaRejected=%d InvokeFailed=%d",preferredX,preferredY,view.width,view.height,candidates,collisionRejected,wetRejected,lavaRejected,invokeFailed);
     return result->valid;
 }
 

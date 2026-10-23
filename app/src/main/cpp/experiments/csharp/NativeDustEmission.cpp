@@ -91,7 +91,14 @@ bool resolve() {
         if(!method||std::strcmp(api.method_get_name(method),"NewDust")||api.method_get_param_count(method)!=9)return false;
         uint32_t flags=0;
         bool match=(api.method_get_flags(method,&flags)&0x10u)!=0&&typeIs(api.method_get_return_type(method),"System.Int32");
-        for(unsigned i=0;i<9&&match;++i)match=typeIs(api.method_get_param(method,i),parameters[i]);
+        for(unsigned i=0;i<9&&match;++i) {
+            const auto* parameter=api.method_get_param(method,i);
+            if(i!=7){match=typeIs(parameter,parameters[i]);continue;}
+            // Mobile uses Graphics.Color. default(Color) is four zero bytes in either layout.
+            auto* color=api.class_from_il2cpp_type(parameter);uint32_t align=0;
+            match=(typeIs(parameter,"Microsoft.Xna.Framework.Graphics.Color")||typeIs(parameter,"Microsoft.Xna.Framework.Color"))&&
+                color&&api.class_is_valuetype&&api.class_is_valuetype(color)&&api.class_value_size(color,&align)==4;
+        }
         return match;
     };
     // The general resolver accepts short names; emission additionally requires the exact ABI/storage contract.

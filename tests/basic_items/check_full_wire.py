@@ -6,7 +6,7 @@ import sys
 expected = {
     "LOCALE": {4}, "LOCALE_MODULES": {2}, "LOCALE_RUNTIME": {2},
     "ITEM_RARITY": {3}, "RARITY": {2}, "DUST": {5}, "QUEST_FISH": {6,7}, "QUEST_LOCALE": {5}, "QUEST_CALLBACK": {3}, "QUEST_CATCH": {4},
-    "SHOOT": {3}, "USE_SOUND": {8}, "HOLDOUT": {4}, "NATIVE_ITEM": {3}, "NATIVE_PROJECTILE": {3},
+    "SHOOT": {3,4}, "USE_SOUND": {8}, "HOLDOUT": {4}, "NATIVE_ITEM": {3}, "NATIVE_PROJECTILE": {3},
     "RECIPES": {4},
     "ITEM": {20, 21, 22, 23, 24, 25, 26, 27},
     "TILE": {13, 14, 16, 17, 19, 20, 21},
@@ -58,5 +58,5 @@ owned = [row.split("\t") for row in rows if row.startswith("RECIPES\t")]
 assert {(f[1], f[2]) for f in owned} == {
     ("ExampleWand", "WEAPON"), ("ExampleFocusAccessory", "ACCESSORY"),
     ("ExampleBuffPotion", "POTION"), ("ExampleMinionItem", "WEAPON")}
-assert all(f[3] == ("1,mExampleWorkbench,mExampleItem:1" if f[1]=="ExampleMinionItem" else "1,mExampleWorkbench,mExampleItem:10@4") for f in owned)
+assert all(f[3] == ("1,18,mExampleItem:1" if f[1]=="ExampleMinionItem" else "1,mExampleWorkbench,mExampleItem:10@4") for f in owned)
 print("OWNED_RECIPE_CATEGORIES_SCHEMA_PASS")

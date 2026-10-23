@@ -5,5 +5,12 @@
     <Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Ranged/ExampleShotgun.cs" Link="ExampleShotgun.cs" />
     <Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Ranged/ExampleGun.cs" Link="ExampleGun.cs" />
     <Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Ranged/ExampleRocketLauncher.cs" Link="ExampleRocketLauncher.cs" />
+    <Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Summon/ExampleMinionItem.cs" Link="ExampleMinionItem.cs" />
+
+    <Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleMinion.cs" Link="ExampleMinion.cs" />
+    <Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/Buffs/ExampleMinionBuff.cs" Link="ExampleMinionBuff.cs" />
+    <Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/Items/ExampleItem.cs" Link="ExampleItem.cs" />
+    <Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/Rarities/ExampleModRarity.cs" Link="ExampleModRarity.cs" />
+    <Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/Rarities/ExampleHigherTierModRarity.cs" Link="ExampleHigherTierModRarity.cs" />
   </ItemGroup>
 </Project>

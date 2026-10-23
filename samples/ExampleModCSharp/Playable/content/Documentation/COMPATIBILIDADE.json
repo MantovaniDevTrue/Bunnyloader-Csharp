@@ -17346,12 +17346,13 @@
     "doesNotProve": "Equivalencia integral de cada arquivo JS; FPS sustentado desta versao nao foi medido neste relato."
   },
   "currentAudit": {
-    "exampleModVersion": "0.1.64",
+    "exampleModVersion": "0.1.65",
     "baseline": "fcdc3fd2c30d1e7432fddbafc4af9f6d65ca473a",
     "loader": "1.0.11-dust-invasion-qa",
     "coverage": "docs/csharp/EXAMPLEMOD_COVERAGE.json",
     "androidValidated": false,
     "tooltipRequiresJs": true,
-    "fps": null
+    "fps": null,
+    "currentQa": "docs/csharp/SUMMON_DUST_INVASION_QA.md"
   }
 }

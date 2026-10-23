@@ -167,7 +167,7 @@ bool fields(const ParsedSourceType& type, NativeContentSpec* spec,
             return false;
         }
         if (basic) {
-            const std::string allowed="|Tooltip|Width|Height|MaxStack|Value|Rare|Defense|Damage|Crit|KnockBack|UseTime|UseAnimation|UseStyle|Melee|NoMelee|AutoReuse|UseTurn|Consumable|Pick|Axe|Hammer|UseSound|";
+            const std::string allowed="|Tooltip|Width|Height|MaxStack|Value|Rare|Defense|Damage|Crit|KnockBack|UseTime|UseAnimation|UseStyle|Melee|NoMelee|AutoReuse|UseTurn|Consumable|Pick|Axe|Hammer|UseSound|SpawnAtCursor|";
             if (allowed.find("|"+key+"|")==std::string::npos) {
                 *error=type.name+": propriedade BunnyItem nao suportada: "+key;return false;
             }
@@ -287,6 +287,7 @@ bool fields(const ParsedSourceType& type, NativeContentSpec* spec,
             }
             continue;
         }
+        if(weapon&&key=="SpawnAtCursor")continue; // Evaluated by the managed verifier; no native side effects during bootstrap.
         int* integerField = nullptr;
         if (projectile && key == "Width") integerField = &spec->width;
         else if (projectile && key == "Height") integerField = &spec->height;
@@ -881,11 +882,11 @@ bool applyManagedSourceDefaults(
         if(!fields.empty()&&fields[0]=="SHOOT") {
             const auto key=fields.size()>1?sourceIdentityForWire("ITEM",fields[1]):"";
             const auto target=mod->registeredKindTypes.find(key);int mask=0;
-            if(fields.size()!=3||target==mod->registeredKindTypes.end()||!integer(fields[2],&mask)||mask<0||mask>7) {
+            if((fields.size()!=3&&fields.size()!=4)||target==mod->registeredKindTypes.end()||!integer(fields[2],&mask)||mask<0||mask>7||(fields.size()==4&&fields[3]!="1")) {
                 *error="[CSharp][ERROR][Shoot] Mod="+modId+" Class="+(fields.size()>1?fields[1]:"<missing>")+" Stage=Decode Expected=RegisteredItemAndCallbackMask0..7 Reason=InvalidShootDescriptor Result=Rejected";return false;
             }
             const auto source=mod->sourcePaths.find(key);
-            shooting.push_back({modId,fields[1],source==mod->sourcePaths.end()?"<unavailable>":source->second,"",target->second,mask});continue;
+            shooting.push_back({modId,fields[1],source==mod->sourcePaths.end()?"<unavailable>":source->second,"",target->second,mask,fields.size()==4});continue;
         }
         if(!fields.empty()&&fields[0]=="QUEST_FISH") {
             if(fields.size()!=6&&fields.size()!=7) {

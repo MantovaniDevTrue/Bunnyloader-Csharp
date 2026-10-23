@@ -23,7 +23,8 @@ float mouseWorld[2]{200,100};
 Il2CppType vectorType{&vectorClass},localType{&integerClass};
 MethodInfo localGetter{nullptr,false,5};
 struct BoxedInt {Il2CppObject object;int value;} localBox{{&integerClass,nullptr},0};
-MethodInfo mouseGetter{nullptr,false,4};
+MethodInfo mouseGetter{nullptr,false,4},limitMethod{nullptr,true,6};
+bool limitFailure=false;int limitCalls=0;
 struct BoxedVector {Il2CppObject object;float xy[2];} mouseBox{{&vectorClass,nullptr},{}};
 MethodInfo useMethod{nullptr,true,1},spawnMethod{nullptr,false,2},timeMethod{reinterpret_cast<void*>(applyTime),true,3};
 struct Pool {Il2CppArray array;Il2CppObject* data[1001]{};} pool{{{&arrayClass,nullptr},nullptr,1001},{}};
@@ -54,6 +55,7 @@ FieldInfo* findField(Il2CppClass* cls,std::string_view name){return cls==&item&&
 Signature parseSignature(std::string_view text){Signature signature;signature.name=text;return signature;}
 const MethodInfo* findMethodBySignature(Il2CppClass*,const Signature& sig,bool*,const MethodInfo**) {
  if(missingMethod)return nullptr;
+ if(sig.name.find("LimitPointToPlayerReachableArea")!=std::string::npos)return &limitMethod;
  return sig.name.find("ItemCheck_Shoot")!=std::string::npos?&useMethod:sig.name.find("NewProjectile(")!=std::string::npos?&spawnMethod:&timeMethod;
 }
 }
@@ -72,6 +74,9 @@ int main(int argc,char** argv) {
  while(std::getline(wire,row))if(row=="SHOOT\tExampleShotgun\t4")found=true;
  assert(found);
  wire.clear();wire.seekg(0);int nativeOnly=0;while(std::getline(wire,row))if(row=="SHOOT\tExampleGun\t0"||row=="SHOOT\tExampleRocketLauncher\t0")++nativeOnly;assert(nativeOnly==2);
+ wire.clear();wire.seekg(0);bool cursorDescriptor=false;
+ while(std::getline(wire,row))if(row=="SHOOT\tExampleMinionItem\t0\t1")cursorDescriptor=true;
+ assert(cursorDescriptor);
  fixture.class_from_il2cpp_type=[](const Il2CppType* t){return t->cls;};fixture.field_get_type=[](FieldInfo* f)->const Il2CppType*{return &f->type;};
  fixture.field_get_flags=[](FieldInfo* f){return f->flags;};fixture.field_get_offset=[](FieldInfo* f){return f->offset;};
  fixture.class_get_name=[](Il2CppClass* c){return c->name;};fixture.class_get_namespace=[](Il2CppClass* c){return c->ns;};
@@ -87,6 +92,7 @@ int main(int argc,char** argv) {
  fixture.method_get_param_count=[](const MethodInfo* m)->uint32_t{assert(m==&mouseGetter||m==&localGetter);return 0;};
  fixture.object_get_class=[](Il2CppObject* object){return object->klass;};
  fixture.runtime_invoke=[](const MethodInfo* m,void* object,void** args,Il2CppObject** exception)->Il2CppObject*{
+  if(m==&limitMethod){assert(object&&args);++limitCalls;auto* point=static_cast<float*>(args[0]);if(limitFailure){*exception=&source;return nullptr;}point[0]=120;point[1]=90;return nullptr;}
   assert(!object&&!args);
   if(m==&localGetter){if(localException){*exception=&source;return nullptr;}localBox.value=localIndex;return &localBox.object;}
   assert(m==&mouseGetter);++aimReads;if(mouseException){*exception=&source;return nullptr;}
@@ -148,6 +154,13 @@ int main(int argc,char** argv) {
  originalUse=nullptr;originalSpawn=nullptr;mouseProperty=false;assert(prepare(&error));
  expectedDirection=1;mouseWorld[0]=200;use(p,2,i,18,true,&useMethod);spawned.clear();
  localException=true;mouseWorld[0]=0;use(p,2,i,18,true,&useMethod);spawned.clear();localException=false;
+ // Native cursor spawning uses the engine's ref Vector2 limiter before the factory.
+ Entry cursorStaff{"cursor","IndependentStaff","Staff.cs","",6232,0,true};assert(publish({cursorStaff},&error));
+ type=6232;std::memcpy(itemBytes+16,&type,4);mouseWorld[0]=2000;mouseWorld[1]=4000;
+ use(p,2,i,18,true,&useMethod);assert(spawned.size()==1&&spawned[0].x==120&&spawned[0].y==90&&limitCalls==1);spawned.clear();
+ localIndex=3;use(p,2,i,18,true,&useMethod);assert(spawned.size()==1&&spawned[0].x==100&&spawned[0].y==200&&limitCalls==1);spawned.clear();localIndex=2;
+ limitFailure=true;use(p,2,i,18,true,&useMethod);assert(spawned.empty());limitFailure=false;
+ unload("cursor");mouseWorld[1]=100;
  // Unregistered/vanilla items preserve direction even when local aim points the other way.
  type=1;std::memcpy(itemBytes+16,&type,4);mouseWorld[0]=0;use(p,2,i,18,true,&useMethod);spawned.clear();
  // Every bind is transactional and rejects malformed vector layouts and readonly direction.

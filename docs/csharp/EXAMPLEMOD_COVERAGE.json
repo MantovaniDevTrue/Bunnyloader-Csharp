@@ -29,8 +29,9 @@
   },
   "counts": {
     "não iniciado": 712,
-    "falhou": 2,
-    "validado automaticamente": 4
+    "falhou": 3,
+    "validado automaticamente": 6,
+    "validado no Android": 1
   },
   "behaviors": [
     {
@@ -9537,9 +9538,9 @@
     },
     {
       "id": "requirement:aim-before-shoot",
-      "status": "falhou",
+      "status": "validado automaticamente",
       "behavior": "Player.direction sincronizado antes de ItemCheck_Shoot",
-      "note": "APK versionCode 311: usuário confirmou falha Android no bind de Main.myPlayer (campo ausente), rejeitando lote SHOOT. Correção usa getter estático como NativeCommandChatHooks e passou no host; confirmação Android pendente.",
+      "note": "Falha myPlayer do APK 311 corrigida no 312; usuário relatou armas funcionando. No lote 313, regressões de mira passam no host; nova opção do cajado ainda aguarda Android.",
       "implementation": [
         "app/src/main/cpp/experiments/csharp/NativeShootingAim.h",
         "app/src/main/cpp/experiments/csharp/NativeShooting.cpp",
@@ -9560,10 +9561,10 @@
       "validationScope": "host; Android pendente",
       "validatedFilesSha256": {
         "app/src/main/cpp/experiments/csharp/NativeShootingAim.h": "69affa751509036d4134486bdc4e7213ed0b520c40199164ccd822efa3aa29a0",
-        "app/src/main/cpp/experiments/csharp/NativeShooting.cpp": "47664a472d1a82129df4bb29cc4e80b7b6429e94d4c1d54985060fb9e95dca41",
-        "experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs": "78ae7b689ba994d7d09ee64846c4b654d785e49ce163210a6bee24887291c483",
+        "app/src/main/cpp/experiments/csharp/NativeShooting.cpp": "b10cc897e33c3b831ef9091d5bba246bcb7c1087adb452d5416813575b3ded51",
+        "experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs": "ffbd184d04b6f237205318b88963dc92879b0bea81dee9d69404c174d4563da0",
         "tests/shooting/run.sh": "1d8995d8ac9f6c41073c41452cde4360098cc762cfe3f593366c31c9eb74842a",
-        "tests/shooting/native_test.cpp": "14d7169ab2db9c605c524f526e6daa9be04e8b26166db6a85862834f9ea2a399"
+        "tests/shooting/native_test.cpp": "f1145f684b51104c82df24bbd01ecd297bfb07645264dd422aed4e49bad747e1"
       }
     },
     {
@@ -9584,8 +9585,8 @@
       "androidEvidence": [],
       "validatedFilesSha256": {
         "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Ranged/ExampleGun.cs": "87be9263633bbf52aff6cce73cd848e8c6d3be78eebb0ab280042ae7d9ecd75f",
-        "tests/shooting/Program.cs": "98ba8e4058727c2938d1a7d00f2a978b0a9f75766a7def9842959f9010aa284a",
-        "tests/shooting/native_test.cpp": "14d7169ab2db9c605c524f526e6daa9be04e8b26166db6a85862834f9ea2a399"
+        "tests/shooting/Program.cs": "d294dc22e3004da1684bdd4ed9a325d22b4af74fa929933f18042e8b80c58834",
+        "tests/shooting/native_test.cpp": "f1145f684b51104c82df24bbd01ecd297bfb07645264dd422aed4e49bad747e1"
       }
     },
     {
@@ -9606,8 +9607,8 @@
       "androidEvidence": [],
       "validatedFilesSha256": {
         "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Ranged/ExampleRocketLauncher.cs": "df1a67d32f99a398b5d0e0363da62865328f9dfc7ef1c08c75fa4f76a0d0e3f2",
-        "tests/shooting/Program.cs": "98ba8e4058727c2938d1a7d00f2a978b0a9f75766a7def9842959f9010aa284a",
-        "tests/shooting/native_test.cpp": "14d7169ab2db9c605c524f526e6daa9be04e8b26166db6a85862834f9ea2a399"
+        "tests/shooting/Program.cs": "d294dc22e3004da1684bdd4ed9a325d22b4af74fa929933f18042e8b80c58834",
+        "tests/shooting/native_test.cpp": "f1145f684b51104c82df24bbd01ecd297bfb07645264dd422aed4e49bad747e1"
       }
     },
     {
@@ -9628,29 +9629,121 @@
       "androidEvidence": [],
       "validatedFilesSha256": {
         "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Ranged/ExampleShotgun.cs": "f2483447a74c07fe4db4c6527fd58d209739f855b4cd2c68ef6267ab82eaad34",
-        "tests/shooting/Program.cs": "98ba8e4058727c2938d1a7d00f2a978b0a9f75766a7def9842959f9010aa284a",
-        "tests/shooting/native_test.cpp": "14d7169ab2db9c605c524f526e6daa9be04e8b26166db6a85862834f9ea2a399"
+        "tests/shooting/Program.cs": "d294dc22e3004da1684bdd4ed9a325d22b4af74fa929933f18042e8b80c58834",
+        "tests/shooting/native_test.cpp": "f1145f684b51104c82df24bbd01ecd297bfb07645264dd422aed4e49bad747e1"
       }
     },
     {
       "id": "requirement:dust-emission-binding",
       "status": "validado automaticamente",
-      "behavior": "Resolver e emitir Dust por contrato nativo estrito",
-      "note": "Usa Signature.cpp de produção no host; rejeita método de instância/Color incompatível, permite nomes de parâmetros Android diferentes. Dust visível em aparelho ainda pendente.",
+      "behavior": "Dust.NewDust: Graphics.Color Android de 4 bytes",
+      "note": "Corrigido e executado no host; reteste Android do novo lote pendente. Ver SUMMON_DUST_INVASION_QA.md.",
       "implementation": [
         "app/src/main/cpp/experiments/csharp/NativeDustEmission.cpp"
       ],
       "tests": [
-        "tests/ready_prs/dust_emission_test.cpp",
-        "tests/ready_prs/run.sh"
+        "tests/ready_prs/dust_emission_test.cpp"
       ],
       "validationScope": "host; Android pendente",
       "androidEvidence": [],
       "validatedFilesSha256": {
-        "app/src/main/cpp/experiments/csharp/NativeDustEmission.cpp": "9a18cdf8a73d00482a8a6686580af256f85a7e75338bdc339be43694ee285537",
-        "tests/ready_prs/dust_emission_test.cpp": "8bb145dbc67d382fd50382f8889740f18b7fbb6f6d7037dd1fdc5de6c198aa68",
-        "tests/ready_prs/run.sh": "09dd1e58ecad571303d50d130be33da171992f00450056b7d00ee0f33791d25d"
+        "app/src/main/cpp/experiments/csharp/NativeDustEmission.cpp": "8ec9564e7446880a17f737c7a91c58694d78b572fcc38b9de61ee75ee06e6564",
+        "tests/ready_prs/dust_emission_test.cpp": "554d43abbba4a9c749429fbebff213f11228a5dfa24183ec221f06f810cabbb2"
       }
+    },
+    {
+      "id": "requirement:android-weapons-user-report",
+      "status": "validado no Android",
+      "behavior": "Armas funcionando com Lights And Shadows",
+      "note": "Usuário: As armas funcionou. Escopo: relato de funcionamento; contagem detalhada de pellets, multiplayer e FPS não informados.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Ranged/ExampleGun.cs",
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Ranged/ExampleRocketLauncher.cs",
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Ranged/ExampleShotgun.cs"
+      ],
+      "tests": [],
+      "androidEvidence": [
+        {
+          "source": "Relato e relatório enviados pelo usuário nesta conversa",
+          "loader": "1.0.11-dust-invasion-qa",
+          "mod": "0.1.64",
+          "device": "Xiaomi 2109119DG / Android 14",
+          "mods": [
+            "Lights And Shadows 1.0.0",
+            "ExampleMod CSharp 0.1.64"
+          ],
+          "versionCode": null,
+          "fps": null
+        }
+      ],
+      "validatedFilesSha256": {
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Ranged/ExampleGun.cs": "87be9263633bbf52aff6cce73cd848e8c6d3be78eebb0ab280042ae7d9ecd75f",
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Ranged/ExampleRocketLauncher.cs": "df1a67d32f99a398b5d0e0363da62865328f9dfc7ef1c08c75fa4f76a0d0e3f2",
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Ranged/ExampleShotgun.cs": "f2483447a74c07fe4db4c6527fd58d209739f855b4cd2c68ef6267ab82eaad34"
+      }
+    },
+    {
+      "id": "requirement:summon-staff-reference",
+      "status": "validado automaticamente",
+      "behavior": "Cajado: defaults, som, flags e origem na mira limitada",
+      "note": "Corrigido e executado no host; reteste Android do novo lote pendente. Ver SUMMON_DUST_INVASION_QA.md.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Summon/ExampleMinionItem.cs",
+        "app/src/main/cpp/experiments/csharp/NativeDefaults.h",
+        "app/src/main/cpp/experiments/csharp/NativeShooting.cpp"
+      ],
+      "tests": [
+        "tests/shooting/Program.cs",
+        "tests/shooting/native_test.cpp",
+        "tests/summon_lifecycle/native_defaults_test.cpp"
+      ],
+      "validationScope": "host; Android pendente",
+      "androidEvidence": [],
+      "validatedFilesSha256": {
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Summon/ExampleMinionItem.cs": "98694097f2e06ee2e0c46dd3940558e022f5ae85f6e33134850d561692002df9",
+        "app/src/main/cpp/experiments/csharp/NativeDefaults.h": "ddbe2d22cf813be7621c4e66e777665586ebcc0eb29ed62414a957110ac1c658",
+        "app/src/main/cpp/experiments/csharp/NativeShooting.cpp": "b10cc897e33c3b831ef9091d5bba246bcb7c1087adb452d5416813575b3ded51",
+        "tests/shooting/Program.cs": "d294dc22e3004da1684bdd4ed9a325d22b4af74fa929933f18042e8b80c58834",
+        "tests/shooting/native_test.cpp": "f1145f684b51104c82df24bbd01ecd297bfb07645264dd422aed4e49bad747e1",
+        "tests/summon_lifecycle/native_defaults_test.cpp": "74c9a8054e0a9090ebbe74bc6e6c1afbe02ffacf0582c9f29de354281f57e5ac"
+      }
+    },
+    {
+      "id": "requirement:android-dust-emission",
+      "status": "falhou",
+      "behavior": "Emissão visível de Dust no aparelho",
+      "note": "Relatório 0.1.64: NewDustSignatureUnavailable. Correção do namespace Graphics.Color no novo lote ainda não confirmada em aparelho.",
+      "implementation": [
+        "app/src/main/cpp/experiments/csharp/NativeDustEmission.cpp"
+      ],
+      "tests": [
+        "tests/ready_prs/dust_emission_test.cpp"
+      ],
+      "androidEvidence": [
+        {
+          "source": "Relatório do usuário",
+          "log": "Stage=Resolve Result=Rejected Reason=NativeContractUnavailable; Detail=NewDustSignatureUnavailable"
+        }
+      ]
+    },
+    {
+      "id": "requirement:android-invasion-spawn",
+      "status": "falhou",
+      "behavior": "NPCs e progresso da invasão no aparelho",
+      "note": "Running com SpawnFailed crescente e NoSafeSpawnSite; busca/diagnósticos ajustados, reteste pendente.",
+      "implementation": [
+        "app/src/main/cpp/experiments/csharp/NativeInvasionSpawnSite.h",
+        "app/src/main/cpp/experiments/csharp/NativeInvasionSpawnSite.cpp"
+      ],
+      "tests": [
+        "tests/invasion/NativeSpawnSiteTest.cpp"
+      ],
+      "androidEvidence": [
+        {
+          "source": "Prints e relatório do usuário",
+          "log": "Invasion=Running Progress=0/30 Active=0 SpawnFailed=5; Reason=NoSafeSpawnSite"
+        }
+      ]
     }
   ],
   "officialBacklog": [

@@ -27,8 +27,9 @@ std::mutex writer;
 struct Refs {AimBinding aim;int type=-1,who=-1;FieldInfo* pool=nullptr;Il2CppClass* projectile=nullptr;const MethodInfo* time=nullptr;} refs;
 using UseFn=void(*)(Il2CppObject*,int,Il2CppObject*,int,bool,const MethodInfo*);
 using SpawnFn=int(*)(Il2CppObject*,float,float,float,float,int,int,float,int,float,float,float,Il2CppObject*,const MethodInfo*);
+const MethodInfo* limitCursor=nullptr;
 UseFn originalUse=nullptr;SpawnFn originalSpawn=nullptr;
-struct Active {std::shared_ptr<Policy> policy;int player=0,weaponDamage=0,slots=0;};
+struct Active {std::shared_ptr<Policy> policy;int player=0,weaponDamage=0,slots=0;bool cursor=false;float x=0,y=0;};
 thread_local Active active;
 std::atomic<uint32_t> seed{0x9e3779b9};
 struct Shot {std::string key;int type=0,damage=0;float x=0,y=0,vx=0,vy=0,kb=0,a0=0,a1=0,a2=0;};
@@ -123,6 +124,19 @@ void use(Il2CppObject* player,int index,Il2CppObject* item,int damage,bool feedb
     if(!allowed){reinterpret_cast<void(*)(Il2CppObject*,Il2CppObject*,const MethodInfo*)>(il2cpp::methodPointer(refs.time))(player,item,refs.time);return;}
     // Terraria computes muzzle/holdout from direction inside the original method.
     if(!refs.aim.synchronize(player,who))diagnostic(*policy,"Aim","Reason=LocalAimUnavailable","VanillaDirectionPreserved");
+    if(policy->entry.cursor) {
+        int local=-1;float point[2]{};
+        if(!native_static::read(refs.aim.localPlayer,&local,4))return;
+        if(who==local) {
+            if(!native_static::read(refs.aim.mouse,point,8))return;
+            for(float n:point)if(!std::isfinite(n)||std::fabs(n)>1e8f)return;
+            void* args[]={point};Il2CppObject* exception=nullptr;
+            il2cpp::api().runtime_invoke(limitCursor,player,args,&exception);
+            if(exception){diagnostic(*policy,"LimitCursor","Reason=NativeReachLimitException");return;}
+            for(float n:point)if(!std::isfinite(n)||std::fabs(n)>1e8f)return;
+            context.cursor=true;context.x=point[0];context.y=point[1];
+        }
+    }
     const auto previous=active;active=std::move(context);
     // Native exceptions must not leave a stale thread-local shooting scope armed.
     il2cpp::Caught caught;
@@ -140,6 +154,7 @@ int spawn(Il2CppObject* source,float x,float y,float vx,float vy,int type,int da
     if(!active.policy)return originalSpawn(source,x,y,vx,vy,type,damage,kb,owner,a0,a1,a2,modifier,method);
     const auto context=active;active={}; // Own spawns must traverse the remaining hooks without recursively invoking Shoot.
     const int sentinel=context.slots;
+    if(context.cursor){x=context.x;y=context.y;}
     Shot input;input.type=type;input.damage=damage;input.x=x;input.y=y;input.vx=vx;input.vy=vy;input.kb=kb;input.a0=a0;input.a1=a1;input.a2=a2;
     if(!(context.policy->entry.mask&6)){const int slot=emit(*context.policy,input,source,owner,modifier,method,sentinel);active=context;return slot;}
     std::string output,error;Result result;
@@ -196,6 +211,14 @@ bool publish(const std::vector<Entry>& entries,std::string* error) {
     if(entries.empty())return true;
     std::lock_guard lock(writer);
     if(!prepare(error)){*error="[CSharp][ERROR][Shoot] Mod="+entries.front().mod+" Class="+entries.front().name+" File="+entries.front().source+" Stage=BindNative Result=BatchRejected Detail="+*error;return false;}
+    for(const auto& entry:entries)if(entry.cursor&&!limitCursor) {
+        auto& a=il2cpp::api();bool ambiguous=false;const MethodInfo* renamed=nullptr;
+        auto* candidate=il2cpp::findMethodBySignature(il2cpp::findClass({"Terraria","Player",{}}),
+            il2cpp::parseSignature("void LimitPointToPlayerReachableArea(ref Vector2 pointPosition)"),&ambiguous,&renamed);
+        if(!candidate&&!ambiguous)candidate=renamed;
+        if(!candidate||!a.method_is_instance(candidate)||!a.runtime_invoke){*error="Reason=NativeCursorReachContractUnavailable";return false;}
+        limitCursor=candidate;
+    }
     auto next=std::make_shared<Table>(*std::atomic_load_explicit(&policies,std::memory_order_acquire));std::map<int,bool> seen;
     for(const auto& entry:entries){
         if(entry.type<1||entry.mask<0||entry.mask>7||!seen.emplace(entry.type,true).second){*error="[CSharp][ERROR][Shoot] Mod="+entry.mod+" Class="+entry.name+" Stage=Publish Reason=InvalidOrDuplicateShootOwner Result=BatchRejected";return false;}

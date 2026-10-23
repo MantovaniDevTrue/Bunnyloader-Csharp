@@ -91,3 +91,6 @@ app/src/main/res/font/bunny.ttf
 /experiments/csharp/**/obj/
 /tests/**/bin/
 /tests/**/obj/
+
+/tools/sdk_reference/bin/
+/tools/sdk_reference/obj/

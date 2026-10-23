@@ -47,6 +47,10 @@ int main() {
     assert(placement.valid && placement.x == 90 * 16 &&
            placement.y == 100 * 16);
 
+    // Decoration and platforms in the clearance area are decided by native collision, not any active bit.
+    world.type[0]=3;world.headers[0]=0x20;
+    placement=findInvasionSpawnSite(world.view(),90*16,80*16);assert(placement.valid&&placement.x==90*16);
+    world.headers[0]=0;world.type[0]=0;
     world.set(90, 98, 1);
     placement = findInvasionSpawnSite(world.view(), 90 * 16, 80 * 16);
     assert(placement.valid && placement.x == 82 * 16 &&
