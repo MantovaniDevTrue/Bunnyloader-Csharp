@@ -1,4 +1,4 @@
-#include "experiments/csharp/NativeTooltipPanelTexturePath.h"
+#include "experiments/csharp/NativeTooltipPanelSettings.h"
 #include <cassert>
 #include <iostream>
 #include <string>
@@ -22,6 +22,8 @@ static Il2CppClass backing{"","TooltipBacking",false,{},nullptr},imageSlot{"","T
 static Il2CppClass texture{"Microsoft.Xna.Framework.Graphics","Texture2D",false,{},nullptr};
 static Il2CppClass wrong{"System","String",false,{},nullptr},primitive{"System","Int32",true,{},nullptr};
 static FieldInfo settingsTips{"Tooltips",{&tips},sizeof(Il2CppObject)};
+static FieldInfo settingsInstance{"Instance",{&settings},0,0x10};
+static Il2CppObject* activeSettings=nullptr;
 static FieldInfo tipsBacking{"Backing",{&backing},sizeof(Il2CppObject)};
 static FieldInfo backingFill{"Backing",{&imageSlot},sizeof(Il2CppObject)};
 static FieldInfo backingBorder{"Border",{&imageSlot},sizeof(Il2CppObject)+sizeof(void*)};
@@ -41,7 +43,7 @@ FieldInfo* findField(Il2CppClass* cls,std::string_view name) {
 
 int main() {
     using namespace bl::csharp;
-    settings.fields={&settingsTips};
+    settings.fields={&settingsTips,&settingsInstance};
     tips.fields={&tipsBacking};
     backing.fields={&backingFill,&backingBorder};
     imageSlot.getter=&textureGetter;
@@ -60,6 +62,10 @@ int main() {
     fixture.field_get_flags=[](FieldInfo* field){return field->flags;};
     fixture.field_get_type=[](FieldInfo* field)->const Il2CppType*{return &field->type;};
     fixture.field_get_offset=[](FieldInfo* field){return field->offset;};
+    fixture.field_static_get_value=[](FieldInfo* field,void* output){
+        assert(field==&settingsInstance);
+        std::memcpy(output,&activeSettings,sizeof(activeSettings));
+    };
     fixture.class_instance_size=[](Il2CppClass*){return static_cast<uint32_t>(sizeof(Node));};
     fixture.runtime_invoke=[](const MethodInfo* m,void* parent,void**,Il2CppObject** error)->Il2CppObject* {
         assert(m==&textureGetter);
@@ -81,6 +87,7 @@ int main() {
     backingValue.second=&borderImage.header;
     tipsValue.first=&backingValue.header;
     settingsValue.first=&tipsValue.header;
+    activeSettings=&settingsValue.header;
 
     NativeTooltipPanelTexturePath path;
     std::string error;
@@ -88,6 +95,42 @@ int main() {
     Il2CppObject *a=nullptr,*b=nullptr;
     assert(path.read(&settingsValue.header,&a,&b));
     assert(a==&fillTex.header&&b==&borderTex.header&&getterCalls==2);
+    NativeTooltipPanelResourcePath resources;
+    assert(resources.bind(&settings,&error));
+    NativeTooltipPanelResources resolved;
+    assert(resources.read(&resolved));
+    assert(resolved.settings==&settingsValue.header);
+    assert(resolved.tooltipBacking==&backingValue.header);
+    assert(resolved.fillTexture==&fillTex.header&&resolved.borderTexture==&borderTex.header);
+
+    NativeTooltipPanelResources previous=resolved;
+    activeSettings=nullptr;
+    assert(!resources.read(&resolved));
+    assert(resolved.settings==previous.settings&&resolved.fillTexture==previous.fillTexture);
+    activeSettings=&settingsValue.header;
+    borderImage.first=nullptr;
+    assert(!resources.read(&resolved));
+    assert(resolved.borderTexture==previous.borderTexture);
+    borderImage.first=&borderTex.header;
+    assert(resources.read(&resolved));
+    Node replacementSettings{{&settings,nullptr}};
+    replacementSettings.first=&tipsValue.header;
+    activeSettings=&replacementSettings.header;
+    assert(resources.read(&resolved));
+    assert(resolved.settings==&replacementSettings.header);
+    activeSettings=&settingsValue.header;
+    NativeTooltipPanelSettings badRoot;
+    auto savedNamespace=settings.ns;
+    settings.ns="Terraria.UI";
+    assert(!badRoot.bind(&settings,&error));
+    settings.ns=savedNamespace;
+    settingsInstance.flags=0;
+    assert(!badRoot.bind(&settings,&error));
+    settingsInstance.flags=0x10;
+    settingsInstance.type.klass=&wrong;
+    assert(!badRoot.bind(&settings,&error));
+    settingsInstance.type.klass=&settings;
+    assert(badRoot.bind(&settings,&error));
 
     const int calls=getterCalls;
     Il2CppObject* sentinel=reinterpret_cast<Il2CppObject*>(uintptr_t{0x1234});
@@ -120,5 +163,5 @@ int main() {
     textureGetter.result.klass=&wrong;reject();textureGetter.result.klass=&texture;
     imageSlot.getter=nullptr;reject();imageSlot.getter=&textureGetter;
     assert(path.read(&settingsValue.header,&a,&b));
-    std::cout<<"CSHARP_TOOLTIP_TEXTURE_PATH=PASS getterCalls="<<getterCalls<<" rejected=7\n";
+    std::cout<<"CSHARP_TOOLTIP_TEXTURE_PATH=PASS getterCalls="<<getterCalls<<" rejected=7 singleton=PASS\n";
 }
