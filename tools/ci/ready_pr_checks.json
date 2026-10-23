@@ -328,5 +328,10 @@
     "source": "ExampleMod APK readiness policy",
     "name": "Prevent APK packaging with incomplete translated behaviors or loaders",
     "command": "python3 tests/test_examplemod_apk_readiness.py"
+  },
+  {
+    "source": "check-csharp-golf-ball.yml",
+    "name": "Translate golf ball and verify native static projectile table ordering",
+    "command": "bash tests/golf_ball/run.sh"
   }
 ]

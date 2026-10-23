@@ -700,6 +700,7 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
 
 void resetCSharpSourceModSession() {
     for (const auto& mod : g_statuses) {
+        retireNativeDefaultsForMod(mod.id);
         shooting::unload(mod.id);
         angler::registry().unload(mod.id);
         unbindNativeRecipeAssembly(mod.id);
@@ -713,6 +714,7 @@ bool loadCSharpSourceMod(const bl::mods::LoadedMod& mod) {
     auto previous = std::find_if(g_statuses.begin(), g_statuses.end(),
         [&](const SourceModStatus& entry) { return entry.id == mod.id; });
     if (previous != g_statuses.end()) {
+        retireNativeDefaultsForMod(mod.id);
         shooting::unload(mod.id);
         angler::registry().unload(mod.id);
         unbindNativeRecipeAssembly(mod.id);
@@ -728,6 +730,7 @@ bool loadCSharpSourceMod(const bl::mods::LoadedMod& mod) {
                 mod.id.c_str(), status.sourceFiles, status.items,
                 status.projectiles, status.buffs, status.potions, status.npcs, status.dusts);
     } else {
+        retireNativeDefaultsForMod(mod.id);
         shooting::unload(mod.id);
         BL_ERROR("C# source %s: %s", mod.id.c_str(), status.error.c_str());
     }
@@ -1645,10 +1648,12 @@ bool applyManagedSourceDefaults(
         *error="[CSharp][ERROR][NativeDefaults] Mod="+modId+" Class="+request.name+" Stage=Publish Result=Rejected Reason=PrimaryDefaultsMissing";return false;
     }
     if(!holdout::publish(holdouts,error))return false;
+    // Uma recompilação pode remover todas as declarações NATIVE_* do mod.
+    // Substituir o lote inteiro também nesse caso evita políticas órfãs.
+    if(!publishNativeDefaults(nativeDefaults,error,[](const std::string& key){
+        const auto slash=key.find('/');return slash==std::string::npos?-1:runtime::modProjectileTypeByName(key.substr(0,slash),key.substr(slash+1));
+    },modId))return false;
     if(!nativeDefaults.empty()) {
-        if(!publishNativeDefaults(nativeDefaults,error,[](const std::string& key){
-            const auto slash=key.find('/');return slash==std::string::npos?-1:runtime::modProjectileTypeByName(key.substr(0,slash),key.substr(slash+1));
-        }))return false;
         requestBasicItemInstanceRefresh("NativeDefaultsPublished");
         BL_INFO("[CSharp][NativeDefaults] Mod=%s Stage=Publish Contents=%zu Result=Ready",modId.c_str(),nativeDefaults.size());
     }

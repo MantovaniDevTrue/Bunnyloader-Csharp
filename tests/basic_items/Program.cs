@@ -141,6 +141,19 @@ try {
    string error=File.ReadAllText(diag);if(!error.Contains("[CSharp][ERROR][ProjectilePolicy]")||!error.Contains("Class=PolicyProjectile")||!error.Contains("Reason=OutOfRange"))throw new Exception(error);
   }
  });
+ Check("projectile.static-defaults-order-and-override-contract",()=>{
+  string folder=Path.Combine(scratch,"static-projectile");Directory.CreateDirectory(Path.Combine(folder,"content"));
+  string file=Path.Combine(folder,"content","StaticProjectile.cs"),output=Path.Combine(scratch,"static-projectile.dll"),diag=Path.Combine(scratch,"static-projectile.txt");
+  string source="using System;using BunnyLoader.Source;public sealed class StaticProjectile:BunnyProjectile{private int stage;public override void SetDefaults(){Width=7;stage=1;}public override void SetStaticDefaults(){if(stage!=1||Width!=7)throw new InvalidOperationException(\"wrong setup order\");stage=2;NativeDefaults.SetProjectileStaticInt(\"TrailCacheLength\",Width+13);}}";
+  File.WriteAllText(file,source);Equal(1,Compiler.Compile(folder,output,runtime,diag));Equal(1,CompiledAssemblyProbe.Verify(output,diag));
+  Equal(true,File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt")).Contains("NATIVE_PROJECTILE\tStaticProjectile\tProjectileSet_TrailCacheLength:i:20"));
+  File.WriteAllText(file,source.Replace("public override void SetStaticDefaults()","public new void SetStaticDefaults()"));
+  Equal(1,Compiler.Compile(folder,output,runtime,diag));Equal(-1,CompiledAssemblyProbe.Verify(output,diag));
+  Equal(true,File.ReadAllText(diag).Contains("invalid SetStaticDefaults override"));
+  File.WriteAllText(file,source.Replace("stage=2;","throw new InvalidOperationException(\"static callback failed\");"));
+  Equal(1,Compiler.Compile(folder,output,runtime,diag));Equal(-1,CompiledAssemblyProbe.Verify(output,diag));
+  Equal(true,File.ReadAllText(diag).Contains("static callback failed"));
+ });
  Check("summon.native-movement-conflicting-ai-and-vanilla-style-rejected",()=>{
   string root=Path.Combine(scratch,"summon-policy");Directory.CreateDirectory(Path.Combine(root,"content"));
   string file=Path.Combine(root,"content","IndependentSummon.cs"),output=Path.Combine(scratch,"summon.dll"),diag=Path.Combine(scratch,"summon.txt");
@@ -359,14 +372,23 @@ try {
     var instance=Activator.CreateInstance(type)??throw new Exception("Cannot instantiate "+type.FullName);
     var defaults=type.GetMethod((typeof(BunnyTile).IsAssignableFrom(type)||typeof(BunnyWall).IsAssignableFrom(type)||typeof(BunnyDust).IsAssignableFrom(type))?"SetStaticDefaults":"SetDefaults");
     defaults?.Invoke(instance,null);
-    // Execute every registered content class: names and localized names share the user-facing convention.
+    // Execute every registered class; translated names may preserve the original Bunny JS localization.
     if(type.GetProperty("DisplayName")?.GetValue(instance) is string displayName &&
        !displayName.StartsWith("Example ",StringComparison.Ordinal) &&
        !(type.Name=="ExampleTooltipItem" && displayName=="Exemplo de Tooltip"))
       throw new Exception("Content name must begin with Example: "+type.FullName+" = "+displayName);
-    foreach(var name in type.GetCustomAttributes<BunnyNameAttribute>())
-      if(!name.Text.StartsWith("Example ",StringComparison.Ordinal))
-        throw new Exception("Localized name must begin with Example: "+type.FullName+" = "+name.Text);
+    foreach(var name in type.GetCustomAttributes<BunnyNameAttribute>()) {
+      string category=instance is BunnyProjectile?"ProjectileName":"ItemName";
+      string localePath=Path.Combine(root,"content","Localization",name.Culture+".json");
+      bool originalName=false;
+      if(File.Exists(localePath)) {
+        using var locale=JsonDocument.Parse(File.ReadAllText(localePath));
+        originalName=locale.RootElement.TryGetProperty(category,out var names) &&
+          names.TryGetProperty(type.Name,out var original) && original.GetString()==name.Text;
+      }
+      if(!originalName && !name.Text.StartsWith("Example ",StringComparison.Ordinal))
+        throw new Exception("Localized name must preserve the original or begin with Example: "+type.FullName+" = "+name.Text);
+    }
 
     void RequireAsset(string? name) {
       if(!string.IsNullOrWhiteSpace(name))

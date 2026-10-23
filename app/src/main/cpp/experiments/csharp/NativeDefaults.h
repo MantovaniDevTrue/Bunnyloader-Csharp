@@ -12,19 +12,34 @@
 #include <cstdlib>
 #include <cctype>
 #include <mutex>
+#include <tuple>
+#include <algorithm>
 
 namespace bl::csharp {
-struct NativeDefaultWrite {int offset=-1;std::vector<uint8_t> bytes;FieldInfo* sound=nullptr;FieldInfo* itemSet=nullptr;};
+struct NativeDefaultWrite {int offset=-1;std::vector<uint8_t> bytes;FieldInfo* sound=nullptr;FieldInfo* staticSet=nullptr;std::string owner{};};
 struct NativeDefaultsRequest {std::string name,mod,source,descriptor;int type=-1;bool projectile=false;};
 using NativeDefaultsBindings=std::vector<NativeDefaultWrite>;
 using NativeDefaultsTable=std::map<std::pair<bool,int>,NativeDefaultsBindings>;
 inline std::shared_ptr<const NativeDefaultsTable> g_nativeDefaults=std::make_shared<const NativeDefaultsTable>();
 inline std::mutex g_nativeDefaultsWriter;
+using NativeStaticCellKey=std::tuple<bool,int,uintptr_t>;
+inline std::vector<NativeStaticCellKey> g_retiredNativeStaticCells; // writer mutex
+struct NativeStaticCellState {
+    FieldInfo* field=nullptr;
+    std::vector<uint8_t> original,last;
+};
+// Acessados somente pela thread do Terraria; não guardam objetos IL2CPP.
+inline std::map<NativeStaticCellKey,NativeStaticCellState> g_nativeStaticCells;
+inline std::shared_ptr<const NativeDefaultsTable> g_appliedNativeDefaults;
+inline std::vector<NativeStaticCellKey> g_retryNativeStaticRestores;
+inline NativeStaticCellKey nativeStaticCellKey(bool projectile,int type,FieldInfo* field) {
+    return {projectile,type,reinterpret_cast<uintptr_t>(field)};
+}
 
 // Defaults must never change identity, ownership, pool membership or native references.
 inline bool nativeDefaultAllowed(const std::string& field,bool projectile) {
     const std::string item=" ItemSet_GamepadWholeScreenUseRange ItemSet_LockOnIgnoresCollision ItemSet_StaffMinionSlotsRequired UseSound width height maxStack value rare damage crit knockBack useTime useAnimation useStyle melee ranged magic summon noMelee autoReuse useTurn consumable accessory vanity pick axe hammer mana shoot shootSpeed useAmmo ammo channel noUseGraphic tileBoost reuseDelay useLimitPerAnimation holdStyle useAmmo canBePlacedInVanity hasVanityEffects noWet bait fishingPole healLife healMana potion buffTime " ;
-    const std::string proj=" width height damage knockBack aiStyle friendly hostile melee ranged magic minion sentry minionSlots penetrate maxPenetrate timeLeft ignoreWater tileCollide scale light alpha extraUpdates usesLocalNPCImmunity localNPCHitCooldown usesIDStaticNPCImmunity idStaticNPCHitCooldown armorPenetration bonusCritChance coldDamage noEnchantments noEnchantmentVisuals ownerHitCheck netImportant hide arrow npcProj trap noDropItem soundDelay spriteDirection direction rotation " ;
+    const std::string proj=" ProjectileSet_IsAGolfBall ProjectileSet_TrailingMode ProjectileSet_TrailCacheLength width height damage knockBack aiStyle friendly hostile melee ranged magic minion sentry minionSlots penetrate maxPenetrate timeLeft ignoreWater tileCollide scale light alpha extraUpdates usesLocalNPCImmunity localNPCHitCooldown usesIDStaticNPCImmunity idStaticNPCHitCooldown armorPenetration bonusCritChance coldDamage noEnchantments noEnchantmentVisuals ownerHitCheck netImportant hide arrow npcProj trap noDropItem soundDelay spriteDirection direction rotation " ;
     return (projectile?proj:item).find(" "+field+" ")!=std::string::npos;
 }
 inline bool bindNativeDefaults(Il2CppClass* cls,const NativeDefaultsRequest& request,
@@ -48,23 +63,45 @@ inline bool bindNativeDefaults(Il2CppClass* cls,const NativeDefaultsRequest& req
         auto parts=split(record,':');const std::string name=parts[0];
         if(parts.size()<3||parts.size()>4||!nativeDefaultAllowed(name,request.projectile)||!seen.emplace(name,true).second)
             return reject(name,"InvalidOrUnsupportedField","UniqueMutableContentDefault",record);
-        if(name.rfind("ItemSet_",0)==0&&!request.projectile) {
-            if(parts.size()!=3)return reject(name,"ItemSetValueInvalid","Three typed fields",record);
-            const bool slots=name=="ItemSet_StaffMinionSlotsRequired";const size_t width=slots?4:1;
-            auto* sets=il2cpp::findClass({"Terraria.ID","ItemID","Sets"});
+        const bool itemSet = name.rfind("ItemSet_",0)==0 && !request.projectile;
+        const bool projectileSet = name.rfind("ProjectileSet_",0)==0 && request.projectile;
+        if(itemSet || projectileSet) {
+            if(parts.size()!=3)return reject(name,itemSet?"ItemSetValueInvalid":"ProjectileSetValueInvalid","Three typed fields",record);
+            const bool slots=name=="ItemSet_StaffMinionSlotsRequired";
+            const bool integer=slots || name=="ProjectileSet_TrailingMode" || name=="ProjectileSet_TrailCacheLength";
+            const size_t width=integer?4:1;
+            const char* element=integer?"Int32":"Boolean";
+            auto* sets=il2cpp::findClass({"Terraria.ID",projectileSet?"ProjectileID":"ItemID","Sets"});
             if(sets&&a.runtime_class_init)a.runtime_class_init(sets);
-            auto* field=sets?il2cpp::findField(sets,name.substr(8)):nullptr;Il2CppArray* array=nullptr;
-            if(!field||!(a.field_get_flags(field)&0x10u)||!a.field_static_get_value)return reject(name,"ItemSetMissing","Static primitive array","Missing");
-            a.field_static_get_value(field,&array);
-            if(request.type<1||!array||array->length<=static_cast<uintptr_t>(request.type)||
-               !il2cpp::nativeArrayContract(array,slots?"Int32":"Boolean",width))return reject(name,"ItemSetArrayMismatch","Expanded typed ItemID.Sets array","WrongTypeOrCapacity");
-            NativeDefaultWrite write;write.itemSet=field;write.bytes.resize(width);
-            if(slots) {
+            auto* field=sets?il2cpp::findField(sets,name.substr(projectileSet?14:8)):nullptr;
+            auto* declaredType=field?a.field_get_type(field):nullptr;
+            auto* declared=declaredType?a.class_from_il2cpp_type(declaredType):nullptr;
+            // Conferir o campo ANTES de field_static_get_value: um escalar com
+            // nome homônimo não pode ser interpretado como ponteiro de array.
+            if(!field||!(a.field_get_flags(field)&0x10u)||!a.field_static_get_value||
+               !declared||a.class_is_valuetype(declared)||!a.class_get_rank||!a.class_get_element_class||
+               a.class_get_rank(declared)!=1)
+                return reject(name,itemSet?"ItemSetMissing":"ProjectileSetMissing","Static primitive array","MissingOrWrongStorage");
+            auto* declaredElement=a.class_get_element_class(declared);
+            const char* elementNs=declaredElement?a.class_get_namespace(declaredElement):nullptr;
+            const char* elementName=declaredElement?a.class_get_name(declaredElement):nullptr;
+            uint32_t elementAlign=0;
+            if(!elementNs||!elementName||std::strcmp(elementNs,"System")||std::strcmp(elementName,element)||
+               !a.class_is_valuetype(declaredElement)||a.class_value_size(declaredElement,&elementAlign)!=static_cast<int>(width))
+                return reject(name,itemSet?"ItemSetArrayMismatch":"ProjectileSetArrayMismatch","Declared typed array","WrongElementType");
+            Il2CppArray* array=nullptr;a.field_static_get_value(field,&array);
+            if(request.type<1||!array||array->obj.klass!=declared||array->length<=static_cast<uintptr_t>(request.type)||
+               !il2cpp::nativeArrayContract(array,element,width))
+                return reject(name,itemSet?"ItemSetArrayMismatch":"ProjectileSetArrayMismatch","Expanded typed ID.Sets array","WrongTypeOrCapacity");
+            NativeDefaultWrite write;write.staticSet=field;write.bytes.resize(width);
+            if(integer) {
                 int value=0;auto parsed=std::from_chars(parts[2].data(),parts[2].data()+parts[2].size(),value);
-                if(parts[1]!="i"||parts[2].empty()||parsed.ec!=std::errc{}||parsed.ptr!=parts[2].data()+parts[2].size()||value<0||value>100)return reject(name,"ItemSetValueInvalid","Slots0..100",record);
+                const int maximum=slots?100:name=="ProjectileSet_TrailingMode"?3:128;
+                if(parts[1]!="i"||parts[2].empty()||parsed.ec!=std::errc{}||parsed.ptr!=parts[2].data()+parts[2].size()||value<0||value>maximum)
+                    return reject(name,itemSet?"ItemSetValueInvalid":"ProjectileSetValueInvalid","Integer0.."+std::to_string(maximum),record);
                 std::memcpy(write.bytes.data(),&value,4);
             } else {
-                if(parts[1]!="b"||(parts[2]!="0"&&parts[2]!="1"))return reject(name,"ItemSetValueInvalid","Boolean0or1",record);
+                if(parts[1]!="b"||(parts[2]!="0"&&parts[2]!="1"))return reject(name,itemSet?"ItemSetValueInvalid":"ProjectileSetValueInvalid","Boolean0or1",record);
                 write.bytes[0]=parts[2]=="1";
             }
             staged.push_back(std::move(write));continue;
@@ -134,27 +171,115 @@ inline bool bindNativeDefaults(Il2CppClass* cls,const NativeDefaultsRequest& req
     }
     *output=std::move(staged);return true;
 }
-inline bool publishNativeDefaults(const std::vector<NativeDefaultsRequest>& requests,std::string* error,int(*projectileId)(const std::string&)) {
+inline bool publishNativeDefaults(const std::vector<NativeDefaultsRequest>& requests,std::string* error,int(*projectileId)(const std::string&),const std::string& replaceMod={}) {
     std::lock_guard lock(g_nativeDefaultsWriter);
     auto next=std::make_shared<NativeDefaultsTable>(*std::atomic_load_explicit(&g_nativeDefaults,std::memory_order_acquire));
     std::map<std::pair<bool,int>,bool> seen;
+    std::vector<NativeStaticCellKey> retired;
     for(const auto& request:requests) {
+        if(!replaceMod.empty() && request.mod!=replaceMod) {
+            *error="[CSharp][ERROR][NativeDefaults] Stage=Publish Result=BatchRejected Reason=ModOwnerMismatch";return false;
+        }
         NativeDefaultsBindings fields;auto key=std::make_pair(request.projectile,request.type);
         if(!seen.emplace(key,true).second){*error="[CSharp][ERROR][NativeDefaults] Mod="+request.mod+" Class="+request.name+" Stage=Publish Reason=DuplicateContentDefaults Result=BatchRejected";return false;}
+        const auto previous=next->find(key);
+        if(previous!=next->end()&&!previous->second.empty()&&previous->second.front().owner!=request.mod) {
+            *error="[CSharp][ERROR][NativeDefaults] Mod="+request.mod+" Class="+request.name+
+                " Stage=Publish Result=BatchRejected Reason=ContentOwnerMismatch";return false;
+        }
         if(!bindNativeDefaults(il2cpp::findClass({"Terraria",request.projectile?"Projectile":"Item",{}}),request,&fields,error,projectileId))return false;
+        for(auto& field:fields)field.owner=request.mod;
+        if(previous!=next->end())for(const auto& old:previous->second)if(old.staticSet &&
+            std::none_of(fields.begin(),fields.end(),[&](const auto& field){return field.staticSet==old.staticSet;}))
+            retired.push_back(nativeStaticCellKey(key.first,key.second,old.staticSet));
         (*next)[key]=std::move(fields);
     }
+    if(!replaceMod.empty())for(auto it=next->begin();it!=next->end();) {
+        if(it->second.empty()||it->second.front().owner!=replaceMod||seen.contains(it->first)){++it;continue;}
+        for(const auto& field:it->second)if(field.staticSet)
+            retired.push_back(nativeStaticCellKey(it->first.first,it->first.second,field.staticSet));
+        it=next->erase(it);
+    }
+    g_retiredNativeStaticCells.insert(g_retiredNativeStaticCells.end(),retired.begin(),retired.end());
     std::atomic_store_explicit(&g_nativeDefaults,std::shared_ptr<const NativeDefaultsTable>(std::move(next)),std::memory_order_release);return true;
+}
+inline void retireNativeDefaultsForMod(const std::string& mod) {
+    std::lock_guard lock(g_nativeDefaultsWriter);
+    auto next=std::make_shared<NativeDefaultsTable>(*std::atomic_load_explicit(&g_nativeDefaults,std::memory_order_acquire));
+    bool changed=false;
+    for(auto it=next->begin();it!=next->end();) {
+        if(it->second.empty()||it->second.front().owner!=mod){++it;continue;}
+        for(const auto& field:it->second)if(field.staticSet)
+            g_retiredNativeStaticCells.push_back(nativeStaticCellKey(it->first.first,it->first.second,field.staticSet));
+        it=next->erase(it);changed=true;
+    }
+    if(changed)std::atomic_store_explicit(&g_nativeDefaults,std::shared_ptr<const NativeDefaultsTable>(std::move(next)),std::memory_order_release);
+}
+inline uint8_t* nativeStaticCell(FieldInfo* field,int type,size_t width) {
+    Il2CppArray* array=nullptr;auto& a=il2cpp::api();
+    if(!a.field_static_get_value || (width!=1 && width!=4))return nullptr;
+    a.field_static_get_value(field,&array);
+    if(type<0 || !il2cpp::nativeArrayContract(array,width==4?"Int32":"Boolean",width) ||
+       array->length<=static_cast<uintptr_t>(type))return nullptr;
+    return static_cast<uint8_t*>(arrayData(array))+static_cast<size_t>(type)*width;
+}
+inline void applyNativeStaticDefaultCell(const NativeDefaultWrite& field,bool projectile,int type) {
+    if(!field.staticSet)return;
+    auto* cell=nativeStaticCell(field.staticSet,type,field.bytes.size());if(!cell)return;
+    const auto key=nativeStaticCellKey(projectile,type,field.staticSet);
+    auto [it,inserted]=g_nativeStaticCells.try_emplace(key);
+    if(inserted) {
+        it->second.field=field.staticSet;
+        it->second.original.assign(cell,cell+field.bytes.size());
+    }
+    it->second.last=field.bytes;
+    std::memcpy(cell,field.bytes.data(),field.bytes.size());
+}
+inline void pumpNativeStaticDefaultsOnGameThread() {
+    auto table=std::atomic_load_explicit(&g_nativeDefaults,std::memory_order_acquire);
+    if(table==g_appliedNativeDefaults && g_retryNativeStaticRestores.empty())return;
+    std::vector<NativeStaticCellKey> retired;
+    {
+        // Snapshot e retiradas pertencem à mesma publicação. Nenhuma chamada
+        // ao jogo ocorre segurando o lock utilizado pela thread compiladora.
+        std::lock_guard lock(g_nativeDefaultsWriter);
+        table=std::atomic_load_explicit(&g_nativeDefaults,std::memory_order_acquire);
+        retired.swap(g_retiredNativeStaticCells);
+    }
+    retired.insert(retired.end(),g_retryNativeStaticRestores.begin(),g_retryNativeStaticRestores.end());
+    g_retryNativeStaticRestores.clear();
+    std::sort(retired.begin(),retired.end());
+    retired.erase(std::unique(retired.begin(),retired.end()),retired.end());
+    for(const auto& key:retired) {
+        auto saved=g_nativeStaticCells.find(key);if(saved==g_nativeStaticCells.end())continue;
+        auto& state=saved->second;
+        auto* cell=nativeStaticCell(state.field,std::get<1>(key),state.last.size());
+        if(!cell){g_retryNativeStaticRestores.push_back(key);continue;}
+        // Uma alteração posterior de outro consumidor não deve ser sobrescrita.
+        if(std::memcmp(cell,state.last.data(),state.last.size())==0)
+            std::memcpy(cell,state.original.data(),state.original.size());
+        g_nativeStaticCells.erase(saved);
+    }
+    // O compilador publica; só a thread do jogo escreve os arrays. Aplicar
+    // antes do primeiro spawn permite consultar IsAGolfBall no equipamento.
+    for(const auto& [key,fields]:*table)
+        for(const auto& field:fields)applyNativeStaticDefaultCell(field,key.first,key.second);
+    g_appliedNativeDefaults=table;
+}
+// Chamado antes do SetDefaults original: o Terraria lê TrailCacheLength
+// durante a criação de oldPos/oldRot, antes dos defaults de instância do mod.
+inline void applyNativeStaticDefaults(bool projectile,int type) {
+    pumpNativeStaticDefaultsOnGameThread();
+    const auto table=std::atomic_load_explicit(&g_nativeDefaults,std::memory_order_acquire);
+    const auto found=table->find({projectile,type});if(found==table->end())return;
+    for(const auto& field:found->second)applyNativeStaticDefaultCell(field,projectile,type);
 }
 inline void applyNativeDefaults(Il2CppObject* object,bool projectile,int type) {
     if(!object)return;
+    applyNativeStaticDefaults(projectile,type);
     const auto table=std::atomic_load_explicit(&g_nativeDefaults,std::memory_order_acquire);const auto found=table->find({projectile,type});if(found==table->end())return;
     for(const auto& field:found->second) {
-        if(field.itemSet) {
-            Il2CppArray* array=nullptr;il2cpp::api().field_static_get_value(field.itemSet,&array);
-            if(array&&type>=0&&array->length>static_cast<uintptr_t>(type))std::memcpy(static_cast<char*>(arrayData(array))+static_cast<size_t>(type)*field.bytes.size(),field.bytes.data(),field.bytes.size());
-            continue;
-        }
+        if(field.staticSet)continue;
         auto* destination=reinterpret_cast<char*>(object)+field.offset;
         if(!field.sound){std::memcpy(destination,field.bytes.data(),field.bytes.size());continue;}
         Il2CppObject* style=nullptr;auto& a=il2cpp::api();a.field_static_get_value(field.sound,&style);

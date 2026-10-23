@@ -44,6 +44,21 @@ public abstract class BunnyItem : BunnyShootSource
     public static int SellPrice(int platinum=0,int gold=0,int silver=0,int copper=0)
         => checked(BuyPrice(platinum,gold,silver,copper)*5);
     internal override int RecipeStackLimit => MaxStack;
+    /// <summary>
+    /// Mesmo contrato de Item.DefaultToGolfBall(projid) no Android 301720.
+    /// Use em SetDefaults, antes de sobrescrever os valores particulares do item.
+    /// A referência ao projétil é resolvida pelo host, sem ID fixo de mod.
+    /// </summary>
+    public void DefaultToGolfBall(string projectile)
+    {
+        // Estes valores acompanham o helper real do Terraria: bola equipável,
+        // sem gráfico de uso nem acerto direto; o projétil faz a simulação.
+        Width=18; Height=20; UseStyle=1; UseTime=15; UseAnimation=15;
+        Accessory=true; NoMelee=true; Rare=ItemRarityID.Green; Value=10000;
+        UseSound="Item1";
+        NativeDefaults.SetProjectile("shoot",projectile).SetFloat("shootSpeed",12)
+            .SetBool("noUseGraphic",true).SetBool("hasVanityEffects",true);
+    }
     public string DisplayName { get; set; } = "";
     public string Texture { get; set; } = "";
     public string Tooltip { get; set; } = "";

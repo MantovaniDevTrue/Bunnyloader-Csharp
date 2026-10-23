@@ -330,8 +330,23 @@ public static class CompiledAssemblyProbe
         MethodInfo method = type.GetMethod("SetDefaults", BindingFlags.Public | BindingFlags.Instance)
             ?? throw new InvalidOperationException("Missing SetDefaults in " + type.Name);
         method.Invoke(instance, null);
+        if (IsContentType(type, "BunnyProjectile"))
+            InitializeProjectileStaticDefaults(instance);
         ValidateDeclaration(instance);
         return instance;
+    }
+
+    private static void InitializeProjectileStaticDefaults(object instance)
+    {
+        Type type = instance.GetType();
+        MethodInfo? method = type.GetMethod("SetStaticDefaults",
+            BindingFlags.Public | BindingFlags.Instance, binder: null,
+            types: Type.EmptyTypes, modifiers: null);
+        if (method == null || method.ReturnType != typeof(void) ||
+            method.ContainsGenericParameters ||
+            method.GetBaseDefinition().DeclaringType?.FullName != "BunnyLoader.Source.BunnyProjectile")
+            throw new InvalidOperationException(type.FullName + ": invalid SetStaticDefaults override");
+        method.Invoke(instance, null);
     }
 
     private static int DustHookMask(Type type)
@@ -372,6 +387,7 @@ public static class CompiledAssemblyProbe
             throw new InvalidOperationException("SourceBolt base type invalid");
         object instance = Activator.CreateInstance(type)!;
         type.GetMethod("SetDefaults", BindingFlags.Public | BindingFlags.Instance)!.Invoke(instance, null);
+        InitializeProjectileStaticDefaults(instance);
         if ((int)type.GetProperty("Width")!.GetValue(instance)! != 10 ||
             (int)type.GetProperty("Height")!.GetValue(instance)! != 10 ||
             (int)type.GetProperty("AiStyle")!.GetValue(instance)! != 1 ||

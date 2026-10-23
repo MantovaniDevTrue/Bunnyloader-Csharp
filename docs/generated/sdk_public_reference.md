@@ -1102,6 +1102,7 @@ string UseSound { get; set; }
 | `static int BuyPrice(int platinum, int gold, int silver, int copper)` | managed_helper |
 | `static int SellPrice(int platinum, int gold, int silver, int copper)` | managed_helper |
 | `string OnUseRejectionReason(int playerIndex, BunnyUseContext context)` | managed_helper |
+| `void DefaultToGolfBall(string projectile)` | managed_helper |
 | `void DefaultToPlaceableTile(int vanillaTileId, int style)` | managed_helper |
 | `void DefaultToPlaceableTile(string modTileName, int style)` | managed_helper |
 | `void DefaultToPlaceableWall(int vanillaWallId)` | managed_helper |
@@ -1306,6 +1307,8 @@ string Definition { get; }
 | `BunnyNativeDefaults SetInt(string field, int value)` | managed_helper |
 | `BunnyNativeDefaults SetItemStaticBool(string name, bool value)` | managed_helper |
 | `BunnyNativeDefaults SetProjectile(string field, string key)` | managed_helper |
+| `BunnyNativeDefaults SetProjectileStaticBool(string name, bool value)` | managed_helper |
+| `BunnyNativeDefaults SetProjectileStaticInt(string name, int value)` | managed_helper |
 | `BunnyNativeDefaults SetStaffMinionSlotsRequired(int value)` | managed_helper |
 | `BunnyNativeDefaults SetVanillaUseSound(string name)` | managed_helper |
 
@@ -1522,6 +1525,7 @@ string Texture { get; set; }
 | `void OnKill(ref BunnyProjectileAiState state)` | worker_async_entity |
 | `void OnSpawn(ref BunnyProjectileAiState state)` | worker_async_entity |
 | `void SetDefaults()` | compile_policy |
+| `void SetStaticDefaults()` | compile_sampled_policy |
 
 ## BunnyLoader.Source.BunnyProjectileAiState
 

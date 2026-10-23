@@ -1,6 +1,7 @@
 #include "experiments/csharp/ManagedSourceClassCount.h"
 #include "experiments/csharp/SourceParser.h"
 #include <cassert>
+#include <algorithm>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -46,19 +47,25 @@ int main(int argc, char** argv) {
             return 1;
         }
     }
-    assert(types.size() == 71);
+    assert(types.size() == 73);
+    assert(std::count_if(types.begin(),types.end(),[](const auto& type){
+        return type.name=="ExampleGolfBall" && type.base=="BunnyItem";
+    })==1);
+    assert(std::count_if(types.begin(),types.end(),[](const auto& type){
+        return type.name=="ExampleGolfBallProjectile" && type.base=="BunnyProjectile";
+    })==1);
     assert(mod.dusts == 1);
     assert(mod.walls == 1);
     assert(mod.rarities == 2);
     assert(mod.localizationModules == 1);
     assert(mod.commands == 3);
-    assert(expectedManagedSourceTypes(mod) == 72);
+    assert(expectedManagedSourceTypes(mod) == 74);
     const std::string status =
         "state=finished\nmodId=full-example\nphase=compile-verified\n"
-        "assemblyReady=1\nexecutedTypes=72\n";
+        "assemblyReady=1\nexecutedTypes=74\n";
     assert(managedSourceCompileFinished(status, mod.id, mod));
     --mod.dusts;
     assert(!managedSourceCompileFinished(status, mod.id, mod));
-    std::cout << "FULL_EXAMPLE_NATIVE_MANAGED_COUNT=PASS expected=72"
+    std::cout << "FULL_EXAMPLE_NATIVE_MANAGED_COUNT=PASS expected=74"
               << " rarities=2 dust=1 wall=1 localization=1 commands=3\n";
 }

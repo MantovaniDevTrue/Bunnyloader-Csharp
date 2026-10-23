@@ -540,6 +540,7 @@ void hkNativeMinionDamage(Il2CppObject* projectile, const MethodInfo* method) {
 
 void hkProjectileDefaults(Il2CppObject* self, int32_t type, const MethodInfo* method) {
     notifyManagedSourceProjectileDefaults(self);
+    applyNativeStaticDefaults(true,type);
     if (g_originalProjectile) g_originalProjectile(self, type, method);
     const auto definitions=std::atomic_load_explicit(&g_projectileView,std::memory_order_acquire);
     auto it = definitions->find(type);

@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable><ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj" />
+    <Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/Items/ExampleGolfBall.cs" Link="ExampleGolfBall.cs" />
+    <Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleGolfBallProjectile.cs" Link="ExampleGolfBallProjectile.cs" />
+  </ItemGroup>
+</Project>

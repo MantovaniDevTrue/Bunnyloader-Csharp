@@ -58,6 +58,24 @@ public sealed class BunnyNativeDefaults
         if(value<0||value>100)throw new ArgumentOutOfRangeException(nameof(value));
         return Set("ItemSet_StaffMinionSlotsRequired","i:"+value.ToString(CultureInfo.InvariantCulture));
     }
+    /// <summary>Flag de ProjectileID.Sets, instalada antes do SetDefaults nativo do projétil.</summary>
+    public BunnyNativeDefaults SetProjectileStaticBool(string name,bool value)
+    {
+        if(name!="IsAGolfBall")throw new ArgumentException("ProjectileID.Sets Boolean não suportado",nameof(name));
+        return Set("ProjectileSet_"+name,"b:"+(value?"1":"0"));
+    }
+    /// <summary>
+    /// Política do rastro nativo. TrailCacheLength (0..128) controla o tamanho
+    /// de oldPos/oldRot; TrailingMode (0..3) escolhe a atualização do histórico.
+    /// A tabela é escrita antes da criação desses arrays pelo Terraria.
+    /// </summary>
+    public BunnyNativeDefaults SetProjectileStaticInt(string name,int value)
+    {
+        int maximum=name=="TrailCacheLength"?128:name=="TrailingMode"?3:
+            throw new ArgumentException("ProjectileID.Sets Int32 não suportado",nameof(name));
+        if(value<0||value>maximum)throw new ArgumentOutOfRangeException(nameof(value));
+        return Set("ProjectileSet_"+name,"i:"+value.ToString(CultureInfo.InvariantCulture));
+    }
     /// <summary>Usa o LegacySoundStyle real registrado em Terraria.ID.SoundID.</summary>
     public BunnyNativeDefaults SetVanillaUseSound(string name) {Name(name);return Set("UseSound","s:"+name);}
     public string Definition=>string.Join(";",System.Linq.Enumerable.Select(values,p=>p.Key+":"+p.Value));

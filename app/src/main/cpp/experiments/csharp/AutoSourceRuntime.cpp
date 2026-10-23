@@ -27,6 +27,7 @@
 #include "graphics/CSharpScreenEffects.h"
 #include "experiments/csharp/NativeContent.h"
 #include "experiments/csharp/NativeBasicItems.h"
+#include "experiments/csharp/NativeDefaults.h"
 #include "experiments/csharp/NativeAnglerQuestGameplay.h"
 #include "experiments/csharp/NativeArmorPolicies.h"
 #include "experiments/csharp/NativeItemPolicies.h"
@@ -1376,6 +1377,7 @@ void noteAutoWorldTilesLoaded() {
 void flushDeferredWorldEntry();
 
 void noteAutoGameUpdate() {
+    pumpNativeStaticDefaultsOnGameThread();
     if (nativeCommandMailbox().hasCommands())
         installNativeCommandChatHooks();
     pumpNativeCommandRepliesOnGameThread();

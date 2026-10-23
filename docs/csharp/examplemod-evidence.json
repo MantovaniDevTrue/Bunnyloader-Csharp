@@ -49,7 +49,7 @@
       "validatedFilesSha256": {
         "app/src/main/cpp/experiments/csharp/NativeShootingAim.h": "69affa751509036d4134486bdc4e7213ed0b520c40199164ccd822efa3aa29a0",
         "app/src/main/cpp/experiments/csharp/NativeShooting.cpp": "b10cc897e33c3b831ef9091d5bba246bcb7c1087adb452d5416813575b3ded51",
-        "experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs": "ffbd184d04b6f237205318b88963dc92879b0bea81dee9d69404c174d4563da0",
+        "experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs": "c7fc67df1f7cda08465b88ca470aa12e46dfd702a33e3f4f0b4e58f6b6c5b020",
         "tests/shooting/run.sh": "1d8995d8ac9f6c41073c41452cde4360098cc762cfe3f593366c31c9eb74842a",
         "tests/shooting/native_test.cpp": "e6440784bfd84a4df41853de245f8a28d727ca6ef9179ff64a5bcd4eaeb72bd2",
         "app/src/main/cpp/experiments/csharp/NativeStaticValue.h": "b7294d34a83e2c84a900933ae21148b88c4c931a47d2402b69a3aa3d76413463"
@@ -200,12 +200,12 @@
       ],
       "validatedFilesSha256": {
         "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Summon/ExampleMinionItem.cs": "98694097f2e06ee2e0c46dd3940558e022f5ae85f6e33134850d561692002df9",
-        "app/src/main/cpp/experiments/csharp/NativeDefaults.h": "f5c633d17cfc3cf13cf5664e7f967069d38ad9cff99c092385c09c5317c5c5a2",
+        "app/src/main/cpp/experiments/csharp/NativeDefaults.h": "8edf57b6ea6c677aaecb7974deb3d3238d6b3d644be81a2ceb5452ba7083075a",
         "app/src/main/cpp/experiments/csharp/NativeShooting.cpp": "b10cc897e33c3b831ef9091d5bba246bcb7c1087adb452d5416813575b3ded51",
         "tests/shooting/Program.cs": "d294dc22e3004da1684bdd4ed9a325d22b4af74fa929933f18042e8b80c58834",
         "tests/shooting/native_test.cpp": "e6440784bfd84a4df41853de245f8a28d727ca6ef9179ff64a5bcd4eaeb72bd2",
         "tests/summon_lifecycle/native_defaults_test.cpp": "07f273dc9c97e28bc5c24cc1b3aec59d6970b6ce580150659e6c9a6250000ea7",
-        "app/src/main/cpp/experiments/csharp/NativeContent.cpp": "8b72c25b672b3355e3d51c0f59a56083bad71911a75621ba9fdc93d03059c95a",
+        "app/src/main/cpp/experiments/csharp/NativeContent.cpp": "2d546d1ff37ac910f557ce7e0ee8599f73e94d9e6ffa0441819742896d5e40ca",
         "tests/summon_lifecycle/source_damage_test.cpp": "cf2b0278d50b732b03be55c1ffa832af4cc10a1230cd16fa0d5ea2d0ebe2d0b4",
         "tests/summon_lifecycle/run.sh": "f6d7474a7ee5beef661a17e2f2f66314e2edd7aa5915fb9d0611b0a4821f0a02",
         "app/src/main/cpp/experiments/csharp/NativeContentIds.h": "7c5543d9e13e08100ca27c2b168e57906a65a275fa7c077e29b34f930dcc90c3"
@@ -262,7 +262,7 @@
       "validatedFilesSha256": {
         "samples/ExampleModCSharp/Playable/content/Content/Items/Tools/ExamplePickaxe.cs": "5e879ea61d78a9113901865e492cc872a42a0531732d77fd933b0a4175149035",
         "experiments/csharp/BunnyCsSdk/ItemRarityID.cs": "799ccba31bb9270a27584f37fd1d76ef0cb930a6012198d79b2e09f8d3cb0865",
-        "tests/basic_items/Program.cs": "d7dcb2e146af0225981e76d270cd10dabe3dc2a2e95fd7ca1e18977195ebe8e2"
+        "tests/basic_items/Program.cs": "20859b5452bc97e26700213373646566d093bd3519c2b7e5ddc527e989f4add2"
       }
     },
     "Content/Items/Tools/ExamplePickaxe.js#AddRecipes": {
@@ -281,7 +281,7 @@
       "validatedFilesSha256": {
         "samples/ExampleModCSharp/Playable/content/Content/Items/Tools/ExamplePickaxe.cs": "5e879ea61d78a9113901865e492cc872a42a0531732d77fd933b0a4175149035",
         "experiments/csharp/BunnyCsSdk/ItemRarityID.cs": "799ccba31bb9270a27584f37fd1d76ef0cb930a6012198d79b2e09f8d3cb0865",
-        "tests/basic_items/Program.cs": "d7dcb2e146af0225981e76d270cd10dabe3dc2a2e95fd7ca1e18977195ebe8e2"
+        "tests/basic_items/Program.cs": "20859b5452bc97e26700213373646566d093bd3519c2b7e5ddc527e989f4add2"
       }
     },
     "Content/Items/Tools/ExampleHamaxe.js#SetDefaults": {
@@ -300,7 +300,7 @@
       "validatedFilesSha256": {
         "samples/ExampleModCSharp/Playable/content/Content/Items/Tools/ExampleHamaxe.cs": "dad11ffac6abb0104ef2b2bb4323bbc83d597ba2b9be9363464813fc043021b2",
         "experiments/csharp/BunnyCsSdk/ItemRarityID.cs": "799ccba31bb9270a27584f37fd1d76ef0cb930a6012198d79b2e09f8d3cb0865",
-        "tests/basic_items/Program.cs": "d7dcb2e146af0225981e76d270cd10dabe3dc2a2e95fd7ca1e18977195ebe8e2"
+        "tests/basic_items/Program.cs": "20859b5452bc97e26700213373646566d093bd3519c2b7e5ddc527e989f4add2"
       }
     },
     "Content/Items/Tools/ExampleHamaxe.js#AddRecipes": {
@@ -319,7 +319,7 @@
       "validatedFilesSha256": {
         "samples/ExampleModCSharp/Playable/content/Content/Items/Tools/ExampleHamaxe.cs": "dad11ffac6abb0104ef2b2bb4323bbc83d597ba2b9be9363464813fc043021b2",
         "experiments/csharp/BunnyCsSdk/ItemRarityID.cs": "799ccba31bb9270a27584f37fd1d76ef0cb930a6012198d79b2e09f8d3cb0865",
-        "tests/basic_items/Program.cs": "d7dcb2e146af0225981e76d270cd10dabe3dc2a2e95fd7ca1e18977195ebe8e2"
+        "tests/basic_items/Program.cs": "20859b5452bc97e26700213373646566d093bd3519c2b7e5ddc527e989f4add2"
       }
     },
     "requirement:apk-after-loaders": {
@@ -386,7 +386,7 @@
         "experiments/csharp/BunnyCsSdk/ItemRarityID.cs": "799ccba31bb9270a27584f37fd1d76ef0cb930a6012198d79b2e09f8d3cb0865",
         "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp": "28266529611ef30f7de31852c7946f4f0169c4206a2db7e4f997745ef38a48fa",
         "app/src/main/cpp/experiments/csharp/NativeItemPolicies.cpp": "3f84104a106b11e24d2ed8b87b5e4608be2efd6d7f0aa469a7e6b908bab18cdd",
-        "tests/basic_items/Program.cs": "d7dcb2e146af0225981e76d270cd10dabe3dc2a2e95fd7ca1e18977195ebe8e2",
+        "tests/basic_items/Program.cs": "20859b5452bc97e26700213373646566d093bd3519c2b7e5ddc527e989f4add2",
         "tests/basic_items/native_item_policies_test.cpp": "60163349ef0e57bed71f02d576f8bf23ed6fd7192f84d96b95f5c20bb67a1e5d",
         "tests/basic_items/native_equip_effects_test.cpp": "c3c735b6af17081b85d4f5251ba60872234868fb1d6b8293111936c247c12ce9",
         "tests/run_native_item_policies.py": "0e538c50af9cda61d6ba28cb6e47b2e18d91af790a349e990303df29b42fdc8b",
@@ -417,7 +417,7 @@
         "experiments/csharp/BunnyCsSdk/ItemRarityID.cs": "799ccba31bb9270a27584f37fd1d76ef0cb930a6012198d79b2e09f8d3cb0865",
         "app/src/main/cpp/experiments/csharp/NativeBasicItems.cpp": "28266529611ef30f7de31852c7946f4f0169c4206a2db7e4f997745ef38a48fa",
         "app/src/main/cpp/experiments/csharp/NativeItemPolicies.cpp": "3f84104a106b11e24d2ed8b87b5e4608be2efd6d7f0aa469a7e6b908bab18cdd",
-        "tests/basic_items/Program.cs": "d7dcb2e146af0225981e76d270cd10dabe3dc2a2e95fd7ca1e18977195ebe8e2",
+        "tests/basic_items/Program.cs": "20859b5452bc97e26700213373646566d093bd3519c2b7e5ddc527e989f4add2",
         "tests/basic_items/native_item_policies_test.cpp": "60163349ef0e57bed71f02d576f8bf23ed6fd7192f84d96b95f5c20bb67a1e5d",
         "tests/basic_items/native_equip_effects_test.cpp": "c3c735b6af17081b85d4f5251ba60872234868fb1d6b8293111936c247c12ce9",
         "tests/run_native_item_policies.py": "0e538c50af9cda61d6ba28cb6e47b2e18d91af790a349e990303df29b42fdc8b",
@@ -443,6 +443,197 @@
         "app/src/main/cpp/experiments/csharp/NativeRarityMouseTextCache.h": "3fa1b5ce8dc1fff9de80c0516054bb55264edcb5f68cdb4cb8a1ed54f2a32d7c",
         "app/src/main/cpp/il2cpp/ValueLayout.h": "5fdd3b99f796147ab45a7d29121e4425d198b7cd5b3e8cb62a3651fa718f99b8",
         "tests/rarity_loader/native_mouse_text_cache_test.cpp": "77064dbeb8704284860859a96aa8a3d0b1213fc4437b52816658ced92fead311"
+      }
+    },
+    "Content/Items/ExampleGolfBall.js#SetDefaults": {
+      "status": "validado automaticamente",
+      "note": "Tradução dos valores originais, assets e nomes en-US/pt-BR. Compilação Roslyn do mod real e execução do hook C++ de produção sem QuickJS verificam as tabelas antes do SetDefaults original. Física, renderização e rede no Android ainda não foram validadas.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/ExampleGolfBall.cs",
+        "experiments/csharp/BunnyCsSdk/BunnyItem.cs",
+        "experiments/csharp/BunnyCsSdk/BunnyNativeDefaults.cs",
+        "experiments/csharp/BunnyCsSdk/BunnySourceScriptApi.cs",
+        "experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs",
+        "app/src/main/cpp/experiments/csharp/NativeDefaults.h",
+        "app/src/main/cpp/experiments/csharp/NativeContent.cpp",
+        "app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp",
+        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp",
+        "samples/ExampleModCSharp/Playable/content/Content/Items/ExampleGolfBall.png",
+        "samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleGolfBallProjectile.png",
+        "samples/ExampleModCSharp/Playable/content/Localization/en-US.json",
+        "samples/ExampleModCSharp/Playable/content/Localization/pt-BR.json"
+      ],
+      "tests": [
+        "tests/golf_ball/Program.cs",
+        "tests/golf_ball/native_test.cpp",
+        "tests/golf_ball/run.sh",
+        "tests/golf_ball/GolfBall.HostTests.csproj",
+        "tests/basic_items/Program.cs",
+        "tests/ready_prs/managed_source_class_count_test.cpp"
+      ],
+      "androidEvidence": [],
+      "validationScope": "host; Android pendente",
+      "validatedFilesSha256": {
+        "samples/ExampleModCSharp/Playable/content/Content/Items/ExampleGolfBall.cs": "57bbb30f94c182466312a20f085c2ac78fd49b42e916994a97f5c8acdf65189b",
+        "experiments/csharp/BunnyCsSdk/BunnyItem.cs": "836457ce9cc46370b51e223760465d1a1a8b1300f66c19b869c83e2f5c9318d5",
+        "experiments/csharp/BunnyCsSdk/BunnyNativeDefaults.cs": "7b16dfe17c53d82c796ac3b908856477241c9ce862d497218a212840fc4c05b4",
+        "experiments/csharp/BunnyCsSdk/BunnySourceScriptApi.cs": "c7e6b517061efe23646bb56fe8bf26fee17d7f4e0a057b557d7977ca1f47d5d3",
+        "experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs": "c7fc67df1f7cda08465b88ca470aa12e46dfd702a33e3f4f0b4e58f6b6c5b020",
+        "app/src/main/cpp/experiments/csharp/NativeDefaults.h": "8edf57b6ea6c677aaecb7974deb3d3238d6b3d644be81a2ceb5452ba7083075a",
+        "app/src/main/cpp/experiments/csharp/NativeContent.cpp": "2d546d1ff37ac910f557ce7e0ee8599f73e94d9e6ffa0441819742896d5e40ca",
+        "app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp": "c50a9fbf4a41bce328d3f2ab522215e6a497d93b04853dc5e6d9f1576a0ef9b7",
+        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp": "299273cc12a2b0bbadba645dfef8cbff23ea3c4392e2e9e1469604c09ca0434f",
+        "samples/ExampleModCSharp/Playable/content/Content/Items/ExampleGolfBall.png": "613e23749e0ec212109b31781be80c69e6047949363bc44e54e43d118f21bd02",
+        "samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleGolfBallProjectile.png": "47fe32e314de8f53fbb5c3b64089c32fa03a76d69ee685266558b8fa3c1f4964",
+        "samples/ExampleModCSharp/Playable/content/Localization/en-US.json": "8831336bbc755396ea1c5e111028239116f699c301ca7807dab90450b07182e9",
+        "samples/ExampleModCSharp/Playable/content/Localization/pt-BR.json": "d1e9a83f4fcda2724fce7523019510aa4ba1823b23e95606559038d709e7817b",
+        "tests/golf_ball/Program.cs": "da1f7e99a6dd5a895e32a5e275361fa760c977769311528f896d5ec9d3c0ffe9",
+        "tests/golf_ball/native_test.cpp": "16e7fe848f556ae83fa46623240de339b9e9e3ca8a7767627b9f85246f2ee3b9",
+        "tests/golf_ball/run.sh": "e518677066a1423f1837a1f375012fd928e5d8130708599e9cf293d846bf9e14",
+        "tests/golf_ball/GolfBall.HostTests.csproj": "bedb47a1c50e53cfc0c8d467d491987ac3f2c314a3794c81a0a1a870cf55438a",
+        "tests/basic_items/Program.cs": "20859b5452bc97e26700213373646566d093bd3519c2b7e5ddc527e989f4add2",
+        "tests/ready_prs/managed_source_class_count_test.cpp": "0f6a67ee635e3c52447343b18d27c21a343f7c2cafc2f7e4e52c27e1087ff120"
+      }
+    },
+    "Content/Projectiles/ExampleGolfBallProjectile.js#SetDefaults": {
+      "status": "validado automaticamente",
+      "note": "Tradução dos valores originais, assets e nomes en-US/pt-BR. Compilação Roslyn do mod real e execução do hook C++ de produção sem QuickJS verificam as tabelas antes do SetDefaults original. Física, renderização e rede no Android ainda não foram validadas.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleGolfBallProjectile.cs",
+        "experiments/csharp/BunnyCsSdk/BunnyItem.cs",
+        "experiments/csharp/BunnyCsSdk/BunnyNativeDefaults.cs",
+        "experiments/csharp/BunnyCsSdk/BunnySourceScriptApi.cs",
+        "experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs",
+        "app/src/main/cpp/experiments/csharp/NativeDefaults.h",
+        "app/src/main/cpp/experiments/csharp/NativeContent.cpp",
+        "app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp",
+        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp",
+        "samples/ExampleModCSharp/Playable/content/Content/Items/ExampleGolfBall.png",
+        "samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleGolfBallProjectile.png",
+        "samples/ExampleModCSharp/Playable/content/Localization/en-US.json",
+        "samples/ExampleModCSharp/Playable/content/Localization/pt-BR.json"
+      ],
+      "tests": [
+        "tests/golf_ball/Program.cs",
+        "tests/golf_ball/native_test.cpp",
+        "tests/golf_ball/run.sh",
+        "tests/golf_ball/GolfBall.HostTests.csproj",
+        "tests/basic_items/Program.cs",
+        "tests/ready_prs/managed_source_class_count_test.cpp"
+      ],
+      "androidEvidence": [],
+      "validationScope": "host; Android pendente",
+      "validatedFilesSha256": {
+        "samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleGolfBallProjectile.cs": "83fa4ba6e7bf19364815b8633ca5013f6cf5f61e8ddc6fe6391eaa655de072b3",
+        "experiments/csharp/BunnyCsSdk/BunnyItem.cs": "836457ce9cc46370b51e223760465d1a1a8b1300f66c19b869c83e2f5c9318d5",
+        "experiments/csharp/BunnyCsSdk/BunnyNativeDefaults.cs": "7b16dfe17c53d82c796ac3b908856477241c9ce862d497218a212840fc4c05b4",
+        "experiments/csharp/BunnyCsSdk/BunnySourceScriptApi.cs": "c7e6b517061efe23646bb56fe8bf26fee17d7f4e0a057b557d7977ca1f47d5d3",
+        "experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs": "c7fc67df1f7cda08465b88ca470aa12e46dfd702a33e3f4f0b4e58f6b6c5b020",
+        "app/src/main/cpp/experiments/csharp/NativeDefaults.h": "8edf57b6ea6c677aaecb7974deb3d3238d6b3d644be81a2ceb5452ba7083075a",
+        "app/src/main/cpp/experiments/csharp/NativeContent.cpp": "2d546d1ff37ac910f557ce7e0ee8599f73e94d9e6ffa0441819742896d5e40ca",
+        "app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp": "c50a9fbf4a41bce328d3f2ab522215e6a497d93b04853dc5e6d9f1576a0ef9b7",
+        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp": "299273cc12a2b0bbadba645dfef8cbff23ea3c4392e2e9e1469604c09ca0434f",
+        "samples/ExampleModCSharp/Playable/content/Content/Items/ExampleGolfBall.png": "613e23749e0ec212109b31781be80c69e6047949363bc44e54e43d118f21bd02",
+        "samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleGolfBallProjectile.png": "47fe32e314de8f53fbb5c3b64089c32fa03a76d69ee685266558b8fa3c1f4964",
+        "samples/ExampleModCSharp/Playable/content/Localization/en-US.json": "8831336bbc755396ea1c5e111028239116f699c301ca7807dab90450b07182e9",
+        "samples/ExampleModCSharp/Playable/content/Localization/pt-BR.json": "d1e9a83f4fcda2724fce7523019510aa4ba1823b23e95606559038d709e7817b",
+        "tests/golf_ball/Program.cs": "da1f7e99a6dd5a895e32a5e275361fa760c977769311528f896d5ec9d3c0ffe9",
+        "tests/golf_ball/native_test.cpp": "16e7fe848f556ae83fa46623240de339b9e9e3ca8a7767627b9f85246f2ee3b9",
+        "tests/golf_ball/run.sh": "e518677066a1423f1837a1f375012fd928e5d8130708599e9cf293d846bf9e14",
+        "tests/golf_ball/GolfBall.HostTests.csproj": "bedb47a1c50e53cfc0c8d467d491987ac3f2c314a3794c81a0a1a870cf55438a",
+        "tests/basic_items/Program.cs": "20859b5452bc97e26700213373646566d093bd3519c2b7e5ddc527e989f4add2",
+        "tests/ready_prs/managed_source_class_count_test.cpp": "0f6a67ee635e3c52447343b18d27c21a343f7c2cafc2f7e4e52c27e1087ff120"
+      }
+    },
+    "Content/Projectiles/ExampleGolfBallProjectile.js#SetStaticDefaults": {
+      "status": "validado automaticamente",
+      "note": "Tradução dos valores originais, assets e nomes en-US/pt-BR. Compilação Roslyn do mod real e execução do hook C++ de produção sem QuickJS verificam as tabelas antes do SetDefaults original. Física, renderização e rede no Android ainda não foram validadas.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleGolfBallProjectile.cs",
+        "experiments/csharp/BunnyCsSdk/BunnyItem.cs",
+        "experiments/csharp/BunnyCsSdk/BunnyNativeDefaults.cs",
+        "experiments/csharp/BunnyCsSdk/BunnySourceScriptApi.cs",
+        "experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs",
+        "app/src/main/cpp/experiments/csharp/NativeDefaults.h",
+        "app/src/main/cpp/experiments/csharp/NativeContent.cpp",
+        "app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp",
+        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp",
+        "samples/ExampleModCSharp/Playable/content/Content/Items/ExampleGolfBall.png",
+        "samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleGolfBallProjectile.png",
+        "samples/ExampleModCSharp/Playable/content/Localization/en-US.json",
+        "samples/ExampleModCSharp/Playable/content/Localization/pt-BR.json"
+      ],
+      "tests": [
+        "tests/golf_ball/Program.cs",
+        "tests/golf_ball/native_test.cpp",
+        "tests/golf_ball/run.sh",
+        "tests/golf_ball/GolfBall.HostTests.csproj",
+        "tests/basic_items/Program.cs",
+        "tests/ready_prs/managed_source_class_count_test.cpp"
+      ],
+      "androidEvidence": [],
+      "validationScope": "host; Android pendente",
+      "validatedFilesSha256": {
+        "samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleGolfBallProjectile.cs": "83fa4ba6e7bf19364815b8633ca5013f6cf5f61e8ddc6fe6391eaa655de072b3",
+        "experiments/csharp/BunnyCsSdk/BunnyItem.cs": "836457ce9cc46370b51e223760465d1a1a8b1300f66c19b869c83e2f5c9318d5",
+        "experiments/csharp/BunnyCsSdk/BunnyNativeDefaults.cs": "7b16dfe17c53d82c796ac3b908856477241c9ce862d497218a212840fc4c05b4",
+        "experiments/csharp/BunnyCsSdk/BunnySourceScriptApi.cs": "c7e6b517061efe23646bb56fe8bf26fee17d7f4e0a057b557d7977ca1f47d5d3",
+        "experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs": "c7fc67df1f7cda08465b88ca470aa12e46dfd702a33e3f4f0b4e58f6b6c5b020",
+        "app/src/main/cpp/experiments/csharp/NativeDefaults.h": "8edf57b6ea6c677aaecb7974deb3d3238d6b3d644be81a2ceb5452ba7083075a",
+        "app/src/main/cpp/experiments/csharp/NativeContent.cpp": "2d546d1ff37ac910f557ce7e0ee8599f73e94d9e6ffa0441819742896d5e40ca",
+        "app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp": "c50a9fbf4a41bce328d3f2ab522215e6a497d93b04853dc5e6d9f1576a0ef9b7",
+        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp": "299273cc12a2b0bbadba645dfef8cbff23ea3c4392e2e9e1469604c09ca0434f",
+        "samples/ExampleModCSharp/Playable/content/Content/Items/ExampleGolfBall.png": "613e23749e0ec212109b31781be80c69e6047949363bc44e54e43d118f21bd02",
+        "samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleGolfBallProjectile.png": "47fe32e314de8f53fbb5c3b64089c32fa03a76d69ee685266558b8fa3c1f4964",
+        "samples/ExampleModCSharp/Playable/content/Localization/en-US.json": "8831336bbc755396ea1c5e111028239116f699c301ca7807dab90450b07182e9",
+        "samples/ExampleModCSharp/Playable/content/Localization/pt-BR.json": "d1e9a83f4fcda2724fce7523019510aa4ba1823b23e95606559038d709e7817b",
+        "tests/golf_ball/Program.cs": "da1f7e99a6dd5a895e32a5e275361fa760c977769311528f896d5ec9d3c0ffe9",
+        "tests/golf_ball/native_test.cpp": "16e7fe848f556ae83fa46623240de339b9e9e3ca8a7767627b9f85246f2ee3b9",
+        "tests/golf_ball/run.sh": "e518677066a1423f1837a1f375012fd928e5d8130708599e9cf293d846bf9e14",
+        "tests/golf_ball/GolfBall.HostTests.csproj": "bedb47a1c50e53cfc0c8d467d491987ac3f2c314a3794c81a0a1a870cf55438a",
+        "tests/basic_items/Program.cs": "20859b5452bc97e26700213373646566d093bd3519c2b7e5ddc527e989f4add2",
+        "tests/ready_prs/managed_source_class_count_test.cpp": "0f6a67ee635e3c52447343b18d27c21a343f7c2cafc2f7e4e52c27e1087ff120"
+      }
+    },
+    "requirement:projectile-static-defaults-lifecycle": {
+      "status": "validado automaticamente",
+      "behavior": "SetStaticDefaults de projéteis e ownership/retirada das políticas NativeDefaults",
+      "note": "O compilador executa o hook após SetDefaults do protótipo, rejeita new em vez de override e propaga exceções. Tabelas são aplicadas na thread do Terraria antes do spawn e antes do SetDefaults original. Retirada seletiva, campos removidos, recarga imediata, consumidores posteriores e 1000 publicações/retiradas concorrentes são exercitados pelo fixture nativo. A alteração cobre essas políticas; não encerra o lifecycle global de todos os loaders.",
+      "implementation": [
+        "experiments/csharp/BunnyCsSdk/BunnyItem.cs",
+        "experiments/csharp/BunnyCsSdk/BunnyNativeDefaults.cs",
+        "experiments/csharp/BunnyCsSdk/BunnySourceScriptApi.cs",
+        "experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs",
+        "app/src/main/cpp/experiments/csharp/NativeDefaults.h",
+        "app/src/main/cpp/experiments/csharp/NativeContent.cpp",
+        "app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp",
+        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp"
+      ],
+      "tests": [
+        "tests/golf_ball/Program.cs",
+        "tests/golf_ball/native_test.cpp",
+        "tests/golf_ball/run.sh",
+        "tests/golf_ball/GolfBall.HostTests.csproj",
+        "tests/basic_items/Program.cs",
+        "tests/ready_prs/managed_source_class_count_test.cpp"
+      ],
+      "androidEvidence": [],
+      "validationScope": "host; Android pendente",
+      "validatedFilesSha256": {
+        "experiments/csharp/BunnyCsSdk/BunnyItem.cs": "836457ce9cc46370b51e223760465d1a1a8b1300f66c19b869c83e2f5c9318d5",
+        "experiments/csharp/BunnyCsSdk/BunnyNativeDefaults.cs": "7b16dfe17c53d82c796ac3b908856477241c9ce862d497218a212840fc4c05b4",
+        "experiments/csharp/BunnyCsSdk/BunnySourceScriptApi.cs": "c7e6b517061efe23646bb56fe8bf26fee17d7f4e0a057b557d7977ca1f47d5d3",
+        "experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs": "c7fc67df1f7cda08465b88ca470aa12e46dfd702a33e3f4f0b4e58f6b6c5b020",
+        "app/src/main/cpp/experiments/csharp/NativeDefaults.h": "8edf57b6ea6c677aaecb7974deb3d3238d6b3d644be81a2ceb5452ba7083075a",
+        "app/src/main/cpp/experiments/csharp/NativeContent.cpp": "2d546d1ff37ac910f557ce7e0ee8599f73e94d9e6ffa0441819742896d5e40ca",
+        "app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp": "c50a9fbf4a41bce328d3f2ab522215e6a497d93b04853dc5e6d9f1576a0ef9b7",
+        "app/src/main/cpp/experiments/csharp/SourceLoader.cpp": "299273cc12a2b0bbadba645dfef8cbff23ea3c4392e2e9e1469604c09ca0434f",
+        "tests/golf_ball/Program.cs": "da1f7e99a6dd5a895e32a5e275361fa760c977769311528f896d5ec9d3c0ffe9",
+        "tests/golf_ball/native_test.cpp": "16e7fe848f556ae83fa46623240de339b9e9e3ca8a7767627b9f85246f2ee3b9",
+        "tests/golf_ball/run.sh": "e518677066a1423f1837a1f375012fd928e5d8130708599e9cf293d846bf9e14",
+        "tests/golf_ball/GolfBall.HostTests.csproj": "bedb47a1c50e53cfc0c8d467d491987ac3f2c314a3794c81a0a1a870cf55438a",
+        "tests/basic_items/Program.cs": "20859b5452bc97e26700213373646566d093bd3519c2b7e5ddc527e989f4add2",
+        "tests/ready_prs/managed_source_class_count_test.cpp": "0f6a67ee635e3c52447343b18d27c21a343f7c2cafc2f7e4e52c27e1087ff120"
       }
     }
   }

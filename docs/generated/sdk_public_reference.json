@@ -2010,6 +2010,10 @@
           "execution": "managed_helper"
         },
         {
+          "signature": "void DefaultToGolfBall(string projectile)",
+          "execution": "managed_helper"
+        },
+        {
           "signature": "void DefaultToPlaceableTile(int vanillaTileId, int style)",
           "execution": "managed_helper"
         },
@@ -2406,6 +2410,14 @@
         },
         {
           "signature": "BunnyNativeDefaults SetProjectile(string field, string key)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "BunnyNativeDefaults SetProjectileStaticBool(string name, bool value)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "BunnyNativeDefaults SetProjectileStaticInt(string name, int value)",
           "execution": "managed_helper"
         },
         {
@@ -2835,6 +2847,10 @@
         {
           "signature": "void SetDefaults()",
           "execution": "compile_policy"
+        },
+        {
+          "signature": "void SetStaticDefaults()",
+          "execution": "compile_sampled_policy"
         }
       ]
     },
