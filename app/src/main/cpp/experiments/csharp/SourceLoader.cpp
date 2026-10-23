@@ -907,7 +907,8 @@ bool applyManagedSourceDefaults(
             }
             if (fields.size() == 19 &&
                 (!integer(fields[18], &record.values.tileCollisionMode) ||
-                 record.values.tileCollisionMode != 1 || !record.values.tileCollide)) {
+                 (record.values.tileCollisionMode < 1 || record.values.tileCollisionMode > 3) ||
+                 !record.values.tileCollide)) {
                 *error = "Contrato OnTileCollide nativo invalido: " + record.name;
                 return false;
             }

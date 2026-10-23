@@ -1,25 +1,29 @@
-# Projectile tile collision: native KeepAlive
+# Projectile tile collision: native deterministic policies
 
-The source JS `samples/ExampleMod/content/Content/Projectiles/ExampleSentry.js` overrides `OnTileCollide` to return `false`, preventing its destruction. The JS loader handles this in `Projectile.HandleMovement(Vector2)`, detecting changes to the original velocity, postponing collision-related `Kill()`, and moving the projectile along the collided velocity.
+The reference `samples/ExampleMod/content/Content/Projectiles/ExampleSentry.js` returns `false` in `OnTileCollide` to keep its sentry alive. The JavaScript `ProjectileLoader.js` detects tile collisions inside `Projectile.HandleMovement(Vector2)`, postpones collision-related `Kill()`, and uses the collision-adjusted velocity.
 
-This first C# feature offers a native deterministic subset:
+Bunny C# exposes three fixed native policies through `BunnyProjectile.SetDefaults()`:
 
 ```csharp
-public override void SetDefaults()
-{
-    TileCollide = true;
-    TileCollisionMode = BunnyProjectileTileCollisionMode.KeepAlive;
-}
+TileCollide = true;
+TileCollisionMode = BunnyProjectileTileCollisionMode.KeepAlive;
 ```
 
-`Vanilla` is the default. `KeepAlive` installs paired selective native hooks for `HandleMovement` and `Kill`. The collision response is made synchronously on the game thread without waiting on MonoVM; all other projectile types are forwarded to the unmodified original methods. Only collision-associated kills (with changed velocity during movement) are deferred. The existing projectile AI and event bridge remain unchanged. Install fails closed when Terraria signatures cannot be found.
+| Value | Native decision |
+|---|---|
+| `Vanilla = 0` | Original Terraria movement and collision behavior |
+| `KeepAlive = 1` | Cancel collision-related death and retain Terraria's post-collision velocity |
+| `Bounce = 2` | Cancel collision-related death and reverse the original velocity on collided axes |
+| `Stop = 3` | Cancel collision-related death and set collided velocity axes to zero |
 
-This does **not** implement dynamic `OnTileCollide` override return values, `TileCollideStyle`, multiplayer synchronization, or per-collision C# event notification; those need additional native/managed contracts and device QA. Do not interpret this as full ExampleSentry parity or full ProjectileLoader compatibility. The policy is currently scoped to managed source projectile types, with validation before native defaults become published.
+Only axes whose velocities differ between pre-movement and post-collision are affected. Uncollided axes retain the Terraria result; corner collisions affect both axes. Non-finite velocities, disabled `tileCollide`, and invalid modes do not cause native collision policy changes.
 
-The compiler uses a 19-field extended `PROJECTILE` wire row only for non-Vanilla collision mode; existing rows and 18-field movement rows remain accepted unchanged. A zero contact-damage flag is valid on non-minion projectiles. The native decision is tested independently, but full Android/IL2CPP gameplay testing has not yet been performed.
+The synchronous decisions run on the game thread, with no MonoVM wait. Two selective hooks cover `Projectile.HandleMovement(Vector2)` and `Projectile.Kill()`. All other projectile types delegate to Terraria's original behavior. The current implementation supports singleplayer only and uses validated IL2CPP field/method signatures, with no hard-coded offsets.
 
-The end-to-end metadata probe `TileCollisionMetadataProbe` compiles and executes `CompiledAssemblyProbe.Verify` against actual C# subclasses, confirming that Vanilla keeps the existing 8-field wire row and KeepAlive produces the 19-field extension. This test does not assert in-game native detouring.
+The `PROJECTILE` metadata continues using the existing optional 19-field extension for all three modes. Previously supported rows are unchanged. The .NET metadata probe checks a real C# `BunnyProjectile` for every policy, and native tests cover unchanged trajectories, separate axes, corner impacts, disabled collisions, invalid modes, and non-finite inputs.
 
-## Asynchronous C# OnTileCollide notification
+## C# notification after the decision
 
-For native `KeepAlive` projectiles, the game thread detects the velocity delta during `Projectile.HandleMovement` and enqueues a non-blocking, session-scoped, generation-bound MonoVM event. `BunnyProjectile.OnTileCollide(ref BunnyProjectileAiState state, float oldVelocityX, float oldVelocityY, float newVelocityX, float newVelocityY)` executes on the pinned managed worker. The host rejects stale slot generations, killed projectiles, invalid vectors and a full queue. This callback is a **notification** whose return type is `void`. Mutating the supplied `state` does not currently override collision physics. Game-thread collision decisions continue using the declared native `KeepAlive` policy. This preserves game-thread performance and avoids waiting for MonoVM but is not full synchronous JS `OnTileCollide` parity.
+`BunnyProjectile.OnTileCollide(ref BunnyProjectileAiState state, float oldVelocityX, float oldVelocityY, float newVelocityX, float newVelocityY)` runs on the pinned MonoVM worker after the native response. It carries the velocity before movement and the final post-policy velocity. Generation, owner, slot, and finite-value validation reject stale or invalid events; a full queue drops a notification rather than blocking the game thread.
+
+The callback has return type `void`. It cannot synchronously decide survival, change Terraria's collision decision, or immediately rewrite physics. The policy is selected in `SetDefaults()`, not dynamically per collision. These modes are reusable native behavior extensions, **not** a claim of full JavaScript `OnTileCollide` or `TileCollideStyle` parity. Tile style, arbitrary synchronous callback returns, multiplayer synchronization, live Android gameplay behavior, visual fidelity, and device FPS still require implementation or QA.

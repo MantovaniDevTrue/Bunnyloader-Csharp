@@ -38,7 +38,9 @@ public struct BunnyProjectileAiState
 public enum BunnyProjectileTileCollisionMode
 {
     Vanilla = 0,
-    KeepAlive = 1
+    KeepAlive = 1,
+    Bounce = 2,
+    Stop = 3
 }
 
 public abstract class BunnyProjectile

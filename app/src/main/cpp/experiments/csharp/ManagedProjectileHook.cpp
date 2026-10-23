@@ -177,6 +177,7 @@ struct TileMovementScope {
     TileMovementScope* previous = nullptr;
     Vector2 position{};
     Vector2 velocity{};
+    int mode = 0;
     bool deferredKill = false;
 };
 thread_local TileMovementScope* g_tileMovementScope = nullptr;
@@ -187,7 +188,7 @@ void hkManagedTileKill(Il2CppObject* projectile, const MethodInfo* method) {
     auto* scope = g_tileMovementScope;
     if (g_tileCollisionHooksReady.load(std::memory_order_acquire) && scope &&
         projectile && projectile == scope->projectile &&
-        shouldDeferManagedTileCollisionKill(1,
+        shouldDeferManagedTileCollisionKill(scope->mode,
             {scope->velocity.x, scope->velocity.y},
             {runtime::field<Vector2>(projectile,runtime::game().entity.velocity).x,
              runtime::field<Vector2>(projectile,runtime::game().entity.velocity).y},
@@ -210,7 +211,8 @@ void hkManagedTileMovement(Il2CppObject* projectile, Vector2 wet, const MethodIn
     if(g_tileCollisionNetMode)il2cpp::api().field_static_get_value(g_tileCollisionNetMode,&netMode);
     if(netMode!=0){original(projectile,wet,method);return;}
     const int type=runtime::field<int>(projectile,game.proj.type);
-    if(!hasManagedEntityProjectileType(type) || nativeManagedProjectileTileCollisionMode(type)!=1 ||
+    const int mode=nativeManagedProjectileTileCollisionMode(type);
+    if(!hasManagedEntityProjectileType(type) || !managedTileCollisionModeSupported(mode) ||
        !runtime::field<uint8_t>(projectile,game.proj.active) ||
        !runtime::field<uint8_t>(projectile,g_tileCollideOffset)) {
         original(projectile,wet,method);return;
@@ -219,6 +221,7 @@ void hkManagedTileMovement(Il2CppObject* projectile, Vector2 wet, const MethodIn
     scope.projectile=projectile;
     scope.position=runtime::field<Vector2>(projectile,game.entity.position);
     scope.velocity=runtime::field<Vector2>(projectile,game.entity.velocity);
+    scope.mode=mode;
     scope.previous=g_tileMovementScope;
     g_tileMovementScope=&scope;
     original(projectile,wet,method);
@@ -226,8 +229,13 @@ void hkManagedTileMovement(Il2CppObject* projectile, Vector2 wet, const MethodIn
     if(runtime::field<uint8_t>(projectile,game.proj.active)) {
         const Vector2 current=runtime::field<Vector2>(projectile,game.entity.velocity);
         if(managedTileCollisionDetected({scope.velocity.x,scope.velocity.y},
-                                        {current.x,current.y},true))
-            enqueueManagedProjectileTileCollision(projectile,type,scope.velocity,current);
+                                        {current.x,current.y},true)) {
+            const auto adjusted=resolveManagedTileCollision(mode,
+                {scope.velocity.x,scope.velocity.y},{current.x,current.y},true);
+            runtime::field<Vector2>(projectile,game.entity.velocity)={adjusted.x,adjusted.y};
+            enqueueManagedProjectileTileCollision(projectile,type,scope.velocity,
+                                                   {adjusted.x,adjusted.y});
+        }
     }
     if(scope.deferredKill && runtime::field<uint8_t>(projectile,game.proj.active)) {
         const auto velocity=runtime::field<Vector2>(projectile,game.entity.velocity);
@@ -833,7 +841,7 @@ bool installManagedProjectileTileCollisionHooks(std::string* error) {
         *error="Falha ao conectar Projectile.Kill";return false;
     }
     g_tileCollisionHooksReady.store(true,std::memory_order_release);
-    BL_INFO("csharp projectile: colisao KeepAlive nativa ativada");
+    BL_INFO("csharp projectile: politicas nativas de colisao ativadas");
     return true;
 }
 

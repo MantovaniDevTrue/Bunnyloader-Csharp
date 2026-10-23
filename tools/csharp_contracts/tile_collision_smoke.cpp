@@ -1,16 +1,48 @@
 #include "experiments/csharp/ManagedTileCollisionPolicy.h"
 #include <cassert>
+#include <cmath>
 #include <iostream>
 
 using bl::csharp::TileCollisionVector;
+using bl::csharp::managedTileCollisionModeSupported;
+using bl::csharp::resolveManagedTileCollision;
 using bl::csharp::shouldDeferManagedTileCollisionKill;
+
 int main() {
-    TileCollisionVector initial{8.f, 5.f};
-    TileCollisionVector stopped{0.f, 5.f};
-    assert(shouldDeferManagedTileCollisionKill(1,initial,stopped,true));
-    assert(!shouldDeferManagedTileCollisionKill(0,initial,stopped,true));
-    assert(!shouldDeferManagedTileCollisionKill(1,initial,initial,true));
-    assert(!shouldDeferManagedTileCollisionKill(1,initial,stopped,false));
-    assert(!shouldDeferManagedTileCollisionKill(1,initial,{NAN,5.f},true));
+    const TileCollisionVector initial{8.f, 5.f};
+    const TileCollisionVector wall{0.f, 5.f};
+    const TileCollisionVector floor{8.f, 0.f};
+    const TileCollisionVector corner{0.f, 0.f};
+    assert(!managedTileCollisionModeSupported(0));
+    assert(managedTileCollisionModeSupported(1));
+    assert(managedTileCollisionModeSupported(2));
+    assert(managedTileCollisionModeSupported(3));
+    assert(!managedTileCollisionModeSupported(4));
+    for(int mode=1;mode<=3;++mode) {
+        assert(shouldDeferManagedTileCollisionKill(mode,initial,wall,true));
+        assert(!shouldDeferManagedTileCollisionKill(mode,initial,initial,true));
+        assert(!shouldDeferManagedTileCollisionKill(mode,initial,wall,false));
+        assert(!shouldDeferManagedTileCollisionKill(mode,initial,{NAN,5.f},true));
+    }
+    assert(!shouldDeferManagedTileCollisionKill(0,initial,wall,true));
+    assert(!shouldDeferManagedTileCollisionKill(4,initial,wall,true));
+    const auto keep=resolveManagedTileCollision(1,initial,wall,true);
+    assert(keep.x==0.f && keep.y==5.f);
+    const auto bounceWall=resolveManagedTileCollision(2,initial,wall,true);
+    assert(bounceWall.x==-8.f && bounceWall.y==5.f);
+    const auto bounceFloor=resolveManagedTileCollision(2,initial,floor,true);
+    assert(bounceFloor.x==8.f && bounceFloor.y==-5.f);
+    const auto bounceCorner=resolveManagedTileCollision(2,initial,corner,true);
+    assert(bounceCorner.x==-8.f && bounceCorner.y==-5.f);
+    const auto stopWall=resolveManagedTileCollision(3,initial,wall,true);
+    assert(stopWall.x==0.f && stopWall.y==5.f);
+    const auto stopFloor=resolveManagedTileCollision(3,initial,floor,true);
+    assert(stopFloor.x==8.f && stopFloor.y==0.f);
+    const auto unchanged=resolveManagedTileCollision(3,initial,initial,true);
+    assert(unchanged.x==8.f && unchanged.y==5.f);
+    const auto disabled=resolveManagedTileCollision(2,initial,wall,false);
+    assert(disabled.x==0.f && disabled.y==5.f);
+    const auto invalid=resolveManagedTileCollision(99,initial,wall,true);
+    assert(invalid.x==0.f && invalid.y==5.f);
     std::cout<<"MANAGED_TILE_COLLISION_POLICY_PASS\n";
 }

@@ -584,7 +584,7 @@ public static class CompiledAssemblyProbe
             float minionSlots = Value<float>(projectile, "MinionSlots");
             bool tileCollide = Value<bool>(projectile, "TileCollide");
             int tileCollisionMode = Convert.ToInt32(projectile.GetType().GetProperty("TileCollisionMode")!.GetValue(projectile), CultureInfo.InvariantCulture);
-            if (tileCollisionMode < 0 || tileCollisionMode > 1 || (tileCollisionMode != 0 && !tileCollide))
+            if (tileCollisionMode < 0 || tileCollisionMode > 3 || (tileCollisionMode != 0 && !tileCollide))
                 throw new InvalidOperationException("Invalid projectile TileCollisionMode: " + name);
             bool ignoreWater = Value<bool>(projectile, "IgnoreWater");
             if (!float.IsFinite(minionSlots) || (minion && (minionSlots <= 0 || minionSlots > 10)) ||

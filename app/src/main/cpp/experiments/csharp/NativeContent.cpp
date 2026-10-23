@@ -1727,7 +1727,7 @@ bool applyManagedNativeDefaultsBatch(
             (!data.minion && data.minionSlots != 0.f) ||
             (data.movement.enabled&&(!data.minion||data.aiStyle!=0)) ||
             (data.minionContactDamage && (!data.minion || !g_originalProjectileDamage)) ||
-            data.tileCollisionMode < 0 || data.tileCollisionMode > 1 ||
+            data.tileCollisionMode < 0 || data.tileCollisionMode > 3 ||
             (data.tileCollisionMode != 0 && !data.tileCollide) ||
             data.frames < 1 || data.frames > 32 ||
             !stagedProjectiles.emplace(entry.type, NativeProjectileDefaults{
