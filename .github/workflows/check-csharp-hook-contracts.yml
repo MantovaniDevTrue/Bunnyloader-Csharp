@@ -1,0 +1,41 @@
+name: CSharp universal hook contract gate
+
+on:
+  push:
+    paths:
+      - 'tools/csharp_contracts/**'
+      - 'experiments/csharp/BunnyCsSdk/BunnyUniversalHooks.cs'
+      - 'experiments/csharp/BunnyCsSdk/BunnyExtendedHookModes.g.cs'
+      - 'app/src/main/cpp/experiments/csharp/UniversalHooks.cpp'
+      - 'app/src/main/cpp/experiments/csharp/UniversalHookModes.generated.h'
+      - '.github/workflows/check-csharp-hook-contracts.yml'
+  pull_request:
+    paths:
+      - 'tools/csharp_contracts/**'
+      - 'experiments/csharp/BunnyCsSdk/BunnyUniversalHooks.cs'
+      - 'experiments/csharp/BunnyCsSdk/BunnyExtendedHookModes.g.cs'
+      - 'app/src/main/cpp/experiments/csharp/UniversalHooks.cpp'
+      - 'app/src/main/cpp/experiments/csharp/UniversalHookModes.generated.h'
+      - '.github/workflows/check-csharp-hook-contracts.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Python contract tests
+        run: python3 -m unittest discover -s tools/csharp_contracts -p 'test_*.py' -v
+      - name: Verify generated runtime signature constants
+        run: python3 tools/csharp_contracts/generate.py
+      - name: Compile native signature header
+        run: |
+          printf '%s\n' '#include "experiments/csharp/UniversalHookModes.generated.h"' 'static_assert(bl::csharp::kExtendedHookSignatures[4].parameterCount == 3);' 'static_assert(bl::csharp::kExtendedHookSignatures[1].returnsInt32);' 'int main() { return 0; }' | g++ -std=c++17 -Wall -Wextra -Werror -Iapp/src/main/cpp -x c++ -fsyntax-only -
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Build BunnyCsSdk with generated modes
+        run: dotnet build experiments/csharp/BunnyCsSdk/BunnyCsSdk.csproj -c Release --nologo

@@ -15,6 +15,7 @@
 #include "content/npcs/ModNpcs.h"
 #include "experiments/csharp/SourceParser.h"
 #include "experiments/csharp/SourceContentIdentity.h"
+#include "experiments/csharp/SourceContentKinds.generated.h"
 #include "core/Log.h"
 #include "mods/ModLoader.h"
 
@@ -370,12 +371,8 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
         return false;
     }
     NativeRegisterContext ctx{mod.id, mod.dir, 0, 0};
-    const std::array<std::string, 9> order = {
-        "BunnyTile", "BunnyItem",
-        "BunnyBuff", "BunnyProjectile", "BunnyAccessory",
-        "BunnyNPC", "BunnyBuffPotion", "BunnyWeapon", "BunnyPrefix"
-    };
-    for (const auto& base : order) {
+    for (const char* baseName : kSourceNativeRegistrationOrder) {
+        const std::string base(baseName);
         for (const auto& def : defs) {
             if (def.base != base) continue;
             if (base == "BunnyPrefix") {
@@ -850,7 +847,10 @@ bool applyManagedSourceDefaults(
             return false;
         }
         if (fields[0] == "PROJECTILE" && (fields.size() == 8 || fields.size() == 12 || fields.size() == 13 || fields.size() == 14 ||
-                 fields.size() == 16 || fields.size() == 17 || fields.size() == 18)) {
+                 fields.size() == 16 || fields.size() == 17 || fields.size() == 18 ||
+                 fields.size() == 19 || fields.size() == 21 ||
+                 fields.size() == 22 || fields.size() == 23 ||
+                 fields.size() == 27)) {
             ManagedProjectileEntry record;
             record.name = fields[1];
             record.type = registered->second;
@@ -898,14 +898,76 @@ bool applyManagedSourceDefaults(
             if (fields.size() == 14 || fields.size() >= 17) {
                 int contact = 0;
                 const auto& value = fields[fields.size()==14?13:16];
-                if (!integer(value, &contact) || (contact != 0 && contact != 1) || !record.values.minion) {
+                if (!integer(value, &contact) || (contact != 0 && contact != 1) || (contact == 1 && !record.values.minion)) {
                     *error = "MinionContactDamage invalido: " + record.name;
                     return false;
                 }
                 record.values.minionContactDamage = contact == 1;
             }
-            if(fields.size()==18&&!parseSummonMovement(fields[17],&record.values.movement,&detail)) {
+            if((fields.size()==18 || fields.size()==19 || fields.size()==21 ||
+                fields.size()==22 || fields.size()==23 || fields.size()==27) &&
+                fields[17] != "-" && !parseSummonMovement(fields[17],&record.values.movement,&detail)) {
                 *error="[CSharp][ERROR][Summon] Mod="+modId+" Class="+record.name+" Stage=DecodeMovement Result=Rejected "+detail;return false;
+            }
+            if (fields.size() >= 19 &&
+                (!integer(fields[18], &record.values.tileCollisionMode) ||
+                 record.values.tileCollisionMode < (fields.size() >= 23 ? 0 : 1) ||
+                 record.values.tileCollisionMode > 3 ||
+                 !record.values.tileCollide)) {
+                *error = "Contrato OnTileCollide nativo invalido: " + record.name;
+                return false;
+            }
+            if (fields.size() >= 21 &&
+                (!real(fields[19], &record.values.bounceRestitution) ||
+                 !real(fields[20], &record.values.bounceMinimumSpeed) ||
+                 record.values.bounceRestitution < 0.f ||
+                 record.values.bounceRestitution > 2.f ||
+                 record.values.bounceMinimumSpeed < 0.f ||
+                 record.values.bounceMinimumSpeed > 64.f ||
+                 (record.values.tileCollisionMode != 2 &&
+                  (record.values.bounceRestitution != 1.f ||
+                   record.values.bounceMinimumSpeed != 0.f)) ||
+                 (fields.size() == 21 &&
+                  record.values.bounceRestitution == 1.f &&
+                  record.values.bounceMinimumSpeed == 0.f))) {
+                *error = "Contrato de rebote C# invalido: " + record.name;
+                return false;
+            }
+            if (fields.size() >= 22 &&
+                (!integer(fields[21], &record.values.tileCollisionSurvivalLimit) ||
+                 record.values.tileCollisionSurvivalLimit < (fields.size() == 22 ? 1 : 0) ||
+                 record.values.tileCollisionSurvivalLimit > 64 ||
+                 (record.values.tileCollisionMode == 0 &&
+                  record.values.tileCollisionSurvivalLimit != 0))) {
+                *error = "Limite de sobrevivencia em colisao C# invalido: " + record.name;
+                return false;
+            }
+            if (fields.size() >= 23 &&
+                (!integer(fields[22], &record.values.tilePlatformCollision) ||
+                 record.values.tilePlatformCollision < (fields.size()==23 ? 1 : 0) ||
+                 record.values.tilePlatformCollision > 2)) {
+                *error = "Politica de plataforma C# invalida: " + record.name;
+                return false;
+            }
+            if (fields.size() == 27 &&
+                (!integer(fields[23], &record.values.tileCollisionBoxWidth) ||
+                 !integer(fields[24], &record.values.tileCollisionBoxHeight) ||
+                 !real(fields[25], &record.values.tileCollisionAnchorOffsetX) ||
+                 !real(fields[26], &record.values.tileCollisionAnchorOffsetY) ||
+                 record.values.tileCollisionBoxWidth < 0 ||
+                 record.values.tileCollisionBoxWidth > 512 ||
+                 record.values.tileCollisionBoxHeight < 0 ||
+                 record.values.tileCollisionBoxHeight > 512 ||
+                 record.values.tileCollisionAnchorOffsetX < -256.f ||
+                 record.values.tileCollisionAnchorOffsetX > 256.f ||
+                 record.values.tileCollisionAnchorOffsetY < -256.f ||
+                 record.values.tileCollisionAnchorOffsetY > 256.f ||
+                 (record.values.tileCollisionBoxWidth == 0 &&
+                  record.values.tileCollisionBoxHeight == 0 &&
+                  record.values.tileCollisionAnchorOffsetX == 0.f &&
+                  record.values.tileCollisionAnchorOffsetY == 0.f))) {
+                *error = "Caixa de colisao C# invalida: " + record.name;
+                return false;
             }
             projectilesByName.emplace(record.name, record.type);
             projectiles.push_back(std::move(record));

@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "contentKinds": [
+    {
+      "kind": "Item",
+      "base": "BunnyItem",
+      "value": 0,
+      "nativeOrder": 1
+    },
+    {
+      "kind": "Tile",
+      "base": "BunnyTile",
+      "value": 1,
+      "nativeOrder": 0
+    },
+    {
+      "kind": "Weapon",
+      "base": "BunnyWeapon",
+      "value": 2,
+      "nativeOrder": 7
+    },
+    {
+      "kind": "Projectile",
+      "base": "BunnyProjectile",
+      "value": 3,
+      "nativeOrder": 3
+    },
+    {
+      "kind": "Buff",
+      "base": "BunnyBuff",
+      "value": 4,
+      "nativeOrder": 2
+    },
+    {
+      "kind": "BuffPotion",
+      "base": "BunnyBuffPotion",
+      "value": 5,
+      "nativeOrder": 6
+    },
+    {
+      "kind": "Accessory",
+      "base": "BunnyAccessory",
+      "value": 6,
+      "nativeOrder": 4
+    },
+    {
+      "kind": "Player",
+      "base": "BunnyPlayer",
+      "value": 7,
+      "nativeOrder": null
+    },
+    {
+      "kind": "NPC",
+      "base": "BunnyNPC",
+      "value": 8,
+      "nativeOrder": 5
+    },
+    {
+      "kind": "Prefix",
+      "base": "BunnyPrefix",
+      "value": 9,
+      "nativeOrder": 8
+    }
+  ]
+}

@@ -1,0 +1,79 @@
+{
+  "date": "2026-10-23",
+  "baseCommit": "08e0d7bca7aae6f46fc435ae5422f19acba43cb8",
+  "scope": "World-pixel translation for the fixed per-type collision box contract; not dynamic synchronous callbacks",
+  "reproduction": {
+    "before": "New geometry fixture fails on base commit: anchor addition scales and reverses world displacement.",
+    "example": "width=18, offsetX=2.5 previously displaced left by 45px; now displaces right by 2.5px.",
+    "formula": "collisionOrigin = Center - colSize * resizeAnchor",
+    "fix": "resizeAnchor -= worldPixelOffset / effectiveCollisionSize, componentwise"
+  },
+  "checks": [
+    {
+      "name": "Native geometry regression with consumer rectangle formula",
+      "result": "PASS",
+      "cases": 1600
+    },
+    {
+      "name": "Native geometry ASan/UBSan",
+      "result": "PASS"
+    },
+    {
+      "name": "Existing native collision policy, descriptor, bind and SourceParser smokes",
+      "result": "PASS",
+      "executables": 4
+    },
+    {
+      "name": "Generated schemas and ABI unit tests",
+      "result": "PASS",
+      "tests": 13
+    },
+    {
+      "name": "Managed callback reflection/source verification",
+      "result": "PASS",
+      "signatures": 24
+    },
+    {
+      "name": "Managed entity lifecycle and tile collision wire probes",
+      "result": "PASS",
+      "probes": 2
+    },
+    {
+      "name": "APK release gate unit tests",
+      "result": "PASS",
+      "tests": 12
+    },
+    {
+      "name": "Current branch source readiness gate",
+      "result": "EXPECTED_BLOCKED",
+      "pendingEntries": 887,
+      "upstreamRoot": "Local branch original samples used for source comparison; not a canonical upstream checkout certification."
+    }
+  ],
+  "nativeInspection": {
+    "build": 301720,
+    "libil2cppSha256": "ff1f16f3ef122cde66f549096bca0225c46fd9a59e736c05706a8b0444d2ae06",
+    "getCollisionParamsRva": "0x14F18FC",
+    "getCollisionParamsDefaultAnchor": "(0.5, 0.5)",
+    "handleMovementRva": "0x14E7568",
+    "consumerSequence": "GetCollisionParams; Center; colSize * resizeAnchor; Center - product",
+    "note": "ARM64 static inspection, not execution on Android."
+  },
+  "validatedFilesSha256": {
+    "app/src/main/cpp/experiments/csharp/ManagedTileCollisionPolicy.h": "e6f84f6b43e2af25f753a1a79b70da62e06ead2367f30bcd3f18ced906d3ab33",
+    "experiments/csharp/BunnyCsSdk/BunnySourceScriptApi.cs": "4596b89151b1c81e8bc3b0905a4230799696790f355dba559f9fe38672e3de9b",
+    "tools/csharp_contracts/tile_collision_smoke.cpp": "540185e11af219dd3d4dea81b4b7a2449c6639f90e8817398680c8a60e5cb4a9",
+    "tools/csharp_contracts/tile_collision_geometry_smoke.cpp": "c7a1441cf22621ff87a21c2427b7f93b4a5464bbf66fb7d6afd03971a8834e47",
+    ".github/workflows/check-csharp-content-contracts.yml": "4b03a803519f46d2217189e282c5cb27dd287b2ac448d5af6c8070e2bff4a662"
+  },
+  "limits": [
+    "The 27-field wire is unchanged. This corrects the meaning of existing offset values to their documented pixel contract.",
+    "The physics tests evaluate the native consumer formula on the host; they do not run Terraria collision queries or validate slopes/platforms in Android gameplay.",
+    "Android ARM64 CI must be checked on the published commit; no local Android toolchain was used.",
+    "Exact dynamic TileCollideStyle and OnTileCollide return values still require a synchronous game-thread execution contract. Current MonoVM events remain asynchronous notifications.",
+    "Multiplayer, FPS, rendering and global unload remain unvalidated by this batch."
+  ],
+  "apkProduced": false,
+  "apkWorkflowDispatched": false,
+  "androidGameplayValidated": false
+}

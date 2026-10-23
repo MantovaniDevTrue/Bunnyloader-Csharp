@@ -9,9 +9,12 @@
 #include "experiments/csharp/SourceLoader.h"
 #include "hook/HookManager.h"
 #include "il2cpp/Api.h"
+#include "il2cpp/FieldContract.h"
 #include "il2cpp/Resolver.h"
 #include "il2cpp/Signature.h"
 #include "experiments/csharp/NativeSummonRuntime.h"
+#include "experiments/csharp/ManagedTileCollisionPolicy.h"
+#include "experiments/csharp/ManagedTileCollisionContract.h"
 
 #include <algorithm>
 #include <array>
@@ -161,6 +164,158 @@ bool refreshTarget(Slot& entry, const Vector2& position, float maxDistanceSquare
 }
 
 using AiFn = void (*)(Il2CppObject*, const MethodInfo*);
+
+using TileMovementFn = void (*)(Il2CppObject*, Vector2, const MethodInfo*);
+using TileKillFn = void (*)(Il2CppObject*, const MethodInfo*);
+using TileParamsFn = void (*)(Il2CppObject*, Vector2*, int*, int*, const MethodInfo*);
+
+TileMovementFn g_originalTileMovement = nullptr;
+TileKillFn g_originalTileKill = nullptr;
+TileParamsFn g_originalTileParams = nullptr;
+std::atomic<bool> g_tileCollisionHooksReady{false};
+int g_tileCollideOffset = -1;
+int g_tileManualFallThroughOffset = -1;
+int g_tileShouldFallThroughOffset = -1;
+FieldInfo* g_tileCollisionNetMode = nullptr;
+struct TileMovementScope {
+    Il2CppObject* projectile = nullptr;
+    TileMovementScope* previous = nullptr;
+    Vector2 position{};
+    Vector2 velocity{};
+    int mode = 0;
+    float restitution = 1.f;
+    float minimumSpeed = 0.f;
+    int boxWidth = 0;
+    int boxHeight = 0;
+    float anchorOffsetX = 0.f;
+    float anchorOffsetY = 0.f;
+    bool deferredKill = false;
+};
+thread_local TileMovementScope* g_tileMovementScope = nullptr;
+void enqueueManagedProjectileTileCollision(Il2CppObject* projectile, int type,
+                                           Vector2 before, Vector2 after);
+int managedTileCollisionEffectiveMode(Il2CppObject* projectile,int type,int fallback);
+bool managedTileCollisionBudgetAvailable(Il2CppObject* projectile,int type,int limit);
+void recordManagedTileCollisionSurvival(Il2CppObject* projectile,int type,int limit);
+
+void hkManagedTileParams(Il2CppObject* projectile, Vector2* anchor, int* width,
+                         int* height, const MethodInfo* method) {
+    const auto original=__atomic_load_n(&g_originalTileParams,__ATOMIC_ACQUIRE);
+    if(!original)return;
+    original(projectile,anchor,width,height,method);
+    const auto* scope=g_tileMovementScope;
+    if(!scope || !projectile || scope->projectile!=projectile ||
+       !anchor || !width || !height ||
+       (scope->boxWidth==0 && scope->boxHeight==0 &&
+        scope->anchorOffsetX==0.f && scope->anchorOffsetY==0.f))return;
+    ManagedTileCollisionBox box{anchor->x,anchor->y,*width,*height};
+    if(applyManagedTileCollisionBox(&box,scope->boxWidth,scope->boxHeight,
+                                   scope->anchorOffsetX,scope->anchorOffsetY)) {
+        *anchor={box.anchorX,box.anchorY};
+        *width=box.width;
+        *height=box.height;
+    }
+}
+
+void hkManagedTileKill(Il2CppObject* projectile, const MethodInfo* method) {
+    auto* scope = g_tileMovementScope;
+    if (g_tileCollisionHooksReady.load(std::memory_order_acquire) && scope &&
+        projectile && projectile == scope->projectile &&
+        shouldDeferManagedTileCollisionKill(scope->mode,
+            {scope->velocity.x, scope->velocity.y},
+            {runtime::field<Vector2>(projectile,runtime::game().entity.velocity).x,
+             runtime::field<Vector2>(projectile,runtime::game().entity.velocity).y},
+            runtime::field<uint8_t>(projectile,g_tileCollideOffset) != 0,
+            scope->minimumSpeed)) {
+        scope->deferredKill = true;
+        return;
+    }
+    const auto original = __atomic_load_n(&g_originalTileKill,__ATOMIC_ACQUIRE);
+    if(original)original(projectile,method);
+}
+
+void hkManagedTileMovement(Il2CppObject* projectile, Vector2 wet, const MethodInfo* method) {
+    const auto original=__atomic_load_n(&g_originalTileMovement,__ATOMIC_ACQUIRE);
+    if(!original)return;
+    if(!projectile || !g_tileCollisionHooksReady.load(std::memory_order_acquire)) {
+        original(projectile,wet,method);return;
+    }
+    const auto& game=runtime::game();
+    const int type=runtime::field<int>(projectile,game.proj.type);
+    if(!hasManagedEntityProjectileType(type) ||
+       !runtime::field<uint8_t>(projectile,game.proj.active)) {
+        original(projectile,wet,method);return;
+    }
+    const auto collision=nativeManagedProjectileTileCollisionSettings(type);
+    const int mode=managedTileCollisionEffectiveMode(projectile,type,collision.mode);
+    const int platformMode=collision.platformMode;
+    const bool nativePolicy = managedTileCollisionModeSupported(mode) &&
+        managedTileCollisionBudgetAvailable(projectile,type,collision.survivalLimit);
+    const bool customBox=collision.boxWidth != 0 || collision.boxHeight != 0 ||
+        collision.anchorOffsetX != 0.f || collision.anchorOffsetY != 0.f;
+    if((!nativePolicy && platformMode == 0 && !customBox) ||
+       !runtime::field<uint8_t>(projectile,g_tileCollideOffset)) {
+        original(projectile,wet,method);return;
+    }
+    int netMode=-1;
+    if(g_tileCollisionNetMode)il2cpp::api().field_static_get_value(g_tileCollisionNetMode,&netMode);
+    if(netMode!=0){original(projectile,wet,method);return;}
+    TileMovementScope scope{};
+    scope.projectile=projectile;
+    scope.position=runtime::field<Vector2>(projectile,game.entity.position);
+    scope.velocity=runtime::field<Vector2>(projectile,game.entity.velocity);
+    scope.mode=nativePolicy?mode:0;
+    scope.restitution=collision.restitution;
+    scope.minimumSpeed=collision.minimumSpeed;
+    scope.boxWidth=collision.boxWidth;
+    scope.boxHeight=collision.boxHeight;
+    scope.anchorOffsetX=collision.anchorOffsetX;
+    scope.anchorOffsetY=collision.anchorOffsetY;
+    scope.previous=g_tileMovementScope;
+    g_tileMovementScope=&scope;
+    uint8_t previousManual=0,previousFall=0;
+    bool fallThrough=false;
+    const bool overridePlatforms=
+        g_tileManualFallThroughOffset>=0 && g_tileShouldFallThroughOffset>=0 &&
+        managedTilePlatformFallThrough(platformMode,&fallThrough);
+    if(overridePlatforms) {
+        previousManual=runtime::field<uint8_t>(projectile,g_tileManualFallThroughOffset);
+        previousFall=runtime::field<uint8_t>(projectile,g_tileShouldFallThroughOffset);
+        runtime::field<uint8_t>(projectile,g_tileManualFallThroughOffset)=1;
+        runtime::field<uint8_t>(projectile,g_tileShouldFallThroughOffset)=
+            fallThrough?1:0;
+    }
+    original(projectile,wet,method);
+    if(overridePlatforms) {
+        runtime::field<uint8_t>(projectile,g_tileManualFallThroughOffset)=previousManual;
+        runtime::field<uint8_t>(projectile,g_tileShouldFallThroughOffset)=previousFall;
+    }
+    g_tileMovementScope=scope.previous;
+    if(nativePolicy && runtime::field<uint8_t>(projectile,game.proj.active)) {
+        const Vector2 current=runtime::field<Vector2>(projectile,game.entity.velocity);
+        if(managedTileCollisionDetected({scope.velocity.x,scope.velocity.y},
+                                        {current.x,current.y},true)) {
+            const auto adjusted=resolveManagedTileCollision(mode,
+                {scope.velocity.x,scope.velocity.y},{current.x,current.y},true,
+                scope.restitution,scope.minimumSpeed);
+            runtime::field<Vector2>(projectile,game.entity.velocity)={adjusted.x,adjusted.y};
+            if(shouldDeferManagedTileCollisionKill(mode,
+                {scope.velocity.x,scope.velocity.y},{current.x,current.y},true,
+                scope.minimumSpeed))
+                recordManagedTileCollisionSurvival(projectile,type,collision.survivalLimit);
+            enqueueManagedProjectileTileCollision(projectile,type,scope.velocity,
+                                                   {adjusted.x,adjusted.y});
+        }
+    }
+    if(scope.deferredKill && runtime::field<uint8_t>(projectile,game.proj.active)) {
+        const auto velocity=runtime::field<Vector2>(projectile,game.entity.velocity);
+        if(std::isfinite(velocity.x) && std::isfinite(velocity.y) &&
+           std::isfinite(scope.position.x) && std::isfinite(scope.position.y))
+            runtime::field<Vector2>(projectile,game.entity.position)={
+                scope.position.x+velocity.x,scope.position.y+velocity.y};
+    }
+}
+
 
 std::array<Slot, 4096> g_slots{};
 AiFn g_original = nullptr;
@@ -356,6 +511,8 @@ struct ManagedEntityProjectileSlot {
     int generation = 0;
     bool killQueued = false;
     bool spawnPending = false;
+    int survivedTileCollisions = 0;
+    int tileCollisionModeOverride = 0;
     SummonMovement movement{};
     Slot targetCache{};
     unsigned targetScanTicks = 0;
@@ -365,6 +522,60 @@ struct ManagedEntityProjectileSlot {
 };
 std::array<ManagedEntityProjectileSlot, 4096> g_managedEntityProjectileSlots{};
 int g_managedEntityProjectileGeneration = 1;
+
+int managedTileCollisionEffectiveMode(Il2CppObject* projectile,int type,int fallback) {
+    const auto& game=runtime::game();
+    const int slot=runtime::field<int>(projectile,game.entity.whoAmI);
+    if(slot<0||static_cast<size_t>(slot)>=g_managedEntityProjectileSlots.size())return fallback;
+    auto& state=g_managedEntityProjectileSlots[static_cast<size_t>(slot)];
+    const int owner=runtime::field<int>(projectile,game.proj.owner);
+    if(state.object!=projectile || state.type!=type || state.owner!=owner ||
+       state.generation<=0 || state.killQueued)return fallback;
+    int overrideMode=0;
+    if(takeManagedEntityTileCollisionPolicy(type,slot,state.generation,owner,
+         reinterpret_cast<uintptr_t>(projectile),&overrideMode))
+        state.tileCollisionModeOverride=overrideMode;
+    return managedTileCollisionModeSupported(state.tileCollisionModeOverride)
+        ? state.tileCollisionModeOverride : fallback;
+}
+
+bool managedTileCollisionBudgetAvailable(Il2CppObject* projectile,int type,int limit) {
+    if(limit==0)return true;
+    if(limit<0||limit>64)return false;
+    const auto& game=runtime::game();
+    const int slot=runtime::field<int>(projectile,game.entity.whoAmI);
+    if(slot<0||static_cast<size_t>(slot)>=g_managedEntityProjectileSlots.size())return false;
+    const auto& state=g_managedEntityProjectileSlots[static_cast<size_t>(slot)];
+    return state.object==projectile && state.type==type &&
+        state.owner==runtime::field<int>(projectile,game.proj.owner) &&
+        state.generation>0 && !state.killQueued &&
+        managedTileCollisionBudgetAllows(state.survivedTileCollisions,limit);
+}
+
+void recordManagedTileCollisionSurvival(Il2CppObject* projectile,int type,int limit) {
+    if(limit==0||limit<0||limit>64)return;
+    const auto& game=runtime::game();
+    const int slot=runtime::field<int>(projectile,game.entity.whoAmI);
+    if(slot<0||static_cast<size_t>(slot)>=g_managedEntityProjectileSlots.size())return;
+    auto& state=g_managedEntityProjectileSlots[static_cast<size_t>(slot)];
+    if(state.object==projectile && state.type==type &&
+       state.owner==runtime::field<int>(projectile,game.proj.owner) &&
+       state.generation>0 && !state.killQueued)
+        recordManagedTileCollisionBudget(&state.survivedTileCollisions,limit);
+}
+
+void enqueueManagedProjectileTileCollision(Il2CppObject* projectile, int type,
+                                           Vector2 before, Vector2 after) {
+    const auto& game=runtime::game();
+    const int slot=runtime::field<int>(projectile,game.entity.whoAmI);
+    if(slot<0 || static_cast<size_t>(slot)>=g_managedEntityProjectileSlots.size())return;
+    const auto& state=g_managedEntityProjectileSlots[static_cast<size_t>(slot)];
+    const int owner=runtime::field<int>(projectile,game.proj.owner);
+    if(state.object!=projectile || state.type!=type || state.owner!=owner ||
+       state.generation<=0 || state.killQueued)return;
+    queueManagedEntityTileCollision(type,slot,state.generation,owner,
+        reinterpret_cast<uintptr_t>(projectile),before.x,before.y,after.x,after.y);
+}
 FieldInfo* g_managedEntityNetMode = nullptr;
 thread_local bool g_managedProjectileSlotThread = false;
 
@@ -711,6 +922,72 @@ void notifyManagedSourceProjectileDefaults(Il2CppObject* projectile) {
 
 void resetManagedSourceProjectileSlots() {
     g_managedEntityProjectileSlots.fill({});
+}
+
+bool installManagedProjectileTileCollisionHooks(bool platformPolicy,bool boxPolicy,std::string* error) {
+    const bool ready=g_tileCollisionHooksReady.load(std::memory_order_acquire);
+    if(ready && (!platformPolicy ||
+       (g_tileManualFallThroughOffset>=0 && g_tileShouldFallThroughOffset>=0)) &&
+       (!boxPolicy || g_originalTileParams))return true;
+    if(!error)return false;
+    auto* projectile=il2cpp::findClass({"Terraria","Projectile",{}});
+    const auto* movement=projectile ? il2cpp::findMethodBySignature(projectile,
+        il2cpp::parseSignature("void HandleMovement(Vector2 wetVelocity)")) : nullptr;
+    const auto* kill=projectile ? il2cpp::findMethodBySignature(projectile,
+        il2cpp::parseSignature("void Kill()")) : nullptr;
+    const auto* params=boxPolicy && !g_originalTileParams && projectile ?
+        il2cpp::findMethodBySignature(projectile,il2cpp::parseSignature(
+            "void GetCollisionParams(out Vector2 resizeAnchor, out int colWidth, out int colHeight)")) : nullptr;
+    if(!movement || !kill || !runtime::resolveGameRefs()) {
+        *error="Projectile.HandleMovement/Projectile.Kill ou GameRefs indisponiveis";
+        return false;
+    }
+    if(boxPolicy && !g_originalTileParams && !params) {
+        *error="Projectile.GetCollisionParams indisponivel para caixa de colisao C#";
+        return false;
+    }
+    if(!validateMobileTileCollisionMethods(projectile,movement,kill,params,
+        boxPolicy&&!g_originalTileParams,error))return false;
+    int offset=-1;
+    std::string details;
+    auto* main=il2cpp::findClass({"Terraria","Main",{}});
+    FieldInfo* netMode=nullptr;
+    if(!mobileTileCollisionNetMode(main,&netMode,&details)||
+       !il2cpp::nativeFieldContract(projectile,"tileCollide",
+        "System.Boolean",false,1,nullptr,&offset,&details)) {
+        *error="Campos nativos de colisao indisponiveis: "+details;
+        return false;
+    }
+    int manual=-1,should=-1;
+    if(platformPolicy &&
+       (!il2cpp::nativeFieldContract(projectile,"decidesManualFallThrough",
+          "System.Boolean",false,1,nullptr,&manual,&details) ||
+        !il2cpp::nativeFieldContract(projectile,"shouldFallThrough",
+          "System.Boolean",false,1,nullptr,&should,&details))) {
+        *error="Campos nativos de TileCollideStyle indisponiveis: "+details;
+        return false;
+    }
+    g_tileCollideOffset=offset;
+    g_tileCollisionNetMode=netMode;
+    if(platformPolicy) {
+        g_tileManualFallThroughOffset=manual;
+        g_tileShouldFallThroughOffset=should;
+    }
+    if(boxPolicy && !g_originalTileParams &&
+       !hook::install(params,hkManagedTileParams,&g_originalTileParams)) {
+        *error="Falha ao conectar Projectile.GetCollisionParams";
+        return false;
+    }
+    if(ready)return true;
+    if(!g_originalTileMovement && !hook::install(movement,hkManagedTileMovement,&g_originalTileMovement)) {
+        *error="Falha ao conectar Projectile.HandleMovement";return false;
+    }
+    if(!g_originalTileKill && !hook::install(kill,hkManagedTileKill,&g_originalTileKill)) {
+        *error="Falha ao conectar Projectile.Kill";return false;
+    }
+    g_tileCollisionHooksReady.store(true,std::memory_order_release);
+    BL_INFO("csharp projectile: politicas nativas de colisao ativadas");
+    return true;
 }
 
 bool installManagedEntityProjectileHook() {

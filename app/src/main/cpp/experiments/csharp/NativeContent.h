@@ -90,6 +90,15 @@ struct ManagedProjectileDefaults {
     float minionSlots = 0.f;
     bool tileCollide = true;
     bool ignoreWater = true;
+    int tileCollisionMode = 0;
+    float bounceRestitution = 1.f;
+    float bounceMinimumSpeed = 0.f;
+    int tileCollisionSurvivalLimit = 0;
+    int tilePlatformCollision = 0;
+    int tileCollisionBoxWidth = 0;
+    int tileCollisionBoxHeight = 0;
+    float tileCollisionAnchorOffsetX = 0.f;
+    float tileCollisionAnchorOffsetY = 0.f;
     int frames = 1;
     SummonMovement movement{};
     int animationFrameTicks=6, minionScanTicks=8;
@@ -131,6 +140,18 @@ bool applyManagedNativeDefaultsBatch(const std::string& modId,
                                      const std::vector<ManagedProjectileEntry>& projectiles,
                                      const std::vector<ManagedWeaponEntry>& weapons,std::string* error);
 int nativeManagedProjectileFrames(int type);
+struct ManagedTileCollisionSettings {
+    int mode = 0;
+    float restitution = 1.f;
+    float minimumSpeed = 0.f;
+    int survivalLimit = 0;
+    int platformMode = 0;
+    int boxWidth = 0;
+    int boxHeight = 0;
+    float anchorOffsetX = 0.f;
+    float anchorOffsetY = 0.f;
+};
+ManagedTileCollisionSettings nativeManagedProjectileTileCollisionSettings(int type);
 ProjectilePolicy nativeManagedProjectilePolicy(int type);
 bool nativeManagedProjectileFields(int type,ProjectileGameplayFields* fields);
 int nativeManagedMinionBuff(int projectileType);
