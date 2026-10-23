@@ -10,6 +10,11 @@ on:
       - app/src/main/cpp/experiments/csharp/NativeAchievementGameplay.h
       - app/src/main/cpp/experiments/csharp/NativeAchievementGameplay.cpp
       - app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp
+      - app/src/main/cpp/experiments/csharp/SourceParser.cpp
+      - app/src/main/cpp/experiments/csharp/SourceContentIdentity.h
+      - app/src/main/cpp/experiments/csharp/SourceLoader.cpp
+      - app/src/main/cpp/experiments/csharp/SourceLoader.h
+      - experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs
       - docs/generated/sdk_public_reference.json
       - docs/generated/sdk_public_reference.md
       - samples/ExampleModCSharp/AchievementsDemo/**
@@ -25,6 +30,11 @@ on:
       - app/src/main/cpp/experiments/csharp/NativeAchievementGameplay.h
       - app/src/main/cpp/experiments/csharp/NativeAchievementGameplay.cpp
       - app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp
+      - app/src/main/cpp/experiments/csharp/SourceParser.cpp
+      - app/src/main/cpp/experiments/csharp/SourceContentIdentity.h
+      - app/src/main/cpp/experiments/csharp/SourceLoader.cpp
+      - app/src/main/cpp/experiments/csharp/SourceLoader.h
+      - experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs
       - docs/generated/sdk_public_reference.json
       - docs/generated/sdk_public_reference.md
       - samples/ExampleModCSharp/AchievementsDemo/**
@@ -42,7 +52,17 @@ jobs:
           dotnet-version: 8.0.x
       - run: dotnet run --project tests/achievement_loader/AchievementLoader.csproj -c Release
       - run: dotnet build samples/ExampleModCSharp/AchievementsDemo/AchievementsDemo.csproj -c Release
+      - name: Verify achievement-only compiled assembly is a supported mod
+        run: dotnet run --project tests/achievement_loader/DiscoveryProbe.csproj -c Release -- samples/ExampleModCSharp/AchievementsDemo/bin/Release/net8.0/AchievementsDemo.dll
       - run: dotnet run --project tools/sdk_reference/SdkReference.csproj -c Release -- --check
+      - name: Verify original Bunny achievement-only source is recognized
+        run: |
+          g++ -std=c++20 -O2 -Wall -Wextra -Werror -pthread \
+            -Iapp/src/main/cpp \
+            app/src/main/cpp/experiments/csharp/SourceParser.cpp \
+            tests/achievement_loader/native_discovery_test.cpp \
+            -o /tmp/bunny-achievement-discovery
+          /tmp/bunny-achievement-discovery samples/ExampleModCSharp/AchievementsDemo/content/Content/Achievements/ManyWormsKilled.cs
       - name: Test owner-safe native event mailbox
         run: |
           g++ -std=c++20 -O2 -Wall -Wextra -Werror -pthread \
