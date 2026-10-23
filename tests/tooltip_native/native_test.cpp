@@ -1,4 +1,5 @@
 #include "experiments/csharp/BasicItemDefaults.h"
+#include "experiments/csharp/NativeTooltipWave.h"
 #include <cassert>
 #include <cmath>
 #include <fstream>
@@ -70,5 +71,33 @@ int main(int argc,char** argv) {
         assert(decodeNativeTooltipPlan(stage,&parsed,&error));
         assert(parsed.lines.size()==3);
     }
-    std::cout<<"CSHARP_NATIVE_TOOLTIP_PLAN=PASS lines="<<lines.size()<<" rounds=2000\n";
+    NativeTooltipWaveLayout layout;
+    int measurements=0;
+    auto measure=[&](std::u16string_view prefix) {
+        ++measurements;return static_cast<float>(prefix.size()*10);
+    };
+    assert(buildNativeTooltipWaveLayout(lines[1].text,measure,&layout));
+    assert(layout.units==u"Bunny Loader"&&layout.prefixWidths.size()==12&&measurements==11);
+    NativeTooltipPaint placement;placement.x=100;placement.y=200;
+    placement.scale=1;placement.spread=1;placement.opacity=128;placement.clock=0;
+    int draws=0,foreground=0,shadows=0;
+    auto paint=[&](char16_t ch,float x,float y,uint32_t color,const NativeTooltipPaint&,int pass) {
+        if(draws==0)assert(ch==u'B'&&x==99&&y==200&&color==0x80000000u&&pass==0);
+        if(draws==4)assert(ch==u'B'&&x==100&&y==200&&color==0x80FF0000u&&pass==4);
+        if(ch==u'L'&&pass==4)assert(x==160.f);
+        if(pass==4)++foreground;else ++shadows;
+        ++draws;
+    };
+    assert(drawNativeTooltipWave(lines[1],layout,placement,paint));
+    assert(draws==55&&foreground==11&&shadows==44);
+    assert(measurements==11);
+    NativeTooltipLine normal=lines[1];normal.rainbow=false;
+    assert(!drawNativeTooltipWave(normal,layout,placement,paint));
+    assert(draws==55);
+    assert(!nativeTooltipUtf16(std::string("\xC0\xAF",2),&layout.units));
+    assert(!nativeTooltipUtf16(std::string("\xED\xA0\x80",3),&layout.units));
+    std::u16string emoji;
+    assert(nativeTooltipUtf16("Olá 🐇",&emoji));
+    assert(emoji.size()==6&&emoji[4]>=0xD800&&emoji[4]<=0xDBFF);
+    std::cout<<"CSHARP_NATIVE_TOOLTIP_PLAN=PASS lines="<<lines.size()<<" rounds=2000 glyphPasses="<<draws<<"\n";
 }
