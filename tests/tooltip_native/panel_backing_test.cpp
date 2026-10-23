@@ -36,6 +36,7 @@ static FieldInfo colorB{"B",{&byte},2},colorA{"A",{&byte},3};
 static FieldInfo rx{"X",{&integer},0},ry{"Y",{&integer},4};
 static FieldInfo rw{"Width",{&integer},8},rh{"Height",{&integer},12};
 static FieldInfo nf{"hasValue",{&boolean},0},nv{"value",{&rect},4};
+static MethodInfo multiply{"Multiply",false,{{&color},{&number}},{"color","scale"},{&color}};
 static MethodInfo method{"DrawBacking",false,
     {{&vec},{&vec},{&texture},{&color},{&nullable}},
     {"position","size","texture","color","sourceFrame"},{&plain}};
@@ -60,6 +61,9 @@ static FieldInfo tintDefault{"BackingColor",{&color},offsetof(Node,rgba)};
 static FieldInfo tintBorder{"BorderColor",{&color},offsetof(Node,rgba)+4};
 static Il2CppObject* settingsSingleton=nullptr;
 static bl::il2cpp::Api fixture;
+struct BoxedColor {Il2CppObject obj;uint8_t bytes[4];};
+static BoxedColor colorResult{{&color,nullptr},{0,0,0,0}};
+static int multiplications=0;
 static bool throwManaged=false;
 static int calls=0;
 static Il2CppObject* textureReceived=nullptr;
@@ -79,6 +83,7 @@ int main() {
     using namespace bl::csharp;
     vec.fields={&vecX,&vecY};
     color.fields={&colorR,&colorG,&colorB,&colorA};
+    color.methods={&multiply};
     rect.fields={&rx,&ry,&rw,&rh};
     nullable.fields={&nf,&nv};
     panel.methods={&method};
@@ -126,6 +131,18 @@ int main() {
     fixture.object_get_class=[](Il2CppObject* object){return object->klass;};
     fixture.class_is_assignable_from=[](Il2CppClass* base,Il2CppClass* actual){return base==actual;};
     fixture.runtime_invoke=[](const MethodInfo* target,void* self,void** args,Il2CppObject** error)->Il2CppObject*{
+        if(target==&multiply) {
+            assert(self==nullptr&&args&&args[0]&&args[1]);
+            float alpha=0;
+            std::memcpy(&alpha,args[1],sizeof(alpha));
+            const auto* input=static_cast<const uint8_t*>(args[0]);
+            assert(alpha>=0.f&&alpha<=1.f);
+            for(int i=0;i<4;++i)
+                colorResult.bytes[i]=static_cast<uint8_t>(static_cast<float>(input[i])*alpha);
+            *error=nullptr;
+            ++multiplications;
+            return &colorResult.obj;
+        }
         assert(target==&method&&self==nullptr&&args[2]!=nullptr);
         textureReceived=*static_cast<Il2CppObject* const*>(args[2]);
         const auto* pos=static_cast<const float*>(args[0]);
@@ -174,6 +191,28 @@ int main() {
     method.types[2].cls=&unrelated;mustReject();method.types[2].cls=&texture;
     auto otherMethod=method;panel.methods.push_back(&otherMethod);mustReject();panel.methods.pop_back();
     assert(bridge.bind(&panel,&error));
+    NativeTooltipPanelAlpha alpha;
+    assert(alpha.bind(&color,&error));
+    std::array<uint8_t,4> tinted{3,4,5,6};
+    assert(alpha.apply({20,30,40,200},0.5f,&tinted));
+    assert((tinted==std::array<uint8_t,4>{10,15,20,100}));
+    assert(multiplications==1);
+    const auto tintedBefore=tinted;
+    assert(!alpha.apply({20,30,40,200},-0.1f,&tinted));
+    assert(!alpha.apply({20,30,40,200},1.1f,&tinted));
+    assert(tinted==tintedBefore&&multiplications==1);
+    multiply.instance=true;
+    NativeTooltipPanelAlpha invalid;
+    assert(!invalid.bind(&color,&error));
+    multiply.instance=false;
+    multiply.types[1].cls=&integer;
+    assert(!invalid.bind(&color,&error));
+    multiply.types[1].cls=&number;
+    auto duplicate=multiply;
+    color.methods.push_back(&duplicate);
+    assert(!invalid.bind(&color,&error));
+    color.methods.pop_back();
+    assert(invalid.bind(&color,&error));
 
     Node settingsNode{{&settings,nullptr}};
     Node tooltipsNode{{&tooltips,nullptr}};
@@ -224,5 +263,5 @@ int main() {
     method.names[2]="texture";
     assert(inspectNativeTooltipPanel(&settings,&panel,0,0,&inspected,&error));
     assert(inspected.resources.settings==&settingsNode.object);
-    std::cout<<"NATIVE_TOOLTIP_PANEL_BACKING=PASS invoke="<<calls<<" rejects=10 integrated=PASS\n";
+    std::cout<<"NATIVE_TOOLTIP_PANEL_BACKING=PASS invoke="<<calls<<" rejects=10 integrated=PASS colorMultiply=PASS\n";
 }
