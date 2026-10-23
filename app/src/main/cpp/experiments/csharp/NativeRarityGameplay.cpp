@@ -516,6 +516,7 @@ thread_local bool g_nativeTooltipRendering=false;
 thread_local Il2CppObject* g_nativeTooltipMeasureFont=nullptr;
 thread_local std::string g_nativeTooltipMeasuredText;
 thread_local NativeTooltipWaveLayout g_nativeTooltipLayout;
+thread_local float g_nativeTooltipLineHeight=0.f;
 std::array<uint32_t,128> g_nativeTooltipGlyphRoots{};
 
 bool nativeTooltipStringMatches(Il2CppString* text,const std::u16string& expected) {
@@ -543,9 +544,12 @@ bool nativeTooltipWaveLayout(Il2CppObject* font,const NativeTooltipLine& line,
     auto& a=bl::il2cpp::api();
     if(!font||!out||!height||!a.string_new||!g_nativeTooltipMeasure||
        !g_nativeTooltipMeasureMethod||line.text.empty()||line.text.size()>128)return false;
-    if(font==g_nativeTooltipMeasureFont&&g_nativeTooltipMeasuredText==line.text) {
+    if(font==g_nativeTooltipMeasureFont&&g_nativeTooltipMeasuredText==line.text&&
+       g_nativeTooltipLineHeight>0.f) {
         *out=g_nativeTooltipLayout;
-    }else {
+        *height=g_nativeTooltipLineHeight;
+        return true;
+    } else {
         if(!buildNativeTooltipWaveLayout(line.text,[&](std::u16string_view prefix){
             for(char16_t ch:prefix)if(ch<32||ch>=127)return -1.f;
             std::string ascii;ascii.reserve(prefix.size());
@@ -555,15 +559,16 @@ bool nativeTooltipWaveLayout(Il2CppObject* font,const NativeTooltipLine& line,
             const auto size=g_nativeTooltipMeasure(font,word,g_nativeTooltipMeasureMethod);
             return size.x;
         },out))return false;
-        g_nativeTooltipMeasuredText=line.text;
-        g_nativeTooltipMeasureFont=font;
-        g_nativeTooltipLayout=*out;
     }
     Il2CppString* whole=a.string_new(line.text.c_str());
     if(!whole)return false;
     const auto size=g_nativeTooltipMeasure(font,whole,g_nativeTooltipMeasureMethod);
     if(!std::isfinite(size.y)||size.y<5.f||size.y>100.f)return false;
     *height=size.y;
+    g_nativeTooltipMeasuredText=line.text;
+    g_nativeTooltipMeasureFont=font;
+    g_nativeTooltipLayout=*out;
+    g_nativeTooltipLineHeight=size.y;
     return true;
 }
 
