@@ -10,6 +10,9 @@
 #include "experiments/csharp/NativeDefaults.h"
 #include "experiments/csharp/NativeVisualRenderer.h"
 #include "experiments/csharp/NativeTileGameplay.h"
+#include "experiments/csharp/NativeTileFlags.h"
+#include "experiments/csharp/NativeTileAdjacencyPolicy.h"
+#include "experiments/csharp/NativeTilePolicy.h"
 #include "experiments/csharp/NativeBootEffects.h"
 
 #include "content/common/GameRefs.h"
@@ -18,6 +21,7 @@
 #include "content/npcs/ModNpcs.h"
 #include "content/buffs/ModBuffs.h"
 #include "content/tiles/ModTiles.h"
+#include "content/walls/ModWalls.h"
 #include "content/tiles/ModTileMap.h"
 #include "content/tiles/TileAccess.h"
 #include "il2cpp/Api.h"
@@ -2107,22 +2111,6 @@ namespace {
 std::mutex g_tileDefaultsMutex;
 std::map<int, std::pair<std::string, ManagedTileEntry>> g_tileDefaults;
 
-bool writeTileFlag(Il2CppClass* cls, const char* name, int type, bool enabled) {
-    if (!enabled) return true;
-    auto& a = il2cpp::api();
-    FieldInfo* field = cls ? il2cpp::findField(cls, name) : nullptr;
-    if (!field || !a.field_get_type || !a.type_get_name || !a.il2cpp_free) return false;
-    char* signature = a.type_get_name(a.field_get_type(field));
-    const bool safe = signature && std::strcmp(signature, "System.Boolean[]") == 0;
-    if (signature) a.il2cpp_free(signature);
-    if (!safe) return false;
-    Il2CppArray* values = nullptr;
-    a.field_static_get_value(field, &values);
-    if (!values || type < 0 || static_cast<uintptr_t>(type) >= values->length) return false;
-    static_cast<uint8_t*>(arrayData(values))[type] = 1;
-    return true;
-}
-
 Il2CppObject* tileStaticObject(Il2CppClass* cls, const char* name) {
     auto& a = il2cpp::api();
     if (!cls) return nullptr;
@@ -2167,29 +2155,12 @@ bool applyTileShape(int type, const ManagedTileEntry& e) {
     return !exc;
 }
 
-bool applyTileFlags(int type, const ManagedTileEntry& e) {
-    Il2CppClass* main = il2cpp::findClass({"Terraria", "Main", {}});
-    Il2CppClass* sets = il2cpp::findClass({"Terraria.ID", "TileID", "Sets"});
-    Il2CppClass* room = sets ? il2cpp::findNested(sets, "RoomNeeds") : nullptr;
-    bool ok = true;
-    const auto apply = [&](Il2CppClass* cls, const char* field, int bit) {
-        if (!writeTileFlag(cls, field, type, (e.flags & bit) != 0)) ok = false;
-    };
-    apply(main, "tileTable", 1);
-    apply(main, "tileSolidTop", 2);
-    apply(main, "tileNoAttach", 4);
-    apply(main, "tileLavaDeath", 8);
-    apply(main, "tileFrameImportant", 16);
-    apply(sets, "DisableSmartCursor", 32);
-    apply(sets, "HasOutlines", 64);
-    apply(sets, "IgnoredByNpcStepUp", 128);
-    apply(room, "CountsAsTable", 256);
-    apply(main, "tileSolid", 512);
-    apply(main, "tileBlockLight", 1024);
-    apply(main, "tileMergeDirt", 2048);
-    apply(sets, "ChecksForMerge", 4096);
-    apply(main, "tileObsidianKill", 8);
-    return ok;
+bool applyTileFlags(const std::string& mod, int type, const ManagedTileEntry& entry) {
+    std::string error;
+    if (tile_flags::apply(type, entry.flags, &error)) return true;
+    BL_ERROR("[CSharp][ERROR][TileRegistration] Mod=%s Class=%s API=BunnyTile.Flags ContentId=%d Result=Rejected %s",
+             mod.c_str(), entry.name.c_str(), type, error.c_str());
+    return false;
 }
 
 using NativeAdjFn = void (*)(Il2CppObject*, const MethodInfo*);
@@ -2201,14 +2172,7 @@ std::array<std::pair<int, int>, kMaxNativeAdjacencies> g_adjPairs{};
 size_t g_adjCount = 0;
 
 bool addNativeAdjacency(int type, int vanilla) {
-    for (size_t i = 0; i < g_adjCount; ++i) {
-        if (g_adjPairs[i].first != type) continue;
-        g_adjPairs[i].second = vanilla;
-        return true;
-    }
-    if (g_adjCount == g_adjPairs.size()) return false;
-    g_adjPairs[g_adjCount++] = {type, vanilla};
-    return true;
+    return tile_adjacency::add(g_adjPairs, g_adjCount, type, vanilla);
 }
 
 void nativePlayerAdjTiles(Il2CppObject* player, const MethodInfo* method) {
@@ -2239,12 +2203,9 @@ void nativePlayerAdjTiles(Il2CppObject* player, const MethodInfo* method) {
             const int type = world.type[definition];
             if (type < runtime::kVanillaTileCount ||
                 static_cast<uintptr_t>(type) >= adjacent->length) continue;
-            for (size_t pair = 0; pair < g_adjCount; ++pair)
-                if (type == g_adjPairs[pair].first) {
-                    result[type] = 1;
-                    result[g_adjPairs[pair].second] = 1;
-                    break;
-                }
+            if (tile_adjacency::forEach(g_adjPairs, g_adjCount, type,
+                    [&](int alias) { result[alias] = 1; }))
+                result[type] = 1;
         }
 }
 
@@ -2273,24 +2234,17 @@ bool ensureNativeAdjTiles() {
     return true;
 }
 
-bool appendNativeHousingTable(int type) {
-    auto& a = il2cpp::api();
+bool appendNativeHousingTable(const std::string& mod, const ManagedTileEntry& entry) {
     Il2CppClass* sets = il2cpp::findClass({"Terraria.ID", "TileID", "Sets"});
     Il2CppClass* room = sets ? il2cpp::findNested(sets, "RoomNeeds") : nullptr;
-    FieldInfo* field = room ? il2cpp::findField(room, "CountsAsTableTypes") : nullptr;
-    if (!field) return false;
-    Il2CppArray* array = nullptr;
-    a.field_static_get_value(field, &array);
-    if (!array) return false;
-    const auto* values = static_cast<const int32_t*>(arrayData(array));
-    for (uintptr_t i = 0; i < array->length; ++i)
-        if (values[i] == type) return true;
-    if (array->length >= 4096) return false;
-    Il2CppArray* enlarged = runtime::TypeTables::resizedCopy(array, array->length + 1);
-    if (!enlarged) return false;
-    static_cast<int32_t*>(arrayData(enlarged))[array->length] = type;
-    a.field_static_set_value(field, enlarged);
-    return true;
+    std::string error;
+    if (tile_flags::appendHousing(entry.type, room,
+            [](Il2CppArray* array, uintptr_t size) {
+                return runtime::TypeTables::resizedCopy(array, size);
+            }, &error)) return true;
+    BL_ERROR("[CSharp][ERROR][TileRegistration] Mod=%s Class=%s API=BunnyTile.Flags.CountsAsTable ContentId=%d Result=Rejected %s",
+             mod.c_str(), entry.name.c_str(), entry.type, error.c_str());
+    return false;
 }
 
 bool installCraftingStationIcon(const std::string& modId,
@@ -2324,15 +2278,31 @@ void onManagedTilesInstalled(int first, int last) {
             if (type >= first && type <= last) records.push_back(entry);
     }
     for (const auto& [mod, entry] : records) {
-        const bool flags = applyTileFlags(entry.type, entry);
+        const bool flags = applyTileFlags(mod, entry.type, entry);
         const bool shape = applyTileShape(entry.type, entry);
-        const bool housing = (entry.flags & 256) == 0 || appendNativeHousingTable(entry.type);
+        const bool housing = (entry.flags & 256) == 0 || appendNativeHousingTable(mod, entry);
         const bool guide = installCraftingStationIcon(mod, entry);
-        const bool adjacency = entry.adjacentTile < 0 ||
-            (ensureNativeAdjTiles() && addNativeAdjacency(entry.type, entry.adjacentTile));
+        bool adjacency = true;
+        if (entry.adjacentTile >= 0 || !entry.adjacentTiles.empty()) {
+            adjacency = ensureNativeAdjTiles();
+            if (adjacency && entry.adjacentTile >= 0)
+                adjacency = addNativeAdjacency(entry.type, entry.adjacentTile);
+            if (adjacency)
+                for (int alias : entry.adjacentTiles)
+                    if (!addNativeAdjacency(entry.type, alias)) {
+                        adjacency = false;
+                        break;
+                    }
+        }
         const bool gameplay = flags && shape &&
             registerNativeTileGameplay({mod, entry.name, entry.dustName, entry.type,
-                                        entry.shape, entry.failDust, entry.normalDust});
+                                        entry.shape, entry.failDust, entry.normalDust,
+                                        entry.animationFrameHeight, entry.animationFrames,
+                                        entry.animationFrameTicks,
+                                        entry.allowBreaking, entry.allowDrops, entry.callbackMask,
+                                        entry.cacheDrawData, {}});
+        if (gameplay && entry.animationFrameHeight > 0)
+            runtime::setModTileAnimation(entry.type, entry.animationFrameHeight);
         if (!gameplay)
             BL_ERROR("[CSharp][ERROR][Tile] Mod=%s Class=%s Stage=NativeGameplay Result=Incomplete",
                      mod.c_str(), entry.name.c_str());
@@ -2355,13 +2325,30 @@ bool applyManagedNativeTileDefaultsBatch(const std::string& modId,
     for (const auto& entry : tiles) {
         if (entry.type < runtime::kVanillaTileCount ||
             runtime::modTileTypeByName(modId, entry.name) != entry.type ||
-            entry.flags < 0 || entry.flags > 511 ||
+            entry.flags < 0 || entry.flags > tile_flags::supportedMask ||
             entry.shape < 0 || entry.shape > 1 || entry.coordinateHeight != 18 ||
+            entry.animationFrameHeight < 0 || entry.animationFrameHeight > 4096 ||
+            entry.animationFrames < 1 || entry.animationFrames > 64 ||
+            entry.animationFrameTicks < 0 || entry.animationFrameTicks > 600 ||
+            (entry.animationFrames > 1 &&
+             (entry.animationFrameHeight == 0 || entry.animationFrameTicks == 0)) ||
+            (entry.animationFrames == 1 && entry.animationFrameTicks != 0) ||
             entry.adjacentTile < -1 || entry.adjacentTile >= runtime::kVanillaTileCount ||
+            entry.adjacentTiles.size() > 16 ||
+            !tile_policy::validCallbackMask(entry.callbackMask) ||
             entry.mapR < 0 || entry.mapR > 255 ||
             entry.mapG < 0 || entry.mapG > 255 ||
             entry.mapB < 0 || entry.mapB > 255)
             return false;
+    }
+    for (const auto& entry : tiles) {
+        for (size_t i = 0; i < entry.adjacentTiles.size(); ++i) {
+            const int alias = entry.adjacentTiles[i];
+            if (alias < 0 || alias >= runtime::kVanillaTileCount ||
+                alias == entry.adjacentTile ||
+                std::find(entry.adjacentTiles.begin(), entry.adjacentTiles.begin() + i, alias) !=
+                    entry.adjacentTiles.begin() + i) return false;
+        }
     }
     {
         std::lock_guard<std::mutex> lock(g_tileDefaultsMutex);
@@ -2413,6 +2400,13 @@ int registerNativeContent(void* context, const NativeContentSpec* spec) {
     const std::string display = spec->displayName && *spec->displayName
         ? std::string(spec->displayName).substr(0, 128)
         : std::string(spec->name);
+    if (spec->kind == NativeWall) {
+        std::string wallError;
+        const int type=runtime::registerModWall({ctx.modId,spec->name,path},&wallError);
+        if(type<0){ctx.lastError="[CSharp][ERROR][WallRegistration] Mod="+ctx.modId+" Class="+spec->name+" File="+ctx.sourceFile+" Stage=NativeRegister Result=Rejected Detail="+wallError;BL_ERROR("%s",ctx.lastError.c_str());return -1;}
+        ++ctx.walls;
+        return type;
+    }
     if (spec->kind == NativeTile) {
         bl::runtime::ModTileDef def{};
         def.mod = ctx.modId;

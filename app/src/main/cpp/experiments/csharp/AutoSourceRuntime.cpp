@@ -1,17 +1,34 @@
 #include "experiments/csharp/NativeRecipeCallbacks.h"
+#include "experiments/csharp/NativeShooting.h"
+#include "experiments/csharp/NativeTileGameplay.h"
+#include "experiments/csharp/NativeWallRuntime.h"
+#include "experiments/csharp/NativeLocalizationRuntime.h"
 #include "content/recipes/RecipeCallbackProvider.h"
 #include "experiments/csharp/WorldEntryReadiness.h"
 #include "experiments/csharp/SourceLimits.h"
 #include "experiments/csharp/NativeAccess.h"
-#include "experiments/csharp/ManagedSoundLoader.h"
+#include "experiments/csharp/NativeInvasionMailbox.h"
+#include "experiments/csharp/NativeDustEmission.h"
+#include "experiments/csharp/NativeInvasionRewards.h"
+#include "experiments/csharp/NativeInvasionNotifications.h"
+#include "experiments/csharp/NativeInvasionNetwork.h"
+#include "experiments/csharp/NativeInvasionHud.h"
+#include "experiments/csharp/ReliableNpcKill.h"
+#include "experiments/csharp/NativeInvasionPersistence.h"
+#include "experiments/csharp/NativeCSharpItemUse.h"
+#include "experiments/csharp/WorldAuthority.h"
 #include "experiments/csharp/UniversalHookMailbox.h"
 #include "experiments/csharp/UniversalHooks.h"
 #include "experiments/csharp/AutoSourceCache.h"
+#include "experiments/csharp/ManagedSoundLoader.h"
 #include "experiments/csharp/AutoSourceRuntime.h"
+#include "content/dusts/ModDusts.h"
 #include "experiments/csharp/NativeVisualRenderer.h"
+#include "experiments/csharp/NativeRarityGameplay.h"
 #include "graphics/CSharpScreenEffects.h"
 #include "experiments/csharp/NativeContent.h"
 #include "experiments/csharp/NativeBasicItems.h"
+#include "experiments/csharp/NativeAnglerQuestGameplay.h"
 #include "experiments/csharp/NativeArmorPolicies.h"
 #include "experiments/csharp/NativeItemPolicies.h"
 #include "experiments/csharp/ManagedPrefixGameplay.h"
@@ -28,8 +45,11 @@
 #include "experiments/csharp/ManagedProjectileHook.h"
 #include "experiments/csharp/NpcAiHost.h"
 #include "experiments/csharp/ManagedRuntime.h"
+#include "experiments/csharp/TerrariaHost.h"
+#include "menu/NetRequests.h"
 #include "experiments/csharp/MonoServiceDispatch.h"
 #include "experiments/csharp/SourceLoader.h"
+#include "experiments/csharp/ManagedDustBindingSelection.h"
 #include "experiments/csharp/ManagedSourceClassCount.h"
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
@@ -209,14 +229,18 @@ bool hashSources(const std::string& dir, const std::string& relative,
         if (S_ISDIR(metadata.st_mode)) {
             if (!hashSources(dir, rel, hash, count, totalBytes, depth + 1, hasHooks)) return false;
         } else if (S_ISREG(metadata.st_mode) &&
-                   name.size() > 3 && name.substr(name.size() - 3) == ".cs") {
-            if (metadata.st_size < 1 || metadata.st_size > static_cast<off_t>(kSourceMaxFileBytes) || static_cast<size_t>(++*count) > kSourceMaxFiles)
+                   ((name.size() > 3 && name.substr(name.size() - 3) == ".cs") ||
+                    (relative == "Localization" && name.size() > 5 &&
+                     name.substr(name.size() - 5) == ".json"))) {
+            const bool sourceFile=name.size()>3 && name.substr(name.size()-3)==".cs";
+            if (metadata.st_size < 1 || metadata.st_size > static_cast<off_t>(kSourceMaxFileBytes))
                 return false;
+            if (sourceFile && static_cast<size_t>(++*count) > kSourceMaxFiles) return false;
             *totalBytes+=static_cast<size_t>(metadata.st_size);
             if(*totalBytes>kSourceMaxTotalBytes)return false;
             std::string source = readText(full, kSourceMaxFileBytes);
             if (source.empty()) return false;
-            if (hasHooks && source.find("BunnyHookModule") != std::string::npos) *hasHooks = true;
+            if (sourceFile && hasHooks && source.find("BunnyHookModule") != std::string::npos) *hasHooks = true;
             hash->field(rel);
             hash->field(source);
         }
@@ -274,20 +298,39 @@ bool compile(const std::string& root, const std::string& id,
              const SourceModStatus& mod, const std::string& workDir,
              std::string* defaults, std::string* curves,
              std::string* combat, std::string* error) {
+    std::remove((workDir + "source-compile-status-" + id + ".txt").c_str());
     std::remove((workDir + "source-compile-status.txt").c_str());
     std::remove((workDir + "source-runtime-values.txt").c_str());
     std::remove((workDir + "source-projectile-turns.txt").c_str());
     std::remove((workDir + "source-combat-policies.txt").c_str());
     if (!requestIsolatedMonoCompile(root, id, *error)) return false;
-    const std::string path = workDir + "source-compile-status.txt";
+    const std::string path = workDir + "source-compile-status-" + id + ".txt";
     const auto started = std::chrono::steady_clock::now();
     const auto deadline = started + std::chrono::seconds(180);
     for (; std::chrono::steady_clock::now() < deadline;) {
         const std::string status = readText(path, 8192);
         if (status.find("state=failed\n") != std::string::npos &&
-            (status.find("modId=" + id + "\n") != std::string::npos ||
-             status.find("modId=") == std::string::npos)) {
-            *error = "Roslyn/MonoVM falhou; verifique sourceCompileStatus";
+            status.find("modId=" + id + "\n") != std::string::npos) {
+            const auto valueOf = [&](const std::string& key) {
+                const size_t found = status.find("\n" + key + "=");
+                if (found == std::string::npos) return std::string{};
+                const size_t begin = found + key.size() + 2;
+                const size_t end = status.find('\n', begin);
+                return status.substr(begin, std::min<size_t>(
+                    end == std::string::npos ? status.size() - begin : end - begin, 180));
+            };
+            *error = "Roslyn/MonoVM: " + valueOf("phase");
+            const auto detail = valueOf("error");
+            if (!detail.empty()) *error += " " + detail;
+            const std::string diagnostic = readText(
+                workDir + "source-compile-diagnostics-" + id + ".txt", 16384);
+            if (!diagnostic.empty()) {
+                std::string excerpt = diagnostic.substr(0, 700);
+                std::replace(excerpt.begin(), excerpt.end(), '\n', ' ');
+                *error += " | " + excerpt;
+            }
+            if (error->size() < 18)
+                *error = "Roslyn/MonoVM falhou no mod " + id;
             return false;
         }
         if (status.find("state=finished\n") != std::string::npos &&
@@ -476,10 +519,11 @@ bool worldPlayerReady() {
         return false;
     int mode = -1;
     api.field_static_get_value(refs.netMode, &mode);
-    if (mode != 0) return false;
+    if (mode < 0 || mode > 3) return false;
     Il2CppObject* world = nullptr;
     api.field_static_get_value(refs.world, &world);
     if (!world) return false;
+    if (mode == 2) return true;
     Il2CppArray* players = nullptr;
     api.field_static_get_value(refs.players, &players);
     if (!players) return false;
@@ -741,7 +785,13 @@ void run() {
     bool runtimeChecked=false;
     std::vector<Curve> pending;
     std::vector<Combat> pendingCombat;
-    for (const auto& mod : sourceModStatuses()) {
+    const auto loadedMods=sourceModStatuses();
+    std::set<std::string> activeLocales;
+    for (const auto& mod : loadedMods)
+        if (mod.loaded && mod.sourceFiles && mod.id != kFixtureId && safeId(mod.id))
+            activeLocales.insert(mod.id);
+    localization::retainActiveMods(activeLocales);
+    for (const auto& mod : loadedMods) {
         if (!mod.loaded || !mod.sourceFiles) continue;
         AutoSourceStatus status;
         status.modId = mod.id;
@@ -817,7 +867,10 @@ void run() {
             note(&status, "failed", "Tabelas de projetil nao ficaram prontas");
             continue;
         }
-        if ((mod.projectiles > 0 || mod.npcs > 0 || hasUniversalHooks || mod.screenEffects > 0) &&
+        if ((mod.projectiles > 0 || mod.npcs > 0 || hasUniversalHooks || mod.screenEffects > 0 ||
+             (defaults.find("LOCALE\t") != std::string::npos ||
+              defaults.find("LOCALE_MODULES\t") != std::string::npos ||
+              defaults.find("LOCALE_RUNTIME\t") != std::string::npos)) &&
             !g_runtimeWarmStarted.exchange(true, std::memory_order_acq_rel)) {
             const std::string probe = work + "BunnyManagedProbe.dll";
             struct stat probeStat{};
@@ -862,9 +915,15 @@ void run() {
         }
         if (defaultsApplied) {
             bindNativeRecipeAssembly(mod.id,assembly);
+            bindNativeTileAssembly(mod.id,assembly);
+            if(!shooting::bindAssembly(mod.id,assembly,&error))defaultsApplied=false;
+            if (defaultsApplied && (defaults.find("LOCALE\t") != std::string::npos ||
+              defaults.find("LOCALE_MODULES\t") != std::string::npos ||
+              defaults.find("LOCALE_RUNTIME\t") != std::string::npos))
+                localization::bindManagedAssembly(mod.id, assembly);
             static const runtime::RecipeCallbackProvider provider{prepareNativeRecipeCallbackProvider,trackNativeRecipeCallbacks};
             runtime::setRecipeCallbackProvider(&provider);
-            if(hasManagedRecipeCallbacks(mod.id)&&!g_runtimeWarmStarted.exchange(true,std::memory_order_acq_rel)) {
+            if((hasManagedRecipeCallbacks(mod.id)||hasManagedAnglerQuestCallbacks(mod.id)||shooting::hasPolicies(mod.id)||mod.tiles>0||mod.rarities>0)&&!g_runtimeWarmStarted.exchange(true,std::memory_order_acq_rel)) {
                 const auto probe=work+"BunnyManagedProbe.dll";
                 g_runtimeWarming.store(true,std::memory_order_release);
                 std::thread([probe]{
@@ -873,6 +932,29 @@ void run() {
                         BL_ERROR("[CSharp][ERROR][RecipeCallback] Stage=InitializeMonoWorker Probe=%s Result=Pending Phase=%s Detail=%s",probe.c_str(),state.phase.c_str(),state.error.c_str());
                     g_runtimeWarming.store(false,std::memory_order_release);
                 }).detach();
+            }
+        }
+        if (defaultsApplied && mod.rarities > 0) {
+            std::string identities;
+            int count = 0;
+            for (const auto& [key, type] : mod.registeredKindTypes) {
+                if (!key.starts_with("RARITY:")) continue;
+                if (type < 12 || type >= 4108) {
+                    error = "[CSharp][ERROR][RarityLoader] Mod=" + mod.id +
+                        " Stage=Warmup Reason=InvalidNativeRarityId";
+                    defaultsApplied = false;
+                    break;
+                }
+                if (!identities.empty()) identities.push_back(';');
+                identities += key.substr(7) + ":" + std::to_string(type);
+                ++count;
+            }
+            if (defaultsApplied && (count != mod.rarities || identities.size() > 32768 ||
+                !queueManagedRarityWarmup(mod.id, assembly, identities) ||
+                !registerNativeRaritySampling(mod.id, assembly))) {
+                error = "[CSharp][ERROR][RarityLoader] Mod=" + mod.id +
+                    " Stage=Warmup Reason=RarityIdentityQueueRejected";
+                defaultsApplied = false;
             }
         }
         if (!defaultsApplied) {
@@ -898,7 +980,31 @@ void run() {
         }
         if (hasUniversalHooks && !registerUniversalHookMod(mod.id, assembly))
             BL_WARN("csharp universal hooks: fila recusada mod=%s", mod.id.c_str());
-        if (mod.npcs > 0 || mod.projectiles > 0) {
+        if (mod.dusts > 0) {
+            const auto dustTypes = selectManagedDustBindings(mod);
+            if (!dustTypes.empty()) {
+                if (!registerManagedDustSourceMod(mod.id, assembly, dustTypes)) {
+                    BL_WARN("[CSharp][DustLoader] Mod=%s Stage=MonoRegister Result=Rejected",
+                            mod.id.c_str());
+                } else {
+                    const std::string probe = work + "BunnyManagedProbe.dll";
+                    struct stat probeStat{};
+                    if (stat(probe.c_str(), &probeStat) != 0 || !S_ISREG(probeStat.st_mode)) {
+                        BL_ERROR("[CSharp][DustLoader] Stage=MonoWorkerPrewarm Reason=ProbeMissing");
+                    } else if (!g_runtimeWarmStarted.exchange(true, std::memory_order_acq_rel)) {
+                        g_runtimeWarming.store(true, std::memory_order_release);
+                        std::thread([probe] {
+                            const auto state = probeManagedRuntimePinnedThread(probe, "PINNED_MONO");
+                            if (!state.methodExecuted || state.result != 42)
+                                BL_ERROR("[CSharp][DustLoader] Stage=MonoWorkerPrewarm Result=Pending Phase=%s",
+                                         state.phase.c_str());
+                            g_runtimeWarming.store(false, std::memory_order_release);
+                        }).detach();
+                    }
+                }
+            }
+        }
+        if (mod.npcs > 0 || mod.projectiles > 0 || mod.items > 0) {
             const auto npcs = runtime::registeredNpcsForMod(mod.id);
             const auto projectiles = runtime::registeredProjectilesForMod(mod.id);
             if (registerManagedEntitySourceMod(mod.id, assembly, npcs, projectiles))
@@ -1156,7 +1262,9 @@ void reportCSharpLoadSummary() {
         if (!g_pendingLiveSpecs.empty() &&
             !managedNpcBuffEffectStatus().gameHookInstalled) ++pendingCallbacks;
     }
-    const int pending = basic.pendingBehaviors + basic.pendingRecipes +
+    const auto wallStatus=walls::loadStatus();
+    failed+=wallStatus.failed;
+    const int pending = wallStatus.pending + basic.pendingBehaviors + basic.pendingRecipes +
         basic.pendingPlacements + pendingCallbacks + static_cast<int>(pendingNativeVisualRenderer());
     if (pending) return;
     if (g_initialCSharpSummaryShown.exchange(true, std::memory_order_acq_rel))
@@ -1192,16 +1300,28 @@ void retryWorldManagedPrefixesWhenReady() {
 }
 
 void noteAutoWorldTilesLoaded() {
-    std::lock_guard<std::mutex> sessionGuard(g_worldTransitionMutex);
     managedSound::worldExit();
+    angler::invalidateWorldSession();
+    std::lock_guard<std::mutex> sessionGuard(g_worldTransitionMutex);
+    resetNativeTileSessionState();
     clearManagedVisualCommands();
     resetNativeVisualRenderer();
     g_visualUpdateTick.store(0, std::memory_order_relaxed);
     g_worldLoads.fetch_add(1, std::memory_order_relaxed);
     g_worldEpoch.fetch_add(1, std::memory_order_acq_rel);
     g_worldSessionReady.store(false, std::memory_order_release);
+    setNativeInvasionWorldState(false, g_worldEpoch.load(std::memory_order_acquire));
+    setNativeInvasionRewardWorldState(false, g_worldEpoch.load(std::memory_order_acquire));
+    setNativeInvasionNoticeWorld(false, g_worldEpoch.load(std::memory_order_acquire));
+    setNativeInvasionNetWorldState(false, g_worldEpoch.load(std::memory_order_acquire));
+    setNativeInvasionHudWorldState(false, g_worldEpoch.load(std::memory_order_acquire));
+    updateNativeInvasionWorldPath(false, g_worldEpoch.load(std::memory_order_acquire));
+        setNativeItemUseWorldState(false, g_worldEpoch.load(std::memory_order_acquire));
     pauseManagedEntitySourceCallbacks();
+    runtime::resetManagedDustLifecycle();
+    resetManagedDustSourceWorld();
     pauseManagedScreenSceneCallbacks();
+    resetReliableNpcKills();
     resetManagedSourceNpcSlots();
     resetManagedSourceProjectileSlots();
     g_worldReadyFrames.store(0, std::memory_order_relaxed);
@@ -1222,9 +1342,35 @@ void noteAutoWorldTilesLoaded() {
 void flushDeferredWorldEntry();
 
 void noteAutoGameUpdate() {
+    managedSound::pump();
+    pumpNativeRarityGameplay();
+    const bool invasionWorldReady = g_worldSessionReady.load(std::memory_order_acquire);
+    const uint64_t invasionWorldEpoch = g_worldEpoch.load(std::memory_order_acquire);
+    setNativeInvasionWorldState(invasionWorldReady, invasionWorldEpoch);
+    setNativeItemUseWorldState(invasionWorldReady, invasionWorldEpoch);
+    setNativeDustEmissionWorld(invasionWorldReady, invasionWorldEpoch);
+    pumpNativeDustEmission();
+    setNativeInvasionRewardWorldState(invasionWorldReady, invasionWorldEpoch);
+    setNativeInvasionNoticeWorld(invasionWorldReady, invasionWorldEpoch);
+    setNativeInvasionNetWorldState(invasionWorldReady, invasionWorldEpoch);
+    setNativeInvasionHudWorldState(invasionWorldReady, invasionWorldEpoch);
+    pumpNativeInvasionSpawnsOnGameThread();
+    pumpNativeInvasionRewardsOnGameThread();
+    pumpNativeInvasionNoticesOnGameThread();
+    pumpNativeInvasionNetworkOnGameThread();
+    pumpNativeInvasionHudOnGameThread();
+    pumpReliableNpcKillsOnGameThread();
+    pumpNativeItemUseBindingsOnGameThread();
+    static uint64_t lastSaveWorldSession = 0;
+    if (!invasionWorldReady) {
+        lastSaveWorldSession = 0;
+    } else if (lastSaveWorldSession != invasionWorldEpoch) {
+        updateNativeInvasionWorldPath(true, invasionWorldEpoch);
+        lastSaveWorldSession = invasionWorldEpoch;
+    }
     universalNativeService.store(pumpNativeAccessOnGameThread,std::memory_order_release);
     pumpNativeAccessOnGameThread();
-    managedSound::pump();
+    localization::pumpOnGameThread();
     pumpUniversalHookInstallsOnGameThread();
     if (managedEntitySourceModsRegistered() &&
         runtime::modNpcsSettled() && runtime::modProjectilesSettled()) {
@@ -1235,6 +1381,7 @@ void noteAutoGameUpdate() {
     }
     pumpInteractiveConsoleOnGameThread();
     pumpBasicRecipesOnGameThread();
+    angler::pumpOnGameThread();
     pumpNativeVisualRendererOnGameThread();
     if (!g_worldTilesLoaded.load(std::memory_order_acquire))
         updateManagedNpcBuffDispatcherOnGameThread();
@@ -1254,6 +1401,54 @@ void noteAutoGameUpdate() {
         return;
     }
     if (g_worldSessionReady.load(std::memory_order_acquire)) {
+        static uint64_t lastInvasionWorld = 0;
+        static unsigned invasionFrames = 0;
+        const uint64_t worldSession = g_worldEpoch.load(std::memory_order_acquire);
+        if (lastInvasionWorld != worldSession) {
+            lastInvasionWorld = worldSession;
+            invasionFrames = 0;
+        }
+        if (++invasionFrames % 30 == 0 && managedEntitySourceModsRegistered()) {
+            const TerrariaSnapshot snapshot = captureTerrariaSnapshot(false, false);
+            const int mode = bl::runtime::netMode();
+            if (snapshot.ready && snapshot.player.life > 0 &&
+                snapshot.player.index >= 0 && snapshot.player.index < 255) {
+                scheduleManagedInvasionWorldTicks(worldSession, mode,
+                    snapshot.player.index, snapshot.player.x, snapshot.player.y);
+            } else if (mode == 2 && runtime::resolveGameRefs()) {
+                struct Point { float x, y; };
+                static FieldInfo* playerArray = nullptr;
+                static int activeOffset = -1;
+                static int lifeOffset = -1;
+                if (!playerArray || activeOffset < 0 || lifeOffset < 0) {
+                    auto* main = il2cpp::findClass({"Terraria", "Main", {}});
+                    auto* player = il2cpp::findClass({"Terraria", "Player", {}});
+                    playerArray = main ? il2cpp::findField(main, "player") : nullptr;
+                    activeOffset = player ? il2cpp::fieldOffset(player, "active") : -1;
+                    lifeOffset = player ? il2cpp::fieldOffset(player, "statLife") : -1;
+                }
+                if (playerArray && activeOffset >= 0 && lifeOffset >= 0) {
+                    Il2CppArray* players = nullptr;
+                    il2cpp::api().field_static_get_value(playerArray, &players);
+                    if (players) {
+                        const int count = std::min<int>(players->length, 255);
+                        for (int i = 0; i < count; ++i) {
+                            Il2CppObject* player =
+                                static_cast<Il2CppObject**>(arrayData(players))[i];
+                            if (!player ||
+                                runtime::field<uint8_t>(player, activeOffset) == 0 ||
+                                runtime::field<int>(player, lifeOffset) <= 0) continue;
+                            const auto pos = runtime::field<Point>(
+                                player, runtime::game().entity.position);
+                            if (std::isfinite(pos.x) && std::isfinite(pos.y))
+                                scheduleManagedInvasionWorldTicks(
+                                    worldSession, mode, i, pos.x, pos.y);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
         graphics::pumpCSharpScreenEffects();
         const uint64_t tick = g_visualUpdateTick.fetch_add(1, std::memory_order_relaxed) + 1;
         if (tick % 12 == 0) {
@@ -1267,22 +1462,34 @@ void noteAutoGameUpdate() {
         if (g_worldMenuPollFrames.fetch_add(
                 1, std::memory_order_relaxed) % 30 != 0) return;
         const ActivationContext context = readActivationContext();
-        if (context.gameMenu != 1 && context.netMode == 0) {
-            retryWorldManagedPrefixesWhenReady();
-            showWorldPlayerMessagesWhenReady();
-            updateManagedNpcBuffDispatcherOnGameThread();
+        if (context.gameMenu != 1 &&
+            context.netMode >= 0 && context.netMode <= 3) {
+            if (worldIsAuthoritative(context.netMode)) {
+                retryWorldManagedPrefixesWhenReady();
+                showWorldPlayerMessagesWhenReady();
+                updateManagedNpcBuffDispatcherOnGameThread();
+            }
             return;
         }
         std::lock_guard<std::mutex> sessionGuard(g_worldTransitionMutex);
-        managedSound::worldExit();
         clearManagedVisualCommands();
         graphics::clearCSharpScreenEffects();
         pauseManagedScreenSceneCallbacks();
         resetNativeVisualRenderer();
         g_visualUpdateTick.store(0, std::memory_order_relaxed);
+        managedSound::worldExit();
         g_worldExits.fetch_add(1, std::memory_order_relaxed);
+        resetNativeTileSessionState();
+        angler::invalidateWorldSession();
         g_worldEpoch.fetch_add(1, std::memory_order_acq_rel);
         g_worldSessionReady.store(false, std::memory_order_release);
+        setNativeInvasionWorldState(false, g_worldEpoch.load(std::memory_order_acquire));
+    setNativeInvasionRewardWorldState(false, g_worldEpoch.load(std::memory_order_acquire));
+    setNativeInvasionNoticeWorld(false, g_worldEpoch.load(std::memory_order_acquire));
+    setNativeInvasionNetWorldState(false, g_worldEpoch.load(std::memory_order_acquire));
+    setNativeInvasionHudWorldState(false, g_worldEpoch.load(std::memory_order_acquire));
+    updateNativeInvasionWorldPath(false, g_worldEpoch.load(std::memory_order_acquire));
+        setNativeItemUseWorldState(false, g_worldEpoch.load(std::memory_order_acquire));
         g_worldTilesLoaded.store(false, std::memory_order_release);
         g_worldReadyFrames.store(0, std::memory_order_relaxed);
         g_worldPrefixesRestored.store(false, std::memory_order_release);
@@ -1296,7 +1503,10 @@ void noteAutoGameUpdate() {
         resetNativeAccessOnGameThread();
         pauseUniversalHookMods();
         pauseManagedEntitySourceCallbacks();
-    resetManagedSourceNpcSlots();
+        runtime::resetManagedDustLifecycle();
+        resetManagedDustSourceWorld();
+        resetReliableNpcKills();
+        resetManagedSourceNpcSlots();
     resetManagedSourceProjectileSlots();
         {
             std::lock_guard<std::mutex> guard(g_lock);
@@ -1312,7 +1522,8 @@ void noteAutoGameUpdate() {
     }
     if (g_worldReadyFrames.fetch_add(1, std::memory_order_relaxed) >= 2) {
         const ActivationContext context = readActivationContext();
-        if (context.netMode != 0 || context.gameMenu == 1) return;
+        if (context.netMode < 0 || context.netMode > 3 ||
+            context.gameMenu == 1) return;
         g_worldSessionReady.store(true, std::memory_order_release);
         requestBasicItemInstanceRefresh("WorldLoaded");
         enableUniversalHooks();

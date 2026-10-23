@@ -5,6 +5,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>disable</ImplicitUsings>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <LangVersion>12</LangVersion>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);1591</NoWarn>
@@ -13,6 +14,9 @@
     <Compile Include="../BunnyCsSdk/BunnyContentDeclaration.cs" Link="BunnyContentDeclaration.cs" />
     <Compile Include="../BunnyCsSdk/BunnyArmorEffects.cs" Link="BunnyArmorEffects.cs" />
     <Compile Include="../BunnyCsSdk/BunnyItemBehavior.cs" Link="BunnyItemBehavior.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyLocalization.cs" Link="BunnyLocalization.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyLocalizationModule.cs" Link="BunnyLocalizationModule.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyLocalizationJson.cs" Link="BunnyLocalizationJson.cs" />
     <Compile Include="../BunnyCsSdk/BunnyRecipeGroup.cs" Link="BunnyRecipeGroup.cs" />
     <Compile Include="../BunnyCsSdk/BunnyRecipeCallbacks.cs" Link="BunnyRecipeCallbacks.cs" />
     <Compile Include="../BunnyCsSdk/BunnyRecipeBehavior.cs" Link="BunnyRecipeBehavior.cs" />
@@ -20,19 +24,40 @@
     <Compile Include="../BunnyCsSdk/BunnyItem.cs" Link="BunnyItem.cs" />
     <Compile Include="../BunnyCsSdk/BunnyNativeDefaults.cs" Link="BunnyNativeDefaults.cs" />
     <Compile Include="../BunnyCsSdk/BunnyHoldout.cs" Link="BunnyHoldout.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyShooting.cs" Link="BunnyShooting.cs" />
     <Compile Include="../BunnyCsSdk/BunnySoundStyle.cs" Link="BunnySoundStyle.cs" />
     <Compile Include="../BunnyCsSdk/BunnySounds.cs" Link="BunnySounds.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyWall.cs" Link="BunnyWall.cs" />
     <Compile Include="../BunnyCsSdk/BunnyTile.cs" Link="BunnyTile.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyTileRuntime.cs" Link="BunnyTileRuntime.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyDustEffects.cs" Link="BunnyDustEffects.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyDust.cs" Link="BunnyDust.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyDustSourceDispatcher.cs" Link="BunnyDustSourceDispatcher.cs" />
     <Compile Include="../BunnyCsSdk/BunnyCombatUtilities.cs" Link="BunnyCombatUtilities.cs" />
     <Compile Include="../BunnyCsSdk/BunnyMinionSteering.cs" Link="BunnyMinionSteering.cs" />
     <Compile Include="../BunnyCsSdk/BunnySourceScriptApi.cs" Link="BunnySourceScriptApi.cs" />
     <Compile Include="../BunnyCsSdk/BunnyEntitySourceDispatcher.cs" Link="BunnyEntitySourceDispatcher.cs" />
     <Compile Include="../BunnyCsSdk/BunnyPrimitives.cs" Link="BunnyPrimitives.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyRarity.cs" Link="BunnyRarity.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyRarityReference.cs" Link="BunnyRarityReference.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyRarityRuntime.cs" Link="BunnyRarityRuntime.cs" />
     <Compile Include="../BunnyCsSdk/BunnyNativeAccess.cs" Link="BunnyNativeAccess.cs" />
     <Compile Include="../BunnyCsSdk/BunnyUniversalHooks.cs" Link="BunnyUniversalHooks.cs" />
     <Compile Include="../BunnyCsSdk/BunnyHooks.cs" Link="BunnyHooks.cs" />
     <Compile Include="../BunnyCsSdk/BunnyVisual.cs" Link="BunnyVisual.cs" />
     <Compile Include="../BunnyCsSdk/BunnyPlayerHurtDispatcher.cs" Link="BunnyPlayerHurtDispatcher.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyInvasion.cs" Link="BunnyInvasion.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyInvasionHud.cs" Link="BunnyInvasionHud.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyInvasionNativeNetwork.cs" Link="BunnyInvasionNativeNetwork.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyInvasionNativeRewards.cs" Link="BunnyInvasionNativeRewards.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyInvasionNativeTransport.cs" Link="BunnyInvasionNativeTransport.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyInvasionNotifications.cs" Link="BunnyInvasionNotifications.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyInvasionSpawnPipeline.cs" Link="BunnyInvasionSpawnPipeline.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyInvasionSystem.cs" Link="BunnyInvasionSystem.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyInvasionWire.cs" Link="BunnyInvasionWire.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyInvasionWorldPersistence.cs" Link="BunnyInvasionWorldPersistence.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyNativeItemUse.cs" Link="BunnyNativeItemUse.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyUseContext.cs" Link="BunnyUseContext.cs" />
   </ItemGroup>
 </Project>
 
