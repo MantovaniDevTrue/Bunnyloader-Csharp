@@ -1,33 +1,38 @@
-# AchievementLoader C# — PR complementar à #141
+# AchievementLoader C# — PR #142 complementar à #141
 
-Base do comportamento: ExampleModBunny 1.9.0, com os fontes \`ModAchievement.js\`, \`AchievementLoader.js\`, \`ExampleBossKilled.js\` e \`ManyWormsKilled.js\`.
+Fonte de referência: **ExampleModBunny 1.9.0**, especialmente ModAchievement.js, AchievementLoader.js, ExampleBossKilled.js e ManyWormsKilled.js. Implementação do mod em C# e host em C++ nativo, sem executar JavaScript no gameplay de mods C#.
 
-## Implementação atual
+## Implementado e testado no host
 
-- API C# pura \`BunnyAchievement\` e \`BunnyAchievementCondition\`, condições de flag, inteiros, float, morte de NPC, coleta de item, fabricação e destruição de tile.
-- Categoria, estado Hidden, callback OnCompleted, progresso, snapshots e restauração com verificação por UID, nome e tipo.
-- Registry transacional em cada registro de assembly, revogação seletiva por UID e revisão protegida por SHA-256 do identificador físico com sufixo de geração.
-- Roteamento \`BunnyRecipeRuntime.Dispatch\` para \`__achievements__\`: tipos 0 (registrar), 1 (evento), 2 (snapshot), 3 (restaurar) e 4 (retirar). O limite de 12.000 caracteres só é aplicado a esse endpoint; receitas permanecem em 512.
-- Integração nativa no \`AutoSourceRuntime\` para vincular o UID/assembly à fila nativa e no \`noteAutoGameUpdate\` para consumir no máximo 2 entregas por quadro. Nenhuma varredura de entidades por quadro.
-- Hooks nativos **opcionais**, após registro de pelo menos uma conquista, nos contratos originais de \`AchievementsHelper\`: NotifyNPCKilledDirect, NotifyItemPickup, NotifyItemCraft e NotifyTileDestroyed. O hook executa o original antes de registrar o evento, confere assinaturas e falha de forma conservadora.
-- Fila limitada a 512 entregas, isolamento por UID/revisão, retry limitado e descarte de eventos obsoletos após substituição ou saída do mundo.
-- Fixture autônomo \`AchievementsDemo\` com \`ManyWormsKilled\` fiel ao JS e PNG original de 4303 bytes, sem mexer na contagem do ExampleMod principal.
+- \`BunnyAchievement\` e condições de flag, inteiros, float, morte de NPC, coleta, fabricação e destruição de tile.
+- Categoria, ocultação, progresso, conclusão, callback \`OnCompleted\`, snapshot e restauração em memória.
+- Registro independente por UID e revisão de assembly, com descarregamento seletivo e SHA-256 da identidade de revisão.
+- \`BunnyAchievementWorker\` no MonoVM através do canal de callbacks já existente, sem novo worker. Comandos: 0 registro, 1 evento, 2 snapshot, 3 restauração, 4 unload e 5 descritores para o host nativo.
+- Exportação \`ACHMETA1\` com nome, friendly name, descrição, textura, índice, categoria, estado oculto/concluído e condições. Parser C++ de limite 12.000 bytes, identidade por UID, limites de condições e validação antes de ativar um mod.
+- Detecção **de mods contendo somente conquistas C#**, agora suportados pelo parser, SourceLoader, bootstrap MonoVM e verificador Roslyn. Limite de 128 conquistas por assembly.
+- Hooks \`AchievementsHelper\` de mortes de NPCs, coleta, crafting e tiles, preservando a chamada original, com inspeção de assinatura e instalação seletiva.
+- Mailbox limitado a 512 eventos, máximo 2 eventos por quadro, até 2 retries, isolamento por UID/revisão e descarte de eventos obsoletos.
+- Guarda atômica de mundo ativo: não contabilizar mortes, crafting ou coletas enquanto o mundo não está pronto. Sem mutex por quadro quando o menu está ativo.
+- \`AchievementsDemo\` isolado do pacote de 100 fontes da PR #141: \`ManyWormsKilled.cs\`, ID 10 (GiantWormHead), contador de 5 e textura original PNG, sem redimensionamento.
 
-## Verificações executadas
+## Testes automatizados incluídos
 
-- Teste C# de registry e do dispatcher real do SDK: dois mods, recarga de DLL no mesmo caminho, eventos locais/remotos, snapshot, recuperação e descarregamento sem interferir no outro UID.
-- Compilação do demo original em .NET 8.
-- Teste C++ de mailbox por UID e revisão.
-- Teste de sintaxe do arquivo de hooks C++ com flags Android \`-fno-exceptions -fno-rtti\` e headers de produção.
-- Referência pública do SDK regenerada automaticamente e validada por \`--check\`.
-- Workflows adjacentes Localization, Rarity, AnglerQuest, Command, Invasion e outros mantidos. Testes de host não provam a execução no Android.
+- NUnit não é exigido: fixtures standalone de console em .NET 8 com asserções.
+- Registry C#, descarregamento por revisão, isolamento entre dois UIDs, eventos e snapshots.
+- Descritores \`ACHMETA1\` emitidos pelo Worker real, limites e payload inválido.
+- Compilação do exemplo original e verificação de aceitação do DLL **apenas com conquistas** pelo \`CompiledAssemblyProbe\`.
+- Descoberta C++ a partir do código-fonte original em C#, com identidade \`ACHIEVEMENT\` sem registro de conteúdo nativo.
+- Mailbox C++ e parser de descritores C++, incluindo casos negativos.
+- Syntax check dos hooks com \`-fno-exceptions -fno-rtti\` e headers de produção.
+- SDK public reference gerada e checada.
+- Workflow específico e regressões adjacentes (Localization, Rarity, AnglerQuest, Command, Dust, Invasion etc.) no GitHub Actions.
 
-## Bloqueios antes de declarar o loader concluído
+## Pendente antes da conclusão
 
-1. Registrar as condições C# efetivamente em \`Terraria.Main.Achievements\`, como faz o ExampleModBunny original. A progressão atual está na camada C#; o manager vanilla ainda não recebe essas conquistas.
-2. Integrar UI do menu, textos localizados, popup e sprites 592×64, incluindo \`Hidden\` ("???"). O PNG original já está preservado no fixture.
-3. Persistir o progresso no arquivo real de conquistas e reidratá-lo na inicialização/recarga. Snapshot no worker não equivale a save permanente.
-4. Medir e validar hooks, assinatura nativa, comportamento local/multiplayer e gameplay no Terraria Android 301720. A compilação de sintaxe em host não substitui teste arm64 no aparelho.
-5. Concluir o NPC ExampleBoss e seu registro de ID antes de portar \`ExampleBossKilled\` para o pacote principal, sem inventar ID.
+1. Instalar os objetos \`Achievement\` e as condições em \`Terraria.Main.Achievements\` de forma reversível por UID. A etapa atual prepara descritores e processa progresso no C#, mas **ainda não os registra no manager vanilla**.
+2. Integrar nomes e descrições localizados, folha 592×64, ícones no menu, popup de conquista e ocultação \`???\`.
+3. Persistência vinculada ao perfil de conquistas real, sem duplicar os contadores vanilla no reload; implementar a mesma proteção do ExampleModBunny ao reler o arquivo.
+4. Confirmar as assinaturas e o comportamento reais dos hooks no Terraria Android 301720, gameplay local e multiplayer, custo em FPS e teste de unload/reload.
+5. Portar \`ExampleBossKilled\` somente quando o ID real do ExampleBoss em C# estiver disponível.
 
-**Estado: WIP, sem APK nem .bmod.** A PR complementar não modifica os três loaders Localization, Rarity ou AnglerQuest. As alterações compartilhadas se limitam ao SDK, roteamento de callbacks e pontos de binding/pump existentes.
+**Status: WIP; nenhum APK ou .bmod foi gerado.** Compilar no CI não equivale a validar em Android. Não fazer merge automático. A PR #141 e seus loaders de Localization, Rarity, AnglerQuest e as PRs paralelas continuam separadas.
