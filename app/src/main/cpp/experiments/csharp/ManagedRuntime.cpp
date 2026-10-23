@@ -10,6 +10,7 @@
 #include "experiments/csharp/NativeRecipeCallbacks.h"
 #include "experiments/csharp/ManagedDustMailbox.h"
 #include "graphics/ScreenScene.h"
+#include "experiments/csharp/MonoWorldMailbox.h"
 #include "experiments/csharp/ManagedVisualMonoPump.h"
 #include "experiments/csharp/ManagedVisualState.h"
 #include "experiments/csharp/ManagedLiveEventQueue.h"
@@ -355,6 +356,20 @@ void* g_commandRegisterMethod = nullptr;
 void* g_commandExecuteMethod = nullptr;
 void* g_commandClearMethod = nullptr;
 bool g_commandSessionReset = false;
+// BunnyTouchEntry vive na montagem de cada mod; o registro é independente
+// dos callbacks de combate e não bloqueia a game thread.
+struct TouchSourceEntry {
+    std::string modId, assembly;
+    void* callback = nullptr;
+    bool initialized = false, skipped = false;
+    int failures = 0;
+};
+std::vector<TouchSourceEntry> g_touchSourceEntries;
+bool g_touchSourceNeedsLoad = false;
+uint64_t g_touchSourcePendingTick = 0;
+uint64_t g_touchSourceProcessedTick = 0;
+void* g_touchFrameBegin = nullptr;
+void* g_touchFrameEnd = nullptr;
 
 
 
@@ -381,6 +396,7 @@ std::deque<SceneLightRequest> g_sceneLightQueue;
 std::map<std::string, SceneLightReply> g_sceneLightResults;
 uint64_t g_sceneLightGeneration = 1;
 std::map<std::string, void*> g_sceneLightMethods;
+worldsave::MonoWorldMailbox g_worldMailbox;
 struct ManagedHurtBinding {
     std::string modId;
     std::string assemblyPath;
@@ -1993,6 +2009,213 @@ std::string executeManagedCommandOnWorker(const NativeCommandRequest& request) {
     return wire;
 }
 
+void loadTouchSourceEntriesOnWorker(std::vector<TouchSourceEntry>* entries) {
+    std::lock_guard<std::mutex> monoGuard(g_mutex);
+    if (!entries || !g_domain || !g_api.attach || !g_api.openAssembly ||
+        !g_api.image || !g_api.findClass || !g_api.findMethod || !g_api.invoke ||
+        !g_api.attach(g_domain)) return;
+    for (auto& entry : *entries) {
+        if (entry.initialized || entry.skipped || entry.failures >= 3) continue;
+        if (!validAssembly(entry.assembly)) { ++entry.failures; continue; }
+        void* assembly = g_api.openAssembly(g_domain, entry.assembly.c_str());
+        void* image = assembly ? g_api.image(assembly) : nullptr;
+        void* klass = image ? g_api.findClass(
+            image, "BunnyLoader.Source", "BunnyTouchEntry") : nullptr;
+        if (!klass) {
+            entry.skipped = true;
+            continue;
+        }
+        void* load = g_api.findMethod(klass, "Load", 0);
+        entry.callback = g_api.findMethod(klass, "ProcessTriggers", 0);
+        if (!load || !entry.callback) {
+            entry.skipped = true;
+            continue;
+        }
+        void* exception = nullptr;
+        g_api.invoke(load, nullptr, nullptr, &exception);
+        if (exception) {
+            ++entry.failures;
+            entry.callback = nullptr;
+            continue;
+        }
+        entry.initialized = true;
+    }
+}
+bool bindTouchFrameMethodsOnWorker() {
+    if (g_touchFrameBegin && g_touchFrameEnd) return true;
+    if (!g_domain || !g_api.openAssembly || !g_api.image ||
+        !g_api.findClass || !g_api.findMethod || g_checkpointPath.empty())
+        return false;
+    const auto slash = g_checkpointPath.find_last_of('/');
+    if (slash == std::string::npos) return false;
+    const std::string path =
+        g_checkpointPath.substr(0, slash + 1) + "BunnySourceSdk.dll";
+    if (!validAssembly(path)) return false;
+    void* assembly = g_api.openAssembly(g_domain, path.c_str());
+    void* image = assembly ? g_api.image(assembly) : nullptr;
+    void* klass = image ? g_api.findClass(
+        image, "BunnyLoader.Source", "BunnyTouchButtonLoader") : nullptr;
+    if (!klass) return false;
+    g_touchFrameBegin = g_api.findMethod(klass, "BeginTriggerFrame", 0);
+    g_touchFrameEnd = g_api.findMethod(klass, "EndTriggerFrame", 0);
+    return g_touchFrameBegin && g_touchFrameEnd;
+}
+void processTouchSourceEntriesOnWorker(std::vector<TouchSourceEntry>* entries) {
+    std::lock_guard<std::mutex> monoGuard(g_mutex);
+    if (!entries || !g_domain || !g_api.attach || !g_api.invoke ||
+        !g_api.attach(g_domain)) return;
+    if (!bindTouchFrameMethodsOnWorker()) return;
+    void* frameException = nullptr;
+    g_api.invoke(g_touchFrameBegin, nullptr, nullptr, &frameException);
+    if (frameException) return;
+    for (auto& entry : *entries) {
+        if (!entry.initialized || !entry.callback ||
+            entry.failures >= 3) continue;
+        void* exception = nullptr;
+        g_api.invoke(entry.callback, nullptr, nullptr, &exception);
+        if (exception) ++entry.failures;
+    }
+    frameException = nullptr;
+    g_api.invoke(g_touchFrameEnd, nullptr, nullptr, &frameException);
+}
+
+
+worldsave::MonoWorldReply invokeManagedWorldOnPinnedMono(
+    const worldsave::MonoWorldRequest& request) {
+    worldsave::MonoWorldReply reply;
+    std::lock_guard<std::mutex> monoGuard(g_mutex);
+    if (!g_domain || !g_status.domainInitialized || !g_status.methodExecuted ||
+        !g_api.attach || !g_api.openAssembly || !g_api.image || !g_api.findClass ||
+        !g_api.findMethod || !g_api.invoke || !g_api.unbox || !g_api.newString) {
+        reply.error = "MonoVM not ready for world system";
+        return reply;
+    }
+    if (!g_api.attach(g_domain)) {
+        reply.error = "Unable to attach pinned MonoVM owner";
+        return reply;
+    }
+
+    using MonoStringToUtf8 = char* (*)(void*);
+    using MonoReleaseString = void (*)(void*);
+    MonoStringToUtf8 toUtf8 = resolve<MonoStringToUtf8>("mono_string_to_utf8");
+    MonoReleaseString release = resolve<MonoReleaseString>("mono_free");
+    if (!toUtf8 || !release) {
+        reply.error = "Mono string ABI unavailable";
+        return reply;
+    }
+    auto getString = [&](void* monoString) -> std::string {
+        if (!monoString) return {};
+        char* chars = toUtf8(monoString);
+        if (!chars) return {};
+        const size_t size = strnlen(chars, worldsave::MonoWorldMailbox::MaxPayload + 512);
+        const bool bounded = size < worldsave::MonoWorldMailbox::MaxPayload + 512;
+        std::string text = bounded ? std::string(chars, size) : std::string();
+        release(chars);
+        return text;
+    };
+
+    const size_t slash = g_checkpointPath.find_last_of('/');
+    if (slash == std::string::npos) {
+        reply.error = "BunnySourceSdk folder missing";
+        return reply;
+    }
+    const std::string sdk = g_checkpointPath.substr(0, slash + 1) + "BunnySourceSdk.dll";
+    if (!validAssembly(sdk)) {
+        reply.error = "BunnySourceSdk unavailable";
+        return reply;
+    }
+    void* assembly = g_api.openAssembly(g_domain, sdk.c_str());
+    void* image = assembly ? g_api.image(assembly) : nullptr;
+    void* klass = image ? g_api.findClass(image, "BunnyLoader.Source",
+                                             "BunnyWorldMonoHost") : nullptr;
+    if (!klass) {
+        reply.error = "BunnyWorldMonoHost missing";
+        return reply;
+    }
+    const char* methodName = "";
+    int argsCount = 0;
+    switch (request.action) {
+        case worldsave::MonoWorldAction::Register:
+            methodName = "RegisterMod"; argsCount = 2; break;
+        case worldsave::MonoWorldAction::Enter:
+            methodName = "Enter"; argsCount = 3; break;
+        case worldsave::MonoWorldAction::Prepare:
+            methodName = "Prepare"; argsCount = 1; break;
+        case worldsave::MonoWorldAction::Confirm:
+            methodName = "Confirm"; argsCount = 2; break;
+        case worldsave::MonoWorldAction::Leave:
+            methodName = "Leave"; argsCount = 1; break;
+        case worldsave::MonoWorldAction::NetSend:
+            methodName = "NetSend"; argsCount = 1; break;
+        case worldsave::MonoWorldAction::NetReceive:
+            methodName = "NetReceive"; argsCount = 2; break;
+    }
+    void* method = g_api.findMethod(klass, methodName, argsCount);
+    if (!method) {
+        reply.error = "World MonoVM callback missing";
+        return reply;
+    }
+
+    int64_t epoch = static_cast<int64_t>(request.epoch);
+    uint8_t authoritative = request.authoritative ? 1 : 0;
+    void* modUid = request.modUid.empty()
+        ? nullptr : g_api.newString(g_domain, request.modUid.c_str());
+    void* modAssembly = request.assemblyPath.empty()
+        ? nullptr : g_api.newString(g_domain, request.assemblyPath.c_str());
+    void* base64 = request.payload.empty()
+        ? nullptr : g_api.newString(g_domain, request.payload.c_str());
+    if ((request.action == worldsave::MonoWorldAction::Register &&
+         (!modUid || !modAssembly)) ||
+        (request.action == worldsave::MonoWorldAction::Confirm && !base64)) {
+        reply.error = "Unable to allocate managed world arguments";
+        return reply;
+    }
+
+    void* registerArgs[] = {modUid, modAssembly};
+    void* enterArgs[] = {&epoch, base64, &authoritative};
+    void* prepareArgs[] = {&epoch};
+    void* confirmArgs[] = {&epoch, base64};
+    void* leaveArgs[] = {&epoch};
+    void** chosen = request.action == worldsave::MonoWorldAction::Register ? registerArgs :
+                    request.action == worldsave::MonoWorldAction::Enter ? enterArgs :
+                    request.action == worldsave::MonoWorldAction::Prepare ? prepareArgs :
+                    request.action == worldsave::MonoWorldAction::Confirm ||
+                    request.action == worldsave::MonoWorldAction::NetReceive ? confirmArgs :
+                    request.action == worldsave::MonoWorldAction::NetSend ? prepareArgs :
+                    leaveArgs;
+    void* exception = nullptr;
+    void* boxed = g_api.invoke(method, nullptr, chosen, &exception);
+    if (exception) {
+        reply.error = "World MonoVM callback raised managed exception";
+        return reply;
+    }
+    if (request.action == worldsave::MonoWorldAction::Prepare ||
+        request.action == worldsave::MonoWorldAction::NetSend) {
+        if (boxed) {
+            reply.payload = getString(boxed);
+            reply.success = !reply.payload.empty() &&
+                reply.payload.size() <= (
+                    request.action == worldsave::MonoWorldAction::NetSend
+                        ? worldsave::MonoWorldMailbox::MaxNetPayload
+                        : worldsave::MonoWorldMailbox::MaxPayload);
+        }
+    } else if (boxed) {
+        void* unboxed = g_api.unbox(boxed);
+        reply.success = unboxed && *static_cast<uint8_t*>(unboxed) != 0;
+    }
+    if (!reply.success) {
+        void* getError = g_api.findMethod(klass, "get_LastError", 0);
+        void* errorException = nullptr;
+        void* textValue = getError ? g_api.invoke(getError, nullptr, nullptr,
+                                                  &errorException) : nullptr;
+        reply.error = errorException ? "World MonoVM diagnostic failed" :
+                      getString(textValue);
+        if (reply.error.empty()) reply.error = "World MonoVM callback rejected";
+        if (reply.error.size() > 512) reply.error.resize(512);
+    }
+    return reply;
+}
+
 void* pinnedMonoWorker(void*) {
     {
         std::lock_guard<std::mutex> lock(g_pinnedMutex);
@@ -2008,6 +2231,18 @@ void* pinnedMonoWorker(void*) {
         {
             std::unique_lock<std::mutex> lock(g_pinnedMutex);
             while (!g_pinnedPending) {
+                std::shared_ptr<worldsave::MonoWorldTicket> worldRequest;
+                if (g_worldMailbox.take(&worldRequest)) {
+                    if (!g_worldMailbox.current(worldRequest)) {
+                        g_worldMailbox.finish(worldRequest, {});
+                        continue;
+                    }
+                    lock.unlock();
+                    auto reply = invokeManagedWorldOnPinnedMono(worldRequest->request);
+                    lock.lock();
+                    g_worldMailbox.finish(worldRequest, std::move(reply));
+                    continue;
+                }
                 if(processManagedRecipeRpc(lock,executeRecipeOnWorker))continue;
                 const bool localizationReady =
                     g_recipeRuntimeReady.load(std::memory_order_acquire);
@@ -2062,6 +2297,33 @@ void* pinnedMonoWorker(void*) {
                     continue;
                 }
 
+                if ((g_touchSourceNeedsLoad ||
+                     g_touchSourcePendingTick > g_touchSourceProcessedTick) &&
+                    g_domain && g_status.domainInitialized && g_api.attach) {
+                    std::vector<TouchSourceEntry> snapshot = g_touchSourceEntries;
+                    const bool tickPending =
+                        g_touchSourcePendingTick > g_touchSourceProcessedTick;
+                    const uint64_t current = g_touchSourcePendingTick;
+                    g_touchSourceNeedsLoad = false;
+                    g_touchSourceProcessedTick = current;
+                    lock.unlock();
+                    loadTouchSourceEntriesOnWorker(&snapshot);
+                    if (tickPending)
+                        processTouchSourceEntriesOnWorker(&snapshot);
+                    lock.lock();
+                    for (const auto& updated : snapshot) {
+                        for (auto& entry : g_touchSourceEntries)
+                            if (entry.modId == updated.modId &&
+                                entry.assembly == updated.assembly) {
+                                entry.callback = updated.callback;
+                                entry.initialized = updated.initialized;
+                                entry.skipped = updated.skipped;
+                                entry.failures = updated.failures;
+                                break;
+                            }
+                    }
+                    continue;
+                }
                 if (g_universalPolling.load(std::memory_order_acquire)) {
                     lock.unlock();
                     const bool handled = pollUniversalHooksOnWorker();
@@ -2631,7 +2893,7 @@ void* pinnedMonoWorker(void*) {
                     if (g_universalPolling.load(std::memory_order_acquire) ||
                         g_liveHitStatus.enabled || g_liveIngress.depth() != 0 ||
                         !g_managedHurtQueue.empty() || !g_entityQueue.empty() ||
-                        !g_dustBootstrap.empty() || g_dustWorldResetPending)
+                        !g_dustBootstrap.empty() || g_dustWorldResetPending || g_worldMailbox.pending())
                         g_pinnedWake.wait_for(lock, std::chrono::milliseconds(2));
                     else if (g_dustModCount.load(std::memory_order_acquire) > 0)
                         g_pinnedWake.wait_for(lock, std::chrono::milliseconds(8));
@@ -2659,7 +2921,7 @@ void* pinnedMonoWorker(void*) {
                         (g_recipeRuntimeReady.load(std::memory_order_acquire) &&
                          (!g_localizationQueue.empty() || !g_localizationUnloads.empty())) ||
                         !g_dustBootstrap.empty() || g_dustWorldResetPending ||
-                        g_dustMailbox.hasQueued();
+                        g_dustMailbox.hasQueued() || g_worldMailbox.pending();
                 }))
                     continue;
                 if (std::chrono::steady_clock::now() < until) continue;
@@ -2781,6 +3043,30 @@ void resetManagedCommandSession() {
         binding.registered = false;
         nativeCommandMailbox().setModReady(binding.modId, false);
     }
+    g_pinnedWake.notify_one();
+}
+
+bool registerManagedTouchEntry(const std::string& modId,
+                               const std::string& assemblyPath) {
+    if (modId.empty() || modId.size() > 128 ||
+        assemblyPath.empty() || assemblyPath.size() > 2048 ||
+        assemblyPath.find("..") != std::string::npos)
+        return false;
+    std::lock_guard<std::mutex> lock(g_pinnedMutex);
+    for (const auto& entry : g_touchSourceEntries)
+        if (entry.modId == modId)
+            return entry.assembly == assemblyPath;
+    if (g_touchSourceEntries.size() >= 32) return false;
+    g_touchSourceEntries.push_back({modId, assemblyPath});
+    g_touchSourceNeedsLoad = true;
+    g_pinnedWake.notify_one();
+    return true;
+}
+void queueManagedTouchTriggerTick(uint64_t tick) {
+    if (!tick) return;
+    std::lock_guard<std::mutex> lock(g_pinnedMutex);
+    if (g_touchSourceEntries.empty() || tick <= g_touchSourcePendingTick) return;
+    g_touchSourcePendingTick = tick;
     g_pinnedWake.notify_one();
 }
 
@@ -2983,6 +3269,21 @@ void resetManagedDustSourceWorld() {
     std::lock_guard<std::mutex> lock(g_pinnedMutex);
     g_dustWorldResetPending = true;
     g_pinnedWake.notify_one();
+}
+
+bool requestManagedWorldOnMono(const worldsave::MonoWorldRequest& request,
+                               worldsave::MonoWorldReply* reply, int timeoutMs) {
+    if (!reply || timeoutMs <= 0 || timeoutMs > 5000 ||
+        request.epoch > static_cast<uint64_t>(INT64_MAX)) return false;
+    auto ticket = g_worldMailbox.submit(request);
+    if (!ticket) return false;
+    g_pinnedWake.notify_one();
+    return g_worldMailbox.wait(ticket, std::chrono::milliseconds(timeoutMs), reply);
+}
+
+void invalidateManagedWorldMonoRequests() {
+    g_worldMailbox.invalidate();
+    g_pinnedWake.notify_all();
 }
 
 bool registerManagedEntitySourceMod(
