@@ -303,13 +303,13 @@ public static class BunnyEntitySourceDispatcher
     {
         if ((uint)modSlot >= (uint)Contexts.Count || (uint)slot >= 4096u ||
             generation <= 0 || !float.IsFinite(oldVelocityX) || !float.IsFinite(oldVelocityY) ||
-            !float.IsFinite(newVelocityX) || !float.IsFinite(newVelocityY)) return false;
+            !float.IsFinite(newVelocityX) || !float.IsFinite(newVelocityY)) return 0;
         Context context = Contexts[modSlot];
         ref ProjectileInstance instance = ref context.ProjectileSlots[slot];
         if (instance.Generation != generation || instance.Type != type ||
             instance.Owner != owner || instance.Blocked ||
             !context.Projectiles.TryGetValue(type, out BunnyProjectile? projectile))
-            return false;
+            return 0;
         var state = new BunnyProjectileAiState
         {
             Slot = slot, Type = type, Generation = generation, Owner = owner, Age = instance.Age,
@@ -327,7 +327,7 @@ public static class BunnyEntitySourceDispatcher
         {
             instance.Blocked = true;
             Fault(context, projectile.GetType().Name + ".OnTileCollide", error);
-            return false;
+            return 0;
         }
     }
 
