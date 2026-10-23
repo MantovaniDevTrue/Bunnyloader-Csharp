@@ -8,7 +8,7 @@
 int main() {
     using bl::csharp::parseProjectileTuning;
     using bl::csharp::ProjectilePolicy;
-    for (size_t size : {16u, 17u, 18u, 19u, 21u, 22u, 23u}) {
+    for (size_t size : {16u, 17u, 18u, 19u, 21u, 22u, 23u, 27u}) {
         std::vector<std::string> fields(size, "-");
         fields[13] = "5";
         fields[14] = "3";
@@ -20,7 +20,7 @@ int main() {
         assert(policy.minionScanTicks == 3);
         assert(policy.minionTargetRange == 950.f);
     }
-    for (size_t size : {15u, 20u, 24u}) {
+    for (size_t size : {15u, 20u, 24u, 26u, 28u}) {
         std::vector<std::string> fields(size, "-");
         ProjectilePolicy policy;
         std::string error;
@@ -33,5 +33,5 @@ int main() {
     std::string error;
     assert(!parseProjectileTuning(fields,&policy,&error));
     assert(policy.animationFrameTicks==6&&policy.minionTargetRange==700.f);
-    std::cout << "PROJECTILE_DESCRIPTOR_16_17_18_19_21_22_23_PASS\n";
+    std::cout << "PROJECTILE_DESCRIPTOR_16_17_18_19_21_22_23_27_PASS\n";
 }

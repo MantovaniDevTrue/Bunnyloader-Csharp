@@ -196,6 +196,10 @@ struct NativeProjectileDefaults {
     float bounceMinimumSpeed = 0.f;
     int tileCollisionSurvivalLimit = 0;
     int tilePlatformCollision = 0;
+    int tileCollisionBoxWidth = 0;
+    int tileCollisionBoxHeight = 0;
+    float tileCollisionAnchorOffsetX = 0.f;
+    float tileCollisionAnchorOffsetY = 0.f;
     int frames = 1;
     int animationFrameTicks=6,minionScanTicks=8;
     float minionTargetRange=700.f;
@@ -1326,7 +1330,9 @@ ManagedTileCollisionSettings nativeManagedProjectileTileCollisionSettings(int ty
     const auto& defaults=found->second.defaults;
     return {defaults.tileCollisionMode,defaults.bounceRestitution,
             defaults.bounceMinimumSpeed,defaults.tileCollisionSurvivalLimit,
-            defaults.tilePlatformCollision};
+            defaults.tilePlatformCollision,
+            defaults.tileCollisionBoxWidth,defaults.tileCollisionBoxHeight,
+            defaults.tileCollisionAnchorOffsetX,defaults.tileCollisionAnchorOffsetY};
 }
 
 int nativeManagedMinionBuff(int projectileType) {
@@ -1747,6 +1753,18 @@ bool applyManagedNativeDefaultsBatch(
             (data.tileCollisionMode == 0 && data.tileCollisionSurvivalLimit != 0) ||
             data.tilePlatformCollision < 0 || data.tilePlatformCollision > 2 ||
             (data.tilePlatformCollision != 0 && !data.tileCollide) ||
+            data.tileCollisionBoxWidth < 0 || data.tileCollisionBoxWidth > 512 ||
+            data.tileCollisionBoxHeight < 0 || data.tileCollisionBoxHeight > 512 ||
+            !std::isfinite(data.tileCollisionAnchorOffsetX) ||
+            !std::isfinite(data.tileCollisionAnchorOffsetY) ||
+            data.tileCollisionAnchorOffsetX < -256.f ||
+            data.tileCollisionAnchorOffsetX > 256.f ||
+            data.tileCollisionAnchorOffsetY < -256.f ||
+            data.tileCollisionAnchorOffsetY > 256.f ||
+            (!data.tileCollide && (data.tileCollisionBoxWidth != 0 ||
+              data.tileCollisionBoxHeight != 0 ||
+              data.tileCollisionAnchorOffsetX != 0.f ||
+              data.tileCollisionAnchorOffsetY != 0.f)) ||
             data.frames < 1 || data.frames > 32 ||
             !stagedProjectiles.emplace(entry.type, NativeProjectileDefaults{
                 data.width, data.height, data.aiStyle, data.penetrate,
@@ -1755,6 +1773,8 @@ bool applyManagedNativeDefaultsBatch(
                 data.tileCollide, data.ignoreWater, data.tileCollisionMode,
                 data.bounceRestitution, data.bounceMinimumSpeed,
                 data.tileCollisionSurvivalLimit,data.tilePlatformCollision,
+                data.tileCollisionBoxWidth,data.tileCollisionBoxHeight,
+                data.tileCollisionAnchorOffsetX,data.tileCollisionAnchorOffsetY,
                 data.frames,data.animationFrameTicks,data.minionScanTicks,data.minionTargetRange}).second ||
             data.width < 1 || data.width > 512 ||
             data.height < 1 || data.height > 512 ||
@@ -1793,14 +1813,22 @@ bool applyManagedNativeDefaultsBatch(
     }
     const bool needsTileCollisionHook = std::any_of(projectiles.begin(),projectiles.end(),
         [](const ManagedProjectileEntry& entry) {
-            return entry.values.tileCollisionMode != 0 ||
-                   entry.values.tilePlatformCollision != 0;
+            const auto& v=entry.values;
+            return v.tileCollisionMode != 0 || v.tilePlatformCollision != 0 ||
+                v.tileCollisionBoxWidth != 0 || v.tileCollisionBoxHeight != 0 ||
+                v.tileCollisionAnchorOffsetX != 0.f || v.tileCollisionAnchorOffsetY != 0.f;
         });
     std::string tileCollisionError;
     const bool needsPlatformPolicy = std::any_of(projectiles.begin(),projectiles.end(),
         [](const ManagedProjectileEntry& entry) {return entry.values.tilePlatformCollision != 0;});
+    const bool needsCollisionBox = std::any_of(projectiles.begin(),projectiles.end(),
+        [](const ManagedProjectileEntry& entry) {
+            const auto& v=entry.values;
+            return v.tileCollisionBoxWidth != 0 || v.tileCollisionBoxHeight != 0 ||
+                   v.tileCollisionAnchorOffsetX != 0.f || v.tileCollisionAnchorOffsetY != 0.f;
+        });
     if (needsTileCollisionHook &&
-        !installManagedProjectileTileCollisionHooks(needsPlatformPolicy,error ? error : &tileCollisionError))
+        !installManagedProjectileTileCollisionHooks(needsPlatformPolicy,needsCollisionBox,error ? error : &tileCollisionError))
         return false;
     auto nextView=std::make_shared<ProjectileDefinitions>(*std::atomic_load_explicit(&g_projectileView,std::memory_order_acquire));
     for (const auto& item : stagedProjectiles) {

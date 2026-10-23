@@ -95,6 +95,10 @@ struct ManagedProjectileDefaults {
     float bounceMinimumSpeed = 0.f;
     int tileCollisionSurvivalLimit = 0;
     int tilePlatformCollision = 0;
+    int tileCollisionBoxWidth = 0;
+    int tileCollisionBoxHeight = 0;
+    float tileCollisionAnchorOffsetX = 0.f;
+    float tileCollisionAnchorOffsetY = 0.f;
     int frames = 1;
     SummonMovement movement{};
     int animationFrameTicks=6, minionScanTicks=8;
@@ -142,6 +146,10 @@ struct ManagedTileCollisionSettings {
     float minimumSpeed = 0.f;
     int survivalLimit = 0;
     int platformMode = 0;
+    int boxWidth = 0;
+    int boxHeight = 0;
+    float anchorOffsetX = 0.f;
+    float anchorOffsetY = 0.f;
 };
 ManagedTileCollisionSettings nativeManagedProjectileTileCollisionSettings(int type);
 ProjectilePolicy nativeManagedProjectilePolicy(int type);

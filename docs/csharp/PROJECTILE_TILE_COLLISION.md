@@ -78,3 +78,19 @@ Platform overrides also work with `TileCollisionMode=Vanilla` and do not consume
 **Scope:** this is the no-fall-through/fall-through subset of `TileCollideStyle`, not support for custom collision width/height, hitbox anchor, `return false` collision bypass, or arbitrary scripted logic; multiplayer/gameplay/FPS are not yet device validated.
 
 The hook installer supports subsequent mods enabling platform controls even when an earlier mod already installed the shared collision hooks without platform fields. The later install request must resolve and validate the additional typed IL2CPP fields before activation; existing shared detours remain active and are not installed twice.
+
+## Tile collision hitbox overrides (27-field descriptor)
+
+`TileCollideStyle` in the ExampleModBunny JS loader can change the collision `width`, `height` and `resizeAnchor` returned by `Projectile.GetCollisionParams`. Bunny C# adds native fixed per-type settings:
+
+```csharp
+TileCollide = true;
+TileCollisionBoxWidth = 18;
+TileCollisionBoxHeight = 12;
+TileCollisionAnchorOffsetX = 2.5f;
+TileCollisionAnchorOffsetY = -3f;
+```
+
+Each width/height is 0 to preserve Terraria's original value or 1–512 to override it. Each anchor offset must be finite and within -256 to 256 pixels. Offsets are added to the vanilla anchor rather than replacing it. The native `GetCollisionParams` hook only modifies output parameters inside the currently scoped managed projectile `HandleMovement`, after delegating to the original Terraria method. It does not alter the projectile render size or NPC damage hitbox, and has no MonoVM waiting or per-tile scans.
+
+An optional 27-field `PROJECTILE` descriptor carries the four numbers following existing platform settings. Previous descriptor variants (including 23-field platform and 22-field limit) remain unchanged. Native validation and C# serialization tests cover this encoding. Since the original JS `TileCollideStyle` is arbitrary runtime logic, these bounded static parameters constitute partial, not complete, hook parity.

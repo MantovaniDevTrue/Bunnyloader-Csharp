@@ -72,3 +72,28 @@ inline TileCollisionVector resolveManagedTileCollision(
 }
 
 }
+
+struct ManagedTileCollisionBox {
+    float anchorX = 0.f;
+    float anchorY = 0.f;
+    int width = 0;
+    int height = 0;
+};
+
+inline bool applyManagedTileCollisionBox(ManagedTileCollisionBox* box,
+    int width, int height, float offsetX, float offsetY) {
+    if(!box || box->width < 1 || box->height < 1 ||
+       !std::isfinite(box->anchorX) || !std::isfinite(box->anchorY) ||
+       width < 0 || width > 512 || height < 0 || height > 512 ||
+       !std::isfinite(offsetX) || !std::isfinite(offsetY) ||
+       offsetX < -256.f || offsetX > 256.f ||
+       offsetY < -256.f || offsetY > 256.f) return false;
+    ManagedTileCollisionBox next=*box;
+    if(width>0)next.width=width;
+    if(height>0)next.height=height;
+    next.anchorX+=offsetX;
+    next.anchorY+=offsetY;
+    if(!std::isfinite(next.anchorX) || !std::isfinite(next.anchorY))return false;
+    *box=next;
+    return true;
+}

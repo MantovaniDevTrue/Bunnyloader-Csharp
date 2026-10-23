@@ -78,6 +78,10 @@ public abstract class BunnyProjectile
     public float BounceMinimumSpeed { get; set; } = 0f;
     public int TileCollisionSurvivalLimit { get; set; } = 0;
     public BunnyProjectilePlatformCollision TilePlatformCollision { get; set; } = BunnyProjectilePlatformCollision.Vanilla;
+    public int TileCollisionBoxWidth { get; set; } = 0;
+    public int TileCollisionBoxHeight { get; set; } = 0;
+    public float TileCollisionAnchorOffsetX { get; set; } = 0f;
+    public float TileCollisionAnchorOffsetY { get; set; } = 0f;
     public bool IgnoreWater { get; set; } = true;
     public int Penetrate { get; set; } = 1;
     public int TimeLeft { get; set; } = 360;

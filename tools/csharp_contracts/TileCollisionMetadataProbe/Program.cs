@@ -87,6 +87,28 @@ public sealed class ProbePassThroughPlatforms : BunnyProjectile
     }
 }
 
+public sealed class ProbeCustomCollisionBox : BunnyProjectile
+{
+    public override void SetDefaults()
+    {
+        TileCollisionBoxWidth = 18;
+        TileCollisionBoxHeight = 12;
+        TileCollisionAnchorOffsetX = 2.5f;
+        TileCollisionAnchorOffsetY = -3f;
+    }
+}
+
+public sealed class ProbeCollisionBoxWithPlatforms : BunnyProjectile
+{
+    public override void SetDefaults()
+    {
+        TileCollisionMode = BunnyProjectileTileCollisionMode.Bounce;
+        TilePlatformCollision = BunnyProjectilePlatformCollision.SolidPlatforms;
+        TileCollisionBoxWidth = 12;
+        TileCollisionBoxHeight = 6;
+    }
+}
+
 public sealed class ProbeVanilla : BunnyProjectile
 {
     public override void SetDefaults()
@@ -107,7 +129,7 @@ public static class Program
         {
             string diagnostics = Path.Combine(folder, "diagnostics.txt");
             int count = CompiledAssemblyProbe.Verify(typeof(Program).Assembly.Location, diagnostics);
-            if (count != 10)
+            if (count != 12)
                 throw new InvalidOperationException("Probe rejected: " + File.ReadAllText(diagnostics));
             string[] rows = File.ReadAllLines(Path.Combine(folder, "source-runtime-values.txt"));
             string[] keep = rows.Single(x => x.StartsWith("PROJECTILE\tProbeKeepAlive\t",
@@ -150,6 +172,17 @@ public static class Program
                 if(row.Length!=23 || row[18]!=style.Collision || row[19]!="1" ||
                     row[20]!="0" || row[21]!="0" || row[22]!=style.Platform)
                     throw new InvalidOperationException(style.Name+" platform wire contract mismatch");
+            }
+            foreach(var item in new[] {
+                (Name:"ProbeCustomCollisionBox",Mode:"0",Platform:"0",Width:"18",Height:"12",X:"2.5",Y:"-3"),
+                (Name:"ProbeCollisionBoxWithPlatforms",Mode:"2",Platform:"1",Width:"12",Height:"6",X:"0",Y:"0")
+            }) {
+                string[] row=rows.Single(x=>
+                    x.StartsWith("PROJECTILE\t"+item.Name+"\t",StringComparison.Ordinal)).Split('\t');
+                if(row.Length!=27 || row[18]!=item.Mode || row[22]!=item.Platform ||
+                   row[23]!=item.Width || row[24]!=item.Height ||
+                   row[25]!=item.X || row[26]!=item.Y)
+                    throw new InvalidOperationException(item.Name+" hitbox wire contract mismatch");
             }
             if (vanilla.Length != 8)
                 throw new InvalidOperationException("Vanilla projectile wire ABI changed");

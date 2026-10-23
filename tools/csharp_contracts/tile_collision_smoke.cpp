@@ -66,6 +66,17 @@ int main() {
     assert(platformFalls);
     assert(!bl::csharp::managedTilePlatformFallThrough(3,&platformFalls));
     assert(!bl::csharp::managedTilePlatformFallThrough(1,nullptr));
+    bl::csharp::ManagedTileCollisionBox box{4.f,6.f,42,30};
+    assert(bl::csharp::applyManagedTileCollisionBox(&box,18,12,2.f,-3.f));
+    assert(box.width==18&&box.height==12&&box.anchorX==6.f&&box.anchorY==3.f);
+    assert(bl::csharp::applyManagedTileCollisionBox(&box,0,0,0.f,0.f));
+    assert(box.width==18&&box.height==12&&box.anchorX==6.f);
+    const auto beforeInvalid=box;
+    assert(!bl::csharp::applyManagedTileCollisionBox(&box,513,5,0.f,0.f));
+    assert(!bl::csharp::applyManagedTileCollisionBox(&box,0,0,257.f,0.f));
+    assert(!bl::csharp::applyManagedTileCollisionBox(&box,0,0,NAN,0.f));
+    assert(box.width==beforeInvalid.width&&box.anchorX==beforeInvalid.anchorX);
+    assert(!bl::csharp::applyManagedTileCollisionBox(nullptr,12,12,0.f,0.f));
     int collisions=0;
     assert(bl::csharp::managedTileCollisionBudgetAllows(collisions,3));
     for(int i=0;i<3;++i)assert(bl::csharp::recordManagedTileCollisionBudget(&collisions,3));
