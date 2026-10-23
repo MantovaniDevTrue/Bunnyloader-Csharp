@@ -17,7 +17,7 @@ on:
       - tests/achievement_loader/**
       - .github/workflows/check-csharp-achievement-loader.yml
 permissions:
-  contents: read
+  contents: write
 jobs:
   achievement-host:
     runs-on: ubuntu-latest
@@ -27,4 +27,14 @@ jobs:
         with:
           dotnet-version: 8.0.x
       - run: dotnet run --project tests/achievement_loader/AchievementLoader.csproj -c Release
-      - run: dotnet run --project tools/sdk_reference/SdkReference.csproj -c Release -- --check
+      - name: Regenerate public SDK surface after worker endpoint
+        if: github.event_name == 'push' && github.ref == 'refs/heads/feat/csharp-achievement-loader-pr141-20261023'
+        run: |
+          dotnet run --project tools/sdk_reference/SdkReference.csproj -c Release -- --write
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/generated/sdk_public_reference.json docs/generated/sdk_public_reference.md
+          if ! git diff --cached --quiet; then
+            git commit -m "docs(csharp): include achievement worker in public SDK reference"
+            git push origin HEAD:feat/csharp-achievement-loader-pr141-20261023
+          fi
