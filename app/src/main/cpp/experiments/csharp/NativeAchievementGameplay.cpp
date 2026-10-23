@@ -7,6 +7,7 @@
 #include "hook/HookManager.h"
 
 #include <algorithm>
+#include <atomic>
 #include <array>
 #include <charconv>
 #include <cstdint>
@@ -34,6 +35,7 @@ bool g_pickupHook = false;
 bool g_craftHook = false;
 bool g_tileHook = false;
 unsigned g_ticks = 0;
+std::atomic<bool> g_achievementWorldReady{false};
 
 bool typeName(const Il2CppType* type, const char* expected) {
     auto& api = il2cpp::api();
@@ -118,7 +120,7 @@ Il2CppObject* recipeResult(Il2CppObject* recipe) {
 
 void onNpc(Il2CppObject* player, int32_t type, const MethodInfo* method) {
     if (g_npcOriginal) g_npcOriginal(player, type, method);
-    if (currentPlayer(player))
+    if (g_achievementWorldReady.load(std::memory_order_acquire) && currentPlayer(player))
         g_mailbox.publish({0, type, 1, true});
 }
 
@@ -126,20 +128,22 @@ void onPickup(Il2CppObject* player, Il2CppObject* item,
               int32_t customStack, const MethodInfo* method) {
     if (g_pickupOriginal) g_pickupOriginal(player, item, customStack, method);
     int type = 0, stack = 0;
-    if (currentPlayer(player) && itemFromObject(item, &type, &stack))
+    if (g_achievementWorldReady.load(std::memory_order_acquire) &&
+        currentPlayer(player) && itemFromObject(item, &type, &stack))
         g_mailbox.publish({1, type, std::clamp(customStack, 1, 999999), true});
 }
 
 void onCraft(Il2CppObject* recipe, const MethodInfo* method) {
     if (g_craftOriginal) g_craftOriginal(recipe, method);
     int type = 0, stack = 0;
-    if (itemFromObject(recipeResult(recipe), &type, &stack))
+    if (g_achievementWorldReady.load(std::memory_order_acquire) &&
+        itemFromObject(recipeResult(recipe), &type, &stack))
         g_mailbox.publish({2, type, stack, true});
 }
 
 void onTile(Il2CppObject* player, uint16_t tile, const MethodInfo* method) {
     if (g_tileOriginal) g_tileOriginal(player, tile, method);
-    if (currentPlayer(player))
+    if (g_achievementWorldReady.load(std::memory_order_acquire) && currentPlayer(player))
         g_mailbox.publish({3, static_cast<int>(tile), 1, true});
 }
 
@@ -192,7 +196,13 @@ void retireNativeAchievementMod(const std::string& mod) {
 }
 
 void clearNativeAchievementWorld() {
+    g_achievementWorldReady.store(false, std::memory_order_release);
     g_mailbox.newWorld();
+}
+
+void setNativeAchievementWorldState(bool ready) {
+    g_achievementWorldReady.store(ready, std::memory_order_release);
+    if (!ready) g_mailbox.newWorld();
 }
 
 void pumpNativeAchievementGameplayOnGameThread() {
@@ -228,6 +238,7 @@ void pumpNativeAchievementGameplayOnGameThread() {
         ensureHooks();
     }
 
+    if (!g_achievementWorldReady.load(std::memory_order_acquire)) return;
     for (Delivery& event : g_mailbox.drain(2)) {
         std::string result;
         const std::string snapshot = std::to_string(event.event.kind) + "," +

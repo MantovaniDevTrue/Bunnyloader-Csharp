@@ -1397,8 +1397,10 @@ void noteAutoGameUpdate() {
         installNativeCommandChatHooks();
     pumpNativeCommandRepliesOnGameThread();
     pumpNativeRarityGameplay();
-    pumpNativeAchievementGameplayOnGameThread();
+
     const bool invasionWorldReady = g_worldSessionReady.load(std::memory_order_acquire);
+    setNativeAchievementWorldState(invasionWorldReady);
+    pumpNativeAchievementGameplayOnGameThread();
     const uint64_t invasionWorldEpoch = g_worldEpoch.load(std::memory_order_acquire);
     setNativeInvasionWorldState(invasionWorldReady, invasionWorldEpoch);
     setNativeItemUseWorldState(invasionWorldReady, invasionWorldEpoch);
