@@ -457,6 +457,7 @@ bool nativeTooltipOnDraw(Il2CppObject* batch,Il2CppObject* font,Il2CppString* te
                          RarityTextVec2 origin,float scale,int32_t effects,float depth,
                          const MethodInfo* method);
 
+bool nativeTooltipStringMatches(Il2CppString* text,const std::u16string& expected);
 void rarityDrawString(Il2CppObject* batch, Il2CppObject* font, Il2CppString* text,
     RarityTextVec2 position, uint32_t color, float rotation, RarityTextVec2 origin,
     float scale, int32_t effects, float depth, const MethodInfo* method) {
