@@ -388,8 +388,8 @@ bool NativeAchievementManager::install(
         void* registerArgs[] = {object};
         if (!invoke(refs.registerAchievement, refs.manager, registerArgs)) {
             Il2CppObject* potentiallyRegistered = nullptr;
-            if (lookup(refs, definition.name, &potentiallyRegistered) &&
-                potentiallyRegistered == object)
+            const bool lookedUp = lookup(refs, definition.name, &potentiallyRegistered);
+            if (!lookedUp || potentiallyRegistered == object)
                 staging.entries.push_back(std::move(entry));
             else
                 releaseEntry();
