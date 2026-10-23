@@ -37,9 +37,18 @@ public sealed class TestNpc : BunnyNPC
 
 public sealed class TestProjectile : BunnyProjectile
 {
-    public static int Spawns, Ai, Hits, Kills, Despawns;
+    public static int Spawns, Ai, Hits, Kills, Despawns, TileCollisions;
+    public static float LastOldX, LastNewX;
 
     public override void SetDefaults() { }
+
+    public override void OnTileCollide(ref BunnyProjectileAiState state,
+        float oldVelocityX, float oldVelocityY, float newVelocityX, float newVelocityY)
+    {
+        TileCollisions++;
+        LastOldX = oldVelocityX;
+        LastNewX = newVelocityX;
+    }
 
     public override void OnSpawn(ref BunnyProjectileAiState state) => Spawns++;
 
@@ -85,9 +94,15 @@ public static class Program
         BunnyEntitySourceDispatcher.TickProjectile(mod, 65, 8, 2001, 2, 0f, 0f, 0f, 0f, 8f, 8f);
         Check.Equal(TestProjectile.Spawns, 1, "Projectile spawned twice for same generation");
         Check.Equal(TestProjectile.Ai, 2, "Projectile AI dispatch mismatch");
+        Check.True(BunnyEntitySourceDispatcher.CollideProjectile(mod, 65, 8, 2001, 2, 8f, 0f, 0f, 0f), "Projectile collision not delivered");
+        Check.Equal(TestProjectile.TileCollisions, 1, "Projectile collision fired an incorrect number of times");
+        Check.True(TestProjectile.LastOldX == 8f && TestProjectile.LastNewX == 0f, "Projectile collision velocities changed");
+        Check.True(!BunnyEntitySourceDispatcher.CollideProjectile(mod, 65, 8, 2002, 2, 8f, 0f, 0f, 0f), "Stale collision accepted");
+        Check.True(!BunnyEntitySourceDispatcher.CollideProjectile(mod, 65, 8, 2001, 2, float.NaN, 0f, 0f, 0f), "Invalid collision velocity accepted");
         Check.True(BunnyEntitySourceDispatcher.HitProjectile(mod, 65, 8, 2001, 2, 5, 10), "Projectile hit not delivered");
         Check.True(BunnyEntitySourceDispatcher.KillProjectile(mod, 65, 8, 2001, 2), "Projectile kill not delivered");
         Check.True(!BunnyEntitySourceDispatcher.KillProjectile(mod, 65, 8, 2001, 2), "Projectile kill delivered twice");
+        Check.True(!BunnyEntitySourceDispatcher.CollideProjectile(mod, 65, 8, 2001, 2, 8f, 0f, 0f, 0f), "Collision accepted after kill");
         Check.Equal(TestProjectile.Hits, 1, "Projectile hit callbacks incorrect");
         Check.Equal(TestProjectile.Kills, 1, "Projectile kill callbacks incorrect");
 

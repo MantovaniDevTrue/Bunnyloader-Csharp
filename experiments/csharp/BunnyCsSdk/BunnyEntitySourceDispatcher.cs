@@ -293,6 +293,37 @@ public static class BunnyEntitySourceDispatcher
         }
     }
 
+    public static bool CollideProjectile(int modSlot, int type, int slot, int generation, int owner,
+        float oldVelocityX, float oldVelocityY, float newVelocityX, float newVelocityY)
+    {
+        if ((uint)modSlot >= (uint)Contexts.Count || (uint)slot >= 4096u ||
+            generation <= 0 || !float.IsFinite(oldVelocityX) || !float.IsFinite(oldVelocityY) ||
+            !float.IsFinite(newVelocityX) || !float.IsFinite(newVelocityY)) return false;
+        Context context = Contexts[modSlot];
+        ref ProjectileInstance instance = ref context.ProjectileSlots[slot];
+        if (instance.Generation != generation || instance.Type != type ||
+            instance.Owner != owner || instance.Blocked ||
+            !context.Projectiles.TryGetValue(type, out BunnyProjectile? projectile))
+            return false;
+        var state = new BunnyProjectileAiState
+        {
+            Slot = slot, Type = type, Generation = generation, Owner = owner, Age = instance.Age,
+            VelocityX = newVelocityX, VelocityY = newVelocityY
+        };
+        try
+        {
+            projectile.OnTileCollide(ref state, oldVelocityX, oldVelocityY,
+                newVelocityX, newVelocityY);
+            return true;
+        }
+        catch (Exception error)
+        {
+            instance.Blocked = true;
+            Fault(context, projectile.GetType().Name + ".OnTileCollide", error);
+            return false;
+        }
+    }
+
     public static bool KillProjectile(int modSlot, int type, int slot, int generation, int owner)
     {
         if ((uint)modSlot >= (uint)Contexts.Count || (uint)slot >= 4096u || generation <= 0)

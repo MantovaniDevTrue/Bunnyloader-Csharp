@@ -76,6 +76,17 @@
           "args": [
             "BunnyLoader.Source.BunnyProjectileAiState&"
           ]
+        },
+        {
+          "name": "OnTileCollide",
+          "returns": "System.Void",
+          "args": [
+            "BunnyLoader.Source.BunnyProjectileAiState&",
+            "System.Single",
+            "System.Single",
+            "System.Single",
+            "System.Single"
+          ]
         }
       ]
     },
