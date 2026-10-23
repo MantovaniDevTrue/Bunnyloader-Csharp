@@ -63,3 +63,5 @@ instalação pendente/em execução, 100 recargas, outro UID e callbacks de clon
 cor, luz, asas, robe e reinicialização de animação. Não restaura tabelas estáticas,
 texturas/slots, animações já registradas ou todos os defaults de instâncias;
 não declara unload global de ItemLoader nem validação Android. Sem APK.
+
+A etapa de geometria do painel acrescenta `NativeTooltipPanelLayout.h` com a política equivalente ao cálculo móvel original de linhas, escala, posição/flip do cursor, limites, padding e banner, e um host-test C++ de cenários e erros. Esse módulo ainda não chama `GUIPanel.DrawBacking`: a ABI nativa e a renderização no Android precisam ser validadas antes de desativar o fallback JS para painel opaco. Nenhum APK foi gerado e a PR continua draft.
