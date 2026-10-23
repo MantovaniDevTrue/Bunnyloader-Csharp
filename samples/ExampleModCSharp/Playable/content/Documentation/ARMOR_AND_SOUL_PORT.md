@@ -15,10 +15,20 @@ O conjunto completo acrescenta 0,20 a cada multiplicador melee, ranged, magic
 e minion; peças parciais não ativam esse bônus. O loader de armaduras aplica
 os efeitos em cada atualização de equipamento, como no exemplo JS.
 
-Os textos en-US/pt-BR das peças preservam as traduções originais. A descrição
-do bônus de conjunto ainda usa inglês: falta localizar a entrada nativa de
-ArmorSetBonuses durante a troca de idioma. Essa pendência mantém AddArmorSets
-fora dos comportamentos considerados equivalentes neste lote.
+Os textos en-US/pt-BR das peças preservam as traduções originais. Desde a
+versão fonte 0.1.69, o conjunto usa `UseLocalizedText(ArmorSetLocalizationKey)`.
+`ExampleLocalizationModule.RegisterTranslations` lê todas as traduções de
+`ArmorSetBonus.ExampleArmor` do JSON original e substitui `{0}` pela mesma
+constante 20 usada nos efeitos. A chave formatada é publicada no catálogo do
+próprio UID: não é necessário fixar o UID no código do item.
+
+O protocolo opcional A2 acrescenta uma chave relativa; o A1 antigo continua
+aceito. O loader passa `Mods.<UID>.<chave>` a ArmorSetBonuses.Add, que guarda
+um LocalizedText em Description no Android 301720. Ele aguarda Language.Exists
+antes de registrar, para não capturar um LocalizedText provisório fora do
+catálogo. O publisher de localização atualiza esse texto ao trocar de idioma;
+a ausência de tradução usa o fallback en-US do catálogo, sem duplicar conjuntos.
+Isso mantém a localização e os quatro bônus de dano independentes.
 
 ExampleSoul clona SoulofSight, usa Pink, BuyPrice(gold: 1), pilha 9999 e
 animação 4/6. As três tabelas de alma são nativas. PostUpdate ilumina o centro
@@ -35,5 +45,7 @@ pelo parser nativo.
 `bash tests/armor_port_run.sh` compila os fontes reais, compara valores e
 tooltips com o JSON original, executa o parser e os loaders C++ de produção
 com o protocolo emitido pelo Roslyn. Cobre peças/conjunto, recarga, falhas de
-ABI, iluminação, cor e tabelas. São testes de host; aparência, idioma do bônus,
-gameplay, rede e execução Android permanecem pendentes. Nenhum APK é gerado.
+ABI, iluminação, cor e tabelas. As 22 variantes de armadura incluem o protocolo
+real localizado, espera pela chave e sete falhas de acesso a Language.Exists.
+São testes de host; aparência, idioma do bônus no aparelho, gameplay, rede e
+execução Android permanecem pendentes. Nenhum APK é gerado.

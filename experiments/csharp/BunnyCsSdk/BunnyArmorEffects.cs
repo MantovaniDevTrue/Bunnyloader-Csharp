@@ -52,6 +52,7 @@ public sealed class BunnyArmorSet
     internal string Body { get; }
     internal string Legs { get; }
     internal string Text { get; }
+    internal string LocalizedTextKey { get; private set; } = "";
     public BunnyArmorEffects Effects { get; } = new();
     public BunnyArmorSet(string head,string body,string legs,string text)
     {
@@ -61,6 +62,21 @@ public sealed class BunnyArmorSet
         if(string.IsNullOrWhiteSpace(text)||text.Length>512||text.Any(char.IsControl))throw new ArgumentException("Texto do conjunto invalido",nameof(text));
         Head=head;Body=body;Legs=legs;Text=text;
     }
-    internal string ToWire() => string.Join("|",Head,Body,Legs,Convert.ToHexString(Encoding.UTF8.GetBytes(Text)),Effects.WireEffects,Effects.WireImmunity);
-    internal string ToJson() => "{\"head\":"+BunnyArmorEffects.Quote(Head)+",\"body\":"+BunnyArmorEffects.Quote(Body)+",\"legs\":"+BunnyArmorEffects.Quote(Legs)+",\"text\":"+BunnyArmorEffects.Quote(Text)+",\"effects\":"+Effects.ToJson()+"}";
+    /// <summary>
+    /// Usa uma chave relativa registrada no catálogo do próprio mod. O Terraria
+    /// guarda LocalizedText, que acompanha a troca de idioma sem recriar o conjunto.
+    /// O registro aguarda a chave existir; não captura um texto provisório sem dono.
+    /// </summary>
+    public BunnyArmorSet UseLocalizedText(string key)
+    {
+        if (string.IsNullOrEmpty(key) || key.Length > 160 ||
+            key.Split('.').Any(part => part.Length == 0 || part.Length > 72 ||
+                part.Any(c => !(char.IsAsciiLetterOrDigit(c) || c == '_'))))
+            throw new ArgumentException("Chave relativa de localização inválida", nameof(key));
+        LocalizedTextKey = key;
+        return this;
+    }
+    internal string ToWire() => string.Join("|",Head,Body,Legs,Convert.ToHexString(Encoding.UTF8.GetBytes(Text)),Effects.WireEffects,Effects.WireImmunity)+
+        (LocalizedTextKey.Length == 0 ? "" : "|" + LocalizedTextKey);
+    internal string ToJson() => "{\"head\":"+BunnyArmorEffects.Quote(Head)+",\"body\":"+BunnyArmorEffects.Quote(Body)+",\"legs\":"+BunnyArmorEffects.Quote(Legs)+",\"text\":"+BunnyArmorEffects.Quote(Text)+",\"textKey\":"+BunnyArmorEffects.Quote(LocalizedTextKey)+",\"effects\":"+Effects.ToJson()+"}";
 }

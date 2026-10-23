@@ -269,18 +269,49 @@ bool prepareUi(std::string* error) {
     }
     return true;
 }
+bool localizedTextReady(const std::string& key,std::string* error) {
+    auto& a=il2cpp::api();
+    auto* language=il2cpp::findClass({"Terraria.Localization","Language",{}});
+    const auto* exists=language?il2cpp::findMethodBySignature(language,
+        il2cpp::parseSignature("bool Exists(string key)")):nullptr;
+    auto* resultType=exists&&a.method_get_return_type?
+        a.class_from_il2cpp_type(a.method_get_return_type(exists)):nullptr;
+    uint32_t alignment=0;
+    if(!exists||a.method_is_instance(exists)||!primitive(resultType,"Boolean")) {
+        *error="Reason=ArmorLocalizationContractUnavailable";return false;
+    }
+    if(a.class_value_size(resultType,&alignment)!=1) {
+        *error="Reason=ArmorLocalizationContractUnavailable";return false;
+    }
+    Root argument(reinterpret_cast<Il2CppObject*>(a.string_new(key.c_str())));
+    if(!argument.get()){*error="Reason=TextAllocationFailed";return false;}
+    void* args[]={argument.get()};bool ok=false;
+    Root result(invoke(exists,nullptr,args,&ok));
+    if(!ok||!result.get()||a.object_get_class(result.get())!=resultType) {
+        *error="Reason=ArmorLocalizationLookupFailed";return false;
+    }
+    // A missing GetText key can return an unregistered LocalizedText. Waiting
+    // for Exists prevents retaining that orphan across future language reloads.
+    if(!*reinterpret_cast<const uint8_t*>(result.get()+1)) {
+        *error="Reason=ArmorLocalizationKeyPending";return false;
+    }
+    return true;
+}
 bool installUi(const Entry& entry,std::string* error) {
     auto& a=il2cpp::api();bool ok=false;
     Il2CppArray* lookup=nullptr;a.field_static_get_value(lookupField,&lookup);
     if(!lookup||lookup->length>65536||lookup->length==0){*error="Reason=ArmorLookupPending";return false;}
     auto& record=ui[entry.ids];
-    if(!record.text.empty()&&record.text!=entry.source.text){*error="Reason=ConflictingSetText";return false;}
-    record.ids=entry.ids;record.text=entry.source.text;
+    const std::string textKey=entry.source.textKey.empty()?entry.source.text:
+        "Mods."+entry.status.mod+"."+entry.source.textKey;
+    if(!record.text.empty()&&record.text!=textKey){*error="Reason=ConflictingSetText";return false;}
+    record.ids=entry.ids;record.text=textKey;
     const auto last=*std::max_element(entry.ids.begin(),entry.ids.end());
     auto* outerClass=a.object_get_class(reinterpret_cast<Il2CppObject*>(lookup));
     auto* rowClass=a.class_get_element_class(outerClass);auto* element=rowClass?a.class_get_element_class(rowClass):nullptr;
     if(a.class_get_rank(outerClass)!=1||!rowClass||a.class_get_rank(rowClass)!=1||!element){*error="Reason=InvalidSetLookupType";return false;}
     if(!record.value&&!record.added) {
+        if(!entry.source.textKey.empty()&&!localizedTextReady(textKey,error))return false;
         Root all(reinterpret_cast<Il2CppObject*>(allSets(&ok)));if(!ok||!all.get()){*error="Reason=ArmorAllPending";return false;}
         int pumpkinId=-1;if(!constant("ItemID","PumpkinHelmet",&pumpkinId)){*error="Reason=PumpkinIdMissing";return false;}
         Root* delegate=nullptr;std::unique_ptr<Root> found;
@@ -295,7 +326,7 @@ bool installUi(const Entry& entry,std::string* error) {
             if(effect&&a.object_get_class(effect)==a.class_from_il2cpp_type(a.method_get_param(addSet,0))){found=std::make_unique<Root>(effect);delegate=found.get();break;}
         }
         if(!delegate||!delegate->get()){*error="Reason=PumpkinDelegatePending";return false;}
-        Root text(reinterpret_cast<Il2CppObject*>(a.string_new(entry.source.text.c_str())));
+        Root text(reinterpret_cast<Il2CppObject*>(a.string_new(textKey.c_str())));
         if(!text.get()){*error="Reason=TextAllocationFailed";return false;}
         uint64_t primary=0;int head=entry.ids[0],body=entry.ids[1],legs=entry.ids[2];
         void* args[]={delegate->get(),text.get(),&primary,&head,&body,&legs};

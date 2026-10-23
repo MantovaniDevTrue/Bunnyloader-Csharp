@@ -162,7 +162,12 @@
         "BunnyArmorEffects Effects { get; }"
       ],
       "values": [],
-      "methods": []
+      "methods": [
+        {
+          "signature": "BunnyArmorSet UseLocalizedText(string key)",
+          "execution": "managed_helper"
+        }
+      ]
     },
     {
       "name": "BunnyLoader.Source.BunnyArmorStat",

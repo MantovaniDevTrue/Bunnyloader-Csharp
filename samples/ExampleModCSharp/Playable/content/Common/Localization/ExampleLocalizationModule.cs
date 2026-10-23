@@ -1,5 +1,7 @@
 using System.Collections.Generic;
+using System.Globalization;
 using BunnyLoader.Source;
+using ExampleModCSharp.Content.Items.Armor;
 
 namespace ExampleModCSharp.Common.Localization;
 
@@ -30,5 +32,14 @@ public sealed class ExampleLocalizationModule : BunnyLocalizationModule
                 ["en-US"] = "Hello from C#",
                 ["pt-BR"] = "Olá do C#"
             });
+        // Reutiliza todas as traduções do JSON original, como Translate(...)
+        // seguido de replace('{0}', bonus) no AddArmorSets do Bunny JS. A chave
+        // formatada pertence ao mesmo UID e mantém o LocalizedText vivo no jogo.
+        var armorTexts = catalog.Texts("Mods.source.ArmorSetBonus.ExampleArmor")
+            ?? throw new System.InvalidOperationException("Traduções do conjunto não encontradas");
+        foreach (var translation in armorTexts)
+            catalog.Register("Mods.source." + ExampleHelmet.ArmorSetLocalizationKey,
+                translation.Key, string.Format(CultureInfo.InvariantCulture,
+                    translation.Value, ExampleHelmet.AdditiveGenericDamageBonus));
     }
 }

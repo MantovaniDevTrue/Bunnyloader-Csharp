@@ -93,6 +93,10 @@ BunnyArmorSet(string head, string body, string legs, string text)
 BunnyArmorEffects Effects { get; }
 ```
 
+| Method | Execution |
+| --- | --- |
+| `BunnyArmorSet UseLocalizedText(string key)` | managed_helper |
+
 ## BunnyLoader.Source.BunnyArmorStat
 
 enum; base: `System.Enum`.

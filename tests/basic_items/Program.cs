@@ -328,6 +328,13 @@ try {
   if(!identities.SetEquals(actual))throw new Exception("compiled types and native wire identities differ");
   File.Copy(Path.Combine(scratch,"source-runtime-values.txt"),"build/basic-items/full-source-runtime-values.txt",true);
   var minionRows=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt"));
+  foreach(string language in new[]{"en-US","pt-BR"}) {
+   using var locale=JsonDocument.Parse(File.ReadAllText(Path.Combine(root,"content","Localization",language+".json")));
+   string expected=locale.RootElement.GetProperty("ArmorSetBonus").GetProperty("ExampleArmor").GetString()!.Replace("{0}","20");
+   string key=Convert.ToHexString(System.Text.Encoding.UTF8.GetBytes("Mods.source.ArmorSetBonus.ExampleArmorDisplay"));
+   string row=minionRows.Single(line=>line.StartsWith("LOCALE\t"+language+"\t"+key+"\t",StringComparison.Ordinal));
+   Equal(expected,System.Text.Encoding.UTF8.GetString(Convert.FromHexString(row.Split('\t')[3])));
+  }
   foreach(var pair in new[]{("ExampleStatAccessory","ExampleHigherTierModRarity"),
       ("ExampleWand","ExampleModRarity")})
     Equal(true,minionRows.Contains("ITEM_RARITY\t"+pair.Item1+"\t"+pair.Item2));
@@ -474,6 +481,11 @@ try {
   Reject(()=>item.Behavior.Armor.ImmuneTo("not a buff"));
   Reject(()=>item.Behavior.DefineArmorSet(set));
   Reject(()=>new BunnyArmorSet("Head","Body","Legs","invalid\ntext"));
+  Equal(set,set.UseLocalizedText("ArmorSetBonus.ExampleDisplay"));
+  Equal("A2",item.NativeArmorDefinition.Split('|')[0]);
+  Equal("ArmorSetBonus.ExampleDisplay",item.NativeArmorDefinition.Split('|')[9]);
+  foreach(string key in new[]{"",".key","key.","key..value","key|value","key value","key/other",new string('a',73)})
+   Reject(()=>set.UseLocalizedText(key));
  });
  Check("wings.real-source-wire",()=>{
   string root="tests/basic_items/wing_fixture",output=Path.Combine(scratch,"wing.dll"),diag=Path.Combine(scratch,"wing.txt");

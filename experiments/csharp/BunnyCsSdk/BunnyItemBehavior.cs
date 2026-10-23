@@ -24,7 +24,9 @@ public sealed class BunnyItemBehavior
     public BunnyArmorEffects Armor { get; } = new();
     private BunnyArmorSet? armorSet;
     /// <summary>Efeitos de peca e conjunto instalados pelo host nativo.</summary>
-    public string NativeArmorDefinition => Armor.Empty&&armorSet is null?"":"A1|"+Armor.WireEffects+"|"+Armor.WireImmunity+"|"+(armorSet?.ToWire()??"-|-|-|-|-|-");
+    public string NativeArmorDefinition => Armor.Empty&&armorSet is null?"":
+        (armorSet is not null && armorSet.LocalizedTextKey.Length != 0 ? "A2|" : "A1|")+
+        Armor.WireEffects+"|"+Armor.WireImmunity+"|"+(armorSet?.ToWire()??"-|-|-|-|-|-");
     private int defense;
     private string wings="null";
     public int Defense

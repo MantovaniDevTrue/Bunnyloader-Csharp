@@ -5,6 +5,7 @@ namespace ExampleModCSharp.Content.Items.Armor;
 public sealed class ExampleHelmet : BunnyItem
 {
     public const int AdditiveGenericDamageBonus = 20;
+    public const string ArmorSetLocalizationKey = "ArmorSetBonus.ExampleArmorDisplay";
 
     public override void SetDefaults()
     {
@@ -22,7 +23,8 @@ public sealed class ExampleHelmet : BunnyItem
         // O loader nativo aplica o conjunto apenas com as três peças. Os 20%
         // são aditivos nas quatro classes de dano, como no UpdateArmorSet JS.
         var set = new BunnyArmorSet(nameof(ExampleHelmet), nameof(ExampleBreastplate),
-            nameof(ExampleLeggings), $"Increases dealt damage by {AdditiveGenericDamageBonus}%");
+            nameof(ExampleLeggings), $"Increases dealt damage by {AdditiveGenericDamageBonus}%")
+            .UseLocalizedText(ArmorSetLocalizationKey);
         set.Effects.Add(BunnyArmorStat.MeleeDamage, AdditiveGenericDamageBonus / 100f);
         set.Effects.Add(BunnyArmorStat.RangedDamage, AdditiveGenericDamageBonus / 100f);
         set.Effects.Add(BunnyArmorStat.MagicDamage, AdditiveGenericDamageBonus / 100f);

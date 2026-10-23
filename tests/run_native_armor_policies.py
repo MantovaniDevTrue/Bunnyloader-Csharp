@@ -14,5 +14,6 @@ with tempfile.TemporaryDirectory(prefix="bunny-native-armor-") as temporary:
         subprocess.run([str(executable),str(Path(sys.argv[1]).resolve())]+mode,check=True,timeout=30)
 
     if len(sys.argv)>2:
-        for mode in ["--full-example","--full-example-boxed"]:
+        for mode in ["--full-example","--full-example-boxed",*["--full-example-locale-"+failure for failure in
+                     ["exception","null","result","type","instance","missing","wide"]]]:
             subprocess.run([str(executable),str(Path(sys.argv[2]).resolve()),mode],check=True,timeout=30)

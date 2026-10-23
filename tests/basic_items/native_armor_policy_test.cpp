@@ -13,7 +13,22 @@ Il2CppClass boolArray{"Boolean[]",false,0,{},&boolClass,1},itemArray{"Item[]",fa
  setClass{"ArmorSetBonus",false,sizeof(NativeSet),{}},rowClass{"ArmorSetBonus[]",false,0,{},&setClass,1},
  outerClass{"ArmorSetBonus[][]",false,0,{},&rowClass,1},allClass{"SetList",false,sizeof(Il2CppObject),{}},
  bonusesClass{"ArmorSetBonuses",false,0,{}},benefitsClass{"Benefits",false,0,{}},arrayClass{"Array",false,0,{}},
- buffIdClass{"BuffID",false,0,{}},itemIdClass{"ItemID",false,0,{}};
+ buffIdClass{"BuffID",false,0,{}},itemIdClass{"ItemID",false,0,{}},languageClass{"Language",false,0,{}},wideBoolClass{"Boolean",true,4,{}};
+Il2CppType wideBoolType{&wideBoolClass};
+bool localeAvailable=false,localeException=false,localeNull=false,localeWrongResult=false,localeWrongType=false,localeInstance=false,localeMissing=false,localeWide=false;
+struct BoolBox { Il2CppObject object{&boolClass,nullptr};uint8_t value=0; } localeResult;
+std::map<std::string,std::map<std::string,std::string>> localeCatalog;
+std::string activeCulture="en-US";
+std::string description(const std::string& key) {
+ auto row=localeCatalog.find(key);if(row==localeCatalog.end())return key;
+ const auto current=row->second.find(activeCulture);if(current!=row->second.end())return current->second;
+ return row->second.at("en-US");
+}
+std::string unhex(const std::string& s) {
+ std::string value;assert(s.size()%2==0);
+ for(size_t i=0;i<s.size();i+=2)value.push_back(static_cast<char>(std::stoul(s.substr(i,2),nullptr,16)));
+ return value;
+}
 Il2CppClass partTypeClass{"PartType",true,1,{}};Il2CppType partType{&partTypeClass};
 bool badAbi=false;
 Il2CppType boolArrayType{&boolArray},itemArrayType{&itemArray},rowType{&outerClass},allType{&allClass},delegateType{&legacyClass};
@@ -72,12 +87,13 @@ void configureArmor() {
  if(valueMode){setClass.value=true;setClass.size=sizeof(SetValue);}
  for(const char* name:{"void GrantArmorBenefits(Item armorPiece)","void ApplyEquipFunctional(int itemSlot, Item currentItem)","void UpdateArmorSets(int i)",
   "void Pumpkin(Player player)","object GetValue(int index)","void SetValue(object value, int index)",
-  "void Add(ArmorSetEffect Effect, string TextKey, PartType PrimaryPart, int Head, int Body, int Legs)","ToArray"}){auto& m=methods[name];names[&m]=name;}
+  "void Add(ArmorSetEffect Effect, string TextKey, PartType PrimaryPart, int Head, int Body, int Legs)","ToArray","bool Exists(string key)"}){auto& m=methods[name];names[&m]=name;}
  additionalClass=[](const bl::il2cpp::TypeRef& r)->Il2CppClass* {
   if(r.ns=="System"&&r.name=="Boolean")return &boolClass;
   if(r.ns=="System"&&r.name=="Array")return &arrayClass;
   if(r.ns=="Terraria.ID"&&r.name=="BuffID")return &buffIdClass;
   if(r.ns=="Terraria.ID"&&r.name=="ItemID")return &itemIdClass;
+  if(r.ns=="Terraria.Localization"&&r.name=="Language")return localeMissing?nullptr:&languageClass;
   if(r.name=="ArmorSetBonuses")return r.nested.empty()?&bonusesClass:&benefitsClass;
   return nullptr;
  };
@@ -94,7 +110,8 @@ void configureArmor() {
   }
   c.originals.push_back(original);return true;
  };
- apiInstance.method_is_instance=[](const MethodInfo* m){const auto& n=names.at(m);return (badAbi&&n.find("void Add(")==0)||n=="ToArray"||n.find("GetValue")!=std::string::npos||n.find("SetValue")!=std::string::npos||n.find("GrantArmorBenefits")!=std::string::npos||n.find("ApplyEquipFunctional")!=std::string::npos||n.find("UpdateArmorSets")!=std::string::npos;};
+ apiInstance.method_is_instance=[](const MethodInfo* m){const auto& n=names.at(m);return (localeInstance&&n=="bool Exists(string key)")||(badAbi&&n.find("void Add(")==0)||n=="ToArray"||n.find("GetValue")!=std::string::npos||n.find("SetValue")!=std::string::npos||n.find("GrantArmorBenefits")!=std::string::npos||n.find("ApplyEquipFunctional")!=std::string::npos||n.find("UpdateArmorSets")!=std::string::npos;};
+ apiInstance.method_get_return_type=[](const MethodInfo*)->const Il2CppType*{return localeWrongType?&intType:localeWide?&wideBoolType:&boolType;};
  apiInstance.method_get_param=[](const MethodInfo* m,uint32_t index)->const Il2CppType*{assert(names.at(m).find("void Add(")==0);return index==0?&delegateType:index==2?&partType:&intType;};
  apiInstance.class_is_enum=[](const Il2CppClass* c){return c==&partTypeClass;};
  apiInstance.object_get_class=[](Il2CppObject* o){return o->klass;};
@@ -116,6 +133,13 @@ void configureArmor() {
  apiInstance.field_static_set_value=[](FieldInfo* f,void* value){assert(f==lookupField);lookup=static_cast<Il2CppArray*>(value);};
  apiInstance.runtime_invoke=[](const MethodInfo* m,void* object,void** args,Il2CppObject** error)->Il2CppObject* {
   *error=nullptr;const auto& n=names.at(m);
+  if(n=="bool Exists(string key)") {
+   if(localeException){*error=&exception;return nullptr;}
+   if(localeNull)return nullptr;
+   localeResult.object.klass=localeWrongResult?&intClass:&boolClass;
+   localeResult.value=localeAvailable&&localeCatalog.contains(strings.at(static_cast<Il2CppObject*>(args[0])));
+   return &localeResult.object;
+  }
   if(n=="ToArray") {
    if(failAfterAdd&&adds){failAfterAdd=false;*error=&exception;return nullptr;}
    auto* a=array(&setClass,all.size());for(size_t i=0;i<all.size();++i)put(a,static_cast<int>(i),&all[i]->obj);return &a->obj;
@@ -152,6 +176,11 @@ int main(int argc,char** argv) {
  while(std::getline(input,line)) {
   if(fullExample) {
    const auto row=basicSplit(line,'\t');
+   if(row.size()==4&&row[0]=="LOCALE") {
+    auto key=unhex(row[2]);const std::string prefix="Mods.source.";
+    if(key.starts_with(prefix))key="Mods.armor."+key.substr(prefix.size());
+    localeCatalog[key][row[1]]=unhex(row[3]);
+   }
    if(row.size()<2 || row[0]!="ITEM" || (row[1]!="ExampleHelmet" && row[1]!="ExampleBreastplate" && row[1]!="ExampleLeggings"))continue;
   }
   BasicItemEntry e;assert(parseBasicItemWire(basicSplit(line,'\t'),&e,&error));assert(e.armor.present);
@@ -181,6 +210,21 @@ int main(int argc,char** argv) {
  identities.erase(entries[1].type);assert(pendingNativeArmorPolicies()==1);
  pumpNativeArmorPoliciesOnGameThread();assert(pendingNativeArmorPolicies()==1&&adds==0);
  identities[entries[1].type]=saved;
+ if(fullExample) {
+  pumpNativeArmorPoliciesOnGameThread();assert(pendingNativeArmorPolicies()==1&&adds==0&&roots.empty());
+  for(const auto& status:nativeArmorPolicyStatuses())if(!status.ready)assert(status.error=="Reason=ArmorLocalizationKeyPending");
+  localeAvailable=true;
+  localeException=mode=="--full-example-locale-exception";localeNull=mode=="--full-example-locale-null";
+  localeWrongResult=mode=="--full-example-locale-result";localeWrongType=mode=="--full-example-locale-type";
+  localeInstance=mode=="--full-example-locale-instance";localeMissing=mode=="--full-example-locale-missing";
+  localeWide=mode=="--full-example-locale-wide";
+  if(mode.starts_with("--full-example-locale-")) {
+   pumpNativeArmorPoliciesOnGameThread();assert(pendingNativeArmorPolicies()==1&&adds==0&&roots.empty());
+   for(const auto& status:nativeArmorPolicyStatuses())if(!status.ready)
+    assert(status.error==((localeException||localeNull||localeWrongResult)?"Reason=ArmorLocalizationLookupFailed":"Reason=ArmorLocalizationContractUnavailable"));
+   localeException=localeNull=localeWrongResult=localeWrongType=localeInstance=localeMissing=localeWide=false;
+  }
+ }
  if(mode=="--abi") {
   pumpNativeArmorPoliciesOnGameThread();const auto statuses=nativeArmorPolicyStatuses();
   bool found=false;for(const auto& status:statuses)if(!status.ready){assert(status.error=="Reason=ArmorRegistryAbiMismatch");found=true;}
@@ -199,7 +243,14 @@ int main(int argc,char** argv) {
   skip(&p.header,nullptr);assert(vanillaPumpkinCalls==0);
  }
  for(int i=0;i<4&&pendingNativeArmorPolicies();++i)pumpNativeArmorPoliciesOnGameThread();
- assert(pendingNativeArmorPolicies()==0&&adds==1&&texts[0]==(fullExample?"Increases dealt damage by 20%":"+20% damage"));assert(roots.size()==1);
+ assert(pendingNativeArmorPolicies()==0&&adds==1&&texts[0]==(fullExample?"Mods.armor.ArmorSetBonus.ExampleArmorDisplay":"+20% damage"));assert(roots.size()==1);
+ if(fullExample) {
+  assert(description(texts[0])=="Increases dealt damage by 20%");
+  const auto calls=adds;const auto key=texts[0];
+  activeCulture="pt-BR";assert(description(key)=="Aumenta o dano causado em 20%");
+  activeCulture="fr-FR";assert(description(key)=="Increases dealt damage by 20%");
+  activeCulture="en-US";assert(adds==calls&&texts[0]==key);
+ }
  assert(at(lookup,900)==vanilla);assert(lookup->length==6403);
  for(const auto& e:entries){auto* row=reinterpret_cast<Il2CppArray*>(at(lookup,e.type));assert(row&&row->length==1);}
  for(uintptr_t i=6197;i<lookup->length;++i)assert(at(lookup,static_cast<int>(i))!=nullptr);
@@ -246,6 +297,10 @@ int main(int argc,char** argv) {
  assert(!parseBasicArmorPolicy("A1|-|-|Head|Body|Legs|FF|-|-",&policy));
  assert(!parseBasicArmorPolicy("A1|-|-|Head|Body|Legs|C080|-|-",&policy));
  assert(parseBasicArmorPolicy("A1|-|-|Head|Body|Legs|43C3A920C3A167C3A36F|-|-",&policy));
+ assert(parseBasicArmorPolicy("A2|-|-|Head|Body|Legs|41|-|-|ArmorSetBonus.Display",&policy)&&policy.textKey=="ArmorSetBonus.Display");
+ for(const std::string& key:std::vector<std::string>{"", ".bad", "bad.", "bad..key", "bad/key", "bad key",std::string(73,'a')})
+  assert(!parseBasicArmorPolicy("A2|-|-|Head|Body|Legs|41|-|-|"+key,&policy));
+ assert(!parseBasicArmorPolicy("A2|-|-|-|-|-|-|-|-|ArmorSetBonus.Display",&policy));
  assert(!validArmorText(std::string(513,'x')));
  std::cout<<"NATIVE_ARMOR_REAL_WIRE_NO_QUICKJS_PIECES_IMMUNITY_SETS_TOOLTIP_RETRY_AND_RESET_PASS "<<mode<<"\n";
 }
