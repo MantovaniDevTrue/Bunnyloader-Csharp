@@ -43,3 +43,7 @@ BounceMinimumSpeed = 3f;
 Only mode `Bounce` accepts nondefault settings. The C# compiler validates both finite ranges and the native batch validates them again. An optional 21-field `PROJECTILE` record transmits nondefault bounce tuning. The original 8/19-field formats remain unchanged for other mods. The native tests cover restitution, thresholds and compatibility while .NET probes exercise the actual metadata serialization.
 
 The threshold cannot force Terraria to kill a projectile whose original collision path would not kill it. The changes do not implement a custom arbitrary C# return value in the collision frame, and FPS/gameplay still require Android validation.
+
+## Native descriptor-size compatibility fix
+
+`parseProjectileTuning` previously rejected the already-shipped 19-field collision descriptor because it recognized only lengths 16, 17 and 18. The parser now accepts 16, 17, 18, 19 and 21, while rejecting 20 or other unsupported lengths. A host-native C++ smoke test validates the exact length matrix plus a rejected non-finite tuning value. These checks are necessary because compiling the Android library alone does not exercise the runtime source loader.
