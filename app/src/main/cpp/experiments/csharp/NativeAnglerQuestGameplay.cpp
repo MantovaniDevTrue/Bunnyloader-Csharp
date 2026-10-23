@@ -8,6 +8,7 @@
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
 #include "il2cpp/FieldContract.h"
+#include "experiments/csharp/NativeStaticValue.h"
 
 #include <algorithm>
 #include <array>
@@ -31,10 +32,10 @@ bool g_swapHooked = false;
 bool g_chatHooked = false;
 FieldInfo* g_questItems = nullptr;
 FieldInfo* g_questIndex = nullptr;
-FieldInfo* g_questFinished = nullptr;
+native_static::Value g_questFinished;
 FieldInfo* g_hardMode = nullptr;
 FieldInfo* g_netMode = nullptr;
-FieldInfo* g_chatCorner = nullptr;
+native_static::Value g_chatCorner;
 FieldInfo* g_questFlag = nullptr;
 FieldInfo* g_weaponRackFlag = nullptr;
 const MethodInfo* g_nameMethod = nullptr;
@@ -141,6 +142,14 @@ bool arrayType(FieldInfo* field, const char* element) {
            std::strcmp(ns, "System") == 0;
 }
 
+bool staticPrimitive(const native_static::Value& value,const char* kind,size_t width) {
+    auto& a=il2cpp::api();
+    if(!value||!a.class_get_namespace||!a.class_get_name||!a.class_is_valuetype||!a.class_value_size)return false;
+    const char* ns=a.class_get_namespace(value.type),*name=a.class_get_name(value.type);
+    return ns&&name&&!std::strcmp(ns,"System")&&!std::strcmp(name,kind)&&
+        a.class_is_valuetype(value.type)&&native_static::size(value)==width;
+}
+
 bool findContracts() {
     g_contractDiagnostic = "MissingIL2CPPExports";
     auto& a = il2cpp::api();
@@ -172,7 +181,7 @@ bool findContracts() {
     }
     g_questItems = il2cpp::findField(main, "anglerQuestItemNetIDs");
     g_questIndex = il2cpp::findField(main, "anglerQuest");
-    g_questFinished = il2cpp::findField(main, "anglerQuestFinished");
+    g_questFinished = native_static::resolve(main, "anglerQuestFinished");
     g_hardMode = il2cpp::findField(main, "hardMode");
     g_netMode = il2cpp::findField(main, "netMode");
     if (!staticField(g_netMode) ||
@@ -180,28 +189,28 @@ bool findContracts() {
         g_contractDiagnostic = "NetModeStaticInt32Mismatch";
         return false;
     }
-    g_chatCorner = il2cpp::findField(main, "npcChatCornerItem");
+    g_chatCorner = native_static::resolve(main, "npcChatCornerItem");
     g_questFlag = il2cpp::findField(sets, "IsQuestFish");
     g_weaponRackFlag = il2cpp::findField(sets, "CanBePlacedOnWeaponRacks");
     if (!arrayType(g_weaponRackFlag, "Boolean"))
         g_weaponRackFlag = nullptr;
     if (!arrayType(g_questItems, "Int32") ||
         !arrayType(g_questFlag, "Boolean") ||
-        !staticField(g_questIndex) || !staticField(g_questFinished) ||
-        !staticField(g_hardMode) || !staticField(g_chatCorner) ||
+        !staticField(g_questIndex) || !g_questFinished ||
+        !staticField(g_hardMode) || (!g_chatCorner || !g_chatCorner.writable()) ||
         !typeName(a.field_get_type(g_questIndex), "System.Int32") ||
-        !typeName(a.field_get_type(g_chatCorner), "System.Int32") ||
-        !typeName(a.field_get_type(g_questFinished), "System.Boolean") ||
+        !staticPrimitive(g_chatCorner, "Int32", 4) ||
+        !staticPrimitive(g_questFinished, "Boolean", 1) ||
         !typeName(a.field_get_type(g_hardMode), "System.Boolean")) {
         g_contractDiagnostic = !arrayType(g_questItems, "Int32") ? "QuestItemNetIDsInt32ArrayMismatch" :
             !arrayType(g_questFlag, "Boolean") ? "ItemIsQuestFishBooleanArrayMismatch" :
             !staticField(g_questIndex) ? "QuestIndexNotStatic" :
-            !staticField(g_questFinished) ? "QuestFinishedNotStatic" :
+            !g_questFinished ? "QuestFinishedNotStatic" :
             !staticField(g_hardMode) ? "HardModeNotStatic" :
-            !staticField(g_chatCorner) ? "NpcChatCornerNotStatic" :
+            (!g_chatCorner || !g_chatCorner.writable()) ? "NpcChatCornerNotStatic" :
             !typeName(a.field_get_type(g_questIndex), "System.Int32") ? "QuestIndexNotInt32" :
-            !typeName(a.field_get_type(g_chatCorner), "System.Int32") ? "NpcChatCornerNotInt32" :
-            !typeName(a.field_get_type(g_questFinished), "System.Boolean") ? "QuestFinishedNotBoolean" :
+            !staticPrimitive(g_chatCorner, "Int32", 4) ? "NpcChatCornerNotInt32" :
+            !staticPrimitive(g_questFinished, "Boolean", 1) ? "QuestFinishedNotBoolean" :
             "HardModeNotBoolean";
         return false;
     }
@@ -234,7 +243,7 @@ bool findContracts() {
         if (mode < 0 || mode > 3 || mode == 1) return;
         uint8_t finished = 0, hardmode = 0;
         if (!g_questFinished || !g_hardMode) return;
-        api.field_static_get_value(g_questFinished, &finished);
+        if (!native_static::read(g_questFinished, &finished, sizeof(finished))) return;
         api.field_static_get_value(g_hardMode, &hardmode);
         if (finished) return;
         std::map<int,bool> decisions;
@@ -250,8 +259,8 @@ bool findContracts() {
             return static_cast<const int32_t*>(arrayData(arr))[selected];
         }, [&]() -> bool {
             uint8_t done = 0;
-            api.field_static_get_value(g_questFinished, &done);
-            return done != 0;
+            // Stop rerolling if a property getter fails; keep the engine result.
+            return !native_static::read(g_questFinished, &done, sizeof(done)) || done != 0;
         }, g_active, hardmode != 0, [&](const Quest& quest,bool mode) {
             if (!Registry::available(quest,mode)) return false;
             if ((quest.callbackMask&1)==0) return true;
@@ -280,7 +289,8 @@ bool findContracts() {
         uint8_t finished = 0;
         int32_t index = -1;
         Il2CppArray* array = nullptr;
-        api.field_static_get_value(g_questFinished, &finished);
+        if (!native_static::read(g_questFinished, &finished, sizeof(finished)))
+            return g_originalChat(turnIn, mi);
         api.field_static_get_value(g_questIndex, &index);
         api.field_static_get_value(g_questItems, &array);
         if (finished || !il2cpp::nativeArrayContract(array, "Int32", sizeof(int32_t), 65536) ||
@@ -306,7 +316,8 @@ bool findContracts() {
         if (!output || activeGeneration().load(std::memory_order_acquire) != registry().generation())
             return g_originalChat(turnIn, mi);
         int32_t corner = type;
-        api.field_static_set_value(g_chatCorner, &corner);
+        if (!native_static::write(g_chatCorner, &corner, sizeof(corner)))
+            return g_originalChat(turnIn, mi);
         return output;
     }, &g_originalChat);
     const bool both = g_swapHooked && g_chatHooked;

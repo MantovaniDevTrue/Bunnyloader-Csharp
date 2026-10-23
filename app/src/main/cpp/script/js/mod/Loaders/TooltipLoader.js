@@ -22,12 +22,18 @@ class TooltipLoader {
     static #glyphWidths = new Map();
 
     static #ManagedPlan(type) {
-        const old = TooltipLoader.#managedPlans.get(type);
-        if (old) return old;
         const native = globalThis.bl?.csharp?.tooltipPlan;
-        if (typeof native !== 'function') return null;
+        if (typeof native !== 'function') {
+            TooltipLoader.#managedPlans.delete(type);
+            return null;
+        }
         const wire = native(type);
-        if (!wire) return null;
+        if (!wire) {
+            TooltipLoader.#managedPlans.delete(type);
+            return null;
+        }
+        const old = TooltipLoader.#managedPlans.get(type);
+        if (old && old.wire === wire) return old.plan;
         try {
             const plan = JSON.parse(wire);
             if (!Array.isArray(plan) || plan.length > 24) return null;
@@ -36,9 +42,10 @@ class TooltipLoader {
                 p.text.length <= 512)) return null;
             if (TooltipLoader.#managedPlans.size >= 128)
                 TooltipLoader.#managedPlans.clear();
-            TooltipLoader.#managedPlans.set(type, plan);
+            TooltipLoader.#managedPlans.set(type, { wire, plan });
             return plan;
         } catch (_) {
+            TooltipLoader.#managedPlans.delete(type);
             return null;
         }
     }
@@ -149,12 +156,15 @@ class TooltipLoader {
             if (TooltipLoader.#broken || !TooltipLoader.#Wants(item)) return original();
 
             const touch = ControlsTouchTagHandler.ControlsTouchSnippet;
+            const nativeOwner = globalThis.bl?.csharp?.tooltipJsOverride;
+            const priorOwner = typeof nativeOwner === 'function' ? nativeOwner(true) : false;
             try {
                 TooltipLoader.#Draw(item, diff);
             } catch (e) {
                 TooltipLoader.#broken = true;
                 bl.error("tooltip: the mod drawing failed, falling back to the game's: " + e + (e && e.stack ? '\n' + e.stack : ''));
             } finally {
+                if (typeof nativeOwner === 'function') nativeOwner(priorOwner);
                 touch.OpenButtonFromEquipment = false;
             }
             return undefined;
@@ -224,10 +234,37 @@ class TooltipLoader {
         });
     }
 
+    static #NativeViewportSafe() {
+        const main = Terraria.Main;
+        const tips = Settings.Instance?.Tooltips;
+        if (!tips) return false;
+        const scale = Number(tips.Scale);
+        const height = Number(main.screenHeight);
+        const mouseY = Number(main.overloadedMousePositionY !== -1
+            ? main.overloadedMousePositionY : main.mouseY);
+        const offsetY = Number(tips.DrawOffset?.Y);
+        const distanceY = Number(tips.Distance?.Y);
+        if (![scale, height, mouseY, offsetY, distanceY].every(Number.isFinite) ||
+            scale < 0.5 || scale > 2.5 || height < 320 || mouseY < 0) return false;
+        const top = Math.max(mouseY + Math.trunc(offsetY), distanceY);
+        const reserve = Math.max(180, Math.ceil(240 * scale));
+        if (top < 0 || top + reserve > height) return false;
+        if (typeof Controller !== 'undefined' &&
+            Controller.ControllerActionManager?.AnyControllerConnected &&
+            typeof GUIInstance !== 'undefined' &&
+            GUIInstance.Active?.GUIControlsBanner?.ShowBanner) return false;
+        return true;
+    }
+
     static #Wants(item) {
         if (!item || item.type < 1) return false;
         if (RarityLoader.ByType.has(item.rare)) return true;
-        if (TooltipLoader.#ManagedPlan(item.type)) return true;
+        const nativeReady = globalThis.bl?.csharp?.tooltipNativeReady;
+        const nativeCanDraw = typeof nativeReady === 'function' &&
+            nativeReady(item.type) === true &&
+            !Terraria.Main.SettingsEnabled_OpaqueBoxBehindTooltips &&
+            TooltipLoader.#NativeViewportSafe();
+        if (!nativeCanDraw && TooltipLoader.#ManagedPlan(item.type)) return true;
         // Moeda própria na loja: o jogo do celular pinta o preço com uma cor
         // fixa (246, 100, 120) e ignora o CurrencyTextColor; aqui ele vale.
         if (item.shopSpecialCurrency !== -1 && Terraria.Main.npcShop > 0) return true;

@@ -18,8 +18,12 @@ inline Value resolve(Il2CppClass* cls,const char* name) {
     auto& a=api();Value value;if(!cls)return value;
     if(a.runtime_class_init)a.runtime_class_init(cls);
     if(auto* f=findField(cls,name)) {
-        if(!(a.field_get_flags(f)&0x10u))return value;
-        value.field=f;value.type=a.class_from_il2cpp_type(a.field_get_type(f));return value;
+        // Android Main exposes some statics through accessors while an inherited
+        // instance field has the same name. That field is not the static value;
+        // continue to the explicitly static getter instead of rejecting it.
+        if(a.field_get_flags(f)&0x10u) {
+            value.field=f;value.type=a.class_from_il2cpp_type(a.field_get_type(f));return value;
+        }
     }
     if(!a.class_get_method_from_name||!a.method_get_return_type||!a.method_get_param_count||!a.method_is_instance)return value;
     const auto* getter=a.class_get_method_from_name(cls,(std::string("get_")+name).c_str(),0);

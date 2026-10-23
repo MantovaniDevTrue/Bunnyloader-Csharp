@@ -44,6 +44,21 @@ public abstract class BunnyItem : BunnyShootSource
     public static int SellPrice(int platinum=0,int gold=0,int silver=0,int copper=0)
         => checked(BuyPrice(platinum,gold,silver,copper)*5);
     internal override int RecipeStackLimit => MaxStack;
+    /// <summary>
+    /// Mesmo contrato de Item.DefaultToGolfBall(projid) no Android 301720.
+    /// Use em SetDefaults, antes de sobrescrever os valores particulares do item.
+    /// A referência ao projétil é resolvida pelo host, sem ID fixo de mod.
+    /// </summary>
+    public void DefaultToGolfBall(string projectile)
+    {
+        // Estes valores acompanham o helper real do Terraria: bola equipável,
+        // sem gráfico de uso nem acerto direto; o projétil faz a simulação.
+        Width=18; Height=20; UseStyle=1; UseTime=15; UseAnimation=15;
+        Accessory=true; NoMelee=true; Rare=ItemRarityID.Green; Value=10000;
+        UseSound="Item1";
+        NativeDefaults.SetProjectile("shoot",projectile).SetFloat("shootSpeed",12)
+            .SetBool("noUseGraphic",true).SetBool("hasVanityEffects",true);
+    }
     public string DisplayName { get; set; } = "";
     public string Texture { get; set; } = "";
     public string Tooltip { get; set; } = "";
@@ -51,9 +66,11 @@ public abstract class BunnyItem : BunnyShootSource
     // Zero deixa o host inferir o tamanho pela textura, como o ModItem JS.
     private bool nativeWallDefaults;
     private int wallIntegerOverrides,wallFlagOverrides;
+    private int cloneIntegerOverrides,cloneFlagOverrides;
+    private bool cloneKnockBackOverride,cloneUseSoundOverride;
     private string placement="";
-    private void OverrideInteger(int index) { if(nativeWallDefaults)wallIntegerOverrides|=1<<index; }
-    private void OverrideFlag(int index) { if(nativeWallDefaults)wallFlagOverrides|=1<<index; }
+    private void OverrideInteger(int index) { cloneIntegerOverrides|=1<<index;if(nativeWallDefaults)wallIntegerOverrides|=1<<index; }
+    private void OverrideFlag(int index) { cloneFlagOverrides|=1<<index;if(nativeWallDefaults)wallFlagOverrides|=1<<index; }
     public int Width { get => width; set { width=value; OverrideInteger(0); } }
     private int width;
     private int wallHeight=0;
@@ -66,7 +83,7 @@ public abstract class BunnyItem : BunnyShootSource
     public int Rare { get => wallRare; set { wallRare=value; OverrideInteger(4); } }
     public string ModRarityClassName { get; private set; } = "";
     public void SetRarity<T>() where T : BunnyRarity
-        => ModRarityClassName = BunnyRarityReference.Resolve(GetType(), typeof(T));
+        { ModRarityClassName = BunnyRarityReference.Resolve(GetType(), typeof(T)); OverrideInteger(4); }
     public bool QuestFish { get; set; }
     public bool QuestAvailableInPreHardmode { get; set; } = true;
     public bool QuestAvailableInHardmode { get; set; } = true;
@@ -77,12 +94,15 @@ public abstract class BunnyItem : BunnyShootSource
     public BunnyQuestCatchRules QuestCatchRules { get; set; }
     public Func<BunnyQuestContext,bool>? QuestAvailableWhen { get; set; }
     public Func<BunnyQuestContext,bool>? QuestCanCatchWhen { get; set; }
+    /// <summary>True quando SetDefaults atribuiu Defense, inclusive zero.</summary>
+    public bool HasDefenseOverride => Behavior.HasDefenseOverride;
     public int Defense { get => Behavior.Defense; set => Behavior.Defense=value; }
     private int wallDamage=0;
     public int Damage { get => wallDamage; set { wallDamage=value; OverrideInteger(5); } }
     private int wallCrit=0;
     public int Crit { get => wallCrit; set { wallCrit=value; OverrideInteger(6); } }
-    public float KnockBack { get; set; }
+    private float knockBack;
+    public float KnockBack { get => knockBack; set { knockBack=value;cloneKnockBackOverride=true; } }
     private int wallUseTime=0;
     public int UseTime { get => wallUseTime; set { wallUseTime=value; OverrideInteger(7); } }
     private int wallUseAnimation=0;
@@ -112,11 +132,17 @@ public abstract class BunnyItem : BunnyShootSource
     public bool Vanity { get => wallVanity; set { wallVanity=value; OverrideFlag(6); } }
     public BunnyItemBehavior Behavior { get; } = new();
     public string BehaviorDefinition => Behavior.ToJson();
+    /// <summary>Colunas opcionais C1: somente atribuições explícitas substituem defaults clonados.</summary>
+    public string NativeCloneOverridesDefinition => Behavior.HasVanillaClone
+        ? "C1|"+cloneIntegerOverrides.ToString(CultureInfo.InvariantCulture)+"|"+
+          cloneFlagOverrides.ToString(CultureInfo.InvariantCulture)+"|"+
+          (cloneKnockBackOverride?"1":"0")+"|"+(cloneUseSoundOverride?"1":"0") : "";
     public string NativeAccessoryEffectsDefinition => Behavior.NativeAccessoryEffectsDefinition;
     /// <summary>Descritor nativo de atributos, imunidades e conjunto de armadura.</summary>
     public string NativeArmorDefinition => Behavior.NativeArmorDefinition;
+    private string useSound="";
     /// <summary>Nome de um campo SoundID, como Item1. Vazio deixa o item sem som de uso.</summary>
-    public string UseSound { get; set; } = "";
+    public string UseSound { get => useSound; set { useSound=value;cloneUseSoundOverride=true; } }
     /// <summary>Descritor de colocacao resolvido pelo nucleo; vazio preserva itens antigos.</summary>
     public string PlacementDefinition => placement + (nativeWallDefaults ? ":"+wallIntegerOverrides.ToString(CultureInfo.InvariantCulture)+":"+wallFlagOverrides.ToString(CultureInfo.InvariantCulture) : "");
     /// <summary>Defaults do Bunny original: coloca um tile vanilla com o estilo indicado.</summary>
@@ -156,6 +182,11 @@ public abstract class BunnyItem : BunnyShootSource
     public void DefaultToQuestFish()
     {
         QuestFish = true;
+        // Item.DefaultToQuestFish do Android 301720: questItem=true,
+        // width=height=26 e rare=Quest (-11). Flags IsQuestFish/weapon rack
+        // pertencem ao AnglerQuestLoader; questItem é um campo da instância.
+        Width = 26; Height = 26; Rare = ItemRarityID.Quest;
+        NativeDefaults.SetBool("questItem",true);
         MaxStack = 1;
         Value = 0;
     }

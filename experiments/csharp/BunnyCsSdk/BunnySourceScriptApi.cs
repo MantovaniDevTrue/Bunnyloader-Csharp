@@ -62,6 +62,12 @@ public abstract class BunnyProjectile
     public bool IgnoreWater { get; set; } = true;
     public int Penetrate { get; set; } = 1;
     public int TimeLeft { get; set; } = 360;
+    /// <summary>
+    /// Configura as tabelas por tipo depois dos defaults do protótipo, como no
+    /// SetupContent do tModLoader. Executado uma vez ao compilar/verificar o
+    /// conteúdo; a política resultante é instalada na thread nativa do jogo.
+    /// </summary>
+    public virtual void SetStaticDefaults() { }
     public abstract void SetDefaults();
     public virtual void OnSpawn(ref BunnyProjectileAiState state) { }
     public virtual bool AI(ref BunnyProjectileAiState state) => false;

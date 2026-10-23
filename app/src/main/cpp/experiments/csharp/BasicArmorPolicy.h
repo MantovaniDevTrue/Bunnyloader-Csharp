@@ -13,7 +13,7 @@ struct BasicArmorEffects { std::vector<BasicArmorEffect> effects; std::vector<st
 struct BasicArmorPolicy {
     bool present=false,hasSet=false;
     BasicArmorEffects piece,bonus;
-    std::string head,body,legs,text;
+    std::string head,body,legs,text,textKey;
 };
 inline std::vector<std::string> armorSplit(const std::string& s,char separator) {
     std::vector<std::string> out;size_t start=0;
@@ -80,10 +80,13 @@ inline bool validArmorText(const std::string& text) {
 inline bool parseBasicArmorPolicy(const std::string& wire,BasicArmorPolicy* out) {
     if(wire=="-"){*out={};return true;}
     if(wire.size()>8192)return false;
-    const auto p=armorSplit(wire,'|');if(p.size()!=9||p[0]!="A1")return false;
+    const auto p=armorSplit(wire,'|');
+    const bool localized=p.size()==10&&p[0]=="A2";
+    if(!localized&&(p.size()!=9||p[0]!="A1"))return false;
     BasicArmorPolicy parsed;parsed.present=true;
     if(!armorEffectsWire(p[1],p[2],&parsed.piece))return false;
     if(p[3]=="-") {
+        if(localized)return false;
         for(size_t i=4;i<9;++i)if(p[i]!="-")return false;
     } else {
         if(!armorName(p[3],true)||!armorName(p[4],true)||!armorName(p[5],true)||p[6].empty()||p[6].size()>4096||p[6].size()%2)return false;
@@ -95,6 +98,11 @@ inline bool parseBasicArmorPolicy(const std::string& wire,BasicArmorPolicy* out)
         }
         if(!validArmorText(parsed.text)||!armorEffectsWire(p[7],p[8],&parsed.bonus))return false;
         parsed.hasSet=true;parsed.head=p[3];parsed.body=p[4];parsed.legs=p[5];
+        if(localized) {
+            if(p[9].empty()||p[9].size()>160)return false;
+            for(const auto& part:armorSplit(p[9],'.'))if(!armorName(part))return false;
+            parsed.textKey=p[9];
+        }
     }
     *out=std::move(parsed);return true;
 }

@@ -1,0 +1,55 @@
+{
+  "date": "2026-10-23",
+  "baselineCommit": "1b601252fc23cb5bce8b5ca0ea55c90ff41ba480",
+  "scope": "Owned primitive static item cells: three animation flags and full WingStats value; not Main animation registration or global ItemLoader unload",
+  "checks": [
+    {
+      "name": "Production native item policies with real compiled ExampleMod wire, 21 modes",
+      "result": "PASS",
+      "staticRetirementPasses": 21
+    },
+    {
+      "name": "NativeItemPolicies.cpp final syntax check with Wall/Wextra/Werror",
+      "result": "PASS"
+    },
+    {
+      "name": "Concurrent native tooltip panel-layout fixture",
+      "result": "PASS",
+      "variants": 15
+    },
+    {
+      "name": "Real TooltipLoader.js ownership/reload fixture",
+      "result": "PASS"
+    }
+  ],
+  "sanitizers": {
+    "address": "PASS",
+    "undefinedBehavior": "PASS",
+    "modes": [
+      "raw metadata",
+      "boxed metadata"
+    ],
+    "leakDetection": false,
+    "note": "Fake VM objects are retained by fixtures; this is not a production leak scan."
+  },
+  "covered": [
+    "Restore AnimatesAsSoul, ItemIconPulse and ItemNoGravity after UID retirement",
+    "Restore the full WingStats struct, including padding/unassigned bytes",
+    "Resolve current arrays after replacement; do not mutate detached arrays or regrow discarded slots",
+    "Preserve foreign writes and another UID",
+    "Retry missing/wrong-ABI tables and block the next policy until cleanup completes",
+    "Report waiting-static-retirement in status and pending work",
+    "Reject an older cleanup acknowledgement when a newer request arrives inside a getter",
+    "Bound cleanup of 17 owned types to eight/eight/one over three pumps"
+  ],
+  "limits": [
+    "Main.itemAnimations and itemAnimationsRegistered entries are still installed; restoring flags does not remove those objects/indices.",
+    "Equipment textures, slots, remaining equipment tables, basic item defaults and all existing instances are not restored by this change.",
+    "Ownership compares the current bytes with the last publication; another writer producing identical bytes cannot be distinguished.",
+    "The tests validate host behavior, not Android rendering, native gameplay, FPS or complete unload.",
+    "This batch ran targeted checks; it did not rerun the earlier full 69-check suite."
+  ],
+  "apkProduced": false,
+  "apkWorkflowDispatched": false,
+  "androidValidated": false
+}

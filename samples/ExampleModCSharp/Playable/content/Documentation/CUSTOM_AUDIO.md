@@ -66,7 +66,7 @@ o SoundPool efetivamente emitiu áudio. A saída do mundo cancela pedidos e
 interrompe reproduções; mantém os estilos para a próxima entrada. `UnloadMod`
 remove os estilos do UID e invalida seus handles; não modifica outros mods.
 
-### Gate obrigatório antes de gerar qualquer APK
+### Critérios de validação do áudio (histórico)
 
 1. CI sem APK: SDK real `BunnySourceSdk` (net8), SDK autoral (net10),
    host test da ponte C++ e regressão `sound_router_test.cpp`.
@@ -79,6 +79,4 @@ remove os estilos do UID e invalida seus handles; não modifica outros mods.
    pause/retorno, troca de mundo, descarga do mod, coexistência com JS,
    ausência de erros IL2CPP, duração/stop e FPS sem regressões.
 
-Até concluir os gates, o SoundLoader permanece desenvolvimento: não criar
-APK de teste, distribuição ou release. Os testes em host não substituem
-a validação em dispositivo.
+O SoundLoader permanece em desenvolvimento até concluir a validação em dispositivo. A autorização posterior do usuário permite APK experimental de QA sobre 1.0.11 Dust/Invasion QA, sem declarar estes critérios concluídos; veja SHOOTING_AIM_QA.md. Os testes em host não substituem a validação em dispositivo.

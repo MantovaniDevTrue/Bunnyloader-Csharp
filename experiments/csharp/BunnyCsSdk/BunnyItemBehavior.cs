@@ -18,19 +18,24 @@ public sealed class BunnyItemBehavior
     private readonly List<string> nativeEffects = new();
     public string NativeAccessoryEffectsDefinition => string.Join(";",nativeEffects);
     private string clone = "";
+    internal bool HasVanillaClone => clone.Length!=0;
     private string animation = "null", light = "null", alpha = "null";
     public bool ColorFromPlayerHair { get; set; }
     public bool Robe { get; set; }
     public BunnyArmorEffects Armor { get; } = new();
     private BunnyArmorSet? armorSet;
     /// <summary>Efeitos de peca e conjunto instalados pelo host nativo.</summary>
-    public string NativeArmorDefinition => Armor.Empty&&armorSet is null?"":"A1|"+Armor.WireEffects+"|"+Armor.WireImmunity+"|"+(armorSet?.ToWire()??"-|-|-|-|-|-");
+    public string NativeArmorDefinition => Armor.Empty&&armorSet is null?"":
+        (armorSet is not null && armorSet.LocalizedTextKey.Length != 0 ? "A2|" : "A1|")+
+        Armor.WireEffects+"|"+Armor.WireImmunity+"|"+(armorSet?.ToWire()??"-|-|-|-|-|-");
     private int defense;
     private string wings="null";
+    /// <summary>Distingue defesa explicitamente zero dos defaults herdados do item vanilla.</summary>
+    public bool HasDefenseOverride { get; private set; }
     public int Defense
     {
         get => defense;
-        set { if(value<0||value>1000)throw new ArgumentOutOfRangeException(nameof(value));defense=value; }
+        set { if(value<0||value>1000)throw new ArgumentOutOfRangeException(nameof(value));defense=value;HasDefenseOverride=true; }
     }
     public void DefineArmorSet(BunnyArmorSet set)
     { if(set is null)throw new ArgumentNullException(nameof(set));if(armorSet is not null)throw new InvalidOperationException("Conjunto ja definido");armorSet=set; }
@@ -47,6 +52,11 @@ public sealed class BunnyItemBehavior
         wings="{\"stats\":["+flyTime+","+Number(flySpeed)+","+Number(acceleration)+"],\"vertical\":["+
             string.Join(",",new[]{ascentWhenFalling,ascentWhenRising,maxCanAscendMultiplier,maxAscentMultiplier,constantAscend}.Select(Number))+"]}";
     }
+    /// <summary>
+    /// Declara a cópia nativa de um item vanilla. Atribuições explícitas de BunnyItem
+    /// têm precedência, inclusive zero/false/som vazio. Os getters de autoria não
+    /// consultam os valores vanilla durante a compilação. Veja CLONE_DEFAULTS.md.
+    /// </summary>
     public void CloneVanillaDefaults(string itemIdName)
     { Name(itemIdName); clone=itemIdName; }
     public void EquipTexture(BunnyEquipKind kind,string texture,BunnyEquipDrawFlags flags=BunnyEquipDrawFlags.None)

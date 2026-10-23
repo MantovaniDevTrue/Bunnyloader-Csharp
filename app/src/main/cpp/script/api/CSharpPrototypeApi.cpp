@@ -165,6 +165,20 @@ JSValue jsNativeItemPolicies(JSContext* ctx,JSValueConst,int argc,JSValueConst*)
     }
     return array;
 }
+JSValue jsNativeTooltipReady(JSContext* ctx,JSValueConst,int argc,JSValueConst* argv) {
+    if(argc!=1)return JS_ThrowTypeError(ctx,"tooltipNativeReady(type)");
+    int32_t type=-1;
+    if(JS_ToInt32(ctx,&type,argv[0])<0)return JS_EXCEPTION;
+    return JS_NewBool(ctx,bl::csharp::nativeTooltipReadyForItem(type));
+}
+
+JSValue jsNativeTooltipJavascriptOwner(JSContext* ctx,JSValueConst,int argc,JSValueConst* argv) {
+    if(argc!=1)return JS_ThrowTypeError(ctx,"tooltipJsOverride(bool)");
+    const int requested=JS_ToBool(ctx,argv[0]);
+    if(requested<0)return JS_EXCEPTION;
+    return JS_NewBool(ctx,bl::csharp::nativeTooltipJavascriptOwner(requested!=0));
+}
+
 JSValue jsManagedTooltipPlan(JSContext* ctx,JSValueConst,int argc,JSValueConst* argv) {
     if(argc!=1)return JS_ThrowTypeError(ctx,"tooltipPlan(type)");
     int32_t type=-1;
@@ -2930,6 +2944,8 @@ void installCSharpPrototypeApi(JSContext* ctx, JSValueConst bl) {
     JS_SetPropertyStr(ctx, api, "rarityCount", JS_NewCFunction(ctx, jsRarityCount, "rarityCount", 0));
     JS_SetPropertyStr(ctx, api, "rarityColor", JS_NewCFunction(ctx, jsManagedRarityColor, "rarityColor", 1));
     JS_SetPropertyStr(ctx, api, "tooltipPlan", JS_NewCFunction(ctx, jsManagedTooltipPlan, "tooltipPlan", 1));
+    JS_SetPropertyStr(ctx, api, "tooltipNativeReady", JS_NewCFunction(ctx, jsNativeTooltipReady, "tooltipNativeReady", 1));
+    JS_SetPropertyStr(ctx, api, "tooltipJsOverride", JS_NewCFunction(ctx, jsNativeTooltipJavascriptOwner, "tooltipJsOverride", 1));
     JS_SetPropertyStr(ctx, api, "managedAvailable",
                       JS_NewCFunction(ctx, jsManagedAvailable, "managedAvailable", 0));
     JS_SetPropertyStr(ctx, api, "hostInfo", JS_NewCFunction(ctx, jsHostInfo, "hostInfo", 0));

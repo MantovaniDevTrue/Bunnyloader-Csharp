@@ -1,7 +1,18 @@
 #include "experiments/csharp/NativeRarityGameplay.h"
+#include "experiments/csharp/NativeBasicItems.h"
+#include "experiments/csharp/NativeTooltipDrawSession.h"
+#include "experiments/csharp/NativeTooltipPanelBacking.h"
+#include "experiments/csharp/NativeTooltipBackingPalette.h"
+#include "experiments/csharp/NativeTooltipPanelTexturePath.h"
+#include "experiments/csharp/NativeTooltipPanelColors.h"
+#include "experiments/csharp/NativeTooltipPanelSettings.h"
+#include "experiments/csharp/NativeTooltipPanelInspection.h"
+#include "experiments/csharp/NativeTooltipPanelAlpha.h"
+#include "experiments/csharp/NativeTooltipPanelRenderer.h"
 #include "experiments/csharp/NativeRarityPalette.h"
 #include "experiments/csharp/NativeRarityColorWire.h"
 #include "experiments/csharp/NativeRarityTextColor.h"
+#include "experiments/csharp/NativeRarityMouseTextCache.h"
 #include "experiments/csharp/NativeStaticValue.h"
 #include "il2cpp/ValueLayout.h"
 #include "experiments/csharp/NativeRarityRegistry.h"
@@ -22,6 +33,9 @@
 #include <cstdint>
 #include <cstring>
 #include <mutex>
+#include <optional>
+#include <memory>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -39,6 +53,7 @@ struct RarityMod {
     std::string assembly;
     std::vector<RaritySample> rarities;
     size_t cursor = 0;
+    uint64_t generation = 0;
     bool ready = false;
     bool failed = false;
 };
@@ -46,6 +61,8 @@ struct RarityMod {
 std::mutex g_mutex;
 std::vector<RarityMod> g_mods;
 NativeRarityPalette g_palette;
+uint64_t g_nextGeneration=0;
+std::set<int> g_retiredTypes;
 NativeColorLayout g_colorLayout;
 std::atomic<bool> g_hookReady{false};
 unsigned g_tick = 0;
@@ -56,6 +73,7 @@ using RarityInitFn = void (*)(const MethodInfo*);
 RarityInitFn g_originalRarityInitialize = nullptr;
 std::atomic<bool> g_tableHookReady{false};
 std::array<bool, NativeRarityPalette::kMaximumCustom> g_tableOwned{};
+std::array<uint32_t, NativeRarityPalette::kMaximumCustom> g_tableLastColor{};
 Il2CppObject* g_lastRarityTable = nullptr;
 
 bool parameterIs(Il2CppClass* cls, const MethodInfo* method, uint32_t index,
@@ -86,6 +104,8 @@ struct RarityTable {
     FieldInfo* field = nullptr;
     const MethodInfo* contains = nullptr;
     const MethodInfo* set = nullptr;
+    const MethodInfo* get = nullptr;
+    const MethodInfo* remove = nullptr;
     Il2CppClass* color = nullptr;
 };
 RarityTable g_table;
@@ -112,6 +132,8 @@ bool bindRarityTable(std::string* error) {
     }
     const auto* contains = a.class_get_method_from_name(tableClass, "ContainsKey", 1);
     const auto* set = a.class_get_method_from_name(tableClass, "set_Item", 2);
+    const auto* get = a.class_get_method_from_name(tableClass, "get_Item", 1);
+    const auto* remove = a.class_get_method_from_name(tableClass, "Remove", 1);
     if (!contains || !set || !a.method_is_instance(contains) || !a.method_is_instance(set) ||
         !parameterIs(nullptr, contains, 0, "System", "Int32") ||
         !parameterIs(nullptr, set, 0, "System", "Int32") ||
@@ -125,7 +147,14 @@ bool bindRarityTable(std::string* error) {
     NativeColorLayout validated;
     if (!validated.bind(color, error)) return false;
     g_colorLayout = validated;
-    g_table = {field, contains, set, color};
+    if(!get||!remove||!a.method_is_instance(get)||!a.method_is_instance(remove)||
+       !parameterIs(nullptr,get,0,"System","Int32")||
+       !parameterIs(nullptr,remove,0,"System","Int32")||
+       !isReturn(remove,"System","Boolean")||
+       a.class_from_il2cpp_type(a.method_get_return_type(get))!=color) {
+        *error="Reason=RarityDictionaryRetirementMethodsMismatch";return false;
+    }
+    g_table = {field, contains, set, get, remove, color};
     return true;
 }
 
@@ -151,12 +180,21 @@ bool writeRarityTable(int type, uint32_t argb) {
     if (exception || !exists) return false;
     bool present = *(reinterpret_cast<const uint8_t*>(exists) + sizeof(Il2CppObject)) != 0;
     if (present && !g_tableOwned[static_cast<size_t>(slot)]) return false;
+    if(present&&g_table.get) {
+        auto* boxed=a.runtime_invoke(g_table.get,table,hasArgs,&exception);
+        if(exception||!boxed)return false;
+        uint32_t previous=0;std::memcpy(&previous,reinterpret_cast<const uint8_t*>(boxed)+sizeof(Il2CppObject),sizeof(previous));
+        if(previous!=g_tableLastColor[static_cast<size_t>(slot)]) {
+            g_tableOwned[static_cast<size_t>(slot)]=false;return false;
+        }
+    }
     if (!present) g_tableOwned[static_cast<size_t>(slot)] = false;
     uint32_t value = g_colorLayout.fromArgb(argb);
     void* arguments[] = {&key, &value};
     exception = nullptr;
     a.runtime_invoke(g_table.set, table, arguments, &exception);
     if (exception) return false;
+    g_tableLastColor[static_cast<size_t>(slot)] = value;
     g_tableOwned[static_cast<size_t>(slot)] = true;
     return true;
 }
@@ -168,7 +206,7 @@ void initializeRarityTable(const MethodInfo* method) {
     if (!g_tableHookReady.load(std::memory_order_acquire)) return;
     const auto entries = nativeRarities().snapshot();
     for (const auto& entry : *entries) {
-        if (!entry.managed) continue;
+        if (!entry.managed || !entry.active) continue;
         uint32_t color = 0;
         if (g_palette.read(entry.type, &color))
             writeRarityTable(entry.type, color);
@@ -229,7 +267,7 @@ bool prefixRarity(Il2CppObject* item, int32_t requested, bool* topTier, const Me
         return g_originalPrefix(item, requested, topTier, method);
     const int32_t base = bl::runtime::field<int32_t>(item, g_rareOffset);
     const auto identity = nativeRarities().identityForType(base);
-    if (!identity.managed || identity.mod.empty())
+    if (!identity.managed || !identity.active || identity.mod.empty())
         return g_originalPrefix(item, requested, topTier, method);
     const bool succeeded = g_originalPrefix(item, requested, topTier, method);
     if (!succeeded) {
@@ -245,6 +283,7 @@ bool prefixRarity(Il2CppObject* item, int32_t requested, bool* topTier, const Me
                 if (mod.id == identity.mod && mod.ready && !mod.failed) {
                     owner.id = mod.id;
                     owner.assembly = mod.assembly;
+                    owner.generation = mod.generation;
                     break;
                 }
         }
@@ -266,9 +305,14 @@ bool prefixRarity(Il2CppObject* item, int32_t requested, bool* topTier, const Me
         const bool called = invokeManagedRarity(owner.id, owner.assembly, identity.name,
             1, payload + "," + std::to_string(vanilla), &response, 1800);
         int resultingType = base;
-        if (called && decodeRarityPrefixWire(response, &resultingType) &&
+        std::lock_guard guard(g_mutex);
+        const bool current=std::any_of(g_mods.begin(),g_mods.end(),[&](const auto& m){
+            return m.id==owner.id&&m.generation==owner.generation;
+        });
+        if (current && called && decodeRarityPrefixWire(response, &resultingType) &&
             (resultingType < NativeRarityRegistry::kVanillaCount ||
-             !nativeRarities().stableKeyForType(resultingType).empty()))
+             (nativeRarities().identityForType(resultingType).active &&
+              !nativeRarities().stableKeyForType(resultingType).empty())))
             bl::runtime::field<int32_t>(item, g_rareOffset) = resultingType;
         else
             bl::runtime::field<int32_t>(item, g_rareOffset) = base;
@@ -397,6 +441,9 @@ struct HoverTooltipRegion {
     bool active = false;
 };
 thread_local HoverTooltipRegion g_hoverTooltipRegion;
+thread_local NativeTooltipDrawSession g_nativeTooltipDrawSession;
+thread_local bool g_nativeTooltipActive=false;
+thread_local bool g_nativeTooltipJavascriptOwner=false;
 
 bool rarityTextMatches(Il2CppString* text) {
     const auto* target = g_rarityTextTarget;
@@ -416,9 +463,16 @@ uint32_t nativeRarityToArgb(uint32_t native) {
         static_cast<uint32_t>(bytes[g_rarityDrawColor.channels[2]]);
 }
 
+bool nativeTooltipOnDraw(Il2CppObject* batch,Il2CppObject* font,Il2CppString* text,
+                         RarityTextVec2* position,uint32_t color,float rotation,
+                         RarityTextVec2 origin,float scale,int32_t effects,float depth,
+                         const MethodInfo* method);
+
+bool nativeTooltipStringMatches(Il2CppString* text,const std::u16string& expected);
 void rarityDrawString(Il2CppObject* batch, Il2CppObject* font, Il2CppString* text,
     RarityTextVec2 position, uint32_t color, float rotation, RarityTextVec2 origin,
     float scale, int32_t effects, float depth, const MethodInfo* method) {
+    nativeTooltipOnDraw(batch,font,text,&position,color,rotation,origin,scale,effects,depth,method);
     const bool scopedMatch = rarityTextMatches(text);
     const bool hoverMatch = !scopedMatch && text && !g_hoverFallbackName.empty() &&
         sameNativeRarityName(text->chars, text->length,
@@ -442,9 +496,148 @@ void rarityDrawString(Il2CppObject* batch, Il2CppObject* font, Il2CppString* tex
             color = g_rarityDrawColor.fromArgb(
                 tintNativeRarityText(scopedMatch ? g_rarityTextColor : g_hoverFallbackColor, opacity));
     }
+    if(g_nativeTooltipActive&&g_nativeTooltipDrawSession.inserted&&text&&
+       g_nativeTooltipDrawSession.tooltipTint&&
+       nativeTooltipStringMatches(text,g_nativeTooltipDrawSession.anchor)&&
+       g_nativeTooltipDrawSession.isAnchorDraw(
+           std::u16string_view(text->chars,static_cast<size_t>(text->length)),
+           reinterpret_cast<uintptr_t>(batch),reinterpret_cast<uintptr_t>(font),
+           position.x,position.y)) {
+        const auto old=nativeRarityToArgb(color);
+        const uint8_t alpha=static_cast<uint8_t>(old>>24);
+        if(shouldTintNativeRarityText(old,alpha))
+            color=g_rarityDrawColor.fromArgb(
+                (static_cast<uint32_t>(alpha)<<24)|g_nativeTooltipDrawSession.tooltipRgb);
+    }
     if (g_originalRarityDrawString)
         g_originalRarityDrawString(batch, font, text, position, color, rotation,
             origin, scale, effects, depth, method);
+}
+
+
+using NativeTooltipMeasureFn = RarityTextVec2 (*)(Il2CppObject*,Il2CppString*,const MethodInfo*);
+NativeTooltipMeasureFn g_nativeTooltipMeasure=nullptr;
+const MethodInfo* g_nativeTooltipMeasureMethod=nullptr;
+std::atomic<bool> g_nativeTooltipHookReady{false};
+native_static::Value g_nativeTooltipHover;
+native_static::Value g_nativeTooltipClock;
+native_static::Value g_nativeTooltipScreenHeight;
+int g_nativeTooltipTypeOffset=-1;
+using NativeTooltipStaticFn=void (*)(Il2CppObject*,int32_t,uint8_t,int32_t,int32_t,const MethodInfo*);
+using NativeTooltipInstanceFn=void (*)(Il2CppObject*,Il2CppObject*,int32_t,uint8_t,int32_t,int32_t,const MethodInfo*);
+NativeTooltipStaticFn g_nativeTooltipStaticOriginal=nullptr;
+NativeTooltipInstanceFn g_nativeTooltipInstanceOriginal=nullptr;
+thread_local bool g_nativeTooltipRendering=false;
+thread_local Il2CppObject* g_nativeTooltipMeasureFont=nullptr;
+thread_local std::string g_nativeTooltipMeasuredText;
+thread_local NativeTooltipWaveLayout g_nativeTooltipLayout;
+thread_local float g_nativeTooltipLineHeight=0.f;
+std::array<uint32_t,128> g_nativeTooltipGlyphRoots{};
+
+bool nativeTooltipStringMatches(Il2CppString* text,const std::u16string& expected) {
+    return text&&text->length>0&&text->length<=512&&
+        static_cast<size_t>(text->length)==expected.size()&&
+        std::memcmp(text->chars,expected.data(),expected.size()*sizeof(char16_t))==0;
+}
+Il2CppString* nativeTooltipGlyphString(char16_t ch) {
+    auto& a=bl::il2cpp::api();
+    if(ch>127||!a.string_new||!a.gchandle_new||!a.gchandle_get_target)return nullptr;
+    const size_t i=static_cast<size_t>(ch);
+    if(g_nativeTooltipGlyphRoots[i])
+        return reinterpret_cast<Il2CppString*>(a.gchandle_get_target(g_nativeTooltipGlyphRoots[i]));
+    char utf8[2]={static_cast<char>(ch),0};
+    auto* text=a.string_new(utf8);
+    if(!text)return nullptr;
+    const auto handle=a.gchandle_new(reinterpret_cast<Il2CppObject*>(text),false);
+    if(!handle)return nullptr;
+    g_nativeTooltipGlyphRoots[i]=handle;
+    return text;
+}
+
+bool nativeTooltipWaveLayout(Il2CppObject* font,const NativeTooltipLine& line,
+                             NativeTooltipWaveLayout* out,float* height) {
+    auto& a=bl::il2cpp::api();
+    if(!font||!out||!height||!a.string_new||!g_nativeTooltipMeasure||
+       !g_nativeTooltipMeasureMethod||line.text.empty()||line.text.size()>128)return false;
+    if(font==g_nativeTooltipMeasureFont&&g_nativeTooltipMeasuredText==line.text&&
+       g_nativeTooltipLineHeight>0.f) {
+        *out=g_nativeTooltipLayout;
+        *height=g_nativeTooltipLineHeight;
+        return true;
+    } else {
+        if(!buildNativeTooltipWaveLayout(line.text,[&](std::u16string_view prefix){
+            for(char16_t ch:prefix)if(ch<32||ch>=127)return -1.f;
+            std::string ascii;ascii.reserve(prefix.size());
+            for(char16_t ch:prefix)ascii.push_back(static_cast<char>(ch));
+            Il2CppString* word=a.string_new(ascii.c_str());
+            if(!word)return -1.f;
+            const auto size=g_nativeTooltipMeasure(font,word,g_nativeTooltipMeasureMethod);
+            return size.x;
+        },out))return false;
+    }
+    Il2CppString* whole=a.string_new(line.text.c_str());
+    if(!whole)return false;
+    const auto size=g_nativeTooltipMeasure(font,whole,g_nativeTooltipMeasureMethod);
+    if(!std::isfinite(size.y)||size.y<5.f||size.y>100.f)return false;
+    *height=size.y;
+    g_nativeTooltipMeasuredText=line.text;
+    g_nativeTooltipMeasureFont=font;
+    g_nativeTooltipLayout=*out;
+    g_nativeTooltipLineHeight=size.y;
+    return true;
+}
+
+bool nativeTooltipOnDraw(Il2CppObject* batch,Il2CppObject* font,Il2CppString* text,
+                         RarityTextVec2* position,uint32_t color,float rotation,
+                         RarityTextVec2 origin,float scale,int32_t effects,float depth,
+                         const MethodInfo* method) {
+    if(!g_nativeTooltipActive||g_nativeTooltipRendering||
+       g_nativeTooltipJavascriptOwner||!text||!position||
+       text->length<=0||text->length>512||!std::isfinite(position->x)||
+       !std::isfinite(position->y)||!std::isfinite(scale)||scale<=0)return false;
+    auto& session=g_nativeTooltipDrawSession;
+    if(!session.animated)return false;
+    const std::u16string_view current(text->chars,static_cast<size_t>(text->length));
+    if(!session.inserted && !session.matches(current))return false;
+    float height=0;
+    NativeTooltipWaveLayout layout;
+    if(!session.inserted) {
+        if(!nativeTooltipWaveLayout(font,*session.animated,&layout,&height))return false;
+        int32_t screenHeight=0;
+        if(!native_static::read(g_nativeTooltipScreenHeight,&screenHeight,sizeof(screenHeight))||
+           !nativeTooltipHasHeadroom(position->y,height,scale,screenHeight))return false;
+    }
+    const float adjusted=session.adjust(current,reinterpret_cast<uintptr_t>(batch),
+        reinterpret_cast<uintptr_t>(font),position->x,position->y,height*scale,
+        [&](const NativeTooltipLine& wave,float y) {
+            const uint32_t argb=nativeRarityToArgb(color);
+            NativeTooltipPaint paint;
+            paint.x=position->x;paint.y=y;paint.scale=scale;
+            paint.rotation=rotation;paint.originX=origin.x;paint.originY=origin.y;
+            paint.depth=depth;paint.opacity=static_cast<uint8_t>(argb>>24);
+            if(!native_static::read(g_nativeTooltipClock,&paint.clock,sizeof(float))||
+               !std::isfinite(paint.clock))return false;
+            for(char16_t ch:layout.units) {
+                if(ch!=u' '&&!nativeTooltipGlyphString(ch))return false;
+            }
+            g_nativeTooltipRendering=true;
+            const bool success=drawNativeTooltipWave(wave,layout,paint,
+                [&](char16_t ch,float x,float yPos,uint32_t argbColor,
+                    const NativeTooltipPaint&,int) {
+                    auto* letter=nativeTooltipGlyphString(ch);
+                    if(letter&&g_originalRarityDrawString)
+                        g_originalRarityDrawString(batch,font,letter,{x,yPos},
+                            g_rarityDrawColor.fromArgb(argbColor),rotation,origin,
+                            scale,effects,depth,method);
+                });
+            g_nativeTooltipRendering=false;
+            return success;
+        });
+    if(session.inserted) {
+        position->y=adjusted;
+        return true;
+    }
+    return false;
 }
 
 template <typename F>
@@ -613,28 +806,19 @@ bool installRarityGroundTextHook(std::string* error) {
     Il2CppClass* byteType = findClass({"System", "Byte", {}});
     Il2CppClass* boolType = findClass({"System", "Boolean", {}});
     if (!main || !cache || !item || !stringType || !intType ||
-        !byteType || !boolType || !a.class_is_valuetype ||
-        a.class_is_valuetype(cache) || !a.method_is_instance ||
+        !byteType || !boolType || !a.method_is_instance ||
         !a.method_get_param_count || !a.method_get_param ||
         !a.class_from_il2cpp_type) {
-        *error = "Reason=MouseTextCacheReferenceAbiUnavailable";
+        *error = "Reason=MouseTextCacheTypesUnavailable";
         return false;
     }
-    int rare = -1, text = -1, buff = -1, diff = -1, hoverType = -1;
-    if (!validateRarityTextField(cache, "rare", intType, &rare) ||
-        !validateRarityTextField(cache, "cursorText", stringType, &text) ||
-        !validateRarityTextField(cache, "buffTooltip", stringType, &buff) ||
-        !validateRarityTextField(item, "type", intType, &hoverType)) {
-        *error = "Reason=MouseTextCacheFieldsUnavailable";
+    NativeRarityMouseTextCache cacheLayout;
+    if (!cacheLayout.bind(cache, intType, byteType, boolType, stringType, error))
         return false;
-    }
-    int diffWidth = 1;
-    if (!validateRarityTextField(cache, "diff", byteType, &diff)) {
-        if (!validateRarityTextField(cache, "diff", intType, &diff)) {
-            *error = "Reason=MouseTextDiffAbiUnavailable";
-            return false;
-        }
-        diffWidth = 4;
+    int hoverType = -1;
+    if (!validateRarityTextField(item, "type", intType, &hoverType)) {
+        *error = "Reason=HoverItemTypeUnavailable";
+        return false;
     }
     auto hover = native_static::resolve(main, "HoverItem");
     if (!hover || hover.type != item ||
@@ -654,11 +838,11 @@ bool installRarityGroundTextHook(std::string* error) {
         return false;
     }
     if (!installRarityDrawStringHook(error)) return false;
-    g_cacheRareOffset = rare;
-    g_cacheTextOffset = text;
-    g_cacheBuffOffset = buff;
-    g_cacheDiffOffset = diff;
-    g_cacheDiffWidth = diffWidth;
+    g_cacheRareOffset = cacheLayout.rare;
+    g_cacheTextOffset = cacheLayout.text;
+    g_cacheBuffOffset = cacheLayout.buff;
+    g_cacheDiffOffset = cacheLayout.diff;
+    g_cacheDiffWidth = cacheLayout.diffWidth;
     g_hoverItemTypeOffset = hoverType;
     g_hoverItem = hover;
     const bool hooked = a.method_is_instance(mouse)
@@ -741,6 +925,99 @@ void rarityTooltipInstance(Il2CppObject* self, Il2CppObject* cache,
     });
 }
 
+
+template<class Original>
+void nativeTooltipScope(Original&& original) {
+    Il2CppObject* hover=nullptr;
+    NativeTooltipDrawSession previous=std::move(g_nativeTooltipDrawSession);
+    const bool wasActive=g_nativeTooltipActive;
+    g_nativeTooltipActive=false;
+    if(native_static::read(g_nativeTooltipHover,&hover,sizeof(hover))&&hover) {
+        const int type=bl::runtime::field<int32_t>(hover,g_nativeTooltipTypeOffset);
+        const auto plan=basicItemNativeTooltip(type);
+        if(plan)g_nativeTooltipActive=g_nativeTooltipDrawSession.begin(*plan);
+    }
+    original();
+    g_nativeTooltipActive=wasActive;
+    g_nativeTooltipDrawSession=std::move(previous);
+}
+void nativeTooltipStatic(Il2CppObject* cache,int32_t rare,uint8_t diff,
+                          int32_t x,int32_t y,const MethodInfo* method) {
+    nativeTooltipScope([&]{
+        if(g_nativeTooltipStaticOriginal)
+            g_nativeTooltipStaticOriginal(cache,rare,diff,x,y,method);
+    });
+}
+void nativeTooltipInstance(Il2CppObject* self,Il2CppObject* cache,int32_t rare,
+                            uint8_t diff,int32_t x,int32_t y,const MethodInfo* method) {
+    nativeTooltipScope([&]{
+        if(g_nativeTooltipInstanceOriginal)
+            g_nativeTooltipInstanceOriginal(self,cache,rare,diff,x,y,method);
+    });
+}
+
+bool installNativeTooltipHook(std::string* error) {
+    using namespace bl::il2cpp;
+    if(g_nativeTooltipHookReady.load(std::memory_order_acquire))return true;
+    if(!installRarityDrawStringHook(error))return false;
+    auto& a=api();
+    auto* main=findClass({"Terraria","Main",{}});
+    auto* font=findClass({"Microsoft.Xna.Framework.Graphics","SpriteFont",{}});
+    auto* item=findClass({"Terraria","Item",{}});
+    auto* intType=findClass({"System","Int32",{}});
+    auto* stringType=findClass({"System","String",{}});
+    const auto* tooltip=main?findMethodBySignature(main,parseSignature(
+        "void MouseText_DrawItemTooltip(Main.MouseTextCache info, int rare, byte diff, int X, int Y)")):nullptr;
+    const auto* measure=font?findMethodBySignature(font,parseSignature(
+        "Vector2 MeasureString(string text)")):nullptr;
+    if(!tooltip||!measure||!font||!item||!intType||!stringType||
+       !a.method_is_instance||!a.method_get_param_count||
+       !a.method_get_param||!a.method_get_return_type||!a.class_from_il2cpp_type||
+       a.method_get_param_count(tooltip)!=5||
+       a.method_get_param_count(measure)!=1||
+       !a.method_is_instance(measure)||
+       !parameterIs(stringType,measure,0,"System","String")||
+       !parameterIs(nullptr,tooltip,1,"System","Int32")||
+       !parameterIs(nullptr,tooltip,2,"System","Byte")||
+       !parameterIs(nullptr,tooltip,3,"System","Int32")||
+       !parameterIs(nullptr,tooltip,4,"System","Int32")||
+       !isReturn(tooltip,"System","Void")||
+       !validateRarityTextVec2(a.class_from_il2cpp_type(a.method_get_return_type(measure)),error)) {
+        *error="Reason=NativeTooltipSignatureMismatch";return false;
+    }
+    int typeOffset=-1;
+    if(!validateRarityTextField(item,"type",intType,&typeOffset)) {
+        *error="Reason=NativeTooltipItemTypeUnavailable";return false;
+    }
+    const auto hover=native_static::resolve(main,"HoverItem");
+    if(!hover||hover.type!=item||native_static::size(hover)!=sizeof(Il2CppObject*)) {
+        *error="Reason=NativeTooltipHoverUnavailable";return false;
+    }
+    const auto clock=native_static::resolve(main,"GlobalTimeWrappedHourly");
+    if(!clock||native_static::size(clock)!=sizeof(float)) {
+        *error="Reason=NativeTooltipClockUnavailable";return false;
+    }
+    const auto screenHeight=native_static::resolve(main,"screenHeight");
+    if(!screenHeight||native_static::size(screenHeight)!=sizeof(int32_t)) {
+        *error="Reason=NativeTooltipScreenHeightUnavailable";return false;
+    }
+    auto* ptr=methodPointer(measure);
+    if(!ptr){*error="Reason=NativeTooltipMeasurePointerMissing";return false;}
+    g_nativeTooltipClock=clock;
+    g_nativeTooltipScreenHeight=screenHeight;
+    g_nativeTooltipMeasureMethod=measure;
+    g_nativeTooltipMeasure=reinterpret_cast<NativeTooltipMeasureFn>(ptr);
+    g_nativeTooltipHover=hover;
+    g_nativeTooltipTypeOffset=typeOffset;
+    const bool hooked=a.method_is_instance(tooltip)
+        ? bl::hook::install(tooltip,nativeTooltipInstance,&g_nativeTooltipInstanceOriginal)
+        : bl::hook::install(tooltip,nativeTooltipStatic,&g_nativeTooltipStaticOriginal);
+    if(!hooked){*error="Reason=NativeTooltipHookRejected";return false;}
+    g_nativeTooltipHookReady.store(true,std::memory_order_release);
+    BL_INFO("[CSharp][Tooltip] Stage=NativeDrawHook Result=Ready");
+    return true;
+}
+
 bool installRarityHoverFallback(std::string* error);
 void refreshRarityHoverFallback();
 
@@ -765,7 +1042,8 @@ bool installRarityTooltipHook(std::string* error) {
         a.method_get_param_count(affix) != 0 ||
         !isReturn(method, "System", "Void") ||
         !isReturn(affix, "System", "String") ||
-        !parameterIs(cache, method, 0, "Terraria", "MouseTextCache") ||
+        !a.method_get_param || !a.class_from_il2cpp_type ||
+        a.class_from_il2cpp_type(a.method_get_param(method, 0)) != cache ||
         !parameterIs(nullptr, method, 1, "System", "Int32") ||
         !parameterIs(nullptr, method, 2, "System", "Byte") ||
         !parameterIs(nullptr, method, 3, "System", "Int32") ||
@@ -777,7 +1055,12 @@ bool installRarityTooltipHook(std::string* error) {
     int expert = -1;
     int hoverType = -1;
     auto hover = native_static::resolve(main, "HoverItem");
-    if (!intType || !a.class_is_valuetype || a.class_is_valuetype(cache) ||
+    NativeRarityMouseTextCache cacheLayout;
+    auto* byteType = findClass({"System", "Byte", {}});
+    if (!cacheLayout.bind(cache, intType, byteType,
+            const_cast<Il2CppClass*>(boolType), const_cast<Il2CppClass*>(stringType), error))
+        return false;
+    if (!intType ||
         !validateRarityTextField(item, "expert",
             const_cast<Il2CppClass*>(boolType), &expert) ||
         !validateRarityTextField(item, "type", intType, &hoverType) ||
@@ -913,7 +1196,7 @@ std::string discoSnapshot() {
 bool nativeManagedRarityColor(int type, uint32_t* argb) {
     if (!argb) return false;
     const auto identity = nativeRarities().identityForType(type);
-    return identity.managed && !identity.mod.empty() && g_palette.read(type, argb);
+    return identity.managed && identity.active && !identity.mod.empty() && g_palette.read(type, argb);
 }
 
 bool registerNativeRaritySampling(const std::string& mod, const std::string& assembly) {
@@ -923,16 +1206,103 @@ bool registerNativeRaritySampling(const std::string& mod, const std::string& ass
     entry.assembly = assembly;
     const auto snapshot = nativeRarities().snapshot();
     for (const auto& rarity : *snapshot)
-        if (rarity.managed && rarity.mod == mod) entry.rarities.push_back({rarity.type, rarity.name});
+        if (rarity.managed && rarity.active && rarity.mod == mod) entry.rarities.push_back({rarity.type, rarity.name});
     if (entry.rarities.empty()) return false;
     std::lock_guard guard(g_mutex);
     for (const auto& previous : g_mods)
         if (previous.id == mod) return false;
+    entry.generation=++g_nextGeneration;
     g_mods.push_back(std::move(entry));
     return true;
 }
 
+void retireNativeRaritySampling(const std::string& mod) {
+    unloadManagedRarityCallbacks(mod);
+    nativeRarities().retireMod(mod);
+    const auto snapshot=nativeRarities().snapshot();
+    std::lock_guard guard(g_mutex);
+    std::erase_if(g_mods,[&](const auto& entry){return entry.id==mod;});
+    for(const auto& entry:*snapshot)if(entry.managed&&entry.mod==mod) {
+        g_palette.invalidate(entry.type);
+        g_retiredTypes.insert(entry.type);
+    }
+}
+
+// This is always pumped, even with no mods. No IL2CPP calls happen on unload's
+// worker thread. A third party replacing our value keeps ownership of its cell.
+void retireRarityTableOnGameThread() {
+    std::lock_guard guard(g_mutex);
+    if(g_retiredTypes.empty())return;
+    auto& a=bl::il2cpp::api();
+    if(!g_table.field||!a.field_static_get_value||!a.runtime_invoke)return;
+    Il2CppObject* table=nullptr;a.field_static_get_value(g_table.field,&table);
+    if(!table)return;
+    if(table!=g_lastRarityTable) {g_tableOwned.fill(false);g_lastRarityTable=table;}
+    for(auto it=g_retiredTypes.begin();it!=g_retiredTypes.end();) {
+        const size_t slot=static_cast<size_t>(*it-NativeRarityPalette::kFirstCustom);
+        if(!g_tableOwned[slot]) {it=g_retiredTypes.erase(it);continue;}
+        int32_t key=*it;void* args[]={&key};Il2CppObject* exception=nullptr;
+        auto* present=a.runtime_invoke(g_table.contains,table,args,&exception);
+        if(exception||!present) {++it;continue;}
+        bool exists=*(reinterpret_cast<const uint8_t*>(present)+sizeof(Il2CppObject))!=0;
+        if(exists) {
+            if(!g_table.get||!g_table.remove) {++it;continue;}
+            auto* boxed=a.runtime_invoke(g_table.get,table,args,&exception);
+            if(exception||!boxed) {++it;continue;}
+            uint32_t value=0;std::memcpy(&value,reinterpret_cast<const uint8_t*>(boxed)+sizeof(Il2CppObject),sizeof(value));
+            if(value==g_tableLastColor[slot]) {
+                auto* removed=a.runtime_invoke(g_table.remove,table,args,&exception);
+                if(exception||!removed||!*(reinterpret_cast<const uint8_t*>(removed)+sizeof(Il2CppObject))) {++it;continue;}
+            }
+        }
+        g_tableOwned[slot]=false;it=g_retiredTypes.erase(it);
+    }
+}
+
+bool nativeTooltipReadyForItem(int type) {
+    if(type<1||!g_nativeTooltipHookReady.load(std::memory_order_acquire))return false;
+    const auto plan=basicItemNativeTooltip(type);
+    if(!plan)return false;
+    NativeTooltipDrawSession session;
+    return session.begin(*plan);
+}
+
+bool nativeTooltipJavascriptOwner(bool active) {
+    const bool previous=g_nativeTooltipJavascriptOwner;
+    g_nativeTooltipJavascriptOwner=active;
+    return previous;
+}
+
+void pumpNativeTooltipGameplay() {
+    static unsigned attempts=0;
+    if(!g_nativeTooltipHookReady.load(std::memory_order_acquire)) {
+        if(++attempts%60u!=0||!hasNativeTooltipPlans())return;
+        std::string error;
+        if(!installNativeTooltipHook(&error)&&attempts%600u==0)
+            BL_WARN("[CSharp][Tooltip] Stage=NativeDrawHook Result=Pending Detail=%s",error.c_str());
+        return;
+    }
+    static unsigned panelTicks=0;
+    static bool panelVerified=false;
+    static bool panelLogged=false;
+    if(panelVerified||++panelTicks%600u!=0||!hasNativeTooltipPlans())return;
+    std::string error;
+    auto* settings=bl::il2cpp::findClassQuiet("","Settings");
+    auto* panel=bl::il2cpp::findClassQuiet("","GUIPanel");
+    NativeTooltipPanelInspection result;
+    const bool inspected=settings&&panel&&
+        inspectNativeTooltipPanel(settings,panel,0,0,&result,&error);
+    if(inspected) {
+        panelVerified=true;
+        BL_INFO("[CSharp][Tooltip] Stage=BackingMetadata Result=Validated Draw=Disabled");
+    } else if(!panelLogged) {
+        panelLogged=true;
+        BL_INFO("[CSharp][Tooltip] Stage=BackingMetadata Result=Pending Draw=Disabled Detail=%s",
+                error.empty()?"PanelClassOrSettingsUnavailable":error.c_str());
+    }
+}
 void pumpNativeRarityGameplay() {
+    retireRarityTableOnGameThread();
     ++g_tick;
     if (g_hoverFallbackReady.load(std::memory_order_acquire))
         refreshRarityHoverFallback();
@@ -948,6 +1318,7 @@ void pumpNativeRarityGameplay() {
             if (mod.failed) continue;
             current.id = mod.id;
             current.assembly = mod.assembly;
+            current.generation = mod.generation;
             if (mod.ready && !mod.rarities.empty()) {
                 current.rarities.push_back(mod.rarities[mod.cursor % mod.rarities.size()]);
                 mod.cursor = (mod.cursor + 1) % mod.rarities.size();
@@ -964,7 +1335,7 @@ void pumpNativeRarityGameplay() {
         if (state == 0) return;
         std::lock_guard guard(g_mutex);
         for (auto& mod : g_mods) {
-            if (mod.id != current.id) continue;
+            if (mod.id != current.id || mod.generation != current.generation) continue;
             mod.ready = state == 1;
             mod.failed = state < 0;
             if (mod.failed)
@@ -984,6 +1355,10 @@ void pumpNativeRarityGameplay() {
                 current.id.c_str(), response.c_str());
         return;
     }
+    std::lock_guard publication(g_mutex);
+    if(!std::any_of(g_mods.begin(),g_mods.end(),[&](const auto& entry){
+        return entry.id==current.id&&entry.generation==current.generation;
+    }))return;
     uint32_t argb = 0;
     if (!decodeRarityColorWire(response, &argb) || !g_palette.publish(sample.type, argb)) {
         if (g_tick % 600u == 0)
@@ -991,6 +1366,7 @@ void pumpNativeRarityGameplay() {
                 current.id.c_str(), response.c_str());
         return;
     }
+    g_retiredTypes.erase(sample.type); // New generation now owns this reserved ID.
     if (g_tableHookReady.load(std::memory_order_acquire))
         writeRarityTable(sample.type, argb);
     if (!g_tableHookReady.load(std::memory_order_acquire) && (g_tick % 60u == 0)) {

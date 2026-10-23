@@ -65,7 +65,9 @@ assert 'BunnyDustEffects.EmitAtPlayer<ExampleSparkDust>' in (
 dust = (root / "app/src/main/cpp/experiments/csharp/NativeDustEmission.cpp").read_text()
 assert '"Microsoft.Xna.Framework.Color"' in dust
 assert 'Stage=EmitRequest Class=%s Player=%d Count=%d Result=Queued' in dust
-assert '"Microsoft.Xna.Framework.Graphics.Color"' not in dust
+# Android 301720 uses Graphics.Color (verified in the runtime metadata).
+assert '"Microsoft.Xna.Framework.Graphics.Color"' in dust
+assert 'api.class_is_valuetype(color)' in dust and 'api.class_value_size(color,&align)==4' in dust
 print("Native CSharp item-use hook, dust emission and invasion invoker: OK")
 
 managed = (root / "app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp").read_text()

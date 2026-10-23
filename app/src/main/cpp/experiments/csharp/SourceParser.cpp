@@ -14,6 +14,76 @@ struct Token {
     bool literal;
 };
 
+// Discovery only needs to skip expressions. Roslyn remains responsible for
+// evaluating interpolations; their text must never become registration metadata
+// or introduce apparent classes/members into the bootstrap token stream.
+bool skipStringExpression(const std::string& source, size_t* cursor, int* line,
+                          std::string* error, unsigned depth = 0) {
+    if (depth > 64) { *error = "string C# excede limite de aninhamento"; return false; }
+    size_t& i = *cursor;
+    bool interpolation = false, verbatim = false;
+    while (i < source.size() && (source[i] == '$' || source[i] == '@')) {
+        if (source[i] == '$') interpolation = true; else verbatim = true;
+        ++i;
+    }
+    if (i >= source.size() || (source[i] != '"' && source[i] != '\'')) {
+        *error = "prefixo de string C# invalido"; return false;
+    }
+    const char quote = source[i++];
+    unsigned braces = 0;
+    while (i < source.size()) {
+        const char ch = source[i];
+        if (braces) {
+            if (ch == '"' || ch == '\'' || ch == '$' ||
+                (ch == '@' && i + 1 < source.size() &&
+                 (source[i + 1] == '"' || source[i + 1] == '$'))) {
+                if (!skipStringExpression(source, &i, line, error, depth + 1)) return false;
+                continue;
+            }
+            if (ch == '/' && i + 1 < source.size() && source[i + 1] == '/') {
+                i += 2;
+                while (i < source.size() && source[i] != '\n') ++i;
+                continue;
+            }
+            if (ch == '/' && i + 1 < source.size() && source[i + 1] == '*') {
+                i += 2;
+                while (i + 1 < source.size() && !(source[i] == '*' && source[i + 1] == '/')) {
+                    if (source[i++] == '\n') ++*line;
+                }
+                if (i + 1 >= source.size()) { *error = "comentario C# sem fechamento"; return false; }
+                i += 2;
+                continue;
+            }
+            if (ch == '{') ++braces;
+            if (ch == '}') --braces;
+            if (ch == '\n') ++*line;
+            ++i;
+            continue;
+        }
+        if (ch == quote) {
+            ++i;
+            if (verbatim && i < source.size() && source[i] == quote) { ++i; continue; }
+            return true;
+        }
+        if (!verbatim && ch == '\\') {
+            i += 2;
+            continue;
+        }
+        if (ch == '\n') {
+            if (!verbatim) { *error = "string C# multilinha nao suportada"; return false; }
+            ++*line;
+        }
+        if (interpolation && (ch == '{' || ch == '}')) {
+            if (i + 1 < source.size() && source[i + 1] == ch) { i += 2; continue; }
+            if (ch == '}') { *error = "interpolacao C# sem abertura"; return false; }
+            braces = 1;
+        }
+        ++i;
+    }
+    *error = "string C# nao terminada";
+    return false;
+}
+
 bool tokenize(const std::string& source, std::vector<Token>* out, std::string* error) {
     int line = 1;
     for (size_t i = 0; i < source.size();) {
@@ -64,6 +134,14 @@ bool tokenize(const std::string& source, std::vector<Token>* out, std::string* e
             out->push_back({source.substr(start, i - start), line, false});
             continue;
         }
+        if ((c == '$' && i + 1 < source.size() &&
+             (source[i + 1] == '"' || source[i + 1] == '@')) ||
+            (c == '@' && i + 1 < source.size() && source[i + 1] == '$')) {
+            const int at = line;
+            if (!skipStringExpression(source, &i, &line, error)) return false;
+            out->push_back({"<interpolated-string>", at, false});
+            continue;
+        }
         if (c == '"') {
             const int at = line;
             ++i;
@@ -103,6 +181,7 @@ size_t closing(const std::vector<Token>& tokens, size_t open, const std::string&
     if (open >= tokens.size() || tokens[open].value != begin) return tokens.size();
     int level = 0;
     for (size_t i = open; i < tokens.size(); ++i) {
+        if (tokens[i].literal) continue;
         if (tokens[i].value == begin) ++level;
         if (tokens[i].value == end && --level == 0) return i;
     }
@@ -182,6 +261,11 @@ bool statements(const std::vector<Token>& ts, size_t first, size_t last,
         bool negative = false;
         if (i < last && ts[i].value == "-") { negative = true; ++i; }
         if (i >= last) return false;
+        if ((key == "Texture" || key == "DisplayName") &&
+            !ts[i].literal && ts[i].value == "<interpolated-string>") {
+            *error = key + " precisa de string literal para registro antecipado";
+            return false;
+        }
         std::string value;
         if (ts[i].value == "nameof" && i + 3 < last &&
             ts[i + 1].value == "(" && ts[i + 3].value == ")") {

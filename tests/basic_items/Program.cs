@@ -21,6 +21,13 @@ Check("native-defaults.public-builder-values-and-invalid-input",()=>{
  Reject(()=>defaults.SetId("ammo","ArbitraryClass","Pointer"));Reject(()=>defaults.SetProjectile("shoot","bad/key/again"));
  Equal("mana:i:20",new BunnyNativeDefaults().SetInt("mana",10).SetInt("mana",20).Definition);
 });
+Check("potion.original-drink-particle-colors-managed",()=>{
+ var defaults=new BunnyNativeDefaults().SetItemDrinkParticleColors(
+     new BunnyColor(240,240,240),new BunnyColor(200,200,200),new BunnyColor(140,140,140));
+ Equal("ItemSet_DrinkParticleColors:c:FFF0F0F0,FFC8C8C8,FF8C8C8C",defaults.Definition);
+ Reject(()=>new BunnyNativeDefaults().SetItemDrinkParticleColors());
+ Reject(()=>new BunnyNativeDefaults().SetItemDrinkParticleColors(new BunnyColor[9]));
+});
 Check("sound.immutable-options-paths-and-original-gun",()=>{
  var sound=new BunnySoundStyle("Assets/Sounds/Items/Guns/ExampleGun.ogg",volume:0.9f,pitchVariance:0.2f,maxInstances:3);
  Equal(0.9f,sound.Volume);Equal(0.2f,sound.PitchVariance);Equal(3,sound.MaxInstances);
@@ -30,8 +37,19 @@ Check("sound.immutable-options-paths-and-original-gun",()=>{
  Reject(()=>new BunnySoundStyle("ok.wav",volume:float.NaN));Reject(()=>new BunnySoundStyle("ok.wav",pitch:float.PositiveInfinity));
  Reject(()=>new BunnySoundStyle("ok.wav",maxInstances:-1));Reject(()=>new BunnySoundStyle("ok.wav",limitBehavior:(BunnySoundLimitBehavior)3));
 });
-Check("pickaxe.original-defaults",()=>{var item=new ExamplePickaxe();item.SetDefaults();Equal(220,item.Pick);Equal(20,item.Damage);Equal(6f,item.KnockBack);Equal(10,item.UseTime);Equal(10,item.UseAnimation);Equal(true,item.Melee&&item.AutoReuse);Equal("Item1",item.UseSound);Equal(50000,item.Value);item.AddRecipes();Equal("1,18,mExampleItem:10",item.RecipeDefinitions.Single());});
-Check("hamaxe.original-defaults",()=>{var item=new ExampleHamaxe();item.SetDefaults();Equal(30,item.Axe);Equal(100,item.Hammer);Equal(25,item.Damage);Equal(15,item.UseTime);Equal(15,item.UseAnimation);Equal(50000,item.Value);Equal("Item1",item.UseSound);item.AddRecipes();Equal("1,18,mExampleItem:10",item.RecipeDefinitions.Single());});
+Check("pickaxe.original-defaults",()=>{var item=new ExamplePickaxe();item.SetDefaults();Equal(ItemRarityID.Green,item.Rare);Equal(220,item.Pick);Equal(20,item.Damage);Equal(6f,item.KnockBack);Equal(10,item.UseTime);Equal(10,item.UseAnimation);Equal(true,item.Melee&&item.AutoReuse);Equal("Item1",item.UseSound);Equal(50000,item.Value);item.AddRecipes();Equal("1,18,mExampleItem:10",item.RecipeDefinitions.Single());});
+Check("hamaxe.original-defaults",()=>{var item=new ExampleHamaxe();item.SetDefaults();Equal(ItemRarityID.Green,item.Rare);Equal(30,item.Axe);Equal(100,item.Hammer);Equal(25,item.Damage);Equal(15,item.UseTime);Equal(15,item.UseAnimation);Equal(50000,item.Value);Equal("Item1",item.UseSound);item.AddRecipes();Equal("1,18,mExampleItem:10",item.RecipeDefinitions.Single());});
+Check("rarity.public-tmod-constants-and-symbolic-native-default",()=>{
+ var expected=new Dictionary<string,int>{{"Master",-13},{"Expert",-12},{"Quest",-11},{"Gray",-1},{"White",0},{"Blue",1},{"Green",2},{"Orange",3},{"LightRed",4},{"Pink",5},{"LightPurple",6},{"Lime",7},{"Yellow",8},{"Cyan",9},{"Red",10},{"Purple",11},{"Count",12}};
+ var fields=typeof(ItemRarityID).GetFields(System.Reflection.BindingFlags.Public|System.Reflection.BindingFlags.Static);
+ Equal(expected.Count,fields.Length);foreach(var field in fields)Equal(expected[field.Name],(int)field.GetRawConstantValue()!);
+ Equal("rare:d:ItemRarityID:Cyan",new BunnyNativeDefaults().SetId("rare",nameof(ItemRarityID),nameof(ItemRarityID.Cyan)).Definition);
+});
+Check("wasp-nest.original-defaults-and-functional-effect",()=>{
+ var item=new WaspNest();item.SetDefaults();Equal(26,item.Width);Equal(26,item.Height);Equal(true,item.Accessory);
+ Equal(BunnyItem.SellPrice(gold:2),item.Value);Equal(ItemRarityID.Green,item.Rare);
+ Equal("strongBees:set:1",item.Behavior.NativeAccessoryEffectsDefinition);
+});
 Check("material.original-recipe",()=>{var item=new ExampleItem();item.SetDefaults();Equal(9999,item.MaxStack);Equal(100,item.Value);item.AddRecipes();Equal("999,18,v2:10",item.RecipeDefinitions.Single());});
 Check("minion.configurable-movement-and-finite-state",()=>{
  var custom=new BunnyMinionMovement(attackSpeed:16f,attackInertia:1f,followOffsetX:0f,followOffsetY:0f);
@@ -99,14 +117,15 @@ Check("recipe.clone-isolation-and-removal",()=>{
 });
 Check("probe.items-only-full-wire",()=>{
  Directory.CreateDirectory("build/basic-items");string diag="build/basic-items/probe.txt";
- Equal(5,CompiledAssemblyProbe.Verify(Assembly.GetExecutingAssembly().Location,diag));
+ Equal(6,CompiledAssemblyProbe.Verify(Assembly.GetExecutingAssembly().Location,diag));
  var lines=File.ReadAllLines("build/basic-items/source-runtime-values.txt");Equal("BUNNY_MANAGED_DEFAULTS_V2",lines[0]);Equal(7,lines.Length);
  foreach(var line in lines.Skip(1).Where(l=>l.StartsWith("ITEM\t"))) {
   var fields=line.Split('\t');
   if(fields[1]=="ExampleItem") {
    Equal(23,fields.Length);
    if(!fields[22].StartsWith("pt-BR:"))throw new Exception("Missing native pt-BR item tooltip");
-  } else Equal(20,fields.Length);
+  } else if(fields[1]=="WaspNest") { Equal(25,fields.Length);Equal("2",fields[6]); }
+  else Equal(20,fields.Length);
  }
  if(!lines.Any(l=>l.Contains("\tItem1\t")))throw new Exception("native sound missing");
 });
@@ -129,6 +148,19 @@ try {
    string error=File.ReadAllText(diag);if(!error.Contains("[CSharp][ERROR][ProjectilePolicy]")||!error.Contains("Class=PolicyProjectile")||!error.Contains("Reason=OutOfRange"))throw new Exception(error);
   }
  });
+ Check("projectile.static-defaults-order-and-override-contract",()=>{
+  string folder=Path.Combine(scratch,"static-projectile");Directory.CreateDirectory(Path.Combine(folder,"content"));
+  string file=Path.Combine(folder,"content","StaticProjectile.cs"),output=Path.Combine(scratch,"static-projectile.dll"),diag=Path.Combine(scratch,"static-projectile.txt");
+  string source="using System;using BunnyLoader.Source;public sealed class StaticProjectile:BunnyProjectile{private int stage;public override void SetDefaults(){Width=7;stage=1;}public override void SetStaticDefaults(){if(stage!=1||Width!=7)throw new InvalidOperationException(\"wrong setup order\");stage=2;NativeDefaults.SetProjectileStaticInt(\"TrailCacheLength\",Width+13);}}";
+  File.WriteAllText(file,source);Equal(1,Compiler.Compile(folder,output,runtime,diag));Equal(1,CompiledAssemblyProbe.Verify(output,diag));
+  Equal(true,File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt")).Contains("NATIVE_PROJECTILE\tStaticProjectile\tProjectileSet_TrailCacheLength:i:20"));
+  File.WriteAllText(file,source.Replace("public override void SetStaticDefaults()","public new void SetStaticDefaults()"));
+  Equal(1,Compiler.Compile(folder,output,runtime,diag));Equal(-1,CompiledAssemblyProbe.Verify(output,diag));
+  Equal(true,File.ReadAllText(diag).Contains("invalid SetStaticDefaults override"));
+  File.WriteAllText(file,source.Replace("stage=2;","throw new InvalidOperationException(\"static callback failed\");"));
+  Equal(1,Compiler.Compile(folder,output,runtime,diag));Equal(-1,CompiledAssemblyProbe.Verify(output,diag));
+  Equal(true,File.ReadAllText(diag).Contains("static callback failed"));
+ });
  Check("summon.native-movement-conflicting-ai-and-vanilla-style-rejected",()=>{
   string root=Path.Combine(scratch,"summon-policy");Directory.CreateDirectory(Path.Combine(root,"content"));
   string file=Path.Combine(root,"content","IndependentSummon.cs"),output=Path.Combine(scratch,"summon.dll"),diag=Path.Combine(scratch,"summon.txt");
@@ -146,7 +178,7 @@ try {
   Equal(1,Compiler.Compile("tests/basic_items/owned_recipe_fixture",output,runtime,diag));
   Equal(5,CompiledAssemblyProbe.Verify(output,diag));
   var rows=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt"));
-  Equal(9,rows.Length);Equal(3,rows.Count(row=>row.StartsWith("RECIPES\t",StringComparison.Ordinal)));
+  Equal(10,rows.Length);Equal(true,rows.Contains("SHOOT\tContractWeapon\t0"));Equal(3,rows.Count(row=>row.StartsWith("RECIPES\t",StringComparison.Ordinal)));
   foreach(string owner in new[]{"ContractWeapon","ContractAccessory","ContractPotion"}) {
    string Call(int kind,string state)=>BunnyRecipeLoader.Dispatch("owned",output,owner,0,kind,state);
    Equal("READY",Call(3,""));Equal("1",Call(0,"10,100,0,3,9,3,0,0,0"));
@@ -303,11 +335,32 @@ try {
   if(!identities.SetEquals(actual))throw new Exception("compiled types and native wire identities differ");
   File.Copy(Path.Combine(scratch,"source-runtime-values.txt"),"build/basic-items/full-source-runtime-values.txt",true);
   var minionRows=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt"));
-  // The native bootstrap defers SDK calls; verify the real managed defaults still apply every rarity.
-  foreach(var pair in new[]{("ExampleItem","ExampleModRarity"),("ExampleMeleeWeapon","ExampleModRarity"),
-      ("ExampleStatAccessory","ExampleHigherTierModRarity"),("ExampleWand","ExampleModRarity"),
-      ("ExampleBuffPotion","ExampleHigherTierModRarity")})
+  foreach(string language in new[]{"en-US","pt-BR"}) {
+   using var locale=JsonDocument.Parse(File.ReadAllText(Path.Combine(root,"content","Localization",language+".json")));
+   string expected=locale.RootElement.GetProperty("ArmorSetBonus").GetProperty("ExampleArmor").GetString()!.Replace("{0}","20");
+   string key=Convert.ToHexString(System.Text.Encoding.UTF8.GetBytes("Mods.source.ArmorSetBonus.ExampleArmorDisplay"));
+   string row=minionRows.Single(line=>line.StartsWith("LOCALE\t"+language+"\t"+key+"\t",StringComparison.Ordinal));
+   Equal(expected,System.Text.Encoding.UTF8.GetString(Convert.FromHexString(row.Split('\t')[3])));
+  }
+  foreach(var pair in new[]{("ExampleStatAccessory","ExampleHigherTierModRarity"),
+      ("ExampleWand","ExampleModRarity")})
     Equal(true,minionRows.Contains("ITEM_RARITY\t"+pair.Item1+"\t"+pair.Item2));
+  foreach(var name in new[]{"ExampleItem","ExampleMeleeWeapon","ExampleBuffPotion"})
+    Equal(false,minionRows.Any(row=>row.StartsWith("ITEM_RARITY\t"+name+"\t",StringComparison.Ordinal)));
+  foreach(string armorName in new[]{"ExampleHelmet","ExampleBreastplate","ExampleLeggings"}) {
+   var values=minionRows.Single(row=>row.StartsWith("ITEM\t"+armorName+"\t",StringComparison.Ordinal)).Split('\t');
+   Equal("18",values[2]);Equal("18",values[3]);Equal("50000",values[5]);Equal("2",values[6]);
+   foreach(string language in new[]{"en-US","pt-BR"}) {
+    using var locale=JsonDocument.Parse(File.ReadAllText(Path.Combine(root,"content","Localization",language+".json")));
+    string expected=locale.RootElement.GetProperty("ItemTooltip").GetProperty(armorName).GetString()!
+      .Replace("\\n","\n").Replace("{0}",armorName=="ExampleBreastplate"?"20":"5").Replace("{1}","1");
+    string actualTooltip=language=="en-US"?System.Text.Encoding.UTF8.GetString(Convert.FromHexString(values[18])):
+      System.Text.Encoding.UTF8.GetString(Convert.FromHexString(values[22].Substring("pt-BR:".Length)));
+    Equal(expected,actualTooltip);
+   }
+   Equal("1,mExampleWorkbench,mExampleItem:1",values[19]);
+   Equal((armorName=="ExampleBreastplate"?6:5).ToString(),values[23]);
+  }
   var blockRows=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt"));
   var blockTile=blockRows.Single(row=>row.StartsWith("TILE\tExampleTile\t",StringComparison.Ordinal)).Split('\t');
   Equal("19968",blockTile[2]);Equal("0",blockTile[3]);Equal("Stone",blockTile[6]);
@@ -319,7 +372,7 @@ try {
 
   var minion=minionRows.Single(row=>row.StartsWith("PROJECTILE\tExampleMinion\t",StringComparison.Ordinal)).Split('\t');
   Equal(18,minion.Length);Equal("4",minion[12]);Equal("5",minion[13]);Equal("8",minion[14]);Equal("700",minion[15]);Equal("1",minion[16]);Equal("4,8,12,80,20,10,-48,600,20,0.82,60,2000,40,40,1200,0.05,0.04",minion[17]);
-  Equal(true,minionRows.Contains("RECIPES\tExampleMinionItem\tWEAPON\t1,mExampleWorkbench,mExampleItem:1"));
+  Equal(true,minionRows.Contains("RECIPES\tExampleMinionItem\tWEAPON\t1,18,mExampleItem:1"));
   var sword=minionRows.Single(row=>row.StartsWith("ITEM\tExampleMeleeWeapon\t",StringComparison.Ordinal)).Split('\t');Equal("50000",sword[5]);
   var bulletItem=minionRows.Single(row=>row.StartsWith("ITEM\tExampleBullet\t",StringComparison.Ordinal)).Split('\t');Equal("5000",bulletItem[5]);
   var tooltipItem=minionRows.Single(row=>row.StartsWith("ITEM\tExampleTooltipItem\t",StringComparison.Ordinal)).Split('\t');
@@ -347,14 +400,23 @@ try {
     var instance=Activator.CreateInstance(type)??throw new Exception("Cannot instantiate "+type.FullName);
     var defaults=type.GetMethod((typeof(BunnyTile).IsAssignableFrom(type)||typeof(BunnyWall).IsAssignableFrom(type)||typeof(BunnyDust).IsAssignableFrom(type))?"SetStaticDefaults":"SetDefaults");
     defaults?.Invoke(instance,null);
-    // Execute every registered content class: names and localized names share the user-facing convention.
+    // Execute every registered class; translated names may preserve the original Bunny JS localization.
     if(type.GetProperty("DisplayName")?.GetValue(instance) is string displayName &&
        !displayName.StartsWith("Example ",StringComparison.Ordinal) &&
        !(type.Name=="ExampleTooltipItem" && displayName=="Exemplo de Tooltip"))
       throw new Exception("Content name must begin with Example: "+type.FullName+" = "+displayName);
-    foreach(var name in type.GetCustomAttributes<BunnyNameAttribute>())
-      if(!name.Text.StartsWith("Example ",StringComparison.Ordinal))
-        throw new Exception("Localized name must begin with Example: "+type.FullName+" = "+name.Text);
+    foreach(var name in type.GetCustomAttributes<BunnyNameAttribute>()) {
+      string category=instance is BunnyProjectile?"ProjectileName":"ItemName";
+      string localePath=Path.Combine(root,"content","Localization",name.Culture+".json");
+      bool originalName=false;
+      if(File.Exists(localePath)) {
+        using var locale=JsonDocument.Parse(File.ReadAllText(localePath));
+        originalName=locale.RootElement.TryGetProperty(category,out var names) &&
+          names.TryGetProperty(type.Name,out var original) && original.GetString()==name.Text;
+      }
+      if(!originalName && !name.Text.StartsWith("Example ",StringComparison.Ordinal))
+        throw new Exception("Localized name must preserve the original or begin with Example: "+type.FullName+" = "+name.Text);
+    }
 
     void RequireAsset(string? name) {
       if(!string.IsNullOrWhiteSpace(name))
@@ -426,6 +488,11 @@ try {
   Reject(()=>item.Behavior.Armor.ImmuneTo("not a buff"));
   Reject(()=>item.Behavior.DefineArmorSet(set));
   Reject(()=>new BunnyArmorSet("Head","Body","Legs","invalid\ntext"));
+  Equal(set,set.UseLocalizedText("ArmorSetBonus.ExampleDisplay"));
+  Equal("A2",item.NativeArmorDefinition.Split('|')[0]);
+  Equal("ArmorSetBonus.ExampleDisplay",item.NativeArmorDefinition.Split('|')[9]);
+  foreach(string key in new[]{"",".key","key.","key..value","key|value","key value","key/other",new string('a',73)})
+   Reject(()=>set.UseLocalizedText(key));
  });
  Check("wings.real-source-wire",()=>{
   string root="tests/basic_items/wing_fixture",output=Path.Combine(scratch,"wing.dll"),diag=Path.Combine(scratch,"wing.txt");
@@ -537,6 +604,38 @@ try {
   var fields=lines[1].Split('\t');
   Equal("ITEM",fields[0]);Equal("BareArmor",fields[1]);Equal(24,fields.Length);
   Equal("-",fields[20]);Equal("-",fields[21]);Equal("-",fields[22]);Equal("7",fields[23]);
+ });
+ Check("defense.explicit-zero-and-inherited-clone",()=>{
+  string root=Path.Combine(scratch,"defense-zero");Directory.CreateDirectory(Path.Combine(root,"content"));
+  foreach(bool explicitZero in new[]{false,true}) {
+   File.WriteAllText(Path.Combine(root,"content","CloneArmor.cs"),
+    "using BunnyLoader.Source; public sealed class CloneArmor:BunnyItem { public override void SetDefaults(){DisplayName=\"Clone Armor\";Texture=\"Items/CloneArmor\";Behavior.CloneVanillaDefaults(\"CopperHelmet\");"+(explicitZero?"Defense=0;":"")+"} }");
+   string output=Path.Combine(scratch,explicitZero?"zero.dll":"inherit.dll"),diag=output+".txt";
+   Equal(1,Compiler.Compile(root,output,runtime,diag));Equal(1,CompiledAssemblyProbe.Verify(output,diag));
+   var fields=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt"))[1].Split('\t');
+   Equal(28,fields.Length);Equal("C1|0|0|0|0",fields[27]);
+   Equal(explicitZero?"0":"-",fields[23]);
+  }
+  var fresh=new ExampleItem();Equal(false,fresh.HasDefenseOverride);
+  fresh.Defense=0;Equal(true,fresh.HasDefenseOverride);Equal(0,fresh.Defense);
+ });
+ Check("clone.explicit-defaults-versus-inheritance-real-wire",()=>{
+  string root=Path.Combine(scratch,"clone-reload");Directory.CreateDirectory(Path.Combine(root,"content"));
+  var rows=new List<string>{"BUNNY_CLONE_RELOAD_FIXTURE_V1"};
+  for(int revision=0;revision<3;revision++) {
+   string setters=revision<2?"Behavior.CloneVanillaDefaults(\"SoulofSight\");":"";
+   if(revision==1)setters+="Width=0;Height=0;MaxStack=1;Value=0;Rare=0;Damage=0;Crit=0;UseTime=0;UseAnimation=0;UseStyle=0;Pick=0;Axe=0;Hammer=0;Melee=false;NoMelee=false;AutoReuse=false;UseTurn=false;Consumable=false;Accessory=false;Vanity=false;KnockBack=0;UseSound=\"\";Defense=0;";
+   File.WriteAllText(Path.Combine(root,"content","CloneContract.cs"),
+    "using BunnyLoader.Source;public sealed class CloneContract:BunnyItem {public override void SetDefaults(){DisplayName=\"Clone Contract\";Texture=\"Items/CloneContract\";"+setters+"}}");
+   string output=Path.Combine(scratch,"clone-reload-"+revision+".dll"),diag=output+".txt";
+   Equal(1,Compiler.Compile(root,output,runtime,diag));Equal(1,CompiledAssemblyProbe.Verify(output,diag));
+   string row=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt")).Single(r=>r.StartsWith("ITEM\tCloneContract\t",StringComparison.Ordinal));
+   var fields=row.Split('\t');
+   if(revision<2){Equal(28,fields.Length);Equal(revision==0?"C1|0|0|0|0":"C1|8191|127|1|1",fields[27]);Equal(revision==0?"-":"0",fields[23]);}
+   else Equal(20,fields.Length);
+   rows.Add(row);
+  }
+  File.WriteAllLines("build/basic-items/clone-reload-runtime-values.txt",rows);
  });
  Check("compiler.192-content-classes-and-expanded-wire",()=>{
   string root=Path.Combine(scratch,"capacity");Directory.CreateDirectory(Path.Combine(root,"content"));

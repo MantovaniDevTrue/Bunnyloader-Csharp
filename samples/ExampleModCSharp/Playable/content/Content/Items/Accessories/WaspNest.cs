@@ -10,7 +10,7 @@ public sealed class WaspNest : BunnyItem
         Texture = "Content/Items/Accessories/WaspNest";
         Tooltip = "Suas abelhas ficam mais fortes";
         Width = 26; Height = 26; Accessory = true;
-        Value = 100000; Rare = 1; // sellPrice de duas moedas de ouro.
+        Value = 100000; Rare = ItemRarityID.Green; // sellPrice de duas moedas de ouro.
         Behavior.EquipTexture(BunnyEquipKind.Back, "Content/Items/Accessories/WaspNest_Back");
         // ApplyEquipFunctional define strongBees; vaidade nunca concede o efeito.
         Behavior.SetOnEquip(BunnyEquipFlag.StrongBees);

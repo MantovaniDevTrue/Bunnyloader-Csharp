@@ -27,7 +27,9 @@
 #include "graphics/CSharpScreenEffects.h"
 #include "experiments/csharp/NativeContent.h"
 #include "experiments/csharp/NativeBasicItems.h"
+#include "experiments/csharp/NativeDefaults.h"
 #include "experiments/csharp/NativeAnglerQuestGameplay.h"
+#include "experiments/csharp/NativeAnglerQuestRegistry.h"
 #include "experiments/csharp/NativeArmorPolicies.h"
 #include "experiments/csharp/NativeItemPolicies.h"
 #include "experiments/csharp/ManagedPrefixGameplay.h"
@@ -925,14 +927,16 @@ void run() {
                 defaultsApplied=applyManagedSourceDefaults(mod.id,defaults,&error);
             }
         }
+        std::string callbackAssembly=assembly;
         if (defaultsApplied) {
             bindNativeRecipeAssembly(mod.id,assembly);
+            callbackAssembly=nativeRecipeAssemblyBindings().current(mod.id);
             bindNativeTileAssembly(mod.id,assembly);
             if(!shooting::bindAssembly(mod.id,assembly,&error))defaultsApplied=false;
             if (defaultsApplied && (defaults.find("LOCALE\t") != std::string::npos ||
               defaults.find("LOCALE_MODULES\t") != std::string::npos ||
               defaults.find("LOCALE_RUNTIME\t") != std::string::npos))
-                localization::bindManagedAssembly(mod.id, assembly);
+                localization::bindManagedAssembly(mod.id, callbackAssembly);
             static const runtime::RecipeCallbackProvider provider{prepareNativeRecipeCallbackProvider,trackNativeRecipeCallbacks};
             runtime::setRecipeCallbackProvider(&provider);
             if((hasManagedRecipeCallbacks(mod.id)||hasManagedAnglerQuestCallbacks(mod.id)||shooting::hasPolicies(mod.id)||mod.tiles>0||mod.rarities>0)&&!g_runtimeWarmStarted.exchange(true,std::memory_order_acq_rel)) {
@@ -962,14 +966,20 @@ void run() {
                 ++count;
             }
             if (defaultsApplied && (count != mod.rarities || identities.size() > 32768 ||
-                !queueManagedRarityWarmup(mod.id, assembly, identities) ||
-                !registerNativeRaritySampling(mod.id, assembly))) {
+                !queueManagedRarityWarmup(mod.id, callbackAssembly, identities) ||
+                !registerNativeRaritySampling(mod.id, callbackAssembly))) {
                 error = "[CSharp][ERROR][RarityLoader] Mod=" + mod.id +
                     " Stage=Warmup Reason=RarityIdentityQueueRejected";
                 defaultsApplied = false;
             }
         }
         if (!defaultsApplied) {
+            retireNativeArmorPoliciesForMod(mod.id);
+            retireNativeRaritySampling(mod.id);
+            localization::retireMod(mod.id);
+            angler::registry().unload(mod.id);
+            unbindNativeRecipeAssembly(mod.id);
+            invalidateManagedDeferredSourceMod(mod.id);
             note(&status, "failed", error);
             continue;
         }
@@ -1376,6 +1386,7 @@ void noteAutoWorldTilesLoaded() {
 void flushDeferredWorldEntry();
 
 void noteAutoGameUpdate() {
+    pumpNativeStaticDefaultsOnGameThread();
     if (nativeCommandMailbox().hasCommands())
         installNativeCommandChatHooks();
     pumpNativeCommandRepliesOnGameThread();

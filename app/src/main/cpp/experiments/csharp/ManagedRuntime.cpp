@@ -334,6 +334,8 @@ void* g_localizationAckMethod = nullptr;
 void* g_localizationUnloadMethod = nullptr;
 std::atomic<ManagedLocalizationResultSink> g_localizationResultSink{nullptr};
 std::deque<RecipeRpcJob> g_recipeRpcQueue;
+struct CallbackUnload { RecipeRpcJob job; std::chrono::steady_clock::time_point retry{}; };
+std::map<std::pair<std::string,bool>,CallbackUnload> g_callbackUnloads;
 std::condition_variable g_recipeRpcWake;
 void* g_recipeDispatchMethod=nullptr;
 void* g_shootDispatchMethod=nullptr;
@@ -1608,8 +1610,27 @@ bool pollUniversalHooksOnWorker() {
 
 template<class Execute>
 bool processManagedRecipeRpc(std::unique_lock<std::mutex>& lock,Execute execute) {
-    if(g_recipeRpcQueue.empty())return false;
-    auto job=std::move(g_recipeRpcQueue.front());g_recipeRpcQueue.pop_front();
+    // Teardown is independent of the short synchronous gameplay deadline.
+    // A failed teardown blocks only that owner's endpoint until its retry succeeds.
+    const auto now=std::chrono::steady_clock::now();
+    for(auto it=g_callbackUnloads.begin();it!=g_callbackUnloads.end();++it) {
+        if(now<it->second.retry)continue;
+        const auto key=it->first;const auto job=it->second.job;
+        lock.unlock();const auto output=execute(job);lock.lock();
+        const auto pending=g_callbackUnloads.find(key);
+        if(pending!=g_callbackUnloads.end()&&pending->second.job.completion==job.completion) {
+            if(output=="CLEARED"||output=="NOT_BOUND"||
+               output=="PENDING|Stage=Unload Reason=BindingNotFoundOrReplaced")g_callbackUnloads.erase(pending);
+            else pending->second.retry=std::chrono::steady_clock::now()+std::chrono::milliseconds(250);
+        }
+        return true;
+    }
+    const auto available=std::find_if(g_recipeRpcQueue.begin(),g_recipeRpcQueue.end(),[&](const auto& job){
+        return job.completion->cancelled || now>=job.deadline ||
+            !g_callbackUnloads.contains({job.mod,job.rarity});
+    });
+    if(available==g_recipeRpcQueue.end())return false;
+    auto job=std::move(*available);g_recipeRpcQueue.erase(available);
     if(job.completion->cancelled||std::chrono::steady_clock::now()>=job.deadline){
         if((job.shooting||job.tile||job.rarity)&&job.kind==2&&!job.completion->cancelled){job.completion->done=true;job.completion->output="ERROR|Stage=Warmup Reason=WarmupDeadlineExceeded";}
         g_recipeRpcWake.notify_all();return true;
@@ -1624,7 +1645,8 @@ bool processManagedRecipeRpc(std::unique_lock<std::mutex>& lock,Execute execute)
 }
 
 std::string executeRecipeOnWorker(const RecipeRpcJob& job) {
-    if (!job.shooting && !job.tile && !job.rarity &&
+    const bool unloading=!job.shooting&&!job.tile&&!job.rarity&&job.kind==6&&job.owner=="__unload__";
+    if (!unloading && !job.shooting && !job.tile && !job.rarity &&
         !isNativeRecipeAssemblyCurrent(job.mod, job.assembly))
         return "PENDING|Stage=Invoke Reason=AssemblyUnloadedOrRebound";
     std::lock_guard<std::mutex> monoGuard(g_mutex);
@@ -2628,7 +2650,7 @@ void* pinnedMonoWorker(void*) {
                     continue;
                 }
                 if (!g_auditEnabled) {
-                    if (g_universalPolling.load(std::memory_order_acquire) ||
+                    if (!g_callbackUnloads.empty() || g_universalPolling.load(std::memory_order_acquire) ||
                         g_liveHitStatus.enabled || g_liveIngress.depth() != 0 ||
                         !g_managedHurtQueue.empty() || !g_entityQueue.empty() ||
                         !g_dustBootstrap.empty() || g_dustWorldResetPending)
@@ -2647,6 +2669,8 @@ void* pinnedMonoWorker(void*) {
                 auto deadline = (g_liveHitStatus.enabled || g_universalPolling.load(std::memory_order_acquire))
                     ? std::min(until, std::chrono::steady_clock::now() +
                         std::chrono::milliseconds(2)) : until;
+                if(!g_callbackUnloads.empty())
+                    deadline=std::min(deadline,std::chrono::steady_clock::now()+std::chrono::milliseconds(250));
                 if (g_recipeRuntimeReady.load(std::memory_order_acquire) &&
                     !g_localizationLiveBindings.empty())
                     deadline = std::min(deadline, g_nextLocalizationPoll);
@@ -3315,6 +3339,41 @@ bool invokeManagedTileDraw(const std::string& mod,const std::string& assembly,
     return invokeManagedCallback(false,mod,assembly,owner,13,0,
         snapshot,output,budgetMicroseconds,true);
 }
+void queueManagedRecipeUnload(const std::string& mod,const std::string& assembly) {
+    if(mod.empty()||assembly.empty())return;
+    std::lock_guard lock(g_pinnedMutex);
+    auto completion=std::make_shared<RecipeRpcCompletion>();
+    RecipeRpcJob job{mod,assembly,"__unload__","",0,6,
+        std::chrono::steady_clock::time_point::max(),completion,false,false,false};
+    g_callbackUnloads[{mod,false}]={std::move(job),{}};
+    g_pinnedWake.notify_one();
+}
+
+void unloadManagedRarityCallbacks(const std::string& mod) {
+    if(mod.empty())return;
+    std::lock_guard lock(g_pinnedMutex);
+    std::string assembly;
+    for(auto it=g_rarityWarmups.begin();it!=g_rarityWarmups.end();) {
+        if(!it->first.starts_with(mod+"|")) {++it;continue;}
+        assembly=it->first.substr(mod.size()+1);
+        it->second->cancelled=true;it->second->done=true;
+        it->second->output="PENDING|Stage=Unload Reason=ModRevoked";
+        it=g_rarityWarmups.erase(it);
+    }
+    std::erase_if(g_recipeRpcQueue,[&](auto& job){
+        if(!job.rarity||job.mod!=mod)return false;
+        assembly=job.assembly;job.completion->cancelled=true;job.completion->done=true;
+        job.completion->output="PENDING|Stage=Unload Reason=ModRevoked";return true;
+    });
+    if(!assembly.empty()) {
+        auto completion=std::make_shared<RecipeRpcCompletion>();
+        RecipeRpcJob job{mod,assembly,"","",0,3,
+            std::chrono::steady_clock::time_point::max(),completion,false,false,true};
+        g_callbackUnloads[{mod,true}]={std::move(job),{}};
+    }
+    g_recipeRpcWake.notify_all();g_pinnedWake.notify_one();
+}
+
 bool queueManagedRarityWarmup(const std::string& mod,const std::string& assembly,
     const std::string& identities) {
     if(mod.empty()||mod.size()>96||assembly.empty()||assembly.size()>4096||

@@ -1,5 +1,8 @@
 #pragma once
+#include <cstdint>
 #include "experiments/csharp/BasicArmorPolicy.h"
+#include "experiments/csharp/NativeTooltipPlan.h"
+#include <optional>
 #include <array>
 #include <string>
 #include <vector>
@@ -23,15 +26,19 @@ struct BasicRecipe { int stack=1, station=-1; std::vector<BasicRecipeIngredient>
     bool operator==(const BasicRecipe&) const = default; };
 struct BasicAccessoryEffect { std::string field,operation; float value=0; };
 struct BasicItemEntry {
-    std::string name; int type=-1; int defense=0;
+    std::string name; int type=-1; int defense=0; bool defenseSpecified=false;
     std::array<int,BasicFieldCount> values{0,0,1,0,0,0,0,0,0,0,0,0,0,0};
     float knockBack=0;
     std::string useSound,tooltip,behavior,modDir,modId,sourceFile,tooltipPlan;
+    std::optional<NativeTooltipPlan> nativeTooltip;
     std::map<std::string,std::string> localizedTooltips;
     std::vector<BasicAccessoryEffect> accessoryEffects;
     BasicArmorPolicy armor;
     std::string placeTileKey; int placeTile=-1,placeStyle=0; bool placeable=false,wallPlaceable=false;
     int wallIntegerOverrides=8191,wallFlagOverrides=127;
+    bool cloneOverridesSpecified=false,cloneKnockBackOverride=true,cloneUseSoundOverride=true;
+    int cloneIntegerOverrides=8191,cloneFlagOverrides=127;
+    uint64_t defaultsGeneration=0;
     bool behaviorInstalled=false;
     std::string behaviorError;
     std::vector<BasicRecipe> recipes;
@@ -53,10 +60,13 @@ inline bool validBasicAccessoryEffect(const BasicAccessoryEffect& e) {
     return (e.operation=="add"||e.operation=="mul")&&e.value>=-10&&e.value<=10&&(e.operation!="mul"||e.value>=0);
 }
 inline bool validateBasicItem(const BasicItemEntry& item,std::string* error) {
-    const int min[]={0,0,1,0,-1,0,-100,0,0,0,0,0,0,0};
+    const int min[]={0,0,1,0,-11,0,-100,0,0,0,0,0,0,0};
     const int max[]={256,256,9999,100000000,4107,1000,100,600,600,20,1000,200,1000,127};
     for(size_t i=0;i<BasicFieldCount;++i) if(item.values[i]<min[i]||item.values[i]>max[i]) {
         *error=item.name+": "+kBasicFieldNames[i]+" fora do limite";return false;
+    }
+    if(item.values[BasicRare]>-11&&item.values[BasicRare]<-1) {
+        *error=item.name+": rare nativo negativo invalido";return false;
     }
     if(!std::isfinite(item.knockBack)||item.knockBack<0||item.knockBack>50) { *error=item.name+": KnockBack invalido";return false; }
     if(item.accessoryEffects.size()>16||(!item.accessoryEffects.empty()&&!(item.values[BasicFlags]&32))) {
@@ -166,7 +176,7 @@ inline bool parseBasicAccessoryEffects(const std::string& wire,BasicItemEntry* i
     return true;
 }
 inline bool parseBasicItemWire(const std::vector<std::string>& fields,BasicItemEntry* item,std::string* error) {
-    if((fields.size()<20||fields.size()>27)||fields[0]!="ITEM") {*error="ITEM requer 20 a 27 campos";return false;}
+    if((fields.size()<20||fields.size()>28)||fields[0]!="ITEM") {*error="ITEM requer 20 a 28 campos";return false;}
     BasicItemEntry out;out.name=fields[1];
     for(size_t i=0;i<BasicFieldCount;++i)if(!basicInteger(fields[i+2],&out.values[i])) {*error=out.name+": inteiro invalido em "+kBasicFieldNames[i];return false;}
     if (out.values[BasicRare] > 11) {
@@ -256,15 +266,19 @@ inline bool parseBasicItemWire(const std::vector<std::string>& fields,BasicItemE
             }
         }
     }
-    if(fields.size()>=24 && fields[23]!="-" &&
-        (!basicInteger(fields[23],&out.defense)||out.defense<1||out.defense>1000)) {
-        *error=out.name+": defesa nativa fora do limite";return false;
+    // A missing field or '-' inherits vanilla defaults. The numeric value 0 is
+    // an explicit override, required when hot reload removes an old defense bonus.
+    if(fields.size()>=24 && fields[23]!="-") {
+        if(!basicInteger(fields[23],&out.defense)||out.defense<0||out.defense>1000) {
+            *error=out.name+": defesa nativa fora do limite";return false;
+        }
+        out.defenseSpecified=true;
     }
     if(fields.size()>=25&&!parseBasicAccessoryEffects(fields[24],&out,error))return false;
     if(fields.size()>=26&&fields[25]!="-"&&!parseBasicArmorPolicy(fields[25],&out.armor)) {
         *error=out.name+": politica nativa de armadura invalida";return false;
     }
-    if(fields.size()==27&&fields[26]!="-") {
+    if(fields.size()>=27&&fields[26]!="-") {
         const std::string& hex=fields[26];
         if(hex.size()>8192||hex.empty()||hex.size()%2) {
             *error=out.name+": tooltip draw plan oversized";return false;
@@ -281,10 +295,22 @@ inline bool parseBasicItemWire(const std::vector<std::string>& fields,BasicItemE
             }
             out.tooltipPlan.push_back(static_cast<char>((a<<4)|b));
         }
-        if(out.tooltipPlan.size()<2||out.tooltipPlan.front()!='['||
-           out.tooltipPlan.back()!=']') {
-            *error=out.name+": invalid tooltip plan envelope";return false;
+        NativeTooltipPlan decoded;
+        if(!decodeNativeTooltipPlan(out.tooltipPlan,&decoded,error)) {
+            *error=out.name+": "+*error;return false;
         }
+        out.nativeTooltip=std::move(decoded);
+    }
+    if(fields.size()==28&&fields[27]!="-") {
+        const auto mask=basicSplit(fields[27],'|');int knock=0,sound=0;
+        if(mask.size()!=5||mask[0]!="C1"||
+           !basicInteger(mask[1],&out.cloneIntegerOverrides)||out.cloneIntegerOverrides<0||out.cloneIntegerOverrides>8191||
+           !basicInteger(mask[2],&out.cloneFlagOverrides)||out.cloneFlagOverrides<0||out.cloneFlagOverrides>127||
+           !basicInteger(mask[3],&knock)||knock<0||knock>1||
+           !basicInteger(mask[4],&sound)||sound<0||sound>1) {
+            *error=out.name+": invalid clone override mask";return false;
+        }
+        out.cloneOverridesSpecified=true;out.cloneKnockBackOverride=knock!=0;out.cloneUseSoundOverride=sound!=0;
     }
     if(!validateBasicItem(out,error)||!parseBasicRecipes(fields[19],&out,error))return false;
     *item=std::move(out);return true;

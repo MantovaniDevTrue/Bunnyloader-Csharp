@@ -30,6 +30,8 @@ public sealed class ExampleMinion : BunnyProjectile
         Penetrate = -1;
         TimeLeft = 18000;
         MinionTargetRange = 700f;
+        // Mesmo brilho branco de Visuals no exemplo original; o motor emite a luz.
+        NativeDefaults.SetFloat("light",0.78f);
         MinionScanTicks = 8;
     }
 

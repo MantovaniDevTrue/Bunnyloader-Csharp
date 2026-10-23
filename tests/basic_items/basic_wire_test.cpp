@@ -38,6 +38,25 @@ int main(int argc,char** argv){
     auto broken=fields;broken[22]="pt-BR:GG";assert(!parseBasicItemWire(broken,&entry,&error));
     broken[22]=fields[22]+";"+fields[22];assert(!parseBasicItemWire(broken,&entry,&error));
   }
+  // Reusing the output must also reset the presence flag after an omitted field.
+  auto defense=fields;defense.resize(24,"-");defense[23]="0";
+  assert(parseBasicItemWire(defense,&entry,&error)&&entry.defenseSpecified&&entry.defense==0);
+  defense[23]="1000";
+  assert(parseBasicItemWire(defense,&entry,&error)&&entry.defenseSpecified&&entry.defense==1000);
+  for(const std::string value:{"-1","1001","0.5","zero"}) {
+   defense[23]=value;assert(!parseBasicItemWire(defense,&entry,&error));
+  }
+  defense[23]="-";
+  assert(parseBasicItemWire(defense,&entry,&error)&&!entry.defenseSpecified);
+  assert(parseBasicItemWire(fields,&entry,&error)&&!entry.defenseSpecified);
+  auto clone=fields;clone.resize(28,"-");clone[27]="C1|8191|127|1|1";
+  assert(parseBasicItemWire(clone,&entry,&error)&&entry.cloneOverridesSpecified&&entry.cloneIntegerOverrides==8191&&entry.cloneFlagOverrides==127&&entry.cloneUseSoundOverride&&entry.cloneKnockBackOverride);
+  clone[27]="C1|0|0|0|0";
+  assert(parseBasicItemWire(clone,&entry,&error)&&entry.cloneOverridesSpecified&&!entry.cloneUseSoundOverride&&!entry.cloneKnockBackOverride);
+  for(const std::string mask:{"C2|0|0|0|0","C1|8192|0|0|0","C1|-1|0|0|0","C1|0|128|0|0","C1|0|0|2|0","C1|0|0|0|2","C1|0|0|0","C1|0|0|0|0|0"}) {
+   clone[27]=mask;assert(!parseBasicItemWire(clone,&entry,&error));
+  }
+  assert(parseBasicItemWire(fields,&entry,&error)&&!entry.cloneOverridesSpecified);
   auto native=fields;
   while(native.size()<24)native.push_back("-");
   native[15]="32";

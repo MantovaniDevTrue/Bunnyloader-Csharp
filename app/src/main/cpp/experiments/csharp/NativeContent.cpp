@@ -242,6 +242,47 @@ std::shared_ptr<const std::map<int,NativeWeaponDefaults>> g_weaponView=std::make
 void publishWeaponDefaults() {
     std::atomic_store_explicit(&g_weaponView,std::make_shared<const std::map<int,NativeWeaponDefaults>>(g_weapons),std::memory_order_release);
 }
+// Summon staves can create a stationary projectile at the cursor. Zero is a
+// valid initial velocity; AI owns subsequent movement. Keep the same contract
+// during registration and both managed-default application paths.
+bool validWeaponShootSpeed(float speed) {
+    return std::isfinite(speed) && speed >= 0.f && speed <= 40.f;
+}
+
+// Called after registerNativeContent has checked runtime, identity and texture.
+// Keep reservation and publication together so rejection never consumes an ID.
+int registerNativeWeapon(NativeRegisterContext& ctx, const NativeContentSpec& spec,
+                         const std::string& path, const std::string& display) {
+    auto reject = [&](const char* reason, const char* expected, const std::string& actual) {
+        ctx.lastError = "[CSharp][ERROR][Register] Mod=" + ctx.modId +
+            " Class=" + spec.name + " File=" + ctx.sourceFile +
+            " Stage=NativeWeapon Expected=" + expected + " Actual=" + actual +
+            " Result=Rejected Reason=" + reason;
+        BL_ERROR("%s", ctx.lastError.c_str());
+        return -1;
+    };
+    if (spec.damage < 1 || spec.damage > 1000)
+        return reject("WeaponDamageOutOfRange", "Damage:1..1000", std::to_string(spec.damage));
+    if (spec.useTime < 2 || spec.useTime > 120)
+        return reject("WeaponUseTimeOutOfRange", "UseTime:2..120", std::to_string(spec.useTime));
+    if (!validWeaponShootSpeed(spec.shootSpeed))
+        return reject("WeaponShootSpeedOutOfRange", "FiniteShootSpeed:0..40", std::to_string(spec.shootSpeed));
+    if (!bl::runtime::modProjectileBelongsTo(spec.shootType, ctx.modId))
+        return reject("WeaponProjectileOwnershipMismatch", "ProjectileOwnedByMod", std::to_string(spec.shootType));
+    bl::runtime::ModItemDef def{};
+    def.mod = ctx.modId;
+    def.name = spec.name;
+    def.texture = path;
+    def.names = ctx.sourceNames;
+    def.names.push_back({"", display});
+    const int type = bl::runtime::registerModItem(std::move(def));
+    if (type < 0)
+        return reject("NativeItemReservationRejected", "NonNegativeContentId", std::to_string(type));
+    g_weapons[type] = {spec.damage, spec.useTime, spec.shootSpeed, spec.shootType};
+    publishWeaponDefaults();
+    ++ctx.items;
+    return type;
+}
 void publishProjectileDefinition(int type,const NativeProjectileDefaults& defaults,
                                  const std::string& key) {
     auto next=std::make_shared<ProjectileDefinitions>(*std::atomic_load_explicit(&g_projectileView,std::memory_order_acquire));
@@ -499,6 +540,7 @@ void hkNativeMinionDamage(Il2CppObject* projectile, const MethodInfo* method) {
 
 void hkProjectileDefaults(Il2CppObject* self, int32_t type, const MethodInfo* method) {
     notifyManagedSourceProjectileDefaults(self);
+    applyNativeStaticDefaults(true,type);
     if (g_originalProjectile) g_originalProjectile(self, type, method);
     const auto definitions=std::atomic_load_explicit(&g_projectileView,std::memory_order_acquire);
     auto it = definitions->find(type);
@@ -1661,8 +1703,7 @@ bool applyManagedNativeDefaults(
         !projectile.friendly ||
         weapon.damage < 1 || weapon.damage > 1000 ||
         weapon.useTime < 2 || weapon.useTime > 120 ||
-        !std::isfinite(weapon.shootSpeed) ||
-        weapon.shootSpeed < 1.f || weapon.shootSpeed > 40.f)
+        !validWeaponShootSpeed(weapon.shootSpeed))
         return false;
 
     g_projectiles[projectileType] = {
@@ -1763,8 +1804,7 @@ bool applyManagedNativeDefaultsBatch(
                 entry.summon, entry.minionBuffType, entry.minionBuffTime}).second ||
             data.damage < 1 || data.damage > 1000 ||
             data.useTime < 2 || data.useTime > 120 ||
-            !std::isfinite(data.shootSpeed) ||
-            data.shootSpeed < 1.f || data.shootSpeed > 40.f)
+            !validWeaponShootSpeed(data.shootSpeed))
             return false;
     }
     auto nextView=std::make_shared<ProjectileDefinitions>(*std::atomic_load_explicit(&g_projectileView,std::memory_order_acquire));
@@ -2540,24 +2580,8 @@ int registerNativeContent(void* context, const NativeContentSpec* spec) {
         }
         return type;
     }
-    if (spec->kind == NativeWeapon) {
-        if (spec->damage < 1 || spec->damage > 1000 ||
-            spec->useTime < 2 || spec->useTime > 120 ||
-            spec->shootSpeed < 1.f || spec->shootSpeed > 40.f ||
-            !bl::runtime::modProjectileBelongsTo(spec->shootType, ctx.modId)) return -1;
-        bl::runtime::ModItemDef def{};
-        def.mod = ctx.modId;
-        def.name = spec->name;
-        def.texture = path;
-        def.names=ctx.sourceNames;def.names.push_back({"", display});
-        const int type = bl::runtime::registerModItem(std::move(def));
-        if (type >= 0) {
-            g_weapons[type] = {spec->damage, spec->useTime, spec->shootSpeed, spec->shootType};
-            publishWeaponDefaults();
-            ++ctx.items;
-        }
-        return type;
-    }
+    if (spec->kind == NativeWeapon)
+        return registerNativeWeapon(ctx, *spec, path, display);
     return -1;
 }
 

@@ -32,6 +32,18 @@ int main() {
     assert(bl::csharp::sourceContentDomain("BunnyRarity") == "RARITY");
     assert(bl::csharp::sourceIdentityForWire("RARITY", "ThirdRarity") == "RARITY:ThirdRarity");
 
+    const auto beforeUnload=ids.snapshot();
+    ids.retireMod("example");
+    assert(ids.findType("example","ExampleModRarity")==-1);
+    assert(!ids.identityForType(12).active);
+    assert(ids.identityForType(14).active);
+    assert(ids.stableKeyForType(12)=="example/ExampleModRarity");
+    assert(beforeUnload->at(0).active); // published snapshots are immutable
+    assert(ids.registerType("example","ExampleModRarity")==12);
+    assert(ids.registerType("example","ExampleHigherTierModRarity")==13);
+    assert(ids.registerType("example","ThirdRarity")==15);
+    assert(ids.snapshot()->size()==4);
+
     const std::string originalExample = R"cs(
         namespace ExampleModCSharp.Rarities;
         public sealed class ExampleModRarity : BunnyRarity {

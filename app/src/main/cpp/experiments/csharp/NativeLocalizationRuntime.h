@@ -17,6 +17,7 @@ bool decodeManagedWire(const std::string& wire, const std::string& modId,
 bool acceptManagedWire(const std::string& modId, const std::string& assemblyPath,
                        const std::string& culture, uint64_t generation,
                        const std::string& wire);
+void retireMod(const std::string& modId);
 void stage(const std::string& modId, std::vector<Entry> entries);
 void bindManagedAssembly(const std::string& modId, const std::string& assemblyPath);
 void retainActiveMods(const std::set<std::string>& activeIds);

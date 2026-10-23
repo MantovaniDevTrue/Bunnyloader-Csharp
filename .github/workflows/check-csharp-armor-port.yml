@@ -1,0 +1,36 @@
+name: CSharp ExampleMod armor translation (no APK)
+on:
+  push:
+    paths:
+      - 'samples/ExampleModCSharp/Playable/**'
+      - 'experiments/csharp/**'
+      - 'app/src/main/cpp/experiments/csharp/**'
+      - 'tests/basic_items/**'
+      - 'tests/run_native_armor_policies.py'
+      - 'tests/run_native_item_policies.py'
+      - 'tests/armor_port_run.sh'
+      - '.github/workflows/check-csharp-armor-port.yml'
+  pull_request:
+    paths:
+      - 'samples/ExampleModCSharp/Playable/**'
+      - 'experiments/csharp/**'
+      - 'app/src/main/cpp/experiments/csharp/**'
+      - 'tests/basic_items/**'
+      - 'tests/run_native_armor_policies.py'
+      - 'tests/run_native_item_policies.py'
+      - 'tests/armor_port_run.sh'
+      - '.github/workflows/check-csharp-armor-port.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  host:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Compare translated armor and execute native policies without QuickJS
+        run: bash tests/armor_port_run.sh

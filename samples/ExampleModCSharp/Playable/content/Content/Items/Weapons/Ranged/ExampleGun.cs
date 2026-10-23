@@ -20,6 +20,7 @@ public sealed class ExampleGun : BunnyItem
             .SetId("shoot", "ProjectileID", "PurificationPowder")
             .SetFloat("shootSpeed", 10)
             .SetId("useAmmo", "AmmoID", "Bullet");
+        // Declarar shoot também sincroniza a direção com a mira antes do tiro nativo.
         Holdout = new BunnyHoldout(-18, 0);
         // O caminho tem extensão para eliminar ambiguidade de assets. O núcleo
         // carrega SoundPool e constrói LegacySoundStyle, sem executar JavaScript.

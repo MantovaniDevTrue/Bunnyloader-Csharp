@@ -15,12 +15,12 @@ Check(higher.RarityColor.R == 127 && higher.RarityColor.G == 204 &&
 
 var material = new ExampleItem();
 material.SetDefaults();
-Check(material.ModRarityClassName == nameof(ExampleModRarity),
-    "Basic item rarity is not registered");
+Check(material.ModRarityClassName.Length == 0,
+    "ExampleItem must not declare an additional mod rarity");
 var sword = new ExampleMeleeWeapon();
 sword.SetDefaults();
-Check(sword.ModRarityClassName == nameof(ExampleModRarity),
-    "Melee sword rarity is not registered");
+Check(sword.ModRarityClassName.Length == 0 && sword.Rare == ItemRarityID.Green,
+    "Melee sword must use original vanilla Green rarity");
 var accessory = new ExampleStatAccessory();
 accessory.SetDefaults();
 Check(accessory.ModRarityClassName == nameof(ExampleHigherTierModRarity),
@@ -32,8 +32,12 @@ Check(wand.ModRarityClassName == nameof(ExampleModRarity),
     "Native weapon rarity is not registered");
 var potion = new ExampleBuffPotion();
 potion.SetDefaults();
-Check(potion.ModRarityClassName == nameof(ExampleHigherTierModRarity),
-    "Native buff potion rarity is not registered");
+Check(potion.ModRarityClassName.Length == 0 &&
+    potion.NativeDefaultsDefinition.Contains("rare:d:ItemRarityID:Orange", StringComparison.Ordinal),
+    "Buff potion must use original vanilla Orange rarity");
+Check(potion.Duration == 5400 &&
+    potion.NativeDefaultsDefinition.Contains("ItemSet_DrinkParticleColors:c:FFF0F0F0,FFC8C8C8,FF8C8C8C", StringComparison.Ordinal),
+    "Buff potion must preserve original duration and three drink colors");
 
 Console.WriteLine("PLAYABLE_RARITY_EXAMPLES=PASS");
 

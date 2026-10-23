@@ -47,7 +47,7 @@
   {
     "source": "check-csharp-rarity-loader.yml",
     "name": "Verify native rarity registry and parser without JS",
-    "command": "true\ng++ -std=c++20 -Wall -Wextra -Werror -Wno-deprecated-declarations -O2 -pthread -DBL_HAVE_QUICKJS=0 -I app/src/main/cpp \\\n  tests/rarity_loader/native_rarity_registry_test.cpp \\\n  app/src/main/cpp/experiments/csharp/SourceParser.cpp \\\n  -o /tmp/bunny-rarity-native\n/tmp/bunny-rarity-native\ng++ -std=c++20 -Wall -Wextra -Werror -Wno-deprecated-declarations -O2 -pthread -I app/src/main/cpp \\\n  tests/rarity_loader/native_rarity_color_test.cpp -o /tmp/bunny-rarity-color\n/tmp/bunny-rarity-color\ng++ -std=c++20 -Wall -Wextra -Werror -Wno-deprecated-declarations -O2 -I app/src/main/cpp \\\n  tests/rarity_loader/native_rarity_item_test.cpp -o /tmp/bunny-rarity-item\n/tmp/bunny-rarity-item\ng++ -std=c++20 -Wall -Wextra -Werror -Wno-deprecated-declarations -O2 -pthread -I app/src/main/cpp \\\n  tests/rarity_loader/native_rarity_save_test.cpp -o /tmp/bunny-rarity-save\n/tmp/bunny-rarity-save\n"
+    "command": "true\ng++ -std=c++20 -Wall -Wextra -Werror -Wno-deprecated-declarations -O2 -pthread -DBL_HAVE_QUICKJS=0 -I app/src/main/cpp \\\n  tests/rarity_loader/native_rarity_registry_test.cpp \\\n  app/src/main/cpp/experiments/csharp/SourceParser.cpp \\\n  -o /tmp/bunny-rarity-native\n/tmp/bunny-rarity-native\ng++ -std=c++20 -Wall -Wextra -Werror -Wno-deprecated-declarations -O2 -pthread -I app/src/main/cpp \\\n  tests/rarity_loader/native_rarity_color_test.cpp -o /tmp/bunny-rarity-color\n/tmp/bunny-rarity-color\ng++ -std=c++20 -Wall -Wextra -Werror -Wno-deprecated-declarations -O2 -I app/src/main/cpp \\\n  tests/rarity_loader/native_rarity_item_test.cpp -o /tmp/bunny-rarity-item\n/tmp/bunny-rarity-item\ng++ -std=c++20 -Wall -Wextra -Werror -Wno-deprecated-declarations -O2 -pthread -I app/src/main/cpp \\\n  tests/rarity_loader/native_rarity_save_test.cpp -o /tmp/bunny-rarity-save\n/tmp/bunny-rarity-save\ng++ -std=c++20 -Wall -Wextra -Werror -Wno-deprecated-declarations -O1 -ffunction-sections -fdata-sections -DBL_HAVE_QUICKJS=0 -I tests/basic_items/include -I app/src/main/cpp tests/rarity_loader/native_mouse_text_cache_test.cpp -Wl,--gc-sections -pthread -o /tmp/bunny-mouse-cache\n/tmp/bunny-mouse-cache\n"
   },
   {
     "source": "check-csharp-rarity-loader.yml",
@@ -122,7 +122,7 @@
   {
     "source": "check-csharp-angler-quest-host.yml",
     "name": "Execute angler quest hooks against host IL2CPP fixture",
-    "command": "set -euo pipefail\ng++ -std=c++20 -Wall -Wextra -Werror -Wno-deprecated-declarations -pedantic -pthread \\\n  -I app/src/main/cpp -I tests/basic_items/include \\\n  tests/angler_quest/native_il2cpp_integration_test.cpp \\\n  app/src/main/cpp/experiments/csharp/NativeAnglerQuestGameplay.cpp \\\n  -o \"$RUNNER_TEMP/angler_il2cpp_integration_test\"\n\"$RUNNER_TEMP/angler_il2cpp_integration_test\"\n"
+    "command": "set -euo pipefail\ng++ -std=c++20 -Wall -Wextra -Werror -Wno-deprecated-declarations -pedantic -pthread \\\n  -I app/src/main/cpp -I tests/basic_items/include \\\n  tests/angler_quest/native_il2cpp_integration_test.cpp \\\n  app/src/main/cpp/experiments/csharp/NativeAnglerQuestGameplay.cpp \\\n  -o \"$RUNNER_TEMP/angler_il2cpp_integration_test\"\n\"$RUNNER_TEMP/angler_il2cpp_integration_test\"\n\"$RUNNER_TEMP/angler_il2cpp_integration_test\" --fields\n"
   },
   {
     "source": "check-csharp-angler-quest-host.yml",
@@ -323,5 +323,25 @@
     "name": "Audit CSharp native tooltip activation, line colors and glyph drawing",
     "source": "integration-regression",
     "command": "python3 tests/basic_items/check_csharp_tooltip_refresh.py"
+  },
+  {
+    "source": "ExampleMod APK readiness policy",
+    "name": "Prevent APK packaging with incomplete translated behaviors or loaders",
+    "command": "python3 tests/test_examplemod_apk_readiness.py"
+  },
+  {
+    "source": "check-csharp-golf-ball.yml",
+    "name": "Translate golf ball and verify native static projectile table ordering",
+    "command": "bash tests/golf_ball/run.sh"
+  },
+  {
+    "source": "check-csharp-armor-port.yml",
+    "name": "Verify original armor prices tooltips and production native equipment policies",
+    "command": "bash tests/armor_port_run.sh"
+  },
+  {
+    "source": "check-csharp-three-loaders.yml",
+    "name": "Verify three loader revisions, native retirement, durable worker teardown and collectible shared assemblies",
+    "command": "bash tests/three_loaders/run.sh"
   }
 ]

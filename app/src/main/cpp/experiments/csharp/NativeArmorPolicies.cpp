@@ -24,6 +24,7 @@ struct Snapshot { std::map<int,Policy> pieces; std::map<std::array<int,3>,std::v
 std::shared_ptr<const Snapshot> snapshot;
 std::mutex mutex;
 std::map<int,Entry> entries;
+std::map<std::string,std::set<int>> activeModTypes;
 std::atomic<bool> pending{false},haveSets{false};
 int itemType=-1,playerArmor=-1;Il2CppClass* armorClass=nullptr;
 using GrantFn=void (*)(Il2CppObject*,Il2CppObject*,const MethodInfo*);
@@ -195,8 +196,9 @@ struct Root {
     Root(const Root&)=delete;Root& operator=(const Root&)=delete;
     Il2CppObject* get() const {return handle?il2cpp::api().gchandle_get_target(handle):nullptr;}
 };
-struct UiRecord { std::array<int,3> ids{};std::string text;std::unique_ptr<Root> value; bool added=false;uintptr_t index=0; };
+struct UiRecord { std::array<int,3> ids{};std::string text,mod,name,error;std::unique_ptr<Root> value,pendingEffect; bool added=false; };
 std::map<std::array<int,3>,UiRecord> ui;
+std::set<std::array<int,3>> retiringUi;
 FieldInfo* lookupField=nullptr;FieldInfo* allField=nullptr;
 const MethodInfo* arrayGet=nullptr;const MethodInfo* arraySet=nullptr;const MethodInfo* addSet=nullptr;
 Il2CppArray* lastLookup=nullptr;
@@ -269,18 +271,84 @@ bool prepareUi(std::string* error) {
     }
     return true;
 }
+bool localizedTextReady(const std::string& key,std::string* error) {
+    auto& a=il2cpp::api();
+    auto* language=il2cpp::findClass({"Terraria.Localization","Language",{}});
+    const auto* exists=language?il2cpp::findMethodBySignature(language,
+        il2cpp::parseSignature("bool Exists(string key)")):nullptr;
+    auto* resultType=exists&&a.method_get_return_type?
+        a.class_from_il2cpp_type(a.method_get_return_type(exists)):nullptr;
+    uint32_t alignment=0;
+    if(!exists||a.method_is_instance(exists)||!primitive(resultType,"Boolean")) {
+        *error="Reason=ArmorLocalizationContractUnavailable";return false;
+    }
+    if(a.class_value_size(resultType,&alignment)!=1) {
+        *error="Reason=ArmorLocalizationContractUnavailable";return false;
+    }
+    Root argument(reinterpret_cast<Il2CppObject*>(a.string_new(key.c_str())));
+    if(!argument.get()){*error="Reason=TextAllocationFailed";return false;}
+    void* args[]={argument.get()};bool ok=false;
+    Root result(invoke(exists,nullptr,args,&ok));
+    if(!ok||!result.get()||a.object_get_class(result.get())!=resultType) {
+        *error="Reason=ArmorLocalizationLookupFailed";return false;
+    }
+    // A missing GetText key can return an unregistered LocalizedText. Waiting
+    // for Exists prevents retaining that orphan across future language reloads.
+    if(!*reinterpret_cast<const uint8_t*>(result.get()+1)) {
+        *error="Reason=ArmorLocalizationKeyPending";return false;
+    }
+    return true;
+}
+bool recoverUiValue(UiRecord& record,std::string* error) {
+    bool ok=false;
+    if(!record.value) {
+        if(!record.pendingEffect||!record.pendingEffect->get()){*error="Reason=SetDelegateRootMissing";return false;}
+        Root all(reinterpret_cast<Il2CppObject*>(allSets(&ok)));
+        auto* values=reinterpret_cast<Il2CppArray*>(all.get());
+        if(!ok||!values){*error="Reason=NativeSetResultMissing";return false;}
+        // RemoveAt on another set may have shifted the append index. Recover by
+        // IDs and the pinned delegate, never by a potentially stale list index.
+        for(uintptr_t i=0;i<values->length&&!record.value;++i) {
+            auto* raw=get(values,static_cast<int>(i),&ok);
+            if(!ok){*error="Reason=NativeSetResultMissing";return false;}
+            if(!raw)continue;
+            Root candidate(raw);if(!candidate.get()){*error="Reason=SetRootFailed";return false;}
+            bool match=true;
+            for(size_t k=0;k<3&&match;++k) {
+                size_t off=0;int id=0;
+                match=boxedField(candidate.get(),std::array<const char*,3>{"Head","Body","Legs"}[k],4,&off);
+                if(!match){*error="Reason=InvalidCreatedSet";return false;}
+                if(match){std::memcpy(&id,reinterpret_cast<unsigned char*>(candidate.get())+off,4);match=id==record.ids[k];}
+            }
+            size_t off=0;Il2CppObject* effect=nullptr;
+            if(!match)continue;
+            if(!boxedField(candidate.get(),"Effect",sizeof(void*),&off)){*error="Reason=InvalidCreatedSet";return false;}
+            std::memcpy(&effect,reinterpret_cast<unsigned char*>(candidate.get())+off,sizeof(effect));
+            if(effect==record.pendingEffect->get())record.value=std::make_unique<Root>(candidate.get());
+        }
+        if(!record.value)return true;
+        if(!record.value->get()){record.value.reset();*error="Reason=SetRootFailed";return false;}
+        record.pendingEffect.reset();
+    }
+    return true;
+}
+bool ownedSet(Il2CppObject* value,const UiRecord& record);
 bool installUi(const Entry& entry,std::string* error) {
     auto& a=il2cpp::api();bool ok=false;
     Il2CppArray* lookup=nullptr;a.field_static_get_value(lookupField,&lookup);
     if(!lookup||lookup->length>65536||lookup->length==0){*error="Reason=ArmorLookupPending";return false;}
     auto& record=ui[entry.ids];
-    if(!record.text.empty()&&record.text!=entry.source.text){*error="Reason=ConflictingSetText";return false;}
-    record.ids=entry.ids;record.text=entry.source.text;
+    if(!record.mod.empty()&&record.mod!=entry.status.mod){*error="Reason=SetOwnedByAnotherMod";return false;}
+    const std::string textKey=entry.source.textKey.empty()?entry.source.text:
+        "Mods."+entry.status.mod+"."+entry.source.textKey;
+    if(!record.text.empty()&&record.text!=textKey){*error="Reason=ConflictingSetText";return false;}
+    record.ids=entry.ids;record.text=textKey;record.mod=entry.status.mod;record.name=entry.status.name;
     const auto last=*std::max_element(entry.ids.begin(),entry.ids.end());
     auto* outerClass=a.object_get_class(reinterpret_cast<Il2CppObject*>(lookup));
     auto* rowClass=a.class_get_element_class(outerClass);auto* element=rowClass?a.class_get_element_class(rowClass):nullptr;
     if(a.class_get_rank(outerClass)!=1||!rowClass||a.class_get_rank(rowClass)!=1||!element){*error="Reason=InvalidSetLookupType";return false;}
     if(!record.value&&!record.added) {
+        if(!entry.source.textKey.empty()&&!localizedTextReady(textKey,error))return false;
         Root all(reinterpret_cast<Il2CppObject*>(allSets(&ok)));if(!ok||!all.get()){*error="Reason=ArmorAllPending";return false;}
         int pumpkinId=-1;if(!constant("ItemID","PumpkinHelmet",&pumpkinId)){*error="Reason=PumpkinIdMissing";return false;}
         Root* delegate=nullptr;std::unique_ptr<Root> found;
@@ -295,30 +363,18 @@ bool installUi(const Entry& entry,std::string* error) {
             if(effect&&a.object_get_class(effect)==a.class_from_il2cpp_type(a.method_get_param(addSet,0))){found=std::make_unique<Root>(effect);delegate=found.get();break;}
         }
         if(!delegate||!delegate->get()){*error="Reason=PumpkinDelegatePending";return false;}
-        Root text(reinterpret_cast<Il2CppObject*>(a.string_new(entry.source.text.c_str())));
+        Root text(reinterpret_cast<Il2CppObject*>(a.string_new(textKey.c_str())));
         if(!text.get()){*error="Reason=TextAllocationFailed";return false;}
         uint64_t primary=0;int head=entry.ids[0],body=entry.ids[1],legs=entry.ids[2];
         void* args[]={delegate->get(),text.get(),&primary,&head,&body,&legs};
-        record.index=values->length;
+        record.pendingEffect=std::move(found);
         invoke(addSet,nullptr,args,&ok);record.added=true;
         if(!ok){*error="Reason=NativeSetAddFailed";return false;}
     }
+    if(!recoverUiValue(record,error))return false;
     if(!record.value) {
-        Root after(reinterpret_cast<Il2CppObject*>(allSets(&ok)));auto* list=reinterpret_cast<Il2CppArray*>(after.get());
-        if(!ok||!list){*error="Reason=NativeSetResultMissing";return false;}
-        if(list->length<=record.index){record.added=false;*error="Reason=NativeSetResultMissing";return false;}
-        auto* created=get(list,static_cast<int>(record.index),&ok);
-        if(!ok||!created){*error="Reason=NativeSetResultMissing";return false;}
-        Root candidate(created);std::array<int,3> actual{};
-        for(size_t i=0;i<3;++i) {
-            size_t offset=0;
-            if(!candidate.get()||!boxedField(candidate.get(),std::array<const char*,3>{"Head","Body","Legs"}[i],4,&offset)) {
-                *error="Reason=InvalidCreatedSet";return false;
-            }
-            std::memcpy(&actual[i],reinterpret_cast<unsigned char*>(candidate.get())+offset,4);
-        }
-        if(actual!=entry.ids){*error="Reason=CreatedSetIdentityMismatch";return false;}
-        record.value=std::make_unique<Root>(created);if(!record.value->get()){record.value.reset();*error="Reason=SetRootFailed";return false;}
+        record.added=false;record.pendingEffect.reset();
+        *error="Reason=NativeSetResultMissing";return false;
     }
     // Use managed Array.GetValue/SetValue so reference and value arrays get the
     // correct boxing and GC barriers. No per-frame boxing occurs.
@@ -342,10 +398,7 @@ bool installUi(const Entry& entry,std::string* error) {
         bool contains=false;
         if(row)for(uintptr_t i=0;i<row->length;++i) {
             Root value(get(row,static_cast<int>(i),&ok));if(!ok)return false;
-            if(value.get()==record.value->get()){contains=true;break;}
-            std::array<int,3> ids{};bool matches=value.get()!=nullptr;
-            for(size_t k=0;k<3&&matches;++k) {size_t off=0;matches=boxedField(value.get(),std::array<const char*,3>{"Head","Body","Legs"}[k],4,&off);if(matches)std::memcpy(&ids[k],reinterpret_cast<unsigned char*>(value.get())+off,4);}
-            if(matches&&ids==entry.ids){contains=true;break;}
+            if(ownedSet(value.get(),record)){contains=true;break;}
         }
         if(contains)continue;
         const auto size=row?row->length:0;
@@ -356,8 +409,97 @@ bool installUi(const Entry& entry,std::string* error) {
     }
     lastLookup=lookup;return true;
 }
+bool ownedSet(Il2CppObject* value,const UiRecord& record) {
+    auto* owner=record.value?record.value->get():nullptr;
+    if(!value||!owner)return false;
+    auto& a=il2cpp::api();auto* cls=a.object_get_class(owner);
+    if(a.object_get_class(value)!=cls)return false;
+    if(!a.class_is_valuetype(cls))return value==owner;
+    // Boxed value-array elements do not have stable reference identity. Only
+    // retire unchanged copies of the three IDs and the exact native delegate.
+    for(const char* field:{"Head","Body","Legs","Effect"}) {
+        size_t off=0;const size_t width=std::strcmp(field,"Effect")==0?sizeof(void*):4;
+        if(!boxedField(owner,field,width,&off)||
+           std::memcmp(reinterpret_cast<unsigned char*>(owner)+off,
+                       reinterpret_cast<unsigned char*>(value)+off,width)!=0)return false;
+    }
+    return true;
+}
+bool retireUi(UiRecord& record,std::string* error) {
+    if(!record.added&&!record.value)return true;
+    auto& a=il2cpp::api();bool ok=false;
+    // Recover a successfully appended set even when Add/ToArray failed before
+    // its root was acquired. This uses the same verified identity as installUi.
+    if(!recoverUiValue(record,error))return false;
+    if(!record.value)return true;
+    Il2CppArray* lookup=nullptr;a.field_static_get_value(lookupField,&lookup);
+    if(!lookup||lookup->length>65536){*error="Reason=RetireArmorLookupPending";return false;}
+    auto* outer=a.object_get_class(reinterpret_cast<Il2CppObject*>(lookup));
+    auto* rowClass=a.class_get_element_class(outer);auto* element=rowClass?a.class_get_element_class(rowClass):nullptr;
+    if(a.class_get_rank(outer)!=1||!rowClass||a.class_get_rank(rowClass)!=1||!element){*error="Reason=RetireArmorLookupType";return false;}
+    for(int type:record.ids) {
+        if(type<0||static_cast<uintptr_t>(type)>=lookup->length)continue;
+        auto* oldValue=get(lookup,type,&ok);
+        Root old(oldValue);if(!ok){*error="Reason=RetireArmorRowRead";return false;}
+        if(oldValue&&!old.get()){*error="Reason=RetireArmorRootFailed";return false;}
+        auto* row=reinterpret_cast<Il2CppArray*>(old.get());if(!row)continue;
+        if(a.object_get_class(old.get())!=rowClass||row->length>4096){*error="Reason=RetireArmorRowType";return false;}
+        std::vector<std::unique_ptr<Root>> keep;
+        for(uintptr_t i=0;i<row->length;++i) {
+            auto* raw=get(row,static_cast<int>(i),&ok);
+            auto value=std::make_unique<Root>(raw);
+            if(!ok){*error="Reason=RetireArmorRowRead";return false;}
+            if(raw&&!value->get()){*error="Reason=RetireArmorRootFailed";return false;}
+            if(!ownedSet(value->get(),record))keep.push_back(std::move(value));
+        }
+        if(keep.size()==row->length)continue;
+        Root grown(reinterpret_cast<Il2CppObject*>(a.array_new(element,keep.size())));
+        if(!grown.get()){*error="Reason=RetireArmorRowAllocation";return false;}
+        auto* next=reinterpret_cast<Il2CppArray*>(grown.get());
+        for(size_t i=0;i<keep.size();++i)if(!set(next,static_cast<int>(i),keep[i]->get())){*error="Reason=RetireArmorRowWrite";return false;}
+        if(!set(lookup,type,grown.get())){*error="Reason=RetireArmorRowPublish";return false;}
+    }
+    Il2CppObject* list=nullptr;a.field_static_get_value(allField,&list);
+    Root listRoot(list);
+    const auto* remove=list?il2cpp::findMethodBySignature(a.object_get_class(list),
+        il2cpp::parseSignature("void RemoveAt(int index)")):nullptr;
+    if(!listRoot.get()||!remove||!a.method_is_instance(remove)||
+       !primitive(a.class_from_il2cpp_type(a.method_get_param(remove,0)),"Int32")) {
+        *error="Reason=RetireArmorListContract";return false;
+    }
+    Root all(reinterpret_cast<Il2CppObject*>(allSets(&ok)));auto* values=reinterpret_cast<Il2CppArray*>(all.get());
+    if(!ok||!values){*error="Reason=RetireArmorAllPending";return false;}
+    // Remove by descending index. Other entries keep their order, and retries
+    // safely observe rows/All entries already removed by a previous partial pass.
+    for(uintptr_t i=values->length;i>0;--i) {
+        auto* raw=get(values,static_cast<int>(i-1),&ok);
+        Root value(raw);if(!ok){*error="Reason=RetireArmorAllRead";return false;}
+        if(raw&&!value.get()){*error="Reason=RetireArmorRootFailed";return false;}
+        if(!ownedSet(value.get(),record))continue;
+        int index=static_cast<int>(i-1);void* args[]={&index};invoke(remove,listRoot.get(),args,&ok);
+        if(!ok){*error="Reason=RetireArmorListRemove";return false;}
+    }
+    return true;
+}
+void queueRetirement(const std::array<int,3>& ids) {
+    if(!ui.contains(ids))return;
+    retiringUi.insert(ids);
+    for(auto& [type,entry]:entries)if(entry.source.hasSet&&entry.ids==ids) {
+        entry.status.ready=false;entry.status.phase="waiting-retirement";
+    }
+}
+bool partsActive(const Entry& entry) {
+    for(const auto& key:{entry.source.head,entry.source.body,entry.source.legs}) {
+        const auto qualified=key.find('/')==std::string::npos?entry.status.mod+"/"+key:key;
+        const auto owner=qualified.substr(0,qualified.find('/'));
+        const auto known=activeModTypes.find(owner);
+        if(known!=activeModTypes.end()&&!known->second.contains(runtime::modItemTypeByKey(qualified)))return false;
+    }
+    return true;
+}
 void publish() {
-    auto next=std::make_shared<Snapshot>();bool waiting=false,sets=false;
+    auto next=std::make_shared<Snapshot>();bool waiting=!retiringUi.empty(),sets=false;
+    for(const auto& ids:retiringUi)if(ui.contains(ids)&&ui.at(ids).added)next->suppressPumpkin.insert(ids);
     for(const auto& [type,entry]:entries) {
         const auto registered=ui.find(entry.ids);
         if(entry.source.hasSet&&registered!=ui.end()&&registered->second.added)next->suppressPumpkin.insert(entry.ids);
@@ -369,10 +511,11 @@ void publish() {
     pending.store(waiting,std::memory_order_release);haveSets.store(sets,std::memory_order_release);
 }
 } // namespace armor_native
-struct NativeArmorBatch { std::vector<armor_native::Entry> values;std::vector<int> types; };
+struct NativeArmorBatch { std::string mod;std::vector<armor_native::Entry> values;std::vector<int> types; };
 std::shared_ptr<NativeArmorBatch> prepareNativeArmorPolicies(const std::string& mod,const std::vector<BasicItemEntry>& items,std::string* error) {
     using namespace armor_native;
     auto batch=std::make_shared<NativeArmorBatch>();
+    batch->mod=mod;
     bool pieces=false,sets=false;
     for(const auto& item:items)if(item.armor.present){pieces=pieces||!item.armor.piece.effects.empty()||!item.armor.piece.immune.empty();sets=sets||item.armor.hasSet;}
     if((pieces||sets)&&!prepare(pieces,sets,error))return nullptr;
@@ -396,10 +539,41 @@ std::shared_ptr<NativeArmorBatch> prepareNativeArmorPolicies(const std::string& 
 void commitNativeArmorPolicies(const std::shared_ptr<NativeArmorBatch>& batch) {
     using namespace armor_native;if(!batch)return;
     std::lock_guard lock(mutex);
-    for(int type:batch->types)entries.erase(type);
+    if(auto known=activeModTypes.find(batch->mod);known!=activeModTypes.end())
+        known->second.insert(batch->types.begin(),batch->types.end());
+    for(int type:batch->types) {
+        const auto old=entries.find(type);
+        if(old!=entries.end()&&old->second.source.hasSet)queueRetirement(old->second.ids);
+        entries.erase(type);
+    }
     for(const auto& value:batch->values)entries[value.status.type]=value;
     publish();
 }
+void retainNativeArmorPoliciesForMod(const std::string& mod,const std::vector<int>& activeTypes) {
+    using namespace armor_native;
+    const std::set<int> retained(activeTypes.begin(),activeTypes.end());
+    std::lock_guard lock(mutex);
+    activeModTypes[mod]=retained;
+    for(auto it=entries.begin();it!=entries.end();) {
+        if(it->second.status.mod==mod&&!retained.contains(it->first)) {
+            if(it->second.source.hasSet)queueRetirement(it->second.ids);
+            it=entries.erase(it);
+        } else ++it;
+    }
+    // Cross-mod sets may refer to a part removed from this mod's full snapshot.
+    // Reserved native IDs can outlive the content; they are not proof it is active.
+    for(auto& [type,entry]:entries)if(entry.source.hasSet&&!partsActive(entry)) {
+        queueRetirement(entry.ids);
+        entry.status.ready=false;entry.status.phase="waiting-parts";entry.status.error="Reason=MissingActiveSetPart";
+    }
+    for(const auto& [ids,record]:ui)if(record.mod==mod) {
+        bool active=false;
+        for(const auto& [type,entry]:entries)if(entry.status.mod==mod&&entry.source.hasSet&&entry.ids==ids){active=true;break;}
+        if(!active)queueRetirement(ids);
+    }
+    publish();
+}
+void retireNativeArmorPoliciesForMod(const std::string& mod) { retainNativeArmorPoliciesForMod(mod,{}); }
 void pumpNativeArmorPoliciesOnGameThread() {
     using namespace armor_native;
     static unsigned ticks=0;++ticks;
@@ -407,7 +581,16 @@ void pumpNativeArmorPoliciesOnGameThread() {
     std::lock_guard lock(mutex);std::string error;
     if(!prepareUi(&error)) {
         for(auto& [type,e]:entries)if(!e.status.ready){e.status.phase="waiting-registry";e.status.error=error;}
+        for(const auto& ids:retiringUi)ui.at(ids).error=error;
         return;
+    }
+    unsigned retired=0;
+    for(auto it=retiringUi.begin();it!=retiringUi.end()&&retired<2;) {
+        auto found=ui.find(*it);error.clear();++retired;
+        if(found==ui.end()||retireUi(found->second,&error)) {
+            if(found!=ui.end())ui.erase(found);
+            it=retiringUi.erase(it);
+        } else {found->second.error=error;++it;}
     }
     Il2CppArray* lookup=nullptr;il2cpp::api().field_static_get_value(lookupField,&lookup);
     if(lookup!=lastLookup)for(auto& [type,entry]:entries)if(entry.source.hasSet)entry.status.ready=false;
@@ -417,6 +600,7 @@ void pumpNativeArmorPoliciesOnGameThread() {
         if(it==entries.end())it=entries.begin();
         auto& [type,entry]=*it++;cursor=type;
         if(entry.status.ready||!entry.source.hasSet)continue;
+        if(retiringUi.contains(entry.ids)){entry.status.phase="waiting-retirement";continue;}
         ++processed;error.clear();
         bool resolved=true;std::array<std::string,3> keys{entry.source.head,entry.source.body,entry.source.legs};
         for(size_t i=0;i<3;++i) {
@@ -427,7 +611,8 @@ void pumpNativeArmorPoliciesOnGameThread() {
         if(resolved&&std::find(entry.ids.begin(),entry.ids.end(),type)==entry.ids.end()) {
             error="Reason=OwnerNotInSet";resolved=false;
         }
-        if(!resolved) {entry.status.phase="waiting-parts";entry.status.error=error.empty()?"Reason=MissingSetPart":error;continue;}
+        if(!resolved||!partsActive(entry)) {entry.status.phase="waiting-parts";entry.status.error=error.empty()?"Reason=MissingSetPart":error;continue;}
+        if(retiringUi.contains(entry.ids)){entry.status.phase="waiting-retirement";continue;}
         error.clear();entry.status.ready=installUi(entry,&error);entry.status.phase=entry.status.ready?"ready":"waiting-registry";
         entry.status.error=error;
     }
@@ -438,13 +623,17 @@ bool nativeArmorPolicyReady(int type) {
     return found==armor_native::entries.end()||found->second.status.ready;
 }
 int pendingNativeArmorPolicies() {
-    std::lock_guard lock(armor_native::mutex);int count=0;
+    std::lock_guard lock(armor_native::mutex);int count=static_cast<int>(armor_native::retiringUi.size());
     for(const auto& [type,e]:armor_native::entries)if(!e.status.ready)++count;
     return count;
 }
 std::vector<NativeArmorPolicyStatus> nativeArmorPolicyStatuses() {
     std::lock_guard lock(armor_native::mutex);std::vector<NativeArmorPolicyStatus> out;
     for(const auto& [type,e]:armor_native::entries)out.push_back(e.status);
+    for(const auto& ids:armor_native::retiringUi) {
+        const auto& record=armor_native::ui.at(ids);
+        out.push_back({ids[0],false,record.mod,record.name,"retiring",record.error});
+    }
     return out;
 }
 } // namespace bl::csharp

@@ -20,7 +20,7 @@ public sealed class ExampleHamaxe : BunnyItem
         UseStyle = 1;       // Swing: animacao e hitbox melee sao do jogo.
         AutoReuse = true;
         Value = 50000;
-        Rare = 1;
+        Rare = ItemRarityID.Green;
         UseSound = "Item1";
     }
 

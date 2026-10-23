@@ -1,0 +1,35 @@
+name: CSharp localization rarity and angler lifecycle (no APK)
+on:
+  push:
+    paths:
+      - 'experiments/csharp/**'
+      - 'app/src/main/cpp/experiments/csharp/**'
+      - 'tests/three_loaders/**'
+      - 'tests/basic_items/**'
+      - 'tests/angler_quest/**'
+      - 'tests/summon_lifecycle/**'
+      - 'samples/ExampleModCSharp/**'
+      - '.github/workflows/check-csharp-three-loaders.yml'
+  pull_request:
+    paths:
+      - 'experiments/csharp/**'
+      - 'app/src/main/cpp/experiments/csharp/**'
+      - 'tests/three_loaders/**'
+      - 'tests/basic_items/**'
+      - 'tests/angler_quest/**'
+      - 'tests/summon_lifecycle/**'
+      - 'samples/ExampleModCSharp/**'
+      - '.github/workflows/check-csharp-three-loaders.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  host:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - run: bash tests/three_loaders/run.sh

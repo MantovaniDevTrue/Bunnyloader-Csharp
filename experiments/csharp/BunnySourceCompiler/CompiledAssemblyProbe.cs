@@ -330,8 +330,23 @@ public static class CompiledAssemblyProbe
         MethodInfo method = type.GetMethod("SetDefaults", BindingFlags.Public | BindingFlags.Instance)
             ?? throw new InvalidOperationException("Missing SetDefaults in " + type.Name);
         method.Invoke(instance, null);
+        if (IsContentType(type, "BunnyProjectile"))
+            InitializeProjectileStaticDefaults(instance);
         ValidateDeclaration(instance);
         return instance;
+    }
+
+    private static void InitializeProjectileStaticDefaults(object instance)
+    {
+        Type type = instance.GetType();
+        MethodInfo? method = type.GetMethod("SetStaticDefaults",
+            BindingFlags.Public | BindingFlags.Instance, binder: null,
+            types: Type.EmptyTypes, modifiers: null);
+        if (method == null || method.ReturnType != typeof(void) ||
+            method.ContainsGenericParameters ||
+            method.GetBaseDefinition().DeclaringType?.FullName != "BunnyLoader.Source.BunnyProjectile")
+            throw new InvalidOperationException(type.FullName + ": invalid SetStaticDefaults override");
+        method.Invoke(instance, null);
     }
 
     private static int DustHookMask(Type type)
@@ -372,6 +387,7 @@ public static class CompiledAssemblyProbe
             throw new InvalidOperationException("SourceBolt base type invalid");
         object instance = Activator.CreateInstance(type)!;
         type.GetMethod("SetDefaults", BindingFlags.Public | BindingFlags.Instance)!.Invoke(instance, null);
+        InitializeProjectileStaticDefaults(instance);
         if ((int)type.GetProperty("Width")!.GetValue(instance)! != 10 ||
             (int)type.GetProperty("Height")!.GetValue(instance)! != 10 ||
             (int)type.GetProperty("AiStyle")!.GetValue(instance)! != 1 ||
@@ -1227,7 +1243,12 @@ public static class CompiledAssemblyProbe
         foreach(var item in basicItems.Concat(weapons))
         {
             int shootMask=Value<int>(item,"ShootCallbackMask");
-            if(shootMask!=0)lines.Add("SHOOT\t"+item.GetType().Name+"\t"+shootMask.ToString(CultureInfo.InvariantCulture));
+            // Mask zero installs native aim synchronization without invoking Mono callbacks.
+            string defaults=Value<string>(item,"NativeDefaultsDefinition");
+            bool nativeShot=defaults.Split(';').Any(field=>field.StartsWith("shoot:",StringComparison.Ordinal));
+            bool legacyShot=item.GetType().GetProperty("Shoot")?.GetValue(item) is string projectileName&&projectileName.Length!=0;
+            bool cursor=Value<bool>(item,"SpawnAtCursor");
+            if(shootMask!=0||nativeShot||legacyShot||cursor)lines.Add("SHOOT\t"+item.GetType().Name+"\t"+shootMask.ToString(CultureInfo.InvariantCulture)+(cursor?"\t1":""));
             object? sound=item.GetType().GetProperty("CustomUseSound")!.GetValue(item);
             if(sound!=null)lines.Add("USE_SOUND\t"+item.GetType().Name+"\t"+Value<string>(sound,"Definition"));
             object? holdout=item.GetType().GetProperty("Holdout")!.GetValue(item);

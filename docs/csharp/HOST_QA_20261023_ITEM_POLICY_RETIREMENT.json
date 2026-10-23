@@ -1,0 +1,55 @@
+{
+  "date": "2026-10-23",
+  "baselineCommit": "ad8f1bb8b5ee0787d32b03cf496fa41078a3d8a6",
+  "scope": "Dynamic native item policy retirement by UID and full source snapshot; not global ItemLoader unload",
+  "checks": [
+    {
+      "name": "Production native item policy fixture with real compiled ExampleMod and three clone revisions",
+      "result": "PASS",
+      "modes": 21,
+      "retirementPasses": 21
+    },
+    {
+      "name": "SourceLoader/AutoSourceRuntime/NativeRarityGameplay/save integration compilation and managed lifecycle regressions (ready checks index 12)",
+      "result": "PASS"
+    },
+    {
+      "name": "Final SourceLoader syntax check after guard rename",
+      "result": "PASS"
+    },
+    {
+      "name": "Full 100-source bootstrap, managed class count, Dust emission and invasion HUD production fixtures",
+      "result": "PASS"
+    },
+    {
+      "name": "Native tooltip plan and real TooltipLoader JS ownership/reload regression on integrated branch",
+      "result": "PASS"
+    }
+  ],
+  "sanitizers": {
+    "address": "PASS",
+    "undefinedBehavior": "PASS",
+    "modes": [
+      "raw metadata",
+      "boxed metadata"
+    ],
+    "leakDetection": false,
+    "note": "Fake VM retains allocated objects; this is not a production leak scan."
+  },
+  "covered": [
+    "Immediate revocation of published clones, per-type retain, empty snapshot and another UID",
+    "Pending install revoked before pump and retirement during native clone construction",
+    "100 reload/retire operations before pump, re-enable and unknown UID no-op",
+    "GC root count unchanged on ingress; removed clone roots released by game thread",
+    "Wing/robe/color/light hooks fall back after UID retirement",
+    "Animation and wing-table reinitializers cannot republish a retired installation before pump"
+  ],
+  "integrationLimits": [
+    "SourceLoader retirement call sites and failure guard were compiled; full Android loader failure/unload execution was not exercised.",
+    "Existing static cells, textures, slots, registered animations, basic item defaults and live instances are not restored by this change.",
+    "The earlier 69-check suite is recorded in HOST_QA_20261023_CLONE_DEFAULTS.json; this batch ran the targeted checks listed here."
+  ],
+  "apkProduced": false,
+  "apkWorkflowDispatched": false,
+  "androidValidated": false
+}

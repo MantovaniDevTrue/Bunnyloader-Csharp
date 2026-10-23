@@ -167,6 +167,7 @@ jobs:
             app/src/main/cpp/experiments/csharp/NativeAnglerQuestGameplay.cpp \
             -o "$RUNNER_TEMP/angler_il2cpp_integration_test"
           "$RUNNER_TEMP/angler_il2cpp_integration_test"
+          "$RUNNER_TEMP/angler_il2cpp_integration_test" --fields
       - name: Execute native fishing against host IL2CPP value layout
         run: |
           set -euo pipefail

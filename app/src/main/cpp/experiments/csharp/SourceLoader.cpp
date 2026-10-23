@@ -2,6 +2,7 @@
 #include "experiments/csharp/NativeTileWirePolicy.h"
 #include "experiments/csharp/SourceLoader.h"
 #include "experiments/csharp/NativeRarityRegistry.h"
+#include "experiments/csharp/NativeRarityGameplay.h"
 #include "experiments/csharp/ManagedDustContract.h"
 
 #include "experiments/csharp/NativeContent.h"
@@ -14,6 +15,8 @@
 #include "content/projectiles/ModProjectiles.h"
 #include "graphics/CSharpScreenEffects.h"
 #include "experiments/csharp/NativeBasicItems.h"
+#include "experiments/csharp/NativeItemPolicies.h"
+#include "experiments/csharp/NativeArmorPolicies.h"
 #include "experiments/csharp/NativeAnglerQuestRegistry.h"
 #include "experiments/csharp/NativeRecipeCallbacks.h"
 #include "experiments/csharp/ManagedRuntime.h"
@@ -167,7 +170,7 @@ bool fields(const ParsedSourceType& type, NativeContentSpec* spec,
             return false;
         }
         if (basic) {
-            const std::string allowed="|Tooltip|Width|Height|MaxStack|Value|Rare|Defense|Damage|Crit|KnockBack|UseTime|UseAnimation|UseStyle|Melee|NoMelee|AutoReuse|UseTurn|Consumable|Pick|Axe|Hammer|UseSound|";
+            const std::string allowed="|Tooltip|Width|Height|MaxStack|Value|Rare|Defense|Damage|Crit|KnockBack|UseTime|UseAnimation|UseStyle|Melee|NoMelee|AutoReuse|UseTurn|Consumable|Pick|Axe|Hammer|UseSound|SpawnAtCursor|";
             if (allowed.find("|"+key+"|")==std::string::npos) {
                 *error=type.name+": propriedade BunnyItem nao suportada: "+key;return false;
             }
@@ -287,6 +290,7 @@ bool fields(const ParsedSourceType& type, NativeContentSpec* spec,
             }
             continue;
         }
+        if(weapon&&key=="SpawnAtCursor")continue; // Evaluated by the managed verifier; no native side effects during bootstrap.
         int* integerField = nullptr;
         if (projectile && key == "Width") integerField = &spec->width;
         else if (projectile && key == "Height") integerField = &spec->height;
@@ -699,6 +703,13 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
 
 void resetCSharpSourceModSession() {
     for (const auto& mod : g_statuses) {
+        retireNativeDefaultsForMod(mod.id);
+        retireBasicItemTooltipsForMod(mod.id);
+        retireNativeItemPoliciesForMod(mod.id);
+        retireNativeArmorPoliciesForMod(mod.id);
+        retireNativeRaritySampling(mod.id);
+        localization::retireMod(mod.id);
+        shooting::unload(mod.id);
         angler::registry().unload(mod.id);
         unbindNativeRecipeAssembly(mod.id);
         invalidateManagedLiveSourceMod(mod.id);
@@ -711,6 +722,13 @@ bool loadCSharpSourceMod(const bl::mods::LoadedMod& mod) {
     auto previous = std::find_if(g_statuses.begin(), g_statuses.end(),
         [&](const SourceModStatus& entry) { return entry.id == mod.id; });
     if (previous != g_statuses.end()) {
+        retireNativeDefaultsForMod(mod.id);
+        retireBasicItemTooltipsForMod(mod.id);
+        retireNativeItemPoliciesForMod(mod.id);
+        retireNativeArmorPoliciesForMod(mod.id);
+        retireNativeRaritySampling(mod.id);
+        localization::retireMod(mod.id);
+        shooting::unload(mod.id);
         angler::registry().unload(mod.id);
         unbindNativeRecipeAssembly(mod.id);
         invalidateManagedLiveSourceMod(mod.id);
@@ -725,6 +743,16 @@ bool loadCSharpSourceMod(const bl::mods::LoadedMod& mod) {
                 mod.id.c_str(), status.sourceFiles, status.items,
                 status.projectiles, status.buffs, status.potions, status.npcs, status.dusts);
     } else {
+        retireNativeDefaultsForMod(mod.id);
+        retireBasicItemTooltipsForMod(mod.id);
+        retireNativeItemPoliciesForMod(mod.id);
+        retireNativeArmorPoliciesForMod(mod.id);
+        retireNativeRaritySampling(mod.id);
+        localization::retireMod(mod.id);
+        shooting::unload(mod.id);
+        angler::registry().unload(mod.id);
+        unbindNativeRecipeAssembly(mod.id);
+        invalidateManagedDeferredSourceMod(mod.id);
         BL_ERROR("C# source %s: %s", mod.id.c_str(), status.error.c_str());
     }
     if (previous != g_statuses.end()) {
@@ -754,6 +782,19 @@ bool applyManagedSourceDefaults(
         *error = "Mod fonte nao carregado ou SetDefaults ja aplicado";
         return false;
     }
+    struct DefaultsApplyGuard {
+        const std::string& owner;
+        bool touched=false,complete=false;
+        ~DefaultsApplyGuard(){if(!complete) {
+            if(touched) {
+                retireNativeArmorPoliciesForMod(owner);
+                retireNativeItemPoliciesForMod(owner);
+            }
+            localization::retireMod(owner);
+            angler::registry().unload(owner);
+            retireNativeRaritySampling(owner);
+        }}
+    } defaultsApply{modId};
     std::istringstream lines(runtimeValues);
     std::string header;
     if (!std::getline(lines, header) || header != "BUNNY_MANAGED_DEFAULTS_V2") {
@@ -878,11 +919,11 @@ bool applyManagedSourceDefaults(
         if(!fields.empty()&&fields[0]=="SHOOT") {
             const auto key=fields.size()>1?sourceIdentityForWire("ITEM",fields[1]):"";
             const auto target=mod->registeredKindTypes.find(key);int mask=0;
-            if(fields.size()!=3||target==mod->registeredKindTypes.end()||!integer(fields[2],&mask)||mask<1||mask>7) {
-                *error="[CSharp][ERROR][Shoot] Mod="+modId+" Class="+(fields.size()>1?fields[1]:"<missing>")+" Stage=Decode Expected=RegisteredItemAndCallbackMask1..7 Reason=InvalidShootDescriptor Result=Rejected";return false;
+            if((fields.size()!=3&&fields.size()!=4)||target==mod->registeredKindTypes.end()||!integer(fields[2],&mask)||mask<0||mask>7||(fields.size()==4&&fields[3]!="1")) {
+                *error="[CSharp][ERROR][Shoot] Mod="+modId+" Class="+(fields.size()>1?fields[1]:"<missing>")+" Stage=Decode Expected=RegisteredItemAndCallbackMask0..7 Reason=InvalidShootDescriptor Result=Rejected";return false;
             }
             const auto source=mod->sourcePaths.find(key);
-            shooting.push_back({modId,fields[1],source==mod->sourcePaths.end()?"<unavailable>":source->second,"",target->second,mask});continue;
+            shooting.push_back({modId,fields[1],source==mod->sourcePaths.end()?"<unavailable>":source->second,"",target->second,mask,fields.size()==4});continue;
         }
         if(!fields.empty()&&fields[0]=="QUEST_FISH") {
             if(fields.size()!=6&&fields.size()!=7) {
@@ -1623,8 +1664,13 @@ bool applyManagedSourceDefaults(
         }
     }
     if (!applyNativeBasicItemDefaults(modId,basicItems,error)) return false;
+    defaultsApply.touched=true;
+    std::vector<int> retainedItemTypes;
+    for(const auto& item:basicItems)retainedItemTypes.push_back(item.type);
+    retainNativeArmorPoliciesForMod(modId,retainedItemTypes);
+    retainNativeItemPoliciesForMod(modId,retainedItemTypes);
     for (const auto& item : basicItems) {
-        if (item.defense>0 && !setBasicItemDefense(item.type,item.defense,error)) return false;
+        if ((item.defenseSpecified || item.defense>0) && !setBasicItemDefense(item.type,item.defense,error)) return false;
     }
     for(const auto& quest:anglerQuests) {
         if(std::none_of(basicItems.begin(),basicItems.end(),
@@ -1641,10 +1687,12 @@ bool applyManagedSourceDefaults(
         *error="[CSharp][ERROR][NativeDefaults] Mod="+modId+" Class="+request.name+" Stage=Publish Result=Rejected Reason=PrimaryDefaultsMissing";return false;
     }
     if(!holdout::publish(holdouts,error))return false;
+    // Uma recompilação pode remover todas as declarações NATIVE_* do mod.
+    // Substituir o lote inteiro também nesse caso evita políticas órfãs.
+    if(!publishNativeDefaults(nativeDefaults,error,[](const std::string& key){
+        const auto slash=key.find('/');return slash==std::string::npos?-1:runtime::modProjectileTypeByName(key.substr(0,slash),key.substr(slash+1));
+    },modId))return false;
     if(!nativeDefaults.empty()) {
-        if(!publishNativeDefaults(nativeDefaults,error,[](const std::string& key){
-            const auto slash=key.find('/');return slash==std::string::npos?-1:runtime::modProjectileTypeByName(key.substr(0,slash),key.substr(slash+1));
-        }))return false;
         requestBasicItemInstanceRefresh("NativeDefaultsPublished");
         BL_INFO("[CSharp][NativeDefaults] Mod=%s Stage=Publish Contents=%zu Result=Ready",modId.c_str(),nativeDefaults.size());
     }
@@ -1656,6 +1704,7 @@ bool applyManagedSourceDefaults(
         return false;
     }
     mod->runtimeApplied = true;
+    defaultsApply.complete=true;
     return true;
 }
 

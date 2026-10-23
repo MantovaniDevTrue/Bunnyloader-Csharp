@@ -12,9 +12,11 @@
 #include "il2cpp/Resolver.h"
 #include "il2cpp/Signature.h"
 #include "il2cpp/ValueLayout.h"
+#include <algorithm>
 #include <atomic>
 #include <cstring>
 #include <mutex>
+#include <set>
 #include <sys/stat.h>
 
 namespace bl::csharp {
@@ -32,6 +34,7 @@ struct Entry {
     std::shared_ptr<Root> clone,animation;std::vector<Field> cloned;
     int color=-1,hair=-1;uint32_t nativeAlpha=0;
     unsigned nextRetryTick=0,failedAttempts=0;
+    uint64_t generation=0;
     const MethodInfo* localPlayer=nullptr;
     std::map<std::string,int> slots;
 };
@@ -43,6 +46,13 @@ struct Snapshot {
 std::shared_ptr<const Snapshot> snapshot;
 std::mutex queueMutex;
 std::map<int,std::shared_ptr<Entry>> incoming;
+std::map<int,uint64_t> desiredGeneration;
+std::map<int,std::string> desiredOwner;
+std::map<int,uint64_t> staticRetirements;
+std::map<int,std::string> staticRetirementOwners;
+uint64_t nextGeneration=0;
+// Old snapshots may own GC roots. The game thread, never ingress, releases them.
+std::vector<std::shared_ptr<const Snapshot>> retiringSnapshots;
 std::map<int,NativeItemPolicyStatus> statuses;
 // Only the game thread mutates installation state. Ingress/diagnostics use the
 // separate mutex, never held while calling NativeBasicItems or the game.
@@ -108,6 +118,91 @@ bool boolTable(const StaticValue& f,int slot,bool value) {
     auto* array=table(f);auto& a=api();
     if(!array||slot<0||!primitive(a.class_get_element_class(a.object_get_class(reinterpret_cast<Il2CppObject*>(array))),"Boolean",1)||!grow(f,slot+1))return false;
     write<uint8_t>(arrayData(table(f)),static_cast<size_t>(slot),value?1:0);return true;
+}
+// Primitive cells contain no object references. Keep bytes, never an array/data
+// pointer: Terraria can replace its static arrays during initialization.
+struct OwnedStaticCell {
+    StaticValue field;Il2CppClass* element=nullptr;int slot=-1;
+    std::vector<unsigned char> original,last;
+};
+std::map<std::pair<int,std::string>,OwnedStaticCell> ownedStaticCells;
+// Missing tables/invalid ABI are retryable. A shorter, valid replacement array
+// has already discarded this cell, so there is nothing to restore or regrow.
+bool staticCell(const OwnedStaticCell& cell,unsigned char** out) {
+    *out=nullptr;auto* array=table(cell.field);auto& a=api();uint32_t align=0;
+    if(!array||array->length>65536||cell.slot<0||
+       a.class_get_element_class(cell.field.type)!=cell.element||
+       !a.class_is_valuetype(cell.element)||
+       a.class_value_size(cell.element,&align)!=static_cast<int>(cell.last.size()))return false;
+    if(array->length<=static_cast<uintptr_t>(cell.slot))return true;
+    *out=static_cast<unsigned char*>(arrayData(array))+cell.last.size()*static_cast<size_t>(cell.slot);
+    return true;
+}
+bool writeOwnedStaticCell(int type,const std::string& name,const StaticValue& field,int slot,
+                          const void* data,size_t bytes) {
+    if(!field||!data||bytes==0||bytes>256)return false;
+    auto key=std::make_pair(type,name);auto found=ownedStaticCells.find(key);
+    OwnedStaticCell next;next.field=field;next.slot=slot;
+    next.element=api().class_get_element_class(field.type);next.last.resize(bytes);
+    unsigned char* destination=nullptr;
+    if(!staticCell(next,&destination)||!destination)return false;
+    if(found!=ownedStaticCells.end()) {
+        const auto& old=found->second;
+        if(old.slot!=slot||old.field.field!=field.field||old.field.getter!=field.getter||
+           old.element!=next.element||old.last.size()!=bytes)return false;
+        // A foreign write or a reinitialized table becomes the baseline of the
+        // next explicit publication. Repeated writes keep the original baseline.
+        next.original=std::memcmp(destination,old.last.data(),bytes)==0?old.original:
+            std::vector<unsigned char>(destination,destination+bytes);
+    } else next.original.assign(destination,destination+bytes);
+    std::memcpy(next.last.data(),data,bytes);
+    std::memcpy(destination,data,bytes);
+    ownedStaticCells[key]=std::move(next);return true;
+}
+bool ownedBoolTable(int type,const char* name,bool value) {
+    auto* ids=findClass({"Terraria.ID","ItemID","Sets"});
+    const auto field=staticArray(ids,name);auto* array=table(field);
+    if(!array||!primitive(api().class_get_element_class(field.type),"Boolean",1)||!grow(field,type+1))return false;
+    const uint8_t flag=value?1:0;return writeOwnedStaticCell(type,name,field,type,&flag,1);
+}
+bool restoreOwnedStaticCells(int type) {
+    bool complete=true;
+    for(auto it=ownedStaticCells.lower_bound({type,{}});
+        it!=ownedStaticCells.end()&&it->first.first==type;) {
+        const auto& cell=it->second;unsigned char* destination=nullptr;
+        if(!staticCell(cell,&destination)){complete=false;++it;continue;}
+        // Compare before restoring: preserve a value another mod changed since
+        // our last publication. Do not grow an array just to revive a removed cell.
+        if(destination&&std::memcmp(destination,cell.last.data(),cell.last.size())==0)
+            std::memcpy(destination,cell.original.data(),cell.original.size());
+        it=ownedStaticCells.erase(it);
+    }
+    return complete;
+}
+bool pendingStaticRetirement(int type) {
+    std::lock_guard lock(queueMutex);return staticRetirements.contains(type);
+}
+void pumpStaticRetirements() {
+    // Bound native work and rotate past unavailable tables; an unload with many
+    // items must not restore every struct in a single frame or starve other UIDs.
+    static int cursor=-1;
+    std::map<int,uint64_t> requests;
+    {std::lock_guard lock(queueMutex);requests=staticRetirements;}
+    auto request=requests.upper_bound(cursor);size_t attempted=0;
+    for(size_t scanned=0;scanned<requests.size();++scanned) {
+        if(request==requests.end())request=requests.begin();
+        const auto [type,revision]=*request++;
+        const auto cell=ownedStaticCells.lower_bound({type,{}});
+        if(cell!=ownedStaticCells.end()&&cell->first.first==type) {
+            if(attempted==8)break;
+            ++attempted;cursor=type;
+        }
+        if(!restoreOwnedStaticCells(type))continue;
+        std::lock_guard lock(queueMutex);const auto latest=staticRetirements.find(type);
+        if(latest!=staticRetirements.end()&&latest->second==revision) {
+            staticRetirements.erase(latest);staticRetirementOwners.erase(type);
+        }
+    }
 }
 bool setTexture(const StaticValue& field,int slot,Il2CppObject* value) {
     if(field.field)return runtime::content::setTableElement(field.field,slot,value);
@@ -232,14 +327,20 @@ bool registerAnimation(Entry& entry,std::string* error) {
     }
     void* args[]={&entry.source.type,entry.animation->get()};
     if(!invoke(registerMethod,nullptr,args))return fail("AnimationRegisterFailed");
-    auto* ids=findClass({"Terraria.ID","ItemID","Sets"});
     const char* names[]={"AnimatesAsSoul","ItemIconPulse","ItemNoGravity"};
-    for(size_t i=0;i<3;++i)if(!boolTable(staticArray(ids,names[i]),entry.source.type,entry.policy.animationFlags[i])){
+    for(size_t i=0;i<3;++i)if(!ownedBoolTable(entry.source.type,names[i],entry.policy.animationFlags[i])){
         *error=std::string("Reason=AnimationFlagUnavailable Table=")+names[i];return false;
     }
     return true;
 }
-void restoreAnimations(){for(auto& [type,entry]:entries){(void)type;if(entry->status.ready&&entry->policy.animated){std::string error;registerAnimation(*entry,&error);}}}
+// Hooks may run between ingress revocation and the next game-thread pump.
+// The mutable installation cache still owns roots then, but cannot republish them.
+bool isDesired(const Entry& entry) {
+    std::lock_guard lock(queueMutex);
+    const auto wanted=desiredGeneration.find(entry.source.type);
+    return wanted!=desiredGeneration.end()&&wanted->second==entry.generation;
+}
+void restoreAnimations(){for(auto& [type,entry]:entries){(void)type;if(entry->status.ready&&entry->policy.animated&&isDesired(*entry)){std::string error;registerAnimation(*entry,&error);}}}
 bool writeWingStats(const Entry& entry,std::string* error) {
     auto found=entry.slots.find("Wings");if(found==entry.slots.end()){*error="Reason=WingEquipSlotNotRegistered";return false;}
     auto* ids=nested("Wing");auto* sets=ids?findNested(ids,"Sets"):nullptr;
@@ -249,7 +350,6 @@ bool writeWingStats(const Entry& entry,std::string* error) {
     ValueLayout layout;if(!resolveValueLayout(type,&layout,error))return false;
     std::vector<size_t> references;if(!valueReferenceOffsets(type,0,&references,error))return false;
     if(!references.empty()){*error="Reason=WingStatsUnexpectedReferences";return false;}
-    auto* bytes=static_cast<char*>(arrayData(array))+layout.size*static_cast<size_t>(found->second);
     struct Value { const char* name;const char* type;size_t bytes;float number; };
     const auto& w=entry.policy.wings;
     const Value values[]={{"FlyTime","Int32",4,w[0]},{"AccRunSpeedOverride","Single",4,w[1]},{"AccRunAccelerationMult","Single",4,w[2]},
@@ -283,9 +383,12 @@ bool writeWingStats(const Entry& entry,std::string* error) {
         else if(i==3)write<uint8_t>(initialized.data(),offsets[i],0);
         else write<float>(initialized.data(),offsets[i],values[i].number);
     }
-    std::memcpy(bytes,initialized.data(),layout.size);return true;
+    if(!writeOwnedStaticCell(entry.source.type,"WingStats",f,found->second,initialized.data(),layout.size)) {
+        *error="Reason=WingStatsOwnershipUnavailable";return false;
+    }
+    return true;
 }
-void restoreWingStats(){for(const auto& [type,entry]:entries){(void)type;if(entry->status.ready&&entry->policy.wing){std::string error;writeWingStats(*entry,&error);}}}
+void restoreWingStats(){for(const auto& [type,entry]:entries){(void)type;if(entry->status.ready&&entry->policy.wing&&isDesired(*entry)){std::string error;writeWingStats(*entry,&error);}}}
 struct WingRefs {int logic=-1,velocity=-1,gravity=-1,time=-1,maxTime=-1,brooch=-1;StaticValue jump;};
 WingRefs wingRefs;
 using PlayerFn=void (*)(Il2CppObject*,const MethodInfo*);
@@ -498,22 +601,50 @@ bool install(Entry& entry,std::string* error) {
     if(entry.policy.robe&&!prepareRobe(error))return false;
     return true;
 }
+// Caller holds queueMutex until all temporary snapshot references are dropped.
+void revokeSnapshotTypesLocked(const std::set<int>& types) {
+    if(types.empty())return;
+    const auto old=std::atomic_load_explicit(&snapshot,std::memory_order_acquire);
+    if(old) {
+        auto next=std::make_shared<Snapshot>();
+        for(const auto& [type,entry]:old->items) {
+            if(types.contains(type))continue;
+            next->items[type]=entry;
+            if(entry->policy.wing)next->wings[entry->slots.at("Wings")]=entry->policy.wings;
+            if(entry->policy.robe)next->robes[entry->slots.at("Body")]=entry->slots.at("Legs");
+        }
+        if(next->items.size()!=old->items.size()) {
+            retiringSnapshots.push_back(old);
+            std::atomic_store_explicit(&snapshot,std::shared_ptr<const Snapshot>(std::move(next)),std::memory_order_release);
+        }
+    }
+}
 void publish() {
-    auto next=std::make_shared<Snapshot>();size_t pending=0;
+    std::lock_guard lock(queueMutex);
+    auto next=std::make_shared<Snapshot>();
     for(const auto& [type,entry]:entries) {
-        if(!entry->status.ready){++pending;continue;}
+        const auto desired=desiredGeneration.find(type);
+        if(desired==desiredGeneration.end()||desired->second!=entry->generation)continue;
+        if(!entry->status.ready)continue;
         next->items[type]=entry;
         if(entry->policy.wing)next->wings[entry->slots.at("Wings")]=entry->policy.wings;
         if(entry->policy.robe)next->robes[entry->slots.at("Body")]=entry->slots.at("Legs");
     }
     std::atomic_store_explicit(&snapshot,std::shared_ptr<const Snapshot>(std::move(next)),std::memory_order_release);
-    pendingCount.store(pending,std::memory_order_release);
+    pendingCount.store(std::count_if(statuses.begin(),statuses.end(),[](const auto& pair){return !pair.second.ready;}),std::memory_order_release);
 }
 } // namespace item_native
-struct NativeItemPolicyBatch {std::vector<std::shared_ptr<item_native::Entry>> entries;};
+struct NativeItemPolicyBatch {
+    std::vector<std::shared_ptr<item_native::Entry>> entries;
+    std::vector<int> replacedTypes;
+    std::map<int,std::string> owners;
+};
 bool prepareNativeItemPolicies(const std::vector<BasicItemEntry>& entries,std::shared_ptr<NativeItemPolicyBatch>* batch,std::string* error) {
     auto prepared=std::make_shared<NativeItemPolicyBatch>();
-    for(const auto& source:entries)if(!source.behavior.empty()) {
+    for(const auto& source:entries) {
+        prepared->replacedTypes.push_back(source.type);
+        prepared->owners[source.type]=source.modId;
+        if(source.behavior.empty())continue;
         auto entry=std::make_shared<item_native::Entry>();entry->source=source;
         if(!item_policy_wire::read(source,&entry->policy,error))return false;
         entry->status={source.type,source.modId,source.name,"waiting-native-install","",false};prepared->entries.push_back(std::move(entry));
@@ -521,10 +652,49 @@ bool prepareNativeItemPolicies(const std::vector<BasicItemEntry>& entries,std::s
     *batch=std::move(prepared);return true;
 }
 void commitNativeItemPolicies(const std::shared_ptr<NativeItemPolicyBatch>& batch) {
-    if(!batch||batch->entries.empty())return;
-    std::lock_guard lock(item_native::queueMutex);
-    for(const auto& entry:batch->entries){item_native::incoming[entry->source.type]=entry;item_native::statuses[entry->source.type]=entry->status;}
-    item_native::pendingCount.fetch_add(batch->entries.size(),std::memory_order_release);
+    if(!batch||batch->replacedTypes.empty())return;
+    using namespace item_native;
+    std::lock_guard lock(queueMutex);
+    const uint64_t generation=++nextGeneration;
+    for(int type:batch->replacedTypes) {
+        desiredGeneration[type]=generation;
+        desiredOwner[type]=batch->owners.at(type);
+        staticRetirements[type]=generation;
+        staticRetirementOwners[type]=batch->owners.at(type);
+        incoming[type]=nullptr; // Empty behavior is an explicit per-type replacement.
+        statuses.erase(type);
+    }
+    for(const auto& prepared:batch->entries) {
+        // Prepared batches can be committed repeatedly; installation mutates its own copy.
+        auto entry=std::make_shared<Entry>(*prepared);entry->generation=generation;
+        incoming[entry->source.type]=entry;statuses[entry->source.type]=entry->status;
+    }
+    revokeSnapshotTypesLocked({batch->replacedTypes.begin(),batch->replacedTypes.end()});
+    pendingCount.store(std::count_if(statuses.begin(),statuses.end(),[](const auto& pair){return !pair.second.ready;}),std::memory_order_release);
+}
+void retainNativeItemPoliciesForMod(const std::string& mod,const std::vector<int>& activeTypes) {
+    using namespace item_native;
+    const std::set<int> retained(activeTypes.begin(),activeTypes.end());
+    std::lock_guard lock(queueMutex);
+    std::set<int> removed;
+    for(auto it=desiredOwner.begin();it!=desiredOwner.end();) {
+        if(it->second!=mod||retained.contains(it->first)){++it;continue;}
+        const int type=it->first;
+        removed.insert(type);
+        // entries and their roots belong to the game thread. Ingress only
+        // invalidates the generation and queues removal, including pending work.
+        desiredGeneration.erase(type);
+        staticRetirements[type]=++nextGeneration;
+        staticRetirementOwners[type]=mod;
+        incoming[type]=nullptr;
+        statuses.erase(type);
+        it=desiredOwner.erase(it);
+    }
+    revokeSnapshotTypesLocked(removed);
+    pendingCount.store(std::count_if(statuses.begin(),statuses.end(),[](const auto& pair){return !pair.second.ready;}),std::memory_order_release);
+}
+void retireNativeItemPoliciesForMod(const std::string& mod) {
+    retainNativeItemPoliciesForMod(mod,{});
 }
 bool applyNativeItemPolicyDefaults(Il2CppObject* item,int type) {
     using namespace item_native;const auto view=std::atomic_load_explicit(&snapshot,std::memory_order_acquire);if(!item||!view)return false;
@@ -537,35 +707,61 @@ bool applyNativeItemPolicyDefaults(Il2CppObject* item,int type) {
     if(entry.policy.hair){Il2CppObject* player=nullptr;if(invoke(entry.localPlayer,nullptr,nullptr,&player)&&player)std::memcpy(reinterpret_cast<char*>(item)+entry.color,reinterpret_cast<char*>(player)+entry.hair,4);}
     return bool(entry.clone);
 }
-bool nativeItemPolicyReady(int type) {std::lock_guard lock(item_native::queueMutex);const auto it=item_native::statuses.find(type);return it==item_native::statuses.end()||it->second.ready;}
-size_t pendingNativeItemPolicies(){return item_native::pendingCount.load(std::memory_order_acquire);}
-std::vector<NativeItemPolicyStatus> nativeItemPolicyStatus(){std::lock_guard lock(item_native::queueMutex);std::vector<NativeItemPolicyStatus> out;for(const auto& [type,status]:item_native::statuses){(void)type;out.push_back(status);}return out;}
+bool nativeItemPolicyReady(int type) {std::lock_guard lock(item_native::queueMutex);if(item_native::staticRetirements.contains(type))return false;const auto it=item_native::statuses.find(type);return it==item_native::statuses.end()||it->second.ready;}
+size_t pendingNativeItemPolicies(){std::lock_guard lock(item_native::queueMutex);return item_native::pendingCount.load(std::memory_order_acquire)+item_native::staticRetirements.size();}
+std::vector<NativeItemPolicyStatus> nativeItemPolicyStatus() {
+    using namespace item_native;std::lock_guard lock(queueMutex);
+    std::vector<NativeItemPolicyStatus> out;
+    for(const auto& [type,status]:statuses) {
+        out.push_back(status);
+        if(staticRetirements.contains(type)) {
+            out.back().ready=false;out.back().phase="waiting-static-retirement";
+            out.back().error="Reason=NativeStaticCellRestorePending";
+        }
+    }
+    for(const auto& [type,revision]:staticRetirements)if(!statuses.contains(type)) {
+        (void)revision;out.push_back({type,staticRetirementOwners.at(type),"",
+            "waiting-static-retirement","Reason=NativeStaticCellRestorePending",false});
+    }
+    return out;
+}
 void pumpNativeItemPoliciesOnGameThread() {
     using namespace item_native;static unsigned tick=0;static int cursor=-1;++tick;
+    pumpStaticRetirements();
     bool changed=false;
+    std::vector<std::shared_ptr<const Snapshot>> retired; // destroyed on this game thread
     {
         std::lock_guard lock(queueMutex);
         changed=!incoming.empty();
-        for(auto& [type,entry]:incoming)entries[type]=std::move(entry);
-        incoming.clear();
+        for(auto& [type,entry]:incoming) {
+            if(entry)entries[type]=std::move(entry);
+            else entries.erase(type);
+        }
+        incoming.clear();retired.swap(retiringSnapshots);
     }
     if(pendingCount.load(std::memory_order_acquire)) {
         auto it=entries.upper_bound(cursor);size_t attempted=0;
         for(size_t scanned=0;scanned<entries.size()&&attempted<8;++scanned) {
             if(it==entries.end())it=entries.begin();
             auto& [type,entry]=*it++;
-            if(entry->status.ready||tick<entry->nextRetryTick)continue;
+            if(entry->status.ready||tick<entry->nextRetryTick||pendingStaticRetirement(type))continue;
             ++attempted;cursor=type;std::string error;
             const std::string previousError=entry->status.error;
             entry->status.ready=install(*entry,&error);
             if(!entry->status.ready&&error.empty())error="Reason=NativeMethodOrTableUnavailable";
             entry->status.phase=entry->status.ready?"ready":"waiting-native-install";entry->status.error=error;
-            {std::lock_guard lock(queueMutex);statuses[type]=entry->status;}
+            bool current=false;
+            {std::lock_guard lock(queueMutex);
+                const auto desired=desiredGeneration.find(type);
+                current=desired!=desiredGeneration.end()&&desired->second==entry->generation;
+                if(current)statuses[type]=entry->status;
+            }
+            if(!current){changed=true;continue;}
             if(!entry->status.ready&&(entry->failedAttempts==0||previousError!=error))
                 BL_WARN("[CSharp][NativePolicy] Type=%d Class=%s Result=Pending Detail=%s",
                         type,entry->source.name.c_str(),error.c_str());
             if(entry->status.ready){
-                acknowledgeBasicItemBehavior(type,"");
+                acknowledgeBasicItemBehavior(type,"",entry->source.defaultsGeneration);
                 requestBasicItemInstanceRefresh("NativePolicyReady");
                 changed=true;
             } else if(++entry->failedAttempts>3&&tick>120)entry->nextRetryTick=tick+15;

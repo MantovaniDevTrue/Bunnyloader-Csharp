@@ -7,7 +7,7 @@ root=Path(__file__).resolve().parents[1]
 wire=Path(sys.argv[1]).resolve()
 with tempfile.TemporaryDirectory(prefix="bunny-native-equip-") as temporary:
     executable=Path(temporary)/"native-equip"
-    subprocess.run(["g++","-std=c++20","-O2","-Wall","-Wextra","-Werror","-pthread",
+    subprocess.run(["g++","-std=c++20","-O2","-Wall","-Wextra","-Werror","-Wno-deprecated-declarations","-pthread",
                     "-ffunction-sections","-fdata-sections","-DBL_HAVE_QUICKJS=0",
                     "-I"+str(root/"tests/basic_items/include"),"-I"+str(root/"app/src/main/cpp"),
                     str(root/"tests/basic_items/native_equip_effects_test.cpp"),

@@ -1,0 +1,80 @@
+name: CSharp golf ball source and native projectile tables (no APK)
+on:
+  push:
+    paths:
+      - 'experiments/csharp/**'
+      - 'app/src/main/cpp/experiments/csharp/NativeDefaults.h'
+      - 'app/src/main/cpp/experiments/csharp/NativeContent.cpp'
+      - 'app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp'
+      - 'samples/ExampleModCSharp/Playable/**'
+      - 'tests/golf_ball/**'
+      - 'tests/drink_colors/**'
+      - 'tests/tooltip_native/**'
+      - 'app/src/main/cpp/script/js/mod/Loaders/TooltipLoader.js'
+      - 'app/src/main/cpp/script/api/CSharpPrototypeApi.cpp'
+      - 'app/src/main/cpp/experiments/csharp/NativeRarityGameplay.cpp'
+      - 'app/src/main/cpp/experiments/csharp/NativeRarityGameplay.h'
+      - 'tests/examplemod/**'
+      - '.github/workflows/check-csharp-golf-ball.yml'
+  pull_request:
+    paths:
+      - 'experiments/csharp/**'
+      - 'app/src/main/cpp/experiments/csharp/NativeDefaults.h'
+      - 'app/src/main/cpp/experiments/csharp/NativeContent.cpp'
+      - 'app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp'
+      - 'samples/ExampleModCSharp/Playable/**'
+      - 'tests/golf_ball/**'
+      - 'tests/drink_colors/**'
+      - 'tests/tooltip_native/**'
+      - 'app/src/main/cpp/script/js/mod/Loaders/TooltipLoader.js'
+      - 'app/src/main/cpp/script/api/CSharpPrototypeApi.cpp'
+      - 'app/src/main/cpp/experiments/csharp/NativeRarityGameplay.cpp'
+      - 'app/src/main/cpp/experiments/csharp/NativeRarityGameplay.h'
+      - 'tests/examplemod/**'
+      - '.github/workflows/check-csharp-golf-ball.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  host:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Compile original examples and execute production native hook
+        run: bash tests/golf_ball/run.sh
+      - name: Audit basic ExampleMod item defaults against Bunny JS
+        run: python3 -m unittest discover -s tests/examplemod -p 'test_*.py'
+      - name: Verify native potion color array ownership without Android
+        run: |
+          g++ -std=c++20 -O1 -Wall -Wextra -Werror -Iapp/src/main/cpp tests/drink_colors/native_test.cpp -o /tmp/bunny-drink-colors
+          /tmp/bunny-drink-colors
+      - name: Decode compiled CSharp tooltip policy without JavaScript
+        run: |
+          g++ -std=c++20 -O1 -Wall -Wextra -Werror -Iapp/src/main/cpp tests/tooltip_native/native_test.cpp -o /tmp/bunny-tooltip-plan
+          /tmp/bunny-tooltip-plan build/basic-items/full-source-runtime-values.txt
+      - name: Verify JavaScript and native tooltip ownership across reloads
+        run: node tests/tooltip_native/js_ownership_test.cjs
+      - name: Validate native tooltip background layout geometry
+        run: |
+          g++ -std=c++20 -O1 -Wall -Wextra -Werror -Iapp/src/main/cpp tests/tooltip_native/panel_layout_test.cpp -o /tmp/bunny-tooltip-panel
+          /tmp/bunny-tooltip-panel
+      - name: Bind native GUIPanel DrawBacking through IL2CPP metadata only
+        run: |
+          g++ -std=c++20 -O1 -Wall -Wextra -Werror -Iapp/src/main/cpp tests/tooltip_native/panel_backing_test.cpp -o /tmp/bunny-tooltip-panel-abi
+          /tmp/bunny-tooltip-panel-abi
+      - name: Verify original Bunny tooltip context color and texture selection
+        run: |
+          g++ -std=c++20 -O1 -Wall -Wextra -Werror -Iapp/src/main/cpp tests/tooltip_native/palette_test.cpp -o /tmp/bunny-tooltip-palette
+          /tmp/bunny-tooltip-palette
+      - name: Inspect typed backing texture reference chain without JS
+        run: |
+          g++ -std=c++20 -O1 -Wall -Wextra -Werror -Iapp/src/main/cpp tests/tooltip_native/texture_path_test.cpp -o /tmp/bunny-tooltip-texture
+          /tmp/bunny-tooltip-texture
+      - name: Verify native tooltip backing and border managed Color sources
+        run: |
+          g++ -std=c++20 -O1 -Wall -Wextra -Werror -Iapp/src/main/cpp tests/tooltip_native/colors_test.cpp -o /tmp/bunny-tooltip-colors
+          /tmp/bunny-tooltip-colors

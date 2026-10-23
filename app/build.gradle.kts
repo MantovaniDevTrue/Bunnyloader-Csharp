@@ -59,7 +59,7 @@ android {
         applicationId = if (readyPreview) "com.bunnyloader.csharptest" else "com.bunnyloader"
         minSdk = 24
         targetSdk = 34
-        versionCode = if (readyPreview) 310 else 274
+        versionCode = if (readyPreview) 315 else 274
         versionName = if (readyPreview) "1.0.11-dust-invasion-qa" else "1.0"
         if (readyPreview) resValue("string", "preview_app_name", "Bunny Loader C# Test")
         manifestPlaceholders["bunnyLabel"] = if (readyPreview) "@string/preview_app_name" else "@string/app_name"
@@ -329,3 +329,18 @@ dependencies {
 
 
 
+
+// User requirement: no new APK until the Bunny JS port and its loaders close.
+// Compilation and unit tests remain available. Gate both direct packaging and
+// assemble entry points so a different workflow cannot bypass the QA policy.
+val verifyExampleModApkReadiness by tasks.registering(Exec::class) {
+    group = "verification"
+    description = "Require complete ExampleMod translation and loader evidence before APK packaging"
+    workingDir(rootProject.projectDir)
+    commandLine("python3", rootProject.file("tools/ci/check_examplemod_apk_readiness.py").absolutePath)
+}
+tasks.configureEach {
+    if (name.matches(Regex("(assemble|package)(Debug|Release)"))) {
+        dependsOn(verifyExampleModApkReadiness)
+    }
+}
