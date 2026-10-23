@@ -207,16 +207,19 @@ void hkManagedTileMovement(Il2CppObject* projectile, Vector2 wet, const MethodIn
         original(projectile,wet,method);return;
     }
     const auto& game=runtime::game();
-    int netMode=-1;
-    if(g_tileCollisionNetMode)il2cpp::api().field_static_get_value(g_tileCollisionNetMode,&netMode);
-    if(netMode!=0){original(projectile,wet,method);return;}
     const int type=runtime::field<int>(projectile,game.proj.type);
+    if(!hasManagedEntityProjectileType(type) ||
+       !runtime::field<uint8_t>(projectile,game.proj.active)) {
+        original(projectile,wet,method);return;
+    }
     const int mode=nativeManagedProjectileTileCollisionMode(type);
-    if(!hasManagedEntityProjectileType(type) || !managedTileCollisionModeSupported(mode) ||
-       !runtime::field<uint8_t>(projectile,game.proj.active) ||
+    if(!managedTileCollisionModeSupported(mode) ||
        !runtime::field<uint8_t>(projectile,g_tileCollideOffset)) {
         original(projectile,wet,method);return;
     }
+    int netMode=-1;
+    if(g_tileCollisionNetMode)il2cpp::api().field_static_get_value(g_tileCollisionNetMode,&netMode);
+    if(netMode!=0){original(projectile,wet,method);return;}
     TileMovementScope scope{};
     scope.projectile=projectile;
     scope.position=runtime::field<Vector2>(projectile,game.entity.position);
