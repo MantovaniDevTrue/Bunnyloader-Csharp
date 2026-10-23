@@ -85,14 +85,43 @@ The hook installer supports subsequent mods enabling platform controls even when
 
 ```csharp
 TileCollide = true;
+// Only the tile collision box changes; rendering and NPC damage sizes stay.
 TileCollisionBoxWidth = 18;
 TileCollisionBoxHeight = 12;
+// World pixels after resizing: right by 2.5px and up by 3px.
+// These are not Terraria's normalized resizeAnchor components.
 TileCollisionAnchorOffsetX = 2.5f;
 TileCollisionAnchorOffsetY = -3f;
 ```
 
-Each width/height is 0 to preserve Terraria's original value or 1–512 to override it. Each anchor offset must be finite and within -256 to 256 pixels. Offsets are added to the vanilla anchor rather than replacing it. The native `GetCollisionParams` hook only modifies output parameters inside the currently scoped managed projectile `HandleMovement`, after delegating to the original Terraria method. It does not alter the projectile render size or NPC damage hitbox, and has no MonoVM waiting or per-tile scans.
+Each width/height is 0 to preserve Terraria's original value or 1–512 to override it. Each anchor offset must be finite and within -256 to 256 pixels. Offsets translate the resized tile collision rectangle in world pixels: positive X moves right and positive Y moves down. Terraria's `resizeAnchor` is a fraction, normally `(0.5, 0.5)`, and its consumer computes `Center - colSize * resizeAnchor`. The hook therefore subtracts `offsetPixels / effectiveCollisionSize` from each native anchor component after choosing width/height. Adding pixel offsets directly to the fraction would scale the translation by the box dimensions and reverse its direction. With an 18px width, `OffsetX=2.5` now moves right by 2.5px; the original implementation moved left by 45px. A zero size override uses the original dimension as the divisor; zero translation preserves the native anchor. The native `GetCollisionParams` hook only modifies output parameters inside the currently scoped managed projectile `HandleMovement`, after delegating to the original Terraria method. It does not alter the projectile render size or NPC damage hitbox, and has no MonoVM waiting or per-tile scans.
 
 An optional 27-field `PROJECTILE` descriptor carries the four numbers following existing platform settings. Previous descriptor variants (including 23-field platform and 22-field limit) remain unchanged. Native validation and C# serialization tests cover this encoding. Since the original JS `TileCollideStyle` is arbitrary runtime logic, these bounded static parameters constitute partial, not complete, hook parity.
 
 The `GetCollisionParams` detour has a no-override fast path for collision policies that use native movement without changing box dimensions. Because each invocation begins with Terraria's original output parameters, repeated calls during the same movement do not repeatedly accumulate anchor offsets.
+
+
+## Geometry regression and callback execution boundary
+
+`tile_collision_geometry_smoke.cpp` checks the rectangle produced by Terraria's
+consumer formula rather than only checking helper output anchors. Its 1,600
+cases cover positive/negative/fractional offsets, preserved and overridden
+dimensions, 1px/512px bounds, noncentral vanilla anchors and repeated native
+parameter reads. Non-finite rejected offsets preserve all output parameters.
+The formula and default anchor were inspected in the Android build 301720 native
+library; this inspection is not Android execution or a gameplay test.
+
+An exact tModLoader `OnTileCollide` return value affects the collision that is
+currently running. An event sent to the MonoVM worker cannot supply that return
+without waiting. The current `void OnTileCollide` is explicitly a notification;
+its `ref` state does not write physics back to Terraria. Similarly, a worker
+response from a previous tick is not an exact dynamic `TileCollideStyle` decision
+for the current impact. These contracts must remain distinct.
+
+Before exposing synchronous dynamic signatures, the shared executor needs a
+validated game-thread execution path, mod-state ownership shared with AI and
+lifecycle callbacks, reentrancy rules, fault handling and native integration tests
+covering the actual movement/kill order. This change does not invent an async
+boolean result, add a game-thread wait or claim that a stale cached result closes
+that gap. Dynamic synchronous callbacks, multiplayer, device physics and FPS
+remain pending. The ExampleMod APK readiness gate stays unchanged.

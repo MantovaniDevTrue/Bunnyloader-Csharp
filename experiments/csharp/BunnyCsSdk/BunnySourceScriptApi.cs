@@ -78,9 +78,13 @@ public abstract class BunnyProjectile
     public float BounceMinimumSpeed { get; set; } = 0f;
     public int TileCollisionSurvivalLimit { get; set; } = 0;
     public BunnyProjectilePlatformCollision TilePlatformCollision { get; set; } = BunnyProjectilePlatformCollision.Vanilla;
+    /// <summary>Tile collision width in pixels, 1..512; 0 preserves Terraria's width. Does not resize visuals or NPC damage hitboxes.</summary>
     public int TileCollisionBoxWidth { get; set; } = 0;
+    /// <summary>Tile collision height in pixels, 1..512; 0 preserves Terraria's height.</summary>
     public int TileCollisionBoxHeight { get; set; } = 0;
+    /// <summary>World-pixel translation of the resized tile collision box, -256..256; positive moves right. Not a normalized resizeAnchor value.</summary>
     public float TileCollisionAnchorOffsetX { get; set; } = 0f;
+    /// <summary>World-pixel translation of the resized tile collision box, -256..256; positive moves down. Not a normalized resizeAnchor value.</summary>
     public float TileCollisionAnchorOffsetY { get; set; } = 0f;
     public bool IgnoreWater { get; set; } = true;
     public int Penetrate { get; set; } = 1;

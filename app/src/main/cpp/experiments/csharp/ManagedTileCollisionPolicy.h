@@ -89,8 +89,11 @@ inline bool applyManagedTileCollisionBox(ManagedTileCollisionBox* box,
     ManagedTileCollisionBox next=*box;
     if(width>0)next.width=width;
     if(height>0)next.height=height;
-    next.anchorX+=offsetX;
-    next.anchorY+=offsetY;
+    // HandleMovement uses Center - colSize * resizeAnchor. Convert the SDK's
+    // world-pixel translation after choosing the effective collision size.
+    // Subtraction makes positive offsets move right/down instead of left/up.
+    next.anchorX-=offsetX/static_cast<float>(next.width);
+    next.anchorY-=offsetY/static_cast<float>(next.height);
     if(!std::isfinite(next.anchorX) || !std::isfinite(next.anchorY))return false;
     *box=next;
     return true;

@@ -6,6 +6,10 @@ on:
       - 'tools/csharp_contracts/**'
       - 'experiments/csharp/BunnyCsSdk/BunnyContentDeclaration.cs'
       - 'experiments/csharp/BunnyCsSdk/BunnyContentKind.g.cs'
+      - 'experiments/csharp/BunnyCsSdk/BunnySourceScriptApi.cs'
+      - 'experiments/csharp/BunnyCsSdk/BunnyEntitySourceDispatcher.cs'
+      - 'experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs'
+      - 'app/src/main/cpp/experiments/csharp/ManagedTileCollisionPolicy.h'
       - 'app/src/main/cpp/experiments/csharp/SourceParser.cpp'
       - 'app/src/main/cpp/experiments/csharp/SourceLoader.cpp'
       - 'app/src/main/cpp/experiments/csharp/SourceContentKinds.generated.h'
@@ -15,6 +19,10 @@ on:
       - 'tools/csharp_contracts/**'
       - 'experiments/csharp/BunnyCsSdk/BunnyContentDeclaration.cs'
       - 'experiments/csharp/BunnyCsSdk/BunnyContentKind.g.cs'
+      - 'experiments/csharp/BunnyCsSdk/BunnySourceScriptApi.cs'
+      - 'experiments/csharp/BunnyCsSdk/BunnyEntitySourceDispatcher.cs'
+      - 'experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs'
+      - 'app/src/main/cpp/experiments/csharp/ManagedTileCollisionPolicy.h'
       - 'app/src/main/cpp/experiments/csharp/SourceParser.cpp'
       - 'app/src/main/cpp/experiments/csharp/SourceLoader.cpp'
       - 'app/src/main/cpp/experiments/csharp/SourceContentKinds.generated.h'
@@ -76,6 +84,10 @@ jobs:
         run: |
           g++ -std=c++20 -Wall -Wextra -Werror -Iapp/src/main/cpp tools/csharp_contracts/tile_collision_smoke.cpp -o /tmp/bunny-tile-collision-smoke
           /tmp/bunny-tile-collision-smoke
+      - name: Verify tile collision offsets against Terraria world geometry
+        run: |
+          g++ -std=c++20 -Wall -Wextra -Werror -Iapp/src/main/cpp tools/csharp_contracts/tile_collision_geometry_smoke.cpp -o /tmp/bunny-tile-collision-geometry-smoke
+          /tmp/bunny-tile-collision-geometry-smoke
       - name: Build managed source compiler with collision metadata
         run: dotnet build experiments/csharp/BunnySourceCompiler/BunnySourceCompiler.csproj -c Release --nologo
       - name: Execute compiled BunnyProjectile collision metadata probe
