@@ -50,6 +50,6 @@ jobs:
         run: |
           set -euo pipefail
           gradle :app:externalNativeBuildDebug --stacktrace --no-daemon -Pbl.uiOnly=true
-          find app/.cxx -type f -name 'libbunny.so' -print -quit | grep -q libbunny.so
+          find app -type f -name 'libbunny.so' -print -quit | grep -q libbunny.so
           test ! -e app/build/outputs/apk/debug/app-debug.apk
           echo "BUNNY_CSHARP_TILE_COLLISION_NATIVE_ARM64_COMPILE=PASS"
