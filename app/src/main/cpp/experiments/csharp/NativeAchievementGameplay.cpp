@@ -3,6 +3,8 @@
 #include "experiments/csharp/NativeAchievementManifest.h"
 #include "experiments/csharp/NativeAchievementState.h"
 #include "experiments/csharp/NativeAchievementContracts.h"
+#include "experiments/csharp/NativeAchievementAtlas.h"
+#include "experiments/csharp/NativeAchievementRegistrationPlan.h"
 #include "experiments/csharp/ManagedRuntime.h"
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
@@ -33,6 +35,7 @@ std::map<std::string, std::pair<std::string, std::vector<Descriptor>>> g_registe
 std::map<std::string, std::vector<AchievementState>> g_liveStates;
 std::set<std::string> g_pendingState;
 std::map<std::string, ManagerContractResult> g_nativeContracts;
+std::map<std::string, NativeRegistrationPlan> g_registrationPlans;
 NpcFn g_npcOriginal = nullptr;
 PickupFn g_pickupOriginal = nullptr;
 CraftFn g_craftOriginal = nullptr;
@@ -197,6 +200,8 @@ bool bindNativeAchievementAssembly(const std::string& mod, const std::string& as
         g_liveStates.erase(mod);
         g_pendingState.erase(mod);
         g_nativeContracts.erase(mod);
+        g_registrationPlans.erase(mod);
+        nativeAchievementAtlases().retire(mod);
     }
     return true;
 }
@@ -207,6 +212,8 @@ void retireNativeAchievementMod(const std::string& mod) {
     g_liveStates.erase(mod);
     g_pendingState.erase(mod);
     g_nativeContracts.erase(mod);
+    g_registrationPlans.erase(mod);
+    nativeAchievementAtlases().retire(mod);
 }
 
 void clearNativeAchievementWorld() {
@@ -263,6 +270,11 @@ void pumpNativeAchievementGameplayOnGameThread() {
             BL_DEBUG("[CSharp][AchievementLoader] Mod=%s ManagerContract=%s",
                      candidate.mod.c_str(), contracts.diagnostic.c_str());
             g_nativeContracts[candidate.mod] = std::move(contracts);
+            std::string assetError;
+            if (!nativeAchievementAtlases().prepare(
+                    candidate.mod, candidate.assembly, decoded, &assetError))
+                BL_WARN("[CSharp][AchievementLoader] Mod=%s Stage=Atlas Result=%s",
+                        candidate.mod.c_str(), assetError.c_str());
             g_registeredMetadata[candidate.mod] =
                 std::make_pair(candidate.assembly, std::move(decoded));
             g_pendingState.insert(candidate.mod);
@@ -279,8 +291,21 @@ void pumpNativeAchievementGameplayOnGameThread() {
             if (invokeManagedRecipe(mod, active->second.first,
                                     "__achievements__", 0, 6, "", &wire, 2500)) {
                 std::vector<AchievementState> current;
-                if (parseState(mod, wire, active->second.second, &current))
+                if (parseState(mod, wire, active->second.second, &current)) {
                     g_liveStates[mod] = std::move(current);
+                    const auto contracts = g_nativeContracts.find(mod);
+                    const bool reversible = contracts != g_nativeContracts.end() &&
+                        contracts->second.canRegister && contracts->second.canUnregister;
+                    bool texturesReady = true;
+                    for (const Descriptor& item : active->second.second)
+                        if (!nativeAchievementAtlases().asset(mod, item.texture)) {
+                            texturesReady = false;
+                            break;
+                        }
+                    g_registrationPlans[mod] = prepareNativeRegistration(
+                        mod, active->second.first, active->second.second,
+                        g_liveStates[mod], reversible, texturesReady);
+                }
                 else if (wire.starts_with("PENDING|"))
                     g_pendingState.insert(mod);
             } else {

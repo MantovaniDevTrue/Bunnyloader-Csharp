@@ -7,6 +7,9 @@ on:
       - experiments/csharp/BunnyCsSdk/BunnyRecipeCallbacks.cs
       - experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj
       - app/src/main/cpp/experiments/csharp/NativeAchievementMailbox.h
+      - app/src/main/cpp/experiments/csharp/NativeAchievementAtlasPlan.h
+      - app/src/main/cpp/experiments/csharp/NativeAchievementAtlas.h
+      - app/src/main/cpp/experiments/csharp/NativeAchievementAtlas.cpp
       - app/src/main/cpp/experiments/csharp/NativeAchievementContracts.h
       - app/src/main/cpp/experiments/csharp/NativeAchievementRegistrationPlan.h
       - app/src/main/cpp/experiments/csharp/NativeAchievementContracts.cpp
@@ -32,6 +35,9 @@ on:
       - experiments/csharp/BunnyCsSdk/BunnyRecipeCallbacks.cs
       - experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj
       - app/src/main/cpp/experiments/csharp/NativeAchievementMailbox.h
+      - app/src/main/cpp/experiments/csharp/NativeAchievementAtlasPlan.h
+      - app/src/main/cpp/experiments/csharp/NativeAchievementAtlas.h
+      - app/src/main/cpp/experiments/csharp/NativeAchievementAtlas.cpp
       - app/src/main/cpp/experiments/csharp/NativeAchievementContracts.h
       - app/src/main/cpp/experiments/csharp/NativeAchievementRegistrationPlan.h
       - app/src/main/cpp/experiments/csharp/NativeAchievementContracts.cpp
@@ -93,6 +99,13 @@ jobs:
             tests/achievement_loader/native_registration_plan_test.cpp \
             -o /tmp/bunny-achievement-registration-plan
           /tmp/bunny-achievement-registration-plan
+      - name: Verify original Bunny 592x64 atlas plan
+        run: |
+          g++ -std=c++20 -O2 -Wall -Wextra -Werror -pthread \
+            -Iapp/src/main/cpp \
+            tests/achievement_loader/native_atlas_plan_test.cpp \
+            -o /tmp/bunny-achievement-atlas-plan
+          /tmp/bunny-achievement-atlas-plan
       - name: Test owner-safe native event mailbox
         run: |
           g++ -std=c++20 -O2 -Wall -Wextra -Werror -pthread \
@@ -106,4 +119,5 @@ jobs:
             -fno-exceptions -fno-rtti -fsyntax-only \
             -Itests/basic_items/include -Iapp/src/main/cpp \
             app/src/main/cpp/experiments/csharp/NativeAchievementGameplay.cpp \
-            app/src/main/cpp/experiments/csharp/NativeAchievementContracts.cpp
+            app/src/main/cpp/experiments/csharp/NativeAchievementContracts.cpp \
+            app/src/main/cpp/experiments/csharp/NativeAchievementAtlas.cpp
