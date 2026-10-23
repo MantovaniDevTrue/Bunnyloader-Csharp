@@ -5,7 +5,8 @@ on:
     branches:
       - main
     paths:
-      - ".github/workflows/build-bunny-stable-v019711-private.yml"
+      - ".github/workflows/build-bunny-csharp-88-7.yml"
+      - ".github/bunny-01971-trigger"
   workflow_dispatch:
 
 permissions:
