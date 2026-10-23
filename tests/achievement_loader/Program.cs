@@ -91,6 +91,38 @@ internal static class Program
         worm.SetStaticDefaults();
         Fail<ArgumentOutOfRangeException>(() => worm.Conditions[0].Value = float.NaN);
         Fail<ArgumentOutOfRangeException>(() => worm.Conditions[0].Value = 1.5f);
+        string dll = Assembly.GetExecutingAssembly().Location;
+        string workerRevision1 = dll + "|bunny-revision=1";
+        string workerRevision2 = dll + "|bunny-revision=2";
+        string Execute(string mod, string path, int kind, string value = "")
+            => BunnyRecipeRuntime.Dispatch(mod, path, "__achievements__", 0, kind, value);
+        Check(Execute("worker-a", workerRevision1, 0) == "READY|3");
+        Check(Execute("worker-b", workerRevision1, 0) == "READY|3");
+        Check(Execute("worker-a", workerRevision1, 1, "0,900,1,0") == "EVENT|0");
+        Check(Execute("worker-a", workerRevision1, 1, "0,900,1,1") == "EVENT|1");
+        for (int i = 0; i < 3; i++)
+            Check(Execute("worker-a", workerRevision1, 1, "0,10,1,1") == "EVENT|0");
+        string wire = Execute("worker-a", workerRevision1, 2);
+        Check(wire.StartsWith("ACH1\n", StringComparison.Ordinal));
+        Check(wire.Length <= 512);
+        Check(Execute("worker-a", workerRevision1, 3, "WRONG")
+            == "ERROR|Stage=AchievementRestore Reason=InvalidPayload");
+        Check(Execute("worker-a", workerRevision1, 1, "not-an-event")
+            == "ERROR|Stage=AchievementEvent Reason=InvalidPayload");
+        Check(Execute("worker-a", workerRevision2, 1, "0,900,1,1")
+            == "PENDING|Stage=AchievementInvoke Reason=RevisionNotBound");
+        Check(Execute("worker-a", workerRevision2, 0) == "READY|3");
+        Check(Execute("worker-a", workerRevision1, 4) == "NOT_BOUND");
+        Check(Execute("worker-a", workerRevision2, 3, wire) == "RESTORED|3");
+        Check(Execute("worker-a", workerRevision2, 1, "0,10,1,1") == "EVENT|0");
+        Check(Execute("worker-a", workerRevision2, 1, "0,10,1,1") == "EVENT|1");
+        Check(Execute("worker-b", workerRevision1, 2).StartsWith("ACH1\n", StringComparison.Ordinal));
+        Check(BunnyRecipeRuntime.Dispatch("worker-a", workerRevision2, "__unload__", 0, 6, "")
+            == "CLEARED");
+        Check(Execute("worker-a", workerRevision2, 1, "0,900,1,1")
+            == "PENDING|Stage=AchievementInvoke Reason=RevisionNotBound");
+        Check(Execute("worker-b", workerRevision1, 1, "0,900,1,1") == "EVENT|1");
+        Check(Execute("worker-b", workerRevision1, 4) == "CLEARED");
         Console.WriteLine("AchievementLoader host: " + checks + " checks passed");
     }
 }
