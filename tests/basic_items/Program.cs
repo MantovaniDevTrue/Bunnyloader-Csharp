@@ -333,6 +333,20 @@ try {
     Equal(true,minionRows.Contains("ITEM_RARITY\t"+pair.Item1+"\t"+pair.Item2));
   foreach(var name in new[]{"ExampleItem","ExampleMeleeWeapon","ExampleBuffPotion"})
     Equal(false,minionRows.Any(row=>row.StartsWith("ITEM_RARITY\t"+name+"\t",StringComparison.Ordinal)));
+  foreach(string armorName in new[]{"ExampleHelmet","ExampleBreastplate","ExampleLeggings"}) {
+   var values=minionRows.Single(row=>row.StartsWith("ITEM\t"+armorName+"\t",StringComparison.Ordinal)).Split('\t');
+   Equal("18",values[2]);Equal("18",values[3]);Equal("50000",values[5]);Equal("2",values[6]);
+   foreach(string language in new[]{"en-US","pt-BR"}) {
+    using var locale=JsonDocument.Parse(File.ReadAllText(Path.Combine(root,"content","Localization",language+".json")));
+    string expected=locale.RootElement.GetProperty("ItemTooltip").GetProperty(armorName).GetString()!
+      .Replace("\\n","\n").Replace("{0}",armorName=="ExampleBreastplate"?"20":"5").Replace("{1}","1");
+    string actualTooltip=language=="en-US"?System.Text.Encoding.UTF8.GetString(Convert.FromHexString(values[18])):
+      System.Text.Encoding.UTF8.GetString(Convert.FromHexString(values[22].Substring("pt-BR:".Length)));
+    Equal(expected,actualTooltip);
+   }
+   Equal("1,mExampleWorkbench,mExampleItem:1",values[19]);
+   Equal((armorName=="ExampleBreastplate"?6:5).ToString(),values[23]);
+  }
   var blockRows=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt"));
   var blockTile=blockRows.Single(row=>row.StartsWith("TILE\tExampleTile\t",StringComparison.Ordinal)).Split('\t');
   Equal("19968",blockTile[2]);Equal("0",blockTile[3]);Equal("Stone",blockTile[6]);

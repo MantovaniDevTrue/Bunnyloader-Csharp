@@ -333,5 +333,10 @@
     "source": "check-csharp-golf-ball.yml",
     "name": "Translate golf ball and verify native static projectile table ordering",
     "command": "bash tests/golf_ball/run.sh"
+  },
+  {
+    "source": "check-csharp-armor-port.yml",
+    "name": "Verify original armor prices tooltips and production native equipment policies",
+    "command": "bash tests/armor_port_run.sh"
   }
 ]

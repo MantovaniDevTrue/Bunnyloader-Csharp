@@ -139,7 +139,9 @@ void configureArmor() {
 }
 int main(int argc,char** argv) {
  using namespace bl::csharp;
- assert(argc>=2);const std::string mode=argc>2?argv[2]:"";valueMode=mode=="--struct"||mode=="--boxed";boxedOffsets=mode=="--boxed";
+ assert(argc>=2);const std::string mode=argc>2?argv[2]:"";valueMode=mode=="--struct"||mode=="--boxed"||mode=="--full-example-boxed";boxedOffsets=mode=="--boxed"||mode=="--full-example-boxed";
+ const bool fullExample=mode.starts_with("--full-example");
+ auto slotFor=[&](const std::string& name){return name==(fullExample?"ExampleHelmet":"ContractHelmet")?0:name==(fullExample?"ExampleBreastplate":"ContractPlate")?1:2;};
  configureArmor();badAbi=mode=="--abi";
  if(mode=="--narrow-ids") {
   bl::il2cpp::findField(&buffIdClass,"OnFire")->type=&shortType;
@@ -148,20 +150,34 @@ int main(int argc,char** argv) {
  std::ifstream input(argv[1]);assert(input);std::string line,error;std::getline(input,line);
  std::vector<BasicItemEntry> entries;int next=6400;
  while(std::getline(input,line)) {
-  BasicItemEntry e;assert(parseBasicItemWire(basicSplit(line,'\t'),&e,&error));assert(e.armor.present&&e.behavior.empty());
+  if(fullExample) {
+   const auto row=basicSplit(line,'\t');
+   if(row.size()<2 || row[0]!="ITEM" || (row[1]!="ExampleHelmet" && row[1]!="ExampleBreastplate" && row[1]!="ExampleLeggings"))continue;
+  }
+  BasicItemEntry e;assert(parseBasicItemWire(basicSplit(line,'\t'),&e,&error));assert(e.armor.present);
+  if(!fullExample)assert(e.behavior.empty());
+  else assert(e.values[BasicWidth]==18 && e.values[BasicHeight]==18 && e.values[BasicValue]==50000 && e.values[BasicRare]==2);
   e.type=next++;identities[e.type]="armor/"+e.name;assert(registerBasicItemPlaceholder(e.type,e.name,&error));entries.push_back(e);
  }
  assert(entries.size()==3);
+ // O modo full executa a camada real de armadura com o wire do ExampleMod
+ // inteiro. Texturas são exercitadas pela suíte NativeItemPolicies separada.
+ auto apply=[&] {
+  if(!fullExample)return applyNativeBasicItemDefaults("armor",entries,&error);
+  auto batch=prepareNativeArmorPolicies("armor",entries,&error);
+  if(!batch)return false;
+  commitNativeArmorPolicies(batch);return true;
+ };
  if(mode=="--type"||mode=="--bounds"||mode=="--static") {
   auto* field=bl::il2cpp::findField(&playerClass,"statManaMax2");
   if(mode=="--type")field->type=&floatType;else if(mode=="--bounds")field->offset=sizeof(FakePlayer);else field->flags=0x10;
-  assert(!applyNativeBasicItemDefaults("armor",entries,&error));assert(pendingNativeArmorPolicies()==0);
+  assert(!apply());assert(pendingNativeArmorPolicies()==0);
   std::cout<<"NATIVE_ARMOR_INVALID_METADATA_REJECTED "<<mode<<"\n";return 0;
  }
  const auto vanilla=at(lookup,900);
  // Missing dependencies remain pending and never publish a success/bonus.
  const auto saved=identities[entries[1].type];
- if(!applyNativeBasicItemDefaults("armor",entries,&error)){std::cerr<<error<<"\n";assert(false);}
+ if(!apply()){std::cerr<<error<<"\n";assert(false);}
  identities.erase(entries[1].type);assert(pendingNativeArmorPolicies()==1);
  pumpNativeArmorPoliciesOnGameThread();assert(pendingNativeArmorPolicies()==1&&adds==0);
  identities[entries[1].type]=saved;
@@ -178,12 +194,12 @@ int main(int argc,char** argv) {
  pumpNativeArmorPoliciesOnGameThread();
  if(mode=="--set-retry") {
   FakePlayer p;p.armor=array(&itemClass,3);std::array<FakeItem,3> partialPieces{};
-  for(const auto& e:entries){int slot=e.name=="ContractHelmet"?0:e.name=="ContractPlate"?1:2;partialPieces[slot].type=e.type;put(p.armor,slot,&partialPieces[slot].header);}
+  for(const auto& e:entries){int slot=slotFor(e.name);partialPieces[slot].type=e.type;put(p.armor,slot,&partialPieces[slot].header);}
   auto skip=reinterpret_cast<void(*)(Il2CppObject*,const MethodInfo*)>(chains.at(method("void Pumpkin(Player player)")).outer);
   skip(&p.header,nullptr);assert(vanillaPumpkinCalls==0);
  }
  for(int i=0;i<4&&pendingNativeArmorPolicies();++i)pumpNativeArmorPoliciesOnGameThread();
- assert(pendingNativeArmorPolicies()==0&&adds==1&&texts[0]=="+20% damage");assert(roots.size()==1);
+ assert(pendingNativeArmorPolicies()==0&&adds==1&&texts[0]==(fullExample?"Increases dealt damage by 20%":"+20% damage"));assert(roots.size()==1);
  assert(at(lookup,900)==vanilla);assert(lookup->length==6403);
  for(const auto& e:entries){auto* row=reinterpret_cast<Il2CppArray*>(at(lookup,e.type));assert(row&&row->length==1);}
  for(uintptr_t i=6197;i<lookup->length;++i)assert(at(lookup,static_cast<int>(i))!=nullptr);
@@ -193,7 +209,7 @@ int main(int argc,char** argv) {
  auto pumpkin=reinterpret_cast<void(*)(Il2CppObject*,const MethodInfo*)>(chains.at(method("void Pumpkin(Player player)")).outer);
  std::array<FakeItem,3> pieces{};
  for(const auto& e:entries) {
-  const int slot=e.name=="ContractHelmet"?0:e.name=="ContractPlate"?1:2;
+  const int slot=slotFor(e.name);
   auto& item=pieces[static_cast<size_t>(slot)];item.type=e.type;item.defense=static_cast<int16_t>(e.defense);
  }
  auto fresh=[&] {FakePlayer p;p.meleeDamage=p.rangedDamage=p.magicDamage=p.minionDamage=1;p.armor=array(&itemClass,10);p.buffImmune=array(&boolClass,100);
@@ -203,7 +219,7 @@ int main(int argc,char** argv) {
  assert(player.statDefense==16&&player.statManaMax2==220&&player.maxMinions==2&&std::abs(player.moveSpeed-1.05f)<0.00001f);
  assert(static_cast<unsigned char*>(arrayData(player.buffImmune))[24]);
  pumpkin(&player.header,nullptr);assert(vanillaPumpkinCalls==0);
- update(&player.header,0,nullptr);assert(std::abs(player.meleeDamage-1.2f)<0.00001f&&std::abs(player.minionDamage-1.2f)<0.00001f);
+ update(&player.header,0,nullptr);assert(std::abs(player.meleeDamage-1.2f)<0.00001f&&std::abs(player.rangedDamage-1.2f)<0.00001f&&std::abs(player.magicDamage-1.2f)<0.00001f&&std::abs(player.minionDamage-1.2f)<0.00001f);
  const auto allocs=allocations;
  for(int i=0;i<10000;++i) {
   player.statDefense=0;player.statManaMax2=200;player.maxMinions=1;player.moveSpeed=1;

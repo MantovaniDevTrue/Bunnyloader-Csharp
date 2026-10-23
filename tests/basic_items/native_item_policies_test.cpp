@@ -202,7 +202,7 @@ void configurePolicies() {
   }
   if(n.find("void Copy(")==0){auto* from=static_cast<Il2CppArray*>(args[0]);auto* to=static_cast<Il2CppArray*>(args[1]);const auto count=*static_cast<int*>(args[2]);std::memcpy(arrayData(to),arrayData(from),static_cast<size_t>(count)*width(from->obj.klass->element));++arrayWrites;}
   else if(n.find("void SetValue(")==0){if(failSet){failSet=false;*error=&exception;return nullptr;}auto* a=static_cast<Il2CppArray*>(self);const int index=*static_cast<int*>(args[1]);assert(index>=0&&static_cast<uintptr_t>(index)<a->length);std::memcpy(static_cast<char*>(arrayData(a))+sizeof(void*)*static_cast<size_t>(index),&args[0],sizeof(void*));++arrayWrites;}
-  else if(n.find("void SetDefaults(")==0){auto* item=static_cast<FakeItem*>(self);item->values[0]=28;item->values[1]=20;item->clonedReference=&soundObject;void* sound=&soundObject;std::memcpy(item->sound,&sound,sizeof(void*));}
+  else if(n.find("void SetDefaults(")==0){assert(*static_cast<int*>(args[0])==547);auto* item=static_cast<FakeItem*>(self);item->values[0]=28;item->values[1]=20;item->clonedReference=&soundObject;void* sound=&soundObject;std::memcpy(item->sound,&sound,sizeof(void*));}
   else if(n.find("get_LocalPlayer")!=std::string::npos)return &localPlayer.header;
   else if(n.find("void .ctor(int ticksperframe") == 0) {
    ++animationConstructors;assert(self&&*static_cast<int*>(args[0])>0&&*static_cast<int*>(args[1])>1);
@@ -327,7 +327,10 @@ int main(int argc,char** argv) {
   if(entry.behavior.empty())continue;
   entry.type=next++;entry.modId="mod";entry.modDir=argv[2];identities[entry.type]="mod/"+entry.name;
   assert(registerBasicItemPlaceholder(entry.type,entry.name,&error,argv[2]));auto base=entry;base.behavior.clear();base.armor={};base.recipes.clear();
-  assert(applyNativeBasicItemDefaults("mod",{base},&error));all.push_back(entry);
+  assert(applyNativeBasicItemDefaults("mod",{base},&error));
+  // SourceLoader installs defense separately after the basic defaults batch.
+  if(entry.defense>0)assert(setBasicItemDefense(entry.type,entry.defense,&error));
+  all.push_back(entry);
  }
  assert(!all.empty());std::shared_ptr<NativeItemPolicyBatch> batch;assert(prepareNativeItemPolicies(all,&batch,&error));commitNativeItemPolicies(batch);
  auto* headField=bl::il2cpp::findField(&itemClass,"headSlot");const auto savedHead=*headField;
@@ -395,13 +398,19 @@ int main(int argc,char** argv) {
  assert(static_cast<uint8_t*>(arrayData(handTable))[request.body]==(android145?1:0));
  assert(static_cast<uint8_t*>(arrayData(handTable))[0]==(android145?0:1));
  const auto& beard=find("ExampleBeard");localPlayer.hairColor=0xff123456;FakeItem colored{};assert(applyBasicItemToObject(&colored.header,beard.type)&&colored.color==localPlayer.hairColor);
+ for(const char* name:{"ExampleHelmet","ExampleBreastplate","ExampleLeggings"}) {
+  const auto& armor=find(name);FakeItem actual{};actual.type=armor.type;
+  assert(applyBasicItemToObject(&actual.header,armor.type));
+  assert(actual.values[BasicValue]==50000 && actual.values[BasicRare]==2 && actual.values[BasicWidth]==18 && actual.values[BasicHeight]==18);
+  assert(actual.defense==(std::string(name)=="ExampleBreastplate"?6:5));
+ }
  const auto& soul=find("ExampleSoul");FakeItem item{};item.type=soul.type;assert(applyBasicItemToObject(&item.header,soul.type));assert(item.clonedReference==&soundObject&&barriers>0);
  auto alpha=hook<uint32_t(*)(Il2CppObject*,uint32_t,const MethodInfo*)>("Item","Color GetAlpha(Color newColor)");assert(alpha(&item.header,0,nullptr)==expectedNativeColor(0x32ffffffu));
  const auto alphaAllocations=allocations;for(int i=0;i<10000;++i)assert(alpha(&item.header,0x01020304u,nullptr)==expectedNativeColor(0x32ffffffu));
  FakeItem vanilla{};vanilla.type=1;assert(alpha(&vanilla.header,0x12345678u,nullptr)==0x12345678u);
  assert(allocations==alphaAllocations);
  World world;world.inner=&item;auto update=hook<void(*)(Il2CppObject*,int32_t,const MethodInfo*)>("WorldItem","void UpdateItem(int i)");update(&world.object,0,nullptr);
- assert(lightCalls==1&&worldUpdates==1&&lastPosition[0]==20&&lastPosition[1]==35&&std::abs(lastLight[0]-0.477f)<0.00001f);
+ assert(lightCalls==1&&worldUpdates==1&&lastPosition[0]==20&&lastPosition[1]==35&&std::abs(lastLight[0]-0.477f)<0.00001f&&std::abs(lastLight[1]-0.729f)<0.00001f&&std::abs(lastLight[2]-0.828f)<0.00001f);
  const auto worldAllocations=allocations;for(int i=0;i<10000;++i)update(&world.object,0,nullptr);
  assert(lightCalls==10001&&worldUpdates==10001&&allocations==worldAllocations);
  world.active=false;update(&world.object,0,nullptr);assert(lightCalls==10001);
@@ -410,7 +419,14 @@ int main(int argc,char** argv) {
  world.inner=nullptr;update(&world.object,0,nullptr);assert(lightCalls==10001);
  assert(!worldActiveProperty||activeReads>=10001);
  BasicItemPolicy soulPolicy;assert(item_policy_wire::read(soul,&soulPolicy,&error));
+ assert(soulPolicy.clone=="SoulofSight" && soulPolicy.frames==4 && soulPolicy.ticks==6);
  assert(animations.contains(soul.type)&&animationConstructors>0);
+ assert(item.values[BasicMaxStack]==9999 && item.values[BasicValue]==10000 && item.values[BasicRare]==5);
+ for(const char* name:{"AnimatesAsSoul","ItemIconPulse","ItemNoGravity"}) {
+  auto* f=bl::il2cpp::findField(cls("ItemID/Sets"),name);assert(f);
+  auto* table=*reinterpret_cast<Il2CppArray**>(statics.at(f).data());
+  assert(table->length>static_cast<uintptr_t>(soul.type) && static_cast<uint8_t*>(arrayData(table))[soul.type]==1);
+ }
  assert(animationParameters.at(animations.at(soul.type))==std::make_pair(soulPolicy.ticks,soulPolicy.frames));
  const auto constructed=animationConstructors;
  auto animation=hook<void(*)(const MethodInfo*)>("Main","void InitializeItemAnimations()");animations.clear();animation(nullptr);assert(animations.contains(soul.type)&&animationConstructors==constructed);
