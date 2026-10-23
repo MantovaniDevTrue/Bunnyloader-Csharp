@@ -8,6 +8,7 @@
 #include "experiments/csharp/ManagedLiveEventQueue.h"
 #include "experiments/csharp/ManagedLiveIngressQueue.h"
 #include "experiments/csharp/ManagedHitCallbackDispatch.h"
+#include "experiments/csharp/ManagedEntityBindValidation.h"
 #include "experiments/csharp/ManagedProcessMemory.h"
 #include "experiments/csharp/MonoSignalOwnership.h"
 #include "experiments/csharp/NativeAbortProbe.h"
@@ -420,6 +421,8 @@ void* g_entityNpcHit = nullptr;
 void* g_entityNpcKill = nullptr;
 void* g_entityProjectileHit = nullptr;
 void* g_entityProjectileKill = nullptr;
+void* g_entityResetWorld = nullptr;
+uint64_t g_entityManagedResetSession = 0;
 std::atomic<int> g_entityCombatSubmitted{0};
 std::atomic<int> g_entityCombatDropped{0};
 std::array<std::atomic<int>, 4> g_entityCombatExecuted{};
@@ -1078,10 +1081,24 @@ int64_t executeManagedEntityOnWorker(const ManagedEntityJob& job) {
         g_entityNpcKill = g_api.findMethod(klass, "KillNpc", 4);
         g_entityProjectileHit = g_api.findMethod(klass, "HitProjectile", 7);
         g_entityProjectileKill = g_api.findMethod(klass, "KillProjectile", 5);
+        g_entityResetWorld = g_api.findMethod(klass, "ResetWorld", 0);
         if (!g_entityRegister || !g_entityBind ||
             !g_entityNpcTick || !g_entityProjectileTick ||
             !g_entityNpcHit || !g_entityNpcKill ||
-            !g_entityProjectileHit || !g_entityProjectileKill) return -1;
+            !g_entityProjectileHit || !g_entityProjectileKill ||
+            !g_entityResetWorld) return -1;
+    }
+    if (g_entityManagedResetSession != job.session) {
+        {
+            std::lock_guard<std::mutex> guard(g_pinnedMutex);
+            if (job.session != g_entitySession || job.binding < 0 ||
+                static_cast<size_t>(job.binding) >= g_entityBindings.size() ||
+                !g_entityBindings[static_cast<size_t>(job.binding)].armed) return -1;
+        }
+        void* resetException = nullptr;
+        g_api.invoke(g_entityResetWorld, nullptr, nullptr, &resetException);
+        if (resetException) return -1;
+        g_entityManagedResetSession = job.session;
     }
     int managedSlot = binding.managedSlot;
     if (managedSlot < 0) {
@@ -1101,11 +1118,12 @@ int64_t executeManagedEntityOnWorker(const ManagedEntityJob& job) {
         auto bindTypes = [&](int kind, const std::vector<std::pair<int, std::string>>& values) {
             for (const auto& [id, name] : values) {
                 void* stringValue = g_api.newString(g_domain, name.c_str());
-                if (!stringValue) continue;
+                if (!stringValue) return false;
                 void* args[] = {&managedSlot, &kind, const_cast<int*>(&id), stringValue};
                 void* bindException = nullptr;
-                g_api.invoke(g_entityBind, nullptr, args, &bindException);
-                if (bindException) return false;
+                void* boxed = g_api.invoke(g_entityBind, nullptr, args, &bindException);
+                void* unboxed = (bindException || !boxed) ? nullptr : g_api.unbox(boxed);
+                if (!managedEntityBindAccepted(unboxed)) return false;
             }
             return true;
         };

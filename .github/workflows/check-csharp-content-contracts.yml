@@ -47,3 +47,9 @@ jobs:
         run: python3 tools/csharp_contracts/verify_managed_callbacks.py
       - name: Validate managed SDK callback signatures by reflection
         run: dotnet run --project tools/csharp_contracts/CallbackContractProbe/CallbackContractProbe.csproj -c Release --no-launch-profile -- tools/csharp_contracts/managed_callbacks.json
+      - name: Verify native managed-entity bind result handling
+        run: |
+          g++ -std=c++20 -Wall -Wextra -Werror -Iapp/src/main/cpp tools/csharp_contracts/entity_bind_smoke.cpp -o /tmp/bunny-entity-bind-smoke
+          /tmp/bunny-entity-bind-smoke
+      - name: Compile and run managed entity lifecycle callbacks
+        run: dotnet run --project tools/csharp_contracts/EntityLifecycleProbe/EntityLifecycleProbe.csproj -c Release --no-launch-profile
