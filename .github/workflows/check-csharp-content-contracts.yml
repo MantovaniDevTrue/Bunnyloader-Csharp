@@ -60,6 +60,10 @@ jobs:
           assert 'g_tileCollideOffset' in source
           assert 'g_tileCollisionNetMode' in source
           assert 'game.proj.tileCollide' not in source
+          assert 'nativeFieldContract(projectile,"decidesManualFallThrough"' in source
+          assert 'nativeFieldContract(projectile,"shouldFallThrough"' in source
+          assert 'const bool ready=g_tileCollisionHooksReady.load' in source
+          assert 'if(ready)return true;' in source
           PY
       - name: Check supported projectile descriptor versions in native parser
         run: |

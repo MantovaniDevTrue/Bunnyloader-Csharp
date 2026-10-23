@@ -76,3 +76,5 @@ TilePlatformCollision = BunnyProjectilePlatformCollision.SolidPlatforms;
 Platform overrides also work with `TileCollisionMode=Vanilla` and do not consume collision survival counts. The source descriptor includes optional field 23 for the platform style and fills legacy policy defaults. Older descriptors are unchanged. The .NET probe covers both combinations while the native C++ smoke checks parser lengths.
 
 **Scope:** this is the no-fall-through/fall-through subset of `TileCollideStyle`, not support for custom collision width/height, hitbox anchor, `return false` collision bypass, or arbitrary scripted logic; multiplayer/gameplay/FPS are not yet device validated.
+
+The hook installer supports subsequent mods enabling platform controls even when an earlier mod already installed the shared collision hooks without platform fields. The later install request must resolve and validate the additional typed IL2CPP fields before activation; existing shared detours remain active and are not installed twice.

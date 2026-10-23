@@ -873,7 +873,9 @@ void resetManagedSourceProjectileSlots() {
 }
 
 bool installManagedProjectileTileCollisionHooks(bool platformPolicy,std::string* error) {
-    if(g_tileCollisionHooksReady.load(std::memory_order_acquire))return true;
+    const bool ready=g_tileCollisionHooksReady.load(std::memory_order_acquire);
+    if(ready && (!platformPolicy ||
+       (g_tileManualFallThroughOffset>=0 && g_tileShouldFallThroughOffset>=0)))return true;
     if(!error)return false;
     auto* projectile=il2cpp::findClass({"Terraria","Projectile",{}});
     const auto* movement=projectile ? il2cpp::findMethodBySignature(projectile,
@@ -908,6 +910,7 @@ bool installManagedProjectileTileCollisionHooks(bool platformPolicy,std::string*
         g_tileManualFallThroughOffset=manual;
         g_tileShouldFallThroughOffset=should;
     }
+    if(ready)return true;
     if(!g_originalTileMovement && !hook::install(movement,hkManagedTileMovement,&g_originalTileMovement)) {
         *error="Falha ao conectar Projectile.HandleMovement";return false;
     }
