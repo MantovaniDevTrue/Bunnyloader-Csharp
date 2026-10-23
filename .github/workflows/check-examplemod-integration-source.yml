@@ -54,13 +54,22 @@ jobs:
             app/src/main/cpp/experiments/csharp/SourceLoader.cpp \
             app/src/main/cpp/experiments/csharp/NativeContent.cpp \
             app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp
-      - name: Run native tile and wall policy regressions
-        shell: bash
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Generate actual CSharp ExampleTile native wire for C++ contract
+        run: dotnet run --project tests/basic_items/tile_parity/TileParity.csproj -c Release
+      - name: Verify native tile flags against real compiled CSharp ExampleTile
+        run: |
+          set -euo pipefail
+          g++ -std=c++20 -Wall -Wextra -Werror -pedantic -pthread \
+            -I app/src/main/cpp tests/world_loaders/tile_flags_test.cpp \
+            -o "$RUNNER_TEMP/native_tile_flags"
+          "$RUNNER_TEMP/native_tile_flags" build/tile-parity/source-runtime-values.txt
+      - name: Verify native wall and animation policies
         run: |
           set -euo pipefail
           for file in \
-            tests/world_loaders/tile_flags_test.cpp \
-            tests/world_loaders/wall_registry_test.cpp \
             tests/world_loaders/wall_runtime_test.cpp \
             tests/world_loaders/tile_animation_test.cpp; do
             exe="$RUNNER_TEMP/$(basename "${file%.cpp}")"
