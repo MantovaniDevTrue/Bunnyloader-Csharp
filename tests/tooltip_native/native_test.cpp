@@ -112,7 +112,7 @@ int main(int argc,char** argv) {
     assert(nativeTooltipHasHeadroom(210,20,1,280)==false);
     assert(nativeTooltipHasHeadroom(950,20,1,1080));
     assert(!nativeTooltipHasHeadroom(1020,20,1,1080));
-    assert(!nativeTooltipHasHeadroom(210,20,3,1080));
+    assert(!nativeTooltipHasHeadroom(930,20,3,1080));
     assert(!nativeTooltipHasHeadroom(-1,20,1,1080));
     assert(!nativeTooltipHasHeadroom(210,0,1,1080));
     assert(!nativeTooltipHasHeadroom(210,20,1,200));
