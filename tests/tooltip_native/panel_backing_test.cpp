@@ -1,4 +1,4 @@
-#include "experiments/csharp/NativeTooltipPanelBacking.h"
+#include "experiments/csharp/NativeTooltipPanelInspection.h"
 #include <cassert>
 #include <cstring>
 #include <iostream>
@@ -39,6 +39,26 @@ static FieldInfo nf{"hasValue",{&boolean},0},nv{"value",{&rect},4};
 static MethodInfo method{"DrawBacking",false,
     {{&vec},{&vec},{&texture},{&color},{&nullable}},
     {"position","size","texture","color","sourceFrame"},{&plain}};
+struct Node {
+    Il2CppObject object;
+    Il2CppObject* first=nullptr;
+    Il2CppObject* second=nullptr;
+    uint8_t rgba[8]{};
+};
+static Il2CppClass settings{"","Settings",0,false,{},{}};
+static Il2CppClass tooltips{"","TooltipSettings",0,false,{},{}};
+static Il2CppClass backingValue{"","TooltipBacking",0,false,{},{}};
+static Il2CppClass image{"","TooltipImageLayout",0,false,{},{}};
+static FieldInfo rootField{"Instance",{&settings},0,0x10u};
+static FieldInfo settingTips{"Tooltips",{&tooltips},sizeof(Il2CppObject)};
+static FieldInfo shopTint{"ShopTooltipBacking",{&color},offsetof(Node,rgba)};
+static FieldInfo tipsBack{"Backing",{&backingValue},sizeof(Il2CppObject)};
+static FieldInfo imageFill{"Backing",{&image},sizeof(Il2CppObject)};
+static FieldInfo imageBorder{"Border",{&image},offsetof(Node,second)};
+static FieldInfo imageTexture{"Texture",{&texture},sizeof(Il2CppObject)};
+static FieldInfo tintDefault{"BackingColor",{&color},offsetof(Node,rgba)};
+static FieldInfo tintBorder{"BorderColor",{&color},offsetof(Node,rgba)+4};
+static Il2CppObject* settingsSingleton=nullptr;
 static bl::il2cpp::Api fixture;
 static bool throwManaged=false;
 static int calls=0;
@@ -62,6 +82,10 @@ int main() {
     rect.fields={&rx,&ry,&rw,&rh};
     nullable.fields={&nf,&nv};
     panel.methods={&method};
+    settings.fields={&rootField,&settingTips,&shopTint};
+    tooltips.fields={&tipsBack};
+    backingValue.fields={&imageFill,&imageBorder,&tintDefault,&tintBorder};
+    image.fields={&imageTexture};
     fixture.class_get_name=[](Il2CppClass* cls){return cls->name;};
     fixture.class_get_namespace=[](Il2CppClass* cls){return cls->ns;};
     fixture.class_is_valuetype=[](const Il2CppClass* cls){return cls->value;};
@@ -76,6 +100,17 @@ int main() {
     fixture.field_get_type=[](FieldInfo* f)->const Il2CppType*{return &f->type;};
     fixture.field_get_flags=[](FieldInfo* f){return f->flags;};
     fixture.field_get_offset=[](FieldInfo* f){return f->offset;};
+    fixture.class_instance_size=[](Il2CppClass*){return static_cast<uint32_t>(sizeof(Node));};
+    fixture.field_static_get_value=[](FieldInfo* field,void* output){
+        assert(field==&rootField);
+        std::memcpy(output,&settingsSingleton,sizeof(settingsSingleton));
+    };
+    fixture.class_get_method_from_name=[](Il2CppClass* cls,const char* name,int count)->const MethodInfo*{
+        for(auto* item:cls->methods)
+            if(std::strcmp(item->name,name)==0&&static_cast<int>(item->types.size())==count)
+                return item;
+        return nullptr;
+    };
     fixture.class_get_methods=[](Il2CppClass* cls,void** it)->const MethodInfo*{
         const auto i=reinterpret_cast<uintptr_t>(*it);
         if(i>=cls->methods.size())return nullptr;
@@ -139,5 +174,55 @@ int main() {
     method.types[2].cls=&unrelated;mustReject();method.types[2].cls=&texture;
     auto otherMethod=method;panel.methods.push_back(&otherMethod);mustReject();panel.methods.pop_back();
     assert(bridge.bind(&panel,&error));
-    std::cout<<"NATIVE_TOOLTIP_PANEL_BACKING=PASS invoke="<<calls<<" rejects=10\n";
+
+    Node settingsNode{{&settings,nullptr}};
+    Node tooltipsNode{{&tooltips,nullptr}};
+    Node backingNode{{&backingValue,nullptr}};
+    Node fillNode{{&image,nullptr}};
+    Node borderNode{{&image,nullptr}};
+    Node fillTexture{{&texture,nullptr}};
+    Node borderTexture{{&texture,nullptr}};
+    settingsNode.first=&tooltipsNode.object;
+    tooltipsNode.first=&backingNode.object;
+    backingNode.first=&fillNode.object;
+    backingNode.second=&borderNode.object;
+    fillNode.first=&fillTexture.object;
+    borderNode.first=&borderTexture.object;
+    const uint8_t backingColors[8]{14,25,36,200,50,60,70,180};
+    std::memcpy(backingNode.rgba,backingColors,8);
+    const uint8_t shopColor[4]{3,5,7,240};
+    std::memcpy(settingsNode.rgba,shopColor,4);
+    settingsSingleton=&settingsNode.object;
+
+    NativeTooltipPanelInspection inspected;
+    assert(inspectNativeTooltipPanel(&settings,&panel,0,0,&inspected,&error));
+    assert(inspected.resources.settings==&settingsNode.object);
+    assert(inspected.resources.tooltipBacking==&backingNode.object);
+    assert(inspected.resources.fillTexture==&fillTexture.object);
+    assert(inspected.resources.borderTexture==&borderTexture.object);
+    assert((inspected.fillRgba==std::array<uint8_t,4>{14,25,36,200}));
+    assert((inspected.borderRgba==std::array<uint8_t,4>{50,60,70,180}));
+    assert(inspectNativeTooltipPanel(&settings,&panel,15,0,&inspected,&error));
+    assert((inspected.fillRgba==std::array<uint8_t,4>{3,5,7,240}));
+    auto old=inspected;
+    settingsSingleton=nullptr;
+    assert(!inspectNativeTooltipPanel(&settings,&panel,0,0,&inspected,&error));
+    assert(inspected.resources.settings==old.resources.settings);
+    assert(inspected.fillRgba==old.fillRgba);
+    settingsSingleton=&settingsNode.object;
+    borderNode.first=nullptr;
+    assert(!inspectNativeTooltipPanel(&settings,&panel,0,0,&inspected,&error));
+    borderNode.first=&borderTexture.object;
+    borderTexture.object.klass=&unrelated;
+    assert(!inspectNativeTooltipPanel(&settings,&panel,0,0,&inspected,&error));
+    borderTexture.object.klass=&texture;
+    tintDefault.flags=0x10u;
+    assert(!inspectNativeTooltipPanel(&settings,&panel,0,0,&inspected,&error));
+    tintDefault.flags=0;
+    method.names[2]="otherTexture";
+    assert(!inspectNativeTooltipPanel(&settings,&panel,0,0,&inspected,&error));
+    method.names[2]="texture";
+    assert(inspectNativeTooltipPanel(&settings,&panel,0,0,&inspected,&error));
+    assert(inspected.resources.settings==&settingsNode.object);
+    std::cout<<"NATIVE_TOOLTIP_PANEL_BACKING=PASS invoke="<<calls<<" rejects=10 integrated=PASS\n";
 }
