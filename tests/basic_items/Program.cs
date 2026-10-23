@@ -390,7 +390,7 @@ try {
   Equal("Platinum",tile[6]);Equal("200",tile[7]);Equal("200",tile[8]);Equal("200",tile[9]);
   Equal("1",tile[11]);Equal("3",tile[12]);
   Equal("0",tile[13]);Equal("1",tile[14]);Equal("0",tile[15]);Equal("-",tile[16]);
-  Equal("1",tile[17]);Equal("1",tile[18]);Equal("0",tile[19]);Equal("0",tile[20]);
+  Equal("1",tile[17]);Equal("1",tile[18]);Equal("0",tile[19]);Equal("1",tile[20]);
   Equal(22,item.Length);Equal("mExampleWorkbench:0",item[21]);
   Equal("1,-1,v36:1,mExampleItem:10",item[19]);
   foreach (string armorName in new[]{"ExampleHelmet","ExampleBreastplate","ExampleLeggings"}) {
