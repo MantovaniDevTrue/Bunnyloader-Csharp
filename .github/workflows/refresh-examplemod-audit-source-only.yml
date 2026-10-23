@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feature/examplemod-csharp-parity-gate-20261022
+      - integration/examplemod-csharp-source-20261022
     paths:
       - "tools/example_completion_audit.py"
       - "tools/example_completion/current_upstream.json"
