@@ -433,6 +433,8 @@ struct HoverTooltipRegion {
     bool active = false;
 };
 thread_local HoverTooltipRegion g_hoverTooltipRegion;
+thread_local NativeTooltipDrawSession g_nativeTooltipDrawSession;
+thread_local bool g_nativeTooltipActive=false;
 
 bool rarityTextMatches(Il2CppString* text) {
     const auto* target = g_rarityTextTarget;
@@ -510,8 +512,6 @@ using NativeTooltipStaticFn=void (*)(Il2CppObject*,int32_t,uint8_t,int32_t,int32
 using NativeTooltipInstanceFn=void (*)(Il2CppObject*,Il2CppObject*,int32_t,uint8_t,int32_t,int32_t,const MethodInfo*);
 NativeTooltipStaticFn g_nativeTooltipStaticOriginal=nullptr;
 NativeTooltipInstanceFn g_nativeTooltipInstanceOriginal=nullptr;
-thread_local NativeTooltipDrawSession g_nativeTooltipDrawSession;
-thread_local bool g_nativeTooltipActive=false;
 thread_local bool g_nativeTooltipRendering=false;
 thread_local Il2CppObject* g_nativeTooltipMeasureFont=nullptr;
 thread_local std::string g_nativeTooltipMeasuredText;
