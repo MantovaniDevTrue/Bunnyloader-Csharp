@@ -19,6 +19,7 @@ class NativeAchievementManager {
     struct Owner {
         std::string revision;
         std::vector<Entry> entries;
+        std::vector<AchievementState> applied;
     };
     std::map<std::string, Owner> mods_;
 

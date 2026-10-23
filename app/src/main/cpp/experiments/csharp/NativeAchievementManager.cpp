@@ -410,6 +410,7 @@ bool NativeAchievementManager::install(
             return rollback() ? false : (*error += " RollbackFailed", false);
         }
     }
+    staging.applied = states;
     mods_.emplace(plan.owner, std::move(staging));
     return true;
 }
@@ -419,26 +420,47 @@ bool NativeAchievementManager::synchronize(
     std::string* error) {
     if (!error) return false;
     auto owner = mods_.find(mod);
-    if (owner == mods_.end() || owner->second.entries.size() != states.size()) {
+    if (owner == mods_.end() || owner->second.entries.size() != states.size() ||
+        owner->second.applied.size() != states.size()) {
         *error = "NativeManagerNotInstalled";
         return false;
     }
     for (size_t i = 0; i < states.size(); ++i) {
         const auto& entry = owner->second.entries[i];
         const auto& state = states[i];
-        if (entry.name != state.name || entry.conditions.size() != state.conditions.size()) {
+        const auto& previous = owner->second.applied[i];
+        if (entry.name != state.name || previous.name != state.name ||
+            entry.conditions.size() != state.conditions.size() ||
+            previous.conditions.size() != state.conditions.size()) {
             *error = "StateIdentityMismatch";
             return false;
         }
         for (size_t j = 0; j < state.conditions.size(); ++j) {
-            auto* condition = il2cpp::api().gchandle_get_target(entry.conditions[j]);
-            if (!condition ||
-                !setProgress(condition, state.conditions[j].kind,
-                             state.conditions[j].value)) {
-                *error = "NativeConditionUpdateFailed";
+            const auto& incoming = state.conditions[j];
+            const auto& applied = previous.conditions[j];
+            if (incoming.key != applied.key || incoming.kind != applied.kind ||
+                !std::isfinite(incoming.value) || incoming.value < applied.value) {
+                *error = "StateRegressionOrTypeMismatch";
                 return false;
             }
         }
+    }
+    for (size_t i = 0; i < states.size(); ++i) {
+        for (size_t j = 0; j < states[i].conditions.size(); ++j) {
+            const auto& incoming = states[i].conditions[j];
+            auto& applied = owner->second.applied[i].conditions[j];
+            if (incoming.value == applied.value) continue;
+            auto* condition = il2cpp::api().gchandle_get_target(
+                owner->second.entries[i].conditions[j]);
+            if (!condition ||
+                !setProgress(condition, incoming.kind, incoming.value)) {
+                *error = "NativeConditionUpdateFailed";
+                return false;
+            }
+            applied.value = incoming.value;
+        }
+        owner->second.applied[i].completed = states[i].completed;
+        owner->second.applied[i].hidden = states[i].hidden;
     }
     error->clear();
     return true;
