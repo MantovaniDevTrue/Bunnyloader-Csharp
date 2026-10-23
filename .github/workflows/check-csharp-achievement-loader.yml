@@ -3,6 +3,8 @@ on:
   push:
     paths:
       - experiments/csharp/BunnyCsSdk/BunnyAchievement.cs
+      - experiments/csharp/BunnyCsSdk/BunnyAchievementWorker.cs
+      - experiments/csharp/BunnyCsSdk/BunnyRecipeCallbacks.cs
       - experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj
       - docs/generated/sdk_public_reference.json
       - docs/generated/sdk_public_reference.md
@@ -11,6 +13,8 @@ on:
   pull_request:
     paths:
       - experiments/csharp/BunnyCsSdk/BunnyAchievement.cs
+      - experiments/csharp/BunnyCsSdk/BunnyAchievementWorker.cs
+      - experiments/csharp/BunnyCsSdk/BunnyRecipeCallbacks.cs
       - experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj
       - docs/generated/sdk_public_reference.json
       - docs/generated/sdk_public_reference.md
