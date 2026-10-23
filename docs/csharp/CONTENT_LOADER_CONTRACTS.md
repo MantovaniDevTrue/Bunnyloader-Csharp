@@ -7,3 +7,7 @@ O gerador `python3 tools/csharp_contracts/generate_content_kinds.py --write` esc
 Para o ExampleModBunny, referências atuais incluem `samples/ExampleMod/content/Content/Items/ExampleItem.js` e `Content/NPCs/ExampleSlimeNPC.js`. A compilação de fontes e a identificação das categorias não certificam paridade de receitas, NPC loot, IA, efeitos, desenhos ou multiplayer. Os testes automatizados verificam a ABI dos nomes/IDs, o registro em ordem idêntica, o C++ SourceParser e a compilação do SDK. O gate de APK do ExampleMod permanece inalterado.
 
 Este lote **não** implementa hooks adicionais. O benefício é eliminar três fontes independentes de definição do loader e garantir que expansões futuras passem por um único contrato verificável.
+
+## Contratos reais dos callbacks C#
+
+O arquivo `tools/csharp_contracts/managed_callbacks.json` fixa assinaturas públicas para BunnyItem, BunnyProjectile, BunnyNPC e BunnyPlayer. O verificador Python confere exemplos do ExampleModCSharp, enquanto o executável C# `CallbackContractProbe` usa reflexão no BunnyCsSdk compilado para conferir assinaturas completas, incluindo parâmetros `ref`, retorno, virtualidade e abstração. Alterações acidentais na API interrompem o CI antes de gerar APK. Isso não prova que o host despacha o callback nem que o resultado é fiel ao JS: essas etapas continuam dependentes da ponte nativa, testes de comportamento e Android.

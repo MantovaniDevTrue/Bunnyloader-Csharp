@@ -43,3 +43,7 @@ jobs:
           dotnet-version: '10.0.x'
       - name: Build SDK CSharp with stable content category ordinals
         run: dotnet build experiments/csharp/BunnyCsSdk/BunnyCsSdk.csproj -c Release --nologo
+      - name: Check ExampleMod CSharp callback overrides
+        run: python3 tools/csharp_contracts/verify_managed_callbacks.py
+      - name: Validate managed SDK callback signatures by reflection
+        run: dotnet run --project tools/csharp_contracts/CallbackContractProbe/CallbackContractProbe.csproj -c Release --no-launch-profile -- tools/csharp_contracts/managed_callbacks.json
