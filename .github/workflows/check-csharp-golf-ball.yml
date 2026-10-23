@@ -8,6 +8,7 @@ on:
       - 'app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp'
       - 'samples/ExampleModCSharp/Playable/**'
       - 'tests/golf_ball/**'
+      - 'tests/examplemod/**'
       - '.github/workflows/check-csharp-golf-ball.yml'
   pull_request:
     paths:
@@ -17,6 +18,7 @@ on:
       - 'app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp'
       - 'samples/ExampleModCSharp/Playable/**'
       - 'tests/golf_ball/**'
+      - 'tests/examplemod/**'
       - '.github/workflows/check-csharp-golf-ball.yml'
   workflow_dispatch:
 permissions:
@@ -32,3 +34,5 @@ jobs:
           dotnet-version: '8.0.x'
       - name: Compile original examples and execute production native hook
         run: bash tests/golf_ball/run.sh
+      - name: Audit basic ExampleMod item defaults against Bunny JS
+        run: python3 -m unittest discover -s tests/examplemod -p 'test_*.py'
