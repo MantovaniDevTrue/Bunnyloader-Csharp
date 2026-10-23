@@ -18,6 +18,15 @@ Fonte de referência: **ExampleModBunny 1.9.0**, especialmente ModAchievement.js
 - Guarda atômica de mundo ativo: não contabilizar mortes, crafting ou coletas enquanto o mundo não está pronto. Sem mutex por quadro quando o menu está ativo.
 - \`AchievementsDemo\` isolado do pacote de 100 fontes da PR #141: \`ManyWormsKilled.cs\`, ID 10 (GiantWormHead), contador de 5 e textura original PNG, sem redimensionamento.
 
+## Novo lote: recursos e registro transacional
+
+- \`NativeAchievementAtlasPlan\` verifica caminhos \`Content/...\`, rejeita diretórios ascendentes, conserva nomes originais e deduplica texturas por UID.
+- \`NativeAchievementAtlases\` usa \`runtime::content::loadTextureAsset\` existente do Bunny, valida exatamente **592×64**, cria raízes GC próprias e libera imagens por mod/revisão. As duas texturas do ExampleModBunny fornecido têm exatamente 592×64.
+- \`NativeAchievementRegistrationPlan\` só aceita definições/valores nativos consistentes, recursos prontos e descarregamento reversível. O ledger é transacional por UID/revisão.
+- \`NativeAchievementManager\` contém operações reais para criar \`Achievement\`, \`LocalizedText\`, \`CustomFlagCondition\`, \`CustomIntCondition\` e \`CustomFloatCondition\`, adicionar condições, trackers, categoria/índice, registro e validação do proprietário; prevê \`Unregister\` para rollback e descarregamento seguro. Rejeita IDs conflitantes, métodos não encontrados e tipos automáticos ainda não suportados.
+- **O registro no \`Main.Achievements\` permanece desligado**: o manager foi escrito e compilado como unidade separada, mas a chamada de instalação não foi habilitada porque a versão Terraria Android ainda não confirmou \`Unregister\` nem os setters nativos e a UI/persistência não estão completas. O código não deve alterar dados vanilla antes desse gate.
+- A sintaxe da unidade nova é testada com \`-fno-exceptions -fno-rtti\` e verificações compiladas NDK/ARM64 da branch. Sem APK.
+
 ## Testes automatizados incluídos
 
 - NUnit não é exigido: fixtures standalone de console em .NET 8 com asserções.
