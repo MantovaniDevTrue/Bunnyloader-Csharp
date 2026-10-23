@@ -74,7 +74,7 @@ jobs:
             tests/world_loaders/tile_animation_test.cpp; do
             exe="$RUNNER_TEMP/$(basename "${file%.cpp}")"
             g++ -std=c++20 -Wall -Wextra -Werror -pedantic -pthread \
-              -I app/src/main/cpp "$file" -o "$exe"
+              -I app/src/main/cpp -I tests/basic_items/include "$file" -o "$exe"
             "$exe"
           done
       - name: Execute AnglerQuest and CSharp rarity pure-native checks
