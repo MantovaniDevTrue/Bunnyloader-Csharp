@@ -30,7 +30,7 @@ std::map<const MethodInfo*,void*> hooks;
 // Real IL2CPP owns this registry for the process lifetime too.
 auto& roots=*new std::map<unsigned,Il2CppObject*>;
 const auto nativePolicyGameThread=std::this_thread::get_id();
-std::function<void()> duringCloneSetup;
+std::function<void()> duringCloneSetup,duringStaticRead;
 std::map<int,Il2CppObject*> animations;
 FakePlayer localPlayer;
 unsigned nextRoot=1;
@@ -189,7 +189,7 @@ void configurePolicies() {
  apiInstance.runtime_class_init=[](Il2CppClass*){};
  apiInstance.method_is_instance=[](const MethodInfo* m){return methodNames.at(m).second;};
  apiInstance.gchandle_new=[](Il2CppObject* o,bool){assert(std::this_thread::get_id()==nativePolicyGameThread);roots[nextRoot]=o;return nextRoot++;};apiInstance.gchandle_free=[](unsigned h){assert(std::this_thread::get_id()==nativePolicyGameThread);roots.erase(h);};apiInstance.gchandle_get_target=[](unsigned h){assert(std::this_thread::get_id()==nativePolicyGameThread);return roots.at(h);};
- apiInstance.field_static_get_value=[](FieldInfo* f,void* out){if(f->name==std::string("Item1")){void* value=&soundObject;std::memcpy(out,&value,sizeof(value));return;}const auto& v=statics.at(f);std::memcpy(out,v.data(),v.size());};
+ apiInstance.field_static_get_value=[](FieldInfo* f,void* out){if(duringStaticRead&&std::string(f->name)=="AnimatesAsSoul"){auto action=std::move(duringStaticRead);duringStaticRead={};action();}if(f->name==std::string("Item1")){void* value=&soundObject;std::memcpy(out,&value,sizeof(value));return;}const auto& v=statics.at(f);std::memcpy(out,v.data(),v.size());};
  apiInstance.field_static_set_value=[](FieldInfo* f,void* value){auto* c=f->type->cls;auto& v=statics[f];v.resize(width(c));if(c->value)std::memcpy(v.data(),value,v.size());else std::memcpy(v.data(),&value,v.size());};
  apiInstance.runtime_invoke=[](const MethodInfo* m,void* self,void** args,Il2CppObject** error)->Il2CppObject* {
   *error=nullptr;const auto& n=methodNames.at(m).first;
@@ -537,8 +537,10 @@ int main(int argc,char** argv) {
  pumpNativeItemPoliciesOnGameThread();
  FakeItem revoked{};revoked.type=8400;
  assert(applyBasicItemToObject(&revoked.header,8400)&&!revoked.clonedReference&&revoked.defense==0);
- assert(nativeItemPolicyReady(8400)&&pendingNativeItemPolicies()==0);
+ // A concurrent replacement also queues static cleanup for the next pump.
+ assert(pendingNativeItemPolicies()>0&&!nativeItemPolicyReady(8400));
  pumpNativeItemPoliciesOnGameThread();
+ assert(nativeItemPolicyReady(8400)&&pendingNativeItemPolicies()==0);
  assert(applyBasicItemToObject(&other.header,8401)&&other.defense==2);
  // Whole-mod retirement revokes published and queued policies without calling
  // the fake GC on ingress. Another UID and retained types stay usable.
@@ -558,7 +560,7 @@ int main(int argc,char** argv) {
  assert(roots.size()==rootsBeforeRetire);
  assert(!applyNativeItemPolicyDefaults(&inherited.header,8400));
  assert(applyNativeItemPolicyDefaults(&other.header,8401));
- for(const auto& status:nativeItemPolicyStatus())assert(status.mod!="clone_mod");
+ for(const auto& status:nativeItemPolicyStatus())if(status.mod=="clone_mod")assert(status.phase=="waiting-static-retirement");
  pumpNativeItemPoliciesOnGameThread();assert(roots.size()<rootsBeforeRetire);
  // An admitted but not yet installed clone must never allocate/publish after unload.
  assert(applyNativeBasicItemDefaults("clone_mod",{nextRevision},&error));
@@ -570,7 +572,7 @@ int main(int argc,char** argv) {
  duringCloneSetup=[&]{std::thread writer([&]{retireNativeItemPoliciesForMod("clone_mod");});writer.join();};
  pumpNativeItemPoliciesOnGameThread();
  assert(!applyNativeItemPolicyDefaults(&inherited.header,8400));
- for(const auto& status:nativeItemPolicyStatus())assert(status.mod!="clone_mod");
+ for(const auto& status:nativeItemPolicyStatus())if(status.mod=="clone_mod")assert(status.phase=="waiting-static-retirement");
  pumpNativeItemPoliciesOnGameThread();
  // Empty full snapshots and repeated reload/unload coalesce before a frame.
  std::thread reloadUnload([&]{for(int i=0;i<100;++i) {
@@ -601,6 +603,109 @@ int main(int argc,char** argv) {
  assert(applyNativeItemPolicyDefaults(&inherited.header,8400));
  assert(applyNativeItemPolicyDefaults(&other.header,8401));
  pumpNativeItemPoliciesOnGameThread();
+ // Owned primitive static cells restore the observed baseline, resolving the
+ // current table each time; a foreign value is never replaced by an old baseline.
+ auto soulFlagField=[&](const char* name){return bl::il2cpp::findField(cls("ItemID/Sets"),name);};
+ auto soulFlagTable=[&](const char* name){Il2CppArray* t=nullptr;apiInstance.field_static_get_value(soulFlagField(name),&t);return t;};
+ auto soulFlag=[&](const char* name,int contentId)->uint8_t& {return static_cast<uint8_t*>(arrayData(soulFlagTable(name)))[contentId];};
+ for(const char* name:{"AnimatesAsSoul","ItemIconPulse","ItemNoGravity"})assert(soulFlag(name,soul.type)==0);
+ auto installStaticSoul=[&]{assert(applyNativeBasicItemDefaults("mod",{soul},&error));
+  for(int i=0;i<8&&pendingNativeItemPolicies();++i)pumpNativeItemPoliciesOnGameThread();
+  assert(nativeItemPolicyReady(soul.type));
+ };
+ identities[8403]="other_soul_mod/OtherSoul";
+ assert(registerBasicItemPlaceholder(8403,"OtherSoul",&error,argv[2]));
+ auto otherSoul=soul;otherSoul.name="OtherSoul";otherSoul.type=8403;
+ assert(applyNativeBasicItemDefaults("other_soul_mod",{otherSoul},&error));
+ for(int i=0;i<8&&pendingNativeItemPolicies();++i)pumpNativeItemPoliciesOnGameThread();
+ assert(nativeItemPolicyReady(8403));
+ soulFlag("ItemIconPulse",soul.type)=1; // Original is true; a later foreign false must survive.
+ installStaticSoul();
+ auto* detachedFlagTable=soulFlagTable("AnimatesAsSoul");
+ auto* copiedFlagTable=makeArray(&boolClass,detachedFlagTable->length+1);
+ std::memcpy(arrayData(copiedFlagTable),arrayData(detachedFlagTable),detachedFlagTable->length);
+ constant(soulFlagField("AnimatesAsSoul"),copiedFlagTable);
+ soulFlag("ItemIconPulse",soul.type)=0;
+ std::thread staticRetire([&]{retireNativeItemPoliciesForMod("mod");});staticRetire.join();
+ assert(soulFlag("AnimatesAsSoul",soul.type)==1&&pendingNativeItemPolicies()>0);
+ pumpNativeItemPoliciesOnGameThread();
+ assert(soulFlag("AnimatesAsSoul",soul.type)==0&&soulFlag("ItemNoGravity",soul.type)==0);
+ assert(soulFlag("ItemIconPulse",soul.type)==0&&soulFlag("AnimatesAsSoul",8403)==1);
+ assert(static_cast<uint8_t*>(arrayData(detachedFlagTable))[soul.type]==1);
+ // Missing or wrong-ABI tables keep cleanup pending and block replacement
+ // installation, until the valid table is available again.
+ installStaticSoul();auto* savedFlagTable=soulFlagTable("AnimatesAsSoul");
+ retireNativeItemPoliciesForMod("mod");constant(soulFlagField("AnimatesAsSoul"),static_cast<Il2CppArray*>(nullptr));
+ pumpNativeItemPoliciesOnGameThread();assert(pendingNativeItemPolicies()>0&&!nativeItemPolicyReady(soul.type));
+ bool cleanupReported=false;for(const auto& status:nativeItemPolicyStatus())if(status.type==soul.type) {
+  cleanupReported=status.phase=="waiting-static-retirement"&&status.mod=="mod"&&!status.ready;
+ }assert(cleanupReported);
+ auto* wrongFlagTable=makeArray(&intClass,savedFlagTable->length);constant(soulFlagField("AnimatesAsSoul"),wrongFlagTable);
+ pumpNativeItemPoliciesOnGameThread();assert(pendingNativeItemPolicies()>0);
+ assert(applyNativeBasicItemDefaults("mod",{soul},&error));
+ pumpNativeItemPoliciesOnGameThread();assert(!nativeItemPolicyReady(soul.type));
+ constant(soulFlagField("AnimatesAsSoul"),savedFlagTable);
+ for(int i=0;i<8&&pendingNativeItemPolicies();++i)pumpNativeItemPoliciesOnGameThread();
+ assert(nativeItemPolicyReady(soul.type)&&soulFlag("AnimatesAsSoul",soul.type)==1);
+ retireNativeItemPoliciesForMod("mod");pumpNativeItemPoliciesOnGameThread();
+ assert(soulFlag("AnimatesAsSoul",soul.type)==0);
+ // A newer request delivered while a getter is executing cannot be cleared by
+ // the acknowledgement for an earlier cleanup generation.
+ installStaticSoul();retireNativeItemPoliciesForMod("mod");
+ std::shared_ptr<NativeItemPolicyBatch> lateStaticBatch;
+ auto lateSoul=soul;lateSoul.modId="mod";
+ assert(prepareNativeItemPolicies({lateSoul},&lateStaticBatch,&error));
+ duringStaticRead=[&]{std::thread late([&]{commitNativeItemPolicies(lateStaticBatch);});late.join();};
+ pumpNativeItemPoliciesOnGameThread();assert(!nativeItemPolicyReady(soul.type));
+ for(int i=0;i<8&&pendingNativeItemPolicies();++i)pumpNativeItemPoliciesOnGameThread();
+ assert(nativeItemPolicyReady(soul.type));
+ retireNativeItemPoliciesForMod("mod");pumpNativeItemPoliciesOnGameThread();
+ assert(soulFlag("AnimatesAsSoul",soul.type)==0);
+ // Restore the entire WingStats struct, including bytes not authored by Bunny.
+ auto* wingBaselineTable=makeArray(cls("WingStats"),static_cast<size_t>(wing)+1);
+ std::array<unsigned char,24> wingBaseline{};wingBaseline.fill(0x3b);
+ std::memcpy(static_cast<char*>(arrayData(wingBaselineTable))+24*static_cast<size_t>(wing),wingBaseline.data(),24);
+ constant(statsField,wingBaselineTable);
+ assert(applyNativeBasicItemDefaults("mod",{wings},&error));
+ for(int i=0;i<8&&pendingNativeItemPolicies();++i)pumpNativeItemPoliciesOnGameThread();
+ assert(nativeItemPolicyReady(wings.type));
+ apiInstance.field_static_get_value(statsField,&stats);
+ auto* wingCell=static_cast<unsigned char*>(arrayData(stats))+24*static_cast<size_t>(wing);
+ assert(std::memcmp(wingCell,wingBaseline.data(),24)!=0);
+ retireNativeItemPoliciesForMod("mod");pumpNativeItemPoliciesOnGameThread();
+ assert(std::memcmp(wingCell,wingBaseline.data(),24)==0);
+ assert(applyNativeBasicItemDefaults("mod",{wings},&error));
+ for(int i=0;i<8&&pendingNativeItemPolicies();++i)pumpNativeItemPoliciesOnGameThread();
+ apiInstance.field_static_get_value(statsField,&stats);
+ wingCell=static_cast<unsigned char*>(arrayData(stats))+24*static_cast<size_t>(wing);
+ wingCell[23]=0x7d;std::array<unsigned char,24> foreignWing;std::memcpy(foreignWing.data(),wingCell,24);
+ retireNativeItemPoliciesForMod("mod");pumpNativeItemPoliciesOnGameThread();
+ assert(std::memcmp(wingCell,foreignWing.data(),24)==0);
+ // Actual native cleanup is limited to eight content types per frame; UID
+ // revocation is immediate even while the byte restorations are still queued.
+ std::vector<BasicItemEntry> budgetSouls;
+ for(int i=0;i<17;++i) {
+  auto entry=soul;entry.type=8500+i;entry.name="BudgetSoul"+std::to_string(i);
+  identities[entry.type]="budget_static/"+entry.name;
+  assert(registerBasicItemPlaceholder(entry.type,entry.name,&error,argv[2]));budgetSouls.push_back(entry);
+ }
+ assert(applyNativeBasicItemDefaults("budget_static",budgetSouls,&error));
+ for(int i=0;i<12&&pendingNativeItemPolicies();++i)pumpNativeItemPoliciesOnGameThread();
+ for(const auto& entry:budgetSouls)assert(nativeItemPolicyReady(entry.type)&&soulFlag("AnimatesAsSoul",entry.type)==1);
+ retireNativeItemPoliciesForMod("budget_static");pumpNativeItemPoliciesOnGameThread();
+ int restoredBudget=0;for(const auto& entry:budgetSouls)if(soulFlag("AnimatesAsSoul",entry.type)==0)++restoredBudget;
+ assert(restoredBudget==8&&pendingNativeItemPolicies()>0);
+ pumpNativeItemPoliciesOnGameThread();restoredBudget=0;
+ for(const auto& entry:budgetSouls)if(soulFlag("AnimatesAsSoul",entry.type)==0)++restoredBudget;
+ assert(restoredBudget==16);pumpNativeItemPoliciesOnGameThread();
+ for(const auto& entry:budgetSouls)assert(soulFlag("AnimatesAsSoul",entry.type)==0);
+ assert(pendingNativeItemPolicies()==0&&soulFlag("AnimatesAsSoul",8403)==1);
+ // A shortened table discards the retired slot; cleanup must not regrow it.
+ installStaticSoul();retireNativeItemPoliciesForMod("mod");
+ auto* shortFlags=makeArray(&boolClass,2);constant(soulFlagField("AnimatesAsSoul"),shortFlags);
+ pumpNativeItemPoliciesOnGameThread();assert(pendingNativeItemPolicies()==0&&shortFlags->length==2);
+ assert(soulFlag("ItemIconPulse",8403)==1&&nativeItemPolicyReady(8403));
+ std::cout<<"NATIVE_ITEM_STATIC_FLAG_AND_WING_CELL_RETIREMENT_RETRY_FOREIGN_VALUE_AND_GENERATION_PASS\n";
  std::cout<<"NATIVE_ITEM_POLICY_UID_RETIRE_FULL_SNAPSHOT_PENDING_INFLIGHT_AND_OTHER_OWNER_PASS\n";
  std::cout<<"NATIVE_CLONE_EXPLICIT_ZERO_FALSE_EMPTY_SOUND_INHERITED_DEFENSE_REVOCATION_AND_OTHER_OWNER_PASS\n";
  std::cout<<"NATIVE_ITEM_POLICIES_FULL_EXAMPLE_WIRE_NO_QUICKJS_PASS items="<<all.size()<<" movement=10000 boxed="<<!rawOffsets<<" mode="<<mode<<"\n";

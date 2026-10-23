@@ -6,7 +6,7 @@ namespace bl::csharp {
 struct NativeItemPolicyBatch;
 bool prepareNativeItemPolicies(const std::vector<BasicItemEntry>& entries,std::shared_ptr<NativeItemPolicyBatch>* batch,std::string* error);
 void commitNativeItemPolicies(const std::shared_ptr<NativeItemPolicyBatch>& batch);
-// Revoke callbacks now; game-thread pump releases roots. Static tables are separate.
+// Revoke callbacks now; game-thread pump restores owned primitive cells and releases roots.
 void retainNativeItemPoliciesForMod(const std::string& mod,const std::vector<int>& activeTypes);
 void retireNativeItemPoliciesForMod(const std::string& mod);
 void pumpNativeItemPoliciesOnGameThread();

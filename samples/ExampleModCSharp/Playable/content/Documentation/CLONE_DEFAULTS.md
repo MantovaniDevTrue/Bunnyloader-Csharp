@@ -54,9 +54,8 @@ remoção durante instalação, 100 substituições antes de um frame e outro UI
 A confirmação no Android continua pendente; não foi gerado APK.
 
 Este lote não implementa o unload global dos itens nem a restauração de todos
-os campos extras de uma instância já modificada por um clone. Também não retira
-as texturas, slots e tabelas estáticas de animação/equipamento já instaladas.
-Esses ciclos de vida continuam sendo trabalho separado. A retirada do snapshot
+os campos extras de uma instância já modificada por um clone. A restauração das três flags de animação e de WingStats é descrita abaixo;
+texturas, slots e demais tabelas estáticas de equipamento continuam pendentes. A retirada do snapshot
 impede novas cópias e callbacks da política retirada; não é uma recriação geral
 da instância do Terraria.
 
@@ -74,7 +73,41 @@ novamente a animação retirada. Uma instalação que já estava em execução n
 republicar o resultado antigo. Os handles do clone ficam retidos até o pump na
 thread do jogo; a thread que solicita unload não chama o coletor IL2CPP.
 
-Isso não desfaz as células estáticas ou texturas já instaladas, nem remove um
-registro de animação já existente no Terraria. A restauração dessas tabelas e
-slots, dos defaults básicos e de todas as instâncias continua pendente. O teste
-de host não comprova unload completo no Android.
+A extensão abaixo restaura três flags e WingStats. A retirada de texturas/slots,
+demais tabelas, registro de animação já existente no Terraria, defaults básicos
+e todas as instâncias continua pendente. O teste de host não comprova unload
+completo no Android.
+
+## Restauração das flags de animação e estatísticas de asas
+
+Esta etapa acrescenta restauração por tipo de `AnimatesAsSoul`, `ItemIconPulse`,
+`ItemNoGravity` e da célula inteira de `WingStats`, incluindo seus bytes não
+autorados pelo mod. Por exemplo, a declaração original continua a mesma:
+
+```csharp
+// Quatro quadros, seis ticks por quadro. O loader guarda os valores nativos
+// anteriores das três flags e os restaura quando esta política é retirada.
+Behavior.Animate(4, 6, animatesAsSoul: true, pulse: true, noGravity: true);
+```
+
+O loader guarda o valor anterior à publicação e o último valor que escreveu.
+Na retirada, só restaura se a célula ainda tiver esse último valor. Uma alteração
+posterior feita por outro mod é preservada. Uma republicação explícita sobre um
+valor diferente passa a usar esse valor como nova base de restauração.
+
+A limpeza resolve o array nativo atual; não guarda ponteiros para seus elementos.
+Se Terraria trocou o array por uma cópia maior, a célula atual é restaurada.
+Se um array válido ficou menor e descartou o slot, o loader encerra essa limpeza
+sem aumentar o array novamente. Tabela ausente ou ABI incompatível mantém a
+limpeza pendente e bloqueia a instalação da próxima política desse tipo.
+O diagnóstico mostra `waiting-static-retirement` e a fila inclui essa pendência.
+Uma confirmação de limpeza antiga não remove uma solicitação mais recente.
+
+A revogação dos callbacks continua imediata. A restauração nativa atende até oito
+tipos com células por pump, em rotação, preservando os demais UIDs. O teste de
+host verifica um lote de 17 tipos em três pumps; isso não é medição de FPS Android.
+
+**Ainda pendente:** retirar o objeto e o índice já registrados em
+`Main.itemAnimations`/`itemAnimationsRegistered`, restaurar texturas/slots e as
+outras tabelas de equipamento, defaults básicos e todas as instâncias. As três
+flags restauradas não equivalem à retirada completa do registro de animação.

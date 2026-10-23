@@ -65,3 +65,13 @@ texturas/slots, animações já registradas ou todos os defaults de instâncias;
 não declara unload global de ItemLoader nem validação Android. Sem APK.
 
 A etapa de geometria do painel acrescenta `NativeTooltipPanelLayout.h` com a política equivalente ao cálculo móvel original de linhas, escala, posição/flip do cursor, limites, padding e banner, e um host-test C++ de cenários e erros. Esse módulo ainda não chama `GUIPanel.DrawBacking`: a ABI nativa e a renderização no Android precisam ser validadas antes de desativar o fallback JS para painel opaco. Nenhum APK foi gerado e a PR continua draft.
+O lote de células estáticas de item restaura as três flags de animação e o struct
+WingStats completo por tipo. A limpeza compara o último valor publicado,
+preserva alterações externas, resolve arrays substituídos, não recria slots
+removidos de arrays menores e mantém retry quando a tabela/ABI está indisponível.
+Uma nova política espera a limpeza anterior; confirmações antigas não apagam
+solicitações novas. A fila expõe waiting-static-retirement e limita o trabalho
+nativo a oito tipos com células por pump, em rotação. Testes usam o wire real,
+outro UID e lote de 17 tipos. Registro de animação em Main, texturas/slots,
+outras tabelas, defaults básicos, unload global e QA Android seguem pendentes.
+Sem APK.
