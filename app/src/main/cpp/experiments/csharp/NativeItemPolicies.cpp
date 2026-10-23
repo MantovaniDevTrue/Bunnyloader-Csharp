@@ -114,10 +114,108 @@ bool grow(const StaticValue& f,int total) {
     auto* next=runtime::TypeTables::resizedCopy(array,static_cast<uintptr_t>(total));if(!next)return false;
     return native_static::write(f,&next,sizeof(next));
 }
-bool boolTable(const StaticValue& f,int slot,bool value) {
-    auto* array=table(f);auto& a=api();
-    if(!array||slot<0||!primitive(a.class_get_element_class(a.object_get_class(reinterpret_cast<Il2CppObject*>(array))),"Boolean",1)||!grow(f,slot+1))return false;
-    write<uint8_t>(arrayData(table(f)),static_cast<size_t>(slot),value?1:0);return true;
+struct AnimationRegistry {
+    StaticValue field;Il2CppClass* element=nullptr;
+    std::shared_ptr<Root> array,list;
+    const MethodInfo* remove=nullptr;
+    std::vector<int> ids;
+    bool hasSlot(int type) const {return reinterpret_cast<Il2CppArray*>(array->get())->length>static_cast<uintptr_t>(type);}
+    Il2CppObject* at(int type) const {
+        if(!hasSlot(type))return nullptr;
+        return read<Il2CppObject*>(arrayData(reinterpret_cast<Il2CppArray*>(array->get())),static_cast<size_t>(type)*sizeof(void*));
+    }
+    size_t count(int type) const {return static_cast<size_t>(std::count(ids.begin(),ids.end(),type));}
+};
+struct OwnedAnimation {
+    std::shared_ptr<Root> original,last;
+    bool originalListed=false,completed=false;
+};
+std::map<int,OwnedAnimation> ownedAnimations;
+bool animationObject(Il2CppObject* object,Il2CppClass* base) {
+    if(!object)return true;
+    auto& a=api();auto* cls=a.object_get_class(object);
+    if(a.class_is_assignable_from)return a.class_is_assignable_from(base,cls);
+    for(int depth=0;cls&&depth<64;++depth) {
+        if(cls==base)return true;
+        cls=a.class_get_parent?a.class_get_parent(cls):nullptr;
+    }
+    return false;
+}
+// Validate public collection methods instead of writing List<T> private fields.
+// Strong roots protect the original reference and every managed collection snapshot.
+bool readAnimationRegistry(int type,bool allowGrowth,AnimationRegistry* out,std::string* error) {
+    auto fail=[&](const char* reason){*error=std::string("Reason=AnimationRegistry")+reason;return false;};
+    auto& a=api();
+    if(type<1||type>=65536||!a.gchandle_new||!a.gchandle_free||!a.gchandle_get_target||
+       !a.gc_wbarrier_set_field||!a.method_get_param_count||!a.method_get_return_type||
+       !a.method_get_param)return fail("ExportsOrType");
+    auto* main=findClass({"Terraria","Main",{}});
+    auto* base=findClass({"Terraria.DataStructures","DrawAnimation",{}});
+    AnimationRegistry next;next.field=staticArray(main,"itemAnimations",base);next.element=base;
+    auto* array=table(next.field);
+    const auto listField=native_static::resolve(main,"itemAnimationsRegistered");Il2CppObject* list=nullptr;
+    if(!base||a.class_is_valuetype(base)||!array||array->length>65536||!listField||
+       a.class_is_valuetype(listField.type)||!native_static::read(listField,&list,sizeof(list))||
+       !list||a.object_get_class(list)!=listField.type)return fail("TablesUnavailable");
+    auto* listClass=a.object_get_class(list);
+    const char* listName=a.class_get_name(listClass),*listNamespace=a.class_get_namespace(listClass);
+    if(!listName||!listNamespace||std::strcmp(listName,"List`1")||
+       std::strcmp(listNamespace,"System.Collections.Generic"))return fail("ListType");
+    const auto* toArray=method(listClass,"int[] ToArray()",true);
+    next.remove=method(listClass,"void RemoveAt(int index)",true);
+    auto* resultType=toArray?a.class_from_il2cpp_type(a.method_get_return_type(toArray)):nullptr;
+    auto* removeReturn=next.remove?a.class_from_il2cpp_type(a.method_get_return_type(next.remove)):nullptr;
+    const char* returnName=removeReturn?a.class_get_name(removeReturn):nullptr;
+    const char* returnNs=removeReturn?a.class_get_namespace(removeReturn):nullptr;
+    if(!toArray||a.method_get_param_count(toArray)!=0||!resultType||a.class_get_rank(resultType)!=1||
+       !primitive(a.class_get_element_class(resultType),"Int32",4)||!next.remove||
+       a.method_get_param_count(next.remove)!=1||
+       !primitive(a.class_from_il2cpp_type(a.method_get_param(next.remove,0)),"Int32",4)||
+       !returnName||!returnNs||std::strcmp(returnName,"Void")||std::strcmp(returnNs,"System"))return fail("ListMethods");
+    next.list=std::make_shared<Root>(list);if(!next.list->get())return fail("ListRoot");
+    if(allowGrowth&&!grow(next.field,type+1))return fail("Capacity");
+    array=table(next.field);if(!array||array->length>65536)return fail("ArrayUnavailable");
+    next.array=std::make_shared<Root>(reinterpret_cast<Il2CppObject*>(array));
+    if(!next.array->get())return fail("ArrayRoot");
+    Il2CppObject* snapshot=nullptr;
+    if(!invoke(toArray,next.list->get(),nullptr,&snapshot)||!snapshot||a.object_get_class(snapshot)!=resultType)return fail("ListSnapshot");
+    Root snapshotRoot(snapshot);if(!snapshotRoot.get())return fail("SnapshotRoot");
+    auto* values=reinterpret_cast<Il2CppArray*>(snapshotRoot.get());
+    if(values->length>65536)return fail("ListBounds");
+    const auto* data=static_cast<const int32_t*>(arrayData(values));
+    next.ids.assign(data,data+values->length);
+    Il2CppObject* currentList=nullptr;
+    if(!native_static::read(listField,&currentList,sizeof(currentList))||currentList!=next.list->get()||
+       reinterpret_cast<Il2CppObject*>(table(next.field))!=next.array->get())return fail("ChangedDuringRead");
+    if(next.hasSlot(type)&&!animationObject(next.at(type),base))return fail("ElementType");
+    if(next.count(type)>1)return fail("DuplicateIndex");
+    *out=std::move(next);return true;
+}
+bool restoreOwnedAnimation(int type) {
+    const auto found=ownedAnimations.find(type);if(found==ownedAnimations.end())return true;
+    auto& state=found->second;AnimationRegistry registry;std::string error;
+    if(!readAnimationRegistry(type,false,&registry,&error))return false;
+    auto* previous=state.original?state.original->get():nullptr;
+    auto* last=state.last?state.last->get():nullptr;
+    if(!last||(state.original&&!previous))return false;
+    auto ours=[&]{return !registry.hasSlot(type)||registry.at(type)==last||
+        (!state.completed&&registry.at(type)==previous);};
+    if(!ours()){ownedAnimations.erase(found);return true;} // Foreign object owns the registration now.
+    if(!registry.hasSlot(type)&&state.originalListed&&registry.count(type))return false;
+    if(!state.originalListed&&registry.count(type)) {
+        int index=static_cast<int>(std::find(registry.ids.begin(),registry.ids.end(),type)-registry.ids.begin());
+        void* args[]={&index};
+        if(!invoke(registry.remove,registry.list->get(),args))return false;
+        // Remove first: never leave a registered index pointing to a cleared cell
+        // when RemoveAt throws. Retries observe a removal that already happened.
+        if(!readAnimationRegistry(type,false,&registry,&error)||registry.count(type))return false;
+    }
+    if(ours()&&registry.hasSlot(type)) {
+        auto* array=reinterpret_cast<Il2CppArray*>(registry.array->get());
+        auto** cell=reinterpret_cast<void**>(arrayData(array))+type;
+        api().gc_wbarrier_set_field(registry.array->get(),cell,previous);
+    }
+    ownedAnimations.erase(found);return true;
 }
 // Primitive cells contain no object references. Keep bytes, never an array/data
 // pointer: Terraria can replace its static arrays during initialization.
@@ -182,6 +280,8 @@ bool restoreOwnedStaticCells(int type) {
 bool pendingStaticRetirement(int type) {
     std::lock_guard lock(queueMutex);return staticRetirements.contains(type);
 }
+bool hasOwnedEquipment(int type);
+bool retireOwnedEquipment(int type);
 void pumpStaticRetirements() {
     // Bound native work and rotate past unavailable tables; an unload with many
     // items must not restore every struct in a single frame or starve other UIDs.
@@ -193,11 +293,14 @@ void pumpStaticRetirements() {
         if(request==requests.end())request=requests.begin();
         const auto [type,revision]=*request++;
         const auto cell=ownedStaticCells.lower_bound({type,{}});
-        if(cell!=ownedStaticCells.end()&&cell->first.first==type) {
+        if((cell!=ownedStaticCells.end()&&cell->first.first==type)||ownedAnimations.contains(type)||hasOwnedEquipment(type)) {
             if(attempted==8)break;
             ++attempted;cursor=type;
         }
-        if(!restoreOwnedStaticCells(type))continue;
+        const bool animationRestored=restoreOwnedAnimation(type);
+        const bool equipmentRestored=retireOwnedEquipment(type);
+        const bool cellsRestored=restoreOwnedStaticCells(type);
+        if(!animationRestored||!equipmentRestored||!cellsRestored)continue;
         std::lock_guard lock(queueMutex);const auto latest=staticRetirements.find(type);
         if(latest!=staticRetirements.end()&&latest->second==revision) {
             staticRetirements.erase(latest);staticRetirementOwners.erase(type);
@@ -216,10 +319,58 @@ struct EquipKind {
 };
 struct Equipment {
     int type=-1,slot=-1;bool published=false;std::string kind,path;int flags=0;
+    bool policyOwned=false;
+    struct TextureCell {StaticValue field;std::shared_ptr<Root> original,last;};
+    std::map<std::string,TextureCell> textures;
     std::shared_ptr<Root> asset;
 };
 std::map<std::string,EquipKind> kinds;
 std::map<std::pair<int,std::string>,Equipment> equipment;
+bool hasOwnedEquipment(int type) {
+    for(auto it=equipment.lower_bound({type,{}});it!=equipment.end()&&it->first.first==type;++it)
+        if(it->second.policyOwned)return true;
+    return false;
+}
+bool retireOwnedEquipment(int type) {
+    bool complete=true;
+    for(auto it=equipment.lower_bound({type,{}});it!=equipment.end()&&it->first.first==type;) {
+        auto& equip=it->second;
+        if(!equip.policyOwned){++it;continue;}
+        // Resolve the current table: an initializer may have replaced its array.
+        // Never grow or resurrect a discarded slot just to undo a publication.
+        for(auto cell=equip.textures.begin();cell!=equip.textures.end();) {
+            auto* array=table(cell->second.field);
+            if(!array){complete=false;++cell;continue;}
+            if(static_cast<uintptr_t>(equip.slot)<array->length) {
+                auto* current=read<Il2CppObject*>(arrayData(array),sizeof(void*)*equip.slot);
+                if(current==cell->second.last->get()&&
+                   !setTexture(cell->second.field,equip.slot,cell->second.original?cell->second.original->get():nullptr)) {
+                    complete=false;++cell;continue;
+                }
+            }
+            cell=equip.textures.erase(cell);
+        }
+        retireBasicItemEquipSlot(type,equip.kind,equip.slot);
+        if(equip.textures.empty())it=equipment.erase(it);
+        else ++it;
+    }
+    // Counts are shared high water marks. Shrinking them would invalidate slots
+    // subsequently allocated by another mod, so retired slots are not recycled.
+    return complete;
+}
+bool writeEquipmentTexture(Equipment& equip,const std::string& name,const StaticValue& field) {
+    if(!equip.policyOwned)return setTexture(field,equip.slot,equip.asset->get());
+    auto* array=table(field);if(!array||equip.slot<0||static_cast<uintptr_t>(equip.slot)>=array->length)return false;
+    auto* current=read<Il2CppObject*>(arrayData(array),sizeof(void*)*equip.slot);
+    auto found=equip.textures.find(name);
+    auto original=found!=equip.textures.end()&&current==found->second.last->get()?found->second.original:nullptr;
+    if(current&&(found==equip.textures.end()||current!=found->second.last->get())) {
+        original=std::make_shared<Root>(current);if(!original->get())return false;
+    }
+    // Record before invoking managed SetValue: it may write and then throw.
+    equip.textures[name]={field,std::move(original),equip.asset};
+    return setTexture(field,equip.slot,equip.asset->get());
+}
 struct KindInfo { const char* ids;const char* itemTypes;std::vector<const char*> textures;bool composite=false; };
 KindInfo kindInfo(const std::string& kind) {
     if(kind=="Head")return {"Head","headType",{"ArmorHead"}};
@@ -283,20 +434,28 @@ bool installEquipment(Equipment& equip,std::string* error) {
     }
     for(const auto& f:textures)if(!grow(f,total))return fail("EquipmentTextureGrowthFailed");
     if(mapping&&!grow(mapping,total))return fail("EquipmentItemMapGrowthFailed");
-    for(const auto& f:textures)if(!setTexture(f,equip.slot,equip.asset->get()))return fail("EquipmentTextureWriteFailed");
-    if(mapping)write<int32_t>(arrayData(table(mapping)),static_cast<size_t>(equip.slot)*4,equip.type);
-    if(info.composite&&!boolTable(staticArray(sets,"UsesNewFramingCode"),equip.slot,true))return fail("EquipmentFramingUnavailable");
-    if((equip.flags&1)&&!boolTable(staticArray(sets,"UseHairColor"),equip.slot,true))return fail("EquipmentHairFlagUnavailable");
+    // Reserve before the first cell write. A partial managed write followed by
+    // an exception must retry the same slot, even if another item allocates next.
+    if(!native_static::writeInteger(countField,total))return fail("EquipmentCountWriteFailed");
+    kind.total=total;equip.published=true;
+    for(size_t i=0;i<textures.size();++i)if(!writeEquipmentTexture(equip,info.textures[i],textures[i]))return fail("EquipmentTextureWriteFailed");
+    if(mapping&&!writeOwnedStaticCell(equip.type,"Equip/"+equip.kind+"/Map",mapping,equip.slot,&equip.type,sizeof(int32_t)))return fail("EquipmentItemMapWriteFailed");
+    auto flag=[&](const char* name,bool value) {
+        auto field=staticArray(sets,name);const uint8_t byte=value?1:0;
+        if(!field||!primitive(a.class_get_element_class(field.type),"Boolean",1)||!grow(field,equip.slot+1))return false;
+        return writeOwnedStaticCell(equip.type,"Equip/"+equip.kind+"/"+name,field,equip.slot,&byte,1);
+    };
+    if(info.composite&&!flag("UsesNewFramingCode",true))return fail("EquipmentFramingUnavailable");
+    if((equip.flags&1)&&!flag("UseHairColor",true))return fail("EquipmentHairFlagUnavailable");
     if(equip.flags&2) {
         // Android 1.4.5 uses MissingHand (show the skin hands). HidesHands in
         // other contracts expresses the opposite policy; never reuse its value.
         auto hands=staticArray(sets,"MissingHand");
         const bool missingHand=bool(hands);
         if(!hands)hands=staticArray(sets,"HidesHands");
-        if(!boolTable(hands,equip.slot,missingHand))return fail("EquipmentHandFlagUnavailable");
+        if(!flag(missingHand?"MissingHand":"HidesHands",missingHand))return fail("EquipmentHandFlagUnavailable");
     }
-    if(!native_static::writeInteger(countField,total))return fail("EquipmentCountWriteFailed");
-    kind.total=total;equip.published=true;return true;
+    return true;
 }
 using VoidFn=void (*)(const MethodInfo*);
 VoidFn originalAnimations=nullptr,originalWingStats=nullptr;
@@ -325,8 +484,31 @@ bool registerAnimation(Entry& entry,std::string* error) {
         if(!invoke(ctor,object,args))return fail(hasPingPong?"AnimationConstructor3Failed":"AnimationConstructor2Failed");
         entry.animation=std::move(root);
     }
+    AnimationRegistry before;
+    if(!readAnimationRegistry(entry.source.type,true,&before,error))return false;
+    auto* current=before.at(entry.source.type);const auto existing=ownedAnimations.find(entry.source.type);
+    const bool partial=existing!=ownedAnimations.end()&&!existing->second.completed&&
+        current==(existing->second.original?existing->second.original->get():nullptr);
+    if(before.count(entry.source.type)&&!current&&!partial)return fail("AnimationRegistryListedNull");
+    OwnedAnimation owned;
+    if(existing!=ownedAnimations.end()&&(current==existing->second.last->get()||partial)) {
+        owned.original=existing->second.original;
+        owned.originalListed=existing->second.originalListed&&before.count(entry.source.type);
+    } else {
+        if(current) {owned.original=std::make_shared<Root>(current);if(!owned.original->get())return fail("AnimationRegistryOriginalRoot");}
+        owned.originalListed=before.count(entry.source.type)!=0;
+    }
+    owned.last=entry.animation;
+    // Retain ownership before invocation: native RegisterItemAnimation can append
+    // its index and then throw before assigning the array element.
+    ownedAnimations[entry.source.type]=std::move(owned);
     void* args[]={&entry.source.type,entry.animation->get()};
     if(!invoke(registerMethod,nullptr,args))return fail("AnimationRegisterFailed");
+    AnimationRegistry after;
+    if(!readAnimationRegistry(entry.source.type,false,&after,error)||
+       !after.hasSlot(entry.source.type)||after.at(entry.source.type)!=entry.animation->get()||
+       after.count(entry.source.type)!=1)return fail("AnimationRegistryPublishUnverified");
+    ownedAnimations.at(entry.source.type).completed=true;
     const char* names[]={"AnimatesAsSoul","ItemIconPulse","ItemNoGravity"};
     for(size_t i=0;i<3;++i)if(!ownedBoolTable(entry.source.type,names[i],entry.policy.animationFlags[i])){
         *error=std::string("Reason=AnimationFlagUnavailable Table=")+names[i];return false;
@@ -580,7 +762,7 @@ bool install(Entry& entry,std::string* error) {
     }
     for(const auto& source:entry.policy.equips) {
         const auto key=std::make_pair(entry.source.type,source.kind);auto& equip=equipment[key];
-        if(equip.type<0){equip.type=entry.source.type;equip.kind=source.kind;equip.path=entry.source.modDir+"/content/"+source.path+".png";equip.flags=source.flags;}
+        if(equip.type<0){equip.type=entry.source.type;equip.kind=source.kind;equip.path=entry.source.modDir+"/content/"+source.path+".png";equip.flags=source.flags;equip.policyOwned=true;}
         if(!installEquipment(equip,error)||!setBasicItemEquipSlot(entry.source.type,source.kind,equip.slot,error))return false;
         entry.slots[source.kind]=equip.slot;
     }
@@ -789,7 +971,12 @@ void pumpNativeItemPoliciesOnGameThread() {
         auto it=equipment.upper_bound(last);
         for(size_t n=0;n<std::min(size_t{8},equipment.size());++n) {
             if(it==equipment.end())it=equipment.begin();
-            auto& [key,equip]=*it++;last=key;std::string error;installEquipment(equip,&error);
+            auto& [key,equip]=*it++;last=key;
+            if(equip.policyOwned) {
+                const auto owner=entries.find(equip.type);
+                if(pendingStaticRetirement(equip.type)||owner==entries.end()||!isDesired(*owner->second))continue;
+            }
+            std::string error;installEquipment(equip,&error);
         }
     }
 }

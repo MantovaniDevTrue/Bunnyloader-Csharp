@@ -45,7 +45,7 @@ std::atomic<bool> placementsPending{false};
 std::atomic<unsigned> contentGeneration{0};
 struct IntegerField { int offset=-1; int bytes=0; int64_t min=0,max=0; };
 std::array<IntegerField,BasicFieldCount-1> integerFields{};
-struct EquipSlot { IntegerField field; int value=-1; };
+struct EquipSlot { IntegerField field; int value=-1; int retiredFrom=-1; };
 std::map<int,std::map<std::string,EquipSlot>> equipSlots;
 struct DefenseDefault { IntegerField field; int value=0; bool inheritVanilla=false; };
 std::map<int,DefenseDefault> defenseDefaults;
@@ -732,6 +732,18 @@ bool setBasicItemEquipSlot(int type,const std::string& kind,int slot,std::string
     return true;
 }
 
+void retireBasicItemEquipSlot(int type,const std::string& kind,int expectedSlot) {
+    std::lock_guard lock(mutex);
+    auto item=equipSlots.find(type);if(item==equipSlots.end())return;
+    auto slot=item->second.find(kind);
+    if(slot==item->second.end()||slot->second.value!=expectedSlot)return;
+    // Keep a conditional tombstone until the next explicit binding. Existing
+    // instances lose our slot; unrelated values and freshly reset defaults stay.
+    slot->second.retiredFrom=expectedSlot;slot->second.value=-1;
+    refreshReason.store("NativeEquipSlotRetired",std::memory_order_release);
+    instancesPending.store(true,std::memory_order_release);
+}
+
 namespace {
 int64_t readBoundInteger(const Il2CppObject* object,const IntegerField& field) {
     const auto* data=reinterpret_cast<const unsigned char*>(object)+field.offset;
@@ -805,6 +817,7 @@ bool applyBasicItemToObject(Il2CppObject* object,int type) {
     }
     const auto slots=equipSlots.find(type);
     if(slots!=equipSlots.end())for(const auto& [kind,slot]:slots->second) {
+        if(slot.retiredFrom>=0&&readBoundInteger(object,slot.field)!=slot.retiredFrom)continue;
         auto* destination=reinterpret_cast<unsigned char*>(object)+slot.field.offset;
         switch(slot.field.bytes) {
             case 1: {const auto v=static_cast<uint8_t>(slot.value);std::memcpy(destination,&v,1);break;}

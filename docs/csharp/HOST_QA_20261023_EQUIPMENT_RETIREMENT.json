@@ -1,0 +1,49 @@
+{
+  "date": "2026-10-23",
+  "baselineCommit": "e1bde487b514c23fb9782fb56c9132b060a1b459",
+  "scope": "UID retirement of BunnyItem.Behavior declarative equipment; not global EquipLoader or legacy BunnyAccessory unload",
+  "checks": [
+    {
+      "name": "Production item policy fixture with actual compiled ExampleMod descriptors",
+      "result": "PASS",
+      "modes": 21,
+      "equipmentRetirementPasses": 21
+    },
+    {
+      "name": "Production armor policy regressions",
+      "result": "PASS",
+      "modes": 24
+    }
+  ],
+  "sanitizers": {
+    "address": "PASS",
+    "undefinedBehavior": "PASS",
+    "modes": [
+      "raw metadata",
+      "boxed metadata"
+    ],
+    "leakDetection": false,
+    "note": "Fake VM retains allocations; not a production memory or GPU resource scan."
+  },
+  "covered": [
+    "Restore owned texture references with strong original/last GC roots on the game thread",
+    "Restore owned item maps and framing/hair/hand flags, preserving foreign values",
+    "Conditional native slot tombstones preserve foreign per-instance slot changes",
+    "Unavailable table and SetValue failure keep cleanup pending and block replacement",
+    "New texture path replaces the previous cached descriptor after cleanup",
+    "Copied arrays, shortened texture arrays and a new snapshot omitting equipment",
+    "Periodic refresh does not resurrect retired equipment; legacy Shield/Shoes unaffected",
+    "Shared native counts remain monotonic; partial write retries reserve the same slot"
+  ],
+  "limits": [
+    "Legacy BunnyAccessory Shield/Shoes UID retirement remains pending.",
+    "Slot recycling and global count/table reset remain pending; repeated reloads can reach native slot capacity.",
+    "Unity/GPU resource destruction, global ItemLoader/EquipLoader unload and enumeration of all live instances remain pending.",
+    "Identical foreign reference/value writes cannot be distinguished.",
+    "Android execution, gameplay, rendering, FPS and production memory behavior are unvalidated.",
+    "Targeted checks only; the full earlier 69-check suite was not rerun."
+  ],
+  "apkProduced": false,
+  "apkWorkflowDispatched": false,
+  "androidValidated": false
+}

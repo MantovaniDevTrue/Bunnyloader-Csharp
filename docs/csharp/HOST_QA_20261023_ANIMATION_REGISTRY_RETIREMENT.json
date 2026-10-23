@@ -1,0 +1,88 @@
+{
+  "date": "2026-10-23",
+  "baselineCommit": "b6b5de01742b21498ff00a700a7201ab88a28d61",
+  "scope": "Owned DrawAnimation reference and registered List<int> membership; not equipment or global ItemLoader unload",
+  "checks": [
+    {
+      "name": "Production native item policy fixture and actual compiled ExampleMod wire",
+      "result": "PASS",
+      "modes": 21,
+      "animationRegistryPasses": 21
+    },
+    {
+      "name": "Production native armor policy regressions linked with current NativeItemPolicies",
+      "result": "PASS",
+      "modes": 24
+    },
+    {
+      "name": "Integrated GUIPanel backing bridge metadata/invoke fixture",
+      "result": "PASS",
+      "invocations": 2,
+      "rejections": 10
+    },
+    {
+      "name": "Integrated NativeRarityGameplay translation unit syntax check",
+      "result": "PASS"
+    },
+    {
+      "name": "Integrated tooltip backing palette fixture",
+      "result": "PASS"
+    },
+    {
+      "name": "Concurrent unconnected tooltip texture-path header syntax check (not runtime execution)",
+      "result": "PASS"
+    },
+    {
+      "name": "Concurrent tooltip texture-path typed ownership/getter/failure fixture",
+      "result": "PASS"
+    },
+    {
+      "name": "Integrated typed tooltip context/border color fixture",
+      "result": "PASS",
+      "managedGetterCalls": 4
+    }
+  ],
+  "sanitizers": {
+    "address": "PASS",
+    "undefinedBehavior": "PASS",
+    "modes": [
+      "raw metadata",
+      "boxed metadata"
+    ],
+    "leakDetection": false,
+    "note": "Fake VM retains allocated objects; this is not a production leak scan."
+  },
+  "nativeInspection": {
+    "gameBuild": 301720,
+    "method": "Terraria.Main.RegisterItemAnimation(int, DrawAnimation)",
+    "rva": "0x1018D18",
+    "registeredListStaticOffset": "0x10B0",
+    "animationArrayStaticOffset": "0x1098",
+    "observedOrder": "Contains; Add when absent; assign reference in itemAnimations",
+    "implementationUsesOffsets": false,
+    "libil2cppSha256": "ff1f16f3ef122cde66f549096bca0225c46fd9a59e736c05706a8b0444d2ae06",
+    "note": "Inspection confirms method order; Android runtime binding/execution was not exercised."
+  },
+  "covered": [
+    "Immediate UID revocation; reference/index restoration and other UID preservation",
+    "Pre-existing registered and unregistered objects; preserve foreign replacement object/list",
+    "Strong original/last roots; collection snapshots rooted during native calls; GC APIs remain on game thread",
+    "Root allocation failure before publication, partial Contains/Add failure and successful retry/unload",
+    "RemoveAt before/after mutation failure; remove index before clearing its reference",
+    "Missing/wrong-ABI arrays/list, bad ToArray metadata, snapshot exception, duplicate index retry",
+    "Shifted indices, copied arrays/lists, discarded slots and initializer replacement of both collections",
+    "Reapply existing DrawAnimation without constructing a replacement during initializer; new baseline after reset",
+    "Registration restoration shares the existing eight-type cleanup budget"
+  ],
+  "limits": [
+    "Exact metadata collection contracts are required; unavailable or ambiguous native state remains pending until valid.",
+    "A writer reusing exactly the same animation reference cannot be distinguished from no change.",
+    "Equipment textures/slots, other equipment tables, basic defaults, all live instances and global ItemLoader unload remain pending.",
+    "Android execution, gameplay, rendering, FPS and production memory/leak behavior are not validated.",
+    "This batch ran targeted checks; it did not rerun the earlier full 69-check suite."
+  ],
+  "apkProduced": false,
+  "apkWorkflowDispatched": false,
+  "androidValidated": false,
+  "integrationNote": "Preserved the upstream strict initializer fix and concurrent tooltip resources; native translation unit compilation and targeted fixtures passed on the isolated branch."
+}

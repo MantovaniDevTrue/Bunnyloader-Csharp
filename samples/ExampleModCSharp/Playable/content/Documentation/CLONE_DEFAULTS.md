@@ -55,7 +55,7 @@ A confirmação no Android continua pendente; não foi gerado APK.
 
 Este lote não implementa o unload global dos itens nem a restauração de todos
 os campos extras de uma instância já modificada por um clone. A restauração das três flags de animação e de WingStats é descrita abaixo;
-texturas, slots e demais tabelas estáticas de equipamento continuam pendentes. A retirada do snapshot
+a restauração dos equipamentos declarados em Behavior.EquipTexture é descrita ao final. O unload global continua pendente. A retirada do snapshot
 impede novas cópias e callbacks da política retirada; não é uma recriação geral
 da instância do Terraria.
 
@@ -73,9 +73,9 @@ novamente a animação retirada. Uma instalação que já estava em execução n
 republicar o resultado antigo. Os handles do clone ficam retidos até o pump na
 thread do jogo; a thread que solicita unload não chama o coletor IL2CPP.
 
-A extensão abaixo restaura três flags e WingStats. A retirada de texturas/slots,
-demais tabelas, registro de animação já existente no Terraria, defaults básicos
-e todas as instâncias continua pendente. O teste de host não comprova unload
+As seções seguintes cobrem flags, WingStats, registro de animação e equipamentos
+declarativos. Defaults básicos, demais tabelas e todas as instâncias continuam
+pendentes. O teste de host não comprova unload
 completo no Android.
 
 ## Restauração das flags de animação e estatísticas de asas
@@ -107,7 +107,100 @@ A revogação dos callbacks continua imediata. A restauração nativa atende at�
 tipos com células por pump, em rotação, preservando os demais UIDs. O teste de
 host verifica um lote de 17 tipos em três pumps; isso não é medição de FPS Android.
 
-**Ainda pendente:** retirar o objeto e o índice já registrados em
-`Main.itemAnimations`/`itemAnimationsRegistered`, restaurar texturas/slots e as
-outras tabelas de equipamento, defaults básicos e todas as instâncias. As três
-flags restauradas não equivalem à retirada completa do registro de animação.
+A retirada do objeto e do índice em `Main` é descrita na seção seguinte.
+A seção final cobre texturas/slots declarativos. Outras tabelas de equipamento,
+defaults básicos e todas as instâncias continuam pendentes.
+
+## Registro de animação em Main
+
+O contrato de `Behavior.Animate` também guarda o objeto anterior em
+`Main.itemAnimations[type]` e verifica se o ID já estava em
+`Main.itemAnimationsRegistered`. Os objetos de animação guardados têm raízes
+fortes até terminar a restauração pela thread do jogo. Arrays, listas e snapshots
+têm raízes temporárias durante cada leitura/chamada nativa. O exemplo segue igual:
+
+```csharp
+// O host registra a animação nativa e suas flags. Na retirada, restaura o
+// objeto anterior e remove o ID somente quando esta política o acrescentou.
+Behavior.Animate(4, 6, animatesAsSoul: true, pulse: true, noGravity: true);
+```
+
+O método Android `RegisterItemAnimation` faz Contains/Add na lista antes de
+gravar a referência no array. Por isso, o loader retém o estado anterior antes
+de invocá-lo. Se a chamada falhar depois do Add, uma nova tentativa pode concluir
+o registro sem duplicar o índice, ou o unload pode remover esse Add parcial.
+
+Na retirada, o loader encontra a posição atual do ID usando um snapshot tipado
+de `List<int>.ToArray` e chama `RemoveAt`. Não escreve os campos privados da
+lista. Remove primeiro o ID que acrescentou e só depois restaura a referência
+com a barreira do coletor. Uma exceção após remover o ID é recuperada sem remover
+outro elemento na tentativa seguinte. Se o ID já existia antes, sua posição e
+seus vizinhos são preservados. Outro objeto que substituiu a animação conserva
+a referência e o registro atuais; uma escrita com a mesma referência não pode
+ser distinguida de uma ausência de alteração.
+
+Array/lista ausentes, metadados incompatíveis e exceções de snapshot ou remoção
+mantêm a limpeza pendente. Uma duplicação externa do ID também é rejeitada:
+o loader não escolhe um índice ambíguo nem limpa o objeto sob um ID ainda
+registrado. A recuperação pode continuar quando o estado nativo for válido.
+Os métodos, retorno `Int32[]`, parâmetro de `RemoveAt` e array de `DrawAnimation`
+são verificados por metadados antes da publicação.
+
+Cópias dos arrays/listas são resolvidas de novo na limpeza. Se um array menor
+descartar o slot que esta política criou, o ID acrescentado é retirado sem
+recriar esse slot. Uma reinicialização que substitui as duas coleções estabelece
+uma nova base; o gancho reaplica a animação existente, sem construir outro
+`DrawAnimation`. Os testes verificam esses casos, outro UID, objetos anteriores
+registrados/não registrados e falhas antes/depois das mutações. A limpeza desses
+registros compartilha o orçamento de oito tipos por pump.
+
+Isso fecha este contrato nativo no host. Não demonstra instalação nem gameplay
+no Android; demais tabelas e unload global de itens continuam pendentes.
+Nenhum APK foi gerado.
+
+
+## Equipamentos declarativos na recarga
+
+O loader retira as texturas publicadas por `Behavior.EquipTexture`, os mapas
+`Item.headType/bodyType/legType`, as flags de cabelo, mãos e enquadramento que
+escreveu e os bindings dos slots do item. O mesmo ocorre quando uma revisão
+remove a declaração de equipamento. Uma nova revisão pode trocar o caminho ou
+as flags sem reaproveitar a textura em cache da revisão anterior:
+
+```csharp
+// Em SetDefaults: quatro tabelas nativas de corpo usam a textura declarada.
+// ShowHands respeita a diferença entre MissingHand e HidesHands no Android.
+Behavior.EquipTexture(BunnyEquipKind.Body,
+    "Content/Items/Armor/Vanity/ExampleRobe_Body", BunnyEquipDrawFlags.ShowHands);
+// Ao remover esta declaração numa revisão, o host retira o equipamento antigo.
+// Ao trocar o caminho, publica o novo asset depois de concluir a limpeza antiga.
+```
+
+O host guarda referências fortes ao asset anterior e ao publicado. Na retirada,
+restaura cada tabela somente se a referência atual ainda for a que publicou;
+alterações de outros mods ficam preservadas. Usa as tabelas atuais, inclusive
+cópias posteriores à publicação. Um array válido menor descarta o slot sem ser
+recriado. Tabela ausente, contrato incompatível ou falha de SetValue mantém a
+limpeza pendente e bloqueia a próxima instalação. O refresher periódico não
+reinstala o equipamento retirado. Uma escrita parcial continua reservando o
+mesmo slot para a tentativa seguinte.
+
+Bindings retirados limpam o slot em instâncias reaplicadas somente se ainda
+contiverem o slot publicado. Valores diferentes são preservados. Essa limpeza
+solicita a atualização de instâncias já usada pelo host; não prova que todas as
+instâncias possíveis do Terraria foram enumeradas.
+
+Os contadores de slots são marcas de alocação compartilhadas: não diminuem nem
+reciclam slots, porque outros mods podem ter alocado depois. Muitas recargas
+podem esgotar o limite nativo de slots; o loader mantém a instalação pendente
+com diagnóstico, sem truncar o valor. O adapter legado BunnyAccessory de
+Shield/Shoes continua separado deste contrato de retirada por UID.
+
+A limpeza libera as raízes do coletor na thread do jogo. Não destrói à força o
+objeto Unity: outras referências podem usá-lo; descarte global de recursos e
+memória GPU continua pendente. Igualdade da mesma referência/valor não permite
+distinguir uma escrita externa idêntica. Os testes de host cobrem restauração,
+referência anterior, interferência externa, tabela copiada/ausente/encurtada,
+falha de escrita, troca de caminho, snapshot sem equipamento e ausência de
+reinstalação após 250 pumps. Android, unload global e o adapter legado ainda
+exigem validação própria. Nenhum APK foi gerado.

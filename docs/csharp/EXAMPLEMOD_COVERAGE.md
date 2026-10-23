@@ -14,7 +14,7 @@ O catálogo usa cada hook JS como unidade inicial de revisão, com hash do fonte
 |---|---:|
 | não iniciado | 678 |
 | implementado sem validar | 0 |
-| validado automaticamente | 51 |
+| validado automaticamente | 53 |
 | validado no Android | 1 |
 | falhou | 3 |
 | bloqueio comprovado | 0 |
@@ -80,8 +80,10 @@ Dust e invasão: o baseline contém correções posteriores aos logs Android de 
 | requirement:rarity-loader-bunny-contract | validado automaticamente | Contrato de raridade do Bunny: callbacks, integração visual nativa, prefixos, persistência e ciclo de vida. IDs estáveis são reativados; cores e dicionário retirados seletivamente. QA Android pendente. |
 | requirement:angler-quest-loader-bunny-contract | validado automaticamente | Contrato do AnglerQuestLoader Bunny: quest fish, flags/lista, seleção/chat, captura e callbacks/revisões/unload. Teardown durável, contextos coletáveis e outros UIDs verificados no host. QA Android pendente. |
 | requirement:clone-defaults-explicit-overrides-and-reload | validado automaticamente | Protocolo opcional C1 preserva campos omitidos e distingue zero/false/som vazio. Três revisões reais compiladas, limpeza da atribuição de defesa, revogação antes do frame, confirmação por geração, outro UID e 100 substituições testados. Classificação de prefixos usa defaults efetivos após NativeDefaults. Não declara unload global de itens, restauração de todos os campos extras ou retirada de tabelas estáticas; Android pendente. |
-| requirement:item-dynamic-policy-uid-retirement | validado automaticamente | Clone, cor, luz, asas, robe e hooks de reinicialização deixam de usar o UID retirado antes do pump. Retenção parcial/vazia, pending/in-flight install, outro UID e 100 recargas verificados com wire real; handles liberados na thread do jogo. SourceLoader/guard compilados. Tabelas estáticas, texturas/slots, animações já registradas, defaults básicos e unload global seguem pendentes. |
-| requirement:item-primitive-static-cell-retirement | validado automaticamente | Wire real, baseline, array substituído/menor, escrita externa, outro UID, tabela ausente/ABI inválida, nova revisão bloqueada e limpeza obsoleta verificados no host. Até oito tipos com células por pump, em rotação; 17 tipos em três pumps. Main.itemAnimations/índices registrados, demais tabelas/equipamentos e unload global continuam pendentes. |
+| requirement:item-dynamic-policy-uid-retirement | validado automaticamente | Clone, cor, luz, asas, robe e hooks de reinicialização deixam de usar o UID retirado antes do pump. Retenção parcial/vazia, pending/in-flight install, outro UID e 100 recargas verificados com wire real; handles liberados na thread do jogo. SourceLoader/guard compilados. Flags, WingStats e registro de animação têm requisitos separados; texturas/slots, demais tabelas, defaults básicos e unload global seguem pendentes. |
+| requirement:item-primitive-static-cell-retirement | validado automaticamente | Wire real, baseline, array substituído/menor, escrita externa, outro UID, tabela ausente/ABI inválida, nova revisão bloqueada e limpeza obsoleta verificados no host. Até oito tipos com células por pump, em rotação; 17 tipos em três pumps. A retirada dos registros Main tem requisito separado; demais tabelas/equipamentos e unload global continuam pendentes. |
+| requirement:item-animation-registry-retirement | validado automaticamente | Main.itemAnimations e List<int> validados por metadados; restauração com raízes fortes e barreira do coletor, preservando registro/objeto anteriores e outro UID. Wire real cobre Add parcial, falhas de raiz/RemoveAt/snapshot, array/lista substituídos, ABI inválida, índice deslocado/duplicado e reset. Android, equipamentos, demais defaults e unload global seguem pendentes. |
+| requirement:item-declarative-equipment-retirement | validado automaticamente | Texturas, mapas, flags e bindings próprios são retirados na thread do jogo; referências/valores externos preservados. Fila bloqueia nova instalação durante falhas; troca de caminho, omissão de equipamento e ausência de reinstalação periódica verificadas no host. Adapter legado, contadores globais, recursos Unity/GPU e Android pendentes. |
 
 Todos os hooks e o backlog oficial estão em [EXAMPLEMOD_COVERAGE.json](EXAMPLEMOD_COVERAGE.json).
 
