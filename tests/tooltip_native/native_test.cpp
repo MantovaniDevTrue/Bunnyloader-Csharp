@@ -27,6 +27,14 @@ int main(int argc,char** argv) {
     BasicItemEntry item;std::string error;
     assert(parseBasicItemWire(fields,&item,&error));
     assert(item.nativeTooltip.has_value());
+    // The optional clone mask follows the tooltip plan. Both policies must survive
+    // admission in the same record, including an inherited vanilla baseline.
+    auto clonedFields=fields;
+    clonedFields.push_back("C1|0|0|0|0");
+    BasicItemEntry cloned;
+    assert(parseBasicItemWire(clonedFields,&cloned,&error));
+    assert(cloned.cloneOverridesSpecified&&cloned.nativeTooltip.has_value());
+    assert(cloned.nativeTooltip->lines.size()==item.nativeTooltip->lines.size());
     const auto& lines=item.nativeTooltip->lines;
     assert(lines.size()==3);
     assert(lines[0].name=="ItemName"&&lines[1].name=="BunnyLoader"&&lines[2].name=="Tooltip0");

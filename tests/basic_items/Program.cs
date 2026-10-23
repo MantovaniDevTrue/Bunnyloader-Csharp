@@ -613,11 +613,29 @@ try {
    string output=Path.Combine(scratch,explicitZero?"zero.dll":"inherit.dll"),diag=output+".txt";
    Equal(1,Compiler.Compile(root,output,runtime,diag));Equal(1,CompiledAssemblyProbe.Verify(output,diag));
    var fields=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt"))[1].Split('\t');
-   if(explicitZero) {Equal(24,fields.Length);Equal("0",fields[23]);}
-   else Equal(21,fields.Length);
+   Equal(28,fields.Length);Equal("C1|0|0|0|0",fields[27]);
+   Equal(explicitZero?"0":"-",fields[23]);
   }
   var fresh=new ExampleItem();Equal(false,fresh.HasDefenseOverride);
   fresh.Defense=0;Equal(true,fresh.HasDefenseOverride);Equal(0,fresh.Defense);
+ });
+ Check("clone.explicit-defaults-versus-inheritance-real-wire",()=>{
+  string root=Path.Combine(scratch,"clone-reload");Directory.CreateDirectory(Path.Combine(root,"content"));
+  var rows=new List<string>{"BUNNY_CLONE_RELOAD_FIXTURE_V1"};
+  for(int revision=0;revision<3;revision++) {
+   string setters=revision<2?"Behavior.CloneVanillaDefaults(\"SoulofSight\");":"";
+   if(revision==1)setters+="Width=0;Height=0;MaxStack=1;Value=0;Rare=0;Damage=0;Crit=0;UseTime=0;UseAnimation=0;UseStyle=0;Pick=0;Axe=0;Hammer=0;Melee=false;NoMelee=false;AutoReuse=false;UseTurn=false;Consumable=false;Accessory=false;Vanity=false;KnockBack=0;UseSound=\"\";Defense=0;";
+   File.WriteAllText(Path.Combine(root,"content","CloneContract.cs"),
+    "using BunnyLoader.Source;public sealed class CloneContract:BunnyItem {public override void SetDefaults(){DisplayName=\"Clone Contract\";Texture=\"Items/CloneContract\";"+setters+"}}");
+   string output=Path.Combine(scratch,"clone-reload-"+revision+".dll"),diag=output+".txt";
+   Equal(1,Compiler.Compile(root,output,runtime,diag));Equal(1,CompiledAssemblyProbe.Verify(output,diag));
+   string row=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt")).Single(r=>r.StartsWith("ITEM\tCloneContract\t",StringComparison.Ordinal));
+   var fields=row.Split('\t');
+   if(revision<2){Equal(28,fields.Length);Equal(revision==0?"C1|0|0|0|0":"C1|8191|127|1|1",fields[27]);Equal(revision==0?"-":"0",fields[23]);}
+   else Equal(20,fields.Length);
+   rows.Add(row);
+  }
+  File.WriteAllLines("build/basic-items/clone-reload-runtime-values.txt",rows);
  });
  Check("compiler.192-content-classes-and-expanded-wire",()=>{
   string root=Path.Combine(scratch,"capacity");Directory.CreateDirectory(Path.Combine(root,"content"));

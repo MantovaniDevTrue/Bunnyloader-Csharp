@@ -66,9 +66,11 @@ public abstract class BunnyItem : BunnyShootSource
     // Zero deixa o host inferir o tamanho pela textura, como o ModItem JS.
     private bool nativeWallDefaults;
     private int wallIntegerOverrides,wallFlagOverrides;
+    private int cloneIntegerOverrides,cloneFlagOverrides;
+    private bool cloneKnockBackOverride,cloneUseSoundOverride;
     private string placement="";
-    private void OverrideInteger(int index) { if(nativeWallDefaults)wallIntegerOverrides|=1<<index; }
-    private void OverrideFlag(int index) { if(nativeWallDefaults)wallFlagOverrides|=1<<index; }
+    private void OverrideInteger(int index) { cloneIntegerOverrides|=1<<index;if(nativeWallDefaults)wallIntegerOverrides|=1<<index; }
+    private void OverrideFlag(int index) { cloneFlagOverrides|=1<<index;if(nativeWallDefaults)wallFlagOverrides|=1<<index; }
     public int Width { get => width; set { width=value; OverrideInteger(0); } }
     private int width;
     private int wallHeight=0;
@@ -81,7 +83,7 @@ public abstract class BunnyItem : BunnyShootSource
     public int Rare { get => wallRare; set { wallRare=value; OverrideInteger(4); } }
     public string ModRarityClassName { get; private set; } = "";
     public void SetRarity<T>() where T : BunnyRarity
-        => ModRarityClassName = BunnyRarityReference.Resolve(GetType(), typeof(T));
+        { ModRarityClassName = BunnyRarityReference.Resolve(GetType(), typeof(T)); OverrideInteger(4); }
     public bool QuestFish { get; set; }
     public bool QuestAvailableInPreHardmode { get; set; } = true;
     public bool QuestAvailableInHardmode { get; set; } = true;
@@ -99,7 +101,8 @@ public abstract class BunnyItem : BunnyShootSource
     public int Damage { get => wallDamage; set { wallDamage=value; OverrideInteger(5); } }
     private int wallCrit=0;
     public int Crit { get => wallCrit; set { wallCrit=value; OverrideInteger(6); } }
-    public float KnockBack { get; set; }
+    private float knockBack;
+    public float KnockBack { get => knockBack; set { knockBack=value;cloneKnockBackOverride=true; } }
     private int wallUseTime=0;
     public int UseTime { get => wallUseTime; set { wallUseTime=value; OverrideInteger(7); } }
     private int wallUseAnimation=0;
@@ -129,11 +132,17 @@ public abstract class BunnyItem : BunnyShootSource
     public bool Vanity { get => wallVanity; set { wallVanity=value; OverrideFlag(6); } }
     public BunnyItemBehavior Behavior { get; } = new();
     public string BehaviorDefinition => Behavior.ToJson();
+    /// <summary>Colunas opcionais C1: somente atribuições explícitas substituem defaults clonados.</summary>
+    public string NativeCloneOverridesDefinition => Behavior.HasVanillaClone
+        ? "C1|"+cloneIntegerOverrides.ToString(CultureInfo.InvariantCulture)+"|"+
+          cloneFlagOverrides.ToString(CultureInfo.InvariantCulture)+"|"+
+          (cloneKnockBackOverride?"1":"0")+"|"+(cloneUseSoundOverride?"1":"0") : "";
     public string NativeAccessoryEffectsDefinition => Behavior.NativeAccessoryEffectsDefinition;
     /// <summary>Descritor nativo de atributos, imunidades e conjunto de armadura.</summary>
     public string NativeArmorDefinition => Behavior.NativeArmorDefinition;
+    private string useSound="";
     /// <summary>Nome de um campo SoundID, como Item1. Vazio deixa o item sem som de uso.</summary>
-    public string UseSound { get; set; } = "";
+    public string UseSound { get => useSound; set { useSound=value;cloneUseSoundOverride=true; } }
     /// <summary>Descritor de colocacao resolvido pelo nucleo; vazio preserva itens antigos.</summary>
     public string PlacementDefinition => placement + (nativeWallDefaults ? ":"+wallIntegerOverrides.ToString(CultureInfo.InvariantCulture)+":"+wallFlagOverrides.ToString(CultureInfo.InvariantCulture) : "");
     /// <summary>Defaults do Bunny original: coloca um tile vanilla com o estilo indicado.</summary>

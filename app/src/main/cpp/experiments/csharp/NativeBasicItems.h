@@ -29,7 +29,7 @@ void applyBasicItemAccessoryEffects(Il2CppObject* player,int itemType);
 bool setBasicItemDefense(int type,int value,std::string* error);
 bool setBasicItemEquipSlot(int type,const std::string& kind,int slot,std::string* error);
 std::vector<BasicItemEntry> pendingBasicItemBehaviors();
-bool acknowledgeBasicItemBehavior(int type,const std::string& error);
+bool acknowledgeBasicItemBehavior(int type,const std::string& error,uint64_t expectedGeneration=0);
 std::vector<int> basicItemTypes();
 int basicItemForTile(const std::string& key);
 int basicItemForWall(const std::string& key);

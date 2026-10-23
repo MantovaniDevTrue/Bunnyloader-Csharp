@@ -12,6 +12,7 @@
 #include "il2cpp/Resolver.h"
 #include "il2cpp/Signature.h"
 #include "il2cpp/ValueLayout.h"
+#include <algorithm>
 #include <atomic>
 #include <cstring>
 #include <mutex>
@@ -32,6 +33,7 @@ struct Entry {
     std::shared_ptr<Root> clone,animation;std::vector<Field> cloned;
     int color=-1,hair=-1;uint32_t nativeAlpha=0;
     unsigned nextRetryTick=0,failedAttempts=0;
+    uint64_t generation=0;
     const MethodInfo* localPlayer=nullptr;
     std::map<std::string,int> slots;
 };
@@ -43,6 +45,10 @@ struct Snapshot {
 std::shared_ptr<const Snapshot> snapshot;
 std::mutex queueMutex;
 std::map<int,std::shared_ptr<Entry>> incoming;
+std::map<int,uint64_t> desiredGeneration;
+uint64_t nextGeneration=0;
+// Old snapshots may own GC roots. The game thread, never ingress, releases them.
+std::vector<std::shared_ptr<const Snapshot>> retiringSnapshots;
 std::map<int,NativeItemPolicyStatus> statuses;
 // Only the game thread mutates installation state. Ingress/diagnostics use the
 // separate mutex, never held while calling NativeBasicItems or the game.
@@ -499,21 +505,29 @@ bool install(Entry& entry,std::string* error) {
     return true;
 }
 void publish() {
-    auto next=std::make_shared<Snapshot>();size_t pending=0;
+    std::lock_guard lock(queueMutex);
+    auto next=std::make_shared<Snapshot>();
     for(const auto& [type,entry]:entries) {
-        if(!entry->status.ready){++pending;continue;}
+        const auto desired=desiredGeneration.find(type);
+        if(desired==desiredGeneration.end()||desired->second!=entry->generation)continue;
+        if(!entry->status.ready)continue;
         next->items[type]=entry;
         if(entry->policy.wing)next->wings[entry->slots.at("Wings")]=entry->policy.wings;
         if(entry->policy.robe)next->robes[entry->slots.at("Body")]=entry->slots.at("Legs");
     }
     std::atomic_store_explicit(&snapshot,std::shared_ptr<const Snapshot>(std::move(next)),std::memory_order_release);
-    pendingCount.store(pending,std::memory_order_release);
+    pendingCount.store(std::count_if(statuses.begin(),statuses.end(),[](const auto& pair){return !pair.second.ready;}),std::memory_order_release);
 }
 } // namespace item_native
-struct NativeItemPolicyBatch {std::vector<std::shared_ptr<item_native::Entry>> entries;};
+struct NativeItemPolicyBatch {
+    std::vector<std::shared_ptr<item_native::Entry>> entries;
+    std::vector<int> replacedTypes;
+};
 bool prepareNativeItemPolicies(const std::vector<BasicItemEntry>& entries,std::shared_ptr<NativeItemPolicyBatch>* batch,std::string* error) {
     auto prepared=std::make_shared<NativeItemPolicyBatch>();
-    for(const auto& source:entries)if(!source.behavior.empty()) {
+    for(const auto& source:entries) {
+        prepared->replacedTypes.push_back(source.type);
+        if(source.behavior.empty())continue;
         auto entry=std::make_shared<item_native::Entry>();entry->source=source;
         if(!item_policy_wire::read(source,&entry->policy,error))return false;
         entry->status={source.type,source.modId,source.name,"waiting-native-install","",false};prepared->entries.push_back(std::move(entry));
@@ -521,10 +535,37 @@ bool prepareNativeItemPolicies(const std::vector<BasicItemEntry>& entries,std::s
     *batch=std::move(prepared);return true;
 }
 void commitNativeItemPolicies(const std::shared_ptr<NativeItemPolicyBatch>& batch) {
-    if(!batch||batch->entries.empty())return;
-    std::lock_guard lock(item_native::queueMutex);
-    for(const auto& entry:batch->entries){item_native::incoming[entry->source.type]=entry;item_native::statuses[entry->source.type]=entry->status;}
-    item_native::pendingCount.fetch_add(batch->entries.size(),std::memory_order_release);
+    if(!batch||batch->replacedTypes.empty())return;
+    using namespace item_native;
+    std::lock_guard lock(queueMutex);
+    const uint64_t generation=++nextGeneration;
+    for(int type:batch->replacedTypes) {
+        desiredGeneration[type]=generation;
+        incoming[type]=nullptr; // Empty behavior is an explicit per-type replacement.
+        statuses.erase(type);
+    }
+    for(const auto& prepared:batch->entries) {
+        // Prepared batches can be committed repeatedly; installation mutates its own copy.
+        auto entry=std::make_shared<Entry>(*prepared);entry->generation=generation;
+        incoming[entry->source.type]=entry;statuses[entry->source.type]=entry->status;
+    }
+    {
+        const auto old=std::atomic_load_explicit(&snapshot,std::memory_order_acquire);
+        if(old) {
+            auto next=std::make_shared<Snapshot>();
+            for(const auto& [type,entry]:old->items) {
+                if(std::find(batch->replacedTypes.begin(),batch->replacedTypes.end(),type)!=batch->replacedTypes.end())continue;
+                next->items[type]=entry;
+                if(entry->policy.wing)next->wings[entry->slots.at("Wings")]=entry->policy.wings;
+                if(entry->policy.robe)next->robes[entry->slots.at("Body")]=entry->slots.at("Legs");
+            }
+            if(next->items.size()!=old->items.size()) {
+                retiringSnapshots.push_back(old);
+                std::atomic_store_explicit(&snapshot,std::shared_ptr<const Snapshot>(std::move(next)),std::memory_order_release);
+            }
+        }
+    } // Drop ingress' temporary old-snapshot reference before releasing queueMutex.
+    pendingCount.store(std::count_if(statuses.begin(),statuses.end(),[](const auto& pair){return !pair.second.ready;}),std::memory_order_release);
 }
 bool applyNativeItemPolicyDefaults(Il2CppObject* item,int type) {
     using namespace item_native;const auto view=std::atomic_load_explicit(&snapshot,std::memory_order_acquire);if(!item||!view)return false;
@@ -543,11 +584,15 @@ std::vector<NativeItemPolicyStatus> nativeItemPolicyStatus(){std::lock_guard loc
 void pumpNativeItemPoliciesOnGameThread() {
     using namespace item_native;static unsigned tick=0;static int cursor=-1;++tick;
     bool changed=false;
+    std::vector<std::shared_ptr<const Snapshot>> retired; // destroyed on this game thread
     {
         std::lock_guard lock(queueMutex);
         changed=!incoming.empty();
-        for(auto& [type,entry]:incoming)entries[type]=std::move(entry);
-        incoming.clear();
+        for(auto& [type,entry]:incoming) {
+            if(entry)entries[type]=std::move(entry);
+            else entries.erase(type);
+        }
+        incoming.clear();retired.swap(retiringSnapshots);
     }
     if(pendingCount.load(std::memory_order_acquire)) {
         auto it=entries.upper_bound(cursor);size_t attempted=0;
@@ -560,12 +605,17 @@ void pumpNativeItemPoliciesOnGameThread() {
             entry->status.ready=install(*entry,&error);
             if(!entry->status.ready&&error.empty())error="Reason=NativeMethodOrTableUnavailable";
             entry->status.phase=entry->status.ready?"ready":"waiting-native-install";entry->status.error=error;
-            {std::lock_guard lock(queueMutex);statuses[type]=entry->status;}
+            bool current=false;
+            {std::lock_guard lock(queueMutex);
+                current=desiredGeneration[type]==entry->generation;
+                if(current)statuses[type]=entry->status;
+            }
+            if(!current){changed=true;continue;}
             if(!entry->status.ready&&(entry->failedAttempts==0||previousError!=error))
                 BL_WARN("[CSharp][NativePolicy] Type=%d Class=%s Result=Pending Detail=%s",
                         type,entry->source.name.c_str(),error.c_str());
             if(entry->status.ready){
-                acknowledgeBasicItemBehavior(type,"");
+                acknowledgeBasicItemBehavior(type,"",entry->source.defaultsGeneration);
                 requestBasicItemInstanceRefresh("NativePolicyReady");
                 changed=true;
             } else if(++entry->failedAttempts>3&&tick>120)entry->nextRetryTick=tick+15;

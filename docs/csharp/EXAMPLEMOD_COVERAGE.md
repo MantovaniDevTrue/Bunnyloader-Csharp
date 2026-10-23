@@ -14,7 +14,7 @@ O catálogo usa cada hook JS como unidade inicial de revisão, com hash do fonte
 |---|---:|
 | não iniciado | 678 |
 | implementado sem validar | 0 |
-| validado automaticamente | 48 |
+| validado automaticamente | 49 |
 | validado no Android | 1 |
 | falhou | 3 |
 | bloqueio comprovado | 0 |
@@ -61,7 +61,7 @@ Dust e invasão: o baseline contém correções posteriores aos logs Android de 
 | Content/Rarities/ExampleHigherTierModRarity.js#RarityColor | validado automaticamente | Callbacks originais de cor fixa/disco e transição de raridade conferidos no pacote Bunny JS anexado. Registro, cores, ABI, persistência e retirada têm testes host; confirmação visual Android pendente. |
 | Content/Rarities/ExampleModRarity.js#GetPrefixedRarity | validado automaticamente | Callbacks originais de cor fixa/disco e transição de raridade conferidos no pacote Bunny JS anexado. Registro, cores, ABI, persistência e retirada têm testes host; confirmação visual Android pendente. |
 | Content/Rarities/ExampleModRarity.js#RarityColor | validado automaticamente | Callbacks originais de cor fixa/disco e transição de raridade conferidos no pacote Bunny JS anexado. Registro, cores, ABI, persistência e retirada têm testes host; confirmação visual Android pendente. |
-| requirement:tooltip-without-js | falhou | Dependência confirmada por inspeção de Exports.js/TooltipLoader.js; substituir por renderer nativo. |
+| requirement:tooltip-without-js | falhou | A falha original era a dependência do TooltipLoader.js. O renderer nativo agora consome o plano C# e desenha a onda, com teste do wire real; layout completo, interoperabilidade com JS e confirmação visual Android continuam pendentes. Este requisito global ainda não está validado. |
 | requirement:aim-before-shoot | validado automaticamente | Falha myPlayer do APK 311 corrigida no 312; usuário relatou armas funcionando. No lote 313, regressões de mira passam no host; nova opção do cajado ainda aguarda Android. O resolvedor agora aceita getter estático válido mesmo quando há um campo de instância homônimo; a ausência de ambos continua rejeitada. |
 | requirement:ExampleGun | validado automaticamente | Asserções dos valores/algoritmo do exemplo real e protocolo compilado no host. Trajetória, cano e consumo no motor Android pendentes. |
 | requirement:ExampleRocketLauncher | validado automaticamente | Asserções dos valores/algoritmo do exemplo real e protocolo compilado no host. Trajetória, cano e consumo no motor Android pendentes. |
@@ -79,6 +79,7 @@ Dust e invasão: o baseline contém correções posteriores aos logs Android de 
 | requirement:localization-loader-bunny-contract | validado automaticamente | Contrato JSON do Bunny: fallback, referências, textos globais, callbacks, idioma e retirada por UID. Revisões nativas usam o contexto compartilhado; respostas antigas são rejeitadas. HJSON/tooling de desktop não incluídos; Android pendente. |
 | requirement:rarity-loader-bunny-contract | validado automaticamente | Contrato de raridade do Bunny: callbacks, integração visual nativa, prefixos, persistência e ciclo de vida. IDs estáveis são reativados; cores e dicionário retirados seletivamente. QA Android pendente. |
 | requirement:angler-quest-loader-bunny-contract | validado automaticamente | Contrato do AnglerQuestLoader Bunny: quest fish, flags/lista, seleção/chat, captura e callbacks/revisões/unload. Teardown durável, contextos coletáveis e outros UIDs verificados no host. QA Android pendente. |
+| requirement:clone-defaults-explicit-overrides-and-reload | validado automaticamente | Protocolo opcional C1 preserva campos omitidos e distingue zero/false/som vazio. Três revisões reais compiladas, limpeza da atribuição de defesa, revogação antes do frame, confirmação por geração, outro UID e 100 substituições testados. Classificação de prefixos usa defaults efetivos após NativeDefaults. Não declara unload global de itens, restauração de todos os campos extras ou retirada de tabelas estáticas; Android pendente. |
 
 Todos os hooks e o backlog oficial estão em [EXAMPLEMOD_COVERAGE.json](EXAMPLEMOD_COVERAGE.json).
 

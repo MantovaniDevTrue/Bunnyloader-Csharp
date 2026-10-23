@@ -41,3 +41,13 @@ O lote do tooltip C# nativo introduz o decodificador tipado de `NativeTooltipPla
 O lote de isolamento de tooltip restringe o deslocamento de `DrawString` ao SpriteBatch, SpriteFont e retângulo observado da linha âncora da sessão C#, preservando painéis e outros textos. Reforça testes de sombra, origem, fonte estrangeira e outras camadas. Compilação Android ARM64 e host QA não comprovam ainda layout visual, interoperabilidade com tooltip JS ou escopo PC completo. Sem APK.
 
 O lote de arbitragem Tooltip JS/C# preserva a prioridade dos hooks JavaScript quando necessários e entrega o tooltip puro C++ para exemplos C# compatíveis, com fallback conservador para painel opaco. Expõe estado nativo validado, impede desenho duplicado com uma marca thread-local restaurada pelo wrapper JS, invalida planos antigos na recompilação/unload e confirma contrato de relógio IL2CPP. Host QA usa o arquivo real do TooltipLoader em Node, mais as regressões de fonte C# e C++ nativo; compatibilidade visual e dimensionamento do fundo no Android continuam pendentes. O mod-fonte permanece integralmente C#; só o loader compartilhado conhece a compatibilidade JS. Sem APK.
+O lote de defaults clonados acrescenta um protocolo opcional C1: os campos
+omitidos herdam a amostra vanilla, enquanto atribuições explícitas de zero,
+false e som vazio a substituem. A defesa removida de uma revisão volta a
+herdar o clone, ou zero no item simples. A substituição por tipo revoga o
+snapshot anterior e rejeita a confirmação tardia de uma instalação; handles
+antigos são liberados na thread do jogo. As consultas de elegibilidade de
+prefixos passam a considerar os defaults efetivos do item nativo. O wire antigo
+continua aceito. O contrato e as limitações de autoria/unload estão em
+`content/Documentation/CLONE_DEFAULTS.md`; este lote não conclui o ItemLoader
+inteiro, a retirada de tabelas estáticas nem o renderer de tooltip sem JS.

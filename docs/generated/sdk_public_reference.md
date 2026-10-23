@@ -1090,6 +1090,7 @@ string DisplayName { get; set; }
 string ModRarityClassName { get; }
 string NativeAccessoryEffectsDefinition { get; }
 string NativeArmorDefinition { get; }
+string NativeCloneOverridesDefinition { get; }
 string NativeDefaultsDefinition { get; }
 string PlacementDefinition { get; }
 string QuestCatchLocation { get; set; }

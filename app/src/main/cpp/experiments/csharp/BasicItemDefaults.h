@@ -1,4 +1,5 @@
 #pragma once
+#include <cstdint>
 #include "experiments/csharp/BasicArmorPolicy.h"
 #include "experiments/csharp/NativeTooltipPlan.h"
 #include <optional>
@@ -35,6 +36,9 @@ struct BasicItemEntry {
     BasicArmorPolicy armor;
     std::string placeTileKey; int placeTile=-1,placeStyle=0; bool placeable=false,wallPlaceable=false;
     int wallIntegerOverrides=8191,wallFlagOverrides=127;
+    bool cloneOverridesSpecified=false,cloneKnockBackOverride=true,cloneUseSoundOverride=true;
+    int cloneIntegerOverrides=8191,cloneFlagOverrides=127;
+    uint64_t defaultsGeneration=0;
     bool behaviorInstalled=false;
     std::string behaviorError;
     std::vector<BasicRecipe> recipes;
@@ -172,7 +176,7 @@ inline bool parseBasicAccessoryEffects(const std::string& wire,BasicItemEntry* i
     return true;
 }
 inline bool parseBasicItemWire(const std::vector<std::string>& fields,BasicItemEntry* item,std::string* error) {
-    if((fields.size()<20||fields.size()>27)||fields[0]!="ITEM") {*error="ITEM requer 20 a 27 campos";return false;}
+    if((fields.size()<20||fields.size()>28)||fields[0]!="ITEM") {*error="ITEM requer 20 a 28 campos";return false;}
     BasicItemEntry out;out.name=fields[1];
     for(size_t i=0;i<BasicFieldCount;++i)if(!basicInteger(fields[i+2],&out.values[i])) {*error=out.name+": inteiro invalido em "+kBasicFieldNames[i];return false;}
     if (out.values[BasicRare] > 11) {
@@ -274,7 +278,7 @@ inline bool parseBasicItemWire(const std::vector<std::string>& fields,BasicItemE
     if(fields.size()>=26&&fields[25]!="-"&&!parseBasicArmorPolicy(fields[25],&out.armor)) {
         *error=out.name+": politica nativa de armadura invalida";return false;
     }
-    if(fields.size()==27&&fields[26]!="-") {
+    if(fields.size()>=27&&fields[26]!="-") {
         const std::string& hex=fields[26];
         if(hex.size()>8192||hex.empty()||hex.size()%2) {
             *error=out.name+": tooltip draw plan oversized";return false;
@@ -296,6 +300,17 @@ inline bool parseBasicItemWire(const std::vector<std::string>& fields,BasicItemE
             *error=out.name+": "+*error;return false;
         }
         out.nativeTooltip=std::move(decoded);
+    }
+    if(fields.size()==28&&fields[27]!="-") {
+        const auto mask=basicSplit(fields[27],'|');int knock=0,sound=0;
+        if(mask.size()!=5||mask[0]!="C1"||
+           !basicInteger(mask[1],&out.cloneIntegerOverrides)||out.cloneIntegerOverrides<0||out.cloneIntegerOverrides>8191||
+           !basicInteger(mask[2],&out.cloneFlagOverrides)||out.cloneFlagOverrides<0||out.cloneFlagOverrides>127||
+           !basicInteger(mask[3],&knock)||knock<0||knock>1||
+           !basicInteger(mask[4],&sound)||sound<0||sound>1) {
+            *error=out.name+": invalid clone override mask";return false;
+        }
+        out.cloneOverridesSpecified=true;out.cloneKnockBackOverride=knock!=0;out.cloneUseSoundOverride=sound!=0;
     }
     if(!validateBasicItem(out,error)||!parseBasicRecipes(fields[19],&out,error))return false;
     *item=std::move(out);return true;

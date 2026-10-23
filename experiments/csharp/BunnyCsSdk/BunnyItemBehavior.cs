@@ -18,6 +18,7 @@ public sealed class BunnyItemBehavior
     private readonly List<string> nativeEffects = new();
     public string NativeAccessoryEffectsDefinition => string.Join(";",nativeEffects);
     private string clone = "";
+    internal bool HasVanillaClone => clone.Length!=0;
     private string animation = "null", light = "null", alpha = "null";
     public bool ColorFromPlayerHair { get; set; }
     public bool Robe { get; set; }
@@ -51,6 +52,11 @@ public sealed class BunnyItemBehavior
         wings="{\"stats\":["+flyTime+","+Number(flySpeed)+","+Number(acceleration)+"],\"vertical\":["+
             string.Join(",",new[]{ascentWhenFalling,ascentWhenRising,maxCanAscendMultiplier,maxAscentMultiplier,constantAscend}.Select(Number))+"]}";
     }
+    /// <summary>
+    /// Declara a cópia nativa de um item vanilla. Atribuições explícitas de BunnyItem
+    /// têm precedência, inclusive zero/false/som vazio. Os getters de autoria não
+    /// consultam os valores vanilla durante a compilação. Veja CLONE_DEFAULTS.md.
+    /// </summary>
     public void CloneVanillaDefaults(string itemIdName)
     { Name(itemIdName); clone=itemIdName; }
     public void EquipTexture(BunnyEquipKind kind,string texture,BunnyEquipDrawFlags flags=BunnyEquipDrawFlags.None)

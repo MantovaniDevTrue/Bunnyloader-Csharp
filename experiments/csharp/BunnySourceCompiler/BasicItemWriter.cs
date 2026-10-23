@@ -127,6 +127,11 @@ internal static class BasicItemWriter
             while(parts.Count<26)parts.Add("-");
             parts.Add(Convert.ToHexString(Encoding.UTF8.GetBytes(plan)));
         }
+        string cloneOverrides=Get<string>("NativeCloneOverridesDefinition");
+        if(cloneOverrides.Length!=0) {
+            while(parts.Count<27)parts.Add("-");
+            parts.Add(cloneOverrides);
+        }
         return string.Join("\t",parts);
     }
 }
