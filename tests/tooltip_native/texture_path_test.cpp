@@ -28,6 +28,9 @@ static FieldInfo tipsBacking{"Backing",{&backing},sizeof(Il2CppObject)};
 static FieldInfo backingFill{"Backing",{&imageSlot},sizeof(Il2CppObject)};
 static FieldInfo backingBorder{"Border",{&imageSlot},sizeof(Il2CppObject)+sizeof(void*)};
 static MethodInfo textureGetter{"get_Texture",{&texture},true};
+static MethodInfo instanceGetter{"get_Instance",{&settings},false};
+static int instanceReads=0;
+static bool instanceException=false;
 static bl::il2cpp::Api fixture;
 static bool getterFailure=false;
 static int getterCalls=0;
@@ -68,6 +71,12 @@ int main() {
     };
     fixture.class_instance_size=[](Il2CppClass*){return static_cast<uint32_t>(sizeof(Node));};
     fixture.runtime_invoke=[](const MethodInfo* m,void* parent,void**,Il2CppObject** error)->Il2CppObject* {
+        if(m==&instanceGetter) {
+            assert(parent==nullptr);
+            ++instanceReads;
+            *error=instanceException?activeSettings:nullptr;
+            return activeSettings;
+        }
         assert(m==&textureGetter);
         ++getterCalls;
         *error=getterFailure?static_cast<Il2CppObject*>(parent):nullptr;
@@ -131,6 +140,20 @@ int main() {
     assert(!badRoot.bind(&settings,&error));
     settingsInstance.type.klass=&settings;
     assert(badRoot.bind(&settings,&error));
+    settingsInstance.flags=0;
+    settings.getter=&instanceGetter;
+    assert(badRoot.bind(&settings,&error));
+    Il2CppObject* viaGetter=nullptr;
+    assert(badRoot.read(&viaGetter)&&viaGetter==&settingsValue.header);
+    const int readCount=instanceReads;
+    instanceException=true;
+    assert(!badRoot.read(&viaGetter)&&viaGetter==&settingsValue.header);
+    assert(instanceReads==readCount+1);
+    instanceException=false;
+    settings.getter=nullptr;
+    settingsInstance.flags=0x10;
+    assert(resources.bind(&settings,&error));
+    assert(resources.read(&resolved));
 
     const int calls=getterCalls;
     Il2CppObject* sentinel=reinterpret_cast<Il2CppObject*>(uintptr_t{0x1234});

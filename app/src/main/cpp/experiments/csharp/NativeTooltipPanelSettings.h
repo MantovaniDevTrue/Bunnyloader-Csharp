@@ -14,7 +14,8 @@ struct NativeTooltipPanelSettings {
         if(!error)return false;
         auto& a=il2cpp::api();
         if(!cls||!a.class_get_namespace||!a.class_get_name||
-           !a.class_is_valuetype||!a.object_get_class||!a.class_is_assignable_from) {
+           !a.class_is_valuetype||!a.object_get_class||!a.class_is_assignable_from||
+           !a.field_get_flags||!a.field_get_type||!a.class_from_il2cpp_type) {
             *error="Reason=NativeTooltipSettingsMetadataUnavailable";
             return false;
         }
@@ -26,7 +27,9 @@ struct NativeTooltipPanelSettings {
             return false;
         }
         auto source=native_static::resolve(cls,"Instance");
-        if(!source||source.type!=cls||native_static::size(source)!=sizeof(Il2CppObject*)) {
+        if(!source||source.type!=cls||native_static::size(source)!=sizeof(Il2CppObject*)||
+           (source.field&&!a.field_static_get_value)||
+           (source.getter&&!a.runtime_invoke)) {
             *error="Reason=NativeTooltipSettingsInstanceUnavailable";
             return false;
         }
