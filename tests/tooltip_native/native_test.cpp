@@ -1,5 +1,6 @@
 #include "experiments/csharp/BasicItemDefaults.h"
 #include "experiments/csharp/NativeTooltipWave.h"
+#include "experiments/csharp/NativeTooltipDrawSession.h"
 #include <cassert>
 #include <cmath>
 #include <fstream>
@@ -99,5 +100,31 @@ int main(int argc,char** argv) {
     std::u16string emoji;
     assert(nativeTooltipUtf16("Olá 🐇",&emoji));
     assert(emoji.size()==6&&emoji[4]>=0xD800&&emoji[4]<=0xDBFF);
+    NativeTooltipDrawSession session;
+    assert(session.begin(*item.nativeTooltip));
+    int overlays=0;
+    auto insert=[&](const NativeTooltipLine& line,float y) {
+        assert(line.name=="BunnyLoader"&&y==210);
+        ++overlays;return true;
+    };
+    assert(session.adjust(u"Exemplo de Tooltip",190,20,insert)==190);
+    assert(session.adjust(u"Acima, uma cor por letra. Esta linha, em dourado",210,20,insert)==230);
+    assert(overlays==1&&session.inserted);
+    assert(session.adjust(u"Acima, uma cor por letra. Esta linha, em dourado",210,20,insert)==230);
+    assert(session.adjust(u"Preço",230,20,insert)==250);
+    assert(overlays==1);
+    NativeTooltipDrawSession skipped;
+    assert(skipped.begin(*item.nativeTooltip));
+    assert(skipped.adjust(u"Outra descrição",210,20,insert)==210&&!skipped.inserted);
+    auto cannotInsert=[&](const NativeTooltipLine&,float){return false;};
+    assert(skipped.adjust(u"Acima, uma cor por letra. Esta linha, em dourado",210,20,cannotInsert)==210);
+    assert(!skipped.inserted);
+    NativeTooltipPlan foreign=*item.nativeTooltip;
+    foreign.lines[1].rainbow=false;
+    assert(!skipped.begin(foreign));
+    assert(!skipped.inserted&&!skipped.animated);
+    foreign=*item.nativeTooltip;
+    foreign.lines[1].name="AnotherMod";
+    assert(!skipped.begin(foreign));
     std::cout<<"CSHARP_NATIVE_TOOLTIP_PLAN=PASS lines="<<lines.size()<<" rounds=2000 glyphPasses="<<draws<<"\n";
 }
