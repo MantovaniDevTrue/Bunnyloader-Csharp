@@ -18,6 +18,11 @@ with zipfile.ZipFile('app/build/outputs/apk/debug/app-debug.apk') as z:
  for lib in ['libbunny.so','libbunnymonoprobe.so','libmonosgen-2.0.so','libbunnycompileraot.so','libil2cpp.so','libunity.so','libmain.so','libc++_shared.so']:
   assert 'lib/arm64-v8a/'+lib in names,lib
  assert any(n.startswith('assets/bin/Data/') for n in names)
+ # AGP may rewrite ELF section/file offsets while stripping. Verify the
+ # executable payload and metadata that define the reviewed Mobile ABI.
+ mobile=z.read('lib/arm64-v8a/libil2cpp.so')
+ assert hashlib.sha256(mobile[0x1000:0x2f55a34]).hexdigest() == 'b8e90015ebf283a6890e95682f047e10c76e6ca506fa09595ec5992f395a1b76'
+ assert hashlib.sha256(z.read('assets/bin/Data/Managed/Metadata/global-metadata.dat')).hexdigest() == '4c904c49d168913d28ef547c4f461e539d926d2ed27c0253ed53a2954e9585f7'
  for line in z.read('assets/managed/framework.sha256').decode().splitlines():
   name,digest=line.split('\t');assert hashlib.sha256(z.read('assets/managed/'+name)).hexdigest()==digest,name
  sdk=z.read('assets/managed/BunnySourceSdk.dll')

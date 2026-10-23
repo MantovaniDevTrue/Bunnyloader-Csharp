@@ -5,7 +5,16 @@ import re
 import struct
 import sys
 binary = Path(sys.argv[1]).read_bytes()
-assert hashlib.sha256(binary).hexdigest() == 'ff1f16f3ef122cde66f549096bca0225c46fd9a59e736c05706a8b0444d2ae06', 'Wrong Mobile 301720 ELF'
+known = {
+    'ff1f16f3ef122cde66f549096bca0225c46fd9a59e736c05706a8b0444d2ae06': 'inspection',
+    'f33b48c09e96d17234af40c7d4ce16da52d8fb72a4ead729bfad8dc88a081814': 'private-runtime-layout',
+}
+assert hashlib.sha256(binary).hexdigest() in known, 'Unknown Mobile ELF'
+# The two reviewed files differ in six ELF-header bytes and segment file
+# placement. Executable payload, loaded data segments and metadata agree.
+assert hashlib.sha256(binary[0x1000:0x2f55a34]).hexdigest() == 'b8e90015ebf283a6890e95682f047e10c76e6ca506fa09595ec5992f395a1b76'
+if len(sys.argv) > 2:
+    assert hashlib.sha256(Path(sys.argv[2]).read_bytes()).hexdigest() == '4c904c49d168913d28ef547c4f461e539d926d2ed27c0253ed53a2954e9585f7', 'Wrong Mobile metadata'
 assert binary[:4] == b'\x7fELF' and struct.unpack_from('<H', binary, 18)[0] == 183
 source = Path('app/src/main/cpp/experiments/csharp/UniversalSystemStages.cpp').read_text()
 count = 0

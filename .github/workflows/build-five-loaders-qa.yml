@@ -37,6 +37,7 @@ jobs:
         run: |
           set -euo pipefail
           bash tools/five_loaders/check.sh
+          dotnet run --project tools/sdk_reference/SdkReference.csproj -c Release -- --check
           dotnet build tests/five_loaders/QaMod.csproj -c Release --nologo -m:1
           dotnet run --project tests/five_loaders/Probe/Probe.csproj -c Release -- samples/FiveLoadersCSharp/Playable
           dotnet run --project tests/ready_prs/FullExampleRuntime/FullExampleRuntime.csproj -c Release -- samples/ExampleModCSharp/Playable

@@ -29,7 +29,7 @@ root=Path('app/src/main/assets/managed')
 (root/'framework.sha256').write_text(''.join(f'{p.name}\t{hashlib.sha256(p.read_bytes()).hexdigest()}\n' for p in sorted(root.glob('*.dll'))))
 PY
 
-python3 tools/five_loaders/verify_mobile_binary.py app/src/main/jniLibs/arm64-v8a/libil2cpp.so
+python3 tools/five_loaders/verify_mobile_binary.py app/src/main/jniLibs/arm64-v8a/libil2cpp.so terraria1456_assets/src/main/assets/bin/Data/Managed/Metadata/global-metadata.dat
 
 mkdir -p "$RUNNER_TEMP/five-sprites"
 gh release download "$RUNTIME_TAG" --repo "$PRIVATE_INPUTS_REPO" --pattern BunnyLoader-v0.1.9.1-MusicPrewarm.apk --dir "$RUNNER_TEMP/five-sprites"

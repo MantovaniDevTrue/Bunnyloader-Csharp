@@ -22,7 +22,10 @@ The WorldNetwork sender passes the 16-byte NetPacket payload to value-type
 methods and arguments, keeps the objects rooted across IL2CPP invocations, and
 checks error cleanup. Passing the boxed header would corrupt memory.
 The workflow verifies the exact ELF SHA-256 and all eight instruction anchors
-before it builds the APK. Static/instance checks protect the root, UI and time
+before it builds the APK. The private runtime ELF has a different file layout
+from the inspection copy: six header bytes and later segment file offsets differ.
+Their executable payload, loaded data segments and metadata are identical; both
+reviewed file hashes are explicitly allowed. Unknown binaries remain rejected. Static/instance checks protect the root, UI and time
 hook entrypoints. The touch signatures follow Mobile GUIVirtualInputController.
 
 Validation: `bash tools/five_loaders/check.sh`, the QA Roslyn/defaults/save
