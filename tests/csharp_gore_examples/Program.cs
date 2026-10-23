@@ -8,6 +8,10 @@ internal static class Program
     {
         // A host test has no Terraria Gore ABI. An optional visual must report
         // rejection without aborting the NPC death callback and invasion score.
+        var defaults = new BunnyGoreSettings();
+        if (defaults.DisappearSpeed != 1 || defaults.DisappearSpeedAlpha != 1 ||
+            defaults.SpecialAI != 0 || defaults.IsDrip || defaults.SafeGore)
+            throw new InvalidOperationException("Gore configuration defaults differ from Mobile example");
         var npc = new ExampleSlimeNPC();
         npc.SetDefaults();
         var state = new BunnyNpcAiState();

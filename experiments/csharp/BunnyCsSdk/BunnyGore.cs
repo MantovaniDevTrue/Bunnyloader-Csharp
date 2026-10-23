@@ -15,6 +15,10 @@ public readonly struct BunnyGoreSettings
     public bool IsDrip { get; }
     public bool SafeGore { get; }
 
+    // Structs otherwise receive an implicit zeroing constructor, which would
+    // silently replace the documented disappearance rates with zero.
+    public BunnyGoreSettings() : this(0, 1, 1, false, false) { }
+
     public BunnyGoreSettings(int specialAI = 0, int disappearSpeed = 1,
                              int disappearSpeedAlpha = 1, bool isDrip = false,
                              bool safeGore = false)
