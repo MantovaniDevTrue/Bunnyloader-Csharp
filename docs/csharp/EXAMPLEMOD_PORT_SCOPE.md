@@ -75,3 +75,5 @@ nativo a oito tipos com células por pump, em rotação. Testes usam o wire real
 outro UID e lote de 17 tipos. Registro de animação em Main, texturas/slots,
 outras tabelas, defaults básicos, unload global e QA Android seguem pendentes.
 Sem APK.
+
+A etapa GUIPanel ABI cria `NativeTooltipPanelBacking.h`, binder C++ de metadados e invocação gerenciada explicitamente validada para `Vector2`, `Texture2D`, `Color` e `Nullable<Rectangle>`. O fixture C++ executa a invocação simulada com metadados e rejeita assinaturas/offsets incorretos; o cabeçalho é incluído no `NativeRarityGameplay.cpp` para compilação ARM64. Ainda não há resolução real de `GUIPanel` nem texturas de backing conectadas em Android, e o fallback JS opaco continua obrigatório. Esta etapa não confirma ABI do dispositivo ou fidelidade visual nem conclui o loader.
