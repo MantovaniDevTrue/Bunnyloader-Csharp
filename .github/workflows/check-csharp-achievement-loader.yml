@@ -7,6 +7,9 @@ on:
       - experiments/csharp/BunnyCsSdk/BunnyRecipeCallbacks.cs
       - experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj
       - app/src/main/cpp/experiments/csharp/NativeAchievementMailbox.h
+      - app/src/main/cpp/experiments/csharp/NativeAchievementGameplay.h
+      - app/src/main/cpp/experiments/csharp/NativeAchievementGameplay.cpp
+      - app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp
       - docs/generated/sdk_public_reference.json
       - docs/generated/sdk_public_reference.md
       - tests/achievement_loader/**
@@ -18,6 +21,9 @@ on:
       - experiments/csharp/BunnyCsSdk/BunnyRecipeCallbacks.cs
       - experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj
       - app/src/main/cpp/experiments/csharp/NativeAchievementMailbox.h
+      - app/src/main/cpp/experiments/csharp/NativeAchievementGameplay.h
+      - app/src/main/cpp/experiments/csharp/NativeAchievementGameplay.cpp
+      - app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp
       - docs/generated/sdk_public_reference.json
       - docs/generated/sdk_public_reference.md
       - tests/achievement_loader/**
@@ -41,3 +47,9 @@ jobs:
             tests/achievement_loader/native_mailbox_test.cpp \
             -o /tmp/bunny-achievement-mailbox
           /tmp/bunny-achievement-mailbox
+      - name: Syntax-check achievement hooks against production headers
+        run: |
+          g++ -std=c++20 -O0 -Wall -Wextra -Werror -Wno-deprecated-declarations \
+            -fno-exceptions -fno-rtti -fsyntax-only \
+            -Itests/basic_items/include -Iapp/src/main/cpp \
+            app/src/main/cpp/experiments/csharp/NativeAchievementGameplay.cpp

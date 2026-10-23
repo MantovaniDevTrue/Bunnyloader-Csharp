@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <array>
+#include <charconv>
 #include <cstdint>
 #include <cstring>
 #include <string>
@@ -196,11 +197,10 @@ void pumpNativeAchievementGameplayOnGameThread() {
                 continue;
             if (!result.starts_with("READY|")) continue;
             int count = -1;
-            try {
-                size_t end = 0;
-                count = std::stoi(result.substr(6), &end);
-                if (end != result.length() - 6) count = -1;
-            } catch (...) { count = -1; }
+            const char* begin = result.data() + 6;
+            const char* end = result.data() + result.size();
+            const auto parsed = std::from_chars(begin, end, count);
+            if (parsed.ec != std::errc{} || parsed.ptr != end) count = -1;
             g_mailbox.activate(candidate, count);
         }
         ensureHooks();
