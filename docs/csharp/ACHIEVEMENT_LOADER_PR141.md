@@ -7,8 +7,11 @@ Fonte de referência: **ExampleModBunny 1.9.0**, especialmente ModAchievement.js
 - \`BunnyAchievement\` e condições de flag, inteiros, float, morte de NPC, coleta, fabricação e destruição de tile.
 - Categoria, ocultação, progresso, conclusão, callback \`OnCompleted\`, snapshot e restauração em memória.
 - Registro independente por UID e revisão de assembly, com descarregamento seletivo e SHA-256 da identidade de revisão.
-- \`BunnyAchievementWorker\` no MonoVM através do canal de callbacks já existente, sem novo worker. Comandos: 0 registro, 1 evento, 2 snapshot, 3 restauração, 4 unload e 5 descritores para o host nativo.
+- \`BunnyAchievementWorker\` no MonoVM através do canal de callbacks já existente, sem novo worker. Comandos: 0 registro, 1 evento, 2 snapshot, 3 restauração, 4 unload, 5 descritores e 6 estado dinâmico para o host nativo.
 - Exportação \`ACHMETA1\` com nome, friendly name, descrição, textura, índice, categoria, estado oculto/concluído e condições. Parser C++ de limite 12.000 bytes, identidade por UID, limites de condições e validação antes de ativar um mod.
+- Estado dinâmico \`ACHSTATE1\` no MonoVM: condições, progresso, conclusão e \`Hidden\`, enviado apenas em caso de alteração. O parser nativo valida UID, identidade das condições, limites e consistência antes de atualizar o snapshot.
+- \`getNativeAchievementState\` oferece consulta nativa por UID/nome sem varreduras do mundo, preparando a UI e a persistência.
+- Contratos \`Terraria.Main.Achievements\` verificados em IL2CPP, sem mutações: construtores, textos, métodos de registro/categoria, condições, tracker, \`Load\` e possibilidade de \`Unregister\`. Sem reversibilidade confirmada, o registro real permanece bloqueado para proteger conquistas vanilla e outros mods.
 - Detecção **de mods contendo somente conquistas C#**, agora suportados pelo parser, SourceLoader, bootstrap MonoVM e verificador Roslyn. Limite de 128 conquistas por assembly.
 - Hooks \`AchievementsHelper\` de mortes de NPCs, coleta, crafting e tiles, preservando a chamada original, com inspeção de assinatura e instalação seletiva.
 - Mailbox limitado a 512 eventos, máximo 2 eventos por quadro, até 2 retries, isolamento por UID/revisão e descarte de eventos obsoletos.
