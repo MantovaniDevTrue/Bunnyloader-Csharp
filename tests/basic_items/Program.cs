@@ -229,6 +229,8 @@ try {
   var domains=new Dictionary<Type,string>{
    [typeof(BunnyItem)]="ITEM",[typeof(BunnyWeapon)]="ITEM",[typeof(BunnyAccessory)]="ITEM",[typeof(BunnyBuffPotion)]="ITEM",
    [typeof(BunnyTile)]="TILE",[typeof(BunnyProjectile)]="PROJECTILE",[typeof(BunnyNPC)]="NPC",
+   [typeof(BunnyWall)]="WALL",[typeof(BunnyDust)]="DUST",[typeof(BunnyRarity)]="RARITY",
+   [typeof(BunnyLocalizationModule)]="LOCALIZATION",
    [typeof(BunnyBuff)]="BUFF",[typeof(BunnyPlayer)]="PLAYER",[typeof(BunnyPrefix)]="PREFIX"
   };
   var compiled=Assembly.Load(File.ReadAllBytes(output));
@@ -245,8 +247,10 @@ try {
   var actual=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt")).Skip(1)
    .Where(l=>l.Length>0&&!l.StartsWith("RECIPES\t",StringComparison.Ordinal)&&!l.StartsWith("NATIVE_",StringComparison.Ordinal)&&!l.StartsWith("HOLDOUT\t",StringComparison.Ordinal)&&!l.StartsWith("USE_SOUND\t",StringComparison.Ordinal)).Select(l=>l.Split('\t')).Select(f=>
     (f[0] is "WEAPON" or "ACCESSORY" or "POTION"?"ITEM":f[0])+":"+f[1]).ToArray();
-  Equal(identities.Count,actual.Length);
-  if(!identities.SetEquals(actual))throw new Exception("compiled types and native wire identities differ");
+  var nativeIdentities=identities.Where(identity=>!identity.StartsWith("LOCALIZATION:",StringComparison.Ordinal))
+   .ToHashSet(StringComparer.Ordinal);
+  Equal(nativeIdentities.Count,actual.Length);
+  if(!nativeIdentities.SetEquals(actual))throw new Exception("compiled types and native wire identities differ");
   File.Copy(Path.Combine(scratch,"source-runtime-values.txt"),"build/basic-items/full-source-runtime-values.txt",true);
   var minionRows=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt"));
   var minion=minionRows.Single(row=>row.StartsWith("PROJECTILE\tExampleMinion\t",StringComparison.Ordinal)).Split('\t');
