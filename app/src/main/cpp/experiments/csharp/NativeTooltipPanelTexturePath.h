@@ -33,7 +33,8 @@ struct NativeTooltipPanelObjectMember {
             const auto offset=a.field_get_offset(field);
             if(found&&!a.class_is_valuetype(found)&&
                offset>=sizeof(Il2CppObject)&&
-               offset+sizeof(Il2CppObject*)<=a.class_instance_size(cls)) {
+               offset<=a.class_instance_size(cls)&&
+               sizeof(Il2CppObject*)<=a.class_instance_size(cls)-offset) {
                 owner=cls;type=found;fieldOffset=offset;isField=true;
                 return true;
             }
@@ -59,9 +60,9 @@ struct NativeTooltipPanelObjectMember {
            !a.class_is_assignable_from(owner,a.object_get_class(parent)))return false;
         Il2CppObject* value=nullptr;
         if(isField) {
-            if(!a.class_instance_size||
-               fieldOffset+sizeof(value)>a.class_instance_size(a.object_get_class(parent)))
-                return false;
+            if(!a.class_instance_size)return false;
+            const auto bytes=a.class_instance_size(a.object_get_class(parent));
+            if(fieldOffset>bytes||sizeof(value)>bytes-fieldOffset)return false;
             std::memcpy(&value,reinterpret_cast<const uint8_t*>(parent)+fieldOffset,sizeof(value));
         } else {
             if(!getter||!a.runtime_invoke)return false;

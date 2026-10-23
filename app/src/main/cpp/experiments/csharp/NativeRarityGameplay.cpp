@@ -2,6 +2,8 @@
 #include "experiments/csharp/NativeBasicItems.h"
 #include "experiments/csharp/NativeTooltipDrawSession.h"
 #include "experiments/csharp/NativeTooltipPanelBacking.h"
+#include "experiments/csharp/NativeTooltipBackingPalette.h"
+#include "experiments/csharp/NativeTooltipPanelTexturePath.h"
 #include "experiments/csharp/NativeRarityPalette.h"
 #include "experiments/csharp/NativeRarityColorWire.h"
 #include "experiments/csharp/NativeRarityTextColor.h"
