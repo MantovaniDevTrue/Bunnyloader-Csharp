@@ -1,0 +1,326 @@
+name: Build Bunny Loader 0.1.9.7.1 Private
+
+on:
+  push:
+    branches:
+      - bunny-upstream-latest-icons
+    paths:
+      - ".github/workflows/build-bunny-stable-v019711-private.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bunny-stable-v01971
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      UPSTREAM_REPO: https://github.com/JonataOliveiraa/Bunny-Loader.git
+      UPSTREAM_BASE: c4a3e918bddcf72e856e186f93775a171348c6d7
+      UPSTREAM_HEAD: a0132963026e3b35e45f33ffffa01a75eb8535d5
+      PRIVATE_REPO: MantovaniDevTrue/Bunnyloader-Csharp-Builds
+      INPUT_TAG: bunny-private-build-inputs-v1
+      RUNTIME_ASSET: BunnyRuntime_Terraria_1.4.5.8.6.zip
+      RUNTIME_SHA256: 2eb8d02dea144cb2fff6a27b94cc371e50ffd9aa44ba4dcd123337691a54c0ab
+      SPRITE_APK: BunnyLoader-v0.1.9.1-MusicPrewarm.apk
+      SPRITE_APK_SHA256: aaf7c46046e776a966122d7f4e26469ebb72ad2fc21f0c6e57f98189e0c93c00
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Apply upstream delta and keep stable audio
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="$GITHUB_WORKSPACE/Split/Bunny-Loader"
+          UP="$RUNNER_TEMP/upstream"
+          KEEP="$RUNNER_TEMP/stable-audio"
+          rm -rf "$UP" "$KEEP"
+          mkdir -p "$KEEP"
+
+          keep_paths=(
+            "app/src/main/cpp/content/sounds/AndroidAudio.cpp"
+            "app/src/main/cpp/content/sounds/AndroidAudio.h"
+            "app/src/main/cpp/content/sounds/NativeMusicRouter.cpp"
+            "app/src/main/cpp/content/sounds/NativeMusicRouter.h"
+            "app/src/main/cpp/script/api/Sounds.cpp"
+            "app/src/main/cpp/script/js/mod/Loaders/ModMusic.js"
+            "app/src/main/cpp/script/js/mod/Loaders/VanillaMusic.js"
+            "app/src/main/kotlin/dev/bunnyloader/game/ModAudio.kt"
+          )
+          for rel in "${keep_paths[@]}"; do
+            if [ -f "$ROOT/$rel" ]; then
+              mkdir -p "$KEEP/$(dirname "$rel")"
+              cp -a "$ROOT/$rel" "$KEEP/$rel"
+            fi
+          done
+
+          git clone --filter=blob:none --no-checkout "$UPSTREAM_REPO" "$UP"
+          git -C "$UP" fetch --depth 1 origin "$UPSTREAM_BASE" "$UPSTREAM_HEAD"
+          git -C "$UP" checkout --detach "$UPSTREAM_HEAD"
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import os, shutil, subprocess
+
+          root = Path(os.environ["GITHUB_WORKSPACE"]) / "Split" / "Bunny-Loader"
+          up = Path(os.environ["RUNNER_TEMP"]) / "upstream"
+          base = os.environ["UPSTREAM_BASE"]
+          head = os.environ["UPSTREAM_HEAD"]
+
+          diff = subprocess.check_output(
+              ["git", "diff", "--name-status", "-M", base, head],
+              cwd=up, text=True
+          )
+          changed = 0
+          for line in diff.splitlines():
+              if not line.strip():
+                  continue
+              parts = line.split("\t")
+              status = parts[0]
+              if status.startswith("R"):
+                  old, new = parts[1], parts[2]
+                  old_dst = root / old
+                  if old_dst.exists() or old_dst.is_symlink():
+                      old_dst.unlink()
+                  src, dst = up / new, root / new
+              elif status == "D":
+                  dst = root / parts[1]
+                  if dst.exists() or dst.is_symlink():
+                      dst.unlink()
+                  changed += 1
+                  continue
+              else:
+                  src, dst = up / parts[1], root / parts[1]
+              dst.parent.mkdir(parents=True, exist_ok=True)
+              shutil.copy2(src, dst)
+              changed += 1
+          print(f"UPSTREAM_FILES_APPLIED={changed}")
+          PY
+
+          for rel in "${keep_paths[@]}"; do
+            if [ -f "$KEEP/$rel" ]; then
+              mkdir -p "$ROOT/$(dirname "$rel")"
+              cp -a "$KEEP/$rel" "$ROOT/$rel"
+            fi
+          done
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          p = Path("Split/Bunny-Loader/app/build.gradle.kts")
+          s = p.read_text()
+          s = re.sub(r'versionCode\s*=\s*\d+', 'versionCode = 18', s, count=1)
+          s = re.sub(r'versionName\s*=\s*"[^"]+"', 'versionName = "0.1.9.7.1"', s, count=1)
+          p.write_text(s)
+          PY
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Split/Bunny-Loader
+          if ! git diff --cached --quiet; then
+            git commit -m "Update Bunny Loader stable to 0.1.9.7 upstream a0132963"
+            git push origin HEAD:bunny-upstream-latest-icons
+          fi
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+
+      - name: Stage verified Unity 2021.3.56f2 player classes
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.BUNNY_PRIVATE_BUILD_TOKEN }}
+          PRIVATE_INPUTS_REPO: MantovaniDevTrue/Bunnyloader-Csharp-Builds
+          RUNTIME_TAG: bunny-private-build-inputs-v1
+        run: |
+          set -euo pipefail
+          bash Split/Bunny-Loader/tools/android/stage_unity_classes.sh
+
+      - name: Install Android toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          if [ ! -x "$SDKMANAGER" ]; then
+            SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | sort -V | tail -n 1)"
+          fi
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" "platforms;android-34" "build-tools;34.0.0" "ndk;30.0.16248370" "cmake;3.22.1"
+
+      - name: Ensure QuickJS
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf Split/Bunny-Loader/app/src/main/cpp/third_party/quickjs
+          git clone --depth 1 --branch v0.17.0 https://github.com/quickjs-ng/quickjs.git Split/Bunny-Loader/app/src/main/cpp/third_party/quickjs
+
+      - name: Configure Maven mirror
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("Split/Bunny-Loader/settings.gradle.kts")
+          s = p.read_text()
+          s = s.replace("mavenCentral()", 'maven { url = uri("https://maven-central.storage-download.googleapis.com/maven2") }')
+          p.write_text(s)
+          PY
+
+      - name: Download private build inputs
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.BUNNY_PRIVATE_BUILD_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "${GH_TOKEN:-}"
+          test "$(gh api "repos/$PRIVATE_REPO" --jq '.private')" = "true"
+          INPUT_DIR="$RUNNER_TEMP/bunny-inputs"
+          mkdir -p "$INPUT_DIR"
+          gh release download "$INPUT_TAG" --repo "$PRIVATE_REPO" --pattern "$RUNTIME_ASSET" --dir "$INPUT_DIR"
+          gh release download "$INPUT_TAG" --repo "$PRIVATE_REPO" --pattern "$SPRITE_APK" --dir "$INPUT_DIR"
+          echo "$RUNTIME_SHA256  $INPUT_DIR/$RUNTIME_ASSET" | sha256sum -c -
+          echo "$SPRITE_APK_SHA256  $INPUT_DIR/$SPRITE_APK" | sha256sum -c -
+
+      - name: Integrate Terraria runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          INPUT_DIR="$RUNNER_TEMP/bunny-inputs"
+          TMP="$RUNNER_TEMP/bunny-runtime"
+          rm -rf "$TMP"
+          mkdir -p "$TMP"
+          unzip -q "$INPUT_DIR/$RUNTIME_ASSET" -d "$TMP"
+          JNI="Split/Bunny-Loader/app/src/main/jniLibs/arm64-v8a"
+          ASSETS="Split/Bunny-Loader/terraria1456_assets/src/main/assets"
+          mkdir -p "$JNI" "$ASSETS/bin"
+          cp "$TMP/lib/arm64-v8a/libil2cpp.so" "$JNI/"
+          cp "$TMP/lib/arm64-v8a/libunity.so" "$JNI/"
+          cp "$TMP/lib/arm64-v8a/libmain.so" "$JNI/"
+          cp "$TMP/lib/arm64-v8a/libc++_shared.so" "$JNI/"
+          rm -rf "$ASSETS/bin/Data"
+          cp -a "$TMP/assets/bin/Data" "$ASSETS/bin/Data"
+
+      - name: Restore vanilla sprites
+        shell: bash
+        run: |
+          set -euo pipefail
+          INPUT_DIR="$RUNNER_TEMP/bunny-inputs"
+          TMP="$RUNNER_TEMP/bunny-sprites"
+          rm -rf "$TMP"
+          mkdir -p "$TMP"
+          unzip -q "$INPUT_DIR/$SPRITE_APK" "assets/sprites/*" -d "$TMP"
+          ROOT="Split/Bunny-Loader/_sprites"
+          rm -rf "$ROOT/item" "$ROOT/npc" "$ROOT/buff"
+          mkdir -p "$ROOT"
+          cp -a "$TMP/assets/sprites/item" "$ROOT/"
+          cp -a "$TMP/assets/sprites/npc" "$ROOT/"
+          cp -a "$TMP/assets/sprites/buff" "$ROOT/"
+
+      - name: Rebuild CheatBridge dex
+        working-directory: Split/Bunny-Loader
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT=".cheatbridge"
+          AJAR="$ANDROID_HOME/platforms/android-34/android.jar"
+          D8="$ANDROID_HOME/build-tools/34.0.0/d8"
+          rm -rf "$OUT"
+          mkdir -p "$OUT/classes"
+          javac -source 8 -target 8 -nowarn -encoding UTF-8 -classpath "$AJAR" -d "$OUT/classes" \
+            app/src/main/java/bunny/TranslationCatalog.java \
+            app/src/main/java/bunny/MenuLocalization.java \
+            tools/cheatbridge/bunny/CheatBridge.java \
+            tools/cheatbridge/bunny/CheatData.java \
+            tools/cheatbridge/bunny/DevTools.java
+          mapfile -t CLASSES < <(find "$OUT/classes" -name "*.class" -type f)
+          "$D8" --release --min-api 26 --lib "$AJAR" --output "$OUT" "${CLASSES[@]}"
+          python3 tools/bin2header.py "$OUT/classes.dex" bl_cheatbridge_dex > app/src/main/cpp/menu/CheatBridgeDex.h
+
+      - name: Build with v3 signing
+        working-directory: Split/Bunny-Loader
+        shell: bash
+        env:
+          BUNNY_KEYSTORE_B64: ${{ secrets.BUNNY_KEYSTORE_B64 }}
+          BUNNY_SIGNING_PASSWORD: ${{ secrets.BUNNY_SIGNING_PASSWORD }}
+          BUNNY_SIGNING_ALIAS: ${{ secrets.BUNNY_SIGNING_ALIAS }}
+        run: |
+          set -euo pipefail
+          test -n "${BUNNY_KEYSTORE_B64:-}"
+          test -n "${BUNNY_SIGNING_PASSWORD:-}"
+          test -n "${BUNNY_SIGNING_ALIAS:-}"
+          umask 077
+          mkdir -p "$RUNNER_TEMP/bunny-v3"
+          export BUNNY_SIGNING_STORE="$RUNNER_TEMP/bunny-v3/bunny-v3.jks"
+          trap 'rm -f "$BUNNY_SIGNING_STORE"' EXIT
+          printf '%s' "$BUNNY_KEYSTORE_B64" | base64 --decode > "$BUNNY_SIGNING_STORE"
+          keytool -list -keystore "$BUNNY_SIGNING_STORE" -storepass:env BUNNY_SIGNING_PASSWORD -alias "$BUNNY_SIGNING_ALIAS" >/dev/null
+          unset BUNNY_KEYSTORE_B64
+          gradle :app:assembleDebug --stacktrace --no-daemon
+
+      - name: Validate APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk"
+          "$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --verbose --print-certs "$APK"
+          "$ANDROID_HOME/build-tools/34.0.0/zipalign" -c -v 4 "$APK"
+          python3 - "$APK" <<'PY'
+          import sys, zipfile
+          with zipfile.ZipFile(sys.argv[1]) as z:
+              dex=[z.read(n) for n in z.namelist() if n.startswith("classes") and n.endswith(".dex")]
+          assert dex, "No Android DEX found"
+          for item in (
+              b"Lcom/unity3d/player/UnityPlayer;",
+              b"Lcom/unity3d/player/NativeLoader;",
+              b"Lcom/unity3d/player/IUnityPlayerLifecycleEvents;"
+          ):
+              assert any(item in d for d in dex), "Unity class missing from APK: " + item.decode()
+          print("BUNNY_UNITY_JNI_BOOT_CLASSES=PASS")
+          PY
+          unzip -l "$APK" | grep -q "lib/arm64-v8a/libbunny.so"
+          unzip -l "$APK" | grep -q "lib/arm64-v8a/libil2cpp.so"
+          unzip -l "$APK" | grep -q "assets/bin/Data/Managed/Metadata/global-metadata.dat"
+          ITEM_SPRITES="$(unzip -l "$APK" | grep -Ec 'assets/sprites/item/[0-9]+[.]png$')"
+          NPC_SPRITES="$(unzip -l "$APK" | grep -Ec 'assets/sprites/npc/[0-9]+[.]png$')"
+          BUFF_SPRITES="$(unzip -l "$APK" | grep -Ec 'assets/sprites/buff/[0-9]+[.]png$')"
+          echo "sprites item=$ITEM_SPRITES npc=$NPC_SPRITES buff=$BUFF_SPRITES"
+          test "$ITEM_SPRITES" -ge 6100
+          test "$NPC_SPRITES" -ge 697
+          test "$BUFF_SPRITES" -ge 400
+
+      - name: Deliver private APK
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.BUNNY_PRIVATE_BUILD_TOKEN }}
+        run: |
+          set -euo pipefail
+          test "$(gh api "repos/$PRIVATE_REPO" --jq '.private')" = "true"
+          TAG="bunny-loader-stable-0.1.9.7.1"
+          OUT="Bunny.Loader.0.1.9.7.1.apk"
+          APK="Split/Bunny-Loader/app/build/outputs/apk/debug/app-debug.apk"
+          cp "$APK" "$RUNNER_TEMP/$OUT"
+          sha256sum "$RUNNER_TEMP/$OUT" > "$RUNNER_TEMP/$OUT.sha256"
+          if gh release view "$TAG" --repo "$PRIVATE_REPO" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$RUNNER_TEMP/$OUT" "$RUNNER_TEMP/$OUT.sha256" --repo "$PRIVATE_REPO" --clobber
+            gh release edit "$TAG" --repo "$PRIVATE_REPO" --title "Bunny Loader 0.1.9.7.1"
+          else
+            gh release create "$TAG" "$RUNNER_TEMP/$OUT" "$RUNNER_TEMP/$OUT.sha256" \
+              --repo "$PRIVATE_REPO" --target main --title "Bunny Loader 0.1.9.7.1" \
+              --notes "Private full APK. Upstream a0132963 with stable native audio optimizations and Unity JNI boot classes restored." --prerelease
+          fi
+          rm -f "$RUNNER_TEMP/$OUT" "$RUNNER_TEMP/$OUT.sha256" "$APK"
+
+# build trigger 2026-10-22 stable-0197
