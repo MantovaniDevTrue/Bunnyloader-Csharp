@@ -64,6 +64,9 @@ jobs:
           assert 'nativeFieldContract(projectile,"shouldFallThrough"' in source
           assert 'const bool ready=g_tileCollisionHooksReady.load' in source
           assert 'if(ready)return true;' in source
+          assert 'GetCollisionParams(out Vector2 resizeAnchor, out int colWidth, out int colHeight)' in source
+          assert 'hook::install(params,hkManagedTileParams,&g_originalTileParams)' in source
+          assert 'applyManagedTileCollisionBox(' in source
           PY
       - name: Check supported projectile descriptor versions in native parser
         run: |

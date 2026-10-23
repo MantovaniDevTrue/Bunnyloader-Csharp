@@ -166,9 +166,11 @@ using AiFn = void (*)(Il2CppObject*, const MethodInfo*);
 
 using TileMovementFn = void (*)(Il2CppObject*, Vector2, const MethodInfo*);
 using TileKillFn = void (*)(Il2CppObject*, const MethodInfo*);
+using TileParamsFn = void (*)(Il2CppObject*, Vector2*, int*, int*, const MethodInfo*);
 
 TileMovementFn g_originalTileMovement = nullptr;
 TileKillFn g_originalTileKill = nullptr;
+TileParamsFn g_originalTileParams = nullptr;
 std::atomic<bool> g_tileCollisionHooksReady{false};
 int g_tileCollideOffset = -1;
 int g_tileManualFallThroughOffset = -1;
@@ -182,6 +184,10 @@ struct TileMovementScope {
     int mode = 0;
     float restitution = 1.f;
     float minimumSpeed = 0.f;
+    int boxWidth = 0;
+    int boxHeight = 0;
+    float anchorOffsetX = 0.f;
+    float anchorOffsetY = 0.f;
     bool deferredKill = false;
 };
 thread_local TileMovementScope* g_tileMovementScope = nullptr;
@@ -189,6 +195,23 @@ void enqueueManagedProjectileTileCollision(Il2CppObject* projectile, int type,
                                            Vector2 before, Vector2 after);
 bool managedTileCollisionBudgetAvailable(Il2CppObject* projectile,int type,int limit);
 void recordManagedTileCollisionSurvival(Il2CppObject* projectile,int type,int limit);
+
+void hkManagedTileParams(Il2CppObject* projectile, Vector2* anchor, int* width,
+                         int* height, const MethodInfo* method) {
+    const auto original=__atomic_load_n(&g_originalTileParams,__ATOMIC_ACQUIRE);
+    if(!original)return;
+    original(projectile,anchor,width,height,method);
+    const auto* scope=g_tileMovementScope;
+    if(!scope || !projectile || scope->projectile!=projectile ||
+       !anchor || !width || !height)return;
+    ManagedTileCollisionBox box{anchor->x,anchor->y,*width,*height};
+    if(applyManagedTileCollisionBox(&box,scope->boxWidth,scope->boxHeight,
+                                   scope->anchorOffsetX,scope->anchorOffsetY)) {
+        *anchor={box.anchorX,box.anchorY};
+        *width=box.width;
+        *height=box.height;
+    }
+}
 
 void hkManagedTileKill(Il2CppObject* projectile, const MethodInfo* method) {
     auto* scope = g_tileMovementScope;
@@ -224,7 +247,9 @@ void hkManagedTileMovement(Il2CppObject* projectile, Vector2 wet, const MethodIn
     const int platformMode=collision.platformMode;
     const bool nativePolicy = managedTileCollisionModeSupported(mode) &&
         managedTileCollisionBudgetAvailable(projectile,type,collision.survivalLimit);
-    if((!nativePolicy && platformMode == 0) ||
+    const bool customBox=collision.boxWidth != 0 || collision.boxHeight != 0 ||
+        collision.anchorOffsetX != 0.f || collision.anchorOffsetY != 0.f;
+    if((!nativePolicy && platformMode == 0 && !customBox) ||
        !runtime::field<uint8_t>(projectile,g_tileCollideOffset)) {
         original(projectile,wet,method);return;
     }
@@ -238,6 +263,10 @@ void hkManagedTileMovement(Il2CppObject* projectile, Vector2 wet, const MethodIn
     scope.mode=nativePolicy?mode:0;
     scope.restitution=collision.restitution;
     scope.minimumSpeed=collision.minimumSpeed;
+    scope.boxWidth=collision.boxWidth;
+    scope.boxHeight=collision.boxHeight;
+    scope.anchorOffsetX=collision.anchorOffsetX;
+    scope.anchorOffsetY=collision.anchorOffsetY;
     scope.previous=g_tileMovementScope;
     g_tileMovementScope=&scope;
     uint8_t previousManual=0,previousFall=0;
@@ -874,18 +903,26 @@ void resetManagedSourceProjectileSlots() {
     g_managedEntityProjectileSlots.fill({});
 }
 
-bool installManagedProjectileTileCollisionHooks(bool platformPolicy,std::string* error) {
+bool installManagedProjectileTileCollisionHooks(bool platformPolicy,bool boxPolicy,std::string* error) {
     const bool ready=g_tileCollisionHooksReady.load(std::memory_order_acquire);
     if(ready && (!platformPolicy ||
-       (g_tileManualFallThroughOffset>=0 && g_tileShouldFallThroughOffset>=0)))return true;
+       (g_tileManualFallThroughOffset>=0 && g_tileShouldFallThroughOffset>=0)) &&
+       (!boxPolicy || g_originalTileParams))return true;
     if(!error)return false;
     auto* projectile=il2cpp::findClass({"Terraria","Projectile",{}});
     const auto* movement=projectile ? il2cpp::findMethodBySignature(projectile,
         il2cpp::parseSignature("void HandleMovement(Vector2 wetVelocity)")) : nullptr;
     const auto* kill=projectile ? il2cpp::findMethodBySignature(projectile,
         il2cpp::parseSignature("void Kill()")) : nullptr;
+    const auto* params=boxPolicy && !g_originalTileParams && projectile ?
+        il2cpp::findMethodBySignature(projectile,il2cpp::parseSignature(
+            "void GetCollisionParams(out Vector2 resizeAnchor, out int colWidth, out int colHeight)")) : nullptr;
     if(!movement || !kill || !runtime::resolveGameRefs()) {
         *error="Projectile.HandleMovement/Projectile.Kill ou GameRefs indisponiveis";
+        return false;
+    }
+    if(boxPolicy && !g_originalTileParams && !params) {
+        *error="Projectile.GetCollisionParams indisponivel para caixa de colisao C#";
         return false;
     }
     int offset=-1;
@@ -911,6 +948,11 @@ bool installManagedProjectileTileCollisionHooks(bool platformPolicy,std::string*
     if(platformPolicy) {
         g_tileManualFallThroughOffset=manual;
         g_tileShouldFallThroughOffset=should;
+    }
+    if(boxPolicy && !g_originalTileParams &&
+       !hook::install(params,hkManagedTileParams,&g_originalTileParams)) {
+        *error="Falha ao conectar Projectile.GetCollisionParams";
+        return false;
     }
     if(ready)return true;
     if(!g_originalTileMovement && !hook::install(movement,hkManagedTileMovement,&g_originalTileMovement)) {

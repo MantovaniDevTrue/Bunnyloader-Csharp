@@ -71,8 +71,6 @@ inline TileCollisionVector resolveManagedTileCollision(
     return after;
 }
 
-}
-
 struct ManagedTileCollisionBox {
     float anchorX = 0.f;
     float anchorY = 0.f;
@@ -96,4 +94,6 @@ inline bool applyManagedTileCollisionBox(ManagedTileCollisionBox* box,
     if(!std::isfinite(next.anchorX) || !std::isfinite(next.anchorY))return false;
     *box=next;
     return true;
+}
+
 }
