@@ -3293,7 +3293,7 @@ static bool invokeManagedCallback(bool shooting,const std::string& mod,const std
                          std::string* output,int budgetMicroseconds,bool tile=false,bool rarity=false) {
     if(!output)return false;
     if(budgetMicroseconds<1||budgetMicroseconds>3000||index<0||index>=16||kind<0||kind>6||
-       snapshot.size()>(rarity?32768u:(shooting?1024u:512u))||assembly.empty()||assembly.size()>4096){*output="ERROR|Stage=SubmitRecipeCallback Reason=InvalidTransportArguments";return false;}
+       snapshot.size()>(rarity?32768u:(shooting?1024u:(owner=="__achievements__"&&index==0&&kind<=4?12000u:512u)))||assembly.empty()||assembly.size()>4096){*output="ERROR|Stage=SubmitRecipeCallback Reason=InvalidTransportArguments";return false;}
     std::unique_lock<std::mutex> lock(g_pinnedMutex,std::try_to_lock);
     if(!lock.owns_lock()){*output="PENDING|Stage=SubmitRecipeCallback Reason=WorkerQueueBusy";return false;}
     if(!g_pinnedStarted){*output="PENDING|Stage=SubmitRecipeCallback Reason=WorkerNotStarted";return false;}

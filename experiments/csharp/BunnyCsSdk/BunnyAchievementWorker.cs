@@ -37,7 +37,7 @@ public static class BunnyAchievementWorker
         if (string.IsNullOrWhiteSpace(modId) || modId.Length > 96 ||
             modId.Any(c => !char.IsAsciiLetterOrDigit(c) && c != '_' && c != '-' && c != '.') ||
             string.IsNullOrEmpty(assemblyPath) || assemblyPath.Length > 4096 ||
-            snapshot == null || snapshot.Length > 512 || kind is < 0 or > 4)
+            snapshot == null || snapshot.Length > 12000 || kind is < 0 or > 4)
             return "ERROR|Stage=AchievementTransport Reason=InvalidArguments";
         try
         {
@@ -128,7 +128,7 @@ public static class BunnyAchievementWorker
     private static bool Decode(string wire, out IReadOnlyList<BunnyAchievementSnapshot> results)
     {
         results = Array.Empty<BunnyAchievementSnapshot>();
-        if (wire.Length > 512 || !wire.StartsWith("ACH1", StringComparison.Ordinal) ||
+        if (wire.Length > 12000 || !wire.StartsWith("ACH1", StringComparison.Ordinal) ||
             (wire.Length > 4 && wire[4] != '\n')) return false;
         var list = new List<BunnyAchievementSnapshot>();
         foreach (string row in wire.Split('\n').Skip(1))
