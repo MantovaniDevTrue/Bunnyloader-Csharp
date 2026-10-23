@@ -1,5 +1,6 @@
 #include "experiments/csharp/SourceParser.h"
 #include "experiments/csharp/SourceLimits.h"
+#include "experiments/csharp/SourceContentKinds.generated.h"
 
 #include <cctype>
 #include <string>
@@ -112,7 +113,6 @@ size_t closing(const std::vector<Token>& tokens, size_t open, const std::string&
 bool contentDeclaration(const std::vector<Token>& tokens, size_t first, size_t last,
                         std::string* base, std::map<std::string, std::string>* properties,
                         std::string* error,std::vector<std::pair<std::string,std::string>>* localizedNames) {
-    const std::string kinds = "|Item|Tile|Weapon|Projectile|Buff|BuffPotion|Accessory|Player|NPC|Prefix|";
     for (size_t i = first; i < last; ++i) {
         if(!tokens[i].literal&&(tokens[i].value=="BunnyName"||tokens[i].value=="BunnyNameAttribute")) {
             if(i+6>=last||tokens[i+1].value!="("||!tokens[i+2].literal||tokens[i+3].value!=","||!tokens[i+4].literal||tokens[i+5].value!=")"||tokens[i+6].value!="]") {
@@ -130,7 +130,7 @@ bool contentDeclaration(const std::vector<Token>& tokens, size_t first, size_t l
             tokens[i].value != "BunnyContentAttribute")) continue;
         if (i + 10 >= last || tokens[i + 1].value != "(" ||
             tokens[i + 2].value != "BunnyContentKind" || tokens[i + 3].value != "." ||
-            kinds.find("|" + tokens[i + 4].value + "|") == std::string::npos ||
+            !isKnownSourceKind(tokens[i + 4].value) ||
             tokens[i + 5].value != "," || !tokens[i + 6].literal ||
             tokens[i + 7].value != "," || !tokens[i + 8].literal ||
             tokens[i + 9].value != ")" || tokens[i + 10].value != "]" || !base->empty()) {
@@ -211,11 +211,7 @@ bool parseClass(const std::vector<Token>& tokens, size_t begin, size_t end,
                 const std::string& namespaceName,
                 std::vector<ParsedSourceType>* definitions, std::string* error,
                 const std::map<std::string, std::string>& declaredProperties = {}) {
-    if (base != "BunnyItem" && base != "BunnyProjectile" && base != "BunnyWeapon" &&
-        base != "BunnyBuff" && base != "BunnyBuffPotion" &&
-        base != "BunnyPlayer" && base != "BunnyAccessory" &&
-        base != "BunnyNPC" && base != "BunnyPrefix" && base != "BunnyTile" &&
-        base != "BunnyScreenEffect") return true;
+    if (!isRecognizedSourceBase(base) && base != "BunnyScreenEffect") return true;
     ParsedSourceType def;
     def.name = name;
     def.base = base;
@@ -427,18 +423,13 @@ bool parseCSharpSource(const std::string& source,
         if (!contentDeclaration(tokens, declarationStart, i, &declaredBase,
                                 &declaredProperties, error,&localizedNames)) return false;
         if (!declaredBase.empty()) {
-            const std::string roots = "|BunnyItem|BunnyTile|BunnyWeapon|BunnyProjectile|BunnyBuff|BunnyBuffPotion|BunnyAccessory|BunnyPlayer|BunnyNPC|BunnyPrefix|";
-            if (roots.find("|" + base + "|") != std::string::npos && base != declaredBase) {
+            if (isRecognizedSourceBase(base) && base != declaredBase) {
                 *error = name + ": categoria BunnyContent difere da classe base";
                 return false;
             }
             base = declaredBase;
         }
-        if (!abstract && (base == "BunnyItem" || base == "BunnyProjectile" || base == "BunnyWeapon" ||
-            base == "BunnyBuff" || base == "BunnyBuffPotion" ||
-            base == "BunnyPlayer" || base == "BunnyAccessory" ||
-            base == "BunnyNPC" || base == "BunnyPrefix" ||
-            base == "BunnyTile" || base == "BunnyScreenEffect")) {
+        if (!abstract && (isRecognizedSourceBase(base) || base == "BunnyScreenEffect")) {
             std::string qualifiedNamespace = fileNamespace;
             for (const auto& scope : namespaces) {
                 if (!qualifiedNamespace.empty()) qualifiedNamespace += ".";

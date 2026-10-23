@@ -15,6 +15,7 @@
 #include "content/npcs/ModNpcs.h"
 #include "experiments/csharp/SourceParser.h"
 #include "experiments/csharp/SourceContentIdentity.h"
+#include "experiments/csharp/SourceContentKinds.generated.h"
 #include "core/Log.h"
 #include "mods/ModLoader.h"
 
@@ -370,12 +371,8 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
         return false;
     }
     NativeRegisterContext ctx{mod.id, mod.dir, 0, 0};
-    const std::array<std::string, 9> order = {
-        "BunnyTile", "BunnyItem",
-        "BunnyBuff", "BunnyProjectile", "BunnyAccessory",
-        "BunnyNPC", "BunnyBuffPotion", "BunnyWeapon", "BunnyPrefix"
-    };
-    for (const auto& base : order) {
+    for (const char* baseName : kSourceNativeRegistrationOrder) {
+        const std::string base(baseName);
         for (const auto& def : defs) {
             if (def.base != base) continue;
             if (base == "BunnyPrefix") {
