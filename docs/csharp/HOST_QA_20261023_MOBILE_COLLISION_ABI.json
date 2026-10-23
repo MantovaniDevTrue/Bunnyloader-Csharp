@@ -1,0 +1,91 @@
+{
+  "date": "2026-10-23",
+  "baselineCommit": "454881ac801a69f8318283a42820dd34f153f84c",
+  "scope": "Validate loaded Terraria Mobile IL2CPP method, Vector2 and netMode contracts before enabling collision detours",
+  "runtimeAuthority": "Terraria Mobile 1.4.5.8.6 build 301720; not tModLoader desktop ABI",
+  "reference": {
+    "dumpSha256": "6f98faced459ead3c5711d231c34f30650fc5b12bb8ec59705920138fe210d20",
+    "libil2cppSha256": "ff1f16f3ef122cde66f549096bca0225c46fd9a59e736c05706a8b0444d2ae06",
+    "vector": "Microsoft.Xna.Framework.Vector2; value size 8; instance System.Single X/Y at normalized offsets 0/4",
+    "methods": [
+      "instance void Projectile.HandleMovement(Vector2 wetVelocity)",
+      "instance void Projectile.Kill()",
+      "instance void Projectile.GetCollisionParams(out Vector2 resizeAnchor, out int colWidth, out int colHeight)"
+    ],
+    "fields": [
+      "static System.Int32 Main.netMode",
+      "instance System.Boolean Projectile.tileCollide",
+      "instance System.Boolean Projectile.decidesManualFallThrough",
+      "instance System.Boolean Projectile.shouldFallThrough"
+    ],
+    "binding": "Names/types/layout are validated from loaded metadata; no dump RVA or game object offset is hardcoded."
+  },
+  "checks": [
+    {
+      "name": "Production Mobile collision metadata validator fixture",
+      "result": "PASS",
+      "rejectedContracts": 31,
+      "acceptedLayouts": [
+        "raw value offsets",
+        "boxed metadata offsets"
+      ]
+    },
+    {
+      "name": "Metadata validator ASan/UBSan",
+      "result": "PASS"
+    },
+    {
+      "name": "Production ManagedProjectileHook.cpp translation unit syntax check",
+      "result": "PASS",
+      "target": "Host; not Android cross-compilation"
+    },
+    {
+      "name": "Native bind, descriptor, collision policy, geometry, Mobile ABI and SourceParser executables",
+      "result": "PASS",
+      "executables": 6,
+      "geometryCases": 1600
+    },
+    {
+      "name": "Generated schema/ABI unit tests",
+      "result": "PASS",
+      "tests": 13
+    },
+    {
+      "name": "Source/reflection callback contracts",
+      "result": "PASS",
+      "signatures": 24
+    },
+    {
+      "name": "Managed entity lifecycle including upstream deferred collision responses",
+      "result": "PASS"
+    },
+    {
+      "name": "Compiled projectile collision wire probe",
+      "result": "PASS"
+    }
+  ],
+  "rejections": [
+    "Static/generic/wrong-owner methods and non-void return types",
+    "Missing metadata exports and wrong parameter counts/types/by-reference markers",
+    "UnityEngine.Vector2 instead of the Mobile XNA type",
+    "Wrong value type/size, field types/names/order/bounds or extra instance fields",
+    "netMode instance storage, wrong type/width/value kind, missing field or missing static-read export"
+  ],
+  "limits": [
+    "Fixtures execute production validators against fake metadata, not against a running Android process.",
+    "Typed fields do not prove runtime semantics; the observed dump is static evidence.",
+    "Android ARM64 CI must be consulted at the new published commit; local toolchain only performed host syntax checks.",
+    "Android gameplay, physics, performance, multiplayer and synchronous dynamic callback completeness remain unvalidated.",
+    "Recent deferred collision-response commits are preserved; these responses remain a next-tick contract."
+  ],
+  "validatedFilesSha256": {
+    "app/src/main/cpp/experiments/csharp/ManagedTileCollisionContract.h": "b8f1bf473c40e65f51125861158cb008bf1c3489e29ccf1229563c0f42d15c9b",
+    "app/src/main/cpp/experiments/csharp/ManagedProjectileHook.cpp": "51df5eac2a18b7e6832a144ea38220eaa74db0c539b8d22dc5e305ec2cb60ebb",
+    "tools/csharp_contracts/mobile_collision_contract_smoke.cpp": "0cb5842ca4ed013a0d21fb9bc2917e7b6ddd3a46b6e3b93686d2314c535e0672",
+    ".github/workflows/check-csharp-content-contracts.yml": "d08d0f5fbe536252209ca1a48a38144e7a5a8cf787f879094f620d2b8e47a25f",
+    ".github/workflows/check-csharp-native-collision.yml": "d1df89c452486c09f642d18c987bb5f524e0c7398213db11ee836a9626cc3240"
+  },
+  "apkProduced": false,
+  "apkWorkflowDispatched": false,
+  "androidGameplayValidated": false
+}

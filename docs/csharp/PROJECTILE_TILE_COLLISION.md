@@ -1,5 +1,10 @@
 # Projectile tile collision: native deterministic policies
 
+The runtime authority is **Terraria Mobile IL2CPP**, currently inspected at build
+301720 (1.4.5.8.6). tModLoader may guide public API organization; its desktop
+runtime, assemblies and layouts are not native binding evidence. The examples
+below declare Bunny policies implemented against Mobile's actual methods.
+
 The reference `samples/ExampleMod/content/Content/Projectiles/ExampleSentry.js` returns `false` in `OnTileCollide` to keep its sentry alive. The JavaScript `ProjectileLoader.js` detects tile collisions inside `Projectile.HandleMovement(Vector2)`, postpones collision-related `Kill()`, and uses the collision-adjusted velocity.
 
 Bunny C# exposes three fixed native policies through `BunnyProjectile.SetDefaults()`:
@@ -143,3 +148,34 @@ The managed worker returns one integer: 0=rejected, 1=delivered/no change, 2=Kee
 This does **not** implement the JavaScript `OnTileCollide` synchronous return value or let the callback prevent death in its own frame. The callback only executes for valid delivered events and a projectile must remain alive to observe the subsequent policy. Physical/gameplay behavior still requires Android QA.
 
 The native smoke test also verifies rejection of deferred messages belonging to another projectile type, generation, owner or pooled object identity, as well as zero/invalid identifiers. The managed lifecycle probe confirms that an unsupported request for `Vanilla` does not become a native mode update and that omitting an update preserves the normal event acknowledgement.
+
+
+## Validated Terraria Mobile collision ABI
+
+The installer now validates the loaded IL2CPP metadata before enabling native
+collision detours. It does not assume that an SDK method name implies a native
+method, nor that two types named Vector2 are interchangeable.
+
+| Native Mobile contract | Required binding |
+|---|---|
+| Projectile.HandleMovement | Nongeneric instance method; System.Void return; Microsoft.Xna.Framework.Vector2 by value |
+| Projectile.Kill | Nongeneric instance method; System.Void return; no parameters |
+| Projectile.GetCollisionParams | Nongeneric instance method; System.Void return; Vector2&, Int32&, Int32& outputs |
+| Vector2 | Microsoft.Xna.Framework value type; eight bytes; only instance X/Y as System.Single at normalized offsets 0/4 |
+| Main.netMode | Static System.Int32, four bytes; validated before any static read |
+| Projectile tile/platform flags | Instance System.Boolean, one byte, bounded to the native object |
+
+All three methods must belong to Terraria.Projectile. The existing exact
+signature lookup also checks method and parameter names. Vector fields may use
+raw value offsets or boxed metadata offsets; the existing shared ValueLayout
+resolver must identify one unambiguous convention. UnityEngine.Vector2, wrong
+return/parameter types, missing by-reference markers, static/generic methods,
+extra fields, invalid storage widths and missing metadata exports are rejected
+before new detours are installed. Diagnostics retain the contract failure.
+
+This is checked with the production validator in a host metadata fixture,
+including 31 rejected contracts. The reference dump confirms the same methods,
+XNA namespace and storage types in Mobile build 301720; no dump offsets/RVAs
+are used to bind loaded game objects. A different game build is accepted only
+when its loaded metadata satisfies the contract. Inspection and host tests do
+not substitute execution/gameplay tests on Android.

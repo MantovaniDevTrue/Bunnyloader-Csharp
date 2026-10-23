@@ -14,6 +14,7 @@
 #include "il2cpp/Signature.h"
 #include "experiments/csharp/NativeSummonRuntime.h"
 #include "experiments/csharp/ManagedTileCollisionPolicy.h"
+#include "experiments/csharp/ManagedTileCollisionContract.h"
 
 #include <algorithm>
 #include <array>
@@ -945,11 +946,14 @@ bool installManagedProjectileTileCollisionHooks(bool platformPolicy,bool boxPoli
         *error="Projectile.GetCollisionParams indisponivel para caixa de colisao C#";
         return false;
     }
+    if(!validateMobileTileCollisionMethods(projectile,movement,kill,params,
+        boxPolicy&&!g_originalTileParams,error))return false;
     int offset=-1;
     std::string details;
     auto* main=il2cpp::findClass({"Terraria","Main",{}});
-    FieldInfo* netMode=main?il2cpp::findField(main,"netMode"):nullptr;
-    if(!netMode || !il2cpp::nativeFieldContract(projectile,"tileCollide",
+    FieldInfo* netMode=nullptr;
+    if(!mobileTileCollisionNetMode(main,&netMode,&details)||
+       !il2cpp::nativeFieldContract(projectile,"tileCollide",
         "System.Boolean",false,1,nullptr,&offset,&details)) {
         *error="Campos nativos de colisao indisponiveis: "+details;
         return false;

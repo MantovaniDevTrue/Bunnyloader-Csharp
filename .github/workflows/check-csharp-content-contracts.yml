@@ -10,6 +10,7 @@ on:
       - 'experiments/csharp/BunnyCsSdk/BunnyEntitySourceDispatcher.cs'
       - 'experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs'
       - 'app/src/main/cpp/experiments/csharp/ManagedTileCollisionPolicy.h'
+      - 'app/src/main/cpp/experiments/csharp/ManagedTileCollisionContract.h'
       - 'app/src/main/cpp/experiments/csharp/SourceParser.cpp'
       - 'app/src/main/cpp/experiments/csharp/SourceLoader.cpp'
       - 'app/src/main/cpp/experiments/csharp/SourceContentKinds.generated.h'
@@ -23,6 +24,7 @@ on:
       - 'experiments/csharp/BunnyCsSdk/BunnyEntitySourceDispatcher.cs'
       - 'experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs'
       - 'app/src/main/cpp/experiments/csharp/ManagedTileCollisionPolicy.h'
+      - 'app/src/main/cpp/experiments/csharp/ManagedTileCollisionContract.h'
       - 'app/src/main/cpp/experiments/csharp/SourceParser.cpp'
       - 'app/src/main/cpp/experiments/csharp/SourceLoader.cpp'
       - 'app/src/main/cpp/experiments/csharp/SourceContentKinds.generated.h'
@@ -88,6 +90,10 @@ jobs:
         run: |
           g++ -std=c++20 -Wall -Wextra -Werror -Iapp/src/main/cpp tools/csharp_contracts/tile_collision_geometry_smoke.cpp -o /tmp/bunny-tile-collision-geometry-smoke
           /tmp/bunny-tile-collision-geometry-smoke
+      - name: Validate Terraria Mobile collision method and struct ABI
+        run: |
+          g++ -std=c++20 -Wall -Wextra -Werror -Iapp/src/main/cpp tools/csharp_contracts/mobile_collision_contract_smoke.cpp -o /tmp/bunny-mobile-collision-contract-smoke
+          /tmp/bunny-mobile-collision-contract-smoke
       - name: Build managed source compiler with collision metadata
         run: dotnet build experiments/csharp/BunnySourceCompiler/BunnySourceCompiler.csproj -c Release --nologo
       - name: Execute compiled BunnyProjectile collision metadata probe
