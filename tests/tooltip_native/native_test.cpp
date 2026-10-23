@@ -102,6 +102,7 @@ int main(int argc,char** argv) {
     assert(emoji.size()==6&&emoji[4]>=0xD800&&emoji[4]<=0xDBFF);
     NativeTooltipDrawSession session;
     assert(session.begin(*item.nativeTooltip));
+    assert(session.tooltipTint&&session.tooltipRgb==0xFFD75Au);
     int overlays=0;
     auto insert=[&](const NativeTooltipLine& line,float y) {
         assert(line.name=="BunnyLoader"&&y==210);

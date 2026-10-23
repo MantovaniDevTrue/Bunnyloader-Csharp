@@ -484,6 +484,15 @@ void rarityDrawString(Il2CppObject* batch, Il2CppObject* font, Il2CppString* tex
             color = g_rarityDrawColor.fromArgb(
                 tintNativeRarityText(scopedMatch ? g_rarityTextColor : g_hoverFallbackColor, opacity));
     }
+    if(g_nativeTooltipActive&&g_nativeTooltipDrawSession.inserted&&text&&
+       g_nativeTooltipDrawSession.tooltipTint&&
+       nativeTooltipStringMatches(text,g_nativeTooltipDrawSession.anchor)) {
+        const auto old=nativeRarityToArgb(color);
+        const uint8_t alpha=static_cast<uint8_t>(old>>24);
+        if(shouldTintNativeRarityText(old,alpha))
+            color=g_rarityDrawColor.fromArgb(
+                (static_cast<uint32_t>(alpha)<<24)|g_nativeTooltipDrawSession.tooltipRgb);
+    }
     if (g_originalRarityDrawString)
         g_originalRarityDrawString(batch, font, text, position, color, rotation,
             origin, scale, effects, depth, method);
@@ -508,6 +517,11 @@ thread_local std::string g_nativeTooltipMeasuredText;
 thread_local NativeTooltipWaveLayout g_nativeTooltipLayout;
 std::array<uint32_t,128> g_nativeTooltipGlyphRoots{};
 
+bool nativeTooltipStringMatches(Il2CppString* text,const std::u16string& expected) {
+    return text&&text->length>0&&text->length<=512&&
+        static_cast<size_t>(text->length)==expected.size()&&
+        std::memcmp(text->chars,expected.data(),expected.size()*sizeof(char16_t))==0;
+}
 Il2CppString* nativeTooltipGlyphString(char16_t ch) {
     auto& a=bl::il2cpp::api();
     if(ch>127||!a.string_new||!a.gchandle_new||!a.gchandle_get_target)return nullptr;
