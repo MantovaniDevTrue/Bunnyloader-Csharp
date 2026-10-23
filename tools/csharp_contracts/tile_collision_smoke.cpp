@@ -57,6 +57,15 @@ int main() {
     assert(noRest.x==0.f && noRest.y==5.f);
     const auto rejectedRest=resolveManagedTileCollision(2,initial,wall,true,3.f);
     assert(rejectedRest.x==0.f && rejectedRest.y==5.f);
+    bool platformFalls=true;
+    assert(bl::csharp::managedTilePlatformFallThrough(1,&platformFalls));
+    assert(!platformFalls);
+    assert(bl::csharp::managedTilePlatformFallThrough(2,&platformFalls));
+    assert(platformFalls);
+    assert(!bl::csharp::managedTilePlatformFallThrough(0,&platformFalls));
+    assert(platformFalls);
+    assert(!bl::csharp::managedTilePlatformFallThrough(3,&platformFalls));
+    assert(!bl::csharp::managedTilePlatformFallThrough(1,nullptr));
     int collisions=0;
     assert(bl::csharp::managedTileCollisionBudgetAllows(collisions,3));
     for(int i=0;i<3;++i)assert(bl::csharp::recordManagedTileCollisionBudget(&collisions,3));

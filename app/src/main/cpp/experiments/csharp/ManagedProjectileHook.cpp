@@ -241,14 +241,16 @@ void hkManagedTileMovement(Il2CppObject* projectile, Vector2 wet, const MethodIn
     scope.previous=g_tileMovementScope;
     g_tileMovementScope=&scope;
     uint8_t previousManual=0,previousFall=0;
-    const bool overridePlatforms=platformMode!=0 &&
-        g_tileManualFallThroughOffset>=0 && g_tileShouldFallThroughOffset>=0;
+    bool fallThrough=false;
+    const bool overridePlatforms=
+        g_tileManualFallThroughOffset>=0 && g_tileShouldFallThroughOffset>=0 &&
+        managedTilePlatformFallThrough(platformMode,&fallThrough);
     if(overridePlatforms) {
         previousManual=runtime::field<uint8_t>(projectile,g_tileManualFallThroughOffset);
         previousFall=runtime::field<uint8_t>(projectile,g_tileShouldFallThroughOffset);
         runtime::field<uint8_t>(projectile,g_tileManualFallThroughOffset)=1;
         runtime::field<uint8_t>(projectile,g_tileShouldFallThroughOffset)=
-            platformMode==2?1:0;
+            fallThrough?1:0;
     }
     original(projectile,wet,method);
     if(overridePlatforms) {
