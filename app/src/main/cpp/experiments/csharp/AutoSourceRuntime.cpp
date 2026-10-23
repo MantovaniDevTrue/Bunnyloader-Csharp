@@ -882,7 +882,7 @@ void run() {
             note(&status, "failed", "Tabelas de projetil nao ficaram prontas");
             continue;
         }
-        if ((mod.projectiles > 0 || mod.npcs > 0 || hasUniversalHooks || mod.screenEffects > 0 || mod.commands > 0 ||
+        if ((mod.projectiles > 0 || mod.npcs > 0 || hasUniversalHooks || mod.screenEffects > 0 || mod.commands > 0 || mod.achievements > 0 ||
              (defaults.find("LOCALE\t") != std::string::npos ||
               defaults.find("LOCALE_MODULES\t") != std::string::npos ||
               defaults.find("LOCALE_RUNTIME\t") != std::string::npos)) &&
@@ -940,7 +940,7 @@ void run() {
                 localization::bindManagedAssembly(mod.id, callbackAssembly);
             static const runtime::RecipeCallbackProvider provider{prepareNativeRecipeCallbackProvider,trackNativeRecipeCallbacks};
             runtime::setRecipeCallbackProvider(&provider);
-            if((hasManagedRecipeCallbacks(mod.id)||hasManagedAnglerQuestCallbacks(mod.id)||shooting::hasPolicies(mod.id)||mod.tiles>0||mod.rarities>0)&&!g_runtimeWarmStarted.exchange(true,std::memory_order_acq_rel)) {
+            if((hasManagedRecipeCallbacks(mod.id)||hasManagedAnglerQuestCallbacks(mod.id)||shooting::hasPolicies(mod.id)||mod.tiles>0||mod.rarities>0||mod.achievements>0)&&!g_runtimeWarmStarted.exchange(true,std::memory_order_acq_rel)) {
                 const auto probe=work+"BunnyManagedProbe.dll";
                 g_runtimeWarming.store(true,std::memory_order_release);
                 std::thread([probe]{
@@ -1075,7 +1075,7 @@ void run() {
         }
         pending.insert(pending.end(), entries.begin(), entries.end());
         pendingCombat.insert(pendingCombat.end(), effects.begin(), effects.end());
-        if (!bindNativeAchievementAssembly(mod.id, callbackAssembly))
+        if (mod.achievements > 0 && !bindNativeAchievementAssembly(mod.id, callbackAssembly))
             BL_WARN("[CSharp][AchievementLoader] Mod=%s Stage=Bind Result=Rejected",
                     mod.id.c_str());
         note(&status, entries.empty() && effects.empty() ? "ready" : "waiting-world");

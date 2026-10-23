@@ -314,13 +314,13 @@ bool parseClass(const std::vector<Token>& tokens, size_t begin, size_t end,
         base != "BunnyBuff" && base != "BunnyBuffPotion" &&
         base != "BunnyPlayer" && base != "BunnyAccessory" &&
         base != "BunnyNPC" && base != "BunnyPrefix" && base != "BunnyTile" && base != "BunnyDust" && base != "BunnyWall" &&
-        base != "BunnyScreenEffect" && base != "BunnyRarity" && base != "BunnyCommand") return true;
+        base != "BunnyScreenEffect" && base != "BunnyRarity" && base != "BunnyCommand" && base != "BunnyAchievement") return true;
     ParsedSourceType def;
     def.name = name;
     def.base = base;
     def.namespaceName = namespaceName;
     def.properties = declaredProperties;
-    if (base == "BunnyCommand") {
+    if (base == "BunnyCommand" || base == "BunnyAchievement") {
         definitions->push_back(std::move(def));
         return true;
     }
@@ -543,7 +543,7 @@ bool parseCSharpSource(const std::string& source,
             base == "BunnyBuff" || base == "BunnyBuffPotion" ||
             base == "BunnyPlayer" || base == "BunnyAccessory" ||
             base == "BunnyNPC" || base == "BunnyPrefix" ||
-            base == "BunnyTile" || base == "BunnyDust" || base == "BunnyWall" || base == "BunnyRarity" || base == "BunnyScreenEffect" || base == "BunnyCommand")) {
+            base == "BunnyTile" || base == "BunnyDust" || base == "BunnyWall" || base == "BunnyRarity" || base == "BunnyScreenEffect" || base == "BunnyCommand" || base == "BunnyAchievement")) {
             std::string qualifiedNamespace = fileNamespace;
             for (const auto& scope : namespaces) {
                 if (!qualifiedNamespace.empty()) qualifiedNamespace += ".";

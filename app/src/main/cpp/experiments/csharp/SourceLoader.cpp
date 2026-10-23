@@ -19,6 +19,7 @@
 #include "experiments/csharp/NativeAnglerQuestRegistry.h"
 #include "experiments/csharp/NativeRecipeCallbacks.h"
 #include "experiments/csharp/ManagedRuntime.h"
+#include "experiments/csharp/NativeAchievementGameplay.h"
 #include "content/buffs/ModBuffs.h"
 #include "content/tiles/ModTiles.h"
 #include "content/dusts/ModDusts.h"
@@ -383,7 +384,7 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
         }
     }
     const bool hasNativeContent = std::any_of(defs.begin(), defs.end(),
-        [](const ParsedSourceType& def) { return def.base != "BunnyCommand"; });
+        [](const ParsedSourceType& def) { return def.base != "BunnyCommand" && def.base != "BunnyAchievement"; });
     if (hasNativeContent && !prepareNativeContent()) {
         status->error = "Host API de conteudo nativo indisponivel";
         return false;
@@ -683,12 +684,18 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
             status->commandClasses.push_back(def.namespaceName.empty() ? def.name :
                 def.namespaceName + "." + def.name);
     status->commands = static_cast<int>(status->commandClasses.size());
+    status->achievements = static_cast<int>(std::count_if(defs.begin(), defs.end(),
+        [](const ParsedSourceType& def) { return def.base == "BunnyAchievement"; }));
+    if (status->achievements > 128) {
+        status->error = "AchievementLoader: maximo de 128 conquistas por mod";
+        return false;
+    }
     if (status->commands > 128) {
         status->error = "ModCommand: maximo de 128 classes por mod";
         return false;
     }
     if (status->dusts+status->items+status->tiles+status->projectiles+status->buffs+
-        status->npcs+status->prefixes+status->rarities+status->players+status->screenEffects+status->commands==0) {
+        status->npcs+status->prefixes+status->rarities+status->players+status->screenEffects+status->commands+status->achievements==0) {
         status->error = "mod C# sem conteudo registrado";
         return false;
     }
@@ -706,6 +713,7 @@ void resetCSharpSourceModSession() {
         retireBasicItemTooltipsForMod(mod.id);
         retireNativeArmorPoliciesForMod(mod.id);
         retireNativeRaritySampling(mod.id);
+        retireNativeAchievementMod(mod.id);
         localization::retireMod(mod.id);
         shooting::unload(mod.id);
         angler::registry().unload(mod.id);
@@ -724,6 +732,7 @@ bool loadCSharpSourceMod(const bl::mods::LoadedMod& mod) {
         retireBasicItemTooltipsForMod(mod.id);
         retireNativeArmorPoliciesForMod(mod.id);
         retireNativeRaritySampling(mod.id);
+        retireNativeAchievementMod(mod.id);
         localization::retireMod(mod.id);
         shooting::unload(mod.id);
         angler::registry().unload(mod.id);
@@ -744,6 +753,7 @@ bool loadCSharpSourceMod(const bl::mods::LoadedMod& mod) {
         retireBasicItemTooltipsForMod(mod.id);
         retireNativeArmorPoliciesForMod(mod.id);
         retireNativeRaritySampling(mod.id);
+        retireNativeAchievementMod(mod.id);
         localization::retireMod(mod.id);
         shooting::unload(mod.id);
         angler::registry().unload(mod.id);
