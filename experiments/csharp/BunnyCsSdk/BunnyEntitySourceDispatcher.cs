@@ -294,6 +294,11 @@ public static class BunnyEntitySourceDispatcher
     }
 
     public static bool CollideProjectile(int modSlot, int type, int slot, int generation, int owner,
+        float oldVelocityX, float oldVelocityY, float newVelocityX, float newVelocityY) =>
+        CollideProjectilePolicy(modSlot, type, slot, generation, owner,
+            oldVelocityX, oldVelocityY, newVelocityX, newVelocityY) >= 1;
+
+    public static int CollideProjectilePolicy(int modSlot, int type, int slot, int generation, int owner,
         float oldVelocityX, float oldVelocityY, float newVelocityX, float newVelocityY)
     {
         if ((uint)modSlot >= (uint)Contexts.Count || (uint)slot >= 4096u ||
@@ -314,7 +319,9 @@ public static class BunnyEntitySourceDispatcher
         {
             projectile.OnTileCollide(ref state, oldVelocityX, oldVelocityY,
                 newVelocityX, newVelocityY);
-            return true;
+            if (!state.NextTileCollisionMode.HasValue) return 1;
+            int mode = (int)state.NextTileCollisionMode.Value;
+            return mode >= 1 && mode <= 3 ? mode + 1 : 0;
         }
         catch (Exception error)
         {

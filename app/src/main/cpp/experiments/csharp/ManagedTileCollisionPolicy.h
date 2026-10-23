@@ -19,6 +19,10 @@ inline bool recordManagedTileCollisionBudget(int* survived,int limit) {
     return true;
 }
 
+inline int managedDeferredTileCollisionMode(int response) {
+    return response >= 2 && response <= 4 ? response - 1 : 0;
+}
+
 inline bool managedTilePlatformFallThrough(int mode, bool* value) {
     if(!value || (mode != 1 && mode != 2))return false;
     *value=mode==2;

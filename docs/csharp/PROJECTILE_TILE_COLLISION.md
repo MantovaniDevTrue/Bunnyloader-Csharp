@@ -125,3 +125,19 @@ covering the actual movement/kill order. This change does not invent an async
 boolean result, add a game-thread wait or claim that a stale cached result closes
 that gap. Dynamic synchronous callbacks, multiplayer, device physics and FPS
 remain pending. The ExampleMod APK readiness gate stays unchanged.
+
+## Deferred per-instance mode updates from OnTileCollide
+
+In the C# `OnTileCollide(ref BunnyProjectileAiState state, oldX, oldY, newX, newY)` callback, mods may set `state.NextTileCollisionMode` to `KeepAlive`, `Bounce`, or `Stop`. Leaving it null does not change the native mode. The update changes the policy **only for subsequent impacts**, not the collision that triggered the callback. `Vanilla` is not supported as a deferred request yet; unsupported requests are rejected without modifying the native mode.
+
+```csharp
+public override void OnTileCollide(ref BunnyProjectileAiState state,
+    float oldX,float oldY,float newX,float newY)
+{
+    state.NextTileCollisionMode = BunnyProjectileTileCollisionMode.Stop;
+}
+```
+
+The managed worker returns one integer: 0=rejected, 1=delivered/no change, 2=KeepAlive, 3=Bounce, 4=Stop. The native worker stores a reply by projectile slot together with type/generation/owner/object identity; the gameplay thread reads it on the next `HandleMovement` only after an atomic ready flag and with a nonblocking `try_to_lock`. Stale replies are discarded on mismatch, world exit resets the mailbox, and `SetDefaults`/new projectile generation resets its effective mode. No synchronous MonoVM call is added to the physics thread. The impact limit, restitution, hitbox, and platform settings continue to apply to that instance according to the existing static defaults.
+
+This does **not** implement the JavaScript `OnTileCollide` synchronous return value or let the callback prevent death in its own frame. The callback only executes for valid delivered events and a projectile must remain alive to observe the subsequent policy. Physical/gameplay behavior still requires Android QA.

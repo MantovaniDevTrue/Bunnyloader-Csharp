@@ -32,6 +32,7 @@ public struct BunnyProjectileAiState
     public int TargetNpc;
     public float TargetX;
     public float TargetY;
+    public BunnyProjectileTileCollisionMode? NextTileCollisionMode;
     public bool HasTarget => TargetNpc >= 0;
 }
 

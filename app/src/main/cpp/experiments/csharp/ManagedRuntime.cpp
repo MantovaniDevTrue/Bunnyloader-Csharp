@@ -2,6 +2,7 @@
 #include "experiments/csharp/UniversalHookMailbox.h"
 #include "experiments/csharp/UniversalHooks.h"
 #include "experiments/csharp/ManagedRuntime.h"
+#include "experiments/csharp/ManagedTileCollisionPolicy.h"
 #include "graphics/ScreenScene.h"
 #include "experiments/csharp/ManagedVisualMonoPump.h"
 #include "experiments/csharp/ManagedVisualState.h"
@@ -407,6 +408,8 @@ std::vector<ManagedEntityBinding> g_entityBindings;
 std::deque<ManagedEntityJob> g_entityQueue;
 std::array<ManagedEntityResult, 512> g_entityNpcResults{};
 std::array<ManagedEntityResult, 4096> g_entityProjectileResults{};
+std::array<ManagedEntityResult, 4096> g_entityCollisionPolicyReplies{};
+std::array<std::atomic<bool>, 4096> g_entityCollisionPolicyReady{};
 std::array<bool, 512> g_entityNpcPending{};
 std::array<bool, 4096> g_entityProjectilePending{};
 std::array<unsigned, 512> g_entityNpcTicks{};
@@ -1092,7 +1095,7 @@ int64_t executeManagedEntityOnWorker(const ManagedEntityJob& job) {
         g_entityNpcKill = g_api.findMethod(klass, "KillNpc", 4);
         g_entityProjectileHit = g_api.findMethod(klass, "HitProjectile", 7);
         g_entityProjectileKill = g_api.findMethod(klass, "KillProjectile", 5);
-        g_entityProjectileCollision = g_api.findMethod(klass, "CollideProjectile", 9);
+        g_entityProjectileCollision = g_api.findMethod(klass, "CollideProjectilePolicy", 9);
         g_entityResetWorld = g_api.findMethod(klass, "ResetWorld", 0);
         if (!g_entityRegister || !g_entityBind ||
             !g_entityNpcTick || !g_entityProjectileTick ||
@@ -1167,7 +1170,8 @@ int64_t executeManagedEntityOnWorker(const ManagedEntityJob& job) {
         void* exception = nullptr;
         void* result = g_api.invoke(g_entityProjectileCollision, nullptr, args, &exception);
         void* unboxed = (!exception && result) ? g_api.unbox(result) : nullptr;
-        return unboxed && *static_cast<uint8_t*>(unboxed) ? 1 : (exception ? -1 : 0);
+        return unboxed ? static_cast<int64_t>(*static_cast<int32_t*>(unboxed))
+                       : (exception ? -1 : 0);
     }
     if (job.kind >= 2 && job.kind <= 5) {
         int damage = job.damage, target = job.target;
@@ -1863,8 +1867,17 @@ void* pinnedMonoWorker(void*) {
                             g_entityAiProcessed[static_cast<size_t>(job.kind)]
                                 .fetch_add(1, std::memory_order_relaxed);
                         if (job.kind == 6) {
-                            if (result == 1) g_entityCollisionExecuted.fetch_add(1, std::memory_order_relaxed);
+                            if (result >= 1 && result <= 4)
+                                g_entityCollisionExecuted.fetch_add(1, std::memory_order_relaxed);
                             else g_entityCollisionRejected.fetch_add(1, std::memory_order_relaxed);
+                            if (managedDeferredTileCollisionMode(static_cast<int>(result)) != 0 &&
+                                static_cast<size_t>(job.slot) < g_entityCollisionPolicyReplies.size()) {
+                                const size_t slot=static_cast<size_t>(job.slot);
+                                g_entityCollisionPolicyReplies[slot]={
+                                    job.type,job.generation,job.owner,job.identity,result,true
+                                };
+                                g_entityCollisionPolicyReady[slot].store(true,std::memory_order_release);
+                            }
                         }
                         if (job.kind >= 2 && job.kind <= 5) {
                             const int eventIndex=job.kind-2;
@@ -2173,8 +2186,30 @@ void pauseManagedEntitySourceCallbacks() {
     g_entityProjectilePending.fill(false);
     g_entityNpcResults.fill({});
     g_entityProjectileResults.fill({});
+    g_entityCollisionPolicyReplies.fill({});
+    for(auto& ready:g_entityCollisionPolicyReady)ready.store(false,std::memory_order_release);
     g_entityNpcTicks.fill(0);
     g_entityProjectileTicks.fill(0);
+}
+
+bool takeManagedEntityTileCollisionPolicy(int type,int slot,int generation,int owner,
+                                          uintptr_t identity,int* policy) {
+    if(!policy || generation<=0 || !identity || slot<0 ||
+       static_cast<size_t>(slot)>=g_entityCollisionPolicyReady.size())return false;
+    const size_t index=static_cast<size_t>(slot);
+    if(!g_entityCollisionPolicyReady[index].load(std::memory_order_acquire))return false;
+    std::unique_lock<std::mutex> lock(g_pinnedMutex,std::try_to_lock);
+    if(!lock.owns_lock())return false;
+    auto& reply=g_entityCollisionPolicyReplies[index];
+    const bool match=reply.ready && reply.type==type &&
+        reply.generation==generation && reply.owner==owner &&
+        reply.identity==identity;
+    const int mode=managedDeferredTileCollisionMode(static_cast<int>(reply.packed));
+    reply={};
+    g_entityCollisionPolicyReady[index].store(false,std::memory_order_release);
+    if(!match || !mode)return false;
+    *policy=mode;
+    return true;
 }
 
 bool queueManagedEntityTileCollision(int type, int slot, int generation, int owner,

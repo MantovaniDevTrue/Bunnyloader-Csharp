@@ -193,6 +193,7 @@ struct TileMovementScope {
 thread_local TileMovementScope* g_tileMovementScope = nullptr;
 void enqueueManagedProjectileTileCollision(Il2CppObject* projectile, int type,
                                            Vector2 before, Vector2 after);
+int managedTileCollisionEffectiveMode(Il2CppObject* projectile,int type,int fallback);
 bool managedTileCollisionBudgetAvailable(Il2CppObject* projectile,int type,int limit);
 void recordManagedTileCollisionSurvival(Il2CppObject* projectile,int type,int limit);
 
@@ -245,7 +246,7 @@ void hkManagedTileMovement(Il2CppObject* projectile, Vector2 wet, const MethodIn
         original(projectile,wet,method);return;
     }
     const auto collision=nativeManagedProjectileTileCollisionSettings(type);
-    const int mode=collision.mode;
+    const int mode=managedTileCollisionEffectiveMode(projectile,type,collision.mode);
     const int platformMode=collision.platformMode;
     const bool nativePolicy = managedTileCollisionModeSupported(mode) &&
         managedTileCollisionBudgetAvailable(projectile,type,collision.survivalLimit);
@@ -510,6 +511,7 @@ struct ManagedEntityProjectileSlot {
     bool killQueued = false;
     bool spawnPending = false;
     int survivedTileCollisions = 0;
+    int tileCollisionModeOverride = 0;
     SummonMovement movement{};
     Slot targetCache{};
     unsigned targetScanTicks = 0;
@@ -519,6 +521,22 @@ struct ManagedEntityProjectileSlot {
 };
 std::array<ManagedEntityProjectileSlot, 4096> g_managedEntityProjectileSlots{};
 int g_managedEntityProjectileGeneration = 1;
+
+int managedTileCollisionEffectiveMode(Il2CppObject* projectile,int type,int fallback) {
+    const auto& game=runtime::game();
+    const int slot=runtime::field<int>(projectile,game.entity.whoAmI);
+    if(slot<0||static_cast<size_t>(slot)>=g_managedEntityProjectileSlots.size())return fallback;
+    auto& state=g_managedEntityProjectileSlots[static_cast<size_t>(slot)];
+    const int owner=runtime::field<int>(projectile,game.proj.owner);
+    if(state.object!=projectile || state.type!=type || state.owner!=owner ||
+       state.generation<=0 || state.killQueued)return fallback;
+    int overrideMode=0;
+    if(takeManagedEntityTileCollisionPolicy(type,slot,state.generation,owner,
+         reinterpret_cast<uintptr_t>(projectile),&overrideMode))
+        state.tileCollisionModeOverride=overrideMode;
+    return managedTileCollisionModeSupported(state.tileCollisionModeOverride)
+        ? state.tileCollisionModeOverride : fallback;
+}
 
 bool managedTileCollisionBudgetAvailable(Il2CppObject* projectile,int type,int limit) {
     if(limit==0)return true;

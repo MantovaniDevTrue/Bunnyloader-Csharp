@@ -39,6 +39,7 @@ public sealed class TestProjectile : BunnyProjectile
 {
     public static int Spawns, Ai, Hits, Kills, Despawns, TileCollisions;
     public static float LastOldX, LastNewX;
+    public static bool RequestBounce;
 
     public override void SetDefaults() { }
 
@@ -48,6 +49,7 @@ public sealed class TestProjectile : BunnyProjectile
         TileCollisions++;
         LastOldX = oldVelocityX;
         LastNewX = newVelocityX;
+        if (RequestBounce) state.NextTileCollisionMode = BunnyProjectileTileCollisionMode.Bounce;
     }
 
     public override void OnSpawn(ref BunnyProjectileAiState state) => Spawns++;
@@ -97,6 +99,14 @@ public static class Program
         Check.True(BunnyEntitySourceDispatcher.CollideProjectile(mod, 65, 8, 2001, 2, 8f, 0f, 0f, 0f), "Projectile collision not delivered");
         Check.Equal(TestProjectile.TileCollisions, 1, "Projectile collision fired an incorrect number of times");
         Check.True(TestProjectile.LastOldX == 8f && TestProjectile.LastNewX == 0f, "Projectile collision velocities changed");
+        TestProjectile.RequestBounce = true;
+        Check.Equal(BunnyEntitySourceDispatcher.CollideProjectilePolicy(mod, 65, 8, 2001, 2,
+            8f, 0f, 0f, 0f), 3, "Bounce request was not encoded for later native impact");
+        TestProjectile.RequestBounce = false;
+        Check.Equal(BunnyEntitySourceDispatcher.CollideProjectilePolicy(mod, 65, 8, 2001, 2,
+            8f, 0f, 0f, 0f), 1, "Default collision callback changed ABI");
+        Check.Equal(BunnyEntitySourceDispatcher.CollideProjectilePolicy(mod, 65, 8, 2002, 2,
+            8f, 0f, 0f, 0f), 0, "Stale instance returned a policy request");
         Check.True(!BunnyEntitySourceDispatcher.CollideProjectile(mod, 65, 8, 2002, 2, 8f, 0f, 0f, 0f), "Stale collision accepted");
         Check.True(!BunnyEntitySourceDispatcher.CollideProjectile(mod, 65, 8, 2001, 2, float.NaN, 0f, 0f, 0f), "Invalid collision velocity accepted");
         Check.True(BunnyEntitySourceDispatcher.HitProjectile(mod, 65, 8, 2001, 2, 5, 10), "Projectile hit not delivered");

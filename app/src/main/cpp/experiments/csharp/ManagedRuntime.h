@@ -71,6 +71,8 @@ bool hasManagedEntityNpcType(int type);
 bool hasManagedEntityProjectileType(int type);
 bool managedEntitySourceModsRegistered();
 void pauseManagedEntitySourceCallbacks();
+bool takeManagedEntityTileCollisionPolicy(int type,int slot,int generation,int owner,
+                                          uintptr_t identity,int* policy);
 bool queueManagedEntityTileCollision(int type, int slot, int generation, int owner,
                                      uintptr_t identity, float oldVX, float oldVY,
                                      float newVX, float newVY);
