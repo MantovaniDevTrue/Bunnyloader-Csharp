@@ -201,8 +201,8 @@ void clearNativeAchievementWorld() {
 }
 
 void setNativeAchievementWorldState(bool ready) {
-    g_achievementWorldReady.store(ready, std::memory_order_release);
-    if (!ready) g_mailbox.newWorld();
+    const bool previous = g_achievementWorldReady.exchange(ready, std::memory_order_acq_rel);
+    if (previous && !ready) g_mailbox.newWorld();
 }
 
 void pumpNativeAchievementGameplayOnGameThread() {
