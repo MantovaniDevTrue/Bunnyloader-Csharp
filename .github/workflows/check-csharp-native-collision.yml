@@ -4,6 +4,8 @@ on:
   push:
     paths:
       - 'app/src/main/cpp/experiments/csharp/ManagedProjectileHook.cpp'
+      - 'app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp'
+      - 'app/src/main/cpp/experiments/csharp/ManagedRuntime.h'
       - 'app/src/main/cpp/experiments/csharp/ManagedProjectileHook.h'
       - 'app/src/main/cpp/experiments/csharp/ManagedTileCollisionPolicy.h'
       - 'app/src/main/cpp/experiments/csharp/NativeContent.cpp'
@@ -13,6 +15,8 @@ on:
   pull_request:
     paths:
       - 'app/src/main/cpp/experiments/csharp/ManagedProjectileHook.cpp'
+      - 'app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp'
+      - 'app/src/main/cpp/experiments/csharp/ManagedRuntime.h'
       - 'app/src/main/cpp/experiments/csharp/ManagedProjectileHook.h'
       - 'app/src/main/cpp/experiments/csharp/ManagedTileCollisionPolicy.h'
       - 'app/src/main/cpp/experiments/csharp/NativeContent.cpp'
