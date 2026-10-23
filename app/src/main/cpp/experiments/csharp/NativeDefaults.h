@@ -2,6 +2,7 @@
 #include "il2cpp/FieldContract.h"
 #include "experiments/csharp/NativeContentIds.h"
 #include "experiments/csharp/NativeUseSounds.h"
+#include "experiments/csharp/NativeDrinkParticleColors.h"
 #include <atomic>
 #include <charconv>
 #include <cmath>
@@ -16,7 +17,7 @@
 #include <algorithm>
 
 namespace bl::csharp {
-struct NativeDefaultWrite {int offset=-1;std::vector<uint8_t> bytes;FieldInfo* sound=nullptr;FieldInfo* staticSet=nullptr;std::string owner{};};
+struct NativeDefaultWrite {int offset=-1;std::vector<uint8_t> bytes;FieldInfo* sound=nullptr;FieldInfo* staticSet=nullptr;std::shared_ptr<NativeDrinkColors> drinkColors;std::string owner{};};
 struct NativeDefaultsRequest {std::string name,mod,source,descriptor;int type=-1;bool projectile=false;};
 using NativeDefaultsBindings=std::vector<NativeDefaultWrite>;
 using NativeDefaultsTable=std::map<std::pair<bool,int>,NativeDefaultsBindings>;
@@ -38,7 +39,7 @@ inline NativeStaticCellKey nativeStaticCellKey(bool projectile,int type,FieldInf
 
 // Defaults must never change identity, ownership, pool membership or native references.
 inline bool nativeDefaultAllowed(const std::string& field,bool projectile) {
-    const std::string item=" ItemSet_GamepadWholeScreenUseRange ItemSet_LockOnIgnoresCollision ItemSet_StaffMinionSlotsRequired UseSound width height maxStack value rare damage crit knockBack useTime useAnimation useStyle melee ranged magic summon noMelee autoReuse useTurn consumable accessory vanity pick axe hammer mana shoot shootSpeed useAmmo ammo channel noUseGraphic tileBoost reuseDelay useLimitPerAnimation holdStyle useAmmo canBePlacedInVanity hasVanityEffects noWet bait fishingPole healLife healMana potion buffTime questItem " ;
+    const std::string item=" ItemSet_GamepadWholeScreenUseRange ItemSet_LockOnIgnoresCollision ItemSet_StaffMinionSlotsRequired ItemSet_DrinkParticleColors UseSound width height maxStack value rare damage crit knockBack useTime useAnimation useStyle melee ranged magic summon noMelee autoReuse useTurn consumable accessory vanity pick axe hammer mana shoot shootSpeed useAmmo ammo channel noUseGraphic tileBoost reuseDelay useLimitPerAnimation holdStyle useAmmo canBePlacedInVanity hasVanityEffects noWet bait fishingPole healLife healMana potion buffTime questItem " ;
     const std::string proj=" ProjectileSet_IsAGolfBall ProjectileSet_TrailingMode ProjectileSet_TrailCacheLength width height damage knockBack aiStyle friendly hostile melee ranged magic minion sentry minionSlots penetrate maxPenetrate timeLeft ignoreWater tileCollide scale light alpha extraUpdates usesLocalNPCImmunity localNPCHitCooldown usesIDStaticNPCImmunity idStaticNPCHitCooldown armorPenetration bonusCritChance coldDamage noEnchantments noEnchantmentVisuals ownerHitCheck netImportant hide arrow npcProj trap noDropItem soundDelay spriteDirection direction rotation " ;
     return (projectile?proj:item).find(" "+field+" ")!=std::string::npos;
 }
@@ -65,6 +66,16 @@ inline bool bindNativeDefaults(Il2CppClass* cls,const NativeDefaultsRequest& req
             return reject(name,"InvalidOrUnsupportedField","UniqueMutableContentDefault",record);
         const bool itemSet = name.rfind("ItemSet_",0)==0 && !request.projectile;
         const bool projectileSet = name.rfind("ProjectileSet_",0)==0 && request.projectile;
+        if(name=="ItemSet_DrinkParticleColors"&&!request.projectile) {
+            if(parts.size()!=3||parts[1]!="c")
+                return reject(name,"DrinkColorDescriptorInvalid","c:ARGB? PackedRGBA array",record);
+            auto spec=std::make_shared<NativeDrinkColors>();
+            std::string reason;
+            if(!bindNativeDrinkColors(request.type,parts[2],spec.get(),&reason))
+                return reject(name,"DrinkColorBindingFailed","ValidColorJaggedArrayAndRGBA",reason);
+            NativeDefaultWrite write;write.staticSet=spec->field;write.drinkColors=std::move(spec);
+            staged.push_back(std::move(write));continue;
+        }
         if(itemSet || projectileSet) {
             if(parts.size()!=3)return reject(name,itemSet?"ItemSetValueInvalid":"ProjectileSetValueInvalid","Three typed fields",record);
             const bool slots=name=="ItemSet_StaffMinionSlotsRequired";
@@ -225,6 +236,7 @@ inline uint8_t* nativeStaticCell(FieldInfo* field,int type,size_t width) {
 }
 inline void applyNativeStaticDefaultCell(const NativeDefaultWrite& field,bool projectile,int type) {
     if(!field.staticSet)return;
+    if(field.drinkColors) {applyNativeDrinkColors(*field.drinkColors,type);return;}
     auto* cell=nativeStaticCell(field.staticSet,type,field.bytes.size());if(!cell)return;
     const auto key=nativeStaticCellKey(projectile,type,field.staticSet);
     auto [it,inserted]=g_nativeStaticCells.try_emplace(key);
@@ -251,6 +263,16 @@ inline void pumpNativeStaticDefaultsOnGameThread() {
     std::sort(retired.begin(),retired.end());
     retired.erase(std::unique(retired.begin(),retired.end()),retired.end());
     for(const auto& key:retired) {
+        auto color=g_nativeDrinkColors.find({std::get<2>(key)?reinterpret_cast<FieldInfo*>(std::get<2>(key)):nullptr,std::get<1>(key)});
+        if(color!=g_nativeDrinkColors.end()) {
+            NativeDrinkColors spec;spec.field=color->first.first;
+            // Declared outer array is validated again at restore time.
+            auto* field=spec.field;auto& a=il2cpp::api();
+            auto* type=a.class_from_il2cpp_type(a.field_get_type(field));
+            spec.outerClass=type;
+            if(!restoreNativeDrinkColors(spec,std::get<1>(key)))g_retryNativeStaticRestores.push_back(key);
+            continue;
+        }
         auto saved=g_nativeStaticCells.find(key);if(saved==g_nativeStaticCells.end())continue;
         auto& state=saved->second;
         auto* cell=nativeStaticCell(state.field,std::get<1>(key),state.last.size());

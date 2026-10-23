@@ -20,6 +20,8 @@ public sealed class ExampleBuffPotion : BunnyBuffPotion
             .SetBool("consumable", true)
             .SetId("rare", "ItemRarityID", "Orange")
             .SetInt("value", 50000)
-            .SetVanillaUseSound("Item3");
+            .SetVanillaUseSound("Item3")
+            .SetItemDrinkParticleColors(new BunnyColor(240, 240, 240),
+                new BunnyColor(200, 200, 200),new BunnyColor(140, 140, 140));
     }
 }

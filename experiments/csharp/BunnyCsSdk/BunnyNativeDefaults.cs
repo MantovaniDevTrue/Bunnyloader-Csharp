@@ -52,6 +52,15 @@ public sealed class BunnyNativeDefaults
         if(name!="GamepadWholeScreenUseRange"&&name!="LockOnIgnoresCollision")throw new ArgumentException("ItemID.Sets Boolean não suportado",nameof(name));
         return Set("ItemSet_"+name,"b:"+(value?"1":"0"));
     }
+    public BunnyNativeDefaults SetItemDrinkParticleColors(params BunnyColor[] colors)
+    {
+        if(colors==null||colors.Length<1||colors.Length>8)
+            throw new ArgumentException("DrinkParticleColors requer de 1 a 8 cores",nameof(colors));
+        var values=new string[colors.Length];
+        for(int i=0;i<colors.Length;++i)
+            values[i]=colors[i].PackedRgba.ToString("X8",CultureInfo.InvariantCulture);
+        return Set("ItemSet_DrinkParticleColors","c:"+string.Join(",",values));
+    }
     /// <summary>Quantidade de slots exigidos pela arma de summon, na tabela real do jogo.</summary>
     public BunnyNativeDefaults SetStaffMinionSlotsRequired(int value)
     {
