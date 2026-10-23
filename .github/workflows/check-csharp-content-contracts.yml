@@ -67,5 +67,7 @@ jobs:
           /tmp/bunny-tile-collision-smoke
       - name: Build managed source compiler with collision metadata
         run: dotnet build experiments/csharp/BunnySourceCompiler/BunnySourceCompiler.csproj -c Release --nologo
+      - name: Execute compiled BunnyProjectile collision metadata probe
+        run: dotnet run --project tools/csharp_contracts/TileCollisionMetadataProbe/TileCollisionMetadataProbe.csproj -c Release --no-launch-profile
       - name: Compile and run managed entity lifecycle callbacks
         run: dotnet run --project tools/csharp_contracts/EntityLifecycleProbe/EntityLifecycleProbe.csproj -c Release --no-launch-profile

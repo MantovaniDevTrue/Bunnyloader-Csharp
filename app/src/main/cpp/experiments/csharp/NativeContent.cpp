@@ -1773,7 +1773,8 @@ bool applyManagedNativeDefaultsBatch(
     }
     const bool needsTileCollisionHook = std::any_of(projectiles.begin(),projectiles.end(),
         [](const ManagedProjectileEntry& entry) {return entry.values.tileCollisionMode != 0;});
-    if (needsTileCollisionHook && !installManagedProjectileTileCollisionHooks(error)) return false;
+    std::string tileCollisionError;
+    if (needsTileCollisionHook && !installManagedProjectileTileCollisionHooks(error ? error : &tileCollisionError)) return false;
     auto nextView=std::make_shared<ProjectileDefinitions>(*std::atomic_load_explicit(&g_projectileView,std::memory_order_acquire));
     for (const auto& item : stagedProjectiles) {
         g_projectiles[item.first] = item.second;
