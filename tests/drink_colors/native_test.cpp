@@ -122,7 +122,7 @@ int main() {
     assert(applyNativeDrinkColors(a,10));
     assert(bindNativeDrinkColors(10,"FF0A141E",&b,&error));
     assert(applyNativeDrinkColors(b,10));
-    assert(table.cells[10]!=original&&static_cast<uint8_t*>(arrayData(table.cells[10]))[0]==30);
+    assert(table.cells[10]!=original&&static_cast<uint8_t*>(arrayData(table.cells[10]))[0]==10 && static_cast<uint8_t*>(arrayData(table.cells[10]))[2]==30);
     assert(restoreNativeDrinkColors(b,10)&&table.cells[10]==original);
     assert(roots.empty()&&g_nativeDrinkColors.empty());
     table.cells[10]=nullptr;
