@@ -1,6 +1,6 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
-using System.Reflection;
 
 namespace BunnyLoader.Source;
 
@@ -12,6 +12,7 @@ namespace BunnyLoader.Source;
 public static class BunnyWorldMonoHost
 {
     private static BunnyWorldDispatcher _dispatcher = new();
+    private static readonly Dictionary<string, BunnyModAssemblyLease> Leases = new(StringComparer.Ordinal);
     public static string LastError { get; private set; } = "";
     public static int RegisteredSystems => _dispatcher.RegisteredSystems;
     public static bool WorldActive => _dispatcher.WorldActive;
@@ -32,19 +33,30 @@ public static class BunnyWorldMonoHost
             LastError = "Mod assembly path unavailable or world already active";
             return false;
         }
+        BunnyModAssemblyLease? lease = null;
         try
         {
-            Assembly assembly = Assembly.LoadFrom(assemblyPath);
-            if (_dispatcher.TryRegisterAssembly(modUid, assembly, out var error))
+            if (Leases.ContainsKey(modUid))
+            {
+                LastError = "World systems already registered for mod " + modUid;
+                return false;
+            }
+            lease = BunnyModAssemblyRegistry.Acquire(modUid, assemblyPath);
+            if (_dispatcher.TryRegisterAssembly(modUid, lease.Assembly, out var error))
+            {
+                Leases.Add(modUid, lease);
+                lease = null;
                 return true;
+            }
             LastError = error;
             return false;
         }
         catch (Exception ex)
         {
-            LastError = "Mod world assembly rejected: " + ex.GetType().Name;
+            LastError = "Mod world assembly rejected: " + ex.GetType().Name + ": " + ex.Message;
             return false;
         }
+        finally { lease?.Dispose(); }
     }
 
     /// <summary>
@@ -175,6 +187,8 @@ public static class BunnyWorldMonoHost
             return false;
         }
         _dispatcher = new BunnyWorldDispatcher();
+        foreach (BunnyModAssemblyLease lease in Leases.Values) lease.Dispose();
+        Leases.Clear();
         LastError = "";
         return true;
     }
