@@ -37,7 +37,7 @@ public sealed class ExampleWorldProgressSystem : BunnyWorldSystem
     public override void NetReceive(BunnyNetReader reader)
     {
         bool[] flags = reader.ReadFlags();
-        if (flags.Length != 1)
+        if (flags.Length != 1 || reader.Remaining != 0)
             throw new System.FormatException("Invalid boss progression packet");
         DownedExampleBoss = flags[0];
     }
