@@ -5,6 +5,7 @@ on:
     paths:
       - 'experiments/csharp/BunnyCsSdk/**'
       - 'experiments/csharp/BunnyWorldSystemsSmoke/**'
+      - 'experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj'
       - 'app/src/main/cpp/experiments/csharp/SourceParser.cpp'
       - 'app/src/main/cpp/experiments/csharp/SourceLoader.*'
       - 'app/src/main/cpp/experiments/csharp/SourceContentIdentity.h'
@@ -24,5 +25,7 @@ jobs:
         run: |
           c++ -std=c++20 -O2 -Wall -Wextra -Iapp/src/main/cpp app/src/main/cpp/experiments/csharp/SourceParser.cpp experiments/csharp/BunnyWorldSystemsSmoke/SourceParserSmoke.cpp -o /tmp/bunny-world-parser
           /tmp/bunny-world-parser
+      - name: Production SDK compatibility
+        run: dotnet build experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj -c Release
       - name: SDK and lifecycle checks
         run: dotnet run --project experiments/csharp/BunnyWorldSystemsSmoke/BunnyWorldSystemsSmoke.csproj -c Release
