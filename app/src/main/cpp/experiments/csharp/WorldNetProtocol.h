@@ -8,6 +8,10 @@
 
 namespace bl::csharp::world_net {
 
+inline bool preferWorldForSendSlot(int sent) {
+    return (sent & 1) != 0;
+}
+
 struct Snapshot {
     uint64_t session = 0;
     uint64_t revision = 0;
