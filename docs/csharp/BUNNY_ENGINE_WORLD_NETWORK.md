@@ -27,7 +27,7 @@ O autor pode usar `WriteFlags` (até 16 bools por chamada), `WriteByte`, `WriteI
 
 1. O host executa `NetSend` nos sistemas C# participantes durante o tick gerenciado existente, cerca de uma vez a cada 30 frames.
 2. Apenas quando o payload muda, sua revisão aumenta. O host publica um pacote `WS1`, isolado da rede de invasões `INV1`.
-3. A camada de rede nativa usa as sessões e o mecanismo de nonce/join já implementado para as invasões. Mensagens aos clientes usam `BLWS2`. O host mantém estado e último ack por peer, entregando no máximo dois pacotes no total por ciclo do bombeamento nativo, compartilhado com as invasões.
+3. A camada de rede nativa usa as sessões e o mecanismo de nonce/join já implementado para as invasões. Mensagens aos clientes usam `BLWS2`. O host mantém o último envio aceito pelo transporte por peer (isso ainda não é um ACK do cliente), alternando a prioridade entre mensagens de invasão e de mundo para evitar starvation. São enviados no máximo dois pacotes no total por ciclo do bombeamento nativo.
 4. A fila de entrada do cliente mantém a revisão mais recente por sistema/mod/sessão, descartando duplicatas e atualizações anteriores mesmo quando alcança sua capacidade. Em seguida, o cliente verifica o nonce associado à sessão, a identidade do mod, o nome do sistema, o formato, a revisão crescente e a sessão do host estável antes de chamar `NetReceive` em C#.
 5. O cliente **não** escreve estado autoritativo no arquivo local e não pode publicar estados no canal host.
 
@@ -36,6 +36,7 @@ O autor pode usar `WriteFlags` (até 16 bools por chamada), `WriteByte`, `WriteI
 - A camada de rede é específica para os sistemas de mundo; não constitui um `ModPacket` universal.
 - A payload é pequena de propósito, por causa do transporte autenticado de mensagens do jogo. Redes grandes exigirão um protocolo separado com fragmentação e confirmação.
 - A revisão monotônica é por sessão, não um identificador de objetos do Terraria.
+- Ainda não há confirmação de recebimento pelo cliente nem retransmissão por timeout. A camada marca um pacote como entregue quando o envio nativo retorna sucesso, e o estado é reenviado aos novos peers identificados pelo handshake. A perda de pacotes após sucesso do envio precisa de QA e eventual protocolo de ACK.
 - O estado sincronizado atualmente chega até um tick gerenciado depois do recebimento do pacote.
 - O empacotamento C#, a compilação e os testes de protocolo podem passar sem validar comunicação real entre dois aparelhos. A validação Android multiplayer permanece obrigatória.
 - O smoke test compila a classe real `ExampleWorldProgressSystem.cs` e verifica a recuperação da progressão após salvar/carregar e transmitir/receber flags. Isso valida o contrato gerenciado, mas não substitui um teste de entrega pela rede do Terraria.
