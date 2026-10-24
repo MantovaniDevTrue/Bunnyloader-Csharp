@@ -1,0 +1,33 @@
+name: Check Five Loaders package import
+on:
+  push:
+    branches: [fix/five-loaders-package-entry-20261024]
+  pull_request:
+    paths:
+      - 'samples/FiveLoadersCSharp/**'
+      - 'tests/five_loaders/**'
+      - 'tools/mods/pack.py'
+      - '.github/workflows/check-five-loader-package.yml'
+permissions:
+  contents: read
+jobs:
+  package-import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Reject missing entries and validate the delivered archive
+        run: |
+          python3 tests/five_loaders/package_import_test.py
+          python3 tests/test_create_csharp_mod.py
+          python3 tests/basic_items/package_assets_test.py
+          python3 tools/mods/pack.py samples/FiveLoadersCSharp/Playable
+      - name: Compile and execute the actual QA CSharp sources
+        run: dotnet run --project tests/five_loaders/Probe/Probe.csproj -c Release -- samples/FiveLoadersCSharp/Playable
+      - name: Verify native discovery still registers the five content types
+        run: |
+          g++ -std=c++20 -Iapp/src/main/cpp app/src/main/cpp/experiments/csharp/SourceParser.cpp tests/five_loaders/source_discovery_test.cpp -o /tmp/five-discovery
+          /tmp/five-discovery samples/FiveLoadersCSharp/Playable/content
