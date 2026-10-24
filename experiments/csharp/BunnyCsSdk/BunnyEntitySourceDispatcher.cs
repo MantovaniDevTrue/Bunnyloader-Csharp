@@ -43,6 +43,12 @@ public static class BunnyEntitySourceDispatcher
         public readonly List<BunnyWorldSystem> WorldSystems = new();
         public readonly HashSet<BunnyWorldSystem> FaultedWorldSystems = new();
         public readonly Dictionary<BunnyWorldSystem, string> PersistedWorldData = new();
+        public readonly HashSet<BunnyWorldSystem> NetworkedWorldSystems = new();
+        public readonly Dictionary<BunnyWorldSystem, string> PublishedWorldData = new();
+        public readonly Dictionary<BunnyWorldSystem, long> WorldNetRevisions = new();
+        public readonly Dictionary<string, BunnyWorldNetClientView> WorldNetViews = new(StringComparer.Ordinal);
+        public long WorldNetSent;
+        public long WorldNetReceived;
         public bool WorldAuthoritative;
         public long WorldDataWrites;
         public long WorldSystemUpdates;
@@ -123,6 +129,10 @@ public static class BunnyEntitySourceDispatcher
                     BunnyWorldSystem system = Activator.CreateInstance(type) as BunnyWorldSystem
                         ?? throw new InvalidOperationException("Invalid world system " + type.Name);
                     context.WorldSystems.Add(system);
+                    MethodInfo? netSend = type.GetMethod(nameof(BunnyWorldSystem.NetSend),
+                        new[] { typeof(BunnyNetWriter) });
+                    if (netSend?.DeclaringType != typeof(BunnyWorldSystem))
+                        context.NetworkedWorldSystems.Add(system);
                 }
                 else if (typeof(BunnyInvasionSystem).IsAssignableFrom(type))
                 {
@@ -195,6 +205,9 @@ public static class BunnyEntitySourceDispatcher
             ExitWorldSystems(context);
             context.FaultedWorldSystems.Clear();
             context.PersistedWorldData.Clear();
+            context.PublishedWorldData.Clear();
+            context.WorldNetRevisions.Clear();
+            context.WorldNetViews.Clear();
             foreach (BunnyInvasionSystem system in context.Invasions.Values) system.OnWorldExit();
             context.RegisteredItemUses.Clear();
             context.SavedInvasions.Clear();
@@ -215,6 +228,7 @@ public static class BunnyEntitySourceDispatcher
         var world = new BunnyWorldContext(worldSession, mode, elapsedFrames,
             playerIndex, playerX, playerY);
         if (enteringWorld) EnterWorldSystems(context, in world);
+        if (mode == 1) PollWorldSystems(context, in world);
         TickWorldSystems(context, in world);
         if (mode == 1)
         {
@@ -718,6 +732,66 @@ public static class BunnyEntitySourceDispatcher
         }
     }
 
+    private static void PublishWorldSystem(Context context, BunnyWorldSystem system,
+        in BunnyWorldContext world)
+    {
+        if (!context.NetworkedWorldSystems.Contains(system)) return;
+        var writer = new BunnyNetWriter();
+        system.NetSend(writer);
+        if (writer.Length == 0) return;
+        byte[] data = writer.ToArray();
+        string value = Convert.ToHexString(data);
+        if (context.PublishedWorldData.TryGetValue(system, out string? previous) &&
+            value == previous) return;
+        long revision = context.WorldNetRevisions.TryGetValue(system, out long old)
+            ? old + 1 : 1;
+        if (revision <= 0) throw new InvalidOperationException("World revision overflow");
+        var packet = new BunnyWorldNetState(world.Session, context.Mod,
+            system.GetType().Name, revision, data);
+        if (!packet.IsValid() || !BunnyWorldNetwork.Publish(world.Session, packet))
+            return;
+        context.PublishedWorldData[system] = value;
+        context.WorldNetRevisions[system] = revision;
+        context.WorldNetSent++;
+    }
+
+    private static void PollWorldSystems(Context context, in BunnyWorldContext world)
+    {
+        for (int i = 0; i < 8 &&
+             BunnyWorldNetwork.TryPoll(world.Session, context.Mod,
+                 out BunnyWorldNetState snapshot); i++)
+        {
+            BunnyWorldSystem? target = null;
+            foreach (BunnyWorldSystem system in context.NetworkedWorldSystems)
+            {
+                if (system.GetType().Name == snapshot.SystemName) {
+                    target = system;
+                    break;
+                }
+            }
+            if (target is null || context.FaultedWorldSystems.Contains(target)) continue;
+            if (!context.WorldNetViews.TryGetValue(snapshot.SystemName,
+                out BunnyWorldNetClientView? view))
+                context.WorldNetViews[snapshot.SystemName] =
+                    view = new BunnyWorldNetClientView();
+            if (!view.Accept(snapshot, world.Session, context.Mod,
+                snapshot.SystemName)) continue;
+            try
+            {
+                var reader = new BunnyNetReader(snapshot.Data);
+                target.NetReceive(reader);
+                if (reader.Remaining != 0)
+                    throw new FormatException("Unconsumed world packet data");
+                context.WorldNetReceived++;
+            }
+            catch (Exception error)
+            {
+                context.FaultedWorldSystems.Add(target);
+                Fault(context, target.GetType().Name + ".NetReceive", error);
+            }
+        }
+    }
+
     private static void TickWorldSystems(Context context, in BunnyWorldContext world)
     {
         foreach (BunnyWorldSystem system in context.WorldSystems)
@@ -728,6 +802,8 @@ public static class BunnyEntitySourceDispatcher
                 system.OnWorldTick(in world);
                 context.WorldSystemUpdates++;
                 SaveWorldSystem(context, system);
+                if (world.NetMode == 2 || world.NetMode == 3)
+                    PublishWorldSystem(context, system, in world);
             }
             catch (Exception error)
             {
@@ -762,6 +838,9 @@ public static class BunnyEntitySourceDispatcher
             context.NativeWorldSession = 0;
             context.WorldStateInitialized = false;
             context.FaultedWorldSystems.Clear();
+            context.PublishedWorldData.Clear();
+            context.WorldNetRevisions.Clear();
+            context.WorldNetViews.Clear();
             context.WorldAuthoritative = false;
             for (int i = 0; i < context.NpcSlots.Length; i++)
             {
@@ -813,6 +892,8 @@ public static class BunnyEntitySourceDispatcher
             " worldSystems=" + context.WorldSystems.Count +
             " worldUpdates=" + context.WorldSystemUpdates +
             " worldSaves=" + context.WorldDataWrites +
+            " worldNetTx=" + context.WorldNetSent +
+            " worldNetRx=" + context.WorldNetReceived +
             " npc=" + context.NpcCalls + " projectile=" + context.ProjectileCalls +
             " npcHits=" + context.NpcHits + " npcKills=" + context.NpcKills +
             " projectileHits=" + context.ProjectileHits + " projectileKills=" + context.ProjectileKills +
