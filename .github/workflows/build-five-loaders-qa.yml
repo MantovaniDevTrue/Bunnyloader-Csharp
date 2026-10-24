@@ -36,6 +36,7 @@ jobs:
       - name: Verify the five integrated contracts and the editable QA mod
         run: |
           set -euo pipefail
+          python3 -m pip install --quiet unicorn==2.1.4 pyelftools==0.33
           bash tools/five_loaders/check.sh
           dotnet run --project tools/sdk_reference/SdkReference.csproj -c Release -- --check
           dotnet build tests/five_loaders/QaMod.csproj -c Release --nologo -m:1

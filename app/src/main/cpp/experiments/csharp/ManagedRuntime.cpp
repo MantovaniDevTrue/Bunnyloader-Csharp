@@ -235,6 +235,24 @@ bool loadLibrary() {
         g_status.libraryLoaded = false;
         return false;
     }
+#if BUNNY_FIVE_LOADERS_QA
+    using MonoLogHandler = void (*)(const char*, const char*, const char*, int, void*);
+    using SetMonoLogHandler = void (*)(MonoLogHandler, void*);
+    if (auto setLog = resolve<SetMonoLogHandler>("mono_trace_set_log_handler")) {
+        setLog(+[](const char* domain, const char* level, const char* message, int fatal, void*) {
+            if (fatal || (level && (!std::strcmp(level, "error") || !std::strcmp(level, "critical")))) {
+                char line[4096];
+                std::snprintf(line, sizeof(line), "[CSharp][MonoFatal] Fatal=%d Domain=%s Level=%s Detail=%s",
+                    fatal, domain ? domain : "", level ? level : "", message ? message : "");
+#ifdef __ANDROID__
+                reportManagedItemUse(ANDROID_LOG_ERROR, line);
+#else
+                std::fprintf(stderr, "%s\n", line);
+#endif
+            }
+        }, nullptr);
+    }
+#endif
     g_status.symbolsReady = true;
     trace("symbols-ready");
     return true;
@@ -1481,6 +1499,9 @@ bool pollUniversalHooksOnWorker() {
                 uintptr_t self = work.self;
                 int result = 0;
                 void* exception = nullptr;
+#if BUNNY_FIVE_LOADERS_QA
+                setNativeManagedHookSlot(work.slot);
+#endif
                 UniversalMonoContext context;
                 if (work.extendedMode > 0) {
                     int32_t first = work.argument;
@@ -1502,6 +1523,9 @@ bool pollUniversalHooksOnWorker() {
                     void* args[] = {&slot, &ticket, &self, &result};
                     g_api.invoke(g_universalDispatch, nullptr, args, &exception);
                 }
+#if BUNNY_FIVE_LOADERS_QA
+                setNativeManagedHookSlot(-1);
+#endif
                 success = !exception && result == 1;
                 retryable = !exception && result == 2;
             }

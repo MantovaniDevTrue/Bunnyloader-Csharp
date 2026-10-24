@@ -8,6 +8,7 @@
 #include "experiments/csharp/NativeTouchLayoutHooks.h"
 #include "hook/HookManager.h"
 #include "experiments/csharp/MobileMainMenu.h"
+#include "experiments/csharp/NativeAbortProbe.h"
 #include "core/Log.h"
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
@@ -134,16 +135,30 @@ bool ensureControllerArrays(void* self) {
 // O método possui apenas (float), cuja ABI AArch64 é estável. Nunca
 // chamamos a assinatura HandleTouchCursorDown sem confirmar seu Vector2.
 void onControllerUpdate(void* self, float elapsedTime, const MethodInfo* method) {
+#if BUNNY_FIVE_LOADERS_QA
+    const uint32_t previousStage = nativeGameStage();
+    setNativeGameStage(200);
+    struct RestoreStage { uint32_t previous; ~RestoreStage() { setNativeGameStage(previous); } } restore{previousStage};
+#endif
     UpdateFn original = __atomic_load_n(&originalUpdate, __ATOMIC_ACQUIRE);
     const bool observe = self && installed.load(std::memory_order_acquire) &&
                          registry().count() > 0;
+#if BUNNY_FIVE_LOADERS_QA
+    setNativeGameStage(201);
+#endif
     const bool arraysReady = observe && ensureControllerArrays(self);
     bool menuBefore = true;
     if (arraysReady) {
         readMobileMainMenu(refs.gameMenu, &menuBefore);
         nativeTouchGroupBefore(self, !menuBefore);
     }
+#if BUNNY_FIVE_LOADERS_QA
+    setNativeGameStage(202);
+#endif
     if (original) original(self, elapsedTime, method);
+#if BUNNY_FIVE_LOADERS_QA
+    setNativeGameStage(203);
+#endif
     if (!arraysReady) {
         if (observe)
             registry().frame(static_cast<int64_t>(++ticks), false, true, true,
@@ -203,6 +218,9 @@ void onControllerUpdate(void* self, float elapsedTime, const MethodInfo* method)
             if (snapshot.bound[static_cast<size_t>(id)])
                 bound[boundCount++] = id;
     }
+#if BUNNY_FIVE_LOADERS_QA
+    setNativeGameStage(204);
+#endif
     const FocusState focus = readNativeTouchFocus();
     registry().frame(static_cast<int64_t>(++ticks), true, focus.chat,
                      focus.npc, focus.sign, held.data(), count,

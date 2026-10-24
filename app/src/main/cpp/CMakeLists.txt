@@ -8,6 +8,10 @@ option(BUNNY_CSHARP_DUST_PREVIEW "Enable experimental managed Dust callbacks in 
 if(BUNNY_CSHARP_DUST_PREVIEW)
     add_compile_definitions(BUNNY_CSHARP_DUST_PREVIEW=1)
 endif()
+option(BUNNY_FIVE_LOADERS_QA "Capture native abort evidence in the authorized five-loader QA" OFF)
+if(BUNNY_FIVE_LOADERS_QA)
+    add_compile_definitions(BUNNY_FIVE_LOADERS_QA=1)
+endif()
 set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 
 # --- ShadowHook (via prefab, vem do Gradle) ---

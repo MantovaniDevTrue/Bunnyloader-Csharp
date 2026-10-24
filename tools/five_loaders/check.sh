@@ -18,6 +18,7 @@ run tests/world_save/BunnyWorldData.Smoke.csproj --emit-fixture "$root/build/fiv
 run tests/world_save/BunnyWorldData.Smoke.csproj --emit-network-fixture "$root/build/five-checks/network.bwn"
 python3 tests/world_update_loader/check_contract.py
 python3 tests/world_update_loader/check_arm64_assembly.py
+python3 tests/world_update_loader/check_arm64_execution.py
 python3 tests/keybind_loader/check_native_touch_signatures.py
 flags=(-std=c++20 -O1 -g -Wall -Wextra -Werror -Wno-deprecated-declarations -pedantic -pthread -Iapp/src/main/cpp)
 cpp=app/src/main/cpp/experiments/csharp
@@ -28,6 +29,8 @@ g++ "${flags[@]}" -ffunction-sections -fdata-sections -Itests/basic_items/includ
 build/five-checks/mobile-chat
 native csharp-log -Itests/five_loaders/include tests/five_loaders/csharp_log_test.cpp app/src/main/cpp/core/Log.cpp
 build/five-checks/csharp-log
+g++ "${flags[@]}" -ffunction-sections -fdata-sections -Itests/five_loaders/include tests/five_loaders/native_abort_capture_test.cpp "$cpp/NativeAbortProbe.cpp" -Wl,--gc-sections -ldl -o build/five-checks/native-abort
+build/five-checks/native-abort
 native gore-catalog tests/csharp_gore_catalog_test.cpp
 native gore-discovery "$cpp/ManagedGoreDiscovery.cpp" tests/csharp_gore_discovery_test.cpp
 for name in action_ids input layout_json; do

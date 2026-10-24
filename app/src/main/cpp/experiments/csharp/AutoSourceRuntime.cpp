@@ -54,6 +54,7 @@
 #include "experiments/csharp/ManagedPrefixBridge.h"
 #include "experiments/csharp/ManagedSoundLoader.h"
 #include "experiments/csharp/NativeCommandManifest.h"
+#include "experiments/csharp/NativeAbortProbe.h"
 #include "experiments/csharp/NativeCommandChatHooks.h"
 #include "content/items/ModItemSave.h"
 #include "content/items/ModItems.h"
@@ -810,6 +811,11 @@ void run() {
     api.thread_attach(api.domain_get());
     const std::string work = folderOfCheckpoint();
     if (work.empty()) return;
+    #if BUNNY_FIVE_LOADERS_QA
+    if (installNativeAbortProbe(work, "native-game-abort-trace.txt"))
+        BL_INFO("[CSharp][NativeProbe] Result=Armed Signal=SIGABRT");
+    persistGameNativeModuleMaps(work);
+#endif
     const std::string cacheDir = work + "auto-source-cache";
     mkdir(cacheDir.c_str(), 0700);
     std::string runtimeIdentity;
@@ -1160,6 +1166,10 @@ void run() {
     g_worldSystemModules.store(worldModulesReady
         ? static_cast<int>(pendingWorldModules.size()) : 0, std::memory_order_release);
     g_worldRegistrationReady.store(worldModulesReady, std::memory_order_release);
+#if BUNNY_FIVE_LOADERS_QA
+    rearmNativeAbortProbe("source-registration-complete");
+    persistGameNativeModuleMaps(work);
+#endif
     if (pending.empty() && pendingCombat.empty()) {
         g_initialCSharpRegistrationFinished.store(true, std::memory_order_release);
         schedulePreWorldBindings();
@@ -1516,8 +1526,20 @@ bool compiledSourceHasTouchEntry(const std::string& assembly) {
 }
 
 void noteAutoGameUpdate() {
+#if BUNNY_FIVE_LOADERS_QA
+    struct StageReset { ~StageReset() { setNativeGameStage(0); } } stageReset;
+    setNativeGameStage(100);
+#endif
     if (nativeCommandMailbox().hasCommands())
-        installNativeCommandChatHooks();
+        {
+#if BUNNY_FIVE_LOADERS_QA
+            setNativeGameStage(101);
+#endif
+            installNativeCommandChatHooks();
+        }
+#if BUNNY_FIVE_LOADERS_QA
+    setNativeGameStage(102);
+#endif
     pumpNativeCommandRepliesOnGameThread();
     pumpNativeRarityGameplay();
     const bool invasionWorldReady = g_worldSessionReady.load(std::memory_order_acquire);
@@ -1549,16 +1571,49 @@ void noteAutoGameUpdate() {
     managedSound::pump();
     localization::pumpOnGameThread();
     gore::pumpOnGameThread();
+#if BUNNY_FIVE_LOADERS_QA
+    setNativeGameStage(103);
+#endif
     pumpUniversalHookInstallsOnGameThread();
+#if BUNNY_FIVE_LOADERS_QA
+    setNativeGameStage(104);
+#endif
     touch::pumpNativeTouchObserverOnGameThread();
+#if BUNNY_FIVE_LOADERS_QA
+    setNativeGameStage(105);
+#endif
     touch::pumpNativeTouchEditorLabelsOnGameThread();
+#if BUNNY_FIVE_LOADERS_QA
+    setNativeGameStage(106);
+#endif
     touch::ensureNativeTouchStaticMappingsOnGameThread();
+#if BUNNY_FIVE_LOADERS_QA
+    setNativeGameStage(107);
+#endif
     touch::pumpNativeTouchIconsOnGameThread();
+#if BUNNY_FIVE_LOADERS_QA
+    setNativeGameStage(108);
+#endif
     touch::pumpNativeTouchIconFrameHooksOnGameThread();
+#if BUNNY_FIVE_LOADERS_QA
+    setNativeGameStage(109);
+#endif
     touch::pumpNativeTouchQuickDrawHookOnGameThread();
+#if BUNNY_FIVE_LOADERS_QA
+    setNativeGameStage(110);
+#endif
     touch::pumpNativeTouchPointerHookOnGameThread();
+#if BUNNY_FIVE_LOADERS_QA
+    setNativeGameStage(111);
+#endif
     touch::pumpNativeTouchLayoutHooksOnGameThread();
+#if BUNNY_FIVE_LOADERS_QA
+    setNativeGameStage(112);
+#endif
     touch::pumpNativeTouchVisibilityHookOnGameThread();
+#if BUNNY_FIVE_LOADERS_QA
+    setNativeGameStage(113);
+#endif
     touch::pumpNativeTouchActivationOnGameThread();
     if (g_worldSessionReady.load(std::memory_order_acquire) &&
         touch::hostReady()) {

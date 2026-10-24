@@ -1,5 +1,6 @@
 #include "experiments/csharp/UniversalSystemStages.h"
 #include "experiments/csharp/MobileMainMenu.h"
+#include "experiments/csharp/NativeAbortProbe.h"
 #include "experiments/csharp/UniversalHookMailbox.h"
 #include "experiments/csharp/UniversalHooks.h"
 #include "hook/HookManager.h"
@@ -129,6 +130,11 @@ void invokeStage(int index, uintptr_t context = 0) {
         Clock::now().time_since_epoch()).count();
     if (now < stage.retryAfterNs.load(std::memory_order_relaxed)) return;
 
+#if BUNNY_FIVE_LOADERS_QA
+    const uint32_t previousStage = nativeGameStage();
+    setNativeGameStage(1000 + static_cast<uint32_t>(index));
+    struct RestoreStage { uint32_t previous; ~RestoreStage() { setNativeGameStage(previous); } } restore{previousStage};
+#endif
     // A rotina original deste estágio é o próprio salto ARM64 para o corpo
     // seguinte de DoUpdateInWorld. Nunca executá-la via MonoVM.
     // O Original.Invoke gerenciado apenas sincroniza este ponto de pausa.

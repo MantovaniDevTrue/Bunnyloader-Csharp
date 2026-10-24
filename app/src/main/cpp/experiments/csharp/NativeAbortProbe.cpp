@@ -1,6 +1,7 @@
 #include "experiments/csharp/NativeAbortProbe.h"
 
 #include <csignal>
+#include <atomic>
 #include <cstdlib>
 #include <sys/prctl.h>
 #include <cstddef>
@@ -21,6 +22,11 @@
 namespace bl::csharp {
 namespace {
 
+std::atomic<uint32_t> g_gameStage{0};
+std::atomic<uint32_t> g_lastGameStage{0};
+std::atomic<int> g_managedHookSlot{-1};
+static_assert(std::atomic<uint32_t>::is_always_lock_free);
+static_assert(std::atomic<int>::is_always_lock_free);
 int g_trace = -1;
 struct sigaction g_previous{};
 volatile sig_atomic_t g_handling = 0;
@@ -117,6 +123,12 @@ void emitCriticalAbortSnapshot(int signal, siginfo_t* info, void* raw) {
     decimal(static_cast<uintptr_t>(getpid()));
     literal(" tid=");
     decimal(static_cast<uintptr_t>(syscall(__NR_gettid)));
+    literal(" game_stage=");
+    decimal(g_gameStage.load(std::memory_order_relaxed));
+    literal(" last_game_stage=");
+    decimal(g_lastGameStage.load(std::memory_order_relaxed));
+    literal(" managed_slot_plus_one=");
+    decimal(static_cast<uintptr_t>(g_managedHookSlot.load(std::memory_order_relaxed) + 1));
     literal(" signo=");
     decimal(static_cast<uintptr_t>(signal));
     if (info) {
@@ -149,7 +161,7 @@ void markProcessExit() {
     (void)fsync(g_trace);
 }
 
-bool readFrame(uintptr_t address, uintptr_t (&result)[2]) {
+[[maybe_unused]] bool readFrame(uintptr_t address, uintptr_t (&result)[2]) {
 #ifdef __NR_process_vm_readv
     struct iovec local{result, sizeof(result)};
     struct iovec remote{reinterpret_cast<void*>(address), sizeof(result)};
@@ -186,7 +198,7 @@ bool parseMapRange(const char* line, size_t length, uintptr_t& lower, uintptr_t&
     return upper > lower;
 }
 
-void emitMatchingMaps(const uintptr_t* addresses, size_t count) {
+[[maybe_unused]] void emitMatchingMaps(const uintptr_t* addresses, size_t count) {
     if (g_trace < 0 || !addresses || count == 0) return;
     emit("DESTROYED_MUTEX_MAPS_BEGIN\n");
     const long opened = syscall(__NR_openat, AT_FDCWD, "/proc/self/maps", O_RDONLY | O_CLOEXEC, 0);
@@ -461,12 +473,26 @@ void onAbort(int signal, siginfo_t* info, void* raw) {
         restore.sa_handler = SIG_DFL;
     }
     (void)sigaction(SIGABRT, &restore, nullptr);
+    // SIGABRT is blocked while its handler runs. Deliver the original fatal
+    // signal before the exit fallback, preserving Android's crash handling.
+    sigset_t unblocked;
+    sigemptyset(&unblocked);
+    sigaddset(&unblocked, SIGABRT);
+    (void)sigprocmask(SIG_UNBLOCK, &unblocked, nullptr);
     (void)syscall(__NR_tgkill, getpid(), syscall(__NR_gettid), SIGABRT);
     _exit(128 + signal);
 }
 
 }
 
+
+void setNativeGameStage(uint32_t stage) {
+    if (stage) g_lastGameStage.store(stage, std::memory_order_relaxed);
+    g_gameStage.store(stage, std::memory_order_relaxed);
+}
+void setNativeManagedHookSlot(int slot) { g_managedHookSlot.store(slot, std::memory_order_relaxed); }
+uint32_t nativeGameStage() { return g_gameStage.load(std::memory_order_relaxed); }
+int nativeManagedHookSlot() { return g_managedHookSlot.load(std::memory_order_relaxed); }
 
 bool installNativeSegvTrace() {
     if (g_trace < 0) return false;
