@@ -1,11 +1,11 @@
 # Cinco loaders C# — QA Mobile 301720
 
 APK unificado recomendado: **Bunny Loader C#** (`com.bunnyloader.csharptest`,
-`1.0.23-csharp-unified-qa`). Substitui o aplicativo C# QA anterior,
+`1.0.24-csharp-unified-qa`). Substitui o aplicativo C# QA anterior,
 sem exigir APK Five QA paralelo. Terraria instalado precisa ser 1.4.5.8.6,
 Android ARM64. O pacote contém fontes C# editáveis, sem runtime JS.
 
-1. Instale o APK; importe e ligue `fiveloaderscsharp-0.1.1.bl`. Neste primeiro
+1. Instale o APK; importe e ligue `fiveloaderscsharp-0.1.2.bl`. Neste primeiro
    ensaio, deixe os outros mods desligados. Crie um personagem e mundo de QA.
 2. No chat do Terraria (não no editor JS), escreva `/lote`. Depois de alguns
    segundos, deve mostrar `mundo=True`, `StatModifier: 40` e `updates=19/19`.
@@ -57,3 +57,15 @@ promete retirada individual de tipos nativos durante a partida.
 
 O APK é uma entrega de QA autorizada deste lote, não uma versão estável nem
 uma declaração de que todos os loaders do projeto estão concluídos.
+
+## Leitura do TouchLayout (QA 1.0.24)
+
+Depois de atribuir **QA dos cinco loaders / TestarLote** a um botão físico do perfil ativo, saia do editor, pressione o botão e execute `/lote`. A linha `TouchLayout` exibe `slots`, `parsed`, `direct` e `groups` da varredura nativa do perfil.
+
+- `slots=0`: nenhum perfil/controle legível foi encontrado;
+- `slots>0 parsed=0`: a estrutura de ações não foi lida corretamente;
+- `parsed>0 direct=0 groups=0`: o perfil está legível, mas nenhuma ação C# foi encontrada (rever atribuição/perfil);
+- `direct>0` ou `groups>0` com `bound=False`: há divergência entre o snapshot do perfil e o estado observado do botão;
+- `bound=True` com `press=0`: investigar o hook de entrada nativa do botão, sem presumir falha da MonoVM.
+
+O parser nativo não deve descartar uma ação direta válida quando o estilo visual do slot não for legível. A correção não atribui botões automaticamente e não altera os controles vanilla. O funcionamento real exige validação no Android.

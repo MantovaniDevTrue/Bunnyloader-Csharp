@@ -35,6 +35,23 @@ internal static class BunnyTouchNativeHost
 
     internal static ulong PressToken(int id) => ReadPressToken(id);
 
+    [DllImport("bunny", EntryPoint = "bunny_csharp_touch_layout_status", CallingConvention = CallingConvention.Cdecl)]
+    private static extern ulong LayoutStatusNative();
+
+    internal static string LayoutDiagnostics()
+    {
+        try
+        {
+            ulong status = LayoutStatusNative();
+            return "slots=" + (status & 0xffffUL) +
+                " parsed=" + ((status >> 16) & 0xffffUL) +
+                " direct=" + ((status >> 32) & 0xffffUL) +
+                " groups=" + ((status >> 48) & 0xffffUL);
+        }
+        catch (EntryPointNotFoundException) { return "indisponivel"; }
+        catch (DllNotFoundException) { return "sem-lib"; }
+    }
+
     [DllImport("bunny", EntryPoint = "bunny_csharp_touch_world_reset", CallingConvention = CallingConvention.Cdecl)]
     internal static extern void ResetWorld();
 

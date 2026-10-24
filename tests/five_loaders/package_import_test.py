@@ -25,7 +25,7 @@ class PackageImportTests(unittest.TestCase):
             path.write_bytes(data)
             package = Package(path)
             try:
-                self.assertEqual(package.version, "0.1.1")
+                self.assertEqual(package.version, "0.1.2")
                 entry = "content/" + package.manifest["entry"]
                 self.assertIn(entry, package.names)
                 self.assertTrue(package.zip.read(entry))

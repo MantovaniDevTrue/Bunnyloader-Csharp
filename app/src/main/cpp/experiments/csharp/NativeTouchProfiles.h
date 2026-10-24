@@ -26,5 +26,6 @@ bool nativeTouchSlot(int slot, SlotAction* result);
 bool nativeTouchSlotId(int slot, std::string* id);
 const void* nativeTouchActiveProfileIdentity();
 bool nativeTouchActiveSnapshot(ActiveTouchSnapshot* result);
+uint64_t nativeTouchLastLayoutStatus();
 
 } // namespace bl::csharp::touch
