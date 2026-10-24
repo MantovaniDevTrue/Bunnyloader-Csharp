@@ -51,7 +51,7 @@ public sealed class BunnyNetWriter
             throw new ArgumentOutOfRangeException(nameof(value));
         Ensure(1 + bytes.Length);
         buffer[length++] = (byte)bytes.Length;
-        bytes.CopyTo(buffer.AsSpan(length));
+        bytes.AsSpan().CopyTo(buffer.AsSpan(length));
         length += bytes.Length;
     }
 
