@@ -2,6 +2,7 @@
 
 #include <csignal>
 #include <atomic>
+#include <set>
 #include <cstdlib>
 #include <sys/prctl.h>
 #include <cstddef>
@@ -171,8 +172,11 @@ void emitCriticalAbortSnapshot(int signal, siginfo_t* info, void* raw) {
     emitBytes(line, length);
 }
 
+void captureProcessExitStack();
 void markProcessExit() {
     emit("NATIVE_PROCESS_ATEXIT_BEGIN\n");
+    captureProcessExitStack();
+    emit("NATIVE_PROCESS_ATEXIT_END\n");
     (void)fsync(g_trace);
 }
 
@@ -265,6 +269,31 @@ bool parseMapRange(const char* line, size_t length, uintptr_t& lower, uintptr_t&
 
 struct sigaction g_previousSegv{};
 volatile sig_atomic_t g_segvCount = 0;
+
+void captureProcessExitStack() {
+    emit("exit_tid="); emitDec(static_cast<uintptr_t>(syscall(__NR_gettid)));
+    emit("game_stage="); emitDec(g_gameStage.load(std::memory_order_relaxed));
+    emit("last_game_stage="); emitDec(g_lastGameStage.load(std::memory_order_relaxed));
+    emit("managed_slot_plus_one="); emitDec(static_cast<uintptr_t>(g_managedHookSlot.load(std::memory_order_relaxed) + 1));
+#if defined(__aarch64__)
+    const uintptr_t caller = reinterpret_cast<uintptr_t>(__builtin_return_address(0));
+    emit("atexit_caller_lr="); emitHex(caller);
+    uintptr_t addresses[25]{caller}; size_t count = 1;
+    uintptr_t anchor = 0;
+    const uintptr_t sp = reinterpret_cast<uintptr_t>(&anchor);
+    uintptr_t fp = reinterpret_cast<uintptr_t>(__builtin_frame_address(0));
+    for (int frame = 0; frame < 24; ++frame) {
+        if ((fp & 15u) || fp < sp || fp - sp > 8u * 1024u * 1024u) break;
+        uintptr_t pair[2]{};
+        if (!readFrame(fp, pair)) break;
+        emit("atexit_return="); emitHex(pair[1]);
+        addresses[count++] = pair[1];
+        if (pair[0] <= fp || pair[0] - fp > 1024u * 1024u) break;
+        fp = pair[0];
+    }
+    emitMatchingMaps(addresses, count);
+#endif
+}
 
 void onSegv(int signo, siginfo_t* info, void* raw) {
     const int count = __sync_add_and_fetch(&g_segvCount, 1);
@@ -559,6 +588,13 @@ bool installDestroyedMutexTrace() {
         return false;
     }
     emit("DESTROYED_MUTEX_HOOK_ACTIVE\n");
+    return installNativeProcessExitTrace();
+}
+
+bool installNativeProcessExitTrace() {
+    if (g_trace < 0) return false;
+    if (g_originalExit) return true;
+    if (shadowhook_init(SHADOWHOOK_MODE_UNIQUE, false) != 0) return false;
     emit("PROCESS_EXIT_HOOK_ATTEMPT\n");
     void* exitStub = shadowhook_hook_sym_name(
         "libc.so", "exit",
@@ -566,6 +602,7 @@ bool installDestroyedMutexTrace() {
     if (!exitStub) {
         emit("PROCESS_EXIT_HOOK_FAILED\n");
         emitDec(static_cast<uintptr_t>(shadowhook_get_errno()));
+        return false;
     } else {
         emit("PROCESS_EXIT_HOOK_ACTIVE\n");
     }
@@ -583,8 +620,9 @@ bool persistGameNativeModuleMaps(const std::string& directory) {
         return false;
     }
     char buffer[1024]{};
-    std::fprintf(output, "GAME_MAPS_V2 pid=%ld\n", static_cast<long>(getpid()));
+    std::fprintf(output, "GAME_MAPS_V3 pid=%ld\n", static_cast<long>(getpid()));
     int count = 0;
+    std::set<std::string> libraries;
     while (std::fgets(buffer, sizeof(buffer), source)) {
         const bool executable = std::strstr(buffer, "r-xp") != nullptr;
         const bool relevant = std::strstr(buffer, "libbunny") ||
@@ -596,8 +634,13 @@ bool persistGameNativeModuleMaps(const std::string& directory) {
             std::strstr(buffer, "libshadowhook") ||
             std::strstr(buffer, "libSystem.Native") ||
             std::strstr(buffer, "linker64");
-        if (executable && relevant && count++ < 64)
+        const char* path = std::strchr(buffer, '/');
+        // mprotect splits IL2CPP into many executable mappings. Keep one
+        // representative map per image so the report retains every module.
+        if (executable && relevant && path && count < 64 && libraries.insert(path).second) {
+            ++count;
             std::fputs(buffer, output);
+        }
     }
     const bool ok = !std::ferror(source) && std::fclose(output) == 0;
     std::fclose(source);

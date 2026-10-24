@@ -35,7 +35,7 @@ with zipfile.ZipFile('app/build/outputs/apk/debug/app-debug.apk') as z:
 PY
 python3 tests/five_loaders/package_import_test.py
 python3 tools/mods/pack.py samples/FiveLoadersCSharp/Playable
-cp "$APK" build/five-delivery/Bunny-Five-Loaders-QA-0.1.4-diagnostic.apk
+cp "$APK" build/five-delivery/Bunny-Five-Loaders-QA-0.1.5.apk
 MOD_VERSION=$(python3 -c 'import json; print(json.load(open("samples/FiveLoadersCSharp/Playable/manifest.json"))["version"])')
 cp "build/mods-packs/fiveloaderscsharp-$MOD_VERSION.bl" build/five-delivery/
 cp samples/FiveLoadersCSharp/Playable/content/TESTE_NO_MOBILE.md build/five-delivery/
@@ -43,11 +43,11 @@ cp docs/qa/five-loaders-integration.json build/five-delivery/integration.json
 printf '%s\n' "$GITHUB_SHA" > build/five-delivery/COMMIT.txt
 (cd build/five-delivery && sha256sum *.apk *.bl *.md COMMIT.txt PACKAGE.txt SIGNATURE.txt > SHA256SUMS)
 TAG="five-loaders-qa-${GITHUB_SHA:0:12}"
-printf 'QA autorizado do lote #133, #126, #121, #122 e #120 para Mobile 301720.\n\nCommit: %s\nCI: https://github.com/%s/actions/runs/%s\n\nQA.4 diagnostico do SIGABRT ao entrar no mundo; a causa ainda nao foi confirmada. Atualizar por cima da QA.3, manter mod 0.1.1, entrar no mundo e exportar relatorio apos a falha. Contratos e compilacao validados, gameplay pendente do teste no aparelho. Nao e uma release de todos os loaders.\n' "$GITHUB_SHA" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID" > build/five-delivery/NOTES.md
+printf 'QA autorizado do lote #133, #126, #121, #122 e #120 para Mobile 301720.\n\nCommit: %s\nCI: https://github.com/%s/actions/runs/%s\n\nQA.5 configura o encadeamento de sinais nativos antes do Mono e amplia captura de encerramento. Atualizar por cima da QA.4, manter mod 0.1.1 e testar entrada no mundo. Confirmacao no aparelho ainda pendente. Contratos e compilacao validados, gameplay pendente do teste no aparelho. Nao e uma release de todos os loaders.\n' "$GITHUB_SHA" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID" > build/five-delivery/NOTES.md
 if gh release view "$TAG" --repo "$PRIVATE_INPUTS_REPO" >/dev/null 2>&1; then
  gh release upload "$TAG" build/five-delivery/* --repo "$PRIVATE_INPUTS_REPO" --clobber
 else
  gh release create "$TAG" build/five-delivery/* --repo "$PRIVATE_INPUTS_REPO" --prerelease \
-  --title 'Bunny CSharp — QA.4 diagnóstico de entrada no mundo' --notes-file build/five-delivery/NOTES.md
+  --title 'Bunny CSharp — QA.5 integração de sinais Mobile' --notes-file build/five-delivery/NOTES.md
 fi
 printf 'PRIVATE_FIVE_LOADERS_QA=https://github.com/%s/releases/tag/%s\n' "$PRIVATE_INPUTS_REPO" "$TAG"

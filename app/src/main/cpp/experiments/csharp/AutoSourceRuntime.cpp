@@ -812,8 +812,6 @@ void run() {
     const std::string work = folderOfCheckpoint();
     if (work.empty()) return;
     #if BUNNY_FIVE_LOADERS_QA
-    if (installNativeAbortProbe(work, "native-game-abort-trace.txt"))
-        BL_INFO("[CSharp][NativeProbe] Result=Armed Signal=SIGABRT");
     persistGameNativeModuleMaps(work);
 #endif
     const std::string cacheDir = work + "auto-source-cache";
@@ -1167,6 +1165,13 @@ void run() {
         ? static_cast<int>(pendingWorldModules.size()) : 0, std::memory_order_release);
     g_worldRegistrationReady.store(worldModulesReady, std::memory_order_release);
 #if BUNNY_FIVE_LOADERS_QA
+    // Install after Mono has saved Unity's handlers, avoiding a chain cycle
+    // (Mono -> our abort handler -> Mono -> our abort handler).
+    if (installNativeAbortProbe(work, "native-game-abort-trace.txt")) {
+        BL_INFO("[CSharp][NativeProbe] Result=Armed Signal=SIGABRT Stage=AfterMonoInit");
+        installNativeSegvTrace();
+        installNativeProcessExitTrace();
+    }
     rearmNativeAbortProbe("source-registration-complete");
     persistGameNativeModuleMaps(work);
 #endif
