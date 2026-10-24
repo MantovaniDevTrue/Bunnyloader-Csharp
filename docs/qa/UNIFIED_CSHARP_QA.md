@@ -14,7 +14,7 @@ Confirme: entrada no mundo, chat `/lote`, contadores de toque e updates, pontos 
 
 ## Diagnóstico do toque C# (QA5)
 
-Com FiveLoadersCSharp 0.1.1 habilitado, atribua **QA dos cinco loaders / TestarLote** a um botão do editor nativo e salve o layout. Entre no mundo, feche o chat, pressione o botão e execute `/lote`. A linha `TouchHost` traz:
+Com FiveLoadersCSharp 0.1.2 habilitado, atribua **QA dos cinco loaders / TestarLote** a um botão do editor nativo e salve o layout. Entre no mundo, feche o chat, pressione o botão e execute `/lote`. A linha `TouchHost` traz:
 
 - `registro=ok`: a entrada gerenciada do botão foi criada;
 - `host=Ready`: hooks IL2CPP e host de entrada estão ativos;
