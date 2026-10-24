@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <iostream>
+#include <map>
 #include <string>
 
 int main() {
@@ -53,6 +54,18 @@ int main() {
     queue.clear();
     assert(enqueueLatest(&queue, 6, snapshot, "new-local-world", 2));
     assert(queue.front().localSession == 6 && queue.front().revision == 4);
+    std::map<int, int> clients = {{2, 0}, {5, 0}, {11, 0}};
+    assert(nextPeerAfter(clients, -1)->first == 2);
+    assert(nextPeerAfter(clients, 2)->first == 5);
+    assert(nextPeerAfter(clients, 5)->first == 11);
+    assert(nextPeerAfter(clients, 11)->first == 2);
+    clients.erase(5);
+    assert(nextPeerAfter(clients, 2)->first == 11);
+    assert(nextPeerAfter(clients, 10)->first == 11);
+    clients.erase(11);
+    assert(nextPeerAfter(clients, 2)->first == 2);
+    clients.clear();
+    assert(nextPeerAfter(clients, 2) == clients.end());
     std::cout << "Bunny Engine world network protocol: PASS\n";
     return 0;
 }
