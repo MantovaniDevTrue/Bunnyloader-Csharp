@@ -1,5 +1,6 @@
 #include "experiments/csharp/NativeInvasionNetwork.h"
 #include "experiments/csharp/NativeInvasionPeerPolicy.h"
+#include "experiments/csharp/WorldNetProtocol.h"
 #include "hook/HookManager.h"
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
@@ -120,20 +121,10 @@ bool parseSnapshot(const std::string& text, Key* id, uint64_t* revision) {
 }
 
 bool parseWorldSnapshot(const std::string& text, Key* id, uint64_t* revision) {
-    if (text.size() > 300 || text.rfind("WS1|", 0) != 0) return false;
-    const auto parts = fields(text, '|');
-    if (parts.size() != 6 || !validName(parts[2], 128) ||
-        !validName(parts[3], 128)) return false;
-    uint64_t session = 0, sequence = 0;
-    if (!decimal(parts[1], &session) || session == 0 ||
-        !decimal(parts[4], &sequence) || sequence == 0 ||
-        parts[5].empty() || parts[5].size() > 192 ||
-        parts[5].size() % 2 != 0) return false;
-    for (char c : parts[5])
-        if (!((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F')))
-            return false;
-    *id = {parts[2], parts[3]};
-    *revision = sequence;
+    world_net::Snapshot parsed;
+    if (!world_net::parse(text, &parsed)) return false;
+    *id = {parsed.mod, parsed.system};
+    *revision = parsed.revision;
     return true;
 }
 
@@ -385,10 +376,9 @@ int bunny_world_system_net_publish(int64_t session, const char* payload) {
     uint64_t revision = 0;
     const std::string encoded(payload);
     if (!parseWorldSnapshot(encoded, &id, &revision)) return 0;
-    const auto parts = fields(encoded, '|');
-    uint64_t remoteSession = 0;
-    if (!decimal(parts[1], &remoteSession) ||
-        remoteSession != static_cast<uint64_t>(session)) return 0;
+    world_net::Snapshot parsed;
+    if (!world_net::parse(encoded, &parsed) ||
+        parsed.session != static_cast<uint64_t>(session)) return 0;
     std::lock_guard<std::mutex> guard(g_mutex);
     if (!g_ready.load(std::memory_order_acquire) ||
         g_session.load(std::memory_order_acquire) != static_cast<uint64_t>(session))
