@@ -3,6 +3,7 @@
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
 #include <algorithm>
+#include <atomic>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -10,6 +11,7 @@
 
 namespace bl::csharp::touch {
 namespace {
+std::atomic<uint64_t> lastLayoutStatus{0};
 
 template<typename T> T read(const void* base, size_t offset) {
     T value{};
@@ -84,7 +86,8 @@ Il2CppObject* activeProfile() {
     size_t position = 0;
     if (offset(actual, "_activeProfile", sizeof(void*), true, &position) ||
         offset(actual, "ActiveProfile", sizeof(void*), true, &position))
-        return read<Il2CppObject*>(styles, position);
+        if (Il2CppObject* active = read<Il2CppObject*>(styles, position))
+            return active;
     if (!a.class_get_method_from_name || !a.method_is_instance ||
         !a.runtime_invoke) return nullptr;
     const MethodInfo* getter = a.class_get_method_from_name(actual, "get_ActiveProfile", 0);
@@ -172,8 +175,9 @@ bool slotFromProfile(Il2CppObject* profile, Il2CppArray* controls,
         return false;
     SlotAction temp;
     temp.action = read<int32_t>(binding, actionOffset);
-    if (!styleOf(profile, slot, &temp.style)) return false;
-    if (temp.style == 2 && !numericGroup(binding, &temp)) return false;
+    if (!styleOf(profile, slot, &temp.style)) temp.style = -1;
+    if (temp.style == 2 || temp.style < 0)
+        numericGroup(binding, &temp);
     *result = temp;
     return true;
 }
@@ -232,25 +236,47 @@ bool nativeTouchActiveSnapshot(ActiveTouchSnapshot* result) {
     snapshot.actionSlots.fill(-1);
     Il2CppObject* profile = activeProfile();
     Il2CppArray* controls = nullptr;
-    if (!profile || !objectArray(profile, "Controls", &controls)) return false;
+    if (!profile || !objectArray(profile, "Controls", &controls)) {
+        lastLayoutStatus.store(0, std::memory_order_relaxed);
+        return false;
+    }
     const int count = static_cast<int>(controls->length);
+    int parsed = 0, direct = 0, grouped = 0;
     for (int slot = 0; slot < count; ++slot) {
         SlotAction action;
         if (!slotFromProfile(profile, controls, slot, &action)) continue;
+        ++parsed;
         int id = nativeTouchIndexByAction(action.action);
         if (id >= 0 && id < kMaxButtons) {
             snapshot.bound[static_cast<size_t>(id)] = true;
             snapshot.actionSlots[static_cast<size_t>(id)] = slot;
+            ++direct;
         }
         for (int j = 0; j < action.groupCount; ++j) {
             id = nativeTouchIndexByAction(action.group[static_cast<size_t>(j)]);
-            if (id >= 0 && id < kMaxButtons)
+            if (id >= 0 && id < kMaxButtons) {
                 snapshot.bound[static_cast<size_t>(id)] = true;
+                ++grouped;
+            }
         }
     }
     snapshot.ready = true;
+    lastLayoutStatus.store(
+        static_cast<uint64_t>(count) |
+        (static_cast<uint64_t>(parsed) << 16) |
+        (static_cast<uint64_t>(direct) << 32) |
+        (static_cast<uint64_t>(grouped) << 48),
+        std::memory_order_relaxed);
     *result = snapshot;
     return true;
 }
 
+uint64_t nativeTouchLastLayoutStatus() {
+    return lastLayoutStatus.load(std::memory_order_relaxed);
+}
+
 } // namespace bl::csharp::touch
+
+extern "C" __attribute__((visibility("default"))) uint64_t bunny_csharp_touch_layout_status() {
+    return bl::csharp::touch::nativeTouchLastLayoutStatus();
+}
