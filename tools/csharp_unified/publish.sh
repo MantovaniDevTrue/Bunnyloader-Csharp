@@ -10,8 +10,23 @@ grep -F 'Verified using v3 scheme (APK Signature Scheme v3): true' build/unified
 "$TOOLS/zipalign" -c 4 "$APK"
 "$TOOLS/aapt" dump badging "$APK" > build/unified-delivery/PACKAGE.txt
 grep -F "package: name='com.bunnyloader.csharptest'" build/unified-delivery/PACKAGE.txt
-grep -F "versionCode='315'" build/unified-delivery/PACKAGE.txt
-grep -F "versionName='1.0.14-csharp-unified-qa'" build/unified-delivery/PACKAGE.txt
+mapfile -t EXPECTED_VERSION < <(python3 - <<'PY'
+import re
+from pathlib import Path
+content = Path('app/build.gradle.kts').read_text()
+code = re.search(r'versionCode\s*=\s*if\s*\(unifiedCSharpQa\)\s*(\d+)', content)
+name = re.search(r'versionName\s*=\s*if\s*\(unifiedCSharpQa\)\s*"([^"]+)"', content)
+if not code or not name:
+    raise SystemExit('Unified QA version missing from Gradle')
+print(code.group(1))
+print(name.group(1))
+PY
+)
+test "${#EXPECTED_VERSION[@]}" -eq 2
+grep -F "versionCode='${EXPECTED_VERSION[0]}'" build/unified-delivery/PACKAGE.txt
+grep -F "versionName='${EXPECTED_VERSION[1]}'" build/unified-delivery/PACKAGE.txt
+QA_VERSION="${EXPECTED_VERSION[1]%%-csharp-unified-qa}"
+test "${QA_VERSION}" != "${EXPECTED_VERSION[1]}"
 python3 - <<'PY'
 import hashlib,zipfile
 from pathlib import Path
@@ -38,7 +53,7 @@ PY
 python3 tests/five_loaders/package_import_test.py
 python3 tools/mods/pack.py samples/FiveLoadersCSharp/Playable
 python3 tools/mods/pack.py samples/ExampleModCSharp/Playable
-cp "$APK" build/unified-delivery/Bunny-Loader-CSharp-Unified-QA-1.0.16.apk
+cp "$APK" "build/unified-delivery/Bunny-Loader-CSharp-Unified-QA-${QA_VERSION}.apk"
 MOD_VERSION=$(python3 -c 'import json; print(json.load(open("samples/FiveLoadersCSharp/Playable/manifest.json"))["version"])')
 cp "build/mods-packs/fiveloaderscsharp-$MOD_VERSION.bl" build/unified-delivery/
 EXAMPLE_VERSION=$(python3 -c 'import json; print(json.load(open("samples/ExampleModCSharp/Playable/manifest.json"))["version"])')
@@ -54,6 +69,6 @@ if gh release view "$TAG" --repo "$PRIVATE_INPUTS_REPO" >/dev/null 2>&1; then
  gh release upload "$TAG" build/unified-delivery/* --repo "$PRIVATE_INPUTS_REPO" --clobber
 else
  gh release create "$TAG" build/unified-delivery/* --repo "$PRIVATE_INPUTS_REPO" --prerelease \
-  --title 'Bunny Loader CSharp Unificado 1.0.16 — QA Mobile' --notes-file build/unified-delivery/NOTES.md
+  --title "Bunny Loader CSharp Unificado ${QA_VERSION} — QA Mobile" --notes-file build/unified-delivery/NOTES.md
 fi
 printf 'PRIVATE_CSHARP_UNIFIED_QA=https://github.com/%s/releases/tag/%s\n' "$PRIVATE_INPUTS_REPO" "$TAG"
