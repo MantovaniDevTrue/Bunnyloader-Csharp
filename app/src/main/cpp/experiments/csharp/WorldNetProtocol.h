@@ -12,6 +12,12 @@ inline bool preferWorldForSendSlot(int sent) {
     return (sent & 1) != 0;
 }
 
+template <typename PeerMap>
+typename PeerMap::iterator nextPeerAfter(PeerMap& peers, int last) {
+    auto it = peers.upper_bound(last);
+    return it == peers.end() ? peers.begin() : it;
+}
+
 struct Snapshot {
     uint64_t session = 0;
     uint64_t revision = 0;
