@@ -316,6 +316,10 @@ void onSegv(int signo, siginfo_t* info, void* raw) {
             emit("segv_fault_address=");
             emitHex(reinterpret_cast<uintptr_t>(info->si_addr));
         }
+        emit("segv_mono_worker_stage=");
+        emitDec(g_monoWorkerStage.load(std::memory_order_relaxed));
+        emit("segv_mono_worker_tid=");
+        emitDec(static_cast<uintptr_t>(g_monoWorkerTid.load(std::memory_order_relaxed)));
 #if defined(__aarch64__)
         const auto* context = static_cast<const ucontext_t*>(raw);
         if (context) {
@@ -337,10 +341,6 @@ void onSegv(int signo, siginfo_t* info, void* raw) {
             emitDec(g_lastGameStage.load(std::memory_order_relaxed));
             emit("segv_managed_slot_plus_one=");
             emitDec(static_cast<uintptr_t>(g_managedHookSlot.load(std::memory_order_relaxed) + 1));
-            emit("segv_mono_worker_stage=");
-            emitDec(g_monoWorkerStage.load(std::memory_order_relaxed));
-            emit("segv_mono_worker_tid=");
-            emitDec(static_cast<uintptr_t>(g_monoWorkerTid.load(std::memory_order_relaxed)));
             for (unsigned i = 0; i < 31; ++i) {
                 emit("segv_x");
                 emitDec(i);
