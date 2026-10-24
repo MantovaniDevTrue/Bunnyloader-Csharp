@@ -19,6 +19,7 @@ public static class BunnyDustSourceDispatcher
         public required string ModId;
         public required string AssemblyPath;
         public required BunnyDustRegistry Registry;
+        public BunnyModAssemblyLease? Lease;
         public readonly int[] Types = new int[BunnyDustRegistry.MaxDustSlots];
         public readonly int[] Generations = new int[BunnyDustRegistry.MaxDustSlots];
     }
@@ -29,6 +30,8 @@ public static class BunnyDustSourceDispatcher
     internal static string ModForAssembly(Assembly assembly)
     {
         string path = assembly.Location;
+        if (path.Length == 0 && BunnyModAssemblyRegistry.TryResolve(assembly, out _, out string resolved))
+            path = resolved;
         foreach (Context context in Contexts)
             if (context.AssemblyPath == path) return context.ModId;
         if (BunnyEntitySourceDispatcher.TryRegisterDustAssembly(assembly))
@@ -42,20 +45,31 @@ public static class BunnyDustSourceDispatcher
     {
         if (string.IsNullOrWhiteSpace(modId) || string.IsNullOrWhiteSpace(assemblyPath))
             return -1;
+        BunnyModAssemblyLease? lease = null;
         try
         {
-            return RegisterLoaded(modId, Assembly.LoadFrom(assemblyPath));
+            lease = BunnyModAssemblyRegistry.Acquire(modId, assemblyPath);
+            int slot = RegisterLoaded(modId, lease.Assembly);
+            if (slot >= 0 && Contexts[slot].Lease == null)
+            {
+                Contexts[slot].Lease = lease;
+                lease = null;
+            }
+            return slot;
         }
         catch (Exception error)
         {
             LastRegistrationError = error.GetType().Name + ": " + error.Message;
             return -1;
         }
+        finally { lease?.Dispose(); }
     }
 
     internal static int RegisterLoaded(string modId, Assembly assembly)
     {
         string assemblyPath = assembly.Location;
+        if (assemblyPath.Length == 0 && BunnyModAssemblyRegistry.TryResolve(assembly, out _, out string resolved))
+            assemblyPath = resolved;
         if (string.IsNullOrWhiteSpace(modId) || string.IsNullOrWhiteSpace(assemblyPath))
             return -1;
         for (int i = 0; i < Contexts.Count; i++)
@@ -221,7 +235,10 @@ public static class BunnyDustSourceDispatcher
     public static void Unload()
     {
         foreach (Context context in Contexts)
+        {
             context.Registry.Unload();
+            context.Lease?.Dispose();
+        }
         Contexts.Clear();
         LastRegistrationError = "";
     }
