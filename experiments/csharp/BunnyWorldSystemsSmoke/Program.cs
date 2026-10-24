@@ -222,7 +222,49 @@ internal static class Program
         Check(boundaryPacket.IsValid() ==
             (boundaryPacket.Encode().Length <= 300),
             "Boundary-sized world packet budget");
-        Console.WriteLine("Bunny World Systems smoke: 40 checks passed");
+        bool invalidCount = false;
+        try { new BunnyNetReader(new byte[] { 0 }).ReadFlags(); }
+        catch (FormatException) { invalidCount = true; }
+        Check(invalidCount, "Reject zero network flags");
+
+        invalidCount = false;
+        try { new BunnyNetReader(new byte[] { 17, 0, 0, 0 }).ReadFlags(); }
+        catch (FormatException) { invalidCount = true; }
+        Check(invalidCount, "Reject overlong network flags");
+
+        bool invalidPadding = false;
+        try { new BunnyNetReader(new byte[] { 3, 0x80 }).ReadFlags(); }
+        catch (FormatException) { invalidPadding = true; }
+        Check(invalidPadding, "Reject nonzero packed flag padding");
+
+        bool invalidText = false;
+        try { new BunnyNetReader(new byte[] { 1, 0xFF }).ReadString(); }
+        catch (System.Text.DecoderFallbackException) { invalidText = true; }
+        Check(invalidText, "Reject invalid UTF8 network strings");
+
+        bool truncatedInteger = false;
+        try { new BunnyNetReader(new byte[] { 1, 2, 3 }).ReadInt32(); }
+        catch (FormatException) { truncatedInteger = true; }
+        Check(truncatedInteger, "Reject incomplete network integers");
+
+        bool utf8Overflow = false;
+        try { new BunnyNetWriter().WriteString(new string('é', 33)); }
+        catch (ArgumentOutOfRangeException) { utf8Overflow = true; }
+        Check(utf8Overflow, "Bound UTF8 strings by bytes not chars");
+
+        bool writerOverflow = false;
+        var fullWriter = new BunnyNetWriter();
+        for (int n = 0; n < 24; n++) fullWriter.WriteInt32(n);
+        try { fullWriter.WriteByte(1); }
+        catch (InvalidOperationException) { writerOverflow = true; }
+        Check(writerOverflow && fullWriter.Length == BunnyNetWriter.MaxBytes,
+            "Refuse overcapacity writes without modifying buffer");
+
+        bool payloadOverflow = false;
+        try { new BunnyNetReader(new byte[BunnyNetWriter.MaxBytes + 1]); }
+        catch (ArgumentOutOfRangeException) { payloadOverflow = true; }
+        Check(payloadOverflow, "Reject oversized received buffers");
+        Console.WriteLine("Bunny World Systems smoke: 48 checks passed");
         return 0;
     }
 }
