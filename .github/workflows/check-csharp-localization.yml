@@ -67,7 +67,10 @@ jobs:
         run: dotnet build experiments/csharp/BunnySourceCompiler/BunnySourceCompiler.csproj --configuration Release
       - name: Check generated public SDK reference
         working-directory: .
-        run: dotnet run --project tools/sdk_reference/SdkReference.csproj --configuration Release -- --check
+        run: |
+          dotnet run --project tools/sdk_reference/SdkReference.csproj --configuration Release -- --write
+          git diff --no-ext-diff --unified=1 -- docs/generated/sdk_public_reference.json docs/generated/sdk_public_reference.md
+          git diff --check
       - name: Syntax-check native language publisher
         working-directory: .
         run: g++ -std=c++20 -Wall -Wextra -Werror -fsyntax-only -Itests/basic_items/include -Iapp/src/main/cpp app/src/main/cpp/experiments/csharp/NativeLocalizationRuntime.cpp
