@@ -10,6 +10,10 @@ on:
       - experiments/csharp/BunnyCsSdk/BunnyCommandWorker.cs
       - samples/ExampleModCSharp/Experimental/CommandLoader/**
       - samples/ExampleModCSharp/Playable/content/Common/Commands/**
+      - tools/examplemod_coverage.py
+      - docs/csharp/examplemod-evidence.json
+      - docs/csharp/EXAMPLEMOD_COVERAGE.json
+      - docs/csharp/EXAMPLEMOD_COVERAGE.md
       - experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj
       - tests/commands/**
       - experiments/csharp/BunnySourceCompiler/**
@@ -43,3 +47,7 @@ jobs:
         run: dotnet run --project tests/commands/CommandManifest.HostTests.csproj -c Release
       - name: Verify native game action semantics in original Bunny CSharp examples
         run: dotnet run --project tests/commands/Actions.HostTests.csproj -c Release
+      - name: Check pinned ExampleMod coverage and readiness policy
+        run: |
+          python3 tools/examplemod_coverage.py --check
+          python3 -m unittest discover -s tests -p test_examplemod_apk_readiness.py
