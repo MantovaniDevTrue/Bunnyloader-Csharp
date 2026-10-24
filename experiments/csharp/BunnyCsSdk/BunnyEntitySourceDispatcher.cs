@@ -45,7 +45,7 @@ public static class BunnyEntitySourceDispatcher
         public readonly HashSet<BunnyWorldSystem> FaultedWorldSystems = new();
         public readonly Dictionary<BunnyWorldSystem, string> PersistedWorldData = new();
         public readonly HashSet<BunnyWorldSystem> NetworkedWorldSystems = new();
-        public readonly Dictionary<BunnyWorldSystem, string> PublishedWorldData = new();
+        public readonly Dictionary<BunnyWorldSystem, byte[]> PublishedWorldData = new();
         public readonly Dictionary<BunnyWorldSystem, long> WorldNetRevisions = new();
         public readonly Dictionary<string, BunnyWorldNetClientView> WorldNetViews = new(StringComparer.Ordinal);
         public long WorldNetSent;
@@ -748,9 +748,8 @@ public static class BunnyEntitySourceDispatcher
         system.NetSend(writer);
         if (writer.Length == 0) return;
         byte[] data = writer.ToArray();
-        string value = Convert.ToHexString(data);
-        if (context.PublishedWorldData.TryGetValue(system, out string? previous) &&
-            value == previous) return;
+        if (context.PublishedWorldData.TryGetValue(system, out byte[]? previous) &&
+            previous.AsSpan().SequenceEqual(data)) return;
         long revision = context.WorldNetRevisions.TryGetValue(system, out long old)
             ? old + 1 : 1;
         if (revision <= 0) throw new InvalidOperationException("World revision overflow");
@@ -758,7 +757,7 @@ public static class BunnyEntitySourceDispatcher
             system.GetType().Name, revision, data);
         if (!packet.IsValid() || !BunnyWorldNetwork.Publish(world.Session, packet))
             return;
-        context.PublishedWorldData[system] = value;
+        context.PublishedWorldData[system] = data;
         context.WorldNetRevisions[system] = revision;
         context.WorldNetSent++;
     }
