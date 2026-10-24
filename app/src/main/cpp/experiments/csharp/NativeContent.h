@@ -31,6 +31,7 @@ struct NativeContentSpec {
     int32_t useTime;
     float shootSpeed;
     int32_t shootType;
+    bool summon = false;
     int32_t aiStyle;
     int32_t penetrate;
     int32_t timeLeft;
