@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj" />
+    <Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleWings.cs" Link="ExampleWings.cs" />
+    <Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleBeard.cs" Link="ExampleBeard.cs" />
+    <Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleStatAccessory.cs" Link="ExampleStatAccessory.cs" />
+    <Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/Rarities/ExampleModRarity.cs" Link="ExampleModRarity.cs" />
+    <Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/Rarities/ExampleHigherTierModRarity.cs" Link="ExampleHigherTierModRarity.cs" />
+    <Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Melee/ExampleMeleeWeapon.cs" Link="ExampleMeleeWeapon.cs" />
+    <Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/Items/Ammo/ExampleBullet.cs" Link="ExampleBullet.cs" />
+    <Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleBulletProjectile.cs" Link="ExampleBulletProjectile.cs" />
+  </ItemGroup>
+</Project>
