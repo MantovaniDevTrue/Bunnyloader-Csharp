@@ -22,6 +22,7 @@ python3 tests/world_update_loader/check_arm64_assembly.py
 python3 tests/world_update_loader/check_arm64_execution.py
 python3 tests/keybind_loader/check_native_touch_signatures.py
 python3 tests/csharp/check_unified_dust_gate.py
+python3 tests/csharp/check_rarity_id_parity.py
 python3 tests/five_loaders/check_native_chat_color_contract.py
 flags=(-std=c++20 -O1 -g -Wall -Wextra -Werror -Wno-deprecated-declarations -pedantic -pthread -Iapp/src/main/cpp)
 cpp=app/src/main/cpp/experiments/csharp
@@ -39,6 +40,8 @@ build/five-checks/dust-sync
 native dust-binding tests/csharp/native_dust_binding_selection.cpp
 build/five-checks/dust-binding
 dotnet run --project experiments/csharp/BunnyDustTests/BunnyDustTests.csproj -c Release --nologo
+native rarity-ids tests/csharp/native_rarity_id.cpp
+build/five-checks/rarity-ids
 native touch-static-reference tests/keybind_loader/native_touch_static_reference_test.cpp
 build/five-checks/touch-static-reference
 native csharp-log -Itests/five_loaders/include tests/five_loaders/csharp_log_test.cpp app/src/main/cpp/core/Log.cpp
