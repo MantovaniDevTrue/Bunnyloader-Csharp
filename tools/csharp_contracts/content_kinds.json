@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "contentKinds": [
+    {
+      "kind": "Item",
+      "base": "BunnyItem",
+      "value": 0,
+      "nativeOrder": 3
+    },
+    {
+      "kind": "Tile",
+      "base": "BunnyTile",
+      "value": 1,
+      "nativeOrder": 1
+    },
+    {
+      "kind": "Weapon",
+      "base": "BunnyWeapon",
+      "value": 2,
+      "nativeOrder": 9
+    },
+    {
+      "kind": "Projectile",
+      "base": "BunnyProjectile",
+      "value": 3,
+      "nativeOrder": 5
+    },
+    {
+      "kind": "Buff",
+      "base": "BunnyBuff",
+      "value": 4,
+      "nativeOrder": 4
+    },
+    {
+      "kind": "BuffPotion",
+      "base": "BunnyBuffPotion",
+      "value": 5,
+      "nativeOrder": 8
+    },
+    {
+      "kind": "Accessory",
+      "base": "BunnyAccessory",
+      "value": 6,
+      "nativeOrder": 6
+    },
+    {
+      "kind": "Player",
+      "base": "BunnyPlayer",
+      "value": 7,
+      "nativeOrder": null
+    },
+    {
+      "kind": "NPC",
+      "base": "BunnyNPC",
+      "value": 8,
+      "nativeOrder": 7
+    },
+    {
+      "kind": "Prefix",
+      "base": "BunnyPrefix",
+      "value": 9,
+      "nativeOrder": 10
+    },
+    {
+      "kind": "Wall",
+      "base": "BunnyWall",
+      "value": 10,
+      "nativeOrder": 2
+    },
+    {
+      "kind": "Dust",
+      "base": "BunnyDust",
+      "value": 11,
+      "nativeOrder": 0
+    }
+  ]
+}

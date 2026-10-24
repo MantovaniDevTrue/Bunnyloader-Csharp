@@ -1,4 +1,5 @@
 #include "experiments/csharp/UniversalHooks.h"
+#include "experiments/csharp/UniversalHookModes.generated.h"
 #include "experiments/csharp/UniversalHookMailbox.h"
 #include "hook/HookManager.h"
 #include "il2cpp/Resolver.h"
@@ -71,21 +72,21 @@ int32_t callOriginalInt32Pair(Entry& entry, uintptr_t self, int32_t first, int32
 int32_t callOriginalExtended(Entry& entry, uintptr_t self, int32_t a, int32_t b, int32_t c, const MethodInfo* info) {
     void* target = __atomic_load_n(&entry.original, __ATOMIC_ACQUIRE);
     switch (entry.extendedMode) {
-        case 1:
+        case kExtendedHookInt32Zero:
             if (entry.isStatic) return reinterpret_cast<int32_t(*)(const MethodInfo*)>(target)(info);
             return reinterpret_cast<int32_t(*)(void*, const MethodInfo*)>(target)(reinterpret_cast<void*>(self), info);
-        case 2:
+        case kExtendedHookVoidInt32:
             if (entry.isStatic) reinterpret_cast<void(*)(int32_t, const MethodInfo*)>(target)(a, info);
             else reinterpret_cast<void(*)(void*, int32_t, const MethodInfo*)>(target)(reinterpret_cast<void*>(self), a, info);
             return 0;
-        case 3:
+        case kExtendedHookVoidInt32Pair:
             if (entry.isStatic) reinterpret_cast<void(*)(int32_t, int32_t, const MethodInfo*)>(target)(a, b, info);
             else reinterpret_cast<void(*)(void*, int32_t, int32_t, const MethodInfo*)>(target)(reinterpret_cast<void*>(self), a, b, info);
             return 0;
-        case 4:
+        case kExtendedHookInt32Triple:
             if (entry.isStatic) return reinterpret_cast<int32_t(*)(int32_t, int32_t, int32_t, const MethodInfo*)>(target)(a, b, c, info);
             return reinterpret_cast<int32_t(*)(void*, int32_t, int32_t, int32_t, const MethodInfo*)>(target)(reinterpret_cast<void*>(self), a, b, c, info);
-        case 5:
+        case kExtendedHookVoidInt32Triple:
             if (entry.isStatic) reinterpret_cast<void(*)(int32_t, int32_t, int32_t, const MethodInfo*)>(target)(a, b, c, info);
             else reinterpret_cast<void(*)(void*, int32_t, int32_t, int32_t, const MethodInfo*)>(target)(reinterpret_cast<void*>(self), a, b, c, info);
             return 0;
@@ -230,7 +231,7 @@ int32_t dispatchExtended(int index, uintptr_t self, int32_t a, int32_t b, int32_
         auto body = [&] { originalValue = vanilla(); };
         const bool ok = il2cpp::guarded(body);
         inOriginal = false;
-        if (ok && (entry.extendedMode == 1 || entry.extendedMode == 4))
+        if (ok && (entry.extendedMode == kExtendedHookInt32Zero || entry.extendedMode == kExtendedHookInt32Triple))
             universalHookMailbox().setOriginalInt32Value(originalValue);
         return ok;
     };
@@ -359,10 +360,10 @@ int installOnGameThread() {
     if (!cls || api.class_is_valuetype(cls) || api.class_is_generic(cls)) return -5;
     const MethodInfo* selected = nullptr;
     const int expectedArgs = install.extendedMode > 0
-        ? (install.extendedMode == 1 ? 0 : install.extendedMode == 2 ? 1 : install.extendedMode == 3 ? 2 : 3)
+        ? kExtendedHookSignatures[install.extendedMode].parameterCount
         : (install.int32PairMode ? 2 : install.int32Mode ? 1 : 0);
     const bool returnsInt32 = install.int32Mode || install.int32PairMode ||
-                              install.extendedMode == 1 || install.extendedMode == 4;
+                              (install.extendedMode > 0 && kExtendedHookSignatures[install.extendedMode].returnsInt32);
     void* iter = nullptr;
     while (const MethodInfo* method = api.class_get_methods(cls, &iter)) {
         if (install.method != api.method_get_name(method) ||
@@ -404,14 +405,14 @@ int installOnGameThread() {
     static const auto intStatics = staticInt32Stubs(std::make_index_sequence<MaxHooks>{});
     static const auto pairInstances = instanceInt32PairStubs(std::make_index_sequence<MaxHooks>{});
     static const auto pairStatics = staticInt32PairStubs(std::make_index_sequence<MaxHooks>{});
-    static const std::array<std::array<void*, MaxHooks>, 5> extraInstances = {
+    static const std::array<std::array<void*, MaxHooks>, kExtendedHookMax> extraInstances = {
         instanceExtra1Stubs(std::make_index_sequence<MaxHooks>{}),
         instanceExtra2Stubs(std::make_index_sequence<MaxHooks>{}),
         instanceExtra3Stubs(std::make_index_sequence<MaxHooks>{}),
         instanceExtra4Stubs(std::make_index_sequence<MaxHooks>{}),
         instanceExtra5Stubs(std::make_index_sequence<MaxHooks>{})
     };
-    static const std::array<std::array<void*, MaxHooks>, 5> extraStatics = {
+    static const std::array<std::array<void*, MaxHooks>, kExtendedHookMax> extraStatics = {
         staticExtra1Stubs(std::make_index_sequence<MaxHooks>{}),
         staticExtra2Stubs(std::make_index_sequence<MaxHooks>{}),
         staticExtra3Stubs(std::make_index_sequence<MaxHooks>{}),
@@ -432,7 +433,7 @@ int installOnGameThread() {
     entry.lastSuspensionSeconds = 0;
     entry.lastTimeout = {};
     entry.suspended = false;
-    void* stub = entry.extendedMode > 0 ? (entry.isStatic ? extraStatics[entry.extendedMode - 1][used] : extraInstances[entry.extendedMode - 1][used])
+    void* stub = entry.extendedMode > 0 ? (entry.isStatic ? extraStatics[entry.extendedMode - kExtendedHookMin][used] : extraInstances[entry.extendedMode - kExtendedHookMin][used])
                  : entry.int32PairMode ? (entry.isStatic ? pairStatics[used] : pairInstances[used])
                  : entry.int32Mode ? (entry.isStatic ? intStatics[used] : intInstances[used])
                  : (entry.isStatic ? statics[used] : instances[used]);
@@ -467,7 +468,7 @@ void enableUniversalHooks() { accepting.store(true, std::memory_order_release); 
 int requestInstall(const char* type, const char* method, int slot, int isStatic,
                    bool int32Mode, bool int32PairMode = false, int extendedMode = 0) {
     if (!accepting.load(std::memory_order_acquire) || !type || !method || strnlen(type, 257) > 256 || strnlen(method, 129) > 128 ||
-        slot < 0 || slot >= MaxHooks || (isStatic != 0 && isStatic != 1) || extendedMode < 0 || extendedMode > 5) return -1;
+        slot < 0 || slot >= MaxHooks || (isStatic != 0 && isStatic != 1) || extendedMode < 0 || extendedMode > kExtendedHookMax) return -1;
     if (!universalCanInstall || !universalLeaveMono || !universalResumeMono) return -12;
     UniversalHookWorkerYield yield;
     std::unique_lock<std::mutex> lock(install.mutex);
@@ -502,7 +503,7 @@ extern "C" __attribute__((visibility("default"))) int bunny_universal_hook_insta
 }
 extern "C" __attribute__((visibility("default"))) int bunny_universal_hook_install_extended(
     const char* type, const char* method, int slot, int isStatic, int extendedMode) {
-    if (extendedMode < 1 || extendedMode > 5) return -1;
+    if (extendedMode < kExtendedHookMin || extendedMode > kExtendedHookMax) return -1;
     return requestInstall(type, method, slot, isStatic, false, false, extendedMode);
 }
 extern "C" __attribute__((visibility("default"))) int bunny_universal_hook_original_i32(

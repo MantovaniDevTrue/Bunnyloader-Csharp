@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "extendedHooks": [
+    {
+      "mode": 1,
+      "name": "Int32Zero",
+      "parameters": 0,
+      "returnsInt32": true
+    },
+    {
+      "mode": 2,
+      "name": "VoidInt32",
+      "parameters": 1,
+      "returnsInt32": false
+    },
+    {
+      "mode": 3,
+      "name": "VoidInt32Pair",
+      "parameters": 2,
+      "returnsInt32": false
+    },
+    {
+      "mode": 4,
+      "name": "Int32Triple",
+      "parameters": 3,
+      "returnsInt32": true
+    },
+    {
+      "mode": 5,
+      "name": "VoidInt32Triple",
+      "parameters": 3,
+      "returnsInt32": false
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+<PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net8.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable><TreatWarningsAsErrors>true</TreatWarningsAsErrors></PropertyGroup>
+<ItemGroup>
+<ProjectReference Include="../../experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj" />
+<Compile Include="../../samples/ExampleModCSharp/Playable/content/Common/Players/ExampleRandomCompatProbePlayer.cs" Link="RandomProbe.cs" />
+<Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleCollision*.cs" Link="%(Filename).cs" />
+<Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/ExampleCollision*Wand.cs" Link="%(Filename).cs" />
+</ItemGroup></Project>

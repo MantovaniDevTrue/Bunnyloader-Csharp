@@ -133,7 +133,7 @@ string scratch=Path.Combine(Path.GetTempPath(),"bunny-item-"+Guid.NewGuid().ToSt
 try {
  Directory.CreateDirectory(scratch);string runtime=Path.Combine(scratch,"runtime");Directory.CreateDirectory(runtime);
  string source=Path.GetDirectoryName(typeof(object).Assembly.Location)!;
- foreach(string name in new[]{"System.Private.CoreLib","System.Runtime","netstandard","System.Collections","System.Linq","System.Console","System.Runtime.Extensions","System.ObjectModel","System.Collections.Concurrent","System.Threading","System.Threading.Tasks"})
+ foreach(string name in new[]{"System.Private.CoreLib","System.Runtime","netstandard","System.Collections","System.Linq","System.Console","System.Runtime.Extensions","System.ObjectModel","System.Collections.Concurrent","System.Threading","System.Threading.Tasks","System.Numerics.Vectors"})
   File.Copy(Path.Combine(source,name+".dll"),Path.Combine(runtime,name+".dll"));
  File.Copy(typeof(BunnyItem).Assembly.Location,Path.Combine(runtime,"BunnySourceSdk.dll"));
  Check("projectile.native-tuning-real-compiler-wire-and-invalid-values",()=>{
@@ -302,7 +302,7 @@ try {
  });
  Check("roslyn.full-source-package",()=>{
   string root="samples/ExampleModCSharp/Playable",output=Path.Combine(scratch,"all.dll"),diag=Path.Combine(scratch,"all.txt");
-  Equal(1,Compiler.Compile(root,output,runtime,diag));
+  if(Compiler.Compile(root,output,runtime,diag)!=1)throw new Exception(File.ReadAllText(diag));
   var domains=new Dictionary<Type,string>{
    [typeof(BunnyItem)]="ITEM",[typeof(BunnyWeapon)]="ITEM",[typeof(BunnyAccessory)]="ITEM",[typeof(BunnyBuffPotion)]="ITEM",
    [typeof(BunnyWall)]="WALL",[typeof(BunnyTile)]="TILE",[typeof(BunnyProjectile)]="PROJECTILE",[typeof(BunnyNPC)]="NPC",

@@ -1,0 +1,221 @@
+{
+  "schemaVersion": 1,
+  "meaning": "Verified public C# signatures only. Gameplay dispatch and JS parity are not certified.",
+  "content": [
+    {
+      "type": "BunnyItem",
+      "sample": "samples/ExampleModCSharp/Playable/content/Content/Items/ExampleItem.cs",
+      "sampleOverrides": [
+        "SetDefaults",
+        "AddRecipes"
+      ],
+      "callbacks": [
+        {
+          "name": "SetDefaults",
+          "returns": "System.Void",
+          "args": [],
+          "abstract": true
+        },
+        {
+          "name": "AddRecipes",
+          "returns": "System.Void",
+          "args": [],
+          "abstract": false
+        }
+      ]
+    },
+    {
+      "type": "BunnyProjectile",
+      "sample": "samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleWaveBolt.cs",
+      "sampleOverrides": [
+        "SetDefaults",
+        "AI",
+        "OnHitNPC",
+        "OnKill"
+      ],
+      "callbacks": [
+        {
+          "name": "SetDefaults",
+          "returns": "System.Void",
+          "args": [],
+          "abstract": true
+        },
+        {
+          "name": "OnSpawn",
+          "returns": "System.Void",
+          "args": [
+            "BunnyLoader.Source.BunnyProjectileAiState&"
+          ]
+        },
+        {
+          "name": "AI",
+          "returns": "System.Boolean",
+          "args": [
+            "BunnyLoader.Source.BunnyProjectileAiState&"
+          ]
+        },
+        {
+          "name": "OnHitNPC",
+          "returns": "System.Void",
+          "args": [
+            "BunnyLoader.Source.BunnyProjectileAiState&",
+            "System.Int32",
+            "System.Int32"
+          ]
+        },
+        {
+          "name": "OnKill",
+          "returns": "System.Void",
+          "args": [
+            "BunnyLoader.Source.BunnyProjectileAiState&"
+          ]
+        },
+        {
+          "name": "OnDespawn",
+          "returns": "System.Void",
+          "args": [
+            "BunnyLoader.Source.BunnyProjectileAiState&"
+          ]
+        },
+        {
+          "name": "OnTileCollide",
+          "returns": "System.Void",
+          "args": [
+            "BunnyLoader.Source.BunnyProjectileAiState&",
+            "System.Single",
+            "System.Single",
+            "System.Single",
+            "System.Single"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "BunnyNPC",
+      "sample": "samples/ExampleModCSharp/Playable/content/Content/NPCs/ExampleSlimeNPC.cs",
+      "sampleOverrides": [
+        "SetDefaults",
+        "AI",
+        "OnHit",
+        "OnKill"
+      ],
+      "callbacks": [
+        {
+          "name": "SetDefaults",
+          "returns": "System.Void",
+          "args": [],
+          "abstract": true
+        },
+        {
+          "name": "OnSpawn",
+          "returns": "System.Void",
+          "args": [
+            "BunnyLoader.Source.BunnyNpcAiState&"
+          ]
+        },
+        {
+          "name": "AI",
+          "returns": "System.Boolean",
+          "args": [
+            "BunnyLoader.Source.BunnyNpcAiState&"
+          ]
+        },
+        {
+          "name": "OnHit",
+          "returns": "System.Void",
+          "args": [
+            "BunnyLoader.Source.BunnyNpcAiState&",
+            "System.Int32"
+          ]
+        },
+        {
+          "name": "OnKill",
+          "returns": "System.Void",
+          "args": [
+            "BunnyLoader.Source.BunnyNpcAiState&"
+          ]
+        },
+        {
+          "name": "OnDespawn",
+          "returns": "System.Void",
+          "args": [
+            "BunnyLoader.Source.BunnyNpcAiState&"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "BunnyPlayer",
+      "sample": "samples/ExampleModCSharp/Playable/content/Common/Players/ExampleSwiftPlayer.cs",
+      "sampleOverrides": [
+        "SetDefaults",
+        "UpdateEquips",
+        "RegisterHooks"
+      ],
+      "callbacks": [
+        {
+          "name": "SetDefaults",
+          "returns": "System.Void",
+          "args": [],
+          "abstract": true
+        },
+        {
+          "name": "RegisterHooks",
+          "returns": "System.Void",
+          "args": [
+            "BunnyLoader.Source.BunnyHookRegistry"
+          ]
+        },
+        {
+          "name": "ResetEffects",
+          "returns": "System.Void",
+          "args": []
+        },
+        {
+          "name": "UpdateEquips",
+          "returns": "System.Void",
+          "args": [
+            "System.Boolean"
+          ],
+          "abstract": true
+        },
+        {
+          "name": "OnEnterWorld",
+          "returns": "System.String",
+          "args": []
+        },
+        {
+          "name": "UpdateMovement",
+          "returns": "System.Int32",
+          "args": [
+            "System.Boolean"
+          ]
+        },
+        {
+          "name": "ModifyHurt",
+          "returns": "System.Void",
+          "args": [
+            "System.Boolean",
+            "BunnyLoader.Source.BunnyHurtModifiers"
+          ]
+        },
+        {
+          "name": "FreeDodge",
+          "returns": "System.Boolean",
+          "args": [
+            "System.Boolean",
+            "BunnyLoader.Source.BunnyHurtModifiers"
+          ]
+        },
+        {
+          "name": "OnHurt",
+          "returns": "System.Void",
+          "args": [
+            "System.Boolean",
+            "BunnyLoader.Source.BunnyHurtInfo"
+          ]
+        }
+      ]
+    }
+  ]
+}

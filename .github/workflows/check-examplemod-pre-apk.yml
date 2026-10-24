@@ -1,0 +1,31 @@
+name: ExampleMod pre APK Random and collision QA (no APK)
+on:
+  pull_request:
+    paths:
+      - 'experiments/csharp/**'
+      - 'samples/ExampleModCSharp/**'
+      - 'samples/RandomCompatCSharp/**'
+      - 'tests/examplemod_pre_apk/**'
+      - 'tests/random_compat/**'
+      - '.github/workflows/check-examplemod-pre-apk.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  examples:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Random utility contracts
+        run: dotnet run --project tests/random_compat/RandomCompat.csproj -c Release
+      - name: Compile and execute shipped QA examples
+        run: dotnet run --project tests/examplemod_pre_apk/ExampleModPreApk.csproj -c Release
+      - name: Compile entire ExampleMod through production Roslyn
+        run: dotnet run --project tests/basic_items/ItemBatch.csproj -c Release
+      - name: Preserve WorldSystem and WorldNet lifecycle
+        run: dotnet run --project experiments/csharp/BunnyWorldSystemsSmoke/BunnyWorldSystemsSmoke.csproj -c Release
+      - name: Verify public SDK reference
+        run: dotnet run --project tools/sdk_reference -c Release -- --check

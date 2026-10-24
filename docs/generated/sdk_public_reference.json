@@ -927,6 +927,10 @@
           "execution": "worker_async_entity"
         },
         {
+          "signature": "static bool CollideProjectile(int modSlot, int type, int slot, int generation, int owner, float oldVelocityX, float oldVelocityY, float newVelocityX, float newVelocityY)",
+          "execution": "worker_async_entity"
+        },
+        {
           "signature": "static bool HitNpc(int modSlot, int type, int slot, int generation, int damage, bool killed)",
           "execution": "worker_async_entity"
         },
@@ -944,6 +948,10 @@
         },
         {
           "signature": "static bool TryGetInvasionView(int modSlot, string invasionId, out BunnyInvasionWireState state)",
+          "execution": "worker_async_entity"
+        },
+        {
+          "signature": "static int CollideProjectilePolicy(int modSlot, int type, int slot, int generation, int owner, float oldVelocityX, float oldVelocityY, float newVelocityX, float newVelocityY)",
           "execution": "worker_async_entity"
         },
         {
@@ -2867,19 +2875,28 @@
       "properties": [
         "BunnyMinionMovement MinionMovement { get; set; }",
         "BunnyNativeDefaults NativeDefaults { get; }",
+        "BunnyProjectilePlatformCollision TilePlatformCollision { get; set; }",
+        "BunnyProjectileTileCollisionMode TileCollisionMode { get; set; }",
         "bool Friendly { get; set; }",
         "bool IgnoreWater { get; set; }",
         "bool Minion { get; set; }",
         "bool MinionContactDamage { get; set; }",
         "bool TileCollide { get; set; }",
+        "float BounceMinimumSpeed { get; set; }",
+        "float BounceRestitution { get; set; }",
         "float MinionSlots { get; set; }",
         "float MinionTargetRange { get; set; }",
+        "float TileCollisionAnchorOffsetX { get; set; }",
+        "float TileCollisionAnchorOffsetY { get; set; }",
         "int AiStyle { get; set; }",
         "int AnimationFrameTicks { get; set; }",
         "int Frames { get; set; }",
         "int Height { get; set; }",
         "int MinionScanTicks { get; set; }",
         "int Penetrate { get; set; }",
+        "int TileCollisionBoxHeight { get; set; }",
+        "int TileCollisionBoxWidth { get; set; }",
+        "int TileCollisionSurvivalLimit { get; set; }",
         "int TimeLeft { get; set; }",
         "int Width { get; set; }",
         "string DisplayName { get; set; }",
@@ -2921,6 +2938,10 @@
           "execution": "worker_async_entity"
         },
         {
+          "signature": "void OnTileCollide(ref BunnyProjectileAiState state, float oldVelocityX, float oldVelocityY, float newVelocityX, float newVelocityY)",
+          "execution": "worker_async_entity"
+        },
+        {
           "signature": "void SetDefaults()",
           "execution": "compile_policy"
         },
@@ -2939,6 +2960,33 @@
         "bool HasTarget { get; }"
       ],
       "values": [],
+      "methods": []
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyProjectilePlatformCollision",
+      "kind": "enum",
+      "baseType": "System.Enum",
+      "constructors": [],
+      "properties": [],
+      "values": [
+        "Vanilla",
+        "SolidPlatforms",
+        "PassThroughPlatforms"
+      ],
+      "methods": []
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyProjectileTileCollisionMode",
+      "kind": "enum",
+      "baseType": "System.Enum",
+      "constructors": [],
+      "properties": [],
+      "values": [
+        "Vanilla",
+        "KeepAlive",
+        "Bounce",
+        "Stop"
+      ],
       "methods": []
     },
     {
@@ -4420,6 +4468,166 @@
       ],
       "values": [],
       "methods": []
+    },
+    {
+      "name": "Terraria.Utilities.UnifiedRandom",
+      "kind": "class",
+      "baseType": "System.Random",
+      "constructors": [
+        "UnifiedRandom()",
+        "UnifiedRandom(int seed)"
+      ],
+      "properties": [],
+      "values": [],
+      "methods": [
+        {
+          "signature": "Double NextDouble()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "Int64 NextInt64()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "Int64 NextInt64(Int64 maxValue)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "Int64 NextInt64(Int64 minValue, Int64 maxValue)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "float NextSingle()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "int Next()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "int Next(int maxValue)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "int Next(int minValue, int maxValue)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void NextBytes(Byte[] buffer)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void NextBytes(Span\u003CByte\u003E buffer)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void SetSeed(int seed)",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
+      "name": "Terraria.Utilities.WeightedRandom\u00601",
+      "kind": "class",
+      "baseType": "System.Object",
+      "constructors": [
+        "WeightedRandom\u00601()",
+        "WeightedRandom\u00601(Tuple\u003CT, Double\u003E[] theElements)",
+        "WeightedRandom\u00601(UnifiedRandom random)",
+        "WeightedRandom\u00601(UnifiedRandom random, Tuple\u003CT, Double\u003E[] theElements)",
+        "WeightedRandom\u00601(int seed)",
+        "WeightedRandom\u00601(int seed, Tuple\u003CT, Double\u003E[] theElements)"
+      ],
+      "properties": [],
+      "values": [],
+      "methods": [
+        {
+          "signature": "T Get()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void Add(T element, Double weight)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void CalculateTotalWeight()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void Clear()",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
+      "name": "Terraria.Utils",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [],
+      "values": [],
+      "methods": [
+        {
+          "signature": "static T Next\u003CT\u003E(UnifiedRandom random, IList\u003CT\u003E list)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static T Next\u003CT\u003E(UnifiedRandom random, T[] array)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static T NextFromCollection\u003CT\u003E(UnifiedRandom random, List\u003CT\u003E values)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static T NextFromList\u003CT\u003E(UnifiedRandom random, T[] values)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static Vector2 NextVector2Circular(UnifiedRandom random, float halfWidth, float halfHeight)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static Vector2 NextVector2CircularEdge(UnifiedRandom random, float halfWidth, float halfHeight)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static Vector2 NextVector2Square(UnifiedRandom random, float min, float max)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static Vector2 NextVector2Unit(UnifiedRandom random, float startRotation, float rotationRange)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static bool NextBool(UnifiedRandom random)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static bool NextBool(UnifiedRandom random, int antecedent, int consequent)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static bool NextBool(UnifiedRandom random, int consequent)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static float NextFloat(UnifiedRandom random)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static float NextFloat(UnifiedRandom random, float maxValue)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static float NextFloat(UnifiedRandom random, float minValue, float maxValue)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static float NextFloatDirection(UnifiedRandom random)",
+          "execution": "managed_helper"
+        }
+      ]
     }
   ]
 }

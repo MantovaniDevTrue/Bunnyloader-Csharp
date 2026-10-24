@@ -509,11 +509,13 @@ string LastRegistrationError { get; }
 | `static Int64 TickProjectile(int modSlot, int type, int slot, int generation, int owner, float x, float y, float vx, float vy, float playerX, float playerY)` | worker_async_entity |
 | `static Int64 TickProjectile(int modSlot, int type, int slot, int generation, int owner, float x, float y, float vx, float vy, float playerX, float playerY, int targetNpc, float targetX, float targetY)` | worker_async_entity |
 | `static bool Bind(int modSlot, int kind, int type, string name)` | worker_async_entity |
+| `static bool CollideProjectile(int modSlot, int type, int slot, int generation, int owner, float oldVelocityX, float oldVelocityY, float newVelocityX, float newVelocityY)` | worker_async_entity |
 | `static bool HitNpc(int modSlot, int type, int slot, int generation, int damage, bool killed)` | worker_async_entity |
 | `static bool HitProjectile(int modSlot, int type, int slot, int generation, int owner, int npcIndex, int damage)` | worker_async_entity |
 | `static bool KillNpc(int modSlot, int type, int slot, int generation)` | worker_async_entity |
 | `static bool KillProjectile(int modSlot, int type, int slot, int generation, int owner)` | worker_async_entity |
 | `static bool TryGetInvasionView(int modSlot, string invasionId, out BunnyInvasionWireState state)` | worker_async_entity |
+| `static int CollideProjectilePolicy(int modSlot, int type, int slot, int generation, int owner, float oldVelocityX, float oldVelocityY, float newVelocityX, float newVelocityY)` | worker_async_entity |
 | `static int Register(string modId, string assemblyPath)` | worker_async_entity |
 | `static int TickWorld(int modSlot, int mode, int elapsedFrames, Int64 worldSession, int playerIndex, float playerX, float playerY)` | worker_async_entity |
 | `static string Status(int modSlot)` | worker_async_entity |
@@ -1535,19 +1537,28 @@ abstract class; base: `System.Object`.
 ```csharp
 BunnyMinionMovement MinionMovement { get; set; }
 BunnyNativeDefaults NativeDefaults { get; }
+BunnyProjectilePlatformCollision TilePlatformCollision { get; set; }
+BunnyProjectileTileCollisionMode TileCollisionMode { get; set; }
 bool Friendly { get; set; }
 bool IgnoreWater { get; set; }
 bool Minion { get; set; }
 bool MinionContactDamage { get; set; }
 bool TileCollide { get; set; }
+float BounceMinimumSpeed { get; set; }
+float BounceRestitution { get; set; }
 float MinionSlots { get; set; }
 float MinionTargetRange { get; set; }
+float TileCollisionAnchorOffsetX { get; set; }
+float TileCollisionAnchorOffsetY { get; set; }
 int AiStyle { get; set; }
 int AnimationFrameTicks { get; set; }
 int Frames { get; set; }
 int Height { get; set; }
 int MinionScanTicks { get; set; }
 int Penetrate { get; set; }
+int TileCollisionBoxHeight { get; set; }
+int TileCollisionBoxWidth { get; set; }
+int TileCollisionSurvivalLimit { get; set; }
 int TimeLeft { get; set; }
 int Width { get; set; }
 string DisplayName { get; set; }
@@ -1565,6 +1576,7 @@ string Texture { get; set; }
 | `void OnHitNPC(ref BunnyProjectileAiState state, int npcIndex, int damage)` | worker_async_entity |
 | `void OnKill(ref BunnyProjectileAiState state)` | worker_async_entity |
 | `void OnSpawn(ref BunnyProjectileAiState state)` | worker_async_entity |
+| `void OnTileCollide(ref BunnyProjectileAiState state, float oldVelocityX, float oldVelocityY, float newVelocityX, float newVelocityY)` | worker_async_entity |
 | `void SetDefaults()` | compile_policy |
 | `void SetStaticDefaults()` | compile_sampled_policy |
 
@@ -1575,6 +1587,18 @@ struct; base: `System.ValueType`.
 ```csharp
 bool HasTarget { get; }
 ```
+
+## BunnyLoader.Source.BunnyProjectilePlatformCollision
+
+enum; base: `System.Enum`.
+
+Values: Vanilla, SolidPlatforms, PassThroughPlatforms.
+
+## BunnyLoader.Source.BunnyProjectileTileCollisionMode
+
+enum; base: `System.Enum`.
+
+Values: Vanilla, KeepAlive, Bounce, Stop.
 
 ## BunnyLoader.Source.BunnyQuestCatchRules
 
@@ -2366,4 +2390,69 @@ int ArmorPenetrationBonus { get; set; }
 int CriticalBonus { get; set; }
 int TagDamageBonus { get; set; }
 ```
+
+## Terraria.Utilities.UnifiedRandom
+
+class; base: `System.Random`.
+
+```csharp
+UnifiedRandom()
+UnifiedRandom(int seed)
+```
+
+| Method | Execution |
+| --- | --- |
+| `Double NextDouble()` | managed_helper |
+| `Int64 NextInt64()` | managed_helper |
+| `Int64 NextInt64(Int64 maxValue)` | managed_helper |
+| `Int64 NextInt64(Int64 minValue, Int64 maxValue)` | managed_helper |
+| `float NextSingle()` | managed_helper |
+| `int Next()` | managed_helper |
+| `int Next(int maxValue)` | managed_helper |
+| `int Next(int minValue, int maxValue)` | managed_helper |
+| `void NextBytes(Byte[] buffer)` | managed_helper |
+| `void NextBytes(Span<Byte> buffer)` | managed_helper |
+| `void SetSeed(int seed)` | managed_helper |
+
+## Terraria.Utilities.WeightedRandom`1
+
+class; base: `System.Object`.
+
+```csharp
+WeightedRandom`1()
+WeightedRandom`1(Tuple<T, Double>[] theElements)
+WeightedRandom`1(UnifiedRandom random)
+WeightedRandom`1(UnifiedRandom random, Tuple<T, Double>[] theElements)
+WeightedRandom`1(int seed)
+WeightedRandom`1(int seed, Tuple<T, Double>[] theElements)
+```
+
+| Method | Execution |
+| --- | --- |
+| `T Get()` | managed_helper |
+| `void Add(T element, Double weight)` | managed_helper |
+| `void CalculateTotalWeight()` | managed_helper |
+| `void Clear()` | managed_helper |
+
+## Terraria.Utils
+
+abstract class; base: `System.Object`.
+
+| Method | Execution |
+| --- | --- |
+| `static T Next<T>(UnifiedRandom random, IList<T> list)` | managed_helper |
+| `static T Next<T>(UnifiedRandom random, T[] array)` | managed_helper |
+| `static T NextFromCollection<T>(UnifiedRandom random, List<T> values)` | managed_helper |
+| `static T NextFromList<T>(UnifiedRandom random, T[] values)` | managed_helper |
+| `static Vector2 NextVector2Circular(UnifiedRandom random, float halfWidth, float halfHeight)` | managed_helper |
+| `static Vector2 NextVector2CircularEdge(UnifiedRandom random, float halfWidth, float halfHeight)` | managed_helper |
+| `static Vector2 NextVector2Square(UnifiedRandom random, float min, float max)` | managed_helper |
+| `static Vector2 NextVector2Unit(UnifiedRandom random, float startRotation, float rotationRange)` | managed_helper |
+| `static bool NextBool(UnifiedRandom random)` | managed_helper |
+| `static bool NextBool(UnifiedRandom random, int antecedent, int consequent)` | managed_helper |
+| `static bool NextBool(UnifiedRandom random, int consequent)` | managed_helper |
+| `static float NextFloat(UnifiedRandom random)` | managed_helper |
+| `static float NextFloat(UnifiedRandom random, float maxValue)` | managed_helper |
+| `static float NextFloat(UnifiedRandom random, float minValue, float maxValue)` | managed_helper |
+| `static float NextFloatDirection(UnifiedRandom random)` | managed_helper |
 

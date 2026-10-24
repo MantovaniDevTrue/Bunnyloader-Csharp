@@ -33,7 +33,23 @@ public struct BunnyProjectileAiState
     public int TargetNpc;
     public float TargetX;
     public float TargetY;
+    public BunnyProjectileTileCollisionMode? NextTileCollisionMode;
     public bool HasTarget => TargetNpc >= 0;
+}
+
+public enum BunnyProjectileTileCollisionMode
+{
+    Vanilla = 0,
+    KeepAlive = 1,
+    Bounce = 2,
+    Stop = 3
+}
+
+public enum BunnyProjectilePlatformCollision
+{
+    Vanilla = 0,
+    SolidPlatforms = 1,
+    PassThroughPlatforms = 2
 }
 
 public abstract class BunnyProjectile
@@ -59,6 +75,19 @@ public abstract class BunnyProjectile
     public BunnyMinionMovement? MinionMovement { get; set; }
     public float MinionSlots { get; set; }
     public bool TileCollide { get; set; } = true;
+    public BunnyProjectileTileCollisionMode TileCollisionMode { get; set; } = BunnyProjectileTileCollisionMode.Vanilla;
+    public float BounceRestitution { get; set; } = 1f;
+    public float BounceMinimumSpeed { get; set; } = 0f;
+    public int TileCollisionSurvivalLimit { get; set; } = 0;
+    public BunnyProjectilePlatformCollision TilePlatformCollision { get; set; } = BunnyProjectilePlatformCollision.Vanilla;
+    /// <summary>Tile collision width in pixels, 1..512; 0 preserves Terraria's width. Does not resize visuals or NPC damage hitboxes.</summary>
+    public int TileCollisionBoxWidth { get; set; } = 0;
+    /// <summary>Tile collision height in pixels, 1..512; 0 preserves Terraria's height.</summary>
+    public int TileCollisionBoxHeight { get; set; } = 0;
+    /// <summary>World-pixel translation of the resized tile collision box, -256..256; positive moves right. Not a normalized resizeAnchor value.</summary>
+    public float TileCollisionAnchorOffsetX { get; set; } = 0f;
+    /// <summary>World-pixel translation of the resized tile collision box, -256..256; positive moves down. Not a normalized resizeAnchor value.</summary>
+    public float TileCollisionAnchorOffsetY { get; set; } = 0f;
     public bool IgnoreWater { get; set; } = true;
     public int Penetrate { get; set; } = 1;
     public int TimeLeft { get; set; } = 360;
@@ -72,6 +101,8 @@ public abstract class BunnyProjectile
     public virtual void OnSpawn(ref BunnyProjectileAiState state) { }
     public virtual bool AI(ref BunnyProjectileAiState state) => false;
     public virtual void OnHitNPC(ref BunnyProjectileAiState state, int npcIndex, int damage) { }
+    public virtual void OnTileCollide(ref BunnyProjectileAiState state,
+        float oldVelocityX, float oldVelocityY, float newVelocityX, float newVelocityY) { }
     public virtual void OnKill(ref BunnyProjectileAiState state) { }
     public virtual void OnDespawn(ref BunnyProjectileAiState state) { }
     public virtual int OnHitNPC(int damage) => 0;

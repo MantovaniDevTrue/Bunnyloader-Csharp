@@ -20,7 +20,7 @@
     "forkJsFiles": 178,
     "canonicalJsFiles": 206,
     "newUpstreamFiles": 28,
-    "cSharpSourceFiles": 83
+    "cSharpSourceFiles": 109
   },
   "statePolicy": "Validado no Android exige evidencia de jogo do exemplo inteiro; Validado por testes automatizados nao prova execucao no aparelho.",
   "coverageByCategory": {
@@ -4332,8 +4332,7 @@
       ],
       "preservedFeatures": [
         "Municao Bullet nativa, consumivel/pilha9999, dano12, repulsao1, valor5000 (sellPrice10silver), Green, velocidade4.5 e referencia por nome ao projetil.",
-        "Assets originais do anexo1.8.0; nomes en-US/pt-BR localizados via BunnyName. API publica e fontes comentadas, sem QuickJS.",
-        "Continuidade0.1.57: nomes exibidos e traduções começam com Example; identidades e assets preservados."
+        "Assets originais do anexo1.8.0; nomes en-US/pt-BR originais via BunnyName. API publica e fontes comentadas, sem QuickJS."
       ],
       "missingFeatures": [],
       "nativeDependencies": [
@@ -4355,9 +4354,7 @@
         "Verificar persistencia, remocao do mod e morte/respawn quando o exemplo mantiver estado."
       ],
       "validation": "Sem validacao funcional C# deste exemplo inteiro.",
-      "deviceEvidence": [
-        "Usuário aprovou .96 + ExampleMod de forma geral em19/10/2026; procedimentos individuais não informados. docs/validation/csharp-v96-android-user-2026-10-19.json. Estado integral não promovido."
-      ],
+      "deviceEvidence": [],
       "technicalBlockEvidence": [],
       "sourceEvidence": [
         {
@@ -9091,8 +9088,7 @@
       ],
       "preservedFeatures": [
         "Espada nativa melee, dano50, repulsao6, critico6, swing20/20, autoReuse, valor50000 (sellPrice1gold), raridadeGreen e SoundID.Item1.",
-        "Assets originais do anexo1.8.0; nomes en-US/pt-BR localizados via BunnyName. API publica e fontes comentadas, sem QuickJS.",
-        "Continuidade0.1.57: nomes exibidos e traduções começam com Example; identidades e assets preservados."
+        "Assets originais do anexo1.8.0; nomes en-US/pt-BR originais via BunnyName. API publica e fontes comentadas, sem QuickJS."
       ],
       "missingFeatures": [],
       "nativeDependencies": [
@@ -9114,9 +9110,7 @@
         "Verificar persistencia, remocao do mod e morte/respawn quando o exemplo mantiver estado."
       ],
       "validation": "Sem validacao funcional C# deste exemplo inteiro.",
-      "deviceEvidence": [
-        "Usuário aprovou .96 + ExampleMod de forma geral em19/10/2026; procedimentos individuais não informados. docs/validation/csharp-v96-android-user-2026-10-19.json. Estado integral não promovido."
-      ],
+      "deviceEvidence": [],
       "technicalBlockEvidence": [],
       "sourceEvidence": [
         {
@@ -9576,8 +9570,7 @@
         "Defaults ranged, dano20/knockback5/crit0, uso10, autoReuse/noMelee, sellPrice10gold, raridadeGreen, muniçãoBullet e shootSpeed10 com fallbackPurificationPowder",
         "Holdout(-18,0) nativo com direção/gravidade/rotação",
         "Som original Ogg, volume0.9, pitchVariance0.2, MaxInstances3/ReplaceOldest pelo serviço nativo compartilhado sem QuickJS",
-        "Nomes originais en-US/pt-BR da localização do pacote",
-        "Continuidade0.1.57: nomes exibidos e traduções começam com Example; identidades e assets preservados."
+        "Nomes originais en-US/pt-BR da localização do pacote"
       ],
       "missingFeatures": [],
       "nativeDependencies": [
@@ -9661,8 +9654,7 @@
       ],
       "preservedFeatures": [
         "Lancador nativo: dano55, repulsao4, uso30/30, municaoRocket e RocketI resolvidos por nomes, velocidade5, valor400000, raridadeYellow, SoundID.Item11 e HoldoutOffset(-2,-2).",
-        "Assets originais do anexo1.8.0; nomes en-US/pt-BR localizados via BunnyName. API publica e fontes comentadas, sem QuickJS.",
-        "Continuidade0.1.57: nomes exibidos e traduções começam com Example; identidades e assets preservados."
+        "Assets originais do anexo1.8.0; nomes en-US/pt-BR originais via BunnyName. API publica e fontes comentadas, sem QuickJS."
       ],
       "missingFeatures": [],
       "nativeDependencies": [
@@ -9684,9 +9676,7 @@
         "Verificar persistencia, remocao do mod e morte/respawn quando o exemplo mantiver estado."
       ],
       "validation": "Sem validacao funcional C# deste exemplo inteiro.",
-      "deviceEvidence": [
-        "Usuário aprovou .96 + ExampleMod de forma geral em19/10/2026; procedimentos individuais não informados. docs/validation/csharp-v96-android-user-2026-10-19.json. Estado integral não promovido."
-      ],
+      "deviceEvidence": [],
       "technicalBlockEvidence": [],
       "sourceEvidence": [
         {
@@ -11374,8 +11364,7 @@
       ],
       "preservedFeatures": [
         "IA nativa de bala aiStyle1, 8x8, escala1, penetracao5, timeLeft600, luz0.5, extraUpdates1, ranged/friendly, colisao/agua e imunidade local com cooldown-1.",
-        "Assets originais do anexo1.8.0; nomes en-US/pt-BR localizados via BunnyName. API publica e fontes comentadas, sem QuickJS.",
-        "Continuidade0.1.57: nomes exibidos e traduções começam com Example; identidades e assets preservados."
+        "Assets originais do anexo1.8.0; nomes en-US/pt-BR originais via BunnyName. API publica e fontes comentadas, sem QuickJS."
       ],
       "missingFeatures": [],
       "nativeDependencies": [
@@ -11397,9 +11386,7 @@
         "Verificar persistencia, remocao do mod e morte/respawn quando o exemplo mantiver estado."
       ],
       "validation": "Sem validacao funcional C# deste exemplo inteiro.",
-      "deviceEvidence": [
-        "Usuário aprovou .96 + ExampleMod de forma geral em19/10/2026; procedimentos individuais não informados. docs/validation/csharp-v96-android-user-2026-10-19.json. Estado integral não promovido."
-      ],
+      "deviceEvidence": [],
       "technicalBlockEvidence": [],
       "sourceEvidence": [
         {
@@ -16166,6 +16153,51 @@
   ],
   "additionalCSharp": [
     {
+      "path": "samples/ExampleModCSharp/Playable/content/Common/Audio/ExampleSoundEffects.cs",
+      "classes": [
+        "ExampleSoundEffects"
+      ],
+      "mappedToJs": [],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Common/Commands/ExampleEchoCommand.cs",
+      "classes": [
+        "ExampleEchoCommand"
+      ],
+      "mappedToJs": [],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Common/Commands/ExampleHealCommand.cs",
+      "classes": [
+        "ExampleHealCommand"
+      ],
+      "mappedToJs": [],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Common/Commands/ExampleTimeCommand.cs",
+      "classes": [
+        "ExampleTimeCommand"
+      ],
+      "mappedToJs": [],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Common/Commands/ExampleWorldNetQaCommand.cs",
+      "classes": [
+        "ExampleWorldNetQaCommand"
+      ],
+      "mappedToJs": [],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
       "path": "samples/ExampleModCSharp/Playable/content/Common/Hooks/ExampleHookInt32Triple.cs",
       "classes": [
         "ExampleHookInt32Triple"
@@ -16285,6 +16317,15 @@
       "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
     },
     {
+      "path": "samples/ExampleModCSharp/Playable/content/Common/Players/ExampleFishingPlayer.cs",
+      "classes": [
+        "ExampleFishingPlayer"
+      ],
+      "mappedToJs": [],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
       "path": "samples/ExampleModCSharp/Playable/content/Common/Players/ExampleFocusPlayer.cs",
       "classes": [
         "ExampleFocusPlayer"
@@ -16334,6 +16375,15 @@
           "scope": "Desenho/equipamento/chamas/overlay; nao marca os exemplos JS como portas completas."
         }
       ],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Common/Players/ExampleRandomCompatProbePlayer.cs",
+      "classes": [
+        "ExampleRandomCompatProbePlayer"
+      ],
+      "mappedToJs": [],
+      "deviceEvidence": [],
       "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
     },
     {
@@ -16468,6 +16518,15 @@
       "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
     },
     {
+      "path": "samples/ExampleModCSharp/Playable/content/Common/Systems/ExampleWorldProgressSystem.cs",
+      "classes": [
+        "ExampleWorldProgressSystem"
+      ],
+      "mappedToJs": [],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
       "path": "samples/ExampleModCSharp/Playable/content/Content/Buffs/ExampleDefenseBuff.cs",
       "classes": [
         "ExampleDefenseBuff"
@@ -16497,6 +16556,15 @@
       "mappedToJs": [
         "Content/Buffs/ExampleMinionBuff.js"
       ],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Effects/ExampleSparkDust.cs",
+      "classes": [
+        "ExampleSparkDust"
+      ],
+      "mappedToJs": [],
       "deviceEvidence": [],
       "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
     },
@@ -16739,6 +16807,33 @@
       "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
     },
     {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Items/Consumables/ExampleInvasionBeacon.cs",
+      "classes": [
+        "ExampleInvasionBeacon"
+      ],
+      "mappedToJs": [],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Items/ExampleDustCharm.cs",
+      "classes": [
+        "ExampleDustCharm"
+      ],
+      "mappedToJs": [],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Items/ExampleGolfBall.cs",
+      "classes": [
+        "ExampleGolfBall"
+      ],
+      "mappedToJs": [],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
       "path": "samples/ExampleModCSharp/Playable/content/Content/Items/ExampleItem.cs",
       "classes": [
         "ExampleItem"
@@ -16746,6 +16841,15 @@
       "mappedToJs": [
         "Content/Items/ExampleItem.js"
       ],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Items/ExampleTooltipItem.cs",
+      "classes": [
+        "ExampleTooltipItem"
+      ],
+      "mappedToJs": [],
       "deviceEvidence": [],
       "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
     },
@@ -16795,6 +16899,15 @@
       "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
     },
     {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Items/Quests/ExampleQuestFish.cs",
+      "classes": [
+        "ExampleQuestFish"
+      ],
+      "mappedToJs": [],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
       "path": "samples/ExampleModCSharp/Playable/content/Content/Items/Tools/ExampleHamaxe.cs",
       "classes": [
         "ExampleHamaxe"
@@ -16813,6 +16926,33 @@
       "mappedToJs": [
         "Content/Items/Tools/ExamplePickaxe.js"
       ],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/ExampleCollisionBounceWand.cs",
+      "classes": [
+        "ExampleCollisionBounceWand"
+      ],
+      "mappedToJs": [],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/ExampleCollisionKeepAliveWand.cs",
+      "classes": [
+        "ExampleCollisionKeepAliveWand"
+      ],
+      "mappedToJs": [],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/ExampleCollisionStopWand.cs",
+      "classes": [
+        "ExampleCollisionStopWand"
+      ],
+      "mappedToJs": [],
       "deviceEvidence": [],
       "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
     },
@@ -16899,6 +17039,15 @@
       "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
     },
     {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/NPCs/ExampleInvasionEliteSlimeNPC.cs",
+      "classes": [
+        "ExampleInvasionEliteSlimeNPC"
+      ],
+      "mappedToJs": [],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
       "path": "samples/ExampleModCSharp/Playable/content/Content/NPCs/ExampleSlimeNPC.cs",
       "classes": [
         "ExampleSlimeNPC"
@@ -16943,6 +17092,42 @@
       "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
     },
     {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleCollisionBounce.cs",
+      "classes": [
+        "ExampleCollisionBounce"
+      ],
+      "mappedToJs": [],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleCollisionKeepAlive.cs",
+      "classes": [
+        "ExampleCollisionKeepAlive"
+      ],
+      "mappedToJs": [],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleCollisionStop.cs",
+      "classes": [
+        "ExampleCollisionStop"
+      ],
+      "mappedToJs": [],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleGolfBallProjectile.cs",
+      "classes": [
+        "ExampleGolfBallProjectile"
+      ],
+      "mappedToJs": [],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
       "path": "samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleMinion.cs",
       "classes": [
         "ExampleMinion"
@@ -16963,6 +17148,24 @@
       "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
     },
     {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Rarities/ExampleHigherTierModRarity.cs",
+      "classes": [
+        "ExampleHigherTierModRarity"
+      ],
+      "mappedToJs": [],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Rarities/ExampleModRarity.cs",
+      "classes": [
+        "ExampleModRarity"
+      ],
+      "mappedToJs": [],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
       "path": "samples/ExampleModCSharp/Playable/content/Content/Recipes/ExampleCraftingReward.cs",
       "classes": [
         "ExampleCraftingReward"
@@ -16975,6 +17178,24 @@
       "path": "samples/ExampleModCSharp/Playable/content/Content/Recipes/ExampleWorkbenchRecipeBehavior.cs",
       "classes": [
         "ExampleWorkbenchRecipeBehavior"
+      ],
+      "mappedToJs": [],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Systems/ExampleInvasion.cs",
+      "classes": [
+        "ExampleInvasion"
+      ],
+      "mappedToJs": [],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Systems/ExampleInvasionSystem.cs",
+      "classes": [
+        "ExampleInvasionSystem"
       ],
       "mappedToJs": [],
       "deviceEvidence": [],
@@ -17344,15 +17565,5 @@
     ],
     "fps": null,
     "doesNotProve": "Equivalencia integral de cada arquivo JS; FPS sustentado desta versao nao foi medido neste relato."
-  },
-  "currentAudit": {
-    "exampleModVersion": "0.1.65",
-    "baseline": "fcdc3fd2c30d1e7432fddbafc4af9f6d65ca473a",
-    "loader": "1.0.11-dust-invasion-qa",
-    "coverage": "docs/csharp/EXAMPLEMOD_COVERAGE.json",
-    "androidValidated": false,
-    "tooltipRequiresJs": true,
-    "fps": null,
-    "currentQa": "docs/csharp/SUMMON_DUST_INVASION_QA.md"
   }
 }
