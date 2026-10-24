@@ -8,6 +8,7 @@ using System.Security.Cryptography;
 using System.Threading;
 
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Probe")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("LocalizationLoader")]
 
 namespace BunnyLoader.Source;
 
