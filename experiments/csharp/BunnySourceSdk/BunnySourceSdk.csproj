@@ -43,6 +43,8 @@
     <Compile Include="../BunnyCsSdk/BunnyWorldSystem.cs" Link="BunnyWorldSystem.cs" />
     <Compile Include="../BunnyCsSdk/BunnyWorldData.cs" Link="BunnyWorldData.cs" />
     <Compile Include="../BunnyCsSdk/BunnyWorldPersistence.cs" Link="BunnyWorldPersistence.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyNetData.cs" Link="BunnyNetData.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyWorldNetwork.cs" Link="BunnyWorldNetwork.cs" />
     <Compile Include="../BunnyCsSdk/BunnyEntitySourceDispatcher.cs" Link="BunnyEntitySourceDispatcher.cs" />
     <Compile Include="../BunnyCsSdk/BunnyPrimitives.cs" Link="BunnyPrimitives.cs" />
     <Compile Include="../BunnyCsSdk/BunnyRarity.cs" Link="BunnyRarity.cs" />
