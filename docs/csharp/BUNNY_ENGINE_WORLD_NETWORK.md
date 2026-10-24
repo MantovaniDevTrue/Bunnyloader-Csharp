@@ -36,8 +36,9 @@ O autor pode usar `WriteFlags` (até 16 bools por chamada), `WriteByte`, `WriteI
 - A camada de rede é específica para os sistemas de mundo; não constitui um `ModPacket` universal.
 - A payload é pequena de propósito, por causa do transporte autenticado de mensagens do jogo. Redes grandes exigirão um protocolo separado com fragmentação e confirmação.
 - A revisão monotônica é por sessão, não um identificador de objetos do Terraria.
-- Ainda não há confirmação de recebimento pelo cliente nem retransmissão por timeout. A camada marca um pacote como entregue quando o envio nativo retorna sucesso, e o estado é reenviado aos novos peers identificados pelo handshake. A perda de pacotes após sucesso do envio precisa de QA e eventual protocolo de ACK.
+- Ainda não há confirmação de recebimento pelo cliente. A camada marca o envio como aceito pelo transporte quando a chamada nativa retorna sucesso; como proteção contra perda posterior, o servidor tenta reenviar snapshots de mundo sem alterações após pelo menos 600 ticks (aproximadamente 10 segundos a 60 FPS), além de reenviar aos novos peers identificados pelo handshake. O cliente descarta revisões duplicadas. A entrega efetiva e um futuro protocolo de ACK ainda precisam de QA Android.
 - O estado sincronizado atualmente chega até um tick gerenciado depois do recebimento do pacote.
+- O payload é comparado em bytes, evitando codificações hexadecimais e alocações extras nos ticks sem mudanças. A verificação de tamanho antes do envio também não produz strings hexadecimais temporárias.
 - O empacotamento C#, a compilação e os testes de protocolo podem passar sem validar comunicação real entre dois aparelhos. A validação Android multiplayer permanece obrigatória.
 - O smoke test compila a classe real `ExampleWorldProgressSystem.cs` e verifica a recuperação da progressão após salvar/carregar e transmitir/receber flags. Isso valida o contrato gerenciado, mas não substitui um teste de entrega pela rede do Terraria.
 - MonoVM/Roslyn continuam sendo o runtime C#; não foi criada uma nova VM.
