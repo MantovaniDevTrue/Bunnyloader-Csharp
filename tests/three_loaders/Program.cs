@@ -22,7 +22,8 @@ static class Suite
         Equal("RARITY|12",BunnyRarityRuntime.Dispatch(owner,token,"SharedRarity",0,1,"1.2,11"));
         var mods=(IDictionary)typeof(BunnyRecipeLoader).GetField("mods",BindingFlags.Static|BindingFlags.NonPublic)!.GetValue(null)!;
         object mod=mods[owner]!;
-        var context=(AssemblyLoadContext)mod.GetType().GetField("Context")!.GetValue(mod)!;
+        var assembly=(Assembly)mod.GetType().GetField("Assembly")!.GetValue(mod)!;
+        var context=AssemblyLoadContext.GetLoadContext(assembly)!;
         Equal(true,context.IsCollectible);
         return new WeakReference(context);
     }
