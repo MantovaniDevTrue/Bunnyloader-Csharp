@@ -1,0 +1,24 @@
+name: Five Loaders CSharp native bootstrap checks
+
+on:
+  push:
+    branches:
+      - fix/five-qa-touch-command-diagnostics-20261024
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Validate touch ABI reference and log routing
+        run: python3 tests/keybind_loader/check_native_touch_signatures.py
+      - name: Run five-loader native and CSharp contracts
+        run: bash tools/five_loaders/check.sh

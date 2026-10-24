@@ -2,7 +2,7 @@ name: Five loaders Mobile — authorized QA APK
 
 on:
   push:
-    branches: [qa/five-mobile-loaders-20261023, fix/five-gore-graphics-startup-20261024]
+    branches: [qa/five-mobile-loaders-20261023, fix/five-gore-graphics-startup-20261024, fix/five-qa-touch-command-diagnostics-20261024]
   workflow_dispatch:
 
 permissions:
@@ -19,7 +19,7 @@ env:
 
 jobs:
   contracts:
-    if: github.ref == 'refs/heads/qa/five-mobile-loaders-20261023' || github.ref == 'refs/heads/fix/five-gore-graphics-startup-20261024'
+    if: github.ref == 'refs/heads/qa/five-mobile-loaders-20261023' || github.ref == 'refs/heads/fix/five-gore-graphics-startup-20261024' || github.ref == 'refs/heads/fix/five-qa-touch-command-diagnostics-20261024'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -45,7 +45,7 @@ jobs:
           python3 tools/mods/pack.py samples/FiveLoadersCSharp/Playable
   android:
     needs: contracts
-    if: github.ref == 'refs/heads/qa/five-mobile-loaders-20261023' || github.ref == 'refs/heads/fix/five-gore-graphics-startup-20261024'
+    if: github.ref == 'refs/heads/qa/five-mobile-loaders-20261023' || github.ref == 'refs/heads/fix/five-gore-graphics-startup-20261024' || github.ref == 'refs/heads/fix/five-qa-touch-command-diagnostics-20261024'
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
