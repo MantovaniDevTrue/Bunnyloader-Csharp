@@ -29,6 +29,8 @@ public abstract class BunnyWorldSystem
     public virtual void ClearWorld() { }
     public virtual void SaveWorldData(BunnyWorldData tag) { }
     public virtual void LoadWorldData(BunnyWorldData tag) { }
+    public virtual void NetSend(BunnyNetWriter writer) { }
+    public virtual void NetReceive(BunnyNetReader reader) { }
     public virtual void OnWorldEnter(in BunnyWorldContext world) { }
     public virtual void OnWorldTick(in BunnyWorldContext world) { }
     public virtual void OnWorldExit() { }
