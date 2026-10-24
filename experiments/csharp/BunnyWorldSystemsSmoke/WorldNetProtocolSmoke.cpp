@@ -7,6 +7,10 @@
 int main() {
     using namespace bl::csharp::world_net;
     Snapshot snapshot;
+    assert(!preferWorldForSendSlot(0));
+    assert(preferWorldForSendSlot(1));
+    assert(!preferWorldForSendSlot(2));
+    assert(preferWorldForSendSlot(3));
     assert(parse("WS1|42|mod-a|DownedBossSystem|1|0101", &snapshot));
     assert(snapshot.session == 42 && snapshot.revision == 1 &&
            snapshot.mod == "mod-a" && snapshot.system == "DownedBossSystem");
