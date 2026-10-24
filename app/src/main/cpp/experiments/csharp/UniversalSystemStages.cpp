@@ -361,6 +361,8 @@ int installUniversalSystemStageOnGameThread(const std::string& name, int slot) {
         if (!method || !il2cpp::methodPointer(method) ||
             !il2cpp::api().method_is_instance || !il2cpp::api().method_is_instance(method)) return -7;
         if (!hook::install(method, hkDoUpdateInWorld, &originalWorldUpdate)) return -9;
+        BL_INFO("[CSharp][SystemStage] Root=DoUpdateInWorld Target=%p Trampoline=%p",
+                il2cpp::methodPointer(method), reinterpret_cast<void*>(originalWorldUpdate));
         rootInstalled.store(true, std::memory_order_release);
     }
 
@@ -413,6 +415,8 @@ int installUniversalSystemStageOnGameThread(const std::string& name, int slot) {
         if (!hook::install(const_cast<uint8_t*>(code + stage.offset),
                            reinterpret_cast<void*>(stage.bridge),
                            stage.original)) return -9;
+        BL_INFO("[CSharp][SystemStage] Name=%s Offset=0x%zx HookTarget=%p Trampoline=%p",
+                stage.name, stage.offset, code + stage.offset, *stage.original);
     }
     stage.retryAfterNs.store(0, std::memory_order_relaxed);
     stage.faults.store(0, std::memory_order_relaxed);
