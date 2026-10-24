@@ -278,6 +278,12 @@ const TileSetsExtras = Object.freeze({
     IgnoredByGrowingSaplings: TypeSet(false),
 });
 
+// As bolsas de chefe que não dão os conjuntos de desenvolvedor (as do jogo
+// que não dão: as pré-hardmode e a da Rainha Slime). O ItemLoader confere ao abrir.
+const ItemSetsExtras = Object.freeze({
+    PreHardmodeLikeBossBag: BoolSet(3318, 3319, 3320, 3321, 3322, 3323, 3324, 4957, 5111),
+});
+
 // O visual vestido do tModLoader (ArmorIDs.*.Sets): o jogo daqui decide por
 // listas no código (PlayerDrawSet.BoringSetup), e o ArmorSetLoader aplica
 // depois dele o que um mod marcar. O DrawHead é o HidesHead do jogo, ao contrário.
