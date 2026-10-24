@@ -58,33 +58,32 @@ std::string utf8(Il2CppString* value) {
 
 }
 
-void setWorldPersistenceState(bool ready, uint64_t session,
-                              const std::string& path, bool cloud) {
-    setNativeInvasionSaveWorld(ready, session, path, cloud);
-    setNativeWorldSystemSaveWorld(ready, session, path, cloud);
-}
-
 void updateNativeInvasionWorldPath(bool ready, uint64_t session) {
     if (!ready) {
-        setWorldPersistenceState(false, session, {}, false);
+        setNativeInvasionSaveWorld(false, session, {}, false);
+        setNativeWorldSystemSaveWorld(false, session, {}, false);
         return;
     }
     static PathFields fields;
     if (!fields.active || fields.path < 0 || fields.cloud < 0)
         fields = resolvePath();
     if (!fields.active || fields.path < 0 || fields.cloud < 0) {
-        setWorldPersistenceState(false, session, {}, false);
+        setNativeInvasionSaveWorld(false, session, {}, false);
+        setNativeWorldSystemSaveWorld(false, session, {}, false);
         return;
     }
     Il2CppObject* data = nullptr;
     il2cpp::api().field_static_get_value(fields.active, &data);
     if (!data) {
-        setWorldPersistenceState(false, session, {}, false);
+        setNativeInvasionSaveWorld(false, session, {}, false);
+        setNativeWorldSystemSaveWorld(false, session, {}, false);
         return;
     }
     const bool cloud = runtime::field<uint8_t>(data, fields.cloud) != 0;
     auto* value = runtime::field<Il2CppString*>(data, fields.path);
-    setWorldPersistenceState(true, session, utf8(value), cloud);
+    const std::string path = utf8(value);
+    setNativeInvasionSaveWorld(true, session, path, cloud);
+    setNativeWorldSystemSaveWorld(true, session, path, cloud);
 }
 
 }
