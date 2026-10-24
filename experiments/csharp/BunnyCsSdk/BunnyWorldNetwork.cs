@@ -8,12 +8,24 @@ namespace BunnyLoader.Source;
 public readonly record struct BunnyWorldNetState(
     long HostSession, string ModId, string SystemName, long Revision, byte[] Data)
 {
+    private static int DecimalLength(long value)
+    {
+        int count = 1;
+        while (value >= 10)
+        {
+            value /= 10;
+            count++;
+        }
+        return count;
+    }
+
     public bool IsValid() =>
         HostSession > 0 && Revision > 0 &&
         BunnyInvasionWireState.ValidName(ModId, 128) &&
         BunnyInvasionWireState.ValidName(SystemName, 128) &&
         Data != null && Data.Length is > 0 and <= BunnyNetWriter.MaxBytes &&
-        Encode().Length <= 300;
+        8 + DecimalLength(HostSession) + ModId.Length + SystemName.Length +
+            DecimalLength(Revision) + Data.Length * 2 <= 300;
 
     public string Encode() => string.Concat("WS1|",
         HostSession.ToString(CultureInfo.InvariantCulture), "|",
