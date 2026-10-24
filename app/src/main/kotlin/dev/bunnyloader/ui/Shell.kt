@@ -38,6 +38,129 @@ import kotlinx.coroutines.withContext
 class Shell(context: Context) {
     val catalog = Catalog(context)
     private val repo by lazy { ModRepository(context) }
+    val modSources = dev.bunnyloader.mods.ModSources(
+        java.io.File(context.getExternalFilesDir(null) ?: context.filesDir, "ModSources"),
+        { context.assets.open("templates/basic-sword.png") },
+    )
+    private val sourceBuilds = java.io.File(context.cacheDir, "ModBuilds")
+    private val sourceContext = context.applicationContext
+    val sourceLocations = dev.bunnyloader.mods.SourceLocations(sourceContext, modSources).apply {
+        trees = Prefs(sourceContext).sourceTrees
+    }
+    var sourceFolders by mutableStateOf(sourceLocations.locations)
+    var sourceProjects by mutableStateOf(emptyList<dev.bunnyloader.mods.ModSources.Project>())
+    var sourceBusy by mutableStateOf(false)
+    var sourceMessage by mutableStateOf<String?>(null)
+    fun sourceTask(operation: () -> String) {
+        if (sourceBusy) return
+        sourceBusy = true
+        sourceMessage = null
+        scope.launch {
+            try {
+                sourceMessage = withContext(Dispatchers.IO) { operation() }
+                sourceProjects = withContext(Dispatchers.IO) { sourceLocations.list() }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                sourceMessage = tr("Não deu: %1\$s", e.message)
+            } finally {
+                sourceBusy = false
+            }
+        }
+    }
+    fun refreshSources() = sourceTask { "" }
+    fun addSourceFolder(uri: Uri) {
+        sourceTask {
+            try {
+                sourceContext.contentResolver.takePersistableUriPermission(uri,
+                    android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+            } catch (e: Exception) {
+                throw IllegalArgumentException(tr("Não foi possível guardar a permissão desta pasta."), e)
+            }
+            sourceLocations.validateTree(uri)
+            val updated = Prefs(sourceContext).sourceTrees + uri.toString()
+            Prefs(sourceContext).sourceTrees = updated
+            sourceLocations.trees = updated
+            val folders = sourceLocations.locations
+            scope.launch { sourceFolders = folders }
+            tr("Local adicionado.")
+        }
+    }
+    fun removeSourceFolder(id: String) {
+        if (id.isEmpty()) return
+        sourceTask {
+            val updated = Prefs(sourceContext).sourceTrees - id
+            Prefs(sourceContext).sourceTrees = updated
+            sourceLocations.trees = updated
+            val folders = sourceLocations.locations
+            scope.launch { sourceFolders = folders }
+            // Removing a scan root does not delete its files.
+            runCatching {
+                sourceContext.contentResolver.releasePersistableUriPermission(Uri.parse(id),
+                    android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+            }
+            tr("Local removido. Os arquivos foram mantidos.")
+        }
+    }
+    fun sourceFolderUri(key: String): Uri = sourceLocations.folderUri(key)
+    fun createSource(
+        id: String,
+        name: String,
+        author: String,
+        basicSword: String = "",
+        language: String = UiLocalization.language,
+        location: String = "",
+        onCreated: (String) -> Unit,
+    ) {
+        sourceTask {
+            val project = sourceLocations.create(id.trim(), name.trim(), author.trim(), basicSword.trim(), language, location)
+            scope.launch { onCreated(project.key) }
+            tr("Projeto criado.")
+        }
+    }
+    fun buildSource(key: String, install: Boolean, destination: Uri? = null) {
+        if (sourceBusy) return
+        sourceBusy = true
+        sourceMessage = null
+        scope.launch {
+            try {
+                val (result, outputPath) = installLock.withLock {
+                    require(!install || (pendingUpdate == null && importProgress == null)) {
+                        tr("Aguarde a importação terminar antes de instalar o projeto.")
+                    }
+                    withContext(Dispatchers.IO) {
+                        val output = java.io.File(sourceBuilds, "source-${java.util.UUID.randomUUID()}.bl")
+                        try {
+                            val manifest = sourceLocations.build(key, output)
+                            if (destination != null) {
+                                requireNotNull(sourceContext.contentResolver.openOutputStream(destination, "wt")) {
+                                    "não consegui criar o arquivo"
+                                }.use { target -> output.inputStream().use { it.copyTo(target) } }
+                            }
+                            if (install) {
+                                repo.import(output).getOrThrow()
+                                if (Prefs(sourceContext).enableOnInstall) repo.setEnabled(manifest.uid, true)
+                            }
+                            manifest to output.absolutePath
+                        } finally {
+                            if (install || destination != null) output.delete()
+                        }
+                    }
+                }
+                sourceProjects = withContext(Dispatchers.IO) { sourceLocations.list() }
+                sourceMessage = if (install) tr("%1\$s construído e instalado. Reabra o jogo para carregar.", result.name)
+                    else if (destination != null) tr("%1\$s exportado", result.name)
+                    else tr("Pacote criado: %1\$s", outputPath)
+                if (install) rescan()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                sourceMessage = tr("Não deu: %1\$s", e.message)
+            } finally {
+                sourceBusy = false
+            }
+        }
+    }
     private val appContext = context.applicationContext
     private val csharpPrecompileLock = Mutex()
     @Volatile private var csharpPrecompileGeneration = 0
@@ -137,7 +260,7 @@ class Shell(context: Context) {
      */
     private val mergedCatalog = derivedStateOf {
         val builtIn = entries.map { it.uid }.toSet()
-        (entries + remote.filter { it.uid !in builtIn }).sortedBy { it.manifest.name.lowercase() }
+        (entries + remote.filter { it.uid !in builtIn }).sortedBy { it.manifest.nameFor(UiLocalization.language).lowercase() }
     }
     val catalogEntries: List<Catalog.Entry> get() = mergedCatalog.value
     fun entry(uid: String) = entries.firstOrNull { it.uid == uid }
@@ -178,7 +301,7 @@ class Shell(context: Context) {
         if (updateNotices.isNotEmpty()) return
         val unseen = unseenModUpdates(installedVersions,
             available.associate { it.uid to it.manifest.version }, announcedVersions)
-        updateNotices = available.filter { it.uid in unseen }.sortedBy { it.manifest.name.lowercase() }
+        updateNotices = available.filter { it.uid in unseen }.sortedBy { it.manifest.nameFor(UiLocalization.language).lowercase() }
     }
 
     /**
