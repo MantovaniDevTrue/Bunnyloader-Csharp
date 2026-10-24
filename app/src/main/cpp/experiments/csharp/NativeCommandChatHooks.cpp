@@ -520,28 +520,40 @@ bool installNativeCommandChatHooks() {
         api.class_value_size(color, &alignment) == 4;
     const auto* netMode = il2cpp::findField(main, "netMode");
     const auto* menu = resolveMobileMainMenu();
-    if (!hasSignature(incoming, true, {"Terraria.Chat.ChatMessage", "System.Int32"}) ||
-        !hasSignature(client, false, {"Terraria.Chat.ChatMessage"}) ||
-        !hasSignature(text, true, {}) ||
-        !hasSignature(consumeMethod, true, {}) ||
-        !hasSignature(newText, false, {"System.String", "System.Byte", "System.Byte", "System.Byte", "System.Boolean"}) ||
-        !hasSignature(myPlayer, false, {}) ||
-        !hasSignature(literal, false, {"System.String"}) ||
-        !hasSignature(send, false, {"Terraria.Localization.NetworkText",
-                                    "Microsoft.Xna.Framework.Color", "System.Int32"}) ||
-        !hasSignature(colorConstructor, true,
-                      {"System.Int32", "System.Int32", "System.Int32", "System.Int32"}) ||
-        !hasReturnType(incoming, "System.Void") ||
-        !hasReturnType(client, "System.Void") ||
-        !hasReturnType(text, "System.String") ||
-        !hasReturnType(consumeMethod, "System.Void") ||
-        !hasReturnType(newText, "System.Void") ||
-        !hasReturnType(myPlayer, "System.Int32") ||
-        !hasReturnType(literal, "Terraria.Localization.NetworkText") ||
-        !hasReturnType(send, "System.Void") ||
-        !hasReturnType(colorConstructor, "System.Void") ||
-        !validColor || !netMode || !menu)
-        return pending("ChatSignatureOrLayoutMismatch");
+    struct NamedCheck { const char* name; bool ok; };
+    const NamedCheck checks[] = {
+        {"IncomingSignature", hasSignature(incoming, true, {"Terraria.Chat.ChatMessage", "System.Int32"})},
+        {"ClientSignature", hasSignature(client, false, {"Terraria.Chat.ChatMessage"})},
+        {"TextGetter", hasSignature(text, true, {})},
+        {"Consume", hasSignature(consumeMethod, true, {})},
+        {"NewText", hasSignature(newText, false, {"System.String", "System.Byte", "System.Byte", "System.Byte", "System.Boolean"})},
+        {"MyPlayer", hasSignature(myPlayer, false, {})},
+        {"NetworkTextLiteral", hasSignature(literal, false, {"System.String"})},
+        {"SendClient", hasSignature(send, false, {"Terraria.Localization.NetworkText",
+                                    "Microsoft.Xna.Framework.Color", "System.Int32"})},
+        {"ColorConstructor", hasSignature(colorConstructor, true,
+                              {"System.Int32", "System.Int32", "System.Int32", "System.Int32"})},
+        {"IncomingReturn", hasReturnType(incoming, "System.Void")},
+        {"ClientReturn", hasReturnType(client, "System.Void")},
+        {"TextReturn", hasReturnType(text, "System.String")},
+        {"ConsumeReturn", hasReturnType(consumeMethod, "System.Void")},
+        {"NewTextReturn", hasReturnType(newText, "System.Void")},
+        {"MyPlayerReturn", hasReturnType(myPlayer, "System.Int32")},
+        {"NetworkTextReturn", hasReturnType(literal, "Terraria.Localization.NetworkText")},
+        {"SendClientReturn", hasReturnType(send, "System.Void")},
+        {"ColorConstructorReturn", hasReturnType(colorConstructor, "System.Void")},
+        {"MobileColorLayout", validColor},
+        {"NetworkModeField", netMode != nullptr},
+        {"MobileMenuProperty", menu != nullptr}
+    };
+    bool validChatAbi = true;
+    for (const auto& check : checks) {
+        if (check.ok) continue;
+        validChatAbi = false;
+        if (attempt == 1 || (attempt >= 601 && (attempt - 1) % 600 == 0))
+            BL_WARN("[CSharp][Command] AbiMismatch Check=%s Frame=%d", check.name, attempt);
+    }
+    if (!validChatAbi) return pending("ChatSignatureOrLayoutMismatch");
 
     g_textGetter = text;
     g_consume = consumeMethod;
