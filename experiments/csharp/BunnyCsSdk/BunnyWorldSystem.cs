@@ -10,7 +10,7 @@ public readonly struct BunnyWorldContext
     public int PlayerIndex { get; }
     public float PlayerX { get; }
     public float PlayerY { get; }
-    public bool IsAuthoritative => NetMode != 1;
+    public bool IsAuthoritative => NetMode == 0 || NetMode == 2 || NetMode == 3;
 
     internal BunnyWorldContext(long session, int netMode, int elapsedFrames,
         int playerIndex, float playerX, float playerY)
