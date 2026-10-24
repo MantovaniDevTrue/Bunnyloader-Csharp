@@ -1,4 +1,5 @@
 #include "experiments/csharp/NativeInvasionPersistence.h"
+#include "experiments/csharp/NativeWorldSystemPersistence.h"
 
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
@@ -57,27 +58,33 @@ std::string utf8(Il2CppString* value) {
 
 }
 
+void setWorldPersistenceState(bool ready, uint64_t session,
+                              const std::string& path, bool cloud) {
+    setNativeInvasionSaveWorld(ready, session, path, cloud);
+    setNativeWorldSystemSaveWorld(ready, session, path, cloud);
+}
+
 void updateNativeInvasionWorldPath(bool ready, uint64_t session) {
     if (!ready) {
-        setNativeInvasionSaveWorld(false, session, {}, false);
+        setWorldPersistenceState(false, session, {}, false);
         return;
     }
     static PathFields fields;
     if (!fields.active || fields.path < 0 || fields.cloud < 0)
         fields = resolvePath();
     if (!fields.active || fields.path < 0 || fields.cloud < 0) {
-        setNativeInvasionSaveWorld(false, session, {}, false);
+        setWorldPersistenceState(false, session, {}, false);
         return;
     }
     Il2CppObject* data = nullptr;
     il2cpp::api().field_static_get_value(fields.active, &data);
     if (!data) {
-        setNativeInvasionSaveWorld(false, session, {}, false);
+        setWorldPersistenceState(false, session, {}, false);
         return;
     }
     const bool cloud = runtime::field<uint8_t>(data, fields.cloud) != 0;
     auto* value = runtime::field<Il2CppString*>(data, fields.path);
-    setNativeInvasionSaveWorld(true, session, utf8(value), cloud);
+    setWorldPersistenceState(true, session, utf8(value), cloud);
 }
 
 }
