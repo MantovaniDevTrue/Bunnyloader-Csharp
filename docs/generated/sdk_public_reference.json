@@ -2603,6 +2603,70 @@
       ]
     },
     {
+      "name": "BunnyLoader.Source.BunnyNetReader",
+      "kind": "class",
+      "baseType": "System.Object",
+      "constructors": [
+        "BunnyNetReader(byte[] data)"
+      ],
+      "properties": [
+        "int Remaining { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "bool[] ReadFlags()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "byte ReadByte()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "int ReadInt32()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "string ReadString()",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyNetWriter",
+      "kind": "class",
+      "baseType": "System.Object",
+      "constructors": [
+        "BunnyNetWriter()"
+      ],
+      "properties": [
+        "int Length { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "byte[] ToArray()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void WriteByte(byte value)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void WriteFlags(bool[] flags)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void WriteInt32(int value)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void WriteString(string value)",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
       "name": "BunnyLoader.Source.BunnyNpcAiState",
       "kind": "struct",
       "baseType": "System.ValueType",
@@ -4198,6 +4262,78 @@
       "methods": []
     },
     {
+      "name": "BunnyLoader.Source.BunnyWorldNetClientView",
+      "kind": "class",
+      "baseType": "System.Object",
+      "constructors": [
+        "BunnyWorldNetClientView()"
+      ],
+      "properties": [
+        "bool HasState { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "bool Accept(BunnyWorldNetState state, Int64 localWorldSession, string modId, string systemName)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void Reset()",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyWorldNetState",
+      "kind": "struct",
+      "baseType": "System.ValueType",
+      "constructors": [
+        "BunnyWorldNetState(Int64 HostSession, string ModId, string SystemName, Int64 Revision, byte[] Data)"
+      ],
+      "properties": [
+        "Int64 HostSession { get; set; }",
+        "Int64 Revision { get; set; }",
+        "byte[] Data { get; set; }",
+        "string ModId { get; set; }",
+        "string SystemName { get; set; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "bool Equals(BunnyWorldNetState other)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool Equals(Object obj)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool IsValid()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "int GetHashCode()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static bool TryDecode(string input, out BunnyWorldNetState state)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "string Encode()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "string ToString()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void Deconstruct(out Int64 HostSession, out string ModId, out string SystemName, out Int64 Revision, out byte[] Data)",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
       "name": "BunnyLoader.Source.BunnyWorldSystem",
       "kind": "abstract class",
       "baseType": "System.Object",
@@ -4219,6 +4355,14 @@
         },
         {
           "signature": "void OnWorldExit()",
+          "execution": "worker_async_entity"
+        },
+        {
+          "signature": "void NetReceive(BunnyNetReader reader)",
+          "execution": "worker_async_entity"
+        },
+        {
+          "signature": "void NetSend(BunnyNetWriter writer)",
           "execution": "worker_async_entity"
         },
         {
