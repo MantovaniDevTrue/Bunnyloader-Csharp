@@ -727,10 +727,18 @@ public sealed class HostLocalizationModule : BunnyLocalizationModule
     public static bool GlobalRegistration;
     public static bool SeedCallbackLimit;
     public static string LastCulture = "";
-    public static void RegisterLive(string key, string culture, string value) =>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    public static void RegisterLive(string key, string culture, string value)
+    {
         BunnyLocalizationRuntime.Register(key, culture, value);
-    public static void RegisterLiveAll(string key, IReadOnlyDictionary<string, string> cultures) =>
+        GC.KeepAlive(value);
+    }
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    public static void RegisterLiveAll(string key, IReadOnlyDictionary<string, string> cultures)
+    {
         BunnyLocalizationRuntime.Register(key, cultures);
+        GC.KeepAlive(cultures);
+    }
 
     public override void OnLocalizationsLoaded()
     {
