@@ -11,7 +11,7 @@
     <ProjectReference Include="../../experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj" />
     <ProjectReference Include="../../experiments/csharp/BunnySourceCompiler/BunnySourceCompiler.csproj" />
     <Compile Include="ActionsSmoke.cs" />
-    <Compile Include="../../samples/ExampleModCSharp/Experimental/CommandLoader/ExampleHealCommand.cs" Link="ExampleHealCommand.cs" />
-    <Compile Include="../../samples/ExampleModCSharp/Experimental/CommandLoader/ExampleTimeCommand.cs" Link="ExampleTimeCommand.cs" />
+    <Compile Include="../../samples/ExampleModCSharp/Playable/content/Common/Commands/ExampleHealCommand.cs" Link="ExampleHealCommand.cs" />
+    <Compile Include="../../samples/ExampleModCSharp/Playable/content/Common/Commands/ExampleTimeCommand.cs" Link="ExampleTimeCommand.cs" />
   </ItemGroup>
 </Project>
