@@ -44,7 +44,7 @@ std::map<Key, Packet> g_hostStates;
 std::map<Key, Packet> g_worldStates;
 std::map<int, Peer> g_peers;
 std::deque<Received> g_received;
-std::deque<Received> g_worldReceived;
+std::deque<world_net::Queued> g_worldReceived;
 std::atomic<uint64_t> g_session{0};
 std::atomic<bool> g_ready{false};
 bool g_dirty = false;
@@ -228,16 +228,14 @@ bool acceptNativeWorldSystemChat(const std::string& text) {
     if (second == std::string::npos) return false;
     uint64_t token = 0;
     if (!decimal(text.substr(6, second - 6), &token)) return false;
-    Key id;
-    uint64_t revision = 0;
     const std::string encoded = text.substr(second + 1);
-    if (!parseWorldSnapshot(encoded, &id, &revision)) return false;
+    world_net::Snapshot snapshot;
+    if (!world_net::parse(encoded, &snapshot)) return false;
     std::lock_guard<std::mutex> guard(g_mutex);
     if (!g_ready.load(std::memory_order_acquire) || g_nonce == 0 ||
-        token != g_nonce || g_worldReceived.size() >= 64) return false;
-    g_worldReceived.push_back({g_session.load(std::memory_order_relaxed),
-                               id.first, encoded});
-    return true;
+        token != g_nonce) return false;
+    return world_net::enqueueLatest(&g_worldReceived,
+        g_session.load(std::memory_order_relaxed), snapshot, encoded);
 }
 
 void pumpNativeInvasionNetworkOnGameThread() {
