@@ -182,7 +182,22 @@ internal static class Program
         try { bossSystem.NetReceive(new BunnyNetReader(invalidBossPacket.ToArray())); }
         catch (FormatException) { rejectedBossPacket = true; }
         Check(rejectedBossPacket, "ExampleMod rejects invalid network flag count");
-        Console.WriteLine("Bunny World Systems smoke: 33 checks passed");
+        var trailingBossPacket = new BunnyNetWriter();
+        trailingBossPacket.WriteFlags(false);
+        trailingBossPacket.WriteByte(42);
+        bool rejectedTrailingBytes = false;
+        try { bossSystem.NetReceive(new BunnyNetReader(trailingBossPacket.ToArray())); }
+        catch (FormatException) { rejectedTrailingBytes = true; }
+        Check(rejectedTrailingBytes && ExampleWorldProgressSystem.DownedExampleBoss,
+            "Malformed packet cannot alter boss progression");
+        bossSystem.ClearWorld();
+        var clearedWriter = new BunnyNetWriter();
+        bossSystem.NetSend(clearedWriter);
+        ExampleWorldProgressSystem.MarkBossDefeated();
+        bossSystem.NetReceive(new BunnyNetReader(clearedWriter.ToArray()));
+        Check(!ExampleWorldProgressSystem.DownedExampleBoss,
+            "Host progress reset replicates to the client");
+        Console.WriteLine("Bunny World Systems smoke: 35 checks passed");
         return 0;
     }
 }
