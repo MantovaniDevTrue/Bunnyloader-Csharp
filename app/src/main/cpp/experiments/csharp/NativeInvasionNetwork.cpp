@@ -279,29 +279,23 @@ void pumpNativeInvasionNetworkOnGameThread() {
             if (!g_dirty) return;
             g_dirty = false;
             for (auto& [client, peer] : g_peers) {
-                for (const auto& [key, state] : g_hostStates) {
-                    if (peer.delivered.contains(key) &&
-                        peer.delivered[key] == state.revision) continue;
-                    player = client;
-                    nonce = peer.nonce;
-                    revision = state.revision;
-                    id = key;
-                    packet = state.payload;
-                    g_dirty = true;
-                    break;
-                }
-                if (player >= 0) break;
-                for (const auto& [key, state] : g_worldStates) {
-                    if (peer.worldDelivered.contains(key) &&
-                        peer.worldDelivered[key] == state.revision) continue;
-                    player = client;
-                    nonce = peer.nonce;
-                    revision = state.revision;
-                    id = key;
-                    packet = state.payload;
-                    worldPacket = true;
-                    g_dirty = true;
-                    break;
+                for (int pass = 0; pass < 2 && player < 0; ++pass) {
+                    const bool chooseWorld = (pass == 0) == ((sent & 1) != 0);
+                    const auto& states = chooseWorld ? g_worldStates : g_hostStates;
+                    const auto& delivered = chooseWorld ?
+                        peer.worldDelivered : peer.delivered;
+                    for (const auto& [key, state] : states) {
+                        if (delivered.contains(key) &&
+                            delivered.at(key) == state.revision) continue;
+                        player = client;
+                        nonce = peer.nonce;
+                        revision = state.revision;
+                        id = key;
+                        packet = state.payload;
+                        worldPacket = chooseWorld;
+                        g_dirty = true;
+                        break;
+                    }
                 }
                 if (player >= 0) break;
             }
