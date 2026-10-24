@@ -1,4 +1,5 @@
 #include "experiments/csharp/NativeInvasionPersistence.h"
+#include "experiments/csharp/NativeWorldSystemPersistence.h"
 #include "experiments/csharp/InvasionSaveFile.h"
 
 #include <cstdint>
@@ -22,6 +23,7 @@ bool active(int64_t session) {
 
 void setNativeInvasionSaveWorld(bool ready, uint64_t session,
                                 const std::string& path, bool cloud) {
+    setNativeWorldSystemSaveWorld(ready, session, path, cloud);
     std::lock_guard<std::mutex> guard(g_mutex);
     g_session = session;
     g_ready = ready && session > 0 && !cloud &&
