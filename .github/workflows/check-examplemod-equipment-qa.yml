@@ -1,0 +1,30 @@
+name: ExampleMod CSharp equipment fidelity (no APK)
+on:
+  push:
+    branches: [qa/csharp-world-tree-gore-apk-20261024]
+    paths:
+      - 'samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/**'
+      - 'samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Melee/ExampleMeleeWeapon.cs'
+      - 'samples/ExampleModCSharp/Playable/content/Content/Items/Ammo/**'
+      - 'samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleBulletProjectile.cs'
+      - 'samples/ExampleModCSharp/Playable/content/Content/Rarities/**'
+      - 'tests/examplemod_equipment_qa/**'
+      - '.github/workflows/check-examplemod-equipment-qa.yml'
+  pull_request:
+    paths:
+      - 'tests/examplemod_equipment_qa/**'
+      - 'samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/**'
+      - '.github/workflows/check-examplemod-equipment-qa.yml'
+permissions:
+  contents: read
+jobs:
+  host:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Test real playable equipment against Bunny JS defaults and native wire
+        run: dotnet run --project tests/examplemod_equipment_qa/ExampleModEquipmentQa.csproj --configuration Release
