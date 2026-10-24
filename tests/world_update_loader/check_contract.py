@@ -58,7 +58,9 @@ assert 'bunny_system_time_rate_read' in native
 assert 'bunny_system_time_rate_write' in native
 assert 'tileRemainder = tilesWithFraction - std::floor(tilesWithFraction)' in native
 assert 'UpdateUIStates(GameTime gameTime)' in native
-assert 'field_static_get_value(gameMenuField' in native
+assert 'readMobileMainMenu(gameMenuGetter, &gameMenu)' in native
+assert 'resolveMobileMainMenu()' in native
+assert 'findField(main, "gameMenu")' not in native
 for stage in ("PlayersBegin", "PlayersEnd", "NPCsBegin", "NPCsEnd", "GoresEnd", "ItemsBegin", "ItemsEnd"):
     assert f'new("Bunny.SystemStage", "{stage}", false,' in sdk
 assert 'new("Terraria.Main", "PreUpdateAllProjectiles", false,' in sdk

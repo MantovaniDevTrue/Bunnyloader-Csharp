@@ -7,7 +7,7 @@ required the same field plus a four-byte `Color` constructor absent from this
 build. Compilation and signature comparison against the JS reference missed
 these Mobile differences.
 
-The touch observer and chat now resolve the static `Main.get_gameMenu()`
+The touch observer, SystemUpdate UI stage and chat now resolve the static `Main.get_gameMenu()`
 property, invoke it on the game thread, and treat invocation failures as menu
 state. Touch focus resolves `get_drawingPlayerChat()` and `get_myPlayer()`;
 `Main.player` remains an actual static array. Chat selects the exact four-Int32
