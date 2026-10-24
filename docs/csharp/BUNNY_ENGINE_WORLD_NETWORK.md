@@ -50,3 +50,29 @@ c++ -std=c++20 -O2 -Wall -Wextra -Werror -Iapp/src/main/cpp experiments/csharp/B
 /tmp/bunny-world-net
 dotnet run --project experiments/csharp/BunnyWorldSystemsSmoke/BunnyWorldSystemsSmoke.csproj -c Release
 ```
+
+## Roteiro Android: validação real de host e cliente
+
+No ExampleMod C# atualizado, o comando de QA `/worldnetqa` retorna
+`boss=<True|False> frames=<n> mode=<n>`. Não depende de JavaScript e usa a
+mesma assembly compartilhada que os sistemas de mundo.
+
+1. No host, entre no mundo com `ExampleMod CSharp` habilitado. No cliente,
+   entre no mesmo mundo com o mesmo mod habilitado. Execute `/worldnetqa`
+   em ambos: antes da progressão o esperado é `boss=False`.
+2. No host, execute `/worldnetqa mark` e depois `/worldnetqa`.
+   O host deve mostrar `boss=True`; o cliente deve receber `boss=True`
+   depois do próximo ciclo de sincronização. Se o cliente permanecer em
+   `boss=False`, o transporte host→cliente ainda não foi validado.
+3. No cliente, execute `/worldnetqa mark`. A tentativa deve ser rejeitada;
+   o cliente não pode estabelecer progresso autoritativo no host.
+4. Desconecte e reconecte o cliente depois da alteração, incluindo entrada
+   tardia de outro cliente. Verifique que o host transmite a revisão atual,
+   sem duplicar ou reverter progresso.
+5. Saia e reabra o mundo do host. Verifique que a progressão persiste no
+   host e volta a ser transmitida aos clientes. Teste outro mundo para
+   descartar vazamento de estado entre sessões.
+
+Este comando altera um sinalizador de **exemplo**, não derrota um boss real.
+Use um mundo de QA separado. Sucesso dos testes gerenciados e CI não comprova
+rede multiplayer em aparelhos Android.
