@@ -81,6 +81,11 @@ try
         !first.Contains("pontos=2", StringComparison.Ordinal) ||
         !first.Contains("updates=1/19", StringComparison.Ordinal))
         throw new InvalidOperationException("Command sees a different assembly than world/hooks:\n" + first);
+    for (int i = 0; i < counts.Length; i++) counts[i] = 1;
+    string all = Chat();
+    if (!all.Contains("updates=19/19", StringComparison.Ordinal) ||
+        !all.Contains("Callbacks ausentes:nenhum", StringComparison.Ordinal))
+        throw new InvalidOperationException("Command cannot see all nineteen callback counters:\n" + all);
 
     string saved64 = BunnyWorldMonoHost.Prepare(1)
         ?? throw new InvalidOperationException("World save: " + BunnyWorldMonoHost.LastError);
