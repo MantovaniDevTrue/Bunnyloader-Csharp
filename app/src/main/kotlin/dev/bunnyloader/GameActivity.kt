@@ -110,6 +110,19 @@ class GameActivity : Activity() {
             return
         }
         BootLog.add(this, "runtime carregado")
+        val cryptoJni = runCatching {
+            Class.forName(
+                "net.dot.android.crypto.DotnetProxyTrustManager",
+                true,
+                classLoader
+            )
+            System.loadLibrary("System.Security.Cryptography.Native.Android")
+        }
+        if (cryptoJni.isFailure) {
+            fail("MonoVM CryptoJNI não inicializou no processo do jogo", cryptoJni.exceptionOrNull())
+            return
+        }
+        BootLog.add(this, "[CSharp][CryptoJNI] Process=game Result=Ready")
         runCatching {
             ManagedFrameworkAssets.withLock(File(filesDir, "bunny-csharp")) {
                 listOf("BunnyVmBenchmark67.dll", "BunnyVmGameplay69.dll").forEach { assembly ->
