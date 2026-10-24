@@ -64,7 +64,7 @@ cp docs/qa/five-loaders-integration.json build/unified-delivery/integration.json
 printf '%s\n' "$GITHUB_SHA" > build/unified-delivery/COMMIT.txt
 (cd build/unified-delivery && sha256sum *.apk *.bl *.md COMMIT.txt PACKAGE.txt SIGNATURE.txt > SHA256SUMS)
 TAG="csharp-unified-qa-${GITHUB_SHA:0:12}"
-printf 'Bunny Loader CSharp unificado — QA Mobile 301720.\n\nCommit: %s\nCI: https://github.com/%s/actions/runs/%s\n\nUm APK para ExampleMod CSharp 0.1.65 e FiveLoadersCSharp 0.1.1. A compilacao Android e a assinatura foram verificadas. O SIGSEGV ao entrar no mundo ainda exige identificacao precisa do hook ou ponteiro; esta build serve ao teste supervisionado e a coleta de relatorio. Nao e release estavel. Leia UNIFIED_CSHARP_QA.md.\n' "$GITHUB_SHA" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID" > build/unified-delivery/NOTES.md
+printf 'Bunny Loader CSharp unificado — QA Mobile 301720.\n\nCommit: %s\nCI: https://github.com/%s/actions/runs/%s\n\nUm APK para ExampleMod CSharp 0.1.65 e FiveLoadersCSharp 0.1.2. A compilacao Android e a assinatura foram verificadas. O SIGSEGV ao entrar no mundo ainda exige identificacao precisa do hook ou ponteiro; esta build serve ao teste supervisionado e a coleta de relatorio. Nao e release estavel. Leia UNIFIED_CSHARP_QA.md.\n' "$GITHUB_SHA" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID" > build/unified-delivery/NOTES.md
 if gh release view "$TAG" --repo "$PRIVATE_INPUTS_REPO" >/dev/null 2>&1; then
  gh release upload "$TAG" build/unified-delivery/* --repo "$PRIVATE_INPUTS_REPO" --clobber
 else
