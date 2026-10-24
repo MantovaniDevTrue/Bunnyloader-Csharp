@@ -262,7 +262,7 @@ try {
   Equal(1,CompiledAssemblyProbe.Verify(assemblyPath,diagPath));
   var tileWire=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt"))
    .Single(line=>line.StartsWith("TILE\tAnimatedExampleTile\t",StringComparison.Ordinal)).Split('\t');
-  Equal(21,tileWire.Length);Equal("36",tileWire[13]);Equal("4",tileWire[14]);Equal("5",tileWire[15]);Equal("16,18",tileWire[16]);Equal("0",tileWire[17]);Equal("0",tileWire[18]);Equal("63599",tileWire[19]);Equal("0",tileWire[20]);
+  Equal(29,tileWire.Length);Equal("36",tileWire[13]);Equal("4",tileWire[14]);Equal("5",tileWire[15]);Equal("16,18",tileWire[16]);Equal("0",tileWire[17]);Equal("0",tileWire[18]);Equal("63599",tileWire[19]);Equal("0",tileWire[20]);
   Equal("READY",BunnyTileRuntime.Dispatch("tile-fixture",assemblyPath,"AnimatedExampleTile",0,2,""));
   Equal("0",BunnyTileRuntime.Dispatch("tile-fixture",assemblyPath,"AnimatedExampleTile",0,0,"3,4"));
   Equal("1",BunnyTileRuntime.Dispatch("tile-fixture",assemblyPath,"AnimatedExampleTile",1,0,"2,4"));
@@ -305,7 +305,7 @@ try {
   if(Compiler.Compile(root,output,runtime,diag)!=1)throw new Exception(File.ReadAllText(diag));
   var domains=new Dictionary<Type,string>{
    [typeof(BunnyItem)]="ITEM",[typeof(BunnyWeapon)]="ITEM",[typeof(BunnyAccessory)]="ITEM",[typeof(BunnyBuffPotion)]="ITEM",
-   [typeof(BunnyWall)]="WALL",[typeof(BunnyTile)]="TILE",[typeof(BunnyProjectile)]="PROJECTILE",[typeof(BunnyNPC)]="NPC",
+   [typeof(BunnyTree)]="TREE",[typeof(BunnyGore)]="GORE",[typeof(BunnyWall)]="WALL",[typeof(BunnyTile)]="TILE",[typeof(BunnyProjectile)]="PROJECTILE",[typeof(BunnyNPC)]="NPC",
    [typeof(BunnyRarity)]="RARITY",[typeof(BunnyDust)]="DUST",[typeof(BunnyBuff)]="BUFF",[typeof(BunnyPlayer)]="PLAYER",[typeof(BunnyPrefix)]="PREFIX"
   };
   var compiled=Assembly.Load(File.ReadAllBytes(output));
@@ -320,7 +320,7 @@ try {
   Equal(4,commands);
   if(CompiledAssemblyProbe.Verify(output,diag,root)!=identities.Count+localizationModules+commands)
    throw new Exception(File.ReadAllText(diag));
-  var contentKinds=new HashSet<string>{"ITEM","WEAPON","ACCESSORY","POTION","TILE","WALL","DUST","RARITY","BUFF","PLAYER","PROJECTILE","NPC","PREFIX"};
+  var contentKinds=new HashSet<string>{"ITEM","WEAPON","ACCESSORY","POTION","TILE","TREE","GORE","WALL","DUST","RARITY","BUFF","PLAYER","PROJECTILE","NPC","PREFIX"};
   string localizationUid="68c3115f-62f4-49f2-a56b-388256781d5f";
   string dynamicWire=BunnyLocalizationRuntime.Dispatch(localizationUid,output,"pt-BR");
   if(!dynamicWire.StartsWith("OK|",StringComparison.Ordinal)||
@@ -365,7 +365,7 @@ try {
   var blockTile=blockRows.Single(row=>row.StartsWith("TILE\tExampleTile\t",StringComparison.Ordinal)).Split('\t');
   Equal("19968",blockTile[2]);Equal("0",blockTile[3]);Equal("Stone",blockTile[6]);
   Equal("0",blockTile[7]);Equal("200",blockTile[8]);Equal("255",blockTile[9]);
-  Equal(21,blockTile.Length);Equal("0",blockTile[13]);Equal("1",blockTile[14]);Equal("0",blockTile[15]);Equal("-",blockTile[16]);Equal("1",blockTile[17]);Equal("1",blockTile[18]);Equal("0",blockTile[19]);Equal("1",blockTile[20]);
+  Equal(29,blockTile.Length);Equal("0",blockTile[13]);Equal("1",blockTile[14]);Equal("0",blockTile[15]);Equal("-",blockTile[16]);Equal("1",blockTile[17]);Equal("1",blockTile[18]);Equal("0",blockTile[19]);Equal("1",blockTile[20]);
   var blockItem=blockRows.Single(row=>row.StartsWith("ITEM\tExampleTileItem\t",StringComparison.Ordinal)).Split('\t');
   Equal("12",blockItem[2]);Equal("12",blockItem[3]);
   Equal("10,18,mExampleItem:1",blockItem[19]);Equal("mExampleTile:0",blockItem[21]);
@@ -539,15 +539,104 @@ try {
      !records.Any(line=>line.StartsWith("PROJECTILE\tExampleWorkbench\t")))
       throw new Exception("native domain identity dropped a class");
  });
+ Check("tree.native-three-texture-source-wire",()=>{
+  string root=Path.Combine(scratch,"tree-source");
+  Directory.CreateDirectory(Path.Combine(root,"content"));
+  string src=Path.Combine(root,"content","TreeProbe.cs");
+  string output=Path.Combine(scratch,"tree.dll"),diag=Path.Combine(scratch,"tree.log");
+  const string valid="using BunnyLoader.Source;public sealed class TreeProbe:BunnyTree{public override void SetDefaults(){"+
+    "Texture=\"Content/Tiles/Plants/ExampleTree\";GrowsOnTile=\"ExampleTile\";SaplingTile=\"ExampleSapling\";WoodItem=\"ExampleItem\";CanDropAcorn=false;LeafGoreName=\"ExampleTree_Leaf\";DustType=6;ShakeItem=\"ExampleTileItem\";ShakeLeaves=false;}}";
+  string goreSrc=Path.Combine(root,"content","ExampleTree_Leaf.cs");
+  File.WriteAllText(goreSrc,"using BunnyLoader.Source;public sealed class ExampleTree_Leaf:BunnyGore{public override void SetDefaults(){Texture=\"Content/Gores/ExampleTree_Leaf\";SpecialAI=3;SafeGore=true;}}");
+  File.WriteAllText(src,valid);
+  Equal(1,Compiler.Compile(root,output,runtime,diag));
+  Equal(2,CompiledAssemblyProbe.Verify(output,diag));
+  string[] rows=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt"));
+  Equal(3,rows.Length);
+  Equal("GORE\tExampleTree_Leaf\tContent/Gores/ExampleTree_Leaf\t3\t1",rows[1]);
+  Equal("TREE\tTreeProbe\tExampleTile\tExampleSapling\tContent/Tiles/Plants/ExampleTree\tExampleItem\t0\t-1\t6\tExampleTileItem\t0\tExampleTree_Leaf",rows[2]);
+  foreach(string invalid in new[]{"../OtherTree","Content//Trees/Broken","Content/Trees/Leaf.png"}) {
+    File.WriteAllText(src,valid.Replace("Content/Tiles/Plants/ExampleTree",invalid));
+    Equal(1,Compiler.Compile(root,output,runtime,diag));
+    Equal(-1,CompiledAssemblyProbe.Verify(output,diag));
+  }
+ });
+ Check("tree.examplemod-csharp-original-gore-assets-and-types",()=>{
+  const string pc="samples/ExampleMod/content/Content";
+  const string cs="samples/ExampleModCSharp/Playable/content";
+  string[] sprites={"Tiles/Plants/ExampleSapling.png","Tiles/Plants/ExampleTree.png",
+    "Tiles/Plants/ExampleTree_Tops.png","Tiles/Plants/ExampleTree_Branches.png",
+    "Gores/ExampleTree_Leaf.png"};
+  foreach(string sprite in sprites) {
+    string original=Path.Combine(pc,sprite),ported=Path.Combine(cs,"Content",sprite);
+    Equal(true,File.Exists(original));
+    Equal(true,File.Exists(ported));
+    Equal(true,File.ReadAllBytes(original).SequenceEqual(File.ReadAllBytes(ported)));
+  }
+  string project=Path.Combine(scratch,"tree-gore-original");
+  Directory.CreateDirectory(Path.Combine(project,"content"));
+  string[] scripts={"Content/Tiles/Plants/ExampleSapling.cs",
+    "Content/Tiles/Plants/ExampleTree.cs","Content/Gores/ExampleTree_Leaf.cs"};
+  foreach(string path in scripts) {
+    string source=Path.Combine(cs,path);
+    Equal(true,File.Exists(source));
+    File.Copy(source,Path.Combine(project,"content",Path.GetFileName(path)),true);
+  }
+  string output=Path.Combine(scratch,"tree-gore-original.dll");
+  string diag=Path.Combine(scratch,"tree-gore-original.log");
+  Equal(1,Compiler.Compile(project,output,runtime,diag));
+  Equal(3,CompiledAssemblyProbe.Verify(output,diag));
+  string[] wire=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt"));
+  Equal(4,wire.Length);
+  Equal(true,wire.Any(row=>row.StartsWith("GORE\tExampleTree_Leaf\tContent/Gores/ExampleTree_Leaf\t3\t1")));
+  Equal(true,wire.Any(row=>row.StartsWith("TREE\tExampleTree\tExampleTile\tExampleSapling\tContent/Tiles/Plants/ExampleTree\t")));
+  Equal(true,wire.Any(row=>row.EndsWith("\tExampleTree_Leaf")));
+  var sapling=wire.Single(row=>row.StartsWith("TILE\tExampleSapling\t",StringComparison.Ordinal)).Split('\t');
+  Equal("32768",sapling[19]);
+  Equal("20",sapling[28]);
+  const string drawing="0,0,16,16,0,0,0,0,0";
+  Equal("READY",BunnyTileRuntime.Dispatch("tree-gore-fidelity",output,"ExampleSapling",0,2,""));
+  Equal("DRAW|0|0|16|16|0|0|0|1",BunnyTileRuntime.Dispatch(
+    "tree-gore-fidelity",output,"ExampleSapling",13,0,"4,20,"+drawing));
+  Equal("DRAW|0|0|16|16|0|0|0|0",BunnyTileRuntime.Dispatch(
+    "tree-gore-fidelity",output,"ExampleSapling",13,0,"5,20,"+drawing));
+ });
+ Check("tiles.sapling-1x2-native-descriptor",()=>{
+  string root=Path.Combine(scratch,"sapling1x2-source");
+  Directory.CreateDirectory(Path.Combine(root,"content"));
+  string source=Path.Combine(root,"content","SaplingProbe.cs");
+  string output=Path.Combine(scratch,"sapling1x2.dll"),diag=Path.Combine(scratch,"sapling1x2.log");
+  File.WriteAllText(source,
+   "using BunnyLoader.Source;public sealed class SaplingProbe:BunnyTile { public override void SetStaticDefaults(){"+
+   "Texture=\"SaplingProbe.png\";DisplayName=\"Sapling\";Shape=BunnyTileShape.Sapling1x2;"+
+   "Flags=BunnyTileFlags.FrameImportant|BunnyTileFlags.NoAttach|BunnyTileFlags.LavaDeath|"+
+   "BunnyTileFlags.TreeSapling|BunnyTileFlags.CommonSapling|BunnyTileFlags.SwaysInWindBasic;"+
+   "SaplingGroundTile=\"ExampleTile\";SaplingVanillaGroundTile=8;SaplingStyleRange=3;"+
+   "AdjacentTiles=new[]{20};}}");
+  Equal(1,Compiler.Compile(root,output,runtime,diag));
+  Equal(1,CompiledAssemblyProbe.Verify(output,diag));
+  var fields=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt"))
+   .Single(x=>x.StartsWith("TILE\tSaplingProbe\t",StringComparison.Ordinal)).Split('\t');
+  Equal(29,fields.Length);Equal("4",fields[3]);Equal("ExampleTile",fields[25]);
+  Equal("8",fields[26]);Equal("3",fields[27]);
+  Equal((16|4|8|131072|262144|524288).ToString(),fields[2]);
+  Equal("20",fields[16]);
+  File.WriteAllText(source,
+   "using BunnyLoader.Source;public sealed class SaplingProbe:BunnyTile { public override void SetStaticDefaults(){"+
+   "Shape=BunnyTileShape.Sapling1x2;Flags=BunnyTileFlags.TreeSapling|"+
+   "BunnyTileFlags.CommonSapling|BunnyTileFlags.SwaysInWindBasic;}}");
+  Equal(1,Compiler.Compile(root,output,runtime,diag));
+  Equal(-1,CompiledAssemblyProbe.Verify(output,diag));
+ });
  Check("tiles.unknown-flags-rejected-by-real-compiler-probe",()=>{
   string root=Path.Combine(scratch,"bad-tile-flags");Directory.CreateDirectory(Path.Combine(root,"content"));
   string output=Path.Combine(scratch,"bad-tile.dll"),diag=Path.Combine(scratch,"bad-tile.txt");
-  foreach(int flags in new[]{-1,65536,int.MaxValue}) {
+  foreach(int flags in new[]{-1,1048576,int.MaxValue}) {
    File.WriteAllText(Path.Combine(root,"content","InvalidTile.cs"),
     "using BunnyLoader.Source;public sealed class InvalidTile:BunnyTile{public override void SetStaticDefaults(){Texture=\"InvalidTile.png\";DisplayName=\"Example Invalid\";Flags=(BunnyTileFlags)("+flags+");}}");
    Equal(1,Compiler.Compile(root,output,runtime,diag));Equal(-1,CompiledAssemblyProbe.Verify(output,diag));
    string error=File.ReadAllText(diag);
-   foreach(string detail in new[]{"Class=InvalidTile","Field=Flags","Stage=Serialize","Expected=Int32:KnownMask0xFFFF","Actual="+flags,"Reason=UnknownFlagBits"})
+   foreach(string detail in new[]{"Class=InvalidTile","Field=Flags","Stage=Serialize","Expected=Int32:KnownMask0xFFFFF","Actual="+flags,"Reason=UnknownFlagBits"})
     if(!error.Contains(detail))throw new Exception("Missing tile diagnostic: "+detail+" in "+error);
   }
  });
@@ -562,7 +651,7 @@ try {
   Equal("ExampleItem",exampleMaterial[1]);
   var tile=rows.Single(row=>row.StartsWith("TILE\tExampleWorkbench\t")).Split('\t');
   var item=rows.Single(row=>row.StartsWith("ITEM\tExampleWorkbench\t")).Split('\t');
-  Equal(21,tile.Length);Equal("1",tile[20]); Equal("1",tile[3]);Equal("18",tile[4]);Equal("18",tile[5]);
+  Equal(29,tile.Length);Equal("1",tile[20]); Equal("1",tile[3]);Equal("18",tile[4]);Equal("18",tile[5]);
   Equal("Platinum",tile[6]);Equal("200",tile[7]);Equal("200",tile[8]);Equal("200",tile[9]);
   Equal("1",tile[11]);Equal("3",tile[12]);
   Equal(22,item.Length);Equal("mExampleWorkbench:0",item[21]);

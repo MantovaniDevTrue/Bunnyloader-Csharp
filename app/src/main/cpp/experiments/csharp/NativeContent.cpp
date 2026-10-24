@@ -13,6 +13,11 @@
 #include "experiments/csharp/NativeTileFlags.h"
 #include "experiments/csharp/NativeTileAdjacencyPolicy.h"
 #include "experiments/csharp/NativeTilePolicy.h"
+#include "experiments/csharp/NativeSaplingGrowthPolicy.h"
+#include "experiments/csharp/NativeTileMiningPolicy.h"
+#include "experiments/csharp/NativeTreeTexturePolicy.h"
+#include "experiments/csharp/NativeGorePolicy.h"
+#include "experiments/csharp/NativeManagedTablePublication.h"
 #include "experiments/csharp/NativeBootEffects.h"
 
 #include "content/common/GameRefs.h"
@@ -21,6 +26,8 @@
 #include "content/npcs/ModNpcs.h"
 #include "content/buffs/ModBuffs.h"
 #include "content/tiles/ModTiles.h"
+#include "content/tiles/ModTrees.h"
+#include "content/common/ContentAssets.h"
 #include "content/walls/ModWalls.h"
 #include "content/tiles/ModTileMap.h"
 #include "content/tiles/TileAccess.h"
@@ -1368,7 +1375,7 @@ bool nativeManagedProjectileFields(int type,ProjectileGameplayFields* fields) {
     const auto found=view->find(type);if(found==view->end())return false;
     *fields=found->second.fields;return true;
 }
-int nativeManagedProjectileFrames(int type) {return nativeManagedProjectilePolicy(type).frames;}
+
 ManagedTileCollisionSettings nativeManagedProjectileTileCollisionSettings(int type) {
     const auto view=std::atomic_load_explicit(&g_projectileView,std::memory_order_acquire);
     const auto found=view->find(type);
@@ -1380,6 +1387,7 @@ ManagedTileCollisionSettings nativeManagedProjectileTileCollisionSettings(int ty
             defaults.tileCollisionBoxWidth,defaults.tileCollisionBoxHeight,
             defaults.tileCollisionAnchorOffsetX,defaults.tileCollisionAnchorOffsetY};
 }
+int nativeManagedProjectileFrames(int type) {return nativeManagedProjectilePolicy(type).frames;}
 
 int nativeManagedMinionBuff(int projectileType) {
     const auto buffs=std::atomic_load_explicit(&g_buffView,std::memory_order_acquire);
@@ -2232,33 +2240,113 @@ Il2CppObject* tileStaticObject(Il2CppClass* cls, const char* name) {
     return method ? a.runtime_invoke(method, nullptr, nullptr, &exc) : nullptr;
 }
 
-bool applyTileShape(int type, const ManagedTileEntry& e) {
+#include "experiments/csharp/NativeTileSaplingShape.h"
+
+bool applyTileShape(const std::string& mod,int type,const ManagedTileEntry& e) {
+    if(e.shape==4)return applyNativeSaplingShape(mod,type,e);
     if (e.shape == 0) return true;
-    if (e.shape != 1) return false;
-    auto& a = il2cpp::api();
-    Il2CppClass* cls = il2cpp::findClass({"Terraria.ObjectData", "TileObjectData", {}});
-    Il2CppObject* tile = tileStaticObject(cls, "newTile");
-    Il2CppObject* shape = tileStaticObject(cls, "Style2x1");
-    if (!tile || !shape) return false;
-    Il2CppClass* tileClass = a.object_get_class(tile);
-    const MethodInfo* copy = a.class_get_method_from_name(tileClass, "CopyFrom", 1);
-    const MethodInfo* setHeights = a.class_get_method_from_name(tileClass, "set_CoordinateHeights", 1);
-    const MethodInfo* addTile = cls ? a.class_get_method_from_name(cls, "addTile", 1) : nullptr;
-    Il2CppClass* intClass = il2cpp::findClass({"System", "Int32", {}});
-    if (!copy || !setHeights || !addTile || !intClass) return false;
-    Il2CppArray* heights = a.array_new(intClass, 1);
-    if (!heights) return false;
-    *static_cast<int32_t*>(arrayData(heights)) = e.coordinateHeight;
-    Il2CppObject* exc = nullptr;
-    void* copyArgs[1] = {shape};
-    a.runtime_invoke(copy, tile, copyArgs, &exc);
-    if (exc) return false;
-    void* heightArgs[1] = {heights};
-    a.runtime_invoke(setHeights, tile, heightArgs, &exc);
-    if (exc) return false;
-    int32_t id = type;
-    void* addArgs[1] = {&id};
-    a.runtime_invoke(addTile, nullptr, addArgs, &exc);
+    if (!tile_policy::validShape(e.shape)) return false;
+    auto& a=il2cpp::api();
+    auto* cls=il2cpp::findClass({"Terraria.ObjectData","TileObjectData",{}});
+    auto* tile=tileStaticObject(cls,"newTile");
+    if (!tile || !cls || !a.object_get_class || !a.method_get_param_count ||
+        !a.method_get_param || !a.method_get_return_type || !a.method_is_instance)
+        return false;
+    auto* tileClass=a.object_get_class(tile);
+    const auto typeIs=[&](const Il2CppType* type,const char* expected) {
+        if(!type||!a.type_get_name||!a.il2cpp_free)return false;
+        char* text=a.type_get_name(type);
+        const bool match=text&&std::strcmp(text,expected)==0;
+        if(text)a.il2cpp_free(text);
+        return match;
+    };
+    const auto* copy=a.class_get_method_from_name(tileClass,"CopyFrom",1);
+    const auto* addTile=a.class_get_method_from_name(cls,"addTile",1);
+    if(!copy||!addTile||!il2cpp::methodPointer(copy)||!il2cpp::methodPointer(addTile))
+        return false;
+    Il2CppObject* source=nullptr;
+    if(e.shape==2) {
+        const auto* get=a.class_get_method_from_name(cls,"GetTileData",3);
+        if(!get||!il2cpp::methodPointer(get)||a.method_is_instance(get)||
+           a.method_get_param_count(get)!=3||
+           !typeIs(a.method_get_return_type(get),"Terraria.ObjectData.TileObjectData"))
+            return false;
+        for(unsigned i=0;i<3;++i)
+            if(!typeIs(a.method_get_param(get,i),"System.Int32"))return false;
+        int32_t campfire=215,style=0,alternate=0;
+        void* args[]={&campfire,&style,&alternate};
+        Il2CppObject* exc=nullptr;
+        source=a.runtime_invoke(get,nullptr,args,&exc);
+        if(exc||!source||a.object_get_class(source)!=tileClass)return false;
+    } else {
+        source=tileStaticObject(cls,e.shape==1?"Style2x1":"Style1xX");
+    }
+    if(!source)return false;
+    struct NativeProperty {
+        const MethodInfo* setter=nullptr;
+        int offset=-1;
+        size_t size=0;
+    };
+    const auto resolve=[&](const char* fieldName,const char* type,size_t size,NativeProperty* out) {
+        const std::string setterName=std::string("set_")+fieldName;
+        const auto* setter=a.class_get_method_from_name(tileClass,setterName.c_str(),1);
+        if(setter) {
+            if(!il2cpp::methodPointer(setter)||a.method_is_instance(setter)==false||
+               a.method_get_param_count(setter)!=1||
+               !typeIs(a.method_get_param(setter,0),type)||
+               !typeIs(a.method_get_return_type(setter),"System.Void"))return false;
+            *out={setter,-1,size};
+            return true;
+        }
+        std::string detail;
+        FieldInfo* field=nullptr;
+        int offset=-1;
+        if(!il2cpp::nativeFieldContract(tileClass,fieldName,type,false,size,
+                                        &field,&offset,&detail))return false;
+        *out={nullptr,offset,size};
+        return true;
+    };
+    const auto assign=[&](const NativeProperty& slot,const void* value) {
+        if(slot.setter) {
+            void* args[]={const_cast<void*>(value)};
+            Il2CppObject* exc=nullptr;
+            a.runtime_invoke(slot.setter,tile,args,&exc);
+            return exc==nullptr;
+        }
+        if(slot.offset<0)return false;
+        std::memcpy(reinterpret_cast<char*>(tile)+slot.offset,value,slot.size);
+        return true;
+    };
+    NativeProperty line{},yoff{},flip{};
+    if((e.shape!=1&&!resolve("StyleLineSkip","System.Int32",4,&line))||
+       (e.shape==3&&(!resolve("DrawYOffset","System.Int32",4,&yoff)||
+                     !resolve("DrawFlipHorizontal","System.Boolean",1,&flip))))return false;
+    const auto* setHeights=e.shape==1?a.class_get_method_from_name(tileClass,"set_CoordinateHeights",1):nullptr;
+    if(e.shape==1&&(!setHeights||!il2cpp::methodPointer(setHeights)))return false;
+    void* copyArgs[]={source};
+    Il2CppObject* exc=nullptr;
+    a.runtime_invoke(copy,tile,copyArgs,&exc);
+    if(exc)return false;
+    if(e.shape==1) {
+        auto* intClass=il2cpp::findClass({"System","Int32",{}});
+        if(!intClass||!a.array_new)return false;
+        auto* heights=a.array_new(intClass,1);
+        if(!heights)return false;
+        *static_cast<int32_t*>(arrayData(heights))=e.coordinateHeight;
+        void* args[]={heights};
+        Il2CppObject* error=nullptr;
+        a.runtime_invoke(setHeights,tile,args,&error);
+        if(error)return false;
+    } else {
+        int32_t skip=e.shape==2?9:2,offset=2;
+        bool drawFlip=true;
+        if(!assign(line,&skip)||
+           (e.shape==3&&(!assign(yoff,&offset)||!assign(flip,&drawFlip))))
+            return false;
+    }
+    int32_t id=type;
+    void* addArgs[]={&id};
+    a.runtime_invoke(addTile,nullptr,addArgs,&exc);
     return !exc;
 }
 
@@ -2386,7 +2474,7 @@ void onManagedTilesInstalled(int first, int last) {
     }
     for (const auto& [mod, entry] : records) {
         const bool flags = applyTileFlags(mod, entry.type, entry);
-        const bool shape = applyTileShape(entry.type, entry);
+        const bool shape = applyTileShape(mod,entry.type, entry);
         const bool housing = (entry.flags & 256) == 0 || appendNativeHousingTable(mod, entry);
         const bool guide = installCraftingStationIcon(mod, entry);
         bool adjacency = true;
@@ -2407,7 +2495,13 @@ void onManagedTilesInstalled(int first, int last) {
                                         entry.animationFrameHeight, entry.animationFrames,
                                         entry.animationFrameTicks,
                                         entry.allowBreaking, entry.allowDrops, entry.callbackMask,
-                                        entry.cacheDrawData, {}});
+                                        entry.cacheDrawData, {},entry.frameToggle,
+                                        (entry.flags & 65536)!=0,entry.registeredDrops,
+                                         entry.minPick,entry.mineResist,
+                                         entry.saplingGroundTile.empty()?-1:
+                                           runtime::modTileTypeByKey(mod+"/"+entry.saplingGroundTile),
+                                         entry.saplingVanillaGroundTile,
+                                         entry.saplingGrowthChance});
         if (gameplay && entry.animationFrameHeight > 0)
             runtime::setModTileAnimation(entry.type, entry.animationFrameHeight);
         if (!gameplay)
@@ -2433,7 +2527,10 @@ bool applyManagedNativeTileDefaultsBatch(const std::string& modId,
         if (entry.type < runtime::kVanillaTileCount ||
             runtime::modTileTypeByName(modId, entry.name) != entry.type ||
             entry.flags < 0 || entry.flags > tile_flags::supportedMask ||
-            entry.shape < 0 || entry.shape > 1 || entry.coordinateHeight != 18 ||
+            entry.shape < 0 || entry.shape > 4 ||
+            entry.frameToggle < 0 || entry.frameToggle > 2 ||
+            (entry.frameToggle==1&&entry.shape!=2) ||
+            (entry.frameToggle==2&&entry.shape!=3) || entry.coordinateHeight != 18 ||
             entry.animationFrameHeight < 0 || entry.animationFrameHeight > 4096 ||
             entry.animationFrames < 1 || entry.animationFrames > 64 ||
             entry.animationFrameTicks < 0 || entry.animationFrameTicks > 600 ||
@@ -2443,6 +2540,8 @@ bool applyManagedNativeTileDefaultsBatch(const std::string& modId,
             entry.adjacentTile < -1 || entry.adjacentTile >= runtime::kVanillaTileCount ||
             entry.adjacentTiles.size() > 16 ||
             !tile_policy::validCallbackMask(entry.callbackMask) ||
+             !tile_mining::valid(entry.minPick,entry.mineResist) ||
+            !tile_growth::valid(entry.shape,entry.saplingGrowthChance) ||
             entry.mapR < 0 || entry.mapR > 255 ||
             entry.mapG < 0 || entry.mapG > 255 ||
             entry.mapB < 0 || entry.mapB > 255)
@@ -2470,6 +2569,292 @@ bool applyManagedNativeTileDefaultsBatch(const std::string& modId,
     }
     runtime::setNativeTilesInstalledHook(onManagedTilesInstalled);
     runtime::requestNativeTileDefaults();
+    return true;
+}
+
+
+bool publishManagedNativeGores(const std::string& modId,const std::string& directory,
+                               const std::vector<ManagedGoreEntry>& gores,
+                               std::map<std::string,int>* ids,std::string* error) {
+    if(!ids||!error)return false;
+    if(gores.empty())return true;
+    const auto fail=[&](const char* stage,const std::string& reason) {
+        *error="[CSharp][GoreLoader] Mod="+modId+" Stage="+stage+
+               " Reason="+reason+" Result=Rejected";
+        BL_ERROR("%s",error->c_str());
+        return false;
+    };
+    auto& a=il2cpp::api();
+    table_publication::Roots roots(a);
+    if(!a.field_static_get_value||!a.field_static_set_value||!a.object_get_class||
+       !a.class_get_element_class||!a.class_get_name||!a.array_new||
+       !a.field_get_flags||!a.class_get_rank||!a.class_is_valuetype||
+       !a.runtime_invoke||!a.gchandle_new||!a.gchandle_get_target||!a.gchandle_free)
+        return fail("ABI","UnavailableIL2CPPAccess");
+    auto* textures=il2cpp::findClass({"Terraria.GameContent","TextureAssets",{}});
+    auto* goreClass=il2cpp::findClass({"Terraria.ID","GoreID",{}});
+    auto* sets=goreClass?il2cpp::findNested(goreClass,"Sets"):nullptr;
+    auto* safety=il2cpp::findClass({"Terraria.GameContent","ChildSafety",{}});
+    if(!textures||!sets||!safety)return fail("ABI","GoreClassesUnavailable");
+    const std::array<Il2CppClass*,6> classes={textures,sets,sets,sets,sets,safety};
+    const std::array<const char*,6> names={
+        "Gore","SpecialAI","DisappearSpeed","DisappearSpeedAlpha","IsDrip","SafeGore"
+    };
+    std::array<FieldInfo*,6> fields{};
+    std::array<Il2CppArray*,6> original{};
+    std::array<Il2CppArray*,6> pending{};
+    for(size_t i=0;i<fields.size();++i) {
+        fields[i]=il2cpp::findField(classes[i],names[i]);
+        if(!fields[i]||!(a.field_get_flags(fields[i])&0x10u))
+            return fail("ABI",std::string("MissingStaticField:")+names[i]);
+        a.field_static_get_value(fields[i],&original[i]);
+        if(!original[i]||a.class_get_rank(original[i]->obj.klass)!=1||!roots.add(reinterpret_cast<Il2CppObject*>(original[i])))return fail("ABI",std::string("MissingArray:")+names[i]);
+    }
+    const auto first=original[0]->length;
+    if(!gore_policy::capacity(first,gores.size()))
+        return fail("Capacity","ExceededGoreIDs");
+    for(size_t i=1;i<original.size();++i)
+        if(original[i]->length>first || original[i]->length==0)
+            return fail("ABI",std::string("GoreTableLengthMismatch:")+names[i]);
+    const auto elemName=[&](Il2CppArray* arr)->std::string {
+        auto* cls=a.class_get_element_class(
+            a.object_get_class(reinterpret_cast<Il2CppObject*>(arr)));
+        const char* name=cls?a.class_get_name(cls):nullptr;
+        return name?name:"";
+    };
+    const std::string special=elemName(original[1]);
+    const std::string speed=elemName(original[2]);
+    const std::string alpha=elemName(original[3]);
+    if((special!="Byte"&&special!="Int32")||
+       (speed!="Int32"&&speed!="Single"&&speed!="Byte")||
+       (alpha!="Int32"&&alpha!="Single"&&alpha!="Byte")||
+       elemName(original[4])!="Boolean"||elemName(original[5])!="Boolean")
+        return fail("ABI","UnexpectedGoreElementTypes");
+    for(size_t i=1;i<original.size();++i) {
+        const std::string type=elemName(original[i]);
+        const size_t width=(type=="Byte"||type=="Boolean")?1:4;
+        if(!il2cpp::nativeArrayContract(original[i],type.c_str(),width,32767))
+            return fail("ABI","GoreArrayLayoutMismatch");
+    }
+    std::map<std::string,bool> namesUsed;
+    std::vector<std::string> files;
+    files.reserve(gores.size());
+    for(const auto& gore:gores) {
+        if(!gore_policy::valid(gore.name,gore.texture,gore.specialAI)||
+           !namesUsed.emplace(gore.name,true).second)
+            return fail("Preflight","InvalidOrDuplicateGore:"+gore.name);
+        const auto file=gore_policy::filePath(directory,gore.texture);
+        if(file.empty()||!fileExists(file))
+            return fail("Files","MissingGorePng:"+gore.name);
+        files.push_back(file);
+    }
+    std::vector<Il2CppObject*> assets;
+    assets.reserve(gores.size());
+    for(size_t i=0;i<gores.size();++i) {
+        int width=0,height=0;
+        auto* asset=runtime::content::loadTextureAsset(
+            files[i],nullptr,0,modId+"/Gores/"+gores[i].name,&width,&height);
+        if(!asset||width<1||height<1||width>4096||height>4096)
+            return fail("Texture","InvalidGorePng:"+gores[i].name);
+        if(!roots.add(asset))return fail("GC","GoreAssetRootFailed");
+        assets.push_back(asset);
+    }
+    const auto total=first+gores.size();
+    for(size_t i=0;i<pending.size();++i) {
+        pending[i]=runtime::TypeTables::resizedCopy(original[i],total);
+        if(!pending[i]||!roots.add(reinterpret_cast<Il2CppObject*>(pending[i])))return fail("Array","ResizeFailed:"+std::string(names[i]));
+    }
+    auto* arrays=il2cpp::findClass({"System","Array",{}});
+    const auto* set=arrays?il2cpp::findMethodBySignature(arrays,
+        il2cpp::parseSignature("void SetValue(object value, int index)")):nullptr;
+    if(!set||!il2cpp::methodPointer(set))
+        return fail("ABI","GoreAssetSetValueMissing");
+    const auto putNumber=[&](size_t arrayIndex,int index,int number)->bool {
+        auto* array=pending[arrayIndex];
+        if(!array||static_cast<uintptr_t>(index)>=array->length)return false;
+        const std::string type=elemName(array);
+        auto* bytes=static_cast<char*>(arrayData(array));
+        if(type=="Byte"||type=="Boolean") {
+            if(number<0||number>255)return false;
+            bytes[index]=static_cast<char>(number);
+            return true;
+        }
+        if(type=="Int32") {
+            int value=number;
+            std::memcpy(bytes+static_cast<size_t>(index)*sizeof(value),&value,sizeof(value));
+            return true;
+        }
+        if(type=="Single") {
+            float value=static_cast<float>(number);
+            std::memcpy(bytes+static_cast<size_t>(index)*sizeof(value),&value,sizeof(value));
+            return true;
+        }
+        return false;
+    };
+    for(size_t i=0;i<gores.size();++i) {
+        int index=static_cast<int>(first+i);
+        Il2CppObject* exception=nullptr;
+        void* args[]={assets[i],&index};
+        a.runtime_invoke(set,reinterpret_cast<Il2CppObject*>(pending[0]),args,&exception);
+        if(exception||!putNumber(1,index,gores[i].specialAI)||
+           !putNumber(2,index,1)||!putNumber(3,index,1)||
+           !putNumber(4,index,0)||!putNumber(5,index,gores[i].safeGore?1:0))
+            return fail("Publish","GoreValuesFailed:"+gores[i].name);
+    }
+    if(!table_publication::publish(a,fields.data(),original.data(),pending.data(),
+                                   fields.size(),roots))
+        return fail("Publish","GoreTablesNotConfirmed");
+    for(size_t i=0;i<gores.size();++i)
+        ids->emplace(gores[i].name,static_cast<int>(first+i));
+    BL_INFO("[CSharp][GoreLoader] Mod=%s Registered=%zu First=%zu Result=Ready",
+            modId.c_str(),gores.size(),static_cast<size_t>(first));
+    return true;
+}
+
+bool publishManagedNativeTrees(const std::string& modId,const std::string& directory,
+                               const std::vector<ManagedTreeEntry>& trees,std::string* error) {
+    if(!error)return false;
+    const auto fail=[&](const std::string& stage,const std::string& detail) {
+        *error="[CSharp][TreeLoader] Mod="+modId+" Stage="+stage+
+               " Result=Rejected Reason="+detail;
+        BL_ERROR("%s",error->c_str());
+        return false;
+    };
+    if(trees.empty())return true;
+    if(trees.size()>255||runtime::modTreeCount()+static_cast<int>(trees.size())>255)
+        return fail("Preflight","CapacityExceeded");
+    auto& a=il2cpp::api();
+    table_publication::Roots roots(a);
+    if(!a.field_static_get_value||!a.field_static_set_value||
+       !a.field_get_flags||!a.class_get_rank||!a.class_is_valuetype||
+       !a.runtime_invoke||!a.object_get_class||!a.array_new||
+       !a.gchandle_new||!a.gchandle_get_target||!a.gchandle_free)
+        return fail("ABI","MissingIl2CppFunctions");
+    auto* textures=il2cpp::findClass({"Terraria.GameContent","TextureAssets",{}});
+    auto* fieldTop=textures?il2cpp::findField(textures,"TreeTop"):nullptr;
+    auto* fieldBranch=textures?il2cpp::findField(textures,"TreeBranch"):nullptr;
+    Il2CppArray* originalTop=nullptr;
+    Il2CppArray* originalBranch=nullptr;
+    if(!fieldTop||!fieldBranch||!(a.field_get_flags(fieldTop)&0x10u)||
+       !(a.field_get_flags(fieldBranch)&0x10u))return fail("ABI","TextureTablesUnavailable");
+    a.field_static_get_value(fieldTop,&originalTop);
+    a.field_static_get_value(fieldBranch,&originalBranch);
+    if(!originalTop||!originalBranch||
+       a.class_get_rank(originalTop->obj.klass)!=1||
+       a.class_get_rank(originalBranch->obj.klass)!=1||
+       originalTop->length!=originalBranch->length||
+       originalTop->length+trees.size()>32767)
+        return fail("ABI","TextureTablesMismatch");
+    if(!roots.add(reinterpret_cast<Il2CppObject*>(originalTop))||
+       !roots.add(reinterpret_cast<Il2CppObject*>(originalBranch)))
+        return fail("GC","OriginalTreeTableRootFailed");
+    auto* sysArray=il2cpp::findClass({"System","Array",{}});
+    const auto* arraySet=sysArray?il2cpp::findMethodBySignature(sysArray,
+        il2cpp::parseSignature("void SetValue(object value, int index)")):nullptr;
+    if(!arraySet||!il2cpp::methodPointer(arraySet))
+        return fail("ABI","ArrayWriteUnavailable");
+    if(!runtime::prepareModTreeRendering())
+        return fail("BindRendering","MissingNativeTreeDrawOrGrowthHooks");
+    if(!runtime::prepareModTreeDrops(true))
+        return fail("BindTreeDrops","MissingNativeDropsAcornOrRandomABI");
+    if(!runtime::prepareModTreePlanting())
+        return fail("BindSaplingPlanting","MissingTileObjectCanPlaceABI");
+    if(!runtime::prepareModTreeEffects())
+        return fail("BindTreeEffects","MissingGetTreeLeafABI");
+    const bool needsShake=std::any_of(trees.begin(),trees.end(),[](const ManagedTreeEntry& e) {
+        return e.shakeItemType>=0;
+    });
+    if(needsShake&&!runtime::prepareModTreeShake())
+        return fail("BindTreeShake","MissingNativeShakeABI");
+    const bool needsShakeEffects=std::any_of(trees.begin(),trees.end(),[](const ManagedTreeEntry& e) {
+        return e.shakeItemType>=0 && e.shakeLeaves && e.leafGoreType>=0;
+    });
+    if(needsShakeEffects&&!runtime::prepareModTreeShakeEffects())
+        return fail("BindTreeShake","MissingNativeShakeEffectsABI");
+    std::map<int,bool> uniqueGround;
+    struct Ready {
+        int ground=-1;
+        int sapling=-1;
+        std::array<std::string,3> paths;
+        Il2CppObject* trunk=nullptr;
+        Il2CppObject* top=nullptr;
+        Il2CppObject* branch=nullptr;
+    };
+    std::vector<Ready> ready;
+    ready.reserve(trees.size());
+    for(const auto& tree:trees) {
+        const int ground=runtime::modTileTypeByName(modId,tree.groundTile);
+        const int sapling=runtime::modTileTypeByName(modId,tree.saplingTile);
+        if(ground<runtime::kVanillaTileCount||sapling<runtime::kVanillaTileCount||
+           !uniqueGround.emplace(ground,true).second||
+           runtime::hasModTree(ground)||!tree_texture::validStem(tree.texture))
+            return fail("Resolve","GroundOrSaplingNotOwnedOrDuplicate");
+        const auto files=tree_texture::paths(directory,tree.texture);
+        for(const auto& path:files) {
+            if(path.empty()||!fileExists(path))
+                return fail("Files","MissingTreeTexture:"+tree.name);
+        }
+        ready.push_back({ground,sapling,files,nullptr,nullptr,nullptr});
+    }
+    for(size_t i=0;i<ready.size();++i) {
+        auto& tree=ready[i];
+        int width[3]={},height[3]={};
+        Il2CppObject* assets[3]={};
+        for(int part=0;part<3;++part) {
+            assets[part]=runtime::content::loadTextureAsset(
+                tree.paths[part],nullptr,0,
+                modId+"/"+trees[i].name+(part==1?"_Tops":part==2?"_Branches":""),
+                &width[part],&height[part]);
+            if(!assets[part]||!roots.add(assets[part]))return fail("Asset","LoadFailed:"+trees[i].name);
+        }
+        if(!tree_texture::validDimensions(width[0],height[0],width[1],height[1],
+                                           width[2],height[2]))
+            return fail("Asset","InvalidDimensions:"+trees[i].name);
+        tree.trunk=runtime::content::textureAssetValue(assets[0]);
+        tree.top=assets[1];
+        tree.branch=assets[2];
+        if(!tree.trunk)return fail("Asset","TrunkTextureNotLoaded:"+trees[i].name);
+    }
+    auto* newTop=runtime::TypeTables::resizedCopy(originalTop,
+        originalTop->length+ready.size());
+    if(!newTop||!roots.add(reinterpret_cast<Il2CppObject*>(newTop)))
+        return fail("GC","TreeTopRootFailed");
+    auto* newBranch=runtime::TypeTables::resizedCopy(originalBranch,
+        originalBranch->length+ready.size());
+    if(!newBranch||!roots.add(reinterpret_cast<Il2CppObject*>(newBranch)))
+        return fail("GC","TreeBranchRootFailed");
+    const auto set=[&](Il2CppArray* array,int index,Il2CppObject* asset) {
+        Il2CppObject* exception=nullptr;
+        void* args[]={asset,&index};
+        a.runtime_invoke(arraySet,reinterpret_cast<Il2CppObject*>(array),args,&exception);
+        return exception==nullptr;
+    };
+    for(size_t i=0;i<ready.size();++i) {
+        const int index=static_cast<int>(originalTop->length+i);
+        if(!set(newTop,index,ready[i].top)||
+           !set(newBranch,index,ready[i].branch))
+            return fail("Asset","ArrayWriteFailed");
+    }
+    FieldInfo* fields[]={fieldTop,fieldBranch};
+    Il2CppArray* originals[]={originalTop,originalBranch};
+    Il2CppArray* replacements[]={newTop,newBranch};
+    if(!table_publication::publish(a,fields,originals,replacements,2,roots))
+        return fail("Publish","TreeTablesNotConfirmed");
+    for(size_t i=0;i<ready.size();++i) {
+        const int style=static_cast<int>(originalTop->length+i);
+        if(!runtime::registerModTreeChecked(ready[i].ground,ready[i].trunk,style)||
+           !runtime::configureModTreeSapling(ready[i].ground,ready[i].sapling)||
+           !runtime::configureModTreeDrops(ready[i].ground,trees[i].woodItemType,
+                                            trees[i].canDropAcorn)||
+           !runtime::configureModTreeEffects(ready[i].ground,trees[i].leafGoreType,
+                                              trees[i].dustType)||
+           (trees[i].shakeItemType>=0&&
+            !runtime::configureModTreeShake(ready[i].ground,trees[i].shakeItemType,
+                                             trees[i].shakeLeaves)))
+            return fail("Publish","TreeRegistrationOrDropsFailed:"+trees[i].name);
+    }
+    BL_INFO("[CSharp][TreeLoader] Mod=%s Trees=%zu Stage=Publish Result=Ready",
+            modId.c_str(),ready.size());
     return true;
 }
 

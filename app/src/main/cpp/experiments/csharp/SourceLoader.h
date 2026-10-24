@@ -17,6 +17,8 @@ struct SourceModStatus {
     int tiles = 0;
     int walls = 0;
     int dusts = 0;
+    int trees = 0;
+    int gores = 0;
     int projectiles = 0;
     int buffs = 0;
     int potions = 0;

@@ -14,4 +14,6 @@ public enum BunnyContentKind
     Prefix = 9,
     Wall = 10,
     Dust = 11,
+    Tree = 12,
+    Gore = 13,
 }

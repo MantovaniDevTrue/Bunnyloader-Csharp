@@ -4,7 +4,7 @@
 
 namespace bl::csharp {
 
-inline constexpr std::array<const char*, 12> kSourceContentKinds = {{
+inline constexpr std::array<const char*, 14> kSourceContentKinds = {{
     "Item",
     "Tile",
     "Weapon",
@@ -17,9 +17,11 @@ inline constexpr std::array<const char*, 12> kSourceContentKinds = {{
     "Prefix",
     "Wall",
     "Dust",
+    "Tree",
+    "Gore",
 }};
 
-inline constexpr std::array<const char*, 12> kSourceContentBases = {{
+inline constexpr std::array<const char*, 14> kSourceContentBases = {{
     "BunnyItem",
     "BunnyTile",
     "BunnyWeapon",
@@ -32,6 +34,8 @@ inline constexpr std::array<const char*, 12> kSourceContentBases = {{
     "BunnyPrefix",
     "BunnyWall",
     "BunnyDust",
+    "BunnyTree",
+    "BunnyGore",
 }};
 
 inline constexpr std::array<const char*, 11> kSourceNativeRegistrationOrder = {{

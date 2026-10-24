@@ -1,3 +1,4 @@
+#include <limits>
 #include "il2cpp/GuardedCall.h"
 #include "experiments/csharp/NativeDefaults.h"
 #include "experiments/csharp/SourceLimits.h"
@@ -933,6 +934,29 @@ int basicItemForTile(const std::string& key) {
             return id;
     return -1;
 }
+
+int basicItemForTileStyle(const std::string& key,int style) {
+    std::lock_guard lock(mutex);
+    using StyleIndex=std::pair<int,std::map<int,int>>;
+    static std::map<std::string,StyleIndex> index;
+    static unsigned indexedGeneration=std::numeric_limits<unsigned>::max();
+    const unsigned current=contentGeneration.load(std::memory_order_acquire);
+    if(indexedGeneration!=current) {
+        index.clear();
+        for(const auto& [id,entry]:definitions) {
+            if(!entry.placeable||entry.wallPlaceable||entry.placeTileKey.empty())continue;
+            auto& row=index[entry.placeTileKey];
+            if(row.first==0)row.first=id;
+            row.second.try_emplace(entry.placeStyle,id);
+        }
+        indexedGeneration=current;
+    }
+    const auto row=index.find(key);
+    if(row==index.end())return -1;
+    const auto match=row->second.second.find(style);
+    return match!=row->second.second.end()?match->second:row->second.first;
+}
+
 
 int basicItemForWall(const std::string& key) {
     std::lock_guard lock(mutex);

@@ -15,12 +15,14 @@ struct FieldInfo {Il2CppType type;uint32_t flags=0x10;Il2CppArray* data=nullptr;
 bl::il2cpp::Api fixture;
 Il2CppClass boolean{"System","Boolean",1,true},integer{"System","Int32",4,true},
     boolArray{"System","Boolean[]",8,false,1,&boolean},
-    mainClass{"Terraria","Main",32,false},setsClass{"Terraria.ID","Sets",32,false};
+    mainClass{"Terraria","Main",32,false},setsClass{"Terraria.ID","Sets",32,false},
+    wiringClass{"Terraria.ID","Wiring",32,false};
 std::map<Il2CppClass*,std::map<std::string,FieldInfo>> fields;
 std::vector<std::unique_ptr<char[]>> arrays;
 namespace bl::il2cpp {
 Api& api(){return fixture;}
 Il2CppClass* findClass(const TypeRef& t){return t.name=="Main"?&mainClass:t.name=="TileID"?&setsClass:nullptr;}
+Il2CppClass* findNested(Il2CppClass* outer,std::string_view name){return outer==&setsClass&&name=="Wiring"?&wiringClass:nullptr;}
 FieldInfo* findField(Il2CppClass* c,std::string_view n){auto& m=fields[c];auto i=m.find(std::string(n));return i==m.end()?nullptr:&i->second;}
 }
 Il2CppArray* allocate(size_t length=2200) {
@@ -44,7 +46,8 @@ int main(int argc,char** argv) {
  fixture.class_get_element_class=[](Il2CppClass* c){return c->element;};
  fixture.field_static_get_value=[](FieldInfo* f,void* p){std::memcpy(p,&f->data,sizeof(f->data));};
  for(const char* n:{"tileTable","tileSolidTop","tileNoAttach","tileLavaDeath","tileObsidianKill","tileFrameImportant","tileSolid","tileNoSunLight","tileBlockLight","tileMergeDirt","tileLighted","tileWaterDeath","tileCut"})fields[&mainClass][n]={{&boolArray},0x10,allocate()};
- for(const char* n:{"DisableSmartCursor","HasOutlines","IgnoredByNpcStepUp","ChecksForMerge"})fields[&setsClass][n]={{&boolArray},0x10,allocate()};
+ for(const char* n:{"DisableSmartCursor","HasOutlines","IgnoredByNpcStepUp","ChecksForMerge","Campfires","InteractableByNPCs","CommonSapling","SwaysInWindBasic"})fields[&setsClass][n]={{&boolArray},0x10,allocate()};
+ for(const char* n:{"IsAMechanism","IgnoreWhenValidatingTraps"})fields[&wiringClass][n]={{&boolArray},0x10,allocate()};
  std::string error;
  assert(apply(2195,supportedMask,&error));
  for(auto& [c,m]:fields)for(auto& [n,f]:m){auto* bytes=static_cast<uint8_t*>(arrayData(f.data));assert(bytes[2195]==1&&bytes[2194]==0&&bytes[2196]==0);}
@@ -67,8 +70,33 @@ int main(int argc,char** argv) {
  assert(!apply(2195,512|1024,&error)&&error.find("StorageMismatch")!=std::string::npos&&allZero());
  sunlightField.flags=0x10;
  clear();
- assert(apply(2195,256,&error)&&allZero()); // housing handled as Int32 list, never a fake bool table
- assert(!apply(-1,1,&error)&&allZero());assert(!apply(2195,65536,&error)&&allZero());
+ assert(apply(2195,256,&error)&&allZero());
+ clear();
+ assert(apply(2195,65536,&error));
+ for(const char* n:{"Campfires","InteractableByNPCs"})
+  assert(static_cast<uint8_t*>(arrayData(fields[&setsClass][n].data))[2195]==1);
+ for(const char* n:{"IsAMechanism","IgnoreWhenValidatingTraps"})
+  assert(static_cast<uint8_t*>(arrayData(fields[&wiringClass][n].data))[2195]==1);
+ assert(static_cast<uint8_t*>(arrayData(fields[&mainClass]["tileSolid"].data))[2195]==0);
+ clear();
+ assert(apply(2195,131072,&error)&&allZero());
+ assert(apply(2195,131072|262144|524288,&error));
+ for(const char* n:{"CommonSapling","SwaysInWindBasic"})
+  assert(static_cast<uint8_t*>(arrayData(fields[&setsClass][n].data))[2195]==1);
+ clear();
+ auto saplingFlag=fields[&setsClass].extract("CommonSapling");
+ assert(!apply(2195,131072|262144,&error)&&error.find("CommonSapling")!=std::string::npos&&allZero());
+ fields[&setsClass].insert(std::move(saplingFlag));
+ clear();
+ auto mechanism=fields[&wiringClass].extract("IsAMechanism");
+ assert(!apply(2195,65536,&error)&&error.find("IsAMechanism")!=std::string::npos&&allZero());
+ fields[&wiringClass].insert(std::move(mechanism));
+ auto& trapField=fields[&wiringClass]["IgnoreWhenValidatingTraps"];
+ trapField.flags=0;
+ assert(!apply(2195,65536,&error)&&error.find("StorageMismatch")!=std::string::npos&&allZero());
+ trapField.flags=0x10;
+ assert(!apply(2195,1048576,&error)&&allZero());
+ assert(!apply(-1,1,&error)&&allZero());assert(!apply(2195,1048576,&error)&&allZero());
  auto& last=fields[&setsClass]["ChecksForMerge"];
  last.flags=0;assert(!apply(2195,512|16384,&error)&&error.find("StorageMismatch")!=std::string::npos&&allZero());last.flags=0x10;
  last.type.cls=&integer;assert(!apply(2195,512|16384,&error)&&error.find("System.Int32")!=std::string::npos&&allZero());last.type.cls=&boolArray;
@@ -111,5 +139,5 @@ int main(int argc,char** argv) {
  integer.size=2;assert(!appendHousing(2196,&roomClass,resize,&error)&&housing.data==published);integer.size=4;
  housing.data=allocateInts(4096);auto* full=housing.data;
  assert(!appendHousing(2196,&roomClass,resize,&error)&&error.find("CapacityExceeded")!=std::string::npos&&housing.data==full);
- std::cout<<"TILE_FLAGS_PRODUCTION_PUBLISHER_COMPILED_EXAMPLE_SOLID_NO_SUNLIGHT_STATIC_TYPE_RANK_WIDTH_BOUNDS_ATOMICITY_HOUSING_INT32_COPY_DEDUP_CAPACITY_NO_QUICKJS=PASS\n";
+ std::cout<<"TILE_FLAGS_PRODUCTION_PUBLISHER_CAMPFIRE_WIRING_ATOMICITY_HOUSING_NO_QUICKJS=PASS\n";
 }

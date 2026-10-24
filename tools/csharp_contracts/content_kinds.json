@@ -72,6 +72,18 @@
       "base": "BunnyDust",
       "value": 11,
       "nativeOrder": 0
+    },
+    {
+      "kind": "Tree",
+      "base": "BunnyTree",
+      "value": 12,
+      "nativeOrder": null
+    },
+    {
+      "kind": "Gore",
+      "base": "BunnyGore",
+      "value": 13,
+      "nativeOrder": null
     }
   ]
 }

@@ -50,6 +50,31 @@ bool invokeManagedRarity(const std::string& mod, const std::string& assembly,
     std::string* output, int budgetMicroseconds = 1200);
 bool invokeManagedTile(const std::string& mod,const std::string& assembly,
     const std::string& owner,int callback,int x,int y,std::string* output,int budgetMicroseconds=1800);
+bool invokeManagedTileSapling(const std::string& mod,const std::string& assembly,
+    const std::string& owner,int x,int y,bool underground,int addon,bool ignoreWalls,
+    std::string* output,int budgetMicroseconds=850);
+bool invokeManagedTileDrops(const std::string& mod,const std::string& assembly,
+    const std::string& owner,int x,int y,std::string* output,int budgetMicroseconds=900);
+bool invokeManagedTileKillSound(const std::string& mod,const std::string& assembly,
+    const std::string& owner,int x,int y,bool fail,
+    std::string* output,int budgetMicroseconds=650);
+bool invokeManagedTileDustCount(const std::string& mod,const std::string& assembly,
+    const std::string& owner,int x,int y,bool fail,int count,
+    std::string* output,int budgetMicroseconds=700);
+bool invokeManagedTileCreateDust(const std::string& mod,const std::string& assembly,
+    const std::string& owner,int x,int y,int dustType,
+    std::string* output,int budgetMicroseconds=450);
+bool invokeManagedTileKill(const std::string& mod,const std::string& assembly,
+    const std::string& owner,int x,int y,bool fail,bool effectOnly,bool noItem,
+    std::string* output,int budgetMicroseconds=1100);
+bool queueManagedTileMultiKill(const std::string& mod,const std::string& assembly,
+    const std::string& owner,int x,int y,int frameX,int frameY);
+bool invokeManagedTileFrame(const std::string& mod,const std::string& assembly,
+    const std::string& owner,int x,int y,bool reset,bool noBreak,
+    std::string* output,int budgetMicroseconds=650);
+bool invokeManagedTileSmart(const std::string& mod,const std::string& assembly,
+    const std::string& owner,int x,int y,int lx,int ly,int hx,int hy,
+    std::string* output,int budgetMicroseconds=450);
 bool invokeManagedTileDraw(const std::string& mod,const std::string& assembly,
     const std::string& owner,const std::string& snapshot,
     std::string* output,int budgetMicroseconds=1200);

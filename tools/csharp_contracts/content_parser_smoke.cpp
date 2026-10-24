@@ -23,7 +23,7 @@ bool expect(const std::string& source, const std::string& kind, bool expected = 
 
 int main() {
     using namespace bl::csharp;
-    static_assert(kSourceContentKinds.size() == 12);
+    static_assert(kSourceContentKinds.size() == 14);
     static_assert(kSourceNativeRegistrationOrder.size() == 11);
     assert(isKnownSourceKind("Item") && isKnownSourceKind("Projectile"));
     assert(isKnownSourceKind("NPC") && isKnownSourceKind("Player"));

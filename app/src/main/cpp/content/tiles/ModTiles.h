@@ -119,5 +119,8 @@ void invalidateManagedTileDrawCache();
 
 /** Os registrados, na ordem do id. Copia: serve a qualquer thread. */
 std::vector<ModTileInfo> modTiles();
+void requestModTileOverlays(int type);
+bool modTileOverlayAvailable(int type,int variant,int frameX,int frameY,int width,int height);
+Il2CppObject* modTileOverlayAsset(int type,int variant);
 
 } // namespace bl::runtime

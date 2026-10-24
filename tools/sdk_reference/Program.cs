@@ -56,7 +56,8 @@ string Mode(Type type, MethodInfo method)
         return method.Name == "OnLocalizationsLoaded" ? "worker_async_localization" : "compile_policy";
     if (type == typeof(BunnyLocalizationRuntime))
         return method.Name == "Register" ? "managed_owned_registration" : "worker_async_localization";
-    if (method.Name is "SetDefaults" or "SetStaticDefaults" or "AddRecipes" or "NumDust") return "compile_policy";
+    if (method.Name == "NumDust") return method.GetParameters().Length == 1 ? "compile_policy" : "worker_sync_tile_snapshot";
+    if (method.Name is "SetDefaults" or "SetStaticDefaults" or "AddRecipes") return "compile_policy";
     if (type == typeof(BunnyVisual)) return "managed_command_queue";
     return "managed_helper";
 }

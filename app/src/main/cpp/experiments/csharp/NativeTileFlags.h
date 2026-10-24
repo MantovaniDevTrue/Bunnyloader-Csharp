@@ -6,7 +6,7 @@
 #include <string>
 
 namespace bl::csharp::tile_flags {
-inline constexpr int supportedMask = 65535;
+inline constexpr int supportedMask = 1048575;
 
 using Resize = Il2CppArray* (*)(Il2CppArray*, uintptr_t);
 inline bool appendHousing(int type, Il2CppClass* room, Resize resize, std::string* error) {
@@ -68,7 +68,12 @@ inline bool apply(int type, int flags, std::string* error) {
         {1024,"Main","tileBlockLight"},
         {2048,"Main","tileMergeDirt"}, {4096,"Main","tileLighted"},
         {8192,"Main","tileWaterDeath"}, {16384,"Sets","ChecksForMerge"},
-        {32768,"Main","tileCut"}
+        {32768,"Main","tileCut"},
+        {65536,"Sets","Campfires"}, {65536,"Sets","InteractableByNPCs"},
+        {65536,"Wiring","IsAMechanism"},
+        {65536,"Wiring","IgnoreWhenValidatingTraps"},
+        {262144,"Sets","CommonSapling"},
+        {524288,"Sets","SwaysInWindBasic"}
     };
     // CountsAsTable (256) is an integer list in RoomNeeds, not a bool indexed
     // by tile ID. Its registration remains in appendNativeHousingTable.
@@ -76,9 +81,13 @@ inline bool apply(int type, int flags, std::string* error) {
     size_t count = 0;
     for (const auto& def : definitions) {
         if (!(flags & def.bit)) continue;
-        const bool main = std::string_view(def.owner) == "Main";
-        auto* owner = main ? il2cpp::findClass({"Terraria","Main",{}})
-                           : il2cpp::findClass({"Terraria.ID","TileID","Sets"});
+        const std::string_view scope(def.owner);
+        Il2CppClass* owner=nullptr;
+        if(scope=="Main")owner=il2cpp::findClass({"Terraria","Main",{}});
+        else {
+            auto* sets=il2cpp::findClass({"Terraria.ID","TileID","Sets"});
+            owner=scope=="Wiring"?il2cpp::findNested(sets,"Wiring"):sets;
+        }
         FieldInfo* field = nullptr;
         std::string contract;
         if (!il2cpp::nativeFieldContract(owner, def.name, "System.Boolean[]", true,

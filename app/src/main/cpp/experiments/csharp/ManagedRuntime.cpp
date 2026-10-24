@@ -3410,7 +3410,7 @@ static bool invokeManagedCallback(bool shooting,const std::string& mod,const std
                          const std::string& owner,int index,int kind,const std::string& snapshot,
                          std::string* output,int budgetMicroseconds,bool tile=false,bool rarity=false) {
     if(!output)return false;
-    if(budgetMicroseconds<1||budgetMicroseconds>3000||index<0||index>=16||kind<0||kind>6||
+    if(budgetMicroseconds<1||budgetMicroseconds>3000||index<0||index>=(tile?29:16)||kind<0||kind>6||
        snapshot.size()>(rarity?32768u:(shooting?1024u:512u))||assembly.empty()||assembly.size()>4096){*output="ERROR|Stage=SubmitRecipeCallback Reason=InvalidTransportArguments";return false;}
     std::unique_lock<std::mutex> lock(g_pinnedMutex,std::try_to_lock);
     if(!lock.owns_lock()){*output="PENDING|Stage=SubmitRecipeCallback Reason=WorkerQueueBusy";return false;}
@@ -3447,6 +3447,120 @@ bool invokeManagedTile(const std::string& mod,const std::string& assembly,
     return invokeManagedCallback(false,mod,assembly,owner,callback,0,
         std::to_string(x)+","+std::to_string(y),output,budgetMicroseconds,true);
 }
+bool invokeManagedTileSapling(const std::string& mod,const std::string& assembly,
+    const std::string& owner,int x,int y,bool underground,int addon,bool ignoreWalls,
+    std::string* output,int budgetMicroseconds) {
+    if(x<0||y<0||x>100000||y>100000||addon< -64||addon>64) {
+        if(output)*output="ERROR|Stage=GrowSapling Reason=InvalidInput";
+        return false;
+    }
+    return invokeManagedCallback(false,mod,assembly,owner,28,0,
+        std::to_string(x)+","+std::to_string(y)+","+
+        (underground?"1":"0")+","+std::to_string(addon)+","+
+        (ignoreWalls?"1":"0"),output,budgetMicroseconds,true);
+}
+
+bool invokeManagedTileDrops(const std::string& mod,const std::string& assembly,
+    const std::string& owner,int x,int y,std::string* output,int budgetMicroseconds) {
+    if(x<0||y<0||x>100000||y>100000) {
+        if(output)*output="ERROR|Stage=TileDrops Reason=InvalidCoordinates";
+        return false;
+    }
+    return invokeManagedCallback(false,mod,assembly,owner,27,0,
+        std::to_string(x)+","+std::to_string(y),output,budgetMicroseconds,true);
+}
+
+bool invokeManagedTileKillSound(const std::string& mod,const std::string& assembly,
+    const std::string& owner,int x,int y,bool fail,
+    std::string* output,int budgetMicroseconds) {
+    if(x<0||y<0||x>100000||y>100000) {
+        if(output)*output="ERROR|Stage=KillSound Reason=InvalidCoordinates";
+        return false;
+    }
+    return invokeManagedCallback(false,mod,assembly,owner,26,0,
+        std::to_string(x)+","+std::to_string(y)+","+(fail?"1":"0"),
+        output,budgetMicroseconds,true);
+}
+
+bool invokeManagedTileDustCount(const std::string& mod,const std::string& assembly,
+    const std::string& owner,int x,int y,bool fail,int count,
+    std::string* output,int budgetMicroseconds) {
+    if(x<0||y<0||x>100000||y>100000||count<0||count>20) {
+        if(output)*output="ERROR|Stage=NumDust Reason=InvalidInputs";
+        return false;
+    }
+    return invokeManagedCallback(false,mod,assembly,owner,24,0,
+        std::to_string(x)+","+std::to_string(y)+","+
+        (fail?"1":"0")+","+std::to_string(count),output,budgetMicroseconds,true);
+}
+
+bool invokeManagedTileCreateDust(const std::string& mod,const std::string& assembly,
+    const std::string& owner,int x,int y,int dustType,
+    std::string* output,int budgetMicroseconds) {
+    if(x<0||y<0||x>100000||y>100000||dustType< -1||dustType>1999) {
+        if(output)*output="ERROR|Stage=CreateDust Reason=InvalidInputs";
+        return false;
+    }
+    return invokeManagedCallback(false,mod,assembly,owner,25,0,
+        std::to_string(x)+","+std::to_string(y)+","+
+        std::to_string(dustType),output,budgetMicroseconds,true);
+}
+
+bool invokeManagedTileKill(const std::string& mod,const std::string& assembly,
+    const std::string& owner,int x,int y,bool fail,bool effectOnly,bool noItem,
+    std::string* output,int budgetMicroseconds) {
+    if(x<0||y<0||x>100000||y>100000) {
+        if(output)*output="ERROR|Stage=TileKill Reason=InvalidCoordinates";
+        return false;
+    }
+    return invokeManagedCallback(false,mod,assembly,owner,22,0,
+        std::to_string(x)+","+std::to_string(y)+","+
+        (fail?"1":"0")+","+(effectOnly?"1":"0")+","+(noItem?"1":"0"),
+        output,budgetMicroseconds,true);
+}
+
+bool queueManagedTileMultiKill(const std::string& mod,const std::string& assembly,
+    const std::string& owner,int x,int y,int frameX,int frameY) {
+    if(assembly.empty()||x<0||y<0||x>100000||y>100000||
+       frameX<0||frameY<0||frameX>32767||frameY>32767)return false;
+    std::unique_lock<std::mutex> lock(g_pinnedMutex,std::try_to_lock);
+    if(!lock.owns_lock()||!g_pinnedStarted||g_recipeRpcQueue.size()>=16)return false;
+    auto result=std::make_shared<RecipeRpcCompletion>();
+    g_recipeRpcQueue.push_back({mod,assembly,owner,
+        std::to_string(x)+","+std::to_string(y)+","+
+        std::to_string(frameX)+","+std::to_string(frameY),
+        23,0,std::chrono::steady_clock::now()+std::chrono::milliseconds(100),
+        result,false,true});
+    g_pinnedWake.notify_one();
+    return true;
+}
+
+bool invokeManagedTileFrame(const std::string& mod,const std::string& assembly,
+    const std::string& owner,int x,int y,bool reset,bool noBreak,
+    std::string* output,int budgetMicroseconds) {
+    if(x<0||y<0||x>100000||y>100000) {
+        if(output)*output="ERROR|Stage=TileFrame Reason=InvalidCoordinates";
+        return false;
+    }
+    return invokeManagedCallback(false,mod,assembly,owner,21,0,
+        std::to_string(x)+","+std::to_string(y)+","+
+        (reset?"1":"0")+","+(noBreak?"1":"0"),output,budgetMicroseconds,true);
+}
+
+bool invokeManagedTileSmart(const std::string& mod,const std::string& assembly,
+    const std::string& owner,int x,int y,int lx,int ly,int hx,int hy,
+    std::string* output,int budgetMicroseconds) {
+    if(x<0||y<0||x>100000||y>100000||
+       hx<lx||hy<ly||int64_t(hx)-lx>=64||int64_t(hy)-ly>=64) {
+        if(output)*output="ERROR|Stage=TileSmartInteract Reason=InvalidScan";
+        return false;
+    }
+    return invokeManagedCallback(false,mod,assembly,owner,20,0,
+        std::to_string(x)+","+std::to_string(y)+","+
+        std::to_string(lx)+","+std::to_string(ly)+","+
+        std::to_string(hx)+","+std::to_string(hy),output,budgetMicroseconds,true);
+}
+
 bool invokeManagedTileDraw(const std::string& mod,const std::string& assembly,
     const std::string& owner,const std::string& snapshot,
     std::string* output,int budgetMicroseconds) {

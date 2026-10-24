@@ -1,6 +1,7 @@
 #include "content/tiles/TileRegistryInternal.h"
 #include "content/tiles/ModTiles.h"
 #include "experiments/csharp/NativeTileDrawCachePolicy.h"
+#include "experiments/csharp/NativeTileOverlayPolicy.h"
 #include "content/tiles/ModTrees.h"
 #include "core/Log.h"
 #include "hook/HookManager.h"
@@ -13,6 +14,7 @@
 #include "content/tiles/ModTileMap.h"
 
 #include <atomic>
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <mutex>
@@ -30,6 +32,7 @@ using tile_registry::g_installed;
 std::atomic<TilesInstalledHook> g_installedHook{nullptr};
 std::atomic<TilesInstalledHook> g_nativeInstalledHook{nullptr};
 std::atomic<bool> g_nativePending{false};
+std::atomic<bool> g_overlayLoadsPending{false};
 // O SetStaticDefaults do lote ja rodou (ele espera o TileObjectData existir).
 std::atomic<bool> g_staticDone{false};
 bool g_failed = false;
@@ -129,6 +132,31 @@ Il2CppArray* readStatic(FieldInfo* f) {
 void applyTexture(int type, const Entry& e) {
     Il2CppObject* asset = e.asset ? il2cpp::api().gchandle_get_target(e.asset) : nullptr;
     if (asset) content::setTableElement(refs().textures, type, asset);
+}
+
+void loadRequestedTileOverlays() {
+    std::lock_guard<std::mutex> lock(g_mx);
+    for(auto& e:g_regs) {
+        if(!e.overlaysRequested||e.overlaysAttempted||!e.asset)continue;
+        e.overlaysAttempted=true;
+        for(int variant=1;variant<=2;++variant) {
+            const std::string path=bl::csharp::tile_overlay::path(e.def.texture,variant);
+            if(path.empty())continue;
+            FILE* file=std::fopen(path.c_str(),"rb");
+            if(!file)continue;
+            std::fclose(file);
+            int width=0,height=0;
+            auto* asset=content::loadTextureAsset(path,nullptr,0,
+                e.def.mod+"/"+e.def.name+(variant==1?"_Glow":"_Flame"),&width,&height);
+            if(!asset||width<=0||height<=0)continue;
+            const uint32_t root=il2cpp::api().gchandle_new(asset,false);
+            if(!root)continue;
+            const size_t slot=static_cast<size_t>(variant-1);
+            e.overlays[slot]=root;
+            e.overlayWidth[slot]=width;
+            e.overlayHeight[slot]=height;
+        }
+    }
 }
 
 // ---- Main.tileMerge: bool[754][754] ----
@@ -685,6 +713,7 @@ void hkRangeFrame(int32_t x0, int32_t y0, int32_t x1, int32_t y1, const MethodIn
 void applyTileDrawData(int32_t x, int32_t y, uint16_t type, int16_t* frameX,
                        int16_t* frameY, int32_t* width, int32_t* height, int32_t* top, int32_t* halfBrick,
                        int32_t* addFrX, int32_t* addFrY, int32_t* effects, bool special) {
+    (void)halfBrick; // Half-brick clipping remains owned by Terraria.
     if (type < kVanillaTileCount) return;
     const size_t i = static_cast<size_t>(type) - kVanillaTileCount;
 
@@ -1013,6 +1042,8 @@ void tickModTiles() {
                 }
             }
         }
+        if(g_overlayLoadsPending.exchange(false,std::memory_order_acq_rel))
+            loadRequestedTileOverlays();
         g_tables.checkPending(from);
         fixTileMerge(from);
         if (fixGlowMask(from)) BL_DEBUG("tiles de mod: tileGlowMask dos tipos de mod em -1");
@@ -1143,6 +1174,40 @@ bool modObjectShape(int type, ModObjectShape* out) {
     out->fullHeight = s.fullHeight;
     out->heights = s.heights;
     return true;
+}
+
+void requestModTileOverlays(int type) {
+    if(type<kVanillaTileCount)return;
+    const size_t index=static_cast<size_t>(type-kVanillaTileCount);
+    std::lock_guard<std::mutex> lock(g_mx);
+    if(index>=g_regs.size())return;
+    auto& entry=g_regs[index];
+    if(!entry.overlaysAttempted) {
+        entry.overlaysRequested=true;
+        g_overlayLoadsPending.store(true,std::memory_order_release);
+    }
+}
+
+bool modTileOverlayAvailable(int type,int variant,int frameX,int frameY,int width,int height) {
+    if(type<kVanillaTileCount||variant<1||variant>2)return false;
+    const size_t index=static_cast<size_t>(type-kVanillaTileCount);
+    const size_t layer=static_cast<size_t>(variant-1);
+    std::lock_guard<std::mutex> lock(g_mx);
+    if(index>=g_regs.size())return false;
+    const Entry& entry=g_regs[index];
+    return entry.overlays[layer] &&
+        bl::csharp::tile_overlay::frameInside(frameX,frameY,width,height,
+            entry.overlayWidth[layer],entry.overlayHeight[layer]);
+}
+
+Il2CppObject* modTileOverlayAsset(int type,int variant) {
+    if(type<kVanillaTileCount||variant<1||variant>2)return nullptr;
+    const size_t index=static_cast<size_t>(type-kVanillaTileCount);
+    const size_t layer=static_cast<size_t>(variant-1);
+    std::lock_guard<std::mutex> lock(g_mx);
+    if(index>=g_regs.size())return nullptr;
+    const uint32_t root=g_regs[index].overlays[layer];
+    return root?il2cpp::api().gchandle_get_target(root):nullptr;
 }
 
 std::vector<ModTileInfo> modTiles() {

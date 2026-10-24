@@ -331,7 +331,7 @@ string Texture { get; }
 
 enum; base: `System.Enum`.
 
-Values: Item, Tile, Weapon, Projectile, Buff, BuffPotion, Accessory, Player, NPC, Prefix, Wall, Dust.
+Values: Item, Tile, Weapon, Projectile, Buff, BuffPotion, Accessory, Player, NPC, Prefix, Wall, Dust, Tree, Gore.
 
 ## BunnyLoader.Source.BunnyCraftContext
 
@@ -544,6 +544,20 @@ Values: MeleeDamage, RangedDamage, MagicDamage, MinionDamage, MoveSpeed.
 enum; base: `System.Enum`.
 
 Values: Head, Body, Legs, Beard, Back, Wings.
+
+## BunnyLoader.Source.BunnyGore
+
+abstract class; base: `System.Object`.
+
+```csharp
+bool SafeGore { get; set; }
+int SpecialAI { get; set; }
+string Texture { get; set; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `void SetDefaults()` | compile_policy |
 
 ## BunnyLoader.Source.BunnyHoldout
 
@@ -1944,10 +1958,12 @@ abstract class; base: `System.Object`.
 
 ```csharp
 BunnyTileFlags Flags { get; set; }
+BunnyTileFrameToggle FrameToggle { get; set; }
 BunnyTileShape Shape { get; set; }
 bool AllowBreaking { get; set; }
 bool AllowDrops { get; set; }
 bool CacheDrawData { get; set; }
+float MineResist { get; set; }
 int AdjacentTile { get; set; }
 int AnimationFrameHeight { get; set; }
 int AnimationFrameTicks { get; set; }
@@ -1956,42 +1972,99 @@ int CoordinateHeight { get; set; }
 int MapB { get; }
 int MapG { get; }
 int MapR { get; }
+int MinPick { get; set; }
+int SaplingGrowthChance { get; set; }
+int SaplingStyleRange { get; set; }
+int SaplingVanillaGroundTile { get; set; }
 int TileCallbackMask { get; }
 int[] AdjacentTiles { get; set; }
 string DisplayName { get; set; }
 string DustName { get; set; }
+string ItemDropDefinitions { get; }
 string MapName { get; }
+string SaplingGroundTile { get; set; }
 string Texture { get; set; }
 ```
 
 | Method | Execution |
 | --- | --- |
+| `BunnyTileDrop[] GetItemDrops(int x, int y)` | managed_helper |
 | `bool CanDrop(int x, int y)` | managed_helper |
 | `bool CanKillTile(int x, int y)` | managed_helper |
+| `bool CreateDust(int x, int y, ref int type)` | managed_helper |
+| `bool GrowSapling(int x, int y, bool underground, int treeHeightAddon, bool ignoreWalls)` | managed_helper |
+| `bool HasSmartInteract(int x, int y, BunnyTileSmartInteractSettings settings)` | managed_helper |
+| `bool KillSound(int x, int y, bool fail)` | managed_helper |
 | `bool PreDraw(int x, int y)` | managed_helper |
+| `bool PreDraw(int x, int y, BunnyTileDrawContext draw)` | managed_helper |
 | `bool RightClick(int x, int y)` | managed_helper |
 | `bool Slope(int x, int y)` | managed_helper |
+| `bool TileFrame(int x, int y, ref bool resetFrame, ref bool noBreak)` | managed_helper |
 | `int NumDust(bool fail)` | compile_policy |
 | `void AddMapEntry(int red, int green, int blue, string name)` | managed_helper |
 | `void AnimateIndividualTile(int type, int x, int y, ref int addFrameX, ref int addFrameY)` | managed_helper |
 | `void AnimateIndividualTile(int x, int y, ref int addFrameX, ref int addFrameY)` | managed_helper |
 | `void AnimateTile(ref int frame, ref int frameCounter)` | managed_helper |
+| `void DrawEffects(int x, int y, int tileFrameX, int tileFrameY, BunnyTileDrawContext draw)` | managed_helper |
+| `void EmitParticles(int x, int y, int tileFrameX, int tileFrameY, BunnyTileDrawContext draw)` | managed_helper |
 | `void HitWire(int x, int y)` | managed_helper |
+| `void KillMultiTile(int x, int y, int frameX, int frameY)` | managed_helper |
+| `void KillTile(int x, int y, ref bool fail, ref bool effectOnly, ref bool noItem)` | managed_helper |
 | `void ModifyLight(int x, int y, ref float r, ref float g, ref float b)` | managed_helper |
 | `void MouseOver(int x, int y)` | managed_helper |
 | `void MouseOverFar(int x, int y)` | managed_helper |
 | `void NearbyEffects(int x, int y, bool closer)` | managed_helper |
+| `void NumDust(int x, int y, bool fail, ref int num)` | worker_sync_tile_snapshot |
 | `void PlaceInWorld(int x, int y)` | managed_helper |
+| `void PostDraw(int x, int y, BunnyTileDrawContext draw)` | managed_helper |
 | `void RandomUpdate(int x, int y)` | managed_helper |
+| `void RegisterItemDrop(int itemType, int[] styles)` | managed_helper |
+| `void RegisterItemDrop(string itemName, int[] styles)` | managed_helper |
 | `void SetDrawPositions(int x, int y, ref int width, ref int top, ref int height, ref int frameX, ref int frameY)` | managed_helper |
 | `void SetSpriteEffects(int x, int y, ref int effects)` | managed_helper |
 | `void SetStaticDefaults()` | compile_policy |
+| `void SpecialDraw(int x, int y, BunnyTileDrawContext draw)` | managed_helper |
+
+## BunnyLoader.Source.BunnyTileDrawContext
+
+class; base: `System.Object`.
+
+```csharp
+int AnimationFrame { get; }
+int Count { get; }
+int ParticleCount { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `void DrawFlameTexture(int frameX, int frameY, int width, int height, int offsetX, int offsetY, UInt32 argb, int effects)` | managed_helper |
+| `void DrawGlowTexture(int frameX, int frameY, int width, int height, int offsetX, int offsetY, UInt32 argb, int effects)` | managed_helper |
+| `void DrawTileTexture(int frameX, int frameY, int width, int height, int offsetX, int offsetY, UInt32 argb, int effects)` | managed_helper |
+| `void EmitDust(int dustType, int offsetX, int offsetY, int width, int height, int speedXMilli, int speedYMilli, int alpha, int scaleMilli, UInt32 argb)` | managed_helper |
+| `void EmitDustStyled(int dustType, int offsetX, int offsetY, int width, int height, int speedXMilli, int speedYMilli, int alpha, int scaleMilli, UInt32 argb, bool noGravity, int fadeInMilli, int velocityXScaleMilli, int velocityYScaleMilli, int velocityYAddMilli, int positionXAdd, int alphaAdd)` | managed_helper |
+| `void RequestSpecialDraw()` | managed_helper |
+
+## BunnyLoader.Source.BunnyTileDrop
+
+struct; base: `System.ValueType`.
+
+```csharp
+BunnyTileDrop(int itemType, int stack)
+int ItemType { get; }
+int Stack { get; }
+```
 
 ## BunnyLoader.Source.BunnyTileFlags
 
 enum; base: `System.Enum`.
 
-Values: None, Table, SolidTop, NoAttach, LavaDeath, FrameImportant, DisableSmartCursor, HasOutlines, IgnoredByNpcStepUp, CountsAsTable, Solid, BlockLight, MergeDirt, Lighted, WaterDeath, ChecksForMerge, Cut.
+Values: None, Table, SolidTop, NoAttach, LavaDeath, FrameImportant, DisableSmartCursor, HasOutlines, IgnoredByNpcStepUp, CountsAsTable, Solid, BlockLight, MergeDirt, Lighted, WaterDeath, ChecksForMerge, Cut, Campfire, TreeSapling, CommonSapling, SwaysInWindBasic.
+
+## BunnyLoader.Source.BunnyTileFrameToggle
+
+enum; base: `System.Enum`.
+
+Values: None, CampfireVertical, LampHorizontal.
 
 ## BunnyLoader.Source.BunnyTileRuntime
 
@@ -2005,7 +2078,19 @@ abstract class; base: `System.Object`.
 
 enum; base: `System.Enum`.
 
-Values: Single, Style2x1.
+Values: Single, Style2x1, Style3x2, Style1x3, Sapling1x2.
+
+## BunnyLoader.Source.BunnyTileSmartInteractSettings
+
+struct; base: `System.ValueType`.
+
+```csharp
+BunnyTileSmartInteractSettings(int lx, int ly, int hx, int hy)
+int HX { get; }
+int HY { get; }
+int LX { get; }
+int LY { get; }
+```
 
 ## BunnyLoader.Source.BunnyTooltipLine
 
@@ -2028,6 +2113,27 @@ BunnyTooltipPlan()
 Dictionary<string, BunnyDrawableTooltipLine> Draw { get; }
 List<BunnyTooltipLine> Lines { get; }
 ```
+
+## BunnyLoader.Source.BunnyTree
+
+abstract class; base: `System.Object`.
+
+```csharp
+bool CanDropAcorn { get; set; }
+bool ShakeLeaves { get; set; }
+int DustType { get; set; }
+int LeafGoreType { get; set; }
+string GrowsOnTile { get; set; }
+string LeafGoreName { get; set; }
+string SaplingTile { get; set; }
+string ShakeItem { get; set; }
+string Texture { get; set; }
+string WoodItem { get; set; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `void SetDefaults()` | compile_policy |
 
 ## BunnyLoader.Source.BunnyUniversalHookDispatcher
 

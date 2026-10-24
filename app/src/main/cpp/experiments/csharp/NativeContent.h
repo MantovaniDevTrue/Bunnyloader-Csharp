@@ -3,8 +3,10 @@
 #include <cstdint>
 #include "experiments/csharp/ProjectilePolicy.h"
 #include "experiments/csharp/SummonPolicy.h"
+#include "experiments/csharp/NativeTileDropPolicy.h"
 #include <string>
 #include <vector>
+#include <map>
 
 namespace bl::csharp {
 
@@ -69,6 +71,7 @@ struct ManagedTileEntry {
     int type = -1;
     int flags = 0;
     int shape = 0;
+    int frameToggle = 0;
     int coordinateHeight = 18;
     int adjacentTile = -1;
     std::vector<int> adjacentTiles;
@@ -83,7 +86,42 @@ struct ManagedTileEntry {
     bool allowDrops = true;
     int callbackMask = 0;
     bool cacheDrawData = true;
+    std::vector<tile_drop::Rule> registeredDrops;
+    int minPick = 0;
+    float mineResist = 1.f;
+    std::string saplingGroundTile;
+    int saplingVanillaGroundTile = -1;
+    int saplingStyleRange = 3;
+    int saplingGrowthChance = 0;
 };
+
+struct ManagedTreeEntry {
+    std::string name;
+    std::string groundTile;
+    std::string saplingTile;
+    std::string texture;
+    std::string woodItem;
+    bool canDropAcorn=true;
+    int woodItemType=-1;
+    int leafGoreType=-1;
+    std::string leafGoreName;
+    int dustType=7;
+    std::string shakeItem;
+    int shakeItemType=-1;
+    bool shakeLeaves=true;
+};
+struct ManagedGoreEntry {
+    std::string name;
+    std::string texture;
+    int specialAI=0;
+    bool safeGore=false;
+};
+bool publishManagedNativeGores(const std::string& modId,const std::string& directory,
+    const std::vector<ManagedGoreEntry>& gores,std::map<std::string,int>* ids,
+    std::string* error);
+
+bool publishManagedNativeTrees(const std::string& modId,const std::string& directory,
+    const std::vector<ManagedTreeEntry>& trees,std::string* error);
 
 bool applyManagedNativeTileDefaultsBatch(const std::string& modId,
                                          const std::vector<ManagedTileEntry>& tiles);

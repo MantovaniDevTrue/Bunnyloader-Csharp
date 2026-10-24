@@ -11,6 +11,9 @@
     <NoWarn>$(NoWarn);1591</NoWarn>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../BunnyCsSdk/BunnyTree.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyGore.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyTileDrawContext.cs" />
     <Compile Include="../BunnyCsSdk/BunnyContentKind.g.cs" />
     <Compile Include="../BunnyCsSdk/BunnyExtendedHookModes.g.cs" />
     <Compile Include="../BunnyCsSdk/TerrariaRandomCompat.cs" />

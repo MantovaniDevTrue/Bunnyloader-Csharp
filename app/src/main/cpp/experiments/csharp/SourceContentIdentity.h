@@ -16,6 +16,8 @@ inline std::string_view sourceContentDomain(std::string_view base) {
     if (base == "BunnyTile") return "TILE";
     if (base == "BunnyWall") return "WALL";
     if (base == "BunnyDust") return "DUST";
+    if (base == "BunnyTree") return "TREE";
+    if (base == "BunnyGore") return "GORE";
     if (base == "BunnyScreenEffect") return "SCREEN_EFFECT";
     if (base == "BunnyCommand") return "COMMAND";
     if (base == "BunnyWorldSystem") return "SYSTEM";
@@ -25,14 +27,14 @@ inline std::string_view sourceContentDomain(std::string_view base) {
 
 inline bool sourceRequiresNativeRegistration(std::string_view base) {
     return base != "BunnyPlayer" && base != "BunnyScreenEffect" &&
-           base != "BunnyCommand" && base != "BunnyWorldSystem";
+           base != "BunnyCommand" && base != "BunnyWorldSystem" && base != "BunnyTree" && base != "BunnyGore";
 }
 
 inline std::string_view sourceWireDomain(std::string_view kind) {
     if (kind == "WEAPON" || kind == "ACCESSORY" || kind == "POTION") return "ITEM";
     if (kind == "ITEM" || kind == "PROJECTILE" || kind == "BUFF" ||
         kind == "NPC" || kind == "PREFIX" || kind == "RARITY" || kind == "PLAYER" ||
-        kind == "TILE" || kind == "WALL" || kind == "DUST") return kind;
+        kind == "TILE" || kind == "WALL" || kind == "DUST" || kind == "TREE" || kind == "GORE") return kind;
     return {};
 }
 

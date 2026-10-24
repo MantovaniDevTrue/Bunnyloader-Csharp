@@ -1,5 +1,10 @@
 #include "experiments/csharp/SourceLimits.h"
 #include "experiments/csharp/NativeTileWirePolicy.h"
+#include "experiments/csharp/NativeTilePolicy.h"
+#include "experiments/csharp/NativeTileMiningPolicy.h"
+#include "experiments/csharp/NativeSaplingGrowthPolicy.h"
+#include "experiments/csharp/NativeTreeTexturePolicy.h"
+#include "experiments/csharp/NativeTreeEffectsPolicy.h"
 #include "experiments/csharp/SourceLoader.h"
 #include "experiments/csharp/NativeRarityRegistry.h"
 #include "experiments/csharp/NativeRarityGameplay.h"
@@ -597,6 +602,10 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
         if (colon != std::string::npos && type >= 0)
             status->registeredTypes.try_emplace(key.substr(colon + 1), type);
     }
+    status->trees = static_cast<int>(std::count_if(defs.begin(),defs.end(),
+        [](const ParsedSourceType& def){return def.base=="BunnyTree";}));
+    status->gores = static_cast<int>(std::count_if(defs.begin(),defs.end(),
+        [](const ParsedSourceType& def){return def.base=="BunnyGore";}));
     status->tiles = ctx.tiles;
     status->walls = ctx.walls;
     status->items = ctx.items;
@@ -816,6 +825,8 @@ bool applyManagedSourceDefaults(
     std::vector<BasicItemEntry> basicItems;
     std::vector<angler::Quest> anglerQuests;
     std::map<std::string, bool> anglerPlayerRules;
+    std::vector<ManagedTreeEntry> trees;
+    std::vector<ManagedGoreEntry> gores;
     std::vector<NativeDefaultsRequest> nativeDefaults;
     std::vector<holdout::Entry> holdouts;
     std::vector<shooting::Entry> shooting;
@@ -1064,6 +1075,90 @@ bool applyManagedSourceDefaults(
             nativeDefaults.push_back({fields[1],modId,source==mod->sourcePaths.end()?"<unavailable>":source->second,fields[2],registered->second,projectile});
             continue;
         }
+        if(fields.size()==5&&fields[0]=="GORE") {
+            const auto key=sourceIdentityForWire("GORE",fields[1]);
+            auto found=mod->registeredBases.find(key);
+            const auto safe=[](const std::string& name) {
+                return !name.empty()&&name.size()<=72&&
+                    std::all_of(name.begin(),name.end(),[](unsigned char c) {
+                        return (c>='a'&&c<='z')||(c>='A'&&c<='Z')||
+                               (c>='0'&&c<='9')||c=='_';
+                    });
+            };
+            int ai=-1;
+            if(found==mod->registeredBases.end()||found->second!="BunnyGore"||
+               !mod->sourcePaths.contains(key)||!seen.emplace(key,true).second||
+               !safe(fields[1])||!tree_texture::validStem(fields[2])||
+               !integer(fields[3],&ai)||ai<0||ai>255||
+               (fields[4]!="0"&&fields[4]!="1")||gores.size()>=256) {
+                *error="[CSharp][GoreLoader] Mod="+modId+" Stage=Decode Result=Rejected";
+                return false;
+            }
+            gores.push_back({fields[1],fields[2],ai,fields[4]=="1"});
+            continue;
+        }
+        if((fields.size()==5||fields.size()==7||fields.size()==9||fields.size()==11||fields.size()==12) && fields[0]=="TREE") {
+            const auto key=sourceIdentityForWire("TREE",fields[1]);
+            const auto declared=mod->registeredBases.find(key);
+            const auto source=mod->sourcePaths.find(key);
+            const auto safeName=[](const std::string& value) {
+                if(value.empty()||value.size()>72)return false;
+                return std::all_of(value.begin(),value.end(),[](unsigned char c) {
+                    return (c>='a'&&c<='z')||(c>='A'&&c<='Z')||
+                           (c>='0'&&c<='9')||c=='_';
+                });
+            };
+            if(declared==mod->registeredBases.end()||declared->second!="BunnyTree"||
+               source==mod->sourcePaths.end()||!seen.emplace(key,true).second||
+               !safeName(fields[1])||!safeName(fields[2])||!safeName(fields[3])||
+               !tree_texture::validStem(fields[4])||
+               (fields.size()>=7&&((fields[6]!="0"&&fields[6]!="1") ||
+                 (fields[5]!="-"&&!safeName(fields[5]))))||
+               (fields.size()>=11&&((fields[10]!="0"&&fields[10]!="1")||
+                 (fields[9]!="-"&&!safeName(fields[9]))))) {
+                *error="[CSharp][TreeLoader] Mod="+modId+" Class="+fields[1]+
+                       " Stage=Decode Result=Rejected Reason=DescriptorOrIdentityInvalid";
+                return false;
+            }
+            ManagedTreeEntry entry{};
+            entry.name=fields[1];entry.groundTile=fields[2];
+            entry.saplingTile=fields[3];entry.texture=fields[4];
+            if(fields.size()>=7) {
+                entry.woodItem=fields[5]=="-"?"":fields[5];
+                entry.canDropAcorn=fields[6]=="1";
+            }
+            if(tree_effect::hasEffectFields(fields.size())) {
+                if(!integer(fields[7],&entry.leafGoreType)||
+                   !integer(fields[8],&entry.dustType)||
+                   entry.leafGoreType< -1||entry.leafGoreType>=32768||
+                   entry.dustType<0||entry.dustType>1999) {
+                    *error="[CSharp][TreeLoader] Mod="+modId+" Class="+fields[1]+
+                           " Stage=DecodeEffects Result=Rejected";
+                    return false;
+                }
+            }
+            if(fields.size()>=11) {
+                entry.shakeItem=fields[9]=="-"?"":fields[9];
+                entry.shakeLeaves=fields[10]=="1";
+            }
+            if(fields.size()==12) {
+                if(fields[11]!="-"&&!safeName(fields[11])) {
+                    *error="[CSharp][TreeLoader] Stage=Decode Reason=InvalidLeafGoreName";
+                    return false;
+                }
+                entry.leafGoreName=fields[11]=="-"?"":fields[11];
+                if(!entry.leafGoreName.empty()&&entry.leafGoreType>=0) {
+                    *error="[CSharp][TreeLoader] Stage=Decode Reason=CompetingLeafGoreRefs";
+                    return false;
+                }
+            }
+            trees.push_back(std::move(entry));
+            if(trees.size()>255) {
+                *error="[CSharp][TreeLoader] Stage=Decode Reason=TreeCapacityExceeded";
+                return false;
+            }
+            continue;
+        }
         if(fields.size()>1&&fields[0]=="WALL") {
             const auto key=sourceIdentityForWire("WALL",fields[1]);auto target=mod->registeredKindTypes.find(key);
             walls::Definition definition;
@@ -1128,12 +1223,12 @@ bool applyManagedSourceDefaults(
             ManagedTileEntry tile;
             tile.name = fields[1]; tile.type = it->second;
             const bool flagsEncoded = integer(fields[2], &tile.flags);
-            if (!flagsEncoded || tile.flags < 0 || tile.flags > 65535) {
+            if (!flagsEncoded || tile.flags < 0 || tile.flags > 1048575) {
                 const auto source = mod->sourcePaths.find(identity);
                 *error = "[CSharp][ERROR][TileDefaults] Mod=" + modId + " Class=" + fields[1] +
                     " File=" + (source == mod->sourcePaths.end() ? "<unavailable>" : source->second) +
                     " API=BunnyTile.Flags Field=Flags ContentId=" + std::to_string(tile.type) +
-                    " Stage=Decode Expected=Int32:KnownMask0xFFFF Actual=" + fields[2] +
+                    " Stage=Decode Expected=Int32:KnownMask0xFFFFF Actual=" + fields[2] +
                     " Result=Rejected Reason=" + (flagsEncoded ? "UnknownFlagBits" : "InvalidInt32");
                 return false;
             }
@@ -1149,7 +1244,7 @@ bool applyManagedSourceDefaults(
                 (tile_wire::hasAnimationPolicy(fields.size()) &&
                  (!integer(fields[14], &tile.animationFrames) ||
                   !integer(fields[15], &tile.animationFrameTicks))) ||
-                tile.shape < 0 || tile.shape > 1 ||
+                tile.shape < 0 || tile.shape > 4 ||
                 tile.coordinateHeight != 18 ||
                 tile.adjacentTile < -1 || tile.adjacentTile >= 754 ||
                 tile.mapR < 0 || tile.mapR > 255 ||
@@ -1207,14 +1302,60 @@ bool applyManagedSourceDefaults(
                 tile.allowDrops = fields[18] == "1";
             }
             if (tile_wire::hasCallbacks(fields.size()) &&
-                (!integer(fields[19], &tile.callbackMask) || tile.callbackMask < 0 || tile.callbackMask > 65535)) {
+                (!integer(fields[19], &tile.callbackMask) || !tile_policy::validCallbackMask(tile.callbackMask))) {
                 *error = fields[1] + ": TileCallbackMask invalido"; return false;
+            }
+            if(tile_wire::hasFrameToggle(fields.size())) {
+                if(!integer(fields[21],&tile.frameToggle)||
+                   tile.frameToggle<0||tile.frameToggle>2||
+                   (tile.frameToggle==1&&tile.shape!=2)||
+                   (tile.frameToggle==2&&tile.shape!=3)) {
+                    *error=fields[1]+": FrameToggle fora dos limites da forma";return false;
+                }
             }
             if (tile_wire::hasDrawCachePolicy(fields.size())) {
                 if (fields[20] != "0" && fields[20] != "1") {
                     *error = fields[1] + ": CacheDrawData deve ser 0 ou 1"; return false;
                 }
                 tile.cacheDrawData = fields[20] == "1";
+            }
+            if (tile_wire::hasRegisteredDrops(fields.size()) &&
+                !tile_drop::parseRules(fields[22], &tile.registeredDrops)) {
+                *error = fields[1] + ": RegisterItemDrop invalido";
+                return false;
+            }
+            if (tile_wire::hasMiningPolicy(fields.size()) &&
+                (!integer(fields[23], &tile.minPick) ||
+                 !real(fields[24], &tile.mineResist) ||
+                 !tile_mining::valid(tile.minPick, tile.mineResist))) {
+                *error = fields[1] + ": MinPick/MineResist invalidos";
+                return false;
+            }
+            if (tile_wire::hasSaplingShape(fields.size())) {
+                tile.saplingGroundTile=fields[25]=="-"?"":fields[25];
+                if (!integer(fields[26],&tile.saplingVanillaGroundTile) ||
+                    !integer(fields[27],&tile.saplingStyleRange)) {
+                    *error=fields[1]+": descriptor Sapling1x2 invalido";return false;
+                }
+            }
+            if (tile_wire::hasSaplingGrowth(fields.size()) &&
+                !integer(fields[28],&tile.saplingGrowthChance)) {
+                *error=fields[1]+": SaplingGrowthChance invalido";return false;
+            }
+            if (tile.shape==4 && !tile_wire::hasSaplingShape(fields.size())) {
+                *error=fields[1]+": Sapling1x2 requer campos de ancora";return false;
+            }
+            if (tile.saplingGroundTile.size()>72 ||
+                !std::all_of(tile.saplingGroundTile.begin(),tile.saplingGroundTile.end(),
+                    [](unsigned char ch){return (ch>='a'&&ch<='z')||
+                        (ch>='A'&&ch<='Z')||(ch>='0'&&ch<='9')||ch=='_';}) ||
+                tile.saplingVanillaGroundTile< -1 || tile.saplingVanillaGroundTile>=754 ||
+                tile.saplingStyleRange<1 || tile.saplingStyleRange>12 ||
+                !tile_growth::valid(tile.shape,tile.saplingGrowthChance) ||
+                (tile.shape==4 && ((tile.flags&(131072|262144|524288))!=(131072|262144|524288) ||
+                    (tile.saplingGroundTile.empty() && tile.saplingVanillaGroundTile<0))) ||
+                (tile.shape!=4 && (!tile.saplingGroundTile.empty() || tile.saplingVanillaGroundTile>=0))) {
+                *error=fields[1]+": ancora de sapling invalida";return false;
             }
             tiles.push_back(std::move(tile));
             if (tiles.size() > kSourceMaxCategory) {
@@ -1614,6 +1755,8 @@ bool applyManagedSourceDefaults(
         }
     }
     if (dustRows != mod->dusts ||
+        trees.size() != static_cast<size_t>(mod->trees) ||
+        gores.size() != static_cast<size_t>(mod->gores) ||
         tiles.size() != static_cast<size_t>(mod->tiles) ||
         projectiles.size() != static_cast<size_t>(mod->projectiles) ||
         weapons.size() + potions.size() + accessories.size() + basicItems.size() !=
@@ -1626,7 +1769,7 @@ bool applyManagedSourceDefaults(
         npcs.size() != static_cast<size_t>(mod->npcs) ||
         prefixes.size() != static_cast<size_t>(mod->prefixes) ||
         rarityCount != static_cast<size_t>(mod->rarities) ||
-        seen.size() != mod->registeredKindTypes.size() + mod->playerClasses.size()) {
+        seen.size() != mod->registeredKindTypes.size() + mod->playerClasses.size() + trees.size() + gores.size()) {
         *error = "As classes compiladas nao correspondem ao conteudo registrado";
         return false;
     }
@@ -1657,6 +1800,37 @@ bool applyManagedSourceDefaults(
             }
         }
     }
+    for(auto& tree:trees) {
+        if(!tree.shakeItem.empty()) {
+            tree.shakeItemType=runtime::modItemTypeByKey(modId+"/"+tree.shakeItem);
+            if(tree.shakeItemType<runtime::kVanillaItemCount) {
+                *error="[CSharp][TreeLoader] Mod="+modId+" Class="+tree.name+
+                       " Stage=ResolveShakeItem Reason=Unregistered Result=Rejected";
+                return false;
+            }
+        }
+        if(!tree.woodItem.empty()) {
+            tree.woodItemType=runtime::modItemTypeByKey(modId+"/"+tree.woodItem);
+            if(tree.woodItemType<runtime::kVanillaItemCount) {
+                *error="[CSharp][TreeLoader] Mod="+modId+" Class="+tree.name+
+                       " Stage=ResolveWood Result=Rejected Reason=WoodItemNotRegistered";
+                return false;
+            }
+        }
+        const auto ground=std::find_if(tiles.begin(),tiles.end(),[&](const ManagedTileEntry& e) {
+            return e.name==tree.groundTile;
+        });
+        const auto sapling=std::find_if(tiles.begin(),tiles.end(),[&](const ManagedTileEntry& e) {
+            return e.name==tree.saplingTile;
+        });
+        if(ground==tiles.end()||sapling==tiles.end()||ground->type<runtime::kVanillaTileCount||
+           sapling->shape!=4||sapling->saplingGroundTile!=tree.groundTile ||
+           sapling->type<runtime::kVanillaTileCount) {
+            *error="[CSharp][TreeLoader] Mod="+modId+" Class="+tree.name+
+                   " Stage=ResolveTree Reason=GroundOrSaplingMismatch Result=Rejected";
+            return false;
+        }
+    }
     if (!applyManagedNativeBuffDefaultsBatch(modId, buffs, potions)) {
         *error = "Falha ao validar buffs e pocoes C# gerenciados";
         return false;
@@ -1682,6 +1856,27 @@ bool applyManagedSourceDefaults(
     if (!tiles.empty() && !applyManagedNativeTileDefaultsBatch(modId, tiles)) {
         *error = "Falha ao aplicar os defaults nativos de BunnyTile"; return false;
     }
+    for(const auto& tree:trees)if(!tree.leafGoreName.empty()&&
+       std::none_of(gores.begin(),gores.end(),[&](const ManagedGoreEntry& gore) {
+           return gore.name==tree.leafGoreName;
+       })) {
+        *error="[CSharp][TreeLoader] Mod="+modId+" Class="+tree.name+
+               " Stage=ResolveLeaf Reason=GoreNotDeclared";
+        return false;
+    }
+    std::map<std::string,int> goreIds;
+    if(!gores.empty()&&!publishManagedNativeGores(
+         modId,mod->directory,gores,&goreIds,error))return false;
+    for(auto& tree:trees)if(!tree.leafGoreName.empty()) {
+        auto id=goreIds.find(tree.leafGoreName);
+        if(id==goreIds.end()) {
+            *error="[CSharp][TreeLoader] Mod="+modId+" Class="+tree.name+
+                   " Stage=ResolveLeaf Reason=GoreNotPublished";
+            return false;
+        }
+        tree.leafGoreType=id->second;
+    }
+    if(!trees.empty()&&!publishManagedNativeTrees(modId,mod->directory,trees,error))return false;
     if (!useSounds::publish(useSounds,error)) return false;
     for (auto& item : basicItems) {
         const auto overrideType = itemRarityOverrides.find(item.name);

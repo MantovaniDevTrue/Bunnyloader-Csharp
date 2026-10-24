@@ -597,7 +597,9 @@
         "NPC",
         "Prefix",
         "Wall",
-        "Dust"
+        "Dust",
+        "Tree",
+        "Gore"
       ],
       "methods": []
     },
@@ -1026,6 +1028,24 @@
         "Wings"
       ],
       "methods": []
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyGore",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [
+        "bool SafeGore { get; set; }",
+        "int SpecialAI { get; set; }",
+        "string Texture { get; set; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "void SetDefaults()",
+          "execution": "compile_policy"
+        }
+      ]
     },
     {
       "name": "BunnyLoader.Source.BunnyHoldout",
@@ -3593,10 +3613,12 @@
       "constructors": [],
       "properties": [
         "BunnyTileFlags Flags { get; set; }",
+        "BunnyTileFrameToggle FrameToggle { get; set; }",
         "BunnyTileShape Shape { get; set; }",
         "bool AllowBreaking { get; set; }",
         "bool AllowDrops { get; set; }",
         "bool CacheDrawData { get; set; }",
+        "float MineResist { get; set; }",
         "int AdjacentTile { get; set; }",
         "int AnimationFrameHeight { get; set; }",
         "int AnimationFrameTicks { get; set; }",
@@ -3605,15 +3627,25 @@
         "int MapB { get; }",
         "int MapG { get; }",
         "int MapR { get; }",
+        "int MinPick { get; set; }",
+        "int SaplingGrowthChance { get; set; }",
+        "int SaplingStyleRange { get; set; }",
+        "int SaplingVanillaGroundTile { get; set; }",
         "int TileCallbackMask { get; }",
         "int[] AdjacentTiles { get; set; }",
         "string DisplayName { get; set; }",
         "string DustName { get; set; }",
+        "string ItemDropDefinitions { get; }",
         "string MapName { get; }",
+        "string SaplingGroundTile { get; set; }",
         "string Texture { get; set; }"
       ],
       "values": [],
       "methods": [
+        {
+          "signature": "BunnyTileDrop[] GetItemDrops(int x, int y)",
+          "execution": "managed_helper"
+        },
         {
           "signature": "bool CanDrop(int x, int y)",
           "execution": "managed_helper"
@@ -3623,7 +3655,27 @@
           "execution": "managed_helper"
         },
         {
+          "signature": "bool CreateDust(int x, int y, ref int type)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool GrowSapling(int x, int y, bool underground, int treeHeightAddon, bool ignoreWalls)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool HasSmartInteract(int x, int y, BunnyTileSmartInteractSettings settings)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool KillSound(int x, int y, bool fail)",
+          "execution": "managed_helper"
+        },
+        {
           "signature": "bool PreDraw(int x, int y)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool PreDraw(int x, int y, BunnyTileDrawContext draw)",
           "execution": "managed_helper"
         },
         {
@@ -3632,6 +3684,10 @@
         },
         {
           "signature": "bool Slope(int x, int y)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool TileFrame(int x, int y, ref bool resetFrame, ref bool noBreak)",
           "execution": "managed_helper"
         },
         {
@@ -3655,7 +3711,23 @@
           "execution": "managed_helper"
         },
         {
+          "signature": "void DrawEffects(int x, int y, int tileFrameX, int tileFrameY, BunnyTileDrawContext draw)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void EmitParticles(int x, int y, int tileFrameX, int tileFrameY, BunnyTileDrawContext draw)",
+          "execution": "managed_helper"
+        },
+        {
           "signature": "void HitWire(int x, int y)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void KillMultiTile(int x, int y, int frameX, int frameY)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void KillTile(int x, int y, ref bool fail, ref bool effectOnly, ref bool noItem)",
           "execution": "managed_helper"
         },
         {
@@ -3675,11 +3747,27 @@
           "execution": "managed_helper"
         },
         {
+          "signature": "void NumDust(int x, int y, bool fail, ref int num)",
+          "execution": "worker_sync_tile_snapshot"
+        },
+        {
           "signature": "void PlaceInWorld(int x, int y)",
           "execution": "managed_helper"
         },
         {
+          "signature": "void PostDraw(int x, int y, BunnyTileDrawContext draw)",
+          "execution": "managed_helper"
+        },
+        {
           "signature": "void RandomUpdate(int x, int y)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void RegisterItemDrop(int itemType, int[] styles)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void RegisterItemDrop(string itemName, int[] styles)",
           "execution": "managed_helper"
         },
         {
@@ -3693,8 +3781,64 @@
         {
           "signature": "void SetStaticDefaults()",
           "execution": "compile_policy"
+        },
+        {
+          "signature": "void SpecialDraw(int x, int y, BunnyTileDrawContext draw)",
+          "execution": "managed_helper"
         }
       ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyTileDrawContext",
+      "kind": "class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [
+        "int AnimationFrame { get; }",
+        "int Count { get; }",
+        "int ParticleCount { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "void DrawFlameTexture(int frameX, int frameY, int width, int height, int offsetX, int offsetY, UInt32 argb, int effects)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void DrawGlowTexture(int frameX, int frameY, int width, int height, int offsetX, int offsetY, UInt32 argb, int effects)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void DrawTileTexture(int frameX, int frameY, int width, int height, int offsetX, int offsetY, UInt32 argb, int effects)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void EmitDust(int dustType, int offsetX, int offsetY, int width, int height, int speedXMilli, int speedYMilli, int alpha, int scaleMilli, UInt32 argb)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void EmitDustStyled(int dustType, int offsetX, int offsetY, int width, int height, int speedXMilli, int speedYMilli, int alpha, int scaleMilli, UInt32 argb, bool noGravity, int fadeInMilli, int velocityXScaleMilli, int velocityYScaleMilli, int velocityYAddMilli, int positionXAdd, int alphaAdd)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void RequestSpecialDraw()",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyTileDrop",
+      "kind": "struct",
+      "baseType": "System.ValueType",
+      "constructors": [
+        "BunnyTileDrop(int itemType, int stack)"
+      ],
+      "properties": [
+        "int ItemType { get; }",
+        "int Stack { get; }"
+      ],
+      "values": [],
+      "methods": []
     },
     {
       "name": "BunnyLoader.Source.BunnyTileFlags",
@@ -3719,7 +3863,24 @@
         "Lighted",
         "WaterDeath",
         "ChecksForMerge",
-        "Cut"
+        "Cut",
+        "Campfire",
+        "TreeSapling",
+        "CommonSapling",
+        "SwaysInWindBasic"
+      ],
+      "methods": []
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyTileFrameToggle",
+      "kind": "enum",
+      "baseType": "System.Enum",
+      "constructors": [],
+      "properties": [],
+      "values": [
+        "None",
+        "CampfireVertical",
+        "LampHorizontal"
       ],
       "methods": []
     },
@@ -3745,8 +3906,27 @@
       "properties": [],
       "values": [
         "Single",
-        "Style2x1"
+        "Style2x1",
+        "Style3x2",
+        "Style1x3",
+        "Sapling1x2"
       ],
+      "methods": []
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyTileSmartInteractSettings",
+      "kind": "struct",
+      "baseType": "System.ValueType",
+      "constructors": [
+        "BunnyTileSmartInteractSettings(int lx, int ly, int hx, int hy)"
+      ],
+      "properties": [
+        "int HX { get; }",
+        "int HY { get; }",
+        "int LX { get; }",
+        "int LY { get; }"
+      ],
+      "values": [],
       "methods": []
     },
     {
@@ -3778,6 +3958,31 @@
       ],
       "values": [],
       "methods": []
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyTree",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [
+        "bool CanDropAcorn { get; set; }",
+        "bool ShakeLeaves { get; set; }",
+        "int DustType { get; set; }",
+        "int LeafGoreType { get; set; }",
+        "string GrowsOnTile { get; set; }",
+        "string LeafGoreName { get; set; }",
+        "string SaplingTile { get; set; }",
+        "string ShakeItem { get; set; }",
+        "string Texture { get; set; }",
+        "string WoodItem { get; set; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "void SetDefaults()",
+          "execution": "compile_policy"
+        }
+      ]
     },
     {
       "name": "BunnyLoader.Source.BunnyUniversalHookDispatcher",

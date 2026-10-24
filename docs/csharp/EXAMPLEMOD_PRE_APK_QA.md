@@ -33,18 +33,12 @@ Usam o sprite existente SourceWand e a bala existente, sem assets novos.
 A integração reserva eventos diferentes para tick de mundo (6) e colisão (7).
 Preserva as categorias Wall/Dust e o registro de Rarity/Command/WorldSystem.
 
-## Árvore/Gore — dependências ainda fora desta base
+## Árvore/Gore — integração posterior à #160
 
-A PR #98 não é apenas um conjunto de amostras: seu delta contra a base antiga
-abrange 277 arquivos, incluindo formatos TILE, callbacks, desenho de tiles,
-registro TREE/GORE e runtime nativo. A base #159 não possui BunnyTree/BunnyGore
-nem as amostras correspondentes. Copiar somente ExampleTree/ExampleSapling
-impediria a compilação do ExampleMod.
-
-Integrar esse runtime em lote próprio, com os testes `world_loaders`, antes de
-ativar as três classes e seus cinco PNGs originais no Playable. O roteiro desse
-lote deve cobrir crescimento, Shake, drops, folhas, save/load e multiplayer.
-Este lote não declara TreeLoader/GoreLoader integrados ou prontos no aparelho.
+Runtime TREE/GORE, extensões TILE e as três amostras originais da #98 foram
+integrados sobre este lote. Consulte `docs/csharp/TREE_GORE_INTEGRATION_QA.md`
+e o roteiro `content/Documentation/ARVORE_GORE_ANDROID.md` do ExampleMod.
+A validação Android permanece pendente; nenhum APK foi gerado neste lote.
 
 ## Evidências
 

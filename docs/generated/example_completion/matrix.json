@@ -20,7 +20,7 @@
     "forkJsFiles": 178,
     "canonicalJsFiles": 206,
     "newUpstreamFiles": 28,
-    "cSharpSourceFiles": 109
+    "cSharpSourceFiles": 112
   },
   "statePolicy": "Validado no Android exige evidencia de jogo do exemplo inteiro; Validado por testes automatizados nao prova execucao no aparelho.",
   "coverageByCategory": {
@@ -16569,6 +16569,15 @@
       "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
     },
     {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Gores/ExampleTree_Leaf.cs",
+      "classes": [
+        "ExampleTree_Leaf"
+      ],
+      "mappedToJs": [],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
       "path": "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleArcaneAccessory.cs",
       "classes": [
         "ExampleArcaneAccessory"
@@ -17220,6 +17229,24 @@
       "mappedToJs": [
         "Content/Tiles/Furniture/ExampleWorkbench.js"
       ],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Tiles/Plants/ExampleSapling.cs",
+      "classes": [
+        "ExampleSapling"
+      ],
+      "mappedToJs": [],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Tiles/Plants/ExampleTree.cs",
+      "classes": [
+        "ExampleTree"
+      ],
+      "mappedToJs": [],
       "deviceEvidence": [],
       "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
     },

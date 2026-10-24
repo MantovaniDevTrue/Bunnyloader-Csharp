@@ -14,7 +14,7 @@ DECLARATION = ROOT / "experiments/csharp/BunnyCsSdk/BunnyContentDeclaration.cs"
 PARSER = ROOT / "app/src/main/cpp/experiments/csharp/SourceParser.cpp"
 LOADER = ROOT / "app/src/main/cpp/experiments/csharp/SourceLoader.cpp"
 
-EXPECTED = ("Item", "Tile", "Weapon", "Projectile", "Buff", "BuffPotion", "Accessory", "Player", "NPC", "Prefix", "Wall", "Dust")
+EXPECTED = ("Item", "Tile", "Weapon", "Projectile", "Buff", "BuffPotion", "Accessory", "Player", "NPC", "Prefix", "Wall", "Dust", "Tree", "Gore")
 EXPECTED_ORDER = ('BunnyDust', 'BunnyTile', 'BunnyWall', 'BunnyItem', 'BunnyBuff', 'BunnyProjectile', 'BunnyAccessory', 'BunnyNPC', 'BunnyBuffPotion', 'BunnyWeapon', 'BunnyPrefix')
 
 
@@ -36,7 +36,7 @@ def validate(data: dict) -> list[dict]:
         if row.get("base") != "Bunny" + row["kind"]:
             raise ValueError("Bunny content kind no longer maps to its SDK base")
         priority = row.get("nativeOrder")
-        if row["kind"] == "Player":
+        if row["kind"] in ("Player", "Tree", "Gore"):
             if priority is not None:
                 raise ValueError("BunnyPlayer must remain managed, not native registered")
         else:
