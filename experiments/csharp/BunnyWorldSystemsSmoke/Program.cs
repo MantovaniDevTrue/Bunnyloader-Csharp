@@ -114,7 +114,49 @@ internal static class Program
         try { worldTag.SetBool("../bad", true); }
         catch (ArgumentException) { keyRejected = true; }
         Check(keyRejected, "Reject unsafe world data key");
-        Console.WriteLine("Bunny World Systems smoke: 17 checks passed");
+        var writer = new BunnyNetWriter();
+        writer.WriteFlags(true, false, true);
+        writer.WriteInt32(-123);
+        writer.WriteString("Bunny 🐰");
+        var reader = new BunnyNetReader(writer.ToArray());
+        bool[] flags = reader.ReadFlags();
+        Check(flags.Length == 3 && flags[0] && !flags[1] && flags[2],
+            "NetSend flags");
+        Check(reader.ReadInt32() == -123 && reader.ReadString() == "Bunny 🐰" &&
+            reader.Remaining == 0, "NetReceive typed payload");
+        var packet = new BunnyWorldNetState(71, "mod_one", "Progress", 1,
+            writer.ToArray());
+        Check(packet.IsValid() &&
+            BunnyWorldNetState.TryDecode(packet.Encode(), out BunnyWorldNetState roundtrip) &&
+            roundtrip.Revision == 1 && roundtrip.Data.Length == writer.Length,
+            "World sync encode decode");
+        var view = new BunnyWorldNetClientView();
+        Check(view.Accept(packet, 5, "mod_one", "Progress") &&
+            !view.Accept(packet, 5, "mod_one", "Progress"), "Reject replayed revision");
+        Check(!view.Accept(packet with { Revision = 2, HostSession = 72 },
+            5, "mod_one", "Progress"), "Reject remote world switch");
+        Check(view.Accept(packet with { Revision = 2 }, 5, "mod_one", "Progress"),
+            "Accept newer revision");
+        view.Reset();
+        Check(view.Accept(packet, 6, "mod_one", "Progress"),
+            "Accept new local world");
+        Check(!BunnyWorldNetState.TryDecode(
+            "WS1|71|mod_one|Progress|1|GG", out _), "Reject malformed wire packet");
+        bool truncated = false;
+        try { new BunnyNetReader(new byte[] { 3, 1 }).ReadFlags(); }
+        catch (FormatException) { truncated = true; }
+        Check(!truncated, "Packed 3 flags fit one byte");
+        truncated = false;
+        try { new BunnyNetReader(new byte[] { 9, 1 }).ReadFlags(); }
+        catch (FormatException) { truncated = true; }
+        Check(truncated, "Reject truncated flags");
+        bool exceeded = false;
+        try { new BunnyNetWriter().WriteString(new string('x', 65)); }
+        catch (ArgumentOutOfRangeException) { exceeded = true; }
+        Check(exceeded, "Reject network string capacity");
+        Check(!view.Accept(packet, 6, "other_mod", "Progress"),
+            "Reject mismatched mod identity");
+        Console.WriteLine("Bunny World Systems smoke: 29 checks passed");
         return 0;
     }
 }
