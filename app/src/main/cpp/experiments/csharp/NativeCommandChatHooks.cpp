@@ -508,7 +508,7 @@ bool installNativeCommandChatHooks() {
     const auto* newText = api.class_get_method_from_name(main, "NewText", 5);
     const auto* myPlayer = api.class_get_method_from_name(main, "get_myPlayer", 0);
     auto* networkText = il2cpp::findClassQuiet("Terraria.Localization", "NetworkText");
-    auto* color = il2cpp::findClassQuiet("Microsoft.Xna.Framework", "Color");
+    auto* color = il2cpp::findClassQuiet("Microsoft.Xna.Framework.Graphics", "Color");
     const auto* literal = networkText ? api.class_get_method_from_name(
         networkText, "FromLiteral", 1) : nullptr;
     const auto* send = api.class_get_method_from_name(
@@ -530,7 +530,7 @@ bool installNativeCommandChatHooks() {
         {"MyPlayer", hasSignature(myPlayer, false, {})},
         {"NetworkTextLiteral", hasSignature(literal, false, {"System.String"})},
         {"SendClient", hasSignature(send, false, {"Terraria.Localization.NetworkText",
-                                    "Microsoft.Xna.Framework.Color", "System.Int32"})},
+                                    "Microsoft.Xna.Framework.Graphics.Color", "System.Int32"})},
         {"ColorConstructor", hasSignature(colorConstructor, true,
                               {"System.Int32", "System.Int32", "System.Int32", "System.Int32"})},
         {"IncomingReturn", hasReturnType(incoming, "System.Void")},

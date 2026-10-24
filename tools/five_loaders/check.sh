@@ -21,6 +21,7 @@ python3 tests/world_update_loader/check_contract.py
 python3 tests/world_update_loader/check_arm64_assembly.py
 python3 tests/world_update_loader/check_arm64_execution.py
 python3 tests/keybind_loader/check_native_touch_signatures.py
+python3 tests/five_loaders/check_native_chat_color_contract.py
 flags=(-std=c++20 -O1 -g -Wall -Wextra -Werror -Wno-deprecated-declarations -pedantic -pthread -Iapp/src/main/cpp)
 cpp=app/src/main/cpp/experiments/csharp
 native() { local name="$1"; shift; g++ "${flags[@]}" "$@" -o "build/five-checks/$name"; }
