@@ -37,6 +37,14 @@ def pack_bytes(folder: Path) -> bytes:
         roots = [folder / "content" / "Images", folder / "Content" / "Images"]
         if not any(p.is_file() and p.suffix.lower() == ".png" for root in roots for p in root.rglob("*")):
             raise ValueError("pacote de textura sem PNGs em content/Images")
+    else:
+        entry = manifest.get("entry", "main.js")
+        # Same admission requirement as ModRepository.entryOf: C# discovery
+        # across content/ does not make the manifest entry optional on import.
+        relative = "native/arm64-v8a/libmod.so" if entry == "@native" else f"content/{entry}"
+        candidate = (folder / relative).resolve()
+        if not candidate.is_relative_to(folder.resolve()) or not candidate.is_file():
+            raise ValueError(f"pacote sem {relative}")
     files = sorted(p for p in folder.rglob("*") if p.is_file() and p.name not in SKIP)
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as z:

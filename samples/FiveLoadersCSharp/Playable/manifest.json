@@ -2,7 +2,7 @@
   "uid": "fd8b8d75-62c9-4ae9-9000-45d9be591501",
   "id": "fiveloaderscsharp",
   "name": "Five Loaders CSharp QA",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "authors": [{"name": "Bunny Loader", "role": "QA Mobile"}],
   "category": "Example",
   "summary": "QA integrado: StatModifier, 19 updates, Gore, WorldSave e controles Mobile.",
