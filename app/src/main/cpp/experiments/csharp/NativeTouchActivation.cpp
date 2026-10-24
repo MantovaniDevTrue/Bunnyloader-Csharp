@@ -27,7 +27,7 @@ void pumpNativeTouchActivationOnGameThread() {
         return;
     }
     if (++tick != 1 && tick % 30 != 0) return;
-    if (tick == 600) {
+    if (tick >= 600 && tick % 600 == 0) {
         BL_WARN("[CSharp][Touch] ActivationPending Observer=%d Pointer=%d Groups=%d Visibility=%d EditorLabels=%d IconFrames=%d QuickDraw=%d LayoutHooks=%d; profiles/mappings/editor may still be pending",
                 nativeTouchObserverInstalled(), nativeTouchPointerInstalled(),
                 nativeTouchGroupBridgeReady(), nativeTouchVisibilityHookInstalled(),
@@ -51,6 +51,7 @@ void pumpNativeTouchActivationOnGameThread() {
     if (!ensureNativeTouchStaticMappingsOnGameThread()) return;
     if (!ensureNativeTouchEditorOptionsOnGameThread()) return;
     setHostReady(true);
+    BL_INFO("[CSharp][Touch] NativeHostReady Controls=%d", registry().count());
 }
 
 } // namespace bl::csharp::touch
