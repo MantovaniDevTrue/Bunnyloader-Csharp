@@ -127,6 +127,8 @@ public static class BunnyEntitySourceDispatcher
                 {
                     if (context.WorldSystems.Count >= 32)
                         throw new InvalidOperationException("Too many world systems");
+                    if (!BunnyInvasionWireState.ValidName(type.Name, 128))
+                        throw new InvalidOperationException("Invalid world system class " + type.Name);
                     if (!context.WorldSystemNames.Add(type.Name))
                         throw new InvalidOperationException("Duplicate world system class " + type.Name);
                     BunnyWorldSystem system = Activator.CreateInstance(type) as BunnyWorldSystem
