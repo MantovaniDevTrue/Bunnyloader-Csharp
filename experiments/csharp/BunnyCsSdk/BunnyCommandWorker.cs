@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Text;
 
 namespace BunnyLoader.Source;
@@ -16,6 +14,7 @@ public static class BunnyCommandWorker
 {
     private static readonly object Gate = new();
     private static BunnyCommandRegistry registry = new();
+    private static readonly Dictionary<string, BunnyModAssemblyLease> Leases = new(StringComparer.Ordinal);
 
     public const int MaxReplyLines = 16;
     public const int MaxReplyUtf8Bytes = 512;
@@ -26,21 +25,44 @@ public static class BunnyCommandWorker
     /// </summary>
     public static int RegisterAssembly(string modId, string path)
     {
-        if (string.IsNullOrWhiteSpace(path) || !Path.IsPathFullyQualified(path) ||
-            !File.Exists(path) || new FileInfo(path).Length > 32 * 1024 * 1024)
-            throw new ArgumentException("Assembly de ModCommand invalido", nameof(path));
-        var assembly = Assembly.Load(File.ReadAllBytes(path));
-        lock (Gate) return registry.RegisterAssembly(modId, assembly);
+        lock (Gate)
+        {
+            if (Leases.ContainsKey(modId))
+                throw new InvalidOperationException("ModCommand already registered: " + modId);
+            var lease = BunnyModAssemblyRegistry.Acquire(modId, path);
+            try
+            {
+                int count = registry.RegisterAssembly(modId, lease.Assembly);
+                Leases.Add(modId, lease);
+                return count;
+            }
+            catch
+            {
+                lease.Dispose();
+                throw;
+            }
+        }
     }
 
     public static void Unregister(string modId)
     {
-        lock (Gate) registry.Unregister(modId);
+        if (string.IsNullOrWhiteSpace(modId)) return;
+        lock (Gate)
+        {
+            registry.Unregister(modId);
+            if (Leases.Remove(modId, out BunnyModAssemblyLease? lease))
+                lease.Dispose();
+        }
     }
 
     public static void Clear()
     {
-        lock (Gate) registry = new BunnyCommandRegistry();
+        lock (Gate)
+        {
+            registry = new BunnyCommandRegistry();
+            foreach (BunnyModAssemblyLease lease in Leases.Values) lease.Dispose();
+            Leases.Clear();
+        }
     }
 
     /// <summary>
