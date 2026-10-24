@@ -1,6 +1,6 @@
 # Bunny Loader C# Unificado — QA Mobile 301720
 
-Aplicativo único: `com.bunnyloader.csharptest`, versão `1.0.21-csharp-unified-qa`. Este APK reúne a base Dust/Invasion 1.0.11 e os cinco loaders novos, com uma só MonoVM e código-fonte C# editável.
+Aplicativo único: `com.bunnyloader.csharptest`, versão `1.0.22-csharp-unified-qa`. Este APK reúne a base Dust/Invasion 1.0.11 e os cinco loaders novos, com uma só MonoVM e código-fonte C# editável.
 
 Este é um **APK de QA**, não uma versão estável. O `SIGABRT` ao entrar no mundo observado na antiga Five QA.3 ainda precisa de validação/correção real. A compilação no GitHub não demonstra que funciona no aparelho.
 
@@ -11,3 +11,15 @@ Este é um **APK de QA**, não uma versão estável. O `SIGABRT` ao entrar no mu
 5. Caso ocorra SIGABRT, exporte o relatório completo de diagnóstico, inclusive a seção de abort nativo. Não insista em mundos de progresso real.
 
 Confirme: entrada no mundo, chat `/lote`, contadores de toque e updates, pontos salvos, fragmentos Gore, Dust, invasão e FPS. O port C# não usa JavaScript como motor dos loaders portados.
+
+## Diagnóstico do toque C# (QA5)
+
+Com FiveLoadersCSharp 0.1.1 habilitado, atribua **QA dos cinco loaders / TestarLote** a um botão do editor nativo e salve o layout. Entre no mundo, feche o chat, pressione o botão e execute `/lote`. A linha `TouchHost` traz:
+
+- `registro=ok`: a entrada gerenciada do botão foi criada;
+- `host=Ready`: hooks IL2CPP e host de entrada estão ativos;
+- `bound=True`: o controle está associado ao perfil ativo;
+- `triggerFrames>0`: a MonoVM executou `ProcessTriggers`;
+- `press>0`, `hold>0`, `duplo>0`: o botão respondeu aos gestos.
+
+Se `press=0`, envie a linha `TouchHost` completa com o relatório do aplicativo. Teste separadamente pressionar, segurar, tocar duas vezes e atribuir a ação dentro de um grupo. O diagnóstico não prova por si só que o toque funcionou; a confirmação exige execução no Android.
