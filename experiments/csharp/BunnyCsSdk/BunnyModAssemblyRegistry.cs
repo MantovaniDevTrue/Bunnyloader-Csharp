@@ -74,6 +74,21 @@ internal static class BunnyModAssemblyRegistry
         get { lock (Gate) return Entries.Count; }
     }
 
+    internal static bool TryResolve(Assembly assembly, out string modId, out string path)
+    {
+        lock (Gate)
+            foreach (Entry entry in Entries.Values)
+                if (ReferenceEquals(entry.Assembly, assembly))
+                {
+                    modId = entry.Id;
+                    path = entry.Path;
+                    return true;
+                }
+        modId = "";
+        path = "";
+        return false;
+    }
+
     internal static BunnyModAssemblyLease Acquire(string modId, string assemblyPath)
     {
         if (string.IsNullOrWhiteSpace(modId) || modId.Length > 128 ||
@@ -88,7 +103,7 @@ internal static class BunnyModAssemblyRegistry
             throw new InvalidDataException("CSharp mod assembly unavailable or too large");
 
         byte[] bytes = File.ReadAllBytes(path);
-        if (bytes.Length == 0 || bytes.Length > 32 * 1024 * 1024)
+        if (bytes.LongLength != info.Length || bytes.Length == 0 || bytes.Length > 32 * 1024 * 1024)
             throw new InvalidDataException("CSharp mod assembly size changed during read");
         string fingerprint = Convert.ToHexString(SHA256.HashData(bytes));
 
