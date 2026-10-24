@@ -9,7 +9,7 @@ public sealed class ExampleStatAccessory : BunnyItem
         DisplayName = "Example Stat Accessory";
         Texture = "Content/Items/Accessories/ExampleStatAccessory";
         Tooltip = "Aumenta em 10% o dano corpo a corpo, a distancia e magico";
-        Width = 28; Height = 28; Accessory = true; Value = 250000; Rare = 1;
+        Width = 28; Height = 28; Accessory = true; Value = 250000; Rare = ItemRarityID.Green;
         SetRarity<ExampleHigherTierModRarity>();
         // Multiplicativo, como o original: nao e +10 pontos nem afeta invocacoes.
         Behavior.MultiplyOnEquip(BunnyEquipFloat.MeleeDamage, 1.1f);
