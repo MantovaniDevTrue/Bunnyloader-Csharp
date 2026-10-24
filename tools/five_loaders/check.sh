@@ -22,6 +22,8 @@ python3 tests/keybind_loader/check_native_touch_signatures.py
 flags=(-std=c++20 -O1 -g -Wall -Wextra -Werror -Wno-deprecated-declarations -pedantic -pthread -Iapp/src/main/cpp)
 cpp=app/src/main/cpp/experiments/csharp
 native() { local name="$1"; shift; g++ "${flags[@]}" "$@" -o "build/five-checks/$name"; }
+g++ "${flags[@]}" -ffunction-sections -fdata-sections -Itests/basic_items/include tests/five_loaders/gore_startup_stage_test.cpp -Wl,--gc-sections -o build/five-checks/gore-startup
+build/five-checks/gore-startup
 native gore-catalog tests/csharp_gore_catalog_test.cpp
 native gore-discovery "$cpp/ManagedGoreDiscovery.cpp" tests/csharp_gore_discovery_test.cpp
 for name in action_ids input layout_json; do

@@ -1793,6 +1793,7 @@ void noteAutoGameUpdate() {
 }
 
 bool preWorldCSharpContentReady() {
+    if (gore::pendingInstall()) return false;
     bool hasCSharpMods = false;
     for (const auto& source : sourceModStatuses())
         if (source.loaded && source.sourceFiles > 0) {
@@ -1886,7 +1887,7 @@ void flushDeferredWorldEntry() {
         pendingCore, content.pendingRecipes, content.pendingPlacements,
         g_initialCSharpRegistrationFinished.load(std::memory_order_acquire),
         g_preWorldBindingsArmed.load(std::memory_order_acquire),bl::runtime::modItemsSettled());
-    if ((worldAssetsOnly || (elapsed>=6&&(pendingCore==0||deferredNativePolicies)))&&content.pendingPlacements==0&&
+    if (!gore::pendingInstall() && (worldAssetsOnly || (elapsed>=6&&(pendingCore==0||deferredNativePolicies)))&&content.pendingPlacements==0&&
         g_initialCSharpRegistrationFinished.load(std::memory_order_acquire)&&
         g_preWorldBindingsArmed.load(std::memory_order_acquire)&&
         g_worldRegistrationReady.load(std::memory_order_acquire)&&

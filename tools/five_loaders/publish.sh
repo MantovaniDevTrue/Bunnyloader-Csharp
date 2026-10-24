@@ -35,7 +35,7 @@ with zipfile.ZipFile('app/build/outputs/apk/debug/app-debug.apk') as z:
 PY
 python3 tests/five_loaders/package_import_test.py
 python3 tools/mods/pack.py samples/FiveLoadersCSharp/Playable
-cp "$APK" build/five-delivery/Bunny-Five-Loaders-QA-0.1.0.apk
+cp "$APK" build/five-delivery/Bunny-Five-Loaders-QA-0.1.2.apk
 MOD_VERSION=$(python3 -c 'import json; print(json.load(open("samples/FiveLoadersCSharp/Playable/manifest.json"))["version"])')
 cp "build/mods-packs/fiveloaderscsharp-$MOD_VERSION.bl" build/five-delivery/
 cp samples/FiveLoadersCSharp/Playable/content/TESTE_NO_MOBILE.md build/five-delivery/

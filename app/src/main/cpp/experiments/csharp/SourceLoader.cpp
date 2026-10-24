@@ -713,7 +713,7 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
     if (!screenEffects.empty() &&
         !bl::graphics::registerCSharpScreenEffects(mod.id, folder, screenEffects, &status->error))
         return false;
-    if (!goreSources.empty() && !gore::install(mod.id, goreSources, &status->error)) {
+    if (!goreSources.empty() && !gore::stage(mod.id, goreSources, &status->error)) {
         status->error = "[CSharp][ERROR][GoreLoader] Mod=" + mod.id +
             " Stage=NativeInstall Result=Rejected Detail=" + status->error;
         return false;
