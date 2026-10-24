@@ -7,5 +7,6 @@
   <ItemGroup>
     <ProjectReference Include="../BunnyCsSdk/BunnyCsSdk.csproj" />
     <Compile Include="../../../samples/ExampleModCSharp/Playable/content/Common/Systems/ExampleWorldProgressSystem.cs" Link="ExampleWorldProgressSystem.cs" />
+    <Compile Include="../../../samples/ExampleModCSharp/Playable/content/Common/Commands/ExampleWorldNetQaCommand.cs" Link="ExampleWorldNetQaCommand.cs" />
   </ItemGroup>
 </Project>
