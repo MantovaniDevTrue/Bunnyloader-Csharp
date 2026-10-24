@@ -28,10 +28,10 @@
     "officialCommit": "c9545cf27d56c456321e1896274c02adf67d0140"
   },
   "counts": {
-    "não iniciado": 678,
+    "validado automaticamente": 12,
+    "não iniciado": 671,
     "implementado sem validar": 46,
     "falhou": 3,
-    "validado automaticamente": 5,
     "validado no Android": 1
   },
   "behaviors": [
@@ -44,11 +44,22 @@
       "candidates": [
         "samples/ExampleModCSharp/Playable/content/Common/Commands/ExampleTimeCommand.cs"
       ],
-      "status": "não iniciado",
-      "note": "Equivalência deste comportamento ainda não auditada.",
-      "implementation": [],
-      "tests": [],
-      "androidEvidence": []
+      "status": "validado automaticamente",
+      "note": "Host: comando World, nome addTime, validação de ticks inteiros, módulo 86400, rejeição do cliente e autorização host/servidor cobertos pelo ActionsSmoke no pacote Playable. Sincronização WorldData e relógio real no Android pendentes.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Common/Commands/ExampleTimeCommand.cs"
+      ],
+      "tests": [
+        "tests/commands/Actions.HostTests.csproj",
+        "tests/commands/ActionsSmoke.cs"
+      ],
+      "androidEvidence": [],
+      "validationScope": "host; Android pendente",
+      "validatedFilesSha256": {
+        "samples/ExampleModCSharp/Playable/content/Common/Commands/ExampleTimeCommand.cs": "8c64d97a14efa2d028a1f3c60ed1ca1262ffec15a7d418e1e5293c46b21e38b4",
+        "tests/commands/Actions.HostTests.csproj": "0b863320396a547ae70ac280daaffa9f9ef1c49d5b44d88ec7175b9d14817bd9",
+        "tests/commands/ActionsSmoke.cs": "28c13ac8478ff9c80c58797203ea1d39e00a42c8f11a24b643b0bbb1676764b7"
+      }
     },
     {
       "id": "Common/Commands/ExampleTimeCommand.js#Command",
@@ -59,11 +70,22 @@
       "candidates": [
         "samples/ExampleModCSharp/Playable/content/Common/Commands/ExampleTimeCommand.cs"
       ],
-      "status": "não iniciado",
-      "note": "Equivalência deste comportamento ainda não auditada.",
-      "implementation": [],
-      "tests": [],
-      "androidEvidence": []
+      "status": "validado automaticamente",
+      "note": "Host: comando World, nome addTime, validação de ticks inteiros, módulo 86400, rejeição do cliente e autorização host/servidor cobertos pelo ActionsSmoke no pacote Playable. Sincronização WorldData e relógio real no Android pendentes.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Common/Commands/ExampleTimeCommand.cs"
+      ],
+      "tests": [
+        "tests/commands/Actions.HostTests.csproj",
+        "tests/commands/ActionsSmoke.cs"
+      ],
+      "androidEvidence": [],
+      "validationScope": "host; Android pendente",
+      "validatedFilesSha256": {
+        "samples/ExampleModCSharp/Playable/content/Common/Commands/ExampleTimeCommand.cs": "8c64d97a14efa2d028a1f3c60ed1ca1262ffec15a7d418e1e5293c46b21e38b4",
+        "tests/commands/Actions.HostTests.csproj": "0b863320396a547ae70ac280daaffa9f9ef1c49d5b44d88ec7175b9d14817bd9",
+        "tests/commands/ActionsSmoke.cs": "28c13ac8478ff9c80c58797203ea1d39e00a42c8f11a24b643b0bbb1676764b7"
+      }
     },
     {
       "id": "Common/Commands/ExampleTimeCommand.js#Type",
@@ -74,11 +96,22 @@
       "candidates": [
         "samples/ExampleModCSharp/Playable/content/Common/Commands/ExampleTimeCommand.cs"
       ],
-      "status": "não iniciado",
-      "note": "Equivalência deste comportamento ainda não auditada.",
-      "implementation": [],
-      "tests": [],
-      "androidEvidence": []
+      "status": "validado automaticamente",
+      "note": "Host: comando World, nome addTime, validação de ticks inteiros, módulo 86400, rejeição do cliente e autorização host/servidor cobertos pelo ActionsSmoke no pacote Playable. Sincronização WorldData e relógio real no Android pendentes.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Common/Commands/ExampleTimeCommand.cs"
+      ],
+      "tests": [
+        "tests/commands/Actions.HostTests.csproj",
+        "tests/commands/ActionsSmoke.cs"
+      ],
+      "androidEvidence": [],
+      "validationScope": "host; Android pendente",
+      "validatedFilesSha256": {
+        "samples/ExampleModCSharp/Playable/content/Common/Commands/ExampleTimeCommand.cs": "8c64d97a14efa2d028a1f3c60ed1ca1262ffec15a7d418e1e5293c46b21e38b4",
+        "tests/commands/Actions.HostTests.csproj": "0b863320396a547ae70ac280daaffa9f9ef1c49d5b44d88ec7175b9d14817bd9",
+        "tests/commands/ActionsSmoke.cs": "28c13ac8478ff9c80c58797203ea1d39e00a42c8f11a24b643b0bbb1676764b7"
+      }
     },
     {
       "id": "Common/Commands/HealCommand.js#Action",
@@ -87,11 +120,22 @@
       "sourceSha256": "1793a16aac1bfcd63a7301ef82c2a2ff7d3edf52d3616219569b7dd88519f1f7",
       "behavior": "Action",
       "candidates": [],
-      "status": "não iniciado",
-      "note": "Equivalência deste comportamento ainda não auditada.",
-      "implementation": [],
-      "tests": [],
-      "androidEvidence": []
+      "status": "validado automaticamente",
+      "note": "Host: nome heal, alias curar, modo Chat, truncamento da quantidade, rejeição de valores inválidos, limite de integridade e emissão ACTION HEAL testados com a classe Playable. Vida efetiva, HealEffect e mensagens no Android pendentes.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Common/Commands/ExampleHealCommand.cs"
+      ],
+      "tests": [
+        "tests/commands/Actions.HostTests.csproj",
+        "tests/commands/ActionsSmoke.cs"
+      ],
+      "androidEvidence": [],
+      "validationScope": "host; Android pendente",
+      "validatedFilesSha256": {
+        "samples/ExampleModCSharp/Playable/content/Common/Commands/ExampleHealCommand.cs": "261e0960fd54bc20c20cb7341b3f28dce590eafb08eddaaf699ad0ab365351d4",
+        "tests/commands/Actions.HostTests.csproj": "0b863320396a547ae70ac280daaffa9f9ef1c49d5b44d88ec7175b9d14817bd9",
+        "tests/commands/ActionsSmoke.cs": "28c13ac8478ff9c80c58797203ea1d39e00a42c8f11a24b643b0bbb1676764b7"
+      }
     },
     {
       "id": "Common/Commands/HealCommand.js#Aliases",
@@ -100,11 +144,22 @@
       "sourceSha256": "1793a16aac1bfcd63a7301ef82c2a2ff7d3edf52d3616219569b7dd88519f1f7",
       "behavior": "Aliases",
       "candidates": [],
-      "status": "não iniciado",
-      "note": "Equivalência deste comportamento ainda não auditada.",
-      "implementation": [],
-      "tests": [],
-      "androidEvidence": []
+      "status": "validado automaticamente",
+      "note": "Host: nome heal, alias curar, modo Chat, truncamento da quantidade, rejeição de valores inválidos, limite de integridade e emissão ACTION HEAL testados com a classe Playable. Vida efetiva, HealEffect e mensagens no Android pendentes.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Common/Commands/ExampleHealCommand.cs"
+      ],
+      "tests": [
+        "tests/commands/Actions.HostTests.csproj",
+        "tests/commands/ActionsSmoke.cs"
+      ],
+      "androidEvidence": [],
+      "validationScope": "host; Android pendente",
+      "validatedFilesSha256": {
+        "samples/ExampleModCSharp/Playable/content/Common/Commands/ExampleHealCommand.cs": "261e0960fd54bc20c20cb7341b3f28dce590eafb08eddaaf699ad0ab365351d4",
+        "tests/commands/Actions.HostTests.csproj": "0b863320396a547ae70ac280daaffa9f9ef1c49d5b44d88ec7175b9d14817bd9",
+        "tests/commands/ActionsSmoke.cs": "28c13ac8478ff9c80c58797203ea1d39e00a42c8f11a24b643b0bbb1676764b7"
+      }
     },
     {
       "id": "Common/Commands/HealCommand.js#Command",
@@ -113,11 +168,22 @@
       "sourceSha256": "1793a16aac1bfcd63a7301ef82c2a2ff7d3edf52d3616219569b7dd88519f1f7",
       "behavior": "Command",
       "candidates": [],
-      "status": "não iniciado",
-      "note": "Equivalência deste comportamento ainda não auditada.",
-      "implementation": [],
-      "tests": [],
-      "androidEvidence": []
+      "status": "validado automaticamente",
+      "note": "Host: nome heal, alias curar, modo Chat, truncamento da quantidade, rejeição de valores inválidos, limite de integridade e emissão ACTION HEAL testados com a classe Playable. Vida efetiva, HealEffect e mensagens no Android pendentes.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Common/Commands/ExampleHealCommand.cs"
+      ],
+      "tests": [
+        "tests/commands/Actions.HostTests.csproj",
+        "tests/commands/ActionsSmoke.cs"
+      ],
+      "androidEvidence": [],
+      "validationScope": "host; Android pendente",
+      "validatedFilesSha256": {
+        "samples/ExampleModCSharp/Playable/content/Common/Commands/ExampleHealCommand.cs": "261e0960fd54bc20c20cb7341b3f28dce590eafb08eddaaf699ad0ab365351d4",
+        "tests/commands/Actions.HostTests.csproj": "0b863320396a547ae70ac280daaffa9f9ef1c49d5b44d88ec7175b9d14817bd9",
+        "tests/commands/ActionsSmoke.cs": "28c13ac8478ff9c80c58797203ea1d39e00a42c8f11a24b643b0bbb1676764b7"
+      }
     },
     {
       "id": "Common/Commands/HealCommand.js#Type",
@@ -126,11 +192,22 @@
       "sourceSha256": "1793a16aac1bfcd63a7301ef82c2a2ff7d3edf52d3616219569b7dd88519f1f7",
       "behavior": "Type",
       "candidates": [],
-      "status": "não iniciado",
-      "note": "Equivalência deste comportamento ainda não auditada.",
-      "implementation": [],
-      "tests": [],
-      "androidEvidence": []
+      "status": "validado automaticamente",
+      "note": "Host: nome heal, alias curar, modo Chat, truncamento da quantidade, rejeição de valores inválidos, limite de integridade e emissão ACTION HEAL testados com a classe Playable. Vida efetiva, HealEffect e mensagens no Android pendentes.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Common/Commands/ExampleHealCommand.cs"
+      ],
+      "tests": [
+        "tests/commands/Actions.HostTests.csproj",
+        "tests/commands/ActionsSmoke.cs"
+      ],
+      "androidEvidence": [],
+      "validationScope": "host; Android pendente",
+      "validatedFilesSha256": {
+        "samples/ExampleModCSharp/Playable/content/Common/Commands/ExampleHealCommand.cs": "261e0960fd54bc20c20cb7341b3f28dce590eafb08eddaaf699ad0ab365351d4",
+        "tests/commands/Actions.HostTests.csproj": "0b863320396a547ae70ac280daaffa9f9ef1c49d5b44d88ec7175b9d14817bd9",
+        "tests/commands/ActionsSmoke.cs": "28c13ac8478ff9c80c58797203ea1d39e00a42c8f11a24b643b0bbb1676764b7"
+      }
     },
     {
       "id": "Common/Configs/ExampleConfig.js#OnChanged",
