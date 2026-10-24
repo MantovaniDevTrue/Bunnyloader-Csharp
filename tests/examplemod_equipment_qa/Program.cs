@@ -51,7 +51,7 @@ stat.SetDefaults();
 Check(stat.Width == 28 && stat.Height == 28 && stat.Accessory &&
       stat.Value == BunnyItem.SellPrice(gold: 5) &&
       stat.Rare == ItemRarityID.Green, "Stat accessory defaults and sellPrice");
-Check(stat.ModRarityClassName == nameof(ExampleHigherTierModRarity), "Stat accessory rarity binding");
+Check(stat.ModRarityClassName.Length == 0, "Original Green rarity must not be replaced by mod rarity");
 Check(stat.NativeAccessoryEffectsDefinition ==
       "meleeDamage:mul:1.1;rangedDamage:mul:1.1;magicDamage:mul:1.1",
       "Only melee, ranged and magic gain 10% multiplicative damage");
