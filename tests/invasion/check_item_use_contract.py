@@ -65,7 +65,9 @@ assert 'BunnyDustEffects.EmitAtPlayer<ExampleSparkDust>' in (
 dust = (root / "app/src/main/cpp/experiments/csharp/NativeDustEmission.cpp").read_text()
 assert '"Microsoft.Xna.Framework.Color"' in dust
 assert 'Stage=EmitRequest Class=%s Player=%d Count=%d Result=Queued' in dust
-assert '"Microsoft.Xna.Framework.Graphics.Color"' not in dust
+# Android 301720 uses Graphics.Color (verified in the runtime metadata).
+assert '"Microsoft.Xna.Framework.Graphics.Color"' in dust
+assert 'api.class_is_valuetype(color)' in dust and 'api.class_value_size(color,&align)==4' in dust
 print("Native CSharp item-use hook, dust emission and invasion invoker: OK")
 
 managed = (root / "app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp").read_text()
@@ -126,6 +128,20 @@ assert "internal static bool TryRegisterDustAssembly(Assembly assembly)" in disp
 source_runtime = (root / "app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp").read_text()
 assert "Stage=BindingPlan Mod=%s Registered=%d ManagedHooks=%zu" in source_runtime
 print("CSHARP_DUST_ASSEMBLY_RECOVERY_GUARD=PASS")
+native_dust = (root / "app/src/main/cpp/experiments/csharp/NativeDustEmission.cpp").read_text()
+assert "findMethodBySignature(dust, il2cpp::parseSignature(" in native_dust
+assert "int NewDust(Vector2 Position, int Width, int Height, int Type, " in native_dust
+assert 'nativeResolutionFailure = "NewDustSignatureUnavailable";' in native_dust
+assert 'Stage=NativeContract Detail=%s' in native_dust
+assert 'type<runtime::kVanillaDustCount||!resolve()' in native_dust
+mailbox = (root / "app/src/main/cpp/experiments/csharp/NativeInvasionMailbox.cpp").read_text()
+assert 'Stage=NativeSpawn Result=Rejected Mod=%s NPC=%s Reason=%s' in mailbox
+assert 'Stage=NativeSpawn Result=Created Mod=%s NPC=%s Slot=%d' in mailbox
+assert 'errorsReported.fill(false);' in mailbox
+assert 'spawnErrorName(result.error)' in mailbox
+assert '" Invasion=" + snapshot.Phase' in dispatcher
+assert '" SpawnFailed=" + invasion.Pipeline.FailedCount' in dispatcher
+print("CSHARP_DUST_NATIVE_INVASION_SPAWN_QA_GUARD=PASS")
 native_dust = (root / "app/src/main/cpp/experiments/csharp/NativeDustEmission.cpp").read_text()
 assert "findMethodBySignature(dust, il2cpp::parseSignature(" in native_dust
 assert "int NewDust(Vector2 Position, int Width, int Height, int Type, " in native_dust
