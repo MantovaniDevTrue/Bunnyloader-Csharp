@@ -5,6 +5,7 @@ on:
     paths:
       - 'experiments/csharp/BunnyCsSdk/**'
       - 'experiments/csharp/BunnyWorldSystemsSmoke/**'
+      - 'experiments/csharp/BunnyWorldIdentitySmoke/**'
       - 'experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj'
       - 'app/src/main/cpp/experiments/csharp/SourceParser.cpp'
       - 'app/src/main/cpp/experiments/csharp/SourceLoader.*'
@@ -50,3 +51,7 @@ jobs:
         run: dotnet build experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj -c Release
       - name: SDK and lifecycle checks
         run: dotnet run --project experiments/csharp/BunnyWorldSystemsSmoke/BunnyWorldSystemsSmoke.csproj -c Release
+      - name: World system identity collision regression
+        run: |
+          dotnet run --project experiments/csharp/BunnyWorldIdentitySmoke/BunnyWorldIdentitySmoke.csproj -c Release
+          dotnet run --project experiments/csharp/BunnyWorldIdentitySmoke/BunnyWorldIdentitySmoke.csproj -c Release -p:DefineConstants=INVALID_NAME
