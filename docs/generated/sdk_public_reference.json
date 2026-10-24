@@ -2615,11 +2615,11 @@
       "values": [],
       "methods": [
         {
-          "signature": "bool[] ReadFlags()",
+          "signature": "Byte ReadByte()",
           "execution": "managed_helper"
         },
         {
-          "signature": "Byte ReadByte()",
+          "signature": "bool[] ReadFlags()",
           "execution": "managed_helper"
         },
         {
@@ -4291,9 +4291,9 @@
         "BunnyWorldNetState(Int64 HostSession, string ModId, string SystemName, Int64 Revision, Byte[] Data)"
       ],
       "properties": [
+        "Byte[] Data { get; set; }",
         "Int64 HostSession { get; set; }",
         "Int64 Revision { get; set; }",
-        "Byte[] Data { get; set; }",
         "string ModId { get; set; }",
         "string SystemName { get; set; }"
       ],
