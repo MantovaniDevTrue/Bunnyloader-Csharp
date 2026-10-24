@@ -32,7 +32,7 @@ internal sealed class BunnyModAssemblyLease : IDisposable
 
 internal static class BunnyModAssemblyRegistry
 {
-    private sealed class ModContext : AssemblyLoadContext
+    internal sealed class ModContext : AssemblyLoadContext
     {
         internal ModContext(string id) : base("BunnyMod:" + id, isCollectible: true) { }
 
