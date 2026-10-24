@@ -107,10 +107,9 @@ try
     foreach(string modId in new[]{"angler_host_fixture","other_angler_mod"})
     {
         var activeMod=loadedMods[modId]??throw new InvalidOperationException("Missing cached mod");
-        var context=activeMod.GetType().GetField("Context")?.GetValue(activeMod)
-            as AssemblyLoadContext;
         var modAssembly=activeMod.GetType().GetField("Assembly")?.GetValue(activeMod)
             as Assembly;
+        var context=modAssembly==null?null:AssemblyLoadContext.GetLoadContext(modAssembly);
         if(context==null || modAssembly==null || !context.IsCollectible ||
             !ReferenceEquals(context,AssemblyLoadContext.GetLoadContext(modAssembly)))
             throw new InvalidOperationException("CSharp mod assembly is not in a collectible per-mod context");

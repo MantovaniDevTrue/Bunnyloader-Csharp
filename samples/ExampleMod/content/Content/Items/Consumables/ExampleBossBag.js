@@ -8,6 +8,7 @@ export class ExampleBossBag extends ModItem {
         // Brilha quando está no chão, como as bolsas do jogo.
         ItemID.Sets.BossBag[this.Type] = true;
         ItemID.Sets.PreHardmodeLikeBossBag[this.Type] = true;
+        this.Item.ResearchUnlockCount = 3;
     }
 
     SetDefaults() {

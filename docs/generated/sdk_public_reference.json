@@ -1037,15 +1037,50 @@
       "properties": [
         "bool SafeGore { get; set; }",
         "int SpecialAI { get; set; }",
+        "string LastHostError { get; }",
         "string Texture { get; set; }"
       ],
       "values": [],
       "methods": [
         {
+          "signature": "static bool TryConfigure(string modId, string name, BunnyGoreSettings settings)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static bool TrySpawn(string modId, string name, float x, float y, float velocityX, float velocityY, float scale)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static int GetType(string modId, string name)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static int GetTypeAny(string name)",
+          "execution": "managed_helper"
+        },
+        {
           "signature": "void SetDefaults()",
           "execution": "compile_policy"
         }
       ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyGoreSettings",
+      "kind": "struct",
+      "baseType": "System.ValueType",
+      "constructors": [
+        "BunnyGoreSettings()",
+        "BunnyGoreSettings(int specialAI, int disappearSpeed, int disappearSpeedAlpha, bool isDrip, bool safeGore)"
+      ],
+      "properties": [
+        "bool IsDrip { get; }",
+        "bool SafeGore { get; }",
+        "int DisappearSpeed { get; }",
+        "int DisappearSpeedAlpha { get; }",
+        "int SpecialAI { get; }"
+      ],
+      "values": [],
+      "methods": []
     },
     {
       "name": "BunnyLoader.Source.BunnyHoldout",
@@ -1193,6 +1228,10 @@
         },
         {
           "signature": "BunnyMethodHook HookInt32Zero(string type, string method, BunnyInt32ZeroHook callback, bool isStatic)",
+          "execution": "experimental_worker_sync_void0"
+        },
+        {
+          "signature": "BunnyMethodHook HookSystemStage(string stageName, BunnyVoidHook callback)",
           "execution": "experimental_worker_sync_void0"
         },
         {
@@ -3930,6 +3969,17 @@
       "methods": []
     },
     {
+      "name": "BunnyLoader.Source.BunnyTimeRateValues",
+      "kind": "struct",
+      "baseType": "System.ValueType",
+      "constructors": [
+        "BunnyTimeRateValues(Double time, Double tiles, Double events)"
+      ],
+      "properties": [],
+      "values": [],
+      "methods": []
+    },
+    {
       "name": "BunnyLoader.Source.BunnyTooltipLine",
       "kind": "class",
       "baseType": "System.Object",
@@ -3958,6 +4008,216 @@
       ],
       "values": [],
       "methods": []
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyTouchButton",
+      "kind": "class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [
+        "BunnyTouchButtonState State { get; }",
+        "bool Current { get; }",
+        "bool Enabled { get; }",
+        "bool IsBound { get; }",
+        "bool JustPressed { get; }",
+        "bool JustReleased { get; }",
+        "bool Old { get; }",
+        "bool RetroCurrent { get; }",
+        "bool Visible { get; }",
+        "int Id { get; }",
+        "string DisplayName { get; }",
+        "string FullName { get; }",
+        "string Icon { get; }",
+        "string ModId { get; }",
+        "string Name { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "string[] GetAssignedKeys()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void SetEnabled(bool enabled)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void SetVisible(bool visible)",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyTouchButtonLoader",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [
+        "int Count { get; }",
+        "string LastHostError { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "static BunnyTouchButton RegisterButton(string modId, string name, BunnyTouchButtonOptions options)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static BunnyTouchButton RegisterKeybind(string modId, string name, string defaultBinding)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static BunnyTouchButtonState Read(int id)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static ValueTuple\u003Cbool, bool\u003E GetPolicies(int id)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static bool TryBindNativeHost()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static bool TryGet(string fullName, out BunnyTouchButton button)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static int ApplyHostFrame(Int64 gameUpdateCount, bool inGame, bool chatOpen, bool npcDialogOpen, bool signOpen, int[] held, int[] tapped, int[] bound)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static string LayoutDiagnostics()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static void ReleaseAll()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static void SetPolicies(BunnyTouchButton button, bool visible, bool enabled)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static void UnregisterMod(string modId)",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyTouchButtonOptions",
+      "kind": "class",
+      "baseType": "System.Object",
+      "constructors": [
+        "BunnyTouchButtonOptions()"
+      ],
+      "properties": [
+        "bool Enabled { get; set; }",
+        "bool Visible { get; set; }",
+        "string Icon { get; set; }",
+        "string Label { get; set; }"
+      ],
+      "values": [],
+      "methods": []
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyTouchButtonState",
+      "kind": "struct",
+      "baseType": "System.ValueType",
+      "constructors": [
+        "BunnyTouchButtonState(bool Current, bool Old, bool JustPressed, bool JustReleased, bool RetroCurrent, bool IsBound)"
+      ],
+      "properties": [
+        "bool Current { get; set; }",
+        "bool IsBound { get; set; }",
+        "bool JustPressed { get; set; }",
+        "bool JustReleased { get; set; }",
+        "bool Old { get; set; }",
+        "bool RetroCurrent { get; set; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "bool Equals(BunnyTouchButtonState other)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool Equals(Object obj)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "int GetHashCode()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "string ToString()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void Deconstruct(out bool Current, out bool Old, out bool JustPressed, out bool JustReleased, out bool RetroCurrent, out bool IsBound)",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyTouchLayoutSlot",
+      "kind": "class",
+      "baseType": "System.Object",
+      "constructors": [
+        "BunnyTouchLayoutSlot()"
+      ],
+      "properties": [
+        "bool ActionUnbound { get; set; }",
+        "bool[] GroupUnbound { get; set; }",
+        "int Index { get; set; }",
+        "string ActionFullName { get; set; }",
+        "string SlotId { get; set; }",
+        "string[] GroupActions { get; set; }"
+      ],
+      "values": [],
+      "methods": []
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyTouchLayoutStore",
+      "kind": "class",
+      "baseType": "System.Object",
+      "constructors": [
+        "BunnyTouchLayoutStore()"
+      ],
+      "properties": [
+        "int ProfileCount { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "bool HasProfile(string id)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static BunnyTouchLayoutStore Load(string saveDirectory)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static BunnyTouchLayoutStore Parse(string json)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "string Serialize()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void Capture(string profileId, IReadOnlyList\u003CBunnyTouchLayoutSlot\u003E slots, Func\u003Cstring, bool\u003E isLoadedAction)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void Restore(string profileId, IReadOnlyList\u003CBunnyTouchLayoutSlot\u003E slots, Func\u003Cstring, bool\u003E isLoadedAction)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void Save(string saveDirectory)",
+          "execution": "managed_helper"
+        }
+      ]
     },
     {
       "name": "BunnyLoader.Source.BunnyTree",
@@ -4500,6 +4760,92 @@
       ]
     },
     {
+      "name": "BunnyLoader.Source.BunnyWorldDispatcher",
+      "kind": "class",
+      "baseType": "System.Object",
+      "constructors": [
+        "BunnyWorldDispatcher()"
+      ],
+      "properties": [
+        "bool CanSave { get; }",
+        "bool WorldActive { get; }",
+        "int RegisteredSystems { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "bool TryApplyNetworkState(UInt64 epoch, ReadOnlySpan\u003CByte\u003E packet, out string error)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool TryBuildNetworkState(UInt64 epoch, out Byte[] packet, out string error)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool TryConfirmSaved(UInt64 epoch, Byte[] bytes)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool TryEnterWorld(UInt64 epoch, Byte[] saved, bool authoritative, out string error)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool TryLeaveWorld(UInt64 epoch, out string error)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool TryPrepareSave(UInt64 epoch, out Byte[] bytes, out string error)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool TryRegister(string modUid, BunnyWorldSystem system, out string error)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool TryRegisterAssembly(string modUid, Assembly assembly, out string error)",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyWorldDocument",
+      "kind": "class",
+      "baseType": "System.Object",
+      "constructors": [
+        "BunnyWorldDocument()"
+      ],
+      "properties": [
+        "int SystemCount { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "BunnyWorldTag Read(string modUid, string className)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "Byte[] Encode()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static bool TryDecode(ReadOnlySpan\u003CByte\u003E bytes, out BunnyWorldDocument document)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static string MakeKey(string modUid, string className)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void Clear()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void Replace(string modUid, string className, BunnyWorldTag tag)",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
       "name": "BunnyLoader.Source.BunnyWorldLight",
       "kind": "struct",
       "baseType": "System.ValueType",
@@ -4513,6 +4859,52 @@
       ],
       "values": [],
       "methods": []
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyWorldMonoHost",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [
+        "bool WorldActive { get; }",
+        "int RegisteredSystems { get; }",
+        "string LastError { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "static bool Confirm(Int64 epoch, string base64)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static bool Enter(Int64 epoch, string base64, bool authoritative)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static bool Leave(Int64 epoch)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static bool NetReceive(Int64 epoch, string base64)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static bool RegisterMod(string modUid, string assemblyPath)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static bool ResetRegistrations()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static string NetSend(Int64 epoch)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static string Prepare(Int64 epoch)",
+          "execution": "managed_helper"
+        }
+      ]
     },
     {
       "name": "BunnyLoader.Source.BunnyWorldNetClientView",
@@ -4587,6 +4979,24 @@
       ]
     },
     {
+      "name": "BunnyLoader.Source.BunnyWorldNetworkCodec",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [],
+      "values": [],
+      "methods": [
+        {
+          "signature": "static Byte[] Encode(IReadOnlyDictionary\u003Cstring, BunnyWorldSystem\u003E systems, UInt32 revision)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "static bool TryDecode(ReadOnlySpan\u003CByte\u003E bytes, out UInt32 revision, out SortedDictionary\u003Cstring, Byte[]\u003E systems)",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
       "name": "BunnyLoader.Source.BunnyWorldSystem",
       "kind": "abstract class",
       "baseType": "System.Object",
@@ -4603,7 +5013,19 @@
           "execution": "worker_async_entity"
         },
         {
+          "signature": "void LoadWorldData(BunnyWorldTag tag)",
+          "execution": "worker_async_entity"
+        },
+        {
+          "signature": "void NetReceive(BinaryReader reader)",
+          "execution": "worker_async_entity"
+        },
+        {
           "signature": "void NetReceive(BunnyNetReader reader)",
+          "execution": "worker_async_entity"
+        },
+        {
+          "signature": "void NetSend(BinaryWriter writer)",
           "execution": "worker_async_entity"
         },
         {
@@ -4619,12 +5041,105 @@
           "execution": "worker_async_entity"
         },
         {
+          "signature": "void OnWorldLoad()",
+          "execution": "worker_async_entity"
+        },
+        {
           "signature": "void OnWorldTick(ref BunnyWorldContext world)",
+          "execution": "worker_async_entity"
+        },
+        {
+          "signature": "void OnWorldUnload()",
+          "execution": "worker_async_entity"
+        },
+        {
+          "signature": "void PostWorldLoad()",
           "execution": "worker_async_entity"
         },
         {
           "signature": "void SaveWorldData(BunnyWorldData tag)",
           "execution": "worker_async_entity"
+        },
+        {
+          "signature": "void SaveWorldData(BunnyWorldTag tag)",
+          "execution": "worker_async_entity"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyWorldTag",
+      "kind": "class",
+      "baseType": "System.Object",
+      "constructors": [
+        "BunnyWorldTag()"
+      ],
+      "properties": [
+        "int Count { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "bool ContainsKey(string key)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool GetBoolean(string key)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool Remove(string key)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "int GetInt32(string key)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "string GetString(string key)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void Clear()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void SetBoolean(string key, bool value)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void SetInt32(string key, int value)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void SetString(string key, string value)",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyWorldUpdateLoader",
+      "kind": "abstract class",
+      "baseType": "BunnyLoader.Source.BunnyHookModule",
+      "constructors": [],
+      "properties": [
+        "Int64 CallbackCount { get; }",
+        "Int64 ErrorCount { get; }",
+        "bool IsRegistered { get; }",
+        "string LastError { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "string DiagnosticStatus()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void Load(BunnyHookScope hooks)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void Unload()",
+          "execution": "managed_helper"
         }
       ]
     },
@@ -4673,6 +5188,57 @@
       ],
       "values": [],
       "methods": []
+    },
+    {
+      "name": "BunnyLoader.Source.StatInheritanceData",
+      "kind": "struct",
+      "baseType": "System.ValueType",
+      "constructors": [
+        "StatInheritanceData(float damageInheritance, float critChanceInheritance, float attackSpeedInheritance, float armorPenInheritance, float knockbackInheritance)"
+      ],
+      "properties": [],
+      "values": [],
+      "methods": []
+    },
+    {
+      "name": "BunnyLoader.Source.StatModifier",
+      "kind": "struct",
+      "baseType": "System.ValueType",
+      "constructors": [
+        "StatModifier()",
+        "StatModifier(float additive, float multiplicative, float flat, float base)"
+      ],
+      "properties": [
+        "float Additive { get; }",
+        "float Multiplicative { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "StatModifier CombineWith(StatModifier other)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "StatModifier Scale(float scale)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool Equals(Object obj)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "float ApplyTo(float baseValue)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "float Undo(float currentValue)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "int GetHashCode()",
+          "execution": "managed_helper"
+        }
+      ]
     },
     {
       "name": "Terraria.Utilities.UnifiedRandom",

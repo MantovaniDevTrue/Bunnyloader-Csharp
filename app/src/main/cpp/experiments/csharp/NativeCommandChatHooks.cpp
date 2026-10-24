@@ -1,6 +1,7 @@
 #include "experiments/csharp/NativeCommandChatHooks.h"
 
 #include "experiments/csharp/ManagedRuntime.h"
+#include "experiments/csharp/MobileMainMenu.h"
 #include "experiments/csharp/NativeCommandMailbox.h"
 #include "experiments/csharp/NativeCommandClock.h"
 #include "hook/HookManager.h"
@@ -38,7 +39,7 @@ const MethodInfo* g_sendClient = nullptr;
 const MethodInfo* g_colorConstructor = nullptr;
 Il2CppClass* g_colorClass = nullptr;
 FieldInfo* g_netMode = nullptr;
-FieldInfo* g_gameMenu = nullptr;
+const MethodInfo* g_gameMenu = nullptr;
 std::atomic<bool> g_incomingInstalled{false};
 std::atomic<bool> g_clientInstalled{false};
 std::atomic<bool> g_metadataReady{false};
@@ -123,7 +124,7 @@ bool readContext(int* mode, int* localPlayer) {
         return false;
     auto& api = il2cpp::api();
     bool inMenu = true;
-    api.field_static_get_value(g_gameMenu, &inMenu);
+    if (!readMobileMainMenu(g_gameMenu, &inMenu)) return false;
     if (inMenu) return false;
     api.field_static_get_value(g_netMode, mode);
     if (*mode < 0 || *mode > 3) return false;
@@ -167,10 +168,11 @@ bool writeNetwork(const std::string& message, int playerIndex,
     if (exception || !network) return false;
     Il2CppObject* color = api.object_new(g_colorClass);
     if (!color) return false;
-    uint8_t alpha = 255;
-    void* colorArgs[] = {&red, &green, &blue, &alpha};
+    int r = red, g = green, b = blue, alpha = 255;
+    void* colorArgs[] = {&r, &g, &b, &alpha};
     exception = nullptr;
-    api.runtime_invoke(g_colorConstructor, color, colorArgs, &exception);
+    api.runtime_invoke(g_colorConstructor,
+        reinterpret_cast<char*>(color) + sizeof(Il2CppObject), colorArgs, &exception);
     if (exception) return false;
     uint32_t rgba = 0;
     std::memcpy(&rgba, reinterpret_cast<const char*>(color) + sizeof(Il2CppObject),
@@ -316,8 +318,8 @@ void applyNativeCommandActionsOnGameThread() {
             (mode == 0 || mode == 1 || (mode == 3 && action.playerIndex == localPlayer)))
             accepted = applyNativeHeal(action, &reply);
         else if (action.kind == NativeCommandActionKind::AdvanceWorldTime &&
-                 (mode == 0 && action.caller == NativeCommandRoute::Chat ||
-                  (mode & 2) && action.caller == NativeCommandRoute::Server))
+                 ((mode == 0 && action.caller == NativeCommandRoute::Chat) ||
+                  ((mode & 2) && action.caller == NativeCommandRoute::Server)))
             accepted = applyNativeWorldTime(action);
         if (!accepted) reply = "Comando C#: falha ao aplicar efeito";
         if (!reply.empty()) {
@@ -481,16 +483,22 @@ bool installNativeCommandChatHooks() {
         installNativeCommandHelpHook();
         return true;
     }
-    if ((++g_installAttempts - 1) % 60 != 0) return false;
+    const int attempt = ++g_installAttempts;
+    if ((attempt - 1) % 60 != 0) return false;
+    const auto pending = [attempt](const char* reason) {
+        if (attempt >= 601 && (attempt - 1) % 600 == 0)
+            BL_WARN("[CSharp][Command] HookPending Reason=%s Frames=%d", reason, attempt);
+        return false;
+    };
     auto& api = il2cpp::api();
     if (!api.runtime_invoke || !api.string_new || !api.field_static_get_value ||
-        !api.class_get_method_from_name) return false;
+        !api.class_get_method_from_name) return pending("Il2CppApiUnavailable");
 
     auto* processor = il2cpp::findClassQuiet("Terraria.Chat", "ChatCommandProcessor");
     auto* chatHelper = il2cpp::findClassQuiet("Terraria.Chat", "ChatHelper");
     auto* message = il2cpp::findClassQuiet("Terraria.Chat", "ChatMessage");
     auto* main = il2cpp::findClassQuiet("Terraria", "Main");
-    if (!processor || !chatHelper || !message || !main) return false;
+    if (!processor || !chatHelper || !message || !main) return pending("ChatClassesUnavailable");
     const auto* incoming = api.class_get_method_from_name(processor,
         "ProcessIncomingMessage", 2);
     const auto* client = api.class_get_method_from_name(chatHelper,
@@ -500,40 +508,52 @@ bool installNativeCommandChatHooks() {
     const auto* newText = api.class_get_method_from_name(main, "NewText", 5);
     const auto* myPlayer = api.class_get_method_from_name(main, "get_myPlayer", 0);
     auto* networkText = il2cpp::findClassQuiet("Terraria.Localization", "NetworkText");
-    auto* color = il2cpp::findClassQuiet("Microsoft.Xna.Framework", "Color");
+    auto* color = il2cpp::findClassQuiet("Microsoft.Xna.Framework.Graphics", "Color");
     const auto* literal = networkText ? api.class_get_method_from_name(
         networkText, "FromLiteral", 1) : nullptr;
     const auto* send = api.class_get_method_from_name(
         chatHelper, "SendChatMessageToClient", 3);
-    const auto* colorConstructor = color ? api.class_get_method_from_name(
-        color, ".ctor", 4) : nullptr;
+    const auto* colorConstructor = color ? il2cpp::findMethodBySignature(
+        color, il2cpp::parseSignature("void .ctor(int r, int g, int b, int a)")) : nullptr;
     uint32_t alignment = 0;
     const bool validColor = color && api.class_value_size && api.object_new &&
         api.class_value_size(color, &alignment) == 4;
     const auto* netMode = il2cpp::findField(main, "netMode");
-    const auto* menu = il2cpp::findField(main, "gameMenu");
-    if (!hasSignature(incoming, true, {"Terraria.Chat.ChatMessage", "System.Int32"}) ||
-        !hasSignature(client, false, {"Terraria.Chat.ChatMessage"}) ||
-        !hasSignature(text, true, {}) ||
-        !hasSignature(consumeMethod, true, {}) ||
-        !hasSignature(newText, false, {"System.String", "System.Byte", "System.Byte", "System.Byte", "System.Boolean"}) ||
-        !hasSignature(myPlayer, false, {}) ||
-        !hasSignature(literal, false, {"System.String"}) ||
-        !hasSignature(send, false, {"Terraria.Localization.NetworkText",
-                                    "Microsoft.Xna.Framework.Color", "System.Int32"}) ||
-        !hasSignature(colorConstructor, true,
-                      {"System.Byte", "System.Byte", "System.Byte", "System.Byte"}) ||
-        !hasReturnType(incoming, "System.Void") ||
-        !hasReturnType(client, "System.Void") ||
-        !hasReturnType(text, "System.String") ||
-        !hasReturnType(consumeMethod, "System.Void") ||
-        !hasReturnType(newText, "System.Void") ||
-        !hasReturnType(myPlayer, "System.Int32") ||
-        !hasReturnType(literal, "Terraria.Localization.NetworkText") ||
-        !hasReturnType(send, "System.Void") ||
-        !hasReturnType(colorConstructor, "System.Void") ||
-        !validColor || !netMode || !menu)
-        return false;
+    const auto* menu = resolveMobileMainMenu();
+    struct NamedCheck { const char* name; bool ok; };
+    const NamedCheck checks[] = {
+        {"IncomingSignature", hasSignature(incoming, true, {"Terraria.Chat.ChatMessage", "System.Int32"})},
+        {"ClientSignature", hasSignature(client, false, {"Terraria.Chat.ChatMessage"})},
+        {"TextGetter", hasSignature(text, true, {})},
+        {"Consume", hasSignature(consumeMethod, true, {})},
+        {"NewText", hasSignature(newText, false, {"System.String", "System.Byte", "System.Byte", "System.Byte", "System.Boolean"})},
+        {"MyPlayer", hasSignature(myPlayer, false, {})},
+        {"NetworkTextLiteral", hasSignature(literal, false, {"System.String"})},
+        {"SendClient", hasSignature(send, false, {"Terraria.Localization.NetworkText",
+                                    "Microsoft.Xna.Framework.Graphics.Color", "System.Int32"})},
+        {"ColorConstructor", hasSignature(colorConstructor, true,
+                              {"System.Int32", "System.Int32", "System.Int32", "System.Int32"})},
+        {"IncomingReturn", hasReturnType(incoming, "System.Void")},
+        {"ClientReturn", hasReturnType(client, "System.Void")},
+        {"TextReturn", hasReturnType(text, "System.String")},
+        {"ConsumeReturn", hasReturnType(consumeMethod, "System.Void")},
+        {"NewTextReturn", hasReturnType(newText, "System.Void")},
+        {"MyPlayerReturn", hasReturnType(myPlayer, "System.Int32")},
+        {"NetworkTextReturn", hasReturnType(literal, "Terraria.Localization.NetworkText")},
+        {"SendClientReturn", hasReturnType(send, "System.Void")},
+        {"ColorConstructorReturn", hasReturnType(colorConstructor, "System.Void")},
+        {"MobileColorLayout", validColor},
+        {"NetworkModeField", netMode != nullptr},
+        {"MobileMenuProperty", menu != nullptr}
+    };
+    bool validChatAbi = true;
+    for (const auto& check : checks) {
+        if (check.ok) continue;
+        validChatAbi = false;
+        if (attempt == 1 || (attempt >= 601 && (attempt - 1) % 600 == 0))
+            BL_WARN("[CSharp][Command] AbiMismatch Check=%s Frame=%d", check.name, attempt);
+    }
+    if (!validChatAbi) return pending("ChatSignatureOrLayoutMismatch");
 
     g_textGetter = text;
     g_consume = consumeMethod;
@@ -544,7 +564,7 @@ bool installNativeCommandChatHooks() {
     g_colorConstructor = colorConstructor;
     g_colorClass = color;
     g_netMode = const_cast<FieldInfo*>(netMode);
-    g_gameMenu = const_cast<FieldInfo*>(menu);
+    g_gameMenu = menu;
     if (!g_incomingInstalled.load(std::memory_order_acquire) &&
         hook::install(incoming, hkIncoming, &g_incomingOriginal))
         g_incomingInstalled.store(true, std::memory_order_release);
@@ -555,8 +575,11 @@ bool installNativeCommandChatHooks() {
     const bool ready = g_incomingInstalled.load(std::memory_order_acquire) &&
                        g_clientInstalled.load(std::memory_order_acquire);
     g_metadataReady.store(ready, std::memory_order_release);
-    if (ready) installNativeCommandHelpHook();
-    return ready;
+    if (ready) {
+        BL_INFO("[CSharp][Command] Stage=ChatHooks Result=Ready GameMenu=MobileProperty");
+        installNativeCommandHelpHook();
+    } else return pending("ChatDetourInstallFailed");
+    return true;
 }
 
 void pumpNativeCommandRepliesOnGameThread() {

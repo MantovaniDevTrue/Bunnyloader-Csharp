@@ -26,6 +26,15 @@
   o `ExampleGlobalRecipe`.
 - Receitas com condição (`AddCondition`) e com callbacks de consumo e de
   criação (a Corrente que não é gasta, os fogos de artifício).
+- A bolsa do Chefe de Exemplo marcada como `PreHardmodeLikeBossBag`: como as
+  bolsas pré-hardmode do jogo, não dá conjunto de desenvolvedor.
+- Quantidade de pesquisa do modo Jornada (`Item.ResearchUnlockCount`): 100 no
+  Exemplo de Item, 3 na bolsa do chefe.
+- Fonte própria do mod (`ModContent.Request('Assets/Fonts/ExampleFont')`): o
+  "CPM" da tela de moedas (`/coins`) é desenhado com a New Rocker.
+- Estrutura de exemplo: um castelinho com móveis do Exemplo e um baú com
+  recheio, gerado com o mundo (`ModifyWorldGenTasks`, depois dos Girassóis) ou
+  pelo comando `/castle` embaixo do jogador.
 
 ## 1.8.0 - 2026-09-27
 

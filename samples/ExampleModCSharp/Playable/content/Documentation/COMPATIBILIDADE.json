@@ -20,7 +20,7 @@
     "forkJsFiles": 178,
     "canonicalJsFiles": 206,
     "newUpstreamFiles": 28,
-    "cSharpSourceFiles": 112
+    "cSharpSourceFiles": 117
   },
   "statePolicy": "Validado no Android exige evidencia de jogo do exemplo inteiro; Validado por testes automatizados nao prova execucao no aparelho.",
   "coverageByCategory": {
@@ -16518,6 +16518,24 @@
       "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
     },
     {
+      "path": "samples/ExampleModCSharp/Playable/content/Common/Recipes/09_StatModifier.cs",
+      "classes": [
+        "ExampleStatModifierRecipe"
+      ],
+      "mappedToJs": [],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Common/Systems/BunnyTouchEntry.cs",
+      "classes": [
+        "BunnyTouchEntry"
+      ],
+      "mappedToJs": [],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
       "path": "samples/ExampleModCSharp/Playable/content/Common/Systems/ExampleWorldProgressSystem.cs",
       "classes": [
         "ExampleWorldProgressSystem"
@@ -17193,6 +17211,15 @@
       "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
     },
     {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Systems/ExampleDustAndInvasionSystem.cs",
+      "classes": [
+        "ExampleDustAndInvasionSystem"
+      ],
+      "mappedToJs": [],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
       "path": "samples/ExampleModCSharp/Playable/content/Content/Systems/ExampleInvasion.cs",
       "classes": [
         "ExampleInvasion"
@@ -17205,6 +17232,24 @@
       "path": "samples/ExampleModCSharp/Playable/content/Content/Systems/ExampleInvasionSystem.cs",
       "classes": [
         "ExampleInvasionSystem"
+      ],
+      "mappedToJs": [],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Systems/ExampleTimeRateSystem.cs",
+      "classes": [
+        "ExampleTimeRateSystem"
+      ],
+      "mappedToJs": [],
+      "deviceEvidence": [],
+      "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
+    },
+    {
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Systems/ExampleWorldUpdateCounter.cs",
+      "classes": [
+        "ExampleWorldUpdateCounter"
       ],
       "mappedToJs": [],
       "deviceEvidence": [],

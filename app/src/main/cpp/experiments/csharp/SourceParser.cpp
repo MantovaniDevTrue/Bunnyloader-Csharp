@@ -310,7 +310,15 @@ bool parseClass(const std::vector<Token>& tokens, size_t begin, size_t end,
                 const std::string& namespaceName,
                 std::vector<ParsedSourceType>* definitions, std::string* error,
                 const std::map<std::string, std::string>& declaredProperties = {}) {
-    if (!isRecognizedSourceBase(base) && base != "BunnyScreenEffect" && base != "BunnyRarity" && base != "BunnyCommand" && base != "BunnyWorldSystem") return true;
+    if (base == "BunnyWorldSystem" || base == "BunnyWorldUpdateLoader" || base == "BunnyHookModule") {
+        if (!declaredProperties.empty()) {
+            *error = name + ": sistema gerenciado nao usa BunnyContent";
+            return false;
+        }
+        definitions->push_back({name, base, namespaceName, {}});
+        return true;
+    }
+    if (!isRecognizedSourceBase(base) && base != "BunnyScreenEffect" && base != "BunnyRarity" && base != "BunnyCommand" && base != "BunnyWorldSystem" && base != "BunnyWorldUpdateLoader" && base != "BunnyHookModule") return true;
     ParsedSourceType def;
     def.name = name;
     def.base = base;
@@ -534,7 +542,7 @@ bool parseCSharpSource(const std::string& source,
             }
             base = declaredBase;
         }
-        if (!abstract && (isRecognizedSourceBase(base) || base == "BunnyScreenEffect" || base == "BunnyRarity" || base == "BunnyCommand" || base == "BunnyWorldSystem")) {
+        if (!abstract && (isRecognizedSourceBase(base) || base == "BunnyScreenEffect" || base == "BunnyRarity" || base == "BunnyCommand" || base == "BunnyWorldSystem" || base == "BunnyWorldUpdateLoader" || base == "BunnyHookModule")) {
             std::string qualifiedNamespace = fileNamespace;
             for (const auto& scope : namespaces) {
                 if (!qualifiedNamespace.empty()) qualifiedNamespace += ".";

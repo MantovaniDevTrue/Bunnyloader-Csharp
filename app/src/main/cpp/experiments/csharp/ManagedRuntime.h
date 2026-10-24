@@ -1,6 +1,7 @@
 #pragma once
 #include "experiments/csharp/ManagedHitContextStats.h"
 #include "experiments/csharp/ManagedDustMailbox.h"
+#include "experiments/csharp/MonoWorldMailbox.h"
 #include "experiments/csharp/ManagedVisualQueue.h"
 #include "experiments/csharp/ManagedLiveEventQueue.h"
 #include "experiments/csharp/ManagedNpcBuffEffects.h"
@@ -37,6 +38,11 @@ void resetManagedDustSourceWorld();
 bool hasManagedDustType(int type);
 bool managedDustWorkerReady(int type);
 
+// Um mod C# pode expor BunnyLoader.Source.BunnyTouchEntry.Load() e
+// ProcessTriggers(). O trabalhador MonoVM executa ambos fora da game thread.
+bool registerManagedTouchEntry(const std::string& modId,
+                               const std::string& assemblyPath);
+void queueManagedTouchTriggerTick(uint64_t tick);
 bool managedRecipeRuntimeReady();
 // Durable, owner-scoped worker teardown; never waits for Mono on the caller.
 void unloadManagedRarityCallbacks(const std::string& mod);
@@ -113,6 +119,11 @@ bool readManagedScreenScene(const std::string& modId,
                             ManagedScreenLightResult* result);
 void pauseManagedScreenSceneCallbacks();
 
+
+// Apenas chamadas internas do host; mods C# não acessam esta fila.
+bool requestManagedWorldOnMono(const worldsave::MonoWorldRequest& request,
+                               worldsave::MonoWorldReply* reply, int timeoutMs);
+void invalidateManagedWorldMonoRequests();
 
 struct ManagedHurtResult {
     int damage = 0;

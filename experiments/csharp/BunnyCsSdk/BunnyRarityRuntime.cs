@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
 using System.Linq;
 using System.Reflection;
 
@@ -12,13 +11,15 @@ public static class BunnyRarityRuntime
     private sealed class ModRarities
     {
         public readonly string AssemblyPath;
+        public readonly BunnyModAssemblyLease Lease;
         public readonly IReadOnlyDictionary<string, BunnyRarity> ByName;
         public readonly IReadOnlyDictionary<int, BunnyRarity> ById;
 
-        public ModRarities(string assemblyPath, Dictionary<string, BunnyRarity> byName,
-            Dictionary<int, BunnyRarity> byId)
+        public ModRarities(string assemblyPath, BunnyModAssemblyLease lease,
+            Dictionary<string, BunnyRarity> byName, Dictionary<int, BunnyRarity> byId)
         {
             AssemblyPath = assemblyPath;
+            Lease = lease;
             ByName = byName;
             ById = byId;
         }
@@ -69,7 +70,10 @@ public static class BunnyRarityRuntime
                 }
                 if (entries.Count == 0 || Mods.ContainsKey(modId))
                     return "ERROR|Stage=BindRarity Reason=EmptyOrAlreadyBound";
-                Assembly assembly = BunnyRecipeLoader.LoadAssembly(modId, assemblyPath);
+                BunnyModAssemblyLease? lease = BunnyModAssemblyRegistry.Acquire(modId, BunnyRecipeLoader.AssemblyFilePath(assemblyPath));
+                try
+                {
+                Assembly assembly = lease.Assembly;
                 var byName = new Dictionary<string, BunnyRarity>(StringComparer.Ordinal);
                 var byId = new Dictionary<int, BunnyRarity>();
                 Type[] classes = assembly.GetTypes()
@@ -90,7 +94,8 @@ public static class BunnyRarityRuntime
                     byName.Add(type.Name, instance);
                     byId.Add(id, instance);
                 }
-                Mods.Add(modId, new ModRarities(assemblyPath, byName, byId));
+                Mods.Add(modId, new ModRarities(assemblyPath, lease, byName, byId));
+                lease = null;
                 try
                 {
                     foreach (var instance in byName.OrderBy(pair => pair.Value.Type).Select(pair => pair.Value))
@@ -98,17 +103,21 @@ public static class BunnyRarityRuntime
                 }
                 catch
                 {
-                    Mods.Remove(modId);
+                    if (Mods.Remove(modId, out ModRarities? removed)) removed.Lease.Dispose();
                     throw;
                 }
                 return "READY|" + byName.Count.ToString(CultureInfo.InvariantCulture);
+                }
+                finally { lease?.Dispose(); }
             }
 
             if (kind == 3)
             {
                 if (owner.Length != 0 || snapshot.Length != 0)
                     return "ERROR|Stage=ResetRarity Reason=InvalidTransport";
-                return Mods.Remove(modId) ? "CLEARED" : "NOT_BOUND";
+                if (!Mods.Remove(modId, out ModRarities? removed)) return "NOT_BOUND";
+                removed.Lease.Dispose();
+                return "CLEARED";
             }
 
             if (!Mods.TryGetValue(modId, out var mod) || mod.AssemblyPath != assemblyPath ||

@@ -5,6 +5,8 @@
 #include "experiments/csharp/NativeSaplingGrowthPolicy.h"
 #include "experiments/csharp/NativeTreeTexturePolicy.h"
 #include "experiments/csharp/NativeTreeEffectsPolicy.h"
+#include "experiments/csharp/ManagedGoreDiscovery.h"
+#include "experiments/csharp/ManagedGoreRuntime.h"
 #include "experiments/csharp/SourceLoader.h"
 #include "experiments/csharp/NativeRarityRegistry.h"
 #include "experiments/csharp/NativeRarityGameplay.h"
@@ -247,6 +249,7 @@ bool fields(const ParsedSourceType& type, NativeContentSpec* spec,
                 *error = type.name + ": Summon invalido";
                 return false;
             }
+            spec->summon = value == "true";
             continue;
         }
         if (weapon && key == "MinionBuff") {
@@ -343,6 +346,13 @@ bool fields(const ParsedSourceType& type, NativeContentSpec* spec,
 
 bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
     const std::string folder = mod.dir + "/content";
+    std::vector<gore::Source> goreSources;
+    if (!gore::discover(mod.dir, &goreSources, &status->error)) {
+        status->error = "[CSharp][ERROR][GoreLoader] Mod=" + mod.id +
+            " Stage=Discover Result=Rejected Detail=" + status->error;
+        return false;
+    }
+    status->goreSourcesDiscovered = static_cast<int>(goreSources.size());
     std::vector<std::string> paths;
     if (!collect(folder, "", &paths, &status->error, 0)) return false;
     if (paths.empty() || paths.size() > kSourceMaxFiles) {
@@ -379,22 +389,28 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
         return false;
     }
     if (defs.size() > kSourceMaxTypes) { status->error = "tipos C# demais"; return false; }
-    status->worldSystems = static_cast<int>(std::count_if(defs.begin(), defs.end(),
-        [](const ParsedSourceType& def) { return def.base == "BunnyWorldSystem"; }));
     std::map<std::string, int> typed;
     for (const auto& def : defs) {
-        const std::string key = sourceIdentityForBase(def.base, def.name);
+        const std::string fullName = def.namespaceName.empty()
+            ? def.name : def.namespaceName + "." + def.name;
+        const std::string key = def.base == "BunnyWorldSystem"
+            ? "BunnyWorldSystem:" + fullName
+            : sourceIdentityForBase(def.base, def.name);
         if (key.empty() || !typed.emplace(key, -1).second) {
             status->error = "identidade nativa C# duplicada/invalida: " + key +
                 " namespace=" + def.namespaceName +
                 " fonte=content/" + sourcePaths[key];
             return false;
         }
+        if (def.base == "BunnyWorldUpdateLoader" || def.base == "BunnyHookModule")
+            ++status->hookModules;
+        if (def.base == "BunnyWorldSystem") {
+            status->worldSystemClasses.push_back(fullName);
+            ++status->worldSystems;
+        }
     }
     const bool hasNativeContent = std::any_of(defs.begin(), defs.end(),
-        [](const ParsedSourceType& def) {
-            return def.base != "BunnyCommand" && def.base != "BunnyWorldSystem";
-        });
+        [](const ParsedSourceType& def) { return sourceRequiresNativeRegistration(def.base); });
     if (hasNativeContent && !prepareNativeContent()) {
         status->error = "Host API de conteudo nativo indisponivel";
         return false;
@@ -589,6 +605,8 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
     for (const auto& def : defs)
         if (!sourceRequiresNativeRegistration(def.base))
             typed.erase(sourceIdentityForBase(def.base, def.name));
+    for (const auto& name : status->worldSystemClasses)
+        typed.erase("BunnyWorldSystem:" + name);
     status->players = static_cast<int>(status->playerClasses.size());
     status->accessories = ctx.accessories;
     status->registeredKindTypes = typed;
@@ -701,13 +719,26 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
         return false;
     }
     if (status->dusts+status->items+status->tiles+status->projectiles+status->buffs+
-        status->npcs+status->prefixes+status->rarities+status->players+status->screenEffects+status->commands==0) {
+        status->npcs+status->prefixes+status->rarities+status->players+status->screenEffects+status->commands+status->trees+status->gores+status->goreSourcesDiscovered+status->worldSystems+status->hookModules==0) {
         status->error = "mod C# sem conteudo registrado";
         return false;
     }
     if (!screenEffects.empty() &&
         !bl::graphics::registerCSharpScreenEffects(mod.id, folder, screenEffects, &status->error))
         return false;
+    // Explicit C# declarations publish these PNGs with their settings later.
+    // The implicit PNG catalog must not allocate a second ID for the same name.
+    std::erase_if(goreSources, [&](const gore::Source& source) {
+        return std::any_of(defs.begin(), defs.end(), [&](const ParsedSourceType& def) {
+            return def.base == "BunnyGore" && def.name == source.name;
+        });
+    });
+    status->goreSourcesDiscovered = static_cast<int>(goreSources.size());
+    if (!goreSources.empty() && !gore::stage(mod.id, goreSources, &status->error)) {
+        status->error = "[CSharp][ERROR][GoreLoader] Mod=" + mod.id +
+            " Stage=NativeInstall Result=Rejected Detail=" + status->error;
+        return false;
+    }
     return true;
 }
 
@@ -751,6 +782,9 @@ bool loadCSharpSourceMod(const bl::mods::LoadedMod& mod) {
     status.directory = mod.dir;
     status.loaded = load(mod, &status);
     if (status.loaded) {
+        if (status.goreSourcesDiscovered > 0)
+            BL_INFO("C# GoreLoader %s: %d PNGs registrados em arrays nativos",
+                    mod.id.c_str(), status.goreSourcesDiscovered);
         BL_INFO("C# source %s: %d arquivo(s), %d item(ns), %d projetil(is), %d buff(s), %d pocao(oes), %d NPC(s), %d Dust(s)",
                 mod.id.c_str(), status.sourceFiles, status.items,
                 status.projectiles, status.buffs, status.potions, status.npcs, status.dusts);

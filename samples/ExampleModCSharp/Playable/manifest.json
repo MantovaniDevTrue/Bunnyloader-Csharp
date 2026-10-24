@@ -2,7 +2,7 @@
   "uid": "68c3115f-62f4-49f2-a56b-388256781d5f",
   "id": "examplemodcsharp",
   "name": "ExampleMod CSharp",
-  "version": "0.1.70",
+  "version": "0.1.71",
   "authors": [
     {
       "name": "Bunny Loader",
@@ -10,7 +10,7 @@
     }
   ],
   "category": "Example",
-  "summary": "Exemplos C# editáveis incluindo ModifyTooltips e PreDrawTooltipLine, linha arco-íris animada e coloração dourada pelo renderizador Bunny",
+  "summary": "QA C# unificado: WorldNet, Random, colisão, árvore e Gore das folhas; fontes editáveis.",
   "license": "MIT",
   "blVersion": 2,
   "gameVersion": [

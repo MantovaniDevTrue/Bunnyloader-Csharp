@@ -305,7 +305,7 @@ try {
   if(Compiler.Compile(root,output,runtime,diag)!=1)throw new Exception(File.ReadAllText(diag));
   var domains=new Dictionary<Type,string>{
    [typeof(BunnyItem)]="ITEM",[typeof(BunnyWeapon)]="ITEM",[typeof(BunnyAccessory)]="ITEM",[typeof(BunnyBuffPotion)]="ITEM",
-   [typeof(BunnyTree)]="TREE",[typeof(BunnyGore)]="GORE",[typeof(BunnyWall)]="WALL",[typeof(BunnyTile)]="TILE",[typeof(BunnyProjectile)]="PROJECTILE",[typeof(BunnyNPC)]="NPC",
+   [typeof(BunnyWorldSystem)]="WORLD_SYSTEM",[typeof(BunnyWorldUpdateLoader)]="HOOK_MODULE",[typeof(BunnyHookModule)]="HOOK_MODULE",[typeof(BunnyTree)]="TREE",[typeof(BunnyGore)]="GORE",[typeof(BunnyWall)]="WALL",[typeof(BunnyTile)]="TILE",[typeof(BunnyProjectile)]="PROJECTILE",[typeof(BunnyNPC)]="NPC",
    [typeof(BunnyRarity)]="RARITY",[typeof(BunnyDust)]="DUST",[typeof(BunnyBuff)]="BUFF",[typeof(BunnyPlayer)]="PLAYER",[typeof(BunnyPrefix)]="PREFIX"
   };
   var compiled=Assembly.Load(File.ReadAllBytes(output));
@@ -331,8 +331,9 @@ try {
   var actual=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt")).Skip(1)
    .Where(l=>l.Length>0).Select(l=>l.Split('\t')).Where(f=>contentKinds.Contains(f[0])).Select(f=>
     (f[0] is "WEAPON" or "ACCESSORY" or "POTION"?"ITEM":f[0])+":"+f[1]).ToArray();
-  Equal(identities.Count,actual.Length);
-  if(!identities.SetEquals(actual))throw new Exception("compiled types and native wire identities differ");
+  var nativeIdentities=identities.Where(identity=>contentKinds.Contains(identity.Split(':')[0])).ToHashSet(StringComparer.Ordinal);
+  Equal(nativeIdentities.Count,actual.Length);
+  if(!nativeIdentities.SetEquals(actual))throw new Exception("compiled types and native wire identities differ");
   File.Copy(Path.Combine(scratch,"source-runtime-values.txt"),"build/basic-items/full-source-runtime-values.txt",true);
   var minionRows=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt"));
   foreach(string language in new[]{"en-US","pt-BR"}) {

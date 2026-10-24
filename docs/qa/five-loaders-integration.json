@@ -1,0 +1,35 @@
+{
+  "base": "ddcea5ced0c7ef7a290371aa02799a760b359e8d",
+  "branch": "qa/five-mobile-loaders-20261023",
+  "mobileBuild": 301720,
+  "mode": "authorized-batch-qa",
+  "prs": [
+    {
+      "number": 133,
+      "head": "aeccdbd1ce2f2f1e3ee7c1ee3787eb666459a44d",
+      "scope": "StatModifier / StatInheritanceData"
+    },
+    {
+      "number": 126,
+      "head": "3451b14912ec658945ba4030d08576869c34749f",
+      "scope": "SystemUpdate (19 callbacks)"
+    },
+    {
+      "number": 121,
+      "head": "d061f7654660223ea00e55c7d21d85dfdffcb8d9",
+      "scope": "Gore"
+    },
+    {
+      "number": 122,
+      "head": "bcaa1322e533e20a4365ae26b756f2207d3a3473",
+      "scope": "WorldSave / WorldNetwork"
+    },
+    {
+      "number": 120,
+      "head": "6bbc27f527f597f6e91f117a474c6df2e7e8bb00",
+      "scope": "Native Touch"
+    }
+  ],
+  "deviceGameplay": "pending",
+  "originalPRsMerged": false
+}

@@ -8,6 +8,10 @@ option(BUNNY_CSHARP_DUST_PREVIEW "Enable experimental managed Dust callbacks in 
 if(BUNNY_CSHARP_DUST_PREVIEW)
     add_compile_definitions(BUNNY_CSHARP_DUST_PREVIEW=1)
 endif()
+option(BUNNY_FIVE_LOADERS_QA "Capture native abort evidence in the authorized five-loader QA" OFF)
+if(BUNNY_FIVE_LOADERS_QA)
+    add_compile_definitions(BUNNY_FIVE_LOADERS_QA=1)
+endif()
 set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 
 # --- ShadowHook (via prefab, vem do Gradle) ---
@@ -87,6 +91,12 @@ set(BL_MOD_CLASSES_PARTS
     NPCLoot NPCSpawnInfo SpawnPool SpawnCondition Loaders/SpawnLoader Loaders/NPCLoader Loaders/BestiaryLoader ModNPC Loaders/BannerLoader
     NPCHappiness NPCShop Loaders/TownNPCLoader
     Loaders/GoreLoader ModGore
+    Loaders/DustLoader ModDust
+    UI/StyleDimension UI/CalculatedStyle UI/UIEvent UI/UIMouseEvent UI/UIScrollWheelEvent UI/UIElementEvent
+    UI/UIElement UI/UIState UI/UserInterface UI/UINative UI/UIPanel UI/UIText UI/UITextPanel
+    UI/UIImage UI/UIImageButton UI/UIImageFramed UI/UIScrollbar UI/UIListInner UI/UIList
+    UI/UICommon UI/InterfaceScaleType UI/GameInterfaceLayer UI/LegacyGameInterfaceLayer UI/InterfaceLayerList Loaders/InterfaceLayerLoader
+    UI/PlayerStatsSnapshot UI/ResourceOverlayDrawContext Loaders/ResourceOverlayLoader ModResourceOverlay
     Core/GlobalType Core/GlobalRegistry GlobalItem GlobalNPC GlobalProjectile Core/GlobalRegistries
     Loaders/GlobalItemLoader Loaders/GlobalNPCLoader Loaders/GlobalProjectileLoader
     GlobalLoot Loaders/GlobalLootLoader

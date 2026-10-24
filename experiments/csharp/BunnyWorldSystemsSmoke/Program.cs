@@ -47,6 +47,13 @@ public sealed class BrokenWorld : BunnyWorldSystem
     }
 }
 
+public sealed class LegacyWorldIsolation : BunnyWorldSystem
+{
+    public static int Clears;
+    public override void ClearWorld() { Clears++; }
+    public override void SaveWorldData(BunnyWorldTag tag) { tag.SetBoolean("legacy", true); }
+}
+
 internal static class Program
 {
     private static void Check(bool passed, string name)
@@ -57,7 +64,18 @@ internal static class Program
 
     public static int Main()
     {
-        string assemblyPath = Assembly.GetExecutingAssembly().Location;
+        string path = Assembly.GetExecutingAssembly().Location;
+        var registry = typeof(BunnyWorldSystem).Assembly.GetType("BunnyLoader.Source.BunnyModAssemblyRegistry")!;
+        using var lease = (IDisposable)registry.GetMethod("Acquire", BindingFlags.NonPublic | BindingFlags.Static)!
+            .Invoke(null, new object[] { "world-system-smoke", path })!;
+        var loaded = (Assembly)lease.GetType().GetProperty("Assembly", BindingFlags.NonPublic | BindingFlags.Instance)!
+            .GetValue(lease)!;
+        return (int)loaded.GetType(typeof(Program).FullName!)!.GetMethod(nameof(Run))!
+            .Invoke(null, new object[] { path })!;
+    }
+
+    public static int Run(string assemblyPath)
+    {
         int mod = BunnyEntitySourceDispatcher.Register("world-system-smoke", assemblyPath);
         Check(mod >= 0, "Register");
         Check(BunnyEntitySourceDispatcher.Register("world-system-smoke", assemblyPath) == mod,
@@ -67,6 +85,13 @@ internal static class Program
         Check(AlphaWorld.Enters == 1 && AlphaWorld.Ticks == 1 && AlphaWorld.Frames == 30,
             "Enter and first world tick");
         Check(BrokenWorld.Tries == 1 && BrokenWorld.Exits == 0, "Fault is isolated");
+        Check(LegacyWorldIsolation.Clears == 0, "Engine lifecycle excludes legacy systems");
+        var legacy = new BunnyWorldDispatcher();
+        Check(legacy.TryRegisterAssembly("12345678-1234-1234-1234-123456789abc", Assembly.GetExecutingAssembly(), out _) &&
+              legacy.RegisteredSystems == 1, "Legacy lifecycle excludes engine systems");
+        Check(legacy.TryEnterWorld(1, null, true, out _) && LegacyWorldIsolation.Clears == 1 &&
+              AlphaWorld.Enters == 1, "World APIs preserve independent lifecycle state");
+
 
         BunnyEntitySourceDispatcher.TickWorld(mod, 0, 30, 10, 0, 32, 64);
         Check(AlphaWorld.Ticks == 2 && BrokenWorld.Tries == 1, "Healthy systems continue");
@@ -293,7 +318,7 @@ internal static class Program
               replies.Exists(reply => reply.Text.Contains("boss=True")),
             "WorldNetQA displays synchronized client state");
         qa.Unregister("world-net-qa");
-        Console.WriteLine("Bunny World Systems smoke: 52 checks passed");
+        Console.WriteLine("Bunny World Systems smoke: 55 checks passed");
         return 0;
     }
 }

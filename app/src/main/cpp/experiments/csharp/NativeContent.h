@@ -37,6 +37,7 @@ struct NativeContentSpec {
     int32_t penetrate;
     int32_t timeLeft;
     int32_t flags;            // NativeBuff: kNativeBuffDebuff | kNativeBuffNoSave | kNativeBuffNoTimeDisplay
+    bool summon = false;
 };
 
 constexpr int32_t kNativeBuffDebuff = 1;

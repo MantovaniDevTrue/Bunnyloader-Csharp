@@ -24,9 +24,9 @@
       "androidEvidence": []
     },
     "requirement:aim-before-shoot": {
-      "status": "validado automaticamente",
+      "status": "implementado sem validar",
       "behavior": "Player.direction sincronizado antes de ItemCheck_Shoot",
-      "note": "Falha myPlayer do APK 311 corrigida no 312; usuário relatou armas funcionando. No lote 313, regressões de mira passam no host; nova opção do cajado ainda aguarda Android. O resolvedor agora aceita getter estático válido mesmo quando há um campo de instância homônimo; a ausência de ambos continua rejeitada.",
+      "note": "Falha myPlayer do APK 311 corrigida no 312; usuário relatou armas funcionando. No lote 313, regressões de mira passam no host; nova opção do cajado ainda aguarda Android. O resolvedor agora aceita getter estático válido mesmo quando há um campo de instância homônimo; a ausência de ambos continua rejeitada. Integração QA 1.0.25: arquivos de implementação ou teste mudaram; a validação anterior permanece histórica e exige nova execução nesta base.",
       "implementation": [
         "app/src/main/cpp/experiments/csharp/NativeShootingAim.h",
         "app/src/main/cpp/experiments/csharp/NativeShooting.cpp",
@@ -119,9 +119,9 @@
       }
     },
     "requirement:dust-emission-binding": {
-      "status": "validado automaticamente",
+      "status": "implementado sem validar",
       "behavior": "Dust.NewDust: Graphics.Color Android de 4 bytes",
-      "note": "Corrigido e executado no host; reteste Android do novo lote pendente. Ver SUMMON_DUST_INVASION_QA.md.",
+      "note": "Corrigido e executado no host; reteste Android do novo lote pendente. Ver SUMMON_DUST_INVASION_QA.md. Integração QA 1.0.25: arquivos de implementação ou teste mudaram; a validação anterior permanece histórica e exige nova execução nesta base.",
       "implementation": [
         "app/src/main/cpp/experiments/csharp/NativeDustEmission.cpp"
       ],
@@ -166,9 +166,9 @@
       }
     },
     "requirement:summon-staff-reference": {
-      "status": "validado automaticamente",
+      "status": "implementado sem validar",
       "behavior": "Cajado: defaults, som, flags e origem na mira limitada",
-      "note": "Relato após 314 chegou ao binding e falhou em ItemRarityID.Cyan: classe do tModLoader ausente no Android. Correção em fontes implementa os 17 nomes em C++; teste usa todo o descritor compilado do cajado e reproduz a falha com o resolvedor anterior. Host aprovado; Novo APK bloqueado até concluir os loaders; Android pendente.",
+      "note": "Relato após 314 chegou ao binding e falhou em ItemRarityID.Cyan: classe do tModLoader ausente no Android. Correção em fontes implementa os 17 nomes em C++; teste usa todo o descritor compilado do cajado e reproduz a falha com o resolvedor anterior. Host aprovado; Novo APK bloqueado até concluir os loaders; Android pendente. Integração QA 1.0.25: arquivos de implementação ou teste mudaram; a validação anterior permanece histórica e exige nova execução nesta base.",
       "implementation": [
         "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Summon/ExampleMinionItem.cs",
         "app/src/main/cpp/experiments/csharp/NativeDefaults.h",
@@ -247,9 +247,9 @@
       ]
     },
     "Content/Items/Tools/ExamplePickaxe.js#SetDefaults": {
-      "status": "validado automaticamente",
+      "status": "implementado sem validar",
       "behavior": "ExamplePickaxe.SetDefaults",
-      "note": "Valores e receita conferidos no C# real: Green=2, poderes/tempos/dano/knockback originais e 10 ExampleItem na Work Bench. Uso/mineração no Android pendentes.",
+      "note": "Valores e receita conferidos no C# real: Green=2, poderes/tempos/dano/knockback originais e 10 ExampleItem na Work Bench. Uso/mineração no Android pendentes. Integração QA 1.0.25: arquivos de implementação ou teste mudaram; a validação anterior permanece histórica e exige nova execução nesta base.",
       "implementation": [
         "samples/ExampleModCSharp/Playable/content/Content/Items/Tools/ExamplePickaxe.cs",
         "experiments/csharp/BunnyCsSdk/ItemRarityID.cs"
@@ -266,9 +266,9 @@
       }
     },
     "Content/Items/Tools/ExamplePickaxe.js#AddRecipes": {
-      "status": "validado automaticamente",
+      "status": "implementado sem validar",
       "behavior": "ExamplePickaxe.AddRecipes",
-      "note": "Valores e receita conferidos no C# real: Green=2, poderes/tempos/dano/knockback originais e 10 ExampleItem na Work Bench. Uso/mineração no Android pendentes.",
+      "note": "Valores e receita conferidos no C# real: Green=2, poderes/tempos/dano/knockback originais e 10 ExampleItem na Work Bench. Uso/mineração no Android pendentes. Integração QA 1.0.25: arquivos de implementação ou teste mudaram; a validação anterior permanece histórica e exige nova execução nesta base.",
       "implementation": [
         "samples/ExampleModCSharp/Playable/content/Content/Items/Tools/ExamplePickaxe.cs",
         "experiments/csharp/BunnyCsSdk/ItemRarityID.cs"
@@ -285,9 +285,9 @@
       }
     },
     "Content/Items/Tools/ExampleHamaxe.js#SetDefaults": {
-      "status": "validado automaticamente",
+      "status": "implementado sem validar",
       "behavior": "ExampleHamaxe.SetDefaults",
-      "note": "Valores e receita conferidos no C# real: Green=2, poderes/tempos/dano/knockback originais e 10 ExampleItem na Work Bench. Uso/mineração no Android pendentes.",
+      "note": "Valores e receita conferidos no C# real: Green=2, poderes/tempos/dano/knockback originais e 10 ExampleItem na Work Bench. Uso/mineração no Android pendentes. Integração QA 1.0.25: arquivos de implementação ou teste mudaram; a validação anterior permanece histórica e exige nova execução nesta base.",
       "implementation": [
         "samples/ExampleModCSharp/Playable/content/Content/Items/Tools/ExampleHamaxe.cs",
         "experiments/csharp/BunnyCsSdk/ItemRarityID.cs"
@@ -304,9 +304,9 @@
       }
     },
     "Content/Items/Tools/ExampleHamaxe.js#AddRecipes": {
-      "status": "validado automaticamente",
+      "status": "implementado sem validar",
       "behavior": "ExampleHamaxe.AddRecipes",
-      "note": "Valores e receita conferidos no C# real: Green=2, poderes/tempos/dano/knockback originais e 10 ExampleItem na Work Bench. Uso/mineração no Android pendentes.",
+      "note": "Valores e receita conferidos no C# real: Green=2, poderes/tempos/dano/knockback originais e 10 ExampleItem na Work Bench. Uso/mineração no Android pendentes. Integração QA 1.0.25: arquivos de implementação ou teste mudaram; a validação anterior permanece histórica e exige nova execução nesta base.",
       "implementation": [
         "samples/ExampleModCSharp/Playable/content/Content/Items/Tools/ExampleHamaxe.cs",
         "experiments/csharp/BunnyCsSdk/ItemRarityID.cs"
@@ -323,9 +323,9 @@
       }
     },
     "requirement:apk-after-loaders": {
-      "status": "validado automaticamente",
+      "status": "implementado sem validar",
       "behavior": "Bloquear APK enquanto a tradução ou os loaders tiverem pendências",
-      "note": "Instrução do usuário em 2026-10-23. Validador executado: bloqueia o estado atual. Gradle e workflow configurados para chamar o validador; configuração Gradle não executada neste host.",
+      "note": "Instrução do usuário em 2026-10-23. Validador executado: bloqueia o estado atual. Gradle e workflow configurados para chamar o validador; configuração Gradle não executada neste host. Integração QA 1.0.25: arquivos de implementação ou teste mudaram; a validação anterior permanece histórica e exige nova execução nesta base.",
       "implementation": [
         "tools/ci/check_examplemod_apk_readiness.py",
         "app/build.gradle.kts",
@@ -363,9 +363,9 @@
       }
     },
     "Content/Items/Accessories/WaspNest.js#SetDefaults": {
-      "status": "validado automaticamente",
+      "status": "implementado sem validar",
       "behavior": "WaspNest.SetDefaults",
-      "note": "Valores originais (26x26, Green=2, sellPrice 2 gold) e strongBees funcional; Back autoload do JS tem política C++ equivalente. Testes nativos sem QuickJS cobrem slots/desenho, equipamento/vaidade e reset; Android pendente.",
+      "note": "Valores originais (26x26, Green=2, sellPrice 2 gold) e strongBees funcional; Back autoload do JS tem política C++ equivalente. Testes nativos sem QuickJS cobrem slots/desenho, equipamento/vaidade e reset; Android pendente. Integração QA 1.0.25: arquivos de implementação ou teste mudaram; a validação anterior permanece histórica e exige nova execução nesta base.",
       "implementation": [
         "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/WaspNest.cs",
         "experiments/csharp/BunnyCsSdk/ItemRarityID.cs",
@@ -394,9 +394,9 @@
       }
     },
     "Content/Items/Accessories/WaspNest.js#UpdateAccessory": {
-      "status": "validado automaticamente",
+      "status": "implementado sem validar",
       "behavior": "WaspNest.UpdateAccessory",
-      "note": "Valores originais (26x26, Green=2, sellPrice 2 gold) e strongBees funcional; Back autoload do JS tem política C++ equivalente. Testes nativos sem QuickJS cobrem slots/desenho, equipamento/vaidade e reset; Android pendente.",
+      "note": "Valores originais (26x26, Green=2, sellPrice 2 gold) e strongBees funcional; Back autoload do JS tem política C++ equivalente. Testes nativos sem QuickJS cobrem slots/desenho, equipamento/vaidade e reset; Android pendente. Integração QA 1.0.25: arquivos de implementação ou teste mudaram; a validação anterior permanece histórica e exige nova execução nesta base.",
       "implementation": [
         "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/WaspNest.cs",
         "experiments/csharp/BunnyCsSdk/ItemRarityID.cs",
@@ -425,9 +425,9 @@
       }
     },
     "requirement:rarity-mouse-text-cache-android-layout": {
-      "status": "validado automaticamente",
+      "status": "implementado sem validar",
       "behavior": "RarityLoader: contrato de MouseTextCache struct de 48 bytes e escopo de cor nativo",
-      "note": "Metadados do Android 301720 identificam estrutura mista de 48 bytes, com diff Byte e referências String. O binder normaliza offsets crus/boxed e aceita passagem indireta somente no ARM64. O tooltip identifica a classe aninhada por identidade, sem presumir namespace Terraria. Fixture executa scopes e forwarding reais sem QuickJS; não valida renderização visual, instalação dos hooks no aparelho nem o loader inteiro.",
+      "note": "Metadados do Android 301720 identificam estrutura mista de 48 bytes, com diff Byte e referências String. O binder normaliza offsets crus/boxed e aceita passagem indireta somente no ARM64. O tooltip identifica a classe aninhada por identidade, sem presumir namespace Terraria. Fixture executa scopes e forwarding reais sem QuickJS; não valida renderização visual, instalação dos hooks no aparelho nem o loader inteiro. Integração QA 1.0.25: arquivos de implementação ou teste mudaram; a validação anterior permanece histórica e exige nova execução nesta base.",
       "implementation": [
         "app/src/main/cpp/experiments/csharp/NativeRarityGameplay.cpp",
         "app/src/main/cpp/experiments/csharp/NativeRarityMouseTextCache.h",
@@ -446,8 +446,8 @@
       }
     },
     "Content/Items/ExampleGolfBall.js#SetDefaults": {
-      "status": "validado automaticamente",
-      "note": "Tradução dos valores originais, assets e nomes en-US/pt-BR. Compilação Roslyn do mod real e execução do hook C++ de produção sem QuickJS verificam as tabelas antes do SetDefaults original. Física, renderização e rede no Android ainda não foram validadas.",
+      "status": "implementado sem validar",
+      "note": "Tradução dos valores originais, assets e nomes en-US/pt-BR. Compilação Roslyn do mod real e execução do hook C++ de produção sem QuickJS verificam as tabelas antes do SetDefaults original. Física, renderização e rede no Android ainda não foram validadas. Integração QA 1.0.25: arquivos de implementação ou teste mudaram; a validação anterior permanece histórica e exige nova execução nesta base.",
       "implementation": [
         "samples/ExampleModCSharp/Playable/content/Content/Items/ExampleGolfBall.cs",
         "experiments/csharp/BunnyCsSdk/BunnyItem.cs",
@@ -496,8 +496,8 @@
       }
     },
     "Content/Projectiles/ExampleGolfBallProjectile.js#SetDefaults": {
-      "status": "validado automaticamente",
-      "note": "Tradução dos valores originais, assets e nomes en-US/pt-BR. Compilação Roslyn do mod real e execução do hook C++ de produção sem QuickJS verificam as tabelas antes do SetDefaults original. Física, renderização e rede no Android ainda não foram validadas.",
+      "status": "implementado sem validar",
+      "note": "Tradução dos valores originais, assets e nomes en-US/pt-BR. Compilação Roslyn do mod real e execução do hook C++ de produção sem QuickJS verificam as tabelas antes do SetDefaults original. Física, renderização e rede no Android ainda não foram validadas. Integração QA 1.0.25: arquivos de implementação ou teste mudaram; a validação anterior permanece histórica e exige nova execução nesta base.",
       "implementation": [
         "samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleGolfBallProjectile.cs",
         "experiments/csharp/BunnyCsSdk/BunnyItem.cs",
@@ -546,8 +546,8 @@
       }
     },
     "Content/Projectiles/ExampleGolfBallProjectile.js#SetStaticDefaults": {
-      "status": "validado automaticamente",
-      "note": "Tradução dos valores originais, assets e nomes en-US/pt-BR. Compilação Roslyn do mod real e execução do hook C++ de produção sem QuickJS verificam as tabelas antes do SetDefaults original. Física, renderização e rede no Android ainda não foram validadas.",
+      "status": "implementado sem validar",
+      "note": "Tradução dos valores originais, assets e nomes en-US/pt-BR. Compilação Roslyn do mod real e execução do hook C++ de produção sem QuickJS verificam as tabelas antes do SetDefaults original. Física, renderização e rede no Android ainda não foram validadas. Integração QA 1.0.25: arquivos de implementação ou teste mudaram; a validação anterior permanece histórica e exige nova execução nesta base.",
       "implementation": [
         "samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleGolfBallProjectile.cs",
         "experiments/csharp/BunnyCsSdk/BunnyItem.cs",
@@ -596,9 +596,9 @@
       }
     },
     "requirement:projectile-static-defaults-lifecycle": {
-      "status": "validado automaticamente",
+      "status": "implementado sem validar",
       "behavior": "SetStaticDefaults de projéteis e ownership/retirada das políticas NativeDefaults",
-      "note": "O compilador executa o hook após SetDefaults do protótipo, rejeita new em vez de override e propaga exceções. Tabelas são aplicadas na thread do Terraria antes do spawn e antes do SetDefaults original. Retirada seletiva, campos removidos, recarga imediata, consumidores posteriores e 1000 publicações/retiradas concorrentes são exercitados pelo fixture nativo. A alteração cobre essas políticas; não encerra o lifecycle global de todos os loaders.",
+      "note": "O compilador executa o hook após SetDefaults do protótipo, rejeita new em vez de override e propaga exceções. Tabelas são aplicadas na thread do Terraria antes do spawn e antes do SetDefaults original. Retirada seletiva, campos removidos, recarga imediata, consumidores posteriores e 1000 publicações/retiradas concorrentes são exercitados pelo fixture nativo. A alteração cobre essas políticas; não encerra o lifecycle global de todos os loaders. Integração QA 1.0.25: arquivos de implementação ou teste mudaram; a validação anterior permanece histórica e exige nova execução nesta base.",
       "implementation": [
         "experiments/csharp/BunnyCsSdk/BunnyItem.cs",
         "experiments/csharp/BunnyCsSdk/BunnyNativeDefaults.cs",
@@ -637,10 +637,10 @@
       }
     },
     "Content/Items/Armor/ExampleBreastplate.js#AddRecipes": {
-      "status": "validado automaticamente",
+      "status": "implementado sem validar",
       "source": "content/Content/Items/Armor/ExampleBreastplate.js",
       "sourceSha256": "25a3d9e38dc82758a1a79d7300d562669f09f22f79a5dca6eb2155d19c3a730a",
-      "note": "Valores, receitas e textos originais das peças conferidos no protocolo Roslyn; efeitos de peça e os quatro bônus do conjunto executados nos hooks C++ sem QuickJS. A localização do texto de conjunto é validada separadamente em AddArmorSets. Aparência e execução Android pendentes.",
+      "note": "Valores, receitas e textos originais das peças conferidos no protocolo Roslyn; efeitos de peça e os quatro bônus do conjunto executados nos hooks C++ sem QuickJS. A localização do texto de conjunto é validada separadamente em AddArmorSets. Aparência e execução Android pendentes. Integração QA 1.0.25: arquivos de implementação ou teste mudaram; a validação anterior permanece histórica e exige nova execução nesta base.",
       "implementation": [
         "samples/ExampleModCSharp/Playable/content/Content/Items/Armor/ExampleBreastplate.cs",
         "experiments/csharp/BunnyCsSdk/BunnyItem.cs",
@@ -689,10 +689,10 @@
       }
     },
     "Content/Items/Armor/ExampleBreastplate.js#ModifyTooltipLines": {
-      "status": "validado automaticamente",
+      "status": "implementado sem validar",
       "source": "content/Content/Items/Armor/ExampleBreastplate.js",
       "sourceSha256": "25a3d9e38dc82758a1a79d7300d562669f09f22f79a5dca6eb2155d19c3a730a",
-      "note": "Valores, receitas e textos originais das peças conferidos no protocolo Roslyn; efeitos de peça e os quatro bônus do conjunto executados nos hooks C++ sem QuickJS. A localização do texto de conjunto é validada separadamente em AddArmorSets. Aparência e execução Android pendentes.",
+      "note": "Valores, receitas e textos originais das peças conferidos no protocolo Roslyn; efeitos de peça e os quatro bônus do conjunto executados nos hooks C++ sem QuickJS. A localização do texto de conjunto é validada separadamente em AddArmorSets. Aparência e execução Android pendentes. Integração QA 1.0.25: arquivos de implementação ou teste mudaram; a validação anterior permanece histórica e exige nova execução nesta base.",
       "implementation": [
         "samples/ExampleModCSharp/Playable/content/Content/Items/Armor/ExampleBreastplate.cs",
         "experiments/csharp/BunnyCsSdk/BunnyItem.cs",
@@ -741,10 +741,10 @@
       }
     },
     "Content/Items/Armor/ExampleBreastplate.js#SetDefaults": {
-      "status": "validado automaticamente",
+      "status": "implementado sem validar",
       "source": "content/Content/Items/Armor/ExampleBreastplate.js",
       "sourceSha256": "25a3d9e38dc82758a1a79d7300d562669f09f22f79a5dca6eb2155d19c3a730a",
-      "note": "Valores, receitas e textos originais das peças conferidos no protocolo Roslyn; efeitos de peça e os quatro bônus do conjunto executados nos hooks C++ sem QuickJS. A localização do texto de conjunto é validada separadamente em AddArmorSets. Aparência e execução Android pendentes.",
+      "note": "Valores, receitas e textos originais das peças conferidos no protocolo Roslyn; efeitos de peça e os quatro bônus do conjunto executados nos hooks C++ sem QuickJS. A localização do texto de conjunto é validada separadamente em AddArmorSets. Aparência e execução Android pendentes. Integração QA 1.0.25: arquivos de implementação ou teste mudaram; a validação anterior permanece histórica e exige nova execução nesta base.",
       "implementation": [
         "samples/ExampleModCSharp/Playable/content/Content/Items/Armor/ExampleBreastplate.cs",
         "experiments/csharp/BunnyCsSdk/BunnyItem.cs",
@@ -793,10 +793,10 @@
       }
     },
     "Content/Items/Armor/ExampleBreastplate.js#UpdateEquip": {
-      "status": "validado automaticamente",
+      "status": "implementado sem validar",
       "source": "content/Content/Items/Armor/ExampleBreastplate.js",
       "sourceSha256": "25a3d9e38dc82758a1a79d7300d562669f09f22f79a5dca6eb2155d19c3a730a",
-      "note": "Valores, receitas e textos originais das peças conferidos no protocolo Roslyn; efeitos de peça e os quatro bônus do conjunto executados nos hooks C++ sem QuickJS. A localização do texto de conjunto é validada separadamente em AddArmorSets. Aparência e execução Android pendentes.",
+      "note": "Valores, receitas e textos originais das peças conferidos no protocolo Roslyn; efeitos de peça e os quatro bônus do conjunto executados nos hooks C++ sem QuickJS. A localização do texto de conjunto é validada separadamente em AddArmorSets. Aparência e execução Android pendentes. Integração QA 1.0.25: arquivos de implementação ou teste mudaram; a validação anterior permanece histórica e exige nova execução nesta base.",
       "implementation": [
         "samples/ExampleModCSharp/Playable/content/Content/Items/Armor/ExampleBreastplate.cs",
         "experiments/csharp/BunnyCsSdk/BunnyItem.cs",
@@ -845,10 +845,10 @@
       }
     },
     "Content/Items/Armor/ExampleHelmet.js#AddArmorSets": {
-      "status": "validado automaticamente",
+      "status": "implementado sem validar",
       "source": "content/Content/Items/Armor/ExampleHelmet.js",
       "sourceSha256": "f716ab8461c2ff4fe1fe092c01d24aa8fbc91cafcec09f89fe0e6cd799dbe95b",
-      "note": "O exemplo formata as traduções do JSON original com a constante de dano, publica a chave no catálogo do próprio UID e usa A2/LocalizedText no conjunto nativo. Protocolo real, espera pela chave, en-US/pt-BR/fallback e sete falhas de lookup verificados no host, sem duplicar conjuntos; Android pendente.",
+      "note": "O exemplo formata as traduções do JSON original com a constante de dano, publica a chave no catálogo do próprio UID e usa A2/LocalizedText no conjunto nativo. Protocolo real, espera pela chave, en-US/pt-BR/fallback e sete falhas de lookup verificados no host, sem duplicar conjuntos; Android pendente. Integração QA 1.0.25: arquivos de implementação ou teste mudaram; a validação anterior permanece histórica e exige nova execução nesta base.",
       "implementation": [
         "samples/ExampleModCSharp/Playable/content/Content/Items/Armor/ExampleHelmet.cs",
         "experiments/csharp/BunnyCsSdk/BunnyItem.cs",
@@ -903,10 +903,10 @@
       }
     },
     "Content/Items/Armor/ExampleHelmet.js#AddRecipes": {
-      "status": "validado automaticamente",
+      "status": "implementado sem validar",
       "source": "content/Content/Items/Armor/ExampleHelmet.js",
       "sourceSha256": "f716ab8461c2ff4fe1fe092c01d24aa8fbc91cafcec09f89fe0e6cd799dbe95b",
-      "note": "Valores, receitas e textos originais das peças conferidos no protocolo Roslyn; efeitos de peça e os quatro bônus do conjunto executados nos hooks C++ sem QuickJS. A localização do texto de conjunto é validada separadamente em AddArmorSets. Aparência e execução Android pendentes.",
+      "note": "Valores, receitas e textos originais das peças conferidos no protocolo Roslyn; efeitos de peça e os quatro bônus do conjunto executados nos hooks C++ sem QuickJS. A localização do texto de conjunto é validada separadamente em AddArmorSets. Aparência e execução Android pendentes. Integração QA 1.0.25: arquivos de implementação ou teste mudaram; a validação anterior permanece histórica e exige nova execução nesta base.",
       "implementation": [
         "samples/ExampleModCSharp/Playable/content/Content/Items/Armor/ExampleHelmet.cs",
         "experiments/csharp/BunnyCsSdk/BunnyItem.cs",
@@ -955,10 +955,10 @@
       }
     },
     "Content/Items/Armor/ExampleHelmet.js#SetDefaults": {
-      "status": "validado automaticamente",
+      "status": "implementado sem validar",
       "source": "content/Content/Items/Armor/ExampleHelmet.js",
       "sourceSha256": "f716ab8461c2ff4fe1fe092c01d24aa8fbc91cafcec09f89fe0e6cd799dbe95b",
-      "note": "Valores, receitas e textos originais das peças conferidos no protocolo Roslyn; efeitos de peça e os quatro bônus do conjunto executados nos hooks C++ sem QuickJS. A localização do texto de conjunto é validada separadamente em AddArmorSets. Aparência e execução Android pendentes.",
+      "note": "Valores, receitas e textos originais das peças conferidos no protocolo Roslyn; efeitos de peça e os quatro bônus do conjunto executados nos hooks C++ sem QuickJS. A localização do texto de conjunto é validada separadamente em AddArmorSets. Aparência e execução Android pendentes. Integração QA 1.0.25: arquivos de implementação ou teste mudaram; a validação anterior permanece histórica e exige nova execução nesta base.",
       "implementation": [
         "samples/ExampleModCSharp/Playable/content/Content/Items/Armor/ExampleHelmet.cs",
         "experiments/csharp/BunnyCsSdk/BunnyItem.cs",
@@ -1007,10 +1007,10 @@
       }
     },
     "Content/Items/Armor/ExampleHelmet.js#UpdateArmorSet": {
-      "status": "validado automaticamente",
+      "status": "implementado sem validar",
       "source": "content/Content/Items/Armor/ExampleHelmet.js",
       "sourceSha256": "f716ab8461c2ff4fe1fe092c01d24aa8fbc91cafcec09f89fe0e6cd799dbe95b",
-      "note": "Protocolo Roslyn e hooks C++ verificam os quatro bônus aditivos e ausência do bônus em peças parciais. Localização do registro é verificada separadamente em AddArmorSets. Gameplay/renderização Android pendentes.",
+      "note": "Protocolo Roslyn e hooks C++ verificam os quatro bônus aditivos e ausência do bônus em peças parciais. Localização do registro é verificada separadamente em AddArmorSets. Gameplay/renderização Android pendentes. Integração QA 1.0.25: arquivos de implementação ou teste mudaram; a validação anterior permanece histórica e exige nova execução nesta base.",
       "implementation": [
         "samples/ExampleModCSharp/Playable/content/Content/Items/Armor/ExampleHelmet.cs",
         "experiments/csharp/BunnyCsSdk/BunnyItem.cs",
@@ -1059,10 +1059,10 @@
       }
     },
     "Content/Items/Armor/ExampleLeggings.js#AddRecipes": {
-      "status": "validado automaticamente",
+      "status": "implementado sem validar",
       "source": "content/Content/Items/Armor/ExampleLeggings.js",
       "sourceSha256": "d522abc59e1c843b5cba958771a5e4ef9851e899b105f50e5c3dbad8f4561538",
-      "note": "Valores, receitas e textos originais das peças conferidos no protocolo Roslyn; efeitos de peça e os quatro bônus do conjunto executados nos hooks C++ sem QuickJS. A localização do texto de conjunto é validada separadamente em AddArmorSets. Aparência e execução Android pendentes.",
+      "note": "Valores, receitas e textos originais das peças conferidos no protocolo Roslyn; efeitos de peça e os quatro bônus do conjunto executados nos hooks C++ sem QuickJS. A localização do texto de conjunto é validada separadamente em AddArmorSets. Aparência e execução Android pendentes. Integração QA 1.0.25: arquivos de implementação ou teste mudaram; a validação anterior permanece histórica e exige nova execução nesta base.",
       "implementation": [
         "samples/ExampleModCSharp/Playable/content/Content/Items/Armor/ExampleLeggings.cs",
         "experiments/csharp/BunnyCsSdk/BunnyItem.cs",
@@ -1111,10 +1111,10 @@
       }
     },
     "Content/Items/Armor/ExampleLeggings.js#ModifyTooltipLines": {
-      "status": "validado automaticamente",
+      "status": "implementado sem validar",
       "source": "content/Content/Items/Armor/ExampleLeggings.js",
       "sourceSha256": "d522abc59e1c843b5cba958771a5e4ef9851e899b105f50e5c3dbad8f4561538",
-      "note": "Valores, receitas e textos originais das peças conferidos no protocolo Roslyn; efeitos de peça e os quatro bônus do conjunto executados nos hooks C++ sem QuickJS. A localização do texto de conjunto é validada separadamente em AddArmorSets. Aparência e execução Android pendentes.",
+      "note": "Valores, receitas e textos originais das peças conferidos no protocolo Roslyn; efeitos de peça e os quatro bônus do conjunto executados nos hooks C++ sem QuickJS. A localização do texto de conjunto é validada separadamente em AddArmorSets. Aparência e execução Android pendentes. Integração QA 1.0.25: arquivos de implementação ou teste mudaram; a validação anterior permanece histórica e exige nova execução nesta base.",
       "implementation": [
         "samples/ExampleModCSharp/Playable/content/Content/Items/Armor/ExampleLeggings.cs",
         "experiments/csharp/BunnyCsSdk/BunnyItem.cs",
@@ -1163,10 +1163,10 @@
       }
     },
     "Content/Items/Armor/ExampleLeggings.js#SetDefaults": {
-      "status": "validado automaticamente",
+      "status": "implementado sem validar",
       "source": "content/Content/Items/Armor/ExampleLeggings.js",
       "sourceSha256": "d522abc59e1c843b5cba958771a5e4ef9851e899b105f50e5c3dbad8f4561538",
-      "note": "Valores, receitas e textos originais das peças conferidos no protocolo Roslyn; efeitos de peça e os quatro bônus do conjunto executados nos hooks C++ sem QuickJS. A localização do texto de conjunto é validada separadamente em AddArmorSets. Aparência e execução Android pendentes.",
+      "note": "Valores, receitas e textos originais das peças conferidos no protocolo Roslyn; efeitos de peça e os quatro bônus do conjunto executados nos hooks C++ sem QuickJS. A localização do texto de conjunto é validada separadamente em AddArmorSets. Aparência e execução Android pendentes. Integração QA 1.0.25: arquivos de implementação ou teste mudaram; a validação anterior permanece histórica e exige nova execução nesta base.",
       "implementation": [
         "samples/ExampleModCSharp/Playable/content/Content/Items/Armor/ExampleLeggings.cs",
         "experiments/csharp/BunnyCsSdk/BunnyItem.cs",
@@ -1215,10 +1215,10 @@
       }
     },
     "Content/Items/Armor/ExampleLeggings.js#UpdateEquip": {
-      "status": "validado automaticamente",
+      "status": "implementado sem validar",
       "source": "content/Content/Items/Armor/ExampleLeggings.js",
       "sourceSha256": "d522abc59e1c843b5cba958771a5e4ef9851e899b105f50e5c3dbad8f4561538",
-      "note": "Valores, receitas e textos originais das peças conferidos no protocolo Roslyn; efeitos de peça e os quatro bônus do conjunto executados nos hooks C++ sem QuickJS. A localização do texto de conjunto é validada separadamente em AddArmorSets. Aparência e execução Android pendentes.",
+      "note": "Valores, receitas e textos originais das peças conferidos no protocolo Roslyn; efeitos de peça e os quatro bônus do conjunto executados nos hooks C++ sem QuickJS. A localização do texto de conjunto é validada separadamente em AddArmorSets. Aparência e execução Android pendentes. Integração QA 1.0.25: arquivos de implementação ou teste mudaram; a validação anterior permanece histórica e exige nova execução nesta base.",
       "implementation": [
         "samples/ExampleModCSharp/Playable/content/Content/Items/Armor/ExampleLeggings.cs",
         "experiments/csharp/BunnyCsSdk/BunnyItem.cs",
@@ -1267,10 +1267,10 @@
       }
     },
     "Content/Items/Materials/ExampleSoul.js#GetAlpha": {
-      "status": "validado automaticamente",
+      "status": "implementado sem validar",
       "source": "content/Content/Items/Materials/ExampleSoul.js",
       "sourceSha256": "1a0e7a6af1f09e64801da9cdaa0389efff5e3e864597a36efedb3ba462c453d1",
-      "note": "Protocolo Roslyn dos fontes reais e hooks C++ sem QuickJS verificam clone, valores, animação 4/6, três tabelas, RGBA e iluminação RGB no centro com essScale; Android e aparência pendentes.",
+      "note": "Protocolo Roslyn dos fontes reais e hooks C++ sem QuickJS verificam clone, valores, animação 4/6, três tabelas, RGBA e iluminação RGB no centro com essScale; Android e aparência pendentes. Integração QA 1.0.25: arquivos de implementação ou teste mudaram; a validação anterior permanece histórica e exige nova execução nesta base.",
       "implementation": [
         "samples/ExampleModCSharp/Playable/content/Content/Items/Materials/ExampleSoul.cs",
         "experiments/csharp/BunnyCsSdk/BunnyItem.cs",
@@ -1307,10 +1307,10 @@
       }
     },
     "Content/Items/Materials/ExampleSoul.js#PostUpdate": {
-      "status": "validado automaticamente",
+      "status": "implementado sem validar",
       "source": "content/Content/Items/Materials/ExampleSoul.js",
       "sourceSha256": "1a0e7a6af1f09e64801da9cdaa0389efff5e3e864597a36efedb3ba462c453d1",
-      "note": "Protocolo Roslyn dos fontes reais e hooks C++ sem QuickJS verificam clone, valores, animação 4/6, três tabelas, RGBA e iluminação RGB no centro com essScale; Android e aparência pendentes.",
+      "note": "Protocolo Roslyn dos fontes reais e hooks C++ sem QuickJS verificam clone, valores, animação 4/6, três tabelas, RGBA e iluminação RGB no centro com essScale; Android e aparência pendentes. Integração QA 1.0.25: arquivos de implementação ou teste mudaram; a validação anterior permanece histórica e exige nova execução nesta base.",
       "implementation": [
         "samples/ExampleModCSharp/Playable/content/Content/Items/Materials/ExampleSoul.cs",
         "experiments/csharp/BunnyCsSdk/BunnyItem.cs",
@@ -1347,10 +1347,10 @@
       }
     },
     "Content/Items/Materials/ExampleSoul.js#SetDefaults": {
-      "status": "validado automaticamente",
+      "status": "implementado sem validar",
       "source": "content/Content/Items/Materials/ExampleSoul.js",
       "sourceSha256": "1a0e7a6af1f09e64801da9cdaa0389efff5e3e864597a36efedb3ba462c453d1",
-      "note": "Protocolo Roslyn dos fontes reais e hooks C++ sem QuickJS verificam clone, valores, animação 4/6, três tabelas, RGBA e iluminação RGB no centro com essScale; Android e aparência pendentes.",
+      "note": "Protocolo Roslyn dos fontes reais e hooks C++ sem QuickJS verificam clone, valores, animação 4/6, três tabelas, RGBA e iluminação RGB no centro com essScale; Android e aparência pendentes. Integração QA 1.0.25: arquivos de implementação ou teste mudaram; a validação anterior permanece histórica e exige nova execução nesta base.",
       "implementation": [
         "samples/ExampleModCSharp/Playable/content/Content/Items/Materials/ExampleSoul.cs",
         "experiments/csharp/BunnyCsSdk/BunnyItem.cs",
@@ -1387,10 +1387,10 @@
       }
     },
     "Content/Items/Materials/ExampleSoul.js#SetStaticDefaults": {
-      "status": "validado automaticamente",
+      "status": "implementado sem validar",
       "source": "content/Content/Items/Materials/ExampleSoul.js",
       "sourceSha256": "1a0e7a6af1f09e64801da9cdaa0389efff5e3e864597a36efedb3ba462c453d1",
-      "note": "Protocolo Roslyn dos fontes reais e hooks C++ sem QuickJS verificam clone, valores, animação 4/6, três tabelas, RGBA e iluminação RGB no centro com essScale; Android e aparência pendentes.",
+      "note": "Protocolo Roslyn dos fontes reais e hooks C++ sem QuickJS verificam clone, valores, animação 4/6, três tabelas, RGBA e iluminação RGB no centro com essScale; Android e aparência pendentes. Integração QA 1.0.25: arquivos de implementação ou teste mudaram; a validação anterior permanece histórica e exige nova execução nesta base.",
       "implementation": [
         "samples/ExampleModCSharp/Playable/content/Content/Items/Materials/ExampleSoul.cs",
         "experiments/csharp/BunnyCsSdk/BunnyItem.cs",
@@ -1427,9 +1427,9 @@
       }
     },
     "requirement:armor-native-retirement": {
-      "status": "validado automaticamente",
+      "status": "implementado sem validar",
       "behavior": "Retirada seletiva e recarga das políticas/conjuntos nativos de armadura",
-      "note": "Fixture C++ de produção com protocolo real: revogação imediata dos efeitos, limpeza na thread do jogo, outros mods preservados, dependências entre mods, snapshot vazio/peça retirada, A1/A2, metadados crus/boxed, falhas parciais, troca de texto/chave e 100 recargas antes do pump. Glue de SourceLoader/AutoSourceRuntime compilado; execução completa no Android pendente.",
+      "note": "Fixture C++ de produção com protocolo real: revogação imediata dos efeitos, limpeza na thread do jogo, outros mods preservados, dependências entre mods, snapshot vazio/peça retirada, A1/A2, metadados crus/boxed, falhas parciais, troca de texto/chave e 100 recargas antes do pump. Glue de SourceLoader/AutoSourceRuntime compilado; execução completa no Android pendente. Integração QA 1.0.25: arquivos de implementação ou teste mudaram; a validação anterior permanece histórica e exige nova execução nesta base.",
       "implementation": [
         "app/src/main/cpp/experiments/csharp/NativeArmorPolicies.cpp",
         "app/src/main/cpp/experiments/csharp/NativeArmorPolicies.h",
@@ -1456,9 +1456,9 @@
       }
     },
     "Common/Players/ExampleFishingPlayer.js#CatchFish": {
-      "status": "validado automaticamente",
+      "status": "implementado sem validar",
       "behavior": "CatchFish",
-      "note": "Peixe e regra de pesca conferidos no Bunny JS anexado. Helper Android 301720 inspecionado: questItem=true, 26x26 e rare=-11; protocolo real, flags/lista, disponibilidade/chat/captura e unload verificados no host. Gameplay Android pendente.",
+      "note": "Peixe e regra de pesca conferidos no Bunny JS anexado. Helper Android 301720 inspecionado: questItem=true, 26x26 e rare=-11; protocolo real, flags/lista, disponibilidade/chat/captura e unload verificados no host. Gameplay Android pendente. Integração QA 1.0.25: arquivos de implementação ou teste mudaram; a validação anterior permanece histórica e exige nova execução nesta base.",
       "implementation": [
         "app/src/main/cpp/experiments/csharp/SourceLoader.cpp",
         "app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp",
@@ -1529,9 +1529,9 @@
       "validationScope": "host; Android pendente"
     },
     "Content/Items/Quests/ExampleQuestFish.js#AnglerQuestChat": {
-      "status": "validado automaticamente",
+      "status": "implementado sem validar",
       "behavior": "AnglerQuestChat",
-      "note": "Peixe e regra de pesca conferidos no Bunny JS anexado. Helper Android 301720 inspecionado: questItem=true, 26x26 e rare=-11; protocolo real, flags/lista, disponibilidade/chat/captura e unload verificados no host. Gameplay Android pendente.",
+      "note": "Peixe e regra de pesca conferidos no Bunny JS anexado. Helper Android 301720 inspecionado: questItem=true, 26x26 e rare=-11; protocolo real, flags/lista, disponibilidade/chat/captura e unload verificados no host. Gameplay Android pendente. Integração QA 1.0.25: arquivos de implementação ou teste mudaram; a validação anterior permanece histórica e exige nova execução nesta base.",
       "implementation": [
         "app/src/main/cpp/experiments/csharp/SourceLoader.cpp",
         "app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp",
@@ -1602,9 +1602,9 @@
       "validationScope": "host; Android pendente"
     },
     "Content/Items/Quests/ExampleQuestFish.js#IsAnglerQuestAvailable": {
-      "status": "validado automaticamente",
+      "status": "implementado sem validar",
       "behavior": "IsAnglerQuestAvailable",
-      "note": "Peixe e regra de pesca conferidos no Bunny JS anexado. Helper Android 301720 inspecionado: questItem=true, 26x26 e rare=-11; protocolo real, flags/lista, disponibilidade/chat/captura e unload verificados no host. Gameplay Android pendente.",
+      "note": "Peixe e regra de pesca conferidos no Bunny JS anexado. Helper Android 301720 inspecionado: questItem=true, 26x26 e rare=-11; protocolo real, flags/lista, disponibilidade/chat/captura e unload verificados no host. Gameplay Android pendente. Integração QA 1.0.25: arquivos de implementação ou teste mudaram; a validação anterior permanece histórica e exige nova execução nesta base.",
       "implementation": [
         "app/src/main/cpp/experiments/csharp/SourceLoader.cpp",
         "app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp",
@@ -1675,9 +1675,9 @@
       "validationScope": "host; Android pendente"
     },
     "Content/Items/Quests/ExampleQuestFish.js#SetDefaults": {
-      "status": "validado automaticamente",
+      "status": "implementado sem validar",
       "behavior": "SetDefaults",
-      "note": "Peixe e regra de pesca conferidos no Bunny JS anexado. Helper Android 301720 inspecionado: questItem=true, 26x26 e rare=-11; protocolo real, flags/lista, disponibilidade/chat/captura e unload verificados no host. Gameplay Android pendente.",
+      "note": "Peixe e regra de pesca conferidos no Bunny JS anexado. Helper Android 301720 inspecionado: questItem=true, 26x26 e rare=-11; protocolo real, flags/lista, disponibilidade/chat/captura e unload verificados no host. Gameplay Android pendente. Integração QA 1.0.25: arquivos de implementação ou teste mudaram; a validação anterior permanece histórica e exige nova execução nesta base.",
       "implementation": [
         "app/src/main/cpp/experiments/csharp/SourceLoader.cpp",
         "app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp",
@@ -1748,9 +1748,9 @@
       "validationScope": "host; Android pendente"
     },
     "Content/Items/Quests/ExampleQuestFish.js#SetStaticDefaults": {
-      "status": "validado automaticamente",
+      "status": "implementado sem validar",
       "behavior": "SetStaticDefaults",
-      "note": "Peixe e regra de pesca conferidos no Bunny JS anexado. Helper Android 301720 inspecionado: questItem=true, 26x26 e rare=-11; protocolo real, flags/lista, disponibilidade/chat/captura e unload verificados no host. Gameplay Android pendente.",
+      "note": "Peixe e regra de pesca conferidos no Bunny JS anexado. Helper Android 301720 inspecionado: questItem=true, 26x26 e rare=-11; protocolo real, flags/lista, disponibilidade/chat/captura e unload verificados no host. Gameplay Android pendente. Integração QA 1.0.25: arquivos de implementação ou teste mudaram; a validação anterior permanece histórica e exige nova execução nesta base.",
       "implementation": [
         "app/src/main/cpp/experiments/csharp/SourceLoader.cpp",
         "app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp",
@@ -1821,9 +1821,9 @@
       "validationScope": "host; Android pendente"
     },
     "Content/Rarities/ExampleHigherTierModRarity.js#GetPrefixedRarity": {
-      "status": "validado automaticamente",
+      "status": "implementado sem validar",
       "behavior": "GetPrefixedRarity",
-      "note": "Callbacks originais de cor fixa/disco e transição de raridade conferidos no pacote Bunny JS anexado. Registro, cores, ABI, persistência e retirada têm testes host; confirmação visual Android pendente.",
+      "note": "Callbacks originais de cor fixa/disco e transição de raridade conferidos no pacote Bunny JS anexado. Registro, cores, ABI, persistência e retirada têm testes host; confirmação visual Android pendente. Integração QA 1.0.25: arquivos de implementação ou teste mudaram; a validação anterior permanece histórica e exige nova execução nesta base.",
       "implementation": [
         "app/src/main/cpp/experiments/csharp/SourceLoader.cpp",
         "app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp",
@@ -1892,9 +1892,9 @@
       "validationScope": "host; Android pendente"
     },
     "Content/Rarities/ExampleHigherTierModRarity.js#RarityColor": {
-      "status": "validado automaticamente",
+      "status": "implementado sem validar",
       "behavior": "RarityColor",
-      "note": "Callbacks originais de cor fixa/disco e transição de raridade conferidos no pacote Bunny JS anexado. Registro, cores, ABI, persistência e retirada têm testes host; confirmação visual Android pendente.",
+      "note": "Callbacks originais de cor fixa/disco e transição de raridade conferidos no pacote Bunny JS anexado. Registro, cores, ABI, persistência e retirada têm testes host; confirmação visual Android pendente. Integração QA 1.0.25: arquivos de implementação ou teste mudaram; a validação anterior permanece histórica e exige nova execução nesta base.",
       "implementation": [
         "app/src/main/cpp/experiments/csharp/SourceLoader.cpp",
         "app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp",
@@ -1963,9 +1963,9 @@
       "validationScope": "host; Android pendente"
     },
     "Content/Rarities/ExampleModRarity.js#GetPrefixedRarity": {
-      "status": "validado automaticamente",
+      "status": "implementado sem validar",
       "behavior": "GetPrefixedRarity",
-      "note": "Callbacks originais de cor fixa/disco e transição de raridade conferidos no pacote Bunny JS anexado. Registro, cores, ABI, persistência e retirada têm testes host; confirmação visual Android pendente.",
+      "note": "Callbacks originais de cor fixa/disco e transição de raridade conferidos no pacote Bunny JS anexado. Registro, cores, ABI, persistência e retirada têm testes host; confirmação visual Android pendente. Integração QA 1.0.25: arquivos de implementação ou teste mudaram; a validação anterior permanece histórica e exige nova execução nesta base.",
       "implementation": [
         "app/src/main/cpp/experiments/csharp/SourceLoader.cpp",
         "app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp",
@@ -2034,9 +2034,9 @@
       "validationScope": "host; Android pendente"
     },
     "Content/Rarities/ExampleModRarity.js#RarityColor": {
-      "status": "validado automaticamente",
+      "status": "implementado sem validar",
       "behavior": "RarityColor",
-      "note": "Callbacks originais de cor fixa/disco e transição de raridade conferidos no pacote Bunny JS anexado. Registro, cores, ABI, persistência e retirada têm testes host; confirmação visual Android pendente.",
+      "note": "Callbacks originais de cor fixa/disco e transição de raridade conferidos no pacote Bunny JS anexado. Registro, cores, ABI, persistência e retirada têm testes host; confirmação visual Android pendente. Integração QA 1.0.25: arquivos de implementação ou teste mudaram; a validação anterior permanece histórica e exige nova execução nesta base.",
       "implementation": [
         "app/src/main/cpp/experiments/csharp/SourceLoader.cpp",
         "app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp",
@@ -2105,9 +2105,9 @@
       "validationScope": "host; Android pendente"
     },
     "requirement:localization-loader-bunny-contract": {
-      "status": "validado automaticamente",
+      "status": "implementado sem validar",
       "behavior": "requirement:localization-loader-bunny-contract",
-      "note": "Contrato JSON do Bunny: fallback, referências, textos globais, callbacks, idioma e retirada por UID. Revisões nativas usam o contexto compartilhado; respostas antigas são rejeitadas. HJSON/tooling de desktop não incluídos; Android pendente.",
+      "note": "Contrato JSON do Bunny: fallback, referências, textos globais, callbacks, idioma e retirada por UID. Revisões nativas usam o contexto compartilhado; respostas antigas são rejeitadas. HJSON/tooling de desktop não incluídos; Android pendente. Integração QA 1.0.25: arquivos de implementação ou teste mudaram; a validação anterior permanece histórica e exige nova execução nesta base.",
       "implementation": [
         "app/src/main/cpp/experiments/csharp/SourceLoader.cpp",
         "app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp",
@@ -2172,9 +2172,9 @@
       "validationScope": "host; Android pendente"
     },
     "requirement:rarity-loader-bunny-contract": {
-      "status": "validado automaticamente",
+      "status": "implementado sem validar",
       "behavior": "requirement:rarity-loader-bunny-contract",
-      "note": "Contrato de raridade do Bunny: callbacks, integração visual nativa, prefixos, persistência e ciclo de vida. IDs estáveis são reativados; cores e dicionário retirados seletivamente. QA Android pendente.",
+      "note": "Contrato de raridade do Bunny: callbacks, integração visual nativa, prefixos, persistência e ciclo de vida. IDs estáveis são reativados; cores e dicionário retirados seletivamente. QA Android pendente. Integração QA 1.0.25: arquivos de implementação ou teste mudaram; a validação anterior permanece histórica e exige nova execução nesta base.",
       "implementation": [
         "app/src/main/cpp/experiments/csharp/SourceLoader.cpp",
         "app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp",
@@ -2243,9 +2243,9 @@
       "validationScope": "host; Android pendente"
     },
     "requirement:angler-quest-loader-bunny-contract": {
-      "status": "validado automaticamente",
+      "status": "implementado sem validar",
       "behavior": "requirement:angler-quest-loader-bunny-contract",
-      "note": "Contrato do AnglerQuestLoader Bunny: quest fish, flags/lista, seleção/chat, captura e callbacks/revisões/unload. Teardown durável, contextos coletáveis e outros UIDs verificados no host. QA Android pendente.",
+      "note": "Contrato do AnglerQuestLoader Bunny: quest fish, flags/lista, seleção/chat, captura e callbacks/revisões/unload. Teardown durável, contextos coletáveis e outros UIDs verificados no host. QA Android pendente. Integração QA 1.0.25: arquivos de implementação ou teste mudaram; a validação anterior permanece histórica e exige nova execução nesta base.",
       "implementation": [
         "app/src/main/cpp/experiments/csharp/SourceLoader.cpp",
         "app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp",
@@ -2316,10 +2316,10 @@
       "validationScope": "host; Android pendente"
     },
     "requirement:clone-defaults-explicit-overrides-and-reload": {
-      "status": "validado automaticamente",
+      "status": "implementado sem validar",
       "validationScope": "host; Android pendente",
       "behavior": "Defaults clonados: presença de override, defesa herdada e recarga por tipo",
-      "note": "Protocolo opcional C1 preserva campos omitidos e distingue zero/false/som vazio. Três revisões reais compiladas, limpeza da atribuição de defesa, revogação antes do frame, confirmação por geração, outro UID e 100 substituições testados. Classificação de prefixos usa defaults efetivos após NativeDefaults. Não declara unload global de itens, restauração de todos os campos extras ou retirada de tabelas estáticas; Android pendente.",
+      "note": "Protocolo opcional C1 preserva campos omitidos e distingue zero/false/som vazio. Três revisões reais compiladas, limpeza da atribuição de defesa, revogação antes do frame, confirmação por geração, outro UID e 100 substituições testados. Classificação de prefixos usa defaults efetivos após NativeDefaults. Não declara unload global de itens, restauração de todos os campos extras ou retirada de tabelas estáticas; Android pendente. Integração QA 1.0.25: arquivos de implementação ou teste mudaram; a validação anterior permanece histórica e exige nova execução nesta base.",
       "implementation": [
         "experiments/csharp/BunnyCsSdk/BunnyItem.cs",
         "experiments/csharp/BunnyCsSdk/BunnyItemBehavior.cs",
@@ -2357,9 +2357,9 @@
       }
     },
     "requirement:item-dynamic-policy-uid-retirement": {
-      "status": "validado automaticamente",
+      "status": "implementado sem validar",
       "behavior": "Retirada por UID dos snapshots dinâmicos de políticas nativas de item",
-      "note": "Clone, cor, luz, asas, robe e hooks de reinicialização deixam de usar o UID retirado antes do pump. Retenção parcial/vazia, pending/in-flight install, outro UID e 100 recargas verificados com wire real; handles liberados na thread do jogo. SourceLoader/guard compilados. Tabelas estáticas, texturas/slots, animações já registradas, defaults básicos e unload global seguem pendentes.",
+      "note": "Clone, cor, luz, asas, robe e hooks de reinicialização deixam de usar o UID retirado antes do pump. Retenção parcial/vazia, pending/in-flight install, outro UID e 100 recargas verificados com wire real; handles liberados na thread do jogo. SourceLoader/guard compilados. Tabelas estáticas, texturas/slots, animações já registradas, defaults básicos e unload global seguem pendentes. Integração QA 1.0.25: arquivos de implementação ou teste mudaram; a validação anterior permanece histórica e exige nova execução nesta base.",
       "implementation": [
         "app/src/main/cpp/experiments/csharp/NativeItemPolicies.cpp",
         "app/src/main/cpp/experiments/csharp/NativeItemPolicies.h",

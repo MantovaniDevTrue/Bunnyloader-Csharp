@@ -17,7 +17,8 @@ internal static class CollectibleUnloadProbe
         var mods=typeof(BunnyRecipeLoader).GetField("mods",
             BindingFlags.NonPublic|BindingFlags.Static)?.GetValue(null) as IDictionary;
         object active=mods?[modId]??throw new InvalidOperationException("Collectible probe missing");
-        var context=active.GetType().GetField("Context")?.GetValue(active) as AssemblyLoadContext;
+        var assembly=active.GetType().GetField("Assembly")?.GetValue(active) as Assembly;
+        var context=assembly==null?null:AssemblyLoadContext.GetLoadContext(assembly);
         if(context==null||!context.IsCollectible)
             throw new InvalidOperationException("Collectible probe loaded a permanent assembly");
         var weak=new WeakReference(context);
@@ -39,14 +40,16 @@ internal static class CollectibleUnloadProbe
         var mods=typeof(BunnyRecipeLoader).GetField("mods",
             BindingFlags.NonPublic|BindingFlags.Static)?.GetValue(null) as IDictionary;
         object previous=mods?[modId]??throw new InvalidOperationException("Missing original mod");
-        var oldContext=previous.GetType().GetField("Context")?.GetValue(previous)
-            as AssemblyLoadContext ??throw new InvalidOperationException("Missing old context");
+        var oldAssembly=previous.GetType().GetField("Assembly")?.GetValue(previous) as Assembly;
+        var oldContext=oldAssembly==null?null:AssemblyLoadContext.GetLoadContext(oldAssembly);
+        if(oldContext==null)throw new InvalidOperationException("Missing old context");
         var oldWeak=new WeakReference(oldContext);
         if(BunnyRecipeRuntime.Dispatch(modId,newer,"DynamicQuestFish",0,5,"1,1,2,950")!="1")
             throw new InvalidOperationException("Rebound callback failed");
         object latest=mods[modId]??throw new InvalidOperationException("Missing rebound mod");
-        var context=latest.GetType().GetField("Context")?.GetValue(latest)
-            as AssemblyLoadContext ??throw new InvalidOperationException("Missing new context");
+        var newAssembly=latest.GetType().GetField("Assembly")?.GetValue(latest) as Assembly;
+        var context=newAssembly==null?null:AssemblyLoadContext.GetLoadContext(newAssembly);
+        if(context==null)throw new InvalidOperationException("Missing new context");
         if(ReferenceEquals(oldContext,context))
             throw new InvalidOperationException("Rebind reused existing assembly context");
         return oldWeak;

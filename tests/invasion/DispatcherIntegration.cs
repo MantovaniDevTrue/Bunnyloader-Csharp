@@ -15,14 +15,22 @@ static class InvasionDispatcherTest
     {
         try
         {
-            ExampleInvasion.WorldExit();
+            const string modId = "example-invasion-test";
+            string assemblyPath = typeof(ExampleSlimeNPC).Assembly.Location;
+            using var mod = BunnyModAssemblyRegistry.Acquire(modId, assemblyPath);
+            var invasion = mod.Assembly.GetType("ExampleModCSharp.ExampleInvasion", true)!;
+            var controller = (BunnyInvasionController)invasion.GetField("Controller")!.GetValue(null)!;
+            var pipeline = (BunnyInvasionSpawnPipeline)invasion.GetField("Pipeline")!.GetValue(null)!;
+            var slime = mod.Assembly.GetType("ExampleModCSharp.ExampleSlimeNPC", true)!;
+            int KillEvents() => (int)slime.GetField("KillEvents")!.GetValue(null)!;
+            pipeline.ResetWorld();
             const int npcType = 700;
-            int modSlot = BunnyEntitySourceDispatcher.Register(
-                "example-invasion-test", typeof(ExampleSlimeNPC).Assembly.Location);
+            int modSlot = BunnyEntitySourceDispatcher.Register(modId, assemblyPath);
             Check(modSlot >= 0, "assembly registered");
             Check(BunnyEntitySourceDispatcher.Bind(modSlot, 0, npcType,
                 nameof(ExampleSlimeNPC)), "NPC bound");
-            var beacon = new ExampleInvasionBeacon();
+            var beacon = (BunnyItem)Activator.CreateInstance(
+                mod.Assembly.GetType("ExampleModCSharp.ExampleInvasionBeacon", true)!)!;
             Check(!beacon.OnUse(0, new BunnyUseContext(62)) &&
                 beacon.OnUseRejectionReason(0, new BunnyUseContext(62)) == "Nighttime",
                 "nighttime prevents start with explicit reason");
@@ -37,48 +45,49 @@ static class InvasionDispatcherTest
             Check(!beacon.OnUse(0, new BunnyUseContext(63)) &&
                 beacon.OnUseRejectionReason(0, new BunnyUseContext(63)) == "AlreadyRunning",
                 "duplicate use refuses without resetting progress");
-            ExampleInvasion.WorldExit();
-            Check(ExampleInvasion.Start(true), "invasion started");
+            pipeline.ResetWorld();
+            Check(controller.Start(true), "invasion started");
 
-            Check(ExampleInvasion.TrySpawn(true, 0, out var requested),
+            Check(pipeline.TryReserve(true, 0, out var requested),
                 "spawn reserved");
-            Check(ExampleInvasion.NativeSpawnCreated(true, requested.Epoch,
-                requested.Ticket, 11, 98765L), "native ticket associated with slot");
+            Check(pipeline.TryGetReservedClass(requested.Epoch, requested.Ticket, out string className) &&
+                pipeline.ReportCreated(true, requested.Epoch,
+                    requested.Ticket, className, 11, 98765L), "native ticket associated with slot");
             long velocity = BunnyEntitySourceDispatcher.TickNpc(
                 modSlot, npcType, 11, 42, 25, 25, 100f, 100f,
                 0f, 0f, 200f, 100f, 98765L);
-            Check(velocity >= -1 && ExampleInvasion.Controller.Progress == 0 &&
-                ExampleInvasion.Controller.ActiveCount == 1 &&
-                ExampleInvasion.Pipeline.PendingCount == 0, "native OnSpawn confirms identity and generation");
+            Check(velocity >= -1 && controller.Progress == 0 &&
+                controller.ActiveCount == 1 &&
+                pipeline.PendingCount == 0, "native OnSpawn confirms identity and generation");
 
-            int before = ExampleSlimeNPC.KillEvents;
+            int before = KillEvents();
             Check(BunnyEntitySourceDispatcher.KillNpc(modSlot, npcType, 11, 42),
                 "dispatcher OnKill executed");
-            Check(ExampleSlimeNPC.KillEvents == before + 1 &&
-                ExampleInvasion.Controller.Progress == 1, "invasion credits eligible NPC");
+            Check(KillEvents() == before + 1 &&
+                controller.Progress == 1, "invasion credits eligible NPC");
             Check(!BunnyEntitySourceDispatcher.KillNpc(modSlot, npcType, 11, 42) &&
-                ExampleInvasion.Controller.Progress == 1, "double death rejected");
+                controller.Progress == 1, "double death rejected");
 
             BunnyEntitySourceDispatcher.TickNpc(
                 modSlot, npcType, 12, 43, 25, 25, 100f, 100f, 0f, 0f, 200f, 100f);
             Check(BunnyEntitySourceDispatcher.KillNpc(modSlot, npcType, 12, 43) &&
-                ExampleInvasion.Controller.Progress == 1,
+                controller.Progress == 1,
                 "unadmitted NPC excluded");
 
             for (int tick = 0; tick < 120; tick++)
-                ExampleInvasion.Pipeline.Tick(true, true);
-            Check(ExampleInvasion.TrySpawn(true, 0, out var next),
+                pipeline.Tick(true, true);
+            Check(pipeline.TryReserve(true, 0, out var next),
                 "second wave reserved");
-            Check(ExampleInvasion.NativeSpawnFailed(true, next.Epoch, next.Ticket),
+            Check(pipeline.ReportFailed(true, next.Epoch, next.Ticket),
                 "failed spawn reclaimed");
 
             BunnyEntitySourceDispatcher.TickNpc(
                 modSlot, npcType, 13, 44, 25, 25, 100f, 100f, 0f, 0f, 200f, 100f);
             BunnyEntitySourceDispatcher.ResetWorld();
-            Check(ExampleInvasion.Controller.Progress == 1, "despawn not a kill");
-            ExampleInvasion.WorldExit();
-            Check(ExampleInvasion.Controller.Progress == 0 &&
-                ExampleInvasion.Controller.Phase == BunnyInvasionPhase.Inactive,
+            Check(controller.Progress == 1, "despawn not a kill");
+            pipeline.ResetWorld();
+            Check(controller.Progress == 0 &&
+                controller.Phase == BunnyInvasionPhase.Inactive,
                 "world cleanup");
             Console.WriteLine("ExampleInvasion dispatcher: " + tests + " checks OK");
             return 0;

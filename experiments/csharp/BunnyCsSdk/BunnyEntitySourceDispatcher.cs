@@ -32,6 +32,7 @@ public static class BunnyEntitySourceDispatcher
     {
         public string Mod = "";
         public string Path = "";
+        public BunnyModAssemblyLease? Lease;
         public readonly Dictionary<string, BunnyNPC> NamedNpcs = new(StringComparer.Ordinal);
         public readonly Dictionary<string, BunnyProjectile> NamedProjectiles = new(StringComparer.Ordinal);
         public readonly Dictionary<int, BunnyNPC> Npcs = new();
@@ -85,10 +86,12 @@ public static class BunnyEntitySourceDispatcher
                 return Contexts[i].Path == assemblyPath ? i : -1;
         }
         if (Contexts.Count >= 16) return -1;
+        BunnyModAssemblyLease? lease = null;
         try
         {
-            var assembly = Assembly.LoadFrom(assemblyPath);
-            var context = new Context { Mod = modId, Path = assemblyPath };
+            lease = BunnyModAssemblyRegistry.Acquire(modId, assemblyPath);
+            var assembly = lease.Assembly;
+            var context = new Context { Mod = modId, Path = assemblyPath, Lease = lease };
             bool hasDust = false;
             foreach (Type type in assembly.GetTypes().OrderBy(t => t.FullName, StringComparer.Ordinal))
             {
@@ -125,6 +128,7 @@ public static class BunnyEntitySourceDispatcher
                 }
                 else if (typeof(BunnyWorldSystem).IsAssignableFrom(type))
                 {
+                    if (!BunnyWorldSystem.UsesEngineLifecycle(type)) continue;
                     if (context.WorldSystems.Count >= 32)
                         throw new InvalidOperationException("Too many world systems");
                     if (!BunnyInvasionWireState.ValidName(type.Name, 128))
@@ -155,6 +159,7 @@ public static class BunnyEntitySourceDispatcher
                 context.LastError = "BunnyDust registration: " +
                     BunnyDustSourceDispatcher.LastRegistrationError;
             Contexts.Add(context);
+            lease = null;
             return Contexts.Count - 1;
         }
         catch (Exception error)
@@ -162,11 +167,14 @@ public static class BunnyEntitySourceDispatcher
             LastRegistrationError = error.GetType().Name + ": " + error.Message;
             return -1;
         }
+        finally { lease?.Dispose(); }
     }
 
     internal static bool TryRegisterDustAssembly(Assembly assembly)
     {
         string path = assembly.Location;
+        if (path.Length == 0 && BunnyModAssemblyRegistry.TryResolve(assembly, out _, out string resolved))
+            path = resolved;
         foreach (Context context in Contexts)
         {
             if (context.Path != path) continue;

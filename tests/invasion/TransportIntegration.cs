@@ -49,11 +49,19 @@ internal static class TransportIntegration
 
     public static int Main()
     {
-        ExampleInvasion.WorldExit();
+        // Isolate repeated host runs from an earlier aborted test sidecar.
+        foreach (int id in new[] { 11,12,13 })
+            System.IO.File.Delete("/tmp/bunny-invasion-ci-" + id + ".wld.invasions.bl");
+        const string modId = "mod-a";
+        string sourcePath = typeof(ExampleSlimeNPC).Assembly.Location;
+        using var modAssembly = BunnyModAssemblyRegistry.Acquire(modId, sourcePath);
+        Type invasionType = modAssembly.Assembly.GetType("ExampleModCSharp.ExampleInvasion", true)!;
+        var controller = (BunnyInvasionController)invasionType.GetField("Controller")!.GetValue(null)!;
+        var pipeline = (BunnyInvasionSpawnPipeline)invasionType.GetField("Pipeline")!.GetValue(null)!;
+        pipeline.ResetWorld();
         SetWorld(1, 11);
         Check(BunnyInvasionNativeTransport.WorldSession == 11, "managed PInvoke session");
-        int mod = BunnyEntitySourceDispatcher.Register(
-            "mod-a", typeof(ExampleSlimeNPC).Assembly.Location);
+        int mod = BunnyEntitySourceDispatcher.Register(modId, sourcePath);
         Check(mod >= 0, "reflection registers mod and invasion system");
         const int npcType = 700;
         Check(BunnyEntitySourceDispatcher.Bind(mod, 0, npcType,
@@ -61,42 +69,42 @@ internal static class TransportIntegration
         SetItemReady(0);
         Check(BunnyEntitySourceDispatcher.TickWorld(mod, 1, 30, 11,
             0, 1700f, 2200f) == 0 &&
-            ExampleInvasion.Controller.Phase == BunnyInvasionPhase.Inactive,
+            controller.Phase == BunnyInvasionPhase.Inactive,
             "client world tick only registers item hooks, not the invasion");
         Check(Tick(mod, 11) == 0, "world activation queues item binding and resets stale state");
-        Check(ExampleInvasion.Controller.Phase == BunnyInvasionPhase.Inactive,
+        Check(controller.Phase == BunnyInvasionPhase.Inactive,
             "no automatic invasion before item use");
         InjectItemUse(0);
         Check(Tick(mod, 11) == 0 &&
-            ExampleInvasion.Controller.Phase == BunnyInvasionPhase.Inactive,
+            controller.Phase == BunnyInvasionPhase.Inactive,
             "native item hook not acknowledged: no managed invocation");
         SetItemReady(1);
         Check(Tick(mod, 11) == 1, "native-ready item OnUse starts invasion and queues NPC spawn");
-        int epoch = ExampleInvasion.Controller.Snapshot().Epoch;
+        int epoch = controller.Snapshot().Epoch;
         InjectItemUse(0);
         Check(Tick(mod, 11) == 1 &&
-            ExampleInvasion.Controller.Snapshot().Epoch == epoch,
+            controller.Snapshot().Epoch == epoch,
             "repeated item use cannot restart running invasion");
-        Check(ExampleInvasion.Pipeline.PendingCount == 1, "reservation created");
+        Check(pipeline.PendingCount == 1, "reservation created");
         PumpNative();
         Check(Tick(mod, 11) == 1, "MonoVM receives native spawn reply");
-        Check(ExampleInvasion.Pipeline.PendingCount == 1 &&
-            ExampleInvasion.Controller.ActiveCount == 0, "wait for native NPC AI identity");
+        Check(pipeline.PendingCount == 1 &&
+            controller.ActiveCount == 0, "wait for native NPC AI identity");
         long motion = BunnyEntitySourceDispatcher.TickNpc(mod, npcType, 1,
             50, 25, 25, 1710, 2150, 0, 0, 1700, 2200, 1001L);
-        Check(motion >= -1 && ExampleInvasion.Controller.ActiveCount == 1 &&
-            ExampleInvasion.Pipeline.PendingCount == 0, "real NPC OnSpawn confirms identity");
+        Check(motion >= -1 && controller.ActiveCount == 1 &&
+            pipeline.PendingCount == 0, "real NPC OnSpawn confirms identity");
         Check(BunnyEntitySourceDispatcher.KillNpc(mod, npcType, 1, 50) &&
-            ExampleInvasion.Controller.Progress == 1, "real kill scores once");
+            controller.Progress == 1, "real kill scores once");
         Check(System.IO.File.Exists("/tmp/bunny-invasion-ci-11.wld.invasions.bl"),
             "real native sidecar written immediately on NPC kill");
         Check(!BunnyEntitySourceDispatcher.KillNpc(mod, npcType, 1, 50),
             "double kill ignored");
-        var beforeFinish = ExampleInvasion.Controller.Snapshot();
-        Check(ExampleInvasion.Controller.Restore(true,
+        var beforeFinish = controller.Snapshot();
+        Check(controller.Restore(true,
             beforeFinish with {
                 Phase = BunnyInvasionPhase.Completed,
-                Progress = ExampleInvasion.Controller.Definition.Goal,
+                Progress = controller.Definition.Goal,
                 Active = 0, Pending = 0, Cooldown = 0
             }), "simulate completed goal for native reward bridge");
         Tick(mod, 11);
@@ -109,30 +117,30 @@ internal static class TransportIntegration
 
         SetWorld(0, 12);
         SetWorld(1, 12);
-        Check(Tick(mod, 12) == 0 && ExampleInvasion.Controller.Progress == 0 &&
-            ExampleInvasion.Controller.Phase == BunnyInvasionPhase.Inactive,
+        Check(Tick(mod, 12) == 0 && controller.Progress == 0 &&
+            controller.Phase == BunnyInvasionPhase.Inactive,
             "new Terraria world resets old invasion");
         foreach (int requiredFlag in new[] { 1, 2, 4, 8, 16 })
         {
             InjectItemUseContext(0, 31 & ~requiredFlag);
             Check(Tick(mod, 12) == 1 &&
-                ExampleInvasion.Controller.Phase == BunnyInvasionPhase.Inactive &&
-                ExampleInvasion.Pipeline.PendingCount == 0,
+                controller.Phase == BunnyInvasionPhase.Inactive &&
+                pipeline.PendingCount == 0,
                 "native item context prevents starting invasion when a required flag is missing");
         }
         InjectItemUse(0);
         Check(Tick(mod, 12) == 1 &&
-            ExampleInvasion.Controller.Phase == BunnyInvasionPhase.Running,
+            controller.Phase == BunnyInvasionPhase.Running,
             "new world item use starts a fresh invasion");
         SetWorld(0, 13);
         SetWorld(1, 13);
-        Check(Tick(mod, 13) == 0 && ExampleInvasion.Pipeline.PendingCount == 0,
+        Check(Tick(mod, 13) == 0 && pipeline.PendingCount == 0,
             "old world queued spawn discarded");
         SetWorldRestore(1, 20, "/tmp/bunny-invasion-ci-11.wld");
         Tick(mod, 20);
-        Check(ExampleInvasion.Controller.Phase == BunnyInvasionPhase.Completed &&
-            ExampleInvasion.Controller.Progress == ExampleInvasion.Controller.Definition.Goal &&
-            ExampleInvasion.Controller.ActiveCount == 0,
+        Check(controller.Phase == BunnyInvasionPhase.Completed &&
+            controller.Progress == controller.Definition.Goal &&
+            controller.ActiveCount == 0,
             "re-entered original world restores completion and never reuses NPC membership");
         SetWorld(0, 21);
         foreach (int id in new[] { 11, 12, 13 })

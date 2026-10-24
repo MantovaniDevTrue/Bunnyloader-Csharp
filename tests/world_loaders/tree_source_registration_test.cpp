@@ -31,6 +31,6 @@ int main() {
     assert(sourceIdentityForWire("TREE","ExampleTree")==sourceIdentityForBase("BunnyTree","ExampleTree"));
     assert(sourceIdentityForWire("GORE","ExampleTree_Leaf")==sourceIdentityForBase("BunnyGore","ExampleTree_Leaf"));
     mod.commands=1;mod.worldSystems=1;
-    assert(expectedManagedSourceTypes(mod)==4); // World systems use their separate dispatcher/count contract.
+    assert(expectedManagedSourceTypes(mod)==5); // The unified compiler manifest counts both lifecycle APIs.
     std::cout<<"TREE_GORE_REAL_SOURCE_PARSER_IDENTITY_AND_NATIVE_CLASS_COUNT=PASS\n";
 }

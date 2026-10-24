@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
 using System.Linq;
 using System.Reflection;
 
@@ -83,6 +82,7 @@ public static class BunnyShootRuntime
     {
         public string Path="";
         public Assembly Assembly=null!;
+        public BunnyModAssemblyLease Lease=null!;
         public readonly Dictionary<string,BunnyShootSource> Items=new(StringComparer.Ordinal);
     }
     private static readonly Dictionary<string,Mod> mods=new(StringComparer.Ordinal);
@@ -121,7 +121,15 @@ public static class BunnyShootRuntime
                 throw new ArgumentException("Invalid shooting transport arguments: Index="+index+" Kind="+kind+" SnapshotLength="+snapshot.Length);
             if(!mods.TryGetValue(modId,out var mod)||mod.Path!=assemblyPath)
             {
-                mod=new Mod{Path=assemblyPath,Assembly=Assembly.Load(File.ReadAllBytes(assemblyPath))};mods[modId]=mod;
+                if(mod!=null)
+                {
+                    mods.Remove(modId);
+                    mod.Items.Clear();
+                    mod.Lease.Dispose();
+                }
+                var lease=BunnyModAssemblyRegistry.Acquire(modId,assemblyPath);
+                mod=new Mod{Path=assemblyPath,Assembly=lease.Assembly,Lease=lease};
+                mods[modId]=mod;
             }
             if(!mod.Items.TryGetValue(owner,out var item))
             {

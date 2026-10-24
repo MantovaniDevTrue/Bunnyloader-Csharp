@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "sourceHash": "7f222e7b5e14152673fb324846fd7c8f9165962596fcbc76d967066fd4bc50e1",
+  "sourceHash": "ce1cff02d55061ae712ad11adb53b817adde1fd9715bab1a67c68e89f3273f11",
   "classes": [
     {
       "name": "BackgroundTextureLoader",
@@ -8810,7 +8810,7 @@
       "status": "Declared",
       "baseReturn": "undefined",
       "description": "drawParams: tModLoader's BossBarDrawParams (see GlobalBossBar); false removes the game's drawing.",
-      "native": "BigProgressBarSystem.Draw → BigProgressBarHelper.DrawFancyBar",
+      "native": "BigProgressBarSystem.Draw → GUIBossBar.Draw",
       "source": "app/src/main/cpp/script/js/mod/ModBossBar.js",
       "line": 33,
       "sourceUrl": "https://github.com/JonataOliveiraa/Bunny-Loader/blob/main/app/src/main/cpp/script/js/mod/ModBossBar.js#L33",
@@ -8827,7 +8827,7 @@
       "status": "Declared",
       "baseReturn": "true",
       "description": "drawParams: tModLoader's BossBarDrawParams (see GlobalBossBar); false removes the game's drawing.",
-      "native": "BigProgressBarSystem.Draw → BigProgressBarHelper.DrawFancyBar",
+      "native": "BigProgressBarSystem.Draw → GUIBossBar.Draw",
       "source": "app/src/main/cpp/script/js/mod/ModBossBar.js",
       "line": 32,
       "sourceUrl": "https://github.com/JonataOliveiraa/Bunny-Loader/blob/main/app/src/main/cpp/script/js/mod/ModBossBar.js#L32",

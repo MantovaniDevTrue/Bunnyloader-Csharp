@@ -552,12 +552,31 @@ abstract class; base: `System.Object`.
 ```csharp
 bool SafeGore { get; set; }
 int SpecialAI { get; set; }
+string LastHostError { get; }
 string Texture { get; set; }
 ```
 
 | Method | Execution |
 | --- | --- |
+| `static bool TryConfigure(string modId, string name, BunnyGoreSettings settings)` | managed_helper |
+| `static bool TrySpawn(string modId, string name, float x, float y, float velocityX, float velocityY, float scale)` | managed_helper |
+| `static int GetType(string modId, string name)` | managed_helper |
+| `static int GetTypeAny(string name)` | managed_helper |
 | `void SetDefaults()` | compile_policy |
+
+## BunnyLoader.Source.BunnyGoreSettings
+
+struct; base: `System.ValueType`.
+
+```csharp
+BunnyGoreSettings()
+BunnyGoreSettings(int specialAI, int disappearSpeed, int disappearSpeedAlpha, bool isDrip, bool safeGore)
+bool IsDrip { get; }
+bool SafeGore { get; }
+int DisappearSpeed { get; }
+int DisappearSpeedAlpha { get; }
+int SpecialAI { get; }
+```
 
 ## BunnyLoader.Source.BunnyHoldout
 
@@ -642,6 +661,7 @@ BunnyNativeScope Native { get; }
 | `BunnyMethodHook HookInt32Pair(string type, string method, BunnyInt32PairHook callback, bool isStatic)` | experimental_worker_sync_void0 |
 | `BunnyMethodHook HookInt32Triple(string type, string method, BunnyInt32TripleHook callback, bool isStatic)` | experimental_worker_sync_void0 |
 | `BunnyMethodHook HookInt32Zero(string type, string method, BunnyInt32ZeroHook callback, bool isStatic)` | experimental_worker_sync_void0 |
+| `BunnyMethodHook HookSystemStage(string stageName, BunnyVoidHook callback)` | experimental_worker_sync_void0 |
 | `BunnyMethodHook HookVoid(string type, string method, BunnyVoidHook callback, bool isStatic)` | experimental_worker_sync_void0 |
 | `BunnyMethodHook HookVoidInt32(string type, string method, BunnyVoidInt32Hook callback, bool isStatic)` | experimental_worker_sync_void0 |
 | `BunnyMethodHook HookVoidInt32Pair(string type, string method, BunnyVoidInt32PairHook callback, bool isStatic)` | experimental_worker_sync_void0 |
@@ -2092,6 +2112,14 @@ int LX { get; }
 int LY { get; }
 ```
 
+## BunnyLoader.Source.BunnyTimeRateValues
+
+struct; base: `System.ValueType`.
+
+```csharp
+BunnyTimeRateValues(Double time, Double tiles, Double events)
+```
+
 ## BunnyLoader.Source.BunnyTooltipLine
 
 class; base: `System.Object`.
@@ -2113,6 +2141,124 @@ BunnyTooltipPlan()
 Dictionary<string, BunnyDrawableTooltipLine> Draw { get; }
 List<BunnyTooltipLine> Lines { get; }
 ```
+
+## BunnyLoader.Source.BunnyTouchButton
+
+class; base: `System.Object`.
+
+```csharp
+BunnyTouchButtonState State { get; }
+bool Current { get; }
+bool Enabled { get; }
+bool IsBound { get; }
+bool JustPressed { get; }
+bool JustReleased { get; }
+bool Old { get; }
+bool RetroCurrent { get; }
+bool Visible { get; }
+int Id { get; }
+string DisplayName { get; }
+string FullName { get; }
+string Icon { get; }
+string ModId { get; }
+string Name { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `string[] GetAssignedKeys()` | managed_helper |
+| `void SetEnabled(bool enabled)` | managed_helper |
+| `void SetVisible(bool visible)` | managed_helper |
+
+## BunnyLoader.Source.BunnyTouchButtonLoader
+
+abstract class; base: `System.Object`.
+
+```csharp
+int Count { get; }
+string LastHostError { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `static BunnyTouchButton RegisterButton(string modId, string name, BunnyTouchButtonOptions options)` | managed_helper |
+| `static BunnyTouchButton RegisterKeybind(string modId, string name, string defaultBinding)` | managed_helper |
+| `static BunnyTouchButtonState Read(int id)` | managed_helper |
+| `static ValueTuple<bool, bool> GetPolicies(int id)` | managed_helper |
+| `static bool TryBindNativeHost()` | managed_helper |
+| `static bool TryGet(string fullName, out BunnyTouchButton button)` | managed_helper |
+| `static int ApplyHostFrame(Int64 gameUpdateCount, bool inGame, bool chatOpen, bool npcDialogOpen, bool signOpen, int[] held, int[] tapped, int[] bound)` | managed_helper |
+| `static string LayoutDiagnostics()` | managed_helper |
+| `static void ReleaseAll()` | managed_helper |
+| `static void SetPolicies(BunnyTouchButton button, bool visible, bool enabled)` | managed_helper |
+| `static void UnregisterMod(string modId)` | managed_helper |
+
+## BunnyLoader.Source.BunnyTouchButtonOptions
+
+class; base: `System.Object`.
+
+```csharp
+BunnyTouchButtonOptions()
+bool Enabled { get; set; }
+bool Visible { get; set; }
+string Icon { get; set; }
+string Label { get; set; }
+```
+
+## BunnyLoader.Source.BunnyTouchButtonState
+
+struct; base: `System.ValueType`.
+
+```csharp
+BunnyTouchButtonState(bool Current, bool Old, bool JustPressed, bool JustReleased, bool RetroCurrent, bool IsBound)
+bool Current { get; set; }
+bool IsBound { get; set; }
+bool JustPressed { get; set; }
+bool JustReleased { get; set; }
+bool Old { get; set; }
+bool RetroCurrent { get; set; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `bool Equals(BunnyTouchButtonState other)` | managed_helper |
+| `bool Equals(Object obj)` | managed_helper |
+| `int GetHashCode()` | managed_helper |
+| `string ToString()` | managed_helper |
+| `void Deconstruct(out bool Current, out bool Old, out bool JustPressed, out bool JustReleased, out bool RetroCurrent, out bool IsBound)` | managed_helper |
+
+## BunnyLoader.Source.BunnyTouchLayoutSlot
+
+class; base: `System.Object`.
+
+```csharp
+BunnyTouchLayoutSlot()
+bool ActionUnbound { get; set; }
+bool[] GroupUnbound { get; set; }
+int Index { get; set; }
+string ActionFullName { get; set; }
+string SlotId { get; set; }
+string[] GroupActions { get; set; }
+```
+
+## BunnyLoader.Source.BunnyTouchLayoutStore
+
+class; base: `System.Object`.
+
+```csharp
+BunnyTouchLayoutStore()
+int ProfileCount { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `bool HasProfile(string id)` | managed_helper |
+| `static BunnyTouchLayoutStore Load(string saveDirectory)` | managed_helper |
+| `static BunnyTouchLayoutStore Parse(string json)` | managed_helper |
+| `string Serialize()` | managed_helper |
+| `void Capture(string profileId, IReadOnlyList<BunnyTouchLayoutSlot> slots, Func<string, bool> isLoadedAction)` | managed_helper |
+| `void Restore(string profileId, IReadOnlyList<BunnyTouchLayoutSlot> slots, Func<string, bool> isLoadedAction)` | managed_helper |
+| `void Save(string saveDirectory)` | managed_helper |
 
 ## BunnyLoader.Source.BunnyTree
 
@@ -2406,6 +2552,46 @@ int Count { get; }
 | `void SetInt(string key, int value)` | managed_helper |
 | `void SetString(string key, string value)` | managed_helper |
 
+## BunnyLoader.Source.BunnyWorldDispatcher
+
+class; base: `System.Object`.
+
+```csharp
+BunnyWorldDispatcher()
+bool CanSave { get; }
+bool WorldActive { get; }
+int RegisteredSystems { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `bool TryApplyNetworkState(UInt64 epoch, ReadOnlySpan<Byte> packet, out string error)` | managed_helper |
+| `bool TryBuildNetworkState(UInt64 epoch, out Byte[] packet, out string error)` | managed_helper |
+| `bool TryConfirmSaved(UInt64 epoch, Byte[] bytes)` | managed_helper |
+| `bool TryEnterWorld(UInt64 epoch, Byte[] saved, bool authoritative, out string error)` | managed_helper |
+| `bool TryLeaveWorld(UInt64 epoch, out string error)` | managed_helper |
+| `bool TryPrepareSave(UInt64 epoch, out Byte[] bytes, out string error)` | managed_helper |
+| `bool TryRegister(string modUid, BunnyWorldSystem system, out string error)` | managed_helper |
+| `bool TryRegisterAssembly(string modUid, Assembly assembly, out string error)` | managed_helper |
+
+## BunnyLoader.Source.BunnyWorldDocument
+
+class; base: `System.Object`.
+
+```csharp
+BunnyWorldDocument()
+int SystemCount { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `BunnyWorldTag Read(string modUid, string className)` | managed_helper |
+| `Byte[] Encode()` | managed_helper |
+| `static bool TryDecode(ReadOnlySpan<Byte> bytes, out BunnyWorldDocument document)` | managed_helper |
+| `static string MakeKey(string modUid, string className)` | managed_helper |
+| `void Clear()` | managed_helper |
+| `void Replace(string modUid, string className, BunnyWorldTag tag)` | managed_helper |
+
 ## BunnyLoader.Source.BunnyWorldLight
 
 struct; base: `System.ValueType`.
@@ -2416,6 +2602,27 @@ float B { get; }
 float G { get; }
 float R { get; }
 ```
+
+## BunnyLoader.Source.BunnyWorldMonoHost
+
+abstract class; base: `System.Object`.
+
+```csharp
+bool WorldActive { get; }
+int RegisteredSystems { get; }
+string LastError { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `static bool Confirm(Int64 epoch, string base64)` | managed_helper |
+| `static bool Enter(Int64 epoch, string base64, bool authoritative)` | managed_helper |
+| `static bool Leave(Int64 epoch)` | managed_helper |
+| `static bool NetReceive(Int64 epoch, string base64)` | managed_helper |
+| `static bool RegisterMod(string modUid, string assemblyPath)` | managed_helper |
+| `static bool ResetRegistrations()` | managed_helper |
+| `static string NetSend(Int64 epoch)` | managed_helper |
+| `static string Prepare(Int64 epoch)` | managed_helper |
 
 ## BunnyLoader.Source.BunnyWorldNetClientView
 
@@ -2455,6 +2662,15 @@ string SystemName { get; set; }
 | `string ToString()` | managed_helper |
 | `void Deconstruct(out Int64 HostSession, out string ModId, out string SystemName, out Int64 Revision, out Byte[] Data)` | managed_helper |
 
+## BunnyLoader.Source.BunnyWorldNetworkCodec
+
+abstract class; base: `System.Object`.
+
+| Method | Execution |
+| --- | --- |
+| `static Byte[] Encode(IReadOnlyDictionary<string, BunnyWorldSystem> systems, UInt32 revision)` | managed_helper |
+| `static bool TryDecode(ReadOnlySpan<Byte> bytes, out UInt32 revision, out SortedDictionary<string, Byte[]> systems)` | managed_helper |
+
 ## BunnyLoader.Source.BunnyWorldSystem
 
 abstract class; base: `System.Object`.
@@ -2463,12 +2679,57 @@ abstract class; base: `System.Object`.
 | --- | --- |
 | `void ClearWorld()` | worker_async_entity |
 | `void LoadWorldData(BunnyWorldData tag)` | worker_async_entity |
+| `void LoadWorldData(BunnyWorldTag tag)` | worker_async_entity |
+| `void NetReceive(BinaryReader reader)` | worker_async_entity |
 | `void NetReceive(BunnyNetReader reader)` | worker_async_entity |
+| `void NetSend(BinaryWriter writer)` | worker_async_entity |
 | `void NetSend(BunnyNetWriter writer)` | worker_async_entity |
 | `void OnWorldEnter(ref BunnyWorldContext world)` | worker_async_entity |
 | `void OnWorldExit()` | worker_async_entity |
+| `void OnWorldLoad()` | worker_async_entity |
 | `void OnWorldTick(ref BunnyWorldContext world)` | worker_async_entity |
+| `void OnWorldUnload()` | worker_async_entity |
+| `void PostWorldLoad()` | worker_async_entity |
 | `void SaveWorldData(BunnyWorldData tag)` | worker_async_entity |
+| `void SaveWorldData(BunnyWorldTag tag)` | worker_async_entity |
+
+## BunnyLoader.Source.BunnyWorldTag
+
+class; base: `System.Object`.
+
+```csharp
+BunnyWorldTag()
+int Count { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `bool ContainsKey(string key)` | managed_helper |
+| `bool GetBoolean(string key)` | managed_helper |
+| `bool Remove(string key)` | managed_helper |
+| `int GetInt32(string key)` | managed_helper |
+| `string GetString(string key)` | managed_helper |
+| `void Clear()` | managed_helper |
+| `void SetBoolean(string key, bool value)` | managed_helper |
+| `void SetInt32(string key, int value)` | managed_helper |
+| `void SetString(string key, string value)` | managed_helper |
+
+## BunnyLoader.Source.BunnyWorldUpdateLoader
+
+abstract class; base: `BunnyLoader.Source.BunnyHookModule`.
+
+```csharp
+Int64 CallbackCount { get; }
+Int64 ErrorCount { get; }
+bool IsRegistered { get; }
+string LastError { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `string DiagnosticStatus()` | managed_helper |
+| `void Load(BunnyHookScope hooks)` | managed_helper |
+| `void Unload()` | managed_helper |
 
 ## BunnyLoader.Source.ItemRarityID
 
@@ -2496,6 +2757,34 @@ int ArmorPenetrationBonus { get; set; }
 int CriticalBonus { get; set; }
 int TagDamageBonus { get; set; }
 ```
+
+## BunnyLoader.Source.StatInheritanceData
+
+struct; base: `System.ValueType`.
+
+```csharp
+StatInheritanceData(float damageInheritance, float critChanceInheritance, float attackSpeedInheritance, float armorPenInheritance, float knockbackInheritance)
+```
+
+## BunnyLoader.Source.StatModifier
+
+struct; base: `System.ValueType`.
+
+```csharp
+StatModifier()
+StatModifier(float additive, float multiplicative, float flat, float base)
+float Additive { get; }
+float Multiplicative { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `StatModifier CombineWith(StatModifier other)` | managed_helper |
+| `StatModifier Scale(float scale)` | managed_helper |
+| `bool Equals(Object obj)` | managed_helper |
+| `float ApplyTo(float baseValue)` | managed_helper |
+| `float Undo(float currentValue)` | managed_helper |
+| `int GetHashCode()` | managed_helper |
 
 ## Terraria.Utilities.UnifiedRandom
 

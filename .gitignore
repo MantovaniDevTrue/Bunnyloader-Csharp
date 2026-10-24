@@ -96,3 +96,4 @@ app/src/main/res/font/bunny.ttf
 /tools/sdk_reference/obj/
 /tools/csharp_contracts/**/bin/
 /tools/csharp_contracts/**/obj/
+**/__pycache__/

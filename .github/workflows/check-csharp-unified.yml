@@ -1,0 +1,54 @@
+name: Unified Bunny CSharp source verification
+
+on:
+  push:
+    branches: [integration/csharp-unified-20261024]
+  pull_request:
+    paths:
+      - 'app/src/main/cpp/experiments/csharp/**'
+      - 'experiments/csharp/**'
+      - 'samples/ExampleModCSharp/**'
+      - 'tests/invasion/**'
+      - 'tests/shooting/**'
+      - 'tests/ready_prs/**'
+      - 'tests/keybind_loader/**'
+      - 'tools/five_loaders/**'
+      - '.github/workflows/check-csharp-unified.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  integrated-host:
+    if: github.ref == 'refs/heads/integration/csharp-unified-20261024' || (github.event_name == 'pull_request' && github.base_ref == 'integration/csharp-unified-20261024')
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+      - name: Verify minion zero-speed ABI regression
+        run: mkdir -p build/unified-speed && c++ -std=c++20 -Wall -Wextra -Werror -Iapp/src/main/cpp tests/csharp_unified/weapon_speed_test.cpp -o build/unified-speed/check && build/unified-speed/check
+      - name: Verify five-loader contracts and Mobile ABI fixtures
+        run: |
+          python3 -m pip install --quiet unicorn==2.1.4 pyelftools==0.33
+          bash tools/five_loaders/check.sh
+      - name: Verify Dust Invasion and shooting sources
+        run: |
+          python3 tests/invasion/check_item_use_contract.py
+          python3 tests/csharp_unified/check_early_mono_crash_probe.py
+          bash tests/ready_prs/run.sh
+          dotnet run --project tests/shooting/Shooting.csproj -c Release
+      - name: Compile both editable CSharp sample mods
+        run: |
+          dotnet build tests/five_loaders/QaMod.csproj -c Release --nologo -m:1
+          dotnet run --project tests/five_loaders/Probe/Probe.csproj -c Release -- samples/FiveLoadersCSharp/Playable
+          dotnet run --project tests/ready_prs/FullExampleRuntime/FullExampleRuntime.csproj -c Release -- samples/ExampleModCSharp/Playable
+          python3 tools/mods/pack.py samples/FiveLoadersCSharp/Playable
+          python3 tools/mods/pack.py samples/ExampleModCSharp/Playable

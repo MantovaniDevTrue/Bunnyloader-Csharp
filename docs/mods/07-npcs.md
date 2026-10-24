@@ -494,16 +494,31 @@ export class Fortress extends ModNPC {
 }
 ```
 
+The bar is drawn like the game's bars on mobile (`GUIBossBar.Draw`): the
+panel under the minimap, in the same place and style as the Eye of Cthulhu's,
+with the icon on the left, the life and the shield over it (with a
+shield, the number shown is the shield's, as on the Lunar Pillars).
+
 `PreDraw(spriteBatch, npc, drawParams)` receives tModLoader's
 `BossBarDrawParams` (`IconTexture`, `IconFrame`, `Life`, `LifeMax`, `Shield`,
 `ShieldMax`, `BarCenter`, `BarColor`, `IconColor`, `IconScale`, `ShowText`,
-`TextOffset`, `BarTexture`), which apply to the drawing (returning `false`,
-the game's bar does not show); `PostDraw` comes after. A
+`TextOffset`, `BarTexture`); returning `false`, the bar does not show, and
+`PostDraw` comes after. What is changed in it applies to the drawing, within
+the mobile layout: the values, the icon, `BarColor` (tints the bar),
+`IconColor` and `ShowText`. `BarCenter` says where the panel is but changing
+it does not move it, `IconScale` and `TextOffset` do not apply, and
+`BarTexture` is `null`. A
 [`GlobalBossBar`](12-globais-e-mundo.md#tiles-buffs-boss-bars-and-recipes)
 changes every bar, the game's included.
 
 The Example Mod's Eye of ??? uses `ExampleBossBar`: the head icon for the
 current phase and, as a shield, what is left until the 2nd phase.
 
-Treasure bags and the boss-defeated flag do not have a Bunny Loader shortcut
+A treasure bag is a `ModItem` with `CanRightClick` and `ModifyItemLoot` (the
+Example Mod's `ExampleBossBag`). Marked with `ItemID.Sets.BossBag[Type] = true`,
+it glows on the ground and can drop a developer set when opened, like the
+game's hardmode bags; also marking `ItemID.Sets.PreHardmodeLikeBossBag[Type]`
+turns that off, like the pre-hardmode ones (and Queen Slime's).
+
+The boss-defeated flag does not have a Bunny Loader shortcut
 yet.

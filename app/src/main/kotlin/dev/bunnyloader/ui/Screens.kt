@@ -188,7 +188,7 @@ private fun FeaturedCard(entry: Catalog.Entry, shell: Shell, onOpen: (String) ->
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 PixelText(
-                    entry.manifest.name, size = Ts.Head, color = Bl.Text,
+                    entry.manifest.nameFor(UiLocalization.language), size = Ts.Head, color = Bl.Text,
                     maxLines = 2, overflow = TextOverflow.Ellipsis,
                 )
                 AuthorStrip(entry, shell.catalog)
@@ -359,7 +359,7 @@ fun PacotesTab(shell: Shell, onOpen: (String) -> Unit) {
     var query by rememberSaveable { mutableStateOf("") }
     var type by rememberSaveable { mutableStateOf(PackType.MOD) }
     val search = rememberPackageSearchIndex(shell.packages)
-    val packages = remember(shell.packages, shell.enabled, type, query) {
+    val packages = remember(shell.packages, shell.enabled, type, query, search) {
         filterPackages(shell.packages, shell.enabled, PackageStatus.ALL, PackageSort.LOAD, type, query, index = search)
     }
     val counts = remember(shell.packages) { shell.packages.groupingBy { it.manifest.packType }.eachCount() }
@@ -390,7 +390,7 @@ fun PacotesTab(shell: Shell, onOpen: (String) -> Unit) {
         if (uri != null) {
             shell.importPackage(uri) { result ->
                 aviso = result.fold(
-                    onSuccess = { tr("%1\$s instalado", it.name) to true },
+                    onSuccess = { tr("%1\$s instalado", it.nameFor(UiLocalization.language)) to true },
                     onFailure = {
                         if (it is ImportCancelled) tr("Importação cancelada.") to true
                         else tr("Não deu: %1\$s", it.message) to false
@@ -477,7 +477,7 @@ fun PacotesTab(shell: Shell, onOpen: (String) -> Unit) {
             ModRow(e, shell.catalog, { if (!preview) onOpen(e.uid) }, modifier, fill = fill, besideIcon = if (manualOrder) ({
                 val canMoveUp = index > 0 && (packages[index - 1].uid in shell.enabled) == (e.uid in shell.enabled)
                 val canMoveDown = index < packages.lastIndex && (packages[index + 1].uid in shell.enabled) == (e.uid in shell.enabled)
-                ModOrderButtons(e.manifest.name, canMoveUp, canMoveDown,
+                ModOrderButtons(e.manifest.nameFor(UiLocalization.language), canMoveUp, canMoveDown,
                     { if (!preview) { animateNextMove(e.uid); shell.moveModTo(e.uid, packages[index - 1].uid) } },
                     { if (!preview) { animateNextMove(e.uid); shell.moveModTo(e.uid, packages[index + 1].uid) } })
             }) else null) {
@@ -502,8 +502,9 @@ fun PacotesTab(shell: Shell, onOpen: (String) -> Unit) {
 @Composable
 private fun rememberPackageSearchIndex(packages: List<Catalog.Entry>): PackageSearchIndex {
     // Ordem e imagens podem mudar sem alterar os campos pesquisáveis.
-    val manifests = remember(packages) { packages.map { it.manifest }.toSet() }
-    return remember(manifests) { PackageSearchIndex(packages) }
+    val manifests = packages.map { it.manifest }.toSet()
+    val language = UiLocalization.language
+    return remember(manifests, language) { PackageSearchIndex(packages, language) }
 }
 
 @Composable
@@ -546,6 +547,11 @@ fun ConfigTab(
     var modMenu by remember { mutableStateOf(prefs.devModMenu) }
     var editor by remember { mutableStateOf(prefs.devEditor) }
     var restart by remember { mutableStateOf(prefs.devRestart) }
+    var sourcesOpen by rememberSaveable { mutableStateOf(false) }
+    if (sourcesOpen) {
+        ModSourcesScreen(shell) { sourcesOpen = false }
+        return
+    }
 
     Box {
         Column(Modifier.fillMaxSize().verticalScroll(scroll).padding(horizontal = EdgePad)) {
@@ -597,6 +603,8 @@ fun ConfigTab(
             ) { devChannel = it; prefs.devChannel = it }
 
             SectionTitle(tr("Desenvolvedor"))
+            PixelButton(tr("Código-fonte dos mods"), { sourcesOpen = true },
+                Modifier.fillMaxWidth().padding(bottom = 10.dp), icon = R.drawable.ic_folder)
             QuickStartCard(prefs)
             Setting(
                 tr("Mod Menu"),
@@ -947,7 +955,7 @@ private fun ImportProgressDialog(progress: Float) {
 @Composable
 private fun UpdateImportDialog(file: ModManifest, installed: ModManifest, onAnswer: (Boolean) -> Unit) {
     PixelDialog(tr("Atualizar mod?"), onDismiss = { onAnswer(false) }) {
-        PixelText(tr("%1\$s já está instalado.", installed.name), size = Ts.Body)
+        PixelText(tr("%1\$s já está instalado.", installed.nameFor(UiLocalization.language)), size = Ts.Body)
         PixelText(tr("Instalado: %1\$s · Arquivo: %2\$s", installed.version, file.version),
             size = Ts.Small, color = Bl.TextDim)
         val order = compareVersions(file.version, installed.version)

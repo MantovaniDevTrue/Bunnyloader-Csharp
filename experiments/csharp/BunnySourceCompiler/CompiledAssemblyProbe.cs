@@ -196,6 +196,17 @@ public static class CompiledAssemblyProbe
             var npcTypes = contentTypes
                 .Where(type => IsContentType(type, "BunnyNPC"))
                 .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
+            var hookTypes = contentTypes.Where(type => type.IsClass && !type.IsAbstract && !type.ContainsGenericParameters &&
+                Ancestors(type).Any(ancestor => ancestor.FullName == "BunnyLoader.Source.BunnyHookModule"))
+                .OrderBy(type => type.FullName, StringComparer.Ordinal).ToArray();
+            if (hookTypes.Any(type => type.GetConstructor(Type.EmptyTypes) == null))
+                throw new InvalidOperationException("HookModule requires a public empty constructor");
+            var worldTypes = contentTypes
+                .Where(type => IsContentType(type, "BunnyWorldSystem"))
+                .OrderBy(type => type.FullName, StringComparer.Ordinal).ToArray();
+            if (worldTypes.Length > 512 || worldTypes.Any(type =>
+                type.GetConstructor(Type.EmptyTypes) == null))
+                throw new InvalidOperationException("WorldSystem requires a public empty constructor");
             var prefixTypes = contentTypes
                 .Where(type => IsContentType(type, "BunnyPrefix"))
                 .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
@@ -215,7 +226,7 @@ public static class CompiledAssemblyProbe
                 weaponTypes.Length > 4096 || basicItemTypes.Length > 4096 ||
                 buffTypes.Length > 4096 || potionTypes.Length > 4096 || screenEffectTypes.Length > 4096)
                 throw new InvalidOperationException("C# content class count out of bounds");
-            if (treeTypes.Length + goreTypes.Length + dustTypes.Length + wallTypes.Length + tileTypes.Length + basicItemTypes.Length + projectileTypes.Length + weaponTypes.Length + buffTypes.Length + potionTypes.Length + accessoryTypes.Length + playerTypes.Length + npcTypes.Length + prefixTypes.Length + screenEffectTypes.Length + rarityTypes.Length + localizationTypes.Length + commandCount == 0)
+            if (treeTypes.Length + goreTypes.Length + dustTypes.Length + wallTypes.Length + tileTypes.Length + basicItemTypes.Length + projectileTypes.Length + weaponTypes.Length + buffTypes.Length + potionTypes.Length + accessoryTypes.Length + playerTypes.Length + npcTypes.Length + prefixTypes.Length + screenEffectTypes.Length + rarityTypes.Length + localizationTypes.Length + commandCount + worldTypes.Length + hookTypes.Length == 0)
                 throw new InvalidOperationException("C# assembly has no supported content types");
             bool fixture = projectileTypes.Any(t => t.FullName == "SourceCSharpMod.SourceBolt") &&
                 weaponTypes.Any(t => t.FullName == "SourceCSharpMod.SourceWand");
@@ -272,11 +283,12 @@ public static class CompiledAssemblyProbe
                 " trees=" + trees.Length + " gores=" + gores.Length + " dusts=" + dusts.Length + " npcs=" + npcs.Length + " tiles=" + tiles.Length + " prefixes=" + prefixes.Length +
                 " rarities=" + rarityTypes.Length +
                 " screenEffects=" + screenEffects.Length + " localizationModules=" + localizationTypes.Length + " commands=" + commandCount +
+                " worldSystems=" + worldTypes.Length +
                 (fixture
                     ? " projectile=SourceBolt width=10 weapon=SourceWand damage=22 shoot=SourceBolt"
                     : " policy=generic-managed-defaults"));
             return projectiles.Length + weapons.Length + buffs.Length + potions.Length +
-                accessories.Length + players.Length + npcs.Length + prefixes.Length + basicItems.Length + tiles.Length + trees.Length + gores.Length + dusts.Length + walls.Length + screenEffects.Length + rarityTypes.Length + localizationTypes.Length + commandCount;
+                accessories.Length + players.Length + npcs.Length + prefixes.Length + basicItems.Length + tiles.Length + trees.Length + gores.Length + dusts.Length + walls.Length + screenEffects.Length + rarityTypes.Length + localizationTypes.Length + commandCount + worldTypes.Length + hookTypes.Length;
         }
         catch (Exception exception)
         {

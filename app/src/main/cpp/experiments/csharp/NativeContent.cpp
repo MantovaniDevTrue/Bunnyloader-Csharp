@@ -1,6 +1,8 @@
 #include "experiments/csharp/SourceLimits.h"
 #include "experiments/csharp/ContentTexture.h"
 #include "experiments/csharp/NativeContent.h"
+#include "experiments/csharp/WeaponSpeedContract.h"
+#include "experiments/csharp/WeaponSpeedContract.h"
 #include "experiments/csharp/ManagedRuntime.h"
 #include "experiments/csharp/ManagedProjectileHook.h"
 #include "experiments/csharp/ManagedMinionBuff.h"
@@ -17,6 +19,7 @@
 #include "experiments/csharp/NativeTileMiningPolicy.h"
 #include "experiments/csharp/NativeTreeTexturePolicy.h"
 #include "experiments/csharp/NativeGorePolicy.h"
+#include "experiments/csharp/ManagedGoreRuntime.h"
 #include "experiments/csharp/NativeManagedTablePublication.h"
 #include "experiments/csharp/NativeBootEffects.h"
 
@@ -281,7 +284,7 @@ int registerNativeWeapon(NativeRegisterContext& ctx, const NativeContentSpec& sp
         return reject("WeaponDamageOutOfRange", "Damage:1..1000", std::to_string(spec.damage));
     if (spec.useTime < 2 || spec.useTime > 120)
         return reject("WeaponUseTimeOutOfRange", "UseTime:2..120", std::to_string(spec.useTime));
-    if (!validWeaponShootSpeed(spec.shootSpeed))
+    if (!validNativeWeaponShootSpeed(spec.shootSpeed, spec.summon))
         return reject("WeaponShootSpeedOutOfRange", "FiniteShootSpeed:0..40", std::to_string(spec.shootSpeed));
     if (!bl::runtime::modProjectileBelongsTo(spec.shootType, ctx.modId))
         return reject("WeaponProjectileOwnershipMismatch", "ProjectileOwnedByMod", std::to_string(spec.shootType));
@@ -1860,7 +1863,7 @@ bool applyManagedNativeDefaultsBatch(
                 entry.summon, entry.minionBuffType, entry.minionBuffTime}).second ||
             data.damage < 1 || data.damage > 1000 ||
             data.useTime < 2 || data.useTime > 120 ||
-            !validWeaponShootSpeed(data.shootSpeed))
+            !validNativeWeaponShootSpeed(data.shootSpeed, entry.summon))
             return false;
     }
     const bool needsTileCollisionHook = std::any_of(projectiles.begin(),projectiles.end(),
@@ -2704,6 +2707,11 @@ bool publishManagedNativeGores(const std::string& modId,const std::string& direc
     if(!table_publication::publish(a,fields.data(),original.data(),pending.data(),
                                    fields.size(),roots))
         return fail("Publish","GoreTablesNotConfirmed");
+    std::vector<gore::DeclaredGore> declared;
+    for(size_t i=0;i<gores.size();++i)
+        declared.push_back({gores[i].name,static_cast<int>(first+i),assets[i],
+                            gores[i].specialAI,gores[i].safeGore});
+    if(!gore::adoptDeclared(modId,declared,error))return false;
     for(size_t i=0;i<gores.size();++i)
         ids->emplace(gores[i].name,static_cast<int>(first+i));
     BL_INFO("[CSharp][GoreLoader] Mod=%s Registered=%zu First=%zu Result=Ready",

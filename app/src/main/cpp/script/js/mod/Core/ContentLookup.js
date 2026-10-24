@@ -2,6 +2,7 @@
 // 'mod/Nome'), e as texturas do mod. Não achou: 0, como no tModLoader.
 class ContentLookup {
     static #textures = new Map();   // arquivo -> Asset<Texture2D>
+    static #fonts = new Map();      // arquivo -> { Value: SpriteFont }
     static #as = null;              // o mod do As(), no lugar do bl.mod
 
     static Registry(base) {
@@ -9,6 +10,7 @@ class ContentLookup {
         if (base === ModProjectile) return ProjectileLoader.ByType;
         if (base === ModNPC) return NPCLoader.ByType;
         if (base === ModBuff) return BuffLoader.ByType;
+        if (base === ModDust) return DustLoader.ByType;
         if (base === ModTile) return TileLoader.ByType;
         if (base === ModWall) return WallLoader.ByType;
         if (base === ModPrefix) return PrefixLoader.ByType;
@@ -19,7 +21,7 @@ class ContentLookup {
         if (base === ModAchievement) return AchievementLoader.ByName;
         if (base === ModRarity) return RarityLoader.ByType;
 
-        throw new TypeError('ModContent: espera ModItem, ModProjectile, ModNPC, ModBuff, ModTile, ModWall, ModPrefix, ModMount, ModHair, ModCloud, ModEmoteBubble, ModAchievement ou ModRarity');
+        throw new TypeError('ModContent: espera ModItem, ModProjectile, ModNPC, ModBuff, ModDust, ModTile, ModWall, ModPrefix, ModMount, ModHair, ModCloud, ModEmoteBubble, ModAchievement ou ModRarity');
     }
 
     // Pelo nome: no mod de quem chama, ou no único mod que o tem.
@@ -87,6 +89,26 @@ class ContentLookup {
         return null;
     }
 
+    // Uma fonte do mod: 'Assets/Fonts/ExampleFont' -> Assets/Fonts/ExampleFont.json.
+    static FindFont(path) {
+        const rel = String(path).replace(/^\/+/, '').replace(/\.json$/i, '') + '.json';
+        const inRoot = (root, r) => {
+            const full = bl.path.join(root, r);
+            return bl.file.exists(full) ? full : null;
+        };
+
+        const current = ContentLookup.#as || bl.mod;
+        const mine = current && current.path ? inRoot(current.path, rel) : null;
+        if (mine) return mine;
+
+        const slash = rel.indexOf('/');
+        if (slash > 0) {
+            const mod = ModRegistry.Find(rel.slice(0, slash), 'ModContent');
+            if (mod && mod.path) return inRoot(mod.path, rel.slice(slash + 1));
+        }
+        return null;
+    }
+
     // Roda `fn` como se `mod` estivesse carregando: o caminho sem id de mod do
     // ModContent.Request é dele (o SetStaticDefaults adiado para a thread do jogo).
     static As(mod, fn) {
@@ -100,10 +122,25 @@ class ContentLookup {
     }
 
     static Request(path) {
+        // As imagens do jogo, como no tModLoader: "Terraria/Images/UI/ButtonPlay".
+        if (/^Terraria\//.test(path)) return bl.vanillaTexture(path);
         const file = ContentLookup.FindTexture(path);
-        if (!file) throw new Error("ModContent.Request: nao achei a textura '" + path + "' no mod");
+        if (file) return ContentLookup.RequestFile(file);
 
-        return ContentLookup.RequestFile(file);
+        const font = ContentLookup.FindFont(path);
+        if (font) return ContentLookup.RequestFont(path, font);
+
+        throw new Error("ModContent.Request: nao achei a textura '" + path + "' no mod");
+    }
+
+    // O Asset<DynamicSpriteFont> do tModLoader: Value e o SpriteFont do celular.
+    static RequestFont(name, file) {
+        let asset = ContentLookup.#fonts.get(file);
+        if (!asset) {
+            asset = Object.freeze({ Name: String(name), Value: bl.loadFont(file), IsLoaded: true });
+            ContentLookup.#fonts.set(file, asset);
+        }
+        return asset;
     }
 
     // Pelo caminho completo do arquivo (sem depender de quem chama).

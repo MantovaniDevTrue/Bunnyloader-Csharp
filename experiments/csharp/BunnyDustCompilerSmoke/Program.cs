@@ -121,8 +121,9 @@ public sealed class BrokenSpawnDust : BunnyDust
             Math.Abs(state.Scale - 1.728f) > 0.00001f)
             throw new Exception("Dust world reset lifecycle mismatch");
     }
-    var broken = output;
-    var brokenType = System.Reflection.Assembly.LoadFrom(broken)
+    using var dustCallbackAssembly = BunnyModAssemblyRegistry.Acquire(
+        "57a98f20-7a35-4d19-8ce8-079e25bb36a1", output);
+    var brokenType = dustCallbackAssembly.Assembly
         .GetType("BunnyDustSmoke.BrokenSpawnDust", throwOnError: true)!;
     var attempts = brokenType.GetField("SpawnAttempts")!;
     BunnyDustState failed = new()

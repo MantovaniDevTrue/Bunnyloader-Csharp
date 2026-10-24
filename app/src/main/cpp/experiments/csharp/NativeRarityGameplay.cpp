@@ -10,6 +10,7 @@
 #include "experiments/csharp/NativeTooltipPanelAlpha.h"
 #include "experiments/csharp/NativeTooltipPanelRenderer.h"
 #include "experiments/csharp/NativeRarityPalette.h"
+#include "experiments/csharp/NativeRarityRetryPolicy.h"
 #include "experiments/csharp/NativeRarityColorWire.h"
 #include "experiments/csharp/NativeRarityTextColor.h"
 #include "experiments/csharp/NativeRarityMouseTextCache.h"
@@ -56,6 +57,7 @@ struct RarityMod {
     uint64_t generation = 0;
     bool ready = false;
     bool failed = false;
+    uint64_t nextSampleTick = 0;
 };
 
 std::mutex g_mutex;
@@ -65,7 +67,7 @@ uint64_t g_nextGeneration=0;
 std::set<int> g_retiredTypes;
 NativeColorLayout g_colorLayout;
 std::atomic<bool> g_hookReady{false};
-unsigned g_tick = 0;
+uint64_t g_tick = 0;
 size_t g_modCursor = 0;
 using PopupColorFn = uint32_t (*)(int32_t, const MethodInfo*);
 PopupColorFn g_originalPopup = nullptr;
@@ -1308,6 +1310,7 @@ void pumpNativeRarityGameplay() {
         refreshRarityHoverFallback();
     if ((g_tick & 1u) != 0) return;
     RarityMod current;
+    bool sampleDeferred = false;
     {
         std::lock_guard guard(g_mutex);
         if (g_mods.empty()) return;
@@ -1320,8 +1323,10 @@ void pumpNativeRarityGameplay() {
             current.assembly = mod.assembly;
             current.generation = mod.generation;
             if (mod.ready && !mod.rarities.empty()) {
-                current.rarities.push_back(mod.rarities[mod.cursor % mod.rarities.size()]);
-                mod.cursor = (mod.cursor + 1) % mod.rarities.size();
+                if (raritySampleReady(g_tick, mod.nextSampleTick)) {
+                    current.rarities.push_back(mod.rarities[mod.cursor % mod.rarities.size()]);
+                    mod.cursor = (mod.cursor + 1) % mod.rarities.size();
+                } else sampleDeferred = true;
             }
             found = true;
             break;
@@ -1329,6 +1334,7 @@ void pumpNativeRarityGameplay() {
         if (!found) return;
     }
 
+    if (sampleDeferred) return;
     if (current.rarities.empty()) {
         std::string error;
         const int state = managedRarityWarmupState(current.id, current.assembly, &error);
@@ -1350,6 +1356,14 @@ void pumpNativeRarityGameplay() {
     const auto& sample = current.rarities.front();
     if (!invokeManagedRarity(current.id, current.assembly, sample.name,
             0, discoSnapshot(), &response, 1200)) {
+        if (rarityRetryPending(response)) {
+            const std::lock_guard guard(g_mutex);
+            for (auto& mod : g_mods)
+                if (mod.id == current.id) {
+                    mod.nextSampleTick = rarityRetryAt(g_tick);
+                    break;
+                }
+        }
         if (g_tick % 600u == 0)
             BL_WARN("[CSharp][RarityLoader] Mod=%s Stage=SampleColor Result=Pending Detail=%s",
                 current.id.c_str(), response.c_str());

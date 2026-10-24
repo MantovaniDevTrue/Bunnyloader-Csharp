@@ -44,7 +44,8 @@ int main(int argc, char** argv) {
             ++commands;
             continue;
         }
-        if (type.base == "BunnyPlayer" || type.base == "BunnyScreenEffect" ||
+        if (!sourceRequiresNativeRegistration(type.base) ||
+            type.base == "BunnyScreenEffect" ||
             type.base == "BunnyRarity" || type.base == "BunnyPrefix" ||
             type.base == "BunnyDust") continue;
         NativeContentSpec spec{};
@@ -69,7 +70,7 @@ int main(int argc, char** argv) {
         }
         ++checked;
     }
-    assert(commands == 3);
+    assert(commands == 4);
     assert(targets.at("ExampleBuffPotion") == "ExampleDefenseBuff");
     assert(targets.at("ExampleWand") == "ExampleBolt");
     // Calls on either side of native references must remain deferred to Mono.

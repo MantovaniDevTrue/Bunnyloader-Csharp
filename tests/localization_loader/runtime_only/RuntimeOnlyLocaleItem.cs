@@ -11,8 +11,10 @@ public sealed class RuntimeOnlyLocaleItem : BunnyItem
         MaxStack = 1;
     }
 
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public static void InstallTranslation()
     {
         BunnyLocalizationRuntime.Register("LegacyInterface.28", "en-US", "Runtime only");
+        System.GC.KeepAlive(typeof(RuntimeOnlyLocaleItem));
     }
 }

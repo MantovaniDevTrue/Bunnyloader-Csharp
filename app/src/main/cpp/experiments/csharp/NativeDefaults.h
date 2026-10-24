@@ -3,6 +3,7 @@
 #include "experiments/csharp/NativeContentIds.h"
 #include "experiments/csharp/NativeUseSounds.h"
 #include "experiments/csharp/NativeDrinkParticleColors.h"
+#include "experiments/csharp/BunnyItemRarityId.h"
 #include <atomic>
 #include <charconv>
 #include <cmath>
