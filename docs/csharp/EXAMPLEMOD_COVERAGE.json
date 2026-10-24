@@ -28,8 +28,8 @@
     "officialCommit": "c9545cf27d56c456321e1896274c02adf67d0140"
   },
   "counts": {
-    "validado automaticamente": 17,
-    "não iniciado": 666,
+    "validado automaticamente": 22,
+    "não iniciado": 661,
     "implementado sem validar": 46,
     "falhou": 3,
     "validado no Android": 1
@@ -803,8 +803,8 @@
       "validationScope": "host; Android pendente",
       "validatedFilesSha256": {
         "samples/ExampleModCSharp/Playable/content/Common/Systems/ExampleWorldProgressSystem.cs": "2136edd8b4a8b9ae307d010b064eafafdb5f8208aed9853c2a2f237b9bc08ad8",
-        "tests/examplemod_pre_apk/ExampleModPreApk.csproj": "89c99516a239624efd32e135b7becd5372d9d21ea9c37e2071abed98d61a636a",
-        "tests/examplemod_pre_apk/Program.cs": "a81f5d7de880d55874a3841977194c01f226b119fb4d3fb2406008cb710f8366"
+        "tests/examplemod_pre_apk/ExampleModPreApk.csproj": "7f3253e1fdd7445db363a75b6203c2e6b04a3ad717cd83ba4e9c04a6717a5c76",
+        "tests/examplemod_pre_apk/Program.cs": "ed51a87ed58a84594ec0fb822c2a51703b781817eb86886e6cd4a3ec5624d3b0"
       }
     },
     {
@@ -827,8 +827,8 @@
       "validationScope": "host; Android pendente",
       "validatedFilesSha256": {
         "samples/ExampleModCSharp/Playable/content/Common/Systems/ExampleWorldProgressSystem.cs": "2136edd8b4a8b9ae307d010b064eafafdb5f8208aed9853c2a2f237b9bc08ad8",
-        "tests/examplemod_pre_apk/ExampleModPreApk.csproj": "89c99516a239624efd32e135b7becd5372d9d21ea9c37e2071abed98d61a636a",
-        "tests/examplemod_pre_apk/Program.cs": "a81f5d7de880d55874a3841977194c01f226b119fb4d3fb2406008cb710f8366"
+        "tests/examplemod_pre_apk/ExampleModPreApk.csproj": "7f3253e1fdd7445db363a75b6203c2e6b04a3ad717cd83ba4e9c04a6717a5c76",
+        "tests/examplemod_pre_apk/Program.cs": "ed51a87ed58a84594ec0fb822c2a51703b781817eb86886e6cd4a3ec5624d3b0"
       }
     },
     {
@@ -851,8 +851,8 @@
       "validationScope": "host; Android pendente",
       "validatedFilesSha256": {
         "samples/ExampleModCSharp/Playable/content/Common/Systems/ExampleWorldProgressSystem.cs": "2136edd8b4a8b9ae307d010b064eafafdb5f8208aed9853c2a2f237b9bc08ad8",
-        "tests/examplemod_pre_apk/ExampleModPreApk.csproj": "89c99516a239624efd32e135b7becd5372d9d21ea9c37e2071abed98d61a636a",
-        "tests/examplemod_pre_apk/Program.cs": "a81f5d7de880d55874a3841977194c01f226b119fb4d3fb2406008cb710f8366"
+        "tests/examplemod_pre_apk/ExampleModPreApk.csproj": "7f3253e1fdd7445db363a75b6203c2e6b04a3ad717cd83ba4e9c04a6717a5c76",
+        "tests/examplemod_pre_apk/Program.cs": "ed51a87ed58a84594ec0fb822c2a51703b781817eb86886e6cd4a3ec5624d3b0"
       }
     },
     {
@@ -875,8 +875,8 @@
       "validationScope": "host; Android pendente",
       "validatedFilesSha256": {
         "samples/ExampleModCSharp/Playable/content/Common/Systems/ExampleWorldProgressSystem.cs": "2136edd8b4a8b9ae307d010b064eafafdb5f8208aed9853c2a2f237b9bc08ad8",
-        "tests/examplemod_pre_apk/ExampleModPreApk.csproj": "89c99516a239624efd32e135b7becd5372d9d21ea9c37e2071abed98d61a636a",
-        "tests/examplemod_pre_apk/Program.cs": "a81f5d7de880d55874a3841977194c01f226b119fb4d3fb2406008cb710f8366"
+        "tests/examplemod_pre_apk/ExampleModPreApk.csproj": "7f3253e1fdd7445db363a75b6203c2e6b04a3ad717cd83ba4e9c04a6717a5c76",
+        "tests/examplemod_pre_apk/Program.cs": "ed51a87ed58a84594ec0fb822c2a51703b781817eb86886e6cd4a3ec5624d3b0"
       }
     },
     {
@@ -899,8 +899,8 @@
       "validationScope": "host; Android pendente",
       "validatedFilesSha256": {
         "samples/ExampleModCSharp/Playable/content/Common/Systems/ExampleWorldProgressSystem.cs": "2136edd8b4a8b9ae307d010b064eafafdb5f8208aed9853c2a2f237b9bc08ad8",
-        "tests/examplemod_pre_apk/ExampleModPreApk.csproj": "89c99516a239624efd32e135b7becd5372d9d21ea9c37e2071abed98d61a636a",
-        "tests/examplemod_pre_apk/Program.cs": "a81f5d7de880d55874a3841977194c01f226b119fb4d3fb2406008cb710f8366"
+        "tests/examplemod_pre_apk/ExampleModPreApk.csproj": "7f3253e1fdd7445db363a75b6203c2e6b04a3ad717cd83ba4e9c04a6717a5c76",
+        "tests/examplemod_pre_apk/Program.cs": "ed51a87ed58a84594ec0fb822c2a51703b781817eb86886e6cd4a3ec5624d3b0"
       }
     },
     {
@@ -10909,11 +10909,26 @@
       "candidates": [
         "samples/ExampleModCSharp/Playable/content/Content/Tiles/Plants/ExampleTree.cs"
       ],
-      "status": "não iniciado",
-      "note": "Equivalência deste comportamento ainda não auditada.",
-      "implementation": [],
-      "tests": [],
-      "androidEvidence": []
+      "status": "validado automaticamente",
+      "note": "Host: ExampleTree C# do pacote Playable registra terreno ExampleTile, muda ExampleSapling, madeira ExampleItem, item de Shake ExampleTileItem e Gore ExampleTree_Leaf; a muda usa chance 1/20 e a folha preserva SpecialAI=3 e SafeGore. Contratos de propriedades testados; desenho, corte, Shake e crescimento no Terraria Android ainda exigem QA.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Content/Tiles/Plants/ExampleTree.cs",
+        "samples/ExampleModCSharp/Playable/content/Content/Tiles/Plants/ExampleSapling.cs",
+        "samples/ExampleModCSharp/Playable/content/Content/Gores/ExampleTree_Leaf.cs"
+      ],
+      "tests": [
+        "tests/examplemod_pre_apk/ExampleModPreApk.csproj",
+        "tests/examplemod_pre_apk/Program.cs"
+      ],
+      "androidEvidence": [],
+      "validationScope": "host; Android pendente",
+      "validatedFilesSha256": {
+        "samples/ExampleModCSharp/Playable/content/Content/Tiles/Plants/ExampleTree.cs": "0fe8eb5d54f3c2f3fea4e5f19e6d752ee0057181edbb1cd449c0ad63c31df1ef",
+        "samples/ExampleModCSharp/Playable/content/Content/Tiles/Plants/ExampleSapling.cs": "40831d41be0a9deac2737ee6dce701e76b7b10cf998c99d43ab1522c9236d8c8",
+        "samples/ExampleModCSharp/Playable/content/Content/Gores/ExampleTree_Leaf.cs": "2ddaef15eb44d98519e48564c64c768e683627a8f78fd3a374a13fc0e59d59a2",
+        "tests/examplemod_pre_apk/ExampleModPreApk.csproj": "7f3253e1fdd7445db363a75b6203c2e6b04a3ad717cd83ba4e9c04a6717a5c76",
+        "tests/examplemod_pre_apk/Program.cs": "ed51a87ed58a84594ec0fb822c2a51703b781817eb86886e6cd4a3ec5624d3b0"
+      }
     },
     {
       "id": "Content/Tiles/Plants/ExampleTree.js#SaplingGrowthType",
@@ -10924,11 +10939,26 @@
       "candidates": [
         "samples/ExampleModCSharp/Playable/content/Content/Tiles/Plants/ExampleTree.cs"
       ],
-      "status": "não iniciado",
-      "note": "Equivalência deste comportamento ainda não auditada.",
-      "implementation": [],
-      "tests": [],
-      "androidEvidence": []
+      "status": "validado automaticamente",
+      "note": "Host: ExampleTree C# do pacote Playable registra terreno ExampleTile, muda ExampleSapling, madeira ExampleItem, item de Shake ExampleTileItem e Gore ExampleTree_Leaf; a muda usa chance 1/20 e a folha preserva SpecialAI=3 e SafeGore. Contratos de propriedades testados; desenho, corte, Shake e crescimento no Terraria Android ainda exigem QA.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Content/Tiles/Plants/ExampleTree.cs",
+        "samples/ExampleModCSharp/Playable/content/Content/Tiles/Plants/ExampleSapling.cs",
+        "samples/ExampleModCSharp/Playable/content/Content/Gores/ExampleTree_Leaf.cs"
+      ],
+      "tests": [
+        "tests/examplemod_pre_apk/ExampleModPreApk.csproj",
+        "tests/examplemod_pre_apk/Program.cs"
+      ],
+      "androidEvidence": [],
+      "validationScope": "host; Android pendente",
+      "validatedFilesSha256": {
+        "samples/ExampleModCSharp/Playable/content/Content/Tiles/Plants/ExampleTree.cs": "0fe8eb5d54f3c2f3fea4e5f19e6d752ee0057181edbb1cd449c0ad63c31df1ef",
+        "samples/ExampleModCSharp/Playable/content/Content/Tiles/Plants/ExampleSapling.cs": "40831d41be0a9deac2737ee6dce701e76b7b10cf998c99d43ab1522c9236d8c8",
+        "samples/ExampleModCSharp/Playable/content/Content/Gores/ExampleTree_Leaf.cs": "2ddaef15eb44d98519e48564c64c768e683627a8f78fd3a374a13fc0e59d59a2",
+        "tests/examplemod_pre_apk/ExampleModPreApk.csproj": "7f3253e1fdd7445db363a75b6203c2e6b04a3ad717cd83ba4e9c04a6717a5c76",
+        "tests/examplemod_pre_apk/Program.cs": "ed51a87ed58a84594ec0fb822c2a51703b781817eb86886e6cd4a3ec5624d3b0"
+      }
     },
     {
       "id": "Content/Tiles/Plants/ExampleTree.js#SetStaticDefaults",
@@ -10939,11 +10969,26 @@
       "candidates": [
         "samples/ExampleModCSharp/Playable/content/Content/Tiles/Plants/ExampleTree.cs"
       ],
-      "status": "não iniciado",
-      "note": "Equivalência deste comportamento ainda não auditada.",
-      "implementation": [],
-      "tests": [],
-      "androidEvidence": []
+      "status": "validado automaticamente",
+      "note": "Host: ExampleTree C# do pacote Playable registra terreno ExampleTile, muda ExampleSapling, madeira ExampleItem, item de Shake ExampleTileItem e Gore ExampleTree_Leaf; a muda usa chance 1/20 e a folha preserva SpecialAI=3 e SafeGore. Contratos de propriedades testados; desenho, corte, Shake e crescimento no Terraria Android ainda exigem QA.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Content/Tiles/Plants/ExampleTree.cs",
+        "samples/ExampleModCSharp/Playable/content/Content/Tiles/Plants/ExampleSapling.cs",
+        "samples/ExampleModCSharp/Playable/content/Content/Gores/ExampleTree_Leaf.cs"
+      ],
+      "tests": [
+        "tests/examplemod_pre_apk/ExampleModPreApk.csproj",
+        "tests/examplemod_pre_apk/Program.cs"
+      ],
+      "androidEvidence": [],
+      "validationScope": "host; Android pendente",
+      "validatedFilesSha256": {
+        "samples/ExampleModCSharp/Playable/content/Content/Tiles/Plants/ExampleTree.cs": "0fe8eb5d54f3c2f3fea4e5f19e6d752ee0057181edbb1cd449c0ad63c31df1ef",
+        "samples/ExampleModCSharp/Playable/content/Content/Tiles/Plants/ExampleSapling.cs": "40831d41be0a9deac2737ee6dce701e76b7b10cf998c99d43ab1522c9236d8c8",
+        "samples/ExampleModCSharp/Playable/content/Content/Gores/ExampleTree_Leaf.cs": "2ddaef15eb44d98519e48564c64c768e683627a8f78fd3a374a13fc0e59d59a2",
+        "tests/examplemod_pre_apk/ExampleModPreApk.csproj": "7f3253e1fdd7445db363a75b6203c2e6b04a3ad717cd83ba4e9c04a6717a5c76",
+        "tests/examplemod_pre_apk/Program.cs": "ed51a87ed58a84594ec0fb822c2a51703b781817eb86886e6cd4a3ec5624d3b0"
+      }
     },
     {
       "id": "Content/Tiles/Plants/ExampleTree.js#Shake",
@@ -10954,11 +10999,26 @@
       "candidates": [
         "samples/ExampleModCSharp/Playable/content/Content/Tiles/Plants/ExampleTree.cs"
       ],
-      "status": "não iniciado",
-      "note": "Equivalência deste comportamento ainda não auditada.",
-      "implementation": [],
-      "tests": [],
-      "androidEvidence": []
+      "status": "validado automaticamente",
+      "note": "Host: ExampleTree C# do pacote Playable registra terreno ExampleTile, muda ExampleSapling, madeira ExampleItem, item de Shake ExampleTileItem e Gore ExampleTree_Leaf; a muda usa chance 1/20 e a folha preserva SpecialAI=3 e SafeGore. Contratos de propriedades testados; desenho, corte, Shake e crescimento no Terraria Android ainda exigem QA.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Content/Tiles/Plants/ExampleTree.cs",
+        "samples/ExampleModCSharp/Playable/content/Content/Tiles/Plants/ExampleSapling.cs",
+        "samples/ExampleModCSharp/Playable/content/Content/Gores/ExampleTree_Leaf.cs"
+      ],
+      "tests": [
+        "tests/examplemod_pre_apk/ExampleModPreApk.csproj",
+        "tests/examplemod_pre_apk/Program.cs"
+      ],
+      "androidEvidence": [],
+      "validationScope": "host; Android pendente",
+      "validatedFilesSha256": {
+        "samples/ExampleModCSharp/Playable/content/Content/Tiles/Plants/ExampleTree.cs": "0fe8eb5d54f3c2f3fea4e5f19e6d752ee0057181edbb1cd449c0ad63c31df1ef",
+        "samples/ExampleModCSharp/Playable/content/Content/Tiles/Plants/ExampleSapling.cs": "40831d41be0a9deac2737ee6dce701e76b7b10cf998c99d43ab1522c9236d8c8",
+        "samples/ExampleModCSharp/Playable/content/Content/Gores/ExampleTree_Leaf.cs": "2ddaef15eb44d98519e48564c64c768e683627a8f78fd3a374a13fc0e59d59a2",
+        "tests/examplemod_pre_apk/ExampleModPreApk.csproj": "7f3253e1fdd7445db363a75b6203c2e6b04a3ad717cd83ba4e9c04a6717a5c76",
+        "tests/examplemod_pre_apk/Program.cs": "ed51a87ed58a84594ec0fb822c2a51703b781817eb86886e6cd4a3ec5624d3b0"
+      }
     },
     {
       "id": "Content/Tiles/Plants/ExampleTree.js#TreeLeaf",
@@ -10969,11 +11029,26 @@
       "candidates": [
         "samples/ExampleModCSharp/Playable/content/Content/Tiles/Plants/ExampleTree.cs"
       ],
-      "status": "não iniciado",
-      "note": "Equivalência deste comportamento ainda não auditada.",
-      "implementation": [],
-      "tests": [],
-      "androidEvidence": []
+      "status": "validado automaticamente",
+      "note": "Host: ExampleTree C# do pacote Playable registra terreno ExampleTile, muda ExampleSapling, madeira ExampleItem, item de Shake ExampleTileItem e Gore ExampleTree_Leaf; a muda usa chance 1/20 e a folha preserva SpecialAI=3 e SafeGore. Contratos de propriedades testados; desenho, corte, Shake e crescimento no Terraria Android ainda exigem QA.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Content/Tiles/Plants/ExampleTree.cs",
+        "samples/ExampleModCSharp/Playable/content/Content/Tiles/Plants/ExampleSapling.cs",
+        "samples/ExampleModCSharp/Playable/content/Content/Gores/ExampleTree_Leaf.cs"
+      ],
+      "tests": [
+        "tests/examplemod_pre_apk/ExampleModPreApk.csproj",
+        "tests/examplemod_pre_apk/Program.cs"
+      ],
+      "androidEvidence": [],
+      "validationScope": "host; Android pendente",
+      "validatedFilesSha256": {
+        "samples/ExampleModCSharp/Playable/content/Content/Tiles/Plants/ExampleTree.cs": "0fe8eb5d54f3c2f3fea4e5f19e6d752ee0057181edbb1cd449c0ad63c31df1ef",
+        "samples/ExampleModCSharp/Playable/content/Content/Tiles/Plants/ExampleSapling.cs": "40831d41be0a9deac2737ee6dce701e76b7b10cf998c99d43ab1522c9236d8c8",
+        "samples/ExampleModCSharp/Playable/content/Content/Gores/ExampleTree_Leaf.cs": "2ddaef15eb44d98519e48564c64c768e683627a8f78fd3a374a13fc0e59d59a2",
+        "tests/examplemod_pre_apk/ExampleModPreApk.csproj": "7f3253e1fdd7445db363a75b6203c2e6b04a3ad717cd83ba4e9c04a6717a5c76",
+        "tests/examplemod_pre_apk/Program.cs": "ed51a87ed58a84594ec0fb822c2a51703b781817eb86886e6cd4a3ec5624d3b0"
+      }
     },
     {
       "id": "Content/Walls/ExampleWall.js#NumDust",
