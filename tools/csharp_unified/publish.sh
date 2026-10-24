@@ -38,7 +38,7 @@ PY
 python3 tests/five_loaders/package_import_test.py
 python3 tools/mods/pack.py samples/FiveLoadersCSharp/Playable
 python3 tools/mods/pack.py samples/ExampleModCSharp/Playable
-cp "$APK" build/unified-delivery/Bunny-Loader-CSharp-Unified-QA-1.0.14.apk
+cp "$APK" build/unified-delivery/Bunny-Loader-CSharp-Unified-QA-1.0.15.apk
 MOD_VERSION=$(python3 -c 'import json; print(json.load(open("samples/FiveLoadersCSharp/Playable/manifest.json"))["version"])')
 cp "build/mods-packs/fiveloaderscsharp-$MOD_VERSION.bl" build/unified-delivery/
 EXAMPLE_VERSION=$(python3 -c 'import json; print(json.load(open("samples/ExampleModCSharp/Playable/manifest.json"))["version"])')
@@ -49,11 +49,11 @@ cp docs/qa/five-loaders-integration.json build/unified-delivery/integration.json
 printf '%s\n' "$GITHUB_SHA" > build/unified-delivery/COMMIT.txt
 (cd build/unified-delivery && sha256sum *.apk *.bl *.md COMMIT.txt PACKAGE.txt SIGNATURE.txt > SHA256SUMS)
 TAG="csharp-unified-qa-${GITHUB_SHA:0:12}"
-printf 'Bunny Loader CSharp unificado — QA Mobile 301720.\n\nCommit: %s\nCI: https://github.com/%s/actions/runs/%s\n\nUm APK para ExampleMod CSharp 0.1.65 e FiveLoadersCSharp 0.1.1. A compilacao Android e a assinatura foram verificadas. O SIGABRT ao entrar no mundo ainda nao tem confirmacao de correcao; esta build serve ao teste supervisionado e a coleta de relatorio. Nao e release estavel. Leia UNIFIED_CSHARP_QA.md.\n' "$GITHUB_SHA" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID" > build/unified-delivery/NOTES.md
+printf 'Bunny Loader CSharp unificado — QA Mobile 301720.\n\nCommit: %s\nCI: https://github.com/%s/actions/runs/%s\n\nUm APK para ExampleMod CSharp 0.1.65 e FiveLoadersCSharp 0.1.1. A compilacao Android e a assinatura foram verificadas. O SIGSEGV ao entrar no mundo ainda exige identificacao precisa do hook ou ponteiro; esta build serve ao teste supervisionado e a coleta de relatorio. Nao e release estavel. Leia UNIFIED_CSHARP_QA.md.\n' "$GITHUB_SHA" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID" > build/unified-delivery/NOTES.md
 if gh release view "$TAG" --repo "$PRIVATE_INPUTS_REPO" >/dev/null 2>&1; then
  gh release upload "$TAG" build/unified-delivery/* --repo "$PRIVATE_INPUTS_REPO" --clobber
 else
  gh release create "$TAG" build/unified-delivery/* --repo "$PRIVATE_INPUTS_REPO" --prerelease \
-  --title 'Bunny Loader CSharp Unificado 1.0.14 — QA Mobile' --notes-file build/unified-delivery/NOTES.md
+  --title 'Bunny Loader CSharp Unificado 1.0.15 — QA Mobile' --notes-file build/unified-delivery/NOTES.md
 fi
 printf 'PRIVATE_CSHARP_UNIFIED_QA=https://github.com/%s/releases/tag/%s\n' "$PRIVATE_INPUTS_REPO" "$TAG"

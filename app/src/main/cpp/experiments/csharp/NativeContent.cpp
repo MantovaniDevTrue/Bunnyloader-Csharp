@@ -1,6 +1,7 @@
 #include "experiments/csharp/SourceLimits.h"
 #include "experiments/csharp/ContentTexture.h"
 #include "experiments/csharp/NativeContent.h"
+#include "experiments/csharp/WeaponSpeedContract.h"
 #include "experiments/csharp/ManagedRuntime.h"
 #include "experiments/csharp/ManagedProjectileHook.h"
 #include "experiments/csharp/ManagedMinionBuff.h"
@@ -1763,9 +1764,7 @@ bool applyManagedNativeDefaultsBatch(
                 entry.summon, entry.minionBuffType, entry.minionBuffTime}).second ||
             data.damage < 1 || data.damage > 1000 ||
             data.useTime < 2 || data.useTime > 120 ||
-            !std::isfinite(data.shootSpeed) ||
-            data.shootSpeed < (entry.summon ? 0.f : 1.f) ||
-            data.shootSpeed > 40.f)
+            !validNativeWeaponShootSpeed(data.shootSpeed, entry.summon))
             return false;
     }
     auto nextView=std::make_shared<ProjectileDefinitions>(*std::atomic_load_explicit(&g_projectileView,std::memory_order_acquire));
@@ -2544,9 +2543,7 @@ int registerNativeContent(void* context, const NativeContentSpec* spec) {
     if (spec->kind == NativeWeapon) {
         if (spec->damage < 1 || spec->damage > 1000 ||
             spec->useTime < 2 || spec->useTime > 120 ||
-            !std::isfinite(spec->shootSpeed) ||
-            spec->shootSpeed < (spec->summon ? 0.f : 1.f) ||
-            spec->shootSpeed > 40.f ||
+            !validNativeWeaponShootSpeed(spec->shootSpeed, spec->summon) ||
             !bl::runtime::modProjectileBelongsTo(spec->shootType, ctx.modId))
             return reject("WeaponValuesInvalid", "Damage:1..1000,UseTime:2..120,ShootSpeed:Summon0..40OrWeapon1..40,OwnedProjectile", spec->name);
         bl::runtime::ModItemDef def{};
