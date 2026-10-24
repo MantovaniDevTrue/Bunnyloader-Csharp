@@ -2333,10 +2333,10 @@ abstract class; base: `System.Object`.
 | --- | --- |
 | `void ClearWorld()` | worker_async_entity |
 | `void LoadWorldData(BunnyWorldData tag)` | worker_async_entity |
-| `void OnWorldEnter(ref BunnyWorldContext world)` | worker_async_entity |
-| `void OnWorldExit()` | worker_async_entity |
 | `void NetReceive(BunnyNetReader reader)` | worker_async_entity |
 | `void NetSend(BunnyNetWriter writer)` | worker_async_entity |
+| `void OnWorldEnter(ref BunnyWorldContext world)` | worker_async_entity |
+| `void OnWorldExit()` | worker_async_entity |
 | `void OnWorldTick(ref BunnyWorldContext world)` | worker_async_entity |
 | `void SaveWorldData(BunnyWorldData tag)` | worker_async_entity |
 
