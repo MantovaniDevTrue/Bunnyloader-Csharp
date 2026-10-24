@@ -26,6 +26,8 @@ namespace {
 std::atomic<uint32_t> g_gameStage{0};
 std::atomic<uint32_t> g_lastGameStage{0};
 std::atomic<int> g_managedHookSlot{-1};
+std::atomic<uint32_t> g_monoWorkerStage{0};
+std::atomic<long> g_monoWorkerTid{0};
 static_assert(std::atomic<uint32_t>::is_always_lock_free);
 static_assert(std::atomic<int>::is_always_lock_free);
 int g_trace = -1;
@@ -145,6 +147,10 @@ void emitCriticalAbortSnapshot(int signal, siginfo_t* info, void* raw) {
     decimal(g_lastGameStage.load(std::memory_order_relaxed));
     literal(" managed_slot_plus_one=");
     decimal(static_cast<uintptr_t>(g_managedHookSlot.load(std::memory_order_relaxed) + 1));
+    literal(" mono_worker_stage=");
+    decimal(g_monoWorkerStage.load(std::memory_order_relaxed));
+    literal(" mono_worker_tid=");
+    decimal(static_cast<uintptr_t>(g_monoWorkerTid.load(std::memory_order_relaxed)));
     literal(" signo=");
     decimal(static_cast<uintptr_t>(signal));
     if (info) {
@@ -331,6 +337,10 @@ void onSegv(int signo, siginfo_t* info, void* raw) {
             emitDec(g_lastGameStage.load(std::memory_order_relaxed));
             emit("segv_managed_slot_plus_one=");
             emitDec(static_cast<uintptr_t>(g_managedHookSlot.load(std::memory_order_relaxed) + 1));
+            emit("segv_mono_worker_stage=");
+            emitDec(g_monoWorkerStage.load(std::memory_order_relaxed));
+            emit("segv_mono_worker_tid=");
+            emitDec(static_cast<uintptr_t>(g_monoWorkerTid.load(std::memory_order_relaxed)));
             for (unsigned i = 0; i < 31; ++i) {
                 emit("segv_x");
                 emitDec(i);
@@ -550,6 +560,8 @@ void setNativeGameStage(uint32_t stage) {
     g_gameStage.store(stage, std::memory_order_relaxed);
 }
 void setNativeManagedHookSlot(int slot) { g_managedHookSlot.store(slot, std::memory_order_relaxed); }
+void setNativeMonoWorkerTid(long tid) { g_monoWorkerTid.store(tid, std::memory_order_relaxed); }
+void setNativeMonoWorkerStage(uint32_t stage) { g_monoWorkerStage.store(stage, std::memory_order_relaxed); }
 uint32_t nativeGameStage() { return g_gameStage.load(std::memory_order_relaxed); }
 int nativeManagedHookSlot() { return g_managedHookSlot.load(std::memory_order_relaxed); }
 
