@@ -293,24 +293,28 @@ void pumpNativeInvasionNetworkOnGameThread() {
                     const auto& states = chooseWorld ? g_worldStates : g_hostStates;
                     const auto& delivered = chooseWorld ?
                         peer.worldDelivered : peer.delivered;
-                    for (const auto& [key, state] : states) {
-                        const auto previous = delivered.find(key);
-                        if (chooseWorld) {
-                            const auto when = peer.worldLastSentTick.find(key);
-                            if (!world_net::worldStateDue(g_hostTick,
-                                when == peer.worldLastSentTick.end() ? 0 : when->second,
-                                previous == delivered.end() ? 0 : previous->second,
-                                state.revision)) continue;
-                        } else if (previous != delivered.end() &&
-                                   previous->second == state.revision) continue;
-                        player = client;
-                        nonce = peer.nonce;
-                        revision = state.revision;
-                        id = key;
-                        packet = state.payload;
-                        worldPacket = chooseWorld;
-                        g_dirty = true;
-                        break;
+                    for (int priority = 0; priority < 2 && player < 0; ++priority) {
+                        if (!chooseWorld && priority != 0) continue;
+                        for (const auto& [key, state] : states) {
+                            const auto previous = delivered.find(key);
+                            const uint64_t lastRevision = previous == delivered.end()
+                                ? 0 : previous->second;
+                            if (chooseWorld) {
+                                const auto when = peer.worldLastSentTick.find(key);
+                                const uint64_t lastTick = when == peer.worldLastSentTick.end()
+                                    ? 0 : when->second;
+                                if (!world_net::shouldSendWorldState(priority == 0,
+                                    g_hostTick, lastTick, lastRevision, state.revision)) continue;
+                            } else if (lastRevision == state.revision) continue;
+                            player = client;
+                            nonce = peer.nonce;
+                            revision = state.revision;
+                            id = key;
+                            packet = state.payload;
+                            worldPacket = chooseWorld;
+                            g_dirty = true;
+                            break;
+                        }
                     }
                 }
                 if (player >= 0) break;
