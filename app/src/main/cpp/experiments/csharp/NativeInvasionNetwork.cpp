@@ -371,7 +371,7 @@ extern "C" __attribute__((visibility("default")))
 int bunny_world_system_net_publish(int64_t session, const char* payload) {
     using namespace bl::csharp;
     if (!payload || session <= 0 || strnlen(payload, 301) > 300 ||
-        !runtime::isNetHost()) return 0;
+        !bl::runtime::isNetHost()) return 0;
     Key id;
     uint64_t revision = 0;
     const std::string encoded(payload);
@@ -401,7 +401,7 @@ int bunny_world_system_net_poll(int64_t session, const char* mod,
     if (session <= 0 || !mod || !buffer || capacity < 301 ||
         !validName(mod, 128)) return 0;
     std::lock_guard<std::mutex> guard(g_mutex);
-    if (runtime::netMode() != 1 || !g_ready.load(std::memory_order_acquire) ||
+    if (bl::runtime::netMode() != 1 || !g_ready.load(std::memory_order_acquire) ||
         g_session.load(std::memory_order_acquire) != static_cast<uint64_t>(session))
         return 0;
     for (auto it = g_worldReceived.begin(); it != g_worldReceived.end(); ++it) {
