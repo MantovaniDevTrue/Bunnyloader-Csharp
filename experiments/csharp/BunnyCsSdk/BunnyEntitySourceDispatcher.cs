@@ -40,6 +40,9 @@ public static class BunnyEntitySourceDispatcher
         public readonly HashSet<string> RegisteredItemUses = new(StringComparer.Ordinal);
         public readonly Dictionary<string, BunnyInvasionSystem> Invasions = new(StringComparer.Ordinal);
         public readonly List<BunnyInvasionSystem> InvasionOrder = new();
+        public readonly List<BunnyWorldSystem> WorldSystems = new();
+        public readonly HashSet<BunnyWorldSystem> FaultedWorldSystems = new();
+        public long WorldSystemUpdates;
         public readonly Dictionary<string, BunnyInvasionClientView> ClientViews = new(StringComparer.Ordinal);
         public readonly Dictionary<string, int> NetRevisions = new(StringComparer.Ordinal);
         public readonly Dictionary<string, int> HudRevisions = new(StringComparer.Ordinal);
@@ -110,6 +113,14 @@ public static class BunnyEntitySourceDispatcher
                 {
                     hasDust = true;
                 }
+                else if (typeof(BunnyWorldSystem).IsAssignableFrom(type))
+                {
+                    if (context.WorldSystems.Count >= 32)
+                        throw new InvalidOperationException("Too many world systems");
+                    BunnyWorldSystem system = Activator.CreateInstance(type) as BunnyWorldSystem
+                        ?? throw new InvalidOperationException("Invalid world system " + type.Name);
+                    context.WorldSystems.Add(system);
+                }
                 else if (typeof(BunnyInvasionSystem).IsAssignableFrom(type))
                 {
                     BunnyInvasionSystem system = Activator.CreateInstance(type) as BunnyInvasionSystem
@@ -171,10 +182,15 @@ public static class BunnyEntitySourceDispatcher
         if ((uint)modSlot >= (uint)Contexts.Count || worldSession <= 0 ||
             elapsedFrames < 1 || elapsedFrames > 60) return 0;
         Context context = Contexts[modSlot];
-        if (context.Invasions.Count == 0 && context.ItemUsers.Count == 0) return -2;
+        if (context.Invasions.Count == 0 && context.ItemUsers.Count == 0 &&
+            context.WorldSystems.Count == 0) return -2;
         bool authoritative = mode == 0 || mode == 2 || mode == 3;
-        if (context.NativeWorldSession != worldSession)
+        if (context.NativeWorldSession > worldSession) return -3;
+        bool enteringWorld = context.NativeWorldSession != worldSession;
+        if (enteringWorld)
         {
+            ExitWorldSystems(context);
+            context.FaultedWorldSystems.Clear();
             foreach (BunnyInvasionSystem system in context.Invasions.Values) system.OnWorldExit();
             context.RegisteredItemUses.Clear();
             context.SavedInvasions.Clear();
@@ -191,6 +207,10 @@ public static class BunnyEntitySourceDispatcher
             context.NextInvasionIndex = 0;
             context.SaveTimerFrames = 0;
         }
+        var world = new BunnyWorldContext(worldSession, mode, elapsedFrames,
+            playerIndex, playerX, playerY);
+        if (enteringWorld) EnterWorldSystems(context, in world);
+        TickWorldSystems(context, in world);
         if (mode == 1)
         {
             foreach (string itemName in context.ItemUsers.Keys)
@@ -649,10 +669,56 @@ public static class BunnyEntitySourceDispatcher
         }
     }
 
+    private static void EnterWorldSystems(Context context, in BunnyWorldContext world)
+    {
+        foreach (BunnyWorldSystem system in context.WorldSystems)
+        {
+            try { system.OnWorldEnter(in world); }
+            catch (Exception error)
+            {
+                context.FaultedWorldSystems.Add(system);
+                Fault(context, system.GetType().Name + ".OnWorldEnter", error);
+            }
+        }
+    }
+
+    private static void TickWorldSystems(Context context, in BunnyWorldContext world)
+    {
+        foreach (BunnyWorldSystem system in context.WorldSystems)
+        {
+            if (context.FaultedWorldSystems.Contains(system)) continue;
+            try
+            {
+                system.OnWorldTick(in world);
+                context.WorldSystemUpdates++;
+            }
+            catch (Exception error)
+            {
+                context.FaultedWorldSystems.Add(system);
+                Fault(context, system.GetType().Name + ".OnWorldTick", error);
+            }
+        }
+    }
+
+    private static void ExitWorldSystems(Context context)
+    {
+        if (context.NativeWorldSession <= 0) return;
+        for (int i = context.WorldSystems.Count - 1; i >= 0; i--)
+        {
+            BunnyWorldSystem system = context.WorldSystems[i];
+            try { system.OnWorldExit(); }
+            catch (Exception error) { Fault(context, system.GetType().Name + ".OnWorldExit", error); }
+        }
+    }
+
     public static void ResetWorld()
     {
         foreach (Context context in Contexts)
         {
+            ExitWorldSystems(context);
+            context.NativeWorldSession = 0;
+            context.WorldStateInitialized = false;
+            context.FaultedWorldSystems.Clear();
             for (int i = 0; i < context.NpcSlots.Length; i++)
             {
                 NpcInstance current = context.NpcSlots[i];
@@ -700,6 +766,8 @@ public static class BunnyEntitySourceDispatcher
                 " SpawnFailed=" + invasion.Pipeline.FailedCount;
         }
         return "lastUse=" + context.LastUse + invasionState +
+            " worldSystems=" + context.WorldSystems.Count +
+            " worldUpdates=" + context.WorldSystemUpdates +
             " npc=" + context.NpcCalls + " projectile=" + context.ProjectileCalls +
             " npcHits=" + context.NpcHits + " npcKills=" + context.NpcKills +
             " projectileHits=" + context.ProjectileHits + " projectileKills=" + context.ProjectileKills +
