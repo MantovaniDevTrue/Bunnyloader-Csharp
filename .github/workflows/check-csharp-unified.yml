@@ -34,7 +34,9 @@ jobs:
             8.0.x
             10.0.x
       - name: Verify five-loader contracts and Mobile ABI fixtures
-        run: bash tools/five_loaders/check.sh
+        run: |
+          python3 -m pip install --quiet unicorn==2.1.4 pyelftools==0.33
+          bash tools/five_loaders/check.sh
       - name: Verify Dust Invasion and shooting sources
         run: |
           python3 tests/invasion/check_item_use_contract.py
