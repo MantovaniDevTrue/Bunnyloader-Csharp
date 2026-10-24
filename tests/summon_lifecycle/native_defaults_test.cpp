@@ -2,11 +2,15 @@
 #include <cassert>
 #include <iostream>
 #include <fstream>
-struct Il2CppClass {const char* ns;const char* name;uint32_t size;bool value;};
+struct Il2CppClass {const char* ns;const char* name;uint32_t size;bool value;int rank=0;Il2CppClass* element=nullptr;};
 struct Il2CppType {Il2CppClass* cls;};
 struct FieldInfo {Il2CppType type;size_t offset;uint32_t flags=0;};
 bl::il2cpp::Api fixture;
 Il2CppClass byteClass{"System","Byte",1,true},boolClass{"System","Boolean",1,true},floatClass{"System","Single",4,true},intClass{"System","Int32",4,true},objectClass{"Terraria","Item",64,false};
+Il2CppClass styleClass{"Terraria.Audio","LegacySoundStyle",16,false},boolArrayClass{"System","Boolean[]",16,false,1,&boolClass},floatArrayClass{"System","Int32[]",16,false,1,&intClass};
+Il2CppObject soundStyle{&styleClass,nullptr};int barriers=0;
+struct BoolArray {Il2CppArray array;uint8_t cells[6400]{};} whole{{{&boolArrayClass,nullptr},nullptr,6400},{}},lockOn{{{&boolArrayClass,nullptr},nullptr,6400},{}};
+struct FloatArray {Il2CppArray array;int cells[6400]{};} slots{{{&floatArrayClass,nullptr},nullptr,6400},{}};
 std::map<std::string,FieldInfo> fields;
 namespace bl::il2cpp {
 Api& api(){return fixture;}
@@ -21,7 +25,15 @@ int main(int argc,char** argv) {
  fixture.class_get_name=[](Il2CppClass* c){return c->name;};fixture.class_get_namespace=[](Il2CppClass* c){return c->ns;};
  fixture.class_is_valuetype=[](const Il2CppClass* c){return c->value;};fixture.class_instance_size=[](Il2CppClass* c){return c->size;};
  fixture.class_value_size=[](Il2CppClass* c,uint32_t* align){*align=4;return static_cast<int32_t>(c->size);};
- fixture.field_static_get_value=[](FieldInfo*,void* output){*static_cast<int*>(output)=97;};
+ fixture.field_static_get_value=[](FieldInfo* f,void* output){
+  if(f==&fields["Item44"])*static_cast<Il2CppObject**>(output)=&soundStyle;
+  else if(f==&fields["GamepadWholeScreenUseRange"])*static_cast<Il2CppArray**>(output)=&whole.array;
+  else if(f==&fields["LockOnIgnoresCollision"])*static_cast<Il2CppArray**>(output)=&lockOn.array;
+  else if(f==&fields["StaffMinionSlotsRequired"])*static_cast<Il2CppArray**>(output)=&slots.array;
+  else *static_cast<int*>(output)=97;
+ };
+ fixture.class_get_rank=[](const Il2CppClass* cls){return cls->rank;};fixture.class_get_element_class=[](Il2CppClass* cls){return cls->element;};
+ fixture.gc_wbarrier_set_field=[](Il2CppObject*,void** destination,void* value){*destination=value;++barriers;};
  fields={{"useStyle",{{&byteClass},16}},{"ranged",{{&boolClass},18}},{"shootSpeed",{{&floatClass},20}},
    {"shoot",{{&intClass},24}},{"ammo",{{&byteClass},28,0}},{"Bullet",{{&intClass},0,0x10}}};
  NativeDefaultsRequest request{"ThirdPartyBullet","consumer","Ammo.cs","useStyle:i:5;ranged:b:1;shootSpeed:f:4.5;shoot:p:independent/ExampleBulletProjectile;ammo:d:AmmoID:Bullet",6230,false};
@@ -49,5 +61,14 @@ int main(int argc,char** argv) {
  assert(publishNativeDefaults({request},&error,resolve));std::memset(bytes,0,sizeof bytes);
  applyNativeDefaults(reinterpret_cast<Il2CppObject*>(bytes),true,1200);
  int cooldown=0;std::memcpy(&cooldown,bytes+24,4);assert(bytes[16]==1&&bytes[28]&&bytes[36]&&cooldown==-1);
- std::cout<<"NATIVE_DEFAULTS_PRODUCTION_TYPED_WRITES_BYTE_SENTINELS_IDS_CROSS_MOD_TRANSACTIONAL_REJECTION_AND_COMPILED_EXAMPLE_BULLET_PASS\n";
+ fields["UseSound"]={{&styleClass},40,0};fields["Item44"]={{&styleClass},0,0x30};
+ fields["GamepadWholeScreenUseRange"]={{&boolArrayClass},0,0x30};fields["LockOnIgnoresCollision"]={{&boolArrayClass},0,0x30};fields["StaffMinionSlotsRequired"]={{&floatArrayClass},0,0x30};
+ NativeDefaultsRequest staff{"IndependentStaff","consumer","Staff.cs","UseSound:s:Item44;ItemSet_GamepadWholeScreenUseRange:b:1;ItemSet_LockOnIgnoresCollision:b:1;ItemSet_StaffMinionSlotsRequired:i:1",6231,false};
+ assert(publishNativeDefaults({staff},&error,resolve));std::memset(bytes,0,sizeof bytes);applyNativeDefaults(reinterpret_cast<Il2CppObject*>(bytes),false,6231);
+ Il2CppObject* actual=nullptr;std::memcpy(&actual,bytes+40,sizeof actual);assert(actual==&soundStyle&&barriers==1);
+ assert(whole.cells[6231]&&lockOn.cells[6231]&&slots.cells[6231]==1&&whole.cells[6230]==0&&slots.cells[6230]==0);
+ auto stable=std::atomic_load(&g_nativeDefaults);whole.array.length=10;assert(!publishNativeDefaults({staff},&error,resolve)&&stable==std::atomic_load(&g_nativeDefaults));whole.array.length=6400;
+ fields["Item44"].type.cls=&intClass;assert(!publishNativeDefaults({staff},&error,resolve));fields["Item44"].type.cls=&styleClass;
+ fields["UseSound"].flags=0x20;assert(!publishNativeDefaults({staff},&error,resolve));fields["UseSound"].flags=0;
+ std::cout<<"NATIVE_DEFAULTS_PRODUCTION_TYPED_WRITES_BYTE_SENTINELS_IDS_CROSS_MOD_TRANSACTIONAL_REJECTION_AND_COMPILED_EXAMPLE_BULLET_STATIC_SETS_AND_ROOTED_VANILLA_SOUND_PASS\n";
 }

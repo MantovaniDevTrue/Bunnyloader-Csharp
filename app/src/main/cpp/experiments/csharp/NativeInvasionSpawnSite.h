@@ -29,7 +29,7 @@ constexpr int margin = 42;
 constexpr int clearanceHalfWidth = 2;
 constexpr int clearanceHeight = 6;
 constexpr int groundHalfWidth = 1;
-constexpr int horizontalOffsets[] = {0, -8, 8, -16, 16, -24, 24, -32, 32};
+constexpr int horizontalOffsets[] = {0, -8, 8, -16, 16, -24, 24, -32, 32, -40, 40, -48, 48, -56, 56, -64, 64};
 constexpr int16_t activeFlag = 0x20;
 constexpr uint16_t invalidFloorShape = 0x7400;
 constexpr int templeSpikes = 232;
@@ -60,8 +60,11 @@ inline bool clear(const InvasionTileView& view, int x, int groundY) {
     for (int dy = 1; dy <= clearanceHeight; ++dy)
         for (int dx = -clearanceHalfWidth; dx <= clearanceHalfWidth; ++dx) {
             int occupiedType = -1;
-            if (occupied(view, x + dx, groundY - dy, &occupiedType))
-                return false;
+            if (occupied(view, x + dx, groundY - dy, &occupiedType)) {
+                if(occupiedType<0||static_cast<uintptr_t>(occupiedType)>=view.solidCount)return false;
+                if(view.solid[occupiedType]&&(static_cast<uintptr_t>(occupiedType)>=view.solidTopCount||!view.solidTop[occupiedType]))
+                    return false; // Decorations are decided by the final native collision check.
+            }
         }
     for (int dx = -groundHalfWidth; dx <= groundHalfWidth; ++dx)
         if (!ground(view, x + dx, groundY)) return false;
@@ -83,6 +86,7 @@ inline InvasionSpawnSite findInvasionSpawnSiteChecked(
         return {};
     const int centerX = preferredX / 16;
     const int centerY = preferredY / 16;
+    if(centerX<invasion_site::margin||centerX>=view.width-invasion_site::margin||centerY<invasion_site::margin||centerY>=view.height-invasion_site::margin)return {};
     for (const int offset : invasion_site::horizontalOffsets) {
         const int x = centerX + offset;
         if (x < invasion_site::margin || x >= view.width - invasion_site::margin) continue;

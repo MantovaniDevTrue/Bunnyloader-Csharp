@@ -53,6 +53,8 @@ public sealed class BunnyShootContext
 /// <summary>Common item shooting lifecycle. Arbitrary C# algorithms execute on MonoVM, independently of QuickJS.</summary>
 public abstract class BunnyShootSource : BunnyRecipeSource
 {
+    /// <summary>Posiciona o disparo na mira local, limitada por Player.LimitPointToPlayerReachableArea nativo.</summary>
+    public bool SpawnAtCursor { get; set; }
     public virtual bool CanShoot(BunnyShootContext context)=>true;
     public virtual void ModifyShootStats(BunnyShootContext context,ref BunnyShot shot) { }
     /// <summary>Return false to replace the original shot with the requests queued through context.Spawn.</summary>

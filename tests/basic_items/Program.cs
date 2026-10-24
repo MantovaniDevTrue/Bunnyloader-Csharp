@@ -146,7 +146,7 @@ try {
   Equal(1,Compiler.Compile("tests/basic_items/owned_recipe_fixture",output,runtime,diag));
   Equal(5,CompiledAssemblyProbe.Verify(output,diag));
   var rows=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt"));
-  Equal(9,rows.Length);Equal(3,rows.Count(row=>row.StartsWith("RECIPES\t",StringComparison.Ordinal)));
+  Equal(10,rows.Length);Equal(true,rows.Contains("SHOOT\tContractWeapon\t0"));Equal(3,rows.Count(row=>row.StartsWith("RECIPES\t",StringComparison.Ordinal)));
   foreach(string owner in new[]{"ContractWeapon","ContractAccessory","ContractPotion"}) {
    string Call(int kind,string state)=>BunnyRecipeLoader.Dispatch("owned",output,owner,0,kind,state);
    Equal("READY",Call(3,""));Equal("1",Call(0,"10,100,0,3,9,3,0,0,0"));
@@ -319,7 +319,7 @@ try {
 
   var minion=minionRows.Single(row=>row.StartsWith("PROJECTILE\tExampleMinion\t",StringComparison.Ordinal)).Split('\t');
   Equal(18,minion.Length);Equal("4",minion[12]);Equal("5",minion[13]);Equal("8",minion[14]);Equal("700",minion[15]);Equal("1",minion[16]);Equal("4,8,12,80,20,10,-48,600,20,0.82,60,2000,40,40,1200,0.05,0.04",minion[17]);
-  Equal(true,minionRows.Contains("RECIPES\tExampleMinionItem\tWEAPON\t1,mExampleWorkbench,mExampleItem:1"));
+  Equal(true,minionRows.Contains("RECIPES\tExampleMinionItem\tWEAPON\t1,18,mExampleItem:1"));
   var sword=minionRows.Single(row=>row.StartsWith("ITEM\tExampleMeleeWeapon\t",StringComparison.Ordinal)).Split('\t');Equal("50000",sword[5]);
   var bulletItem=minionRows.Single(row=>row.StartsWith("ITEM\tExampleBullet\t",StringComparison.Ordinal)).Split('\t');Equal("5000",bulletItem[5]);
   var tooltipItem=minionRows.Single(row=>row.StartsWith("ITEM\tExampleTooltipItem\t",StringComparison.Ordinal)).Split('\t');

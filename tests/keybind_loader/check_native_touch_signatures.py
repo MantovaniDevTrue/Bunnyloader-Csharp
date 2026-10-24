@@ -37,4 +37,38 @@ for filename, signatures in checks.items():
             raise SystemExit(f"{filename} diverged from ExampleModBunny: {signature}")
         total += 1
 
-print(f"Native touch signature parity PASS ({total} signatures)")
+
+controller = (root / "app/src/main/cpp/experiments/csharp/NativeTouchController.cpp").read_text()
+bootstrap = controller.split("void pumpNativeTouchObserverOnGameThread()", 1)[1]
+expected_order = [
+    "static uint32_t probes = 0;",
+    "probes % 120 != 0",
+    "HostAbiCheck check = inspectNativeTouchAbi();",
+    "refs.controller = controller;",
+    "attempted = true;",
+    "bl::hook::install(update, onControllerUpdate"
+]
+positions = [bootstrap.find(marker) for marker in expected_order]
+if -1 in positions or positions != sorted(positions):
+    raise SystemExit("Touch bootstrap must retry incomplete ABI before latching hook installation")
+
+activation = (root / "app/src/main/cpp/experiments/csharp/NativeTouchActivation.cpp").read_text()
+if "tick >= 600 && tick % 600 == 0" not in activation:
+    raise SystemExit("Touch activation status must remain visible after late startup")
+
+commands = (root / "app/src/main/cpp/experiments/csharp/NativeCommandChatHooks.cpp").read_text()
+for marker in (
+    'pending("Il2CppApiUnavailable")',
+    'pending("ChatClassesUnavailable")',
+    'pending("ChatSignatureOrLayoutMismatch")',
+    'pending("ChatDetourInstallFailed")',
+):
+    if marker not in commands:
+        raise SystemExit(f"Missing native command diagnostic: {marker}")
+
+console = (root / "app/src/main/cpp/script/api/Console.cpp").read_text()
+on_log = console.split("void onLogLine(int level, const char* line)", 1)[1].split("void queueChat", 1)[0]
+if 'std::strncmp(line, "[CSharp]", 8) == 0' not in on_log:
+    raise SystemExit("Native C# diagnostics must not be forwarded to the JS console")
+
+print(f"Native touch signature parity and bootstrap gate PASS ({total} signatures)")

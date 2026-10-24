@@ -260,9 +260,8 @@ void pumpNativeTouchObserverOnGameThread() {
     if (!api.gameImage || !api.field_get_offset || !api.field_static_get_value ||
         !api.class_instance_size) return;
 
-    // A tentativa é definitiva nesta sessão: ABI desconhecida não deve
-    // disparar scans ou reinicializações continuamente durante o gameplay.
-    attempted = true;
+    static uint32_t probes = 0;
+    if (++probes != 1 && probes % 120 != 0) return;
     HostAbiCheck check = inspectNativeTouchAbi();
     if (!check.controller || !check.arrays) {
         BL_WARN("[CSharp][Touch] Stage=Observer Result=Rejected Reason=%s", check.diagnostic.c_str());
@@ -306,6 +305,7 @@ void pumpNativeTouchObserverOnGameThread() {
         refs.arrayTypes[i] = arrayType;
     }
     refs.controller = controller;
+    attempted = true;
     if (!bl::hook::install(update, onControllerUpdate, &originalUpdate) ||
         !originalUpdate) return;
     installed.store(true, std::memory_order_release);

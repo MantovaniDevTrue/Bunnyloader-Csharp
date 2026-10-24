@@ -1239,7 +1239,12 @@ public static class CompiledAssemblyProbe
         foreach(var item in basicItems.Concat(weapons))
         {
             int shootMask=Value<int>(item,"ShootCallbackMask");
-            if(shootMask!=0)lines.Add("SHOOT\t"+item.GetType().Name+"\t"+shootMask.ToString(CultureInfo.InvariantCulture));
+            // Mask zero installs native aim synchronization without invoking Mono callbacks.
+            string defaults=Value<string>(item,"NativeDefaultsDefinition");
+            bool nativeShot=defaults.Split(';').Any(field=>field.StartsWith("shoot:",StringComparison.Ordinal));
+            bool legacyShot=item.GetType().GetProperty("Shoot")?.GetValue(item) is string projectileName&&projectileName.Length!=0;
+            bool cursor=Value<bool>(item,"SpawnAtCursor");
+            if(shootMask!=0||nativeShot||legacyShot||cursor)lines.Add("SHOOT\t"+item.GetType().Name+"\t"+shootMask.ToString(CultureInfo.InvariantCulture)+(cursor?"\t1":""));
             object? sound=item.GetType().GetProperty("CustomUseSound")!.GetValue(item);
             if(sound!=null)lines.Add("USE_SOUND\t"+item.GetType().Name+"\t"+Value<string>(sound,"Definition"));
             object? holdout=item.GetType().GetProperty("Holdout")!.GetValue(item);
