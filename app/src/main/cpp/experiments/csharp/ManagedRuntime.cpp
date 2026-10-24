@@ -2,6 +2,7 @@
 #include "experiments/csharp/UniversalHookMailbox.h"
 #include "experiments/csharp/UniversalHooks.h"
 #include "experiments/csharp/ManagedRuntime.h"
+#include "experiments/csharp/NativeWorldTickOutcome.h"
 #include "experiments/csharp/NativeCommandMailbox.h"
 #include "experiments/csharp/NativeCommandResult.h"
 #include "experiments/csharp/ManagedLocalizationEpochFence.h"
@@ -1357,7 +1358,7 @@ int64_t executeManagedEntityOnWorker(const ManagedEntityJob& job) {
             }
         }
         bool reportError = false;
-        if (count < 0) {
+        if (worldTickFailed(count)) {
             std::lock_guard<std::mutex> guard(g_pinnedMutex);
             if (job.session == g_entitySession && job.binding >= 0 &&
                 static_cast<size_t>(job.binding) < g_entityBindings.size()) {
@@ -2834,10 +2835,12 @@ void* pinnedMonoWorker(void*) {
 #ifdef __ANDROID__
                             reportManagedItemUse(ANDROID_LOG_INFO,
                                 "[CSharp][ItemUse] Mod=" + source.modId +
-                                " Stage=FirstWorldTick Result=" + std::to_string(result));
+                                (worldTickUnsupported(result)
+                                  ? " Stage=FirstWorldTick Result=Skipped Reason=NoInvasionsOrItemUsers"
+                                  : " Stage=FirstWorldTick Result=" + std::to_string(result)));
 #endif
                         }
-                        if (result == -2) source.invasionSupported = false;
+                        if (worldTickUnsupported(result)) source.invasionSupported = false;
                     }
                     const bool stillArmed = job.binding >= 0 &&
                         static_cast<size_t>(job.binding) < g_entityBindings.size() &&

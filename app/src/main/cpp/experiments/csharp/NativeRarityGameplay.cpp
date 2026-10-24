@@ -1,5 +1,6 @@
 #include "experiments/csharp/NativeRarityGameplay.h"
 #include "experiments/csharp/NativeRarityPalette.h"
+#include "experiments/csharp/NativeRarityRetryPolicy.h"
 #include "experiments/csharp/NativeRarityColorWire.h"
 #include "experiments/csharp/NativeRarityTextColor.h"
 #include "experiments/csharp/NativeStaticValue.h"
@@ -41,6 +42,7 @@ struct RarityMod {
     size_t cursor = 0;
     bool ready = false;
     bool failed = false;
+    uint64_t nextSampleTick = 0;
 };
 
 std::mutex g_mutex;
@@ -48,7 +50,7 @@ std::vector<RarityMod> g_mods;
 NativeRarityPalette g_palette;
 NativeColorLayout g_colorLayout;
 std::atomic<bool> g_hookReady{false};
-unsigned g_tick = 0;
+uint64_t g_tick = 0;
 size_t g_modCursor = 0;
 using PopupColorFn = uint32_t (*)(int32_t, const MethodInfo*);
 PopupColorFn g_originalPopup = nullptr;
@@ -948,7 +950,8 @@ void pumpNativeRarityGameplay() {
             if (mod.failed) continue;
             current.id = mod.id;
             current.assembly = mod.assembly;
-            if (mod.ready && !mod.rarities.empty()) {
+            if (mod.ready && !mod.rarities.empty() &&
+                raritySampleReady(g_tick, mod.nextSampleTick)) {
                 current.rarities.push_back(mod.rarities[mod.cursor % mod.rarities.size()]);
                 mod.cursor = (mod.cursor + 1) % mod.rarities.size();
             }
@@ -979,6 +982,14 @@ void pumpNativeRarityGameplay() {
     const auto& sample = current.rarities.front();
     if (!invokeManagedRarity(current.id, current.assembly, sample.name,
             0, discoSnapshot(), &response, 1200)) {
+        if (rarityRetryPending(response)) {
+            const std::lock_guard guard(g_mutex);
+            for (auto& mod : g_mods)
+                if (mod.id == current.id) {
+                    mod.nextSampleTick = rarityRetryAt(g_tick);
+                    break;
+                }
+        }
         if (g_tick % 600u == 0)
             BL_WARN("[CSharp][RarityLoader] Mod=%s Stage=SampleColor Result=Pending Detail=%s",
                 current.id.c_str(), response.c_str());

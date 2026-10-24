@@ -1,6 +1,6 @@
 # Bunny Loader C# Unificado — QA Mobile 301720
 
-Aplicativo único: `com.bunnyloader.csharptest`, versão `1.0.19-csharp-unified-qa`. Este APK reúne a base Dust/Invasion 1.0.11 e os cinco loaders novos, com uma só MonoVM e código-fonte C# editável.
+Aplicativo único: `com.bunnyloader.csharptest`, versão `1.0.20-csharp-unified-qa`. Este APK reúne a base Dust/Invasion 1.0.11 e os cinco loaders novos, com uma só MonoVM e código-fonte C# editável.
 
 Este é um **APK de QA**, não uma versão estável. O `SIGABRT` ao entrar no mundo observado na antiga Five QA.3 ainda precisa de validação/correção real. A compilação no GitHub não demonstra que funciona no aparelho.
 
