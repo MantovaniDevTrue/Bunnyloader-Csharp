@@ -8,6 +8,8 @@ namespace bl::csharp {
 // Lock-free breadcrumbs: no logging, allocation or file IO per frame.
 void setNativeGameStage(uint32_t stage);
 void setNativeManagedHookSlot(int slot);
+void setNativeMonoWorkerTid(long tid);
+void setNativeMonoWorkerStage(uint32_t stage);
 uint32_t nativeGameStage();
 int nativeManagedHookSlot();
 

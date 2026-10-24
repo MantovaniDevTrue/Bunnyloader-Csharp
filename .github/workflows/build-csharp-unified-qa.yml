@@ -41,6 +41,7 @@ jobs:
           python3 -m pip install --quiet unicorn==2.1.4 pyelftools==0.33
           bash tools/five_loaders/check.sh
           python3 tests/invasion/check_item_use_contract.py
+          python3 tests/csharp_unified/check_early_mono_crash_probe.py
           bash tests/ready_prs/run.sh
           dotnet run --project tests/shooting/Shooting.csproj -c Release
           dotnet run --project tools/sdk_reference/SdkReference.csproj -c Release -- --write

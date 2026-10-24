@@ -42,6 +42,7 @@ jobs:
       - name: Verify Dust Invasion and shooting sources
         run: |
           python3 tests/invasion/check_item_use_contract.py
+          python3 tests/csharp_unified/check_early_mono_crash_probe.py
           bash tests/ready_prs/run.sh
           dotnet run --project tests/shooting/Shooting.csproj -c Release
       - name: Compile both editable CSharp sample mods
