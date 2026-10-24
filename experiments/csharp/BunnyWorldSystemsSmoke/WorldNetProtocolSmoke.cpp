@@ -8,6 +8,13 @@
 int main() {
     using namespace bl::csharp::world_net;
     Snapshot snapshot;
+    assert(worldStateDue(1, 0, 0, 1));
+    assert(worldStateDue(100, 90, 1, 2));
+    assert(!worldStateDue(599, 1, 2, 2));
+    assert(worldStateDue(601, 1, 2, 2));
+    assert(worldStateDue(600, 0, 2, 2));
+    assert(!worldStateDue(101, 102, 2, 2));
+    assert(retryIntervalTicks == 600);
     assert(!preferWorldForSendSlot(0));
     assert(preferWorldForSendSlot(1));
     assert(!preferWorldForSendSlot(2));
