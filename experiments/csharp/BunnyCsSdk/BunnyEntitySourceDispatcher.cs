@@ -41,6 +41,7 @@ public static class BunnyEntitySourceDispatcher
         public readonly Dictionary<string, BunnyInvasionSystem> Invasions = new(StringComparer.Ordinal);
         public readonly List<BunnyInvasionSystem> InvasionOrder = new();
         public readonly List<BunnyWorldSystem> WorldSystems = new();
+        public readonly HashSet<string> WorldSystemNames = new(StringComparer.Ordinal);
         public readonly HashSet<BunnyWorldSystem> FaultedWorldSystems = new();
         public readonly Dictionary<BunnyWorldSystem, string> PersistedWorldData = new();
         public readonly HashSet<BunnyWorldSystem> NetworkedWorldSystems = new();
@@ -126,6 +127,8 @@ public static class BunnyEntitySourceDispatcher
                 {
                     if (context.WorldSystems.Count >= 32)
                         throw new InvalidOperationException("Too many world systems");
+                    if (!context.WorldSystemNames.Add(type.Name))
+                        throw new InvalidOperationException("Duplicate world system class " + type.Name);
                     BunnyWorldSystem system = Activator.CreateInstance(type) as BunnyWorldSystem
                         ?? throw new InvalidOperationException("Invalid world system " + type.Name);
                     context.WorldSystems.Add(system);
