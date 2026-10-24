@@ -8,6 +8,14 @@
 
 namespace bl::csharp::world_net {
 
+constexpr uint64_t retryIntervalTicks = 600;
+
+inline bool worldStateDue(uint64_t now, uint64_t lastSent,
+                          uint64_t deliveredRevision, uint64_t currentRevision) {
+    if (deliveredRevision != currentRevision || lastSent == 0) return true;
+    return now >= lastSent && now - lastSent >= retryIntervalTicks;
+}
+
 inline bool preferWorldForSendSlot(int sent) {
     return (sent & 1) != 0;
 }
