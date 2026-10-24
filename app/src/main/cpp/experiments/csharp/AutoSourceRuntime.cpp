@@ -881,7 +881,7 @@ void run() {
             note(&status, "failed", "Tabelas de projetil nao ficaram prontas");
             continue;
         }
-        if ((mod.projectiles > 0 || mod.npcs > 0 || hasUniversalHooks || mod.screenEffects > 0 || mod.commands > 0 ||
+        if ((mod.projectiles > 0 || mod.npcs > 0 || mod.worldSystems > 0 || hasUniversalHooks || mod.screenEffects > 0 || mod.commands > 0 ||
              (defaults.find("LOCALE\t") != std::string::npos ||
               defaults.find("LOCALE_MODULES\t") != std::string::npos ||
               defaults.find("LOCALE_RUNTIME\t") != std::string::npos)) &&
@@ -1028,7 +1028,7 @@ void run() {
                 }
             }
         }
-        if (mod.npcs > 0 || mod.projectiles > 0 || mod.items > 0) {
+        if (mod.npcs > 0 || mod.projectiles > 0 || mod.items > 0 || mod.worldSystems > 0) {
             const auto npcs = runtime::registeredNpcsForMod(mod.id);
             const auto projectiles = runtime::registeredProjectilesForMod(mod.id);
             if (registerManagedEntitySourceMod(mod.id, assembly, npcs, projectiles))
