@@ -1,9 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.IO;
 using System.Reflection;
-using System.Runtime.Loader;
 using System.Runtime.InteropServices;
 using System.Threading;
 
@@ -608,27 +606,11 @@ public static class BunnyHooks
 
 public static class BunnyUniversalHookDispatcher
 {
-    private sealed class CollectibleModContext : AssemblyLoadContext
-    {
-        internal CollectibleModContext(string modId) :
-            base("BunnyUniversal:" + modId, isCollectible: true) { }
-
-        protected override Assembly? Load(AssemblyName requested)
-        {
-            Assembly sdk = typeof(BunnyUniversalHookDispatcher).Assembly;
-            if (requested.Name == sdk.GetName().Name) return sdk;
-            return Default.Assemblies.FirstOrDefault(candidate =>
-                string.Equals(candidate.GetName().Name, requested.Name,
-                              StringComparison.Ordinal));
-        }
-    }
-
     private sealed class Context
     {
         public string Id = "";
         public string Path = "";
-        public CollectibleModContext? LoadContext;
-        public Assembly? ModAssembly;
+        public BunnyModAssemblyLease? Lease;
         public readonly BunnyHookScope Scope = new();
         public readonly List<BunnyHookModule> Modules = new();
     }
@@ -644,11 +626,8 @@ public static class BunnyUniversalHookDispatcher
         var context = new Context { Id = id, Path = path };
         try
         {
-            var loadContext = new CollectibleModContext(id);
-            context.LoadContext = loadContext;
-            using var bytes = new MemoryStream(File.ReadAllBytes(path), writable: false);
-            Assembly loaded = loadContext.LoadFromStream(bytes);
-            context.ModAssembly = loaded;
+            context.Lease = BunnyModAssemblyRegistry.Acquire(id, path);
+            Assembly loaded = context.Lease.Assembly;
             Type[] types = loaded.GetTypes().Where(type =>
                 !type.IsAbstract && typeof(BunnyHookModule).IsAssignableFrom(type))
                 .OrderBy(type => type.FullName, StringComparer.Ordinal).ToArray();
@@ -693,10 +672,8 @@ public static class BunnyUniversalHookDispatcher
             try { module.Unload(); }
             catch (Exception error) { LastError = context.Id + ": " + error.Message; }
         context.Modules.Clear();
-        context.ModAssembly = null;
-        var managed = context.LoadContext;
-        context.LoadContext = null;
-        managed?.Unload();
+        context.Lease?.Dispose();
+        context.Lease = null;
     }
     public static bool Unload(string id)
     {

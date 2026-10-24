@@ -21,6 +21,7 @@ public static class BunnyLocalizationRuntime
     {
         public string AssemblyPath = "";
         public Assembly Assembly = null!;
+        public BunnyModAssemblyLease Lease = null!;
         public BunnyLocalizationModule[] Modules = Array.Empty<BunnyLocalizationModule>();
         public BunnyLocalizationCatalog Callback = new();
         public BunnyLocalizationCatalog Live = new();
@@ -208,22 +209,33 @@ public static class BunnyLocalizationRuntime
                 if (!Mods.TryGetValue(modId, out ModState? state) ||
                     state.AssemblyPath != assemblyPath)
                 {
-                    var file = new FileInfo(assemblyPath);
-                    if (!file.Exists || file.Length <= 0 || file.Length > 32 * 1024 * 1024)
-                        return "ERROR|InvalidAssembly";
-                    Assembly assembly = Assembly.LoadFrom(assemblyPath);
-                    Type[] types = assembly.GetTypes()
-                        .Where(type => type.IsClass && !type.IsAbstract &&
-                            !type.ContainsGenericParameters &&
-                            type.BaseType == typeof(BunnyLocalizationModule))
-                        .OrderBy(type => type.FullName, StringComparer.Ordinal)
-                        .ToArray();
-                    if (types.Length > 32) return "ERROR|ModuleLimit";
-                    var modules = new BunnyLocalizationModule[types.Length];
-                    for (int i = 0; i < types.Length; ++i)
-                        modules[i] = (BunnyLocalizationModule)Activator.CreateInstance(types[i])!;
-                    state = new ModState { AssemblyPath = assemblyPath, Assembly = assembly, Modules = modules };
-                    Mods[modId] = state;
+                    if (state != null)
+                    {
+                        Mods.Remove(modId);
+                        state.Lease.Dispose();
+                        state = null;
+                    }
+                    BunnyModAssemblyLease? lease = BunnyModAssemblyRegistry.Acquire(modId, assemblyPath);
+                    try
+                    {
+                        Assembly assembly = lease.Assembly;
+                        Type[] types = assembly.GetTypes()
+                            .Where(type => type.IsClass && !type.IsAbstract &&
+                                !type.ContainsGenericParameters &&
+                                type.BaseType == typeof(BunnyLocalizationModule))
+                            .OrderBy(type => type.FullName, StringComparer.Ordinal)
+                            .ToArray();
+                        if (types.Length > 32) return "ERROR|ModuleLimit";
+                        var modules = new BunnyLocalizationModule[types.Length];
+                        for (int i = 0; i < types.Length; ++i)
+                            modules[i] = (BunnyLocalizationModule)Activator.CreateInstance(types[i])!;
+                        var next = new ModState { AssemblyPath = assemblyPath, Assembly = assembly,
+                            Lease = lease, Modules = modules };
+                        Mods[modId] = next;
+                        state = next;
+                        lease = null;
+                    }
+                    finally { lease?.Dispose(); }
                 }
 
                 string? previousCulture = activeCulture;
@@ -315,7 +327,12 @@ public static class BunnyLocalizationRuntime
     public static bool Unload(string modId)
     {
         if (!ValidId(modId)) return false;
-        lock (Gate) return Mods.Remove(modId);
+        lock (Gate)
+        {
+            if (!Mods.Remove(modId, out ModState? state)) return false;
+            state.Lease.Dispose();
+            return true;
+        }
     }
 
     private static bool ValidId(string value)

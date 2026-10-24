@@ -120,7 +120,9 @@ assert '"duplicate use refuses without resetting progress"' in host
 print("CSHARP_INVASION_BEACON_USE_FEEDBACK_GUARD=PASS")
 
 dust = (root / "experiments/csharp/BunnyCsSdk/BunnyDustSourceDispatcher.cs").read_text()
-assert "RegisterLoaded(modId, Assembly.LoadFrom(assemblyPath))" in dust
+assert "BunnyModAssemblyRegistry.Acquire(modId, assemblyPath)" in dust
+assert "RegisterLoaded(modId, lease.Assembly)" in dust
+assert "BunnyModAssemblyRegistry.TryResolve(assembly, out _, out string resolved)" in dust
 assert "BunnyEntitySourceDispatcher.TryRegisterDustAssembly(assembly)" in dust
 assert "RegistrationError=" in dust
 assert "BunnyDustSourceDispatcher.RegisterLoaded(modId, assembly)" in dispatcher

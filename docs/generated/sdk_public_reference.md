@@ -1334,7 +1334,10 @@ string Definition { get; }
 | `BunnyNativeDefaults SetFloat(string field, float value)` | managed_helper |
 | `BunnyNativeDefaults SetId(string field, string idClass, string name)` | managed_helper |
 | `BunnyNativeDefaults SetInt(string field, int value)` | managed_helper |
+| `BunnyNativeDefaults SetItemStaticBool(string name, bool value)` | managed_helper |
 | `BunnyNativeDefaults SetProjectile(string field, string key)` | managed_helper |
+| `BunnyNativeDefaults SetStaffMinionSlotsRequired(int value)` | managed_helper |
+| `BunnyNativeDefaults SetVanillaUseSound(string name)` | managed_helper |
 
 ## BunnyLoader.Source.BunnyNativeInvasionReply
 
@@ -1822,6 +1825,7 @@ abstract class; base: `System.Object`.
 abstract class; base: `BunnyLoader.Source.BunnyRecipeSource`.
 
 ```csharp
+bool SpawnAtCursor { get; set; }
 int ShootCallbackMask { get; }
 ```
 

@@ -2451,7 +2451,19 @@
           "execution": "managed_helper"
         },
         {
+          "signature": "BunnyNativeDefaults SetItemStaticBool(string name, bool value)",
+          "execution": "managed_helper"
+        },
+        {
           "signature": "BunnyNativeDefaults SetProjectile(string field, string key)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "BunnyNativeDefaults SetStaffMinionSlotsRequired(int value)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "BunnyNativeDefaults SetVanillaUseSound(string name)",
           "execution": "managed_helper"
         }
       ]
@@ -3366,6 +3378,7 @@
       "baseType": "BunnyLoader.Source.BunnyRecipeSource",
       "constructors": [],
       "properties": [
+        "bool SpawnAtCursor { get; set; }",
         "int ShootCallbackMask { get; }"
       ],
       "values": [],

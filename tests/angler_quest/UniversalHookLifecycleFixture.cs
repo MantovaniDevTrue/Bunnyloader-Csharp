@@ -23,10 +23,13 @@ public static class UniversalHookUnloadProbe
         {
             Type type = entry.GetType();
             if ((string)type.GetField("Id")!.GetValue(entry)! != id) continue;
-            var loader = (AssemblyLoadContext)type.GetField("LoadContext")!.GetValue(entry)!;
+            var lease = type.GetField("Lease")!.GetValue(entry)!;
+            var assembly = (Assembly)lease.GetType().GetProperty("Assembly",
+                BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(lease)!;
+            var loader = AssemblyLoadContext.GetLoadContext(assembly)
+                ?? throw new InvalidOperationException("Missing universal load context");
             if (!loader.IsCollectible)
                 throw new InvalidOperationException("Universal context is not collectible");
-            var assembly = (Assembly)type.GetField("ModAssembly")!.GetValue(entry)!;
             if (!ReferenceEquals(AssemblyLoadContext.GetLoadContext(assembly), loader))
                 throw new InvalidOperationException("Universal assembly escaped context");
             if (!typeof(BunnyHookModule).IsAssignableFrom(

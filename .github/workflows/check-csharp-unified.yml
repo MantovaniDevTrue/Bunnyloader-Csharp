@@ -21,7 +21,7 @@ permissions:
 
 jobs:
   integrated-host:
-    if: github.ref == 'refs/heads/integration/csharp-unified-20261024'
+    if: github.ref == 'refs/heads/integration/csharp-unified-20261024' || (github.event_name == 'pull_request' && github.base_ref == 'integration/csharp-unified-20261024')
     runs-on: ubuntu-latest
     timeout-minutes: 40
     env:
