@@ -31,11 +31,26 @@ int g_trace = -1;
 struct sigaction g_previous{};
 volatile sig_atomic_t g_handling = 0;
 
+void emitBytes(const char* bytes, size_t count) {
+    if (g_trace < 0) return;
+    while (count) {
+        const ssize_t written = write(g_trace, bytes, count);
+        if (written > 0) {
+            bytes += written;
+            count -= static_cast<size_t>(written);
+        } else if (written < 0 && errno == EINTR) {
+            continue;
+        } else {
+            return;
+        }
+    }
+}
+
 void emit(const char* text) {
     if (g_trace < 0 || !text) return;
     size_t n = 0;
     while (text[n] != '\0' && n < 128) ++n;
-    if (n) (void)write(g_trace, text, n);
+    if (n) emitBytes(text, n);
 }
 
 void emitHex(uintptr_t value) {
@@ -51,7 +66,7 @@ void emitHex(uintptr_t value) {
         buffer[n++] = "0123456789abcdef"[digit];
     }
     buffer[n++] = '\n';
-    (void)write(g_trace, buffer, n);
+    emitBytes(buffer, n);
 }
 
 void emitDec(uintptr_t value) {
@@ -67,7 +82,7 @@ void emitDec(uintptr_t value) {
         buffer[r] = temp;
     }
     buffer[n++] = '\n';
-    (void)write(g_trace, buffer, n);
+    emitBytes(buffer, n);
 }
 
 void emitAbortHeader() {
@@ -91,7 +106,7 @@ void emitAbortHeader() {
     appendText(" tid=");
     appendDecimal(static_cast<uintptr_t>(syscall(__NR_gettid)));
     buffer[used++] = '\n';
-    (void)write(g_trace, buffer, used);
+    emitBytes(buffer, used);
 }
 
 void emitCriticalAbortSnapshot(int signal, siginfo_t* info, void* raw) {
@@ -153,7 +168,7 @@ void emitCriticalAbortSnapshot(int signal, siginfo_t* info, void* raw) {
     (void)raw;
 #endif
     if (length < sizeof(line)) line[length++] = '\n';
-    (void)write(g_trace, line, length);
+    emitBytes(line, length);
 }
 
 void markProcessExit() {
