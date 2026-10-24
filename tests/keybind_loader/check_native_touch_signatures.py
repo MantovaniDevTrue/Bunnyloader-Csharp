@@ -71,4 +71,18 @@ on_log = console.split("void onLogLine(int level, const char* line)", 1)[1].spli
 if 'std::strncmp(line, "[CSharp]", 8) == 0' not in on_log:
     raise SystemExit("Native C# diagnostics must not be forwarded to the JS console")
 
+profiles = (root / "app/src/main/cpp/experiments/csharp/NativeTouchProfiles.cpp").read_text()
+for marker in (
+    "if (Il2CppObject* active = read<Il2CppObject*>(styles, position))",
+    "if (!styleOf(profile, slot, &temp.style)) temp.style = -1;",
+    "if (temp.style == 2 || temp.style < 0)",
+    "nativeTouchLastLayoutStatus()",
+    'bunny_csharp_touch_layout_status()',
+):
+    if marker not in profiles:
+        raise SystemExit(f"Active touch layout cannot recover direct bindings: {marker}")
+qa = (root / "samples/FiveLoadersCSharp/Playable/content/Common/Commands/QaCommand.cs").read_text()
+if '"TouchLayout: " + BunnyTouchButtonLoader.LayoutDiagnostics()' not in qa:
+    raise SystemExit("QA5 is missing native layout status in /lote")
+
 print(f"Native touch signature parity and bootstrap gate PASS ({total} signatures)")
