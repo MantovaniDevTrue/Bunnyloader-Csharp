@@ -4,6 +4,7 @@
 #include <cstdarg>
 #include <cstdio>
 #include <cstring>
+#include <deque>
 #include <ctime>
 #include <mutex>
 #include <string>
@@ -29,6 +30,13 @@ bool routineCSharpInfo(int level, const char* line) {
            std::strncmp(line, "[mod] texturas vestidas:", 23) == 0;
 }
 
+std::deque<std::string> g_csharpLines;
+bool csharpLine(const char* line) {
+    return std::strncmp(line, "[CSharp]", 8) == 0 ||
+           std::strncmp(line, "csharp ", 7) == 0 ||
+           std::strncmp(line, "CSharp ", 7) == 0 ||
+           std::strncmp(line, "C#", 2) == 0;
+}
 std::string g_errors;
 int g_errorCount = 0;
 void (*g_onError)(const char*) = nullptr;
@@ -94,12 +102,18 @@ void write(int level, const char* fmt, ...) {
     va_end(again);
 
     toLogcat(level, buffer, length);
+    const bool isCSharp = csharpLine(buffer);
     const bool routine = routineCSharpInfo(level, buffer);
     const bool compact = routine && !g_verbose.load(std::memory_order_relaxed);
 
     void (*notify)(const char*) = nullptr;
     {
         std::lock_guard<std::mutex> guard(g_mutex);
+        if (isCSharp && level >= ANDROID_LOG_INFO) {
+            const char kind = level >= ANDROID_LOG_ERROR ? 'e' : level >= ANDROID_LOG_WARN ? 'w' : 'l';
+            g_csharpLines.push_back(std::string(1, kind) + buffer);
+            while (g_csharpLines.size() > 256) g_csharpLines.pop_front();
+        }
         if (g_file && !compact && (level >= ANDROID_LOG_INFO || g_verbose.load(std::memory_order_relaxed))) {
             // No arquivo, com hora e nivel: e ele que o modder abre, sem logcat.
             timespec ts{};
@@ -123,9 +137,16 @@ void write(int level, const char* fmt, ...) {
     }
     // Fora do lock: quem escuta vai mexer em UI e pode logar de volta.
     if (notify) notify(buffer);
-    if (level >= ANDROID_LOG_INFO && !routine) {
+    if (level >= ANDROID_LOG_INFO && !routine && !isCSharp) {
         if (auto line = g_onLine.load(std::memory_order_acquire)) line(level, buffer);
     }
+}
+
+std::vector<std::string> takeCSharpLines() {
+    std::lock_guard<std::mutex> guard(g_mutex);
+    std::vector<std::string> lines(g_csharpLines.begin(), g_csharpLines.end());
+    g_csharpLines.clear();
+    return lines;
 }
 
 std::string errorsSoFar() {

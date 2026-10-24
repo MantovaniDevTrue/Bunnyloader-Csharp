@@ -24,6 +24,10 @@ cpp=app/src/main/cpp/experiments/csharp
 native() { local name="$1"; shift; g++ "${flags[@]}" "$@" -o "build/five-checks/$name"; }
 g++ "${flags[@]}" -ffunction-sections -fdata-sections -Itests/basic_items/include tests/five_loaders/gore_startup_stage_test.cpp -Wl,--gc-sections -o build/five-checks/gore-startup
 build/five-checks/gore-startup
+g++ "${flags[@]}" -ffunction-sections -fdata-sections -Itests/basic_items/include tests/five_loaders/mobile_chat_test.cpp -Wl,--gc-sections -o build/five-checks/mobile-chat
+build/five-checks/mobile-chat
+native csharp-log -Itests/five_loaders/include tests/five_loaders/csharp_log_test.cpp app/src/main/cpp/core/Log.cpp
+build/five-checks/csharp-log
 native gore-catalog tests/csharp_gore_catalog_test.cpp
 native gore-discovery "$cpp/ManagedGoreDiscovery.cpp" tests/csharp_gore_discovery_test.cpp
 for name in action_ids input layout_json; do
