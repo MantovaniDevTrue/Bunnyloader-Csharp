@@ -51,6 +51,7 @@
     <Compile Include="../BunnyCsSdk/BunnyNativeAccess.cs" Link="BunnyNativeAccess.cs" />
     <Compile Include="../BunnyCsSdk/BunnyUniversalHooks.cs" Link="BunnyUniversalHooks.cs" />
     <Compile Include="../BunnyCsSdk/BunnyTouchButtonLoader.cs" Link="BunnyTouchButtonLoader.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyTouchWorker.cs" Link="BunnyTouchWorker.cs" />
     <Compile Include="../BunnyCsSdk/BunnyTouchLayoutStore.cs" Link="BunnyTouchLayoutStore.cs" />
     <Compile Include="../BunnyCsSdk/BunnyTouchNativeHost.cs" Link="BunnyTouchNativeHost.cs" />
     <Compile Include="../BunnyCsSdk/BunnyWorldUpdateLoader.cs" Link="BunnyWorldUpdateLoader.cs" />
