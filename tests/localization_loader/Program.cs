@@ -452,32 +452,40 @@ Test("localization-module-without-static-json-emits-marker", () =>
     }
 });
 
+using var sharedLocaleLease = BunnyModAssemblyRegistry.Acquire(
+    "examplemod", System.Reflection.Assembly.GetExecutingAssembly().Location);
+var sharedLocaleType = sharedLocaleLease.Assembly.GetType(nameof(HostLocalizationModule), true)!;
+void SetHostField<T>(string field, T value) =>
+    sharedLocaleType.GetField(field)!.SetValue(null, value);
+T GetHostField<T>(string field) =>
+    (T)sharedLocaleType.GetField(field)!.GetValue(null)!;
+
 Test("managed-localization-callback-lifecycle", () =>
 {
     string assembly = System.Reflection.Assembly.GetExecutingAssembly().Location;
-    HostLocalizationModule.CallbackCount = 0;
-    HostLocalizationModule.LastCulture = "";
+    SetHostField("CallbackCount", 0);
+    SetHostField("LastCulture", "");
     Equal("OK|1\nBUNNY_DYNAMIC_LOCALES_V1", BunnyLocalizationRuntime.Dispatch("examplemod", assembly, "en-US"));
-    Equal(1, HostLocalizationModule.CallbackCount);
-    Equal("en-US", HostLocalizationModule.LastCulture);
-    Equal("en-US", BunnyLocalizationRuntime.ActiveCultureName);
+    Equal(1, GetHostField<int>("CallbackCount"));
+    Equal("en-US", GetHostField<string>("LastCulture"));
+    Equal("", BunnyLocalizationRuntime.ActiveCultureName);
     Equal("OK|1\nBUNNY_DYNAMIC_LOCALES_V1", BunnyLocalizationRuntime.Dispatch("examplemod", assembly, "pt-BR"));
-    Equal(2, HostLocalizationModule.CallbackCount);
-    Equal("pt-BR", HostLocalizationModule.LastCulture);
-    Equal("pt-BR", BunnyLocalizationRuntime.ActiveCultureName);
+    Equal(2, GetHostField<int>("CallbackCount"));
+    Equal("pt-BR", GetHostField<string>("LastCulture"));
+    Equal("", BunnyLocalizationRuntime.ActiveCultureName);
     Equal("ERROR|InvalidArguments", BunnyLocalizationRuntime.Dispatch("examplemod", assembly, "pt_BR"));
-    Equal(2, HostLocalizationModule.CallbackCount);
+    Equal(2, GetHostField<int>("CallbackCount"));
     Equal("ERROR|InvalidArguments", BunnyLocalizationRuntime.Dispatch("../other", assembly, "en-US"));
     Equal("ERROR|InvalidArguments", BunnyLocalizationRuntime.Dispatch("examplemod", "../bad.dll", "en-US"));
-    HostLocalizationModule.ShouldFail = true;
+    SetHostField("ShouldFail", true);
     Equal("ERROR|CallbackFaults=1",
         BunnyLocalizationRuntime.Dispatch("examplemod", assembly, "en-US"));
-    Equal("pt-BR", BunnyLocalizationRuntime.ActiveCultureName);
-    HostLocalizationModule.ShouldFail = false;
+    Equal("", BunnyLocalizationRuntime.ActiveCultureName);
+    SetHostField("ShouldFail", false);
     Equal(true, BunnyLocalizationRuntime.Unload("examplemod"));
     Equal(false, BunnyLocalizationRuntime.Unload("examplemod"));
     Equal("OK|1\nBUNNY_DYNAMIC_LOCALES_V1", BunnyLocalizationRuntime.Dispatch("examplemod", assembly, "en-US"));
-    Equal(4, HostLocalizationModule.CallbackCount);
+    Equal(4, GetHostField<int>("CallbackCount"));
     Equal(true, BunnyLocalizationRuntime.Unload("examplemod"));
 });
 
@@ -485,7 +493,7 @@ Test("managed-dynamic-translations-atomic-and-owned", () =>
 {
     string assembly = System.Reflection.Assembly.GetExecutingAssembly().Location;
     Reject(() => BunnyLocalizationRuntime.Register("Mods.examplemod.Common.Greeting", "en-US", "Outside callback"));
-    HostLocalizationModule.DynamicTranslations = true;
+    SetHostField("DynamicTranslations", true);
     string wire = BunnyLocalizationRuntime.Dispatch("examplemod", assembly, "pt-BR");
     var rows = wire.Split('\n');
     Equal("OK|1", rows[0]);
@@ -497,10 +505,10 @@ Test("managed-dynamic-translations-atomic-and-owned", () =>
         Convert.FromHexString(rows[3].Split('\t')[2])));
     Equal("Olá em tempo de execução", System.Text.Encoding.UTF8.GetString(
         Convert.FromHexString(rows[3].Split('\t')[3])));
-    HostLocalizationModule.RegisterForeign = true;
+    SetHostField("RegisterForeign", true);
     Equal("ERROR|CallbackFaults=1", BunnyLocalizationRuntime.Dispatch("examplemod", assembly, "en-US"));
-    HostLocalizationModule.RegisterForeign = false;
-    HostLocalizationModule.DynamicTranslations = false;
+    SetHostField("RegisterForeign", false);
+    SetHostField("DynamicTranslations", false);
     Equal("OK|1\nBUNNY_DYNAMIC_LOCALES_V1",
         BunnyLocalizationRuntime.Dispatch("examplemod", assembly, "en-US"));
     Equal(true, BunnyLocalizationRuntime.Unload("examplemod"));
@@ -509,9 +517,9 @@ Test("managed-dynamic-translations-atomic-and-owned", () =>
 Test("managed-callback-unload-race-is-serialized", () =>
 {
     string assembly = System.Reflection.Assembly.GetExecutingAssembly().Location;
-    HostLocalizationModule.ShouldFail = false;
-    HostLocalizationModule.DynamicTranslations = true;
-    HostLocalizationModule.RegisterForeign = false;
+    SetHostField("ShouldFail", false);
+    SetHostField("DynamicTranslations", true);
+    SetHostField("RegisterForeign", false);
     Parallel.For(0, 256, index =>
     {
         string culture = index % 2 == 0 ? "en-US" : "pt-BR";
@@ -520,7 +528,7 @@ Test("managed-callback-unload-race-is-serialized", () =>
             throw new InvalidOperationException("Localization callback escaped the serialized unload lifecycle");
         if (index % 3 == 0) BunnyLocalizationRuntime.Unload("examplemod");
     });
-    HostLocalizationModule.DynamicTranslations = false;
+    SetHostField("DynamicTranslations", false);
     Equal(true, BunnyLocalizationRuntime.Dispatch("examplemod", assembly, "en-US")
         .StartsWith("OK|1\nBUNNY_DYNAMIC_LOCALES_V1", StringComparison.Ordinal));
     BunnyLocalizationRuntime.Unload("examplemod");
@@ -530,7 +538,7 @@ Test("managed-callback-unload-race-is-serialized", () =>
 Test("authored-vanilla-register-is-owned-by-caller", () =>
 {
     string assembly = System.Reflection.Assembly.GetExecutingAssembly().Location;
-    HostLocalizationModule.GlobalRegistration = true;
+    SetHostField("GlobalRegistration", true);
     try
     {
         string wire = BunnyLocalizationRuntime.Dispatch("examplemod", assembly, "pt-BR");
@@ -539,14 +547,14 @@ Test("authored-vanilla-register-is-owned-by-caller", () =>
         Equal("BUNNY_DYNAMIC_LOCALES_V1", rows[1]);
         Equal(true, rows.Skip(2).Any(row => System.Text.Encoding.UTF8.GetString(
             Convert.FromHexString(row.Split('\t')[2])) == "LegacyInterface.28"));
-        HostLocalizationModule.RegisterForeign = true;
+        SetHostField("RegisterForeign", true);
         Equal("ERROR|CallbackFaults=1",
             BunnyLocalizationRuntime.Dispatch("examplemod", assembly, "en-US"));
     }
     finally
     {
-        HostLocalizationModule.GlobalRegistration = false;
-        HostLocalizationModule.RegisterForeign = false;
+        SetHostField("GlobalRegistration", false);
+        SetHostField("RegisterForeign", false);
         BunnyLocalizationRuntime.Unload("examplemod");
     }
 });
@@ -644,7 +652,7 @@ Test("assembly-identity-ambiguity-denies-live-registration", () =>
 Test("combined-dynamic-localization-limit-is-atomic", () =>
 {
     string assembly = System.Reflection.Assembly.GetExecutingAssembly().Location;
-    HostLocalizationModule.SeedCallbackLimit = true;
+    SetHostField("SeedCallbackLimit", true);
     try
     {
         string callback = BunnyLocalizationRuntime.Dispatch("examplemod", assembly, "en-US");
@@ -661,7 +669,7 @@ Test("combined-dynamic-localization-limit-is-atomic", () =>
     }
     finally
     {
-        HostLocalizationModule.SeedCallbackLimit = false;
+        SetHostField("SeedCallbackLimit", false);
         BunnyLocalizationRuntime.Unload("examplemod");
     }
 });
