@@ -4124,6 +4124,23 @@
       ]
     },
     {
+      "name": "BunnyLoader.Source.BunnyWorldContext",
+      "kind": "struct",
+      "baseType": "System.ValueType",
+      "constructors": [],
+      "properties": [
+        "Int64 Session { get; }",
+        "bool IsAuthoritative { get; }",
+        "float PlayerX { get; }",
+        "float PlayerY { get; }",
+        "int ElapsedFrames { get; }",
+        "int NetMode { get; }",
+        "int PlayerIndex { get; }"
+      ],
+      "values": [],
+      "methods": []
+    },
+    {
       "name": "BunnyLoader.Source.BunnyWorldLight",
       "kind": "struct",
       "baseType": "System.ValueType",
@@ -4137,6 +4154,28 @@
       ],
       "values": [],
       "methods": []
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyWorldSystem",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [],
+      "values": [],
+      "methods": [
+        {
+          "signature": "void OnWorldEnter(ref BunnyWorldContext world)",
+          "execution": "worker_async_entity"
+        },
+        {
+          "signature": "void OnWorldExit()",
+          "execution": "worker_async_entity"
+        },
+        {
+          "signature": "void OnWorldTick(ref BunnyWorldContext world)",
+          "execution": "worker_async_entity"
+        }
+      ]
     },
     {
       "name": "BunnyLoader.Source.ItemRarityID",

@@ -2210,6 +2210,20 @@ string Texture { get; set; }
 | `void SetDefaults()` | compile_policy |
 | `void SetRarity<T>()` | managed_helper |
 
+## BunnyLoader.Source.BunnyWorldContext
+
+struct; base: `System.ValueType`.
+
+```csharp
+Int64 Session { get; }
+bool IsAuthoritative { get; }
+float PlayerX { get; }
+float PlayerY { get; }
+int ElapsedFrames { get; }
+int NetMode { get; }
+int PlayerIndex { get; }
+```
+
 ## BunnyLoader.Source.BunnyWorldLight
 
 struct; base: `System.ValueType`.
@@ -2220,6 +2234,16 @@ float B { get; }
 float G { get; }
 float R { get; }
 ```
+
+## BunnyLoader.Source.BunnyWorldSystem
+
+abstract class; base: `System.Object`.
+
+| Method | Execution |
+| --- | --- |
+| `void OnWorldEnter(ref BunnyWorldContext world)` | worker_async_entity |
+| `void OnWorldExit()` | worker_async_entity |
+| `void OnWorldTick(ref BunnyWorldContext world)` | worker_async_entity |
 
 ## BunnyLoader.Source.ItemRarityID
 

@@ -43,6 +43,7 @@ string Mode(Type type, MethodInfo method)
             "RegisterHooks" => "worker_registration",
             _ => "compile_policy"
         };
+    if (type == typeof(BunnyWorldSystem)) return "worker_async_entity";
     if (type == typeof(BunnyEntitySourceDispatcher)) return "worker_async_entity";
     if (type == typeof(BunnyNPC) && method.Name is "OnSpawn" or "AI" or "OnHit" or "OnKill" or "OnDespawn")
         return "worker_async_entity";
