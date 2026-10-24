@@ -4350,19 +4350,19 @@
           "execution": "worker_async_entity"
         },
         {
-          "signature": "void OnWorldEnter(ref BunnyWorldContext world)",
-          "execution": "worker_async_entity"
-        },
-        {
-          "signature": "void OnWorldExit()",
-          "execution": "worker_async_entity"
-        },
-        {
           "signature": "void NetReceive(BunnyNetReader reader)",
           "execution": "worker_async_entity"
         },
         {
           "signature": "void NetSend(BunnyNetWriter writer)",
+          "execution": "worker_async_entity"
+        },
+        {
+          "signature": "void OnWorldEnter(ref BunnyWorldContext world)",
+          "execution": "worker_async_entity"
+        },
+        {
+          "signature": "void OnWorldExit()",
           "execution": "worker_async_entity"
         },
         {
