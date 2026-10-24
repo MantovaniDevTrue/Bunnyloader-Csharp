@@ -191,6 +191,8 @@ class ModRepository(private val context: Context) {
             }
             if (manifest.packType == PackType.TEXTURE) {
                 require(TexturePackFiles.hasImages(root)) { "pacote de textura sem PNGs em content/Images" }
+            } else if (manifest.packType == PackType.FONT) {
+                require(TexturePackFiles.hasFonts(root)) { "pacote de fonte sem .json em content/Fonts" }
             } else {
                 require(entryOf(root) != null) { "pacote sem ${Catalog.CONTENT}/${manifest.entry}" }
             }
@@ -301,15 +303,20 @@ class ModRepository(private val context: Context) {
             .getBoolean("enableOnInstall", true)
     /**
      * O que vai para o núcleo nativo: `uid=entry` para mods, `uid=@texture`
-     * para PNGs sem codigo. Fontes ficam fora ate terem um carregador.
+     * para PNGs sem codigo e `uid=@font` para fontes.
      *
      * Os dois juntos na mesma entrada, e não em duas listas alinhadas por
      * índice, que é uma dessincronização esperando acontecer. O núcleo parte
      * no primeiro `=`.
      */
     fun enabledSpecs(): List<String> =
-        list().filter { !it.isOutdated && isEnabled(it.uid) && it.packType != PackType.FONT }
-            .map { "${it.uid}=${if (it.packType == PackType.TEXTURE) "@texture" else it.entry}" }
+        list().filter { !it.isOutdated && isEnabled(it.uid) }.map { "${it.uid}=${nativeEntry(it)}" }
+
+    private fun nativeEntry(m: ModManifest): String = when (m.packType) {
+        PackType.TEXTURE -> "@texture"
+        PackType.FONT -> "@font"
+        PackType.MOD -> m.entry
+    }
 
     /** O pacote esta no disco: script de mod ou imagens de textura no lugar. */
     fun hasEntry(uid: String): Boolean = dirOf(uid)?.let { entryOf(it) != null } ?: false
@@ -317,6 +324,7 @@ class ModRepository(private val context: Context) {
     private fun entryOf(dir: File): File? {
         val m = readManifest(dir) ?: return null
         if (m.packType == PackType.TEXTURE) return TexturePackFiles.images(dir)?.takeIf { TexturePackFiles.hasImages(dir) }
+        if (m.packType == PackType.FONT) return TexturePackFiles.fonts(dir)?.takeIf { TexturePackFiles.hasFonts(dir) }
         if (m.entry == "@native") return File(dir, "native/arm64-v8a/libmod.so").takeIf { it.isFile }
         val path = resolvePackagePath(dir.path, true, "${Catalog.CONTENT}/${m.entry}") ?: return null
         return File(path).takeIf { it.isFile }
