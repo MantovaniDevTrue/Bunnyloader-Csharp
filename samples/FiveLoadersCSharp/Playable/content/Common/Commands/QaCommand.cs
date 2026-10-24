@@ -28,5 +28,6 @@ public sealed class QaCommand : BunnyCommand
         context.Caller.Reply("Callbacks ausentes:" + QaUpdates.Missing());
         context.Caller.Reply("Gore: pedidos=" + Volatile.Read(ref QaBolt.GoreQueued) + " recusados=" + Volatile.Read(ref QaBolt.GoreRejected));
         context.Caller.Reply("Toque: press=" + Volatile.Read(ref QaTouch.Presses) + " hold=" + Volatile.Read(ref QaTouch.Holds) + " duplo=" + Volatile.Read(ref QaTouch.DoubleTaps));
+        context.Caller.Reply("TouchHost: " + BunnyTouchEntry.Diagnostics());
     }
 }

@@ -98,7 +98,7 @@ void onTouch(void* controller, int32_t slot, Vec2 position, Il2CppObject* cursor
         return;
     }
     SlotAction action;
-    if (!nativeTouchSlot(slot, &action) || action.style != 1) {
+    if (!nativeTouchSlot(slot, &action)) {
         if (original) original(controller, slot, position, cursor, method);
         return;
     }
