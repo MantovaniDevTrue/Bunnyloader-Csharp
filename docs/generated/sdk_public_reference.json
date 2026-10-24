@@ -4141,6 +4141,48 @@
       "methods": []
     },
     {
+      "name": "BunnyLoader.Source.BunnyWorldData",
+      "kind": "class",
+      "baseType": "System.Object",
+      "constructors": [
+        "BunnyWorldData()"
+      ],
+      "properties": [
+        "int Count { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "bool ContainsKey(string key)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool GetBool(string key, bool defaultValue)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "int GetInt(string key, int defaultValue)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "string GetString(string key, string defaultValue)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void SetBool(string key, bool value)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void SetInt(string key, int value)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void SetString(string key, string value)",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
       "name": "BunnyLoader.Source.BunnyWorldLight",
       "kind": "struct",
       "baseType": "System.ValueType",
@@ -4164,6 +4206,14 @@
       "values": [],
       "methods": [
         {
+          "signature": "void ClearWorld()",
+          "execution": "worker_async_entity"
+        },
+        {
+          "signature": "void LoadWorldData(BunnyWorldData tag)",
+          "execution": "worker_async_entity"
+        },
+        {
           "signature": "void OnWorldEnter(ref BunnyWorldContext world)",
           "execution": "worker_async_entity"
         },
@@ -4173,6 +4223,10 @@
         },
         {
           "signature": "void OnWorldTick(ref BunnyWorldContext world)",
+          "execution": "worker_async_entity"
+        },
+        {
+          "signature": "void SaveWorldData(BunnyWorldData tag)",
           "execution": "worker_async_entity"
         }
       ]

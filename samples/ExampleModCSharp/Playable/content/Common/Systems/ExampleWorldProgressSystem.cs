@@ -12,10 +12,21 @@ public sealed class ExampleWorldProgressSystem : BunnyWorldSystem
         DownedExampleBoss = true;
     }
 
-    public override void OnWorldEnter(in BunnyWorldContext world)
+    public override void ClearWorld()
     {
         DownedExampleBoss = false;
         WorldFrames = 0;
+    }
+
+    public override void SaveWorldData(BunnyWorldData tag)
+    {
+        if (DownedExampleBoss)
+            tag.SetBool("downedExampleBoss", true);
+    }
+
+    public override void LoadWorldData(BunnyWorldData tag)
+    {
+        DownedExampleBoss = tag.ContainsKey("downedExampleBoss");
     }
 
     public override void OnWorldTick(in BunnyWorldContext world)
@@ -26,7 +37,6 @@ public sealed class ExampleWorldProgressSystem : BunnyWorldSystem
 
     public override void OnWorldExit()
     {
-        DownedExampleBoss = false;
-        WorldFrames = 0;
+        ClearWorld();
     }
 }
