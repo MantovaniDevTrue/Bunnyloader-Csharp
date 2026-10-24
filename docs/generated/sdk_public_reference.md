@@ -1422,8 +1422,8 @@ int Remaining { get; }
 
 | Method | Execution |
 | --- | --- |
-| `bool[] ReadFlags()` | managed_helper |
 | `Byte ReadByte()` | managed_helper |
+| `bool[] ReadFlags()` | managed_helper |
 | `int ReadInt32()` | managed_helper |
 | `string ReadString()` | managed_helper |
 
@@ -2307,9 +2307,9 @@ struct; base: `System.ValueType`.
 
 ```csharp
 BunnyWorldNetState(Int64 HostSession, string ModId, string SystemName, Int64 Revision, Byte[] Data)
+Byte[] Data { get; set; }
 Int64 HostSession { get; set; }
 Int64 Revision { get; set; }
-Byte[] Data { get; set; }
 string ModId { get; set; }
 string SystemName { get; set; }
 ```
