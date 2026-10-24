@@ -9,6 +9,8 @@ using System.Threading;
 
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Probe")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("LocalizationLoader")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("BunnyDustCompilerSmoke")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("DispatcherIntegration")]
 
 namespace BunnyLoader.Source;
 
