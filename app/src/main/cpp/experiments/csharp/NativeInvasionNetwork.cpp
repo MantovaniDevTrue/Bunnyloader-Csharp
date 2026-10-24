@@ -32,6 +32,7 @@ struct Peer {
     uint64_t lastSeenTick = 0;
     std::map<Key, uint64_t> delivered;
     std::map<Key, uint64_t> worldDelivered;
+    std::map<Key, uint64_t> worldLastSentTick;
 };
 struct Received {
     uint64_t localSession = 0;
@@ -200,6 +201,7 @@ bool registerNativeInvasionClient(int client, uint64_t nonce) {
         peer.nonce = nonce;
         peer.delivered.clear();
         peer.worldDelivered.clear();
+        peer.worldLastSentTick.clear();
         g_dirty = true;
     }
     return true;
@@ -269,6 +271,9 @@ void pumpNativeInvasionNetworkOnGameThread() {
         ++g_hostTick;
         if (g_hostTick % invasion_peer::sweepInterval == 0)
             pruneExpiredPeersLocked();
+        if (g_hostTick % world_net::retryIntervalTicks == 0 &&
+            !g_worldStates.empty() && !g_peers.empty())
+            g_dirty = true;
     }
     for (int sent = 0; sent < 2; ++sent) {
         int player = -1;
@@ -290,8 +295,14 @@ void pumpNativeInvasionNetworkOnGameThread() {
                         peer.worldDelivered : peer.delivered;
                     for (const auto& [key, state] : states) {
                         const auto previous = delivered.find(key);
-                        if (previous != delivered.end() &&
-                            previous->second == state.revision) continue;
+                        if (chooseWorld) {
+                            const auto when = peer.worldLastSentTick.find(key);
+                            if (!world_net::worldStateDue(g_hostTick,
+                                when == peer.worldLastSentTick.end() ? 0 : when->second,
+                                previous == delivered.end() ? 0 : previous->second,
+                                state.revision)) continue;
+                        } else if (previous != delivered.end() &&
+                                   previous->second == state.revision) continue;
                         player = client;
                         nonce = peer.nonce;
                         revision = state.revision;
@@ -314,8 +325,10 @@ void pumpNativeInvasionNetworkOnGameThread() {
         std::lock_guard<std::mutex> guard(g_mutex);
         if (ok && g_peers.contains(player) && g_peers[player].nonce == nonce) {
             g_lastSentPlayer = player;
-            if (worldPacket) g_peers[player].worldDelivered[id] = revision;
-            else g_peers[player].delivered[id] = revision;
+            if (worldPacket) {
+                g_peers[player].worldDelivered[id] = revision;
+                g_peers[player].worldLastSentTick[id] = g_hostTick;
+            } else g_peers[player].delivered[id] = revision;
         }
         if (!ok) return;
     }
