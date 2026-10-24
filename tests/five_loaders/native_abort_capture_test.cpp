@@ -40,6 +40,8 @@ int main() {
             assert(bl::csharp::persistGameNativeModuleMaps(directory));
             bl::csharp::setNativeGameStage(1003);
             bl::csharp::setNativeManagedHookSlot(12);
+            bl::csharp::setNativeMonoWorkerTid(12345);
+            bl::csharp::setNativeMonoWorkerStage(310);
             bl::csharp::rearmNativeAbortProbe("before-test-world-entry");
             if (mode == 0) raise(SIGABRT);
             if (mode == 1 || mode == 3) {
@@ -86,14 +88,18 @@ int main() {
         const auto trace = read(tracePath);
         if (mode == 0) {
             assert(WIFSIGNALED(status) && WTERMSIG(status) == SIGABRT);
-            assert(trace.find("game_stage=1003 last_game_stage=1003 managed_slot_plus_one=13 signo=6") != std::string::npos);
+            assert(trace.find("game_stage=1003 last_game_stage=1003 managed_slot_plus_one=13 mono_worker_stage=310 mono_worker_tid=12345 signo=6") != std::string::npos);
             assert(trace.find("NATIVE_ABORT_END") != std::string::npos);
         } else {
             assert(WIFEXITED(status) && WEXITSTATUS(status) == (mode == 2 ? 17 : 0));
             assert(trace.find("NATIVE_PROCESS_ATEXIT_BEGIN") != std::string::npos);
             assert(trace.find("NATIVE_PROCESS_ATEXIT_END") != std::string::npos);
             assert(trace.find("last_game_stage=1003") != std::string::npos);
-            if (mode == 1) assert(trace.find("NATIVE_SIGSEGV_PRECALL") != std::string::npos);
+            if (mode == 1) {
+                assert(trace.find("NATIVE_SIGSEGV_PRECALL") != std::string::npos);
+                assert(trace.find("segv_mono_worker_stage=310") != std::string::npos);
+                assert(trace.find("segv_mono_worker_tid=12345") != std::string::npos);
+            }
             else if (mode == 2) assert(trace.find("exit_status=17") != std::string::npos);
         }
         const std::string mapsPath = std::string(directory)+"/native-game-module-maps.txt";
