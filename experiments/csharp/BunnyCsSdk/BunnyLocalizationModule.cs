@@ -209,6 +209,12 @@ public static class BunnyLocalizationRuntime
                 if (!Mods.TryGetValue(modId, out ModState? state) ||
                     state.AssemblyPath != assemblyPath)
                 {
+                    if (state != null)
+                    {
+                        Mods.Remove(modId);
+                        state.Lease.Dispose();
+                        state = null;
+                    }
                     BunnyModAssemblyLease? lease = BunnyModAssemblyRegistry.Acquire(modId, assemblyPath);
                     try
                     {
@@ -225,11 +231,6 @@ public static class BunnyLocalizationRuntime
                             modules[i] = (BunnyLocalizationModule)Activator.CreateInstance(types[i])!;
                         var next = new ModState { AssemblyPath = assemblyPath, Assembly = assembly,
                             Lease = lease, Modules = modules };
-                        if (state != null)
-                        {
-                            Mods.Remove(modId);
-                            state.Lease.Dispose();
-                        }
                         Mods[modId] = next;
                         state = next;
                         lease = null;
