@@ -41,6 +41,11 @@ jobs:
         run: |
           c++ -std=c++20 -O2 -Wall -Wextra -Werror -Iapp/src/main/cpp experiments/csharp/BunnyWorldSystemsSmoke/WorldNetProtocolSmoke.cpp -o /tmp/bunny-world-net
           /tmp/bunny-world-net
+      - name: Android ARM64 network bridge syntax
+        run: |
+          NDK=$(find "${ANDROID_HOME}/ndk" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)
+          test -n "$NDK"
+          "$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android34-clang++" -std=c++20 -Wall -Wextra -Werror -Iapp/src/main/cpp -fsyntax-only app/src/main/cpp/experiments/csharp/NativeInvasionNetwork.cpp
       - name: Production SDK compatibility
         run: dotnet build experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj -c Release
       - name: SDK and lifecycle checks
