@@ -65,4 +65,9 @@ for marker in (
     if marker not in commands:
         raise SystemExit(f"Missing native command diagnostic: {marker}")
 
+console = (root / "app/src/main/cpp/script/api/Console.cpp").read_text()
+on_log = console.split("void onLogLine(int level, const char* line)", 1)[1].split("void queueChat", 1)[0]
+if 'std::strncmp(line, "[CSharp]", 8) == 0' not in on_log:
+    raise SystemExit("Native C# diagnostics must not be forwarded to the JS console")
+
 print(f"Native touch signature parity and bootstrap gate PASS ({total} signatures)")
