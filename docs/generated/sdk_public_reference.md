@@ -1416,14 +1416,14 @@ string Name { get; }
 class; base: `System.Object`.
 
 ```csharp
-BunnyNetReader(byte[] data)
+BunnyNetReader(Byte[] data)
 int Remaining { get; }
 ```
 
 | Method | Execution |
 | --- | --- |
 | `bool[] ReadFlags()` | managed_helper |
-| `byte ReadByte()` | managed_helper |
+| `Byte ReadByte()` | managed_helper |
 | `int ReadInt32()` | managed_helper |
 | `string ReadString()` | managed_helper |
 
@@ -1438,8 +1438,8 @@ int Length { get; }
 
 | Method | Execution |
 | --- | --- |
-| `byte[] ToArray()` | managed_helper |
-| `void WriteByte(byte value)` | managed_helper |
+| `Byte[] ToArray()` | managed_helper |
+| `void WriteByte(Byte value)` | managed_helper |
 | `void WriteFlags(bool[] flags)` | managed_helper |
 | `void WriteInt32(int value)` | managed_helper |
 | `void WriteString(string value)` | managed_helper |
@@ -2306,10 +2306,10 @@ bool HasState { get; }
 struct; base: `System.ValueType`.
 
 ```csharp
-BunnyWorldNetState(Int64 HostSession, string ModId, string SystemName, Int64 Revision, byte[] Data)
+BunnyWorldNetState(Int64 HostSession, string ModId, string SystemName, Int64 Revision, Byte[] Data)
 Int64 HostSession { get; set; }
 Int64 Revision { get; set; }
-byte[] Data { get; set; }
+Byte[] Data { get; set; }
 string ModId { get; set; }
 string SystemName { get; set; }
 ```
@@ -2323,7 +2323,7 @@ string SystemName { get; set; }
 | `static bool TryDecode(string input, out BunnyWorldNetState state)` | managed_helper |
 | `string Encode()` | managed_helper |
 | `string ToString()` | managed_helper |
-| `void Deconstruct(out Int64 HostSession, out string ModId, out string SystemName, out Int64 Revision, out byte[] Data)` | managed_helper |
+| `void Deconstruct(out Int64 HostSession, out string ModId, out string SystemName, out Int64 Revision, out Byte[] Data)` | managed_helper |
 
 ## BunnyLoader.Source.BunnyWorldSystem
 
