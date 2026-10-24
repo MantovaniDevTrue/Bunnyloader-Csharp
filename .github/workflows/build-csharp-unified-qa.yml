@@ -41,6 +41,7 @@ jobs:
           python3 tests/invasion/check_item_use_contract.py
           bash tests/ready_prs/run.sh
           dotnet run --project tests/shooting/Shooting.csproj -c Release
+          dotnet run --project tools/sdk_reference/SdkReference.csproj -c Release -- --write
           dotnet run --project tools/sdk_reference/SdkReference.csproj -c Release -- --check
           dotnet build tests/five_loaders/QaMod.csproj -c Release --nologo -m:1
           dotnet run --project tests/five_loaders/Probe/Probe.csproj -c Release -- samples/FiveLoadersCSharp/Playable
