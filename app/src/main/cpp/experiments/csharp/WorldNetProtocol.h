@@ -17,6 +17,14 @@ inline bool worldStateDue(uint64_t now, uint64_t lastSent,
     return now >= lastSent && now - lastSent >= retryIntervalTicks;
 }
 
+inline bool shouldSendWorldState(bool freshPass, uint64_t now,
+                                 uint64_t lastSent, uint64_t deliveredRevision,
+                                 uint64_t currentRevision) {
+    const bool fresh = deliveredRevision != currentRevision;
+    return freshPass ? fresh :
+        !fresh && worldStateDue(now, lastSent, deliveredRevision, currentRevision);
+}
+
 inline bool preferWorldForSendSlot(int sent) {
     return (sent & 1) != 0;
 }
