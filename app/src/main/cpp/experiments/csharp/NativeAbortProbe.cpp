@@ -296,6 +296,7 @@ void captureProcessExitStack() {
 }
 
 void onSegv(int signo, siginfo_t* info, void* raw) {
+    const int interruptedErrno = errno;
     const int count = __sync_add_and_fetch(&g_segvCount, 1);
     if (count <= 8 && g_trace >= 0) {
         emit("NATIVE_SIGSEGV_PRECALL\n");
@@ -333,6 +334,8 @@ void onSegv(int signo, siginfo_t* info, void* raw) {
         emit("NATIVE_SIGSEGV_TRACE_DONE\n");
         (void)fsync(g_trace);
     }
+    // Diagnostic IO must not change the interrupted thread's errno.
+    errno = interruptedErrno;
     if ((g_previousSegv.sa_flags & SA_SIGINFO) && g_previousSegv.sa_sigaction) {
         if (g_previousSegv.sa_sigaction != &onSegv)
             g_previousSegv.sa_sigaction(signo, info, raw);
