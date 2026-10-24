@@ -30,6 +30,9 @@ int main() {
     assert(!parse("WS1|42|../mod|World|1|0101", &snapshot));
     assert(!parse("WS1|42|mod|../World|1|0101", &snapshot));
     assert(!parse("WS1|42|mod|World|1|0101|extra", &snapshot));
+    assert(!parse("WS1|9223372036854775808|mod|World|1|0101", &snapshot));
+    assert(!parse("WS1|42|mod|World|9223372036854775808|0101", &snapshot));
+    assert(parse("WS1|9223372036854775807|mod|World|9223372036854775807|0101", &snapshot));
     assert(!parse("WS1|42|mod|World|18446744073709551616|0101", &snapshot));
     assert(!parse(std::string("WS1|42|mod|World|1|") + std::string(194, '0'), &snapshot));
     assert(!parse("INV1|42|mod|World|1|0101", &snapshot));
