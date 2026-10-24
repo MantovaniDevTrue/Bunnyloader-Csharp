@@ -1,5 +1,14 @@
 name: ExampleMod pre APK Random and collision QA (no APK)
 on:
+  push:
+    branches: [qa/csharp-world-tree-gore-apk-20261024]
+    paths:
+      - 'samples/ExampleModCSharp/Playable/content/Common/Systems/**'
+      - 'tests/examplemod_pre_apk/**'
+      - 'docs/csharp/examplemod-evidence.json'
+      - 'docs/csharp/EXAMPLEMOD_COVERAGE.json'
+      - 'docs/csharp/EXAMPLEMOD_COVERAGE.md'
+      - '.github/workflows/check-examplemod-pre-apk.yml'
   pull_request:
     paths:
       - 'experiments/csharp/**'
@@ -23,6 +32,8 @@ jobs:
         run: dotnet run --project tests/random_compat/RandomCompat.csproj -c Release
       - name: Compile and execute shipped QA examples
         run: dotnet run --project tests/examplemod_pre_apk/ExampleModPreApk.csproj -c Release
+      - name: Check conservative behavior coverage
+        run: python3 tools/examplemod_coverage.py --check
       - name: Compile entire ExampleMod through production Roslyn
         run: dotnet run --project tests/basic_items/ItemBatch.csproj -c Release
       - name: Preserve WorldSystem and WorldNet lifecycle
