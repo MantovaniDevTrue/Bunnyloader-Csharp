@@ -325,6 +325,18 @@ void onSegv(int signo, siginfo_t* info, void* raw) {
             emitHex(fp);
             emit("segv_sp=");
             emitHex(sp);
+            emit("segv_game_stage=");
+            emitDec(g_gameStage.load(std::memory_order_relaxed));
+            emit("segv_last_game_stage=");
+            emitDec(g_lastGameStage.load(std::memory_order_relaxed));
+            emit("segv_managed_slot_plus_one=");
+            emitDec(static_cast<uintptr_t>(g_managedHookSlot.load(std::memory_order_relaxed) + 1));
+            for (unsigned i = 0; i < 31; ++i) {
+                emit("segv_x");
+                emitDec(i);
+                emit("=");
+                emitHex(static_cast<uintptr_t>(context->uc_mcontext.regs[i]));
+            }
             uintptr_t targets[3]{pc, lr, info ? reinterpret_cast<uintptr_t>(info->si_addr) : 0};
             emitMatchingMaps(targets, 3);
         }
