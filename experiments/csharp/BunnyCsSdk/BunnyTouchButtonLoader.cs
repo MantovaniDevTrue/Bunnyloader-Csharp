@@ -88,6 +88,7 @@ public static class BunnyTouchButtonLoader
     public static string LastHostError { get; private set; } = "HostNotConnected";
 
     public static int Count { get { lock (Gate) return ByName.Count; } }
+    public static string LayoutDiagnostics() => BunnyTouchNativeHost.LayoutDiagnostics();
 
     public static BunnyTouchButton RegisterKeybind(string modId, string name, string? defaultBinding = null)
         => RegisterButton(modId, name);
