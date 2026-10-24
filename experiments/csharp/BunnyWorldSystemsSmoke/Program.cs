@@ -87,7 +87,34 @@ internal static class Program
         BunnyEntitySourceDispatcher.TickWorld(mod, 0, 30, 12, 0, 32, 64);
         Check(AlphaWorld.Enters == 3 && AlphaWorld.Ticks == 4,
             "World can reenter after reset");
-        Console.WriteLine("Bunny World Systems smoke: 11 checks passed");
+        var worldTag = new BunnyWorldData();
+        worldTag.SetBool("boss", true);
+        worldTag.SetInt("score", -42);
+        worldTag.SetString("title", "Exemplo 茶");
+        Check(worldTag.ContainsKey("boss") && worldTag.GetBool("boss") &&
+            worldTag.GetInt("score") == -42 && worldTag.GetString("title") == "Exemplo 茶",
+            "Typed world data");
+        Check(!worldTag.GetBool("unknown") && worldTag.GetInt("unknown", 7) == 7,
+            "World data defaults");
+
+        var encode = typeof(BunnyWorldData).GetMethod("Encode",
+            BindingFlags.Instance | BindingFlags.NonPublic);
+        var decode = typeof(BunnyWorldData).GetMethod("TryDecode",
+            BindingFlags.Static | BindingFlags.NonPublic);
+        string serialized = (string)(encode!.Invoke(worldTag, null) ??
+            throw new InvalidOperationException("Encode missing"));
+        object?[] arguments = { serialized, null };
+        Check((bool)(decode!.Invoke(null, arguments) ?? false), "World data decode");
+        var restored = (BunnyWorldData)arguments[1]!;
+        Check(restored.GetBool("boss") && restored.GetInt("score") == -42 &&
+            restored.GetString("title") == "Exemplo 茶", "World data roundtrip");
+        object?[] broken = { "bunny-world-data 1\\nboss\\tb1\\nboss\\tb0\\n", null };
+        Check(!(bool)(decode.Invoke(null, broken) ?? true), "Reject duplicate world data");
+        bool keyRejected = false;
+        try { worldTag.SetBool("../bad", true); }
+        catch (ArgumentException) { keyRejected = true; }
+        Check(keyRejected, "Reject unsafe world data key");
+        Console.WriteLine("Bunny World Systems smoke: 17 checks passed");
         return 0;
     }
 }
