@@ -1,0 +1,22 @@
+{
+  "uid": "5fd8b61c-7fb8-43cd-9e1d-15da67c9a82c",
+  "id": "randomcompatsmoke",
+  "name": "CSharp Random Compat Probe",
+  "version": "0.1.0",
+  "authors": [
+    {
+      "name": "Bunny Loader",
+      "role": "C# Android QA"
+    }
+  ],
+  "category": "Teste",
+  "summary": "Teste unico de UnifiedRandom, WeightedRandom e Terraria.Utils ao entrar no mundo, sem JavaScript.",
+  "license": "MIT",
+  "blVersion": 2,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "entry": "main.cs",
+  "dependencies": []
+}
