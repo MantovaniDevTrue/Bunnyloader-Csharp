@@ -28,8 +28,8 @@
     "officialCommit": "c9545cf27d56c456321e1896274c02adf67d0140"
   },
   "counts": {
-    "validado automaticamente": 12,
-    "não iniciado": 671,
+    "validado automaticamente": 17,
+    "não iniciado": 666,
     "implementado sem validar": 46,
     "falhou": 3,
     "validado no Android": 1
@@ -790,11 +790,22 @@
       "sourceSha256": "6f1fec3d5acb472850f471b00adc4a194e5ab7f08013456e9a55b4d79e7cc616",
       "behavior": "ClearWorld",
       "candidates": [],
-      "status": "não iniciado",
-      "note": "Equivalência deste comportamento ainda não auditada.",
-      "implementation": [],
-      "tests": [],
-      "androidEvidence": []
+      "status": "validado automaticamente",
+      "note": "Host: a classe Playable reproduz a chave downedExampleBoss do fonte Bunny, limpa estado entre mundos, salva apenas quando derrotado, restaura por ContainsKey e transporta um booleano em WriteFlags/ReadFlags; pacotes truncados e bytes extras rejeitados. Persistência real e multiplayer Android pendentes.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Common/Systems/ExampleWorldProgressSystem.cs"
+      ],
+      "tests": [
+        "tests/examplemod_pre_apk/ExampleModPreApk.csproj",
+        "tests/examplemod_pre_apk/Program.cs"
+      ],
+      "androidEvidence": [],
+      "validationScope": "host; Android pendente",
+      "validatedFilesSha256": {
+        "samples/ExampleModCSharp/Playable/content/Common/Systems/ExampleWorldProgressSystem.cs": "2136edd8b4a8b9ae307d010b064eafafdb5f8208aed9853c2a2f237b9bc08ad8",
+        "tests/examplemod_pre_apk/ExampleModPreApk.csproj": "89c99516a239624efd32e135b7becd5372d9d21ea9c37e2071abed98d61a636a",
+        "tests/examplemod_pre_apk/Program.cs": "a81f5d7de880d55874a3841977194c01f226b119fb4d3fb2406008cb710f8366"
+      }
     },
     {
       "id": "Common/Systems/DownedBossSystem.js#LoadWorldData",
@@ -803,11 +814,22 @@
       "sourceSha256": "6f1fec3d5acb472850f471b00adc4a194e5ab7f08013456e9a55b4d79e7cc616",
       "behavior": "LoadWorldData",
       "candidates": [],
-      "status": "não iniciado",
-      "note": "Equivalência deste comportamento ainda não auditada.",
-      "implementation": [],
-      "tests": [],
-      "androidEvidence": []
+      "status": "validado automaticamente",
+      "note": "Host: a classe Playable reproduz a chave downedExampleBoss do fonte Bunny, limpa estado entre mundos, salva apenas quando derrotado, restaura por ContainsKey e transporta um booleano em WriteFlags/ReadFlags; pacotes truncados e bytes extras rejeitados. Persistência real e multiplayer Android pendentes.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Common/Systems/ExampleWorldProgressSystem.cs"
+      ],
+      "tests": [
+        "tests/examplemod_pre_apk/ExampleModPreApk.csproj",
+        "tests/examplemod_pre_apk/Program.cs"
+      ],
+      "androidEvidence": [],
+      "validationScope": "host; Android pendente",
+      "validatedFilesSha256": {
+        "samples/ExampleModCSharp/Playable/content/Common/Systems/ExampleWorldProgressSystem.cs": "2136edd8b4a8b9ae307d010b064eafafdb5f8208aed9853c2a2f237b9bc08ad8",
+        "tests/examplemod_pre_apk/ExampleModPreApk.csproj": "89c99516a239624efd32e135b7becd5372d9d21ea9c37e2071abed98d61a636a",
+        "tests/examplemod_pre_apk/Program.cs": "a81f5d7de880d55874a3841977194c01f226b119fb4d3fb2406008cb710f8366"
+      }
     },
     {
       "id": "Common/Systems/DownedBossSystem.js#NetReceive",
@@ -816,11 +838,22 @@
       "sourceSha256": "6f1fec3d5acb472850f471b00adc4a194e5ab7f08013456e9a55b4d79e7cc616",
       "behavior": "NetReceive",
       "candidates": [],
-      "status": "não iniciado",
-      "note": "Equivalência deste comportamento ainda não auditada.",
-      "implementation": [],
-      "tests": [],
-      "androidEvidence": []
+      "status": "validado automaticamente",
+      "note": "Host: a classe Playable reproduz a chave downedExampleBoss do fonte Bunny, limpa estado entre mundos, salva apenas quando derrotado, restaura por ContainsKey e transporta um booleano em WriteFlags/ReadFlags; pacotes truncados e bytes extras rejeitados. Persistência real e multiplayer Android pendentes.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Common/Systems/ExampleWorldProgressSystem.cs"
+      ],
+      "tests": [
+        "tests/examplemod_pre_apk/ExampleModPreApk.csproj",
+        "tests/examplemod_pre_apk/Program.cs"
+      ],
+      "androidEvidence": [],
+      "validationScope": "host; Android pendente",
+      "validatedFilesSha256": {
+        "samples/ExampleModCSharp/Playable/content/Common/Systems/ExampleWorldProgressSystem.cs": "2136edd8b4a8b9ae307d010b064eafafdb5f8208aed9853c2a2f237b9bc08ad8",
+        "tests/examplemod_pre_apk/ExampleModPreApk.csproj": "89c99516a239624efd32e135b7becd5372d9d21ea9c37e2071abed98d61a636a",
+        "tests/examplemod_pre_apk/Program.cs": "a81f5d7de880d55874a3841977194c01f226b119fb4d3fb2406008cb710f8366"
+      }
     },
     {
       "id": "Common/Systems/DownedBossSystem.js#NetSend",
@@ -829,11 +862,22 @@
       "sourceSha256": "6f1fec3d5acb472850f471b00adc4a194e5ab7f08013456e9a55b4d79e7cc616",
       "behavior": "NetSend",
       "candidates": [],
-      "status": "não iniciado",
-      "note": "Equivalência deste comportamento ainda não auditada.",
-      "implementation": [],
-      "tests": [],
-      "androidEvidence": []
+      "status": "validado automaticamente",
+      "note": "Host: a classe Playable reproduz a chave downedExampleBoss do fonte Bunny, limpa estado entre mundos, salva apenas quando derrotado, restaura por ContainsKey e transporta um booleano em WriteFlags/ReadFlags; pacotes truncados e bytes extras rejeitados. Persistência real e multiplayer Android pendentes.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Common/Systems/ExampleWorldProgressSystem.cs"
+      ],
+      "tests": [
+        "tests/examplemod_pre_apk/ExampleModPreApk.csproj",
+        "tests/examplemod_pre_apk/Program.cs"
+      ],
+      "androidEvidence": [],
+      "validationScope": "host; Android pendente",
+      "validatedFilesSha256": {
+        "samples/ExampleModCSharp/Playable/content/Common/Systems/ExampleWorldProgressSystem.cs": "2136edd8b4a8b9ae307d010b064eafafdb5f8208aed9853c2a2f237b9bc08ad8",
+        "tests/examplemod_pre_apk/ExampleModPreApk.csproj": "89c99516a239624efd32e135b7becd5372d9d21ea9c37e2071abed98d61a636a",
+        "tests/examplemod_pre_apk/Program.cs": "a81f5d7de880d55874a3841977194c01f226b119fb4d3fb2406008cb710f8366"
+      }
     },
     {
       "id": "Common/Systems/DownedBossSystem.js#SaveWorldData",
@@ -842,11 +886,22 @@
       "sourceSha256": "6f1fec3d5acb472850f471b00adc4a194e5ab7f08013456e9a55b4d79e7cc616",
       "behavior": "SaveWorldData",
       "candidates": [],
-      "status": "não iniciado",
-      "note": "Equivalência deste comportamento ainda não auditada.",
-      "implementation": [],
-      "tests": [],
-      "androidEvidence": []
+      "status": "validado automaticamente",
+      "note": "Host: a classe Playable reproduz a chave downedExampleBoss do fonte Bunny, limpa estado entre mundos, salva apenas quando derrotado, restaura por ContainsKey e transporta um booleano em WriteFlags/ReadFlags; pacotes truncados e bytes extras rejeitados. Persistência real e multiplayer Android pendentes.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Common/Systems/ExampleWorldProgressSystem.cs"
+      ],
+      "tests": [
+        "tests/examplemod_pre_apk/ExampleModPreApk.csproj",
+        "tests/examplemod_pre_apk/Program.cs"
+      ],
+      "androidEvidence": [],
+      "validationScope": "host; Android pendente",
+      "validatedFilesSha256": {
+        "samples/ExampleModCSharp/Playable/content/Common/Systems/ExampleWorldProgressSystem.cs": "2136edd8b4a8b9ae307d010b064eafafdb5f8208aed9853c2a2f237b9bc08ad8",
+        "tests/examplemod_pre_apk/ExampleModPreApk.csproj": "89c99516a239624efd32e135b7becd5372d9d21ea9c37e2071abed98d61a636a",
+        "tests/examplemod_pre_apk/Program.cs": "a81f5d7de880d55874a3841977194c01f226b119fb4d3fb2406008cb710f8366"
+      }
     },
     {
       "id": "Common/Systems/ExampleBiomeTileCount.js#TileCountsAvailable",
