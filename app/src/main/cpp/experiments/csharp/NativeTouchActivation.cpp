@@ -1,5 +1,6 @@
 #include "experiments/csharp/NativeTouchActivation.h"
 #include "experiments/csharp/NativeTouchInput.h"
+#include "experiments/csharp/NativeTouchGameAbi.h"
 #include "experiments/csharp/NativeTouchController.h"
 #include "experiments/csharp/NativeTouchPointer.h"
 #include "experiments/csharp/NativeTouchGroups.h"
@@ -28,7 +29,9 @@ void pumpNativeTouchActivationOnGameThread() {
     }
     if (++tick != 1 && tick % 30 != 0) return;
     if (tick >= 600 && tick % 600 == 0) {
-        BL_WARN("[CSharp][Touch] ActivationPending Observer=%d Pointer=%d Groups=%d Visibility=%d EditorLabels=%d IconFrames=%d QuickDraw=%d LayoutHooks=%d; profiles/mappings/editor may still be pending",
+        const auto abi = inspectNativeTouchAbi();
+        BL_WARN("[CSharp][Touch] ActivationPending ABI=%s Observer=%d Pointer=%d Groups=%d Visibility=%d EditorLabels=%d IconFrames=%d QuickDraw=%d LayoutHooks=%d",
+                abi.diagnostic.c_str(),
                 nativeTouchObserverInstalled(), nativeTouchPointerInstalled(),
                 nativeTouchGroupBridgeReady(), nativeTouchVisibilityHookInstalled(),
                 nativeTouchEditorLabelsInstalled(), nativeTouchIconFrameHooksInstalled(),
