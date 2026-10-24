@@ -2607,7 +2607,7 @@
       "kind": "class",
       "baseType": "System.Object",
       "constructors": [
-        "BunnyNetReader(byte[] data)"
+        "BunnyNetReader(Byte[] data)"
       ],
       "properties": [
         "int Remaining { get; }"
@@ -2619,7 +2619,7 @@
           "execution": "managed_helper"
         },
         {
-          "signature": "byte ReadByte()",
+          "signature": "Byte ReadByte()",
           "execution": "managed_helper"
         },
         {
@@ -2645,11 +2645,11 @@
       "values": [],
       "methods": [
         {
-          "signature": "byte[] ToArray()",
+          "signature": "Byte[] ToArray()",
           "execution": "managed_helper"
         },
         {
-          "signature": "void WriteByte(byte value)",
+          "signature": "void WriteByte(Byte value)",
           "execution": "managed_helper"
         },
         {
@@ -4288,12 +4288,12 @@
       "kind": "struct",
       "baseType": "System.ValueType",
       "constructors": [
-        "BunnyWorldNetState(Int64 HostSession, string ModId, string SystemName, Int64 Revision, byte[] Data)"
+        "BunnyWorldNetState(Int64 HostSession, string ModId, string SystemName, Int64 Revision, Byte[] Data)"
       ],
       "properties": [
         "Int64 HostSession { get; set; }",
         "Int64 Revision { get; set; }",
-        "byte[] Data { get; set; }",
+        "Byte[] Data { get; set; }",
         "string ModId { get; set; }",
         "string SystemName { get; set; }"
       ],
@@ -4328,7 +4328,7 @@
           "execution": "managed_helper"
         },
         {
-          "signature": "void Deconstruct(out Int64 HostSession, out string ModId, out string SystemName, out Int64 Revision, out byte[] Data)",
+          "signature": "void Deconstruct(out Int64 HostSession, out string ModId, out string SystemName, out Int64 Revision, out Byte[] Data)",
           "execution": "managed_helper"
         }
       ]
