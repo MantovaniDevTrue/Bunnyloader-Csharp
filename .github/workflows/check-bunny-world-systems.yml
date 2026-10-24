@@ -1,0 +1,24 @@
+name: Bunny Engine world systems
+
+on:
+  pull_request:
+    paths:
+      - 'experiments/csharp/BunnyCsSdk/**'
+      - 'experiments/csharp/BunnyWorldSystemsSmoke/**'
+      - 'app/src/main/cpp/experiments/csharp/SourceParser.cpp'
+      - 'app/src/main/cpp/experiments/csharp/SourceLoader.*'
+      - 'app/src/main/cpp/experiments/csharp/SourceContentIdentity.h'
+      - 'app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp'
+      - '.github/workflows/check-bunny-world-systems.yml'
+  workflow_dispatch:
+
+jobs:
+  world-systems:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: SDK and lifecycle checks
+        run: dotnet run --project experiments/csharp/BunnyWorldSystemsSmoke/BunnyWorldSystemsSmoke.csproj -c Release
