@@ -51,6 +51,7 @@ bool g_dirty = false;
 uint64_t g_nonce = 0;
 uint32_t g_joinTimer = 0;
 uint64_t g_hostTick = 0;
+int g_lastSentPlayer = -1;
 using NewTextFn = void (*)(Il2CppString*, uint8_t, uint8_t, uint8_t, bool,
                            const MethodInfo*);
 NewTextFn g_originalText = nullptr;
@@ -181,6 +182,7 @@ void setNativeInvasionNetWorldState(bool ready, uint64_t session) {
         g_nonce = 0;
         g_joinTimer = 0;
         g_hostTick = 0;
+        g_lastSentPlayer = -1;
     }
     g_session.store(session, std::memory_order_release);
     g_ready.store(ready && session != 0, std::memory_order_release);
@@ -278,7 +280,9 @@ void pumpNativeInvasionNetworkOnGameThread() {
             std::lock_guard<std::mutex> guard(g_mutex);
             if (!g_dirty) return;
             g_dirty = false;
-            for (auto& [client, peer] : g_peers) {
+            auto candidate = world_net::nextPeerAfter(g_peers, g_lastSentPlayer);
+            for (size_t scanned = 0; scanned < g_peers.size(); ++scanned) {
+                auto& [client, peer] = *candidate;
                 for (int pass = 0; pass < 2 && player < 0; ++pass) {
                     const bool chooseWorld = (pass == 0) == world_net::preferWorldForSendSlot(sent);
                     const auto& states = chooseWorld ? g_worldStates : g_hostStates;
@@ -299,6 +303,8 @@ void pumpNativeInvasionNetworkOnGameThread() {
                     }
                 }
                 if (player >= 0) break;
+                ++candidate;
+                if (candidate == g_peers.end()) candidate = g_peers.begin();
             }
         }
         if (player < 0) return;
@@ -307,6 +313,7 @@ void pumpNativeInvasionNetworkOnGameThread() {
                 std::to_string(nonce) + "|" + packet, player);
         std::lock_guard<std::mutex> guard(g_mutex);
         if (ok && g_peers.contains(player) && g_peers[player].nonce == nonce) {
+            g_lastSentPlayer = player;
             if (worldPacket) g_peers[player].worldDelivered[id] = revision;
             else g_peers[player].delivered[id] = revision;
         }
