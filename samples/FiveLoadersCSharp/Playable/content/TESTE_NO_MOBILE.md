@@ -1,7 +1,7 @@
 # Cinco loaders C# — QA Mobile 301720
 
 APK unificado recomendado: **Bunny Loader C#** (`com.bunnyloader.csharptest`,
-`1.0.22-csharp-unified-qa`). Substitui o aplicativo C# QA anterior,
+`1.0.23-csharp-unified-qa`). Substitui o aplicativo C# QA anterior,
 sem exigir APK Five QA paralelo. Terraria instalado precisa ser 1.4.5.8.6,
 Android ARM64. O pacote contém fontes C# editáveis, sem runtime JS.
 
