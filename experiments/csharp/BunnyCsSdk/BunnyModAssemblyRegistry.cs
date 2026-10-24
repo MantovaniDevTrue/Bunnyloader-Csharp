@@ -11,6 +11,7 @@ using System.Threading;
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("LocalizationLoader")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("BunnyDustCompilerSmoke")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("DispatcherIntegration")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("TransportIntegration")]
 
 namespace BunnyLoader.Source;
 
