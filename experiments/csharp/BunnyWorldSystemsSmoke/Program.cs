@@ -197,7 +197,32 @@ internal static class Program
         bossSystem.NetReceive(new BunnyNetReader(clearedWriter.ToArray()));
         Check(!ExampleWorldProgressSystem.DownedExampleBoss,
             "Host progress reset replicates to the client");
-        Console.WriteLine("Bunny World Systems smoke: 35 checks passed");
+        var normalPacket = new BunnyWorldNetState(1, "mod", "System", 1,
+            new byte[BunnyNetWriter.MaxBytes]);
+        Check(normalPacket.IsValid() &&
+            normalPacket.Encode().Length <= 300, "Network full payload budget");
+        var longPacket = new BunnyWorldNetState(long.MaxValue,
+            new string('m', 110), new string('s', 60), long.MaxValue,
+            new byte[BunnyNetWriter.MaxBytes]);
+        Check(!longPacket.IsValid() &&
+            longPacket.Encode().Length > 300,
+            "Reject overbudget world packet without encoding");
+        var borderlinePacket = new BunnyWorldNetState(long.MaxValue,
+            new string('m', 40), new string('s', 30), long.MaxValue,
+            new byte[BunnyNetWriter.MaxBytes]);
+        Check(borderlinePacket.IsValid() ==
+            (borderlinePacket.Encode().Length <= 300),
+            "Encoded length exactly matches network budget");
+        var minPacket = new BunnyWorldNetState(1, "m", "s", 1, new byte[] { 0 });
+        Check(minPacket.IsValid() &&
+            minPacket.Encode().Length == 8 + 1 + 1 + 1 + 1 + 2,
+            "Minimum world packet length");
+        var boundaryPacket = new BunnyWorldNetState(1, new string('m', 42),
+            new string('s', 42), 1, new byte[BunnyNetWriter.MaxBytes]);
+        Check(boundaryPacket.IsValid() ==
+            (boundaryPacket.Encode().Length <= 300),
+            "Boundary-sized world packet budget");
+        Console.WriteLine("Bunny World Systems smoke: 40 checks passed");
         return 0;
     }
 }
