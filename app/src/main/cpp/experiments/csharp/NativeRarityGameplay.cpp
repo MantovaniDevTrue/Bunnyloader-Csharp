@@ -940,6 +940,7 @@ void pumpNativeRarityGameplay() {
         refreshRarityHoverFallback();
     if ((g_tick & 1u) != 0) return;
     RarityMod current;
+    bool sampleDeferred = false;
     {
         std::lock_guard guard(g_mutex);
         if (g_mods.empty()) return;
@@ -950,10 +951,11 @@ void pumpNativeRarityGameplay() {
             if (mod.failed) continue;
             current.id = mod.id;
             current.assembly = mod.assembly;
-            if (mod.ready && !mod.rarities.empty() &&
-                raritySampleReady(g_tick, mod.nextSampleTick)) {
-                current.rarities.push_back(mod.rarities[mod.cursor % mod.rarities.size()]);
-                mod.cursor = (mod.cursor + 1) % mod.rarities.size();
+            if (mod.ready && !mod.rarities.empty()) {
+                if (raritySampleReady(g_tick, mod.nextSampleTick)) {
+                    current.rarities.push_back(mod.rarities[mod.cursor % mod.rarities.size()]);
+                    mod.cursor = (mod.cursor + 1) % mod.rarities.size();
+                } else sampleDeferred = true;
             }
             found = true;
             break;
@@ -961,6 +963,7 @@ void pumpNativeRarityGameplay() {
         if (!found) return;
     }
 
+    if (sampleDeferred) return;
     if (current.rarities.empty()) {
         std::string error;
         const int state = managedRarityWarmupState(current.id, current.assembly, &error);
