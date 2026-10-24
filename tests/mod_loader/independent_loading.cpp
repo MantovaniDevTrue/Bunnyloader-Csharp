@@ -15,7 +15,10 @@ bool ScriptEngine::init(){++initialized;ready_=!failJs;return ready_;}
 bool ScriptEngine::loadMod(const std::string&,const std::vector<std::string>& files){assert(ready_&&!files.empty());++jsLoaded;return true;}
 bool ScriptEngine::loadBuiltinMod(const std::string&,const std::string&){assert(ready_);++builtinLoaded;return true;}
 }
-namespace bl::runtime {void configureTexturePacks(const std::string&,const std::vector<ModSpec>&){}}
+namespace bl::runtime {
+void configureTexturePacks(const std::string&,const std::vector<ModSpec>&){}
+void configureFontPacks(const std::string&,const std::vector<ModSpec>&){}
+}
 namespace bl::csharp {void resetCSharpSourceModSession(){++sourceResets;activeCSharp.clear();} bool loadCSharpSourceMod(const mods::LoadedMod& mod){assert(mod.entry.ends_with(".cs"));++csLoaded;activeCSharp.push_back(mod.id);return true;}}
 namespace bl::log {void write(int,const char*,...) {}}
 int main(int argc,char** argv) {
