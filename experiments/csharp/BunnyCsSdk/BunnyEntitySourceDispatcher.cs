@@ -131,7 +131,10 @@ public static class BunnyEntitySourceDispatcher
                     context.WorldSystems.Add(system);
                     MethodInfo? netSend = type.GetMethod(nameof(BunnyWorldSystem.NetSend),
                         new[] { typeof(BunnyNetWriter) });
-                    if (netSend?.DeclaringType != typeof(BunnyWorldSystem))
+                    MethodInfo? netReceive = type.GetMethod(nameof(BunnyWorldSystem.NetReceive),
+                        new[] { typeof(BunnyNetReader) });
+                    if (netSend?.DeclaringType != typeof(BunnyWorldSystem) ||
+                        netReceive?.DeclaringType != typeof(BunnyWorldSystem))
                         context.NetworkedWorldSystems.Add(system);
                 }
                 else if (typeof(BunnyInvasionSystem).IsAssignableFrom(type))
