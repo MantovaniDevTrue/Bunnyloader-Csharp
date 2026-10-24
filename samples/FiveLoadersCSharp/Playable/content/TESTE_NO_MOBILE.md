@@ -5,7 +5,7 @@ APK unificado recomendado: **Bunny Loader C#** (`com.bunnyloader.csharptest`,
 sem exigir APK Five QA paralelo. Terraria instalado precisa ser 1.4.5.8.6,
 Android ARM64. O pacote contém fontes C# editáveis, sem runtime JS.
 
-1. Instale o APK; importe e ligue `fiveloaderscsharp-0.1.1.bl`. Neste primeiro
+1. Instale o APK; importe e ligue `fiveloaderscsharp-0.1.2.bl`. Neste primeiro
    ensaio, deixe os outros mods desligados. Crie um personagem e mundo de QA.
 2. No chat do Terraria (não no editor JS), escreva `/lote`. Depois de alguns
    segundos, deve mostrar `mundo=True`, `StatModifier: 40` e `updates=19/19`.
