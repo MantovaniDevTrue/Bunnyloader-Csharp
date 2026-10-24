@@ -9,6 +9,7 @@
 #include <atomic>
 #include <chrono>
 #include <cstdio>
+#include <cstring>
 #include <deque>
 #include <mutex>
 
@@ -45,6 +46,7 @@ void push(char kind, const std::string& text) {
 // Tudo o que vai ao log de sessao (o resumo do nucleo, o bl.log dos mods, os
 // avisos e erros) aparece tambem no console, ao vivo.
 void onLogLine(int level, const char* line) {
+    if (!line || std::strncmp(line, "[CSharp]", 8) == 0) return;
     push(level >= ANDROID_LOG_ERROR ? 'e' : level >= ANDROID_LOG_WARN ? 'w' : 'l', line);
 }
 

@@ -483,16 +483,22 @@ bool installNativeCommandChatHooks() {
         installNativeCommandHelpHook();
         return true;
     }
-    if ((++g_installAttempts - 1) % 60 != 0) return false;
+    const int attempt = ++g_installAttempts;
+    if ((attempt - 1) % 60 != 0) return false;
+    const auto pending = [attempt](const char* reason) {
+        if (attempt >= 601 && (attempt - 1) % 600 == 0)
+            BL_WARN("[CSharp][Command] HookPending Reason=%s Frames=%d", reason, attempt);
+        return false;
+    };
     auto& api = il2cpp::api();
     if (!api.runtime_invoke || !api.string_new || !api.field_static_get_value ||
-        !api.class_get_method_from_name) return false;
+        !api.class_get_method_from_name) return pending("Il2CppApiUnavailable");
 
     auto* processor = il2cpp::findClassQuiet("Terraria.Chat", "ChatCommandProcessor");
     auto* chatHelper = il2cpp::findClassQuiet("Terraria.Chat", "ChatHelper");
     auto* message = il2cpp::findClassQuiet("Terraria.Chat", "ChatMessage");
     auto* main = il2cpp::findClassQuiet("Terraria", "Main");
-    if (!processor || !chatHelper || !message || !main) return false;
+    if (!processor || !chatHelper || !message || !main) return pending("ChatClassesUnavailable");
     const auto* incoming = api.class_get_method_from_name(processor,
         "ProcessIncomingMessage", 2);
     const auto* client = api.class_get_method_from_name(chatHelper,
@@ -535,7 +541,7 @@ bool installNativeCommandChatHooks() {
         !hasReturnType(send, "System.Void") ||
         !hasReturnType(colorConstructor, "System.Void") ||
         !validColor || !netMode || !menu)
-        return false;
+        return pending("ChatSignatureOrLayoutMismatch");
 
     g_textGetter = text;
     g_consume = consumeMethod;
@@ -560,8 +566,8 @@ bool installNativeCommandChatHooks() {
     if (ready) {
         BL_INFO("[CSharp][Command] Stage=ChatHooks Result=Ready GameMenu=MobileProperty");
         installNativeCommandHelpHook();
-    }
-    return ready;
+    } else return pending("ChatDetourInstallFailed");
+    return true;
 }
 
 void pumpNativeCommandRepliesOnGameThread() {
