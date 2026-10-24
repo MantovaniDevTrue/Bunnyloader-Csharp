@@ -28,6 +28,8 @@ g++ "${flags[@]}" -ffunction-sections -fdata-sections -Itests/basic_items/includ
 build/five-checks/gore-startup
 g++ "${flags[@]}" -ffunction-sections -fdata-sections -Itests/basic_items/include tests/five_loaders/mobile_chat_test.cpp -Wl,--gc-sections -o build/five-checks/mobile-chat
 build/five-checks/mobile-chat
+native touch-static-reference tests/keybind_loader/native_touch_static_reference_test.cpp
+build/five-checks/touch-static-reference
 native csharp-log -Itests/five_loaders/include tests/five_loaders/csharp_log_test.cpp app/src/main/cpp/core/Log.cpp
 build/five-checks/csharp-log
 g++ "${flags[@]}" -ffunction-sections -fdata-sections -Itests/five_loaders/include tests/five_loaders/native_abort_capture_test.cpp "$cpp/NativeAbortProbe.cpp" -Wl,--gc-sections -ldl -o build/five-checks/native-abort

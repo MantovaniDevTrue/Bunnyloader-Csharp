@@ -1,4 +1,5 @@
 #include "experiments/csharp/NativeTouchStaticMappings.h"
+#include "experiments/csharp/NativeTouchStaticReference.h"
 #include "experiments/csharp/NativeTouchActionIds.h"
 #include "experiments/csharp/NativeTouchController.h"
 #include "experiments/csharp/NativeTouchInput.h"
@@ -185,16 +186,25 @@ bool ensureNativeTouchStaticMappingsOnGameThread() {
         }
     }
 
-    // A publicação só começa após as cinco tabelas verificarem dimensões,
-    // tipos e células de conflito. Todos os arrays novos estão enraizados.
-    for (auto& item : prepared) {
+    std::array<size_t, 5> published{};
+    size_t publishedCount = 0;
+    for (size_t i = 0; i < prepared.size(); ++i) {
+        auto& item = prepared[i];
         if (!item.root) continue;
-        Il2CppObject* array = api.gchandle_get_target(item.root);
-        if (!array) {
+        Il2CppArray* array = reinterpret_cast<Il2CppArray*>(
+            api.gchandle_get_target(item.root));
+        if (!publishNativeTouchStaticReference(
+                item.field, array, api.field_static_set_value,
+                api.field_static_get_value)) {
+            if (array) api.field_static_set_value(item.field, item.existing);
+            while (publishedCount) {
+                auto& previous = prepared[published[--publishedCount]];
+                api.field_static_set_value(previous.field, previous.existing);
+            }
             release();
             return false;
         }
-        api.field_static_set_value(item.field, &array);
+        published[publishedCount++] = i;
     }
     release();
     initialized = true;
