@@ -30,6 +30,7 @@ struct Peer {
     uint64_t nonce = 0;
     uint64_t lastSeenTick = 0;
     std::map<Key, uint64_t> delivered;
+    std::map<Key, uint64_t> worldDelivered;
 };
 struct Received {
     uint64_t localSession = 0;
@@ -39,8 +40,10 @@ struct Received {
 
 std::mutex g_mutex;
 std::map<Key, Packet> g_hostStates;
+std::map<Key, Packet> g_worldStates;
 std::map<int, Peer> g_peers;
 std::deque<Received> g_received;
+std::deque<Received> g_worldReceived;
 std::atomic<uint64_t> g_session{0};
 std::atomic<bool> g_ready{false};
 bool g_dirty = false;
@@ -116,6 +119,24 @@ bool parseSnapshot(const std::string& text, Key* id, uint64_t* revision) {
     return true;
 }
 
+bool parseWorldSnapshot(const std::string& text, Key* id, uint64_t* revision) {
+    if (text.size() > 300 || text.rfind("WS1|", 0) != 0) return false;
+    const auto parts = fields(text, '|');
+    if (parts.size() != 6 || !validName(parts[2], 128) ||
+        !validName(parts[3], 128)) return false;
+    uint64_t session = 0, sequence = 0;
+    if (!decimal(parts[1], &session) || session == 0 ||
+        !decimal(parts[4], &sequence) || sequence == 0 ||
+        parts[5].empty() || parts[5].size() > 192 ||
+        parts[5].size() % 2 != 0) return false;
+    for (char c : parts[5])
+        if (!((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F')))
+            return false;
+    *id = {parts[2], parts[3]};
+    *revision = sequence;
+    return true;
+}
+
 std::string utf8(Il2CppString* value) {
     if (!value || value->length < 0 || value->length > 350) return {};
     std::string result;
@@ -134,6 +155,10 @@ void onText(Il2CppString* message, uint8_t red, uint8_t green, uint8_t blue,
         const std::string text = utf8(message);
         if (text.rfind("BLINV2|", 0) == 0) {
             acceptNativeInvasionChat(text);
+            return;
+        }
+        if (text.rfind("BLWS2|", 0) == 0) {
+            acceptNativeWorldSystemChat(text);
             return;
         }
     }
@@ -157,8 +182,10 @@ void setNativeInvasionNetWorldState(bool ready, uint64_t session) {
         (g_ready.load(std::memory_order_relaxed) && !ready);
     if (reset) {
         g_hostStates.clear();
+        g_worldStates.clear();
         g_peers.clear();
         g_received.clear();
+        g_worldReceived.clear();
         g_dirty = false;
         g_nonce = 0;
         g_joinTimer = 0;
@@ -179,6 +206,7 @@ bool registerNativeInvasionClient(int client, uint64_t nonce) {
     if (peer.nonce != nonce) {
         peer.nonce = nonce;
         peer.delivered.clear();
+        peer.worldDelivered.clear();
         g_dirty = true;
     }
     return true;
@@ -199,6 +227,25 @@ bool acceptNativeInvasionChat(const std::string& text) {
     if (!g_ready.load(std::memory_order_acquire) || g_nonce == 0 ||
         token != g_nonce || g_received.size() >= 64) return false;
     g_received.push_back({g_session.load(std::memory_order_relaxed), id.first, encoded});
+    return true;
+}
+
+bool acceptNativeWorldSystemChat(const std::string& text) {
+    if (runtime::netMode() != 1 || text.size() > 350 ||
+        text.rfind("BLWS2|", 0) != 0) return false;
+    size_t second = text.find('|', 6);
+    if (second == std::string::npos) return false;
+    uint64_t token = 0;
+    if (!decimal(text.substr(6, second - 6), &token)) return false;
+    Key id;
+    uint64_t revision = 0;
+    const std::string encoded = text.substr(second + 1);
+    if (!parseWorldSnapshot(encoded, &id, &revision)) return false;
+    std::lock_guard<std::mutex> guard(g_mutex);
+    if (!g_ready.load(std::memory_order_acquire) || g_nonce == 0 ||
+        token != g_nonce || g_worldReceived.size() >= 64) return false;
+    g_worldReceived.push_back({g_session.load(std::memory_order_relaxed),
+                               id.first, encoded});
     return true;
 }
 
@@ -237,6 +284,7 @@ void pumpNativeInvasionNetworkOnGameThread() {
         uint64_t nonce = 0, revision = 0;
         Key id;
         std::string packet;
+        bool worldPacket = false;
         {
             std::lock_guard<std::mutex> guard(g_mutex);
             if (!g_dirty) return;
@@ -254,14 +302,30 @@ void pumpNativeInvasionNetworkOnGameThread() {
                     break;
                 }
                 if (player >= 0) break;
+                for (const auto& [key, state] : g_worldStates) {
+                    if (peer.worldDelivered.contains(key) &&
+                        peer.worldDelivered[key] == state.revision) continue;
+                    player = client;
+                    nonce = peer.nonce;
+                    revision = state.revision;
+                    id = key;
+                    packet = state.payload;
+                    worldPacket = true;
+                    g_dirty = true;
+                    break;
+                }
+                if (player >= 0) break;
             }
         }
         if (player < 0) return;
         const bool ok = runtime::sendNetworkChat(
-            "BLINV2|" + std::to_string(nonce) + "|" + packet, player);
+            std::string(worldPacket ? "BLWS2|" : "BLINV2|") +
+                std::to_string(nonce) + "|" + packet, player);
         std::lock_guard<std::mutex> guard(g_mutex);
-        if (ok && g_peers.contains(player) &&
-            g_peers[player].nonce == nonce) g_peers[player].delivered[id] = revision;
+        if (ok && g_peers.contains(player) && g_peers[player].nonce == nonce) {
+            if (worldPacket) g_peers[player].worldDelivered[id] = revision;
+            else g_peers[player].delivered[id] = revision;
+        }
         if (!ok) return;
     }
 }
@@ -308,6 +372,57 @@ int bunny_invasion_net_poll(int64_t session, const char* mod,
         buffer[length] = 0;
         g_received.erase(it);
         return length;
+    }
+    return 0;
+}
+
+extern "C" __attribute__((visibility("default")))
+int bunny_world_system_net_publish(int64_t session, const char* payload) {
+    using namespace bl::csharp;
+    if (!payload || session <= 0 || strnlen(payload, 301) > 300 ||
+        !runtime::isNetHost()) return 0;
+    Key id;
+    uint64_t revision = 0;
+    const std::string encoded(payload);
+    if (!parseWorldSnapshot(encoded, &id, &revision)) return 0;
+    const auto parts = fields(encoded, '|');
+    uint64_t remoteSession = 0;
+    if (!decimal(parts[1], &remoteSession) ||
+        remoteSession != static_cast<uint64_t>(session)) return 0;
+    std::lock_guard<std::mutex> guard(g_mutex);
+    if (!g_ready.load(std::memory_order_acquire) ||
+        g_session.load(std::memory_order_acquire) != static_cast<uint64_t>(session))
+        return 0;
+    if (g_worldStates.size() >= 64 && !g_worldStates.contains(id)) return 0;
+    auto& packet = g_worldStates[id];
+    if (packet.payload != encoded) {
+        if (packet.revision > revision) return 0;
+        if (packet.revision == revision && !packet.payload.empty()) return 0;
+        packet = {encoded, revision};
+        g_dirty = true;
+    }
+    return 1;
+}
+
+extern "C" __attribute__((visibility("default")))
+int bunny_world_system_net_poll(int64_t session, const char* mod,
+                                 char* buffer, int capacity) {
+    using namespace bl::csharp;
+    if (session <= 0 || !mod || !buffer || capacity < 301 ||
+        !validName(mod, 128)) return 0;
+    std::lock_guard<std::mutex> guard(g_mutex);
+    if (runtime::netMode() != 1 || !g_ready.load(std::memory_order_acquire) ||
+        g_session.load(std::memory_order_acquire) != static_cast<uint64_t>(session))
+        return 0;
+    for (auto it = g_worldReceived.begin(); it != g_worldReceived.end(); ++it) {
+        if (it->localSession != static_cast<uint64_t>(session) ||
+            it->mod != mod) continue;
+        const int size = static_cast<int>(it->payload.size());
+        if (size + 1 > capacity) return 0;
+        std::memcpy(buffer, it->payload.data(), size);
+        buffer[size] = 0;
+        g_worldReceived.erase(it);
+        return size;
     }
     return 0;
 }
