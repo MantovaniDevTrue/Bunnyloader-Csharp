@@ -317,7 +317,7 @@ try {
    typeof(BunnyLocalizationModule).IsAssignableFrom(t));
   int commands=compiled.GetTypes().Count(t=>t.IsClass&&!t.IsAbstract&&
    typeof(BunnyCommand).IsAssignableFrom(t));
-  Equal(3,commands);
+  Equal(4,commands);
   if(CompiledAssemblyProbe.Verify(output,diag,root)!=identities.Count+localizationModules+commands)
    throw new Exception(File.ReadAllText(diag));
   var contentKinds=new HashSet<string>{"ITEM","WEAPON","ACCESSORY","POTION","TILE","WALL","DUST","RARITY","BUFF","PLAYER","PROJECTILE","NPC","PREFIX"};
