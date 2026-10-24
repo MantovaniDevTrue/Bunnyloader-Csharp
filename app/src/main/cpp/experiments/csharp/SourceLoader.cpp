@@ -373,6 +373,8 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
         return false;
     }
     if (defs.size() > kSourceMaxTypes) { status->error = "tipos C# demais"; return false; }
+    status->worldSystems = static_cast<int>(std::count_if(defs.begin(), defs.end(),
+        [](const ParsedSourceType& def) { return def.base == "BunnyWorldSystem"; }));
     std::map<std::string, int> typed;
     for (const auto& def : defs) {
         const std::string key = sourceIdentityForBase(def.base, def.name);
@@ -384,7 +386,9 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
         }
     }
     const bool hasNativeContent = std::any_of(defs.begin(), defs.end(),
-        [](const ParsedSourceType& def) { return def.base != "BunnyCommand"; });
+        [](const ParsedSourceType& def) {
+            return def.base != "BunnyCommand" && def.base != "BunnyWorldSystem";
+        });
     if (hasNativeContent && !prepareNativeContent()) {
         status->error = "Host API de conteudo nativo indisponivel";
         return false;
