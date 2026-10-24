@@ -12,9 +12,9 @@ O catálogo usa cada hook JS como unidade inicial de revisão, com hash do fonte
 
 | Estado | Comportamentos |
 |---|---:|
-| não iniciado | 678 |
+| não iniciado | 671 |
 | implementado sem validar | 46 |
-| validado automaticamente | 5 |
+| validado automaticamente | 12 |
 | validado no Android | 1 |
 | falhou | 3 |
 | bloqueio comprovado | 0 |
@@ -27,6 +27,13 @@ Dust e invasão: o baseline contém correções posteriores aos logs Android de 
 
 | Comportamento | Estado | Observação |
 |---|---|---|
+| Common/Commands/ExampleTimeCommand.js#Action | validado automaticamente | Host: comando World, nome addTime, validação de ticks inteiros, módulo 86400, rejeição do cliente e autorização host/servidor cobertos pelo ActionsSmoke no pacote Playable. Sincronização WorldData e relógio real no Android pendentes. |
+| Common/Commands/ExampleTimeCommand.js#Command | validado automaticamente | Host: comando World, nome addTime, validação de ticks inteiros, módulo 86400, rejeição do cliente e autorização host/servidor cobertos pelo ActionsSmoke no pacote Playable. Sincronização WorldData e relógio real no Android pendentes. |
+| Common/Commands/ExampleTimeCommand.js#Type | validado automaticamente | Host: comando World, nome addTime, validação de ticks inteiros, módulo 86400, rejeição do cliente e autorização host/servidor cobertos pelo ActionsSmoke no pacote Playable. Sincronização WorldData e relógio real no Android pendentes. |
+| Common/Commands/HealCommand.js#Action | validado automaticamente | Host: nome heal, alias curar, modo Chat, truncamento da quantidade, rejeição de valores inválidos, limite de integridade e emissão ACTION HEAL testados com a classe Playable. Vida efetiva, HealEffect e mensagens no Android pendentes. |
+| Common/Commands/HealCommand.js#Aliases | validado automaticamente | Host: nome heal, alias curar, modo Chat, truncamento da quantidade, rejeição de valores inválidos, limite de integridade e emissão ACTION HEAL testados com a classe Playable. Vida efetiva, HealEffect e mensagens no Android pendentes. |
+| Common/Commands/HealCommand.js#Command | validado automaticamente | Host: nome heal, alias curar, modo Chat, truncamento da quantidade, rejeição de valores inválidos, limite de integridade e emissão ACTION HEAL testados com a classe Playable. Vida efetiva, HealEffect e mensagens no Android pendentes. |
+| Common/Commands/HealCommand.js#Type | validado automaticamente | Host: nome heal, alias curar, modo Chat, truncamento da quantidade, rejeição de valores inválidos, limite de integridade e emissão ACTION HEAL testados com a classe Playable. Vida efetiva, HealEffect e mensagens no Android pendentes. |
 | Common/Players/ExampleFishingPlayer.js#CatchFish | implementado sem validar | Peixe e regra de pesca conferidos no Bunny JS anexado. Helper Android 301720 inspecionado: questItem=true, 26x26 e rare=-11; protocolo real, flags/lista, disponibilidade/chat/captura e unload verificados no host. Gameplay Android pendente. Integração QA 1.0.25: arquivos de implementação ou teste mudaram; a validação anterior permanece histórica e exige nova execução nesta base. |
 | Content/Items/Accessories/WaspNest.js#SetDefaults | implementado sem validar | Valores originais (26x26, Green=2, sellPrice 2 gold) e strongBees funcional; Back autoload do JS tem política C++ equivalente. Testes nativos sem QuickJS cobrem slots/desenho, equipamento/vaidade e reset; Android pendente. Integração QA 1.0.25: arquivos de implementação ou teste mudaram; a validação anterior permanece histórica e exige nova execução nesta base. |
 | Content/Items/Accessories/WaspNest.js#UpdateAccessory | implementado sem validar | Valores originais (26x26, Green=2, sellPrice 2 gold) e strongBees funcional; Back autoload do JS tem política C++ equivalente. Testes nativos sem QuickJS cobrem slots/desenho, equipamento/vaidade e reset; Android pendente. Integração QA 1.0.25: arquivos de implementação ou teste mudaram; a validação anterior permanece histórica e exige nova execução nesta base. |
