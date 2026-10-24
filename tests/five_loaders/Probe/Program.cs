@@ -59,6 +59,9 @@ try
         throw new InvalidOperationException("Different loaders received different mod assemblies");
 
     var assembly = hooks.Assembly;
+    if (!BunnyModAssemblyRegistry.TryResolve(assembly, out string owner, out string resolvedPath) ||
+        owner != uid || resolvedPath != Path.GetFullPath(output) || !string.IsNullOrEmpty(assembly.Location))
+        throw new InvalidOperationException("Stream-loaded mod assembly lost its registered owner/path");
     var world = assembly.GetType("FiveLoadersCSharp.QaWorld", true)!;
     var updates = assembly.GetType("FiveLoadersCSharp.QaUpdates", true)!;
     var counts = (long[])updates.GetField("Counts")!.GetValue(null)!;
