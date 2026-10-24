@@ -51,6 +51,8 @@ try
         throw new InvalidOperationException("World registration: " + BunnyWorldMonoHost.LastError);
     if (BunnyCommandWorker.RegisterAssembly(uid, output) != 1)
         throw new InvalidOperationException("Command registration failed");
+    if (BunnyTouchWorker.RegisterAssembly(uid, output) != 1)
+        throw new InvalidOperationException("Touch registration failed");
 
     using var hooks = BunnyModAssemblyRegistry.Acquire(uid, output);
     using var secondHandle = BunnyModAssemblyRegistry.Acquire(uid, output);
@@ -73,6 +75,30 @@ try
             .Select(line => System.Text.Encoding.UTF8.GetString(
                 Convert.FromHexString(line.Split('\t')[4]))));
     }
+
+    string touchReady = Chat();
+    if (!touchReady.Contains("TouchHost: registro=ok", StringComparison.Ordinal))
+        throw new InvalidOperationException("Touch registration was not visible to command assembly:\n" + touchReady);
+
+    int[] boundTouch = { 0 };
+    int[] none = Array.Empty<int>();
+    BunnyTouchButtonLoader.ApplyHostFrame(1, true, false, false, false, boundTouch, none, boundTouch);
+    BunnyTouchWorker.ProcessTriggers();
+    BunnyTouchButtonLoader.ApplyHostFrame(2, true, false, false, false, none, none, boundTouch);
+    BunnyTouchWorker.ProcessTriggers();
+    BunnyTouchButtonLoader.ApplyHostFrame(3, true, false, false, false, boundTouch, none, boundTouch);
+    BunnyTouchWorker.ProcessTriggers();
+    BunnyTouchButtonLoader.ApplyHostFrame(4, true, false, false, false, none, none, boundTouch);
+    BunnyTouchWorker.ProcessTriggers();
+    for (int tick = 5; tick < 35; tick++)
+    {
+        BunnyTouchButtonLoader.ApplyHostFrame(tick, true, false, false, false, boundTouch, none, boundTouch);
+        BunnyTouchWorker.ProcessTriggers();
+    }
+    string touchActive = Chat();
+    if (!touchActive.Contains("press=3 hold=1 duplo=1", StringComparison.Ordinal) ||
+        !touchActive.Contains("triggerFrames=34", StringComparison.Ordinal))
+        throw new InvalidOperationException("Touch callbacks and /lote did not share static state:\n" + touchActive);
 
     if (!BunnyWorldMonoHost.Enter(1, null, true))
         throw new InvalidOperationException("World entry: " + BunnyWorldMonoHost.LastError);
@@ -133,6 +159,7 @@ try
 
     if (!BunnyWorldMonoHost.ResetRegistrations())
         throw new InvalidOperationException("World registrations were not reset");
+    BunnyTouchWorker.Clear();
     BunnyCommandWorker.Unregister(uid);
     secondHandle.Dispose();
     hooks.Dispose();
@@ -143,6 +170,7 @@ try
             throw new InvalidOperationException("Mod DLL remained cached after all owners left");
     if (BunnyModAssemblyRegistry.ActiveModCount != 0)
         throw new InvalidOperationException("Freshly loaded assembly was not released");
+    Console.WriteLine("FIVE_QA_SHARED_ASSEMBLY_TOUCH_PASS");
     Console.WriteLine("FIVE_QA_SHARED_ASSEMBLY_WORLD_COMMAND_HOOK_PASS");
     Console.WriteLine("FIVE_QA_ROSLYN_DEFAULTS_WORLD_ROUNDTRIP_PASS");
 }
