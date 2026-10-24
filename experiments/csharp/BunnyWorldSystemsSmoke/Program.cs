@@ -1,6 +1,7 @@
 using System;
 using System.Reflection;
 using BunnyLoader.Source;
+using ExampleModCSharp;
 
 namespace BunnyWorldSystemsSmoke;
 
@@ -156,7 +157,32 @@ internal static class Program
         Check(exceeded, "Reject network string capacity");
         Check(!view.Accept(packet, 6, "other_mod", "Progress"),
             "Reject mismatched mod identity");
-        Console.WriteLine("Bunny World Systems smoke: 29 checks passed");
+        var bossSystem = new ExampleWorldProgressSystem();
+        bossSystem.ClearWorld();
+        Check(!ExampleWorldProgressSystem.DownedExampleBoss,
+            "ExampleMod boss progression clears on world entry");
+        ExampleWorldProgressSystem.MarkBossDefeated();
+        var bossTag = new BunnyWorldData();
+        bossSystem.SaveWorldData(bossTag);
+        bossSystem.ClearWorld();
+        bossSystem.LoadWorldData(bossTag);
+        Check(ExampleWorldProgressSystem.DownedExampleBoss,
+            "ExampleMod boss defeat survives save/load");
+        var bossWriter = new BunnyNetWriter();
+        bossSystem.NetSend(bossWriter);
+        bossSystem.ClearWorld();
+        var bossReader = new BunnyNetReader(bossWriter.ToArray());
+        bossSystem.NetReceive(bossReader);
+        Check(ExampleWorldProgressSystem.DownedExampleBoss &&
+              bossReader.Remaining == 0,
+            "ExampleMod boss progression survives host/client network roundtrip");
+        var invalidBossPacket = new BunnyNetWriter();
+        invalidBossPacket.WriteFlags(true, false);
+        bool rejectedBossPacket = false;
+        try { bossSystem.NetReceive(new BunnyNetReader(invalidBossPacket.ToArray())); }
+        catch (FormatException) { rejectedBossPacket = true; }
+        Check(rejectedBossPacket, "ExampleMod rejects invalid network flag count");
+        Console.WriteLine("Bunny World Systems smoke: 33 checks passed");
         return 0;
     }
 }
