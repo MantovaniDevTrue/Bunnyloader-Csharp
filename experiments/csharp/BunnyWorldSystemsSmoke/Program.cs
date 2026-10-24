@@ -264,7 +264,36 @@ internal static class Program
         try { new BunnyNetReader(new byte[BunnyNetWriter.MaxBytes + 1]); }
         catch (ArgumentOutOfRangeException) { payloadOverflow = true; }
         Check(payloadOverflow, "Reject oversized received buffers");
-        Console.WriteLine("Bunny World Systems smoke: 48 checks passed");
+        var replies = new System.Collections.Generic.List<BunnyCommandReply>();
+        var qa = new BunnyCommandRegistry();
+        qa.RegisterTypes("world-net-qa", new[] {
+            typeof(ExampleModCSharp.Commands.ExampleWorldNetQaCommand)
+        });
+        var client = new BunnyCommandCaller(0, 1, BunnyCommandCallerKind.Chat,
+            replies.Add);
+        bossSystem.ClearWorld();
+        Check(qa.TryHandle("/worldnetqa mark", client) &&
+              !ExampleWorldProgressSystem.DownedExampleBoss &&
+              replies.Exists(reply => reply.Text.Contains("somente no host")),
+            "WorldNetQA refuses client-side mutation");
+        replies.Clear();
+        var host = new BunnyCommandCaller(0, 2, BunnyCommandCallerKind.Chat,
+            replies.Add);
+        Check(qa.TryHandle("/worldnetqa mark", host) &&
+              ExampleWorldProgressSystem.DownedExampleBoss,
+            "WorldNetQA authorizes host change");
+        var qaWriter = new BunnyNetWriter();
+        bossSystem.NetSend(qaWriter);
+        bossSystem.ClearWorld();
+        bossSystem.NetReceive(new BunnyNetReader(qaWriter.ToArray()));
+        Check(ExampleWorldProgressSystem.DownedExampleBoss,
+            "Host-authorized QA progression replicates through NetSend/NetReceive");
+        replies.Clear();
+        Check(qa.TryHandle("/worldnetqa", client) &&
+              replies.Exists(reply => reply.Text.Contains("boss=True")),
+            "WorldNetQA displays synchronized client state");
+        qa.Unregister("world-net-qa");
+        Console.WriteLine("Bunny World Systems smoke: 52 checks passed");
         return 0;
     }
 }
