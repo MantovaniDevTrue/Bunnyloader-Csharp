@@ -9,10 +9,11 @@
 #include <vector>
 #include <cstring>
 #include <cstdlib>
+#include <cctype>
 #include <mutex>
 
 namespace bl::csharp {
-struct NativeDefaultWrite {int offset=-1;std::vector<uint8_t> bytes;};
+struct NativeDefaultWrite {int offset=-1;std::vector<uint8_t> bytes;FieldInfo* sound=nullptr;FieldInfo* itemSet=nullptr;};
 struct NativeDefaultsRequest {std::string name,mod,source,descriptor;int type=-1;bool projectile=false;};
 using NativeDefaultsBindings=std::vector<NativeDefaultWrite>;
 using NativeDefaultsTable=std::map<std::pair<bool,int>,NativeDefaultsBindings>;
@@ -21,7 +22,7 @@ inline std::mutex g_nativeDefaultsWriter;
 
 // Defaults must never change identity, ownership, pool membership or native references.
 inline bool nativeDefaultAllowed(const std::string& field,bool projectile) {
-    const std::string item=" width height maxStack value rare damage crit knockBack useTime useAnimation useStyle melee ranged magic summon noMelee autoReuse useTurn consumable accessory vanity pick axe hammer mana shoot shootSpeed useAmmo ammo channel noUseGraphic tileBoost reuseDelay useLimitPerAnimation holdStyle useAmmo canBePlacedInVanity hasVanityEffects noWet bait fishingPole healLife healMana potion buffTime " ;
+    const std::string item=" ItemSet_GamepadWholeScreenUseRange ItemSet_LockOnIgnoresCollision ItemSet_StaffMinionSlotsRequired UseSound width height maxStack value rare damage crit knockBack useTime useAnimation useStyle melee ranged magic summon noMelee autoReuse useTurn consumable accessory vanity pick axe hammer mana shoot shootSpeed useAmmo ammo channel noUseGraphic tileBoost reuseDelay useLimitPerAnimation holdStyle useAmmo canBePlacedInVanity hasVanityEffects noWet bait fishingPole healLife healMana potion buffTime " ;
     const std::string proj=" width height damage knockBack aiStyle friendly hostile melee ranged magic minion sentry minionSlots penetrate maxPenetrate timeLeft ignoreWater tileCollide scale light alpha extraUpdates usesLocalNPCImmunity localNPCHitCooldown usesIDStaticNPCImmunity idStaticNPCHitCooldown armorPenetration bonusCritChance coldDamage noEnchantments noEnchantmentVisuals ownerHitCheck netImportant hide arrow npcProj trap noDropItem soundDelay spriteDirection direction rotation " ;
     return (projectile?proj:item).find(" "+field+" ")!=std::string::npos;
 }
@@ -46,6 +47,43 @@ inline bool bindNativeDefaults(Il2CppClass* cls,const NativeDefaultsRequest& req
         auto parts=split(record,':');const std::string name=parts[0];
         if(parts.size()<3||parts.size()>4||!nativeDefaultAllowed(name,request.projectile)||!seen.emplace(name,true).second)
             return reject(name,"InvalidOrUnsupportedField","UniqueMutableContentDefault",record);
+        if(name.rfind("ItemSet_",0)==0&&!request.projectile) {
+            if(parts.size()!=3)return reject(name,"ItemSetValueInvalid","Three typed fields",record);
+            const bool slots=name=="ItemSet_StaffMinionSlotsRequired";const size_t width=slots?4:1;
+            auto* sets=il2cpp::findClass({"Terraria.ID","ItemID","Sets"});
+            if(sets&&a.runtime_class_init)a.runtime_class_init(sets);
+            auto* field=sets?il2cpp::findField(sets,name.substr(8)):nullptr;Il2CppArray* array=nullptr;
+            if(!field||!(a.field_get_flags(field)&0x10u)||!a.field_static_get_value)return reject(name,"ItemSetMissing","Static primitive array","Missing");
+            a.field_static_get_value(field,&array);
+            if(request.type<1||!array||array->length<=static_cast<uintptr_t>(request.type)||
+               !il2cpp::nativeArrayContract(array,slots?"Int32":"Boolean",width))return reject(name,"ItemSetArrayMismatch","Expanded typed ItemID.Sets array","WrongTypeOrCapacity");
+            NativeDefaultWrite write;write.itemSet=field;write.bytes.resize(width);
+            if(slots) {
+                int value=0;auto parsed=std::from_chars(parts[2].data(),parts[2].data()+parts[2].size(),value);
+                if(parts[1]!="i"||parts[2].empty()||parsed.ec!=std::errc{}||parsed.ptr!=parts[2].data()+parts[2].size()||value<0||value>100)return reject(name,"ItemSetValueInvalid","Slots0..100",record);
+                std::memcpy(write.bytes.data(),&value,4);
+            } else {
+                if(parts[1]!="b"||(parts[2]!="0"&&parts[2]!="1"))return reject(name,"ItemSetValueInvalid","Boolean0or1",record);
+                write.bytes[0]=parts[2]=="1";
+            }
+            staged.push_back(std::move(write));continue;
+        }
+        if(name=="UseSound"&&!request.projectile) {
+            if(parts.size()!=3||parts[1]!="s"||parts[2].empty()||parts[2].size()>72)
+                return reject(name,"InvalidVanillaSound","SoundID field name",record);
+            for(char c:parts[2])if(!std::isalnum(static_cast<unsigned char>(c))&&c!='_')return reject(name,"InvalidVanillaSound","SoundID field name",record);
+            int offset=-1;FieldInfo* destination=nullptr;FieldInfo* source=nullptr;
+            if(!a.field_static_get_value||(!a.gc_wbarrier_set_field&&(!a.gc_is_incremental||a.gc_is_incremental()))||
+               !il2cpp::nativeFieldContract(cls,"UseSound","Terraria.Audio.LegacySoundStyle",false,sizeof(void*),&destination,&offset,error)||
+               (a.field_get_flags(destination)&0x20u))return reject(name,"NativeSoundContractUnavailable","WritableLegacySoundStyle",*error);
+            auto* soundIds=il2cpp::findClass({"Terraria.ID","SoundID",{}});
+            if(soundIds&&a.runtime_class_init)a.runtime_class_init(soundIds);
+            if(!il2cpp::nativeFieldContract(soundIds,parts[2].c_str(),"Terraria.Audio.LegacySoundStyle",true,sizeof(void*),&source,nullptr,error))
+                return reject(name,"VanillaSoundMissing","StaticLegacySoundStyle",*error);
+            Il2CppObject* value=nullptr;a.field_static_get_value(source,&value);
+            if(!value)return reject(name,"VanillaSoundNotInitialized","SoundID style","Null");
+            NativeDefaultWrite write;write.offset=offset;write.sound=source;staged.push_back(std::move(write));continue;
+        }
         auto* field=il2cpp::findField(cls,name);auto* type=field?a.class_from_il2cpp_type(a.field_get_type(field)):nullptr;
         const char* ns=type?a.class_get_namespace(type):nullptr;const char* kind=type?a.class_get_name(type):nullptr;
         const std::string actual=type?std::string(ns?ns:"")+"."+(kind?kind:"<unnamed>"):"Missing";
@@ -110,7 +148,18 @@ inline bool publishNativeDefaults(const std::vector<NativeDefaultsRequest>& requ
 inline void applyNativeDefaults(Il2CppObject* object,bool projectile,int type) {
     if(!object)return;
     const auto table=std::atomic_load_explicit(&g_nativeDefaults,std::memory_order_acquire);const auto found=table->find({projectile,type});if(found==table->end())return;
-    for(const auto& field:found->second)std::memcpy(reinterpret_cast<char*>(object)+field.offset,field.bytes.data(),field.bytes.size());
+    for(const auto& field:found->second) {
+        if(field.itemSet) {
+            Il2CppArray* array=nullptr;il2cpp::api().field_static_get_value(field.itemSet,&array);
+            if(array&&type>=0&&array->length>static_cast<uintptr_t>(type))std::memcpy(static_cast<char*>(arrayData(array))+static_cast<size_t>(type)*field.bytes.size(),field.bytes.data(),field.bytes.size());
+            continue;
+        }
+        auto* destination=reinterpret_cast<char*>(object)+field.offset;
+        if(!field.sound){std::memcpy(destination,field.bytes.data(),field.bytes.size());continue;}
+        Il2CppObject* style=nullptr;auto& a=il2cpp::api();a.field_static_get_value(field.sound,&style);
+        if(a.gc_wbarrier_set_field)a.gc_wbarrier_set_field(object,reinterpret_cast<void**>(destination),style);
+        else std::memcpy(destination,&style,sizeof(style));
+    }
 }
 struct NativeDefaultsAfter {Il2CppObject* object;bool projectile;int type;~NativeDefaultsAfter(){applyNativeDefaults(object,projectile,type);if(!projectile)useSounds::apply(object,type);}};
 }

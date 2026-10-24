@@ -39,6 +39,19 @@ Require(new ExampleShotgun().ShootCallbackMask==4,"Actual example override mask"
 Require(Call("Hidden",2).Contains("HiddenOrAmbiguousCallback"),"Hidden methods cannot silently bind");
 var shotgun=new ExampleShotgun();shotgun.SetDefaults();Require(shotgun.UseTime==55&&shotgun.UseAnimation==55&&shotgun.Damage==10&&shotgun.Value==100000&&shotgun.UseSound=="Item36","Original defaults");
 Require(shotgun.NativeDefaultsDefinition.Contains("useAmmo:d:AmmoID:Bullet")&&shotgun.NativeDefaultsDefinition.Contains("shootSpeed:f:10"),"Native ammo and speed");
+var gun=new ExampleGun();gun.SetDefaults();
+Require(gun.ShootCallbackMask==0&&gun.Damage==20&&gun.UseTime==10&&gun.UseAnimation==10&&gun.AutoReuse&&gun.NoMelee,"Original Gun defaults without fake callbacks");
+Require(gun.NativeDefaultsDefinition.Contains("shoot:d:ProjectileID:PurificationPowder")&&gun.NativeDefaultsDefinition.Contains("useAmmo:d:AmmoID:Bullet"),"Gun uses inventory ammunition");
+Require(gun.Holdout?.X==-18&&gun.Holdout?.Y==0&&gun.CustomUseSound?.Path=="Assets/Sounds/Items/Guns/ExampleGun.ogg","Gun muzzle offset and asset preserved");
+var rocket=new ExampleRocketLauncher();rocket.SetDefaults();
+Require(rocket.ShootCallbackMask==0&&rocket.Damage==55&&rocket.UseTime==30&&rocket.Value==400000&&rocket.Rare==8&&rocket.UseSound=="Item11","Original Rocket Launcher defaults without fake callbacks");
+Require(rocket.NativeDefaultsDefinition.Contains("shoot:d:ProjectileID:RocketI")&&rocket.NativeDefaultsDefinition.Contains("useAmmo:d:AmmoID:Rocket")&&rocket.NativeDefaultsDefinition.Contains("shootSpeed:f:5"),"Rocket uses native ammunition and speed");
+Require(rocket.Holdout?.X==-2&&rocket.Holdout?.Y==-2,"Rocket holdout preserved");
+var staff=new ExampleMinionItem();staff.SetDefaults();
+Require(staff.SpawnAtCursor&&staff.Summon&&staff.MinionBuff=="ExampleMinionBuff"&&staff.Damage==30&&staff.UseTime==36&&staff.ShootSpeed==0,"Original summon lifecycle and cursor spawn");
+foreach(string field in new[]{"mana:i:10","knockBack:f:3","width:i:32","height:i:32","useAnimation:i:36","useStyle:d:ItemUseStyleID:Swing","value:i:1500000","rare:d:ItemRarityID:Cyan","UseSound:s:Item44","ItemSet_StaffMinionSlotsRequired:i:1","ItemSet_GamepadWholeScreenUseRange:b:1","ItemSet_LockOnIgnoresCollision:b:1"})
+ Require(staff.NativeDefaultsDefinition.Split(';').Contains(field),"Original staff native default: "+field);
+var minionLight=new ExampleMinion();minionLight.SetDefaults();Require(minionLight.NativeDefaultsDefinition.Contains("light:f:0.78"),"Original minion white light");
 Console.WriteLine($"SHOOT_MANAGED_LIFECYCLE_ORIGINAL_SHOTGUN_AND_FAILURE_ISOLATION_PASS checks={checks}");
 
 public abstract class Fixture:BunnyItem {public override void SetDefaults(){DisplayName="Independent fixture";Texture="not-loaded.png";}}

@@ -42,5 +42,19 @@ public sealed class BunnyNativeDefaults
     {
         BunnyContentKey.Validate(key,nameof(key),"BunnyNativeDefaults.SetProjectile");return Set(field,"p:"+key);
     }
+    /// <summary>Flag da tabela nativa ItemID.Sets, indexada pelo tipo registrado do item.</summary>
+    public BunnyNativeDefaults SetItemStaticBool(string name,bool value)
+    {
+        if(name!="GamepadWholeScreenUseRange"&&name!="LockOnIgnoresCollision")throw new ArgumentException("ItemID.Sets Boolean não suportado",nameof(name));
+        return Set("ItemSet_"+name,"b:"+(value?"1":"0"));
+    }
+    /// <summary>Quantidade de slots exigidos pela arma de summon, na tabela real do jogo.</summary>
+    public BunnyNativeDefaults SetStaffMinionSlotsRequired(int value)
+    {
+        if(value<0||value>100)throw new ArgumentOutOfRangeException(nameof(value));
+        return Set("ItemSet_StaffMinionSlotsRequired","i:"+value.ToString(CultureInfo.InvariantCulture));
+    }
+    /// <summary>Usa o LegacySoundStyle real registrado em Terraria.ID.SoundID.</summary>
+    public BunnyNativeDefaults SetVanillaUseSound(string name) {Name(name);return Set("UseSound","s:"+name);}
     public string Definition=>string.Join(";",System.Linq.Enumerable.Select(values,p=>p.Key+":"+p.Value));
 }

@@ -1,0 +1,5877 @@
+{
+  "archiveSha256": "1a8986992aac4744e4d1c925e0cf582b58d113d48c26ff3d3bb4726c321e521e",
+  "examples": [
+    {
+      "id": "Common/Commands/ExampleTimeCommand.js",
+      "path": "content/Common/Commands/ExampleTimeCommand.js",
+      "sha256": "b552423adce7890b44ef928d387f8ed12b04a6a14ef0d7ee69273162d07058c8",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleTimeCommand",
+            "base": "ModCommand"
+          }
+        ],
+        "hooksAndMethods": [
+          "Action",
+          "Command",
+          "Type"
+        ],
+        "properties": [],
+        "nativeSignatures": [
+          "void SendData(int msgType, int remoteClient, int ignoreClient, NetworkText text, int number, float number2, float number3, float number4, int number5, int number6, int number7)"
+        ],
+        "imports": []
+      }
+    },
+    {
+      "id": "Common/Commands/HealCommand.js",
+      "path": "content/Common/Commands/HealCommand.js",
+      "sha256": "1793a16aac1bfcd63a7301ef82c2a2ff7d3edf52d3616219569b7dd88519f1f7",
+      "facts": {
+        "classes": [
+          {
+            "name": "HealCommand",
+            "base": "ModCommand"
+          }
+        ],
+        "hooksAndMethods": [
+          "Action",
+          "Aliases",
+          "Command",
+          "Type"
+        ],
+        "properties": [
+          "HealEffect",
+          "statLife",
+          "statLifeMax2"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Common/Configs/ExampleConfig.js",
+      "path": "content/Common/Configs/ExampleConfig.js",
+      "sha256": "55b3e2a9d62c8ecf8e7c0ad44258cc74d25d3a41824d7240b33d0f5fbde4fb02",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleConfig",
+            "base": "ModConfig"
+          }
+        ],
+        "hooksAndMethods": [
+          "OnChanged",
+          "RandomizeGlow"
+        ],
+        "properties": [],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Common/GlobalBossBars/ExampleGlobalBossBar.js",
+      "path": "content/Common/GlobalBossBars/ExampleGlobalBossBar.js",
+      "sha256": "8f85e0d50058867169c715121947aed2a65eb4e3d70dbdf8e8b5dfa80e518f31",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleGlobalBossBar",
+            "base": "GlobalBossBar"
+          }
+        ],
+        "hooksAndMethods": [
+          "PostDraw",
+          "PreDraw"
+        ],
+        "properties": [
+          "type"
+        ],
+        "nativeSignatures": [
+          "Vector2 MeasureString(string text)"
+        ],
+        "imports": []
+      }
+    },
+    {
+      "id": "Common/GlobalBuffs/ExampleGlobalBuff.js",
+      "path": "content/Common/GlobalBuffs/ExampleGlobalBuff.js",
+      "sha256": "7c0d88ed60570291b0fc59ab70aaf283da9d52fdffbe00f4f213a0fd3e469484",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleGlobalBuff",
+            "base": "GlobalBuff"
+          }
+        ],
+        "hooksAndMethods": [
+          "ModifyBuffText",
+          "PreDraw",
+          "RightClick",
+          "UpdatePlayer"
+        ],
+        "properties": [
+          "FindBuffIndex",
+          "buffTime",
+          "velocity"
+        ],
+        "nativeSignatures": [
+          "TimeSpan FromSeconds(double value)",
+          "string LocalizedDuration(TimeSpan time, bool abbreviated, bool showAllAvailableUnits)",
+          "void NewText(string newText, byte R, byte G, byte B, bool onlyCurrentPlayer)"
+        ],
+        "imports": []
+      }
+    },
+    {
+      "id": "Common/GlobalNPCs/ExampleNPCLoot.js",
+      "path": "content/Common/GlobalNPCs/ExampleNPCLoot.js",
+      "sha256": "1e99da891e65a0ee5f484d5c0f9b0b4099eee5be824048ad01b2271477e5998a",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleNPCLoot",
+            "base": "GlobalNPC"
+          }
+        ],
+        "hooksAndMethods": [
+          "ModifyNPCLoot"
+        ],
+        "properties": [
+          "type"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Common/GlobalNPCs/ExamplePickupGlobalNPC.js",
+      "path": "content/Common/GlobalNPCs/ExamplePickupGlobalNPC.js",
+      "sha256": "ffecbf0d519260f2f62935b1e4da415bf95feebedf522f337d4e785f265dd9b2",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExamplePickupGlobalNPC",
+            "base": "GlobalNPC"
+          }
+        ],
+        "hooksAndMethods": [
+          "OnKill"
+        ],
+        "properties": [
+          "GetItemSource_Loot",
+          "damage",
+          "height",
+          "lifeMax",
+          "netID",
+          "position",
+          "width"
+        ],
+        "nativeSignatures": [
+          "byte FindClosest(Vector2 Position, int Width, int Height)",
+          "int NewItem(IEntitySource source, int X, int Y, int Width, int Height, int type, int stack, bool noBroadcast, int prefix, NewItemOwnership ownership, Nullable<Vector2> velocity, Item.NewItemModifier modifier)"
+        ],
+        "imports": []
+      }
+    },
+    {
+      "id": "Common/GlobalNPCs/ExamplePylonShop.js",
+      "path": "content/Common/GlobalNPCs/ExamplePylonShop.js",
+      "sha256": "de74bb99e343fcaeb7153fe8ed4944a969019962e6282023b8e16bd657c9da30",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExamplePylonShop",
+            "base": "GlobalNPC"
+          }
+        ],
+        "hooksAndMethods": [
+          "ForSale",
+          "ModifyShop"
+        ],
+        "properties": [
+          "Center",
+          "InModBiome",
+          "ZoneCorrupt",
+          "ZoneCrimson"
+        ],
+        "nativeSignatures": [
+          "bool DoesPositionHaveEnoughNPCs(int necessaryNPCCount, Point16 centerPoint)"
+        ],
+        "imports": [
+          "../../Content/Biomes/ExampleSurfaceBiome.js",
+          "../../Content/Biomes/ExampleUndergroundBiome.js"
+        ]
+      }
+    },
+    {
+      "id": "Common/GlobalRecipes/ExampleGlobalRecipe.js",
+      "path": "content/Common/GlobalRecipes/ExampleGlobalRecipe.js",
+      "sha256": "6b817b770a7a812efecbf316c37743f5247015d944d85f795675ec5c62333cdf",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleGlobalRecipe",
+            "base": "GlobalRecipe"
+          }
+        ],
+        "hooksAndMethods": [
+          "ConsumeItem",
+          "OnCraft",
+          "RecipeAvailable"
+        ],
+        "properties": [
+          "FindBuffIndex",
+          "height",
+          "position",
+          "width"
+        ],
+        "nativeSignatures": [
+          "int NewDust(Vector2 Position, int Width, int Height, int Type, float SpeedX, float SpeedY, int Alpha, Color newColor, float Scale)"
+        ],
+        "imports": []
+      }
+    },
+    {
+      "id": "Common/GlobalTiles/ShakeTrees.js",
+      "path": "content/Common/GlobalTiles/ShakeTrees.js",
+      "sha256": "0cfbaae90167cc3e37ed276854bc11130ed29561dac67dc421f5dd36ace8aebb",
+      "facts": {
+        "classes": [
+          {
+            "name": "ShakeTrees",
+            "base": "GlobalTile"
+          }
+        ],
+        "hooksAndMethods": [
+          "PreShakeTree",
+          "ShakeTree"
+        ],
+        "properties": [],
+        "nativeSignatures": [
+          "int NewItem(IEntitySource source, int X, int Y, int Width, int Height, int type, int stack, bool noBroadcast, int prefix, NewItemOwnership ownership, Nullable<Vector2> velocity, Item.NewItemModifier modifier)",
+          "int NewNPC(IEntitySource source, int X, int Y, int Type, int Start, float ai0, float ai1, float ai2, float ai3, int Target)",
+          "int NewProjectile(IEntitySource spawnSource, float X, float Y, float SpeedX, float SpeedY, int Type, int Damage, float KnockBack, int Owner, float ai0, float ai1, float ai2, NewProjectileModifier modifer)",
+          "int Next(int maxValue)",
+          "int Next(int minValue, int maxValue)",
+          "void GetTreeBottom(int i, int j, out int x, out int y)"
+        ],
+        "imports": []
+      }
+    },
+    {
+      "id": "Common/GlobalTiles/SunflowerChanges.js",
+      "path": "content/Common/GlobalTiles/SunflowerChanges.js",
+      "sha256": "4717acbb2805cafcb61324110a973fc1e5647ebb4ff8b25ec55363b35c5d8415",
+      "facts": {
+        "classes": [
+          {
+            "name": "SunflowerChanges",
+            "base": "GlobalTile"
+          }
+        ],
+        "hooksAndMethods": [
+          "SetStaticDefaults"
+        ],
+        "properties": [],
+        "nativeSignatures": [
+          "TileObjectData GetTileData(int type, int style, int alternate)"
+        ],
+        "imports": []
+      }
+    },
+    {
+      "id": "Common/Players/ExampleCostumePlayer.js",
+      "path": "content/Common/Players/ExampleCostumePlayer.js",
+      "sha256": "ac0439e3b84129e16744ae62921a02f12ed31430d0879220bfa2e3403eb3b6e9",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleCostumePlayer",
+            "base": "ModPlayer"
+          }
+        ],
+        "hooksAndMethods": [
+          "BlockyVanityEffects",
+          "FrameEffects",
+          "ResetEffects",
+          "UpdateEquips"
+        ],
+        "properties": [
+          "AddBuff",
+          "body",
+          "head",
+          "legs",
+          "townNPCs",
+          "wet"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Common/Players/ExampleDashPlayer.js",
+      "path": "content/Common/Players/ExampleDashPlayer.js",
+      "sha256": "9bef0a655648bfc78247a96aaa94ec0a7bbd48cfee57185f6bd006d7befe758a",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleDashPlayer",
+            "base": "ModPlayer"
+          }
+        ],
+        "hooksAndMethods": [
+          "CanUseDash",
+          "OnStartDash",
+          "ResetDash",
+          "ResetEffects",
+          "UpdateDash",
+          "UpdateMovement"
+        ],
+        "properties": [
+          "armorEffectDrawShadowEOCShield",
+          "controlDash",
+          "controlDown",
+          "controlLeft",
+          "controlRight",
+          "controlUp",
+          "dashType",
+          "direction",
+          "doubleTapCardinalTimer",
+          "eocDash",
+          "height",
+          "mount",
+          "position",
+          "releaseDash",
+          "releaseDown",
+          "releaseLeft",
+          "releaseRight",
+          "releaseUp",
+          "setSolar",
+          "velocity",
+          "whoAmI",
+          "width"
+        ],
+        "nativeSignatures": [
+          "int NewDust(Vector2 Position, int Width, int Height, int Type, float SpeedX, float SpeedY, int Alpha, Color newColor, float Scale)"
+        ],
+        "imports": []
+      }
+    },
+    {
+      "id": "Common/Players/ExampleFishingPlayer.js",
+      "path": "content/Common/Players/ExampleFishingPlayer.js",
+      "sha256": "be4c5bea74c4d4b896674e1334841ec50d34d82dfb889fac967159979ed37987",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleFishingPlayer",
+            "base": "ModPlayer"
+          }
+        ],
+        "hooksAndMethods": [
+          "CatchFish"
+        ],
+        "properties": [],
+        "nativeSignatures": [],
+        "imports": [
+          "../../Content/Items/Quests/ExampleQuestFish.js"
+        ]
+      }
+    },
+    {
+      "id": "Common/Players/ExampleLowLifePlayer.js",
+      "path": "content/Common/Players/ExampleLowLifePlayer.js",
+      "sha256": "3ca77913a9956151610d430407d91621772f0f3d99cead4e744d228ed968cc36",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleLowLifePlayer",
+            "base": "ModPlayer"
+          }
+        ],
+        "hooksAndMethods": [
+          "PostUpdate"
+        ],
+        "properties": [
+          "dead",
+          "statLife",
+          "statLifeMax2",
+          "whoAmI"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Common/Players/ExamplePlayer.js",
+      "path": "content/Common/Players/ExamplePlayer.js",
+      "sha256": "3b59a541215803d3c6eb3594be379e6535f48fbce12b2dbf61bf1a6e96f8eb28",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExamplePlayer",
+            "base": "ModPlayer"
+          }
+        ],
+        "hooksAndMethods": [
+          "OnEnterWorld",
+          "ResetEffects",
+          "UpdateEquips"
+        ],
+        "properties": [
+          "statDefense",
+          "whoAmI"
+        ],
+        "nativeSignatures": [
+          "void NewText(string newText, byte R, byte G, byte B, bool onlyCurrentPlayer)"
+        ],
+        "imports": []
+      }
+    },
+    {
+      "id": "Common/Players/ExampleTouchButtonPlayer.js",
+      "path": "content/Common/Players/ExampleTouchButtonPlayer.js",
+      "sha256": "2c25c36c6da64c550b0f1db5f8d834d290c298c212373e6c6fdf4bc0c58d8309",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleTouchButtonPlayer",
+            "base": "ModPlayer"
+          }
+        ],
+        "hooksAndMethods": [
+          "ProcessTriggers"
+        ],
+        "properties": [
+          "AddBuff"
+        ],
+        "nativeSignatures": [
+          "int Next(int minValue, int maxValue)",
+          "string GetBuffName(int id)",
+          "void NewText(string newText, byte R, byte G, byte B, bool onlyCurrentPlayer)"
+        ],
+        "imports": [
+          "../Systems/TouchButtonSystem.js"
+        ]
+      }
+    },
+    {
+      "id": "Common/Players/WingsGlowmask.js",
+      "path": "content/Common/Players/WingsGlowmask.js",
+      "sha256": "e30f5b80dce078ab0419cd9c1f591095f0f5482f73801889a0a1fa4eef37e1db",
+      "facts": {
+        "classes": [
+          {
+            "name": "WingsGlowmask",
+            "base": "PlayerDrawLayer"
+          }
+        ],
+        "hooksAndMethods": [
+          "Draw",
+          "GetDefaultPosition",
+          "GetDefaultVisibility",
+          "RegisterData",
+          "TryGetValue"
+        ],
+        "properties": [
+          "Directions",
+          "bodyFrame",
+          "bodyRotation",
+          "dead",
+          "height",
+          "invis",
+          "width",
+          "wingFrame",
+          "wings"
+        ],
+        "nativeSignatures": [
+          "Color GetImmuneAlphaPure(Color newColor, float alphaReduction)"
+        ],
+        "imports": []
+      }
+    },
+    {
+      "id": "Common/Systems/DownedBossSystem.js",
+      "path": "content/Common/Systems/DownedBossSystem.js",
+      "sha256": "6f1fec3d5acb472850f471b00adc4a194e5ab7f08013456e9a55b4d79e7cc616",
+      "facts": {
+        "classes": [
+          {
+            "name": "DownedBossSystem",
+            "base": "ModSystem"
+          }
+        ],
+        "hooksAndMethods": [
+          "ClearWorld",
+          "LoadWorldData",
+          "NetReceive",
+          "NetSend",
+          "SaveWorldData"
+        ],
+        "properties": [],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Common/Systems/ExampleBiomeTileCount.js",
+      "path": "content/Common/Systems/ExampleBiomeTileCount.js",
+      "sha256": "328099daf16a4b9fe747fd9838510dc95f2704962f2b40a95d4bdeb7c433e294",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleBiomeTileCount",
+            "base": "ModSystem"
+          }
+        ],
+        "hooksAndMethods": [
+          "TileCountsAvailable"
+        ],
+        "properties": [],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Common/Systems/TouchButtonSystem.js",
+      "path": "content/Common/Systems/TouchButtonSystem.js",
+      "sha256": "17f650e93a74f8797d0ccefc8e7c44dbac21e9e31236ec120f54dfe2ba80d083",
+      "facts": {
+        "classes": [
+          {
+            "name": "TouchButtonSystem",
+            "base": "ModSystem"
+          }
+        ],
+        "hooksAndMethods": [
+          "Load"
+        ],
+        "properties": [],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Achievements/ExampleBossKilled.js",
+      "path": "content/Content/Achievements/ExampleBossKilled.js",
+      "sha256": "2b0791f1c3719cb5fe650949663a9e36c7c213a2f9639244872bfa0e5fb57a93",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleBossKilled",
+            "base": "ModAchievement"
+          }
+        ],
+        "hooksAndMethods": [
+          "SetStaticDefaults"
+        ],
+        "properties": [],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Achievements/ManyWormsKilled.js",
+      "path": "content/Content/Achievements/ManyWormsKilled.js",
+      "sha256": "66d14365964276734a027c519218e4a308f8bdb13351f27d47833294860688d9",
+      "facts": {
+        "classes": [
+          {
+            "name": "ManyWormsKilled",
+            "base": "ModAchievement"
+          }
+        ],
+        "hooksAndMethods": [
+          "Category",
+          "Hidden",
+          "OnNPCKilled",
+          "SetStaticDefaults"
+        ],
+        "properties": [
+          "whoAmI"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Biomes/ExampleSurfaceBackgroundStyle.js",
+      "path": "content/Content/Biomes/ExampleSurfaceBackgroundStyle.js",
+      "sha256": "271dba01fd03f2938ee75017e5598328ef4584eaa01e0e4cdbdcdf83cde6a237",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleSurfaceBackgroundStyle",
+            "base": "ModSurfaceBackgroundStyle"
+          }
+        ],
+        "hooksAndMethods": [
+          "ChooseCloseTexture",
+          "ChooseFarTexture",
+          "ChooseMiddleTexture",
+          "ModifyFarFades"
+        ],
+        "properties": [],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Biomes/ExampleSurfaceBiome.js",
+      "path": "content/Content/Biomes/ExampleSurfaceBiome.js",
+      "sha256": "39be3b25669d88421fd312d15331de702aba134821b7c0dfbed2aa5b03779004",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleSurfaceBiome",
+            "base": "ModBiome"
+          }
+        ],
+        "hooksAndMethods": [
+          "IsBiomeActive",
+          "MapBackground",
+          "SetStaticDefaults",
+          "SurfaceBackgroundStyle",
+          "WaterStyle"
+        ],
+        "properties": [
+          "ZoneOverworldHeight",
+          "ZoneSkyHeight",
+          "position"
+        ],
+        "nativeSignatures": [],
+        "imports": [
+          "../../Common/Systems/ExampleBiomeTileCount.js",
+          "./ExampleSurfaceBackgroundStyle.js",
+          "./ExampleWaterStyle.js"
+        ]
+      }
+    },
+    {
+      "id": "Content/Biomes/ExampleUndergroundBackgroundStyle.js",
+      "path": "content/Content/Biomes/ExampleUndergroundBackgroundStyle.js",
+      "sha256": "2fcb66d417c00f9002ca9f6df1978ef7422fd968f393c24be440ac3e68467108",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleUndergroundBackgroundStyle",
+            "base": "ModUndergroundBackgroundStyle"
+          }
+        ],
+        "hooksAndMethods": [
+          "FillTextureArray"
+        ],
+        "properties": [],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Biomes/ExampleUndergroundBiome.js",
+      "path": "content/Content/Biomes/ExampleUndergroundBiome.js",
+      "sha256": "2caa4436d550ef7d7a3ab70eb1e88eec52d2e6feadbaa23112fd8749c28b7308",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleUndergroundBiome",
+            "base": "ModBiome"
+          }
+        ],
+        "hooksAndMethods": [
+          "IsBiomeActive",
+          "SetStaticDefaults",
+          "UndergroundBackgroundStyle"
+        ],
+        "properties": [
+          "ZoneDirtLayerHeight",
+          "ZoneRockLayerHeight",
+          "position"
+        ],
+        "nativeSignatures": [],
+        "imports": [
+          "../../Common/Systems/ExampleBiomeTileCount.js",
+          "./ExampleUndergroundBackgroundStyle.js"
+        ]
+      }
+    },
+    {
+      "id": "Content/Biomes/ExampleWaterStyle.js",
+      "path": "content/Content/Biomes/ExampleWaterStyle.js",
+      "sha256": "d582c4f60bcc5172a2e53fb7d66ccb87bd84df695941037aa2b0bf5ab4e6a134",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleWaterStyle",
+            "base": "ModWaterStyle"
+          }
+        ],
+        "hooksAndMethods": [
+          "BiomeHairColor",
+          "ChooseWaterfallStyle",
+          "GetDropletGore",
+          "GetRainTexture",
+          "GetSplashDust",
+          "LightColorMultiplier"
+        ],
+        "properties": [],
+        "nativeSignatures": [],
+        "imports": [
+          "./ExampleWaterfallStyle.js"
+        ]
+      }
+    },
+    {
+      "id": "Content/Biomes/ExampleWaterfallStyle.js",
+      "path": "content/Content/Biomes/ExampleWaterfallStyle.js",
+      "sha256": "b71251053d361956c8b357db32ab87d6791598d46657d580a43deb65d02f8f72",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleWaterfallStyle",
+            "base": "ModWaterfallStyle"
+          }
+        ],
+        "hooksAndMethods": [
+          "AddLight"
+        ],
+        "properties": [],
+        "nativeSignatures": [
+          "void AddLight(int i, int j, float r, float g, float b)"
+        ],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/BossBars/ExampleBossBar.js",
+      "path": "content/Content/BossBars/ExampleBossBar.js",
+      "sha256": "78f6477b50d44bf15ff7632bac92288d3a1bfacb1facd9cff215c1a13330c6d4",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleBossBar",
+            "base": "ModBossBar"
+          }
+        ],
+        "hooksAndMethods": [
+          "GetIconTexture",
+          "ModifyInfo"
+        ],
+        "properties": [
+          "GetBossHeadTextureIndex",
+          "active",
+          "life",
+          "lifeMax"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Buffs/Blocky.js",
+      "path": "content/Content/Buffs/Blocky.js",
+      "sha256": "ee9c3350a6d73c0be127f074c5bcb15f91445638c31028b020a25d926ef22b4d",
+      "facts": {
+        "classes": [
+          {
+            "name": "Blocky",
+            "base": "ModBuff"
+          }
+        ],
+        "hooksAndMethods": [
+          "SetStaticDefaults",
+          "UpdatePlayer"
+        ],
+        "properties": [
+          "DelBuff",
+          "GetModPlayer",
+          "extraFall",
+          "jumpSpeedBoost",
+          "townNPCs"
+        ],
+        "nativeSignatures": [],
+        "imports": [
+          "../../Common/Players/ExampleCostumePlayer.js"
+        ]
+      }
+    },
+    {
+      "id": "Content/Buffs/ExampleDefenseBuff.js",
+      "path": "content/Content/Buffs/ExampleDefenseBuff.js",
+      "sha256": "d17753f7479a159241b8d24829e8de746d96e8891174c5e33f88e5f0f922d029",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleDefenseBuff",
+            "base": "ModBuff"
+          }
+        ],
+        "hooksAndMethods": [
+          "ModifyBuffText",
+          "ModifyDescription",
+          "UpdatePlayer"
+        ],
+        "properties": [
+          "FindBuffIndex",
+          "buffTime",
+          "statDefense"
+        ],
+        "nativeSignatures": [
+          "TimeSpan FromSeconds(double value)",
+          "string LocalizedDuration(TimeSpan time, bool abbreviated, bool showAllAvailableUnits)"
+        ],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Buffs/ExampleDefenseDebuff.js",
+      "path": "content/Content/Buffs/ExampleDefenseDebuff.js",
+      "sha256": "1f575a3ff24e2907028f2320dc5bcd1e6c8911883cf22389ec3f5fc843a91438",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleDefenseDebuff",
+            "base": "ModBuff"
+          }
+        ],
+        "hooksAndMethods": [
+          "ModifyDescription",
+          "SetStaticDefaults",
+          "UpdatePlayer"
+        ],
+        "properties": [
+          "GetModPlayer"
+        ],
+        "nativeSignatures": [],
+        "imports": [
+          "../../Common/Players/ExamplePlayer.js"
+        ]
+      }
+    },
+    {
+      "id": "Content/Buffs/ExampleMinecartBuff.js",
+      "path": "content/Content/Buffs/ExampleMinecartBuff.js",
+      "sha256": "fd41df1eafa9f726d137bf4af18515248ded543e23c08bef2e2de182a2b4f4e8",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleMinecartBuff",
+            "base": "ModBuff"
+          }
+        ],
+        "hooksAndMethods": [
+          "SetStaticDefaults"
+        ],
+        "properties": [],
+        "nativeSignatures": [],
+        "imports": [
+          "../Mounts/ExampleMinecartMount.js"
+        ]
+      }
+    },
+    {
+      "id": "Content/Buffs/ExampleMinionBuff.js",
+      "path": "content/Content/Buffs/ExampleMinionBuff.js",
+      "sha256": "9754fc8c11ebd8934966906be9779f434dbadab303ff911c15dcde9845aaffc5",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleMinionBuff",
+            "base": "ModBuff"
+          }
+        ],
+        "hooksAndMethods": [
+          "SetStaticDefaults",
+          "UpdatePlayer"
+        ],
+        "properties": [
+          "DelBuff",
+          "buffTime",
+          "ownedProjectileCounts"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Buffs/ExampleMountBuff.js",
+      "path": "content/Content/Buffs/ExampleMountBuff.js",
+      "sha256": "541ddc40a585536813029551626ede69842b41f1c63bdfa382264f7eb1029d03",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleMountBuff",
+            "base": "ModBuff"
+          }
+        ],
+        "hooksAndMethods": [
+          "SetStaticDefaults",
+          "UpdatePlayer"
+        ],
+        "properties": [
+          "buffTime",
+          "mount"
+        ],
+        "nativeSignatures": [
+          "void SetMount(int m, Player mountedPlayer, bool ignoreEffect)"
+        ],
+        "imports": [
+          "../Mounts/ExampleMount.js"
+        ]
+      }
+    },
+    {
+      "id": "Content/Clouds/ExampleAdvancedCloud.js",
+      "path": "content/Content/Clouds/ExampleAdvancedCloud.js",
+      "sha256": "a7d68af575f948846b94634346fa2c937d183a00b485ce77b03496208d95418a",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleAdvancedCloud",
+            "base": "ModCloud"
+          }
+        ],
+        "hooksAndMethods": [
+          "OnSpawn",
+          "RareCloud",
+          "SpawnChance"
+        ],
+        "properties": [],
+        "nativeSignatures": [],
+        "imports": [
+          "../Biomes/ExampleSurfaceBiome.js"
+        ]
+      }
+    },
+    {
+      "id": "Content/DamageClasses/ExampleDamageClass.js",
+      "path": "content/Content/DamageClasses/ExampleDamageClass.js",
+      "sha256": "a6ad716e365293d9b9b02fdd3c1dc76683506173b5839b183973327e2712eb2e",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleDamageClass",
+            "base": "DamageClass"
+          }
+        ],
+        "hooksAndMethods": [
+          "GetEffectInheritance",
+          "GetModifierInheritance",
+          "SetDefaultStats",
+          "ShowStatTooltipLine",
+          "UseStandardCritCalcs"
+        ],
+        "properties": [
+          "GetArmorPenetration",
+          "GetCritChance"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Effects/ExampleRiftEffect.js",
+      "path": "content/Content/Effects/ExampleRiftEffect.js",
+      "sha256": "879d7ffd47d3338f4356322005356624e1b2be7cfe81a0a6f27025142802318c",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleRiftEffect",
+            "base": "ModScreenEffect"
+          }
+        ],
+        "hooksAndMethods": [
+          "Close",
+          "DrawDistortion",
+          "OnSpawn",
+          "SetDefaults",
+          "Update"
+        ],
+        "properties": [],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/EmoteBubbles/ExampleAnimatedEmote.js",
+      "path": "content/Content/EmoteBubbles/ExampleAnimatedEmote.js",
+      "sha256": "10dc091e3cb0495b6fe743b7f5dffe4fded93826b23cf2776902ba64073cfad3",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleAnimatedEmote",
+            "base": "ModEmoteBubble"
+          }
+        ],
+        "hooksAndMethods": [
+          "GetFrame",
+          "GetFrameInEmoteMenu",
+          "SetStaticDefaults",
+          "UpdateFrame"
+        ],
+        "properties": [],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/EmoteBubbles/ExampleItemEmote.js",
+      "path": "content/Content/EmoteBubbles/ExampleItemEmote.js",
+      "sha256": "a2bfdfb0c062294ad9412407ee1a4adade312e245994aeff9f283fe0dd2956c7",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleItemEmote",
+            "base": "ModEmoteBubble"
+          }
+        ],
+        "hooksAndMethods": [
+          "SetStaticDefaults"
+        ],
+        "properties": [],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/ExampleModMenu.js",
+      "path": "content/Content/ExampleModMenu.js",
+      "sha256": "192745aa66ac9bdc08ee87a077399d0892142caa80a172606ffeedfd871ab8f8",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleModMenu",
+            "base": "ModMenu"
+          }
+        ],
+        "hooksAndMethods": [
+          "DisplayName",
+          "Logo",
+          "MenuBackgroundStyle",
+          "MoonTexture",
+          "OnSelected",
+          "PreDrawLogo",
+          "SetStaticDefaults",
+          "SunTexture"
+        ],
+        "properties": [],
+        "nativeSignatures": [],
+        "imports": [
+          "./Biomes/ExampleSurfaceBackgroundStyle.js"
+        ]
+      }
+    },
+    {
+      "id": "Content/ExampleRecipes.js",
+      "path": "content/Content/ExampleRecipes.js",
+      "sha256": "bad2b4511da2d87ede42bbafe5c03ccbdcfe633d004db5eeb5ccb6507e8a837b",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleRecipes",
+            "base": "ModSystem"
+          }
+        ],
+        "hooksAndMethods": [
+          "AddRecipeGroups",
+          "AddRecipes",
+          "DontConsumeChain",
+          "RandomlySpawnFireworks"
+        ],
+        "properties": [
+          "GetItemSource_Misc",
+          "GetProjectileSource_Item",
+          "Top",
+          "statLife",
+          "statLifeMax"
+        ],
+        "nativeSignatures": [
+          "int NewProjectile(IEntitySource spawnSource, Vector2 position, Vector2 velocity, int Type, int Damage, float KnockBack, int Owner, float ai0, float ai1, float ai2, NewProjectileModifier modifer)",
+          "void QuickSpawnItem(IEntitySource source, int item, int stack)"
+        ],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Hairs/ExampleHair.js",
+      "path": "content/Content/Hairs/ExampleHair.js",
+      "sha256": "21b9d38ef2b69bc7de00dc424eb5b871d0d7946aa89ef358e147388a44ff3d73",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleHair",
+            "base": "ModHair"
+          }
+        ],
+        "hooksAndMethods": [
+          "AvailableDuringCharacterCreation",
+          "GetUnlockConditions"
+        ],
+        "properties": [],
+        "nativeSignatures": [],
+        "imports": [
+          "../Biomes/ExampleSurfaceBiome.js"
+        ]
+      }
+    },
+    {
+      "id": "Content/Items/Accessories/ExampleBeard.js",
+      "path": "content/Content/Items/Accessories/ExampleBeard.js",
+      "sha256": "08605b8a69b2019cd4927e6a9ab4188d6c61505cd89a0b4348618652eeda61c2",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleBeard",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "SetDefaults",
+          "SetStaticDefaults"
+        ],
+        "properties": [
+          "accessory",
+          "beardSlot",
+          "color",
+          "height",
+          "maxStack",
+          "value",
+          "vanity",
+          "width"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Accessories/ExampleBoots.js",
+      "path": "content/Content/Items/Accessories/ExampleBoots.js",
+      "sha256": "d6be06b09fd30c6f6fb58d87e399aa1bfa758bbe09ae97dcd81e4a907011132c",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleBoots",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "CanAccessoryBeEquippedWith",
+          "ModifyTooltipLines",
+          "SetDefaults",
+          "UpdateAccessory"
+        ],
+        "properties": [
+          "Center",
+          "accRunSpeed",
+          "accessory",
+          "desertBoots",
+          "fireWalk",
+          "height",
+          "hellfireTreads",
+          "iceSkate",
+          "lavaMax",
+          "lavaRose",
+          "mount",
+          "moveSpeed",
+          "noFallDmg",
+          "position",
+          "rare",
+          "rocketBoots",
+          "value",
+          "vanityRocketBoots",
+          "velocity",
+          "waterWalk",
+          "waterWalk2",
+          "width"
+        ],
+        "nativeSignatures": [
+          "bool DoBootsEffect_PlaceFlamesOnTile(int X, int Y)",
+          "void CancelAllBootRunVisualEffects()"
+        ],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Accessories/ExampleShield.js",
+      "path": "content/Content/Items/Accessories/ExampleShield.js",
+      "sha256": "274eca06c293f676ba8dab31007669f8f1927eac5f55d29104ec45dfb88420fb",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleShield",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "CanAccessoryBeEquippedWith",
+          "SetDefaults",
+          "UpdateAccessory"
+        ],
+        "properties": [
+          "GetModPlayer",
+          "accessory",
+          "defense",
+          "height",
+          "lifeRegen",
+          "rare",
+          "value",
+          "width"
+        ],
+        "nativeSignatures": [],
+        "imports": [
+          "../../../Common/Players/ExampleDashPlayer.js"
+        ]
+      }
+    },
+    {
+      "id": "Content/Items/Accessories/ExampleStatAccessory.js",
+      "path": "content/Content/Items/Accessories/ExampleStatAccessory.js",
+      "sha256": "0014f64a570ac93497cca7cf6935e91881028caca812f144968856a107ee4c8c",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleStatAccessory",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "ModifyTooltipLines",
+          "SetDefaults",
+          "UpdateAccessory"
+        ],
+        "properties": [
+          "accessory",
+          "height",
+          "magicDamage",
+          "meleeDamage",
+          "rangedDamage",
+          "rare",
+          "value",
+          "width"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Accessories/ExampleStatBonusAccessory.js",
+      "path": "content/Content/Items/Accessories/ExampleStatBonusAccessory.js",
+      "sha256": "d759f9c826eb6c3f8ca5305e73f9f1e7a4b11f76fe8f312b2bb0f769f58a3768",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleStatBonusAccessory",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "SetDefaults",
+          "UpdateAccessory"
+        ],
+        "properties": [
+          "GetArmorPenetration",
+          "GetAttackSpeed",
+          "GetCritChance",
+          "GetDamage",
+          "GetKnockback",
+          "accessory",
+          "height",
+          "width"
+        ],
+        "nativeSignatures": [],
+        "imports": [
+          "../../DamageClasses/ExampleDamageClass.js"
+        ]
+      }
+    },
+    {
+      "id": "Content/Items/Accessories/ExampleWings.js",
+      "path": "content/Content/Items/Accessories/ExampleWings.js",
+      "sha256": "11b7a20f51ea57b29b2edd0649d993a05bb6f4db9784539a475bbc12219b98ba",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleWings",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "AddRecipes",
+          "SetDefaults",
+          "SetStaticDefaults",
+          "VerticalWingSpeeds"
+        ],
+        "properties": [
+          "accessory",
+          "height",
+          "rare",
+          "value",
+          "width"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Accessories/WaspNest.js",
+      "path": "content/Content/Items/Accessories/WaspNest.js",
+      "sha256": "09cb1b853a027bba7f02659054e54d90b412f4421375f89c83e6165df504dc7e",
+      "facts": {
+        "classes": [
+          {
+            "name": "WaspNest",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "SetDefaults",
+          "UpdateAccessory"
+        ],
+        "properties": [
+          "accessory",
+          "height",
+          "rare",
+          "strongBees",
+          "value",
+          "width"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Ammo/ExampleBullet.js",
+      "path": "content/Content/Items/Ammo/ExampleBullet.js",
+      "sha256": "5565fdc8468912272ebc492c89a4d1b5e6e44931865380b0c04c851c20e218cf",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleBullet",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "SetDefaults"
+        ],
+        "properties": [
+          "ammo",
+          "consumable",
+          "damage",
+          "knockBack",
+          "maxStack",
+          "ranged",
+          "rare",
+          "shoot",
+          "shootSpeed",
+          "value"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Armor/ExampleBreastplate.js",
+      "path": "content/Content/Items/Armor/ExampleBreastplate.js",
+      "sha256": "25a3d9e38dc82758a1a79d7300d562669f09f22f79a5dca6eb2155d19c3a730a",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleBreastplate",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "AddRecipes",
+          "ModifyTooltipLines",
+          "SetDefaults",
+          "UpdateEquip"
+        ],
+        "properties": [
+          "buffImmune",
+          "defense",
+          "height",
+          "maxMinions",
+          "rare",
+          "statManaMax2",
+          "value",
+          "width"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Armor/ExampleCostume.js",
+      "path": "content/Content/Items/Armor/ExampleCostume.js",
+      "sha256": "e90188f6aa3e184e270f1985acd1d481239d13252c29ea9a2ac4bc047d6036f0",
+      "facts": {
+        "classes": [
+          {
+            "name": "BlockyHead",
+            "base": "EquipTexture"
+          },
+          {
+            "name": "ExampleCostume",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "IsVanitySet",
+          "Load",
+          "SetDefaults",
+          "SetStaticDefaults",
+          "UpdateAccessory",
+          "UpdateVanity",
+          "UpdateVanitySet"
+        ],
+        "properties": [
+          "GetModPlayer",
+          "accessory",
+          "hasVanityEffects",
+          "height",
+          "position",
+          "rare",
+          "value",
+          "width"
+        ],
+        "nativeSignatures": [
+          "int NewDust(Vector2 Position, int Width, int Height, int Type, float SpeedX, float SpeedY, int Alpha, Color newColor, float Scale)"
+        ],
+        "imports": [
+          "../../../Common/Players/ExampleCostumePlayer.js"
+        ]
+      }
+    },
+    {
+      "id": "Content/Items/Armor/ExampleHelmet.js",
+      "path": "content/Content/Items/Armor/ExampleHelmet.js",
+      "sha256": "f716ab8461c2ff4fe1fe092c01d24aa8fbc91cafcec09f89fe0e6cd799dbe95b",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleHelmet",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "AddArmorSets",
+          "AddRecipes",
+          "SetDefaults",
+          "UpdateArmorSet"
+        ],
+        "properties": [
+          "defense",
+          "height",
+          "magicDamage",
+          "meleeDamage",
+          "minionDamage",
+          "rangedDamage",
+          "rare",
+          "value",
+          "width"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Armor/ExampleLeggings.js",
+      "path": "content/Content/Items/Armor/ExampleLeggings.js",
+      "sha256": "d522abc59e1c843b5cba958771a5e4ef9851e899b105f50e5c3dbad8f4561538",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleLeggings",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "AddRecipes",
+          "ModifyTooltipLines",
+          "SetDefaults",
+          "UpdateEquip"
+        ],
+        "properties": [
+          "defense",
+          "height",
+          "moveSpeed",
+          "rare",
+          "value",
+          "width"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Armor/Vanity/ExampleBossMask.js",
+      "path": "content/Content/Items/Armor/Vanity/ExampleBossMask.js",
+      "sha256": "669d0fa38a6bd20d6ea82a63f9f747541a00da987956caebe1d451f9569e13fc",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleBossMask",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "SetDefaults"
+        ],
+        "properties": [
+          "height",
+          "maxStack",
+          "rare",
+          "value",
+          "vanity",
+          "width"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Armor/Vanity/ExampleRobe.js",
+      "path": "content/Content/Items/Armor/Vanity/ExampleRobe.js",
+      "sha256": "f5fa8dae191af05f478e53f31482bb23fe87d944ae835b18d22c514bf8e547cb",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleRobe",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "Load",
+          "SetDefaults",
+          "SetMatch",
+          "SetStaticDefaults"
+        ],
+        "properties": [
+          "bodySlot",
+          "height",
+          "rare",
+          "vanity",
+          "width"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Consumables/ExampleBossBag.js",
+      "path": "content/Content/Items/Consumables/ExampleBossBag.js",
+      "sha256": "8ff7601cd34e1f10d67dd3522c3f5967fa53b606146461eb9e98fa0effa6627b",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleBossBag",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "CanRightClick",
+          "ModifyItemLoot",
+          "SetDefaults",
+          "SetStaticDefaults"
+        ],
+        "properties": [],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Consumables/ExampleBossSummonItem.js",
+      "path": "content/Content/Items/Consumables/ExampleBossSummonItem.js",
+      "sha256": "e5776ba496c517ee352fe5d1aaa91ba2a972971f9a947bb900ebbb25ce7353d9",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleBossSummonItem",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "AddRecipes",
+          "CanUseItem",
+          "SetDefaults",
+          "UseItem"
+        ],
+        "properties": [
+          "consumable",
+          "height",
+          "maxStack",
+          "position",
+          "rare",
+          "useAnimation",
+          "useStyle",
+          "useTime",
+          "value",
+          "whoAmI",
+          "width"
+        ],
+        "nativeSignatures": [
+          "void PlaySound(int type, Vector2 position, int style, float pitchOffset)",
+          "void SendData(int msgType, int remoteClient, int ignoreClient, NetworkText text, int number, float number2, float number3, float number4, int number5, int number6, int number7)"
+        ],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Consumables/ExampleBuffPotion.js",
+      "path": "content/Content/Items/Consumables/ExampleBuffPotion.js",
+      "sha256": "dafdf3f8b07063eb59e2bf0bb56d5b815a171507ce93f8e87ad585acd269cfe3",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleBuffPotion",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "SetDefaults",
+          "SetStaticDefaults"
+        ],
+        "properties": [
+          "UseSound",
+          "buffTime",
+          "buffType",
+          "consumable",
+          "height",
+          "maxStack",
+          "rare",
+          "useAnimation",
+          "useStyle",
+          "useTime",
+          "useTurn",
+          "value",
+          "width"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/ExampleGolfBall.js",
+      "path": "content/Content/Items/ExampleGolfBall.js",
+      "sha256": "b8d8ab6bcf944478b1c2979b8100d59b54f6f4f412d72b4faac3b028f540b2e7",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleGolfBall",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "SetDefaults"
+        ],
+        "properties": [],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/ExampleItem.js",
+      "path": "content/Content/Items/ExampleItem.js",
+      "sha256": "7398f4059d000bc861d79041a97d212d5214999d98a6f7ad0705ddb51802944b",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleCustomCurrency",
+            "base": ""
+          },
+          {
+            "name": "ExampleItem",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "AddRecipes",
+          "CurrencyId",
+          "SetDefaults"
+        ],
+        "properties": [
+          "maxStack",
+          "value"
+        ],
+        "nativeSignatures": [
+          "void .ctor(int coinItemID, long currencyCap)"
+        ],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/ExamplePickup.js",
+      "path": "content/Content/Items/ExamplePickup.js",
+      "sha256": "e1c02c018bd9143db016dc4c4b192803aaeac67f173f54f9adbdf64e3b1022a3",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExamplePickup",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "GrabRange",
+          "OnPickup",
+          "SetDefaults",
+          "SetStaticDefaults"
+        ],
+        "properties": [
+          "AddBuff",
+          "Center",
+          "height",
+          "lifeMagnet",
+          "width"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/ExampleTooltipItem.js",
+      "path": "content/Content/Items/ExampleTooltipItem.js",
+      "sha256": "685cdfb82a56aae16b5b01dc0a7fba66dcaa908a088580f4eaacae5d85b2a811",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleTooltipItem",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "ModifyTooltips",
+          "PreDrawTooltipLine",
+          "SetDefaults"
+        ],
+        "properties": [
+          "height",
+          "maxStack",
+          "rare",
+          "value",
+          "width"
+        ],
+        "nativeSignatures": [
+          "Vector2 MeasureString(string text)",
+          "void DrawString(SpriteFont spriteFont, string text, Vector2 position, Color color, float rotation, Vector2 origin, float scale, SpriteEffects effects, float layerDepth)"
+        ],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Materials/ExampleSoul.js",
+      "path": "content/Content/Items/Materials/ExampleSoul.js",
+      "sha256": "1a0e7a6af1f09e64801da9cdaa0389efff5e3e864597a36efedb3ba462c453d1",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleSoul",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "GetAlpha",
+          "PostUpdate",
+          "SetDefaults",
+          "SetStaticDefaults"
+        ],
+        "properties": [
+          "Center",
+          "maxStack",
+          "rare",
+          "value"
+        ],
+        "nativeSignatures": [
+          "void AddLight(Vector2 position, float r, float g, float b)"
+        ],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Mounts/ExampleMinecart.js",
+      "path": "content/Content/Items/Mounts/ExampleMinecart.js",
+      "sha256": "237e1e10933e15e6d77fe643023af529dfe5842f681a01a5cc1ebfc0b4823dc6",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleMinecart",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "AddRecipes",
+          "SetDefaults"
+        ],
+        "properties": [
+          "height",
+          "mountType",
+          "rare",
+          "value",
+          "width"
+        ],
+        "nativeSignatures": [],
+        "imports": [
+          "../../Mounts/ExampleMinecartMount.js"
+        ]
+      }
+    },
+    {
+      "id": "Content/Items/Mounts/ExampleMountItem.js",
+      "path": "content/Content/Items/Mounts/ExampleMountItem.js",
+      "sha256": "62707bf51f123aa41559c1e8897baf3e7e37085d60da85fa3a03e72ed827f4b8",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleMountItem",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "AddRecipes",
+          "SetDefaults"
+        ],
+        "properties": [
+          "UseSound",
+          "height",
+          "mountType",
+          "noMelee",
+          "rare",
+          "useAnimation",
+          "useStyle",
+          "useTime",
+          "value",
+          "width"
+        ],
+        "nativeSignatures": [],
+        "imports": [
+          "../../Mounts/ExampleMount.js"
+        ]
+      }
+    },
+    {
+      "id": "Content/Items/Placeable/Banners/ExampleSlimeBanner.js",
+      "path": "content/Content/Items/Placeable/Banners/ExampleSlimeBanner.js",
+      "sha256": "5524c05cb989348d6484c4eb42892ffab535441be21c5db084d92fd186e99afd",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleSlimeBanner",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "SetDefaults"
+        ],
+        "properties": [
+          "height",
+          "value",
+          "width"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Placeable/ExampleAnimatedGlowmaskTileItem.js",
+      "path": "content/Content/Items/Placeable/ExampleAnimatedGlowmaskTileItem.js",
+      "sha256": "955c354c4b51102d730aa450705f3b3b861b373ba51fd2006b5227716d5a4c4d",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleAnimatedGlowmaskTileItem",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "AddRecipes",
+          "SetDefaults"
+        ],
+        "properties": [
+          "createTile"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Placeable/ExampleAnimatedTileItem.js",
+      "path": "content/Content/Items/Placeable/ExampleAnimatedTileItem.js",
+      "sha256": "9276f98db73eb8b661411ee46644885f11a8d1e06bafb79e410fa646296124d3",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleAnimatedTileItem",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "AddRecipes",
+          "SetDefaults"
+        ],
+        "properties": [
+          "createTile"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Placeable/ExampleBar.js",
+      "path": "content/Content/Items/Placeable/ExampleBar.js",
+      "sha256": "d1d5a5ac7eba5783e763e21c596c813e1ab28fe6b769ecced9c972790fd00bdb",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleBar",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "AddRecipes",
+          "SetDefaults",
+          "SetStaticDefaults"
+        ],
+        "properties": [
+          "height",
+          "value",
+          "width"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Placeable/ExampleCampfire.js",
+      "path": "content/Content/Items/Placeable/ExampleCampfire.js",
+      "sha256": "2df388a0900bdbc8d5a56b89f5a08c405a4ffccc51d4f57bf87a62dcafb2fccb",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleCampfire",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "AddRecipes",
+          "SetDefaults"
+        ],
+        "properties": [],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Placeable/ExampleCutTile.js",
+      "path": "content/Content/Items/Placeable/ExampleCutTile.js",
+      "sha256": "01a292386e7cd4a48f02da9c2a9854e7ddb9ef97995300cbfb60a4ec2ffe9418",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleCutTile",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "AddRecipes",
+          "SetDefaults"
+        ],
+        "properties": [
+          "value"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Placeable/ExampleGemsparkBlock.js",
+      "path": "content/Content/Items/Placeable/ExampleGemsparkBlock.js",
+      "sha256": "3cb74884417d005cec83012674330706da9955f9c280d623304e6a79e837a651",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleGemsparkBlock",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "AddRecipes",
+          "SetDefaults"
+        ],
+        "properties": [],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Placeable/ExampleHerbSeeds.js",
+      "path": "content/Content/Items/Placeable/ExampleHerbSeeds.js",
+      "sha256": "ea55fd0057db5b8b33b583dfecb02d119d2ac96bd8993d01b644783346a7724a",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleHerbSeeds",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "AddRecipes",
+          "SetDefaults"
+        ],
+        "properties": [
+          "height",
+          "value",
+          "width"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Placeable/ExampleLamp.js",
+      "path": "content/Content/Items/Placeable/ExampleLamp.js",
+      "sha256": "45aec0b12dfa6e8f3c93c393e637200668d25833af1cdc560b32f5b1968f1071",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleLamp",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "AddRecipes",
+          "SetDefaults"
+        ],
+        "properties": [
+          "height",
+          "value",
+          "width"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Placeable/ExampleLivingFire.js",
+      "path": "content/Content/Items/Placeable/ExampleLivingFire.js",
+      "sha256": "c60c6c0c35fd52b94ba5f4ebf8409f0a0042104a6424a0fb06f84d0058b04f9d",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleLivingFire",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "AddRecipes",
+          "SetDefaults",
+          "SetStaticDefaults"
+        ],
+        "properties": [
+          "height",
+          "width"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Placeable/ExampleMusicBox.js",
+      "path": "content/Content/Items/Placeable/ExampleMusicBox.js",
+      "sha256": "6b4190245fffb157676e16f91f71221f5d04cc2489ba35b3428619da085ea88b",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleMusicBox",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "AddRecipes",
+          "SetDefaults",
+          "SetStaticDefaults"
+        ],
+        "properties": [],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Placeable/ExampleOreItem.js",
+      "path": "content/Content/Items/Placeable/ExampleOreItem.js",
+      "sha256": "629769720216b482487bd8b9ecd6b91dbfd3c0974dbbd0b7ffdb27d498ec049b",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleOreItem",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "SetDefaults",
+          "SetStaticDefaults"
+        ],
+        "properties": [
+          "height",
+          "rare",
+          "value",
+          "width"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Placeable/ExamplePylonItem.js",
+      "path": "content/Content/Items/Placeable/ExamplePylonItem.js",
+      "sha256": "c4de8750bba4c0a6502f6fdd393fca30783dcd66a8ba18b4cf5358998d73c18f",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExamplePylonItem",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "SetDefaults"
+        ],
+        "properties": [
+          "rare",
+          "value"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Placeable/ExampleSignItem.js",
+      "path": "content/Content/Items/Placeable/ExampleSignItem.js",
+      "sha256": "3ad76a045c12bb9b1862d37726c68bf8a0f65b09f622cc6e14f44aca1df2bef1",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleSignItem",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "AddRecipes",
+          "SetDefaults"
+        ],
+        "properties": [
+          "height",
+          "value",
+          "width"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Placeable/ExampleSinkItem.js",
+      "path": "content/Content/Items/Placeable/ExampleSinkItem.js",
+      "sha256": "5f9370e5c524f2ae62001074d5e0a90cd865b5b0393cb1e1b4fff0553b0bf219",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleSinkItem",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "AddRecipes",
+          "SetDefaults"
+        ],
+        "properties": [
+          "height",
+          "value",
+          "width"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Placeable/ExampleStatue.js",
+      "path": "content/Content/Items/Placeable/ExampleStatue.js",
+      "sha256": "ac9f5aaf7be983a2b18a7b9cbdf1df4f461acf9ff4f69844bb6814f8bda06279",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleStatue",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "AddRecipes",
+          "SetDefaults"
+        ],
+        "properties": [
+          "createTile",
+          "placeStyle"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Placeable/ExampleTileItem.js",
+      "path": "content/Content/Items/Placeable/ExampleTileItem.js",
+      "sha256": "c8c44286535a32ceb2c67ae2e53fa5f4e1c7e2bbfd725f16949284f53fcfb5b3",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleTileItem",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "AddRecipes",
+          "SetDefaults"
+        ],
+        "properties": [
+          "height",
+          "width"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Placeable/ExampleTorch.js",
+      "path": "content/Content/Items/Placeable/ExampleTorch.js",
+      "sha256": "a65cdaf20f56c10e4c05c89c928ceedda4e638109249c7cc50c1568d6ac03664",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleTorch",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "AddRecipes",
+          "HoldItem",
+          "SetDefaults",
+          "SetStaticDefaults"
+        ],
+        "properties": [
+          "RotatedRelativePoint",
+          "direction",
+          "itemLocation",
+          "value",
+          "velocity",
+          "wet"
+        ],
+        "nativeSignatures": [
+          "void AddLight(Vector2 position, float r, float g, float b)"
+        ],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Placeable/ExampleTransparentShapedTileItem.js",
+      "path": "content/Content/Items/Placeable/ExampleTransparentShapedTileItem.js",
+      "sha256": "5f8032a01a96fe5ccc4716d5985a1436a4ba40a33ff3ed23092322598b19cc30",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleTransparentShapedTileItem",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "AddRecipes",
+          "SetDefaults"
+        ],
+        "properties": [],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Placeable/ExampleTrap.js",
+      "path": "content/Content/Items/Placeable/ExampleTrap.js",
+      "sha256": "14d06fda18776fb4ae8e9407957e7a6d37d53b634b4a74995c33c035a3bfa33e",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleTrapBase",
+            "base": "ModItem"
+          },
+          {
+            "name": "ExampleTrapIchorBullet",
+            "base": "ExampleTrapBase"
+          },
+          {
+            "name": "ExampleTrapChlorophyteBullet",
+            "base": "ExampleTrapBase"
+          }
+        ],
+        "hooksAndMethods": [
+          "AddRecipes",
+          "PlaceStyle",
+          "SetDefaults"
+        ],
+        "properties": [
+          "height",
+          "mech",
+          "value",
+          "width"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Placeable/ExampleWall.js",
+      "path": "content/Content/Items/Placeable/ExampleWall.js",
+      "sha256": "e5cc046ebacb6c218c89f8ec0d95588585c1dafc9f67d4d77cabf0af89517af6",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleWall",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "AddRecipes",
+          "SetDefaults"
+        ],
+        "properties": [],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Placeable/ExampleWallAdvanced.js",
+      "path": "content/Content/Items/Placeable/ExampleWallAdvanced.js",
+      "sha256": "773d34bdbbd8d1394729efb2c05004ba05c8cb5335a42e0178aca184a0f57164",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleWallAdvanced",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "AddRecipes",
+          "SetDefaults"
+        ],
+        "properties": [],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Placeable/Furniture/ExampleBed.js",
+      "path": "content/Content/Items/Placeable/Furniture/ExampleBed.js",
+      "sha256": "725c77b9750db937e4fb99f384a4936a85221ed59b6b59f1ef866611703336ea",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleBed",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "AddRecipes",
+          "SetDefaults"
+        ],
+        "properties": [
+          "height",
+          "value",
+          "width"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Placeable/Furniture/ExampleChair.js",
+      "path": "content/Content/Items/Placeable/Furniture/ExampleChair.js",
+      "sha256": "50513adc23eb73e6887f1eacb0510b176d5fe116a684cbf1e84b96c7520bff8c",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleChair",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "AddRecipes",
+          "SetDefaults"
+        ],
+        "properties": [
+          "height",
+          "value",
+          "width"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Placeable/Furniture/ExampleChandelier.js",
+      "path": "content/Content/Items/Placeable/Furniture/ExampleChandelier.js",
+      "sha256": "a2245df835ddd1f13b6d4aa4cfcb1eacb1f755fca9d2579ef7f59a0dcdaee1ba",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleChandelier",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "AddRecipes",
+          "SetDefaults"
+        ],
+        "properties": [
+          "value"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Placeable/Furniture/ExampleChest.js",
+      "path": "content/Content/Items/Placeable/Furniture/ExampleChest.js",
+      "sha256": "2742870eb1a86c55c6a2747046dc56dc920cf310ae71c7e287944be9e29c755c",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleChest",
+            "base": "ModItem"
+          },
+          {
+            "name": "ExampleChestKey",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "AddRecipes",
+          "SetDefaults"
+        ],
+        "properties": [
+          "height",
+          "value",
+          "width"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Placeable/Furniture/ExampleClock.js",
+      "path": "content/Content/Items/Placeable/Furniture/ExampleClock.js",
+      "sha256": "80036d9cd0167caad2fd7563c396d1e863322be88f75f59a719f61b50dd31a52",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleClock",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "AddRecipes",
+          "SetDefaults"
+        ],
+        "properties": [
+          "height",
+          "value",
+          "width"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Placeable/Furniture/ExampleDoor.js",
+      "path": "content/Content/Items/Placeable/Furniture/ExampleDoor.js",
+      "sha256": "37a0d977275002929e04a7ee578847edc38c514ce96b589d68fc07a69ae7fa05",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleDoor",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "AddRecipes",
+          "SetDefaults"
+        ],
+        "properties": [
+          "height",
+          "value",
+          "width"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Placeable/Furniture/ExampleDresser.js",
+      "path": "content/Content/Items/Placeable/Furniture/ExampleDresser.js",
+      "sha256": "ee2d96c18fafe37071488d69942ef912a60cf82b2e4daa1876109262157a0dee",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleDresser",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "AddRecipes",
+          "SetDefaults"
+        ],
+        "properties": [
+          "height",
+          "value",
+          "width"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Placeable/Furniture/ExamplePlatform.js",
+      "path": "content/Content/Items/Placeable/Furniture/ExamplePlatform.js",
+      "sha256": "475a0a7cf752556c81d896d72e5b82cd2807c77552796efbf2a95b7d88c384e8",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExamplePlatform",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "AddRecipes",
+          "SetDefaults"
+        ],
+        "properties": [
+          "height",
+          "width"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Placeable/Furniture/ExampleTable.js",
+      "path": "content/Content/Items/Placeable/Furniture/ExampleTable.js",
+      "sha256": "bee75e048bdb0e9db8729eded0bb863badca2e54a88af35a5ead536b6435878c",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleTable",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "AddRecipes",
+          "SetDefaults"
+        ],
+        "properties": [
+          "height",
+          "value",
+          "width"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Placeable/Furniture/ExampleToilet.js",
+      "path": "content/Content/Items/Placeable/Furniture/ExampleToilet.js",
+      "sha256": "1a0d2e1068dcafa2ef3330478d9d8a270df006d2be3c046d5e6c7b78ab4a10d3",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleToilet",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "AddRecipes",
+          "SetDefaults"
+        ],
+        "properties": [
+          "height",
+          "value",
+          "width"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Placeable/Furniture/ExampleWideBanner.js",
+      "path": "content/Content/Items/Placeable/Furniture/ExampleWideBanner.js",
+      "sha256": "c5f7f33bc3c8f5018d9dd2bce024a697fd90a4b33ce76446310b7627f8f9ba2d",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleWideBanner",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "AddRecipes",
+          "SetDefaults"
+        ],
+        "properties": [
+          "value"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Placeable/Furniture/ExampleWorkbench.js",
+      "path": "content/Content/Items/Placeable/Furniture/ExampleWorkbench.js",
+      "sha256": "f8738911dbe65b0c2ce90eadb3b6dcd2600b22307c4b11271bade9a4c09f1c76",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleWorkbench",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "AddRecipes",
+          "SetDefaults"
+        ],
+        "properties": [
+          "height",
+          "value",
+          "width"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Placeable/Furniture/MinionBossRelic.js",
+      "path": "content/Content/Items/Placeable/Furniture/MinionBossRelic.js",
+      "sha256": "de3259770e679e77ff596b90a9704ac04ea2d019ad3c96a5f29c6160bb3c0a19",
+      "facts": {
+        "classes": [
+          {
+            "name": "MinionBossRelic",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "SetDefaults"
+        ],
+        "properties": [
+          "height",
+          "rare",
+          "value",
+          "width"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Placeable/Furniture/MinionBossTrophy.js",
+      "path": "content/Content/Items/Placeable/Furniture/MinionBossTrophy.js",
+      "sha256": "70492a60ff6605992d16434a14c6ea61fc88d0d746e6bb949f13e5566662c864",
+      "facts": {
+        "classes": [
+          {
+            "name": "MinionBossTrophy",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "SetDefaults"
+        ],
+        "properties": [
+          "height",
+          "rare",
+          "value",
+          "width"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Quests/ExampleQuestFish.js",
+      "path": "content/Content/Items/Quests/ExampleQuestFish.js",
+      "sha256": "686060311a5359343c17bf931e4b7ca1c3040e70de815e982274309d5774ed74",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleQuestFish",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "AnglerQuestChat",
+          "IsAnglerQuestAvailable",
+          "SetDefaults",
+          "SetStaticDefaults"
+        ],
+        "properties": [
+          "DefaultToQuestFish"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Tools/ExampleDrill.js",
+      "path": "content/Content/Items/Tools/ExampleDrill.js",
+      "sha256": "0b0ab04c52c4b5d31b237c800bb1ecb25ea4ff6db490e7cc0f6570c197486085",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleDrill",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "SetDefaults",
+          "SetStaticDefaults"
+        ],
+        "properties": [
+          "UseSound",
+          "channel",
+          "damage",
+          "melee",
+          "noMelee",
+          "noUseGraphic",
+          "pick",
+          "rare",
+          "shoot",
+          "shootSpeed",
+          "tileBoost",
+          "useAnimation",
+          "useStyle",
+          "useTime",
+          "value"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Tools/ExampleFishingRod.js",
+      "path": "content/Content/Items/Tools/ExampleFishingRod.js",
+      "sha256": "19d99b6a5e2d84ec57a95b77ecac18e94a71724111d90368743b3a480cd0c9a6",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleFishingRod",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "HoldItem",
+          "ModifyFishingLine",
+          "SetDefaults",
+          "SetStaticDefaults"
+        ],
+        "properties": [
+          "accFishingLine",
+          "fishingPole",
+          "shoot",
+          "shootSpeed"
+        ],
+        "nativeSignatures": [],
+        "imports": [
+          "../../Projectiles/ExampleBobber.js"
+        ]
+      }
+    },
+    {
+      "id": "Content/Items/Tools/ExampleHamaxe.js",
+      "path": "content/Content/Items/Tools/ExampleHamaxe.js",
+      "sha256": "9edc2f8f3b3e6a4bc4bae70df770bf891ad924b3fc018370bb5a9f6963bfb7c6",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleHamaxe",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "AddRecipes",
+          "SetDefaults"
+        ],
+        "properties": [
+          "UseSound",
+          "axe",
+          "hammer",
+          "melee",
+          "rare",
+          "value"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Tools/ExampleHookItem.js",
+      "path": "content/Content/Items/Tools/ExampleHookItem.js",
+      "sha256": "13c9c9736cb6ec99348b7cb849551978c41985ab35061bbbcef1380cc1419b1e",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleHookItem",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "SetDefaults"
+        ],
+        "properties": [
+          "shoot",
+          "shootSpeed"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Tools/ExamplePickaxe.js",
+      "path": "content/Content/Items/Tools/ExamplePickaxe.js",
+      "sha256": "aa6a12cba05fc70cccffc2bd568e56c353872ede82c7fff14ffc4cfe1d608895",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExamplePickaxe",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "AddRecipes",
+          "SetDefaults"
+        ],
+        "properties": [
+          "UseSound",
+          "melee",
+          "pick",
+          "rare",
+          "value"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Weapons/ExampleCustomDamageWeapon.js",
+      "path": "content/Content/Items/Weapons/ExampleCustomDamageWeapon.js",
+      "sha256": "59be5ded55b863a0defeca734f4e454c051979a8770c309ee15bd9f78ad21396",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleCustomDamageWeapon",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "AddRecipes",
+          "SetDefaults",
+          "Texture"
+        ],
+        "properties": [
+          "DamageType",
+          "UseSound",
+          "autoReuse",
+          "crit",
+          "damage",
+          "height",
+          "knockBack",
+          "rare",
+          "useAnimation",
+          "useStyle",
+          "useTime",
+          "value",
+          "width"
+        ],
+        "nativeSignatures": [],
+        "imports": [
+          "../../DamageClasses/ExampleDamageClass.js"
+        ]
+      }
+    },
+    {
+      "id": "Content/Items/Weapons/ExampleMultiplePrefixCategoryWeapon.js",
+      "path": "content/Content/Items/Weapons/ExampleMultiplePrefixCategoryWeapon.js",
+      "sha256": "fe38459de67ccf39f79b5fc001278d14d5b0a363b51aa801031357c8351e5c5d",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleMultiplePrefixCategoryWeapon",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "AddRecipes",
+          "MagicPrefix",
+          "MeleePrefix",
+          "RangedPrefix",
+          "SetDefaults"
+        ],
+        "properties": [
+          "UseSound",
+          "autoReuse",
+          "crit",
+          "damage",
+          "height",
+          "knockBack",
+          "mana",
+          "ranged",
+          "rare",
+          "useAnimation",
+          "useStyle",
+          "useTime",
+          "value",
+          "width"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Weapons/Magic/ExampleLaserWeapon.js",
+      "path": "content/Content/Items/Weapons/Magic/ExampleLaserWeapon.js",
+      "sha256": "4bf710299f56b40028b3950e07dfda03af20b66b6f3d42824d79b7f4fad1715a",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleLaserWeapon",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "CanUseItem",
+          "SetDefaults"
+        ],
+        "properties": [
+          "color",
+          "damage",
+          "mana",
+          "ownedProjectileCounts",
+          "shoot",
+          "shootSpeed"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Weapons/Magic/ExampleLastPrism.js",
+      "path": "content/Content/Items/Weapons/Magic/ExampleLastPrism.js",
+      "sha256": "a6eb1e9384deb81b6b7c6928e675f8722fba9d4650df94c2cb5b8a7af9fc1775",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleLastPrism",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "AddRecipes",
+          "CanUseItem",
+          "OverrideColor",
+          "SetDefaults",
+          "Texture"
+        ],
+        "properties": [
+          "color",
+          "damage",
+          "mana",
+          "ownedProjectileCounts",
+          "shoot",
+          "shootSpeed"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Weapons/Magic/ExampleMagicWeapon.js",
+      "path": "content/Content/Items/Weapons/Magic/ExampleMagicWeapon.js",
+      "sha256": "b896ebdecf043894264d0eb5e7bfbccfee064bc9a35ce6aa80a43465c18dd4a5",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleMagicWeapon",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "SetDefaults"
+        ],
+        "properties": [
+          "UseSound",
+          "magic",
+          "mana",
+          "rare",
+          "shoot",
+          "shootSpeed",
+          "value"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Weapons/Magic/ExampleRiftStaff.js",
+      "path": "content/Content/Items/Weapons/Magic/ExampleRiftStaff.js",
+      "sha256": "62a427b2074ef557671458425a252fddab90ad23165db6b73ad6a4f0026a63a1",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleRiftStaff",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "AddRecipes",
+          "SetDefaults",
+          "Texture"
+        ],
+        "properties": [
+          "UseSound",
+          "color",
+          "magic",
+          "mana",
+          "rare",
+          "shoot",
+          "shootSpeed",
+          "value"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Weapons/Melee/ExampleFlail.js",
+      "path": "content/Content/Items/Weapons/Melee/ExampleFlail.js",
+      "sha256": "f95048e0ca2c2cffd2d6d9756be9eaf2a61fc5995087ba3e021c4a44b3d9e97e",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleFlail",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "SetDefaults",
+          "SetStaticDefaults"
+        ],
+        "properties": [
+          "UseSound",
+          "channel",
+          "height",
+          "melee",
+          "noMelee",
+          "noUseGraphic",
+          "rare",
+          "scale",
+          "shoot",
+          "shootSpeed",
+          "useStyle",
+          "value",
+          "width"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Weapons/Melee/ExampleMeleeWeapon.js",
+      "path": "content/Content/Items/Weapons/Melee/ExampleMeleeWeapon.js",
+      "sha256": "33184b5ac47e4645bb88c22c55b96a3edd13438d3951ea903ec3773b7e45646f",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleMeleeWeapon",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "SetDefaults"
+        ],
+        "properties": [
+          "UseSound",
+          "melee",
+          "rare",
+          "value"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Weapons/Melee/ExampleShortsword.js",
+      "path": "content/Content/Items/Weapons/Melee/ExampleShortsword.js",
+      "sha256": "d4e11738d93ec7bc4450333f082361f22ebd4a110e8bcfe96b31f97c21dfdbcf",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleShortsword",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "AddRecipes",
+          "MeleePrefix",
+          "SetDefaults"
+        ],
+        "properties": [
+          "DamageType",
+          "UseSound",
+          "autoReuse",
+          "damage",
+          "height",
+          "knockBack",
+          "noMelee",
+          "noUseGraphic",
+          "rare",
+          "shoot",
+          "shootSpeed",
+          "useAnimation",
+          "useStyle",
+          "useTime",
+          "value",
+          "width"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Weapons/Melee/ExampleSpear.js",
+      "path": "content/Content/Items/Weapons/Melee/ExampleSpear.js",
+      "sha256": "3cbc8be0f372c472e43da0a8b520d08cc6ffc68a6a7830065fed29083b2e4f49",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleSpear",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "CanUseItem",
+          "SetDefaults",
+          "SetStaticDefaults",
+          "Shoot"
+        ],
+        "properties": [
+          "Center",
+          "UseSound",
+          "autoReuse",
+          "damage",
+          "knockBack",
+          "melee",
+          "noMelee",
+          "noUseGraphic",
+          "ownedProjectileCounts",
+          "rare",
+          "shoot",
+          "shootSpeed",
+          "useAnimation",
+          "useStyle",
+          "useTime",
+          "value"
+        ],
+        "nativeSignatures": [
+          "SoundEffectInstance PlaySound(LegacySoundStyle type, Vector2 position, float pitchOffset, float volumeScale)"
+        ],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Weapons/Melee/ExampleSwingingEnergySword.js",
+      "path": "content/Content/Items/Weapons/Melee/ExampleSwingingEnergySword.js",
+      "sha256": "f3b40a64d40ace7c976d4a39cb3e0a9501163dae6a15c1687060314e4dd6c5b7",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleSwingingEnergySword",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "SetDefaults",
+          "Shoot"
+        ],
+        "properties": [
+          "Center",
+          "GetAdjustedItemScale",
+          "GetProjectileSource_Item",
+          "MountedCenter",
+          "UseSound",
+          "direction",
+          "gravDir",
+          "itemAnimationMax",
+          "melee",
+          "noMelee",
+          "rare",
+          "shoot",
+          "value",
+          "whoAmI"
+        ],
+        "nativeSignatures": [
+          "int NewProjectile(IEntitySource spawnSource, Vector2 position, Vector2 velocity, int Type, int Damage, float KnockBack, int Owner, float ai0, float ai1, float ai2, NewProjectileModifier modifer)"
+        ],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Weapons/Melee/ExampleWhip.js",
+      "path": "content/Content/Items/Weapons/Melee/ExampleWhip.js",
+      "sha256": "a26a2aeb93ea87e3979b3b70f9c52ab54c3dcbd3b1a2adcf93efc240389d639b",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleWhip",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "SetDefaults",
+          "SetStaticDefaults",
+          "Shoot"
+        ],
+        "properties": [
+          "GetProjectileSource_Item",
+          "whoAmI"
+        ],
+        "nativeSignatures": [
+          "int NewProjectile(IEntitySource spawnSource, float X, float Y, float SpeedX, float SpeedY, int Type, int Damage, float KnockBack, int Owner, float ai0, float ai1, float ai2, NewProjectileModifier modifer)",
+          "void .ctor()"
+        ],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Weapons/Melee/ExampleYoyo.js",
+      "path": "content/Content/Items/Weapons/Melee/ExampleYoyo.js",
+      "sha256": "dadb48e519be38f8b8cadfb47fc40de75c0f50945659a0638e645c9bf27936f8",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleYoyo",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "ModifyTooltips",
+          "SetDefaults",
+          "SetStaticDefaults"
+        ],
+        "properties": [
+          "UseSound",
+          "channel",
+          "melee",
+          "noMelee",
+          "noUseGraphic",
+          "rare",
+          "shoot",
+          "shootSpeed",
+          "useStyle",
+          "value"
+        ],
+        "nativeSignatures": [],
+        "imports": [
+          "../../../Rarities/ExampleModRarity.js"
+        ]
+      }
+    },
+    {
+      "id": "Content/Items/Weapons/Ranged/ExampleGun.js",
+      "path": "content/Content/Items/Weapons/Ranged/ExampleGun.js",
+      "sha256": "fa4aa6f7e7d439683fcef77d6e35a2facc930087cd4a0a4ef98e7e363a57055b",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleGun",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "HoldoutOffset",
+          "SetDefaults"
+        ],
+        "properties": [
+          "UseSound",
+          "noMelee",
+          "ranged",
+          "rare",
+          "shoot",
+          "shootSpeed",
+          "useAmmo",
+          "value"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Weapons/Ranged/ExampleRocketLauncher.js",
+      "path": "content/Content/Items/Weapons/Ranged/ExampleRocketLauncher.js",
+      "sha256": "c60f0f9ba49837c73ac427a37c233937873ec6e934b44fee02d0f7631b539859",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleRocketLauncher",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "HoldoutOffset",
+          "SetDefaults"
+        ],
+        "properties": [
+          "UseSound",
+          "noMelee",
+          "ranged",
+          "rare",
+          "shoot",
+          "shootSpeed",
+          "useAmmo",
+          "value"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Weapons/Ranged/ExampleShotgun.js",
+      "path": "content/Content/Items/Weapons/Ranged/ExampleShotgun.js",
+      "sha256": "3a698ed9c3c2f9a132df049d5de27b367c7415851a5e4ac73aa05d335e26bd61",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleShotgun",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "HoldoutOffset",
+          "SetDefaults",
+          "Shoot"
+        ],
+        "properties": [
+          "GetProjectileSource_Item",
+          "UseSound",
+          "autoReuse",
+          "damage",
+          "height",
+          "knockBack",
+          "noMelee",
+          "ranged",
+          "rare",
+          "shoot",
+          "shootSpeed",
+          "useAmmo",
+          "useAnimation",
+          "useStyle",
+          "useTime",
+          "value",
+          "whoAmI",
+          "width"
+        ],
+        "nativeSignatures": [
+          "int NewProjectile(IEntitySource spawnSource, float X, float Y, float SpeedX, float SpeedY, int Type, int Damage, float KnockBack, int Owner, float ai0, float ai1, float ai2, NewProjectileModifier modifer)"
+        ],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Weapons/Summon/ExampleMinionItem.js",
+      "path": "content/Content/Items/Weapons/Summon/ExampleMinionItem.js",
+      "sha256": "9973647ff50ae5a09114dc429858e30c9348b8fb698ce6eaa69e9d92868e3b9a",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleMinionItem",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "AddRecipes",
+          "ModifyShootStats",
+          "SetDefaults",
+          "SetStaticDefaults",
+          "Shoot"
+        ],
+        "properties": [
+          "AddBuff",
+          "LimitPointToPlayerReachableArea",
+          "UseSound",
+          "buffType",
+          "damage",
+          "height",
+          "knockBack",
+          "mana",
+          "noMelee",
+          "rare",
+          "shoot",
+          "summon",
+          "useAnimation",
+          "useStyle",
+          "useTime",
+          "value",
+          "width"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Items/Weapons/Summon/ExampleSentryItem.js",
+      "path": "content/Content/Items/Weapons/Summon/ExampleSentryItem.js",
+      "sha256": "eef2d2f792b778c09c2ccdfebb16f4404c7bc14440279c79b22feb3246a7e960",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleSentryItem",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "AddRecipes",
+          "SetDefaults",
+          "SetStaticDefaults",
+          "Shoot"
+        ],
+        "properties": [
+          "FindSentryRestingSpot",
+          "GetProjectileSource_Item",
+          "LimitPointToPlayerReachableArea",
+          "UpdateMaxTurrets",
+          "UseSound",
+          "damage",
+          "direction",
+          "height",
+          "knockBack",
+          "mana",
+          "noMelee",
+          "rare",
+          "sentry",
+          "shoot",
+          "summon",
+          "useAnimation",
+          "useStyle",
+          "useTime",
+          "value",
+          "width"
+        ],
+        "nativeSignatures": [
+          "int NewProjectile(IEntitySource spawnSource, Vector2 position, Vector2 velocity, int Type, int Damage, float KnockBack, int Owner, float ai0, float ai1, float ai2, NewProjectileModifier modifer)"
+        ],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Mounts/ExampleMinecartMount.js",
+      "path": "content/Content/Mounts/ExampleMinecartMount.js",
+      "sha256": "b26c4ae9fc4474f881fe379b3508e4644227876d7b764c06181e35ace53513e5",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleMinecartMount",
+            "base": "ModMount"
+          }
+        ],
+        "hooksAndMethods": [
+          "SetStaticDefaults",
+          "UpdateEffects"
+        ],
+        "properties": [
+          "Center",
+          "Directions",
+          "RotatedRelativePoint",
+          "cMinecart"
+        ],
+        "nativeSignatures": [
+          "ArmorShaderData GetSecondaryShader(int id, Player player)",
+          "Dust NewDustPerfect(Vector2 Position, int Type, Nullable`1 Velocity, int Alpha, Color newColor, float Scale)",
+          "void SetAsMinecart(Mount.MountData newMount, int buff, Asset`1 texture, int verticalOffset, int playerVerticalOffset)"
+        ],
+        "imports": [
+          "../Buffs/ExampleMinecartBuff.js"
+        ]
+      }
+    },
+    {
+      "id": "Content/Mounts/ExampleMount.js",
+      "path": "content/Content/Mounts/ExampleMount.js",
+      "sha256": "8e4824616407cc1fc6e0a2c8a645d32fcd78a845ea792564a74b14291f1efef6",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleMount",
+            "base": "ModMount"
+          }
+        ],
+        "hooksAndMethods": [
+          "Draw",
+          "SetMount",
+          "SetStaticDefaults",
+          "UpdateEffects"
+        ],
+        "properties": [
+          "Center",
+          "getRect",
+          "velocity"
+        ],
+        "nativeSignatures": [
+          "Dust NewDustPerfect(Vector2 Position, int Type, Nullable`1 Velocity, int Alpha, Color newColor, float Scale)",
+          "int NewDust(Vector2 Position, int Width, int Height, int Type, float SpeedX, float SpeedY, int Alpha, Color newColor, float Scale)"
+        ],
+        "imports": [
+          "../Buffs/ExampleMountBuff.js"
+        ]
+      }
+    },
+    {
+      "id": "Content/NPCs/ExampleBoss/ExampleBoss.js",
+      "path": "content/Content/NPCs/ExampleBoss/ExampleBoss.js",
+      "sha256": "288f138c91163225499082b1595a8b4fe91e885e31290a2b98a90d345ef2b21b",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleBoss",
+            "base": "ModNPC"
+          }
+        ],
+        "hooksAndMethods": [
+          "AI",
+          "BossHeadSlot",
+          "FindFrame",
+          "HitEffect",
+          "ModifyNPCLoot",
+          "OnKill",
+          "PreAI",
+          "SetBestiary",
+          "SetDefaults",
+          "SetStaticDefaults"
+        ],
+        "properties": [
+          "Bottom",
+          "Center",
+          "DeathSound",
+          "EncourageDespawn",
+          "HitSound",
+          "Left",
+          "Right",
+          "TargetClosest",
+          "Top",
+          "ai",
+          "aiStyle",
+          "boss",
+          "buffImmune",
+          "damage",
+          "dead",
+          "defense",
+          "frame",
+          "frameCounter",
+          "height",
+          "knockBackResist",
+          "life",
+          "lifeMax",
+          "noGravity",
+          "noTileCollide",
+          "npcSlots",
+          "rotation",
+          "target",
+          "value",
+          "velocity",
+          "width"
+        ],
+        "nativeSignatures": [
+          "int NewGore(Vector2 Position, Vector2 Velocity, int Type, float Scale)",
+          "void .ctor(IItemDropRuleCondition condition)"
+        ],
+        "imports": [
+          "../../../Common/Systems/DownedBossSystem.js",
+          "../../BossBars/ExampleBossBar.js"
+        ]
+      }
+    },
+    {
+      "id": "Content/NPCs/ExamplePerson/ExamplePerson.js",
+      "path": "content/Content/NPCs/ExamplePerson/ExamplePerson.js",
+      "sha256": "1a9c47ac6999a356ad0efe65b781851c7e1422b936c4e8c96e318e59292d3265",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExamplePerson",
+            "base": "ModNPC"
+          }
+        ],
+        "hooksAndMethods": [
+          "AddShops",
+          "CanTownNPCSpawn",
+          "CheckConditions",
+          "GetChat",
+          "HitEffect",
+          "OnChatButtonClicked",
+          "SetBestiary",
+          "SetChatButtons",
+          "SetDefaults",
+          "SetNPCNameList",
+          "SetStaticDefaults",
+          "TownNPCAttackProj",
+          "TownNPCAttackProjSpeed",
+          "TownNPCAttackStrength"
+        ],
+        "properties": [
+          "DeathSound",
+          "HitSound",
+          "IsShimmerVariant",
+          "active",
+          "aiStyle",
+          "altTexture",
+          "damage",
+          "defense",
+          "friendly",
+          "height",
+          "knockBackResist",
+          "life",
+          "lifeMax",
+          "position",
+          "townNPC",
+          "velocity",
+          "width"
+        ],
+        "nativeSignatures": [
+          "bool HasItem(int type)",
+          "int NewDust(Vector2 Position, int Width, int Height, int Type, float SpeedX, float SpeedY, int Alpha, Color newColor, float Scale)",
+          "int NewGore(Vector2 Position, Vector2 Velocity, int Type, float Scale)",
+          "string GetTextValue(string key)"
+        ],
+        "imports": [
+          "../../Biomes/ExampleSurfaceBiome.js",
+          "../../Items/ExampleItem.js"
+        ]
+      }
+    },
+    {
+      "id": "Content/NPCs/ExampleSlimeNPC.js",
+      "path": "content/Content/NPCs/ExampleSlimeNPC.js",
+      "sha256": "cda0b7c30e6d98ffafbdc61ba6fda2cd78ee8d31a96ae569624ff946aaac29dc",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleSlimeNPC",
+            "base": "ModNPC"
+          }
+        ],
+        "hooksAndMethods": [
+          "ApplyBuffImmunity",
+          "HitEffect",
+          "ModifyNPCLoot",
+          "SetBestiary",
+          "SetDefaults",
+          "SetStaticDefaults",
+          "SpawnChance"
+        ],
+        "properties": [
+          "DeathSound",
+          "HitSound",
+          "aiStyle",
+          "alpha",
+          "buffImmune",
+          "color",
+          "damage",
+          "defense",
+          "height",
+          "life",
+          "lifeMax",
+          "position",
+          "value",
+          "width"
+        ],
+        "nativeSignatures": [
+          "IItemDropRule Common(int itemId, int chanceDenominator, int minimumDropped, int maximumDropped)",
+          "IItemDropRule NormalvsExpert(int itemId, int chanceDenominatorInNormal, int chanceDenominatorInExpert)",
+          "int NewDust(Vector2 Position, int Width, int Height, int Type, float SpeedX, float SpeedY, int Alpha, Color newColor, float Scale)",
+          "void .ctor(string languageKey)"
+        ],
+        "imports": [
+          "../Biomes/ExampleSurfaceBiome.js"
+        ]
+      }
+    },
+    {
+      "id": "Content/Pets/ExampleLightPet/ExampleLightPetBuff.js",
+      "path": "content/Content/Pets/ExampleLightPet/ExampleLightPetBuff.js",
+      "sha256": "95f478f8706973bacb3d2b6b87137991d3e1c9afaed07f40289f2ce205aae04a",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleLightPetBuff",
+            "base": "ModBuff"
+          }
+        ],
+        "hooksAndMethods": [
+          "SetStaticDefaults",
+          "UpdatePlayer"
+        ],
+        "properties": [],
+        "nativeSignatures": [
+          "void BuffHandle_SpawnPetIfNeededAndSetTime(int buffIndex, ref bool petBool, int petProjID, int buffTimeToGive)"
+        ],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Pets/ExampleLightPet/ExampleLightPetItem.js",
+      "path": "content/Content/Pets/ExampleLightPet/ExampleLightPetItem.js",
+      "sha256": "b8f1fb6bcbe39529cca2ac0848ae5cdae8aebbf029c46e0acd52b8484f3df787",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleLightPetItem",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "AddRecipes",
+          "SetDefaults",
+          "UseStyle"
+        ],
+        "properties": [
+          "AddBuff",
+          "UseSound",
+          "buffType",
+          "damage",
+          "height",
+          "itemTime",
+          "noMelee",
+          "rare",
+          "shoot",
+          "useAnimation",
+          "useStyle",
+          "useTime",
+          "value",
+          "whoAmI",
+          "width"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Pets/ExampleLightPet/ExampleLightPetProjectile.js",
+      "path": "content/Content/Pets/ExampleLightPet/ExampleLightPetProjectile.js",
+      "sha256": "f269c4d3bb85f42c97b325e1f1c0fefa7269b46b9ff66774d8bc98086ef5be51",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleLightPetProjectile",
+            "base": "ModProjectile"
+          }
+        ],
+        "hooksAndMethods": [
+          "AI",
+          "SetDefaults",
+          "SetStaticDefaults",
+          "UpdateDash",
+          "UpdateExtraMovement",
+          "UpdateFading"
+        ],
+        "properties": [
+          "Center",
+          "FindBuffIndex",
+          "active",
+          "dead",
+          "friendly",
+          "height",
+          "ignoreWater",
+          "netImportant",
+          "penetrate",
+          "scale",
+          "tileCollide",
+          "timeLeft",
+          "width"
+        ],
+        "nativeSignatures": [
+          "Dust NewDustDirect(Vector2 Position, int Width, int Height, int Type, float SpeedX, float SpeedY, int Alpha, Color newColor, float Scale)",
+          "SoundEffectInstance PlaySound(LegacySoundStyle type, Vector2 position, float pitchOffset, float volumeScale)",
+          "void AddLight(Vector2 position, float r, float g, float b)"
+        ],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Pets/ExamplePet/ExamplePetBuff.js",
+      "path": "content/Content/Pets/ExamplePet/ExamplePetBuff.js",
+      "sha256": "9a1e1d3d21b8edb433c92d3d02c227971a780d5e31b8e91350e6b64deeb84821",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExamplePetBuff",
+            "base": "ModBuff"
+          }
+        ],
+        "hooksAndMethods": [
+          "SetStaticDefaults",
+          "UpdatePlayer"
+        ],
+        "properties": [],
+        "nativeSignatures": [
+          "void BuffHandle_SpawnPetIfNeededAndSetTime(int buffIndex, ref bool petBool, int petProjID, int buffTimeToGive)"
+        ],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Pets/ExamplePet/ExamplePetItem.js",
+      "path": "content/Content/Pets/ExamplePet/ExamplePetItem.js",
+      "sha256": "10674f7d17bcab01bc4d42aea238f83dfcf36ae9a6b7b1becfd435c5723f364b",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExamplePetItem",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "AddRecipes",
+          "SetDefaults",
+          "UseItem"
+        ],
+        "properties": [
+          "AddBuff",
+          "buffType",
+          "shoot",
+          "whoAmI"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Pets/ExamplePet/ExamplePetProjectile.js",
+      "path": "content/Content/Pets/ExamplePet/ExamplePetProjectile.js",
+      "sha256": "5031991ff81fb2ae0c44a1067b4c7c8ce10d4e1db2c2249f37d557d91915f64a",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExamplePetProjectile",
+            "base": "ModProjectile"
+          }
+        ],
+        "hooksAndMethods": [
+          "AI",
+          "PreAI",
+          "SetDefaults",
+          "SetStaticDefaults"
+        ],
+        "properties": [
+          "FindBuffIndex",
+          "dead"
+        ],
+        "nativeSignatures": [
+          "SettingsForCharacterPreview WithOffset(float x, float y)"
+        ],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Prefixes/ExampleAccessoryPrefix.js",
+      "path": "content/Content/Prefixes/ExampleAccessoryPrefix.js",
+      "sha256": "58e7b1e75c25ea6e95986bc91e12e6421cbd55c92685c9dbacdbec3852941d76",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleAccessoryPrefix",
+            "base": "ModPrefix"
+          }
+        ],
+        "hooksAndMethods": [
+          "ApplyAccessoryEffects",
+          "Category",
+          "GetTooltipLines",
+          "ModifyValue"
+        ],
+        "properties": [
+          "statDefense"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Prefixes/ExampleDerivedPrefix.js",
+      "path": "content/Content/Prefixes/ExampleDerivedPrefix.js",
+      "sha256": "0bb9cfa65947ea1b2a1db19e256a66a5967389516ea94d3394d53a1fadc63544",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleDerivedPrefix",
+            "base": "ExamplePrefix"
+          }
+        ],
+        "hooksAndMethods": [
+          "Power"
+        ],
+        "properties": [],
+        "nativeSignatures": [],
+        "imports": [
+          "./ExamplePrefix.js"
+        ]
+      }
+    },
+    {
+      "id": "Content/Prefixes/ExamplePrefix.js",
+      "path": "content/Content/Prefixes/ExamplePrefix.js",
+      "sha256": "420783d4f36f7d8423211612c915de570dab278050e3e810f705c518c205b632",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExamplePrefix",
+            "base": "ModPrefix"
+          }
+        ],
+        "hooksAndMethods": [
+          "Apply",
+          "CanRoll",
+          "Category",
+          "GetTooltipLines",
+          "ModifyValue",
+          "Power",
+          "RollChance",
+          "SetStats"
+        ],
+        "properties": [],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Projectiles/ExampleAdvancedAnimatedProjectile.js",
+      "path": "content/Content/Projectiles/ExampleAdvancedAnimatedProjectile.js",
+      "sha256": "735584910ef10aad087edc7c7f611af52e1bfdce6074b6e93e6232e09573d2d9",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleAdvancedAnimatedProjectile",
+            "base": "ModProjectile"
+          }
+        ],
+        "hooksAndMethods": [
+          "AI",
+          "GetAlpha",
+          "PreDraw",
+          "SetDefaults",
+          "SetStaticDefaults"
+        ],
+        "properties": [
+          "alpha",
+          "friendly",
+          "height",
+          "ignoreWater",
+          "localNPCHitCooldown",
+          "magic",
+          "penetrate",
+          "tileCollide",
+          "usesLocalNPCImmunity",
+          "width"
+        ],
+        "nativeSignatures": [
+          "Color GetColor(int x, int y)",
+          "void EntitySpriteDraw(Texture2D texture, Vector2 position, Rectangle sourceRectangle, Color color, float rotation, Vector2 origin, float scale, SpriteEffects effects, float worthless)"
+        ],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Projectiles/ExampleBobber.js",
+      "path": "content/Content/Projectiles/ExampleBobber.js",
+      "sha256": "dde1d3e68aa130c699a145ce84937802c4bf76e316b8213303a20a18d1655dd7",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleBobber",
+            "base": "ModProjectile"
+          }
+        ],
+        "hooksAndMethods": [
+          "FishingLineColor",
+          "OnSpawn",
+          "SetDefaults"
+        ],
+        "properties": [
+          "aiStyle",
+          "bobber",
+          "friendly",
+          "height",
+          "netImportant",
+          "penetrate",
+          "width"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Projectiles/ExampleBulletProjectile.js",
+      "path": "content/Content/Projectiles/ExampleBulletProjectile.js",
+      "sha256": "932555edd58f838b37017d2cf49f4f7f59e1b9bba3a3c6a91059d23fa3d2986d",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleBulletProjectile",
+            "base": "ModProjectile"
+          }
+        ],
+        "hooksAndMethods": [
+          "SetDefaults"
+        ],
+        "properties": [
+          "aiStyle",
+          "extraUpdates",
+          "friendly",
+          "height",
+          "hostile",
+          "ignoreWater",
+          "light",
+          "localNPCHitCooldown",
+          "penetrate",
+          "ranged",
+          "scale",
+          "tileCollide",
+          "timeLeft",
+          "usesLocalNPCImmunity",
+          "width"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Projectiles/ExampleDrillProjectile.js",
+      "path": "content/Content/Projectiles/ExampleDrillProjectile.js",
+      "sha256": "7609f14181e2904f8699c1da07c61ecea1b997cdb320385041b8dbf00e191b6d",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleDrillProjectile",
+            "base": "ModProjectile"
+          }
+        ],
+        "hooksAndMethods": [
+          "AI",
+          "SetDefaults"
+        ],
+        "properties": [
+          "ChangeDir",
+          "HeldItem",
+          "MountedCenter",
+          "SetDummyItemTime",
+          "aiStyle",
+          "channel",
+          "height",
+          "heldProj",
+          "itemRotation",
+          "width"
+        ],
+        "nativeSignatures": [
+          "Dust NewDustDirect(Vector2 Position, int Width, int Height, int Type, float SpeedX, float SpeedY, int Alpha, Color newColor, float Scale)",
+          "SoundEffectInstance PlaySound(LegacySoundStyle type, Vector2 position, float pitchOffset, float volumeScale)",
+          "Vector2 RotatedRelativePoint(Vector2 pos, bool reverseRotation, bool addGfxOffY, int pushFromOriginHack)"
+        ],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Projectiles/ExampleFlailProjectile.js",
+      "path": "content/Content/Projectiles/ExampleFlailProjectile.js",
+      "sha256": "a7e490954ae635204bb3fa07cbe3de510daa868ad115458e1c65fb10ae96f843",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleFlailProjectile",
+            "base": "ModProjectile"
+          }
+        ],
+        "hooksAndMethods": [
+          "GetAlpha",
+          "PreDraw",
+          "SetDefaults"
+        ],
+        "properties": [
+          "aiStyle",
+          "drawLayer",
+          "friendly",
+          "height",
+          "localNPCHitCooldown",
+          "melee",
+          "penetrate",
+          "scale",
+          "usesLocalNPCImmunity",
+          "width"
+        ],
+        "nativeSignatures": [
+          "void EntitySpriteDraw(Texture2D texture, Vector2 position, Rectangle sourceRectangle, Color color, float rotation, Vector2 origin, float scale, SpriteEffects effects, float worthless)"
+        ],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Projectiles/ExampleGolfBallProjectile.js",
+      "path": "content/Content/Projectiles/ExampleGolfBallProjectile.js",
+      "sha256": "bf78d62d8550f3fc4b1c6615ed7ebd36ae9085c0abaf12149b44099bba24d8ea",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleGolfBallProjectile",
+            "base": "ModProjectile"
+          }
+        ],
+        "hooksAndMethods": [
+          "SetDefaults",
+          "SetStaticDefaults"
+        ],
+        "properties": [
+          "aiStyle",
+          "friendly",
+          "height",
+          "netImportant",
+          "penetrate",
+          "tileCollide",
+          "width"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Projectiles/ExampleHookProjectile.js",
+      "path": "content/Content/Projectiles/ExampleHookProjectile.js",
+      "sha256": "a88aa3ac7912e9306021dd2b6da90edfb60ac2c89b64f0d6f07bbd7f0a13f250",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleHookProjectile",
+            "base": "ModProjectile"
+          }
+        ],
+        "hooksAndMethods": [
+          "CanUseGrapple",
+          "GrappleCanLatchOnTo",
+          "GrapplePullSpeed",
+          "GrappleRange",
+          "GrappleRetreatSpeed",
+          "GrappleTargetPoint",
+          "NumGrappleHooks",
+          "PreDrawExtras",
+          "SetDefaults"
+        ],
+        "properties": [
+          "Center"
+        ],
+        "nativeSignatures": [
+          "Color GetColor(int x, int y)",
+          "Vector2 DirectionTo(Vector2 Destination)",
+          "void EntitySpriteDraw(Texture2D texture, Vector2 position, Rectangle sourceRectangle, Color color, float rotation, Vector2 origin, float scale, SpriteEffects effects, float worthless)"
+        ],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Projectiles/ExampleLaserBeam.js",
+      "path": "content/Content/Projectiles/ExampleLaserBeam.js",
+      "sha256": "ef641ea8d25fff949d5fe9aa764688f0a68264359ceb9e9595eb5e4867d70bc5",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleLaserBeam",
+            "base": "ModProjectile"
+          }
+        ],
+        "hooksAndMethods": [
+          "AI",
+          "DamageNPCs",
+          "LaserColor",
+          "LaserEnd",
+          "PreDraw",
+          "SetDefaults",
+          "SetStaticDefaults"
+        ],
+        "properties": [
+          "GetWeaponCrit",
+          "GetWeaponDamage",
+          "GetWeaponKnockback",
+          "HeldItem",
+          "addDPS",
+          "friendly",
+          "height",
+          "localNPCHitCooldown",
+          "magic",
+          "penetrate",
+          "tileCollide",
+          "usesLocalNPCImmunity",
+          "width"
+        ],
+        "nativeSignatures": [
+          "bool SolidCollision(Vector2 Position, int Width, int Height)",
+          "int NewDust(Vector2 Position, int Width, int Height, int Type, float SpeedX, float SpeedY, int Alpha, Color newColor, float Scale)",
+          "int StrikeNPC(int Damage, float knockBack, int hitDirection, bool crit, bool fromNet, int owner)",
+          "void AddLight(Vector2 position, float r, float g, float b)",
+          "void EntitySpriteDraw(Texture2D texture, Vector2 position, Rectangle sourceRectangle, Color color, float rotation, Vector2 origin, Vector2 scale, SpriteEffects effects, float worthless)"
+        ],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Projectiles/ExampleLaserHoldout.js",
+      "path": "content/Content/Projectiles/ExampleLaserHoldout.js",
+      "sha256": "9b6eaebd646c4ff63ef330ebb92109ef8d23836fa56b9e53f45c344b29dc5d35",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleLaserHoldout",
+            "base": "ModProjectile"
+          }
+        ],
+        "hooksAndMethods": [
+          "AI",
+          "Aim",
+          "GetAlpha",
+          "SetDefaults",
+          "SetStaticDefaults",
+          "ShootBeam",
+          "ShouldConsumeMana"
+        ],
+        "properties": [
+          "CCed",
+          "ChangeDir",
+          "GetProjectileSource_Item",
+          "HeldItem",
+          "MountedCenter",
+          "alpha",
+          "channel",
+          "friendly",
+          "height",
+          "heldProj",
+          "itemAnimation",
+          "itemRotation",
+          "itemTime",
+          "noItems",
+          "penetrate",
+          "tileCollide",
+          "width"
+        ],
+        "nativeSignatures": [
+          "Vector2 RotatedRelativePoint(Vector2 pos, bool reverseRotation, bool addGfxOffY, int pushFromOriginHack)",
+          "bool CheckMana(int amount, bool pay, bool blockQuickMana)",
+          "int NewProjectile(IEntitySource spawnSource, Vector2 position, Vector2 velocity, int Type, int Damage, float KnockBack, int Owner, float ai0, float ai1, float ai2, NewProjectileModifier modifer)"
+        ],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Projectiles/ExampleLastPrismBeam.js",
+      "path": "content/Content/Projectiles/ExampleLastPrismBeam.js",
+      "sha256": "1d85e46db2ba65930376cbe36f686b7566201b6eeab6bc2398819940ef63d56b",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleLastPrismBeam",
+            "base": "ModProjectile"
+          }
+        ],
+        "hooksAndMethods": [
+          "AI",
+          "BeamID",
+          "BeamLength",
+          "CastLight",
+          "Colliding",
+          "DrawBeam",
+          "GetDamageMultiplier",
+          "GetOuterBeamColor",
+          "OnKill",
+          "PerformBeamHitscan",
+          "PreDraw",
+          "ProduceBeamDust",
+          "ProduceRipples",
+          "ReceiveExtraAI",
+          "SendExtraAI",
+          "SetDefaults"
+        ],
+        "properties": [
+          "Center",
+          "ai",
+          "alpha",
+          "height",
+          "localAI",
+          "localNPCHitCooldown",
+          "magic",
+          "penetrate",
+          "tileCollide",
+          "usesLocalNPCImmunity",
+          "width"
+        ],
+        "nativeSignatures": [
+          "Color hslToRgb(float Hue, float Saturation, float Luminosity, byte a)",
+          "Dust NewDustDirect(Vector2 Position, int Width, int Height, int Type, float SpeedX, float SpeedY, int Alpha, Color newColor, float Scale)",
+          "bool CanHitLine(Vector2 Position1, int Width1, int Height1, Vector2 Position2, int Width2, int Height2)",
+          "bool CheckAABBvLineCollision(Vector2 objectPosition, Vector2 objectDimensions, Vector2 lineStart, Vector2 lineEnd, float lineWidth, ref float collisionPoint)",
+          "void AddLight(Vector2 position, float r, float g, float b)",
+          "void LaserScan(Vector2 samplingPoint, Vector2 directionUnit, float samplingWidth, float maxDistance, float[] samples)"
+        ],
+        "imports": [
+          "./ExampleLastPrismHoldout.js"
+        ]
+      }
+    },
+    {
+      "id": "Content/Projectiles/ExampleLastPrismHoldout.js",
+      "path": "content/Content/Projectiles/ExampleLastPrismHoldout.js",
+      "sha256": "94338863842ca29f5d3da8653d0ed64c15816a7f98d31f190228b8805e2056dc",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleLastPrismHoldout",
+            "base": "ModProjectile"
+          }
+        ],
+        "hooksAndMethods": [
+          "AI",
+          "CanDamage",
+          "FireBeams",
+          "PlaySounds",
+          "PreDraw",
+          "SetDefaults",
+          "SetStaticDefaults",
+          "ShouldConsumeMana",
+          "Texture",
+          "UpdateAim",
+          "UpdateAnimation",
+          "UpdatePlayerVisuals"
+        ],
+        "properties": [
+          "CCed",
+          "ChangeDir",
+          "GetDamage",
+          "GetProjectileSource_Item",
+          "HeldItem",
+          "MountedCenter",
+          "channel",
+          "heldProj",
+          "itemAnimation",
+          "itemRotation",
+          "itemTime",
+          "noItems"
+        ],
+        "nativeSignatures": [
+          "Vector2 RotatedRelativePoint(Vector2 pos, bool reverseRotation, bool addGfxOffY, int pushFromOriginHack)",
+          "bool CheckMana(int amount, bool pay, bool blockQuickMana)",
+          "int NewProjectile(IEntitySource spawnSource, Vector2 position, Vector2 velocity, int Type, int Damage, float KnockBack, int Owner, float ai0, float ai1, float ai2, NewProjectileModifier modifer)",
+          "void EntitySpriteDraw(Texture2D texture, Vector2 position, Rectangle sourceRectangle, Color color, float rotation, Vector2 origin, Vector2 scale, SpriteEffects effects, float worthless)"
+        ],
+        "imports": [
+          "../Items/Weapons/Magic/ExampleLastPrism.js"
+        ]
+      }
+    },
+    {
+      "id": "Content/Projectiles/ExampleMinion.js",
+      "path": "content/Content/Projectiles/ExampleMinion.js",
+      "sha256": "480e058a82a2048412644901d2d835adba403a31988e7cb95db2231ae96f7142",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleMinion",
+            "base": "ModProjectile"
+          }
+        ],
+        "hooksAndMethods": [
+          "AI",
+          "CanCutTiles",
+          "CheckActive",
+          "GeneralBehavior",
+          "MinionContactDamage",
+          "Movement",
+          "SearchForTargets",
+          "SetDefaults",
+          "SetStaticDefaults",
+          "Visuals"
+        ],
+        "properties": [
+          "CanBeChasedBy",
+          "Center",
+          "active",
+          "friendly",
+          "height",
+          "minion",
+          "minionSlots",
+          "penetrate",
+          "position",
+          "tileCollide",
+          "width"
+        ],
+        "nativeSignatures": [
+          "bool CanHitLine(Vector2 Position1, int Width1, int Height1, Vector2 Position2, int Width2, int Height2)",
+          "void AddLight(Vector2 position, float r, float g, float b)"
+        ],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Projectiles/ExampleRiftProjectile.js",
+      "path": "content/Content/Projectiles/ExampleRiftProjectile.js",
+      "sha256": "656aa458090595b956482eb2a2d2d940eb193c9fa08efd9ba16fee5508a6cd72",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleRiftProjectile",
+            "base": "ModProjectile"
+          }
+        ],
+        "hooksAndMethods": [
+          "AI",
+          "OnKill",
+          "PreDraw",
+          "SetDefaults",
+          "Texture"
+        ],
+        "properties": [
+          "friendly",
+          "height",
+          "ignoreWater",
+          "localNPCHitCooldown",
+          "magic",
+          "penetrate",
+          "timeLeft",
+          "usesLocalNPCImmunity",
+          "width"
+        ],
+        "nativeSignatures": [
+          "Dust NewDustDirect(Vector2 Position, int Width, int Height, int Type, float SpeedX, float SpeedY, int Alpha, Color newColor, float Scale)",
+          "void AddLight(Vector2 position, float r, float g, float b)"
+        ],
+        "imports": [
+          "../Effects/ExampleRiftEffect.js"
+        ]
+      }
+    },
+    {
+      "id": "Content/Projectiles/ExampleSentry.js",
+      "path": "content/Content/Projectiles/ExampleSentry.js",
+      "sha256": "2c7cf6c27da7de1b242c1184b883cc7392da7ddda2949866b9e6ffcce5ad34d4",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleSentry",
+            "base": "ModProjectile"
+          }
+        ],
+        "hooksAndMethods": [
+          "AI",
+          "FindTarget",
+          "GetAlpha",
+          "OnKill",
+          "OnTileCollide",
+          "SetDefaults",
+          "SetStaticDefaults",
+          "TileCollideStyle"
+        ],
+        "properties": [
+          "CanBeChasedBy",
+          "Center",
+          "active",
+          "height",
+          "ignoreWater",
+          "netImportant",
+          "position",
+          "sentry",
+          "timeLeft",
+          "width"
+        ],
+        "nativeSignatures": [
+          "Dust NewDustDirect(Vector2 Position, int Width, int Height, int Type, float SpeedX, float SpeedY, int Alpha, Color newColor, float Scale)",
+          "Dust NewDustPerfect(Vector2 Position, int Type, Nullable`1 Velocity, int Alpha, Color newColor, float Scale)",
+          "SoundEffectInstance PlaySound(LegacySoundStyle type, Vector2 position, float pitchOffset, float volumeScale)",
+          "bool CanHit(Vector2 Position1, int Width1, int Height1, Vector2 Position2, int Width2, int Height2)",
+          "int NewProjectile(IEntitySource spawnSource, Vector2 position, Vector2 velocity, int Type, int Damage, float KnockBack, int Owner, float ai0, float ai1, float ai2, NewProjectileModifier modifer)"
+        ],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Projectiles/ExampleSentryShot.js",
+      "path": "content/Content/Projectiles/ExampleSentryShot.js",
+      "sha256": "f5828220749337bf6078f49961c51009751f3071aea05b92829bd5a0b559740d",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleSentryShot",
+            "base": "ModProjectile"
+          }
+        ],
+        "hooksAndMethods": [
+          "AI",
+          "OnKill",
+          "SetDefaults",
+          "SetStaticDefaults"
+        ],
+        "properties": [
+          "friendly",
+          "height",
+          "timeLeft",
+          "width"
+        ],
+        "nativeSignatures": [
+          "SoundEffectInstance PlaySound(LegacySoundStyle type, Vector2 position, float pitchOffset, float volumeScale)",
+          "int NewDust(Vector2 Position, int Width, int Height, int Type, float SpeedX, float SpeedY, int Alpha, Color newColor, float Scale)"
+        ],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Projectiles/ExampleShortswordProjectile.js",
+      "path": "content/Content/Projectiles/ExampleShortswordProjectile.js",
+      "sha256": "d8ffc4215e2284c46b44667ac562282b2534f3d2486fa5a88176581b9fc7921e",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleShortswordProjectile",
+            "base": "ModProjectile"
+          }
+        ],
+        "hooksAndMethods": [
+          "AI",
+          "Colliding",
+          "CollisionWidth",
+          "PreDraw",
+          "SetDefaults",
+          "ShouldUpdatePosition"
+        ],
+        "properties": [
+          "MountedCenter",
+          "heldProj"
+        ],
+        "nativeSignatures": [
+          "Color GetAlpha(Color newColor)",
+          "Vector2 RotatedRelativePoint(Vector2 pos, bool reverseRotation, bool addGfxOffY, int pushFromOriginHack)",
+          "bool CheckAABBvLineCollision(Vector2 objectPosition, Vector2 objectDimensions, Vector2 lineStart, Vector2 lineEnd, float lineWidth, ref float collisionPoint)",
+          "float GetLerpValue(float from, float to, float t, bool clamped)",
+          "void Draw(Texture2D texture, Vector2 position, Nullable`1 sourceRectangle, Color color, float rotation, Vector2 origin, float scale, SpriteEffects effects, float layerDepth)"
+        ],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Projectiles/ExampleSpearProjectile.js",
+      "path": "content/Content/Projectiles/ExampleSpearProjectile.js",
+      "sha256": "40c69050505541583a9489d24b18c08a55e701de6677634ad834e9203aa9f32d",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleSpearProjectile",
+            "base": "ModProjectile"
+          }
+        ],
+        "hooksAndMethods": [
+          "PreAI",
+          "SetDefaults"
+        ],
+        "properties": [
+          "MountedCenter",
+          "heldProj",
+          "itemAnimationMax"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Projectiles/ExampleSwingingEnergySwordProjectile.js",
+      "path": "content/Content/Projectiles/ExampleSwingingEnergySwordProjectile.js",
+      "sha256": "29ec15333f787720cf8c4df6ffc452b7f9debaaad1b71e7afca1f0e1437bd377",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleSwingingEnergySwordProjectile",
+            "base": "ModProjectile"
+          }
+        ],
+        "hooksAndMethods": [
+          "AI",
+          "DrawLikeExcalibur",
+          "DrawSparkle",
+          "PreDraw",
+          "SetDefaults",
+          "SetStaticDefaults"
+        ],
+        "properties": [
+          "MountedCenter",
+          "aiStyle",
+          "friendly",
+          "height",
+          "ignoreWater",
+          "localNPCHitCooldown",
+          "melee",
+          "noEnchantmentVisuals",
+          "ownerHitCheck",
+          "ownerHitCheckDistance",
+          "penetrate",
+          "tileCollide",
+          "usesLocalNPCImmunity",
+          "usesOwnerMeleeHitCD",
+          "width"
+        ],
+        "nativeSignatures": [
+          "Color GetColor(int x, int y)",
+          "Dust NewDustPerfect(Vector2 Position, int Type, Nullable`1 Velocity, int Alpha, Color newColor, float Scale)",
+          "Rectangle Frame(Texture2D tex, int horizontalFrames, int verticalFrames, int frameX, int frameY, int sizeOffsetX, int sizeOffsetY)",
+          "Vector2 RotatedRelativePoint(Vector2 pos, bool reverseRotation, bool addGfxOffY, int pushFromOriginHack)",
+          "float GetLerpValue(float from, float to, float t, bool clamped)",
+          "float Remap(float fromValue, float fromMin, float fromMax, float toMin, float toMax, bool clamped)",
+          "void Draw(Texture2D texture, Vector2 position, Nullable`1 sourceRectangle, Color color, float rotation, Vector2 origin, Vector2 scale, SpriteEffects effects, float layerDepth)",
+          "void Draw(Texture2D texture, Vector2 position, Nullable`1 sourceRectangle, Color color, float rotation, Vector2 origin, float scale, SpriteEffects effects, float layerDepth)"
+        ],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Projectiles/ExampleWhipProjectile.js",
+      "path": "content/Content/Projectiles/ExampleWhipProjectile.js",
+      "sha256": "02ed93fac9b98d1e3dcf9699a51b52a1ed5bcd56c57465b5d5694f38e34bfc57",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleWhipProjectile",
+            "base": "ModProjectile"
+          }
+        ],
+        "hooksAndMethods": [
+          "PreDraw",
+          "SetDefaults",
+          "SetStaticDefaults"
+        ],
+        "properties": [
+          "itemAnimationMax"
+        ],
+        "nativeSignatures": [
+          "Color GetColor(int x, int y)",
+          "float GetLerpValue(float from, float to, float t, bool clamped)",
+          "void .ctor()",
+          "void EntitySpriteDraw(Texture2D texture, Vector2 position, Rectangle sourceRectangle, Color color, float rotation, Vector2 origin, float scale, SpriteEffects effects, float worthless)",
+          "void FillWhipControlPoints(Projectile proj, List`1 controlPoints, Player owner, bool getActualCollisionPoints, int frameOffset)"
+        ],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Projectiles/ExampleYoyoProjectile.js",
+      "path": "content/Content/Projectiles/ExampleYoyoProjectile.js",
+      "sha256": "d6d2e92ac77a83337f27c9c50d4e040d1e936c90599dafd9a0cd17e6f7d45d56",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleYoyoProjectile",
+            "base": "ModProjectile"
+          }
+        ],
+        "hooksAndMethods": [
+          "SetDefaults",
+          "SetStaticDefaults"
+        ],
+        "properties": [
+          "aiStyle",
+          "drawLayer",
+          "friendly",
+          "height",
+          "melee",
+          "penetrate",
+          "width"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Rarities/ExampleHigherTierModRarity.js",
+      "path": "content/Content/Rarities/ExampleHigherTierModRarity.js",
+      "sha256": "aaec75c912a7cc49a83ca668432eaaf1493c3f1b28a521986c6d7b6ccd6a52cd",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleHigherTierModRarity",
+            "base": "ModRarity"
+          }
+        ],
+        "hooksAndMethods": [
+          "GetPrefixedRarity",
+          "RarityColor"
+        ],
+        "properties": [],
+        "nativeSignatures": [],
+        "imports": [
+          "./ExampleModRarity.js"
+        ]
+      }
+    },
+    {
+      "id": "Content/Rarities/ExampleModRarity.js",
+      "path": "content/Content/Rarities/ExampleModRarity.js",
+      "sha256": "169710db73c6c18bafc921c97c6117a100ade24677d9f7c74ddfc09427d47a44",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleModRarity",
+            "base": "ModRarity"
+          }
+        ],
+        "hooksAndMethods": [
+          "GetPrefixedRarity",
+          "RarityColor"
+        ],
+        "properties": [],
+        "nativeSignatures": [],
+        "imports": [
+          "./ExampleHigherTierModRarity.js"
+        ]
+      }
+    },
+    {
+      "id": "Content/TileEntities/BasicTileEntity.js",
+      "path": "content/Content/TileEntities/BasicTileEntity.js",
+      "sha256": "7bf02c3a2c0c77278deaef9c49288d246d8aae039a8ca14ebc673481c3cdd617",
+      "facts": {
+        "classes": [
+          {
+            "name": "BasicTileEntity",
+            "base": "ModTileEntity"
+          },
+          {
+            "name": "BasicTileEntityTile",
+            "base": "ModTile"
+          },
+          {
+            "name": "BasicTileEntityItem",
+            "base": "ModItem"
+          }
+        ],
+        "hooksAndMethods": [
+          "AddRecipes",
+          "IsTileValidForEntity",
+          "KillMultiTile",
+          "KillTile",
+          "LoadData",
+          "MouseOver",
+          "NetReceive",
+          "NetSend",
+          "RightClick",
+          "SaveData",
+          "SetDefaults",
+          "SetDrawPositions",
+          "SetStaticDefaults",
+          "Update",
+          "WaterFillLevel",
+          "WaterFillPercentage",
+          "WaterFillStage"
+        ],
+        "properties": [
+          "cursorItemIconEnabled",
+          "cursorItemIconID",
+          "cursorItemIconText",
+          "noThrow"
+        ],
+        "nativeSignatures": [
+          "int NewItem(IEntitySource source, int X, int Y, int Width, int Height, int type, int stack, bool noBroadcast, int prefix, NewItemOwnership ownership, Nullable<Vector2> velocity, Item.NewItemModifier modifier)",
+          "void KillTile(int i, int j, bool fail, bool effectOnly, bool noItem)",
+          "void NewText(string newText, byte R, byte G, byte B, bool onlyCurrentPlayer)",
+          "void SendData(int msgType, int remoteClient, int ignoreClient, NetworkText text, int number, float number2, float number3, float number4, int number5, int number6, int number7)"
+        ],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/TileEntities/SimplePylonTileEntity.js",
+      "path": "content/Content/TileEntities/SimplePylonTileEntity.js",
+      "sha256": "9c8cbffb619cf6f4cf208e7f5bbae71b7c1b0ae053001849d98873505aa07bd9",
+      "facts": {
+        "classes": [
+          {
+            "name": "SimplePylonTileEntity",
+            "base": "TEModdedPylon"
+          }
+        ],
+        "hooksAndMethods": [],
+        "properties": [],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Tiles/Banners/ExampleEnemyBannerTile.js",
+      "path": "content/Content/Tiles/Banners/ExampleEnemyBannerTile.js",
+      "sha256": "de03593268d27ab9ea918577f100edeaeb09f5eda530cfda09fc820703b06bb9",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleEnemyBannerTile",
+            "base": "ModBannerTile"
+          }
+        ],
+        "hooksAndMethods": [],
+        "properties": [],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Tiles/ExampleAnimatedGlowmaskTile.js",
+      "path": "content/Content/Tiles/ExampleAnimatedGlowmaskTile.js",
+      "sha256": "a4c5c7755e132840fd9c6fea91b29fbfdfb4547b9a6423d780ea792e647ef161",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleAnimatedGlowmaskTile",
+            "base": "ModTile"
+          }
+        ],
+        "hooksAndMethods": [
+          "AnimateTile",
+          "PreDraw",
+          "SetStaticDefaults"
+        ],
+        "properties": [],
+        "nativeSignatures": [
+          "Color GetColor(int x, int y)",
+          "Tile get_Item(int x, int y)",
+          "void Draw(Texture2D texture, Vector2 position, Nullable`1 sourceRectangle, Color color, float rotation, Vector2 origin, float scale, SpriteEffects effects, float layerDepth)"
+        ],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Tiles/ExampleAnimatedTile.js",
+      "path": "content/Content/Tiles/ExampleAnimatedTile.js",
+      "sha256": "39062275f423c5acab11f1175c810708de384e332860d482ad036042d1637d99",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleAnimatedTile",
+            "base": "ModTile"
+          }
+        ],
+        "hooksAndMethods": [
+          "AnimateIndividualTile",
+          "AnimateTile",
+          "KillSound",
+          "ModifyLight",
+          "SetSpriteEffects",
+          "SetStaticDefaults"
+        ],
+        "properties": [],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Tiles/ExampleBar.js",
+      "path": "content/Content/Tiles/ExampleBar.js",
+      "sha256": "ca7b12d0cefd744606cd91ae3d625d1c1a77ded0f71f203580f9cc2e7bfe6f48",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleBar",
+            "base": "ModTile"
+          }
+        ],
+        "hooksAndMethods": [
+          "SetStaticDefaults",
+          "TileFrame"
+        ],
+        "properties": [],
+        "nativeSignatures": [
+          "void KillTile(int i, int j, bool fail, bool effectOnly, bool noItem)"
+        ],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Tiles/ExampleCampfire.js",
+      "path": "content/Content/Tiles/ExampleCampfire.js",
+      "sha256": "7cdd0698065e96ebd6cd4f3f27feec673df622194d041e749497b3c5a7ac8ef1",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleCampfire",
+            "base": "ModTile"
+          }
+        ],
+        "hooksAndMethods": [
+          "AnimateIndividualTile",
+          "AnimateTile",
+          "EmitParticles",
+          "HitWire",
+          "ModifyLight",
+          "MouseOver",
+          "NearbyEffects",
+          "PostDraw",
+          "RightClick",
+          "SetStaticDefaults",
+          "ToggleTile"
+        ],
+        "properties": [
+          "cursorItemIconEnabled",
+          "cursorItemIconID",
+          "noThrow"
+        ],
+        "nativeSignatures": [
+          "Tile get_Item(int x, int y)",
+          "TileObjectData GetTileData(int type, int style, int alternate)",
+          "int NewDust(Vector2 Position, int Width, int Height, int Type, float SpeedX, float SpeedY, int Alpha, Color newColor, float Scale)",
+          "void Draw(Texture2D texture, Vector2 position, Nullable`1 sourceRectangle, Color color, float rotation, Vector2 origin, float scale, SpriteEffects effects, float layerDepth)",
+          "void SendTileSquare(int whoAmi, int tileX, int tileY, int xSize, int ySize, TileChangeType changeType)",
+          "void SkipWire(int x, int y)"
+        ],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Tiles/ExampleCutTile.js",
+      "path": "content/Content/Tiles/ExampleCutTile.js",
+      "sha256": "c116d616a5c0333b1c18fb5f92158eea295fe8d184d953c83879e80c48615c5f",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleCutTile",
+            "base": "ModTile"
+          }
+        ],
+        "hooksAndMethods": [
+          "CreateDust",
+          "KillMultiTile",
+          "SetStaticDefaults"
+        ],
+        "properties": [],
+        "nativeSignatures": [
+          "int NewProjectile(IEntitySource spawnSource, float X, float Y, float SpeedX, float SpeedY, int Type, int Damage, float KnockBack, int Owner, float ai0, float ai1, float ai2, NewProjectileModifier modifer)"
+        ],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Tiles/ExampleGemsparkBlock.js",
+      "path": "content/Content/Tiles/ExampleGemsparkBlock.js",
+      "sha256": "e1e866df936b4be5d93e672dac31ae154ac964f993d63dbc1c879e1d68a820b1",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleGemsparkBlockBase",
+            "base": "ModTile"
+          },
+          {
+            "name": "ExampleGemsparkBlockOn",
+            "base": "ExampleGemsparkBlockBase"
+          },
+          {
+            "name": "ExampleGemsparkBlockOff",
+            "base": "ExampleGemsparkBlockBase"
+          }
+        ],
+        "hooksAndMethods": [
+          "HitWire",
+          "IsOn",
+          "ModifyLight",
+          "OtherVariant",
+          "SetStaticDefaults",
+          "TileFrame"
+        ],
+        "properties": [],
+        "nativeSignatures": [
+          "Tile get_Item(int x, int y)",
+          "bool actuator()",
+          "void SendTileSquare(int whoAmi, int tileX, int tileY, TileChangeType changeType)"
+        ],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Tiles/ExampleHerb.js",
+      "path": "content/Content/Tiles/ExampleHerb.js",
+      "sha256": "5901c5d2595fdbaa163061e3b7f7a296630017f4e512671f2528169b58737abf",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleHerb",
+            "base": "ModTile"
+          }
+        ],
+        "hooksAndMethods": [
+          "CanDrop",
+          "GetItemDrops",
+          "RandomUpdate",
+          "SetDrawPositions",
+          "SetSpriteEffects",
+          "SetStaticDefaults",
+          "StageAt"
+        ],
+        "properties": [
+          "HeldItem",
+          "active"
+        ],
+        "nativeSignatures": [
+          "Tile get_Item(int x, int y)",
+          "void SendTileSquare(int whoAmi, int tileX, int tileY, int centeredSquareSize, TileChangeType changeType)"
+        ],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Tiles/ExampleLamp.js",
+      "path": "content/Content/Tiles/ExampleLamp.js",
+      "sha256": "67cbb38f89fba75653c201bc6ca90fd7365d0a6a10a4531a689d985d9dc1bfba",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleLamp",
+            "base": "ModTile"
+          }
+        ],
+        "hooksAndMethods": [
+          "DrawEffects",
+          "EmitParticles",
+          "HitWire",
+          "ModifyLight",
+          "SetSpriteEffects",
+          "SetStaticDefaults",
+          "SpecialDraw"
+        ],
+        "properties": [],
+        "nativeSignatures": [
+          "Tile get_Item(int x, int y)",
+          "int NewDust(Vector2 Position, int Width, int Height, int Type, float SpeedX, float SpeedY, int Alpha, Color newColor, float Scale)",
+          "void AddSpecialLegacyPoint(int x, int y)",
+          "void Draw(Texture2D texture, Vector2 position, Nullable`1 sourceRectangle, Color color, float rotation, Vector2 origin, float scale, SpriteEffects effects, float layerDepth)",
+          "void SendTileSquare(int whoAmi, int tileX, int tileY, int centeredSquareSize, TileChangeType changeType)",
+          "void SkipWire(int x, int y)"
+        ],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Tiles/ExampleLivingFireTile.js",
+      "path": "content/Content/Tiles/ExampleLivingFireTile.js",
+      "sha256": "3b5b456150485b53fd5666189ee93a543f4149689123e2da9259692b1099993f",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleLivingFireTile",
+            "base": "ModTile"
+          }
+        ],
+        "hooksAndMethods": [
+          "AnimateTile",
+          "ModifyLight",
+          "SetDrawPositions",
+          "SetStaticDefaults"
+        ],
+        "properties": [],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Tiles/ExampleMusicBoxTile.js",
+      "path": "content/Content/Tiles/ExampleMusicBoxTile.js",
+      "sha256": "1f946a04aff0f53342ebe82fce5a495acb36dc0ac64cf9d0e8bf32c6972e9d5e",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleMusicBoxTile",
+            "base": "ModTile"
+          }
+        ],
+        "hooksAndMethods": [
+          "EmitParticles",
+          "MouseOver",
+          "SetStaticDefaults"
+        ],
+        "properties": [
+          "cursorItemIconEnabled",
+          "cursorItemIconID",
+          "noThrow"
+        ],
+        "nativeSignatures": [
+          "int NewGore(Vector2 Position, Vector2 Velocity, int Type, float Scale)"
+        ],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Tiles/ExampleOre.js",
+      "path": "content/Content/Tiles/ExampleOre.js",
+      "sha256": "6c6a2bee59e6f6e6d5555589e1f103c43494fdf672aadf7893eef3a851811581",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleOre",
+            "base": "ModTile"
+          }
+        ],
+        "hooksAndMethods": [
+          "SetStaticDefaults"
+        ],
+        "properties": [],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Tiles/ExamplePylonTile.js",
+      "path": "content/Content/Tiles/ExamplePylonTile.js",
+      "sha256": "7aadf0a2a2412fcc3cb0911e06019e1bdcc8490248f9556e575ad818e344987e",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExamplePylonTile",
+            "base": "ModPylon"
+          }
+        ],
+        "hooksAndMethods": [
+          "KillMultiTile",
+          "ModifyLight",
+          "MouseOver",
+          "SetStaticDefaults",
+          "SpecialDraw",
+          "ValidTeleportCheck_BiomeRequirements",
+          "ValidTeleportCheck_NPCCount"
+        ],
+        "properties": [
+          "cursorItemIconEnabled",
+          "cursorItemIconID"
+        ],
+        "nativeSignatures": [],
+        "imports": [
+          "../TileEntities/SimplePylonTileEntity.js"
+        ]
+      }
+    },
+    {
+      "id": "Content/Tiles/ExampleSign.js",
+      "path": "content/Content/Tiles/ExampleSign.js",
+      "sha256": "a4ff8b95c5ca6335310a5cc540477b2b7bf4b658941125f4c58da22f8468f049",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleSign",
+            "base": "ModTile"
+          }
+        ],
+        "hooksAndMethods": [
+          "KillMultiTile",
+          "PlaceInWorld",
+          "RightClick",
+          "SetStaticDefaults"
+        ],
+        "properties": [],
+        "nativeSignatures": [
+          "int ReadSign(int i, int j, bool CreateIfMissing)",
+          "void NewText(string newText, byte R, byte G, byte B, bool onlyCurrentPlayer)"
+        ],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Tiles/ExampleSink.js",
+      "path": "content/Content/Tiles/ExampleSink.js",
+      "sha256": "227bea09692e1ff089c95e2c7d23a43ee1d83e877379ec22071f60926e73ab91",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleSink",
+            "base": "ModTile"
+          }
+        ],
+        "hooksAndMethods": [
+          "SetStaticDefaults"
+        ],
+        "properties": [],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Tiles/ExampleStatue.js",
+      "path": "content/Content/Tiles/ExampleStatue.js",
+      "sha256": "ad14c688372ba8508f15d243968ebb2b24cd04fdd4d6f4bc6f077f54e9793549",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleStatue",
+            "base": "ModTile"
+          }
+        ],
+        "hooksAndMethods": [
+          "HitWire",
+          "SetStaticDefaults"
+        ],
+        "properties": [
+          "CanBeReplacedByOtherNPCs",
+          "SpawnedFromStatue",
+          "npcSlots",
+          "value"
+        ],
+        "nativeSignatures": [
+          "int NewItem(IEntitySource source, int X, int Y, int Width, int Height, int type, int stack, bool noBroadcast, int prefix, NewItemOwnership ownership, Nullable<Vector2> velocity, Item.NewItemModifier modifier)",
+          "int NewNPC(IEntitySource source, int X, int Y, int Type, int Start, float ai0, float ai1, float ai2, float ai3, int Target)",
+          "void SkipWire(int x, int y)"
+        ],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Tiles/ExampleTile.js",
+      "path": "content/Content/Tiles/ExampleTile.js",
+      "sha256": "001cece5ecdb61d6fac480af1673ccc533340f623077823aafd7ce1ae6e4605f",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleTile",
+            "base": "ModTile"
+          }
+        ],
+        "hooksAndMethods": [
+          "SetStaticDefaults"
+        ],
+        "properties": [],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Tiles/ExampleTorch.js",
+      "path": "content/Content/Tiles/ExampleTorch.js",
+      "sha256": "b321bfa59a9fb63a903025a169fa628ae6e45d23cdc29e59656be49b387528c2",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleTorch",
+            "base": "ModTile"
+          }
+        ],
+        "hooksAndMethods": [
+          "EmitParticles",
+          "ModifyLight",
+          "MouseOver",
+          "NumDust",
+          "SetDrawPositions",
+          "SetStaticDefaults"
+        ],
+        "properties": [
+          "cursorItemIconEnabled",
+          "cursorItemIconID",
+          "noThrow"
+        ],
+        "nativeSignatures": [
+          "Tile get_Item(int x, int y)",
+          "TileObjectData GetTileData(int type, int style, int alternate)",
+          "bool SolidTile(int i, int j, bool noDoors)",
+          "int NewDust(Vector2 Position, int Width, int Height, int Type, float SpeedX, float SpeedY, int Alpha, Color newColor, float Scale)",
+          "void addSubTile(int style)"
+        ],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Tiles/ExampleTransparentShapedTile.js",
+      "path": "content/Content/Tiles/ExampleTransparentShapedTile.js",
+      "sha256": "45a5e72cd1bde2f425dc2ba2d1bc7541aafac879aac8e9d4bdfc7e6eb764ad77",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleTransparentShapedTile",
+            "base": "ModTile"
+          }
+        ],
+        "hooksAndMethods": [
+          "ModifyLight",
+          "SetStaticDefaults"
+        ],
+        "properties": [],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Tiles/ExampleTrap.js",
+      "path": "content/Content/Tiles/ExampleTrap.js",
+      "sha256": "6b4bc27a9902c55b9391968cd547a60d24b21804e98e25564d73c9b68fcba760",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleTrap",
+            "base": "ModTile"
+          }
+        ],
+        "hooksAndMethods": [
+          "CreateDust",
+          "GetItemDrops",
+          "GetMapOption",
+          "HitWire",
+          "PlaceInWorld",
+          "SetStaticDefaults",
+          "Slope"
+        ],
+        "properties": [
+          "HeldItem",
+          "direction"
+        ],
+        "nativeSignatures": [
+          "Tile get_Item(int x, int y)",
+          "int NewProjectile(IEntitySource spawnSource, float X, float Y, float SpeedX, float SpeedY, int Type, int Damage, float KnockBack, int Owner, float ai0, float ai1, float ai2, NewProjectileModifier modifer)",
+          "void SendTileSquare(int whoAmi, int tileX, int tileY, int centeredSquareSize, TileChangeType changeType)"
+        ],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Tiles/Furniture/ExampleBed.js",
+      "path": "content/Content/Tiles/Furniture/ExampleBed.js",
+      "sha256": "fe61a36bb946633e7c1d48773afeea53e9d651a7136c942ba606bf5e8e7014ad",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleBed",
+            "base": "ModTile"
+          }
+        ],
+        "hooksAndMethods": [
+          "ModifySleepingTargetInfo",
+          "MouseOver",
+          "NumDust",
+          "RightClick",
+          "SetStaticDefaults"
+        ],
+        "properties": [
+          "ChangeSpawn",
+          "FindSpawn",
+          "GamepadEnableGrappleCooldown",
+          "IsWithinSnappngRangeToTile",
+          "RemoveSpawn",
+          "SpawnX",
+          "SpawnY",
+          "cursorItemIconEnabled",
+          "cursorItemIconID",
+          "noThrow",
+          "sleeping"
+        ],
+        "nativeSignatures": [
+          "Tile get_Item(int x, int y)",
+          "string GetTextValue(string key)",
+          "void NewText(string newText, byte R, byte G, byte B, bool onlyCurrentPlayer)"
+        ],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Tiles/Furniture/ExampleChair.js",
+      "path": "content/Content/Tiles/Furniture/ExampleChair.js",
+      "sha256": "9cfad8478a1cdf61b1f98b7f03c39372f1af1bab3d262a1e7d6724ddcb74a021",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleChair",
+            "base": "ModTile"
+          }
+        ],
+        "hooksAndMethods": [
+          "ModifySittingTargetInfo",
+          "MouseOver",
+          "NumDust",
+          "RightClick",
+          "SetStaticDefaults"
+        ],
+        "properties": [
+          "GamepadEnableGrappleCooldown",
+          "IsWithinSnappngRangeToTile",
+          "cursorItemIconEnabled",
+          "cursorItemIconID",
+          "cursorItemIconReversed",
+          "noThrow",
+          "sitting"
+        ],
+        "nativeSignatures": [
+          "Tile get_Item(int x, int y)"
+        ],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Tiles/Furniture/ExampleChandelier.js",
+      "path": "content/Content/Tiles/Furniture/ExampleChandelier.js",
+      "sha256": "43f830bd7a3405dad716c15c35cc56b56d1958d4c42239bdd1f1f461cf7cb2bc",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleChandelier",
+            "base": "ModTile"
+          }
+        ],
+        "hooksAndMethods": [
+          "EmitParticles",
+          "HitWire",
+          "ModifyLight",
+          "SetDrawPositions",
+          "SetStaticDefaults"
+        ],
+        "properties": [],
+        "nativeSignatures": [
+          "Tile get_Item(int x, int y)",
+          "int NewDust(Vector2 Position, int Width, int Height, int Type, float SpeedX, float SpeedY, int Alpha, Color newColor, float Scale)",
+          "void SendTileSquare(int whoAmi, int tileX, int tileY, int xSize, int ySize, TileChangeType changeType)",
+          "void SkipWire(int x, int y)"
+        ],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Tiles/Furniture/ExampleChest.js",
+      "path": "content/Content/Tiles/Furniture/ExampleChest.js",
+      "sha256": "8ad861d16607f6efeba1fa093a07e592f89a024fa41ef226068210fb2ebb3eab",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleChest",
+            "base": "ModTile"
+          }
+        ],
+        "hooksAndMethods": [
+          "DefaultContainerName",
+          "GetMapOption",
+          "IsLockedChest",
+          "KillMultiTile",
+          "LockChest",
+          "MouseOver",
+          "MouseOverFar",
+          "NumDust",
+          "RightClick",
+          "SetStaticDefaults",
+          "TopLeft",
+          "UnlockChest"
+        ],
+        "properties": [
+          "CloseSign",
+          "ConsumeItem",
+          "OpenChest",
+          "SetTalkNPC",
+          "chest",
+          "cursorItemIconEnabled",
+          "cursorItemIconID",
+          "cursorItemIconText",
+          "noThrow"
+        ],
+        "nativeSignatures": [
+          "Tile get_Item(int x, int y)",
+          "TileObjectData GetTileData(int type, int style, int alternate)",
+          "bool HasItem(int type)",
+          "bool IsLocked(int x, int y)",
+          "void NewText(string newText, byte R, byte G, byte B, bool onlyCurrentPlayer)"
+        ],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Tiles/Furniture/ExampleClock.js",
+      "path": "content/Content/Tiles/Furniture/ExampleClock.js",
+      "sha256": "48130d2f33fb0e2aa982f789f469d31ee2524c794d7be81cd5c89987d8015eb4",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleClock",
+            "base": "ModTile"
+          }
+        ],
+        "hooksAndMethods": [
+          "NumDust",
+          "RightClick",
+          "SetStaticDefaults"
+        ],
+        "properties": [],
+        "nativeSignatures": [
+          "string GetTextValue(string key)",
+          "void NewText(string newText, byte R, byte G, byte B, bool onlyCurrentPlayer)"
+        ],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Tiles/Furniture/ExampleDoorClosed.js",
+      "path": "content/Content/Tiles/Furniture/ExampleDoorClosed.js",
+      "sha256": "8f44147a8382c805a299dda9493381815aaaf4167001ce6a9b7aea14bac665fb",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleDoorClosed",
+            "base": "ModTile"
+          }
+        ],
+        "hooksAndMethods": [
+          "MouseOver",
+          "NumDust",
+          "SetStaticDefaults"
+        ],
+        "properties": [
+          "cursorItemIconEnabled",
+          "cursorItemIconID",
+          "noThrow"
+        ],
+        "nativeSignatures": [
+          "TileObjectData GetTileData(int type, int style, int alternate)"
+        ],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Tiles/Furniture/ExampleDoorOpen.js",
+      "path": "content/Content/Tiles/Furniture/ExampleDoorOpen.js",
+      "sha256": "50a676671f3df987b8de2df31155733efd993dd2fa188af5baa41591d0f234ad",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleDoorOpen",
+            "base": "ModTile"
+          }
+        ],
+        "hooksAndMethods": [
+          "MouseOver",
+          "NumDust",
+          "SetStaticDefaults"
+        ],
+        "properties": [
+          "cursorItemIconEnabled",
+          "cursorItemIconID",
+          "noThrow"
+        ],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Tiles/Furniture/ExampleDresser.js",
+      "path": "content/Content/Tiles/Furniture/ExampleDresser.js",
+      "sha256": "64bb6b5b7719208911ba7e3fd46235f120fc01efc99629994d18258188aead77",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleDresser",
+            "base": "ModTile"
+          }
+        ],
+        "hooksAndMethods": [
+          "KillMultiTile",
+          "MouseOver",
+          "MouseOverFar",
+          "NumDust",
+          "RightClick",
+          "SetStaticDefaults"
+        ],
+        "properties": [
+          "CloseSign",
+          "OpenChest",
+          "SetTalkNPC",
+          "chest",
+          "cursorItemIconEnabled",
+          "cursorItemIconID",
+          "cursorItemIconText",
+          "noThrow"
+        ],
+        "nativeSignatures": [
+          "Tile get_Item(int x, int y)",
+          "TileObjectData GetTileData(int type, int style, int alternate)",
+          "void CancelClothesWindow(bool quiet)"
+        ],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Tiles/Furniture/ExamplePlatform.js",
+      "path": "content/Content/Tiles/Furniture/ExamplePlatform.js",
+      "sha256": "019925a4ee3a3eafdf4918824cabcd272cd3c15dc1b12533e1006d0e6325a6a8",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExamplePlatform",
+            "base": "ModTile"
+          }
+        ],
+        "hooksAndMethods": [
+          "NumDust",
+          "PostSetDefaults",
+          "SetStaticDefaults"
+        ],
+        "properties": [],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Tiles/Furniture/ExampleTable.js",
+      "path": "content/Content/Tiles/Furniture/ExampleTable.js",
+      "sha256": "e018b9af79df9ad92dd3e36c3cdcc00079826185ee957640cea31a9a81bc4395",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleTable",
+            "base": "ModTile"
+          }
+        ],
+        "hooksAndMethods": [
+          "NumDust",
+          "SetStaticDefaults"
+        ],
+        "properties": [],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Tiles/Furniture/ExampleToilet.js",
+      "path": "content/Content/Tiles/Furniture/ExampleToilet.js",
+      "sha256": "b93a59bc0fdb15830f84cb4759febdd1acf85cce4099d1d0d98014e143fdae58",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleToilet",
+            "base": "ModTile"
+          }
+        ],
+        "hooksAndMethods": [
+          "HitWire",
+          "ModifySittingTargetInfo",
+          "MouseOver",
+          "NumDust",
+          "RightClick",
+          "SetStaticDefaults"
+        ],
+        "properties": [
+          "GamepadEnableGrappleCooldown",
+          "IsWithinSnappngRangeToTile",
+          "cursorItemIconEnabled",
+          "cursorItemIconID",
+          "cursorItemIconReversed",
+          "noThrow",
+          "sitting"
+        ],
+        "nativeSignatures": [
+          "Tile get_Item(int x, int y)",
+          "int NewProjectile(IEntitySource spawnSource, float X, float Y, float SpeedX, float SpeedY, int Type, int Damage, float KnockBack, int Owner, float ai0, float ai1, float ai2, NewProjectileModifier modifer)",
+          "void SkipWire(int x, int y)"
+        ],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Tiles/Furniture/ExampleWideBannerTile.js",
+      "path": "content/Content/Tiles/Furniture/ExampleWideBannerTile.js",
+      "sha256": "66ff5a1b47583ef1f13f084a201c9e2c944d7f8e85e861d31d3dbfe8c1843b89",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleWideBannerTile",
+            "base": "ModTile"
+          }
+        ],
+        "hooksAndMethods": [
+          "SetDrawPositions",
+          "SetStaticDefaults"
+        ],
+        "properties": [],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Tiles/Furniture/ExampleWorkbench.js",
+      "path": "content/Content/Tiles/Furniture/ExampleWorkbench.js",
+      "sha256": "7e9b5d9d27ab0af97ddea93a41af73ffd8e5271dc6a5245fec94c64728d3d8de",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleWorkbench",
+            "base": "ModTile"
+          }
+        ],
+        "hooksAndMethods": [
+          "NumDust",
+          "SetStaticDefaults"
+        ],
+        "properties": [],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Tiles/Furniture/MinionBossRelic.js",
+      "path": "content/Content/Tiles/Furniture/MinionBossRelic.js",
+      "sha256": "1fbd5936764d57f49d02168501368b1787206975ecdd9d0394b91116a5bf27ee",
+      "facts": {
+        "classes": [
+          {
+            "name": "MinionBossRelic",
+            "base": "ModTile"
+          }
+        ],
+        "hooksAndMethods": [
+          "CreateDust",
+          "DrawEffects",
+          "SetDrawPositions",
+          "SetStaticDefaults",
+          "SpecialDraw"
+        ],
+        "properties": [],
+        "nativeSignatures": [
+          "Color GetColor(int x, int y)",
+          "Tile get_Item(int x, int y)",
+          "void AddSpecialLegacyPoint(int x, int y)",
+          "void Draw(Texture2D texture, Vector2 position, Nullable`1 sourceRectangle, Color color, float rotation, Vector2 origin, float scale, SpriteEffects effects, float layerDepth)"
+        ],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Tiles/Furniture/MinionBossTrophy.js",
+      "path": "content/Content/Tiles/Furniture/MinionBossTrophy.js",
+      "sha256": "041736f0ec7f4cbeab52d7bb5eff68a3cdae7357a0058e6431f42a5f519499c0",
+      "facts": {
+        "classes": [
+          {
+            "name": "MinionBossTrophy",
+            "base": "ModTile"
+          }
+        ],
+        "hooksAndMethods": [
+          "SetStaticDefaults"
+        ],
+        "properties": [],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Tiles/Plants/ExampleSapling.js",
+      "path": "content/Content/Tiles/Plants/ExampleSapling.js",
+      "sha256": "4c1465b6e99c43aa22f961b74d0d2b58dfb922201038b719c83315c2101f8fda",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleSapling",
+            "base": "ModTile"
+          }
+        ],
+        "hooksAndMethods": [
+          "NumDust",
+          "RandomUpdate",
+          "SetSpriteEffects",
+          "SetStaticDefaults"
+        ],
+        "properties": [],
+        "nativeSignatures": [
+          "bool AttemptToGrowTreeFromSapling(int x, int y, bool underground, int treeHeightAddon, bool ignoreWalls)"
+        ],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Tiles/Plants/ExampleTree.js",
+      "path": "content/Content/Tiles/Plants/ExampleTree.js",
+      "sha256": "4c7363c17d18fdcaecc273c051d897a27ca5d1d5c9e1fc310e1e894e6b354962",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleTree",
+            "base": "ModTree"
+          }
+        ],
+        "hooksAndMethods": [
+          "DropWood",
+          "SaplingGrowthType",
+          "SetStaticDefaults",
+          "Shake",
+          "TreeLeaf"
+        ],
+        "properties": [],
+        "nativeSignatures": [
+          "int NewItem(IEntitySource source, int X, int Y, int Width, int Height, int type, int stack, bool noBroadcast, int prefix, NewItemOwnership ownership, Nullable<Vector2> velocity, Item.NewItemModifier modifier)"
+        ],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Walls/ExampleWall.js",
+      "path": "content/Content/Walls/ExampleWall.js",
+      "sha256": "d734653a11cddc4d181cf90bad15f4831d0bd148b3e3627db268cdc6693840d3",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleWall",
+            "base": "ModWall"
+          }
+        ],
+        "hooksAndMethods": [
+          "NumDust",
+          "SetStaticDefaults"
+        ],
+        "properties": [],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    },
+    {
+      "id": "Content/Walls/ExampleWallAdvanced.js",
+      "path": "content/Content/Walls/ExampleWallAdvanced.js",
+      "sha256": "9c708f6550ae21a0245879c7dab7fe5e0218a868675f31e32ae411ff6c3a3c93",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleWallAdvanced",
+            "base": "ModWall"
+          }
+        ],
+        "hooksAndMethods": [
+          "AnimateWall",
+          "CreateDust",
+          "ModifyLight",
+          "NumDust",
+          "SetStaticDefaults",
+          "WallFrame"
+        ],
+        "properties": [],
+        "nativeSignatures": [
+          "Tile get_Item(int x, int y)",
+          "byte wallFrameNumber()"
+        ],
+        "imports": []
+      }
+    },
+    {
+      "id": "main.js",
+      "path": "content/main.js",
+      "sha256": "a215a722f0ec8771b31f40434288a43d9746597b1941fa6c0d12b778e0c6ca7b",
+      "facts": {
+        "classes": [
+          {
+            "name": "ExampleMod",
+            "base": "Mod"
+          }
+        ],
+        "hooksAndMethods": [
+          "Load",
+          "PostSetupContent"
+        ],
+        "properties": [],
+        "nativeSignatures": [],
+        "imports": []
+      }
+    }
+  ]
+}
