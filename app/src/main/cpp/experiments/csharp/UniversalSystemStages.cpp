@@ -4,6 +4,7 @@
 #include "experiments/csharp/UniversalHookMailbox.h"
 #include "experiments/csharp/UniversalHooks.h"
 #include "hook/HookManager.h"
+#include "core/Log.h"
 #include "il2cpp/Resolver.h"
 #include "il2cpp/Api.h"
 #include "il2cpp/Signature.h"
