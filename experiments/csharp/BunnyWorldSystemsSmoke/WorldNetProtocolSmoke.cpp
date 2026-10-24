@@ -15,6 +15,13 @@ int main() {
     assert(worldStateDue(600, 0, 2, 2));
     assert(!worldStateDue(101, 102, 2, 2));
     assert(retryIntervalTicks == 600);
+    assert(shouldSendWorldState(true, 1200, 10, 0, 1));
+    assert(!shouldSendWorldState(false, 1200, 10, 0, 1));
+    assert(!shouldSendWorldState(true, 1200, 10, 1, 1));
+    assert(shouldSendWorldState(false, 1200, 10, 1, 1));
+    assert(!shouldSendWorldState(false, 100, 10, 1, 1));
+    assert(shouldSendWorldState(true, 1200, 1180, 1, 2));
+    assert(!shouldSendWorldState(false, 1200, 1180, 1, 2));
     assert(!preferWorldForSendSlot(0));
     assert(preferWorldForSendSlot(1));
     assert(!preferWorldForSendSlot(2));
