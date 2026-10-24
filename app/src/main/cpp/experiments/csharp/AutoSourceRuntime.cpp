@@ -1031,6 +1031,16 @@ void run() {
                 mod.id.c_str(),status.cached?"Hit":"Miss",cacheReason.c_str(),cacheWrite.c_str(),
                 tablesMs,cacheMs,compileMs,elapsedMilliseconds(applyStarted));
         status.applied = true;
+#if BUNNY_FIVE_LOADERS_QA
+        if (managedRuntimeStatus().methodExecuted &&
+            installNativeAbortProbe(work, "native-game-abort-trace.txt")) {
+            BL_INFO("[CSharp][NativeProbe] Result=Armed Signal=SIGSEGV Stage=BeforeManagedModRegistration");
+            installNativeSegvTrace();
+            installNativeProcessExitTrace();
+            rearmNativeAbortProbe("source-registration-started");
+            persistGameNativeModuleMaps(work);
+        }
+#endif
         if (mod.screenEffects > 0) {
             graphics::CSharpScreenSceneCallback sceneCallback;
             if (graphics::findCSharpScreenSceneCallback(mod.id, &sceneCallback)) {
@@ -1165,13 +1175,6 @@ void run() {
         ? static_cast<int>(pendingWorldModules.size()) : 0, std::memory_order_release);
     g_worldRegistrationReady.store(worldModulesReady, std::memory_order_release);
 #if BUNNY_FIVE_LOADERS_QA
-    // Install after Mono has saved Unity's handlers, avoiding a chain cycle
-    // (Mono -> our abort handler -> Mono -> our abort handler).
-    if (installNativeAbortProbe(work, "native-game-abort-trace.txt")) {
-        BL_INFO("[CSharp][NativeProbe] Result=Armed Signal=SIGABRT Stage=AfterMonoInit");
-        installNativeSegvTrace();
-        installNativeProcessExitTrace();
-    }
     rearmNativeAbortProbe("source-registration-complete");
     persistGameNativeModuleMaps(work);
 #endif
