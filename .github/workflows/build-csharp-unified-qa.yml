@@ -10,7 +10,7 @@ permissions:
 
 concurrency:
   group: csharp-unified-qa-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 env:
   PRIVATE_INPUTS_REPO: MantovaniDevTrue/Bunnyloader-Csharp-Builds
