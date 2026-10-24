@@ -29,6 +29,19 @@ public sealed class ExampleWorldProgressSystem : BunnyWorldSystem
         DownedExampleBoss = tag.ContainsKey("downedExampleBoss");
     }
 
+    public override void NetSend(BunnyNetWriter writer)
+    {
+        writer.WriteFlags(DownedExampleBoss);
+    }
+
+    public override void NetReceive(BunnyNetReader reader)
+    {
+        bool[] flags = reader.ReadFlags();
+        if (flags.Length != 1)
+            throw new System.FormatException("Invalid boss progression packet");
+        DownedExampleBoss = flags[0];
+    }
+
     public override void OnWorldTick(in BunnyWorldContext world)
     {
         if (world.IsAuthoritative)
