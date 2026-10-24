@@ -87,7 +87,7 @@ internal static class Program
         BunnyEntitySourceDispatcher.TickWorld(mod, 0, 30, 12, 0, 32, 64);
         Check(AlphaWorld.Enters == 3 && AlphaWorld.Ticks == 4,
             "World can reenter after reset");
-        Console.WriteLine("Bunny World Systems smoke: 8 checks passed");
+        Console.WriteLine("Bunny World Systems smoke: 11 checks passed");
         return 0;
     }
 }
