@@ -61,8 +61,8 @@ android {
         applicationId = if (unifiedCSharpQa || readyPreview) "com.bunnyloader.csharptest" else if (fiveLoadersQa) "com.bunnyloader.fiveqa" else "com.bunnyloader"
         minSdk = 24
         targetSdk = 34
-        versionCode = if (unifiedCSharpQa) 323 else if (fiveLoadersQa) 4 else if (readyPreview) 311 else 274
-        versionName = if (unifiedCSharpQa) "1.0.22-csharp-unified-qa" else if (fiveLoadersQa) "1.0.13-five-loaders-qa.4-diagnostic" else if (readyPreview) "1.0.12-dust-native-invasion-qa" else "1.0"
+        versionCode = if (unifiedCSharpQa) 324 else if (fiveLoadersQa) 4 else if (readyPreview) 311 else 274
+        versionName = if (unifiedCSharpQa) "1.0.23-csharp-unified-qa" else if (fiveLoadersQa) "1.0.13-five-loaders-qa.4-diagnostic" else if (readyPreview) "1.0.12-dust-native-invasion-qa" else "1.0"
         if (unifiedCSharpQa) resValue("string", "preview_app_name", "Bunny Loader C#")
         else if (fiveLoadersQa) resValue("string", "preview_app_name", "Bunny C# Five QA")
         else if (readyPreview) resValue("string", "preview_app_name", "Bunny Loader C# Test")

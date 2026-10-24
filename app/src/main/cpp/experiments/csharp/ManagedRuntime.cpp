@@ -409,7 +409,6 @@ bool g_commandSessionReset = false;
 // dos callbacks de combate e não bloqueia a game thread.
 struct TouchSourceEntry {
     std::string modId, assembly;
-    void* callback = nullptr;
     bool initialized = false, skipped = false;
     int failures = 0;
 };
@@ -417,8 +416,8 @@ std::vector<TouchSourceEntry> g_touchSourceEntries;
 bool g_touchSourceNeedsLoad = false;
 uint64_t g_touchSourcePendingTick = 0;
 uint64_t g_touchSourceProcessedTick = 0;
-void* g_touchFrameBegin = nullptr;
-void* g_touchFrameEnd = nullptr;
+void* g_touchRegisterMethod = nullptr;
+void* g_touchProcessMethod = nullptr;
 
 
 
@@ -2077,76 +2076,77 @@ std::string executeManagedCommandOnWorker(const NativeCommandRequest& request) {
     return wire;
 }
 
-void loadTouchSourceEntriesOnWorker(std::vector<TouchSourceEntry>* entries) {
-    std::lock_guard<std::mutex> monoGuard(g_mutex);
-    if (!entries || !g_domain || !g_api.attach || !g_api.openAssembly ||
-        !g_api.image || !g_api.findClass || !g_api.findMethod || !g_api.invoke ||
-        !g_api.attach(g_domain)) return;
-    for (auto& entry : *entries) {
-        if (entry.initialized || entry.skipped || entry.failures >= 3) continue;
-        if (!validAssembly(entry.assembly)) { ++entry.failures; continue; }
-        void* assembly = g_api.openAssembly(g_domain, entry.assembly.c_str());
-        void* image = assembly ? g_api.image(assembly) : nullptr;
-        void* klass = image ? g_api.findClass(
-            image, "BunnyLoader.Source", "BunnyTouchEntry") : nullptr;
-        if (!klass) {
-            entry.skipped = true;
-            continue;
-        }
-        void* load = g_api.findMethod(klass, "Load", 0);
-        entry.callback = g_api.findMethod(klass, "ProcessTriggers", 0);
-        if (!load || !entry.callback) {
-            entry.skipped = true;
-            continue;
-        }
-        void* exception = nullptr;
-        g_api.invoke(load, nullptr, nullptr, &exception);
-        if (exception) {
-            ++entry.failures;
-            entry.callback = nullptr;
-            continue;
-        }
-        entry.initialized = true;
-    }
-}
-bool bindTouchFrameMethodsOnWorker() {
-    if (g_touchFrameBegin && g_touchFrameEnd) return true;
-    if (!g_domain || !g_api.openAssembly || !g_api.image ||
-        !g_api.findClass || !g_api.findMethod || g_checkpointPath.empty())
+bool prepareManagedTouchWorker() {
+    if (!g_domain || !g_status.domainInitialized || !g_status.methodExecuted ||
+        !g_api.attach || !g_api.openAssembly || !g_api.image ||
+        !g_api.findClass || !g_api.findMethod || !g_api.invoke ||
+        !g_api.newString || !g_api.unbox)
         return false;
+    if (!g_api.attach(g_domain)) return false;
+    if (g_touchRegisterMethod && g_touchProcessMethod) return true;
     const auto slash = g_checkpointPath.find_last_of('/');
     if (slash == std::string::npos) return false;
-    const std::string path =
-        g_checkpointPath.substr(0, slash + 1) + "BunnySourceSdk.dll";
-    if (!validAssembly(path)) return false;
-    void* assembly = g_api.openAssembly(g_domain, path.c_str());
+    const std::string sdk = g_checkpointPath.substr(0, slash + 1) + "BunnySourceSdk.dll";
+    if (!validAssembly(sdk)) return false;
+    void* assembly = g_api.openAssembly(g_domain, sdk.c_str());
     void* image = assembly ? g_api.image(assembly) : nullptr;
-    void* klass = image ? g_api.findClass(
-        image, "BunnyLoader.Source", "BunnyTouchButtonLoader") : nullptr;
-    if (!klass) return false;
-    g_touchFrameBegin = g_api.findMethod(klass, "BeginTriggerFrame", 0);
-    g_touchFrameEnd = g_api.findMethod(klass, "EndTriggerFrame", 0);
-    return g_touchFrameBegin && g_touchFrameEnd;
-}
-void processTouchSourceEntriesOnWorker(std::vector<TouchSourceEntry>* entries) {
-    std::lock_guard<std::mutex> monoGuard(g_mutex);
-    if (!entries || !g_domain || !g_api.attach || !g_api.invoke ||
-        !g_api.attach(g_domain)) return;
-    if (!bindTouchFrameMethodsOnWorker()) return;
-    void* frameException = nullptr;
-    g_api.invoke(g_touchFrameBegin, nullptr, nullptr, &frameException);
-    if (frameException) return;
-    for (auto& entry : *entries) {
-        if (!entry.initialized || !entry.callback ||
-            entry.failures >= 3) continue;
-        void* exception = nullptr;
-        g_api.invoke(entry.callback, nullptr, nullptr, &exception);
-        if (exception) ++entry.failures;
-    }
-    frameException = nullptr;
-    g_api.invoke(g_touchFrameEnd, nullptr, nullptr, &frameException);
+    void* klass = image ? g_api.findClass(image, "BunnyLoader.Source", "BunnyTouchWorker") : nullptr;
+    void* registerMethod = klass ? g_api.findMethod(klass, "RegisterAssembly", 2) : nullptr;
+    void* processMethod = klass ? g_api.findMethod(klass, "ProcessTriggers", 0) : nullptr;
+    if (!registerMethod || !processMethod) return false;
+    g_touchRegisterMethod = registerMethod;
+    g_touchProcessMethod = processMethod;
+    return true;
 }
 
+void loadTouchSourceEntriesOnWorker(std::vector<TouchSourceEntry>* entries) {
+    std::lock_guard<std::mutex> monoGuard(g_mutex);
+    if (!entries || !prepareManagedTouchWorker()) return;
+    for (auto& entry : *entries) {
+        if (entry.initialized || entry.skipped || entry.failures >= 3) continue;
+        if (!validAssembly(entry.assembly)) {
+            ++entry.failures;
+            continue;
+        }
+        void* args[] = {
+            g_api.newString(g_domain, entry.modId.c_str()),
+            g_api.newString(g_domain, entry.assembly.c_str())
+        };
+        if (!args[0] || !args[1]) {
+            ++entry.failures;
+            continue;
+        }
+        void* exception = nullptr;
+        void* boxed = g_api.invoke(g_touchRegisterMethod, nullptr, args, &exception);
+        void* raw = !exception && boxed ? g_api.unbox(boxed) : nullptr;
+        if (!raw) {
+            ++entry.failures;
+            continue;
+        }
+        int result = -1;
+        std::memcpy(&result, raw, sizeof(result));
+        if (result == 0) entry.skipped = true;
+        else if (result == 1) entry.initialized = true;
+        else ++entry.failures;
+    }
+}
+
+void processTouchSourceEntriesOnWorker(std::vector<TouchSourceEntry>* entries) {
+    std::lock_guard<std::mutex> monoGuard(g_mutex);
+    if (!entries || !prepareManagedTouchWorker()) return;
+    bool registered = false;
+    for (const auto& entry : *entries)
+        if (entry.initialized && entry.failures < 3) {
+            registered = true;
+            break;
+        }
+    if (!registered) return;
+    void* exception = nullptr;
+    g_api.invoke(g_touchProcessMethod, nullptr, nullptr, &exception);
+    if (exception)
+        for (auto& entry : *entries)
+            if (entry.initialized) ++entry.failures;
+}
 
 worldsave::MonoWorldReply invokeManagedWorldOnPinnedMono(
     const worldsave::MonoWorldRequest& request) {
@@ -2392,7 +2392,6 @@ void* pinnedMonoWorker(void*) {
                         for (auto& entry : g_touchSourceEntries)
                             if (entry.modId == updated.modId &&
                                 entry.assembly == updated.assembly) {
-                                entry.callback = updated.callback;
                                 entry.initialized = updated.initialized;
                                 entry.skipped = updated.skipped;
                                 entry.failures = updated.failures;
