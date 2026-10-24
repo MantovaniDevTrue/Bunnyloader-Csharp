@@ -3,6 +3,7 @@
 #include <charconv>
 #include <cstdint>
 #include <deque>
+#include <limits>
 #include <string>
 #include <string_view>
 
@@ -92,7 +93,9 @@ inline bool parse(std::string_view data, Snapshot* result) {
     }
     uint64_t session = 0, revision = 0;
     if (!decimal(parts[1], &session) || session == 0 ||
+        session > static_cast<uint64_t>(std::numeric_limits<int64_t>::max()) ||
         !decimal(parts[4], &revision) || revision == 0 ||
+        revision > static_cast<uint64_t>(std::numeric_limits<int64_t>::max()) ||
         !name(parts[2], 128) || !name(parts[3], 128) ||
         parts[5].size() < 2 || parts[5].size() > 192 ||
         parts[5].size() % 2 != 0) return false;
