@@ -4,6 +4,7 @@ root="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$root"
 mkdir -p build/five-checks
 python3 tests/five_loaders/package_import_test.py
+python3 tests/run_managed_signal_ownership.py
 export MSBUILDDISABLENODEREUSE=1
 build() { dotnet build "$1" -c Release --nologo -m:1 -nr:false -p:BuildInParallel=false -p:UseSharedCompilation=false; }
 run() { dotnet run --project "$1" -c Release --no-build -- "${@:2}"; }
@@ -31,6 +32,8 @@ native csharp-log -Itests/five_loaders/include tests/five_loaders/csharp_log_tes
 build/five-checks/csharp-log
 g++ "${flags[@]}" -ffunction-sections -fdata-sections -Itests/five_loaders/include tests/five_loaders/native_abort_capture_test.cpp "$cpp/NativeAbortProbe.cpp" -Wl,--gc-sections -ldl -o build/five-checks/native-abort
 build/five-checks/native-abort
+native mono-native-signals tests/five_loaders/mono_native_signal_policy_test.cpp
+build/five-checks/mono-native-signals
 native gore-catalog tests/csharp_gore_catalog_test.cpp
 native gore-discovery "$cpp/ManagedGoreDiscovery.cpp" tests/csharp_gore_discovery_test.cpp
 for name in action_ids input layout_json; do

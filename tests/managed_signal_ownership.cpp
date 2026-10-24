@@ -32,6 +32,9 @@ int main(int argc, char** argv) {
         : bl::csharp::probeManagedRuntimePinnedThread(argv[1], mode);
     void* lib = dlopen("libmonosgen-2.0.so", RTLD_NOW);
     assert(lib);
+    auto chaining = reinterpret_cast<int(*)()>(dlsym(lib, "test_signal_chaining"));
+    auto crashing = reinterpret_cast<int(*)()>(dlsym(lib, "test_crash_chaining"));
+    assert(chaining && crashing && chaining() == 1 && crashing() == 0);
     auto count = reinterpret_cast<int(*)()>(dlsym(lib, "test_initializations")); assert(count);
     const bool preDomain = mode == "LIBRARY_ONLY" || mode == "PATH_ONLY" || mode == "SYSTEM_NATIVE_ONLY";
     if (chosen && !preDomain) {

@@ -16,6 +16,7 @@ bool installNativeAbortProbe(const std::string& directory,
 void rearmNativeAbortProbe(const char* stage);
 std::string currentNativeAbortHandler();
 bool installDestroyedMutexTrace();
+bool installNativeProcessExitTrace();
 bool installNativeSegvTrace();
 bool persistGameNativeModuleMaps(const std::string& directory);
 
