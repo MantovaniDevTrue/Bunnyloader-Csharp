@@ -4,6 +4,9 @@
 <ProjectReference Include="../../experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj" />
 <Compile Include="../../samples/ExampleModCSharp/Playable/content/Common/Players/ExampleRandomCompatProbePlayer.cs" Link="RandomProbe.cs" />
 <Compile Include="../../samples/ExampleModCSharp/Playable/content/Common/Systems/ExampleWorldProgressSystem.cs" Link="ExampleWorldProgressSystem.cs" />
+<Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/Tiles/Plants/ExampleTree.cs" Link="ExampleTree.cs" />
+<Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/Tiles/Plants/ExampleSapling.cs" Link="ExampleSapling.cs" />
+<Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/Gores/ExampleTree_Leaf.cs" Link="ExampleTree_Leaf.cs" />
 <Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleCollision*.cs" Link="%(Filename).cs" />
 <Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/ExampleCollision*Wand.cs" Link="%(Filename).cs" />
 </ItemGroup></Project>
