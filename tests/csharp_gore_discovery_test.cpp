@@ -115,14 +115,18 @@ int main() {
         assert(result.empty());
     }
     {
-        // Exercita o mesmo pacote ExampleMod C# distribuido ao modder,
-        // com os dois PNGs originais do ExampleModBunny.
         const std::string sample = "samples/ExampleModCSharp/Playable";
+        assert(fs::exists(sample + "/content/Content/Gores/ExampleBoss_GoreFront.png"));
         assert(fs::exists(sample + "/content/Content/Gores/ExampleDroplet.png"));
+        assert(fs::exists(sample + "/content/Content/Gores/ExampleTree_Leaf.png"));
         assert(discover(sample, &result, &error));
-        assert(result.size() == 2);
+        assert(error.empty());
+        assert(result.size() == 3);
         assert(result[0].name == "ExampleBoss_GoreFront");
         assert(result[1].name == "ExampleDroplet");
+        assert(result[2].name == "ExampleTree_Leaf");
+        assert(result[2].relativePath == "Content/Gores/ExampleTree_Leaf.png");
+        assert(result[2].width > 0 && result[2].height > 0);
     }
     {
         Fixture mod;
