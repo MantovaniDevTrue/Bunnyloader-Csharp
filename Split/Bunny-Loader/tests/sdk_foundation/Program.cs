@@ -130,6 +130,17 @@ try
     var armorRows=File.ReadAllLines(Path.Combine(temporary,"source-runtime-values.txt")).Skip(1).Select(x=>x.Split('\t')).ToArray();
     Check(armorRows.Length==3&&armorRows.All(x=>x.Length==26&&x[25].StartsWith("A1|")),"armor sample exports native policies");
     File.Copy(Path.Combine(temporary,"source-runtime-values.txt"),"build/sdk-foundation/armor-sample-wire.txt",true);
+    string serviceSample = Path.GetFullPath("samples/ContentLoaderCSharp/Playable");
+    Check(Compiler.Compile(serviceSample, output, runtime, diag) == 1, "service-only sample compiles with production Roslyn pipeline");
+    Check(CompiledAssemblyProbe.Verify(output, diag) == 2 && CompiledAssemblyProbe.ManagedContentTypeCount() == 2,
+        "service-only verifier reports two managed and zero native types");
+    Check(ModContent.GetContent<ModType>().Count == 0, "compiler did not load persistent services");
+    Check(BunnyContentHostDispatcher.Dispatch(0, "service-sample", output) == 2, "compiled service-only package loads on managed host");
+    var summary = ModContent.GetContent<ModType>().Single(value => value.Name == "ServiceSummary");
+    Check((int)summary.GetType().GetProperty("ComputedLife")!.GetValue(summary)! == 240,
+        "compiled service dependencies and aliases ready before host ack");
+    Check(BunnyContentHostDispatcher.Dispatch(1, "service-sample", "") == 0 && ModContent.GetContent<ModType>().Count == 0,
+        "compiled service-only package unloads cleanly");
     Console.WriteLine("BUNNY_SDK_FOUNDATION=PASS checks=" + checks);
 }
 finally

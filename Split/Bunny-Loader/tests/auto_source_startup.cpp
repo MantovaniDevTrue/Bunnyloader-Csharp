@@ -13,10 +13,11 @@ Il2CppClass mainClass;
 FieldInfo netField{false},menuField{true};
 MethodInfo menuGetter;
 bool available=false,fieldOnly=false,inMenu=true;
-int mode=0,classResolutions=0,fieldResolutions=0,methodResolutions=0;
+int mode=0,classResolutions=0,fieldResolutions=0,methodResolutions=0,worldEntries=0;
 struct Box { Il2CppObject object{}; uint8_t value=0; } boxed;
 bl::csharp::BasicItemLoadStatus content;
 std::vector<std::string> messages;
+std::vector<bl::csharp::SourceModStatus> sources;
 }
 namespace bl::log {
 void write(int,const char* format,...) {
@@ -36,10 +37,25 @@ FieldInfo* findField(Il2CppClass*,std::string_view name) {
 }
 namespace bl::csharp {
 BasicItemLoadStatus basicItemLoadStatus(){return content;}
+std::vector<SourceModStatus> sourceModStatuses(){return sources;}
+size_t pendingNativeVisualRenderer(){return 0;}
+bool managedContentHostClosing(){return false;}
+int pendingNativeArmorPolicies(){return 0;}
+size_t pendingManagedNativeEquipTextures(){return 0;}
+size_t pendingNativeItemPolicies(){return 0;}
+std::vector<NativeItemPolicyStatus> nativeItemPolicyStatus(){return {};}
+void requestBasicItemInstanceRefresh(const char*){}
+bool managedPrefixGameplayReady(){return false;}
+void refreshManagedPrefixEligibilityOnWorldReady(){}
 int registeredManagedPrefixCount(){return 2;}
 ManagedNpcBuffEffectStatus managedNpcBuffEffectStatus(){return {};}
 }
 
+namespace bl::runtime {
+bool modItemsSettled(){return true;}
+int pendingManagedPrefixCountForActivePlayer(){return 0;}
+void retryPendingManagedPrefixesOnWorldReady(){}
+}
 int main(int argc,char**) {
     using namespace bl::csharp;
     fieldOnly=argc>1;
@@ -74,5 +90,28 @@ int main(int argc,char**) {
     g_sourceStart-=std::chrono::seconds(96); // Gameplay/menu time must not produce another preparation report.
     inMenu=true;g_worldSessionReady=false;g_preWorldBindingsArmed=false;reportCSharpLoadSummary();
     g_preWorldBindingsArmed=true;reportCSharpLoadSummary();assert(messages.size()==1);
+    // Exercise the production world-entry barrier for a source mod with no entity bindings.
+    SourceModStatus service;service.id="example";service.loaded=true;service.sourceFiles=1;
+    service.managedContentDeclarations=1;sources={service};
+    assert(!preWorldCSharpContentReady()); // Applied native defaults alone are not acknowledgement.
+    g_statuses[0].managedReady=true;
+    assert(preWorldCSharpContentReady());
+    g_statuses[0].phase="failed";assert(!preWorldCSharpContentReady());
+    g_statuses[0].phase="ready";g_statuses[0].error="Load failed";assert(!preWorldCSharpContentReady());
+    g_statuses[0].error.clear();g_statuses[0].applied=false;assert(!preWorldCSharpContentReady());
+    g_statuses[0].applied=true;assert(preWorldCSharpContentReady());
+    g_statuses.clear();assert(!preWorldCSharpContentReady());
+    // The six-second deferred-assets route must not bypass missing managed acknowledgement.
+    g_statuses={status};g_statuses[0].managedReady=false;
+    g_delayedWorldEntry=true;g_delayedWorldSince=std::chrono::steady_clock::now()-std::chrono::seconds(7);
+    g_originalPlayWorld=[](const MethodInfo*){++worldEntries;};
+    flushDeferredWorldEntry();assert(worldEntries==0&&g_delayedWorldEntry);
+    g_statuses[0].managedReady=true;
+    flushDeferredWorldEntry();assert(worldEntries==1&&!g_delayedWorldEntry);
+    // Preserve the original native-assets deferral after managed initialization really completed.
+    content.pendingRecipes=1;g_delayedWorldEntry=true;
+    flushDeferredWorldEntry();assert(worldEntries==2&&!g_delayedWorldEntry);
+    content.pendingRecipes=0;
+    sources.clear();assert(preWorldCSharpContentReady());
     std::cout<<"AUTO_SOURCE_REAL_METADATA_CACHE_DYNAMIC_VALUES_EARLY_RETRY_AND_SINGLE_STARTUP_SUMMARY_PASS\n";
 }

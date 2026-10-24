@@ -1,0 +1,14 @@
+{
+  "uid": "c9af0693-ec4e-4775-b77f-6d2db7b61940",
+  "id": "managedcatalog",
+  "name": "Managed Content Catalog CSharp",
+  "version": "0.1.0",
+  "authors": [{"name": "Bunny CSharp examples", "role": "Example"}],
+  "category": "Example",
+  "summary": "Service-only managed loader: automatic load, lookup and teardown; no game entities.",
+  "license": "MIT",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.cs",
+  "dependencies": []
+}

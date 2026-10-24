@@ -62,3 +62,19 @@ Não edite arquivos gerados manualmente.
 
 Host não comprova ABI/renderização real, estabilidade ou 60 FPS.
 [Protocolo Android](../docs/SDK-VALIDACAO.md) · [Evidências atuais](../docs/STATUS.md).
+
+## Núcleo de loaders tModLoader (sem APK)
+
+```sh
+python3 Split/Bunny-Loader/tests/content_loader/check_upstream.py
+python3 Split/Bunny-Loader/tests/content_loader/run_native.py
+dotnet run --project Split/Bunny-Loader/tests/content_loader -c Release
+dotnet run --project Split/Bunny-Loader/samples/ContentLoaderCSharp -c Release
+```
+
+Inclui fontes oficiais pinadas em um host de teste para comparar algoritmos,
+fault injection de carga/unload, verificação de assemblies de serviços/mistos e
+execução do exemplo. O runner nativo exercita a fila de produção (timeout, lotação,
+rollback e shutdown), SourceLoader sem APIs de jogo e ambos os gates de entrada
+no mundo. Usa doubles Mono/IL2CPP; não comprova o runtime no aparelho.
+[Contrato e limites de integração](../docs/csharp-content-loader.md).

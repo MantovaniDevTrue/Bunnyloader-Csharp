@@ -85,6 +85,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 Bunny Loader's mod API follows tModLoader's design, and parts of the JS mod runtime (`app/src/main/cpp/script/js/mod/`) and of the native content loaders adapt tModLoader code. `samples/ExampleMod` is a port of tModLoader's ExampleMod, including its textures and music. <https://github.com/tModLoader/tModLoader> — MIT License.
 
+O núcleo C# `Loader.cs`/`ModTypeLookup.cs` adapta tModLoader 1.4.5, commit `fcafebc0b792b90e110bac7c1fc67cac81cb60ed`; a suíte `tests/content_loader/upstream` inclui fontes oficiais pinadas exclusivamente para testes de paridade.
+
 Copyright 2019 tModLoader Team
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:

@@ -9,6 +9,8 @@ namespace BunnyLoader.SourceCompiler;
 
 public static class CompiledAssemblyProbe
 {
+    private static int managedContentTypes;
+    public static int ManagedContentTypeCount() => managedContentTypes;
     private static bool IsContentType(Type type, string baseName)
     {
         if (!type.IsClass || type.IsAbstract || type.ContainsGenericParameters ||
@@ -67,6 +69,7 @@ public static class CompiledAssemblyProbe
 
     public static int Verify(string assemblyPath, string diagnosticsPath)
     {
+        managedContentTypes = 0;
         try
         {
             if (!File.Exists(assemblyPath) || new FileInfo(assemblyPath).Length > 32 * 1024 * 1024)
@@ -86,6 +89,13 @@ public static class CompiledAssemblyProbe
                 File.AppendAllText(diagnosticsPath, "\nINTERACTIVE_CONSOLE_VERIFIED classes=1");
                 return 1;
             }
+            managedContentTypes = contentTypes.Count(type => type.IsClass && !type.IsAbstract &&
+                !type.ContainsGenericParameters && Ancestors(type).Any(ancestor => ancestor.FullName == "BunnyLoader.Source.ModType") &&
+                type.GetConstructor(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance,
+                    null, Type.EmptyTypes, null) != null);
+            if (managedContentTypes > 4096) throw new InvalidOperationException("Too many managed ModType classes.");
+            // Discover only. Load/SetupContent must execute in the persistent game MonoVM, never
+            // in this short-lived compiler worker (or they would run twice in different runtimes).
             var projectileTypes = contentTypes
                 .Where(type => IsContentType(type, "BunnyProjectile"))
                 .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
@@ -121,7 +131,7 @@ public static class CompiledAssemblyProbe
                 weaponTypes.Length > 4096 || basicItemTypes.Length > 4096 ||
                 buffTypes.Length > 4096 || potionTypes.Length > 4096)
                 throw new InvalidOperationException("C# content class count out of bounds");
-            if (tileTypes.Length + basicItemTypes.Length + projectileTypes.Length + weaponTypes.Length + buffTypes.Length + potionTypes.Length + accessoryTypes.Length + playerTypes.Length + npcTypes.Length + prefixTypes.Length == 0)
+            if (tileTypes.Length + basicItemTypes.Length + projectileTypes.Length + weaponTypes.Length + buffTypes.Length + potionTypes.Length + accessoryTypes.Length + playerTypes.Length + npcTypes.Length + prefixTypes.Length + managedContentTypes == 0)
                 throw new InvalidOperationException("C# assembly has no supported content types");
             bool fixture = projectileTypes.Any(t => t.FullName == "SourceCSharpMod.SourceBolt") &&
                 weaponTypes.Any(t => t.FullName == "SourceCSharpMod.SourceWand");
@@ -154,7 +164,7 @@ public static class CompiledAssemblyProbe
                 WriteKillPolicy(primaryProjectile!, diagnosticsPath);
             }
             File.AppendAllText(diagnosticsPath,
-                "\nASSEMBLY_EXEC_OK classes=" + (tiles.Length + projectiles.Length + weapons.Length + buffs.Length + potions.Length + accessories.Length + players.Length + npcs.Length + prefixes.Length + basicItems.Length) +
+                "\nASSEMBLY_EXEC_OK classes=" + (tiles.Length + projectiles.Length + weapons.Length + buffs.Length + potions.Length + accessories.Length + players.Length + npcs.Length + prefixes.Length + basicItems.Length + managedContentTypes) +
                 " projectiles=" + projectiles.Length + " weapons=" + weapons.Length +
                 " buffs=" + buffs.Length + " potions=" + potions.Length +
                 " accessories=" + accessories.Length + " players=" + players.Length +
@@ -163,7 +173,7 @@ public static class CompiledAssemblyProbe
                     ? " projectile=SourceBolt width=10 weapon=SourceWand damage=22 shoot=SourceBolt"
                     : " policy=generic-managed-defaults"));
             return projectiles.Length + weapons.Length + buffs.Length + potions.Length +
-                accessories.Length + players.Length + npcs.Length + prefixes.Length + basicItems.Length + tiles.Length;
+                accessories.Length + players.Length + npcs.Length + prefixes.Length + basicItems.Length + tiles.Length + managedContentTypes;
         }
         catch (Exception exception)
         {

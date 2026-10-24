@@ -353,7 +353,20 @@ class GameActivity : Activity() {
         super.onDestroy()
         // So derruba o processo se a Unity chegou a subir; num erro de boot,
         // matar na hora atrapalha a leitura do log.
-        if (hadHost) Process.killProcess(Process.myPid())
+        if (hadHost) {
+            // Unload managed services on their Mono owner before ending the process. A bounded
+            // native acknowledgement keeps a faulty mod from holding the Activity/UI thread.
+            Thread({
+                try {
+                    if (!NativeBridge.shutdownCSharpContent())
+                        Log.w(TAG, "C# teardown acknowledgement failed or timed out")
+                } catch (error: Throwable) {
+                    Log.w(TAG, "C# teardown failed", error)
+                } finally {
+                    Process.killProcess(Process.myPid())
+                }
+            }, "BunnyCSharpTeardown").start()
+        }
     }
 
     override fun onNewIntent(intent: Intent) {

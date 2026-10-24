@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework Condition="'$(BunnyTargetFramework)' == ''">net8.0</TargetFramework>
+    <TargetFramework Condition="'$(BunnyTargetFramework)' != ''">$(BunnyTargetFramework)</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="fixtures/**/*.cs" />
+    <ProjectReference Include="fixtures/Mixed/MixedFixture.csproj" />
+    <Compile Include="../../experiments/csharp/BunnySourceCompiler/BasicItemWriter.cs" Link="BasicItemWriter.cs" />
+    <Compile Include="../../experiments/csharp/BunnySourceCompiler/TileWriter.cs" Link="TileWriter.cs" />
+    <Compile Include="../../experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs" Link="CompiledAssemblyProbe.cs" />
+    <ProjectReference Include="../../experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj" />
+    <ProjectReference Include="../../samples/ContentLoaderCSharp/ContentLoaderExample.csproj" />
+  </ItemGroup>
+</Project>

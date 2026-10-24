@@ -22,6 +22,10 @@ string Parameters(MethodBase method) => string.Join(", ", method.GetParameters()
 
 string Mode(Type type, MethodInfo method)
 {
+    string contentType = type.Name.Split('`')[0];
+    if (contentType == "BunnyContentHostDispatcher") return "mono_owner_content_lifecycle";
+    if (contentType is "ModTypeLookup" or "ModContent" or "ContentInstance") return "managed_content_registry";
+    if (contentType is "Loader" or "ILoader" or "LoaderManager" or "ModType" or "BunnyContentLoader" or "BunnyContentMod") return "managed_content_lifecycle";
     if (type == typeof(BunnyPlayer))
         return method.Name switch {
             "ModifyHurt" or "ModifyHitByNPC" or "ModifyHitByProjectile" or "FreeDodge" => "worker_sync_pre_hit",

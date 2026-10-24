@@ -122,3 +122,9 @@ extern "C" JNIEXPORT jstring JNICALL
 Java_dev_bunnyloader_nativebridge_NativeBridge_lastError(JNIEnv* env, jobject) {
     return env->NewStringUTF(g_lastError.c_str());
 }
+
+// Called from a background teardown thread after Unity has stopped, never from a frame hook.
+extern "C" JNIEXPORT jboolean JNICALL
+Java_dev_bunnyloader_nativebridge_NativeBridge_shutdownCSharpContentNative(JNIEnv*, jobject) {
+    return bl::csharp::shutdownManagedContent(10000) ? JNI_TRUE : JNI_FALSE;
+}

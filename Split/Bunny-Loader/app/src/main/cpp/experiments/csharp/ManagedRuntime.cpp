@@ -259,6 +259,20 @@ std::chrono::steady_clock::time_point g_auditStart;
 std::mutex g_pinnedMutex;
 std::condition_variable g_pinnedWake;
 std::condition_variable g_pinnedResultWake;
+struct ManagedContentJob {
+    int operation = 0;
+    std::string modId, assembly, error;
+    bool done = false, cancelled = false;
+    int result = -1;
+};
+std::deque<std::shared_ptr<ManagedContentJob>> g_contentQueue;
+std::shared_ptr<ManagedContentJob> g_contentShutdown;
+std::condition_variable g_contentResultWake;
+std::atomic<bool> g_contentClosing{false};
+void* g_contentDispatch = nullptr;
+void* g_contentError = nullptr;
+std::set<std::string> g_contentLoaded;
+
 struct ManagedHurtBinding {
     std::string modId;
     std::string assemblyPath;
@@ -1106,6 +1120,48 @@ int64_t executeManagedEntityOnWorker(const ManagedEntityJob& job) {
     return encoded;
 }
 
+int executeManagedContentOnWorker(int operation, const std::string& id,
+                                  const std::string& path, std::string* error) {
+    if (operation == 2 && !g_domain) return 0;
+    if (!g_domain || !g_api.attach || !g_api.invoke || !g_api.unbox || !g_api.newString ||
+        !g_api.openAssembly || !g_api.image || !g_api.findClass || !g_api.findMethod ||
+        !g_api.attach(g_domain)) { *error = "MonoVM owner is not initialized"; return -1; }
+    if (!g_contentDispatch) {
+        const size_t slash = g_checkpointPath.find_last_of('/');
+        if (slash == std::string::npos) { *error = "SDK directory unavailable"; return -1; }
+        const std::string sdk = g_checkpointPath.substr(0, slash + 1) + "BunnySourceSdk.dll";
+        if (!validAssembly(sdk)) { *error = "BunnySourceSdk.dll unavailable"; return -1; }
+        void* assembly = g_api.openAssembly(g_domain, sdk.c_str());
+        void* image = assembly ? g_api.image(assembly) : nullptr;
+        void* klass = image ? g_api.findClass(image, "BunnyLoader.Source", "BunnyContentHostDispatcher") : nullptr;
+        g_contentDispatch = klass ? g_api.findMethod(klass, "Dispatch", 3) : nullptr;
+        g_contentError = klass ? g_api.findMethod(klass, "get_LastError", 0) : nullptr;
+        if (!g_contentDispatch) { *error = "Managed content dispatcher unavailable; SDK update required"; return -1; }
+    }
+    void* managedId = g_api.newString(g_domain, id.c_str());
+    void* managedPath = g_api.newString(g_domain, path.c_str());
+    if (!managedId || !managedPath) { *error = "Managed content arguments unavailable"; return -1; }
+    void* args[] = {&operation, managedId, managedPath};
+    void* exception = nullptr;
+    void* boxed = g_api.invoke(g_contentDispatch, nullptr, args, &exception);
+    void* raw = exception || !boxed ? nullptr : g_api.unbox(boxed);
+    int result = -1;
+    if (raw) std::memcpy(&result, raw, sizeof(result));
+    if (result < 0) {
+        *error = exception ? "Managed content callback threw" : "Managed content load/unload rejected";
+        if (g_contentError && !exception) {
+            void* message = g_api.invoke(g_contentError, nullptr, nullptr, &exception);
+            auto utf8 = resolve<char* (*)(void*)>("mono_string_to_utf8");
+            auto release = resolve<void (*)(void*)>("mono_free");
+            if (!exception && message && utf8 && release) {
+                char* text = utf8(message);
+                if (text) { *error = std::string(text).substr(0, 2048); release(text); }
+            }
+        }
+    }
+    return result;
+}
+
 void* pinnedMonoWorker(void*) {
     {
         std::lock_guard<std::mutex> lock(g_pinnedMutex);
@@ -1121,6 +1177,48 @@ void* pinnedMonoWorker(void*) {
         {
             std::unique_lock<std::mutex> lock(g_pinnedMutex);
             while (!g_pinnedPending) {
+                if (!g_contentQueue.empty()) {
+                    auto job = g_contentQueue.front();
+                    g_contentQueue.pop_front();
+                    if (job->cancelled || (g_contentClosing && job->operation == 0)) {
+                        job->error = "Managed content request cancelled before execution";
+                        job->done = true;
+                        g_contentResultWake.notify_all();
+                        continue;
+                    }
+                    const bool previouslyLoaded = g_contentLoaded.contains(job->modId);
+                    lock.unlock();
+                    std::string error;
+                    int result = executeManagedContentOnWorker(job->operation, job->modId, job->assembly, &error);
+                    lock.lock();
+                    // A load that completed after its caller timed out (or shutdown started) must
+                    // be undone on this same owner before any newer request/callback can execute.
+                    if (job->operation == 0 && result >= 0) g_contentLoaded.insert(job->modId);
+                    if (job->operation == 1) g_contentLoaded.erase(job->modId);
+                    if (job->operation == 2) g_contentLoaded.clear();
+                    if (job->operation == 0 && result >= 0 && (job->cancelled || g_contentClosing)) {
+                        if (!previouslyLoaded) {
+                            lock.unlock();
+                            std::string cleanupError;
+                            executeManagedContentOnWorker(1, job->modId, "", &cleanupError);
+                            lock.lock();
+                            g_contentLoaded.erase(job->modId);
+                            error = "Late managed content load rolled back";
+                            if (!cleanupError.empty()) error += ": " + cleanupError;
+                        } else error = "Late duplicate acknowledgement discarded; existing content preserved";
+                        result = -1;
+                    }
+                    job->result = result;
+                    job->error = std::move(error);
+                    job->done = true;
+                    g_contentResultWake.notify_all();
+                    continue;
+                }
+                if (g_contentClosing.load(std::memory_order_acquire)) {
+                    // Once shutdown begins, no gameplay callback may run after managed teardown.
+                    g_pinnedWake.wait(lock, [] { return g_pinnedPending || !g_contentQueue.empty(); });
+                    continue;
+                }
                 if (!g_managedHurtQueue.empty()) {
                     ManagedHurtJob job = std::move(g_managedHurtQueue.front());
                     g_managedHurtQueue.pop_front();
@@ -1492,7 +1590,7 @@ void* pinnedMonoWorker(void*) {
                 }
                 if (!g_auditEnabled) {
                     if (g_liveHitStatus.enabled || g_liveIngress.depth() != 0 ||
-                        !g_managedHurtQueue.empty() || !g_entityQueue.empty())
+                        !g_managedHurtQueue.empty() || !g_entityQueue.empty() || !g_contentQueue.empty())
                         g_pinnedWake.wait_for(lock, std::chrono::milliseconds(2));
                     else
                         g_pinnedWake.wait(lock);
@@ -1504,7 +1602,7 @@ void* pinnedMonoWorker(void*) {
                     ? std::min(until, std::chrono::steady_clock::now() +
                         std::chrono::milliseconds(2)) : until;
                 if (g_pinnedWake.wait_until(lock, deadline, [] {
-                    return g_pinnedPending || g_vmComparePending ||
+                    return g_pinnedPending || !g_contentQueue.empty() || g_vmComparePending ||
                         !g_liveHitQueue.empty() || g_liveIngress.depth() != 0 ||
                         !g_entityQueue.empty();
                 }))
@@ -2110,6 +2208,61 @@ ManagedRuntimeStatus probeManagedRuntimeStartupStage(
         return failure("stage-attach-failed", "mono_thread_attach returned null");
     trace("attach-only-verified");
     return g_status;
+}
+
+namespace {
+bool submitManagedContent(int operation, const std::string& id, const std::string& path,
+                          int timeoutMs, std::string* error) {
+    std::unique_lock<std::mutex> lock(g_pinnedMutex);
+    const auto reject = [&](const char* message) { if (error) *error = message; return false; };
+    if (timeoutMs < 1 || timeoutMs > 30000) return reject("Invalid managed content deadline");
+    if (g_pinnedTid == static_cast<long>(syscall(__NR_gettid))) return reject("Recursive Mono owner request");
+    if (operation == 0 && g_contentClosing) return reject("Managed content host is shutting down");
+    if (operation == 2) g_contentClosing = true;
+    if (!g_pinnedStarted) return operation == 2 ? true : reject("Mono owner worker has not started");
+    std::shared_ptr<ManagedContentJob> job;
+    if (operation == 2 && g_contentShutdown) job = g_contentShutdown;
+    else {
+        if (operation != 2 && g_contentQueue.size() >= 32) return reject("Managed content queue full");
+        job = std::make_shared<ManagedContentJob>();
+        job->operation = operation; job->modId = id; job->assembly = path;
+        if (operation == 2) g_contentShutdown = job;
+        g_contentQueue.push_back(job);
+        g_pinnedWake.notify_one();
+    }
+    if (!g_contentResultWake.wait_for(lock, std::chrono::milliseconds(timeoutMs), [&] { return job->done; })) {
+        // Shutdown must still run if the caller's deadline expires. A timed-out load is cancelled.
+        if (operation != 2) job->cancelled = true;
+        return reject("Managed content acknowledgement timed out");
+    }
+    if (error) *error = job->error;
+    return job->result >= 0;
+}
+}
+
+bool loadManagedContentMod(const std::string& id, const std::string& assembly,
+                           std::string* error, int timeoutMs) {
+    if (id.empty() || id.size() > 128 || id.find_first_of("/\\\r\n\t") != std::string::npos ||
+        !validAssembly(assembly)) { if (error) *error = "Invalid managed content identity or assembly"; return false; }
+    return submitManagedContent(0, id, assembly, timeoutMs, error);
+}
+bool unloadManagedContentMod(const std::string& id, std::string* error) {
+    return submitManagedContent(1, id, "", 30000, error);
+}
+bool managedContentHostClosing() { return g_contentClosing.load(std::memory_order_acquire); }
+
+bool shutdownManagedContent(int timeoutMs) {
+    if (timeoutMs < 1 || timeoutMs > 30000) return false;
+    {
+        std::lock_guard<std::mutex> guard(g_pinnedMutex);
+        if (g_pinnedTid == static_cast<long>(syscall(__NR_gettid))) return false;
+    }
+    g_contentClosing.store(true, std::memory_order_release);
+    pauseManagedLiveHit();
+    pauseManagedPlayerHurtMods();
+    pauseManagedEntitySourceCallbacks();
+    std::string error;
+    return submitManagedContent(2, "", "", timeoutMs, &error);
 }
 
 ManagedRuntimeStatus probeManagedRuntimePinnedThread(
@@ -3211,6 +3364,17 @@ ManagedSourceCompileResult compileManagedSource(
         }
         trace(out.phase.c_str(), out.error.c_str());
         return out;
+    }
+    void* managedCountMethod = g_api.findMethod(verifierClass, "ManagedContentTypeCount", 0);
+    if (managedCountMethod) {
+        void* countException = nullptr;
+        void* countBox = g_api.invoke(managedCountMethod, nullptr, nullptr, &countException);
+        void* countRaw = countException || !countBox ? nullptr : g_api.unbox(countBox);
+        if (!countRaw) { out.phase = "managed-content-count-invalid"; return out; }
+        std::memcpy(&out.managedContentTypes, countRaw, sizeof(out.managedContentTypes));
+        if (out.managedContentTypes < 0 || out.managedContentTypes > out.executedTypes) {
+            out.phase = "managed-content-count-invalid"; return out;
+        }
     }
     trace("compiled-assembly-execution-verified");
     out.phase = "compile-verified";
