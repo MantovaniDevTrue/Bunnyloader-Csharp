@@ -240,6 +240,7 @@ bool fields(const ParsedSourceType& type, NativeContentSpec* spec,
                 *error = type.name + ": Summon invalido";
                 return false;
             }
+            spec->summon = value == "true";
             continue;
         }
         if (weapon && key == "MinionBuff") {
