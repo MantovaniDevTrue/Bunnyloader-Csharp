@@ -1,7 +1,8 @@
 # Cinco loaders C# — QA Mobile 301720
 
-APK separado: **Bunny C# Five QA** (`com.bunnyloader.fiveqa`).
-Não substitui o C# Test anterior. Terraria instalado precisa ser 1.4.5.8.6,
+APK unificado recomendado: **Bunny Loader C#** (`com.bunnyloader.csharptest`,
+`1.0.22-csharp-unified-qa`). Substitui o aplicativo C# QA anterior,
+sem exigir APK Five QA paralelo. Terraria instalado precisa ser 1.4.5.8.6,
 Android ARM64. O pacote contém fontes C# editáveis, sem runtime JS.
 
 1. Instale o APK; importe e ligue `fiveloaderscsharp-0.1.1.bl`. Neste primeiro
@@ -19,7 +20,9 @@ Android ARM64. O pacote contém fontes C# editáveis, sem runtime JS.
    **QA dos cinco loaders / TestarLote** a um botão; também experimente
    atribuí-la dentro de um grupo de botões. Toque uma vez, segure meio segundo,
    solte e dê dois toques rápidos. Feche o editor e use `/lote`: `press`,
-   `hold` e `duplo` precisam aumentar. Abra o chat e segure o botão: `hold`
+   `hold` e `duplo` precisam aumentar. A linha `TouchHost` deve mostrar
+   `registro=ok`, `host=Ready`, `bound=True` e `triggerFrames>0`.
+   Se a ação aparecer, mas não responder, envie toda a linha `TouchHost`. Abra o chat e segure o botão: `hold`
    não deve aumentar enquanto o chat estiver aberto. Salve o perfil, reinicie
    o jogo e confirme a ação, o ícone e a posição preservados.
 5. Digite `/lote add` três vezes. Anote `pontos` e use **Salvar e sair**.
