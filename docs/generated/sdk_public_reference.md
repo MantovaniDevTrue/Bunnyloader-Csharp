@@ -1411,6 +1411,39 @@ string Name { get; }
 | `BunnyNativeMember Method(string name, BunnyValueKind result, bool isStatic, string[] parameterTypes)` | experimental_game_thread_access |
 | `BunnyNativeMember Property(string name, BunnyValueKind kind, bool isStatic, bool writable)` | experimental_game_thread_access |
 
+## BunnyLoader.Source.BunnyNetReader
+
+class; base: `System.Object`.
+
+```csharp
+BunnyNetReader(Byte[] data)
+int Remaining { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `Byte ReadByte()` | managed_helper |
+| `bool[] ReadFlags()` | managed_helper |
+| `int ReadInt32()` | managed_helper |
+| `string ReadString()` | managed_helper |
+
+## BunnyLoader.Source.BunnyNetWriter
+
+class; base: `System.Object`.
+
+```csharp
+BunnyNetWriter()
+int Length { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `Byte[] ToArray()` | managed_helper |
+| `void WriteByte(Byte value)` | managed_helper |
+| `void WriteFlags(bool[] flags)` | managed_helper |
+| `void WriteInt32(int value)` | managed_helper |
+| `void WriteString(string value)` | managed_helper |
+
 ## BunnyLoader.Source.BunnyNpcAiState
 
 struct; base: `System.ValueType`.
@@ -2254,6 +2287,44 @@ float G { get; }
 float R { get; }
 ```
 
+## BunnyLoader.Source.BunnyWorldNetClientView
+
+class; base: `System.Object`.
+
+```csharp
+BunnyWorldNetClientView()
+bool HasState { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `bool Accept(BunnyWorldNetState state, Int64 localWorldSession, string modId, string systemName)` | managed_helper |
+| `void Reset()` | managed_helper |
+
+## BunnyLoader.Source.BunnyWorldNetState
+
+struct; base: `System.ValueType`.
+
+```csharp
+BunnyWorldNetState(Int64 HostSession, string ModId, string SystemName, Int64 Revision, Byte[] Data)
+Byte[] Data { get; set; }
+Int64 HostSession { get; set; }
+Int64 Revision { get; set; }
+string ModId { get; set; }
+string SystemName { get; set; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `bool Equals(BunnyWorldNetState other)` | managed_helper |
+| `bool Equals(Object obj)` | managed_helper |
+| `bool IsValid()` | managed_helper |
+| `int GetHashCode()` | managed_helper |
+| `static bool TryDecode(string input, out BunnyWorldNetState state)` | managed_helper |
+| `string Encode()` | managed_helper |
+| `string ToString()` | managed_helper |
+| `void Deconstruct(out Int64 HostSession, out string ModId, out string SystemName, out Int64 Revision, out Byte[] Data)` | managed_helper |
+
 ## BunnyLoader.Source.BunnyWorldSystem
 
 abstract class; base: `System.Object`.
@@ -2262,6 +2333,8 @@ abstract class; base: `System.Object`.
 | --- | --- |
 | `void ClearWorld()` | worker_async_entity |
 | `void LoadWorldData(BunnyWorldData tag)` | worker_async_entity |
+| `void NetReceive(BunnyNetReader reader)` | worker_async_entity |
+| `void NetSend(BunnyNetWriter writer)` | worker_async_entity |
 | `void OnWorldEnter(ref BunnyWorldContext world)` | worker_async_entity |
 | `void OnWorldExit()` | worker_async_entity |
 | `void OnWorldTick(ref BunnyWorldContext world)` | worker_async_entity |

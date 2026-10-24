@@ -14,6 +14,9 @@ on:
       - 'app/src/main/cpp/experiments/csharp/NativeInvasionPersistence.cpp'
       - 'app/src/main/cpp/experiments/csharp/NativeInvasionWorldPath.cpp'
       - 'app/src/main/cpp/experiments/csharp/WorldSystemSaveFile.h'
+      - 'app/src/main/cpp/experiments/csharp/WorldNetProtocol.h'
+      - 'app/src/main/cpp/experiments/csharp/NativeInvasionNetwork.cpp'
+      - 'app/src/main/cpp/experiments/csharp/NativeInvasionNetwork.h'
       - '.github/workflows/check-bunny-world-systems.yml'
   workflow_dispatch:
 
@@ -34,6 +37,15 @@ jobs:
           c++ -std=c++20 -O2 -Wall -Wextra -Iapp/src/main/cpp experiments/csharp/BunnyWorldSystemsSmoke/WorldPersistenceSmoke.cpp -o /tmp/bunny-world-save
           /tmp/bunny-world-save
           c++ -std=c++20 -Wall -Wextra -fPIC -Iapp/src/main/cpp -c app/src/main/cpp/experiments/csharp/NativeWorldSystemPersistence.cpp -o /tmp/bunny-world-native.o
+      - name: Native world network protocol
+        run: |
+          c++ -std=c++20 -O2 -Wall -Wextra -Werror -Iapp/src/main/cpp experiments/csharp/BunnyWorldSystemsSmoke/WorldNetProtocolSmoke.cpp -o /tmp/bunny-world-net
+          /tmp/bunny-world-net
+      - name: Android ARM64 network bridge syntax
+        run: |
+          NDK=$(find "${ANDROID_HOME}/ndk" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)
+          test -n "$NDK"
+          "$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android34-clang++" -std=c++20 -Wall -Wextra -Werror -Iapp/src/main/cpp -fsyntax-only app/src/main/cpp/experiments/csharp/NativeInvasionNetwork.cpp
       - name: Production SDK compatibility
         run: dotnet build experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj -c Release
       - name: SDK and lifecycle checks

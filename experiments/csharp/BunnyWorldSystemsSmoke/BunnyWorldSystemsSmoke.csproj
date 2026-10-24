@@ -6,5 +6,6 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../BunnyCsSdk/BunnyCsSdk.csproj" />
+    <Compile Include="../../../samples/ExampleModCSharp/Playable/content/Common/Systems/ExampleWorldProgressSystem.cs" Link="ExampleWorldProgressSystem.cs" />
   </ItemGroup>
 </Project>
