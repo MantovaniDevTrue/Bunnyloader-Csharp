@@ -21,6 +21,16 @@ python3 tests/world_update_loader/check_contract.py
 python3 tests/world_update_loader/check_arm64_assembly.py
 python3 tests/world_update_loader/check_arm64_execution.py
 python3 tests/keybind_loader/check_native_touch_signatures.py
+python3 tests/csharp/check_unified_dust_gate.py
+native dust-bridge-enabled -DBUNNY_CSHARP_DUST_PREVIEW=1 tests/csharp/native_dust_contract.cpp
+build/five-checks/dust-bridge-enabled
+native dust-bridge-disabled tests/csharp/native_dust_contract.cpp
+build/five-checks/dust-bridge-disabled
+native dust-sync tests/csharp/native_dust_sync.cpp
+build/five-checks/dust-sync
+native dust-binding tests/csharp/native_dust_binding_selection.cpp
+build/five-checks/dust-binding
+dotnet run --project experiments/csharp/BunnyDustTests/BunnyDustTests.csproj -c Release --nologo
 python3 tests/five_loaders/check_native_chat_color_contract.py
 flags=(-std=c++20 -O1 -g -Wall -Wextra -Werror -Wno-deprecated-declarations -pedantic -pthread -Iapp/src/main/cpp)
 cpp=app/src/main/cpp/experiments/csharp

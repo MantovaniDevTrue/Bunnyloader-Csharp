@@ -8,7 +8,7 @@ val nativeBuild = (project.findProperty("bl.nativeBuild") as String?)?.toBoolean
 val readyPreview = (project.findProperty("bl.readyPrPreview") as String?)?.toBoolean() ?: false
 val unifiedCSharpQa = (project.findProperty("bl.csharpUnifiedQa") as String?)?.toBoolean() ?: false
 val fiveLoadersQa = ((project.findProperty("bl.fiveLoadersQa") as String?)?.toBoolean() ?: false) || unifiedCSharpQa
-val dustPreview = (project.findProperty("bl.dustPreview") as String?)?.toBoolean() ?: false
+val dustPreview = (project.findProperty("bl.dustPreview") as String?)?.toBoolean() ?: unifiedCSharpQa
 
 // A fonte do launcher e do menu de cheats é a Andy Bold (Monotype), a mesma do
 // Terraria. Não vai para o Git: fica em src/main/res/font/bunny.ttf, integrada
@@ -61,8 +61,8 @@ android {
         applicationId = if (unifiedCSharpQa || readyPreview) "com.bunnyloader.csharptest" else if (fiveLoadersQa) "com.bunnyloader.fiveqa" else "com.bunnyloader"
         minSdk = 24
         targetSdk = 34
-        versionCode = if (unifiedCSharpQa) 318 else if (fiveLoadersQa) 4 else if (readyPreview) 311 else 274
-        versionName = if (unifiedCSharpQa) "1.0.17-csharp-unified-qa" else if (fiveLoadersQa) "1.0.13-five-loaders-qa.4-diagnostic" else if (readyPreview) "1.0.12-dust-native-invasion-qa" else "1.0"
+        versionCode = if (unifiedCSharpQa) 319 else if (fiveLoadersQa) 4 else if (readyPreview) 311 else 274
+        versionName = if (unifiedCSharpQa) "1.0.18-csharp-unified-qa" else if (fiveLoadersQa) "1.0.13-five-loaders-qa.4-diagnostic" else if (readyPreview) "1.0.12-dust-native-invasion-qa" else "1.0"
         if (unifiedCSharpQa) resValue("string", "preview_app_name", "Bunny Loader C#")
         else if (fiveLoadersQa) resValue("string", "preview_app_name", "Bunny C# Five QA")
         else if (readyPreview) resValue("string", "preview_app_name", "Bunny Loader C# Test")
