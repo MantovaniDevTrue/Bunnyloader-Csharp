@@ -12,6 +12,7 @@ using System.Threading;
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("BunnyDustCompilerSmoke")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("DispatcherIntegration")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("TransportIntegration")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("MultiInvasionIntegration")]
 
 namespace BunnyLoader.Source;
 
