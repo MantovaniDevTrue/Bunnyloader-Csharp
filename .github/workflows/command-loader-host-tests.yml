@@ -4,10 +4,12 @@ on:
   push:
     branches:
       - feat/csharp-command-loader-20261020
+      - qa/csharp-world-tree-gore-apk-20261024
     paths:
       - experiments/csharp/BunnyCsSdk/BunnyCommand.cs
       - experiments/csharp/BunnyCsSdk/BunnyCommandWorker.cs
       - samples/ExampleModCSharp/Experimental/CommandLoader/**
+      - samples/ExampleModCSharp/Playable/content/Common/Commands/**
       - experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj
       - tests/commands/**
       - experiments/csharp/BunnySourceCompiler/**
