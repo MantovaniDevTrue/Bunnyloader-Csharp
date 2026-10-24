@@ -56,4 +56,23 @@ Check(malformedRejected, "Trailing boss state rejected");
 progress.LoadWorldData(saved);
 progress.OnWorldExit();
 Check(!ExampleWorldProgressSystem.DownedExampleBoss, "World exit clears stale progression");
-Console.WriteLine("EXAMPLEMOD_PRE_APK=PASS random=200 collision_examples=3 world_progression=5 (host only)");
+var tree = new ExampleModCSharp.Tiles.Plants.ExampleTree();
+tree.SetDefaults();
+Check(tree.Texture == "Content/Tiles/Plants/ExampleTree" &&
+      tree.GrowsOnTile == "ExampleTile", "ExampleTree registers trunk and ground tile");
+Check(tree.SaplingTile == "ExampleSapling", "Original acorn selects ExampleSapling");
+Check(tree.WoodItem == "ExampleItem", "Cutting tree drops ExampleItem");
+Check(tree.ShakeItem == "ExampleTileItem" && tree.ShakeLeaves &&
+      tree.CanDropAcorn, "Tree shaking preserves mod item and leaves");
+Check(tree.LeafGoreName == "ExampleTree_Leaf" && tree.DustType == 7,
+      "Tree resolves original leaf Gore and native dust");
+var sapling = new ExampleModCSharp.Tiles.Plants.ExampleSapling();
+sapling.SetStaticDefaults();
+Check(sapling.SaplingGroundTile == "ExampleTile" && sapling.SaplingGrowthChance == 20 &&
+      sapling.SaplingStyleRange == 3 && sapling.SaplingVanillaGroundTile == 8,
+      "Native sapling growth keeps original ground/style and 1-in-20 rate");
+var leaf = new ExampleModCSharp.Gores.ExampleTree_Leaf();
+leaf.SetDefaults();
+Check(leaf.Texture == "Content/Gores/ExampleTree_Leaf" && leaf.SpecialAI == 3 &&
+      leaf.SafeGore, "Leaf Gore keeps SpecialAI 3 and ChildSafety enabled");
+Console.WriteLine("EXAMPLEMOD_PRE_APK=PASS random=200 collision_examples=3 world_progression=5 tree_hooks=5 (host only)");
