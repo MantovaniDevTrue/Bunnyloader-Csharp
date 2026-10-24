@@ -280,13 +280,14 @@ void pumpNativeInvasionNetworkOnGameThread() {
             g_dirty = false;
             for (auto& [client, peer] : g_peers) {
                 for (int pass = 0; pass < 2 && player < 0; ++pass) {
-                    const bool chooseWorld = (pass == 0) == ((sent & 1) != 0);
+                    const bool chooseWorld = (pass == 0) == world_net::preferWorldForSendSlot(sent);
                     const auto& states = chooseWorld ? g_worldStates : g_hostStates;
                     const auto& delivered = chooseWorld ?
                         peer.worldDelivered : peer.delivered;
                     for (const auto& [key, state] : states) {
-                        if (delivered.contains(key) &&
-                            delivered.at(key) == state.revision) continue;
+                        const auto previous = delivered.find(key);
+                        if (previous != delivered.end() &&
+                            previous->second == state.revision) continue;
                         player = client;
                         nonce = peer.nonce;
                         revision = state.revision;
