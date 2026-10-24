@@ -2224,6 +2224,25 @@ int NetMode { get; }
 int PlayerIndex { get; }
 ```
 
+## BunnyLoader.Source.BunnyWorldData
+
+class; base: `System.Object`.
+
+```csharp
+BunnyWorldData()
+int Count { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `bool ContainsKey(string key)` | managed_helper |
+| `bool GetBool(string key, bool defaultValue)` | managed_helper |
+| `int GetInt(string key, int defaultValue)` | managed_helper |
+| `string GetString(string key, string defaultValue)` | managed_helper |
+| `void SetBool(string key, bool value)` | managed_helper |
+| `void SetInt(string key, int value)` | managed_helper |
+| `void SetString(string key, string value)` | managed_helper |
+
 ## BunnyLoader.Source.BunnyWorldLight
 
 struct; base: `System.ValueType`.
@@ -2241,9 +2260,12 @@ abstract class; base: `System.Object`.
 
 | Method | Execution |
 | --- | --- |
+| `void ClearWorld()` | worker_async_entity |
+| `void LoadWorldData(BunnyWorldData tag)` | worker_async_entity |
 | `void OnWorldEnter(ref BunnyWorldContext world)` | worker_async_entity |
 | `void OnWorldExit()` | worker_async_entity |
 | `void OnWorldTick(ref BunnyWorldContext world)` | worker_async_entity |
+| `void SaveWorldData(BunnyWorldData tag)` | worker_async_entity |
 
 ## BunnyLoader.Source.ItemRarityID
 
