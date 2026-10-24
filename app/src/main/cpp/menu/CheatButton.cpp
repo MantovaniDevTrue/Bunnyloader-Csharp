@@ -246,7 +246,9 @@ jstring JNICALL jni_csharpRuntimeStatus(JNIEnv* env, jclass) {
 }
 
 jobjectArray JNICALL jni_csharpConsoleTake(JNIEnv* env, jclass) {
-    const auto messages=bl::csharp::takeInteractiveConsoleOutput();
+    auto messages=bl::log::takeCSharpLines();
+    auto output=bl::csharp::takeInteractiveConsoleOutput();
+    messages.insert(messages.end(), output.begin(), output.end());
     jclass cls=env->FindClass("java/lang/String");
     jobjectArray out=cls?env->NewObjectArray(static_cast<jsize>(messages.size()),cls,nullptr):nullptr;
     if(!out)return nullptr;

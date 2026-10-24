@@ -60,8 +60,8 @@ android {
         applicationId = if (fiveLoadersQa) "com.bunnyloader.fiveqa" else if (readyPreview) "com.bunnyloader.csharptest" else "com.bunnyloader"
         minSdk = 24
         targetSdk = 34
-        versionCode = if (fiveLoadersQa) 1 else if (readyPreview) 311 else 274
-        versionName = if (fiveLoadersQa) "1.0.13-five-loaders-qa.1" else if (readyPreview) "1.0.12-dust-native-invasion-qa" else "1.0"
+        versionCode = if (fiveLoadersQa) 5 else if (readyPreview) 311 else 274
+        versionName = if (fiveLoadersQa) "1.0.13-five-loaders-qa.5-signal-chain" else if (readyPreview) "1.0.12-dust-native-invasion-qa" else "1.0"
         if (fiveLoadersQa) resValue("string", "preview_app_name", "Bunny C# Five QA")
         else if (readyPreview) resValue("string", "preview_app_name", "Bunny Loader C# Test")
         manifestPlaceholders["bunnyLabel"] = if (readyPreview || fiveLoadersQa) "@string/preview_app_name" else "@string/app_name"
@@ -78,6 +78,7 @@ android {
                 cmake {
                     cppFlags += "-std=c++20"
                     if (dustPreview) arguments += "-DBUNNY_CSHARP_DUST_PREVIEW=ON"
+                    if (fiveLoadersQa) arguments += "-DBUNNY_FIVE_LOADERS_QA=ON"
                 }
             }
         }

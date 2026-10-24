@@ -1,6 +1,8 @@
 #include "experiments/csharp/NativeAbortProbe.h"
 
 #include <csignal>
+#include <atomic>
+#include <set>
 #include <cstdlib>
 #include <sys/prctl.h>
 #include <cstddef>
@@ -21,15 +23,35 @@
 namespace bl::csharp {
 namespace {
 
+std::atomic<uint32_t> g_gameStage{0};
+std::atomic<uint32_t> g_lastGameStage{0};
+std::atomic<int> g_managedHookSlot{-1};
+static_assert(std::atomic<uint32_t>::is_always_lock_free);
+static_assert(std::atomic<int>::is_always_lock_free);
 int g_trace = -1;
 struct sigaction g_previous{};
 volatile sig_atomic_t g_handling = 0;
+
+void emitBytes(const char* bytes, size_t count) {
+    if (g_trace < 0) return;
+    while (count) {
+        const ssize_t written = write(g_trace, bytes, count);
+        if (written > 0) {
+            bytes += written;
+            count -= static_cast<size_t>(written);
+        } else if (written < 0 && errno == EINTR) {
+            continue;
+        } else {
+            return;
+        }
+    }
+}
 
 void emit(const char* text) {
     if (g_trace < 0 || !text) return;
     size_t n = 0;
     while (text[n] != '\0' && n < 128) ++n;
-    if (n) (void)write(g_trace, text, n);
+    if (n) emitBytes(text, n);
 }
 
 void emitHex(uintptr_t value) {
@@ -45,7 +67,7 @@ void emitHex(uintptr_t value) {
         buffer[n++] = "0123456789abcdef"[digit];
     }
     buffer[n++] = '\n';
-    (void)write(g_trace, buffer, n);
+    emitBytes(buffer, n);
 }
 
 void emitDec(uintptr_t value) {
@@ -61,7 +83,7 @@ void emitDec(uintptr_t value) {
         buffer[r] = temp;
     }
     buffer[n++] = '\n';
-    (void)write(g_trace, buffer, n);
+    emitBytes(buffer, n);
 }
 
 void emitAbortHeader() {
@@ -85,7 +107,7 @@ void emitAbortHeader() {
     appendText(" tid=");
     appendDecimal(static_cast<uintptr_t>(syscall(__NR_gettid)));
     buffer[used++] = '\n';
-    (void)write(g_trace, buffer, used);
+    emitBytes(buffer, used);
 }
 
 void emitCriticalAbortSnapshot(int signal, siginfo_t* info, void* raw) {
@@ -117,6 +139,12 @@ void emitCriticalAbortSnapshot(int signal, siginfo_t* info, void* raw) {
     decimal(static_cast<uintptr_t>(getpid()));
     literal(" tid=");
     decimal(static_cast<uintptr_t>(syscall(__NR_gettid)));
+    literal(" game_stage=");
+    decimal(g_gameStage.load(std::memory_order_relaxed));
+    literal(" last_game_stage=");
+    decimal(g_lastGameStage.load(std::memory_order_relaxed));
+    literal(" managed_slot_plus_one=");
+    decimal(static_cast<uintptr_t>(g_managedHookSlot.load(std::memory_order_relaxed) + 1));
     literal(" signo=");
     decimal(static_cast<uintptr_t>(signal));
     if (info) {
@@ -141,15 +169,18 @@ void emitCriticalAbortSnapshot(int signal, siginfo_t* info, void* raw) {
     (void)raw;
 #endif
     if (length < sizeof(line)) line[length++] = '\n';
-    (void)write(g_trace, line, length);
+    emitBytes(line, length);
 }
 
+void captureProcessExitStack();
 void markProcessExit() {
     emit("NATIVE_PROCESS_ATEXIT_BEGIN\n");
+    captureProcessExitStack();
+    emit("NATIVE_PROCESS_ATEXIT_END\n");
     (void)fsync(g_trace);
 }
 
-bool readFrame(uintptr_t address, uintptr_t (&result)[2]) {
+[[maybe_unused]] bool readFrame(uintptr_t address, uintptr_t (&result)[2]) {
 #ifdef __NR_process_vm_readv
     struct iovec local{result, sizeof(result)};
     struct iovec remote{reinterpret_cast<void*>(address), sizeof(result)};
@@ -186,7 +217,7 @@ bool parseMapRange(const char* line, size_t length, uintptr_t& lower, uintptr_t&
     return upper > lower;
 }
 
-void emitMatchingMaps(const uintptr_t* addresses, size_t count) {
+[[maybe_unused]] void emitMatchingMaps(const uintptr_t* addresses, size_t count) {
     if (g_trace < 0 || !addresses || count == 0) return;
     emit("DESTROYED_MUTEX_MAPS_BEGIN\n");
     const long opened = syscall(__NR_openat, AT_FDCWD, "/proc/self/maps", O_RDONLY | O_CLOEXEC, 0);
@@ -239,7 +270,33 @@ void emitMatchingMaps(const uintptr_t* addresses, size_t count) {
 struct sigaction g_previousSegv{};
 volatile sig_atomic_t g_segvCount = 0;
 
+void captureProcessExitStack() {
+    emit("exit_tid="); emitDec(static_cast<uintptr_t>(syscall(__NR_gettid)));
+    emit("game_stage="); emitDec(g_gameStage.load(std::memory_order_relaxed));
+    emit("last_game_stage="); emitDec(g_lastGameStage.load(std::memory_order_relaxed));
+    emit("managed_slot_plus_one="); emitDec(static_cast<uintptr_t>(g_managedHookSlot.load(std::memory_order_relaxed) + 1));
+#if defined(__aarch64__)
+    const uintptr_t caller = reinterpret_cast<uintptr_t>(__builtin_return_address(0));
+    emit("atexit_caller_lr="); emitHex(caller);
+    uintptr_t addresses[25]{caller}; size_t count = 1;
+    uintptr_t anchor = 0;
+    const uintptr_t sp = reinterpret_cast<uintptr_t>(&anchor);
+    uintptr_t fp = reinterpret_cast<uintptr_t>(__builtin_frame_address(0));
+    for (int frame = 0; frame < 24; ++frame) {
+        if ((fp & 15u) || fp < sp || fp - sp > 8u * 1024u * 1024u) break;
+        uintptr_t pair[2]{};
+        if (!readFrame(fp, pair)) break;
+        emit("atexit_return="); emitHex(pair[1]);
+        addresses[count++] = pair[1];
+        if (pair[0] <= fp || pair[0] - fp > 1024u * 1024u) break;
+        fp = pair[0];
+    }
+    emitMatchingMaps(addresses, count);
+#endif
+}
+
 void onSegv(int signo, siginfo_t* info, void* raw) {
+    const int interruptedErrno = errno;
     const int count = __sync_add_and_fetch(&g_segvCount, 1);
     if (count <= 8 && g_trace >= 0) {
         emit("NATIVE_SIGSEGV_PRECALL\n");
@@ -277,6 +334,8 @@ void onSegv(int signo, siginfo_t* info, void* raw) {
         emit("NATIVE_SIGSEGV_TRACE_DONE\n");
         (void)fsync(g_trace);
     }
+    // Diagnostic IO must not change the interrupted thread's errno.
+    errno = interruptedErrno;
     if ((g_previousSegv.sa_flags & SA_SIGINFO) && g_previousSegv.sa_sigaction) {
         if (g_previousSegv.sa_sigaction != &onSegv)
             g_previousSegv.sa_sigaction(signo, info, raw);
@@ -461,12 +520,26 @@ void onAbort(int signal, siginfo_t* info, void* raw) {
         restore.sa_handler = SIG_DFL;
     }
     (void)sigaction(SIGABRT, &restore, nullptr);
+    // SIGABRT is blocked while its handler runs. Deliver the original fatal
+    // signal before the exit fallback, preserving Android's crash handling.
+    sigset_t unblocked;
+    sigemptyset(&unblocked);
+    sigaddset(&unblocked, SIGABRT);
+    (void)sigprocmask(SIG_UNBLOCK, &unblocked, nullptr);
     (void)syscall(__NR_tgkill, getpid(), syscall(__NR_gettid), SIGABRT);
     _exit(128 + signal);
 }
 
 }
 
+
+void setNativeGameStage(uint32_t stage) {
+    if (stage) g_lastGameStage.store(stage, std::memory_order_relaxed);
+    g_gameStage.store(stage, std::memory_order_relaxed);
+}
+void setNativeManagedHookSlot(int slot) { g_managedHookSlot.store(slot, std::memory_order_relaxed); }
+uint32_t nativeGameStage() { return g_gameStage.load(std::memory_order_relaxed); }
+int nativeManagedHookSlot() { return g_managedHookSlot.load(std::memory_order_relaxed); }
 
 bool installNativeSegvTrace() {
     if (g_trace < 0) return false;
@@ -518,6 +591,13 @@ bool installDestroyedMutexTrace() {
         return false;
     }
     emit("DESTROYED_MUTEX_HOOK_ACTIVE\n");
+    return installNativeProcessExitTrace();
+}
+
+bool installNativeProcessExitTrace() {
+    if (g_trace < 0) return false;
+    if (g_originalExit) return true;
+    if (shadowhook_init(SHADOWHOOK_MODE_UNIQUE, false) != 0) return false;
     emit("PROCESS_EXIT_HOOK_ATTEMPT\n");
     void* exitStub = shadowhook_hook_sym_name(
         "libc.so", "exit",
@@ -525,6 +605,7 @@ bool installDestroyedMutexTrace() {
     if (!exitStub) {
         emit("PROCESS_EXIT_HOOK_FAILED\n");
         emitDec(static_cast<uintptr_t>(shadowhook_get_errno()));
+        return false;
     } else {
         emit("PROCESS_EXIT_HOOK_ACTIVE\n");
     }
@@ -542,8 +623,9 @@ bool persistGameNativeModuleMaps(const std::string& directory) {
         return false;
     }
     char buffer[1024]{};
-    std::fprintf(output, "GAME_MAPS_V2 pid=%ld\n", static_cast<long>(getpid()));
+    std::fprintf(output, "GAME_MAPS_V3 pid=%ld\n", static_cast<long>(getpid()));
     int count = 0;
+    std::set<std::string> libraries;
     while (std::fgets(buffer, sizeof(buffer), source)) {
         const bool executable = std::strstr(buffer, "r-xp") != nullptr;
         const bool relevant = std::strstr(buffer, "libbunny") ||
@@ -555,8 +637,13 @@ bool persistGameNativeModuleMaps(const std::string& directory) {
             std::strstr(buffer, "libshadowhook") ||
             std::strstr(buffer, "libSystem.Native") ||
             std::strstr(buffer, "linker64");
-        if (executable && relevant && count++ < 64)
+        const char* path = std::strchr(buffer, '/');
+        // mprotect splits IL2CPP into many executable mappings. Keep one
+        // representative map per image so the report retains every module.
+        if (executable && relevant && path && count < 64 && libraries.insert(path).second) {
+            ++count;
             std::fputs(buffer, output);
+        }
     }
     const bool ok = !std::ferror(source) && std::fclose(output) == 0;
     std::fclose(source);

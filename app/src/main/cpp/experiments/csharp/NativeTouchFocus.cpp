@@ -1,14 +1,15 @@
 #include "experiments/csharp/NativeTouchFocus.h"
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
+#include "il2cpp/Signature.h"
 #include <cstdint>
 #include <cstring>
 
 namespace bl::csharp::touch {
 namespace {
-FieldInfo* chatField = nullptr;
+const MethodInfo* chatGetter = nullptr;
 FieldInfo* playersField = nullptr;
-FieldInfo* indexField = nullptr;
+const MethodInfo* indexGetter = nullptr;
 size_t npcOffset = 0;
 size_t signOffset = 0;
 uint32_t failedAttempts = 0;
@@ -47,15 +48,15 @@ bool prepare() {
         !a.class_get_element_class || !a.class_get_name) return false;
     Il2CppClass* main = il2cpp::findClass({"Terraria", "Main", {}});
     Il2CppClass* player = il2cpp::findClass({"Terraria", "Player", {}});
-    chatField = main ? il2cpp::findField(main, "drawingPlayerChat") : nullptr;
+    chatGetter = main ? il2cpp::findMethodBySignature(main,
+        il2cpp::parseSignature("bool get_drawingPlayerChat()")) : nullptr;
     playersField = main ? il2cpp::findField(main, "player") : nullptr;
-    indexField = main ? il2cpp::findField(main, "myPlayer") : nullptr;
-    if (!chatField || !playersField || !indexField ||
-        !type(chatField, "System.Boolean") ||
-        !type(indexField, "System.Int32") ||
-        !(a.field_get_flags(chatField) & 0x10u) ||
+    indexGetter = main ? il2cpp::findMethodBySignature(main,
+        il2cpp::parseSignature("int get_myPlayer()")) : nullptr;
+    if (!chatGetter || !playersField || !indexGetter ||
+        !a.method_is_instance || !a.runtime_invoke ||
+        a.method_is_instance(chatGetter) || a.method_is_instance(indexGetter) ||
         !(a.field_get_flags(playersField) & 0x10u) ||
-        !(a.field_get_flags(indexField) & 0x10u) ||
         !instanceInt(player, "talkNPC", &npcOffset) ||
         !instanceInt(player, "sign", &signOffset))
         return false;
@@ -80,8 +81,13 @@ FocusState readNativeTouchFocus() {
     uint8_t chat = 1;
     int32_t index = -1;
     Il2CppArray* players = nullptr;
-    a.field_static_get_value(chatField, &chat);
-    a.field_static_get_value(indexField, &index);
+    Il2CppObject* exception = nullptr;
+    auto* chatValue = a.runtime_invoke(chatGetter, nullptr, nullptr, &exception);
+    if (exception || !chatValue) return focus;
+    std::memcpy(&chat, reinterpret_cast<const char*>(chatValue) + sizeof(Il2CppObject), sizeof(chat));
+    auto* indexValue = a.runtime_invoke(indexGetter, nullptr, nullptr, &exception);
+    if (exception || !indexValue) return focus;
+    std::memcpy(&index, reinterpret_cast<const char*>(indexValue) + sizeof(Il2CppObject), sizeof(index));
     a.field_static_get_value(playersField, &players);
     if (!players || index < 0 ||
         static_cast<uintptr_t>(index) >= players->length ||

@@ -68,6 +68,25 @@ struct Tables {
 };
 
 Tables g_tables;
+std::mutex g_pendingMutex;
+std::map<std::string, std::vector<Source>> g_pending;
+std::atomic<bool> g_installFailed{false};
+
+bool graphicsReadyOnGameThread() {
+    auto& api = il2cpp::api();
+    auto* main = il2cpp::findClassQuiet("Terraria", "Main");
+    auto* field = main ? il2cpp::findField(main, "graphics") : nullptr;
+    Il2CppObject* manager = nullptr;
+    if (!field || !api.field_static_get_value || !api.object_get_class ||
+        !api.class_get_method_from_name || !api.runtime_invoke) return false;
+    api.field_static_get_value(field, &manager);
+    if (!manager) return false;
+    auto* getter = api.class_get_method_from_name(api.object_get_class(manager), "get_GraphicsDevice", 0);
+    if (!getter) return false;
+    Il2CppObject* exception = nullptr;
+    return api.runtime_invoke(getter, manager, nullptr, &exception) != nullptr && !exception;
+}
+
 std::mutex g_writer;
 std::vector<NativeEntry> g_entries;
 std::array<Il2CppArray*, 6> g_publishedArrays{};
@@ -291,6 +310,23 @@ bool validText(const char* input, size_t max) {
 
 }
 
+bool stage(const std::string& modId, const std::vector<Source>& sources, std::string* error) {
+    if (!error) return false;
+    Catalog validation;
+    if (!validation.stage(modId, sources, error)) return false;
+    std::lock_guard lock(g_pendingMutex);
+    if (!g_pending.emplace(modId, sources).second) {
+        *error = "Gore registration already staged";
+        return false;
+    }
+    return true;
+}
+
+bool pendingInstall() {
+    std::lock_guard lock(g_pendingMutex);
+    return g_installFailed.load(std::memory_order_acquire) || !g_pending.empty();
+}
+
 bool install(const std::string& modId, const std::vector<Source>& sources,
              std::string* error) {
     if (!error) return false;
@@ -405,6 +441,26 @@ void worldReady() {
 }
 
 void pumpOnGameThread() {
+    // Probe/source discovery runs before Unity has a graphics device. Never
+    // allocate Texture2D there: Unity raises SIGTRAP rather than an exception.
+    if (pendingInstall() && !g_installFailed.load(std::memory_order_acquire)) {
+        if (!graphicsReadyOnGameThread()) return;
+        std::pair<std::string, std::vector<Source>> batch;
+        {
+            std::lock_guard lock(g_pendingMutex);
+            if (!g_pending.empty()) batch = *g_pending.begin();
+        }
+        if (!batch.first.empty()) {
+            std::string error;
+            if (!install(batch.first, batch.second, &error)) {
+                g_installFailed.store(true, std::memory_order_release);
+                BL_ERROR("[CSharp][Gore] Stage=DeferredInstall Result=Rejected Detail=%s", error.c_str());
+                return;
+            }
+            std::lock_guard lock(g_pendingMutex);
+            g_pending.erase(batch.first);
+        }
+    }
     if (!g_tables.ready) return;
     // Nao retirar configuracoes enquanto os arrays estiverem invalidos:
     // uma tentativa de recuperacao malsucedida nao pode perder settings.

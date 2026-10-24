@@ -7,6 +7,9 @@
 #include "experiments/csharp/NativeTouchGroups.h"
 #include "experiments/csharp/NativeTouchLayoutHooks.h"
 #include "hook/HookManager.h"
+#include "experiments/csharp/MobileMainMenu.h"
+#include "experiments/csharp/NativeAbortProbe.h"
+#include "core/Log.h"
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
 #include "il2cpp/Signature.h"
@@ -25,7 +28,7 @@ bool attempted = false;
 struct RuntimeFields {
     std::array<size_t, 3> offsets{};
     std::array<Il2CppClass*, 3> arrayTypes{};
-    FieldInfo* gameMenu = nullptr;
+    const MethodInfo* gameMenu = nullptr;
     Il2CppClass* controller = nullptr;
     ActionIds ids;
     int actionUnbound = -1;
@@ -57,20 +60,6 @@ bool enumValue(Il2CppClass* owner, const char* nested, const char* member, int* 
     if (count <= 0 || count > 256) return false;
     *value = count;
     return true;
-}
-
-bool menuField(FieldInfo** output) {
-    auto& api = il2cpp::api();
-    Il2CppClass* main = il2cpp::findClass({"Terraria", "Main", {}});
-    FieldInfo* field = main ? il2cpp::findField(main, "gameMenu") : nullptr;
-    if (!field || !api.field_get_flags || !api.field_get_type ||
-        !api.type_get_name || !api.il2cpp_free ||
-        !(api.field_get_flags(field) & 0x10u)) return false;
-    char* type = api.type_get_name(api.field_get_type(field));
-    const bool valid = type && std::strcmp(type, "System.Boolean") == 0;
-    if (type) api.il2cpp_free(type);
-    if (valid) *output = field;
-    return valid;
 }
 
 // Cresce os três arrays em conjunto, sem apagar os estados vanilla.
@@ -146,17 +135,30 @@ bool ensureControllerArrays(void* self) {
 // O método possui apenas (float), cuja ABI AArch64 é estável. Nunca
 // chamamos a assinatura HandleTouchCursorDown sem confirmar seu Vector2.
 void onControllerUpdate(void* self, float elapsedTime, const MethodInfo* method) {
+#if BUNNY_FIVE_LOADERS_QA
+    const uint32_t previousStage = nativeGameStage();
+    setNativeGameStage(200);
+    struct RestoreStage { uint32_t previous; ~RestoreStage() { setNativeGameStage(previous); } } restore{previousStage};
+#endif
     UpdateFn original = __atomic_load_n(&originalUpdate, __ATOMIC_ACQUIRE);
     const bool observe = self && installed.load(std::memory_order_acquire) &&
                          registry().count() > 0;
+#if BUNNY_FIVE_LOADERS_QA
+    setNativeGameStage(201);
+#endif
     const bool arraysReady = observe && ensureControllerArrays(self);
-    auto& api = il2cpp::api();
     bool menuBefore = true;
     if (arraysReady) {
-        api.field_static_get_value(refs.gameMenu, &menuBefore);
+        readMobileMainMenu(refs.gameMenu, &menuBefore);
         nativeTouchGroupBefore(self, !menuBefore);
     }
+#if BUNNY_FIVE_LOADERS_QA
+    setNativeGameStage(202);
+#endif
     if (original) original(self, elapsedTime, method);
+#if BUNNY_FIVE_LOADERS_QA
+    setNativeGameStage(203);
+#endif
     if (!arraysReady) {
         if (observe)
             registry().frame(static_cast<int64_t>(++ticks), false, true, true,
@@ -164,7 +166,7 @@ void onControllerUpdate(void* self, float elapsedTime, const MethodInfo* method)
         return;
     }
     bool menu = true;
-    api.field_static_get_value(refs.gameMenu, &menu);
+    readMobileMainMenu(refs.gameMenu, &menu);
     if (!menuBefore && !menu) nativeTouchGroupAfter(self);
     static ActiveTouchSnapshot snapshot;
     static const void* scannedProfile = nullptr;
@@ -216,6 +218,9 @@ void onControllerUpdate(void* self, float elapsedTime, const MethodInfo* method)
             if (snapshot.bound[static_cast<size_t>(id)])
                 bound[boundCount++] = id;
     }
+#if BUNNY_FIVE_LOADERS_QA
+    setNativeGameStage(204);
+#endif
     const FocusState focus = readNativeTouchFocus();
     registry().frame(static_cast<int64_t>(++ticks), true, focus.chat,
                      focus.npc, focus.sign, held.data(), count,
@@ -259,7 +264,10 @@ void pumpNativeTouchObserverOnGameThread() {
     // disparar scans ou reinicializações continuamente durante o gameplay.
     attempted = true;
     HostAbiCheck check = inspectNativeTouchAbi();
-    if (!check.controller || !check.arrays) return;
+    if (!check.controller || !check.arrays) {
+        BL_WARN("[CSharp][Touch] Stage=Observer Result=Rejected Reason=%s", check.diagnostic.c_str());
+        return;
+    }
     Il2CppClass* controller = il2cpp::findClassQuiet("", "GUIVirtualInputController");
     const auto* update = controller ? il2cpp::findMethodBySignature(
         controller, il2cpp::parseSignature("void Update(float elapsedTime)")) : nullptr;
@@ -267,7 +275,8 @@ void pumpNativeTouchObserverOnGameThread() {
         "", "VirtualControlsHardwareConfigurationMapping_Layout");
     Il2CppClass* quick = il2cpp::findClassQuiet("", "QuickActionButton_Layout");
     int unbound = -1, controllerCount = -1, quickUnbound = -1;
-    if (!update || !menuField(&refs.gameMenu) ||
+    refs.gameMenu = resolveMobileMainMenu();
+    if (!update || !refs.gameMenu ||
         !enumValue(controller, "ControlType", "Count", &controllerCount) ||
         !enumValue(layout, "ContolType", "Count", &unbound) ||
         !enumValue(quick, "QuickActionControl", "Unbound", &quickUnbound))
@@ -300,6 +309,7 @@ void pumpNativeTouchObserverOnGameThread() {
     if (!bl::hook::install(update, onControllerUpdate, &originalUpdate) ||
         !originalUpdate) return;
     installed.store(true, std::memory_order_release);
+    BL_INFO("[CSharp][Touch] Stage=Observer Result=Ready GameMenu=MobileProperty");
     // Importante: NÃO chamar setHostReady(true) aqui. O editor e o
     // salvamento ainda não foram conectados.
 }

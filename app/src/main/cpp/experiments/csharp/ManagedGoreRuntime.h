@@ -6,6 +6,10 @@
 
 namespace bl::csharp::gore {
 
+// Discovery only queues CPU metadata; textures are created by the game-thread pump.
+bool stage(const std::string& modId, const std::vector<Source>& sources, std::string* error);
+bool pendingInstall();
+
 // Chamado somente na thread do jogo, depois da descoberta de arquivos.
 // O registro e a carga das texturas nunca executam no worker do Mono.
 bool install(const std::string& modId, const std::vector<Source>& sources,

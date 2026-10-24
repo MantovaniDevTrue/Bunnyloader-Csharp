@@ -1,4 +1,6 @@
 #include "experiments/csharp/UniversalSystemStages.h"
+#include "experiments/csharp/MobileMainMenu.h"
+#include "experiments/csharp/NativeAbortProbe.h"
 #include "experiments/csharp/UniversalHookMailbox.h"
 #include "experiments/csharp/UniversalHooks.h"
 #include "hook/HookManager.h"
@@ -42,7 +44,7 @@ using WorldUpdateFn = void (*)(void*, const MethodInfo*);
 WorldUpdateFn originalWorldUpdate = nullptr;
 using UiUpdateFn = void (*)(void*, const MethodInfo*);
 UiUpdateFn originalUiUpdate = nullptr;
-FieldInfo* gameMenuField = nullptr;
+const MethodInfo* gameMenuGetter = nullptr;
 std::atomic<bool> rootInstalled{false};
 using TimeRateFn = void (*)(const MethodInfo*);
 TimeRateFn originalTimeRate = nullptr;
@@ -128,6 +130,11 @@ void invokeStage(int index, uintptr_t context = 0) {
         Clock::now().time_since_epoch()).count();
     if (now < stage.retryAfterNs.load(std::memory_order_relaxed)) return;
 
+#if BUNNY_FIVE_LOADERS_QA
+    const uint32_t previousStage = nativeGameStage();
+    setNativeGameStage(1000 + static_cast<uint32_t>(index));
+    struct RestoreStage { uint32_t previous; ~RestoreStage() { setNativeGameStage(previous); } } restore{previousStage};
+#endif
     // A rotina original deste estágio é o próprio salto ARM64 para o corpo
     // seguinte de DoUpdateInWorld. Nunca executá-la via MonoVM.
     // O Original.Invoke gerenciado apenas sincroniza este ponto de pausa.
@@ -202,8 +209,7 @@ void hkUpdateTimeRate(const MethodInfo* info) {
 void hkUpdateUIStates(void* gameTime, const MethodInfo* info) {
     originalUiUpdate(gameTime, info);
     bool gameMenu = true;
-    if (!gameMenuField || !il2cpp::api().field_static_get_value) return;
-    il2cpp::api().field_static_get_value(gameMenuField, &gameMenu);
+    if (!readMobileMainMenu(gameMenuGetter, &gameMenu)) return;
     if (!gameMenu) invokeStage(9, reinterpret_cast<uintptr_t>(gameTime));
 }
 
@@ -362,12 +368,12 @@ int installUniversalSystemStageOnGameThread(const std::string& name, int slot) {
         auto* main = il2cpp::findClassQuiet("Terraria", "Main");
         const MethodInfo* method = main ? il2cpp::findMethodBySignature(
             main, il2cpp::parseSignature("void UpdateUIStates(GameTime gameTime)")) : nullptr;
-        FieldInfo* menu = main ? il2cpp::findField(main, "gameMenu") : nullptr;
+        const MethodInfo* menu = resolveMobileMainMenu();
         if (!method || !il2cpp::methodPointer(method) || !menu ||
             !il2cpp::api().method_is_instance || il2cpp::api().method_is_instance(method) ||
             !il2cpp::api().field_static_get_value) return -7;
         if (!hook::install(method, hkUpdateUIStates, &originalUiUpdate)) return -9;
-        gameMenuField = menu;
+        gameMenuGetter = menu;
     }
     if (index == 10 && !originalTimeRate) {
         auto* main = il2cpp::findClassQuiet("Terraria", "Main");

@@ -18,6 +18,7 @@
 #include "experiments/csharp/ManagedHitCallbackDispatch.h"
 #include "experiments/csharp/ManagedProcessMemory.h"
 #include "experiments/csharp/MonoSignalOwnership.h"
+#include "experiments/csharp/MonoNativeSignalChaining.h"
 #include "experiments/csharp/NativeAbortProbe.h"
 #include "experiments/csharp/CompilerAot.h"
 
@@ -235,6 +236,53 @@ bool loadLibrary() {
         g_status.libraryLoaded = false;
         return false;
     }
+#if defined(__ANDROID__) || defined(BUNNY_TEST_ANDROID_SIGNALS)
+    if (!configureMonoNativeSignalChaining(
+            resolve<MonoSetSignalPolicy>("mono_set_signal_chaining"),
+            resolve<MonoSetSignalPolicy>("mono_set_crash_chaining"))) {
+        failure("mono-native-signal-policy-unavailable", "Mono signal chaining API is required with Unity/IL2CPP");
+        dlclose(g_library);
+        g_library = nullptr;
+        g_api = {};
+        g_status.libraryLoaded = false;
+        return false;
+    }
+#ifdef __ANDROID__
+    reportManagedItemUse(ANDROID_LOG_INFO,
+        "[CSharp][MonoSignals] SignalChaining=1 CrashChaining=0 NativeHandlerFirst=1 Stage=BeforeDomainInit");
+#endif
+#endif
+#if BUNNY_FIVE_LOADERS_QA
+    using MonoPrintHandler = void (*)(const char*, int);
+    using SetMonoPrintHandler = void (*)(MonoPrintHandler);
+    if (auto setError = resolve<SetMonoPrintHandler>("mono_trace_set_printerr_handler")) {
+        setError(+[](const char* message, int) {
+            char line[4096];
+            std::snprintf(line, sizeof(line), "[CSharp][MonoStderr] %s", message ? message : "");
+#ifdef __ANDROID__
+            reportManagedItemUse(ANDROID_LOG_ERROR, line);
+#else
+            std::fprintf(stderr, "%s\n", line);
+#endif
+        });
+    }
+    using MonoLogHandler = void (*)(const char*, const char*, const char*, int, void*);
+    using SetMonoLogHandler = void (*)(MonoLogHandler, void*);
+    if (auto setLog = resolve<SetMonoLogHandler>("mono_trace_set_log_handler")) {
+        setLog(+[](const char* domain, const char* level, const char* message, int fatal, void*) {
+            if (fatal || (level && (!std::strcmp(level, "error") || !std::strcmp(level, "critical")))) {
+                char line[4096];
+                std::snprintf(line, sizeof(line), "[CSharp][MonoFatal] Fatal=%d Domain=%s Level=%s Detail=%s",
+                    fatal, domain ? domain : "", level ? level : "", message ? message : "");
+#ifdef __ANDROID__
+                reportManagedItemUse(ANDROID_LOG_ERROR, line);
+#else
+                std::fprintf(stderr, "%s\n", line);
+#endif
+            }
+        }, nullptr);
+    }
+#endif
     g_status.symbolsReady = true;
     trace("symbols-ready");
     return true;
@@ -1481,6 +1529,9 @@ bool pollUniversalHooksOnWorker() {
                 uintptr_t self = work.self;
                 int result = 0;
                 void* exception = nullptr;
+#if BUNNY_FIVE_LOADERS_QA
+                setNativeManagedHookSlot(work.slot);
+#endif
                 UniversalMonoContext context;
                 if (work.extendedMode > 0) {
                     int32_t first = work.argument;
@@ -1502,6 +1553,9 @@ bool pollUniversalHooksOnWorker() {
                     void* args[] = {&slot, &ticket, &self, &result};
                     g_api.invoke(g_universalDispatch, nullptr, args, &exception);
                 }
+#if BUNNY_FIVE_LOADERS_QA
+                setNativeManagedHookSlot(-1);
+#endif
                 success = !exception && result == 1;
                 retryable = !exception && result == 2;
             }
