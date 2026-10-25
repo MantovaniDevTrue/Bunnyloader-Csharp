@@ -57,6 +57,7 @@
 #include <cmath>
 #include <string>
 #include <sys/stat.h>
+#include <dlfcn.h>
 
 namespace bl::csharp {
 using il2cpp::nativeFieldContract;
@@ -254,7 +255,11 @@ using PlayerHurtFn = double (*)(Il2CppObject*, const void*, int32_t, int32_t,
 
 NativeRefs g_refs{};
 const MethodInfo* g_costumeAddBuff=nullptr;
-bool g_costumeReady=false;
+const MethodInfo* g_costumeNewDust=nullptr;
+int32_t g_costumeNormalDust=-1,g_costumeWetDust=-1;
+bool g_costumeReady=false,g_costumeParticlesReady=false;
+std::array<uint32_t,256> g_costumeRandom{};
+
 struct CostumePlayerCycle {
     Il2CppObject* player=nullptr;
     int previousType=-1,currentType=-1;
@@ -961,6 +966,84 @@ void hkPlayerSpawn(Il2CppObject* self, int32_t context, const MethodInfo* method
     BL_INFO("csharp BunnyPlayer OnRespawn: %d mensagem(ns) enviadas(s)", count);
 }
 
+int32_t costumeDustId(const char* name) {
+    auto& a=bl::il2cpp::api();
+    auto* cls=bl::il2cpp::findClass({"Terraria.ID","DustID",{}});
+    auto* f=cls?bl::il2cpp::findField(cls,name):nullptr;
+    if(!f||!a.field_get_flags||!a.field_get_type||!a.class_from_il2cpp_type||
+       !a.class_get_namespace||!a.class_get_name)return -1;
+    auto* type=a.class_from_il2cpp_type(a.field_get_type(f));
+    const char* ns=type?a.class_get_namespace(type):nullptr;
+    const char* n=type?a.class_get_name(type):nullptr;
+    if(!ns||!n||std::strcmp(ns,"System"))return -1;
+    const bool small=!std::strcmp(n,"Int16");
+    if(!small&&std::strcmp(n,"Int32"))return -1;
+    int32_t id=-1;
+    if(a.field_get_flags(f)&0x40u) {
+        using DefaultFn=const void* (*)(const FieldInfo*,const Il2CppType**);
+        auto* fn=reinterpret_cast<DefaultFn>(dlsym(RTLD_DEFAULT,"il2cpp_field_get_default_value"));
+        const Il2CppType* valueType=nullptr;
+        const void* data=fn?fn(f,&valueType):nullptr;
+        if(!data)return -1;
+        if(small){int16_t v=-1;std::memcpy(&v,data,2);id=v;}
+        else std::memcpy(&id,data,4);
+    } else if((a.field_get_flags(f)&0x10u)&&a.field_static_get_value) {
+        if(small){int16_t v=-1;a.field_static_get_value(f,&v);id=v;}
+        else a.field_static_get_value(f,&id);
+    }
+    return id>0&&id<2000?id:-1;
+}
+void spawnCostumeDust(Il2CppObject* player) {
+    if(!player||!g_costumeParticlesReady||!nativeCostumesActive()||
+       (g_refs.playerDead>=0&&bl::runtime::field<uint8_t>(player,g_refs.playerDead)))
+        return;
+    auto* cycle=costumeCycle(player);
+    if(!cycle)return;
+    int type=cycle->currentType;
+    NativeCostumeEffect effect;
+    if(type<0||!nativeCostumeEffect(type,&effect)) {
+        type=-1;
+        auto* armor=bl::runtime::field<Il2CppArray*>(player,g_refs.playerArmor);
+        if(!armor||armor->length<20||armor->length>40)return;
+        auto** items=static_cast<Il2CppObject**>(arrayData(armor));
+        for(uintptr_t i=13;i<20;++i) {
+            if(!items[i])continue;
+            const int candidate=bl::runtime::field<int32_t>(items[i],g_refs.itemType);
+            if(nativeCostumeEffect(candidate,&effect)){type=candidate;break;}
+        }
+        if(type<0)return;
+    }
+    if(!costumeEquipped(player,type,true)&&!(cycle->power&&!costumeHidden(player,type)))
+        return;
+    const int index=bl::runtime::field<int32_t>(player,g_refs.playerWhoAmI);
+    if(index<0||index>=static_cast<int>(g_costumeRandom.size()))return;
+    auto& random=g_costumeRandom[static_cast<size_t>(index)];
+    if(random==0)random=0x9e3779b9u^((static_cast<uint32_t>(index)+1u)*0x85ebca6bu);
+    random^=random<<13;random^=random>>17;random^=random<<5;
+    if(random%20u!=0u)return;
+    const int32_t dust=bl::runtime::field<uint8_t>(player,g_refs.playerWet)
+        ?g_costumeWetDust:g_costumeNormalDust;
+    const int32_t width=bl::runtime::field<int32_t>(player,g_refs.playerWidth);
+    const int32_t height=bl::runtime::field<int32_t>(player,g_refs.playerHeight);
+    if(width<1||width>128||height<1||height>128)return;
+    struct Vec {float x,y;};
+    const Vec position=bl::runtime::field<Vec>(player,g_refs.playerPosition);
+    if(!std::isfinite(position.x)||!std::isfinite(position.y))return;
+    const float speed=0.f,scale=1.f;
+    const int32_t alpha=0;
+    const uint32_t color=0xffffffffu;
+    void* args[]={const_cast<Vec*>(&position),const_cast<int32_t*>(&width),
+        const_cast<int32_t*>(&height),const_cast<int32_t*>(&dust),
+        const_cast<float*>(&speed),const_cast<float*>(&speed),
+        const_cast<int32_t*>(&alpha),const_cast<uint32_t*>(&color),
+        const_cast<float*>(&scale)};
+    Il2CppObject* error=nullptr;
+    bl::il2cpp::api().runtime_invoke(g_costumeNewDust,nullptr,args,&error);
+    if(error){static unsigned failures=0;if(failures++<3)
+        BL_ERROR("[CSharp][Costume] Stage=Dust.NewDust Result=Failed Detail=%s",
+            bl::il2cpp::describeException(error).c_str());}
+}
+
 void hkPlayerUpdate(Il2CppObject* self, int32_t index, const MethodInfo* method) {
     if(nativeCostumesActive()) {
         if(auto* cycle=costumeCycle(self)) {
@@ -977,6 +1060,7 @@ void hkPlayerUpdate(Il2CppObject* self, int32_t index, const MethodInfo* method)
     }
     if (g_originalPlayerUpdate)
         g_originalPlayerUpdate(self, index, method);
+    spawnCostumeDust(self);
     if (self && self == g_dodgePendingPlayer && g_refs.playerLife >= 0) {
         if (g_dodgeLifeSamples < 12) {
             ++g_dodgeLifeSamples;
@@ -1749,6 +1833,25 @@ bool prepareNativePlayerEffects() {
         costumeField("head","System.Int32",4,&g_refs.playerHead)&&
         costumeField("body","System.Int32",4,&g_refs.playerBody)&&
         costumeField("legs","System.Int32",4,&g_refs.playerLegs);
+    if(g_costumeReady) {
+        auto* dust=il2cpp::findClass({"Terraria","Dust",{}});
+        g_costumeNewDust=dust?findMethodBySignature(dust,parseSignature(
+            "int NewDust(Vector2 Position, int Width, int Height, int Type, float SpeedX, float SpeedY, int Alpha, Color newColor, float Scale)")):nullptr;
+        const auto check=[&](const char* name,const char* type,size_t size,int* offset) {
+            std::string error;
+            return nativeFieldContract(player,name,type,false,size,nullptr,offset,&error);
+        };
+        g_costumeNormalDust=costumeDustId("GoldFlame");
+        g_costumeWetDust=costumeDustId("BlueFlare");
+        g_costumeParticlesReady=g_costumeNewDust&&api().method_is_instance&&
+            !api().method_is_instance(g_costumeNewDust)&&api().runtime_invoke&&
+            g_costumeNormalDust>0&&g_costumeWetDust>0&&
+            check("position","Microsoft.Xna.Framework.Vector2",8,&g_refs.playerPosition)&&
+            check("width","System.Int32",4,&g_refs.playerWidth)&&
+            check("height","System.Int32",4,&g_refs.playerHeight);
+        if(!g_costumeParticlesReady)
+            BL_WARN("[CSharp][Costume] Stage=BindParticles Result=Unavailable");
+    }
     if (!bl::hook::install(equip, hkApplyEquip, &g_originalEquip)) return false;
     const MethodInfo* vanity = findMethodBySignature(
         player, parseSignature("void ApplyEquipVanity(int itemSlot, Item currentItem)"));
