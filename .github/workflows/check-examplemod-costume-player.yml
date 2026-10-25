@@ -1,0 +1,31 @@
+name: ExampleMod CSharp Blocky costume player lifecycle (no APK)
+on:
+  push:
+    branches: [qa/csharp-world-tree-gore-apk-20261024]
+    paths:
+      - 'samples/ExampleModCSharp/Playable/content/Common/Players/ExampleCostumePlayer.cs'
+      - 'tests/examplemod_costume_player_qa/**'
+      - 'docs/csharp/EXAMPLEMOD_COVERAGE.json'
+      - 'docs/csharp/EXAMPLEMOD_COVERAGE.md'
+      - 'docs/csharp/examplemod-evidence.json'
+      - '.github/workflows/check-examplemod-costume-player.yml'
+  pull_request:
+    paths:
+      - 'samples/ExampleModCSharp/Playable/content/Common/Players/ExampleCostumePlayer.cs'
+      - 'tests/examplemod_costume_player_qa/**'
+      - '.github/workflows/check-examplemod-costume-player.yml'
+permissions:
+  contents: read
+jobs:
+  host:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Exercise exact Blocky and costume tick lifecycle
+        run: dotnet run --project tests/examplemod_costume_player_qa/ExampleModCostumePlayerQa.csproj --configuration Release
+      - name: Check pinned behavior evidence
+        run: python3 tools/examplemod_coverage.py --check
