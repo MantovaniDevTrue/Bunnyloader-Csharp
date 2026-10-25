@@ -22,15 +22,15 @@
   ],
   "note": "Candidatos por nome não comprovam equivalência. Hooks são unidades iniciais de revisão; decompor efeitos e valores durante cada lote. Inventário tML é backlog, excluído destes totais.",
   "inventory": {
-    "cSharpFiles": 120,
+    "cSharpFiles": 121,
     "jsFiles": 206,
     "officialFiles": 558,
     "officialCommit": "c9545cf27d56c456321e1896274c02adf67d0140"
   },
   "counts": {
-    "validado automaticamente": 50,
-    "não iniciado": 633,
-    "implementado sem validar": 46,
+    "validado automaticamente": 52,
+    "não iniciado": 626,
+    "implementado sem validar": 51,
     "falhou": 3,
     "validado no Android": 1
   },
@@ -449,12 +449,25 @@
       "source": "content/Common/Players/ExampleCostumePlayer.js",
       "sourceSha256": "ac0439e3b84129e16744ae62921a02f12ed31430d0879220bfa2e3403eb3b6e9",
       "behavior": "BlockyVanityEffects",
-      "candidates": [],
-      "status": "não iniciado",
-      "note": "Equivalência deste comportamento ainda não auditada.",
-      "implementation": [],
-      "tests": [],
-      "androidEvidence": []
+      "candidates": [
+        "samples/ExampleModCSharp/Playable/content/Common/Players/ExampleCostumePlayer.cs"
+      ],
+      "status": "validado automaticamente",
+      "note": "Host: getter reproduz BlockyForceVanity || (BlockyPower && !BlockyHideVanity), incluindo ocultação visual com buff ativo e slot de vaidade. Testado em C#; registro no ciclo nativo de renderização ainda pendente.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Common/Players/ExampleCostumePlayer.cs"
+      ],
+      "tests": [
+        "tests/examplemod_costume_player_qa/ExampleModCostumePlayerQa.csproj",
+        "tests/examplemod_costume_player_qa/Program.cs"
+      ],
+      "androidEvidence": [],
+      "validationScope": "host; Android pendente",
+      "validatedFilesSha256": {
+        "samples/ExampleModCSharp/Playable/content/Common/Players/ExampleCostumePlayer.cs": "78f5bd8c3a36046fe88ff2c2c95887f7ac6df8376f3375029c45fdfc88744953",
+        "tests/examplemod_costume_player_qa/ExampleModCostumePlayerQa.csproj": "eeb31ac8974ead591251cd61dc0d1892556938b33c1f4f11905debf1783c75b5",
+        "tests/examplemod_costume_player_qa/Program.cs": "159a59f24797ca413a946257ce0479a5f94211172b335a78d7f07ef3be3227d2"
+      }
     },
     {
       "id": "Common/Players/ExampleCostumePlayer.js#FrameEffects",
@@ -462,11 +475,18 @@
       "source": "content/Common/Players/ExampleCostumePlayer.js",
       "sourceSha256": "ac0439e3b84129e16744ae62921a02f12ed31430d0879220bfa2e3403eb3b6e9",
       "behavior": "FrameEffects",
-      "candidates": [],
-      "status": "não iniciado",
-      "note": "Equivalência deste comportamento ainda não auditada.",
-      "implementation": [],
-      "tests": [],
+      "candidates": [
+        "samples/ExampleModCSharp/Playable/content/Common/Players/ExampleCostumePlayer.cs"
+      ],
+      "status": "implementado sem validar",
+      "note": "A decisão C# entre ExampleCostume e BlockyAlt quando molhado está testada, mas os slots nativos Head/Body/Legs ainda não são escritos pelo hook FrameEffects.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Common/Players/ExampleCostumePlayer.cs"
+      ],
+      "tests": [
+        "tests/examplemod_costume_player_qa/ExampleModCostumePlayerQa.csproj",
+        "tests/examplemod_costume_player_qa/Program.cs"
+      ],
       "androidEvidence": []
     },
     {
@@ -475,12 +495,25 @@
       "source": "content/Common/Players/ExampleCostumePlayer.js",
       "sourceSha256": "ac0439e3b84129e16744ae62921a02f12ed31430d0879220bfa2e3403eb3b6e9",
       "behavior": "ResetEffects",
-      "candidates": [],
-      "status": "não iniciado",
-      "note": "Equivalência deste comportamento ainda não auditada.",
-      "implementation": [],
-      "tests": [],
-      "androidEvidence": []
+      "candidates": [
+        "samples/ExampleModCSharp/Playable/content/Common/Players/ExampleCostumePlayer.cs"
+      ],
+      "status": "validado automaticamente",
+      "note": "Host: copia BlockyAccessory para BlockyAccessoryPrevious antes de limpar os quatro estados de uso e de visual, preservando a ordem exata do fonte JS. Teste de ciclos consecutivos passou; a chamada pelo hook nativo do Terraria ainda está pendente.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Common/Players/ExampleCostumePlayer.cs"
+      ],
+      "tests": [
+        "tests/examplemod_costume_player_qa/ExampleModCostumePlayerQa.csproj",
+        "tests/examplemod_costume_player_qa/Program.cs"
+      ],
+      "androidEvidence": [],
+      "validationScope": "host; Android pendente",
+      "validatedFilesSha256": {
+        "samples/ExampleModCSharp/Playable/content/Common/Players/ExampleCostumePlayer.cs": "78f5bd8c3a36046fe88ff2c2c95887f7ac6df8376f3375029c45fdfc88744953",
+        "tests/examplemod_costume_player_qa/ExampleModCostumePlayerQa.csproj": "eeb31ac8974ead591251cd61dc0d1892556938b33c1f4f11905debf1783c75b5",
+        "tests/examplemod_costume_player_qa/Program.cs": "159a59f24797ca413a946257ce0479a5f94211172b335a78d7f07ef3be3227d2"
+      }
     },
     {
       "id": "Common/Players/ExampleCostumePlayer.js#UpdateEquips",
@@ -488,11 +521,18 @@
       "source": "content/Common/Players/ExampleCostumePlayer.js",
       "sourceSha256": "ac0439e3b84129e16744ae62921a02f12ed31430d0879220bfa2e3403eb3b6e9",
       "behavior": "UpdateEquips",
-      "candidates": [],
-      "status": "não iniciado",
-      "note": "Equivalência deste comportamento ainda não auditada.",
-      "implementation": [],
-      "tests": [],
+      "candidates": [
+        "samples/ExampleModCSharp/Playable/content/Common/Players/ExampleCostumePlayer.cs"
+      ],
+      "status": "implementado sem validar",
+      "note": "A condição C# townNPCs >= 1 e BlockyAccessory está testada; chamada nativa Player.AddBuff(Blocky,60,true) ainda não foi integrada.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Common/Players/ExampleCostumePlayer.cs"
+      ],
+      "tests": [
+        "tests/examplemod_costume_player_qa/ExampleModCostumePlayerQa.csproj",
+        "tests/examplemod_costume_player_qa/Program.cs"
+      ],
       "androidEvidence": []
     },
     {
@@ -1317,10 +1357,15 @@
       "candidates": [
         "samples/ExampleModCSharp/Playable/content/Content/Buffs/Blocky.cs"
       ],
-      "status": "não iniciado",
-      "note": "Equivalência deste comportamento ainda não auditada.",
-      "implementation": [],
-      "tests": [],
+      "status": "implementado sem validar",
+      "note": "A decisão C# usa BlockyAccessoryPrevious e townNPCs >= 1, com +4.8 jumpSpeedBoost, +45 extraFall e remoção sem requisito; aplicação direta nos campos nativos e DelBuff ainda ausentes.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Common/Players/ExampleCostumePlayer.cs"
+      ],
+      "tests": [
+        "tests/examplemod_costume_player_qa/ExampleModCostumePlayerQa.csproj",
+        "tests/examplemod_costume_player_qa/Program.cs"
+      ],
       "androidEvidence": []
     },
     {
@@ -2764,10 +2809,15 @@
       "candidates": [
         "samples/ExampleModCSharp/Playable/content/Content/Items/Armor/ExampleCostume.cs"
       ],
-      "status": "não iniciado",
-      "note": "Equivalência deste comportamento ainda não auditada.",
-      "implementation": [],
-      "tests": [],
+      "status": "implementado sem validar",
+      "note": "O modelo C# diferencia slot de acessório real e visual oculto, mas UpdateAccessory do item ainda não invoca o estado gerenciado no jogo.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Common/Players/ExampleCostumePlayer.cs"
+      ],
+      "tests": [
+        "tests/examplemod_costume_player_qa/ExampleModCostumePlayerQa.csproj",
+        "tests/examplemod_costume_player_qa/Program.cs"
+      ],
       "androidEvidence": []
     },
     {
@@ -2779,10 +2829,15 @@
       "candidates": [
         "samples/ExampleModCSharp/Playable/content/Content/Items/Armor/ExampleCostume.cs"
       ],
-      "status": "não iniciado",
-      "note": "Equivalência deste comportamento ainda não auditada.",
-      "implementation": [],
-      "tests": [],
+      "status": "implementado sem validar",
+      "note": "O modelo C# suporta BlockyForceVanity sem conceder buff, mas a ligação ao slot de vaidade real ainda está ausente.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Common/Players/ExampleCostumePlayer.cs"
+      ],
+      "tests": [
+        "tests/examplemod_costume_player_qa/ExampleModCostumePlayerQa.csproj",
+        "tests/examplemod_costume_player_qa/Program.cs"
+      ],
       "androidEvidence": []
     },
     {
