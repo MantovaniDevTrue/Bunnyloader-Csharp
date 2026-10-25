@@ -54,11 +54,35 @@ int main(int argc, char** argv) {
             std::cerr << type.name << ": " << error << '\n';
             return 1;
         }
-        std::string normalized;
-        assert(normalizeContentTexture(texture.c_str(), &normalized, &error));
-        const auto asset = root / normalized;
-        if (!std::filesystem::is_regular_file(asset)) {
-            std::cerr << type.name << ": missing asset " << texture << "\n"; return 1;
+        std::vector<std::string> requiredTextures;
+        if (type.base == "BunnyMount") {
+            const auto kind = type.properties.find("Kind");
+            if (kind == type.properties.end() ||
+                (kind->second != "Ride" && kind->second != "Minecart")) {
+                std::cerr << type.name << ": invalid mount kind\n";
+                return 1;
+            }
+            requiredTextures.push_back(texture + "_Front.png");
+            if (kind->second == "Ride") {
+                requiredTextures.push_back(texture + "_Back.png");
+                const auto balloon = type.properties.find("BalloonTexture");
+                if (balloon == type.properties.end() || balloon->second.empty()) {
+                    std::cerr << type.name << ": balloon texture missing from mount definition\n";
+                    return 1;
+                }
+                requiredTextures.push_back(balloon->second);
+            }
+        } else {
+            requiredTextures.push_back(texture);
+        }
+        for (const auto& required : requiredTextures) {
+            std::string normalized;
+            if (!normalizeContentTexture(required.c_str(), &normalized, &error) ||
+                !std::filesystem::is_regular_file(root / normalized)) {
+                std::cerr << type.name << ": missing or invalid asset "
+                          << required << " (" << error << ")\n";
+                return 1;
+            }
         }
         assert(!display.empty());
         if (!target.empty()) {
