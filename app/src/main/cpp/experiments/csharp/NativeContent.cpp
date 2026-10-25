@@ -10,6 +10,7 @@
 #include "il2cpp/GuardedCall.h"
 #include "experiments/csharp/NativeBasicItems.h"
 #include "experiments/csharp/NativeItemPolicies.h"
+#include "experiments/csharp/NativeCostumeDustDecision.h"
 #include "experiments/csharp/NativeDefaults.h"
 #include "experiments/csharp/NativeVisualRenderer.h"
 #include "experiments/csharp/NativeTileGameplay.h"
@@ -850,7 +851,7 @@ void hkSetArmorEffectVisuals(Il2CppObject* self, Il2CppObject* drawPlayer,
                 const int type=bl::runtime::field<int32_t>(item,g_refs.itemType);
                 if(!nativeCostumeEffect(type,&effect))continue;
                 const bool forced=costumeEquipped(actor,type,true);
-                if(!forced&&!(cycle->power&&!costumeHidden(actor,type)))continue;
+                if(!costume_dust::visible(forced,cycle->power,costumeHidden(actor,type)))continue;
                 const bool wet=bl::runtime::field<uint8_t>(actor,g_refs.playerWet)!=0;
                 const int* slots=wet?effect.alternate:effect.normal;
                 bl::runtime::field<int32_t>(actor,g_refs.playerHead)=slots[0];
@@ -1013,16 +1014,15 @@ void spawnCostumeDust(Il2CppObject* player) {
         }
         if(type<0)return;
     }
-    if(!costumeEquipped(player,type,true)&&!(cycle->power&&!costumeHidden(player,type)))
+    if(!costume_dust::visible(costumeEquipped(player,type,true),cycle->power,costumeHidden(player,type)))
         return;
     const int index=bl::runtime::field<int32_t>(player,g_refs.playerWhoAmI);
     if(index<0||index>=static_cast<int>(g_costumeRandom.size()))return;
     auto& random=g_costumeRandom[static_cast<size_t>(index)];
-    if(random==0)random=0x9e3779b9u^((static_cast<uint32_t>(index)+1u)*0x85ebca6bu);
-    random^=random<<13;random^=random>>17;random^=random<<5;
-    if(random%20u!=0u)return;
-    const int32_t dust=bl::runtime::field<uint8_t>(player,g_refs.playerWet)
-        ?g_costumeWetDust:g_costumeNormalDust;
+    if(!costume_dust::sample(random,index))return;
+    const int32_t dust=costume_dust::dustId(
+        bl::runtime::field<uint8_t>(player,g_refs.playerWet)!=0,
+        g_costumeNormalDust,g_costumeWetDust);
     const int32_t width=bl::runtime::field<int32_t>(player,g_refs.playerWidth);
     const int32_t height=bl::runtime::field<int32_t>(player,g_refs.playerHeight);
     if(width<1||width>128||height<1||height>128)return;
