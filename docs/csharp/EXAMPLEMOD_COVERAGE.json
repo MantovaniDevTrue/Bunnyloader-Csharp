@@ -22,7 +22,7 @@
   ],
   "note": "Candidatos por nome não comprovam equivalência. Hooks são unidades iniciais de revisão; decompor efeitos e valores durante cada lote. Inventário tML é backlog, excluído destes totais.",
   "inventory": {
-    "cSharpFiles": 117,
+    "cSharpFiles": 119,
     "jsFiles": 206,
     "officialFiles": 558,
     "officialCommit": "c9545cf27d56c456321e1896274c02adf67d0140"
@@ -1286,7 +1286,9 @@
       "source": "content/Content/Buffs/Blocky.js",
       "sourceSha256": "ee9c3350a6d73c0be127f074c5bcb15f91445638c31028b020a25d926ef22b4d",
       "behavior": "SetStaticDefaults",
-      "candidates": [],
+      "candidates": [
+        "samples/ExampleModCSharp/Playable/content/Content/Buffs/Blocky.cs"
+      ],
       "status": "validado automaticamente",
       "note": "Host: flags IsDebuff, NoSave, NoTimeDisplay e NurseCannotRemove registradas no C# nativo; nome/descrição locais conferidos e PNG 32x32 byte a byte idêntico ao original. UpdatePlayer (NPCs da cidade, traje, pulo e queda) e FrameEffects NÃO implementados nem validados no Android.",
       "implementation": [
@@ -1312,7 +1314,9 @@
       "source": "content/Content/Buffs/Blocky.js",
       "sourceSha256": "ee9c3350a6d73c0be127f074c5bcb15f91445638c31028b020a25d926ef22b4d",
       "behavior": "UpdatePlayer",
-      "candidates": [],
+      "candidates": [
+        "samples/ExampleModCSharp/Playable/content/Content/Buffs/Blocky.cs"
+      ],
       "status": "não iniciado",
       "note": "Equivalência deste comportamento ainda não auditada.",
       "implementation": [],
@@ -1539,7 +1543,9 @@
       "source": "content/Content/Buffs/ExampleMountBuff.js",
       "sourceSha256": "541ddc40a585536813029551626ede69842b41f1c63bdfa382264f7eb1029d03",
       "behavior": "SetStaticDefaults",
-      "candidates": [],
+      "candidates": [
+        "samples/ExampleModCSharp/Playable/content/Content/Buffs/ExampleMountBuff.cs"
+      ],
       "status": "validado automaticamente",
       "note": "Host: flags NoSave e NoTimeDisplay do buff de montaria, descrição localizada e PNG original idêntico byte a byte. UpdatePlayer que monta o jogador e Montaria C# ainda não implementados.",
       "implementation": [
@@ -1565,7 +1571,9 @@
       "source": "content/Content/Buffs/ExampleMountBuff.js",
       "sourceSha256": "541ddc40a585536813029551626ede69842b41f1c63bdfa382264f7eb1029d03",
       "behavior": "UpdatePlayer",
-      "candidates": [],
+      "candidates": [
+        "samples/ExampleModCSharp/Playable/content/Content/Buffs/ExampleMountBuff.cs"
+      ],
       "status": "não iniciado",
       "note": "Equivalência deste comportamento ainda não auditada.",
       "implementation": [],
