@@ -72,5 +72,5 @@ for name,recipe in {
     "ExampleMinecart":"1,16,v2343:1,mExampleItem:15",
 }.items():
     assert recipe in mount_items[name],"Native ITEM row missing original mount recipe: "+name
-    assert all(value.count(recipe)==1 for value in mount_items[name]),"Mount recipe declared twice: "+name
+    assert sum(value.count(recipe) for value in mount_items[name])==1,"Mount recipe must appear exactly once in native ITEM fields: "+name
 print("OWNED_RECIPE_CATEGORIES_SCHEMA_PASS")
