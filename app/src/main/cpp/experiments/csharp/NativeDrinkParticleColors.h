@@ -49,13 +49,36 @@ inline bool bindNativeDrinkColors(int type,const std::string& encoded,
     auto* color=inner?a.class_get_element_class(inner):nullptr;
     const char* colorNs=color?a.class_get_namespace(color):nullptr;
     const char* colorName=color?a.class_get_name(color):nullptr;
+    const char* outerName=outer?a.class_get_name(outer):nullptr;
+    const char* innerName=inner?a.class_get_name(inner):nullptr;
+    const int outerRank=outer?a.class_get_rank(outer):-1;
+    const int innerRank=inner?a.class_get_rank(inner):-1;
+    const int colorRank=color?a.class_get_rank(color):-1;
+    auto isVector=[&](int rank,const char* name) {
+        if(rank==1)return true;
+        if(rank!=0||!name)return false;
+        const auto size=std::strlen(name);
+        return size>=2&&name[size-2]=='['&&name[size-1]==']';
+    };
     uint32_t align=0;
+    const int colorSize=color&&a.class_is_valuetype(color)?a.class_value_size(color,&align):-1;
     if(!field||!(a.field_get_flags(field)&0x10u)||!outer||!inner||!color||
-       a.class_get_rank(outer)!=1||a.class_get_rank(inner)!=1||
-       a.class_get_rank(color)!=0||!a.class_is_valuetype(color)||
-       !colorNs||!colorName||std::strcmp(colorNs,"Microsoft.Xna.Framework")||
-       std::strcmp(colorName,"Color")||a.class_value_size(color,&align)!=4)
-        return fail("ColorJaggedArrayLayoutMismatch");
+       !isVector(outerRank,outerName)||!isVector(innerRank,innerName)||
+       colorRank!=0||a.class_is_valuetype(outer)||a.class_is_valuetype(inner)||
+       !a.class_is_valuetype(color)||!colorName||
+       std::strcmp(colorName,"Color")||colorSize!=4) {
+        *error="ItemSet_DrinkParticleColors Reason=ColorJaggedArrayLayoutMismatch"+
+            std::string(" Outer=")+(outerName?outerName:"Missing")+
+            " OuterRank="+std::to_string(outerRank)+
+            " Inner="+(innerName?innerName:"Missing")+
+            " InnerRank="+std::to_string(innerRank)+
+            " Element="+(colorName?colorName:"Missing")+
+            " ElementNamespace="+(colorNs?colorNs:"Missing")+
+            " ElementRank="+std::to_string(colorRank)+
+            " ElementBytes="+std::to_string(colorSize)+
+            " Static="+std::to_string(field&&(a.field_get_flags(field)&0x10u)?1:0);
+        return false;
+    }
     NativeColorLayout layout;
     if(!layout.bind(color,error))return false;
     Il2CppArray* array=nullptr;

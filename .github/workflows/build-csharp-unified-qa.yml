@@ -35,6 +35,11 @@ jobs:
           java-version: '17'
       - name: Verify native summon speed contracts
         run: mkdir -p build/unified-speed && c++ -std=c++20 -Wall -Wextra -Werror -Iapp/src/main/cpp tests/csharp_unified/weapon_speed_test.cpp -o build/unified-speed/check && build/unified-speed/check
+      - name: Verify Android drink particle color jagged array ABI
+        run: |
+          mkdir -p build/unified-drink-colors
+          c++ -std=c++20 -Wall -Wextra -Werror -Iapp/src/main/cpp tests/drink_colors/native_test.cpp -o build/unified-drink-colors/check
+          build/unified-drink-colors/check
       - name: Verify vanilla Acorn and native tree drop binding
         run: |
           mkdir -p build/unified-tree-acorn
