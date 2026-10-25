@@ -9,6 +9,8 @@
   <ItemGroup>
     <ProjectReference Include="../../experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj" />
     <Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/Buffs/ExampleDefenseBuff.cs" Link="ExampleDefenseBuff.cs" />
+    <Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/Buffs/Blocky.cs" Link="Blocky.cs" />
+    <Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/Buffs/ExampleMountBuff.cs" Link="ExampleMountBuff.cs" />
     <Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/Buffs/ExampleDefenseDebuff.cs" Link="ExampleDefenseDebuff.cs" />
     <Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/Buffs/ExampleMinionBuff.cs" Link="ExampleMinionBuff.cs" />
     <Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleMinion.cs" Link="ExampleMinion.cs" />
