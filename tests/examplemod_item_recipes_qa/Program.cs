@@ -12,7 +12,7 @@ material.SetDefaults();
 Check(material.MaxStack == 9999 && material.Value == BunnyItem.BuyPrice(silver: 1), "ExampleItem stack and buyPrice");
 material.AddRecipes();
 Check(material.RecipeDefinitions.Count == 1 &&
-      material.RecipeDefinitions[0].StartsWith("999,v18,", StringComparison.Ordinal) &&
+      material.RecipeDefinitions[0].StartsWith("999,18,", StringComparison.Ordinal) &&
       material.RecipeDefinitions[0].Contains("v2:10", StringComparison.Ordinal), "Original dirt-to-999-items recipe");
 
 var tile = new ExampleTileItem();
@@ -22,7 +22,7 @@ Check(tile.PlacementDefinition == "mExampleTile:0" && tile.Width == 12 &&
       "Native ExampleTile placement and original dimensions");
 tile.AddRecipes();
 Check(tile.RecipeDefinitions.Count == 1 &&
-      tile.RecipeDefinitions[0].StartsWith("10,v18,", StringComparison.Ordinal) &&
+      tile.RecipeDefinitions[0].StartsWith("10,18,", StringComparison.Ordinal) &&
       tile.RecipeDefinitions[0].Contains("mExampleItem:1", StringComparison.Ordinal),
       "Original 1 ExampleItem to 10 ExampleTile recipe");
 
