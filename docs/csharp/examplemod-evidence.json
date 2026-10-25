@@ -3257,6 +3257,102 @@
         "tests/examplemod_equipment_qa/ExampleModEquipmentQa.csproj": "1fa42e6785e86ee44aecda7f4c610610e0726c41c4059710de3f0718fdbdde5c",
         "tests/examplemod_equipment_qa/Program.cs": "d0b6268380d8219ef43a3ceb8d45f630a56449f27597a789fa76b7b9776e250f"
       }
+    },
+    "Common/Players/ExampleCostumePlayer.js#ResetEffects": {
+      "status": "validado automaticamente",
+      "note": "Host: copia BlockyAccessory para BlockyAccessoryPrevious antes de limpar os quatro estados de uso e de visual, preservando a ordem exata do fonte JS. Teste de ciclos consecutivos passou; a chamada pelo hook nativo do Terraria ainda está pendente.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Common/Players/ExampleCostumePlayer.cs"
+      ],
+      "tests": [
+        "tests/examplemod_costume_player_qa/ExampleModCostumePlayerQa.csproj",
+        "tests/examplemod_costume_player_qa/Program.cs"
+      ],
+      "validationScope": "host; Android pendente",
+      "androidEvidence": [],
+      "validatedFilesSha256": {
+        "samples/ExampleModCSharp/Playable/content/Common/Players/ExampleCostumePlayer.cs": "78f5bd8c3a36046fe88ff2c2c95887f7ac6df8376f3375029c45fdfc88744953",
+        "tests/examplemod_costume_player_qa/ExampleModCostumePlayerQa.csproj": "eeb31ac8974ead591251cd61dc0d1892556938b33c1f4f11905debf1783c75b5",
+        "tests/examplemod_costume_player_qa/Program.cs": "159a59f24797ca413a946257ce0479a5f94211172b335a78d7f07ef3be3227d2"
+      }
+    },
+    "Common/Players/ExampleCostumePlayer.js#BlockyVanityEffects": {
+      "status": "validado automaticamente",
+      "note": "Host: getter reproduz BlockyForceVanity || (BlockyPower && !BlockyHideVanity), incluindo ocultação visual com buff ativo e slot de vaidade. Testado em C#; registro no ciclo nativo de renderização ainda pendente.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Common/Players/ExampleCostumePlayer.cs"
+      ],
+      "tests": [
+        "tests/examplemod_costume_player_qa/ExampleModCostumePlayerQa.csproj",
+        "tests/examplemod_costume_player_qa/Program.cs"
+      ],
+      "validationScope": "host; Android pendente",
+      "androidEvidence": [],
+      "validatedFilesSha256": {
+        "samples/ExampleModCSharp/Playable/content/Common/Players/ExampleCostumePlayer.cs": "78f5bd8c3a36046fe88ff2c2c95887f7ac6df8376f3375029c45fdfc88744953",
+        "tests/examplemod_costume_player_qa/ExampleModCostumePlayerQa.csproj": "eeb31ac8974ead591251cd61dc0d1892556938b33c1f4f11905debf1783c75b5",
+        "tests/examplemod_costume_player_qa/Program.cs": "159a59f24797ca413a946257ce0479a5f94211172b335a78d7f07ef3be3227d2"
+      }
+    },
+    "Common/Players/ExampleCostumePlayer.js#FrameEffects": {
+      "status": "implementado sem validar",
+      "note": "A decisão C# entre ExampleCostume e BlockyAlt quando molhado está testada, mas os slots nativos Head/Body/Legs ainda não são escritos pelo hook FrameEffects.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Common/Players/ExampleCostumePlayer.cs"
+      ],
+      "tests": [
+        "tests/examplemod_costume_player_qa/ExampleModCostumePlayerQa.csproj",
+        "tests/examplemod_costume_player_qa/Program.cs"
+      ],
+      "androidEvidence": []
+    },
+    "Common/Players/ExampleCostumePlayer.js#UpdateEquips": {
+      "status": "implementado sem validar",
+      "note": "A condição C# townNPCs >= 1 e BlockyAccessory está testada; chamada nativa Player.AddBuff(Blocky,60,true) ainda não foi integrada.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Common/Players/ExampleCostumePlayer.cs"
+      ],
+      "tests": [
+        "tests/examplemod_costume_player_qa/ExampleModCostumePlayerQa.csproj",
+        "tests/examplemod_costume_player_qa/Program.cs"
+      ],
+      "androidEvidence": []
+    },
+    "Content/Buffs/Blocky.js#UpdatePlayer": {
+      "status": "implementado sem validar",
+      "note": "A decisão C# usa BlockyAccessoryPrevious e townNPCs >= 1, com +4.8 jumpSpeedBoost, +45 extraFall e remoção sem requisito; aplicação direta nos campos nativos e DelBuff ainda ausentes.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Common/Players/ExampleCostumePlayer.cs"
+      ],
+      "tests": [
+        "tests/examplemod_costume_player_qa/ExampleModCostumePlayerQa.csproj",
+        "tests/examplemod_costume_player_qa/Program.cs"
+      ],
+      "androidEvidence": []
+    },
+    "Content/Items/Armor/ExampleCostume.js#UpdateAccessory": {
+      "status": "implementado sem validar",
+      "note": "O modelo C# diferencia slot de acessório real e visual oculto, mas UpdateAccessory do item ainda não invoca o estado gerenciado no jogo.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Common/Players/ExampleCostumePlayer.cs"
+      ],
+      "tests": [
+        "tests/examplemod_costume_player_qa/ExampleModCostumePlayerQa.csproj",
+        "tests/examplemod_costume_player_qa/Program.cs"
+      ],
+      "androidEvidence": []
+    },
+    "Content/Items/Armor/ExampleCostume.js#UpdateVanity": {
+      "status": "implementado sem validar",
+      "note": "O modelo C# suporta BlockyForceVanity sem conceder buff, mas a ligação ao slot de vaidade real ainda está ausente.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Common/Players/ExampleCostumePlayer.cs"
+      ],
+      "tests": [
+        "tests/examplemod_costume_player_qa/ExampleModCostumePlayerQa.csproj",
+        "tests/examplemod_costume_player_qa/Program.cs"
+      ],
+      "androidEvidence": []
     }
   }
 }
