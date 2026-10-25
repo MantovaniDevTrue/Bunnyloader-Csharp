@@ -23,8 +23,9 @@ Check(sword.ModRarityClassName.Length == 0 && sword.Rare == ItemRarityID.Green,
     "Melee sword must use original vanilla Green rarity");
 var accessory = new ExampleStatAccessory();
 accessory.SetDefaults();
-Check(accessory.ModRarityClassName == nameof(ExampleHigherTierModRarity),
-    "Higher-tier accessory rarity is not registered");
+Check(accessory.ModRarityClassName.Length == 0 &&
+    accessory.Rare == ItemRarityID.Green,
+    "Stat accessory must preserve original vanilla Green rarity");
 
 var wand = new ExampleWand();
 wand.SetDefaults();
