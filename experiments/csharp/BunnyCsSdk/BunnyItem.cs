@@ -130,6 +130,15 @@ public abstract class BunnyItem : BunnyShootSource
     public bool Accessory { get => wallAccessory; set { wallAccessory=value; OverrideFlag(5); } }
     private bool wallVanity;
     public bool Vanity { get => wallVanity; set { wallVanity=value; OverrideFlag(6); } }
+    private string mount="";
+    public string Mount {
+        get=>mount;
+        set {
+            if(value.Length>0&&(value.Length>72||value.Any(c=>!char.IsAsciiLetterOrDigit(c)&&c!='_')))
+                throw new ArgumentException("Invalid local BunnyMount name",nameof(value));
+            mount=value;
+        }
+    }
     public BunnyItemBehavior Behavior { get; } = new();
     public string BehaviorDefinition => Behavior.ToJson();
     /// <summary>Colunas opcionais C1: somente atribuições explícitas substituem defaults clonados.</summary>
