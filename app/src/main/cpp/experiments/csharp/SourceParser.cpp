@@ -274,6 +274,25 @@ bool statements(const std::vector<Token>& ts, size_t first, size_t last,
         } else {
             value = ts[i++].value;
         }
+        if (def->base == "BunnyMount" && key == "Kind" &&
+            value == "BunnyMountKind" && i + 1 < last &&
+            ts[i].value == "." &&
+            (ts[i + 1].value == "Ride" || ts[i + 1].value == "Minecart")) {
+            value = ts[i + 1].value;
+            i += 2;
+        }
+        if (def->base == "BunnyMount" &&
+            (key == "Standing" || key == "Running" || key == "Flying" ||
+             key == "InAir" || key == "Idle" || key == "Swimming") &&
+            value == "new" && i < last && ts[i].value == "(") {
+            const size_t end = closing(ts, i, "(", ")");
+            if (end >= last) {
+                *error = "BunnyMountFrames requer inicializador terminado";
+                return false;
+            }
+            value = "BunnyMountFrames";
+            i = end + 1;
+        }
         if (key == "Category" && value == "PrefixCategory" &&
             i + 1 < last && ts[i].value == ".") {
             value = ts[i + 1].value;
