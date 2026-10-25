@@ -34,6 +34,7 @@ int main(int argc, char** argv) {
         else if (base == "BunnyTile") ++mod.tiles;
         else if (base == "BunnyTree") ++mod.trees;
         else if (base == "BunnyGore") ++mod.gores;
+        else if (base == "BunnyMount") ++mod.mounts;
         else if (base == "BunnyWall") ++mod.walls;
         else if (base == "BunnyDust") ++mod.dusts;
         else if (base == "BunnyProjectile") ++mod.projectiles;
@@ -51,7 +52,14 @@ int main(int argc, char** argv) {
             return 1;
         }
     }
-    assert(types.size() == 95);
+    assert(types.size() >= 95);
+    assert(mod.mounts == 2);
+    assert(std::count_if(types.begin(),types.end(),[](const auto& type){
+        return type.name=="ExampleMount" && type.base=="BunnyMount";
+    })==1);
+    assert(std::count_if(types.begin(),types.end(),[](const auto& type){
+        return type.name=="ExampleMinecartMount" && type.base=="BunnyMount";
+    })==1);
     assert(std::count_if(types.begin(),types.end(),[](const auto& type){
         return type.name=="ExampleGolfBall" && type.base=="BunnyItem";
     })==1);
@@ -63,13 +71,14 @@ int main(int argc, char** argv) {
     assert(mod.rarities == 2);
     assert(mod.localizationModules == 1);
     assert(mod.commands == 4);
-    assert(expectedManagedSourceTypes(mod) == 96);
+    const int expected = expectedManagedSourceTypes(mod);
+    assert(expected == static_cast<int>(types.size()) + mod.localizationModules);
     const std::string status =
         "state=finished\nmodId=full-example\nphase=compile-verified\n"
-        "assemblyReady=1\nexecutedTypes=96\n";
+        "assemblyReady=1\nexecutedTypes=" + std::to_string(expected) + "\n";
     assert(managedSourceCompileFinished(status, mod.id, mod));
     --mod.dusts;
     assert(!managedSourceCompileFinished(status, mod.id, mod));
-    std::cout << "FULL_EXAMPLE_NATIVE_MANAGED_COUNT=PASS expected=96"
-              << " rarities=2 dust=1 wall=1 localization=1 commands=4\n";
+    std::cout << "FULL_EXAMPLE_NATIVE_MANAGED_COUNT=PASS expected=" << expected
+              << " mounts=2 rarities=2 dust=1 wall=1 localization=1 commands=4\n";
 }
