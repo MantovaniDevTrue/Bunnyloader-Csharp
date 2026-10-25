@@ -2746,8 +2746,8 @@
       "androidEvidence": [],
       "validatedFilesSha256": {
         "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleWings.cs": "392881eee631c3a17a7d03c4073e216c9ae4de922a8b7ef027ddb4a60e94c812",
-        "tests/examplemod_equipment_qa/ExampleModEquipmentQa.csproj": "7eb0e0f9e7cf36913bc28ea2ce8fae77941a8239f800d07d6cce2d000db9bd98",
-        "tests/examplemod_equipment_qa/Program.cs": "db90874231f30da6b9650c04f2f0f84e026ac849a4b4e6f339df15a38deb6a66"
+        "tests/examplemod_equipment_qa/ExampleModEquipmentQa.csproj": "1fa42e6785e86ee44aecda7f4c610610e0726c41c4059710de3f0718fdbdde5c",
+        "tests/examplemod_equipment_qa/Program.cs": "d0b6268380d8219ef43a3ceb8d45f630a56449f27597a789fa76b7b9776e250f"
       }
     },
     "Content/Items/Accessories/ExampleWings.js#SetDefaults": {
@@ -2764,8 +2764,8 @@
       "androidEvidence": [],
       "validatedFilesSha256": {
         "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleWings.cs": "392881eee631c3a17a7d03c4073e216c9ae4de922a8b7ef027ddb4a60e94c812",
-        "tests/examplemod_equipment_qa/ExampleModEquipmentQa.csproj": "7eb0e0f9e7cf36913bc28ea2ce8fae77941a8239f800d07d6cce2d000db9bd98",
-        "tests/examplemod_equipment_qa/Program.cs": "db90874231f30da6b9650c04f2f0f84e026ac849a4b4e6f339df15a38deb6a66"
+        "tests/examplemod_equipment_qa/ExampleModEquipmentQa.csproj": "1fa42e6785e86ee44aecda7f4c610610e0726c41c4059710de3f0718fdbdde5c",
+        "tests/examplemod_equipment_qa/Program.cs": "d0b6268380d8219ef43a3ceb8d45f630a56449f27597a789fa76b7b9776e250f"
       }
     },
     "Content/Items/Accessories/ExampleWings.js#SetStaticDefaults": {
@@ -2782,8 +2782,8 @@
       "androidEvidence": [],
       "validatedFilesSha256": {
         "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleWings.cs": "392881eee631c3a17a7d03c4073e216c9ae4de922a8b7ef027ddb4a60e94c812",
-        "tests/examplemod_equipment_qa/ExampleModEquipmentQa.csproj": "7eb0e0f9e7cf36913bc28ea2ce8fae77941a8239f800d07d6cce2d000db9bd98",
-        "tests/examplemod_equipment_qa/Program.cs": "db90874231f30da6b9650c04f2f0f84e026ac849a4b4e6f339df15a38deb6a66"
+        "tests/examplemod_equipment_qa/ExampleModEquipmentQa.csproj": "1fa42e6785e86ee44aecda7f4c610610e0726c41c4059710de3f0718fdbdde5c",
+        "tests/examplemod_equipment_qa/Program.cs": "d0b6268380d8219ef43a3ceb8d45f630a56449f27597a789fa76b7b9776e250f"
       }
     },
     "Content/Items/Accessories/ExampleWings.js#VerticalWingSpeeds": {
@@ -2800,8 +2800,8 @@
       "androidEvidence": [],
       "validatedFilesSha256": {
         "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleWings.cs": "392881eee631c3a17a7d03c4073e216c9ae4de922a8b7ef027ddb4a60e94c812",
-        "tests/examplemod_equipment_qa/ExampleModEquipmentQa.csproj": "7eb0e0f9e7cf36913bc28ea2ce8fae77941a8239f800d07d6cce2d000db9bd98",
-        "tests/examplemod_equipment_qa/Program.cs": "db90874231f30da6b9650c04f2f0f84e026ac849a4b4e6f339df15a38deb6a66"
+        "tests/examplemod_equipment_qa/ExampleModEquipmentQa.csproj": "1fa42e6785e86ee44aecda7f4c610610e0726c41c4059710de3f0718fdbdde5c",
+        "tests/examplemod_equipment_qa/Program.cs": "d0b6268380d8219ef43a3ceb8d45f630a56449f27597a789fa76b7b9776e250f"
       }
     },
     "Content/Items/Accessories/ExampleBeard.js#SetDefaults": {
@@ -2818,8 +2818,8 @@
       "androidEvidence": [],
       "validatedFilesSha256": {
         "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleBeard.cs": "d56cf9f0cf272bb9a45411380e252631e71795d41041a3e109baaa4fc90cd3a9",
-        "tests/examplemod_equipment_qa/ExampleModEquipmentQa.csproj": "7eb0e0f9e7cf36913bc28ea2ce8fae77941a8239f800d07d6cce2d000db9bd98",
-        "tests/examplemod_equipment_qa/Program.cs": "db90874231f30da6b9650c04f2f0f84e026ac849a4b4e6f339df15a38deb6a66"
+        "tests/examplemod_equipment_qa/ExampleModEquipmentQa.csproj": "1fa42e6785e86ee44aecda7f4c610610e0726c41c4059710de3f0718fdbdde5c",
+        "tests/examplemod_equipment_qa/Program.cs": "d0b6268380d8219ef43a3ceb8d45f630a56449f27597a789fa76b7b9776e250f"
       }
     },
     "Content/Items/Accessories/ExampleBeard.js#SetStaticDefaults": {
@@ -2836,8 +2836,8 @@
       "androidEvidence": [],
       "validatedFilesSha256": {
         "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleBeard.cs": "d56cf9f0cf272bb9a45411380e252631e71795d41041a3e109baaa4fc90cd3a9",
-        "tests/examplemod_equipment_qa/ExampleModEquipmentQa.csproj": "7eb0e0f9e7cf36913bc28ea2ce8fae77941a8239f800d07d6cce2d000db9bd98",
-        "tests/examplemod_equipment_qa/Program.cs": "db90874231f30da6b9650c04f2f0f84e026ac849a4b4e6f339df15a38deb6a66"
+        "tests/examplemod_equipment_qa/ExampleModEquipmentQa.csproj": "1fa42e6785e86ee44aecda7f4c610610e0726c41c4059710de3f0718fdbdde5c",
+        "tests/examplemod_equipment_qa/Program.cs": "d0b6268380d8219ef43a3ceb8d45f630a56449f27597a789fa76b7b9776e250f"
       }
     },
     "Content/Items/Accessories/ExampleStatAccessory.js#SetDefaults": {
@@ -2854,8 +2854,8 @@
       "androidEvidence": [],
       "validatedFilesSha256": {
         "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleStatAccessory.cs": "4233accf06e26671d5c1375af366e2ecee5fa2ef4d7edef4605d7620fb75e44b",
-        "tests/examplemod_equipment_qa/ExampleModEquipmentQa.csproj": "7eb0e0f9e7cf36913bc28ea2ce8fae77941a8239f800d07d6cce2d000db9bd98",
-        "tests/examplemod_equipment_qa/Program.cs": "db90874231f30da6b9650c04f2f0f84e026ac849a4b4e6f339df15a38deb6a66"
+        "tests/examplemod_equipment_qa/ExampleModEquipmentQa.csproj": "1fa42e6785e86ee44aecda7f4c610610e0726c41c4059710de3f0718fdbdde5c",
+        "tests/examplemod_equipment_qa/Program.cs": "d0b6268380d8219ef43a3ceb8d45f630a56449f27597a789fa76b7b9776e250f"
       }
     },
     "Content/Items/Accessories/ExampleStatAccessory.js#UpdateAccessory": {
@@ -2872,8 +2872,8 @@
       "androidEvidence": [],
       "validatedFilesSha256": {
         "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleStatAccessory.cs": "4233accf06e26671d5c1375af366e2ecee5fa2ef4d7edef4605d7620fb75e44b",
-        "tests/examplemod_equipment_qa/ExampleModEquipmentQa.csproj": "7eb0e0f9e7cf36913bc28ea2ce8fae77941a8239f800d07d6cce2d000db9bd98",
-        "tests/examplemod_equipment_qa/Program.cs": "db90874231f30da6b9650c04f2f0f84e026ac849a4b4e6f339df15a38deb6a66"
+        "tests/examplemod_equipment_qa/ExampleModEquipmentQa.csproj": "1fa42e6785e86ee44aecda7f4c610610e0726c41c4059710de3f0718fdbdde5c",
+        "tests/examplemod_equipment_qa/Program.cs": "d0b6268380d8219ef43a3ceb8d45f630a56449f27597a789fa76b7b9776e250f"
       }
     },
     "Content/Items/Weapons/Melee/ExampleMeleeWeapon.js#SetDefaults": {
@@ -2890,8 +2890,8 @@
       "androidEvidence": [],
       "validatedFilesSha256": {
         "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Melee/ExampleMeleeWeapon.cs": "7baa8d361f864f88dd65c845e0926674432bb265308c87326514fe5ed90ab1be",
-        "tests/examplemod_equipment_qa/ExampleModEquipmentQa.csproj": "7eb0e0f9e7cf36913bc28ea2ce8fae77941a8239f800d07d6cce2d000db9bd98",
-        "tests/examplemod_equipment_qa/Program.cs": "db90874231f30da6b9650c04f2f0f84e026ac849a4b4e6f339df15a38deb6a66"
+        "tests/examplemod_equipment_qa/ExampleModEquipmentQa.csproj": "1fa42e6785e86ee44aecda7f4c610610e0726c41c4059710de3f0718fdbdde5c",
+        "tests/examplemod_equipment_qa/Program.cs": "d0b6268380d8219ef43a3ceb8d45f630a56449f27597a789fa76b7b9776e250f"
       }
     },
     "Content/Items/Ammo/ExampleBullet.js#SetDefaults": {
@@ -2908,8 +2908,8 @@
       "androidEvidence": [],
       "validatedFilesSha256": {
         "samples/ExampleModCSharp/Playable/content/Content/Items/Ammo/ExampleBullet.cs": "91d04334397f041323331ac48994c30525f7c8e1f6a9548d852849fa8a4ba7b7",
-        "tests/examplemod_equipment_qa/ExampleModEquipmentQa.csproj": "7eb0e0f9e7cf36913bc28ea2ce8fae77941a8239f800d07d6cce2d000db9bd98",
-        "tests/examplemod_equipment_qa/Program.cs": "db90874231f30da6b9650c04f2f0f84e026ac849a4b4e6f339df15a38deb6a66"
+        "tests/examplemod_equipment_qa/ExampleModEquipmentQa.csproj": "1fa42e6785e86ee44aecda7f4c610610e0726c41c4059710de3f0718fdbdde5c",
+        "tests/examplemod_equipment_qa/Program.cs": "d0b6268380d8219ef43a3ceb8d45f630a56449f27597a789fa76b7b9776e250f"
       }
     },
     "Content/Items/ExampleItem.js#AddRecipes": {
@@ -3224,6 +3224,38 @@
         "samples/ExampleModCSharp/Playable/content/Content/Buffs/ExampleMountBuff.png": "c76e9f47edf271782b09005fd0b9aa88621e354f9067bd980d96d27660189dfd",
         "tests/examplemod_buff_qa/ExampleModBuffQa.csproj": "fc297578ed0cd7bdf482c05c4f4579a855461f14087f627f0a8f7594e07d3b4c",
         "tests/examplemod_buff_qa/Program.cs": "6dd4d431ea9a2b1beefab744c267a461bfade7a7558466ea956c078dfb2d8463"
+      }
+    },
+    "Content/Items/Armor/ExampleCostume.js#SetDefaults": {
+      "status": "validado automaticamente",
+      "note": "Host: ExampleCostume mantém dimensões 24x28, acessório, valor buyPrice de 15 ouro, Pink, hasVanityEffects e três texturas nativas da armadura; sete PNGs conferidos byte a byte com o ExampleModBunny. Slots alternativos quando molhado, ocultação de pele, UpdateAccessory e buff Blocky em jogo ainda pendentes; Android não validado.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Armor/ExampleCostume.cs",
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Armor/ExampleCostume.png",
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Armor/ExampleCostume_Head.png",
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Armor/ExampleCostume_Body.png",
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Armor/ExampleCostume_Legs.png",
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Armor/ExampleCostumeAlt_Head.png",
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Armor/ExampleCostumeAlt_Body.png",
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Armor/ExampleCostumeAlt_Legs.png"
+      ],
+      "tests": [
+        "tests/examplemod_equipment_qa/ExampleModEquipmentQa.csproj",
+        "tests/examplemod_equipment_qa/Program.cs"
+      ],
+      "validationScope": "host; Android pendente",
+      "androidEvidence": [],
+      "validatedFilesSha256": {
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Armor/ExampleCostume.cs": "9410f5582c7a435811a6aabc3f444c9d5f697341e95374755f1faf0e61d67bf4",
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Armor/ExampleCostume.png": "6330a65e782acc400e173d88b693facbcc481bf984a07f608e029eb29729c161",
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Armor/ExampleCostume_Head.png": "dc4197ec293bd28327ce2eaed28c5fc608ccd27b2cbb14b5fc7afdba74e7c093",
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Armor/ExampleCostume_Body.png": "2325f096632197621104466bdc3d0b259577021ebc6930d9102d4817dfc01aed",
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Armor/ExampleCostume_Legs.png": "25c9d33c2838598079519c43b775d4432f3e912c3a27c07f344ea0be4274077f",
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Armor/ExampleCostumeAlt_Head.png": "cc56ed0ce12e5344f6d1af7f3dc6a82b0e424dea9a22e2fbc338b303ed0f2073",
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Armor/ExampleCostumeAlt_Body.png": "62924863a72f029d92b321718a5d9e62c481dd7e881f711d62cb43f46769521e",
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Armor/ExampleCostumeAlt_Legs.png": "10a493f30c1ba4eb360e76af649ac4a2b4eb483ac2e031342652ab37652f3e3b",
+        "tests/examplemod_equipment_qa/ExampleModEquipmentQa.csproj": "1fa42e6785e86ee44aecda7f4c610610e0726c41c4059710de3f0718fdbdde5c",
+        "tests/examplemod_equipment_qa/Program.cs": "d0b6268380d8219ef43a3ceb8d45f630a56449f27597a789fa76b7b9776e250f"
       }
     }
   }
