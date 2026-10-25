@@ -76,7 +76,7 @@ int constantDustId(const char* name) {
     if(!shortType&&std::strcmp(type,"Int32"))return -1;
     if(a.field_get_flags(field)&0x40u) {
         using Getter=const void*(*)(const FieldInfo*,const Il2CppType**);
-        const auto* getter=reinterpret_cast<Getter>(dlsym(RTLD_DEFAULT,"il2cpp_field_get_default_value"));
+        const auto getter=reinterpret_cast<Getter>(dlsym(RTLD_DEFAULT,"il2cpp_field_get_default_value"));
         const Il2CppType* metadata=nullptr;
         const auto* src=getter?getter(field,&metadata):nullptr;
         if(!src)return -1;
