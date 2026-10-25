@@ -66,7 +66,7 @@
           "execution": "compile_policy"
         },
         {
-          "signature": "void SetRarity\u003CT\u003E()",
+          "signature": "void SetRarity<T>()",
           "execution": "managed_helper"
         }
       ]
@@ -254,7 +254,7 @@
           "execution": "compile_policy"
         },
         {
-          "signature": "void SetRarity\u003CT\u003E()",
+          "signature": "void SetRarity<T>()",
           "execution": "managed_helper"
         }
       ]
@@ -338,7 +338,7 @@
       "constructors": [],
       "properties": [
         "BunnyCommandType Type { get; }",
-        "IReadOnlyList\u003Cstring\u003E Aliases { get; }",
+        "IReadOnlyList<string> Aliases { get; }",
         "bool IsCaseSensitive { get; }",
         "string Command { get; }",
         "string Description { get; }",
@@ -404,7 +404,7 @@
       "kind": "class",
       "baseType": "System.Object",
       "constructors": [
-        "BunnyCommandCaller(int playerIndex, int networkMode, BunnyCommandCallerKind kind, Action\u003CBunnyCommandReply\u003E reply, Action\u003CBunnyCommandAction\u003E requestAction)"
+        "BunnyCommandCaller(int playerIndex, int networkMode, BunnyCommandCallerKind kind, Action<BunnyCommandReply> reply, Action<BunnyCommandAction> requestAction)"
       ],
       "properties": [
         "BunnyCommandCallerKind Kind { get; }",
@@ -446,7 +446,7 @@
       "constructors": [],
       "properties": [
         "BunnyCommandCaller Caller { get; }",
-        "IReadOnlyList\u003Cstring\u003E Arguments { get; }",
+        "IReadOnlyList<string> Arguments { get; }",
         "string Input { get; }"
       ],
       "values": [],
@@ -457,13 +457,13 @@
       "kind": "class",
       "baseType": "System.Object",
       "constructors": [
-        "BunnyCommandRegistry(Action\u003CException\u003E onError)"
+        "BunnyCommandRegistry(Action<Exception> onError)"
       ],
       "properties": [],
       "values": [],
       "methods": [
         {
-          "signature": "IReadOnlyList\u003CValueTuple\u003Cstring, string\u003E\u003E GetHelp(BunnyCommandCaller caller)",
+          "signature": "IReadOnlyList<ValueTuple<string, string>> GetHelp(BunnyCommandCaller caller)",
           "execution": "managed_helper"
         },
         {
@@ -471,7 +471,7 @@
           "execution": "managed_helper"
         },
         {
-          "signature": "int Register(string modId, IEnumerable\u003CBunnyCommand\u003E commands)",
+          "signature": "int Register(string modId, IEnumerable<BunnyCommand> commands)",
           "execution": "managed_helper"
         },
         {
@@ -479,7 +479,7 @@
           "execution": "managed_helper"
         },
         {
-          "signature": "int RegisterTypes(string modId, IEnumerable\u003CType\u003E types)",
+          "signature": "int RegisterTypes(string modId, IEnumerable<Type> types)",
           "execution": "managed_helper"
         },
         {
@@ -599,7 +599,8 @@
         "Wall",
         "Dust",
         "Tree",
-        "Gore"
+        "Gore",
+        "Mount"
       ],
       "methods": []
     },
@@ -631,7 +632,7 @@
           "execution": "worker_craft_command_queue"
         },
         {
-          "signature": "void GiveItem\u003CTItem\u003E(int count)",
+          "signature": "void GiveItem<TItem>(int count)",
           "execution": "worker_craft_command_queue"
         }
       ]
@@ -763,7 +764,7 @@
       "values": [],
       "methods": [
         {
-          "signature": "static bool EmitAtPlayer\u003CT\u003E(int playerIndex, int count)",
+          "signature": "static bool EmitAtPlayer<T>(int playerIndex, int count)",
           "execution": "managed_helper"
         }
       ]
@@ -1611,7 +1612,7 @@
         "BunnyInvasionDefinition(string id, int goal, int maxActive, int spawnInterval, BunnyInvasionEnemy[] enemies)"
       ],
       "properties": [
-        "IReadOnlyList\u003CBunnyInvasionEnemy\u003E Enemies { get; }",
+        "IReadOnlyList<BunnyInvasionEnemy> Enemies { get; }",
         "int Goal { get; }",
         "int MaxActive { get; }",
         "int SpawnInterval { get; }",
@@ -2007,16 +2008,6 @@
       "baseType": "BunnyLoader.Source.BunnyShootSource",
       "constructors": [],
       "properties": [
-        "BunnyHoldout Holdout { get; set; }",
-        "BunnyItemBehavior Behavior { get; }",
-        "BunnyNativeDefaults NativeDefaults { get; }",
-        "BunnyQuestCatchRules QuestCatchRules { get; set; }",
-        "BunnySoundStyle CustomUseSound { get; set; }",
-        "Dictionary\u003Cstring, string\u003E QuestCatchLocationTranslations { get; }",
-        "Dictionary\u003Cstring, string\u003E QuestDescriptionTranslations { get; }",
-        "Dictionary\u003Cstring, string\u003E TooltipTranslations { get; }",
-        "Func\u003CBunnyQuestContext, bool\u003E QuestAvailableWhen { get; set; }",
-        "Func\u003CBunnyQuestContext, bool\u003E QuestCanCatchWhen { get; set; }",
         "bool Accessory { get; set; }",
         "bool AutoReuse { get; set; }",
         "bool Consumable { get; set; }",
@@ -2028,7 +2019,17 @@
         "bool QuestFish { get; set; }",
         "bool UseTurn { get; set; }",
         "bool Vanity { get; set; }",
+        "BunnyHoldout Holdout { get; set; }",
+        "BunnyItemBehavior Behavior { get; }",
+        "BunnyNativeDefaults NativeDefaults { get; }",
+        "BunnyQuestCatchRules QuestCatchRules { get; set; }",
+        "BunnySoundStyle CustomUseSound { get; set; }",
+        "Dictionary<string, string> QuestCatchLocationTranslations { get; }",
+        "Dictionary<string, string> QuestDescriptionTranslations { get; }",
+        "Dictionary<string, string> TooltipTranslations { get; }",
         "float KnockBack { get; set; }",
+        "Func<BunnyQuestContext, bool> QuestAvailableWhen { get; set; }",
+        "Func<BunnyQuestContext, bool> QuestCanCatchWhen { get; set; }",
         "int Axe { get; set; }",
         "int Crit { get; set; }",
         "int Damage { get; set; }",
@@ -2046,6 +2047,7 @@
         "string BehaviorDefinition { get; }",
         "string DisplayName { get; set; }",
         "string ModRarityClassName { get; }",
+        "string Mount { get; set; }",
         "string NativeAccessoryEffectsDefinition { get; }",
         "string NativeArmorDefinition { get; }",
         "string NativeCloneOverridesDefinition { get; }",
@@ -2108,7 +2110,7 @@
           "execution": "managed_helper"
         },
         {
-          "signature": "void ModifyTooltips(List\u003CBunnyTooltipLine\u003E lines)",
+          "signature": "void ModifyTooltips(List<BunnyTooltipLine> lines)",
           "execution": "managed_helper"
         },
         {
@@ -2116,7 +2118,7 @@
           "execution": "compile_policy"
         },
         {
-          "signature": "void SetRarity\u003CT\u003E()",
+          "signature": "void SetRarity<T>()",
           "execution": "managed_helper"
         }
       ]
@@ -2200,15 +2202,15 @@
       "values": [],
       "methods": [
         {
-          "signature": "IReadOnlyDictionary\u003Cstring, string\u003E SnapshotForGame()",
+          "signature": "IReadOnlyDictionary<string, string> SnapshotForGame()",
           "execution": "managed_helper"
         },
         {
-          "signature": "IReadOnlyDictionary\u003Cstring, string\u003E Texts(string path, string callerModId)",
+          "signature": "IReadOnlyDictionary<string, string> Texts(string path, string callerModId)",
           "execution": "managed_helper"
         },
         {
-          "signature": "IReadOnlyList\u003Cstring\u003E ExportWireRows()",
+          "signature": "IReadOnlyList<string> ExportWireRows()",
           "execution": "managed_helper"
         },
         {
@@ -2232,7 +2234,7 @@
           "execution": "managed_helper"
         },
         {
-          "signature": "void Register(string fullKey, IReadOnlyDictionary\u003Cstring, string\u003E cultures)",
+          "signature": "void Register(string fullKey, IReadOnlyDictionary<string, string> cultures)",
           "execution": "managed_helper"
         },
         {
@@ -2240,7 +2242,7 @@
           "execution": "managed_helper"
         },
         {
-          "signature": "void RegisterCulture(string modId, string culture, IReadOnlyDictionary\u003Cstring, string\u003E texts)",
+          "signature": "void RegisterCulture(string modId, string culture, IReadOnlyDictionary<string, string> texts)",
           "execution": "managed_helper"
         },
         {
@@ -2248,7 +2250,7 @@
           "execution": "managed_helper"
         },
         {
-          "signature": "void ReplaceModCultures(string modId, IReadOnlyDictionary\u003Cstring, IReadOnlyDictionary\u003Cstring, string\u003E\u003E cultures)",
+          "signature": "void ReplaceModCultures(string modId, IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>> cultures)",
           "execution": "managed_helper"
         },
         {
@@ -2303,7 +2305,7 @@
           "execution": "worker_async_localization"
         },
         {
-          "signature": "static void Register(string key, IReadOnlyDictionary\u003Cstring, string\u003E cultures)",
+          "signature": "static void Register(string key, IReadOnlyDictionary<string, string> cultures)",
           "execution": "managed_owned_registration"
         },
         {
@@ -3276,7 +3278,7 @@
       "values": [],
       "methods": [
         {
-          "signature": "IReadOnlyList\u003CBunnyRarityEntry\u003E Seal()",
+          "signature": "IReadOnlyList<BunnyRarityEntry> Seal()",
           "execution": "managed_helper"
         },
         {
@@ -3292,7 +3294,7 @@
           "execution": "managed_helper"
         },
         {
-          "signature": "int TypeOf\u003CT\u003E(string modId)",
+          "signature": "int TypeOf<T>(string modId)",
           "execution": "managed_helper"
         },
         {
@@ -3312,7 +3314,7 @@
       "values": [],
       "methods": [
         {
-          "signature": "static int TypeOf\u003CT\u003E(string modId)",
+          "signature": "static int TypeOf<T>(string modId)",
           "execution": "managed_helper"
         },
         {
@@ -3338,11 +3340,11 @@
           "execution": "managed_helper"
         },
         {
-          "signature": "BunnyRecipe AddCondition(string description, Func\u003CBunnyCraftContext, bool\u003E predicate)",
+          "signature": "BunnyRecipe AddCondition(string description, Func<BunnyCraftContext, bool> predicate)",
           "execution": "managed_helper"
         },
         {
-          "signature": "BunnyRecipe AddConsumeIngredientCallback(Func\u003CBunnyCraftContext, int, int, int\u003E callback)",
+          "signature": "BunnyRecipe AddConsumeIngredientCallback(Func<BunnyCraftContext, int, int, int> callback)",
           "execution": "managed_helper"
         },
         {
@@ -3354,7 +3356,7 @@
           "execution": "managed_helper"
         },
         {
-          "signature": "BunnyRecipe AddIngredient\u003CTItem\u003E(int count)",
+          "signature": "BunnyRecipe AddIngredient<TItem>(int count)",
           "execution": "managed_helper"
         },
         {
@@ -3362,7 +3364,7 @@
           "execution": "managed_helper"
         },
         {
-          "signature": "BunnyRecipe AddOnCraftCallback(Action\u003CBunnyCraftContext\u003E callback)",
+          "signature": "BunnyRecipe AddOnCraftCallback(Action<BunnyCraftContext> callback)",
           "execution": "managed_helper"
         },
         {
@@ -3378,7 +3380,7 @@
           "execution": "managed_helper"
         },
         {
-          "signature": "BunnyRecipe AddTile\u003CTTile\u003E()",
+          "signature": "BunnyRecipe AddTile<TTile>()",
           "execution": "managed_helper"
         },
         {
@@ -3398,7 +3400,7 @@
           "execution": "managed_helper"
         },
         {
-          "signature": "bool RemoveIngredient\u003CTItem\u003E()",
+          "signature": "bool RemoveIngredient<TItem>()",
           "execution": "managed_helper"
         },
         {
@@ -3444,7 +3446,7 @@
       "kind": "class",
       "baseType": "System.Object",
       "constructors": [
-        "BunnyRecipeCondition(string description, Func\u003CBunnyCraftContext, bool\u003E predicate)"
+        "BunnyRecipeCondition(string description, Func<BunnyCraftContext, bool> predicate)"
       ],
       "properties": [
         "BunnyRecipeCondition Day { get; }",
@@ -3496,7 +3498,7 @@
           "execution": "managed_helper"
         },
         {
-          "signature": "BunnyRecipeGroup AddItem\u003CTItem\u003E()",
+          "signature": "BunnyRecipeGroup AddItem<TItem>()",
           "execution": "managed_helper"
         }
       ]
@@ -3535,7 +3537,7 @@
       "baseType": "System.Object",
       "constructors": [],
       "properties": [
-        "IReadOnlyList\u003Cstring\u003E RecipeDefinitions { get; }"
+        "IReadOnlyList<string> RecipeDefinitions { get; }"
       ],
       "values": [],
       "methods": [
@@ -4114,8 +4116,8 @@
         "BunnyTooltipPlan()"
       ],
       "properties": [
-        "Dictionary\u003Cstring, BunnyDrawableTooltipLine\u003E Draw { get; }",
-        "List\u003CBunnyTooltipLine\u003E Lines { get; }"
+        "Dictionary<string, BunnyDrawableTooltipLine> Draw { get; }",
+        "List<BunnyTooltipLine> Lines { get; }"
       ],
       "values": [],
       "methods": []
@@ -4182,7 +4184,7 @@
           "execution": "managed_helper"
         },
         {
-          "signature": "static ValueTuple\u003Cbool, bool\u003E GetPolicies(int id)",
+          "signature": "static ValueTuple<bool, bool> GetPolicies(int id)",
           "execution": "managed_helper"
         },
         {
@@ -4317,11 +4319,11 @@
           "execution": "managed_helper"
         },
         {
-          "signature": "void Capture(string profileId, IReadOnlyList\u003CBunnyTouchLayoutSlot\u003E slots, Func\u003Cstring, bool\u003E isLoadedAction)",
+          "signature": "void Capture(string profileId, IReadOnlyList<BunnyTouchLayoutSlot> slots, Func<string, bool> isLoadedAction)",
           "execution": "managed_helper"
         },
         {
-          "signature": "void Restore(string profileId, IReadOnlyList\u003CBunnyTouchLayoutSlot\u003E slots, Func\u003Cstring, bool\u003E isLoadedAction)",
+          "signature": "void Restore(string profileId, IReadOnlyList<BunnyTouchLayoutSlot> slots, Func<string, bool> isLoadedAction)",
           "execution": "managed_helper"
         },
         {
@@ -4806,7 +4808,7 @@
           "execution": "compile_policy"
         },
         {
-          "signature": "void SetRarity\u003CT\u003E()",
+          "signature": "void SetRarity<T>()",
           "execution": "managed_helper"
         }
       ]
@@ -4885,7 +4887,7 @@
       "values": [],
       "methods": [
         {
-          "signature": "bool TryApplyNetworkState(UInt64 epoch, ReadOnlySpan\u003CByte\u003E packet, out string error)",
+          "signature": "bool TryApplyNetworkState(UInt64 epoch, ReadOnlySpan<Byte> packet, out string error)",
           "execution": "managed_helper"
         },
         {
@@ -4939,7 +4941,7 @@
           "execution": "managed_helper"
         },
         {
-          "signature": "static bool TryDecode(ReadOnlySpan\u003CByte\u003E bytes, out BunnyWorldDocument document)",
+          "signature": "static bool TryDecode(ReadOnlySpan<Byte> bytes, out BunnyWorldDocument document)",
           "execution": "managed_helper"
         },
         {
@@ -5098,11 +5100,11 @@
       "values": [],
       "methods": [
         {
-          "signature": "static Byte[] Encode(IReadOnlyDictionary\u003Cstring, BunnyWorldSystem\u003E systems, UInt32 revision)",
+          "signature": "static Byte[] Encode(IReadOnlyDictionary<string, BunnyWorldSystem> systems, UInt32 revision)",
           "execution": "managed_helper"
         },
         {
-          "signature": "static bool TryDecode(ReadOnlySpan\u003CByte\u003E bytes, out UInt32 revision, out SortedDictionary\u003Cstring, Byte[]\u003E systems)",
+          "signature": "static bool TryDecode(ReadOnlySpan<Byte> bytes, out UInt32 revision, out SortedDictionary<string, Byte[]> systems)",
           "execution": "managed_helper"
         }
       ]
@@ -5399,7 +5401,7 @@
           "execution": "managed_helper"
         },
         {
-          "signature": "void NextBytes(Span\u003CByte\u003E buffer)",
+          "signature": "void NextBytes(Span<Byte> buffer)",
           "execution": "managed_helper"
         },
         {
@@ -5409,16 +5411,16 @@
       ]
     },
     {
-      "name": "Terraria.Utilities.WeightedRandom\u00601",
+      "name": "Terraria.Utilities.WeightedRandom`1",
       "kind": "class",
       "baseType": "System.Object",
       "constructors": [
-        "WeightedRandom\u00601()",
-        "WeightedRandom\u00601(Tuple\u003CT, Double\u003E[] theElements)",
-        "WeightedRandom\u00601(UnifiedRandom random)",
-        "WeightedRandom\u00601(UnifiedRandom random, Tuple\u003CT, Double\u003E[] theElements)",
-        "WeightedRandom\u00601(int seed)",
-        "WeightedRandom\u00601(int seed, Tuple\u003CT, Double\u003E[] theElements)"
+        "WeightedRandom`1()",
+        "WeightedRandom`1(Tuple<T, Double>[] theElements)",
+        "WeightedRandom`1(UnifiedRandom random)",
+        "WeightedRandom`1(UnifiedRandom random, Tuple<T, Double>[] theElements)",
+        "WeightedRandom`1(int seed)",
+        "WeightedRandom`1(int seed, Tuple<T, Double>[] theElements)"
       ],
       "properties": [],
       "values": [],
@@ -5450,19 +5452,19 @@
       "values": [],
       "methods": [
         {
-          "signature": "static T Next\u003CT\u003E(UnifiedRandom random, IList\u003CT\u003E list)",
+          "signature": "static T Next<T>(UnifiedRandom random, IList<T> list)",
           "execution": "managed_helper"
         },
         {
-          "signature": "static T Next\u003CT\u003E(UnifiedRandom random, T[] array)",
+          "signature": "static T Next<T>(UnifiedRandom random, T[] array)",
           "execution": "managed_helper"
         },
         {
-          "signature": "static T NextFromCollection\u003CT\u003E(UnifiedRandom random, List\u003CT\u003E values)",
+          "signature": "static T NextFromCollection<T>(UnifiedRandom random, List<T> values)",
           "execution": "managed_helper"
         },
         {
-          "signature": "static T NextFromList\u003CT\u003E(UnifiedRandom random, T[] values)",
+          "signature": "static T NextFromList<T>(UnifiedRandom random, T[] values)",
           "execution": "managed_helper"
         },
         {
