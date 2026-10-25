@@ -51,6 +51,7 @@ string Mode(Type type, MethodInfo method)
         parameter.ParameterType == typeof(BunnyProjectileAiState).MakeByRefType()))
         return "worker_async_entity";
     if (type == typeof(BunnyProjectile) && method.Name != "SetDefaults") return "compile_sampled_policy";
+    if (type == typeof(BunnyMount)) return "authoring_contract_native_registration_pending";
     if (type == typeof(BunnyPrefix)) return "compile_policy";
     if (type == typeof(BunnyLocalizationModule))
         return method.Name == "OnLocalizationsLoaded" ? "worker_async_localization" : "compile_policy";
