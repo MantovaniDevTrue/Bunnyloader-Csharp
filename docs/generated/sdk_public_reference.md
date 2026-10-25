@@ -1174,6 +1174,7 @@ string NativeArmorDefinition { get; }
 | `void AddOnEquip(BunnyEquipFloat field, float value)` | managed_helper |
 | `void Animate(int frames, int ticksPerFrame, bool animatesAsSoul, bool pulse, bool noGravity)` | managed_helper |
 | `void CloneVanillaDefaults(string itemIdName)` | managed_helper |
+| `void ConfigureCostume(string alternateTextureStem, string buffName, float jumpSpeedBoost, int extraFall, int requiredTownNpcs)` | managed_helper |
 | `void DefineArmorSet(BunnyArmorSet set)` | managed_helper |
 | `void EquipTexture(BunnyEquipKind kind, string texture, BunnyEquipDrawFlags flags)` | managed_helper |
 | `void MultiplyOnEquip(BunnyEquipFloat field, float multiplier)` | managed_helper |
