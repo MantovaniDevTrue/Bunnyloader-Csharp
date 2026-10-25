@@ -3,6 +3,7 @@
 #include "experiments/csharp/NativeStaticValue.h"
 #include "experiments/csharp/NativeColorLayout.h"
 #include "experiments/csharp/NativeContent.h"
+#include "content/buffs/ModBuffs.h"
 #include "content/common/ContentAssets.h"
 #include "content/common/TypeTables.h"
 #include "mods/ModLoader.h"
@@ -37,6 +38,8 @@ struct Entry {
     uint64_t generation=0;
     const MethodInfo* localPlayer=nullptr;
     std::map<std::string,int> slots;
+    std::array<int,3> costumeAltSlots{-1,-1,-1};
+    int costumeBuffType=-1;
 };
 struct Snapshot {
     std::map<int,std::shared_ptr<const Entry>> items;
@@ -584,6 +587,47 @@ bool install(Entry& entry,std::string* error) {
         if(!installEquipment(equip,error)||!setBasicItemEquipSlot(entry.source.type,source.kind,equip.slot,error))return false;
         entry.slots[source.kind]=equip.slot;
     }
+    if(entry.policy.costume.enabled) {
+        const auto& c=entry.policy.costume;
+        const int buffType=runtime::modBuffTypeByName(entry.source.modId,c.buff);
+        if(buffType<0){*error="Reason=CostumeBuffNotRegistered";return false;}
+        const char* names[]={"Head","Body","Legs"};
+        const auto ownedFlag=[&](const char* group,const char* flag,int slot,bool value,int variant) {
+            auto* cls=nested(group);
+            auto* sets=cls?findNested(cls,"Sets"):nullptr;
+            auto field=staticArray(sets,flag);
+            const auto* array=table(field);
+            if(!array||!primitive(api().class_get_element_class(field.type),"Boolean",1)||
+               !grow(field,slot+1))return false;
+            const uint8_t bits=value?1:0;
+            return writeOwnedStaticCell(entry.source.type,
+                std::string("Costume.")+group+"."+flag+"."+std::to_string(variant),
+                field,slot,&bits,1);
+        };
+        for(int i=0;i<3;++i) {
+            const std::string name=names[i];
+            const auto key=std::make_pair(entry.source.type,name+"#CostumeAlt");
+            auto& equip=equipment[key];
+            if(equip.type<0) {
+                equip.type=entry.source.type;equip.kind=name;
+                equip.path=entry.source.modDir+"/content/"+c.alternate+"_"+name+".png";
+            }
+            if(!installEquipment(equip,error))return false;
+            entry.costumeAltSlots[i]=equip.slot;
+            const int normal=entry.slots.at(name);
+            for(int variant=0;variant<2;++variant) {
+                const int slot=variant?equip.slot:normal;
+                const bool ready=i==0
+                    ?ownedFlag("Head","DrawHead",slot,false,variant)
+                    :i==1
+                        ?ownedFlag("Body","HidesTopSkin",slot,true,variant)&&
+                         ownedFlag("Body","HidesArms",slot,true,variant)
+                        :ownedFlag("Legs","HidesBottomSkin",slot,true,variant);
+                if(!ready){*error="Reason=CostumeSkinFlagsUnavailable";return false;}
+            }
+        }
+        entry.costumeBuffType=buffType;
+    }
     if(entry.policy.animated&&!registerAnimation(entry,error))return false;
     if(entry.policy.wing){
         if(!writeWingStats(entry,error))return false;
@@ -706,6 +750,27 @@ bool applyNativeItemPolicyDefaults(Il2CppObject* item,int type) {
     }
     if(entry.policy.hair){Il2CppObject* player=nullptr;if(invoke(entry.localPlayer,nullptr,nullptr,&player)&&player)std::memcpy(reinterpret_cast<char*>(item)+entry.color,reinterpret_cast<char*>(player)+entry.hair,4);}
     return bool(entry.clone);
+}
+bool nativeCostumeEffect(int itemType,NativeCostumeEffect* effect) {
+    if(!effect)return false;
+    const auto view=std::atomic_load_explicit(&item_native::snapshot,std::memory_order_acquire);
+    if(!view)return false;
+    const auto found=view->items.find(itemType);
+    if(found==view->items.end())return false;
+    const auto& entry=*found->second;
+    if(!entry.policy.costume.enabled||entry.costumeBuffType<0)return false;
+    effect->buffType=entry.costumeBuffType;
+    const char* names[]={"Head","Body","Legs"};
+    for(int i=0;i<3;++i) {
+        const auto normal=entry.slots.find(names[i]);
+        if(normal==entry.slots.end()||entry.costumeAltSlots[i]<0)return false;
+        effect->normal[i]=normal->second;
+        effect->alternate[i]=entry.costumeAltSlots[i];
+    }
+    effect->jumpSpeedBoost=entry.policy.costume.jump;
+    effect->extraFall=entry.policy.costume.fall;
+    effect->requiredTownNpcs=entry.policy.costume.town;
+    return true;
 }
 bool nativeItemPolicyReady(int type) {std::lock_guard lock(item_native::queueMutex);if(item_native::staticRetirements.contains(type))return false;const auto it=item_native::statuses.find(type);return it==item_native::statuses.end()||it->second.ready;}
 size_t pendingNativeItemPolicies(){std::lock_guard lock(item_native::queueMutex);return item_native::pendingCount.load(std::memory_order_acquire)+item_native::staticRetirements.size();}
