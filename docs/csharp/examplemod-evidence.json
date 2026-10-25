@@ -2384,9 +2384,9 @@
       }
     },
     "requirement:item-primitive-static-cell-retirement": {
-      "status": "validado automaticamente",
+      "status": "implementado sem validar",
       "behavior": "Restaurar três flags de animação e a célula WingStats por tipo",
-      "note": "Wire real, baseline, array substituído/menor, escrita externa, outro UID, tabela ausente/ABI inválida, nova revisão bloqueada e limpeza obsoleta verificados no host. Até oito tipos com células por pump, em rotação; 17 tipos em três pumps. Main.itemAnimations/índices registrados, demais tabelas/equipamentos e unload global continuam pendentes.",
+      "note": "A validação anterior de restauração de células estáticas permanece como histórico, mas NativeItemPolicies.cpp, cabeçalho e fixtures foram alterados pelo lote Blocky. Reexecutar testes nativos de instalação, unload, restauração de flags e compatibilidade com outros mods antes de validar novamente.",
       "implementation": [
         "app/src/main/cpp/experiments/csharp/NativeItemPolicies.cpp",
         "app/src/main/cpp/experiments/csharp/NativeItemPolicies.h"
@@ -3227,8 +3227,8 @@
       }
     },
     "Content/Items/Armor/ExampleCostume.js#SetDefaults": {
-      "status": "validado automaticamente",
-      "note": "Host: ExampleCostume mantém dimensões 24x28, acessório, valor buyPrice de 15 ouro, Pink, hasVanityEffects e três texturas nativas da armadura; sete PNGs conferidos byte a byte com o ExampleModBunny. Slots alternativos quando molhado, ocultação de pele, UpdateAccessory e buff Blocky em jogo ainda pendentes; Android não validado.",
+      "status": "implementado sem validar",
+      "note": "Os valores 24x28, acessório, valor de 15 ouro, Pink e as sete texturas originais continuam implementados. O novo descritor Blocky modificou ExampleCostume.cs; compilar e verificar o registro nativo e o gameplay Android antes de restaurar validação automática.",
       "implementation": [
         "samples/ExampleModCSharp/Playable/content/Content/Items/Armor/ExampleCostume.cs",
         "samples/ExampleModCSharp/Playable/content/Content/Items/Armor/ExampleCostume.png",
