@@ -3055,6 +3055,136 @@
         "tests/examplemod_item_recipes_qa/ExampleModItemRecipesQa.csproj": "7563dd47f7e94efabf7184ace95ce47994b813a53829312df4db19dd1a7552aa",
         "tests/examplemod_item_recipes_qa/Program.cs": "9031367ab893a14a6a06c05a6e592960c2a47ffa61f885a5331508bb137a5cc2"
       }
+    },
+    "Content/Buffs/ExampleDefenseBuff.js#ModifyDescription": {
+      "status": "validado automaticamente",
+      "note": "Host: classe Playable confere DefenseBonus=10, texto en-US original com interpolação {0}, pt-BR e bônus sem multiplicador; gameplay e ModifyBuffText com tempo restante no Android ainda pendentes.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Content/Buffs/ExampleDefenseBuff.cs"
+      ],
+      "tests": [
+        "tests/examplemod_buff_qa/ExampleModBuffQa.csproj",
+        "tests/examplemod_buff_qa/Program.cs"
+      ],
+      "validationScope": "host; Android pendente",
+      "androidEvidence": [],
+      "validatedFilesSha256": {
+        "samples/ExampleModCSharp/Playable/content/Content/Buffs/ExampleDefenseBuff.cs": "a0dbc7d4cd962ad6513ac93f9a8b5d8f092b5bfd34e2430c1dacee3f7c119574",
+        "tests/examplemod_buff_qa/ExampleModBuffQa.csproj": "77bc93e296473f22f051abe34e3cc205518cb55e3199580da5dece1b876e7087",
+        "tests/examplemod_buff_qa/Program.cs": "e41a80561fd03417a10aae6fe52cdc5c3efe08d8f2d3e0328d38fb6243905541"
+      }
+    },
+    "Content/Buffs/ExampleDefenseBuff.js#UpdatePlayer": {
+      "status": "validado automaticamente",
+      "note": "Host: classe Playable confere DefenseBonus=10, texto en-US original com interpolação {0}, pt-BR e bônus sem multiplicador; gameplay e ModifyBuffText com tempo restante no Android ainda pendentes.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Content/Buffs/ExampleDefenseBuff.cs"
+      ],
+      "tests": [
+        "tests/examplemod_buff_qa/ExampleModBuffQa.csproj",
+        "tests/examplemod_buff_qa/Program.cs"
+      ],
+      "validationScope": "host; Android pendente",
+      "androidEvidence": [],
+      "validatedFilesSha256": {
+        "samples/ExampleModCSharp/Playable/content/Content/Buffs/ExampleDefenseBuff.cs": "a0dbc7d4cd962ad6513ac93f9a8b5d8f092b5bfd34e2430c1dacee3f7c119574",
+        "tests/examplemod_buff_qa/ExampleModBuffQa.csproj": "77bc93e296473f22f051abe34e3cc205518cb55e3199580da5dece1b876e7087",
+        "tests/examplemod_buff_qa/Program.cs": "e41a80561fd03417a10aae6fe52cdc5c3efe08d8f2d3e0328d38fb6243905541"
+      }
+    },
+    "Content/Buffs/ExampleDefenseDebuff.js#ModifyDescription": {
+      "status": "validado automaticamente",
+      "note": "Host: classe Playable confere flag debuff, texto correto de 25% e DefenseMultiplierPercent=75 para aplicar redução após equipamento, com tradução en-US/pt-BR. Aplicação em combate Android pendente.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Content/Buffs/ExampleDefenseDebuff.cs"
+      ],
+      "tests": [
+        "tests/examplemod_buff_qa/ExampleModBuffQa.csproj",
+        "tests/examplemod_buff_qa/Program.cs"
+      ],
+      "validationScope": "host; Android pendente",
+      "androidEvidence": [],
+      "validatedFilesSha256": {
+        "samples/ExampleModCSharp/Playable/content/Content/Buffs/ExampleDefenseDebuff.cs": "2eb5d65b659f59a32d8e79f652aa380a26a37c003fe4e35b89bb6c63201e2227",
+        "tests/examplemod_buff_qa/ExampleModBuffQa.csproj": "77bc93e296473f22f051abe34e3cc205518cb55e3199580da5dece1b876e7087",
+        "tests/examplemod_buff_qa/Program.cs": "e41a80561fd03417a10aae6fe52cdc5c3efe08d8f2d3e0328d38fb6243905541"
+      }
+    },
+    "Content/Buffs/ExampleDefenseDebuff.js#SetStaticDefaults": {
+      "status": "validado automaticamente",
+      "note": "Host: classe Playable confere flag debuff, texto correto de 25% e DefenseMultiplierPercent=75 para aplicar redução após equipamento, com tradução en-US/pt-BR. Aplicação em combate Android pendente.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Content/Buffs/ExampleDefenseDebuff.cs"
+      ],
+      "tests": [
+        "tests/examplemod_buff_qa/ExampleModBuffQa.csproj",
+        "tests/examplemod_buff_qa/Program.cs"
+      ],
+      "validationScope": "host; Android pendente",
+      "androidEvidence": [],
+      "validatedFilesSha256": {
+        "samples/ExampleModCSharp/Playable/content/Content/Buffs/ExampleDefenseDebuff.cs": "2eb5d65b659f59a32d8e79f652aa380a26a37c003fe4e35b89bb6c63201e2227",
+        "tests/examplemod_buff_qa/ExampleModBuffQa.csproj": "77bc93e296473f22f051abe34e3cc205518cb55e3199580da5dece1b876e7087",
+        "tests/examplemod_buff_qa/Program.cs": "e41a80561fd03417a10aae6fe52cdc5c3efe08d8f2d3e0328d38fb6243905541"
+      }
+    },
+    "Content/Buffs/ExampleDefenseDebuff.js#UpdatePlayer": {
+      "status": "validado automaticamente",
+      "note": "Host: classe Playable confere flag debuff, texto correto de 25% e DefenseMultiplierPercent=75 para aplicar redução após equipamento, com tradução en-US/pt-BR. Aplicação em combate Android pendente.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Content/Buffs/ExampleDefenseDebuff.cs"
+      ],
+      "tests": [
+        "tests/examplemod_buff_qa/ExampleModBuffQa.csproj",
+        "tests/examplemod_buff_qa/Program.cs"
+      ],
+      "validationScope": "host; Android pendente",
+      "androidEvidence": [],
+      "validatedFilesSha256": {
+        "samples/ExampleModCSharp/Playable/content/Content/Buffs/ExampleDefenseDebuff.cs": "2eb5d65b659f59a32d8e79f652aa380a26a37c003fe4e35b89bb6c63201e2227",
+        "tests/examplemod_buff_qa/ExampleModBuffQa.csproj": "77bc93e296473f22f051abe34e3cc205518cb55e3199580da5dece1b876e7087",
+        "tests/examplemod_buff_qa/Program.cs": "e41a80561fd03417a10aae6fe52cdc5c3efe08d8f2d3e0328d38fb6243905541"
+      }
+    },
+    "Content/Buffs/ExampleMinionBuff.js#SetStaticDefaults": {
+      "status": "validado automaticamente",
+      "note": "Host: NoSave, NoTimeDisplay, vinculação ao ExampleMinion real e vida do projétil 18000 ticks; teste C++ de política renova buff com minion e remove sem minion. UI/contagem de minions e execução Android pendentes.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Content/Buffs/ExampleMinionBuff.cs"
+      ],
+      "tests": [
+        "tests/examplemod_buff_qa/ExampleModBuffQa.csproj",
+        "tests/examplemod_buff_qa/Program.cs",
+        "tests/minion_buff/minion_buff_test.cpp"
+      ],
+      "validationScope": "host; Android pendente",
+      "androidEvidence": [],
+      "validatedFilesSha256": {
+        "samples/ExampleModCSharp/Playable/content/Content/Buffs/ExampleMinionBuff.cs": "a6efa701d024fc146cc99bd17d14172d24431cb03c4bc87609eddf526441aa12",
+        "tests/examplemod_buff_qa/ExampleModBuffQa.csproj": "77bc93e296473f22f051abe34e3cc205518cb55e3199580da5dece1b876e7087",
+        "tests/examplemod_buff_qa/Program.cs": "e41a80561fd03417a10aae6fe52cdc5c3efe08d8f2d3e0328d38fb6243905541",
+        "tests/minion_buff/minion_buff_test.cpp": "b565f3247f589934f8b150bff8e09339e80ed5992015635ada3294c40a10305d"
+      }
+    },
+    "Content/Buffs/ExampleMinionBuff.js#UpdatePlayer": {
+      "status": "validado automaticamente",
+      "note": "Host: NoSave, NoTimeDisplay, vinculação ao ExampleMinion real e vida do projétil 18000 ticks; teste C++ de política renova buff com minion e remove sem minion. UI/contagem de minions e execução Android pendentes.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Content/Buffs/ExampleMinionBuff.cs"
+      ],
+      "tests": [
+        "tests/examplemod_buff_qa/ExampleModBuffQa.csproj",
+        "tests/examplemod_buff_qa/Program.cs",
+        "tests/minion_buff/minion_buff_test.cpp"
+      ],
+      "validationScope": "host; Android pendente",
+      "androidEvidence": [],
+      "validatedFilesSha256": {
+        "samples/ExampleModCSharp/Playable/content/Content/Buffs/ExampleMinionBuff.cs": "a6efa701d024fc146cc99bd17d14172d24431cb03c4bc87609eddf526441aa12",
+        "tests/examplemod_buff_qa/ExampleModBuffQa.csproj": "77bc93e296473f22f051abe34e3cc205518cb55e3199580da5dece1b876e7087",
+        "tests/examplemod_buff_qa/Program.cs": "e41a80561fd03417a10aae6fe52cdc5c3efe08d8f2d3e0328d38fb6243905541",
+        "tests/minion_buff/minion_buff_test.cpp": "b565f3247f589934f8b150bff8e09339e80ed5992015635ada3294c40a10305d"
+      }
     }
   }
 }
