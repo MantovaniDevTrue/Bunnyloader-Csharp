@@ -20,7 +20,8 @@ enum NativeContentKind : int32_t {
     NativeBuffPotion = 6,
     NativeBasicItem = 7,
     NativeTile = 8,
-    NativeWall = 9
+    NativeWall = 9,
+    NativeMount = 10
 };
 
 struct NativeContentSpec {
