@@ -5,6 +5,7 @@ on:
     paths:
       - 'experiments/csharp/BunnyCsSdk/BunnyMount.cs'
       - 'app/src/main/cpp/experiments/csharp/NativeMountPolicy.h'
+      - 'app/src/main/cpp/experiments/csharp/NativeMountVisualPolicy.h'
       - 'experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj'
       - 'tests/examplemod_mount_qa/**'
       - '.github/workflows/check-examplemod-mount-qa.yml'
@@ -26,5 +27,7 @@ jobs:
         run: |
           g++ -std=c++20 -O2 -Wall -Wextra -Werror -I app/src/main/cpp tests/examplemod_mount_qa/native_mount_policy_test.cpp -o /tmp/bunny-mount-policy-test
           /tmp/bunny-mount-policy-test
+          g++ -std=c++20 -O2 -Wall -Wextra -Werror -I app/src/main/cpp tests/examplemod_mount_qa/native_mount_visual_test.cpp -o /tmp/bunny-mount-visual-test
+          /tmp/bunny-mount-visual-test
       - name: Verify regenerated SDK public reference
         run: dotnet run --project tools/sdk_reference -c Release -- --check
