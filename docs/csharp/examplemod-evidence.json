@@ -3070,8 +3070,8 @@
       "androidEvidence": [],
       "validatedFilesSha256": {
         "samples/ExampleModCSharp/Playable/content/Content/Buffs/ExampleDefenseBuff.cs": "a0dbc7d4cd962ad6513ac93f9a8b5d8f092b5bfd34e2430c1dacee3f7c119574",
-        "tests/examplemod_buff_qa/ExampleModBuffQa.csproj": "77bc93e296473f22f051abe34e3cc205518cb55e3199580da5dece1b876e7087",
-        "tests/examplemod_buff_qa/Program.cs": "e41a80561fd03417a10aae6fe52cdc5c3efe08d8f2d3e0328d38fb6243905541"
+        "tests/examplemod_buff_qa/ExampleModBuffQa.csproj": "fc297578ed0cd7bdf482c05c4f4579a855461f14087f627f0a8f7594e07d3b4c",
+        "tests/examplemod_buff_qa/Program.cs": "6dd4d431ea9a2b1beefab744c267a461bfade7a7558466ea956c078dfb2d8463"
       }
     },
     "Content/Buffs/ExampleDefenseBuff.js#UpdatePlayer": {
@@ -3088,8 +3088,8 @@
       "androidEvidence": [],
       "validatedFilesSha256": {
         "samples/ExampleModCSharp/Playable/content/Content/Buffs/ExampleDefenseBuff.cs": "a0dbc7d4cd962ad6513ac93f9a8b5d8f092b5bfd34e2430c1dacee3f7c119574",
-        "tests/examplemod_buff_qa/ExampleModBuffQa.csproj": "77bc93e296473f22f051abe34e3cc205518cb55e3199580da5dece1b876e7087",
-        "tests/examplemod_buff_qa/Program.cs": "e41a80561fd03417a10aae6fe52cdc5c3efe08d8f2d3e0328d38fb6243905541"
+        "tests/examplemod_buff_qa/ExampleModBuffQa.csproj": "fc297578ed0cd7bdf482c05c4f4579a855461f14087f627f0a8f7594e07d3b4c",
+        "tests/examplemod_buff_qa/Program.cs": "6dd4d431ea9a2b1beefab744c267a461bfade7a7558466ea956c078dfb2d8463"
       }
     },
     "Content/Buffs/ExampleDefenseDebuff.js#ModifyDescription": {
@@ -3106,8 +3106,8 @@
       "androidEvidence": [],
       "validatedFilesSha256": {
         "samples/ExampleModCSharp/Playable/content/Content/Buffs/ExampleDefenseDebuff.cs": "2eb5d65b659f59a32d8e79f652aa380a26a37c003fe4e35b89bb6c63201e2227",
-        "tests/examplemod_buff_qa/ExampleModBuffQa.csproj": "77bc93e296473f22f051abe34e3cc205518cb55e3199580da5dece1b876e7087",
-        "tests/examplemod_buff_qa/Program.cs": "e41a80561fd03417a10aae6fe52cdc5c3efe08d8f2d3e0328d38fb6243905541"
+        "tests/examplemod_buff_qa/ExampleModBuffQa.csproj": "fc297578ed0cd7bdf482c05c4f4579a855461f14087f627f0a8f7594e07d3b4c",
+        "tests/examplemod_buff_qa/Program.cs": "6dd4d431ea9a2b1beefab744c267a461bfade7a7558466ea956c078dfb2d8463"
       }
     },
     "Content/Buffs/ExampleDefenseDebuff.js#SetStaticDefaults": {
@@ -3124,8 +3124,8 @@
       "androidEvidence": [],
       "validatedFilesSha256": {
         "samples/ExampleModCSharp/Playable/content/Content/Buffs/ExampleDefenseDebuff.cs": "2eb5d65b659f59a32d8e79f652aa380a26a37c003fe4e35b89bb6c63201e2227",
-        "tests/examplemod_buff_qa/ExampleModBuffQa.csproj": "77bc93e296473f22f051abe34e3cc205518cb55e3199580da5dece1b876e7087",
-        "tests/examplemod_buff_qa/Program.cs": "e41a80561fd03417a10aae6fe52cdc5c3efe08d8f2d3e0328d38fb6243905541"
+        "tests/examplemod_buff_qa/ExampleModBuffQa.csproj": "fc297578ed0cd7bdf482c05c4f4579a855461f14087f627f0a8f7594e07d3b4c",
+        "tests/examplemod_buff_qa/Program.cs": "6dd4d431ea9a2b1beefab744c267a461bfade7a7558466ea956c078dfb2d8463"
       }
     },
     "Content/Buffs/ExampleDefenseDebuff.js#UpdatePlayer": {
@@ -3142,8 +3142,8 @@
       "androidEvidence": [],
       "validatedFilesSha256": {
         "samples/ExampleModCSharp/Playable/content/Content/Buffs/ExampleDefenseDebuff.cs": "2eb5d65b659f59a32d8e79f652aa380a26a37c003fe4e35b89bb6c63201e2227",
-        "tests/examplemod_buff_qa/ExampleModBuffQa.csproj": "77bc93e296473f22f051abe34e3cc205518cb55e3199580da5dece1b876e7087",
-        "tests/examplemod_buff_qa/Program.cs": "e41a80561fd03417a10aae6fe52cdc5c3efe08d8f2d3e0328d38fb6243905541"
+        "tests/examplemod_buff_qa/ExampleModBuffQa.csproj": "fc297578ed0cd7bdf482c05c4f4579a855461f14087f627f0a8f7594e07d3b4c",
+        "tests/examplemod_buff_qa/Program.cs": "6dd4d431ea9a2b1beefab744c267a461bfade7a7558466ea956c078dfb2d8463"
       }
     },
     "Content/Buffs/ExampleMinionBuff.js#SetStaticDefaults": {
@@ -3161,8 +3161,8 @@
       "androidEvidence": [],
       "validatedFilesSha256": {
         "samples/ExampleModCSharp/Playable/content/Content/Buffs/ExampleMinionBuff.cs": "a6efa701d024fc146cc99bd17d14172d24431cb03c4bc87609eddf526441aa12",
-        "tests/examplemod_buff_qa/ExampleModBuffQa.csproj": "77bc93e296473f22f051abe34e3cc205518cb55e3199580da5dece1b876e7087",
-        "tests/examplemod_buff_qa/Program.cs": "e41a80561fd03417a10aae6fe52cdc5c3efe08d8f2d3e0328d38fb6243905541",
+        "tests/examplemod_buff_qa/ExampleModBuffQa.csproj": "fc297578ed0cd7bdf482c05c4f4579a855461f14087f627f0a8f7594e07d3b4c",
+        "tests/examplemod_buff_qa/Program.cs": "6dd4d431ea9a2b1beefab744c267a461bfade7a7558466ea956c078dfb2d8463",
         "tests/minion_buff/minion_buff_test.cpp": "b565f3247f589934f8b150bff8e09339e80ed5992015635ada3294c40a10305d"
       }
     },
@@ -3181,9 +3181,49 @@
       "androidEvidence": [],
       "validatedFilesSha256": {
         "samples/ExampleModCSharp/Playable/content/Content/Buffs/ExampleMinionBuff.cs": "a6efa701d024fc146cc99bd17d14172d24431cb03c4bc87609eddf526441aa12",
-        "tests/examplemod_buff_qa/ExampleModBuffQa.csproj": "77bc93e296473f22f051abe34e3cc205518cb55e3199580da5dece1b876e7087",
-        "tests/examplemod_buff_qa/Program.cs": "e41a80561fd03417a10aae6fe52cdc5c3efe08d8f2d3e0328d38fb6243905541",
+        "tests/examplemod_buff_qa/ExampleModBuffQa.csproj": "fc297578ed0cd7bdf482c05c4f4579a855461f14087f627f0a8f7594e07d3b4c",
+        "tests/examplemod_buff_qa/Program.cs": "6dd4d431ea9a2b1beefab744c267a461bfade7a7558466ea956c078dfb2d8463",
         "tests/minion_buff/minion_buff_test.cpp": "b565f3247f589934f8b150bff8e09339e80ed5992015635ada3294c40a10305d"
+      }
+    },
+    "Content/Buffs/Blocky.js#SetStaticDefaults": {
+      "status": "validado automaticamente",
+      "note": "Host: flags IsDebuff, NoSave, NoTimeDisplay e NurseCannotRemove registradas no C# nativo; nome/descrição locais conferidos e PNG 32x32 byte a byte idêntico ao original. UpdatePlayer (NPCs da cidade, traje, pulo e queda) e FrameEffects NÃO implementados nem validados no Android.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Content/Buffs/Blocky.cs",
+        "samples/ExampleModCSharp/Playable/content/Content/Buffs/Blocky.png"
+      ],
+      "tests": [
+        "tests/examplemod_buff_qa/ExampleModBuffQa.csproj",
+        "tests/examplemod_buff_qa/Program.cs"
+      ],
+      "validationScope": "host; Android pendente; gameplay pendente",
+      "androidEvidence": [],
+      "validatedFilesSha256": {
+        "samples/ExampleModCSharp/Playable/content/Content/Buffs/Blocky.cs": "fcdea86cb0434fda5124811636f789e6bc8e314c906b5df1150544a5f2b4feb5",
+        "samples/ExampleModCSharp/Playable/content/Content/Buffs/Blocky.png": "37433dc43b6657e57e9b0ff7cf179b5fa3fac67d3c901ae7a5b2a5498793cea0",
+        "tests/examplemod_buff_qa/ExampleModBuffQa.csproj": "fc297578ed0cd7bdf482c05c4f4579a855461f14087f627f0a8f7594e07d3b4c",
+        "tests/examplemod_buff_qa/Program.cs": "6dd4d431ea9a2b1beefab744c267a461bfade7a7558466ea956c078dfb2d8463"
+      }
+    },
+    "Content/Buffs/ExampleMountBuff.js#SetStaticDefaults": {
+      "status": "validado automaticamente",
+      "note": "Host: flags NoSave e NoTimeDisplay do buff de montaria, descrição localizada e PNG original idêntico byte a byte. UpdatePlayer que monta o jogador e Montaria C# ainda não implementados.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Content/Buffs/ExampleMountBuff.cs",
+        "samples/ExampleModCSharp/Playable/content/Content/Buffs/ExampleMountBuff.png"
+      ],
+      "tests": [
+        "tests/examplemod_buff_qa/ExampleModBuffQa.csproj",
+        "tests/examplemod_buff_qa/Program.cs"
+      ],
+      "validationScope": "host; Android pendente; gameplay pendente",
+      "androidEvidence": [],
+      "validatedFilesSha256": {
+        "samples/ExampleModCSharp/Playable/content/Content/Buffs/ExampleMountBuff.cs": "e5a993cc3de29c80486584a4a6c03da1b47232e2af713911af4dd58067fef2bd",
+        "samples/ExampleModCSharp/Playable/content/Content/Buffs/ExampleMountBuff.png": "c76e9f47edf271782b09005fd0b9aa88621e354f9067bd980d96d27660189dfd",
+        "tests/examplemod_buff_qa/ExampleModBuffQa.csproj": "fc297578ed0cd7bdf482c05c4f4579a855461f14087f627f0a8f7594e07d3b4c",
+        "tests/examplemod_buff_qa/Program.cs": "6dd4d431ea9a2b1beefab744c267a461bfade7a7558466ea956c078dfb2d8463"
       }
     }
   }
