@@ -10,7 +10,7 @@ expected = {
     "RECIPES": {4},
     "ITEM": {20, 21, 22, 23, 24, 25, 26, 27, 28},
     "TILE": {13, 14, 16, 17, 19, 20, 21, 22, 23, 25, 28, 29},
-    "TREE": {5, 7, 9, 11, 12}, "GORE": {5},
+    "TREE": {5, 7, 9, 11, 12}, "GORE": {5}, "MOUNT": {3}, "MOUNT_ITEM": {3},
     "WALL": {16},
     "PROJECTILE": {8, 12, 13, 14, 16, 17, 18, 19, 21, 22, 23, 27},
     "WEAPON": {6, 9},
@@ -58,6 +58,14 @@ print("BUNNY_MANAGED_DEFAULTS_V2_SCHEMA_PASS", dict(sorted(counts.items())))
 owned = [row.split("\t") for row in rows if row.startswith("RECIPES\t")]
 assert {(f[1], f[2]) for f in owned} == {
     ("ExampleWand", "WEAPON"), ("ExampleFocusAccessory", "ACCESSORY"),
-    ("ExampleMinionItem", "WEAPON")} # Original potion port no longer declares the synthetic recipe.
-assert all(f[3] == ("1,18,mExampleItem:1" if f[1]=="ExampleMinionItem" else "1,mExampleWorkbench,mExampleItem:10@4") for f in owned)
+    ("ExampleMinionItem", "WEAPON"), ("ExampleMountItem", "ITEM"),
+    ("ExampleMinecart", "ITEM")} # Original potion port no longer declares the synthetic recipe.
+expected_recipes = {
+    "ExampleMinionItem": "1,18,mExampleItem:1",
+    "ExampleWand": "1,mExampleWorkbench,mExampleItem:10@4",
+    "ExampleFocusAccessory": "1,mExampleWorkbench,mExampleItem:10@4",
+    "ExampleMountItem": "1,mExampleWorkbench,mExampleItem:1",
+    "ExampleMinecart": "1,16,v2343:1+mExampleItem:15",
+}
+assert all(f[3] == expected_recipes[f[1]] for f in owned)
 print("OWNED_RECIPE_CATEGORIES_SCHEMA_PASS")
