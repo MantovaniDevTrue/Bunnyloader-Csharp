@@ -67,5 +67,5 @@ expected_recipes = {
     "ExampleMountItem": "1,mExampleWorkbench,mExampleItem:1",
     "ExampleMinecart": "1,16,v2343:1,mExampleItem:15",
 }
-assert all(f[3] == expected_recipes[f[1]] for f in owned)
+assert all(f[3] == expected_recipes[f[1]] for f in owned), [(f[1], f[3], expected_recipes[f[1]]) for f in owned if f[3] != expected_recipes[f[1]]]
 print("OWNED_RECIPE_CATEGORIES_SCHEMA_PASS")
