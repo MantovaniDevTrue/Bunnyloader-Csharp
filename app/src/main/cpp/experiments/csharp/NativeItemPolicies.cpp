@@ -47,6 +47,7 @@ struct Snapshot {
     std::map<int,int> robes;
 };
 std::shared_ptr<const Snapshot> snapshot;
+std::atomic<int> activeCostumes{0};
 std::mutex queueMutex;
 std::map<int,std::shared_ptr<Entry>> incoming;
 std::map<int,uint64_t> desiredGeneration;
@@ -660,6 +661,7 @@ void revokeSnapshotTypesLocked(const std::set<int>& types) {
         }
         if(next->items.size()!=old->items.size()) {
             retiringSnapshots.push_back(old);
+            activeCostumes.store(static_cast<int>(std::count_if(next->items.begin(),next->items.end(),[](const auto& item){return item.second->policy.costume.enabled;})),std::memory_order_release);
             std::atomic_store_explicit(&snapshot,std::shared_ptr<const Snapshot>(std::move(next)),std::memory_order_release);
         }
     }
@@ -675,6 +677,7 @@ void publish() {
         if(entry->policy.wing)next->wings[entry->slots.at("Wings")]=entry->policy.wings;
         if(entry->policy.robe)next->robes[entry->slots.at("Body")]=entry->slots.at("Legs");
     }
+    activeCostumes.store(static_cast<int>(std::count_if(next->items.begin(),next->items.end(),[](const auto& item){return item.second->policy.costume.enabled;})),std::memory_order_release);
     std::atomic_store_explicit(&snapshot,std::shared_ptr<const Snapshot>(std::move(next)),std::memory_order_release);
     pendingCount.store(std::count_if(statuses.begin(),statuses.end(),[](const auto& pair){return !pair.second.ready;}),std::memory_order_release);
 }
@@ -752,6 +755,7 @@ bool applyNativeItemPolicyDefaults(Il2CppObject* item,int type) {
     if(entry.policy.hair){Il2CppObject* player=nullptr;if(invoke(entry.localPlayer,nullptr,nullptr,&player)&&player)std::memcpy(reinterpret_cast<char*>(item)+entry.color,reinterpret_cast<char*>(player)+entry.hair,4);}
     return bool(entry.clone);
 }
+bool nativeCostumesActive() {return item_native::activeCostumes.load(std::memory_order_acquire)>0;}
 bool nativeCostumeEffect(int itemType,NativeCostumeEffect* effect) {
     if(!effect)return false;
     const auto view=std::atomic_load_explicit(&item_native::snapshot,std::memory_order_acquire);
