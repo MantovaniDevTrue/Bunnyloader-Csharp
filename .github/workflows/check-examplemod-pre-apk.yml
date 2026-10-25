@@ -6,6 +6,11 @@ on:
       - 'samples/ExampleModCSharp/Playable/content/Common/Systems/**'
       - 'tests/examplemod_pre_apk/**'
       - 'tests/basic_items/**'
+      - 'app/src/main/cpp/experiments/csharp/BasicItemPolicy.h'
+      - 'app/src/main/cpp/experiments/csharp/NativeItemPolicies.*'
+      - 'app/src/main/cpp/experiments/csharp/NativeContent.*'
+      - 'experiments/csharp/BunnyCsSdk/BunnyItemBehavior.cs'
+      - 'samples/ExampleModCSharp/Playable/content/Content/Items/Armor/ExampleCostume.cs'
       - 'docs/csharp/examplemod-evidence.json'
       - 'docs/csharp/EXAMPLEMOD_COVERAGE.json'
       - 'docs/csharp/EXAMPLEMOD_COVERAGE.md'
@@ -37,6 +42,8 @@ jobs:
         run: python3 tools/examplemod_coverage.py --check
       - name: Compile entire ExampleMod through production Roslyn
         run: dotnet run --project tests/basic_items/ItemBatch.csproj -c Release
+      - name: Validate native costume and item policies without QuickJS
+        run: python3 tests/run_native_item_policies.py build/basic-items/full-source-runtime-values.txt samples/ExampleModCSharp/Playable
       - name: Preserve WorldSystem and WorldNet lifecycle
         run: dotnet run --project experiments/csharp/BunnyWorldSystemsSmoke/BunnyWorldSystemsSmoke.csproj -c Release
       - name: Verify public SDK reference
