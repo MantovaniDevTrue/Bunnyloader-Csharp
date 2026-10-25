@@ -3,6 +3,7 @@
 #include <charconv>
 #include <cmath>
 #include <cstdint>
+#include <string>
 #include <string_view>
 
 namespace bl::csharp::mount_policy {
@@ -13,7 +14,7 @@ struct Frames {
 
 struct Definition {
     int kind=0;
-    std::string_view texture,buff,dust,balloon;
+    std::string texture,buff,dust,balloon;
     int jumpHeight=0,heightBoost=0,flightTime=0,fatigue=0,totalFrames=0;
     int playerYOffset=0,xOffset=0,yOffset=0,headOffset=0,bodyFrame=0;
     int balloonCount=0,ringCount=0,ringRadius=0,runDustThreshold=0,ambientChance=0;
