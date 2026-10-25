@@ -187,8 +187,6 @@ public static class CompiledAssemblyProbe
             var mountTypes = contentTypes
                 .Where(type => IsContentType(type, "BunnyMount"))
                 .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
-            if (mountTypes.Length > 0)
-                throw new InvalidOperationException("[CSharp][ERROR][Mount] Stage=NativeRegistration Result=Rejected Reason=MountPolicyOnlyRegistrationPending Class=" + mountTypes[0].Name);
             var potionTypes = contentTypes
                 .Where(type => IsContentType(type, "BunnyBuffPotion"))
                 .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
@@ -226,12 +224,12 @@ public static class CompiledAssemblyProbe
                 .Where(type => IsContentType(type, "BunnyScreenEffect"))
                 .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
             int commandCount = CommandManifestWriter.CountCommands(assembly);
-            if (treeTypes.Length > 255 || goreTypes.Length > 256 || dustTypes.Length > 4096 || wallTypes.Length > 4096 || tileTypes.Length > 4096 || rarityTypes.Length > 4096 || localizationTypes.Length > 32 || prefixTypes.Length > 4096 || npcTypes.Length > 4096 || accessoryTypes.Length > 4096 || playerTypes.Length > 4096 ||
+            if (mountTypes.Length > 128 || treeTypes.Length > 255 || goreTypes.Length > 256 || dustTypes.Length > 4096 || wallTypes.Length > 4096 || tileTypes.Length > 4096 || rarityTypes.Length > 4096 || localizationTypes.Length > 32 || prefixTypes.Length > 4096 || npcTypes.Length > 4096 || accessoryTypes.Length > 4096 || playerTypes.Length > 4096 ||
                 projectileTypes.Length > 4096 ||
                 weaponTypes.Length > 4096 || basicItemTypes.Length > 4096 ||
                 buffTypes.Length > 4096 || potionTypes.Length > 4096 || screenEffectTypes.Length > 4096)
                 throw new InvalidOperationException("C# content class count out of bounds");
-            if (treeTypes.Length + goreTypes.Length + dustTypes.Length + wallTypes.Length + tileTypes.Length + basicItemTypes.Length + projectileTypes.Length + weaponTypes.Length + buffTypes.Length + potionTypes.Length + accessoryTypes.Length + playerTypes.Length + npcTypes.Length + prefixTypes.Length + screenEffectTypes.Length + rarityTypes.Length + localizationTypes.Length + commandCount + worldTypes.Length + hookTypes.Length == 0)
+            if (mountTypes.Length + treeTypes.Length + goreTypes.Length + dustTypes.Length + wallTypes.Length + tileTypes.Length + basicItemTypes.Length + projectileTypes.Length + weaponTypes.Length + buffTypes.Length + potionTypes.Length + accessoryTypes.Length + playerTypes.Length + npcTypes.Length + prefixTypes.Length + screenEffectTypes.Length + rarityTypes.Length + localizationTypes.Length + commandCount + worldTypes.Length + hookTypes.Length == 0)
                 throw new InvalidOperationException("C# assembly has no supported content types");
             bool fixture = projectileTypes.Any(t => t.FullName == "SourceCSharpMod.SourceBolt") &&
                 weaponTypes.Any(t => t.FullName == "SourceCSharpMod.SourceWand");
@@ -248,6 +246,7 @@ public static class CompiledAssemblyProbe
             object[] walls = wallTypes.Select(CreateTileContent).ToArray();
             object[] dusts = dustTypes.Select(CreateTileContent).ToArray();
             object[] trees = treeTypes.Select(CreateContent).ToArray();
+            object[] mounts = mountTypes.Select(CreateContent).ToArray();
             object[] gores = goreTypes.Select(CreateContent).ToArray();
             object[] buffs = buffTypes.Select(CreateContent).ToArray();
             object[] potions = potionTypes.Select(CreateContent).ToArray();
@@ -763,6 +762,17 @@ public static class CompiledAssemblyProbe
                 throw new InvalidOperationException(name+": invalid BunnyGore descriptor");
             lines.Add(string.Join("\t","GORE",name,texture,ai,safe?"1":"0"));
         }
+        foreach (object mount in mounts)
+        {
+            string name=mount.GetType().Name;
+            CheckName(name);
+            if(!names.Add("MOUNT:"+name))
+                throw new InvalidOperationException("Duplicate BunnyMount: "+name);
+            string wire=Value<string>(mount,"NativeDefinition");
+            if(!wire.StartsWith("M1|",StringComparison.Ordinal)||wire.Length>2048)
+                throw new InvalidOperationException("Invalid BunnyMount M1: "+name);
+            lines.Add(string.Join("\t","MOUNT",name,wire));
+        }
         foreach (object tree in trees)
         {
             string name=tree.GetType().Name;
@@ -823,6 +833,12 @@ public static class CompiledAssemblyProbe
             CheckName(name);
             if(!names.Add("ITEM:" + name)) throw new InvalidOperationException("Duplicate BunnyItem: "+name);
             lines.Add(BasicItemWriter.Write(item));
+            string mountName=Value<string>(item,"Mount");
+            if(mountName.Length>0)
+            {
+                CheckName(mountName);
+                lines.Add(string.Join("\t","MOUNT_ITEM",name,mountName));
+            }
             if (Value<bool>(item, "QuestFish"))
             {
                 questFishNames.Add(name);
