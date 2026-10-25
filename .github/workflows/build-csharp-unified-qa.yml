@@ -35,6 +35,12 @@ jobs:
           java-version: '17'
       - name: Verify native summon speed contracts
         run: mkdir -p build/unified-speed && c++ -std=c++20 -Wall -Wextra -Werror -Iapp/src/main/cpp tests/csharp_unified/weapon_speed_test.cpp -o build/unified-speed/check && build/unified-speed/check
+      - name: Verify vanilla Acorn and native tree drop binding
+        run: |
+          mkdir -p build/unified-tree-acorn
+          c++ -std=c++20 -Wall -Wextra -Werror -Iapp/src/main/cpp tests/csharp_unified/tree_acorn_id_test.cpp -o build/unified-tree-acorn/check
+          build/unified-tree-acorn/check
+          python3 tests/csharp_unified/check_tree_drop_native_binding.py
       - name: Verify game-thread gore and tree texture publication
         run: python3 tests/csharp_unified/check_gore_tree_texture_thread.py
       - name: Verify game-thread mount texture publication
