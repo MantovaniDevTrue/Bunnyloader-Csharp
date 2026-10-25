@@ -14,8 +14,8 @@ DECLARATION = ROOT / "experiments/csharp/BunnyCsSdk/BunnyContentDeclaration.cs"
 PARSER = ROOT / "app/src/main/cpp/experiments/csharp/SourceParser.cpp"
 LOADER = ROOT / "app/src/main/cpp/experiments/csharp/SourceLoader.cpp"
 
-EXPECTED = ("Item", "Tile", "Weapon", "Projectile", "Buff", "BuffPotion", "Accessory", "Player", "NPC", "Prefix", "Wall", "Dust", "Tree", "Gore")
-EXPECTED_ORDER = ('BunnyDust', 'BunnyTile', 'BunnyWall', 'BunnyItem', 'BunnyBuff', 'BunnyProjectile', 'BunnyAccessory', 'BunnyNPC', 'BunnyBuffPotion', 'BunnyWeapon', 'BunnyPrefix')
+EXPECTED = ("Item", "Tile", "Weapon", "Projectile", "Buff", "BuffPotion", "Accessory", "Player", "NPC", "Prefix", "Wall", "Dust", "Tree", "Gore", "Mount")
+EXPECTED_ORDER = ('BunnyDust', 'BunnyTile', 'BunnyWall', 'BunnyItem', 'BunnyBuff', 'BunnyMount', 'BunnyProjectile', 'BunnyAccessory', 'BunnyNPC', 'BunnyBuffPotion', 'BunnyWeapon', 'BunnyPrefix')
 
 
 def validate(data: dict) -> list[dict]:
