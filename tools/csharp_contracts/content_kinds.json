@@ -17,13 +17,13 @@
       "kind": "Weapon",
       "base": "BunnyWeapon",
       "value": 2,
-      "nativeOrder": 9
+      "nativeOrder": 10
     },
     {
       "kind": "Projectile",
       "base": "BunnyProjectile",
       "value": 3,
-      "nativeOrder": 5
+      "nativeOrder": 6
     },
     {
       "kind": "Buff",
@@ -35,13 +35,13 @@
       "kind": "BuffPotion",
       "base": "BunnyBuffPotion",
       "value": 5,
-      "nativeOrder": 8
+      "nativeOrder": 9
     },
     {
       "kind": "Accessory",
       "base": "BunnyAccessory",
       "value": 6,
-      "nativeOrder": 6
+      "nativeOrder": 7
     },
     {
       "kind": "Player",
@@ -53,13 +53,13 @@
       "kind": "NPC",
       "base": "BunnyNPC",
       "value": 8,
-      "nativeOrder": 7
+      "nativeOrder": 8
     },
     {
       "kind": "Prefix",
       "base": "BunnyPrefix",
       "value": 9,
-      "nativeOrder": 10
+      "nativeOrder": 11
     },
     {
       "kind": "Wall",
@@ -84,6 +84,12 @@
       "base": "BunnyGore",
       "value": 13,
       "nativeOrder": null
+    },
+    {
+      "kind": "Mount",
+      "base": "BunnyMount",
+      "value": 14,
+      "nativeOrder": 5
     }
   ]
 }
