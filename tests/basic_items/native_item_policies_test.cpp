@@ -2,6 +2,7 @@
 #include "native_item_binding_test.cpp"
 #undef main
 #include "experiments/csharp/NativeItemPolicies.h"
+#include "experiments/csharp/NativeCostumeDustDecision.h"
 #include "experiments/csharp/NativeDefaults.h"
 #include "native_policy_support.h"
 #include "experiments/csharp/NativeVisualRenderer.h"
@@ -98,6 +99,25 @@ void testStaticIntegerWidths() {
  }
  auto* owner=cls("StaticWrongType");auto* f=field(owner,"Value",&floatClass,0,true);constant(f,2.f);
  int64_t number=123;assert(!readInteger(resolve(owner,"Value"),&number)&&number==123);
+}
+void testCostumeDustDecision() {
+ using namespace bl::csharp::costume_dust;
+ assert(!visible(false,false,false));
+ assert(!visible(false,false,true));
+ assert(visible(true,false,true));
+ assert(visible(true,true,true));
+ assert(visible(false,true,false));
+ assert(!visible(false,true,true));
+ assert(dustId(false,71,72)==71);
+ assert(dustId(true,71,72)==72);
+ uint32_t invalid=0;
+ assert(!sample(invalid,-1)&&invalid==0);
+ assert(!sample(invalid,256)&&invalid==0);
+ uint32_t random=0;
+ int emitted=0;
+ for(int i=0;i<200000;++i)if(sample(random,0))++emitted;
+ assert(random!=0&&emitted>=9000&&emitted<=11000);
+ std::cout<<"NATIVE_COSTUME_DUST_1_IN_20_AND_VANITY_POLICY_PASS\n";
 }
 void testCostumeDescriptor() {
  using namespace bl::csharp;
@@ -338,6 +358,7 @@ int slot(int type,const std::string& kind) {
 int main(int argc,char** argv) {
  using namespace bl::csharp;assert(argc>=3);
  const auto mode=argc>3?std::string(argv[3]):"";
+ testCostumeDustDecision();
  testCostumeDescriptor();
  worldActiveProperty=mode!="--world-active-field";
  if(mode=="--framework-color")colorNamespace="Microsoft.Xna.Framework";
