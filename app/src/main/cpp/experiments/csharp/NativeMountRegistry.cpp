@@ -17,10 +17,14 @@
 #include <dlfcn.h>
 #include <array>
 #include <cstring>
+#include <chrono>
+#include <condition_variable>
+#include <deque>
 #include <map>
 #include <memory>
 #include <string>
 #include <sys/stat.h>
+#include <thread>
 #include <vector>
 
 namespace bl::csharp {
@@ -50,6 +54,16 @@ struct AssetRoot {
     }
 };
 std::map<int,std::vector<std::shared_ptr<AssetRoot>>> assets;
+struct MountPublishJob {
+    std::string mod,directory,error;
+    std::vector<ManagedMountEntry> entries;
+    std::mutex mutex;
+    std::condition_variable condition;
+    bool started=false,done=false,cancelled=false,result=false;
+};
+std::mutex publishQueueMutex;
+std::deque<std::shared_ptr<MountPublishJob>> publishQueue;
+std::thread::id publishGameThread;
 struct BalloonState {int mount=-1;std::array<float,3> rotations{};uint32_t random=0;};
 std::array<BalloonState,256> balloons{};
 int mountKindOffset=-1,playerIndexOffset=-1,playerPositionOffset=-1,playerVelocityOffset=-1,playerWidthOffset=-1,playerHeightOffset=-1,playerBuffTypeOffset=-1,playerBuffTimeOffset=-1,playerMountOffset=-1;
@@ -537,8 +551,8 @@ int reserveNativeMount(const std::string& mod,const std::string& name,std::strin
     keys.emplace(keyOf(mod,name),type);
     return type;
 }
-bool publishNativeMounts(const std::string& mod,const std::string& directory,
-                         const std::vector<ManagedMountEntry>& entries,std::string* error) {
+bool publishNativeMountsImmediate(const std::string& mod,const std::string& directory,
+                                  const std::vector<ManagedMountEntry>& entries,std::string* error) {
     if(!error)return false;
     if(entries.empty())return true;
     if(!preflight(error,true))return false;
@@ -639,6 +653,64 @@ bool publishNativeMounts(const std::string& mod,const std::string& directory,
             mod.c_str(),pending.size());
     return true;
 }
+bool publishNativeMounts(const std::string& mod,const std::string& directory,
+                         const std::vector<ManagedMountEntry>& entries,std::string* error) {
+    if(!error)return false;
+    if(entries.empty())return true;
+    auto job=std::make_shared<MountPublishJob>();
+    job->mod=mod;
+    job->directory=directory;
+    job->entries=entries;
+    bool onGameThread=false;
+    {
+        std::lock_guard<std::mutex> guard(publishQueueMutex);
+        onGameThread=publishGameThread==std::this_thread::get_id();
+        if(!onGameThread)publishQueue.push_back(job);
+    }
+    if(onGameThread)return publishNativeMountsImmediate(mod,directory,entries,error);
+    BL_INFO("[CSharp][Mount] Stage=TexturePublishQueued Mod=%s Count=%zu",
+            mod.c_str(),entries.size());
+    std::unique_lock<std::mutex> lock(job->mutex);
+    if(!job->condition.wait_for(lock,std::chrono::seconds(30),[&]{return job->done;})) {
+        if(!job->started) {
+            job->cancelled=true;
+            *error="Mount texture upload did not reach the game thread";
+            return false;
+        }
+        job->condition.wait(lock,[&]{return job->done;});
+    }
+    *error=job->error;
+    return job->result;
+}
+
+void pumpNativeMountPublicationsOnGameThread() {
+    std::shared_ptr<MountPublishJob> job;
+    {
+        std::lock_guard<std::mutex> guard(publishQueueMutex);
+        publishGameThread=std::this_thread::get_id();
+        if(publishQueue.empty())return;
+        job=publishQueue.front();
+        publishQueue.pop_front();
+    }
+    {
+        std::lock_guard<std::mutex> guard(job->mutex);
+        if(job->cancelled)return;
+        job->started=true;
+    }
+    BL_INFO("[CSharp][Mount] Stage=TexturePublishGameThread Mod=%s Count=%zu",
+            job->mod.c_str(),job->entries.size());
+    std::string error;
+    const bool success=publishNativeMountsImmediate(
+        job->mod,job->directory,job->entries,&error);
+    {
+        std::lock_guard<std::mutex> guard(job->mutex);
+        job->result=success;
+        job->error=std::move(error);
+        job->done=true;
+    }
+    job->condition.notify_all();
+}
+
 void updateNativeMountBuffs(Il2CppObject* player) {
     if(!player||!effectsHooked||slots.empty()||playerMountOffset<0||
        playerBuffTypeOffset<0||playerBuffTimeOffset<0||!setMountMethod)return;
