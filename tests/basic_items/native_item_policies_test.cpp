@@ -99,6 +99,38 @@ void testStaticIntegerWidths() {
  auto* owner=cls("StaticWrongType");auto* f=field(owner,"Value",&floatClass,0,true);constant(f,2.f);
  int64_t number=123;assert(!readInteger(resolve(owner,"Value"),&number)&&number==123);
 }
+void testCostumeDescriptor() {
+ using namespace bl::csharp;
+ BasicItemEntry item;
+ item.name="ExampleCostume";
+ item.values[BasicFlags]=32;
+ item.behavior=R"({"v":1,"clone":"","equips":[["Head","Content/Items/Armor/ExampleCostume_Head",0],["Body","Content/Items/Armor/ExampleCostume_Body",0],["Legs","Content/Items/Armor/ExampleCostume_Legs",0]],"effects":[],"hair":false,"robe":false,"costume":{"alt":"Content/Items/Armor/ExampleCostumeAlt","buff":"Blocky","jump":4.8,"fall":45,"town":1}})";
+ BasicItemPolicy policy;
+ std::string error;
+ assert(item_policy_wire::read(item,&policy,&error)&&policy.costume.enabled);
+ assert(policy.costume.alternate=="Content/Items/Armor/ExampleCostumeAlt");
+ assert(policy.costume.buff=="Blocky"&&policy.costume.jump==4.8f);
+ assert(policy.costume.fall==45&&policy.costume.town==1);
+ auto bad=item;
+ const auto mutate=[&](const std::string& original,const std::string& replacement){
+     bad=item;
+     const auto at=bad.behavior.find(original);
+     assert(at!=std::string::npos);
+     bad.behavior.replace(at,original.size(),replacement);
+     BasicItemPolicy rejected;
+     error.clear();
+     assert(!item_policy_wire::read(bad,&rejected,&error)&&!error.empty());
+ };
+ mutate(R"("town":1)",R"("town":0)");
+ mutate(R"("jump":4.8)",R"("jump":200)");
+ mutate(R"("buff":"Blocky")",R"("buff":"../../Blocky")");
+ mutate(R"("alt":"Content/Items/Armor/ExampleCostumeAlt")",R"("alt":"../ExampleCostumeAlt")");
+ bad=item;
+ bad.values[BasicFlags]=0;
+ BasicItemPolicy denied;
+ assert(!item_policy_wire::read(bad,&denied,&error));
+ std::cout<<"NATIVE_COSTUME_DESCRIPTOR_VALIDATION_NO_QUICKJS_PASS\n";
+}
 void configurePolicies() {
  configure();fields.reserve(200);storage.reserve(64);
  auto* byte=cls("Byte",true,1);auto* uint=cls("UInt32",true,4);auto* vector=cls("Vector2",true,8);auto* color=cls("Color",true,4);
@@ -306,6 +338,7 @@ int slot(int type,const std::string& kind) {
 int main(int argc,char** argv) {
  using namespace bl::csharp;assert(argc>=3);
  const auto mode=argc>3?std::string(argv[3]):"";
+ testCostumeDescriptor();
  worldActiveProperty=mode!="--world-active-field";
  if(mode=="--framework-color")colorNamespace="Microsoft.Xna.Framework";
  android145=mode=="--android-145"||mode=="--android-145-boxed"||mode=="--animation-ctor-exception";
