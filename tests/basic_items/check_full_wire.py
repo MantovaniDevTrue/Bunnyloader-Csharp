@@ -58,14 +58,19 @@ print("BUNNY_MANAGED_DEFAULTS_V2_SCHEMA_PASS", dict(sorted(counts.items())))
 owned = [row.split("\t") for row in rows if row.startswith("RECIPES\t")]
 assert {(f[1], f[2]) for f in owned} == {
     ("ExampleWand", "WEAPON"), ("ExampleFocusAccessory", "ACCESSORY"),
-    ("ExampleMinionItem", "WEAPON"), ("ExampleMountItem", "ITEM"),
-    ("ExampleMinecart", "ITEM")} # Original potion port no longer declares the synthetic recipe.
+    ("ExampleMinionItem", "WEAPON")} # Original potion port no longer declares the synthetic recipe.
 expected_recipes = {
     "ExampleMinionItem": "1,18,mExampleItem:1",
     "ExampleWand": "1,mExampleWorkbench,mExampleItem:10@4",
     "ExampleFocusAccessory": "1,mExampleWorkbench,mExampleItem:10@4",
-    "ExampleMountItem": "1,mExampleWorkbench,mExampleItem:1",
-    "ExampleMinecart": "1,16,v2343:1,mExampleItem:15",
 }
 assert all(f[3] == expected_recipes[f[1]] for f in owned), [(f[1], f[3], expected_recipes[f[1]]) for f in owned if f[3] != expected_recipes[f[1]]]
+mount_items={parts[1]:parts for row in rows if (parts:=row.split("\t"))[0]=="ITEM" and len(parts)>2 and parts[1] in {"ExampleMountItem","ExampleMinecart"}}
+assert len(mount_items)==2,"Both mount items require their own native ITEM recipes"
+for name,recipe in {
+    "ExampleMountItem":"1,mExampleWorkbench,mExampleItem:1",
+    "ExampleMinecart":"1,16,v2343:1,mExampleItem:15",
+}.items():
+    assert recipe in mount_items[name],"Native ITEM row missing original mount recipe: "+name
+    assert all(value.count(recipe)==1 for value in mount_items[name]),"Mount recipe declared twice: "+name
 print("OWNED_RECIPE_CATEGORIES_SCHEMA_PASS")
