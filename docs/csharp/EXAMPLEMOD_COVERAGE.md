@@ -12,9 +12,9 @@ O catálogo usa cada hook JS como unidade inicial de revisão, com hash do fonte
 
 | Estado | Comportamentos |
 |---|---:|
-| não iniciado | 643 |
+| não iniciado | 636 |
 | implementado sem validar | 46 |
-| validado automaticamente | 40 |
+| validado automaticamente | 47 |
 | validado no Android | 1 |
 | falhou | 3 |
 | bloqueio comprovado | 0 |
@@ -40,6 +40,13 @@ Dust e invasão: o baseline contém correções posteriores aos logs Android de 
 | Common/Systems/DownedBossSystem.js#NetReceive | validado automaticamente | Host: a classe Playable reproduz a chave downedExampleBoss do fonte Bunny, limpa estado entre mundos, salva apenas quando derrotado, restaura por ContainsKey e transporta um booleano em WriteFlags/ReadFlags; pacotes truncados e bytes extras rejeitados. Persistência real e multiplayer Android pendentes. |
 | Common/Systems/DownedBossSystem.js#NetSend | validado automaticamente | Host: a classe Playable reproduz a chave downedExampleBoss do fonte Bunny, limpa estado entre mundos, salva apenas quando derrotado, restaura por ContainsKey e transporta um booleano em WriteFlags/ReadFlags; pacotes truncados e bytes extras rejeitados. Persistência real e multiplayer Android pendentes. |
 | Common/Systems/DownedBossSystem.js#SaveWorldData | validado automaticamente | Host: a classe Playable reproduz a chave downedExampleBoss do fonte Bunny, limpa estado entre mundos, salva apenas quando derrotado, restaura por ContainsKey e transporta um booleano em WriteFlags/ReadFlags; pacotes truncados e bytes extras rejeitados. Persistência real e multiplayer Android pendentes. |
+| Content/Buffs/ExampleDefenseBuff.js#ModifyDescription | validado automaticamente | Host: classe Playable confere DefenseBonus=10, texto en-US original com interpolação {0}, pt-BR e bônus sem multiplicador; gameplay e ModifyBuffText com tempo restante no Android ainda pendentes. |
+| Content/Buffs/ExampleDefenseBuff.js#UpdatePlayer | validado automaticamente | Host: classe Playable confere DefenseBonus=10, texto en-US original com interpolação {0}, pt-BR e bônus sem multiplicador; gameplay e ModifyBuffText com tempo restante no Android ainda pendentes. |
+| Content/Buffs/ExampleDefenseDebuff.js#ModifyDescription | validado automaticamente | Host: classe Playable confere flag debuff, texto correto de 25% e DefenseMultiplierPercent=75 para aplicar redução após equipamento, com tradução en-US/pt-BR. Aplicação em combate Android pendente. |
+| Content/Buffs/ExampleDefenseDebuff.js#SetStaticDefaults | validado automaticamente | Host: classe Playable confere flag debuff, texto correto de 25% e DefenseMultiplierPercent=75 para aplicar redução após equipamento, com tradução en-US/pt-BR. Aplicação em combate Android pendente. |
+| Content/Buffs/ExampleDefenseDebuff.js#UpdatePlayer | validado automaticamente | Host: classe Playable confere flag debuff, texto correto de 25% e DefenseMultiplierPercent=75 para aplicar redução após equipamento, com tradução en-US/pt-BR. Aplicação em combate Android pendente. |
+| Content/Buffs/ExampleMinionBuff.js#SetStaticDefaults | validado automaticamente | Host: NoSave, NoTimeDisplay, vinculação ao ExampleMinion real e vida do projétil 18000 ticks; teste C++ de política renova buff com minion e remove sem minion. UI/contagem de minions e execução Android pendentes. |
+| Content/Buffs/ExampleMinionBuff.js#UpdatePlayer | validado automaticamente | Host: NoSave, NoTimeDisplay, vinculação ao ExampleMinion real e vida do projétil 18000 ticks; teste C++ de política renova buff com minion e remove sem minion. UI/contagem de minions e execução Android pendentes. |
 | Content/Items/Accessories/ExampleBeard.js#SetDefaults | validado automaticamente | Host: dimensões 18x14, pilha 1, sellPrice de 1 ouro, acessório e vaidade, slot Beard e UseHairColor conferidos no Playable. Cor exibida e animação reais Android pendentes. |
 | Content/Items/Accessories/ExampleBeard.js#SetStaticDefaults | validado automaticamente | Host: dimensões 18x14, pilha 1, sellPrice de 1 ouro, acessório e vaidade, slot Beard e UseHairColor conferidos no Playable. Cor exibida e animação reais Android pendentes. |
 | Content/Items/Accessories/ExampleStatAccessory.js#SetDefaults | validado automaticamente | Host: valores originais e ItemRarityID.Green, sem substituição por raridade customizada; protocolo nativo mantém multiplicador x1.1 somente em melee/ranged/magic. Renderização e ModifierTooltipLines/localização continuam pendentes. |
