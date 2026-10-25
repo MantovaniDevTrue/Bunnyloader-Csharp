@@ -1,4 +1,6 @@
 #include "experiments/csharp/NativeVisualRenderer.h"
+#include "experiments/csharp/NativeMountRegistry.h"
+#include "experiments/csharp/NativeMountVisualPolicy.h"
 #include "experiments/csharp/NativeColorLayout.h"
 #include "experiments/csharp/ManagedRuntime.h"
 #include "content/common/ContentAssets.h"
@@ -10,6 +12,7 @@
 #include "hook/HookManager.h"
 #include "core/Log.h"
 #include <array>
+#include <chrono>
 #include <atomic>
 #include <algorithm>
 #include <cmath>
@@ -175,7 +178,54 @@ void render(void* info,int mode) {
     if(mode==3&&!ctx.trailSeen)trails[static_cast<size_t>(ctx.id)].size=0;
 }
 
-void back(void* info,const MethodInfo* m){render(info,3);if(originalBack)originalBack(info,m);}
+void renderMountBalloons(void* info) {
+    if(!ready||!info)return;
+    Context ctx;
+    if(!context(info,3,&ctx)||!ctx.mounted||!ctx.player)return;
+    std::array<float,3> rotations{};
+    Il2CppObject* texture=nullptr;
+    if(!nativeMountBalloonState(ctx.player,&rotations,&texture)||!texture)return;
+    int count=get<int32_t>(info,refs.count);
+    if(count<0||count+3>static_cast<int>(ctx.cache->length))return;
+    const auto millis=std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::steady_clock::now().time_since_epoch()).count();
+    const mount_visual::Point base{
+        ctx.position.x-ctx.screen.x+ctx.width*0.5f,
+        ctx.position.y-ctx.screen.y+ctx.height*0.5f
+    };
+    for(int i=0;i<3;++i) {
+        const auto position=mount_visual::balloonAt(i,ctx.direction,millis,
+            base,ctx.rotation,rotations[static_cast<size_t>(i)]);
+        std::array<unsigned char,1024> data{};
+        if(refs.data.bytes>data.size())return;
+        put(data.data(),refs.texture,texture);
+        put(data.data(),refs.drawPosition,Vec{position.position.x,position.position.y});
+        int rectangle[]={28,position.frame*56,28,42};
+        if(refs.nullableSource)put<uint8_t>(data.data(),refs.source+refs.hasSource,1);
+        std::memcpy(data.data()+refs.source+refs.sourceValue,rectangle,sizeof(rectangle));
+        put(data.data(),refs.color,refs.nativeColor.fromArgb(0xffffffffu));
+        put(data.data(),refs.drawRotation,position.rotation);
+        put(data.data(),refs.origin,Vec{position.origin.x,position.origin.y});
+        put(data.data(),refs.scale,Vec{1.f,1.f});
+        put<int32_t>(data.data(),refs.drawEffect,ctx.effect^1);
+        put<int32_t>(data.data(),refs.shader,0);
+        auto* target=static_cast<char*>(arrayData(ctx.cache))+
+             static_cast<size_t>(count)*refs.data.bytes;
+        std::memcpy(target,data.data(),refs.data.bytes);
+        for(auto offset:refs.references) {
+            auto* object=get<Il2CppObject*>(data.data(),offset);
+            api().gc_wbarrier_set_field(reinterpret_cast<Il2CppObject*>(ctx.cache),
+                reinterpret_cast<void**>(target+offset),object);
+        }
+        ++count;
+    }
+    put<int32_t>(info,refs.count,count);
+}
+void back(void* info,const MethodInfo* m){
+    render(info,3);
+    renderMountBalloons(info);
+    if(originalBack)originalBack(info,m);
+}
 void shield(void* info,const MethodInfo* m){if(originalShield)originalShield(info,m);render(info,1);}
 void barrier(void* info,const MethodInfo* m){if(originalBarrier)originalBarrier(info,m);render(info,2);}
 bool bind(std::string* error) {
