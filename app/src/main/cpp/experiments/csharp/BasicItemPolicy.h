@@ -4,9 +4,16 @@
 
 namespace bl::csharp {
 struct BasicEquipTexture { std::string kind,path; int flags=0; };
+struct BasicCostumePolicy {
+    bool enabled=false;
+    std::string alternate,buff;
+    float jump=0;
+    int fall=0,town=1;
+};
 struct BasicItemPolicy {
     std::string clone;
     std::vector<BasicEquipTexture> equips;
+    BasicCostumePolicy costume;
     bool hair=false,robe=false,animated=false,lit=false,colored=false,wing=false;
     int frames=0,ticks=0; std::array<bool,3> animationFlags{};
     std::array<float,3> light{}; bool essence=false;
@@ -91,7 +98,7 @@ inline bool read(const BasicItemEntry& entry,BasicItemPolicy* out,std::string* e
     auto fail=[&](const char* reason){*error="[CSharp][ERROR][ItemPolicy] Class="+entry.name+" Stage=Decode Reason="+reason;return false;};
     if(entry.behavior.size()>4096||!parser.value(&root)||root.kind!=Json::Object)return fail("MalformedDescriptor");
     parser.spaces();if(parser.pos!=entry.behavior.size()||!root.at("v").integer(1,1))return fail("UnsupportedVersion");
-    const std::set<std::string> fields={"class","v","clone","equips","effects","nativeAccessory","nativeArmor","animation","light","alpha","hair","robe","defense","armor","armorSet","wings"};
+    const std::set<std::string> fields={"class","v","clone","equips","effects","nativeAccessory","nativeArmor","animation","light","alpha","hair","robe","defense","armor","armorSet","wings","costume"};
     for(const auto& [key,value]:root.object){(void)value;if(!fields.contains(key))return fail("UnknownField");}
     for(const char* flag:{"hair","robe"})if(root.at(flag).kind!=Json::Boolean)return fail("InvalidFlag");
     out->hair=root.at("hair").boolean;out->robe=root.at("robe").boolean;
@@ -107,6 +114,31 @@ inline bool read(const BasicItemEntry& entry,BasicItemPolicy* out,std::string* e
         out->equips.push_back({kind,e.array[1].string,static_cast<int>(e.array[2].number)});
     }
     if(out->robe&&(!seen.contains("Body")||!seen.contains("Legs")))return fail("RobeRequiresBodyAndLegs");
+    const auto& costume=root.at("costume");
+    if(costume.kind!=Json::Null) {
+        if(costume.kind!=Json::Object||costume.object.size()!=5||
+           !(entry.values[BasicFlags]&32)||
+           !seen.contains("Head")||!seen.contains("Body")||!seen.contains("Legs"))
+            return fail("InvalidCostume");
+        for(const auto& [key,value]:costume.object) {
+            (void)value;
+            if(key!="alt"&&key!="buff"&&key!="jump"&&key!="fall"&&key!="town")
+                return fail("UnknownCostumeField");
+        }
+        const auto& alternate=costume.at("alt"),buff=costume.at("buff"),jump=costume.at("jump");
+        if(alternate.kind!=Json::String||!path(alternate.string)||alternate.string.size()>180||
+           buff.kind!=Json::String||buff.string.empty()||buff.string.size()>72||
+           jump.kind!=Json::Number||jump.number<0||jump.number>20||
+           !costume.at("fall").integer(0,300)||!costume.at("town").integer(1,20))
+            return fail("InvalidCostume");
+        for(unsigned char ch:buff.string)
+            if(!((ch>='A'&&ch<='Z')||(ch>='a'&&ch<='z')||
+                 (ch>='0'&&ch<='9')||ch=='_'))
+                return fail("InvalidCostumeBuff");
+        out->costume={true,alternate.string,buff.string,jump.number,
+            static_cast<int>(costume.at("fall").number),
+            static_cast<int>(costume.at("town").number)};
+    }
     for(const char* marker:{"nativeAccessory","nativeArmor"})if(root.at(marker).kind!=Json::Null&&root.at(marker).kind!=Json::Boolean)return fail("InvalidNativeMarker");
     if(root.at("defense").kind!=Json::Null&&!root.at("defense").integer(0,1000))return fail("InvalidDefense");
     const auto& anim=root.at("animation");
