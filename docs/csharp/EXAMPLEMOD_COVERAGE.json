@@ -22,7 +22,7 @@
   ],
   "note": "Candidatos por nome não comprovam equivalência. Hooks são unidades iniciais de revisão; decompor efeitos e valores durante cada lote. Inventário tML é backlog, excluído destes totais.",
   "inventory": {
-    "cSharpFiles": 121,
+    "cSharpFiles": 126,
     "jsFiles": 206,
     "officialFiles": 558,
     "officialCommit": "c9545cf27d56c456321e1896274c02adf67d0140"
@@ -1519,7 +1519,9 @@
       "source": "content/Content/Buffs/ExampleMinecartBuff.js",
       "sourceSha256": "fd41df1eafa9f726d137bf4af18515248ded543e23c08bef2e2de182a2b4f4e8",
       "behavior": "SetStaticDefaults",
-      "candidates": [],
+      "candidates": [
+        "samples/ExampleModCSharp/Playable/content/Content/Buffs/ExampleMinecartBuff.cs"
+      ],
       "status": "não iniciado",
       "note": "Equivalência deste comportamento ainda não auditada.",
       "implementation": [],
@@ -3968,7 +3970,9 @@
       "source": "content/Content/Items/Mounts/ExampleMinecart.js",
       "sourceSha256": "237e1e10933e15e6d77fe643023af529dfe5842f681a01a5cc1ebfc0b4823dc6",
       "behavior": "AddRecipes",
-      "candidates": [],
+      "candidates": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Mounts/ExampleMinecart.cs"
+      ],
       "status": "não iniciado",
       "note": "Equivalência deste comportamento ainda não auditada.",
       "implementation": [],
@@ -3981,7 +3985,9 @@
       "source": "content/Content/Items/Mounts/ExampleMinecart.js",
       "sourceSha256": "237e1e10933e15e6d77fe643023af529dfe5842f681a01a5cc1ebfc0b4823dc6",
       "behavior": "SetDefaults",
-      "candidates": [],
+      "candidates": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Mounts/ExampleMinecart.cs"
+      ],
       "status": "não iniciado",
       "note": "Equivalência deste comportamento ainda não auditada.",
       "implementation": [],
@@ -3994,7 +4000,9 @@
       "source": "content/Content/Items/Mounts/ExampleMountItem.js",
       "sourceSha256": "62707bf51f123aa41559c1e8897baf3e7e37085d60da85fa3a03e72ed827f4b8",
       "behavior": "AddRecipes",
-      "candidates": [],
+      "candidates": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Mounts/ExampleMountItem.cs"
+      ],
       "status": "não iniciado",
       "note": "Equivalência deste comportamento ainda não auditada.",
       "implementation": [],
@@ -4007,7 +4015,9 @@
       "source": "content/Content/Items/Mounts/ExampleMountItem.js",
       "sourceSha256": "62707bf51f123aa41559c1e8897baf3e7e37085d60da85fa3a03e72ed827f4b8",
       "behavior": "SetDefaults",
-      "candidates": [],
+      "candidates": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Mounts/ExampleMountItem.cs"
+      ],
       "status": "não iniciado",
       "note": "Equivalência deste comportamento ainda não auditada.",
       "implementation": [],
@@ -6283,7 +6293,9 @@
       "source": "content/Content/Mounts/ExampleMinecartMount.js",
       "sourceSha256": "b26c4ae9fc4474f881fe379b3508e4644227876d7b764c06181e35ace53513e5",
       "behavior": "SetStaticDefaults",
-      "candidates": [],
+      "candidates": [
+        "samples/ExampleModCSharp/Playable/content/Content/Mounts/ExampleMinecartMount.cs"
+      ],
       "status": "não iniciado",
       "note": "Equivalência deste comportamento ainda não auditada.",
       "implementation": [],
@@ -6296,7 +6308,9 @@
       "source": "content/Content/Mounts/ExampleMinecartMount.js",
       "sourceSha256": "b26c4ae9fc4474f881fe379b3508e4644227876d7b764c06181e35ace53513e5",
       "behavior": "UpdateEffects",
-      "candidates": [],
+      "candidates": [
+        "samples/ExampleModCSharp/Playable/content/Content/Mounts/ExampleMinecartMount.cs"
+      ],
       "status": "não iniciado",
       "note": "Equivalência deste comportamento ainda não auditada.",
       "implementation": [],
@@ -6309,7 +6323,9 @@
       "source": "content/Content/Mounts/ExampleMount.js",
       "sourceSha256": "8e4824616407cc1fc6e0a2c8a645d32fcd78a845ea792564a74b14291f1efef6",
       "behavior": "Draw",
-      "candidates": [],
+      "candidates": [
+        "samples/ExampleModCSharp/Playable/content/Content/Mounts/ExampleMount.cs"
+      ],
       "status": "não iniciado",
       "note": "Equivalência deste comportamento ainda não auditada.",
       "implementation": [],
@@ -6322,7 +6338,9 @@
       "source": "content/Content/Mounts/ExampleMount.js",
       "sourceSha256": "8e4824616407cc1fc6e0a2c8a645d32fcd78a845ea792564a74b14291f1efef6",
       "behavior": "SetMount",
-      "candidates": [],
+      "candidates": [
+        "samples/ExampleModCSharp/Playable/content/Content/Mounts/ExampleMount.cs"
+      ],
       "status": "não iniciado",
       "note": "Equivalência deste comportamento ainda não auditada.",
       "implementation": [],
@@ -6335,7 +6353,9 @@
       "source": "content/Content/Mounts/ExampleMount.js",
       "sourceSha256": "8e4824616407cc1fc6e0a2c8a645d32fcd78a845ea792564a74b14291f1efef6",
       "behavior": "SetStaticDefaults",
-      "candidates": [],
+      "candidates": [
+        "samples/ExampleModCSharp/Playable/content/Content/Mounts/ExampleMount.cs"
+      ],
       "status": "não iniciado",
       "note": "Equivalência deste comportamento ainda não auditada.",
       "implementation": [],
@@ -6348,7 +6368,9 @@
       "source": "content/Content/Mounts/ExampleMount.js",
       "sourceSha256": "8e4824616407cc1fc6e0a2c8a645d32fcd78a845ea792564a74b14291f1efef6",
       "behavior": "UpdateEffects",
-      "candidates": [],
+      "candidates": [
+        "samples/ExampleModCSharp/Playable/content/Content/Mounts/ExampleMount.cs"
+      ],
       "status": "não iniciado",
       "note": "Equivalência deste comportamento ainda não auditada.",
       "implementation": [],
