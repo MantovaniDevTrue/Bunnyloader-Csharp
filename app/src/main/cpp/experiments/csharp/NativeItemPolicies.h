@@ -12,6 +12,7 @@ struct NativeCostumeEffect {
     float jumpSpeedBoost=0;
 };
 bool nativeCostumeEffect(int itemType,NativeCostumeEffect* effect);
+bool nativeCostumesActive();
 bool prepareNativeItemPolicies(const std::vector<BasicItemEntry>& entries,std::shared_ptr<NativeItemPolicyBatch>* batch,std::string* error);
 void commitNativeItemPolicies(const std::shared_ptr<NativeItemPolicyBatch>& batch);
 // Revoke callbacks now; game-thread pump restores owned primitive cells and releases roots.
