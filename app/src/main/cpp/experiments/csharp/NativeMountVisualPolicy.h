@@ -1,5 +1,6 @@
 #pragma once
 #include <array>
+#include <cstddef>
 #include <cmath>
 #include <cstdint>
 
@@ -18,13 +19,17 @@ struct Balloon {
 inline bool updateBalloons(std::array<float,3>* rotations,float velocityX,
                            const std::array<float,3>& random,int count) {
     if(!rotations||count!=3||!std::isfinite(velocityX))return false;
+    for(int i=0;i<count;++i) {
+        const float rotation=(*rotations)[static_cast<std::size_t>(i)];
+        const float sample=random[static_cast<std::size_t>(i)];
+        if(!std::isfinite(rotation)||!std::isfinite(sample)||sample<0||sample>1)
+            return false;
+    }
     float scale=0.05f;
     constexpr float halfPi=1.57079632679489661923f;
     for(int i=0;i<count;++i) {
-        float& rotation=(*rotations)[static_cast<size_t>(i)];
+        float& rotation=(*rotations)[static_cast<std::size_t>(i)];
         const float sample=random[static_cast<size_t>(i)];
-        if(!std::isfinite(rotation)||!std::isfinite(sample)||sample<0||sample>1)
-            return false;
         if(std::abs(rotation)>halfPi)scale=-scale;
         const float next=rotation-velocityX*scale*sample;
         rotation=next+(0.f-next)*0.05f;
