@@ -1,7 +1,9 @@
 #pragma once
 #include <array>
+#include <cerrno>
 #include <charconv>
 #include <cmath>
+#include <cstdlib>
 #include <cstdint>
 #include <string>
 #include <string_view>
@@ -36,9 +38,21 @@ inline bool integer(std::string_view text,int* out,int min,int max) {
 inline bool single(std::string_view text,float* out,float min,float max) {
     if(text.empty()||!out)return false;
     float result=0;
+#if defined(__ANDROID__)
+    if(text.front()=='+'||
+       text.find_first_not_of("0123456789.+-eE")!=std::string_view::npos)
+        return false;
+    std::string numeric(text);
+    char* end=nullptr;
+    errno=0;
+    result=std::strtof(numeric.c_str(),&end);
+    if(errno!=0||end!=numeric.c_str()+numeric.size())return false;
+#else
     auto parse=std::from_chars(text.data(),text.data()+text.size(),result);
-    if(parse.ec!=std::errc{}||parse.ptr!=text.data()+text.size()||
-       !std::isfinite(result)||result<min||result>max)return false;
+    if(parse.ec!=std::errc{}||parse.ptr!=text.data()+text.size())
+        return false;
+#endif
+    if(!std::isfinite(result)||result<min||result>max)return false;
     *out=result;
     return true;
 }
