@@ -2423,11 +2423,11 @@
       "methods": [
         {
           "signature": "void SetDefaults()",
-          "execution": "compile_policy"
+          "execution": "authoring_contract_native_registration_pending"
         },
         {
           "signature": "void Validate()",
-          "execution": "managed_helper"
+          "execution": "authoring_contract_native_registration_pending"
         }
       ]
     },
