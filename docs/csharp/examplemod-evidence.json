@@ -3197,7 +3197,7 @@
         "tests/examplemod_buff_qa/ExampleModBuffQa.csproj",
         "tests/examplemod_buff_qa/Program.cs"
       ],
-      "validationScope": "host; Android pendente; gameplay pendente",
+      "validationScope": "host; Android pendente",
       "androidEvidence": [],
       "validatedFilesSha256": {
         "samples/ExampleModCSharp/Playable/content/Content/Buffs/Blocky.cs": "fcdea86cb0434fda5124811636f789e6bc8e314c906b5df1150544a5f2b4feb5",
@@ -3217,7 +3217,7 @@
         "tests/examplemod_buff_qa/ExampleModBuffQa.csproj",
         "tests/examplemod_buff_qa/Program.cs"
       ],
-      "validationScope": "host; Android pendente; gameplay pendente",
+      "validationScope": "host; Android pendente",
       "androidEvidence": [],
       "validatedFilesSha256": {
         "samples/ExampleModCSharp/Playable/content/Content/Buffs/ExampleMountBuff.cs": "e5a993cc3de29c80486584a4a6c03da1b47232e2af713911af4dd58067fef2bd",
