@@ -261,10 +261,10 @@ bool setObject(Il2CppObject* target,Il2CppClass* cls,const char* name,
     else *cell=value;
     return true;
 }
-bool preflight(std::string* error) {
+bool preflight(std::string* error,bool requireArray=false) {
     auto& a=api();
     if(!a.runtime_invoke||!a.object_new||!a.array_new||!a.field_static_get_value||
-       !a.field_static_set_value||!a.class_get_element_class||
+       !a.field_static_set_value||!a.class_get_element_class||!a.class_get_rank||
        !a.gc_wbarrier_set_field||!a.class_is_assignable_from||
        !a.class_instance_size||!a.method_is_instance) {
         *error="Mount IL2CPP required exports missing";return false;
@@ -280,11 +280,21 @@ bool preflight(std::string* error) {
        !mountsValue||!mountsValue.writable()||!dataClass) {
         *error="MountID.Count or Mount.mounts metadata unavailable";return false;
     }
+    if(a.class_get_rank(mountsValue.type)!=1||
+       a.class_get_element_class(mountsValue.type)!=dataClass) {
+        *error="Mount.mounts declared type is not MountData[]";return false;
+    }
     Il2CppArray* mounted=nullptr;
-    if(!native_static::read(mountsValue,&mounted,sizeof(mounted))||!mounted||
-       mounted->length<static_cast<uintptr_t>(n)||mounted->length>4096||
-       a.class_get_element_class(mounted->obj.klass)!=dataClass) {
-        *error="Mount.mounts requires MountData[] with safe capacity";return false;
+    if(!native_static::read(mountsValue,&mounted,sizeof(mounted))) {
+        *error="Mount.mounts native static read failed";return false;
+    }
+    if(mounted&&(a.class_get_rank(mounted->obj.klass)!=1||
+       mounted->length>4096||
+       a.class_get_element_class(mounted->obj.klass)!=dataClass)) {
+        *error="Mount.mounts runtime array type or capacity mismatch";return false;
+    }
+    if(requireArray&&!mounted) {
+        *error="Mount.mounts pending vanilla initialization at publish";return false;
     }
     if(!mountSets) {
         mountSets=std::make_unique<runtime::TypeTables>("C# MountID.Sets",static_cast<int>(n),
@@ -500,7 +510,6 @@ int reserveNativeMount(const std::string& mod,const std::string& name,std::strin
         *error="MountID.Count outside native reservation bounds";return -1;
     }
     const int type=static_cast<int>(count);
-    if(!slotArray(type,error))return -1;
     if(!native_static::writeInteger(countValue,count+1)) {
         *error="MountID.Count write failed";return -1;
     }
@@ -512,7 +521,11 @@ bool publishNativeMounts(const std::string& mod,const std::string& directory,
                          const std::vector<ManagedMountEntry>& entries,std::string* error) {
     if(!error)return false;
     if(entries.empty())return true;
-    if(!preflight(error)||!hookMountEffects(error))return false;
+    if(!preflight(error,true))return false;
+    for(const auto& entry:entries) {
+        if(entry.type<0||!slotArray(entry.type,error))return false;
+    }
+    if(!hookMountEffects(error))return false;
     struct Pending {
         int type=0,buff=0;bool minecart=false;
         Il2CppObject* data=nullptr;
