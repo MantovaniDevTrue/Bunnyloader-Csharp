@@ -44,6 +44,8 @@ jobs:
         run: dotnet run --project tests/basic_items/ItemBatch.csproj -c Release
       - name: Validate native costume and item policies without QuickJS
         run: python3 tests/run_native_item_policies.py build/basic-items/full-source-runtime-values.txt samples/ExampleModCSharp/Playable
+      - name: Check exact mounted item recipe wire
+        run: python3 tests/basic_items/check_full_wire.py build/basic-items/full-source-runtime-values.txt
       - name: Preserve WorldSystem and WorldNet lifecycle
         run: dotnet run --project experiments/csharp/BunnyWorldSystemsSmoke/BunnyWorldSystemsSmoke.csproj -c Release
       - name: Verify public SDK reference
