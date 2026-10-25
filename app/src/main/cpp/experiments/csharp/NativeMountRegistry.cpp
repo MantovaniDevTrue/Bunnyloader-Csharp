@@ -189,7 +189,9 @@ bool hookMountEffects(std::string* error) {
        !bind(player,"velocity","Microsoft.Xna.Framework.Vector2",8,&playerVelocityOffset)||
        !bind(player,"width","System.Int32",4,&playerWidthOffset)||
        !bind(player,"height","System.Int32",4,&playerHeightOffset)||
-       !bind(player,"mount","Terraria.Mount",sizeof(void*),&playerMountOffset)) {
+       !bind(player,"mount","Terraria.Mount",sizeof(void*),&playerMountOffset)||
+       !bind(player,"buffType","System.Int32[]",sizeof(void*),&playerBuffTypeOffset)||
+       !bind(player,"buffTime","System.Int32[]",sizeof(void*),&playerBuffTimeOffset)) {
         *error="Mount native effects player contract: "+detail;return false;
     }
     auto* dust=findClass({"Terraria","Dust",{}});
@@ -603,6 +605,39 @@ bool publishNativeMounts(const std::string& mod,const std::string& directory,
     BL_INFO("[CSharp][Mount] Mod=%s Count=%zu Stage=Publish Result=Ready",
             mod.c_str(),pending.size());
     return true;
+}
+void updateNativeMountBuffs(Il2CppObject* player) {
+    if(!player||!effectsHooked||slots.empty()||playerMountOffset<0||
+       playerBuffTypeOffset<0||playerBuffTimeOffset<0||!setMountMethod)return;
+    auto* bytes=reinterpret_cast<char*>(player);
+    Il2CppArray* types=nullptr,*times=nullptr;
+    std::memcpy(&types,bytes+playerBuffTypeOffset,sizeof(types));
+    std::memcpy(&times,bytes+playerBuffTimeOffset,sizeof(times));
+    if(!nativeArrayContract(types,"Int32",4,60)||
+       !nativeArrayContract(times,"Int32",4,60))return;
+    const auto count=std::min(types->length,times->length);
+    auto* ids=static_cast<int32_t*>(arrayData(types));
+    auto* durations=static_cast<int32_t*>(arrayData(times));
+    Il2CppObject* mount=nullptr;
+    std::memcpy(&mount,bytes+playerMountOffset,sizeof(mount));
+    if(!mount)return;
+    for(uintptr_t i=0;i<count;++i) {
+        const int buff=ids[i];
+        if(buff<=0)continue;
+        for(const auto& [type,entry]:slots) {
+            if(!entry.published||entry.policy.kind!=0||entry.buff!=buff)continue;
+            durations[i]=10;
+            if(activeMountType(mount)!=type) {
+                int nativeType=type;uint8_t ignore=0;
+                void* args[]={&nativeType,player,&ignore};
+                Il2CppObject* exception=nullptr;
+                api().runtime_invoke(setMountMethod,mount,args,&exception);
+                if(exception){static unsigned faults=0;if(faults++<3)
+                    BL_WARN("[CSharp][Mount] Stage=RefreshBuff Result=Exception");}
+            }
+            return;
+        }
+    }
 }
 bool nativeMountBalloonState(Il2CppObject* player,std::array<float,3>* rotations,
                             Il2CppObject** texture) {
