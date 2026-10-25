@@ -1,3 +1,4 @@
+#include <array>
 #include "content/common/ContentAssets.h"
 #include "experiments/csharp/NativeContent.h"
 #include "il2cpp/Api.h"
@@ -44,3 +45,7 @@ namespace bl::mods {const std::string& dirOf(const std::string&) {return testing
 std::string rootOf(const std::string&){const auto& root=testing::modContentRoot;return root.ends_with("/content")?root.substr(0,root.size()-8):root;}
 }
 namespace bl::il2cpp {std::string describeException(Il2CppObject*) {return "FixtureNativeException";}}
+
+namespace bl::csharp {
+bool nativeMountBalloonState(Il2CppObject*,std::array<float,3>*,Il2CppObject**){return false;}
+}
