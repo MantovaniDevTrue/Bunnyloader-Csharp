@@ -2,6 +2,7 @@
 #include "content/tiles/ModTiles.h"
 #include "content/tiles/TileAccess.h"
 #include "experiments/csharp/NativeTreeDropPolicy.h"
+#include "experiments/csharp/NativeTreeAcornId.h"
 #include "experiments/csharp/NativeTreePlantPolicy.h"
 #include "experiments/csharp/NativeSaplingGrowthPolicy.h"
 #include "experiments/csharp/NativeTreeEffectsPolicy.h"
@@ -278,6 +279,11 @@ bool bindTreeRandom() {
                       il2cpp::findClass({"System","Random",{}});
     const auto* next=rng?il2cpp::findMethodBySignature(rng,
         il2cpp::parseSignature("double NextDouble()")):nullptr;
+    if(!next&&unified) {
+        auto* base=il2cpp::findClass({"System","Random",{}});
+        next=base?il2cpp::findMethodBySignature(base,
+            il2cpp::parseSignature("double NextDouble()")):nullptr;
+    }
     if(!next||!a.method_is_instance(next)||a.method_get_param_count(next)!=0||
        !il2cpp::methodPointer(next))return false;
     char* returnName=a.type_get_name(a.method_get_return_type(next));
@@ -287,6 +293,7 @@ bool bindTreeRandom() {
     g_treeRandField=random;
     g_treeNetModeField=netMode;
     g_treeNextDouble=next;
+    BL_INFO("[CSharp][TreeDrops] Stage=Random Result=Ready Source=%s",unified?"UnifiedRandom":"SystemRandom");
     return true;
 }
 
@@ -313,23 +320,56 @@ bool rollTopAcorn(int frameX,int frameY,bool enabled) {
 bool readNativeAcornType() {
     if(g_acornType>0)return true;
     auto& a=il2cpp::api();
+    if(!a.field_get_type||!a.field_get_flags||!a.type_get_name)return false;
     auto* cls=il2cpp::findClass({"Terraria.ID","ItemID",{}});
-    auto* f=cls?il2cpp::findField(cls,"Acorn"):nullptr;
-    if(!f||!a.field_get_type||!a.field_get_flags||!a.type_get_name)return false;
-    if((a.field_get_flags(f)&0x40u)==0)return false;
-    char* typeName=a.type_get_name(a.field_get_type(f));
-    const bool rightType=typeName&&std::strcmp(typeName,"System.Int32")==0;
-    if(typeName)std::free(typeName);
-    if(!rightType)return false;
-    using DefaultFn=const void* (*)(const FieldInfo*,const Il2CppType**);
-    auto* getDefault=reinterpret_cast<DefaultFn>(dlsym(RTLD_DEFAULT,"il2cpp_field_get_default_value"));
-    if(!getDefault)return false;
-    const Il2CppType* outType=nullptr;
-    const void* value=getDefault(f,&outType);
-    int acorn=-1;
-    if(value)std::memcpy(&acorn,value,sizeof(acorn));
-    if(acorn<=0||acorn>=6196)return false;
+    if(!cls)return false;
+    auto* f=il2cpp::findField(cls,"Acorn");
+    int nativeValue=-1;
+    if(f) {
+        char* typeName=a.type_get_name(a.field_get_type(f));
+        const bool isShort=typeName&&std::strcmp(typeName,"System.Int16")==0;
+        const bool isInt=typeName&&std::strcmp(typeName,"System.Int32")==0;
+        if(typeName)std::free(typeName);
+        if(!isShort&&!isInt) {
+            BL_ERROR("[CSharp][TreeDrops] Stage=Acorn Result=Rejected Reason=UnexpectedFieldType");
+            return false;
+        }
+        const auto flags=a.field_get_flags(f);
+        if(flags&0x40u) {
+            using Getter=const void* (*)(const FieldInfo*,const Il2CppType**);
+            void* library=dlopen("libil2cpp.so",RTLD_NOW|RTLD_NOLOAD);
+            const auto getter=library?reinterpret_cast<Getter>(
+                dlsym(library,"il2cpp_field_get_default_value")):nullptr;
+            const Il2CppType* metadata=nullptr;
+            const void* value=getter?getter(f,&metadata):nullptr;
+            if(value) {
+                if(isShort) {
+                    int16_t result=-1;
+                    std::memcpy(&result,value,sizeof(result));
+                    nativeValue=result;
+                } else std::memcpy(&nativeValue,value,sizeof(nativeValue));
+            }
+            if(library)dlclose(library);
+        } else if((flags&0x10u)&&a.field_static_get_value) {
+            if(isShort) {
+                int16_t result=-1;
+                a.field_static_get_value(f,&result);
+                nativeValue=result;
+            } else a.field_static_get_value(f,&nativeValue);
+        } else {
+            BL_ERROR("[CSharp][TreeDrops] Stage=Acorn Result=Rejected Reason=NonStaticField");
+            return false;
+        }
+    }
+    const int acorn=bl::csharp::tree_acorn::resolveId(nativeValue);
+    if(acorn<0) {
+        BL_ERROR("[CSharp][TreeDrops] Stage=Acorn Result=Rejected Reason=VanillaIdMismatch Actual=%d Expected=%d",
+                 nativeValue,bl::csharp::tree_acorn::vanillaId);
+        return false;
+    }
     g_acornType=acorn;
+    BL_INFO("[CSharp][TreeDrops] Stage=Acorn Result=Ready Source=%s Value=%d",
+            nativeValue<0?"TerrariaVanillaID":"IL2CPP",acorn);
     return true;
 }
 
@@ -435,7 +475,14 @@ bool rollModTreeGrowth(int chance) {
 
 bool prepareModTreeDrops(bool needAcorn) {
     (void)needAcorn;
-    if(!readNativeAcornType()||!bindTreeRandom())return false;
+    if(!readNativeAcornType()) {
+        BL_ERROR("[CSharp][TreeDrops] Stage=Bind Result=Rejected Reason=AcornIdUnavailable");
+        return false;
+    }
+    if(!bindTreeRandom()) {
+        BL_ERROR("[CSharp][TreeDrops] Stage=Bind Result=Rejected Reason=MainRandNextDoubleUnavailable");
+        return false;
+    }
     if(g_treeDropsHooked)return true;
     auto& a=il2cpp::api();
     if(!a.method_is_instance||!a.method_get_param_count||
@@ -451,15 +498,25 @@ bool prepareModTreeDrops(bool needAcorn) {
        !paramIs(method,4,"System.Boolean&",true)||
        !paramIs(method,5,"System.Int32&",true)||
        !paramIs(method,6,"System.Int32&",true)||
-       !il2cpp::methodPointer(method))return false;
+       !il2cpp::methodPointer(method)) {
+        BL_ERROR("[CSharp][TreeDrops] Stage=Bind Result=Rejected Reason=KillTileGetTreeDropsSignatureUnavailable");
+        return false;
+    }
     char* typeName=a.type_get_name(a.method_get_return_type(method));
     const bool returnsVoid=typeName&&std::strcmp(typeName,"System.Void")==0;
     if(typeName)std::free(typeName);
     auto* tileType=a.class_from_il2cpp_type(a.method_get_param(method,2));
     uint32_t alignment=0;
     if(!returnsVoid||!tileType||!a.class_is_valuetype(tileType)||
-       a.class_value_size(tileType,&alignment)!=4)return false;
-    if(!hook::install(method,hkGetTreeDrops,&g_originalTreeDrops))return false;
+       a.class_value_size(tileType,&alignment)!=4) {
+        BL_ERROR("[CSharp][TreeDrops] Stage=Bind Result=Rejected Reason=TreeDropsReturnOrTileABI");
+        return false;
+    }
+    if(!hook::install(method,hkGetTreeDrops,&g_originalTreeDrops)) {
+        BL_ERROR("[CSharp][TreeDrops] Stage=Bind Result=Rejected Reason=HookInstallation");
+        return false;
+    }
+    BL_INFO("[CSharp][TreeDrops] Stage=Bind Result=Ready Acorn=%d",g_acornType);
     g_treeDropsHooked=true;
     return true;
 }
