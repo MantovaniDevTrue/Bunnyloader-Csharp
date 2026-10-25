@@ -18,6 +18,7 @@ inline std::string_view sourceContentDomain(std::string_view base) {
     if (base == "BunnyDust") return "DUST";
     if (base == "BunnyTree") return "TREE";
     if (base == "BunnyGore") return "GORE";
+    if (base == "BunnyMount") return "MOUNT";
     if (base == "BunnyScreenEffect") return "SCREEN_EFFECT";
     if (base == "BunnyCommand") return "COMMAND";
     if (base == "BunnyWorldSystem") return "SYSTEM";
@@ -35,7 +36,7 @@ inline std::string_view sourceWireDomain(std::string_view kind) {
     if (kind == "WEAPON" || kind == "ACCESSORY" || kind == "POTION") return "ITEM";
     if (kind == "ITEM" || kind == "PROJECTILE" || kind == "BUFF" ||
         kind == "NPC" || kind == "PREFIX" || kind == "RARITY" || kind == "PLAYER" ||
-        kind == "TILE" || kind == "WALL" || kind == "DUST" || kind == "TREE" || kind == "GORE") return kind;
+        kind == "TILE" || kind == "WALL" || kind == "DUST" || kind == "TREE" || kind == "GORE" || kind == "MOUNT") return kind;
     return {};
 }
 
