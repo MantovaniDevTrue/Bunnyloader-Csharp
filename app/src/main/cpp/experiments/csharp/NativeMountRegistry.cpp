@@ -1,6 +1,7 @@
 #include "experiments/csharp/NativeMountRegistry.h"
 #include "experiments/csharp/NativeMountVisualPolicy.h"
 #include "experiments/csharp/NativeMountDustId.h"
+#include "experiments/csharp/VanillaMinecartIds.h"
 #include "experiments/csharp/NativeVisualRenderer.h"
 #include "hook/HookManager.h"
 #include "experiments/csharp/NativeStaticValue.h"
@@ -395,43 +396,80 @@ bool writeMountBuff(int buff,int type,std::string* error) {
     return true;
 }
 int vanillaMountId(const char* name) {
-    auto& a=api();auto* ids=findClass({"Terraria.ID","MountID",{}});
+    const int expected=std::strcmp(name,"MeowmereMinecart")==0
+        ?vanilla_minecarts::meowmere
+        :std::strcmp(name,"FartMinecart")==0?vanilla_minecarts::fart:-1;
+    if(expected<0)return -1;
+    auto& a=api();
+    auto* ids=findClass({"Terraria.ID","MountID",{}});
     auto* field=ids?findField(ids,name):nullptr;
-    if(!field||!a.field_get_flags||!a.field_get_type)return -1;
-    auto* kind=a.class_from_il2cpp_type(a.field_get_type(field));
-    const char* ns=kind?a.class_get_namespace(kind):nullptr;
-    const char* type=kind?a.class_get_name(kind):nullptr;
-    if(!ns||!type||std::strcmp(ns,"System"))return -1;
-    const bool small=!std::strcmp(type,"Int16");
-    if(!small&&std::strcmp(type,"Int32"))return -1;
-    int id=-1;
-    if(a.field_get_flags(field)&0x40u) {
-        using Getter=const void*(*)(const FieldInfo*,const Il2CppType**);
-        auto* getter=reinterpret_cast<Getter>(dlsym(RTLD_DEFAULT,"il2cpp_field_get_default_value"));
-        const Il2CppType* metadata=nullptr;const void* src=getter?getter(field,&metadata):nullptr;
-        if(!src)return -1;
-        if(small){int16_t v=-1;std::memcpy(&v,src,2);id=v;}
-        else std::memcpy(&id,src,4);
-    } else if(a.field_get_flags(field)&0x10u) {
-        if(small){int16_t v=-1;a.field_static_get_value(field,&v);id=v;}
-        else a.field_static_get_value(field,&id);
+    int value=-1;
+    if(field&&a.field_get_flags&&a.field_get_type&&a.class_from_il2cpp_type) {
+        auto* kind=a.class_from_il2cpp_type(a.field_get_type(field));
+        const char* ns=kind?a.class_get_namespace(kind):nullptr;
+        const char* type=kind?a.class_get_name(kind):nullptr;
+        const bool small=ns&&type&&std::strcmp(ns,"System")==0&&
+            std::strcmp(type,"Int16")==0;
+        const bool integer=ns&&type&&std::strcmp(ns,"System")==0&&
+            std::strcmp(type,"Int32")==0;
+        if(small||integer) {
+            if(a.field_get_flags(field)&0x40u) {
+                using Getter=const void*(*)(const FieldInfo*,const Il2CppType**);
+                void* library=dlopen("libil2cpp.so",RTLD_NOW|RTLD_NOLOAD);
+                const auto getter=library?reinterpret_cast<Getter>(
+                    dlsym(library,"il2cpp_field_get_default_value")):nullptr;
+                const Il2CppType* metadata=nullptr;
+                const auto* src=getter?getter(field,&metadata):nullptr;
+                if(src) {
+                    if(small) {
+                        int16_t number=-1;
+                        std::memcpy(&number,src,sizeof(number));
+                        value=number;
+                    } else std::memcpy(&value,src,sizeof(value));
+                }
+                if(library)dlclose(library);
+            } else if((a.field_get_flags(field)&0x10u)&&a.field_static_get_value) {
+                if(small) {
+                    int16_t number=-1;
+                    a.field_static_get_value(field,&number);
+                    value=number;
+                } else a.field_static_get_value(field,&value);
+            }
+        }
     }
-    return id>=0&&id<2048?id:-1;
+    const int resolved=vanilla_minecarts::resolveId(expected,value);
+    if(resolved<0)
+        BL_WARN("[CSharp][Mount] Stage=VanillaMountID Name=%s Result=Mismatch Runtime=%d Expected=%d",
+                name,value,expected);
+    else if(value==-1)
+        BL_INFO("[CSharp][Mount] Stage=VanillaMountID Name=%s Source=TerrariaVanillaMountID Value=%d",
+                name,resolved);
+    return resolved;
 }
 bool copyMinecartDelegates(Il2CppObject* custom,std::string* error) {
     auto& a=api();
     const int meow=vanillaMountId("MeowmereMinecart");
     const int fart=vanillaMountId("FartMinecart");
     Il2CppArray* all=nullptr;
-    if(meow<0||fart<0||!native_static::read(mountsValue,&all,sizeof(all))||
-       !all||static_cast<uintptr_t>(std::max(meow,fart))>=all->length) {
-        *error="Vanilla meow/fart minecart delegates missing";return false;
+    const bool readable=native_static::read(mountsValue,&all,sizeof(all));
+    const uintptr_t length=readable&&all?all->length:0;
+    const bool extent=meow>=0&&fart>=0&&
+        static_cast<uintptr_t>(std::max(meow,fart))<length;
+    if(!extent) {
+        *error="Vanilla meow/fart minecart delegates missing: MeowID="+
+            std::to_string(meow)+" FartID="+std::to_string(fart)+
+            " ArrayReadable="+std::to_string(readable?1:0)+
+            " ArrayLength="+std::to_string(length);
+        return false;
     }
     auto** items=static_cast<Il2CppObject**>(arrayData(all));
     auto* field=findField(dataClass,"delegations");
     if(!field||!a.field_get_type||!a.field_get_flags||!a.field_get_offset||
        (a.field_get_flags(field)&0x10u)||!items[meow]||!items[fart]) {
-        *error="MountData.delegations field unavailable";return false;
+        *error="MountData.delegations field unavailable: MeowSlot="+
+            std::to_string(items[meow]?1:0)+" FartSlot="+
+            std::to_string(items[fart]?1:0)+
+            " Field="+std::to_string(field?1:0);return false;
     }
     auto* delegateClass=a.class_from_il2cpp_type(a.field_get_type(field));
     if(!delegateClass||a.class_is_valuetype(delegateClass)) {
