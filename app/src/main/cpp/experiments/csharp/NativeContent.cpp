@@ -962,10 +962,12 @@ void hkPlayerSpawn(Il2CppObject* self, int32_t context, const MethodInfo* method
 }
 
 void hkPlayerUpdate(Il2CppObject* self, int32_t index, const MethodInfo* method) {
-    if(nativeCostumesActive())if(auto* cycle=costumeCycle(self)) {
-        cycle->previousType=cycle->currentType;
-        cycle->currentType=-1;
-        cycle->power=false;
+    if(nativeCostumesActive()) {
+        if(auto* cycle=costumeCycle(self)) {
+            cycle->previousType=cycle->currentType;
+            cycle->currentType=-1;
+            cycle->power=false;
+        }
     }
     static bool loggedPre = false;
     static bool loggedPost = false;
@@ -1736,7 +1738,8 @@ bool prepareNativePlayerEffects() {
     };
     g_costumeAddBuff=findMethodBySignature(
         player,parseSignature("void AddBuff(int type, int time, bool fromNetPvP)"));
-    g_costumeReady=g_costumeAddBuff&&api().method_is_instance(g_costumeAddBuff)&&
+    g_costumeReady=g_costumeAddBuff&&api().method_is_instance&&
+        api().method_is_instance(g_costumeAddBuff)&&
         g_removeMinionBuff&&api().runtime_invoke&&
         g_refs.playerHideVisibleAccessory>=0&&
         costumeField("townNPCs","System.Single",4,&g_refs.playerTownNpcs)&&
@@ -1746,9 +1749,6 @@ bool prepareNativePlayerEffects() {
         costumeField("head","System.Int32",4,&g_refs.playerHead)&&
         costumeField("body","System.Int32",4,&g_refs.playerBody)&&
         costumeField("legs","System.Int32",4,&g_refs.playerLegs);
-    if(!g_costumeReady)
-        BL_WARN("[CSharp][Costume] Stage=BindPlayerFields Result=Unavailable");
-
     if (!bl::hook::install(equip, hkApplyEquip, &g_originalEquip)) return false;
     const MethodInfo* vanity = findMethodBySignature(
         player, parseSignature("void ApplyEquipVanity(int itemSlot, Item currentItem)"));
