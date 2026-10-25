@@ -279,6 +279,11 @@ bool bindTreeRandom() {
                       il2cpp::findClass({"System","Random",{}});
     const auto* next=rng?il2cpp::findMethodBySignature(rng,
         il2cpp::parseSignature("double NextDouble()")):nullptr;
+    if(!next&&unified) {
+        auto* base=il2cpp::findClass({"System","Random",{}});
+        next=base?il2cpp::findMethodBySignature(base,
+            il2cpp::parseSignature("double NextDouble()")):nullptr;
+    }
     if(!next||!a.method_is_instance(next)||a.method_get_param_count(next)!=0||
        !il2cpp::methodPointer(next))return false;
     char* returnName=a.type_get_name(a.method_get_return_type(next));
@@ -288,6 +293,7 @@ bool bindTreeRandom() {
     g_treeRandField=random;
     g_treeNetModeField=netMode;
     g_treeNextDouble=next;
+    BL_INFO("[CSharp][TreeDrops] Stage=Random Result=Ready Source=%s",unified?"UnifiedRandom":"SystemRandom");
     return true;
 }
 
