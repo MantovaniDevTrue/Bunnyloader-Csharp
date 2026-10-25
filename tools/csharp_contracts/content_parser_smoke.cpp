@@ -43,6 +43,18 @@ int main() {
     const std::string attributed =
         "[BunnyContent(BunnyContentKind.Item, \"Named\", \"Content/Items/Named.png\")] "
         "public class Named : BunnyItem { public override void SetDefaults() { } }";
+    const std::string mount =
+        "public sealed class TestCar : BunnyMount { public override void SetDefaults() { "
+        "Texture = \\"Content/Mounts/TestCar\\"; Buff = \\"TestCarBuff\\"; "
+        "Kind = BunnyMountKind.Ride; Standing = new(4, 12, 0); "
+        "Running = new(4, 12, 0); Flying = new(0, 0, 0); "
+        "InAir = new(1, 12, 0); Idle = new(4, 12, 0); "
+        "Swimming = new(1, 12, 0); } }";
+    if (!expect(mount, "BunnyMount")) return 7;
+    const std::string invalidMount =
+        "public sealed class WrongCar : BunnyMount { public override void SetDefaults() { "
+        "Kind = BunnyMountKind.NotExisting; } }";
+    if (!expect(invalidMount, "", false)) return 8;
     if (!expect(attributed, "BunnyItem")) return 2;
     const std::string invalid =
         "[BunnyContent(BunnyContentKind.Invented, \"Invalid\", \"Content/Items/Invalid.png\")] "
