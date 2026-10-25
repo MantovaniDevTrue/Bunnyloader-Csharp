@@ -331,7 +331,7 @@ string Texture { get; }
 
 enum; base: `System.Enum`.
 
-Values: Item, Tile, Weapon, Projectile, Buff, BuffPotion, Accessory, Player, NPC, Prefix, Wall, Dust, Tree, Gore.
+Values: Item, Tile, Weapon, Projectile, Buff, BuffPotion, Accessory, Player, NPC, Prefix, Wall, Dust, Tree, Gore, Mount.
 
 ## BunnyLoader.Source.BunnyCraftContext
 
@@ -1124,6 +1124,7 @@ int Width { get; set; }
 string BehaviorDefinition { get; }
 string DisplayName { get; set; }
 string ModRarityClassName { get; }
+string Mount { get; set; }
 string NativeAccessoryEffectsDefinition { get; }
 string NativeArmorDefinition { get; }
 string NativeCloneOverridesDefinition { get; }
