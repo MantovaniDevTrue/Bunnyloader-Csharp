@@ -42,7 +42,7 @@ int main() {
     assert(!parse(replacement(car,"|0.19|","|inf|"),&data));
     assert(!parse(replacement(car,"|0.19|","|1000|"),&data));
     assert(!parse(replacement(car,"|ExampleMountBuff|","|../ExampleMountBuff|"),&data));
-    assert(!parse(replacement(car,"|ExampleMount|","|../ExampleMount|"),&data));
+    assert(!parse(replacement(car,"|Content/Mounts/ExampleMount|","|../ExampleMount|"),&data));
     assert(!parse(replacement(car,"|4,12,0|","|4,0,0|"),&data));
     assert(!parse(replacement(car,"|3|16|80|","|9|16|80|"),&data));
     assert(!parse(replacement(car,"|3|16|80|","|3|16|8000|"),&data));
