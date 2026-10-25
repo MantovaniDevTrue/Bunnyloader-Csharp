@@ -1,0 +1,27 @@
+name: ExampleMod CSharp mount authoring contracts (no APK)
+on:
+  push:
+    branches: [qa/csharp-world-tree-gore-apk-20261024]
+    paths:
+      - 'experiments/csharp/BunnyCsSdk/BunnyMount.cs'
+      - 'experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj'
+      - 'tests/examplemod_mount_qa/**'
+      - '.github/workflows/check-examplemod-mount-qa.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  host:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Compile and compare both original Bunny mount policies
+        run: dotnet run --project tests/examplemod_mount_qa/ExampleModMountQa.csproj --configuration Release
+      - name: Regenerate local SDK reference and display only changes
+        run: |
+          dotnet run --project tools/sdk_reference -c Release -- --write
+          git diff -- docs/generated/sdk_public_reference.json docs/generated/sdk_public_reference.md
