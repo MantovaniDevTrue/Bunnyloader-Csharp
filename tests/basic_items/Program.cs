@@ -305,7 +305,7 @@ try {
   if(Compiler.Compile(root,output,runtime,diag)!=1)throw new Exception(File.ReadAllText(diag));
   var domains=new Dictionary<Type,string>{
    [typeof(BunnyItem)]="ITEM",[typeof(BunnyWeapon)]="ITEM",[typeof(BunnyAccessory)]="ITEM",[typeof(BunnyBuffPotion)]="ITEM",
-   [typeof(BunnyWorldSystem)]="WORLD_SYSTEM",[typeof(BunnyWorldUpdateLoader)]="HOOK_MODULE",[typeof(BunnyHookModule)]="HOOK_MODULE",[typeof(BunnyTree)]="TREE",[typeof(BunnyGore)]="GORE",[typeof(BunnyWall)]="WALL",[typeof(BunnyTile)]="TILE",[typeof(BunnyProjectile)]="PROJECTILE",[typeof(BunnyNPC)]="NPC",
+   [typeof(BunnyMount)]="MOUNT",[typeof(BunnyWorldSystem)]="WORLD_SYSTEM",[typeof(BunnyWorldUpdateLoader)]="HOOK_MODULE",[typeof(BunnyHookModule)]="HOOK_MODULE",[typeof(BunnyTree)]="TREE",[typeof(BunnyGore)]="GORE",[typeof(BunnyWall)]="WALL",[typeof(BunnyTile)]="TILE",[typeof(BunnyProjectile)]="PROJECTILE",[typeof(BunnyNPC)]="NPC",
    [typeof(BunnyRarity)]="RARITY",[typeof(BunnyDust)]="DUST",[typeof(BunnyBuff)]="BUFF",[typeof(BunnyPlayer)]="PLAYER",[typeof(BunnyPrefix)]="PREFIX"
   };
   var compiled=Assembly.Load(File.ReadAllBytes(output));
@@ -320,7 +320,7 @@ try {
   Equal(4,commands);
   if(CompiledAssemblyProbe.Verify(output,diag,root)!=identities.Count+localizationModules+commands)
    throw new Exception(File.ReadAllText(diag));
-  var contentKinds=new HashSet<string>{"ITEM","WEAPON","ACCESSORY","POTION","TILE","TREE","GORE","WALL","DUST","RARITY","BUFF","PLAYER","PROJECTILE","NPC","PREFIX"};
+  var contentKinds=new HashSet<string>{"ITEM","WEAPON","ACCESSORY","POTION","TILE","TREE","GORE","MOUNT","WALL","DUST","RARITY","BUFF","PLAYER","PROJECTILE","NPC","PREFIX"};
   string localizationUid="68c3115f-62f4-49f2-a56b-388256781d5f";
   string dynamicWire=BunnyLocalizationRuntime.Dispatch(localizationUid,output,"pt-BR");
   if(!dynamicWire.StartsWith("OK|",StringComparison.Ordinal)||
