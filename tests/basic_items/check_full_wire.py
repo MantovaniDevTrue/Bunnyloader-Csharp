@@ -65,7 +65,7 @@ expected_recipes = {
     "ExampleWand": "1,mExampleWorkbench,mExampleItem:10@4",
     "ExampleFocusAccessory": "1,mExampleWorkbench,mExampleItem:10@4",
     "ExampleMountItem": "1,mExampleWorkbench,mExampleItem:1",
-    "ExampleMinecart": "1,16,v2343:1+mExampleItem:15",
+    "ExampleMinecart": "1,16,v2343:1,mExampleItem:15",
 }
 assert all(f[3] == expected_recipes[f[1]] for f in owned)
 print("OWNED_RECIPE_CATEGORIES_SCHEMA_PASS")
