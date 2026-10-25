@@ -5,6 +5,7 @@ on:
     paths:
       - 'samples/ExampleModCSharp/Playable/content/Common/Systems/**'
       - 'tests/examplemod_pre_apk/**'
+      - 'tests/basic_items/**'
       - 'docs/csharp/examplemod-evidence.json'
       - 'docs/csharp/EXAMPLEMOD_COVERAGE.json'
       - 'docs/csharp/EXAMPLEMOD_COVERAGE.md'
