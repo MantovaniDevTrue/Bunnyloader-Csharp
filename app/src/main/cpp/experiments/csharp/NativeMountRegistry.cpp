@@ -1,5 +1,6 @@
 #include "experiments/csharp/NativeMountRegistry.h"
 #include "experiments/csharp/NativeMountVisualPolicy.h"
+#include "experiments/csharp/NativeMountDustId.h"
 #include "experiments/csharp/NativeVisualRenderer.h"
 #include "hook/HookManager.h"
 #include "experiments/csharp/NativeStaticValue.h"
@@ -200,7 +201,10 @@ bool hookMountEffects(std::string* error) {
     auto* dust=findClass({"Terraria","Dust",{}});
     newDust=dust?findMethodBySignature(dust,parseSignature(
         "int NewDust(Vector2 Position, int Width, int Height, int Type, float SpeedX, float SpeedY, int Alpha, Color newColor, float Scale)")):nullptr;
-    gemDiamond=constantDustId("GemDiamond");
+    const int nativeDiamond=constantDustId("GemDiamond");
+    gemDiamond=mount_dust::resolveGemDiamond(nativeDiamond);
+    if(nativeDiamond==-1)
+        BL_INFO("[CSharp][Mount] Stage=GemDiamond Source=TerrariaVanillaDustID Value=%d",gemDiamond);
     setMountMethod=findMethodBySignature(mountClass,parseSignature(
         "void SetMount(int m, Player mountedPlayer, bool ignoreEffect)"));
     auto* effect=findMethodBySignature(mountClass,parseSignature("void UpdateEffects(Player mountedPlayer)"));
