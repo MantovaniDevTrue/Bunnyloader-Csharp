@@ -2152,6 +2152,10 @@
           "execution": "managed_helper"
         },
         {
+          "signature": "void ConfigureCostume(string alternateTextureStem, string buffName, float jumpSpeedBoost, int extraFall, int requiredTownNpcs)",
+          "execution": "managed_helper"
+        },
+        {
           "signature": "void DefineArmorSet(BunnyArmorSet set)",
           "execution": "managed_helper"
         },
