@@ -125,6 +125,12 @@ void configurePolicies() {
   auto* k=cls(kind);constant(field(k,"Count",&intClass,0,true),2);auto* sets=cls(std::string(kind)+"/Sets");
   arrayField(sets,"UsesNewFramingCode",&boolClass,2);arrayField(sets,"UseHairColor",&boolClass,2);auto* hides=arrayField(sets,android145?"MissingHand":"HidesHands",&boolClass,2);
   auto* table=*reinterpret_cast<Il2CppArray**>(statics[hides].data());std::memset(arrayData(table),android145?0:1,2);
+  if(std::string(kind)=="Head")arrayField(sets,"DrawHead",&boolClass,2);
+  if(std::string(kind)=="Body"){
+    arrayField(sets,"HidesTopSkin",&boolClass,2);
+    arrayField(sets,"HidesArms",&boolClass,2);
+  }
+  if(std::string(kind)=="Legs")arrayField(sets,"HidesBottomSkin",&boolClass,2);
   if(std::string(kind)=="Wing")arrayField(sets,"Stats",wingStats,2);
  }
  for(const char* n:{"ArmorHead","ArmorBodyComposite","ArmorBody","FemaleBody","ArmorArm","ArmorLeg","AccBeard","AccBack","Wings","AccShield","AccShoes"})arrayField(assets,n,asset,2);
