@@ -5,6 +5,9 @@ on:
     paths:
       - 'experiments/csharp/BunnyCsSdk/BunnyMount.cs'
       - 'app/src/main/cpp/experiments/csharp/NativeMountPolicy.h'
+      - 'app/src/main/cpp/experiments/csharp/NativeMountRegistry.cpp'
+      - 'app/src/main/cpp/experiments/csharp/SourceLoader.cpp'
+      - 'experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs'
       - 'app/src/main/cpp/experiments/csharp/NativeMountVisualPolicy.h'
       - 'experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj'
       - 'tests/examplemod_mount_qa/**'
