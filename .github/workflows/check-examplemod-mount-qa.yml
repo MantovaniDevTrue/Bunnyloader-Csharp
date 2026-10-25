@@ -4,6 +4,7 @@ on:
     branches: [qa/csharp-world-tree-gore-apk-20261024]
     paths:
       - 'experiments/csharp/BunnyCsSdk/BunnyMount.cs'
+      - 'app/src/main/cpp/experiments/csharp/NativeMountPolicy.h'
       - 'experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj'
       - 'tests/examplemod_mount_qa/**'
       - '.github/workflows/check-examplemod-mount-qa.yml'
@@ -21,7 +22,9 @@ jobs:
           dotnet-version: '8.0.x'
       - name: Compile and compare both original Bunny mount policies
         run: dotnet run --project tests/examplemod_mount_qa/ExampleModMountQa.csproj --configuration Release
-      - name: Regenerate local SDK reference and display only changes
+      - name: Validate native M1 policy parser without QuickJS
         run: |
-          dotnet run --project tools/sdk_reference -c Release -- --write
-          git diff -- docs/generated/sdk_public_reference.json docs/generated/sdk_public_reference.md
+          g++ -std=c++20 -O2 -Wall -Wextra -Werror -I app/src/main/cpp tests/examplemod_mount_qa/native_mount_policy_test.cpp -o /tmp/bunny-mount-policy-test
+          /tmp/bunny-mount-policy-test
+      - name: Verify regenerated SDK public reference
+        run: dotnet run --project tools/sdk_reference -c Release -- --check
