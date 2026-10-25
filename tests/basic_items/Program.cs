@@ -343,11 +343,12 @@ try {
    string row=minionRows.Single(line=>line.StartsWith("LOCALE\t"+language+"\t"+key+"\t",StringComparison.Ordinal));
    Equal(expected,System.Text.Encoding.UTF8.GetString(Convert.FromHexString(row.Split('\t')[3])));
   }
-  foreach(var pair in new[]{("ExampleStatAccessory","ExampleHigherTierModRarity"),
-      ("ExampleWand","ExampleModRarity")})
-    Equal(true,minionRows.Contains("ITEM_RARITY\t"+pair.Item1+"\t"+pair.Item2));
-  foreach(var name in new[]{"ExampleItem","ExampleMeleeWeapon","ExampleBuffPotion"})
+  Equal(true,minionRows.Contains("ITEM_RARITY\tExampleWand\tExampleModRarity"));
+  foreach(var name in new[]{"ExampleStatAccessory","ExampleItem","ExampleMeleeWeapon","ExampleBuffPotion"})
     Equal(false,minionRows.Any(row=>row.StartsWith("ITEM_RARITY\t"+name+"\t",StringComparison.Ordinal)));
+  var statAccessory=minionRows.Single(row=>row.StartsWith("ITEM\tExampleStatAccessory\t",StringComparison.Ordinal)).Split('\t');
+  Equal("250000",statAccessory[5]);
+  Equal("2",statAccessory[6]);
   foreach(string armorName in new[]{"ExampleHelmet","ExampleBreastplate","ExampleLeggings"}) {
    var values=minionRows.Single(row=>row.StartsWith("ITEM\t"+armorName+"\t",StringComparison.Ordinal)).Split('\t');
    Equal("18",values[2]);Equal("18",values[3]);Equal("50000",values[5]);Equal("2",values[6]);
