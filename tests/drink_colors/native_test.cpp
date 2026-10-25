@@ -116,6 +116,18 @@ int main() {
     assert(!bindNativeDrinkColors(12,"FF000000",&b,&error));tableField.flags=previousFlags;
     auto previousSize=colorType.bytes;colorType.bytes=8;
     assert(!bindNativeDrinkColors(12,"FF000000",&b,&error));colorType.bytes=previousSize;
+    const int outerRank=outerArray.rank,innerRank=colorArray.rank;
+    outerArray.rank=0;colorArray.rank=0;
+    assert(bindNativeDrinkColors(12,"FF000000",&b,&error));
+    outerArray.rank=outerRank;colorArray.rank=innerRank;
+    outerArray.rank=2;
+    assert(!bindNativeDrinkColors(12,"FF000000",&b,&error));
+    assert(error.find("OuterRank=2")!=std::string::npos);
+    outerArray.rank=outerRank;
+    const char* previousNamespace=colorType.ns;
+    colorType.ns="Terraria.Android.Framework";
+    assert(bindNativeDrinkColors(12,"FF000000",&b,&error));
+    colorType.ns=previousNamespace;
     assert(bindNativeDrinkColors(12,"FF000000",&b,&error));
     assert(applyNativeDrinkColors(b,12));
     auto* foreign=fixture.array_new(&colorType,1);
