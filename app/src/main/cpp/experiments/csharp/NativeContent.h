@@ -9,6 +9,7 @@
 #include <map>
 
 namespace bl::csharp {
+bool nativeCostumeRuntimeReady();
 
 enum NativeContentKind : int32_t {
     NativeProjectile = 1,
