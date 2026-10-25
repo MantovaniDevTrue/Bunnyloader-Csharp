@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj" />
+    <Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/Buffs/ExampleDefenseBuff.cs" Link="ExampleDefenseBuff.cs" />
+    <Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/Buffs/ExampleDefenseDebuff.cs" Link="ExampleDefenseDebuff.cs" />
+    <Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/Buffs/ExampleMinionBuff.cs" Link="ExampleMinionBuff.cs" />
+    <Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleMinion.cs" Link="ExampleMinion.cs" />
+  </ItemGroup>
+</Project>
