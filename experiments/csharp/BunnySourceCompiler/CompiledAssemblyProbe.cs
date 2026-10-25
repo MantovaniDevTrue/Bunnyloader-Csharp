@@ -263,7 +263,7 @@ public static class CompiledAssemblyProbe
                     throw new InvalidOperationException(effect.GetType().FullName + ": exactly one ShaderFile or PipelineFile required");
             }
             WriteRuntimeDefaults(projectiles, weapons, buffs, potions,
-                accessories, players, npcs, prefixes, basicItems, tiles, walls, trees, gores, dusts, rarityTypes, diagnosticsPath);
+                accessories, players, npcs, prefixes, basicItems, tiles, walls, trees, mounts, gores, dusts, rarityTypes, diagnosticsPath);
             commandCount = CommandManifestWriter.Write(assembly, diagnosticsPath, assemblyPath);
             if (modRoot.Length != 0)
                 AppendManagedLocalization(modRoot, diagnosticsPath, localizationTypes,
@@ -718,7 +718,7 @@ public static class CompiledAssemblyProbe
     private static void WriteRuntimeDefaults(object[] projectiles, object[] weapons,
         object[] buffs, object[] potions, object[] accessories,
         object[] players, object[] npcs, object[] prefixes, object[] basicItems,
-        object[] tiles, object[] walls, object[] trees, object[] gores, object[] dusts, Type[] rarityTypes, string diagnosticsPath)
+        object[] tiles, object[] walls, object[] trees, object[] mounts, object[] gores, object[] dusts, Type[] rarityTypes, string diagnosticsPath)
     {
         static T Value<T>(object instance, string name) =>
             (T)(instance.GetType().GetProperty(name)?.GetValue(instance)
