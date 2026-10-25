@@ -1347,7 +1347,8 @@ public static class CompiledAssemblyProbe
         string destination = Path.Combine(folder, "source-runtime-values.txt");
         string temporary = destination + ".tmp";
         // Specialized items share the Bunny recipe loader; primary V2 rows stay unchanged.
-        foreach(var owner in weapons.Select(o=>(Value:o,Kind:"WEAPON"))
+        foreach(var owner in basicItems.Where(o=>Value<string>(o,"Mount").Length>0).Select(o=>(Value:o,Kind:"ITEM"))
+            .Concat(weapons.Select(o=>(Value:o,Kind:"WEAPON")))
             .Concat(accessories.Select(o=>(Value:o,Kind:"ACCESSORY")))
             .Concat(potions.Select(o=>(Value:o,Kind:"POTION"))))
         {
