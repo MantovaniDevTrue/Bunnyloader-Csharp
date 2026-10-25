@@ -722,7 +722,7 @@ void hkApplyEquip(Il2CppObject* self, int32_t slot, Il2CppObject* item, const Me
     if (!self || !item) return;
     const int type = bl::runtime::field<int32_t>(item, g_refs.itemType);
     NativeCostumeEffect costume;
-    if(nativeCostumeEffect(type,&costume)) {
+    if(nativeCostumesActive()&&nativeCostumeEffect(type,&costume)) {
         if(auto* cycle=costumeCycle(self))cycle->currentType=type;
         if(costumeTownCount(self)>=costume.requiredTownNpcs&&g_costumeAddBuff) {
             int32_t duration=60,buff=costume.buffType;uint8_t fromNetPvP=1;
@@ -832,7 +832,7 @@ void hkSetArmorEffectVisuals(Il2CppObject* self, Il2CppObject* drawPlayer,
         if (visualLogs++ < 3)
             BL_INFO("csharp BunnyPlayer FrameEffects: sombra de desenho e contorno ativos");
     }
-    if(g_costumeReady&&g_refs.playerArmor>=0&&g_refs.itemType>=0) {
+    if(g_costumeReady&&nativeCostumesActive()&&g_refs.playerArmor>=0&&g_refs.itemType>=0) {
         auto* cycle=costumeCycle(actor);
         auto* armor=bl::runtime::field<Il2CppArray*>(actor,g_refs.playerArmor);
         if(cycle&&armor&&armor->length>=20&&armor->length<=40) {
@@ -962,7 +962,7 @@ void hkPlayerSpawn(Il2CppObject* self, int32_t context, const MethodInfo* method
 }
 
 void hkPlayerUpdate(Il2CppObject* self, int32_t index, const MethodInfo* method) {
-    if(auto* cycle=costumeCycle(self)) {
+    if(nativeCostumesActive())if(auto* cycle=costumeCycle(self)) {
         cycle->previousType=cycle->currentType;
         cycle->currentType=-1;
         cycle->power=false;
@@ -1453,7 +1453,7 @@ void hkUpdateBuffs(Il2CppObject* self, int32_t playerIndex, const MethodInfo* me
         case MinionBuffAction::Keep:break;
         }
     });
-    if(g_costumeReady) {
+    if(g_costumeReady&&nativeCostumesActive()) {
         auto* cycle=costumeCycle(self);
         if(cycle&&cycle->previousType>=0) {
             NativeCostumeEffect costume;
@@ -1738,6 +1738,7 @@ bool prepareNativePlayerEffects() {
         player,parseSignature("void AddBuff(int type, int time, bool fromNetPvP)"));
     g_costumeReady=g_costumeAddBuff&&api().method_is_instance(g_costumeAddBuff)&&
         g_removeMinionBuff&&api().runtime_invoke&&
+        g_refs.playerHideVisibleAccessory>=0&&
         costumeField("townNPCs","System.Single",4,&g_refs.playerTownNpcs)&&
         costumeField("jumpSpeedBoost","System.Single",4,&g_refs.playerJumpSpeedBoost)&&
         costumeField("extraFall","System.Int32",4,&g_refs.playerExtraFall)&&
