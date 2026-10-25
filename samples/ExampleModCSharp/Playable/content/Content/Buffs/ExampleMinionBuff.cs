@@ -8,7 +8,7 @@ public sealed class ExampleMinionBuff : BunnyBuff
     {
         DisplayName = "Example Minion";
         Texture = "Content/Buffs/ExampleMinionBuff.png";
-        Description = "Um minion C# procura e ataca inimigos próximos";
+        Description = "The example minion will fight for you";
         MinionProjectile = nameof(ExampleMinion);
         NoSave = true;
         NoTimeDisplay = true;
