@@ -588,6 +588,7 @@ bool install(Entry& entry,std::string* error) {
         entry.slots[source.kind]=equip.slot;
     }
     if(entry.policy.costume.enabled) {
+        if(!nativeCostumeRuntimeReady()){*error="Reason=CostumePlayerHooksUnavailable";return false;}
         const auto& c=entry.policy.costume;
         const int buffType=runtime::modBuffTypeByName(entry.source.modId,c.buff);
         if(buffType<0){*error="Reason=CostumeBuffNotRegistered";return false;}
