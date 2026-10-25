@@ -32,6 +32,7 @@
     <Compile Include="../BunnyCsSdk/BunnyRecipeBehavior.cs" Link="BunnyRecipeBehavior.cs" />
     <Compile Include="../BunnyCsSdk/BunnyRecipeSource.cs" Link="BunnyRecipeSource.cs" />
     <Compile Include="../BunnyCsSdk/BunnyItem.cs" Link="BunnyItem.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyMount.cs" Link="BunnyMount.cs" />
     <Compile Include="../BunnyCsSdk/BunnyTooltipLine.cs" Link="BunnyTooltipLine.cs" />
     <Compile Include="../BunnyCsSdk/ItemRarityID.cs" Link="ItemRarityID.cs" />
     <Compile Include="../BunnyCsSdk/BunnyNativeDefaults.cs" Link="BunnyNativeDefaults.cs" />
