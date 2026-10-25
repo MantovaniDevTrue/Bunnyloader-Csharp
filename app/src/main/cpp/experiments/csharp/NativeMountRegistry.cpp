@@ -76,9 +76,12 @@ int constantDustId(const char* name) {
     if(!shortType&&std::strcmp(type,"Int32"))return -1;
     if(a.field_get_flags(field)&0x40u) {
         using Getter=const void*(*)(const FieldInfo*,const Il2CppType**);
-        const auto getter=reinterpret_cast<Getter>(dlsym(RTLD_DEFAULT,"il2cpp_field_get_default_value"));
+        void* library=dlopen("libil2cpp.so",RTLD_NOW|RTLD_NOLOAD);
+        const auto getter=library?reinterpret_cast<Getter>(
+            dlsym(library,"il2cpp_field_get_default_value")):nullptr;
         const Il2CppType* metadata=nullptr;
         const auto* src=getter?getter(field,&metadata):nullptr;
+        if(library)dlclose(library);
         if(!src)return -1;
         if(shortType){int16_t id=-1;std::memcpy(&id,src,sizeof(id));value=id;}
         else std::memcpy(&value,src,sizeof(value));
@@ -201,9 +204,22 @@ bool hookMountEffects(std::string* error) {
     setMountMethod=findMethodBySignature(mountClass,parseSignature(
         "void SetMount(int m, Player mountedPlayer, bool ignoreEffect)"));
     auto* effect=findMethodBySignature(mountClass,parseSignature("void UpdateEffects(Player mountedPlayer)"));
-    if(!newDust||!setMountMethod||!effect||gemDiamond<1||
-       !a.method_is_instance(setMountMethod)||!a.method_is_instance(effect)||a.method_is_instance(newDust)) {
-        *error="Mount native dust and lifecycle signatures unavailable";return false;
+    const bool dustReady=newDust&&!a.method_is_instance(newDust);
+    const bool setReady=setMountMethod&&a.method_is_instance(setMountMethod);
+    const bool updateReady=effect&&a.method_is_instance(effect);
+    if(!dustReady||!setReady||!updateReady||gemDiamond<1) {
+        *error="Mount native dust and lifecycle signatures unavailable: NewDust="+
+            std::to_string(dustReady?1:0)+" SetMount="+
+            std::to_string(setReady?1:0)+" UpdateEffects="+
+            std::to_string(updateReady?1:0)+" GemDiamond="+
+            std::to_string(gemDiamond);
+        if(!dustReady)for(const auto& signature:listOverloads(dust,"NewDust"))
+            BL_WARN("[CSharp][Mount] NativeDustCandidate=%s",signature.c_str());
+        if(!setReady)for(const auto& signature:listOverloads(mountClass,"SetMount"))
+            BL_WARN("[CSharp][Mount] NativeSetMountCandidate=%s",signature.c_str());
+        if(!updateReady)for(const auto& signature:listOverloads(mountClass,"UpdateEffects"))
+            BL_WARN("[CSharp][Mount] NativeUpdateEffectsCandidate=%s",signature.c_str());
+        return false;
     }
     if(!hook::install(setMountMethod,onSetMount,&originalSetMount)||
        !hook::install(effect,onUpdateEffects,&originalUpdateEffects)) {
