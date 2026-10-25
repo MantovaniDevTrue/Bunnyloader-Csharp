@@ -280,11 +280,11 @@ public static class CompiledAssemblyProbe
                 WriteKillPolicy(primaryProjectile!, diagnosticsPath);
             }
             File.AppendAllText(diagnosticsPath,
-                "\nASSEMBLY_EXEC_OK classes=" + (trees.Length + gores.Length + dusts.Length + walls.Length + tiles.Length + projectiles.Length + weapons.Length + buffs.Length + potions.Length + accessories.Length + players.Length + npcs.Length + prefixes.Length + rarityTypes.Length + basicItems.Length + screenEffects.Length) +
+                "\nASSEMBLY_EXEC_OK classes=" + (trees.Length + gores.Length + mounts.Length + dusts.Length + walls.Length + tiles.Length + projectiles.Length + weapons.Length + buffs.Length + potions.Length + accessories.Length + players.Length + npcs.Length + prefixes.Length + rarityTypes.Length + basicItems.Length + screenEffects.Length) +
                 " projectiles=" + projectiles.Length + " weapons=" + weapons.Length +
                 " buffs=" + buffs.Length + " potions=" + potions.Length +
                 " accessories=" + accessories.Length + " players=" + players.Length +
-                " trees=" + trees.Length + " gores=" + gores.Length + " dusts=" + dusts.Length + " npcs=" + npcs.Length + " tiles=" + tiles.Length + " prefixes=" + prefixes.Length +
+                " trees=" + trees.Length + " gores=" + gores.Length + " mounts=" + mounts.Length + " dusts=" + dusts.Length + " npcs=" + npcs.Length + " tiles=" + tiles.Length + " prefixes=" + prefixes.Length +
                 " rarities=" + rarityTypes.Length +
                 " screenEffects=" + screenEffects.Length + " localizationModules=" + localizationTypes.Length + " commands=" + commandCount +
                 " worldSystems=" + worldTypes.Length +
@@ -292,7 +292,7 @@ public static class CompiledAssemblyProbe
                     ? " projectile=SourceBolt width=10 weapon=SourceWand damage=22 shoot=SourceBolt"
                     : " policy=generic-managed-defaults"));
             return projectiles.Length + weapons.Length + buffs.Length + potions.Length +
-                accessories.Length + players.Length + npcs.Length + prefixes.Length + basicItems.Length + tiles.Length + trees.Length + gores.Length + dusts.Length + walls.Length + screenEffects.Length + rarityTypes.Length + localizationTypes.Length + commandCount + worldTypes.Length + hookTypes.Length;
+                accessories.Length + players.Length + npcs.Length + prefixes.Length + basicItems.Length + tiles.Length + trees.Length + gores.Length + mounts.Length + dusts.Length + walls.Length + screenEffects.Length + rarityTypes.Length + localizationTypes.Length + commandCount + worldTypes.Length + hookTypes.Length;
         }
         catch (Exception exception)
         {
