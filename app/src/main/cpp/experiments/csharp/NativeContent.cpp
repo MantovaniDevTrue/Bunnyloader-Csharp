@@ -11,6 +11,7 @@
 #include "experiments/csharp/NativeBasicItems.h"
 #include "experiments/csharp/NativeItemPolicies.h"
 #include "experiments/csharp/NativeCostumeDustDecision.h"
+#include "experiments/csharp/NativeMountRegistry.h"
 #include "experiments/csharp/NativeDefaults.h"
 #include "experiments/csharp/NativeVisualRenderer.h"
 #include "experiments/csharp/NativeTileGameplay.h"
@@ -1513,6 +1514,7 @@ void hkBuffEquipment(Il2CppObject* self,int32_t playerIndex,const MethodInfo* me
 void hkUpdateBuffs(Il2CppObject* self, int32_t playerIndex, const MethodInfo* method) {
     if (g_originalUpdateBuffs) g_originalUpdateBuffs(self, playerIndex, method);
     if (!self) return;
+    updateNativeMountBuffs(self);
     const auto buffs=std::atomic_load_explicit(&g_buffView,std::memory_order_acquire);
     if(buffs->empty())return;
     auto* types=bl::runtime::field<Il2CppArray*>(self,g_refs.playerBuffType);
