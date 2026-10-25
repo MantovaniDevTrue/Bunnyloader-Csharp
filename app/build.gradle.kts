@@ -7,6 +7,7 @@ import java.util.Properties
 val nativeBuild = (project.findProperty("bl.nativeBuild") as String?)?.toBoolean() ?: true
 val readyPreview = (project.findProperty("bl.readyPrPreview") as String?)?.toBoolean() ?: false
 val unifiedCSharpQa = (project.findProperty("bl.csharpUnifiedQa") as String?)?.toBoolean() ?: false
+val mountQaDebug = unifiedCSharpQa && ((project.findProperty("bl.mountsQaDebug") as String?)?.toBoolean() ?: false)
 val fiveLoadersQa = ((project.findProperty("bl.fiveLoadersQa") as String?)?.toBoolean() ?: false) || unifiedCSharpQa
 val dustPreview = (project.findProperty("bl.dustPreview") as String?)?.toBoolean() ?: unifiedCSharpQa
 
@@ -345,7 +346,8 @@ val verifyExampleModApkReadiness by tasks.registering(Exec::class) {
     commandLine("python3", rootProject.file("tools/ci/check_examplemod_apk_readiness.py").absolutePath)
 }
 tasks.configureEach {
-    if (name.matches(Regex("(assemble|package)(Debug|Release)"))) {
+    if (name.matches(Regex("(assemble|package)(Debug|Release)")) &&
+        !(mountQaDebug && (name == "assembleDebug" || name == "packageDebug"))) {
         dependsOn(verifyExampleModApkReadiness)
     }
 }
