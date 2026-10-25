@@ -184,6 +184,11 @@ public static class CompiledAssemblyProbe
             var buffTypes = contentTypes
                 .Where(type => IsContentType(type, "BunnyBuff"))
                 .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
+            var mountTypes = contentTypes
+                .Where(type => IsContentType(type, "BunnyMount"))
+                .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
+            if (mountTypes.Length > 0)
+                throw new InvalidOperationException("[CSharp][ERROR][Mount] Stage=NativeRegistration Result=Rejected Reason=MountPolicyOnlyRegistrationPending Class=" + mountTypes[0].Name);
             var potionTypes = contentTypes
                 .Where(type => IsContentType(type, "BunnyBuffPotion"))
                 .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
