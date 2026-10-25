@@ -1,5 +1,6 @@
 #include "experiments/csharp/NativeMountRegistry.h"
 #include "experiments/csharp/NativeMountVisualPolicy.h"
+#include "experiments/csharp/NativeVisualRenderer.h"
 #include "hook/HookManager.h"
 #include "experiments/csharp/NativeStaticValue.h"
 #include "content/buffs/ModBuffs.h"
@@ -187,7 +188,8 @@ bool hookMountEffects(std::string* error) {
        !bind(player,"position","Microsoft.Xna.Framework.Vector2",8,&playerPositionOffset)||
        !bind(player,"velocity","Microsoft.Xna.Framework.Vector2",8,&playerVelocityOffset)||
        !bind(player,"width","System.Int32",4,&playerWidthOffset)||
-       !bind(player,"height","System.Int32",4,&playerHeightOffset)) {
+       !bind(player,"height","System.Int32",4,&playerHeightOffset)||
+       !bind(player,"mount","Terraria.Mount",sizeof(void*),&playerMountOffset)) {
         *error="Mount native effects player contract: "+detail;return false;
     }
     auto* dust=findClass({"Terraria","Dust",{}});
@@ -448,6 +450,10 @@ bool publishNativeMounts(const std::string& mod,const std::string& directory,
         const std::string stem=directory+"/content/"+entry.values.texture;
         const bool cart=entry.values.kind==1;
         const std::string front=stem+"_Front.png",back=stem+"_Back.png";
+        const std::string balloon=directory+"/content/"+entry.values.balloon+".png";
+        if(!cart&&!file(balloon)) {
+            *error="Missing original mount balloon texture: "+entry.name;return false;
+        }
         if(!file(front)||(!cart&&!file(back))) {
             *error="Missing original mount front/back texture: "+entry.name;return false;
         }
@@ -465,6 +471,15 @@ bool publishNativeMounts(const std::string& mod,const std::string& directory,
             "CSharpMount:"+std::to_string(entry.type)+":Front",&frontWidth,&frontHeight);
         if(!frontAsset){*error="Mount front texture upload failed";return false;}
         candidate.textures.push_back(std::make_shared<AssetRoot>(frontAsset));
+        if(!cart) {
+            int balloonW=0,balloonH=0;
+            auto* balloonAsset=runtime::content::loadTextureAsset(balloon,nullptr,0,
+                "CSharpMount:"+std::to_string(entry.type)+":Balloons",&balloonW,&balloonH);
+            if(!balloonAsset||balloonW!=56||balloonH!=224) {
+                *error="Original mount balloon sheet must be 56x224";return false;
+            }
+            candidate.textures.push_back(std::make_shared<AssetRoot>(balloonAsset));
+        }
         if(cart){width=frontWidth;height=frontHeight;}
         else width+=20;
         auto& a=api();
@@ -500,12 +515,33 @@ bool publishNativeMounts(const std::string& mod,const std::string& directory,
         assets[candidate.type]=std::move(candidate.textures);
         auto& slot=slots[candidate.type];
         slot.published=true;slot.buff=candidate.buff;
+        if(!candidate.minecart)requestNativeVisualRenderer("");
         const auto policy=std::find_if(entries.begin(),entries.end(),
             [&](const ManagedMountEntry& entry){return entry.type==candidate.type;});
         if(policy!=entries.end())slot.policy=policy->values;
     }
     BL_INFO("[CSharp][Mount] Mod=%s Count=%zu Stage=Publish Result=Ready",
             mod.c_str(),pending.size());
+    return true;
+}
+bool nativeMountBalloonState(Il2CppObject* player,std::array<float,3>* rotations,
+                            Il2CppObject** texture) {
+    if(!player||!rotations||!texture||playerMountOffset<0||!effectsHooked)return false;
+    const int index=playerIndex(player);
+    if(index<0)return false;
+    Il2CppObject* mount=nullptr;
+    std::memcpy(&mount,reinterpret_cast<char*>(player)+playerMountOffset,sizeof(mount));
+    const int type=activeMountType(mount);
+    const auto it=slots.find(type);
+    if(it==slots.end()||!it->second.published||it->second.policy.kind!=0)return false;
+    auto asset=assets.find(type);
+    if(asset==assets.end()||asset->second.size()!=3||!asset->second[2])return false;
+    auto* textureAsset=asset->second[2]->get();
+    auto* value=textureAsset?runtime::content::textureAssetValue(textureAsset):nullptr;
+    if(!value)return false;
+    const auto& state=balloons[static_cast<size_t>(index)];
+    *rotations=state.mount==type?state.rotations:std::array<float,3>{};
+    *texture=value;
     return true;
 }
 void retireNativeMounts(const std::string& mod) {
