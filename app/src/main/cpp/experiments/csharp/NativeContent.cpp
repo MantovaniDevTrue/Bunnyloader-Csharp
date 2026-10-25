@@ -1544,8 +1544,7 @@ void hkUpdateBuffs(Il2CppObject* self, int32_t playerIndex, const MethodInfo* me
         if(cycle&&cycle->previousType>=0) {
             NativeCostumeEffect costume;
             if(nativeCostumeEffect(cycle->previousType,&costume)) {
-                const bool enabled=costumeTownCount(self)>=costume.requiredTownNpcs &&
-                    costumeEquipped(self,cycle->previousType,false);
+                const bool enabled=costumeTownCount(self)>=costume.requiredTownNpcs;
                 visitManagedBuffSlots(typeValues,timeValues,count,[&](size_t slot) {
                     if(typeValues[slot]!=costume.buffType)return;
                     if(enabled) {
