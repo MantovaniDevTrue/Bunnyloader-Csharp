@@ -121,6 +121,45 @@ public sealed class MinionStaff : BunnyWeapon
         throw new InvalidOperationException("Native minion C# wire was not preserved: " + minionWire);
     Console.WriteLine("BUNNY_NATIVE_CSHARP_MINION_SMOKE=PASS");
 
+    string mountRoot = Path.Combine(scratch, "native-mount-count");
+    string mountContent = Path.Combine(mountRoot, "content");
+    Directory.CreateDirectory(mountContent);
+    File.WriteAllText(Path.Combine(mountContent, "Mounts.cs"), """
+using BunnyLoader.Source;
+namespace MountCountSmoke;
+public sealed class CountRide : BunnyMount
+{
+    public override void SetDefaults()
+    {
+        Texture = "Mounts/CountRide";
+        Buff = "CountRideBuff";
+    }
+}
+public sealed class CountMinecart : BunnyMount
+{
+    public override void SetDefaults()
+    {
+        Texture = "Mounts/CountMinecart";
+        Buff = "CountMinecartBuff";
+        Kind = BunnyMountKind.Minecart;
+        ReuseVanillaMinecartDelegates = true;
+    }
+}
+""");
+    string mountArtifacts = Path.Combine(scratch, "native-mount-count-artifacts");
+    Directory.CreateDirectory(mountArtifacts);
+    string mountOutput = Path.Combine(mountArtifacts, "NativeMountCount.dll");
+    string mountDiag = Path.Combine(mountArtifacts, "native-mount-count-diagnostics.txt");
+    if (Compiler.Compile(mountRoot, mountOutput, framework, mountDiag) != 1 ||
+        CompiledAssemblyProbe.Verify(mountOutput, mountDiag) != 2)
+        throw new InvalidOperationException("Managed mount count smoke failed: " + File.ReadAllText(mountDiag));
+    string mountWire = File.ReadAllText(Path.Combine(mountArtifacts, "source-runtime-values.txt"));
+    if (!File.ReadAllText(mountDiag).Contains("mounts=2", StringComparison.Ordinal) ||
+        !mountWire.Contains("MOUNT\\tCountRide\\tM1|0|", StringComparison.Ordinal) ||
+        !mountWire.Contains("MOUNT\\tCountMinecart\\tM1|1|", StringComparison.Ordinal))
+        throw new InvalidOperationException("Managed mount wire or type count mismatch: " + mountWire);
+    Console.WriteLine("BUNNY_NATIVE_CSHARP_MOUNT_COUNT=PASS");
+
     string motionBuffer = File.ReadAllText(Path.Combine(scratch, "source-ai-turns.txt"));
     string[] motionLines = motionBuffer.Split('\n', StringSplitOptions.RemoveEmptyEntries);
     if (motionLines.Length != 3 ||
