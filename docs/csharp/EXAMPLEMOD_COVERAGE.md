@@ -12,14 +12,14 @@ O catálogo usa cada hook JS como unidade inicial de revisão, com hash do fonte
 
 | Estado | Comportamentos |
 |---|---:|
-| não iniciado | 634 |
+| não iniciado | 633 |
 | implementado sem validar | 46 |
-| validado automaticamente | 49 |
+| validado automaticamente | 50 |
 | validado no Android | 1 |
 | falhou | 3 |
 | bloqueio comprovado | 0 |
 
-Inventários: 119 fontes C#, 206 fontes JS e 558 fontes oficiais tML. Esses números não medem conclusão.
+Inventários: 120 fontes C#, 206 fontes JS e 558 fontes oficiais tML. Esses números não medem conclusão.
 
 Dependência encontrada: tooltips C# fornecem um plano nativo, mas `Exports.js` instala `TooltipLoader.js` para executar o comportamento. A independência completa de JS está pendente.
 
@@ -64,6 +64,7 @@ Dust e invasão: o baseline contém correções posteriores aos logs Android de 
 | Content/Items/Armor/ExampleBreastplate.js#ModifyTooltipLines | implementado sem validar | Valores, receitas e textos originais das peças conferidos no protocolo Roslyn; efeitos de peça e os quatro bônus do conjunto executados nos hooks C++ sem QuickJS. A localização do texto de conjunto é validada separadamente em AddArmorSets. Aparência e execução Android pendentes. Integração QA 1.0.25: arquivos de implementação ou teste mudaram; a validação anterior permanece histórica e exige nova execução nesta base. |
 | Content/Items/Armor/ExampleBreastplate.js#SetDefaults | implementado sem validar | Valores, receitas e textos originais das peças conferidos no protocolo Roslyn; efeitos de peça e os quatro bônus do conjunto executados nos hooks C++ sem QuickJS. A localização do texto de conjunto é validada separadamente em AddArmorSets. Aparência e execução Android pendentes. Integração QA 1.0.25: arquivos de implementação ou teste mudaram; a validação anterior permanece histórica e exige nova execução nesta base. |
 | Content/Items/Armor/ExampleBreastplate.js#UpdateEquip | implementado sem validar | Valores, receitas e textos originais das peças conferidos no protocolo Roslyn; efeitos de peça e os quatro bônus do conjunto executados nos hooks C++ sem QuickJS. A localização do texto de conjunto é validada separadamente em AddArmorSets. Aparência e execução Android pendentes. Integração QA 1.0.25: arquivos de implementação ou teste mudaram; a validação anterior permanece histórica e exige nova execução nesta base. |
+| Content/Items/Armor/ExampleCostume.js#SetDefaults | validado automaticamente | Host: ExampleCostume mantém dimensões 24x28, acessório, valor buyPrice de 15 ouro, Pink, hasVanityEffects e três texturas nativas da armadura; sete PNGs conferidos byte a byte com o ExampleModBunny. Slots alternativos quando molhado, ocultação de pele, UpdateAccessory e buff Blocky em jogo ainda pendentes; Android não validado. |
 | Content/Items/Armor/ExampleHelmet.js#AddArmorSets | implementado sem validar | O exemplo formata as traduções do JSON original com a constante de dano, publica a chave no catálogo do próprio UID e usa A2/LocalizedText no conjunto nativo. Protocolo real, espera pela chave, en-US/pt-BR/fallback e sete falhas de lookup verificados no host, sem duplicar conjuntos; Android pendente. Integração QA 1.0.25: arquivos de implementação ou teste mudaram; a validação anterior permanece histórica e exige nova execução nesta base. |
 | Content/Items/Armor/ExampleHelmet.js#AddRecipes | implementado sem validar | Valores, receitas e textos originais das peças conferidos no protocolo Roslyn; efeitos de peça e os quatro bônus do conjunto executados nos hooks C++ sem QuickJS. A localização do texto de conjunto é validada separadamente em AddArmorSets. Aparência e execução Android pendentes. Integração QA 1.0.25: arquivos de implementação ou teste mudaram; a validação anterior permanece histórica e exige nova execução nesta base. |
 | Content/Items/Armor/ExampleHelmet.js#SetDefaults | implementado sem validar | Valores, receitas e textos originais das peças conferidos no protocolo Roslyn; efeitos de peça e os quatro bônus do conjunto executados nos hooks C++ sem QuickJS. A localização do texto de conjunto é validada separadamente em AddArmorSets. Aparência e execução Android pendentes. Integração QA 1.0.25: arquivos de implementação ou teste mudaram; a validação anterior permanece histórica e exige nova execução nesta base. |
