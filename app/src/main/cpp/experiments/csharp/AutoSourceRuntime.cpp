@@ -1918,10 +1918,9 @@ std::string failedPreWorldCSharpMod() {
     return {};
 }
 
-void cancelFailedPreWorldEntry(const std::string& reason) {
+void cancelFailedPreWorldEntry() {
     g_delayedWorldEntry.store(false, std::memory_order_release);
     g_delayedPlayWorldMethod=nullptr;
-    BL_ERROR("[CSharp][WorldLoading] Stage=BeforeWorld Result=WorldEntryCancelled Reason=ModLoadFailed Detail=%s",reason.c_str());
     auto* main=il2cpp::findClass({"Terraria","Main",{}});
     const MethodInfo* setMenu=main
         ? il2cpp::api().class_get_method_from_name(main,"set_menuMode",1)
@@ -1957,7 +1956,8 @@ void flushDeferredWorldEntry() {
     if (!g_delayedWorldEntry.load(std::memory_order_acquire)) return;
     const std::string failure=failedPreWorldCSharpMod();
     if(!failure.empty()) {
-        cancelFailedPreWorldEntry(failure);
+        BL_ERROR("[CSharp][WorldLoading] Stage=BeforeWorld Result=WorldEntryCancelled Reason=ModLoadFailed Detail=%s",failure.c_str());
+        cancelFailedPreWorldEntry();
         return;
     }
     if (preWorldCSharpContentReady() && finishPreWorldCSharpPlayer()) {
@@ -2023,7 +2023,7 @@ void flushDeferredWorldEntry() {
              content.pendingBehaviors,content.pendingRecipes,content.pendingPlacements,pendingNativeVisualRenderer(),
              bl::runtime::pendingManagedPrefixCountForActivePlayer(),
              g_preWorldBindingsArmed.load(std::memory_order_acquire)?1:0);
-    cancelFailedPreWorldEntry("ContentNotReady Timeout=30s");
+    cancelFailedPreWorldEntry();
 }
 
 
