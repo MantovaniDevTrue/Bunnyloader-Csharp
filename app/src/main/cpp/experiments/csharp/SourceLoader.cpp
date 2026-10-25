@@ -13,6 +13,7 @@
 #include "experiments/csharp/ManagedDustContract.h"
 
 #include "experiments/csharp/NativeContent.h"
+#include "experiments/csharp/NativeMountRegistry.h"
 #include "experiments/csharp/NativeDefaults.h"
 #include "experiments/csharp/NativeHoldout.h"
 #include "experiments/csharp/NativeShooting.h"
@@ -487,6 +488,20 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
                 ++status->dusts;
                 continue;
             }
+            if(base=="BunnyMount") {
+                if(def.name.empty()||def.name.size()>72) {
+                    status->error="Invalid BunnyMount class identity";return false;
+                }
+                std::string reason;
+                const int type=reserveNativeMount(mod.id,def.name,&reason);
+                if(type<0) {
+                    status->error="[CSharp][Mount] Class="+def.name+
+                        " Stage=Reserve Result=Rejected Detail="+reason;
+                    return false;
+                }
+                typed[sourceIdentityForBase(def.base,def.name)]=type;
+                continue;
+            }
             if (base == "BunnyPrefix") {
                 for (const auto& [key, value] : def.properties)
                     if (key != "DisplayName" && key != "Category" &&
@@ -749,6 +764,7 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
 void resetCSharpSourceModSession() {
     for (const auto& mod : g_statuses) {
         retireNativeDefaultsForMod(mod.id);
+        retireNativeMounts(mod.id);
         retireBasicItemTooltipsForMod(mod.id);
         retireNativeItemPoliciesForMod(mod.id);
         retireNativeArmorPoliciesForMod(mod.id);
@@ -768,6 +784,7 @@ bool loadCSharpSourceMod(const bl::mods::LoadedMod& mod) {
         [&](const SourceModStatus& entry) { return entry.id == mod.id; });
     if (previous != g_statuses.end()) {
         retireNativeDefaultsForMod(mod.id);
+        retireNativeMounts(mod.id);
         retireBasicItemTooltipsForMod(mod.id);
         retireNativeItemPoliciesForMod(mod.id);
         retireNativeArmorPoliciesForMod(mod.id);
@@ -792,6 +809,7 @@ bool loadCSharpSourceMod(const bl::mods::LoadedMod& mod) {
                 status.projectiles, status.buffs, status.potions, status.npcs, status.dusts);
     } else {
         retireNativeDefaultsForMod(mod.id);
+        retireNativeMounts(mod.id);
         retireBasicItemTooltipsForMod(mod.id);
         retireNativeItemPoliciesForMod(mod.id);
         retireNativeArmorPoliciesForMod(mod.id);
@@ -837,6 +855,7 @@ bool applyManagedSourceDefaults(
             if(touched) {
                 retireNativeArmorPoliciesForMod(owner);
                 retireNativeItemPoliciesForMod(owner);
+                retireNativeMounts(owner);
             }
             localization::retireMod(owner);
             angler::registry().unload(owner);
@@ -862,6 +881,8 @@ bool applyManagedSourceDefaults(
     std::vector<angler::Quest> anglerQuests;
     std::map<std::string, bool> anglerPlayerRules;
     std::vector<ManagedTreeEntry> trees;
+    std::vector<ManagedMountEntry> mounts;
+    std::vector<std::pair<std::string,std::string>> mountItems;
     std::vector<ManagedGoreEntry> gores;
     std::vector<NativeDefaultsRequest> nativeDefaults;
     std::vector<holdout::Entry> holdouts;
@@ -890,6 +911,39 @@ bool applyManagedSourceDefaults(
         std::vector<std::string> fields;
         std::string part;
         while (std::getline(parts, part, '\t')) fields.push_back(part);
+        if(fields.size()==3&&fields[0]=="MOUNT") {
+            const auto key=sourceIdentityForWire("MOUNT",fields[1]);
+            const auto type=mod->registeredKindTypes.find(key);
+            const auto base=mod->registeredBases.find(key);
+            ManagedMountEntry mount;
+            if(type==mod->registeredKindTypes.end()||
+               base==mod->registeredBases.end()||base->second!="BunnyMount"||
+               type->second!=nativeMountType(modId,fields[1])||
+               !mount_policy::parse(fields[2],&mount.values)||
+               !seen.emplace(key,true).second) {
+                *error="[CSharp][Mount] Class="+fields[1]+
+                    " Stage=Decode Result=Rejected Reason=InvalidM1OrRegistration";
+                return false;
+            }
+            mount.name=fields[1];mount.type=type->second;
+            mounts.push_back(std::move(mount));
+            continue;
+        }
+        if(fields.size()==3&&fields[0]=="MOUNT_ITEM") {
+            const auto key=sourceIdentityForWire("ITEM",fields[1]);
+            const auto it=mod->registeredKindTypes.find(key);
+            const auto base=mod->registeredBases.find(key);
+            if(it==mod->registeredKindTypes.end()||base==mod->registeredBases.end()||
+               base->second!="BunnyItem"||nativeMountType(modId,fields[2])<0||
+               std::find_if(mountItems.begin(),mountItems.end(),
+                   [&](const auto& x){return x.first==fields[1];})!=mountItems.end()) {
+                *error="[CSharp][Mount] Class="+fields[1]+
+                    " Stage=LinkItem Result=Rejected Reason=UnknownMountOrItem";
+                return false;
+            }
+            mountItems.emplace_back(fields[1],fields[2]);
+            continue;
+        }
         if(!fields.empty()&&fields[0]=="LOCALE_MODULES") {
             int count=0;
             if (seenLocalizationModules || fields.size()!=2 ||
@@ -1867,10 +1921,35 @@ bool applyManagedSourceDefaults(
             return false;
         }
     }
+    for(const auto& item:mountItems) {
+        const int type=nativeMountType(modId,item.second);
+        if(type<0) {
+            *error="[CSharp][Mount] Stage=ResolveItemMount Result=Rejected";return false;
+        }
+        auto matched=std::find_if(nativeDefaults.begin(),nativeDefaults.end(),
+            [&](const NativeDefaultsRequest& req) {
+                return !req.projectile&&req.name==item.first;
+            });
+        const std::string value="mountType:i:"+std::to_string(type);
+        if(matched!=nativeDefaults.end()) {
+            if(matched->descriptor.find("mountType:")!=std::string::npos) {
+                *error="[CSharp][Mount] Stage=MountItemDefaults Reason=DuplicateField";return false;
+            }
+            matched->descriptor+=";"+value;
+        } else {
+            const int itemType=runtime::modItemTypeByKey(modId+"/"+item.first);
+            if(itemType<0) {
+                *error="[CSharp][Mount] Stage=MountItemDefaults Reason=MissingItemType";return false;
+            }
+            nativeDefaults.push_back({item.first,modId,"content/"+item.first+".cs",value,itemType,false});
+        }
+    }
     if (!applyManagedNativeBuffDefaultsBatch(modId, buffs, potions)) {
         *error = "Falha ao validar buffs e pocoes C# gerenciados";
         return false;
     }
+    if(!mounts.empty()&&!publishNativeMounts(modId,mod->directory,mounts,error))
+        return false;
     if ((!projectiles.empty() || !weapons.empty()) &&
         !applyManagedNativeDefaultsBatch(modId, projectiles, weapons,error)) {
         if(error->empty())*error = "[CSharp][ERROR][NativeContent] Mod="+modId+" API=BunnyProjectile/BunnyWeapon Stage=ApplyDefaults Result=Rejected Reason=BatchIdentityOrValueContractMismatch";
