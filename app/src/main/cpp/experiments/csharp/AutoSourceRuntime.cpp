@@ -46,6 +46,7 @@
 #include "experiments/csharp/NativeTouchInput.h"
 #include "graphics/CSharpScreenEffects.h"
 #include "experiments/csharp/NativeContent.h"
+#include "experiments/csharp/NativeMountRegistry.h"
 #include "experiments/csharp/NativeBasicItems.h"
 #include "experiments/csharp/NativeDefaults.h"
 #include "experiments/csharp/NativeAnglerQuestGameplay.h"
@@ -1545,6 +1546,7 @@ bool compiledSourceHasTouchEntry(const std::string& assembly) {
 
 void noteAutoGameUpdate() {
     pumpNativeStaticDefaultsOnGameThread();
+    pumpNativeMountPublicationsOnGameThread();
 #if BUNNY_FIVE_LOADERS_QA
     struct StageReset { ~StageReset() { setNativeGameStage(0); } } stageReset;
     setNativeGameStage(100);

@@ -35,6 +35,8 @@ jobs:
           java-version: '17'
       - name: Verify native summon speed contracts
         run: mkdir -p build/unified-speed && c++ -std=c++20 -Wall -Wextra -Werror -Iapp/src/main/cpp tests/csharp_unified/weapon_speed_test.cpp -o build/unified-speed/check && build/unified-speed/check
+      - name: Verify game-thread mount texture publication
+        run: python3 tests/csharp_unified/check_mount_texture_thread.py
       - name: Verify original diamond mount dust ID
         run: mkdir -p build/unified-mount-dust && c++ -std=c++20 -Wall -Wextra -Werror -Iapp/src/main/cpp tests/csharp_unified/mount_dust_id_test.cpp -o build/unified-mount-dust/check && build/unified-mount-dust/check
       - name: Verify unified Dust Invasion Five Loaders and both CSharp examples
