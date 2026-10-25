@@ -76,4 +76,43 @@ Check(defaults.Contains("ammo:d:AmmoID:Bullet", StringComparison.Ordinal) &&
       defaults.Contains("shootSpeed:f:4.5", StringComparison.Ordinal) &&
       defaults.Contains("ranged:b:1", StringComparison.Ordinal), "Native bullet ammunition and projectile");
 
-Console.WriteLine("EXAMPLEMOD_EQUIPMENT_HOST_QA=PASS wings beard stat sword bullet");
+var costume = new ExampleCostume();
+costume.SetDefaults();
+Check(costume.Accessory && !costume.Vanity && costume.Width == 24 &&
+      costume.Height == 28 && costume.MaxStack == 1 &&
+      costume.Value == BunnyItem.BuyPrice(gold: 15) &&
+      costume.Rare == ItemRarityID.Pink,
+      "ExampleCostume original accessory defaults");
+Check(costume.NativeDefaultsDefinition.Contains("hasVanityEffects:b:1", StringComparison.Ordinal),
+      "ExampleCostume preserves native hasVanityEffects");
+using (var json = JsonDocument.Parse(costume.BehaviorDefinition))
+{
+    var equip = json.RootElement.GetProperty("equips");
+    Check(equip.GetArrayLength() == 3, "Costume registers head, body and legs");
+    string[] kinds = { "Head", "Body", "Legs" };
+    for (int i = 0; i < kinds.Length; i++)
+    {
+        Check(equip[i][0].GetString() == kinds[i] &&
+              equip[i][1].GetString() == "Content/Items/Armor/ExampleCostume_" + kinds[i] &&
+              equip[i][2].GetInt32() == 0, "Original costume native equipment " + kinds[i]);
+    }
+}
+const string dir = "samples/ExampleModCSharp/Playable/content/Content/Items/Armor/";
+var originalSprites = new (string File, string Digest)[]
+{
+    ("ExampleCostume.png", "6330a65e782acc400e173d88b693facbcc481bf984a07f608e029eb29729c161"),
+    ("ExampleCostume_Head.png", "dc4197ec293bd28327ce2eaed28c5fc608ccd27b2cbb14b5fc7afdba74e7c093"),
+    ("ExampleCostume_Body.png", "2325f096632197621104466bdc3d0b259577021ebc6930d9102d4817dfc01aed"),
+    ("ExampleCostume_Legs.png", "25c9d33c2838598079519c43b775d4432f3e912c3a27c07f344ea0be4274077f"),
+    ("ExampleCostumeAlt_Head.png", "cc56ed0ce12e5344f6d1af7f3dc6a82b0e424dea9a22e2fbc338b303ed0f2073"),
+    ("ExampleCostumeAlt_Body.png", "62924863a72f029d92b321718a5d9e62c481dd7e881f711d62cb43f46769521e"),
+    ("ExampleCostumeAlt_Legs.png", "10a493f30c1ba4eb360e76af649ac4a2b4eb483ac2e031342652ab37652f3e3b")
+};
+foreach (var sprite in originalSprites)
+{
+    string digest = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(
+        File.ReadAllBytes(dir + sprite.File))).ToLowerInvariant();
+    Check(digest == sprite.Digest, "Source-identical sprite " + sprite.File);
+}
+
+Console.WriteLine("EXAMPLEMOD_EQUIPMENT_HOST_QA=PASS wings beard stat sword bullet costume sprites");
