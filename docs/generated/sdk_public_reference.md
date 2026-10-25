@@ -1285,6 +1285,80 @@ abstract class; base: `System.Object`.
 | `static bool FollowOrAttack(ref BunnyProjectileAiState state)` | managed_helper |
 | `static bool FollowOrAttack(ref BunnyProjectileAiState state, BunnyMinionMovement movement)` | managed_helper |
 
+## BunnyLoader.Source.BunnyMount
+
+abstract class; base: `System.Object`.
+
+```csharp
+BunnyMountFrames Flying { get; set; }
+BunnyMountFrames Idle { get; set; }
+BunnyMountFrames InAir { get; set; }
+BunnyMountFrames Running { get; set; }
+BunnyMountFrames Standing { get; set; }
+BunnyMountFrames Swimming { get; set; }
+BunnyMountKind Kind { get; set; }
+bool BlockExtraJumps { get; set; }
+bool ConstantJump { get; set; }
+bool IdleFrameLoop { get; set; }
+bool ReuseVanillaMinecartDelegates { get; set; }
+float Acceleration { get; set; }
+float DashSpeed { get; set; }
+float FallDamage { get; set; }
+float JumpSpeed { get; set; }
+float RunSpeed { get; set; }
+int AmbientDustChance { get; set; }
+int BalloonCount { get; set; }
+int BodyFrame { get; set; }
+int FatigueMax { get; set; }
+int FlightTimeMax { get; set; }
+int HeightBoost { get; set; }
+int JumpHeight { get; set; }
+int PlayerHeadOffset { get; set; }
+int PlayerYOffset { get; set; }
+int RunDustThreshold { get; set; }
+int SpawnRingDustCount { get; set; }
+int SpawnRingRadius { get; set; }
+int TotalFrames { get; set; }
+int XOffset { get; set; }
+int YOffset { get; set; }
+string BalloonTexture { get; set; }
+string Buff { get; set; }
+string NativeDefinition { get; }
+string SpawnDust { get; set; }
+string Texture { get; set; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `void SetDefaults()` | compile_policy |
+| `void Validate()` | managed_helper |
+
+## BunnyLoader.Source.BunnyMountFrames
+
+struct; base: `System.ValueType`.
+
+```csharp
+BunnyMountFrames(int Count, int Delay, int Start)
+int Count { get; set; }
+int Delay { get; set; }
+int Start { get; set; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `bool Equals(BunnyMountFrames other)` | managed_helper |
+| `bool Equals(Object obj)` | managed_helper |
+| `int GetHashCode()` | managed_helper |
+| `string ToString()` | managed_helper |
+| `void Deconstruct(out int Count, out int Delay, out int Start)` | managed_helper |
+| `void Validate()` | managed_helper |
+
+## BunnyLoader.Source.BunnyMountKind
+
+enum; base: `System.Enum`.
+
+Values: Ride, Minecart.
+
 ## BunnyLoader.Source.BunnyNPC
 
 abstract class; base: `System.Object`.
