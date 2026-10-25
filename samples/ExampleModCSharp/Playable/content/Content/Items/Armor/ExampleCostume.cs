@@ -18,5 +18,6 @@ public sealed class ExampleCostume : BunnyItem
         Behavior.EquipTexture(BunnyEquipKind.Head, "Content/Items/Armor/ExampleCostume_Head");
         Behavior.EquipTexture(BunnyEquipKind.Body, "Content/Items/Armor/ExampleCostume_Body");
         Behavior.EquipTexture(BunnyEquipKind.Legs, "Content/Items/Armor/ExampleCostume_Legs");
+        Behavior.ConfigureCostume("Content/Items/Armor/ExampleCostumeAlt", "Blocky", 4.8f, 45);
     }
 }
