@@ -45,7 +45,7 @@ int main() {
         "public class Named : BunnyItem { public override void SetDefaults() { } }";
     const std::string mount =
         "public sealed class TestCar : BunnyMount { public override void SetDefaults() { "
-        "Texture = \\"Content/Mounts/TestCar\\"; Buff = \\"TestCarBuff\\"; "
+        "Texture = \"Content/Mounts/TestCar\"; Buff = \"TestCarBuff\"; "
         "Kind = BunnyMountKind.Ride; Standing = new(4, 12, 0); "
         "Running = new(4, 12, 0); Flying = new(0, 0, 0); "
         "InAir = new(1, 12, 0); Idle = new(4, 12, 0); "
