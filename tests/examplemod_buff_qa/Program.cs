@@ -46,4 +46,34 @@ projectile.SetDefaults();
 Check(projectile.Minion && projectile.TimeLeft == 18000 &&
       projectile.MinionSlots == 1f, "Live minion lifecycle matches buff refresh policy");
 
-Console.WriteLine("EXAMPLEMOD_BUFF_HOST_QA=PASS defense debuff minion locales");
+var blocky = new Blocky();
+blocky.SetDefaults();
+Check(blocky.IsDebuff && blocky.NoSave && blocky.NoTimeDisplay &&
+      blocky.NurseCannotRemove && blocky.DefenseBonus == 0 &&
+      blocky.DefenseMultiplierPercent == 100,
+      "Blocky faithfully registers debuff, no-save, hidden timer and nurse immunity");
+Check(blocky.Description == Localized(english, nameof(Blocky)) &&
+      Localized(portuguese, nameof(Blocky)) == "Pulo mais alto",
+      "Blocky uses original localized descriptions");
+
+var mountBuff = new ExampleMountBuff();
+mountBuff.SetDefaults();
+Check(!mountBuff.IsDebuff && mountBuff.NoSave && mountBuff.NoTimeDisplay &&
+      !mountBuff.NurseCannotRemove && mountBuff.DefenseBonus == 0,
+      "Original mount buff keeps only no-save and no-time flags");
+Check(mountBuff.Description == Localized(english, nameof(ExampleMountBuff)) &&
+      Localized(portuguese, nameof(ExampleMountBuff)) == "Bancos de couro, 4 porta-copos",
+      "Mount buff uses original translated text");
+
+const string content = "samples/ExampleModCSharp/Playable/content/";
+static string OriginalPngSha256(string path) =>
+    Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(
+        File.ReadAllBytes(content + path))).ToLowerInvariant();
+Check(blocky.Texture == "Content/Buffs/Blocky.png" &&
+      OriginalPngSha256(blocky.Texture) == "37433dc43b6657e57e9b0ff7cf179b5fa3fac67d3c901ae7a5b2a5498793cea0",
+      "Blocky PNG is byte-for-byte the original uploaded ExampleModBunny image");
+Check(mountBuff.Texture == "Content/Buffs/ExampleMountBuff.png" &&
+      OriginalPngSha256(mountBuff.Texture) == "c76e9f47edf271782b09005fd0b9aa88621e354f9067bd980d96d27660189dfd",
+      "Mount buff PNG is byte-for-byte original");
+
+Console.WriteLine("EXAMPLEMOD_BUFF_HOST_QA=PASS defense debuff minion blocky mount locale and sprites (host only)");
