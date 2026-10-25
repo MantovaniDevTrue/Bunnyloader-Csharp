@@ -2377,6 +2377,113 @@
       ]
     },
     {
+      "name": "BunnyLoader.Source.BunnyMount",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [
+        "BunnyMountFrames Flying { get; set; }",
+        "BunnyMountFrames Idle { get; set; }",
+        "BunnyMountFrames InAir { get; set; }",
+        "BunnyMountFrames Running { get; set; }",
+        "BunnyMountFrames Standing { get; set; }",
+        "BunnyMountFrames Swimming { get; set; }",
+        "BunnyMountKind Kind { get; set; }",
+        "bool BlockExtraJumps { get; set; }",
+        "bool ConstantJump { get; set; }",
+        "bool IdleFrameLoop { get; set; }",
+        "bool ReuseVanillaMinecartDelegates { get; set; }",
+        "float Acceleration { get; set; }",
+        "float DashSpeed { get; set; }",
+        "float FallDamage { get; set; }",
+        "float JumpSpeed { get; set; }",
+        "float RunSpeed { get; set; }",
+        "int AmbientDustChance { get; set; }",
+        "int BalloonCount { get; set; }",
+        "int BodyFrame { get; set; }",
+        "int FatigueMax { get; set; }",
+        "int FlightTimeMax { get; set; }",
+        "int HeightBoost { get; set; }",
+        "int JumpHeight { get; set; }",
+        "int PlayerHeadOffset { get; set; }",
+        "int PlayerYOffset { get; set; }",
+        "int RunDustThreshold { get; set; }",
+        "int SpawnRingDustCount { get; set; }",
+        "int SpawnRingRadius { get; set; }",
+        "int TotalFrames { get; set; }",
+        "int XOffset { get; set; }",
+        "int YOffset { get; set; }",
+        "string BalloonTexture { get; set; }",
+        "string Buff { get; set; }",
+        "string NativeDefinition { get; }",
+        "string SpawnDust { get; set; }",
+        "string Texture { get; set; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "void SetDefaults()",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "void Validate()",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyMountFrames",
+      "kind": "struct",
+      "baseType": "System.ValueType",
+      "constructors": [
+        "BunnyMountFrames(int Count, int Delay, int Start)"
+      ],
+      "properties": [
+        "int Count { get; set; }",
+        "int Delay { get; set; }",
+        "int Start { get; set; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "bool Equals(BunnyMountFrames other)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool Equals(Object obj)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "int GetHashCode()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "string ToString()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void Deconstruct(out int Count, out int Delay, out int Start)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void Validate()",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyMountKind",
+      "kind": "enum",
+      "baseType": "System.Enum",
+      "constructors": [],
+      "properties": [],
+      "values": [
+        "Ride",
+        "Minecart"
+      ],
+      "methods": []
+    },
+    {
       "name": "BunnyLoader.Source.BunnyNPC",
       "kind": "abstract class",
       "baseType": "System.Object",
