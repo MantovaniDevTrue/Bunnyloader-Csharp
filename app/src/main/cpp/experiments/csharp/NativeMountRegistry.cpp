@@ -1,4 +1,6 @@
 #include "experiments/csharp/NativeMountRegistry.h"
+#include "experiments/csharp/NativeMountVisualPolicy.h"
+#include "hook/HookManager.h"
 #include "experiments/csharp/NativeStaticValue.h"
 #include "content/buffs/ModBuffs.h"
 #include "content/common/ContentAssets.h"
@@ -9,6 +11,8 @@
 #include "il2cpp/Signature.h"
 #include "core/Log.h"
 #include <algorithm>
+#include <cmath>
+#include <dlfcn.h>
 #include <array>
 #include <cstring>
 #include <map>
@@ -24,6 +28,7 @@ struct Slot {
     std::string mod,name;
     int type=-1,buff=-1;
     bool published=false;
+    mount_policy::Definition policy{};
 };
 std::map<int,Slot> slots;
 std::map<std::string,int> keys;
@@ -43,7 +48,166 @@ struct AssetRoot {
     }
 };
 std::map<int,std::vector<std::shared_ptr<AssetRoot>>> assets;
+struct BalloonState {int mount=-1;std::array<float,3> rotations{};uint32_t random=0;};
+std::array<BalloonState,256> balloons{};
+int mountKindOffset=-1,playerIndexOffset=-1,playerPositionOffset=-1,playerVelocityOffset=-1,playerWidthOffset=-1,playerHeightOffset=-1,playerBuffTypeOffset=-1,playerBuffTimeOffset=-1,playerMountOffset=-1;
+const MethodInfo* newDust=nullptr;
+const MethodInfo* setMountMethod=nullptr;
+int gemDiamond=-1;
+using SetMountFn=void(*)(Il2CppObject*,int32_t,Il2CppObject*,bool,const MethodInfo*);
+using UpdateEffectsFn=void(*)(Il2CppObject*,Il2CppObject*,const MethodInfo*);
+SetMountFn originalSetMount=nullptr;
+UpdateEffectsFn originalUpdateEffects=nullptr;
+bool effectsHooked=false;
 std::string keyOf(const std::string& mod,const std::string& name) {return mod+"/"+name;}
+
+int constantDustId(const char* name) {
+    auto& a=api();
+    auto* cls=findClass({"Terraria.ID","DustID",{}});
+    auto* field=cls?findField(cls,name):nullptr;
+    int value=-1;
+    if(!field||!a.field_get_flags||!a.field_get_type||!a.class_from_il2cpp_type)return -1;
+    auto* kind=a.class_from_il2cpp_type(a.field_get_type(field));
+    const char* ns=kind?a.class_get_namespace(kind):nullptr;
+    const char* type=kind?a.class_get_name(kind):nullptr;
+    if(!ns||!type||std::strcmp(ns,"System"))return -1;
+    const bool shortType=!std::strcmp(type,"Int16");
+    if(!shortType&&std::strcmp(type,"Int32"))return -1;
+    if(a.field_get_flags(field)&0x40u) {
+        using Getter=const void*(*)(const FieldInfo*,const Il2CppType**);
+        const auto* getter=reinterpret_cast<Getter>(dlsym(RTLD_DEFAULT,"il2cpp_field_get_default_value"));
+        const Il2CppType* metadata=nullptr;
+        const auto* src=getter?getter(field,&metadata):nullptr;
+        if(!src)return -1;
+        if(shortType){int16_t id=-1;std::memcpy(&id,src,sizeof(id));value=id;}
+        else std::memcpy(&value,src,sizeof(value));
+    } else if((a.field_get_flags(field)&0x10u)&&a.field_static_get_value) {
+        if(shortType){int16_t id=-1;a.field_static_get_value(field,&id);value=id;}
+        else a.field_static_get_value(field,&value);
+    }
+    return value>0&&value<2000?value:-1;
+}
+uint32_t randomBalloon(BalloonState& state,int index) {
+    if(!state.random)state.random=0x9e3779b9u^(static_cast<uint32_t>(index+1)*0x85ebca6bu);
+    state.random^=state.random<<13;
+    state.random^=state.random>>17;
+    state.random^=state.random<<5;
+    return state.random;
+}
+struct Position {float x,y;};
+void dustAt(float x,float y,int type,int width=2,int height=2) {
+    if(!newDust||type<0||!std::isfinite(x)||!std::isfinite(y)||width<1||height<1)return;
+    Position position{x,y};
+    int32_t alpha=0,kind=type,dx=width,dy=height;
+    uint32_t color=0xffffffffu;
+    float speed=0.f,scale=1.f;
+    void* args[]={&position,&dx,&dy,&kind,&speed,&speed,&alpha,&color,&scale};
+    Il2CppObject* error=nullptr;
+    api().runtime_invoke(newDust,nullptr,args,&error);
+    if(error){static unsigned faults=0;if(faults++<3)BL_WARN("[CSharp][Mount] Stage=NewDust Result=Exception");}
+}
+int playerIndex(Il2CppObject* player) {
+    if(!player||playerIndexOffset<0)return -1;
+    int value=-1;
+    std::memcpy(&value,reinterpret_cast<const char*>(player)+playerIndexOffset,sizeof(value));
+    return value>=0&&value<256?value:-1;
+}
+int activeMountType(Il2CppObject* mount) {
+    if(!mount||mountKindOffset<0)return -1;
+    int value=-1;
+    std::memcpy(&value,reinterpret_cast<const char*>(mount)+mountKindOffset,sizeof(value));
+    return value;
+}
+bool playerLocation(Il2CppObject* player,Position* where,Position* velocity,int* width,int* height) {
+    if(!player||playerPositionOffset<0||playerVelocityOffset<0||
+       playerWidthOffset<0||playerHeightOffset<0)return false;
+    const auto* src=reinterpret_cast<const char*>(player);
+    std::memcpy(where,src+playerPositionOffset,sizeof(*where));
+    std::memcpy(velocity,src+playerVelocityOffset,sizeof(*velocity));
+    std::memcpy(width,src+playerWidthOffset,4);
+    std::memcpy(height,src+playerHeightOffset,4);
+    return std::isfinite(where->x)&&std::isfinite(where->y)&&
+           std::isfinite(velocity->x)&&std::isfinite(velocity->y)&&
+           *width>0&&*width<=128&&*height>0&&*height<=128;
+}
+void onSetMount(Il2CppObject* self,int32_t type,Il2CppObject* player,
+                bool ignoreEffect,const MethodInfo* method) {
+    const auto iter=slots.find(type);
+    const bool custom=iter!=slots.end()&&iter->second.published&&iter->second.policy.kind==0;
+    const bool entering=custom&&activeMountType(self)!=type;
+    if(originalSetMount)originalSetMount(self,type,player,ignoreEffect||entering,method);
+    if(!entering||!player||gemDiamond<0)return;
+    const int index=playerIndex(player);
+    if(index<0)return;
+    Position where{},velocity{};
+    int width=0,height=0;
+    if(!playerLocation(player,&where,&velocity,&width,&height))return;
+    balloons[static_cast<size_t>(index)].mount=type;
+    balloons[static_cast<size_t>(index)].rotations={};
+    const mount_visual::Point center{where.x+width*0.5f,where.y+height*0.5f};
+    for(int i=0;i<16;++i){
+        const auto point=mount_visual::ringDust(center,i);
+        dustAt(point.x,point.y,gemDiamond,1,1);
+    }
+}
+void onUpdateEffects(Il2CppObject* self,Il2CppObject* player,const MethodInfo* method) {
+    if(originalUpdateEffects)originalUpdateEffects(self,player,method);
+    if(!player)return;
+    const int type=activeMountType(self);
+    auto it=slots.find(type);
+    if(it==slots.end()||!it->second.published)return;
+    const int index=playerIndex(player);
+    if(index<0)return;
+    auto& state=balloons[static_cast<size_t>(index)];
+    if(state.mount!=type){state.mount=type;state.rotations={};}
+    Position where{},velocity{};
+    int width=0,height=0;
+    if(!playerLocation(player,&where,&velocity,&width,&height))return;
+    const auto& policy=it->second.policy;
+    if(policy.kind==0){
+        std::array<float,3> samples{};
+        for(auto& sample:samples)
+            sample=static_cast<float>(randomBalloon(state,index)&0xffffu)/65535.f;
+        mount_visual::updateBalloons(&state.rotations,velocity.x,samples,3);
+        if(std::abs(velocity.x)>policy.runDustThreshold)
+            dustAt(where.x,where.y,gemDiamond,width,height);
+    } else if(mount_visual::minecartSparkle(randomBalloon(state,index))&&gemDiamond>0)
+        dustAt(where.x+width*0.5f,where.y+height*0.5f,gemDiamond,1,1);
+}
+bool hookMountEffects(std::string* error) {
+    if(effectsHooked)return true;
+    auto& a=api();
+    auto* player=findClass({"Terraria","Player",{}});
+    std::string detail;
+    const auto bind=[&](Il2CppClass* cls,const char* name,const char* type,size_t bytes,int* offset) {
+        return nativeFieldContract(cls,name,type,false,bytes,nullptr,offset,&detail);
+    };
+    if(!bind(mountClass,"_type","System.Int32",4,&mountKindOffset)||
+       !bind(player,"whoAmI","System.Int32",4,&playerIndexOffset)||
+       !bind(player,"position","Microsoft.Xna.Framework.Vector2",8,&playerPositionOffset)||
+       !bind(player,"velocity","Microsoft.Xna.Framework.Vector2",8,&playerVelocityOffset)||
+       !bind(player,"width","System.Int32",4,&playerWidthOffset)||
+       !bind(player,"height","System.Int32",4,&playerHeightOffset)) {
+        *error="Mount native effects player contract: "+detail;return false;
+    }
+    auto* dust=findClass({"Terraria","Dust",{}});
+    newDust=dust?findMethodBySignature(dust,parseSignature(
+        "int NewDust(Vector2 Position, int Width, int Height, int Type, float SpeedX, float SpeedY, int Alpha, Color newColor, float Scale)")):nullptr;
+    gemDiamond=constantDustId("GemDiamond");
+    setMountMethod=findMethodBySignature(mountClass,parseSignature(
+        "void SetMount(int m, Player mountedPlayer, bool ignoreEffect)"));
+    auto* effect=findMethodBySignature(mountClass,parseSignature("void UpdateEffects(Player mountedPlayer)"));
+    if(!newDust||!setMountMethod||!effect||gemDiamond<1||
+       !a.method_is_instance(setMountMethod)||!a.method_is_instance(effect)||a.method_is_instance(newDust)) {
+        *error="Mount native dust and lifecycle signatures unavailable";return false;
+    }
+    if(!hook::install(setMountMethod,onSetMount,&originalSetMount)||
+       !hook::install(effect,onUpdateEffects,&originalUpdateEffects)) {
+        *error="Mount native lifecycle hook install failed";return false;
+    }
+    effectsHooked=true;
+    return true;
+}
 bool file(const std::string& path) {
     struct stat st{};
     return stat(path.c_str(),&st)==0&&S_ISREG(st.st_mode)&&st.st_size>0&&st.st_size<1024*1024;
@@ -265,7 +429,7 @@ bool publishNativeMounts(const std::string& mod,const std::string& directory,
                          const std::vector<ManagedMountEntry>& entries,std::string* error) {
     if(!error)return false;
     if(entries.empty())return true;
-    if(!preflight(error))return false;
+    if(!preflight(error)||!hookMountEffects(error))return false;
     struct Pending {
         int type=0,buff=0;bool minecart=false;
         Il2CppObject* data=nullptr;
@@ -336,6 +500,9 @@ bool publishNativeMounts(const std::string& mod,const std::string& directory,
         assets[candidate.type]=std::move(candidate.textures);
         auto& slot=slots[candidate.type];
         slot.published=true;slot.buff=candidate.buff;
+        const auto policy=std::find_if(entries.begin(),entries.end(),
+            [&](const ManagedMountEntry& entry){return entry.type==candidate.type;});
+        if(policy!=entries.end())slot.policy=policy->values;
     }
     BL_INFO("[CSharp][Mount] Mod=%s Count=%zu Stage=Publish Result=Ready",
             mod.c_str(),pending.size());
