@@ -4,6 +4,7 @@ on:
     branches: [qa/csharp-world-tree-gore-apk-20261024]
     paths:
       - 'samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/**'
+      - 'samples/ExampleModCSharp/Playable/content/Content/Items/Armor/**'
       - 'samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Melee/ExampleMeleeWeapon.cs'
       - 'samples/ExampleModCSharp/Playable/content/Content/Items/Ammo/**'
       - 'samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleBulletProjectile.cs'
@@ -14,6 +15,7 @@ on:
     paths:
       - 'tests/examplemod_equipment_qa/**'
       - 'samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/**'
+      - 'samples/ExampleModCSharp/Playable/content/Content/Items/Armor/**'
       - '.github/workflows/check-examplemod-equipment-qa.yml'
 permissions:
   contents: read
