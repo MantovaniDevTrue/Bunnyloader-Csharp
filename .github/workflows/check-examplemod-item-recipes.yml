@@ -1,0 +1,27 @@
+name: ExampleMod CSharp item recipes and potion QA (no APK)
+on:
+  push:
+    branches: [qa/csharp-world-tree-gore-apk-20261024]
+    paths:
+      - 'samples/ExampleModCSharp/Playable/content/Content/Items/ExampleItem.cs'
+      - 'samples/ExampleModCSharp/Playable/content/Content/Items/Placeable/**'
+      - 'samples/ExampleModCSharp/Playable/content/Content/Items/Consumables/ExampleBuffPotion.cs'
+      - 'tests/examplemod_item_recipes_qa/**'
+      - '.github/workflows/check-examplemod-item-recipes.yml'
+  pull_request:
+    paths:
+      - 'tests/examplemod_item_recipes_qa/**'
+      - '.github/workflows/check-examplemod-item-recipes.yml'
+permissions:
+  contents: read
+jobs:
+  host:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Verify Playable placement recipes and native drink defaults
+        run: dotnet run --project tests/examplemod_item_recipes_qa/ExampleModItemRecipesQa.csproj --configuration Release
