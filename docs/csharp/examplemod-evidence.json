@@ -2911,6 +2911,150 @@
         "tests/examplemod_equipment_qa/ExampleModEquipmentQa.csproj": "7eb0e0f9e7cf36913bc28ea2ce8fae77941a8239f800d07d6cce2d000db9bd98",
         "tests/examplemod_equipment_qa/Program.cs": "db90874231f30da6b9650c04f2f0f84e026ac849a4b4e6f339df15a38deb6a66"
       }
+    },
+    "Content/Items/ExampleItem.js#AddRecipes": {
+      "status": "validado automaticamente",
+      "note": "Host: ExampleItem preserva stack 9999, valor buyPrice de 1 prata e receita 10 DirtBlock na bancada vanilla para 999 itens. Pesquisa Journey e moeda customizada do JS não foram validadas.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/ExampleItem.cs"
+      ],
+      "tests": [
+        "tests/examplemod_item_recipes_qa/ExampleModItemRecipesQa.csproj",
+        "tests/examplemod_item_recipes_qa/Program.cs"
+      ],
+      "validationScope": "host; Android pendente",
+      "androidEvidence": [],
+      "validatedFilesSha256": {
+        "samples/ExampleModCSharp/Playable/content/Content/Items/ExampleItem.cs": "e0f9c3d1b41701ffb42ceef975471c9e73a2fad042fb45ad918ea066decd3bde",
+        "tests/examplemod_item_recipes_qa/ExampleModItemRecipesQa.csproj": "7563dd47f7e94efabf7184ace95ce47994b813a53829312df4db19dd1a7552aa",
+        "tests/examplemod_item_recipes_qa/Program.cs": "9031367ab893a14a6a06c05a6e592960c2a47ffa61f885a5331508bb137a5cc2"
+      }
+    },
+    "Content/Items/ExampleItem.js#SetDefaults": {
+      "status": "validado automaticamente",
+      "note": "Host: ExampleItem preserva stack 9999, valor buyPrice de 1 prata e receita 10 DirtBlock na bancada vanilla para 999 itens. Pesquisa Journey e moeda customizada do JS não foram validadas.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/ExampleItem.cs"
+      ],
+      "tests": [
+        "tests/examplemod_item_recipes_qa/ExampleModItemRecipesQa.csproj",
+        "tests/examplemod_item_recipes_qa/Program.cs"
+      ],
+      "validationScope": "host; Android pendente",
+      "androidEvidence": [],
+      "validatedFilesSha256": {
+        "samples/ExampleModCSharp/Playable/content/Content/Items/ExampleItem.cs": "e0f9c3d1b41701ffb42ceef975471c9e73a2fad042fb45ad918ea066decd3bde",
+        "tests/examplemod_item_recipes_qa/ExampleModItemRecipesQa.csproj": "7563dd47f7e94efabf7184ace95ce47994b813a53829312df4db19dd1a7552aa",
+        "tests/examplemod_item_recipes_qa/Program.cs": "9031367ab893a14a6a06c05a6e592960c2a47ffa61f885a5331508bb137a5cc2"
+      }
+    },
+    "Content/Items/Placeable/ExampleTileItem.js#AddRecipes": {
+      "status": "validado automaticamente",
+      "note": "Host: colocação nativa do ExampleTile, largura/altura 12, consumível e receita 1 ExampleItem na bancada vanilla para 10 blocos, usando IDs simbólicos. Colocação física Android pendente.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Placeable/ExampleTileItem.cs"
+      ],
+      "tests": [
+        "tests/examplemod_item_recipes_qa/ExampleModItemRecipesQa.csproj",
+        "tests/examplemod_item_recipes_qa/Program.cs"
+      ],
+      "validationScope": "host; Android pendente",
+      "androidEvidence": [],
+      "validatedFilesSha256": {
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Placeable/ExampleTileItem.cs": "631bb66f1aa94e5d043a7f4bf68a412a33804b4d2fddc6d16d44ff9589676a80",
+        "tests/examplemod_item_recipes_qa/ExampleModItemRecipesQa.csproj": "7563dd47f7e94efabf7184ace95ce47994b813a53829312df4db19dd1a7552aa",
+        "tests/examplemod_item_recipes_qa/Program.cs": "9031367ab893a14a6a06c05a6e592960c2a47ffa61f885a5331508bb137a5cc2"
+      }
+    },
+    "Content/Items/Placeable/ExampleTileItem.js#SetDefaults": {
+      "status": "validado automaticamente",
+      "note": "Host: colocação nativa do ExampleTile, largura/altura 12, consumível e receita 1 ExampleItem na bancada vanilla para 10 blocos, usando IDs simbólicos. Colocação física Android pendente.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Placeable/ExampleTileItem.cs"
+      ],
+      "tests": [
+        "tests/examplemod_item_recipes_qa/ExampleModItemRecipesQa.csproj",
+        "tests/examplemod_item_recipes_qa/Program.cs"
+      ],
+      "validationScope": "host; Android pendente",
+      "androidEvidence": [],
+      "validatedFilesSha256": {
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Placeable/ExampleTileItem.cs": "631bb66f1aa94e5d043a7f4bf68a412a33804b4d2fddc6d16d44ff9589676a80",
+        "tests/examplemod_item_recipes_qa/ExampleModItemRecipesQa.csproj": "7563dd47f7e94efabf7184ace95ce47994b813a53829312df4db19dd1a7552aa",
+        "tests/examplemod_item_recipes_qa/Program.cs": "9031367ab893a14a6a06c05a6e592960c2a47ffa61f885a5331508bb137a5cc2"
+      }
+    },
+    "Content/Items/Placeable/ExampleWallAdvanced.js#AddRecipes": {
+      "status": "validado automaticamente",
+      "note": "Host: registro nativo da parede ExampleWallAdvanced e receita 1 ExampleItem na ExampleWorkbench para 4 paredes, sem ID numérico fixo de mod. Colocação Android pendente.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Placeable/ExampleWallAdvanced.cs"
+      ],
+      "tests": [
+        "tests/examplemod_item_recipes_qa/ExampleModItemRecipesQa.csproj",
+        "tests/examplemod_item_recipes_qa/Program.cs"
+      ],
+      "validationScope": "host; Android pendente",
+      "androidEvidence": [],
+      "validatedFilesSha256": {
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Placeable/ExampleWallAdvanced.cs": "d30d39c16745252a951fa6e34c7c2bf27f32fbf9e8ba7846fb8da5c70eb0ea91",
+        "tests/examplemod_item_recipes_qa/ExampleModItemRecipesQa.csproj": "7563dd47f7e94efabf7184ace95ce47994b813a53829312df4db19dd1a7552aa",
+        "tests/examplemod_item_recipes_qa/Program.cs": "9031367ab893a14a6a06c05a6e592960c2a47ffa61f885a5331508bb137a5cc2"
+      }
+    },
+    "Content/Items/Placeable/ExampleWallAdvanced.js#SetDefaults": {
+      "status": "validado automaticamente",
+      "note": "Host: registro nativo da parede ExampleWallAdvanced e receita 1 ExampleItem na ExampleWorkbench para 4 paredes, sem ID numérico fixo de mod. Colocação Android pendente.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Placeable/ExampleWallAdvanced.cs"
+      ],
+      "tests": [
+        "tests/examplemod_item_recipes_qa/ExampleModItemRecipesQa.csproj",
+        "tests/examplemod_item_recipes_qa/Program.cs"
+      ],
+      "validationScope": "host; Android pendente",
+      "androidEvidence": [],
+      "validatedFilesSha256": {
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Placeable/ExampleWallAdvanced.cs": "d30d39c16745252a951fa6e34c7c2bf27f32fbf9e8ba7846fb8da5c70eb0ea91",
+        "tests/examplemod_item_recipes_qa/ExampleModItemRecipesQa.csproj": "7563dd47f7e94efabf7184ace95ce47994b813a53829312df4db19dd1a7552aa",
+        "tests/examplemod_item_recipes_qa/Program.cs": "9031367ab893a14a6a06c05a6e592960c2a47ffa61f885a5331508bb137a5cc2"
+      }
+    },
+    "Content/Items/Consumables/ExampleBuffPotion.js#SetDefaults": {
+      "status": "validado automaticamente",
+      "note": "Host: poção com buff ExampleDefenseBuff por 5400 ticks, DrinkLiquid, som Item3, raridade Orange, valor sellPrice de 1 ouro e cores de partículas RGB 240/200/140 preservados no protocolo. Efeito/partículas Android pendentes.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Consumables/ExampleBuffPotion.cs"
+      ],
+      "tests": [
+        "tests/examplemod_item_recipes_qa/ExampleModItemRecipesQa.csproj",
+        "tests/examplemod_item_recipes_qa/Program.cs"
+      ],
+      "validationScope": "host; Android pendente",
+      "androidEvidence": [],
+      "validatedFilesSha256": {
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Consumables/ExampleBuffPotion.cs": "6b7d99507cf2951da025af769d125f11b47e9702e2e3e6dee21773887c36700d",
+        "tests/examplemod_item_recipes_qa/ExampleModItemRecipesQa.csproj": "7563dd47f7e94efabf7184ace95ce47994b813a53829312df4db19dd1a7552aa",
+        "tests/examplemod_item_recipes_qa/Program.cs": "9031367ab893a14a6a06c05a6e592960c2a47ffa61f885a5331508bb137a5cc2"
+      }
+    },
+    "Content/Items/Consumables/ExampleBuffPotion.js#SetStaticDefaults": {
+      "status": "validado automaticamente",
+      "note": "Host: poção com buff ExampleDefenseBuff por 5400 ticks, DrinkLiquid, som Item3, raridade Orange, valor sellPrice de 1 ouro e cores de partículas RGB 240/200/140 preservados no protocolo. Efeito/partículas Android pendentes.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Consumables/ExampleBuffPotion.cs"
+      ],
+      "tests": [
+        "tests/examplemod_item_recipes_qa/ExampleModItemRecipesQa.csproj",
+        "tests/examplemod_item_recipes_qa/Program.cs"
+      ],
+      "validationScope": "host; Android pendente",
+      "androidEvidence": [],
+      "validatedFilesSha256": {
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Consumables/ExampleBuffPotion.cs": "6b7d99507cf2951da025af769d125f11b47e9702e2e3e6dee21773887c36700d",
+        "tests/examplemod_item_recipes_qa/ExampleModItemRecipesQa.csproj": "7563dd47f7e94efabf7184ace95ce47994b813a53829312df4db19dd1a7552aa",
+        "tests/examplemod_item_recipes_qa/Program.cs": "9031367ab893a14a6a06c05a6e592960c2a47ffa61f885a5331508bb137a5cc2"
+      }
     }
   }
 }
