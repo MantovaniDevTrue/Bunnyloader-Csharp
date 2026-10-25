@@ -146,7 +146,8 @@ bool fields(const ParsedSourceType& type, NativeContentSpec* spec,
     const bool potion = type.base == "BunnyBuffPotion";
     const bool accessory = type.base == "BunnyAccessory";
     const bool npc = type.base == "BunnyNPC";
-    if (!basic && !tile && !wall && !projectile && !weapon && !buff && !potion && !accessory && !npc) {
+    const bool mount = type.base == "BunnyMount";
+    if (!basic && !tile && !wall && !projectile && !weapon && !buff && !potion && !accessory && !npc && !mount) {
         *error = type.name + ": tipo de conteudo C# desconhecido";
         return false;
     }
@@ -159,7 +160,7 @@ bool fields(const ParsedSourceType& type, NativeContentSpec* spec,
     spec->useTime = npc ? 2 : weapon ? 18 : 0;
     spec->shootType = npc ? 25 : 0;
     spec->shootSpeed = weapon ? 12.f : 0.f;
-    spec->kind = wall ? NativeWall : tile ? NativeTile : basic ? NativeBasicItem : projectile ? NativeProjectile :
+    spec->kind = mount ? NativeMount : wall ? NativeWall : tile ? NativeTile : basic ? NativeBasicItem : projectile ? NativeProjectile :
                  weapon ? NativeWeapon : buff ? NativeBuff :
                  accessory ? NativeAccessory : npc ? NativeNpc : NativeBuffPotion;
     *texture = wall ? "Content/Walls/" + type.name + ".png" : tile ? "Content/Tiles/" + type.name + ".png" :
@@ -177,6 +178,7 @@ bool fields(const ParsedSourceType& type, NativeContentSpec* spec,
             *error = type.name + ": "+type.base+" permite somente Texture e DisplayName no registro antecipado";
             return false;
         }
+        if (mount) continue;
         if (basic) {
             const std::string allowed="|Tooltip|Width|Height|MaxStack|Value|Rare|Defense|Damage|Crit|KnockBack|UseTime|UseAnimation|UseStyle|Melee|NoMelee|AutoReuse|UseTurn|Consumable|Pick|Axe|Hammer|UseSound|SpawnAtCursor|";
             if (allowed.find("|"+key+"|")==std::string::npos) {
