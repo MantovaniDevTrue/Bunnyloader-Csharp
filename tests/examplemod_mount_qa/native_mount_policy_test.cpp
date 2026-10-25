@@ -36,6 +36,15 @@ int main() {
         wire.replace(start,a.size(),b);
         return wire;
     };
+    Definition retained;
+    {
+        std::string temporary=car;
+        assert(parse(temporary,&retained));
+        temporary.assign(temporary.size(),'!');
+    }
+    assert(retained.texture=="Content/Mounts/ExampleMount");
+    assert(retained.buff=="ExampleMountBuff");
+    assert(retained.balloon=="Content/Items/Armor/SimpleAccessory_Balloon");
     const auto unchanged=data.buff;
     assert(!parse(replacement(car,"M1|0","M2|0"),&data)&&data.buff==unchanged);
     assert(!parse(replacement(car,"|0.19|","|nan|"),&data));
