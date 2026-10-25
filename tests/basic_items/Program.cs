@@ -403,10 +403,20 @@ try {
     var defaults=type.GetMethod((typeof(BunnyTile).IsAssignableFrom(type)||typeof(BunnyWall).IsAssignableFrom(type)||typeof(BunnyDust).IsAssignableFrom(type))?"SetStaticDefaults":"SetDefaults");
     defaults?.Invoke(instance,null);
     // Execute every registered class; translated names may preserve the original Bunny JS localization.
-    if(type.GetProperty("DisplayName")?.GetValue(instance) is string displayName &&
-       !displayName.StartsWith("Example ",StringComparison.Ordinal) &&
-       !(type.Name=="ExampleTooltipItem" && displayName=="Exemplo de Tooltip"))
-      throw new Exception("Content name must begin with Example: "+type.FullName+" = "+displayName);
+    if(type.GetProperty("DisplayName")?.GetValue(instance) is string displayName) {
+      bool originalBuffName=false;
+      if(instance is BunnyBuff) {
+        string originalLocale=Path.Combine(root,"content","Localization","en-US.json");
+        using var locale=JsonDocument.Parse(File.ReadAllText(originalLocale));
+        originalBuffName=locale.RootElement.TryGetProperty("BuffName",out var names) &&
+          names.TryGetProperty(type.Name,out var original) &&
+          original.GetString()==displayName;
+      }
+      if(!displayName.StartsWith("Example ",StringComparison.Ordinal) &&
+         !(type.Name=="ExampleTooltipItem" && displayName=="Exemplo de Tooltip") &&
+         !originalBuffName)
+        throw new Exception("Content name must match the source ExampleMod: "+type.FullName+" = "+displayName);
+    }
     foreach(var name in type.GetCustomAttributes<BunnyNameAttribute>()) {
       string category=instance is BunnyProjectile?"ProjectileName":"ItemName";
       string localePath=Path.Combine(root,"content","Localization",name.Culture+".json");
