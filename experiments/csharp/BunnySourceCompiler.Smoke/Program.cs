@@ -155,8 +155,8 @@ public sealed class CountMinecart : BunnyMount
         throw new InvalidOperationException("Managed mount count smoke failed: " + File.ReadAllText(mountDiag));
     string mountWire = File.ReadAllText(Path.Combine(mountArtifacts, "source-runtime-values.txt"));
     if (!File.ReadAllText(mountDiag).Contains("mounts=2", StringComparison.Ordinal) ||
-        !mountWire.Contains("MOUNT\\tCountRide\\tM1|0|", StringComparison.Ordinal) ||
-        !mountWire.Contains("MOUNT\\tCountMinecart\\tM1|1|", StringComparison.Ordinal))
+        !mountWire.Contains("MOUNT\tCountRide\tM1|0|", StringComparison.Ordinal) ||
+        !mountWire.Contains("MOUNT\tCountMinecart\tM1|1|", StringComparison.Ordinal))
         throw new InvalidOperationException("Managed mount wire or type count mismatch: " + mountWire);
     Console.WriteLine("BUNNY_NATIVE_CSHARP_MOUNT_COUNT=PASS");
 
