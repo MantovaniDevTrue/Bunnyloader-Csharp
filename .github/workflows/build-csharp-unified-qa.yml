@@ -109,7 +109,7 @@ jobs:
           printf '%s' "$BUNNY_KEYSTORE_B64" | base64 --decode > "$BUNNY_SIGNING_STORE"
           unset BUNNY_KEYSTORE_B64
           keytool -list -keystore "$BUNNY_SIGNING_STORE" -storepass:env BUNNY_SIGNING_PASSWORD -alias "$BUNNY_SIGNING_ALIAS" >/dev/null
-          gradle :app:testDebugUnitTest :app:assembleDebug --stacktrace --no-daemon -Pbl.csharpUnifiedQa=true
+          gradle :app:testDebugUnitTest :app:assembleDebug --stacktrace --no-daemon -Pbl.csharpUnifiedQa=true -Pbl.mountsQaDebug=true
       - name: Upload mount integration debug APK for Android QA
         uses: actions/upload-artifact@v4
         with:
