@@ -8,7 +8,7 @@ struct SourceRecipeOwner {
     std::vector<BasicRecipe> recipes;
 };
 inline std::string recipeOwnerBase(const std::string& kind) {
-    return kind=="WEAPON"?"BunnyWeapon":kind=="ACCESSORY"?"BunnyAccessory":kind=="POTION"?"BunnyBuffPotion":"";
+    return kind=="ITEM"?"BunnyItem":kind=="WEAPON"?"BunnyWeapon":kind=="ACCESSORY"?"BunnyAccessory":kind=="POTION"?"BunnyBuffPotion":"";
 }
 inline bool parseSourceRecipeOwner(const std::vector<std::string>& fields,const std::string& mod,
                                   SourceRecipeOwner* out,std::string* error) {
@@ -22,7 +22,7 @@ inline bool parseSourceRecipeOwner(const std::vector<std::string>& fields,const 
         if(!((c>='A'&&c<='Z')||(c>='a'&&c<='z')||c=='_'||(i>0&&c>='0'&&c<='9')))
             return fail("InvalidOwnerName","AsciiCSharpClassName",fields[1]);
     }
-    if(recipeOwnerBase(fields[2]).empty())return fail("UnsupportedOwnerKind","WEAPON/ACCESSORY/POTION",fields[2]);
+    if(recipeOwnerBase(fields[2]).empty())return fail("UnsupportedOwnerKind","ITEM/WEAPON/ACCESSORY/POTION",fields[2]);
     BasicItemEntry decoded;decoded.name=fields[1];
     // Wire bound only. NativeRecipes later checks the actual result's maxStack after SetDefaults.
     decoded.values[BasicMaxStack]=9999;
