@@ -16,4 +16,5 @@ public enum BunnyContentKind
     Dust = 11,
     Tree = 12,
     Gore = 13,
+    Mount = 14,
 }
