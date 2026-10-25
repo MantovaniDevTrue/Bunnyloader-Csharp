@@ -2731,6 +2731,186 @@
         "tests/examplemod_pre_apk/ExampleModPreApk.csproj": "7f3253e1fdd7445db363a75b6203c2e6b04a3ad717cd83ba4e9c04a6717a5c76",
         "tests/examplemod_pre_apk/Program.cs": "ed51a87ed58a84594ec0fb822c2a51703b781817eb86886e6cd4a3ec5624d3b0"
       }
+    },
+    "Content/Items/Accessories/ExampleWings.js#AddRecipes": {
+      "status": "validado automaticamente",
+      "note": "Host: defaults originais de asas, slot nativo de Wings, SetWingStats(180, 9, 2.5), cinco velocidades verticais e receita ExampleItem/ExampleWorkbench conferidos no Playable. Voo e animação em Terraria Android pendentes.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleWings.cs"
+      ],
+      "tests": [
+        "tests/examplemod_equipment_qa/ExampleModEquipmentQa.csproj",
+        "tests/examplemod_equipment_qa/Program.cs"
+      ],
+      "validationScope": "host; Android pendente",
+      "androidEvidence": [],
+      "validatedFilesSha256": {
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleWings.cs": "392881eee631c3a17a7d03c4073e216c9ae4de922a8b7ef027ddb4a60e94c812",
+        "tests/examplemod_equipment_qa/ExampleModEquipmentQa.csproj": "7eb0e0f9e7cf36913bc28ea2ce8fae77941a8239f800d07d6cce2d000db9bd98",
+        "tests/examplemod_equipment_qa/Program.cs": "db90874231f30da6b9650c04f2f0f84e026ac849a4b4e6f339df15a38deb6a66"
+      }
+    },
+    "Content/Items/Accessories/ExampleWings.js#SetDefaults": {
+      "status": "validado automaticamente",
+      "note": "Host: defaults originais de asas, slot nativo de Wings, SetWingStats(180, 9, 2.5), cinco velocidades verticais e receita ExampleItem/ExampleWorkbench conferidos no Playable. Voo e animação em Terraria Android pendentes.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleWings.cs"
+      ],
+      "tests": [
+        "tests/examplemod_equipment_qa/ExampleModEquipmentQa.csproj",
+        "tests/examplemod_equipment_qa/Program.cs"
+      ],
+      "validationScope": "host; Android pendente",
+      "androidEvidence": [],
+      "validatedFilesSha256": {
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleWings.cs": "392881eee631c3a17a7d03c4073e216c9ae4de922a8b7ef027ddb4a60e94c812",
+        "tests/examplemod_equipment_qa/ExampleModEquipmentQa.csproj": "7eb0e0f9e7cf36913bc28ea2ce8fae77941a8239f800d07d6cce2d000db9bd98",
+        "tests/examplemod_equipment_qa/Program.cs": "db90874231f30da6b9650c04f2f0f84e026ac849a4b4e6f339df15a38deb6a66"
+      }
+    },
+    "Content/Items/Accessories/ExampleWings.js#SetStaticDefaults": {
+      "status": "validado automaticamente",
+      "note": "Host: defaults originais de asas, slot nativo de Wings, SetWingStats(180, 9, 2.5), cinco velocidades verticais e receita ExampleItem/ExampleWorkbench conferidos no Playable. Voo e animação em Terraria Android pendentes.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleWings.cs"
+      ],
+      "tests": [
+        "tests/examplemod_equipment_qa/ExampleModEquipmentQa.csproj",
+        "tests/examplemod_equipment_qa/Program.cs"
+      ],
+      "validationScope": "host; Android pendente",
+      "androidEvidence": [],
+      "validatedFilesSha256": {
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleWings.cs": "392881eee631c3a17a7d03c4073e216c9ae4de922a8b7ef027ddb4a60e94c812",
+        "tests/examplemod_equipment_qa/ExampleModEquipmentQa.csproj": "7eb0e0f9e7cf36913bc28ea2ce8fae77941a8239f800d07d6cce2d000db9bd98",
+        "tests/examplemod_equipment_qa/Program.cs": "db90874231f30da6b9650c04f2f0f84e026ac849a4b4e6f339df15a38deb6a66"
+      }
+    },
+    "Content/Items/Accessories/ExampleWings.js#VerticalWingSpeeds": {
+      "status": "validado automaticamente",
+      "note": "Host: defaults originais de asas, slot nativo de Wings, SetWingStats(180, 9, 2.5), cinco velocidades verticais e receita ExampleItem/ExampleWorkbench conferidos no Playable. Voo e animação em Terraria Android pendentes.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleWings.cs"
+      ],
+      "tests": [
+        "tests/examplemod_equipment_qa/ExampleModEquipmentQa.csproj",
+        "tests/examplemod_equipment_qa/Program.cs"
+      ],
+      "validationScope": "host; Android pendente",
+      "androidEvidence": [],
+      "validatedFilesSha256": {
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleWings.cs": "392881eee631c3a17a7d03c4073e216c9ae4de922a8b7ef027ddb4a60e94c812",
+        "tests/examplemod_equipment_qa/ExampleModEquipmentQa.csproj": "7eb0e0f9e7cf36913bc28ea2ce8fae77941a8239f800d07d6cce2d000db9bd98",
+        "tests/examplemod_equipment_qa/Program.cs": "db90874231f30da6b9650c04f2f0f84e026ac849a4b4e6f339df15a38deb6a66"
+      }
+    },
+    "Content/Items/Accessories/ExampleBeard.js#SetDefaults": {
+      "status": "validado automaticamente",
+      "note": "Host: dimensões 18x14, pilha 1, sellPrice de 1 ouro, acessório e vaidade, slot Beard e UseHairColor conferidos no Playable. Cor exibida e animação reais Android pendentes.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleBeard.cs"
+      ],
+      "tests": [
+        "tests/examplemod_equipment_qa/ExampleModEquipmentQa.csproj",
+        "tests/examplemod_equipment_qa/Program.cs"
+      ],
+      "validationScope": "host; Android pendente",
+      "androidEvidence": [],
+      "validatedFilesSha256": {
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleBeard.cs": "d56cf9f0cf272bb9a45411380e252631e71795d41041a3e109baaa4fc90cd3a9",
+        "tests/examplemod_equipment_qa/ExampleModEquipmentQa.csproj": "7eb0e0f9e7cf36913bc28ea2ce8fae77941a8239f800d07d6cce2d000db9bd98",
+        "tests/examplemod_equipment_qa/Program.cs": "db90874231f30da6b9650c04f2f0f84e026ac849a4b4e6f339df15a38deb6a66"
+      }
+    },
+    "Content/Items/Accessories/ExampleBeard.js#SetStaticDefaults": {
+      "status": "validado automaticamente",
+      "note": "Host: dimensões 18x14, pilha 1, sellPrice de 1 ouro, acessório e vaidade, slot Beard e UseHairColor conferidos no Playable. Cor exibida e animação reais Android pendentes.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleBeard.cs"
+      ],
+      "tests": [
+        "tests/examplemod_equipment_qa/ExampleModEquipmentQa.csproj",
+        "tests/examplemod_equipment_qa/Program.cs"
+      ],
+      "validationScope": "host; Android pendente",
+      "androidEvidence": [],
+      "validatedFilesSha256": {
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleBeard.cs": "d56cf9f0cf272bb9a45411380e252631e71795d41041a3e109baaa4fc90cd3a9",
+        "tests/examplemod_equipment_qa/ExampleModEquipmentQa.csproj": "7eb0e0f9e7cf36913bc28ea2ce8fae77941a8239f800d07d6cce2d000db9bd98",
+        "tests/examplemod_equipment_qa/Program.cs": "db90874231f30da6b9650c04f2f0f84e026ac849a4b4e6f339df15a38deb6a66"
+      }
+    },
+    "Content/Items/Accessories/ExampleStatAccessory.js#SetDefaults": {
+      "status": "validado automaticamente",
+      "note": "Host: valores originais e ItemRarityID.Green, sem substituição por raridade customizada; protocolo nativo mantém multiplicador x1.1 somente em melee/ranged/magic. Renderização e ModifierTooltipLines/localização continuam pendentes.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleStatAccessory.cs"
+      ],
+      "tests": [
+        "tests/examplemod_equipment_qa/ExampleModEquipmentQa.csproj",
+        "tests/examplemod_equipment_qa/Program.cs"
+      ],
+      "validationScope": "host; Android pendente",
+      "androidEvidence": [],
+      "validatedFilesSha256": {
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleStatAccessory.cs": "4233accf06e26671d5c1375af366e2ecee5fa2ef4d7edef4605d7620fb75e44b",
+        "tests/examplemod_equipment_qa/ExampleModEquipmentQa.csproj": "7eb0e0f9e7cf36913bc28ea2ce8fae77941a8239f800d07d6cce2d000db9bd98",
+        "tests/examplemod_equipment_qa/Program.cs": "db90874231f30da6b9650c04f2f0f84e026ac849a4b4e6f339df15a38deb6a66"
+      }
+    },
+    "Content/Items/Accessories/ExampleStatAccessory.js#UpdateAccessory": {
+      "status": "validado automaticamente",
+      "note": "Host: valores originais e ItemRarityID.Green, sem substituição por raridade customizada; protocolo nativo mantém multiplicador x1.1 somente em melee/ranged/magic. Renderização e ModifierTooltipLines/localização continuam pendentes.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleStatAccessory.cs"
+      ],
+      "tests": [
+        "tests/examplemod_equipment_qa/ExampleModEquipmentQa.csproj",
+        "tests/examplemod_equipment_qa/Program.cs"
+      ],
+      "validationScope": "host; Android pendente",
+      "androidEvidence": [],
+      "validatedFilesSha256": {
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleStatAccessory.cs": "4233accf06e26671d5c1375af366e2ecee5fa2ef4d7edef4605d7620fb75e44b",
+        "tests/examplemod_equipment_qa/ExampleModEquipmentQa.csproj": "7eb0e0f9e7cf36913bc28ea2ce8fae77941a8239f800d07d6cce2d000db9bd98",
+        "tests/examplemod_equipment_qa/Program.cs": "db90874231f30da6b9650c04f2f0f84e026ac849a4b4e6f339df15a38deb6a66"
+      }
+    },
+    "Content/Items/Weapons/Melee/ExampleMeleeWeapon.js#SetDefaults": {
+      "status": "validado automaticamente",
+      "note": "Host: espada do Playable preserva 50 dano, 6 knockback, 6 crítico, useTime/animation 20, autouse, SoundID.Item1 e sellPrice de 1 ouro. Mira/animação Android pendentes.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Melee/ExampleMeleeWeapon.cs"
+      ],
+      "tests": [
+        "tests/examplemod_equipment_qa/ExampleModEquipmentQa.csproj",
+        "tests/examplemod_equipment_qa/Program.cs"
+      ],
+      "validationScope": "host; Android pendente",
+      "androidEvidence": [],
+      "validatedFilesSha256": {
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Melee/ExampleMeleeWeapon.cs": "7baa8d361f864f88dd65c845e0926674432bb265308c87326514fe5ed90ab1be",
+        "tests/examplemod_equipment_qa/ExampleModEquipmentQa.csproj": "7eb0e0f9e7cf36913bc28ea2ce8fae77941a8239f800d07d6cce2d000db9bd98",
+        "tests/examplemod_equipment_qa/Program.cs": "db90874231f30da6b9650c04f2f0f84e026ac849a4b4e6f339df15a38deb6a66"
+      }
+    },
+    "Content/Items/Ammo/ExampleBullet.js#SetDefaults": {
+      "status": "validado automaticamente",
+      "note": "Host: bala Playable com dano 12, stack 9999, knockback 1, sellPrice de 10 prata, raridade Green, ID nativo AmmoID.Bullet, shoot ExampleBulletProjectile e velocidade 4.5. Consumo e tiros Android pendentes.",
+      "implementation": [
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Ammo/ExampleBullet.cs"
+      ],
+      "tests": [
+        "tests/examplemod_equipment_qa/ExampleModEquipmentQa.csproj",
+        "tests/examplemod_equipment_qa/Program.cs"
+      ],
+      "validationScope": "host; Android pendente",
+      "androidEvidence": [],
+      "validatedFilesSha256": {
+        "samples/ExampleModCSharp/Playable/content/Content/Items/Ammo/ExampleBullet.cs": "91d04334397f041323331ac48994c30525f7c8e1f6a9548d852849fa8a4ba7b7",
+        "tests/examplemod_equipment_qa/ExampleModEquipmentQa.csproj": "7eb0e0f9e7cf36913bc28ea2ce8fae77941a8239f800d07d6cce2d000db9bd98",
+        "tests/examplemod_equipment_qa/Program.cs": "db90874231f30da6b9650c04f2f0f84e026ac849a4b4e6f339df15a38deb6a66"
+      }
     }
   }
 }
