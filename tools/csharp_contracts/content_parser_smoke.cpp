@@ -23,20 +23,21 @@ bool expect(const std::string& source, const std::string& kind, bool expected = 
 
 int main() {
     using namespace bl::csharp;
-    static_assert(kSourceContentKinds.size() == 14);
-    static_assert(kSourceNativeRegistrationOrder.size() == 11);
+    static_assert(kSourceContentKinds.size() == 15);
+    static_assert(kSourceNativeRegistrationOrder.size() == 12);
     assert(isKnownSourceKind("Item") && isKnownSourceKind("Projectile"));
     assert(isKnownSourceKind("NPC") && isKnownSourceKind("Player"));
     assert(!isKnownSourceKind("Unknown"));
     assert(isRecognizedSourceBase("BunnyPlayer"));
     assert(std::string(kSourceNativeRegistrationOrder[0]) == "BunnyDust");
-    assert(std::string(kSourceNativeRegistrationOrder[10]) == "BunnyPrefix");
+    assert(std::string(kSourceNativeRegistrationOrder[11]) == "BunnyPrefix");
 
-    const std::array<std::pair<std::string, std::string>, 4> samples = {{
+    const std::array<std::pair<std::string, std::string>, 5> samples = {{
         {"public class SampleItem : BunnyItem { public override void SetDefaults() { DisplayName = \"Item\"; Texture = \"Content/Items/SampleItem.png\"; } }", "BunnyItem"},
         {"public class SampleBolt : BunnyProjectile { public override void SetDefaults() { DisplayName = \"Bolt\"; Texture = \"Content/Projectiles/SampleBolt.png\"; } }", "BunnyProjectile"},
         {"public class SampleSlime : BunnyNPC { public override void SetDefaults() { DisplayName = \"Slime\"; Texture = \"Content/NPCs/SampleSlime.png\"; } }", "BunnyNPC"},
         {"public class SamplePlayer : BunnyPlayer { public override void SetDefaults() { } }", "BunnyPlayer"},
+        {"public class SampleMount : BunnyMount { public override void SetDefaults() { Texture = \"Content/Mounts/SampleMount\"; Buff = \"SampleMountBuff\"; } }", "BunnyMount"},
     }};
     for (const auto& sample : samples) if (!expect(sample.first, sample.second)) return 1;
     const std::string attributed =
