@@ -500,6 +500,7 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
                     return false;
                 }
                 typed[sourceIdentityForBase(def.base,def.name)]=type;
+                ++status->mounts;
                 continue;
             }
             if (base == "BunnyPrefix") {
