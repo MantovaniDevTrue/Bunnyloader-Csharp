@@ -9,6 +9,7 @@
 #include "il2cpp/FieldContract.h"
 #include "il2cpp/GuardedCall.h"
 #include "experiments/csharp/NativeBasicItems.h"
+#include "experiments/csharp/NativeItemPolicies.h"
 #include "experiments/csharp/NativeDefaults.h"
 #include "experiments/csharp/NativeVisualRenderer.h"
 #include "experiments/csharp/NativeTileGameplay.h"
@@ -122,6 +123,13 @@ struct NativeRefs {
     int itemType = -1;
     int playerMoveSpeed = -1;
     int playerArmor = -1;
+    int playerTownNpcs = -1;
+    int playerJumpSpeedBoost = -1;
+    int playerExtraFall = -1;
+    int playerWet = -1;
+    int playerHead = -1;
+    int playerBody = -1;
+    int playerLegs = -1;
     int playerMaxRunSpeed = -1;
     int playerRunAcceleration = -1;
     int playerFrameShadow = -1;
@@ -245,6 +253,15 @@ using PlayerHurtFn = double (*)(Il2CppObject*, const void*, int32_t, int32_t,
                                const MethodInfo*);
 
 NativeRefs g_refs{};
+const MethodInfo* g_costumeAddBuff=nullptr;
+bool g_costumeReady=false;
+struct CostumePlayerCycle {
+    Il2CppObject* player=nullptr;
+    int previousType=-1,currentType=-1;
+    bool power=false;
+};
+std::array<CostumePlayerCycle,256> g_costumeCycles{};
+
 FieldInfo* g_mainNpcArrayField = nullptr;
 FieldInfo* g_mainProjectileArrayField = nullptr;
 std::map<int, NativeWeaponDefaults> g_weapons;
@@ -657,6 +674,46 @@ void applyNativeBootVisuals(Il2CppObject* self, int32_t slot,
         BL_INFO("csharp boots: rotina nativa tile=%d,%d chama=%d", x, y, placed);
 }
 
+
+CostumePlayerCycle* costumeCycle(Il2CppObject* player) {
+    if(!g_costumeReady||!player||g_refs.playerWhoAmI<0)return nullptr;
+    const int index=bl::runtime::field<int32_t>(player,g_refs.playerWhoAmI);
+    if(index<0||index>=static_cast<int>(g_costumeCycles.size()))return nullptr;
+    auto& cycle=g_costumeCycles[static_cast<size_t>(index)];
+    if(cycle.player!=player)cycle={player,-1,-1,false};
+    return &cycle;
+}
+bool costumeEquipped(Il2CppObject* player,int type,bool vanity) {
+    if(!player||type<0||g_refs.playerArmor<0||g_refs.itemType<0)return false;
+    auto* armor=bl::runtime::field<Il2CppArray*>(player,g_refs.playerArmor);
+    if(!armor||armor->length<10||armor->length>40)return false;
+    auto** items=static_cast<Il2CppObject**>(arrayData(armor));
+    const uintptr_t begin=vanity?13u:3u,end=std::min<uintptr_t>(begin+7u,armor->length);
+    for(uintptr_t slot=begin;slot<end;++slot) {
+        auto* item=items[slot];
+        if(item&&bl::runtime::field<int32_t>(item,g_refs.itemType)==type)return true;
+    }
+    return false;
+}
+bool costumeHidden(Il2CppObject* player,int type) {
+    if(g_refs.playerArmor<0||g_refs.playerHideVisibleAccessory<0)return true;
+    auto* armor=bl::runtime::field<Il2CppArray*>(player,g_refs.playerArmor);
+    auto* hidden=bl::runtime::field<Il2CppArray*>(player,g_refs.playerHideVisibleAccessory);
+    if(!armor||armor->length<10||armor->length>40||
+       !nativeArrayContract(hidden,"Boolean",1,60))return true;
+    auto** items=static_cast<Il2CppObject**>(arrayData(armor));
+    auto* flags=static_cast<uint8_t*>(arrayData(hidden));
+    for(uintptr_t slot=3;slot<10;++slot)
+        if(items[slot]&&bl::runtime::field<int32_t>(items[slot],g_refs.itemType)==type)
+            return slot<hidden->length&&flags[slot]!=0;
+    return true;
+}
+int costumeTownCount(Il2CppObject* player) {
+    if(!player||g_refs.playerTownNpcs<0)return 0;
+    const float count=bl::runtime::field<float>(player,g_refs.playerTownNpcs);
+    return std::isfinite(count)&&count>0?static_cast<int>(count):0;
+}
+
 void hkApplyEquip(Il2CppObject* self, int32_t slot, Il2CppObject* item, const MethodInfo* method) {
     // Itens salvos nasceram antes do registro de texturas. Atualize ANTES
     // de o Terraria selecionar shield/shoe para o desenho deste tick.
@@ -664,6 +721,19 @@ void hkApplyEquip(Il2CppObject* self, int32_t slot, Il2CppObject* item, const Me
     if (g_originalEquip) g_originalEquip(self, slot, item, method);
     if (!self || !item) return;
     const int type = bl::runtime::field<int32_t>(item, g_refs.itemType);
+    NativeCostumeEffect costume;
+    if(nativeCostumeEffect(type,&costume)) {
+        if(auto* cycle=costumeCycle(self))cycle->currentType=type;
+        if(costumeTownCount(self)>=costume.requiredTownNpcs&&g_costumeAddBuff) {
+            int32_t duration=60,buff=costume.buffType;uint8_t fromNetPvP=1;
+            void* args[]={&buff,&duration,&fromNetPvP};
+            Il2CppObject* error=nullptr;
+            il2cpp::api().runtime_invoke(g_costumeAddBuff,self,args,&error);
+            if(error){static unsigned failures=0;if(failures++<3)
+                BL_ERROR("[CSharp][Costume] Stage=UpdateEquips Result=AddBuffFailed Detail=%s",
+                    il2cpp::describeException(error).c_str());}
+        }
+    }
     const auto it = g_accessories.find(type);
     if (it == g_accessories.end()) return;
     auto& defense = bl::runtime::field<int32_t>(self, g_refs.playerStatDefense);
@@ -761,6 +831,29 @@ void hkSetArmorEffectVisuals(Il2CppObject* self, Il2CppObject* drawPlayer,
         static int visualLogs = 0;
         if (visualLogs++ < 3)
             BL_INFO("csharp BunnyPlayer FrameEffects: sombra de desenho e contorno ativos");
+    }
+    if(g_costumeReady&&g_refs.playerArmor>=0&&g_refs.itemType>=0) {
+        auto* cycle=costumeCycle(actor);
+        auto* armor=bl::runtime::field<Il2CppArray*>(actor,g_refs.playerArmor);
+        if(cycle&&armor&&armor->length>=20&&armor->length<=40) {
+            auto** items=static_cast<Il2CppObject**>(arrayData(armor));
+            for(uintptr_t slot=3;slot<20;++slot) {
+                if(slot>=10&&slot<13)continue;
+                auto* item=items[slot];
+                if(!item)continue;
+                NativeCostumeEffect effect;
+                const int type=bl::runtime::field<int32_t>(item,g_refs.itemType);
+                if(!nativeCostumeEffect(type,&effect))continue;
+                const bool forced=costumeEquipped(actor,type,true);
+                if(!forced&&!(cycle->power&&!costumeHidden(actor,type)))continue;
+                const bool wet=bl::runtime::field<uint8_t>(actor,g_refs.playerWet)!=0;
+                const int* slots=wet?effect.alternate:effect.normal;
+                bl::runtime::field<int32_t>(actor,g_refs.playerHead)=slots[0];
+                bl::runtime::field<int32_t>(actor,g_refs.playerBody)=slots[1];
+                bl::runtime::field<int32_t>(actor,g_refs.playerLegs)=slots[2];
+                break;
+            }
+        }
     }
     if (g_refs.playerWhoAmI < 0 || g_refs.playerArmor < 0 || g_refs.itemType < 0)
         return;
@@ -869,6 +962,11 @@ void hkPlayerSpawn(Il2CppObject* self, int32_t context, const MethodInfo* method
 }
 
 void hkPlayerUpdate(Il2CppObject* self, int32_t index, const MethodInfo* method) {
+    if(auto* cycle=costumeCycle(self)) {
+        cycle->previousType=cycle->currentType;
+        cycle->currentType=-1;
+        cycle->power=false;
+    }
     static bool loggedPre = false;
     static bool loggedPost = false;
     if (self && g_playerPoliciesReady && g_preUpdateEnabled && !loggedPre) {
@@ -1355,9 +1453,36 @@ void hkUpdateBuffs(Il2CppObject* self, int32_t playerIndex, const MethodInfo* me
         case MinionBuffAction::Keep:break;
         }
     });
+    if(g_costumeReady) {
+        auto* cycle=costumeCycle(self);
+        if(cycle&&cycle->previousType>=0) {
+            NativeCostumeEffect costume;
+            if(nativeCostumeEffect(cycle->previousType,&costume)) {
+                const bool enabled=costumeTownCount(self)>=costume.requiredTownNpcs &&
+                    costumeEquipped(self,cycle->previousType,false);
+                visitManagedBuffSlots(typeValues,timeValues,count,[&](size_t slot) {
+                    if(typeValues[slot]!=costume.buffType)return;
+                    if(enabled) {
+                        bl::runtime::field<float>(self,g_refs.playerJumpSpeedBoost)+=costume.jumpSpeedBoost;
+                        bl::runtime::field<int32_t>(self,g_refs.playerExtraFall)+=costume.extraFall;
+                        cycle->power=true;
+                    } else if(g_removeMinionBuff) {
+                        int32_t index=static_cast<int32_t>(slot);
+                        void* args[]={&index};Il2CppObject* error=nullptr;
+                        il2cpp::api().runtime_invoke(g_removeMinionBuff,self,args,&error);
+                        if(error){static unsigned failures=0;if(failures++<3)
+                            BL_ERROR("[CSharp][Costume] Stage=DelBuff Result=Failed Detail=%s",
+                                il2cpp::describeException(error).c_str());}
+                    }
+                });
+            }
+        }
+    }
 }
 
 }
+
+bool nativeCostumeRuntimeReady() {return g_costumeReady;}
 
 std::string nativeManagedProjectileKey(int type) {
     const auto view=std::atomic_load_explicit(&g_projectileView,std::memory_order_acquire);
@@ -1604,6 +1729,25 @@ bool prepareNativePlayerEffects() {
     const MethodInfo* armorVisuals = findMethodBySignature(
         player, parseSignature("void SetArmorEffectVisuals(Player drawPlayer)"));
     if (!equip || !buffs || !runSpeeds || !armorVisuals) return false;
+
+    const auto costumeField=[&](const char* name,const char* type,size_t size,int* offset) {
+        std::string detail;
+        return nativeFieldContract(player,name,type,false,size,nullptr,offset,&detail);
+    };
+    g_costumeAddBuff=findMethodBySignature(
+        player,parseSignature("void AddBuff(int type, int time, bool fromNetPvP)"));
+    g_costumeReady=g_costumeAddBuff&&api().method_is_instance(g_costumeAddBuff)&&
+        g_removeMinionBuff&&api().runtime_invoke&&
+        costumeField("townNPCs","System.Single",4,&g_refs.playerTownNpcs)&&
+        costumeField("jumpSpeedBoost","System.Single",4,&g_refs.playerJumpSpeedBoost)&&
+        costumeField("extraFall","System.Int32",4,&g_refs.playerExtraFall)&&
+        costumeField("wet","System.Boolean",1,&g_refs.playerWet)&&
+        costumeField("head","System.Int32",4,&g_refs.playerHead)&&
+        costumeField("body","System.Int32",4,&g_refs.playerBody)&&
+        costumeField("legs","System.Int32",4,&g_refs.playerLegs);
+    if(!g_costumeReady)
+        BL_WARN("[CSharp][Costume] Stage=BindPlayerFields Result=Unavailable");
+
     if (!bl::hook::install(equip, hkApplyEquip, &g_originalEquip)) return false;
     const MethodInfo* vanity = findMethodBySignature(
         player, parseSignature("void ApplyEquipVanity(int itemSlot, Item currentItem)"));
