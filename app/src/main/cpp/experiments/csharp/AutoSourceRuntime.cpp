@@ -85,6 +85,10 @@
 #include <array>
 #include <atomic>
 #include <chrono>
+#include <condition_variable>
+#include <deque>
+#include <functional>
+#include <memory>
 #include <limits.h>
 #include <unistd.h>
 #include <cerrno>
@@ -1544,7 +1548,78 @@ bool compiledSourceHasTouchEntry(const std::string& assembly) {
     return false;
 }
 
+namespace {
+struct SourceTexturePublication {
+    std::string stage;
+    std::function<bool()> callback;
+    std::mutex mutex;
+    std::condition_variable condition;
+    bool started=false;
+    bool done=false;
+    bool cancelled=false;
+    bool result=false;
+};
+std::mutex g_sourceTextureQueueMutex;
+std::deque<std::shared_ptr<SourceTexturePublication>> g_sourceTextureQueue;
+std::thread::id g_sourceTextureGameThread;
+}
+
+bool runSourcePublicationOnGameThread(const char* stage,
+                                      std::function<bool()> callback,
+                                      std::string* error) {
+    if (!error || !callback) return false;
+    const std::string name=stage?stage:"Asset";
+    auto job=std::make_shared<SourceTexturePublication>();
+    job->stage=name;
+    job->callback=std::move(callback);
+    bool sameThread=false;
+    {
+        std::lock_guard<std::mutex> lock(g_sourceTextureQueueMutex);
+        sameThread=g_sourceTextureGameThread==std::this_thread::get_id();
+        if (!sameThread) g_sourceTextureQueue.push_back(job);
+    }
+    if (sameThread) return job->callback();
+    BL_INFO("[CSharp][Assets] Stage=Queued Kind=%s",name.c_str());
+    std::unique_lock<std::mutex> lock(job->mutex);
+    if (!job->condition.wait_for(lock,std::chrono::seconds(30),[&] {return job->done;})) {
+        if (!job->started) {
+            job->cancelled=true;
+            *error="[CSharp][Assets] "+name+" game thread upload not scheduled within 30s";
+            return false;
+        }
+        job->condition.wait(lock,[&] {return job->done;});
+    }
+    return job->result;
+}
+
+void pumpSourcePublicationsOnGameThread() {
+    std::shared_ptr<SourceTexturePublication> job;
+    {
+        std::lock_guard<std::mutex> lock(g_sourceTextureQueueMutex);
+        g_sourceTextureGameThread=std::this_thread::get_id();
+        if (g_sourceTextureQueue.empty()) return;
+        job=g_sourceTextureQueue.front();
+        g_sourceTextureQueue.pop_front();
+    }
+    {
+        std::lock_guard<std::mutex> lock(job->mutex);
+        if (job->cancelled) return;
+        job->started=true;
+    }
+    BL_INFO("[CSharp][Assets] Stage=GameThread Kind=%s",job->stage.c_str());
+    const bool result=job->callback();
+    {
+        std::lock_guard<std::mutex> lock(job->mutex);
+        job->result=result;
+        job->done=true;
+    }
+    job->condition.notify_all();
+    BL_INFO("[CSharp][Assets] Stage=Finished Kind=%s Result=%s",
+            job->stage.c_str(),result?"Ready":"Rejected");
+}
+
 void noteAutoGameUpdate() {
+    pumpSourcePublicationsOnGameThread();
     pumpNativeStaticDefaultsOnGameThread();
     pumpNativeMountPublicationsOnGameThread();
 #if BUNNY_FIVE_LOADERS_QA

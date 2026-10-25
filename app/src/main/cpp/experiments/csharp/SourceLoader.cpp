@@ -8,6 +8,7 @@
 #include "experiments/csharp/ManagedGoreDiscovery.h"
 #include "experiments/csharp/ManagedGoreRuntime.h"
 #include "experiments/csharp/SourceLoader.h"
+#include "experiments/csharp/AutoSourceRuntime.h"
 #include "experiments/csharp/NativeRarityRegistry.h"
 #include "experiments/csharp/NativeRarityGameplay.h"
 #include "experiments/csharp/ManagedDustContract.h"
@@ -1981,8 +1982,11 @@ bool applyManagedSourceDefaults(
         return false;
     }
     std::map<std::string,int> goreIds;
-    if(!gores.empty()&&!publishManagedNativeGores(
-         modId,mod->directory,gores,&goreIds,error))return false;
+    if(!gores.empty()&&!runSourcePublicationOnGameThread(
+         "Gore",[&] {
+             return publishManagedNativeGores(
+                 modId,mod->directory,gores,&goreIds,error);
+         },error))return false;
     for(auto& tree:trees)if(!tree.leafGoreName.empty()) {
         auto id=goreIds.find(tree.leafGoreName);
         if(id==goreIds.end()) {
@@ -1992,7 +1996,10 @@ bool applyManagedSourceDefaults(
         }
         tree.leafGoreType=id->second;
     }
-    if(!trees.empty()&&!publishManagedNativeTrees(modId,mod->directory,trees,error))return false;
+    if(!trees.empty()&&!runSourcePublicationOnGameThread(
+         "Tree",[&] {
+             return publishManagedNativeTrees(modId,mod->directory,trees,error);
+         },error))return false;
     if (!useSounds::publish(useSounds,error)) return false;
     for (auto& item : basicItems) {
         const auto overrideType = itemRarityOverrides.find(item.name);
