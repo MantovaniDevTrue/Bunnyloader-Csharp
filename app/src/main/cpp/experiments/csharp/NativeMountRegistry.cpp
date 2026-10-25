@@ -348,6 +348,85 @@ bool writeMountBuff(int buff,int type,std::string* error) {
     static_cast<int32_t*>(arrayData(array))[buff]=type;
     return true;
 }
+int vanillaMountId(const char* name) {
+    auto& a=api();auto* ids=findClass({"Terraria.ID","MountID",{}});
+    auto* field=ids?findField(ids,name):nullptr;
+    if(!field||!a.field_get_flags||!a.field_get_type)return -1;
+    auto* kind=a.class_from_il2cpp_type(a.field_get_type(field));
+    const char* ns=kind?a.class_get_namespace(kind):nullptr;
+    const char* type=kind?a.class_get_name(kind):nullptr;
+    if(!ns||!type||std::strcmp(ns,"System"))return -1;
+    const bool small=!std::strcmp(type,"Int16");
+    if(!small&&std::strcmp(type,"Int32"))return -1;
+    int id=-1;
+    if(a.field_get_flags(field)&0x40u) {
+        using Getter=const void*(*)(const FieldInfo*,const Il2CppType**);
+        auto* getter=reinterpret_cast<Getter>(dlsym(RTLD_DEFAULT,"il2cpp_field_get_default_value"));
+        const Il2CppType* metadata=nullptr;const void* src=getter?getter(field,&metadata):nullptr;
+        if(!src)return -1;
+        if(small){int16_t v=-1;std::memcpy(&v,src,2);id=v;}
+        else std::memcpy(&id,src,4);
+    } else if(a.field_get_flags(field)&0x10u) {
+        if(small){int16_t v=-1;a.field_static_get_value(field,&v);id=v;}
+        else a.field_static_get_value(field,&id);
+    }
+    return id>=0&&id<2048?id:-1;
+}
+bool copyMinecartDelegates(Il2CppObject* custom,std::string* error) {
+    auto& a=api();
+    const int meow=vanillaMountId("MeowmereMinecart");
+    const int fart=vanillaMountId("FartMinecart");
+    Il2CppArray* all=nullptr;
+    if(meow<0||fart<0||!native_static::read(mountsValue,&all,sizeof(all))||
+       !all||static_cast<uintptr_t>(std::max(meow,fart))>=all->length) {
+        *error="Vanilla meow/fart minecart delegates missing";return false;
+    }
+    auto** items=static_cast<Il2CppObject**>(arrayData(all));
+    auto* field=findField(dataClass,"delegations");
+    if(!field||!a.field_get_type||!a.field_get_flags||!a.field_get_offset||
+       (a.field_get_flags(field)&0x10u)||!items[meow]||!items[fart]) {
+        *error="MountData.delegations field unavailable";return false;
+    }
+    auto* delegateClass=a.class_from_il2cpp_type(a.field_get_type(field));
+    if(!delegateClass||a.class_is_valuetype(delegateClass)) {
+        *error="Minecart delegates require reference type";return false;
+    }
+    const size_t offset=a.field_get_offset(field);
+    if(offset<sizeof(Il2CppObject)||offset+sizeof(void*)>a.class_instance_size(dataClass)) {
+        *error="MountData.delegations outside class layout";return false;
+    }
+    auto fetch=[&](Il2CppObject* object) {
+        Il2CppObject* value=nullptr;
+        std::memcpy(&value,reinterpret_cast<char*>(object)+offset,sizeof(value));
+        return value;
+    };
+    Il2CppObject* owned=fetch(custom),*meowDelegates=fetch(items[meow]),*fartDelegates=fetch(items[fart]);
+    if(!meowDelegates||!fartDelegates)return *error="Vanilla minecart delegates null",false;
+    if(!owned) {
+        owned=a.object_new(delegateClass);
+        if(!owned||!setObject(custom,dataClass,"delegations",owned,error))return false;
+    }
+    struct Ref {const char* name;Il2CppObject* source;};
+    for(const auto& ref:std::array<Ref,3>{
+        Ref{"MinecartDust",meowDelegates},
+        Ref{"MinecartLandingSound",fartDelegates},
+        Ref{"MinecartBumperSound",fartDelegates}}) {
+        auto* member=findField(delegateClass,ref.name);
+        if(!member||(a.field_get_flags(member)&0x10u)) {
+            *error=std::string("Vanilla minecart field missing: ")+ref.name;return false;
+        }
+        const size_t pos=a.field_get_offset(member);
+        if(pos<sizeof(Il2CppObject)||pos+sizeof(void*)>a.class_instance_size(delegateClass)) {
+            *error="Minecart delegate offset invalid";return false;
+        }
+        Il2CppObject* handler=nullptr;
+        std::memcpy(&handler,reinterpret_cast<char*>(ref.source)+pos,sizeof(handler));
+        if(!handler){*error=std::string("Vanilla minecart handler null: ")+ref.name;return false;}
+        auto** cell=reinterpret_cast<void**>(reinterpret_cast<char*>(owned)+pos);
+        a.gc_wbarrier_set_field(owned,cell,handler);
+    }
+    return true;
+}
 bool writeFields(Il2CppObject* object,const mount_policy::Definition& values,
                  Il2CppObject* back,Il2CppObject* front,int width,int height,
                  int buff,std::string* error) {
@@ -502,6 +581,7 @@ bool publishNativeMounts(const std::string& mod,const std::string& directory,
                           const_cast<int32_t*>(&vertical)};
             a.runtime_invoke(set,nullptr,args,&exception);
             if(exception){*error="Mount.SetAsMinecart failed";return false;}
+            if(!copyMinecartDelegates(object,error))return false;
         } else if(!writeFields(object,entry.values,backAsset,frontAsset,
                             width,height,buff,error))return false;
         if(cart&&!setInt(object,dataClass,"spawnDust",21,error))return false;
