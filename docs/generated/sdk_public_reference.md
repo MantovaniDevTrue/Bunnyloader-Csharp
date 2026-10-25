@@ -1330,8 +1330,8 @@ string Texture { get; set; }
 
 | Method | Execution |
 | --- | --- |
-| `void SetDefaults()` | compile_policy |
-| `void Validate()` | managed_helper |
+| `void SetDefaults()` | authoring_contract_native_registration_pending |
+| `void Validate()` | authoring_contract_native_registration_pending |
 
 ## BunnyLoader.Source.BunnyMountFrames
 
