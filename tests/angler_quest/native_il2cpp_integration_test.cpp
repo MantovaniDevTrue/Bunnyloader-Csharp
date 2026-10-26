@@ -69,6 +69,7 @@ int finishedGetterCalls=0,cornerSetterCalls=0;
 bool gThrowFinishedGetter=false,gThrowCornerSetter=false;
 bool gBadNetMode=false;
 bool gFailRackResize=false;
+int gBoolResizeAllocations=0;
 bool gFailIdsAllocation=false;
 int gHandleCalls=0;
 int gFailHandleAt=-1;
@@ -131,6 +132,8 @@ FieldInfo* findField(Il2CppClass* cls,std::string_view name) {
 }
 Il2CppArray* array(Il2CppClass* element,uintptr_t size) {
     if (gFailIdsAllocation && element == &kInt) return nullptr;
+    if (gFailRackResize && element==&kBool && ++gBoolResizeAllocations==2)
+        return nullptr;
     const size_t width=element==&kBool?1u:sizeof(int32_t);
     auto* a=static_cast<Il2CppArray*>(std::calloc(1,sizeof(Il2CppArray)+width*size));
     a->obj.klass=element==&kBool?&kBoolArray:&kIntArray;
@@ -351,6 +354,7 @@ int main(int argc,char** argv) {
     assert((ids()==std::vector<int>{10,500,11,850}));
     assert(gFlags->length==851 && gRack->length==851);
     gFailIdsAllocation=false;
+    gBoolResizeAllocations=0;
     gFailRackResize=true;
     bl::csharp::angler::pumpOnGameThread();
     assert((ids()==std::vector<int>{10,500,11,850}));
