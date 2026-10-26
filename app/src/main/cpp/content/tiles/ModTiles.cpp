@@ -4,6 +4,7 @@
 #include "experiments/csharp/NativeTileOverlayPolicy.h"
 #include "content/tiles/ModTrees.h"
 #include "content/tiles/NativeTileDrawShapeBounds.h"
+#include "experiments/csharp/NativeAbortProbe.h"
 #include "core/Log.h"
 #include "hook/HookManager.h"
 #include "il2cpp/Api.h"
@@ -558,6 +559,13 @@ bool setObjectDataLocked(bool locked) {
 // tModLoader: com TileObjectData, a largura, o deslocamento e a altura da
 // linha vem dele. Nativo: roda para toda celula de mod na tela, todo quadro.
 
+// Marcadores de crash (lock-free) do registro de forma/desenho dos tiles de mod:
+// 1201..1209. Restauram o estagio anterior ao sair, para nao culpar o vizinho.
+struct TileStageScope {
+    uint32_t previous = bl::csharp::nativeGameStage();
+    ~TileStageScope() { bl::csharp::setNativeGameStage(previous); }
+};
+
 struct DrawShape {
     bool ok = false;
     int width = 16, yOffset = 0, padding = 2, rows = 1, fullHeight = 18;
@@ -800,6 +808,8 @@ void hkGetTileDrawData(Il2CppObject* self, int32_t x, int32_t y, void* info, uin
                        int32_t* addFrX, int32_t* addFrY, int32_t* effects, Il2CppObject** glow, void* glowRect,
                        void* glowColor, const MethodInfo* m) {
     g_origDrawData(self, x, y, info, type, frameX, frameY, width, height, top, halfBrick, addFrX, addFrY, effects, glow, glowRect, glowColor, m);
+    TileStageScope stageScope;
+    bl::csharp::setNativeGameStage(1209);
     noteTreeDrawTile(x, y, type, *frameX, *frameY);
     applyTileDrawData(x, y, type, frameX, frameY, width, height, top, halfBrick, addFrX, addFrY, effects, false);
 }
@@ -809,6 +819,8 @@ void hkGetSpecialTileDrawData(Il2CppObject* self, int32_t x, int32_t y, void* ti
                        int32_t* addFrX, int32_t* addFrY, int32_t* effects, Il2CppObject** glow, void* glowRect,
                        void* glowColor, const MethodInfo* m) {
     g_origSpecialDrawData(self, x, y, tile, type, frameX, frameY, width, height, top, halfBrick, addFrX, addFrY, effects, glow, glowRect, glowColor, m);
+    TileStageScope stageScope;
+    bl::csharp::setNativeGameStage(1209);
     applyTileDrawData(x, y, type, frameX, frameY, width, height, top, halfBrick, addFrX, addFrY, effects, true);
 }
 
@@ -825,7 +837,6 @@ int invokeInt(Il2CppObject* obj, const char* getter, bool* ok) {
 }
 
 DrawShape readDrawShape(Il2CppObject* data) {
-    auto& a = il2cpp::api();
     DrawShape s;
     bool ok = true;
     s.width = invokeInt(data, "get_CoordinateWidth", &ok);
@@ -840,39 +851,16 @@ DrawShape readDrawShape(Il2CppObject* data) {
                  s.rows);
         return {};
     }
-    const MethodInfo* get = a.class_get_method_from_name(a.object_get_class(data), "get_CoordinateHeights", 0);
-    const Il2CppType* returnType = get ? a.method_get_return_type(get) : nullptr;
-    char* name = returnType ? a.type_get_name(returnType) : nullptr;
-    const bool intArray = name && std::strcmp(name, "System.Int32[]") == 0;
-    if (name) a.il2cpp_free(name);
-    if (!intArray) {
-        BL_ERROR("[CSharp][TileDraw] Stage=ReadShape Result=Rejected Reason=CoordinateHeightsNotIntArray Rows=%d",
-                 s.rows);
+    // Alturas sem ler o Int32[] do jogo: ver tile_draw_shape::reconstructHeights.
+    s.heights.assign(static_cast<size_t>(s.rows), 0);
+    if (!tile_draw_shape::reconstructHeights(s.rows, s.fullHeight, s.padding,
+                                             s.heights.data(), s.rows)) {
+        BL_ERROR("[CSharp][TileDraw] Stage=ReadShape Result=Rejected Reason=CoordinateHeightsUnreconstructable Rows=%d FullHeight=%d Padding=%d",
+                 s.rows, s.fullHeight, s.padding);
         return {};
     }
-    Il2CppObject* exc = nullptr;
-    auto* heights = reinterpret_cast<Il2CppArray*>(a.runtime_invoke(get, data, nullptr, &exc));
-    if (exc || !heights) return {};
-    if (!il2cpp::nativeManagedPointerPlausible(heights)) {
-        BL_ERROR("[CSharp][TileDraw] Stage=ReadShape Result=Rejected Reason=CoordinateHeightsInvalidPointer Rows=%d", s.rows);
-        return {};
-    }
-    const char* contract=il2cpp::nativeDeclaredArrayIssue(
-        heights,returnType,"System.Int32[]",tile_draw_shape::maxCoordinateRows);
-    if(contract) {
-        BL_ERROR("[CSharp][TileDraw] Stage=ReadShape Result=Rejected Reason=CoordinateHeightsNativeTypeMismatch Rows=%d Detail=%s",
-                 s.rows,contract);
-        return {};
-    }
-    const uintptr_t length = heights->length;
-    if (!tile_draw_shape::valid(s.rows, length)) {
-        BL_ERROR("[CSharp][TileDraw] Stage=ReadShape Result=Rejected Reason=CoordinateHeightsOutOfBounds Rows=%d Length=%zu HeaderWord16=%zu",
-                 s.rows, static_cast<size_t>(length), static_cast<size_t>(reinterpret_cast<uintptr_t>(heights->bounds)));
-        return {};
-    }
-    const auto* h = static_cast<const int32_t*>(arrayData(heights));
-    s.heights.assign(h, h + length);
-    while (static_cast<int>(s.heights.size()) < s.rows) s.heights.push_back(s.heights.back());
+    BL_DEBUG("[CSharp][TileDraw] Stage=ReadShape Result=Ready Source=CoordinateFullHeight Rows=%d FullHeight=%d Padding=%d LastHeight=%d",
+             s.rows, s.fullHeight, s.padding, s.heights.back());
     s.ok = true;
     return s;
 }
@@ -880,6 +868,8 @@ DrawShape readDrawShape(Il2CppObject* data) {
 void hookDrawData() {
     static bool done = false;
     if (done && g_origSpecialDrawData) return;
+    TileStageScope stageScope;
+    bl::csharp::setNativeGameStage(1205);
     auto& a = il2cpp::api();
     Il2CppClass* main = il2cpp::findClass({"Terraria", "Main", {}});
     g_tileFrameField = main ? il2cpp::findField(main, "tileFrame") : nullptr;
@@ -898,9 +888,11 @@ void hookDrawData() {
         if (drawTile) special = m;
     }
 
+    bl::csharp::setNativeGameStage(1206);
     if (!g_origSpecialDrawData &&
         (!special || !hook::install(special, hkGetSpecialTileDrawData, &g_origSpecialDrawData)))
         BL_ERROR("tiles de mod: sem hook no GetTileDrawData(Tile); desenho especial indisponivel");
+    bl::csharp::setNativeGameStage(1207);
     if (!g_origDrawData &&
         (!target || !hook::install(target, hkGetTileDrawData, &g_origDrawData))) {
         BL_ERROR("tiles de mod: sem hook no TileDrawing.GetTileDrawData; a ultima linha de um movel de mod sai cortada");
@@ -909,6 +901,7 @@ void hookDrawData() {
 
     if (done) return;
     done = true;
+    bl::csharp::setNativeGameStage(1208);
     Il2CppClass* worldGen = il2cpp::findClass({"Terraria", "WorldGen", {}});
     const MethodInfo* square = worldGen ? a.class_get_method_from_name(worldGen, "SquareTileFrame", 3) : nullptr;
     const MethodInfo* range = worldGen ? a.class_get_method_from_name(worldGen, "RangeFrame", 4) : nullptr;
@@ -921,6 +914,8 @@ void hookDrawData() {
 
 /** Guarda a forma (_data[tipo]) de cada tile de [first, last] depois do SetStaticDefaults. */
 void keepObjectData(int first, int last) {
+    TileStageScope stageScope;
+    bl::csharp::setNativeGameStage(1201);
     auto& a = il2cpp::api();
     Il2CppObject* list = objectDataList();
     const MethodInfo* get = list ? a.class_get_method_from_name(a.object_get_class(list), "get_Item", 1) : nullptr;
@@ -931,10 +926,13 @@ void keepObjectData(int first, int last) {
         if (!get) continue;
         Il2CppObject* exc = nullptr;
         void* args[1] = {&type};
+        bl::csharp::setNativeGameStage(1202);
         Il2CppObject* obj = a.runtime_invoke(get, list, args, &exc);
         if (exc || !obj) continue;
+        bl::csharp::setNativeGameStage(1203);
         g_objectData[i] = a.gchandle_new(obj, false);
         if (g_drawShapes.size() <= i) g_drawShapes.resize(i + 1);
+        bl::csharp::setNativeGameStage(1204);
         g_drawShapes[i] = readDrawShape(obj);
         ++shaped;
     }
