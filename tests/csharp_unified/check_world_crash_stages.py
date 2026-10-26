@@ -3,7 +3,7 @@ import re
 
 source = Path("app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp").read_text()
 body = source.split("void noteAutoGameUpdate() {", 1)[1].split("bool preWorldCSharpContentReady()", 1)[0]
-stages = [int(value) for value in re.findall(r"setNativeGameStage\((\d+)\)", body)]
+stages = [int(value) for value in re.findall(r"setNativeGameStage\((\d+)\)", body) if value != "0"]
 assert stages == list(range(100, 128)), stages
 assert "struct StageReset { ~StageReset() { setNativeGameStage(0); } } stageReset;" in body
 expected = {
