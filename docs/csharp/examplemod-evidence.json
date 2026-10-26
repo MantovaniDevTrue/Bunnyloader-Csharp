@@ -357,9 +357,9 @@
       "validationScope": "host; Android pendente",
       "androidEvidence": [],
       "validatedFilesSha256": {
-        "app/src/main/cpp/experiments/csharp/NativeAnglerQuestGameplay.cpp": "9a7fd3e21d6f80caa406f5656b93c9874125cc5985e618f593ff198263033d9a",
+        "app/src/main/cpp/experiments/csharp/NativeAnglerQuestGameplay.cpp": "207ebdc6385e7010de1afc90b8cdf56f693c5c5ead4c6b15c3f7e775c7a428b3",
         "app/src/main/cpp/experiments/csharp/NativeStaticValue.h": "b7294d34a83e2c84a900933ae21148b88c4c931a47d2402b69a3aa3d76413463",
-        "tests/angler_quest/native_il2cpp_integration_test.cpp": "4fe5b4bcdc4a158b3524a601317b5f696ce276aec872b2b1d757ea55e346485d"
+        "tests/angler_quest/native_il2cpp_integration_test.cpp": "033b4f3f53750e231db3570711dd669d1a109defa2bea056ee51c718aa92b358"
       }
     },
     "Content/Items/Accessories/WaspNest.js#SetDefaults": {

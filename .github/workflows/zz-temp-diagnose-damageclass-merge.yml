@@ -25,7 +25,7 @@ jobs:
             local rc=$?
             echo "::notice title=$label::rc=$rc"
             if [ $rc -ne 0 ]; then
-              grep -v "^\s*$" "/tmp/$label.log" | grep -iv "warning CS" | tail -n 25 | while IFS= read -r line; do
+              grep -v "^\s*$" "/tmp/$label.log" | grep -iv "warning CS" | tail -n 40 | while IFS= read -r line; do
                 line="${line//%/%25}"; line="${line//$'\r'/}"
                 echo "::error title=$label::${line:0:900}"
               done
@@ -33,5 +33,10 @@ jobs:
           }
           run full-example dotnet run --project tests/ready_prs/FullExampleRuntime/FullExampleRuntime.csproj -c Release -- samples/ExampleModCSharp/Playable
           run item-batch dotnet run --project tests/basic_items/ItemBatch.csproj -c Release
+          run full-wire python3 tests/basic_items/check_full_wire.py build/basic-items/full-source-runtime-values.txt
           run three-loaders bash tests/three_loaders/run.sh
+          run armor-port bash tests/armor_port_run.sh
+          run golf-ball bash tests/golf_ball/run.sh
+          run world-identity dotnet run --project experiments/csharp/BunnyWorldIdentitySmoke/BunnyWorldIdentitySmoke.csproj -c Release
+          run sdk-reference dotnet run --project tools/sdk_reference/SdkReference.csproj -c Release -- --check
           exit 0

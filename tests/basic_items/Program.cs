@@ -657,7 +657,13 @@ try {
   string output=Path.Combine(scratch,"tile.dll"),diag=Path.Combine(scratch,"tile.txt");
   Equal(1,Compiler.Compile(root,output,runtime,diag));
   Equal(6,CompiledAssemblyProbe.Verify(output,diag));
-  var rows=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt"));
+  var allRows=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt"));
+  // Uma linha DAMAGE_TYPE por BunnyItem (DamageClassLoader); os cinco itens da
+  // fixture usam a classe padrao (V0).
+  var damageTypes=allRows.Where(row=>row.StartsWith("DAMAGE_TYPE\t")).ToArray();
+  Equal(5,damageTypes.Length);
+  if(damageTypes.Any(row=>!row.StartsWith("DAMAGE_TYPE\tITEM\t")||!row.EndsWith("\tV0")))throw new Exception("Fixture DamageType must be V0");
+  var rows=allRows.Where(row=>!row.StartsWith("DAMAGE_TYPE\t")).ToArray();
   Equal(7,rows.Length);
   var exampleMaterial=rows.Single(row=>row.StartsWith("ITEM\tExampleItem\t")).Split('\t');
   Equal("ExampleItem",exampleMaterial[1]);

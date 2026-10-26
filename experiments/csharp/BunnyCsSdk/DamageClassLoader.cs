@@ -90,6 +90,10 @@ public static class DamageClassLoader
     /// classes tiverem construtor válido e todas as heranças puderem ser lidas.
     /// O BunnyEntitySourceDispatcher chama isto uma vez por assembly carregado.
     /// </summary>
+    private static bool SameIdentity(Type left, Type right) =>
+        string.Equals(left.FullName, right.FullName, StringComparison.Ordinal) &&
+        string.Equals(left.Assembly.GetName().Name, right.Assembly.GetName().Name, StringComparison.Ordinal);
+
     public static int RegisterAssembly(Assembly assembly)
     {
         if (assembly is null) throw new ArgumentNullException(nameof(assembly));
@@ -119,7 +123,10 @@ public static class DamageClassLoader
                 throw new InvalidOperationException("Não declare subclasses de VanillaDamageClass: " + type.FullName);
             if (type.GetConstructor(Type.EmptyTypes) is null)
                 throw new InvalidOperationException("DamageClass exige construtor público sem argumentos: " + type.FullName);
-            if (Instances.ContainsKey(type))
+            // O mesmo mod pode chegar em outra instancia de Assembly (outro
+            // contexto de carga): compara a identidade, nao so o Type.
+            if (Instances.ContainsKey(type) || DamageClasses.Any(existing =>
+                    !RetiredClasses.Contains(existing) && SameIdentity(existing.GetType(), type)))
                 throw new InvalidOperationException("DamageClass já registrada: " + type.FullName);
             if (Activator.CreateInstance(type) is not DamageClass cls || cls.Type != -1)
                 throw new InvalidOperationException("Instância de DamageClass inválida: " + type.FullName);
