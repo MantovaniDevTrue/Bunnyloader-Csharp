@@ -194,7 +194,9 @@ bool beginNativeTileBatch(Il2CppObject* batch,bool* started) {
     int32_t sort=0;
     uint8_t deferred=1;
     Il2CppObject* effect=nullptr;
-    void* args[]={&sort,&blend,&sampler,&depth,&raster,&effect,nullable.data(),&deferred};
+    // BlendState/SamplerState/DepthStencilState/RasterizerState/Effect sao
+    // classes: runtime_invoke recebe o objeto, nao o endereco da variavel.
+    void* args[]={&sort,blend,sampler,depth,raster,effect,nullable.data(),&deferred};
     Il2CppObject* exception=nullptr;
     a.runtime_invoke(binding.begin,batch,args,&exception);
     if(exception||!nativeSpriteBatchIsOpen(batch))return false;

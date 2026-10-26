@@ -52,7 +52,7 @@ bool applyNativeSaplingShape(const std::string& mod,int type,const ManagedTileEn
        !typeIs(a.method_get_param(anchorCtor,2),"System.Int32")||
        !il2cpp::methodPointer(pointCtor)||
        !il2cpp::methodPointer(anchorCtor))return false;
-    struct Slot {const MethodInfo* setter=nullptr;int offset=-1;size_t size=0;};
+    struct Slot {const MethodInfo* setter=nullptr;int offset=-1;size_t size=0;bool reference=false;};
     const auto bind=[&](const char* name,const char* type,size_t size,Slot* out) {
         const std::string setter=std::string("set_")+name;
         const auto* method=a.class_get_method_from_name(tileClass,setter.c_str(),1);
@@ -61,7 +61,7 @@ bool applyNativeSaplingShape(const std::string& mod,int type,const ManagedTileEn
                a.method_get_param_count(method)!=1||
                !typeIs(a.method_get_param(method,0),type)||
                !typeIs(a.method_get_return_type(method),"System.Void"))return false;
-            *out={method,-1,size};return true;
+            *out={method,-1,size,std::strstr(type,"[]")!=nullptr};return true;
         }
         FieldInfo* f=nullptr;int offset=-1;std::string error;
         if(!il2cpp::nativeFieldContract(tileClass,name,type,false,size,
@@ -108,7 +108,9 @@ bool applyNativeSaplingShape(const std::string& mod,int type,const ManagedTileEn
     if(error)return false;
     const auto set=[&](const Slot& slot,const void* value) {
         if(slot.setter) {
-            void* args[]={const_cast<void*>(value)};
+            // runtime_invoke: tipo valor -> ponteiro para o valor; tipo
+            // referencia (Int32[]) -> o proprio objeto, nao o endereco local.
+            void* args[]={slot.reference?*static_cast<void* const*>(value):const_cast<void*>(value)};
             Il2CppObject* exception=nullptr;
             a.runtime_invoke(slot.setter,tile,args,&exception);
             return exception==nullptr;

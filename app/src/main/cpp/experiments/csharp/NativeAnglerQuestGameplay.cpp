@@ -428,10 +428,9 @@ void applyFlags(const FlagPlan& plan) {
     auto& a = il2cpp::api();
     auto* values = static_cast<uint8_t*>(arrayData(plan.array));
     for (const auto& [type, value] : plan.writes) values[type] = value;
-    if (plan.replace) {
-        Il2CppArray* next = plan.array;
-        a.field_static_set_value(plan.field, &next);
-    }
+    // IL2CPP Field::StaticSetValue grava `value` direto em campo de tipo
+    // referencia: passar o array, nunca o endereco da variavel local.
+    if (plan.replace) a.field_static_set_value(plan.field, plan.array);
 }
 
 bool updateQuests(const std::vector<Quest>& quests) {
@@ -507,7 +506,7 @@ bool updateQuests(const std::vector<Quest>& quests) {
 #endif
     applyFlags(fish);
     if (g_weaponRackFlag) applyFlags(rack);
-    if (update.changed) a.field_static_set_value(g_questItems, &nextIds);
+    if (update.changed) a.field_static_set_value(g_questItems, nextIds);
 #if BUNNY_FIVE_LOADERS_QA
     setNativeGameStage(1188);
 #endif

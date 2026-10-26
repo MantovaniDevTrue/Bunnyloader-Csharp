@@ -994,7 +994,7 @@ bool playNativeCampfireClick(int x,int y) {
     float position[2]{};
     if(!tile_campfire::soundPosition(x,y,&position[0],&position[1]))return false;
     float pitch=0.0f,volume=1.0f;
-    void* args[]={&sound,position,&pitch,&volume};
+    void* args[]={sound,position,&pitch,&volume};   // LegacySoundStyle e classe
     Il2CppObject* exception=nullptr;
     a.runtime_invoke(g_campfireSound.play,nullptr,args,&exception);
     return exception==nullptr;

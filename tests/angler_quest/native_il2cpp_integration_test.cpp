@@ -168,14 +168,17 @@ void setupApi() {
     a.class_get_method_from_name=findMethod;
     a.field_static_get_value=[](FieldInfo* f,void* destination){std::memcpy(destination,f->value,f->width);};
     a.field_static_set_value=[](FieldInfo* f,void* source){
+        // Como o IL2CPP (Field::SetValueRaw com deref_pointer=false): campo de
+        // tipo referencia recebe o proprio `source`; tipo valor e copiado dele.
         if(f==&fIds||f==&fFlags||f==&fRack) {
-            Il2CppArray* next=nullptr;
-            std::memcpy(&next,source,sizeof(next));
+            auto* next=static_cast<Il2CppArray*>(source);
             Il2CppArray* current=nullptr;
             std::memcpy(&current,f->value,sizeof(current));
             if(next!=current)
                 assert(std::any_of(gGcRoots.begin(),gGcRoots.end(),
                     [&](const auto& root){return root.second==reinterpret_cast<Il2CppObject*>(next);}));
+            std::memcpy(f->value,&next,sizeof(next));
+            return;
         }
         std::memcpy(f->value,source,f->width);
     };

@@ -101,7 +101,7 @@ int indexOf(void* controller, const Group& group) {
     if (!table) return kGroupReadError;
     Il2CppObject* key = api.gchandle_get_target(group.slotRoot);
     if (!key) return kGroupReadError;
-    void* args[1] = {&key};
+    void* args[1] = {key};   // chave de tipo referencia: o objeto, nao &key
     Il2CppObject* ex = nullptr;
     Il2CppObject* contains = api.runtime_invoke(containsMethod, table, args, &ex);
     if (ex || !contains || !api.object_get_class) return kGroupReadError;
