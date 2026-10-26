@@ -189,6 +189,12 @@ void setupApi() {
     a.object_get_class=[](Il2CppObject* object){return object->klass;};
     a.array_new=array;
     a.array_length=[](Il2CppArray* value)->uint32_t{return static_cast<uint32_t>(value->length);};
+    a.array_element_size=[](const Il2CppClass* cls)->int{
+        return cls==&kIntArray?4:cls==&kBoolArray?1:-1;
+    };
+    a.class_get_type=[](Il2CppClass* cls)->const Il2CppType* {
+        return cls==&kIntArray?&kIntArrayType:cls==&kBoolArray?&kBoolArrayType:nullptr;
+    };
     a.gchandle_new=[](Il2CppObject* object,bool pinned)->uint32_t {
         assert(pinned);
         ++gHandleCalls;

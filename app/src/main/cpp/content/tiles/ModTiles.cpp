@@ -844,7 +844,7 @@ DrawShape readDrawShape(Il2CppObject* data) {
     const Il2CppType* returnType = get ? a.method_get_return_type(get) : nullptr;
     char* name = returnType ? a.type_get_name(returnType) : nullptr;
     const bool intArray = name && std::strcmp(name, "System.Int32[]") == 0;
-    if (name) std::free(name);
+    if (name) a.il2cpp_free(name);
     if (!intArray) {
         BL_ERROR("[CSharp][TileDraw] Stage=ReadShape Result=Rejected Reason=CoordinateHeightsNotIntArray Rows=%d",
                  s.rows);

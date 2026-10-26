@@ -19,6 +19,7 @@ Il2CppClass boolClass{"System","Boolean",0,nullptr,true,1};
 Il2CppClass arrayClass{"System","Int32[]",0,&intClass,false,0};
 Il2CppClass wrongClass{"System","Object",0,&intClass,false,0};
 Il2CppClass* canonical=&arrayClass;
+Il2CppClass* alternateArrayClass=nullptr;
 uint32_t reportedLength=4;
 const Il2CppType* intArrayType=reinterpret_cast<const Il2CppType*>(0x20000);
 const Il2CppType* boolArrayType=reinterpret_cast<const Il2CppType*>(0x30000);
@@ -31,6 +32,15 @@ char* typeName(const Il2CppType* value) {
 void freeString(void* value) { std::free(value); }
 Il2CppClass* fromType(const Il2CppType* value) {
     return value==intArrayType?&arrayClass:&wrongClass;
+}
+const Il2CppType* classType(Il2CppClass* cls) {
+    return cls==&arrayClass||cls==alternateArrayClass?intArrayType:boolArrayType;
+}
+Il2CppClass* getObjectClass(Il2CppObject* obj) {
+    return reinterpret_cast<Il2CppClass*>(obj->klass);
+}
+int elementSize(const Il2CppClass* cls) {
+    return cls==&arrayClass||cls==alternateArrayClass?4:1;
 }
 
 
@@ -66,6 +76,9 @@ int main() {
     a.type_get_name=typeName;
     a.il2cpp_free=freeString;
     a.class_from_il2cpp_type=fromType;
+    a.object_get_class=getObjectClass;
+    a.class_get_type=classType;
+    a.array_element_size=elementSize;
     Il2CppArray value{{reinterpret_cast<::Il2CppClass*>(&arrayClass),nullptr},nullptr,4};
     auto test=[&](const char* expected) {
         const char* result=bl::il2cpp::nativeArrayContractIssue(&value,"Int32",4,16);
@@ -109,5 +122,16 @@ int main() {
     assert(std::strcmp(bl::il2cpp::nativeDeclaredArrayIssue(&value,intArrayType,"System.Int32[]",16),
                        "ArrayLengthAbiMismatch")==0);
     reportedLength=4;
+    assert(bl::il2cpp::nativeDeclaredArrayIssue(&value,intArrayType,"System.Int32[]",16)==nullptr);
+    value.obj.klass=reinterpret_cast<Il2CppClass*>(&wrongClass);
+    assert(std::strcmp(bl::il2cpp::nativeDeclaredArrayIssue(&value,intArrayType,"System.Int32[]",16),
+                       "ArrayRuntimeTypeMismatch")==0);
+    value.obj.klass=reinterpret_cast<Il2CppClass*>(&arrayClass);
+    Il2CppClass duplicateArrayClass{"System","Int32[]",0,nullptr,false,0};
+    alternateArrayClass=&duplicateArrayClass;
+    value.obj.klass=reinterpret_cast<Il2CppClass*>(&duplicateArrayClass);
+    assert(bl::il2cpp::nativeDeclaredArrayIssue(&value,intArrayType,"System.Int32[]",16)==nullptr);
+    value.obj.klass=reinterpret_cast<Il2CppClass*>(&arrayClass);
+    alternateArrayClass=nullptr;
     std::puts("IL2CPP_NATIVE_ARRAY_CONTRACT=PASS");
 }

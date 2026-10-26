@@ -50,6 +50,7 @@ struct Api {
     Il2CppClass* (*class_get_element_class)(Il2CppClass*) = nullptr;
     Il2CppClass* (*array_class_get)(Il2CppClass*, uint32_t) = nullptr;
     uint32_t (*array_length)(Il2CppArray*) = nullptr;
+    int (*array_element_size)(const Il2CppClass*) = nullptr;
     // Dimensoes de um array (0 = nao e array). Um metodo que DECLARA devolver
     // System.Array ou object pode devolver um T[] de verdade.
     int (*class_get_rank)(const Il2CppClass*) = nullptr;

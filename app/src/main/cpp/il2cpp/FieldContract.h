@@ -98,17 +98,29 @@ inline const char* nativeArrayContractIssue(Il2CppArray* array,const char* eleme
 inline const char* nativeDeclaredArrayIssue(Il2CppArray* array,const Il2CppType* declaredType,
                                              const char* expectedType,uintptr_t maximum) {
     auto& a=il2cpp::api();
-    if(!declaredType||!a.type_get_name||!a.il2cpp_free||!a.class_from_il2cpp_type||
-       !a.array_length)return "MissingDeclaredArrayExports";
-    char* actualType=a.type_get_name(declaredType);
-    const bool expected=actualType&&std::strcmp(actualType,expectedType)==0;
-    if(actualType)a.il2cpp_free(actualType);
-    if(!expected)return "DeclaredArrayTypeMismatch";
-    Il2CppClass* declared=a.class_from_il2cpp_type(declaredType);
-    if(!nativeManagedPointerPlausible(declared))return "InvalidDeclaredArrayClass";
+    if(!declaredType||!a.type_get_name||!a.il2cpp_free||
+       !a.object_get_class||!a.class_get_type||!a.array_length||!a.array_element_size)
+        return "MissingDeclaredArrayExports";
+    char* declaredName=a.type_get_name(declaredType);
+    const bool declaredMatches=declaredName&&std::strcmp(declaredName,expectedType)==0;
+    if(declaredName)a.il2cpp_free(declaredName);
+    if(!declaredMatches)return "DeclaredArrayTypeMismatch";
     if(!nativeManagedPointerPlausible(array))return "InvalidArrayPointer";
     if(!nativeManagedPointerPlausible(array->obj.klass))return "InvalidArrayClassPointer";
-    if(array->obj.klass!=declared)return "ArrayRuntimeClassMismatch";
+    Il2CppClass* runtimeClass=a.object_get_class(reinterpret_cast<Il2CppObject*>(array));
+    if(!nativeManagedPointerPlausible(runtimeClass))return "InvalidRuntimeArrayClass";
+    if(runtimeClass!=array->obj.klass)return "ArrayObjectClassMismatch";
+    const Il2CppType* runtimeType=a.class_get_type(runtimeClass);
+    if(!nativeManagedPointerPlausible(runtimeType))return "InvalidRuntimeArrayType";
+    char* runtimeName=a.type_get_name(runtimeType);
+    const bool runtimeMatches=runtimeName&&std::strcmp(runtimeName,expectedType)==0;
+    if(runtimeName)a.il2cpp_free(runtimeName);
+    if(!runtimeMatches)return "ArrayRuntimeTypeMismatch";
+    const size_t elementSize=std::strcmp(expectedType,"System.Int32[]")==0?sizeof(int32_t):
+                             std::strcmp(expectedType,"System.Boolean[]")==0?sizeof(uint8_t):0;
+    if(!elementSize)return "UnsupportedPrimitiveArrayType";
+    if(a.array_element_size(runtimeClass)!=static_cast<int>(elementSize))
+        return "ArrayElementSizeMismatch";
     if(array->bounds)return "ArrayBoundsUnexpected";
     if(array->length>maximum)return "ArrayLengthOutOfBounds";
     if(a.array_length(array)!=array->length)return "ArrayLengthAbiMismatch";
