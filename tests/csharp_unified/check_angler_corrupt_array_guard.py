@@ -14,7 +14,9 @@ assert "plausibleManagedPointerValue" in contract
 assert "UINT64_C(0x00FFFFFFFFFFFFFF)" in contract
 assert "UINT64_C(0x0001000000000000)" in contract
 update = angler[angler.index("bool updateQuests("):angler.index("void pumpOnGameThread()")]
-assert update.index("nativeManagedPointerPlausible(original)") < update.index("nativeArrayContract(original")
+assert update.index("nativeManagedPointerPlausible(original)") < update.index("validFieldArray(original")
+assert "nativeDeclaredArrayIssue" in angler
+assert "class_get_element_class" not in update
 assert 'g_arrayDiagnostic = "InvalidQuestItemArrayPointer";' in update
 assert "setNativeGameStage(1184);" in update
 assert 'Reason=%s' in angler
