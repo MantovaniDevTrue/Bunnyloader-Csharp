@@ -3,6 +3,8 @@
 #include "experiments/csharp/UniversalHooks.h"
 #include "experiments/csharp/ManagedRuntime.h"
 #include "experiments/csharp/NativeWorldTickOutcome.h"
+#include "experiments/csharp/NativeDamageTypeRegistry.h"
+#include "experiments/csharp/NativeDamageClassStats.h"
 #include "experiments/csharp/NativeCommandMailbox.h"
 #include "experiments/csharp/NativeCommandResult.h"
 #include "experiments/csharp/ManagedLocalizationEpochFence.h"
@@ -510,6 +512,9 @@ struct ManagedEntityBinding {
     bool firstWorldUseReported = false;
     std::string lastUseOutcome;
     int useReports = 0;
+    bool cleanupQueued = false;
+    bool damageStatsPublished = false;
+    bool damageStatsAttempted = false;
 };
 
 struct ManagedEntityJob {
@@ -576,10 +581,12 @@ std::array<std::atomic<int>, 32768> g_entityProjectileTypeOwner{};
 std::atomic<int> g_entityModCount{0};
 uint64_t g_entitySession = 1;
 void* g_entityRegister = nullptr;
+void* g_entityUnregister = nullptr;
 void* g_entityBind = nullptr;
 void* g_entityNpcTick = nullptr;
 void* g_entityWorldTick = nullptr;
 void* g_entityStatusMethod = nullptr;
+void* g_entityDamageStatsMethod = nullptr;
 void* g_entityProjectileTick = nullptr;
 void* g_entityNpcHit = nullptr;
 void* g_entityNpcKill = nullptr;
@@ -1238,9 +1245,11 @@ int64_t executeManagedEntityOnWorker(const ManagedEntityJob& job) {
         std::lock_guard<std::mutex> guard(g_pinnedMutex);
         if (job.session != g_entitySession || job.binding < 0 ||
             static_cast<size_t>(job.binding) >= g_entityBindings.size() ||
-            !g_entityBindings[static_cast<size_t>(job.binding)].armed) return -1;
+            (!g_entityBindings[static_cast<size_t>(job.binding)].armed &&
+             job.kind != 8)) return -1;
         binding = g_entityBindings[static_cast<size_t>(job.binding)];
     }
+    if (job.kind == 8 && binding.managedSlot < 0) return 0;
     if (!g_entityRegister) {
         const size_t slash = g_checkpointPath.find_last_of('/');
         if (slash == std::string::npos) return -1;
@@ -1252,10 +1261,12 @@ int64_t executeManagedEntityOnWorker(const ManagedEntityJob& job) {
                                              "BunnyEntitySourceDispatcher") : nullptr;
         if (!klass) return -1;
         g_entityRegister = g_api.findMethod(klass, "Register", 2);
+        g_entityUnregister = g_api.findMethod(klass, "Unregister", 1);
         g_entityBind = g_api.findMethod(klass, "Bind", 4);
         g_entityNpcTick = g_api.findMethod(klass, "TickNpc", 13);
         g_entityWorldTick = g_api.findMethod(klass, "TickWorld", 7);
         g_entityStatusMethod = g_api.findMethod(klass, "Status", 1);
+        g_entityDamageStatsMethod = g_api.findMethod(klass, "DamageStats", 1);
         g_entityProjectileTick = g_api.findMethod(klass, "TickProjectile", 14);
         g_entityNpcHit = g_api.findMethod(klass, "HitNpc", 6);
         g_entityNpcKill = g_api.findMethod(klass, "KillNpc", 4);
@@ -1263,7 +1274,8 @@ int64_t executeManagedEntityOnWorker(const ManagedEntityJob& job) {
         g_entityProjectileKill = g_api.findMethod(klass, "KillProjectile", 5);
         g_entityProjectileCollision = g_api.findMethod(klass, "CollideProjectilePolicy", 9);
         g_entityResetWorld = g_api.findMethod(klass, "ResetWorld", 0);
-        if (!g_entityRegister || !g_entityBind ||
+        if (!g_entityRegister || !g_entityUnregister || !g_entityBind ||
+            !g_entityDamageStatsMethod ||
             !g_entityNpcTick || !g_entityWorldTick || !g_entityProjectileTick ||
             !g_entityNpcHit || !g_entityNpcKill ||
             !g_entityProjectileHit || !g_entityProjectileKill ||
@@ -1282,6 +1294,15 @@ int64_t executeManagedEntityOnWorker(const ManagedEntityJob& job) {
         g_entityManagedResetSession = job.session;
     }
     int managedSlot = binding.managedSlot;
+    if (job.kind == 8) {
+        void* mod = g_api.newString(g_domain, binding.modId.c_str());
+        if (!mod) return -1;
+        void* args[] = {mod};
+        void* exception = nullptr;
+        void* boxed = g_api.invoke(g_entityUnregister, nullptr, args, &exception);
+        void* raw = !exception && boxed ? g_api.unbox(boxed) : nullptr;
+        return raw && *static_cast<uint8_t*>(raw) != 0 ? 1 : -1;
+    }
     if (managedSlot < 0) {
         if (!validAssembly(binding.assemblyPath)) return -1;
         void* registerArgs[] = {
@@ -1295,6 +1316,23 @@ int64_t executeManagedEntityOnWorker(const ManagedEntityJob& job) {
         if (!raw) return -1;
         std::memcpy(&managedSlot, raw, sizeof(managedSlot));
         if (managedSlot < 0 || managedSlot >= 16) return -1;
+        {
+            std::lock_guard<std::mutex> guard(g_pinnedMutex);
+            if (!g_entityBindings[static_cast<size_t>(job.binding)].armed) {
+                auto& owner = g_entityBindings[static_cast<size_t>(job.binding)];
+                owner.managedSlot = managedSlot;
+                if (!owner.cleanupQueued) {
+                    owner.cleanupQueued = true;
+                    ManagedEntityJob unload;
+                    unload.binding = job.binding;
+                    unload.kind = 8;
+                    unload.session = g_entitySession;
+                    g_entityQueue.push_front(std::move(unload));
+                    g_pinnedWake.notify_one();
+                }
+                return -1;
+            }
+        }
 
         auto bindTypes = [&](int kind, const std::vector<std::pair<int, std::string>>& values) {
             for (const auto& [id, name] : values) {
@@ -1312,11 +1350,22 @@ int64_t executeManagedEntityOnWorker(const ManagedEntityJob& job) {
             !bindTypes(1, binding.projectileTypes)) return -1;
         {
             std::lock_guard<std::mutex> guard(g_pinnedMutex);
-            if (job.session == g_entitySession && job.binding >= 0 &&
+            if (job.binding >= 0 &&
                 static_cast<size_t>(job.binding) < g_entityBindings.size() &&
-                g_entityBindings[static_cast<size_t>(job.binding)].armed &&
-                g_entityBindings[static_cast<size_t>(job.binding)].modId == binding.modId)
-                g_entityBindings[static_cast<size_t>(job.binding)].managedSlot = managedSlot;
+                g_entityBindings[static_cast<size_t>(job.binding)].modId == binding.modId) {
+                auto& owner = g_entityBindings[static_cast<size_t>(job.binding)];
+                owner.managedSlot = managedSlot;
+                if (!owner.armed && !owner.cleanupQueued) {
+                    owner.cleanupQueued = true;
+                    ManagedEntityJob unload;
+                    unload.binding = job.binding;
+                    unload.kind = 8;
+                    unload.session = g_entitySession;
+                    g_entityQueue.push_front(std::move(unload));
+                    g_pinnedWake.notify_one();
+                }
+                if (!owner.armed) return -1;
+            }
         }
 #ifdef __ANDROID__
         __android_log_print(ANDROID_LOG_INFO, "BunnyCSharp",
@@ -1324,6 +1373,51 @@ int64_t executeManagedEntityOnWorker(const ManagedEntityJob& job) {
                             binding.modId.c_str(), binding.npcTypes.size(),
                             binding.projectileTypes.size());
 #endif
+    }
+    if (!binding.damageStatsAttempted) {
+        bool needed = false;
+        {
+            std::lock_guard<std::mutex> guard(g_pinnedMutex);
+            if (job.binding >= 0 &&
+                static_cast<size_t>(job.binding) < g_entityBindings.size()) {
+                auto& owner = g_entityBindings[static_cast<size_t>(job.binding)];
+                needed = owner.armed && !owner.damageStatsAttempted &&
+                    owner.modId == binding.modId;
+                if (needed) owner.damageStatsAttempted = true;
+            }
+        }
+        if (needed) {
+            void* args[] = {&managedSlot};
+            void* error = nullptr;
+            void* managed = g_api.invoke(g_entityDamageStatsMethod, nullptr, args, &error);
+            auto utf8 = resolve<char* (*)(void*)>("mono_string_to_utf8");
+            auto release = resolve<void (*)(void*)>("mono_free");
+            if (managed && !error && utf8 && release) {
+                char* str = utf8(managed);
+                if (str) {
+                    const size_t length = strnlen(str, 32769);
+                    if (length <= 32768) {
+                        std::lock_guard<std::mutex> guard(g_pinnedMutex);
+                        if (job.binding >= 0 &&
+                            static_cast<size_t>(job.binding) < g_entityBindings.size()) {
+                            auto& owner = g_entityBindings[static_cast<size_t>(job.binding)];
+                            if (owner.armed && !owner.damageStatsPublished &&
+                                owner.modId == binding.modId &&
+                                nativeDamageClassStats().publish(binding.modId,
+                                    std::string_view(str, length)))
+                                owner.damageStatsPublished = true;
+                        }
+                    }
+                    release(str);
+                }
+            }
+        }
+    }
+    if (job.kind == 7) return managedSlot;
+    {
+        std::lock_guard<std::mutex> guard(g_pinnedMutex);
+        if (job.session != g_entitySession ||
+            !g_entityBindings[static_cast<size_t>(job.binding)].armed) return -1;
     }
     if (job.kind == 6) {
         int mode = job.owner, frames = job.life, player = job.target;
@@ -3482,6 +3576,14 @@ bool registerManagedEntitySourceMod(
         g_entityProjectileTypeOwner[static_cast<size_t>(type)].store(index + 1,
                                                                      std::memory_order_release);
     g_entityModCount.store(index + 1, std::memory_order_release);
+    // A mesma rotina de inicialização do assembly registra as DamageClass.
+    // Evita aguardar o primeiro TickWorld para construir o catálogo C#.
+    ManagedEntityJob preload;
+    preload.binding = index;
+    preload.kind = 7;
+    preload.session = g_entitySession;
+    g_entityQueue.push_back(std::move(preload));
+    g_pinnedWake.notify_one();
     return true;
 }
 
@@ -3504,13 +3606,30 @@ bool hasManagedEntityProjectileType(int type) {
 void pauseManagedEntitySourceCallbacks() {
     std::lock_guard<std::mutex> guard(g_pinnedMutex);
     ++g_entitySession;
+    // A limpeza de mods revogados não pode ser perdida num reset do mundo.
+    std::deque<ManagedEntityJob> unloadJobs;
+    for (auto& job : g_entityQueue) {
+        if (job.kind != 8) continue;
+        job.session = g_entitySession;
+        unloadJobs.push_back(std::move(job));
+    }
     for (auto& binding : g_entityBindings) {
         binding.firstWorldErrorReported = false;
         binding.firstWorldUseReported = false;
         binding.useReports = 0;
         binding.lastUseOutcome.clear();
     }
-    g_entityQueue.clear();
+    g_entityQueue.swap(unloadJobs);
+    for (size_t index = 0; index < g_entityBindings.size(); ++index) {
+        const auto& binding = g_entityBindings[index];
+        if (!binding.armed || binding.managedSlot >= 0) continue;
+        ManagedEntityJob preload;
+        preload.binding = static_cast<int>(index);
+        preload.kind = 7;
+        preload.session = g_entitySession;
+        g_entityQueue.push_back(std::move(preload));
+    }
+    if (!g_entityQueue.empty()) g_pinnedWake.notify_one();
     g_entityNpcPending.fill(false);
     g_entityProjectilePending.fill(false);
     g_entityNpcResults.fill({});
@@ -5620,8 +5739,10 @@ ManagedSourceCompileResult compileManagedSource(
 
 void invalidateManagedDeferredSourceMod(const std::string& modId) {
     if (modId.empty()) return;
+    nativeDamageTypes().unload(modId);
     std::lock_guard<std::mutex> lock(g_pinnedMutex);
     g_revokedDeferredMods.insert(modId);
+    nativeDamageClassStats().unload(modId);
     for (auto& binding : g_universalMods) {
         if (binding.id != modId) continue;
         binding.registered = true;
@@ -5733,6 +5854,18 @@ void invalidateManagedDeferredSourceMod(const std::string& modId) {
             g_entityProjectilePending[static_cast<size_t>(job.slot)] = false;
     }
     eraseManagedModBoundJobs(g_entityQueue, g_entityBindings, modId);
+    for (size_t index = 0; index < g_entityBindings.size(); ++index) {
+        auto& binding = g_entityBindings[index];
+        if (binding.modId != modId || binding.managedSlot < 0 || binding.cleanupQueued)
+            continue;
+        binding.cleanupQueued = true;
+        ManagedEntityJob unload;
+        unload.binding = static_cast<int>(index);
+        unload.kind = 8;
+        unload.session = g_entitySession;
+        g_entityQueue.push_front(std::move(unload));
+        g_pinnedWake.notify_one();
+    }
     for (auto& result : g_entityNpcResults) {
         if (!result.ready || result.type < 0 || result.type >= 32768) continue;
         const int owner = g_entityNpcTypeOwner[static_cast<size_t>(result.type)].load(

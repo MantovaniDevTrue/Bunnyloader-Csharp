@@ -1101,12 +1101,13 @@ void run() {
             g_worldRegistrationReady.store(false, std::memory_order_release);
             pendingWorldModules.emplace_back(mod.id, assembly);
         }
-        if (mod.npcs > 0 || mod.projectiles > 0 || mod.items > 0 || mod.worldSystems > 0) {
+        if (mod.npcs > 0 || mod.projectiles > 0 || mod.items > 0 || mod.worldSystems > 0 ||
+            mod.damageClasses > 0) {
             const auto npcs = runtime::registeredNpcsForMod(mod.id);
             const auto projectiles = runtime::registeredProjectilesForMod(mod.id);
             if (registerManagedEntitySourceMod(mod.id, assembly, npcs, projectiles))
-                BL_INFO("csharp source entities: mod=%s registered npc=%zu projectile=%zu",
-                        mod.id.c_str(), npcs.size(), projectiles.size());
+                BL_INFO("csharp source entities: mod=%s registered npc=%zu projectile=%zu damageClasses=%d",
+                        mod.id.c_str(), npcs.size(), projectiles.size(), mod.damageClasses);
         }
         if (status.cached) g_cachedMods.fetch_add(1, std::memory_order_relaxed);
         else g_compiledMods.fetch_add(1, std::memory_order_relaxed);

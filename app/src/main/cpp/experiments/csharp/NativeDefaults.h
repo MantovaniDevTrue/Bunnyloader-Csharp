@@ -310,5 +310,21 @@ inline void applyNativeDefaults(Il2CppObject* object,bool projectile,int type) {
         else std::memcpy(destination,&style,sizeof(style));
     }
 }
-struct NativeDefaultsAfter {Il2CppObject* object;bool projectile;int type;~NativeDefaultsAfter(){applyNativeDefaults(object,projectile,type);if(!projectile)useSounds::apply(object,type);}};
+struct NativeDefaultsAfter {
+    Il2CppObject* object;
+    bool projectile;
+    int type;
+    bool applied = false;
+    ~NativeDefaultsAfter() {
+        if (applied) return;
+        applyNativeDefaults(object, projectile, type);
+        if (!projectile) useSounds::apply(object, type);
+    }
+    void applyNow() {
+        if (applied) return;
+        applied = true;
+        applyNativeDefaults(object, projectile, type);
+        if (!projectile) useSounds::apply(object, type);
+    }
+};
 }

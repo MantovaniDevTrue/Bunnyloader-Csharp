@@ -13,6 +13,10 @@
 #include "experiments/csharp/NativeCostumeDustDecision.h"
 #include "experiments/csharp/NativeMountRegistry.h"
 #include "experiments/csharp/NativeDefaults.h"
+#include "experiments/csharp/NativeDamageTypeRegistry.h"
+#include "experiments/csharp/NativeDamageClassFlags.h"
+#include "experiments/csharp/NativeDamageCombatProbe.h"
+#include "experiments/csharp/NativeDamagePlayerProjection.h"
 #include "experiments/csharp/NativeVisualRenderer.h"
 #include "experiments/csharp/NativeTileGameplay.h"
 #include "experiments/csharp/NativeTileFlags.h"
@@ -93,6 +97,10 @@ struct NativeRefs {
     int projWidth = -1;
     int projHeight = -1;
     int itemAccessory = -1;
+    int itemMelee = -1;
+    int itemMagic = -1;
+    int projMelee = -1;
+    int projMagic = -1;
     int itemShieldSlot = -1;
     int itemShoeSlot = -1;
     int playerHellfireTreads = -1;
@@ -125,6 +133,16 @@ struct NativeRefs {
     int playerBuffTime = -1;
     int itemType = -1;
     int playerMoveSpeed = -1;
+    int playerMeleeDamage = -1;
+    int playerRangedDamage = -1;
+    int playerMagicDamage = -1;
+    int playerSummonDamage = -1;
+    int playerMeleeCrit = -1;
+    int playerRangedCrit = -1;
+    int playerMagicCrit = -1;
+    int playerMeleeSpeed = -1;
+    int playerArmorPenetration = -1;
+    int itemArmorPenetration = -1;
     int playerArmor = -1;
     int playerTownNpcs = -1;
     int playerJumpSpeedBoost = -1;
@@ -251,6 +269,9 @@ using SetArmorEffectVisualsFn = void (*)(Il2CppObject*, Il2CppObject*, const Met
 using PlayerSpawnFn = void (*)(Il2CppObject*, int32_t, const MethodInfo*);
 using PlayerUpdateFn = void (*)(Il2CppObject*, int32_t, const MethodInfo*);
 using PlayerStageFn = void (*)(Il2CppObject*, const MethodInfo*);
+using WeaponDamageFn = int32_t (*)(Il2CppObject*, Il2CppObject*, const MethodInfo*);
+using WeaponCritFn = int32_t (*)(Il2CppObject*, Il2CppObject*, const MethodInfo*);
+using WeaponKnockbackFn = float (*)(Il2CppObject*, Il2CppObject*, float, const MethodInfo*);
 using PlayerHurtFn = double (*)(Il2CppObject*, const void*, int32_t, int32_t,
                                uint8_t, uint8_t, uint8_t, int32_t, uint8_t,
                                const MethodInfo*);
@@ -377,6 +398,16 @@ PlayerStageFn g_originalUpdateDead = nullptr;
 PlayerStageFn g_originalLifeRegen = nullptr;
 PlayerStageFn g_originalManaRegen = nullptr;
 PlayerHurtFn g_originalPlayerHurt = nullptr;
+WeaponDamageFn g_originalWeaponDamage = nullptr;
+WeaponCritFn g_originalWeaponCrit = nullptr;
+WeaponKnockbackFn g_originalWeaponKnockback = nullptr;
+bool g_combatPlayerDamageFieldsReady = false;
+bool g_combatPlayerCritFieldsReady = false;
+bool g_combatPlayerMeleeSpeedFieldReady = false;
+bool g_combatArmorPenFieldsReady = false;
+std::atomic<int> g_damageCombatSamples{0};
+std::atomic<int> g_critCombatSamples{0};
+std::atomic<int> g_knockbackCombatSamples{0};
 constexpr int g_reviveSpawnContext = 0;
 bool g_ready = false;
 bool g_npcReady = false;
@@ -444,6 +475,137 @@ bool enableManagedPrefixEligibility(int type) {
     return true;
 }
 
+void observeNativeWeaponCombat(const char* channel, Il2CppObject* player,
+                               Il2CppObject* item, double nativeValue,
+                               std::atomic<int>& counter) {
+    if (!item || g_refs.itemType < 0 ||
+        counter.load(std::memory_order_relaxed) >= 6) return;
+    const int itemType = bl::runtime::field<int32_t>(item, g_refs.itemType);
+    if (itemType < 0 || !nativeDamageTypes().isCustom(false, itemType)) return;
+    NativeDamageCombatSample snapshot;
+    if (!resolveNativeDamageCombatSample(itemType, &snapshot)) return;
+    if (counter.fetch_add(1, std::memory_order_relaxed) >= 6) return;
+    const auto& stats = snapshot.defaults;
+    NativeVanillaPlayerDamage native;
+    float observedDelta = 0.f;
+    bool valid = false;
+    if (player && g_combatPlayerDamageFieldsReady) {
+        native.melee = bl::runtime::field<float>(player, g_refs.playerMeleeDamage);
+        native.ranged = bl::runtime::field<float>(player, g_refs.playerRangedDamage);
+        native.magic = bl::runtime::field<float>(player, g_refs.playerMagicDamage);
+        native.summon = bl::runtime::field<float>(player, g_refs.playerSummonDamage);
+        valid = projectNativeClassDamageDelta(stats, native, &observedDelta);
+    }
+    NativeVanillaPlayerCrit nativeCrit;
+    float sharedCrit = 0.f, inheritedCrit = 0.f, inheritedSpeed = 0.f;
+    bool validCrit = false, validSpeed = false;
+    if (player && g_combatPlayerCritFieldsReady) {
+        nativeCrit.melee = bl::runtime::field<int32_t>(player, g_refs.playerMeleeCrit);
+        nativeCrit.ranged = bl::runtime::field<int32_t>(player, g_refs.playerRangedCrit);
+        nativeCrit.magic = bl::runtime::field<int32_t>(player, g_refs.playerMagicCrit);
+        validCrit = projectNativeClassCritDelta(stats, nativeCrit,
+                                                 &sharedCrit, &inheritedCrit);
+    }
+    if (player && g_combatPlayerMeleeSpeedFieldReady)
+        validSpeed = projectNativeClassMeleeSpeedDelta(
+            stats, bl::runtime::field<float>(player, g_refs.playerMeleeSpeed),
+            &inheritedSpeed);
+    int32_t playerPenetration = 0, itemPenetration = 0;
+    float projectedPenetration = 0.f;
+    bool validPenetration = false;
+    if (player && g_combatArmorPenFieldsReady) {
+        playerPenetration = bl::runtime::field<int32_t>(
+            player, g_refs.playerArmorPenetration);
+        itemPenetration = bl::runtime::field<int32_t>(
+            item, g_refs.itemArmorPenetration);
+        validPenetration = projectNativeArmorPenetration(
+            stats, playerPenetration, itemPenetration, &projectedPenetration);
+    }
+    BL_INFO("[CSharp][DamageClass][Observe] Stage=%s Mod=%s ItemType=%d Class=%s Vanilla=%.3f DamageAdd=%.3f DamageMul=%.3f Crit=%.3f KnockbackAdd=%.3f KnockbackMul=%.3f Speed=%.3f ArmorPen=%.3f StandardCrit=%d LiveValid=%d Melee=%.3f Ranged=%.3f Magic=%.3f Summon=%.3f NonGenericDamageDelta=%.3f CritValid=%d SharedCrit=%.3f CritDelta=%.3f SpeedValid=%d MeleeSpeedDelta=%.3f PenValid=%d PlayerPen=%d ItemPen=%d ProjectedPen=%.3f Result=Unchanged",
+        channel, snapshot.source.mod.c_str(), itemType,
+        snapshot.source.damageClass.c_str(), nativeValue,
+        stats.damage.additive, stats.damage.multiplicative, stats.crit,
+        stats.knockback.additive, stats.knockback.multiplicative,
+        stats.attackSpeed, stats.armorPenetration, stats.standardCrit ? 1 : 0,
+        valid ? 1 : 0, native.melee, native.ranged, native.magic,
+        native.summon, observedDelta, validCrit ? 1 : 0,
+        sharedCrit, inheritedCrit, validSpeed ? 1 : 0, inheritedSpeed,
+        validPenetration ? 1 : 0, playerPenetration, itemPenetration,
+        projectedPenetration);
+}
+
+int32_t hkNativeWeaponDamage(Il2CppObject* player, Il2CppObject* item,
+                             const MethodInfo* method) {
+    const int32_t original = g_originalWeaponDamage
+        ? g_originalWeaponDamage(player, item, method) : 0;
+    if (player) observeNativeWeaponCombat("GetWeaponDamage", player, item, original,
+                                          g_damageCombatSamples);
+    return original;
+}
+
+int32_t hkNativeWeaponCrit(Il2CppObject* player, Il2CppObject* item,
+                           const MethodInfo* method) {
+    const int32_t original = g_originalWeaponCrit
+        ? g_originalWeaponCrit(player, item, method) : 0;
+    if (player) observeNativeWeaponCombat("GetWeaponCrit", player, item, original,
+                                          g_critCombatSamples);
+    return original;
+}
+
+float hkNativeWeaponKnockback(Il2CppObject* player, Il2CppObject* item,
+                              float knockback, const MethodInfo* method) {
+    const float original = g_originalWeaponKnockback
+        ? g_originalWeaponKnockback(player, item, knockback, method) : knockback;
+    if (player) observeNativeWeaponCombat("GetWeaponKnockback", player, item, original,
+                                          g_knockbackCombatSamples);
+    return original;
+}
+
+void installNativeDamageCombatObservation(Il2CppClass* player) {
+    using namespace bl::il2cpp;
+    if (!player || !api().method_is_instance) return;
+    const auto damage = findMethodBySignature(player, parseSignature(
+        "int GetWeaponDamage(Item sItem)"));
+    const auto crit = findMethodBySignature(player, parseSignature(
+        "int GetWeaponCrit(Item sItem)"));
+    const auto knockback = findMethodBySignature(player, parseSignature(
+        "float GetWeaponKnockback(Item sItem, float KnockBack)"));
+    if (damage && api().method_is_instance(damage) &&
+        bl::hook::install(damage, hkNativeWeaponDamage, &g_originalWeaponDamage))
+        BL_INFO("[CSharp][DamageClass] GetWeaponDamage passive native hook installed");
+    else BL_WARN("[CSharp][DamageClass] GetWeaponDamage passive hook unavailable");
+    if (crit && api().method_is_instance(crit) &&
+        bl::hook::install(crit, hkNativeWeaponCrit, &g_originalWeaponCrit))
+        BL_INFO("[CSharp][DamageClass] GetWeaponCrit passive native hook installed");
+    else BL_WARN("[CSharp][DamageClass] GetWeaponCrit passive hook unavailable");
+    if (knockback && api().method_is_instance(knockback) &&
+        bl::hook::install(knockback, hkNativeWeaponKnockback, &g_originalWeaponKnockback))
+        BL_INFO("[CSharp][DamageClass] GetWeaponKnockback passive native hook installed");
+    else BL_WARN("[CSharp][DamageClass] GetWeaponKnockback passive hook unavailable");
+}
+
+bool g_nativeDamageClassFieldsReady=false;
+
+void applyNativeDamageClassFlags(Il2CppObject* object, bool projectile, int contentType) {
+    if (!object || !g_nativeDamageClassFieldsReady) return;
+    NativeDamageClassFlags flags;
+    if (!nativeDamageTypes().lookupFlags(projectile, contentType, &flags)) return;
+    if (!flags.resolved) return;
+    const auto& r=g_refs;
+    if (projectile) {
+        bl::runtime::field<uint8_t>(object,r.projMelee) = flags.melee;
+        bl::runtime::field<uint8_t>(object,r.projRanged) = flags.ranged;
+        bl::runtime::field<uint8_t>(object,r.projMagic) = flags.magic;
+        return;
+    }
+    const bool nativeSummon = bl::runtime::field<uint8_t>(object,r.itemSummon) != 0;
+    bl::runtime::field<uint8_t>(object,r.itemMelee) = flags.melee;
+    bl::runtime::field<uint8_t>(object,r.itemRanged) = flags.ranged;
+    bl::runtime::field<uint8_t>(object,r.itemMagic) = flags.magic;
+    bl::runtime::field<uint8_t>(object,r.itemSummon) =
+        flags.summon || (nativeSummon && !flags.melee && !flags.ranged && !flags.magic);
+}
+
 void hkItemDefaults(Il2CppObject* self, int32_t type, int32_t variant, const MethodInfo* method) {
     NativeDefaultsAfter nativeDefaults{self,false,type};
     if (self && isBasicItem(type)) {
@@ -453,6 +615,8 @@ void hkItemDefaults(Il2CppObject* self, int32_t type, int32_t variant, const Met
             return;
         }
         if (basicItemHasDamage(type)||basicItemIsAccessory(type)) enableManagedPrefixEligibility(type);
+        nativeDefaults.applyNow();
+        applyNativeDamageClassFlags(self,false,type);
         bl::runtime::finishModItem(self,type);
         return;
     }
@@ -514,6 +678,8 @@ void hkItemDefaults(Il2CppObject* self, int32_t type, int32_t variant, const Met
     bl::runtime::field<int32_t>(self, r.itemRare) = 2;
     bl::runtime::field<int32_t>(self, r.itemMaxStack) = 1;
     enableManagedPrefixEligibility(type);
+    nativeDefaults.applyNow();
+    applyNativeDamageClassFlags(self,false,type);
     bl::runtime::finishModItem(self, type);
 }
 
@@ -614,6 +780,7 @@ void hkProjectileDefaults(Il2CppObject* self, int32_t type, const MethodInfo* me
         }
     }
     applyNativeDefaults(self,true,type);
+    applyNativeDamageClassFlags(self,true,type);
     bl::runtime::finishModProjectile(self, type);
 }
 
@@ -1670,6 +1837,18 @@ bool prepareNativeContent() {
     r.projWidth = fieldOffset(projectile, "width");
     r.projHeight = fieldOffset(projectile, "height");
     r.itemAccessory = fieldOffset(item, "accessory");
+    std::string damageFlagsError;
+    g_nativeDamageClassFieldsReady =
+        nativeFieldContract(item,"melee","System.Boolean",false,1,nullptr,&r.itemMelee,&damageFlagsError) &&
+        nativeFieldContract(item,"ranged","System.Boolean",false,1,nullptr,&r.itemRanged,&damageFlagsError) &&
+        nativeFieldContract(item,"magic","System.Boolean",false,1,nullptr,&r.itemMagic,&damageFlagsError) &&
+        nativeFieldContract(item,"summon","System.Boolean",false,1,nullptr,&r.itemSummon,&damageFlagsError) &&
+        nativeFieldContract(projectile,"melee","System.Boolean",false,1,nullptr,&r.projMelee,&damageFlagsError) &&
+        nativeFieldContract(projectile,"ranged","System.Boolean",false,1,nullptr,&r.projRanged,&damageFlagsError) &&
+        nativeFieldContract(projectile,"magic","System.Boolean",false,1,nullptr,&r.projMagic,&damageFlagsError);
+    if (!g_nativeDamageClassFieldsReady)
+        BL_WARN("[CSharp][DamageClass] Stage=BindNativeFlags Result=LegacyDefaultsUntilCompatible Detail=%s",
+                damageFlagsError.c_str());
     r.itemShieldSlot = fieldOffset(item, "shieldSlot");
     r.itemShoeSlot = fieldOffset(item, "shoeSlot");
     r.playerHellfireTreads = fieldOffset(player, "hellfireTreads");
@@ -1700,6 +1879,46 @@ bool prepareNativeContent() {
     r.projectileOwner = fieldOffset(projectile, "owner");
     r.playerStatDefense = fieldOffset(player, "statDefense");
     r.playerMoveSpeed = fieldOffset(player, "moveSpeed");
+    std::string nativeDamageError;
+    g_combatPlayerDamageFieldsReady =
+        nativeFieldContract(player, "meleeDamage", "System.Single", false, 4,
+                            nullptr, &r.playerMeleeDamage, &nativeDamageError) &&
+        nativeFieldContract(player, "rangedDamage", "System.Single", false, 4,
+                            nullptr, &r.playerRangedDamage, &nativeDamageError) &&
+        nativeFieldContract(player, "magicDamage", "System.Single", false, 4,
+                            nullptr, &r.playerMagicDamage, &nativeDamageError) &&
+        nativeFieldContract(player, "minionDamage", "System.Single", false, 4,
+                            nullptr, &r.playerSummonDamage, &nativeDamageError);
+    if (!g_combatPlayerDamageFieldsReady)
+        BL_WARN("[CSharp][DamageClass] Stage=BindPlayerDamage Result=PassiveNoLiveStats Detail=%s",
+                nativeDamageError.c_str());
+    std::string nativeCritError;
+    g_combatPlayerCritFieldsReady =
+        nativeFieldContract(player, "meleeCrit", "System.Int32", false, 4,
+                            nullptr, &r.playerMeleeCrit, &nativeCritError) &&
+        nativeFieldContract(player, "rangedCrit", "System.Int32", false, 4,
+                            nullptr, &r.playerRangedCrit, &nativeCritError) &&
+        nativeFieldContract(player, "magicCrit", "System.Int32", false, 4,
+                            nullptr, &r.playerMagicCrit, &nativeCritError);
+    if (!g_combatPlayerCritFieldsReady)
+        BL_WARN("[CSharp][DamageClass] Stage=BindPlayerCrit Result=PassiveNoLiveStats Detail=%s",
+                nativeCritError.c_str());
+    std::string nativeSpeedError;
+    g_combatPlayerMeleeSpeedFieldReady =
+        nativeFieldContract(player, "meleeSpeed", "System.Single", false, 4,
+                            nullptr, &r.playerMeleeSpeed, &nativeSpeedError);
+    if (!g_combatPlayerMeleeSpeedFieldReady)
+        BL_WARN("[CSharp][DamageClass] Stage=BindPlayerSpeed Result=PassiveNoLiveStats Detail=%s",
+                nativeSpeedError.c_str());
+    std::string nativePenError;
+    g_combatArmorPenFieldsReady =
+        nativeFieldContract(player, "armorPenetration", "System.Int32", false, 4,
+                            nullptr, &r.playerArmorPenetration, &nativePenError) &&
+        nativeFieldContract(item, "armorPenetration", "System.Int32", false, 4,
+                            nullptr, &r.itemArmorPenetration, &nativePenError);
+    if (!g_combatArmorPenFieldsReady)
+        BL_WARN("[CSharp][DamageClass] Stage=BindArmorPen Result=PassiveNoLiveStats Detail=%s",
+                nativePenError.c_str());
     r.playerArmor = fieldOffset(player, "armor");
     r.playerMaxRunSpeed = fieldOffset(player, "maxRunSpeed");
     r.playerRunAcceleration = fieldOffset(player, "runAcceleration");
@@ -1771,6 +1990,7 @@ bool prepareNativeContent() {
     if (!g_originalProjectileDamage&&!bl::hook::install(damageMethod, hkNativeMinionDamage, &g_originalProjectileDamage))
         return false;
 
+    installNativeDamageCombatObservation(player);
     g_ready = true;
     BL_INFO("csharp native content: hooks C++ de item e projetil instalados");
     return true;

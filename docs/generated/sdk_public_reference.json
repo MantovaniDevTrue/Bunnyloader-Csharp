@@ -954,6 +954,10 @@
           "execution": "worker_async_entity"
         },
         {
+          "signature": "static bool Unregister(string modId)",
+          "execution": "worker_async_entity"
+        },
+        {
           "signature": "static int CollideProjectilePolicy(int modSlot, int type, int slot, int generation, int owner, float oldVelocityX, float oldVelocityY, float newVelocityX, float newVelocityY)",
           "execution": "worker_async_entity"
         },
@@ -963,6 +967,10 @@
         },
         {
           "signature": "static int TickWorld(int modSlot, int mode, int elapsedFrames, Int64 worldSession, int playerIndex, float playerX, float playerY)",
+          "execution": "worker_async_entity"
+        },
+        {
+          "signature": "static string DamageStats(int modSlot)",
           "execution": "worker_async_entity"
         },
         {
@@ -2013,6 +2021,7 @@
         "BunnyNativeDefaults NativeDefaults { get; }",
         "BunnyQuestCatchRules QuestCatchRules { get; set; }",
         "BunnySoundStyle CustomUseSound { get; set; }",
+        "DamageClass DamageType { get; set; }",
         "Dictionary\u003Cstring, string\u003E QuestCatchLocationTranslations { get; }",
         "Dictionary\u003Cstring, string\u003E QuestDescriptionTranslations { get; }",
         "Dictionary\u003Cstring, string\u003E TooltipTranslations { get; }",
@@ -3049,6 +3058,7 @@
         "BunnyNativeDefaults NativeDefaults { get; }",
         "BunnyProjectilePlatformCollision TilePlatformCollision { get; set; }",
         "BunnyProjectileTileCollisionMode TileCollisionMode { get; set; }",
+        "DamageClass DamageType { get; set; }",
         "bool Friendly { get; set; }",
         "bool IgnoreWater { get; set; }",
         "bool Minion { get; set; }",
@@ -4789,6 +4799,7 @@
         "BunnyHoldout Holdout { get; set; }",
         "BunnyNativeDefaults NativeDefaults { get; }",
         "BunnySoundStyle CustomUseSound { get; set; }",
+        "DamageClass DamageType { get; set; }",
         "bool Summon { get; set; }",
         "float ShootSpeed { get; set; }",
         "int Damage { get; set; }",
@@ -5257,6 +5268,249 @@
       ]
     },
     {
+      "name": "BunnyLoader.Source.DamageClass",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [
+        "DamageClass Default { get; }",
+        "DamageClass Generic { get; }",
+        "DamageClass Magic { get; }",
+        "DamageClass MagicSummonHybrid { get; }",
+        "DamageClass Melee { get; }",
+        "DamageClass MeleeNoSpeed { get; }",
+        "DamageClass Ranged { get; }",
+        "DamageClass Summon { get; }",
+        "DamageClass SummonMeleeSpeed { get; }",
+        "DamageClass Throwing { get; }",
+        "bool UseStandardCritCalcs { get; }",
+        "int Type { get; }",
+        "string DisplayNameKey { get; }",
+        "string LocalizationCategory { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "StatInheritanceData GetModifierInheritance(DamageClass damageClass)",
+          "execution": "managed_stat_snapshot_no_android_damage_hook"
+        },
+        {
+          "signature": "bool CountsAsClass(DamageClass damageClass)",
+          "execution": "managed_stat_snapshot_no_android_damage_hook"
+        },
+        {
+          "signature": "bool CountsAsClass\u003CT\u003E()",
+          "execution": "managed_stat_snapshot_no_android_damage_hook"
+        },
+        {
+          "signature": "bool GetEffectInheritance(DamageClass damageClass)",
+          "execution": "managed_stat_snapshot_no_android_damage_hook"
+        },
+        {
+          "signature": "bool GetPrefixInheritance(DamageClass damageClass)",
+          "execution": "managed_stat_snapshot_no_android_damage_hook"
+        },
+        {
+          "signature": "bool GetsPrefixesFor(DamageClass damageClass)",
+          "execution": "managed_stat_snapshot_no_android_damage_hook"
+        },
+        {
+          "signature": "bool GetsPrefixesFor\u003CT\u003E()",
+          "execution": "managed_stat_snapshot_no_android_damage_hook"
+        },
+        {
+          "signature": "bool ShowStatTooltipLine(DamageClassPlayer player, string lineName)",
+          "execution": "managed_stat_snapshot_no_android_damage_hook"
+        },
+        {
+          "signature": "void SetDefaultStats(DamageClassPlayer player)",
+          "execution": "managed_stat_snapshot_no_android_damage_hook"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.DamageClassLoader",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [
+        "IReadOnlyList\u003CDamageClass\u003E All { get; }",
+        "int DamageClassCount { get; }",
+        "int Generation { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "static DamageClass GetDamageClass(int type)",
+          "execution": "managed_stat_snapshot_no_android_damage_hook"
+        },
+        {
+          "signature": "static T GetInstance\u003CT\u003E()",
+          "execution": "managed_stat_snapshot_no_android_damage_hook"
+        },
+        {
+          "signature": "static bool UnregisterMod(string modId)",
+          "execution": "managed_stat_snapshot_no_android_damage_hook"
+        },
+        {
+          "signature": "static int Register(DamageClass damageClass)",
+          "execution": "managed_stat_snapshot_no_android_damage_hook"
+        },
+        {
+          "signature": "static int Register\u003CT\u003E()",
+          "execution": "managed_stat_snapshot_no_android_damage_hook"
+        },
+        {
+          "signature": "static int RegisterAssembly(Assembly assembly)",
+          "execution": "managed_stat_snapshot_no_android_damage_hook"
+        },
+        {
+          "signature": "static int RegisterAssembly(string modId, Assembly assembly)",
+          "execution": "managed_stat_snapshot_no_android_damage_hook"
+        },
+        {
+          "signature": "static string ExportDefaultStatSnapshot(Assembly assembly)",
+          "execution": "managed_stat_snapshot_no_android_damage_hook"
+        },
+        {
+          "signature": "static void Unload()",
+          "execution": "managed_stat_snapshot_no_android_damage_hook"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.DamageClassPlayer",
+      "kind": "class",
+      "baseType": "System.Object",
+      "constructors": [
+        "DamageClassPlayer()"
+      ],
+      "properties": [],
+      "values": [],
+      "methods": [
+        {
+          "signature": "StatModifier GetTotalDamage(DamageClass cls)",
+          "execution": "managed_stat_snapshot_no_android_damage_hook"
+        },
+        {
+          "signature": "StatModifier GetTotalDamage\u003CT\u003E()",
+          "execution": "managed_stat_snapshot_no_android_damage_hook"
+        },
+        {
+          "signature": "StatModifier GetTotalKnockback(DamageClass cls)",
+          "execution": "managed_stat_snapshot_no_android_damage_hook"
+        },
+        {
+          "signature": "StatModifier GetTotalKnockback\u003CT\u003E()",
+          "execution": "managed_stat_snapshot_no_android_damage_hook"
+        },
+        {
+          "signature": "float GetTotalArmorPenetration(DamageClass cls)",
+          "execution": "managed_stat_snapshot_no_android_damage_hook"
+        },
+        {
+          "signature": "float GetTotalArmorPenetration\u003CT\u003E()",
+          "execution": "managed_stat_snapshot_no_android_damage_hook"
+        },
+        {
+          "signature": "float GetTotalAttackSpeed(DamageClass cls)",
+          "execution": "managed_stat_snapshot_no_android_damage_hook"
+        },
+        {
+          "signature": "float GetTotalAttackSpeed\u003CT\u003E()",
+          "execution": "managed_stat_snapshot_no_android_damage_hook"
+        },
+        {
+          "signature": "float GetTotalCritChance(DamageClass cls)",
+          "execution": "managed_stat_snapshot_no_android_damage_hook"
+        },
+        {
+          "signature": "float GetTotalCritChance\u003CT\u003E()",
+          "execution": "managed_stat_snapshot_no_android_damage_hook"
+        },
+        {
+          "signature": "ref StatModifier GetDamage(DamageClass cls)",
+          "execution": "managed_stat_snapshot_no_android_damage_hook"
+        },
+        {
+          "signature": "ref StatModifier GetDamage\u003CT\u003E()",
+          "execution": "managed_stat_snapshot_no_android_damage_hook"
+        },
+        {
+          "signature": "ref StatModifier GetKnockback(DamageClass cls)",
+          "execution": "managed_stat_snapshot_no_android_damage_hook"
+        },
+        {
+          "signature": "ref StatModifier GetKnockback\u003CT\u003E()",
+          "execution": "managed_stat_snapshot_no_android_damage_hook"
+        },
+        {
+          "signature": "ref float GetArmorPenetration(DamageClass cls)",
+          "execution": "managed_stat_snapshot_no_android_damage_hook"
+        },
+        {
+          "signature": "ref float GetArmorPenetration\u003CT\u003E()",
+          "execution": "managed_stat_snapshot_no_android_damage_hook"
+        },
+        {
+          "signature": "ref float GetAttackSpeed(DamageClass cls)",
+          "execution": "managed_stat_snapshot_no_android_damage_hook"
+        },
+        {
+          "signature": "ref float GetAttackSpeed\u003CT\u003E()",
+          "execution": "managed_stat_snapshot_no_android_damage_hook"
+        },
+        {
+          "signature": "ref float GetCritChance(DamageClass cls)",
+          "execution": "managed_stat_snapshot_no_android_damage_hook"
+        },
+        {
+          "signature": "ref float GetCritChance\u003CT\u003E()",
+          "execution": "managed_stat_snapshot_no_android_damage_hook"
+        },
+        {
+          "signature": "void ResetEffects()",
+          "execution": "managed_stat_snapshot_no_android_damage_hook"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.DefaultDamageClass",
+      "kind": "class",
+      "baseType": "BunnyLoader.Source.VanillaDamageClass",
+      "constructors": [
+        "DefaultDamageClass()"
+      ],
+      "properties": [],
+      "values": [],
+      "methods": [
+        {
+          "signature": "StatInheritanceData GetModifierInheritance(DamageClass other)",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.GenericDamageClass",
+      "kind": "class",
+      "baseType": "BunnyLoader.Source.VanillaDamageClass",
+      "constructors": [
+        "GenericDamageClass()"
+      ],
+      "properties": [],
+      "values": [],
+      "methods": [
+        {
+          "signature": "StatInheritanceData GetModifierInheritance(DamageClass other)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void SetDefaultStats(DamageClassPlayer player)",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
       "name": "BunnyLoader.Source.ItemRarityID",
       "kind": "abstract class",
       "baseType": "System.Object",
@@ -5264,6 +5518,68 @@
       "properties": [],
       "values": [],
       "methods": []
+    },
+    {
+      "name": "BunnyLoader.Source.MagicDamageClass",
+      "kind": "class",
+      "baseType": "BunnyLoader.Source.VanillaDamageClass",
+      "constructors": [
+        "MagicDamageClass()"
+      ],
+      "properties": [],
+      "values": [],
+      "methods": []
+    },
+    {
+      "name": "BunnyLoader.Source.MagicSummonHybridDamageClass",
+      "kind": "class",
+      "baseType": "BunnyLoader.Source.VanillaDamageClass",
+      "constructors": [
+        "MagicSummonHybridDamageClass()"
+      ],
+      "properties": [],
+      "values": [],
+      "methods": [
+        {
+          "signature": "StatInheritanceData GetModifierInheritance(DamageClass other)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool GetEffectInheritance(DamageClass other)",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.MeleeDamageClass",
+      "kind": "class",
+      "baseType": "BunnyLoader.Source.VanillaDamageClass",
+      "constructors": [
+        "MeleeDamageClass()"
+      ],
+      "properties": [],
+      "values": [],
+      "methods": []
+    },
+    {
+      "name": "BunnyLoader.Source.MeleeNoSpeedDamageClass",
+      "kind": "class",
+      "baseType": "BunnyLoader.Source.VanillaDamageClass",
+      "constructors": [
+        "MeleeNoSpeedDamageClass()"
+      ],
+      "properties": [],
+      "values": [],
+      "methods": [
+        {
+          "signature": "StatInheritanceData GetModifierInheritance(DamageClass other)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool GetEffectInheritance(DamageClass other)",
+          "execution": "managed_helper"
+        }
+      ]
     },
     {
       "name": "BunnyLoader.Source.PrefixCategory",
@@ -5299,6 +5615,17 @@
         "int CriticalBonus { get; set; }",
         "int TagDamageBonus { get; set; }"
       ],
+      "values": [],
+      "methods": []
+    },
+    {
+      "name": "BunnyLoader.Source.RangedDamageClass",
+      "kind": "class",
+      "baseType": "BunnyLoader.Source.VanillaDamageClass",
+      "constructors": [
+        "RangedDamageClass()"
+      ],
+      "properties": [],
       "values": [],
       "methods": []
     },
@@ -5352,6 +5679,81 @@
           "execution": "managed_helper"
         }
       ]
+    },
+    {
+      "name": "BunnyLoader.Source.SummonDamageClass",
+      "kind": "class",
+      "baseType": "BunnyLoader.Source.VanillaDamageClass",
+      "constructors": [
+        "SummonDamageClass()"
+      ],
+      "properties": [
+        "bool UseStandardCritCalcs { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "bool ShowStatTooltipLine(DamageClassPlayer player, string lineName)",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.SummonMeleeSpeedDamageClass",
+      "kind": "class",
+      "baseType": "BunnyLoader.Source.VanillaDamageClass",
+      "constructors": [
+        "SummonMeleeSpeedDamageClass()"
+      ],
+      "properties": [
+        "bool UseStandardCritCalcs { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "StatInheritanceData GetModifierInheritance(DamageClass other)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool GetEffectInheritance(DamageClass other)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool GetPrefixInheritance(DamageClass other)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool ShowStatTooltipLine(DamageClassPlayer player, string lineName)",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.ThrowingDamageClass",
+      "kind": "class",
+      "baseType": "BunnyLoader.Source.VanillaDamageClass",
+      "constructors": [
+        "ThrowingDamageClass()"
+      ],
+      "properties": [],
+      "values": [],
+      "methods": [
+        {
+          "signature": "bool GetPrefixInheritance(DamageClass other)",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.VanillaDamageClass",
+      "kind": "abstract class",
+      "baseType": "BunnyLoader.Source.DamageClass",
+      "constructors": [],
+      "properties": [
+        "string DisplayNameKey { get; }"
+      ],
+      "values": [],
+      "methods": []
     },
     {
       "name": "Terraria.Utilities.UnifiedRandom",

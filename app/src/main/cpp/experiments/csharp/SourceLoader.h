@@ -32,7 +32,8 @@ struct SourceModStatus {
     int localizationModules = 0;
     int screenEffects = 0;
     int commands = 0;
-
+    int damageClasses = 0;
+    std::vector<std::string> damageClassNames;
     std::vector<std::string> commandClasses;
     int goreSourcesDiscovered = 0;
     int worldSystems = 0;

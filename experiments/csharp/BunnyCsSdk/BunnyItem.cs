@@ -31,6 +31,7 @@ public abstract class BunnyItem : BunnyShootSource
     /// <summary>Som próprio do mod; tem precedência sobre o SoundID vanilla.</summary>
     public BunnySoundStyle? CustomUseSound { get; set; }
     public string NativeDefaultsDefinition => NativeDefaults.Definition;
+    public DamageClass DamageType { get; set; } = DamageClass.Default;
     /// <summary>Valor interno equivalente a Item.buyPrice; as quantidades são convertidas em cobre.</summary>
     public static int BuyPrice(int platinum=0,int gold=0,int silver=0,int copper=0)
     {
