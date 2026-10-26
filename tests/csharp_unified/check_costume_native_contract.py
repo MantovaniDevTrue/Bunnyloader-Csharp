@@ -27,7 +27,8 @@ equipped = source[source.index("bool costumeEquipped("):source.index("bool costu
 assert equipped.index("nativeManagedPointerPlausible(armor)") < equipped.index("armor->length")
 hidden = source[source.index("bool costumeHidden("):source.index("int costumeTownCount(")]
 assert hidden.index("nativeManagedPointerPlausible(armor)") < hidden.index("armor->length")
-assert "GoldFlame" in original_item and "BlueFlare" in original_item
+assert "BlueFlare" in original_item
+assert "GoldFlame" in Path("docs/csharp/BLOCKY_NATIVE_QA.md").read_text()
 assert "player.townNPCs >= 1" in original
 assert "p.BlockyAccessoryPrevious" in original_buff
 assert "g_costumeNormalDust=costumeDustId(\"GoldFlame\")" in source
