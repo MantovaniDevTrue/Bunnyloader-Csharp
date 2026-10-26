@@ -94,6 +94,26 @@ inline const char* nativeArrayContractIssue(Il2CppArray* array,const char* eleme
     }
     return nullptr;
 }
+
+inline const char* nativeDeclaredArrayIssue(Il2CppArray* array,const Il2CppType* declaredType,
+                                             const char* expectedType,uintptr_t maximum) {
+    auto& a=il2cpp::api();
+    if(!declaredType||!a.type_get_name||!a.il2cpp_free||!a.class_from_il2cpp_type||
+       !a.array_length)return "MissingDeclaredArrayExports";
+    char* actualType=a.type_get_name(declaredType);
+    const bool expected=actualType&&std::strcmp(actualType,expectedType)==0;
+    if(actualType)a.il2cpp_free(actualType);
+    if(!expected)return "DeclaredArrayTypeMismatch";
+    Il2CppClass* declared=a.class_from_il2cpp_type(declaredType);
+    if(!nativeManagedPointerPlausible(declared))return "InvalidDeclaredArrayClass";
+    if(!nativeManagedPointerPlausible(array))return "InvalidArrayPointer";
+    if(!nativeManagedPointerPlausible(array->obj.klass))return "InvalidArrayClassPointer";
+    if(array->obj.klass!=declared)return "ArrayRuntimeClassMismatch";
+    if(array->bounds)return "ArrayBoundsUnexpected";
+    if(array->length>maximum)return "ArrayLengthOutOfBounds";
+    if(a.array_length(array)!=array->length)return "ArrayLengthAbiMismatch";
+    return nullptr;
+}
 inline bool nativeArrayContract(Il2CppArray* array,const char* element,size_t width,uintptr_t maximum=100000) {
     return nativeArrayContractIssue(array,element,width,maximum)==nullptr;
 }

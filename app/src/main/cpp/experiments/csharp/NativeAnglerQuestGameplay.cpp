@@ -131,17 +131,20 @@ bool staticField(FieldInfo* field) {
 }
 
 bool arrayType(FieldInfo* field, const char* element) {
-    auto& a = il2cpp::api();
-    if (!staticField(field) || !a.field_get_type || !a.class_from_il2cpp_type ||
-        !a.class_get_element_class || !a.class_get_name || !a.class_get_namespace)
-        return false;
-    Il2CppClass* array = a.class_from_il2cpp_type(a.field_get_type(field));
-    Il2CppClass* cls = array ? a.class_get_element_class(array) : nullptr;
-    if (!cls) return false;
-    const char* name = a.class_get_name(cls);
-    const char* ns = a.class_get_namespace(cls);
-    return name && ns && std::strcmp(name, element) == 0 &&
-           std::strcmp(ns, "System") == 0;
+    auto& a=il2cpp::api();
+    if(!staticField(field)||!a.field_get_type)return false;
+    const char* expected=std::strcmp(element,"Int32")==0?"System.Int32[]":
+                         std::strcmp(element,"Boolean")==0?"System.Boolean[]":nullptr;
+    return expected&&typeName(a.field_get_type(field),expected);
+}
+const char* fieldArrayIssue(Il2CppArray* value,FieldInfo* field,
+                            const char* expected,uintptr_t maximum=65536) {
+    auto& a=il2cpp::api();
+    const Il2CppType* type=field&&a.field_get_type?a.field_get_type(field):nullptr;
+    return il2cpp::nativeDeclaredArrayIssue(value,type,expected,maximum);
+}
+bool validFieldArray(Il2CppArray* value,FieldInfo* field,const char* expected) {
+    return !fieldArrayIssue(value,field,expected);
 }
 
 bool staticPrimitive(const native_static::Value& value,const char* kind,size_t width) {
@@ -239,12 +242,12 @@ bool findContracts() {
     a.field_static_get_value(g_questItems, &questItems);
     a.field_static_get_value(g_questFlag, &questFlags);
     if (g_weaponRackFlag) a.field_static_get_value(g_weaponRackFlag, &rackFlags);
-    if (!il2cpp::nativeArrayContract(questItems, "Int32", sizeof(int32_t), 65536) ||
+    if (!validFieldArray(questItems,g_questItems,"System.Int32[]") ||
         questItems->length == 0 ||
-        !il2cpp::nativeArrayContract(questFlags, "Boolean", 1, 65536) ||
+        !validFieldArray(questFlags,g_questFlag,"System.Boolean[]") ||
         questFlags->length == 0 ||
         (g_weaponRackFlag &&
-         (!il2cpp::nativeArrayContract(rackFlags, "Boolean", 1, 65536) ||
+         (!validFieldArray(rackFlags,g_weaponRackFlag,"System.Boolean[]") ||
           rackFlags->length == 0))) {
         g_contractDiagnostic = "QuestTablesNotReady";
         return false;
@@ -271,7 +274,7 @@ bool findContracts() {
             int32_t selected = -1;
             api.field_static_get_value(g_questItems, &arr);
             api.field_static_get_value(g_questIndex, &selected);
-            if (!il2cpp::nativeArrayContract(arr, "Int32", sizeof(int32_t), 65536) ||
+            if (!validFieldArray(arr,g_questItems,"System.Int32[]") ||
                 selected < 0 || static_cast<uintptr_t>(selected) >= arr->length)
                 return -1;
             return static_cast<const int32_t*>(arrayData(arr))[selected];
@@ -311,7 +314,7 @@ bool findContracts() {
             return g_originalChat(turnIn, mi);
         api.field_static_get_value(g_questIndex, &index);
         api.field_static_get_value(g_questItems, &array);
-        if (finished || !il2cpp::nativeArrayContract(array, "Int32", sizeof(int32_t), 65536) ||
+        if (finished || !validFieldArray(array,g_questItems,"System.Int32[]") ||
             index < 0 || static_cast<uintptr_t>(index) >= array->length)
             return g_originalChat(turnIn, mi);
         const int type = static_cast<const int32_t*>(arrayData(array))[index];
@@ -381,15 +384,18 @@ bool prepareFlags(FieldInfo* field, const std::map<int, bool>& saved,
     auto& a = il2cpp::api();
     Il2CppArray* original = nullptr;
     a.field_static_get_value(field, &original);
-    if (!il2cpp::nativeArrayContract(original, "Boolean", 1, 65536) ||
+    if (!validFieldArray(original,field,"System.Boolean[]") ||
         original->length == 0) return false;
     int maximum = -1;
     if (!upcoming.empty()) maximum = *upcoming.rbegin();
     if (maximum >= 65536) return false;
     Il2CppArray* next = original;
     if (maximum >= 0 && static_cast<uintptr_t>(maximum) >= original->length) {
-        next = runtime::TypeTables::resizedCopy(original, maximum + 1);
-        if (!il2cpp::nativeArrayContract(next, "Boolean", 1, 65536) ||
+        Il2CppClass* booleanType=il2cpp::findClass({"System","Boolean",{}});
+        next=booleanType?a.array_new(booleanType,static_cast<uintptr_t>(maximum)+1):nullptr;
+        if(next&&validFieldArray(next,field,"System.Boolean[]"))
+            std::memcpy(arrayData(next),arrayData(original),original->length);
+        if (!validFieldArray(next,field,"System.Boolean[]") ||
             next->length <= static_cast<uintptr_t>(maximum) ||
             !roots || !roots->retain(next)) return false;
     }
@@ -455,8 +461,8 @@ bool updateQuests(const std::vector<Quest>& quests) {
         g_arrayDiagnostic = "InvalidQuestItemArrayLength";
         return false;
     }
-    if (!il2cpp::nativeArrayContract(original, "Int32", sizeof(int32_t), 65536)) {
-        const char* issue=il2cpp::nativeArrayContractIssue(original,"Int32",sizeof(int32_t),65536,declared);
+    if (!validFieldArray(original,g_questItems,"System.Int32[]")) {
+        const char* issue=fieldArrayIssue(original,g_questItems,"System.Int32[]");
         static std::string detail;
         detail=std::string("QuestItemArrayTypeMismatch Detail=")+(issue?issue:"Unknown");
         g_arrayDiagnostic=detail.c_str();
@@ -483,11 +489,10 @@ bool updateQuests(const std::vector<Quest>& quests) {
     PendingArrayRoots roots;
     Il2CppArray* nextIds = nullptr;
     if (update.changed) {
-        Il2CppClass* element = a.class_get_element_class(
-            a.object_get_class(reinterpret_cast<Il2CppObject*>(original)));
-        if (!element) return false;
-        nextIds = a.array_new(element, update.ids.size());
-        if (!il2cpp::nativeArrayContract(nextIds, "Int32", sizeof(int32_t), 65536) ||
+        Il2CppClass* element=il2cpp::findClass({"System","Int32",{}});
+        if(!element)return false;
+        nextIds=a.array_new(element,update.ids.size());
+        if (!validFieldArray(nextIds,g_questItems,"System.Int32[]") ||
             nextIds->length != update.ids.size() || !roots.retain(nextIds))
             return false;
         std::copy(update.ids.begin(), update.ids.end(),

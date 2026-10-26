@@ -857,23 +857,17 @@ DrawShape readDrawShape(Il2CppObject* data) {
         BL_ERROR("[CSharp][TileDraw] Stage=ReadShape Result=Rejected Reason=CoordinateHeightsInvalidPointer Rows=%d", s.rows);
         return {};
     }
-    Il2CppClass* declared=a.class_from_il2cpp_type?a.class_from_il2cpp_type(returnType):nullptr;
-    if(!declared||!il2cpp::nativeManagedPointerPlausible(heights->obj.klass)||
-       heights->obj.klass!=declared) {
-        BL_ERROR("[CSharp][TileDraw] Stage=ReadShape Result=Rejected Reason=CoordinateHeightsRuntimeClassMismatch Rows=%d",s.rows);
+    const char* contract=il2cpp::nativeDeclaredArrayIssue(
+        heights,returnType,"System.Int32[]",tile_draw_shape::maxCoordinateRows);
+    if(contract) {
+        BL_ERROR("[CSharp][TileDraw] Stage=ReadShape Result=Rejected Reason=CoordinateHeightsNativeTypeMismatch Rows=%d Detail=%s",
+                 s.rows,contract);
         return {};
     }
     const uintptr_t length = heights->length;
     if (!tile_draw_shape::valid(s.rows, length)) {
         BL_ERROR("[CSharp][TileDraw] Stage=ReadShape Result=Rejected Reason=CoordinateHeightsOutOfBounds Rows=%d Length=%zu HeaderWord16=%zu",
                  s.rows, static_cast<size_t>(length), static_cast<size_t>(reinterpret_cast<uintptr_t>(heights->bounds)));
-        return {};
-    }
-    if (il2cpp::nativeArrayContractIssue(heights, "Int32", sizeof(int32_t), tile_draw_shape::maxCoordinateRows,declared)!=nullptr) {
-        const char* issue=il2cpp::nativeArrayContractIssue(heights,"Int32",sizeof(int32_t),
-                                                             tile_draw_shape::maxCoordinateRows,declared);
-        BL_ERROR("[CSharp][TileDraw] Stage=ReadShape Result=Rejected Reason=CoordinateHeightsNativeTypeMismatch Rows=%d Length=%zu Detail=%s",
-                 s.rows, static_cast<size_t>(length),issue?issue:"Unknown");
         return {};
     }
     const auto* h = static_cast<const int32_t*>(arrayData(heights));

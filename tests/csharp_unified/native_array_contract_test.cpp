@@ -2,6 +2,7 @@
 #include <cassert>
 #include <cstring>
 #include <cstdio>
+#include <cstdlib>
 
 struct Il2CppClass {
     const char* ns;
@@ -19,6 +20,19 @@ Il2CppClass arrayClass{"System","Int32[]",0,&intClass,false,0};
 Il2CppClass wrongClass{"System","Object",0,&intClass,false,0};
 Il2CppClass* canonical=&arrayClass;
 uint32_t reportedLength=4;
+const Il2CppType* intArrayType=reinterpret_cast<const Il2CppType*>(0x20000);
+const Il2CppType* boolArrayType=reinterpret_cast<const Il2CppType*>(0x30000);
+const char* declaredTypeName(const Il2CppType* value) {
+    return value==intArrayType?"System.Int32[]":"System.Boolean[]";
+}
+char* typeName(const Il2CppType* value) {
+    return ::strdup(declaredTypeName(value));
+}
+void freeString(void* value) { std::free(value); }
+Il2CppClass* fromType(const Il2CppType* value) {
+    return value==intArrayType?&arrayClass:&wrongClass;
+}
+
 
 int rank(const Il2CppClass* cls) { return cls->rank; }
 Il2CppClass* element(Il2CppClass* cls) { return cls->element; }
@@ -49,6 +63,9 @@ int main() {
     a.class_value_size=size;
     a.array_class_get=arrayClassGet;
     a.array_length=arrayLength;
+    a.type_get_name=typeName;
+    a.il2cpp_free=freeString;
+    a.class_from_il2cpp_type=fromType;
     Il2CppArray value{{reinterpret_cast<::Il2CppClass*>(&arrayClass),nullptr},nullptr,4};
     auto test=[&](const char* expected) {
         const char* result=bl::il2cpp::nativeArrayContractIssue(&value,"Int32",4,16);
@@ -83,5 +100,14 @@ int main() {
     assert(std::strcmp(bl::il2cpp::nativeArrayContractIssue(&value,"Int32",4,16,&wrongClass),
                        "ArrayRuntimeClassMismatch")==0);
     assert(bl::il2cpp::nativeArrayContractIssue(&value,"Int32",4,16,&arrayClass)==nullptr);
+    assert(bl::il2cpp::nativeDeclaredArrayIssue(&value,intArrayType,"System.Int32[]",16)==nullptr);
+    arrayClass.element=nullptr;
+    assert(bl::il2cpp::nativeDeclaredArrayIssue(&value,intArrayType,"System.Int32[]",16)==nullptr);
+    assert(std::strcmp(bl::il2cpp::nativeDeclaredArrayIssue(&value,boolArrayType,"System.Int32[]",16),
+                       "DeclaredArrayTypeMismatch")==0);
+    reportedLength=3;
+    assert(std::strcmp(bl::il2cpp::nativeDeclaredArrayIssue(&value,intArrayType,"System.Int32[]",16),
+                       "ArrayLengthAbiMismatch")==0);
+    reportedLength=4;
     std::puts("IL2CPP_NATIVE_ARRAY_CONTRACT=PASS");
 }
