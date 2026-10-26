@@ -2,6 +2,7 @@
 #include "experiments/csharp/NativeAnglerQuestRegistry.h"
 #include "experiments/csharp/NativeAnglerQuestFishing.h"
 #include "experiments/csharp/NativeRecipeCallbacks.h"
+#include "experiments/csharp/NativeAbortProbe.h"
 #include "content/common/TypeTables.h"
 #include "core/Log.h"
 #include "hook/HookManager.h"
@@ -231,6 +232,22 @@ bool findContracts() {
     const MethodInfo* name = a.class_get_method_from_name(lang, "GetItemNameValue", 1);
     if (methodSignature(name, "System.String", "System.Int32"))
         g_nameMethod = name;
+    Il2CppArray* questItems = nullptr;
+    Il2CppArray* questFlags = nullptr;
+    Il2CppArray* rackFlags = nullptr;
+    a.field_static_get_value(g_questItems, &questItems);
+    a.field_static_get_value(g_questFlag, &questFlags);
+    if (g_weaponRackFlag) a.field_static_get_value(g_weaponRackFlag, &rackFlags);
+    if (!il2cpp::nativeArrayContract(questItems, "Int32", sizeof(int32_t), 65536) ||
+        questItems->length == 0 ||
+        !il2cpp::nativeArrayContract(questFlags, "Boolean", 1, 65536) ||
+        questFlags->length == 0 ||
+        (g_weaponRackFlag &&
+         (!il2cpp::nativeArrayContract(rackFlags, "Boolean", 1, 65536) ||
+          rackFlags->length == 0))) {
+        g_contractDiagnostic = "QuestTablesNotReady";
+        return false;
+    }
     if (!g_swapHooked) g_swapHooked = hook::install(swap, +[](const MethodInfo* mi) {
         if (!g_originalSwap) return;
         g_originalSwap(mi);
@@ -411,6 +428,9 @@ void applyFlags(const FlagPlan& plan) {
 }
 
 bool updateQuests(const std::vector<Quest>& quests) {
+#if BUNNY_FIVE_LOADERS_QA
+    setNativeGameStage(1184);
+#endif
     auto& a = il2cpp::api();
     Il2CppArray* original = nullptr;
     a.field_static_get_value(g_questItems, &original);
@@ -423,6 +443,9 @@ bool updateQuests(const std::vector<Quest>& quests) {
     const bool freshList = g_sessionBoundaryPending && g_lastQuestItems &&
         original != g_lastQuestItems;
     const std::set<int> previouslyOwned = freshList ? std::set<int>{} : g_ownedTypes;
+#if BUNNY_FIVE_LOADERS_QA
+    setNativeGameStage(1185);
+#endif
     const QuestListUpdate update = Registry::reconcileIds(
         originalIds, previouslyOwned, quests, selected);
     if (update.ids.empty() || update.ids.size() > 65536) return false;
@@ -442,15 +465,24 @@ bool updateQuests(const std::vector<Quest>& quests) {
     std::set<int> upcoming;
     for (const auto& quest : quests) upcoming.insert(quest.type);
     FlagPlan fish, rack;
+#if BUNNY_FIVE_LOADERS_QA
+    setNativeGameStage(1186);
+#endif
     if (!prepareFlags(g_questFlag, g_previousFlags, upcoming,
                       g_lastFishFlags, &roots, &fish) ||
         (g_weaponRackFlag &&
          !prepareFlags(g_weaponRackFlag, g_previousRackFlags, upcoming,
                        g_lastRackFlags, &roots, &rack)))
         return false;
+#if BUNNY_FIVE_LOADERS_QA
+    setNativeGameStage(1187);
+#endif
     applyFlags(fish);
     if (g_weaponRackFlag) applyFlags(rack);
     if (update.changed) a.field_static_set_value(g_questItems, &nextIds);
+#if BUNNY_FIVE_LOADERS_QA
+    setNativeGameStage(1188);
+#endif
     if (selected != update.selected) {
         int32_t next = update.selected;
         a.field_static_set_value(g_questIndex, &next);
@@ -467,6 +499,9 @@ bool updateQuests(const std::vector<Quest>& quests) {
         g_lastRackFlags = nullptr;
     }
     g_sessionBoundaryPending = false;
+#if BUNNY_FIVE_LOADERS_QA
+    setNativeGameStage(1189);
+#endif
     g_ownedTypes = std::move(upcoming);
     return true;
 }
@@ -474,12 +509,21 @@ bool updateQuests(const std::vector<Quest>& quests) {
 }
 
 void pumpOnGameThread() {
+#if BUNNY_FIVE_LOADERS_QA
+    struct StageReset {
+        ~StageReset() { setNativeGameStage(118); }
+    } stageReset;
+    setNativeGameStage(1181);
+#endif
     const uint64_t revision = registry().generation();
     if (revision == 0 && g_ownedTypes.empty()) return;
     if (revision == g_appliedGeneration && g_active.empty() && g_ownedTypes.empty()) return;
     bool pending = revision != g_appliedGeneration;
     if (!pending && ++g_poll % 120u != 0) return;
     if (!g_swapHooked || !g_chatHooked || !g_questItems) {
+#if BUNNY_FIVE_LOADERS_QA
+        setNativeGameStage(1182);
+#endif
         if (!findContracts()) {
             if (++g_resolveFailures == 1 || g_resolveFailures == 120)
                 BL_WARN("[CSharp][AnglerQuest] Stage=ResolveNativeHooks Result=Pending Reason=%s",
@@ -487,6 +531,9 @@ void pumpOnGameThread() {
             return;
         }
     }
+#if BUNNY_FIVE_LOADERS_QA
+    setNativeGameStage(1183);
+#endif
     const auto [appliedRevision, quests] = registry().snapshotVersion();
     pending = pending || appliedRevision != g_appliedGeneration;
     const uint64_t previousListFingerprint = g_effectiveListFingerprint;
@@ -495,6 +542,9 @@ void pumpOnGameThread() {
             BL_WARN("[CSharp][AnglerQuest] Stage=PublishArrays Result=Pending Reason=InvalidOrUnreadyTerrariaTables");
         return;
     }
+#if BUNNY_FIVE_LOADERS_QA
+    setNativeGameStage(1190);
+#endif
     g_resolveFailures = 0;
     pending = pending || previousListFingerprint != g_effectiveListFingerprint;
     g_appliedGeneration = appliedRevision;
