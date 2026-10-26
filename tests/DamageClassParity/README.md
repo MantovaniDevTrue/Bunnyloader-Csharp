@@ -26,65 +26,47 @@
   por mod, o wire `DAMAGE_TYPE`, o mapeamento vanilla de sinalizadores
   e a sintaxe de NativeContent.cpp, sem Gradle ou APK.
 
-## O que falta para o DamageClassLoader ficar completo no Terraria Android
+## Combate no Terraria Android (integração na QA, PR #180)
 
-**A ponte nativa ainda é parcial. Não descrever como loader de combate
-completo nem autorizar geração de APK.**
+Os hooks deixaram de só observar. Para itens cujo `DamageType` é uma classe do
+mod, `GetWeaponDamage`, `GetWeaponCrit` e `GetWeaponKnockback` devolvem o valor
+da classe (`StatModifier` e `Player.TML.cs` do tModLoader), e
+`ApplyItemAnimation`/`ApplyItemTime` usam a velocidade total. Itens vanilla não
+mudam; qualquer contrato IL2CPP ausente mantém o vanilla.
 
-- A revogação por mod já preserva IDs: remove classes do catálogo ativo,
-  não reutiliza o ID antigo e limpa no worker MonoVM. O parser e o carregador
-  também reconhecem mods sem entidade que contenham apenas DamageClass;
-  ainda falta verificar esse processo em arm64 no jogo.
-- O MonoVM retém o preload após trocar de mundo, evitando que uma sessão
-  antiga descarregue um mod ativo. O snapshot é solicitado apenas uma vez
-  por mod, no preload ou no primeiro callback válido. Ainda falta uma
-  barreira de inicialização antes de criar itens: o preload é assíncrono.
-- `DamageType` agora existe em `BunnyItem`, `BunnyWeapon` e `BunnyProjectile`.
-  O compilador emite `DAMAGE_TYPE` com ID vanilla ou nome completo da classe,
-  e o runtime nativo valida ownership, cacheia por tipo e revoga por mod.
-  Os hooks nativos de Item.SetDefaults/Projectile.SetDefaults agora consultam
-  o binding em snapshot sem copiar strings por projétil: Melee, Ranged, Magic
-  e Summon usam seus sinalizadores compatíveis do Terraria mobile.
-  NativeDefaults roda antes da classificação, e Item.RebuildTooltip depois.
-  Generic e classes customizadas não são classificadas incorretamente como
-  Ranged; MeleeNoSpeed é neutra até existir cálculo nativo que preserve a
-  ausência de bônus de velocidade. IDs V0, híbridos e Throwing mantêm os
-  defaults existentes onde não há correspondência exata.
-  Ainda falta preservar a classificação nos clones, verificar a rede e,
-  principalmente, aplicar os cinco atributos personalizados ao combate.
-  Esse mapeamento parcial não representa paridade completa de DamageClass.
-- `DamageClassLoader.ExportDefaultStatSnapshot` versão V2 calcula e exporta
-  os cinco canais, cada `StatModifier` e uma matriz de herança 5×5 para
-  Generic, Melee, Ranged, Magic e Summon. O MonoVM publica os valores
-  validados em registro C++ separado por mod, sem varredura por quadro.
-  O ExampleDamageClass produz crítico 8 e armorPen 10; os testes C++
-  incluem concorrência, unload e rejeição de entradas inválidas.
-- Os hooks de GetWeaponDamage/Crit/Knockback preservam o resultado original e
-  observam os campos reais meleeDamage, rangedDamage, magicDamage e minionDamage
-  do jogador, com contrato IL2CPP opcional e validação dos números. A projeção
-  considera herança parcial, negativa e ampliada de classes personalizadas.
-  O diagnóstico separa uma parcela comum aproximada (mínimo dos quatro
-  multiplicadores) antes de projetar as parcelas individuais, evitando
-  contabilizar repetidamente bônus iguais em classes híbridas. Também
-  lê opcionalmente meleeCrit/rangedCrit/magicCrit e meleeSpeed, com
-  validação de tipo IL2CPP, para observar herança de crítico e velocidade.
-  Também pode ler armorPenetration de Player e Item quando ambos forem
-  System.Int32; projeta somente para diagnóstico a penetração de classe
-  com a parte genérica herdada, sem alterar acertos ou defesa inimiga.
-  A parcela comum inferida não distingue exatamente os buffs individuais
-  e por isso não deve ser usada como cálculo definitivo de dano.
-  Os três hooks continuam retornando o resultado vanilla inalterado,
-  limitam os logs por canal e não invocam Mono por disparo.
-- Integrar de fato esses atributos aos resultados do Terraria.Player, incluindo
-  equipamentos, buffs, reset por jogador, crítico, knockback, velocidade e
-  penetração de armadura. A projeção atual é somente diagnóstico e não
-  pode ser aplicada como soma ao vanilla sem validar o balanceamento. **O snapshot atual só contém
-  valores padrão da classe**, não os totais de um jogador equipado.
-  Somá-lo diretamente ao valor vanilla duplicaria modificadores.
-- Encaminhar efeitos, prefixos e tooltips pelos pontos nativos exatos
-  do jogo, sem invocar Mono por frame quando não houver mod.
-- Fazer testes de contrato C++/C# e smoke QA em Android/arm64; somente
-  depois desse fechamento considerar artefatos Android.
+- **Generic rastreado na origem.** O Terraria mobile não tem `allDamage`: bônus
+  genéricos somam o mesmo valor nos quatro campos de dano (e nos três de
+  crítico). `ApplyEquipFunctional`, `GrantPrefixBenefits`, `GrantArmorBenefits`,
+  `UpdateArmorSets` e `UpdateBuffs` são medidos antes/depois; a parte comum vira
+  Generic, o resto fica com a classe. `ResetEffects` zera o quadro do jogador.
+  Fontes não rastreadas ficam com a classe (o Generic nunca é inflado).
+- **Padrões da classe.** Vêm do snapshot V2 (totais num jogador zerado); o
+  crítico 4 do Generic já incluso é descontado para não contar duas vezes.
+- **Knockback.** Medido no `GetWeaponKnockback` original com a flag de cada
+  classe (mapa afim), então regras vanilla (luva, buffs, `minionKB`) passam.
+- **Bônus de equipamento.** `BunnyItem.AddClassBonusOnEquip(new BunnyClassBonus(classe) { ... })`
+  → linha `CLASS_BONUS` → registro nativo por item, aplicado no equip sem Mono
+  por frame. Generic/Melee/Ranged/Magic/Summon escrevem nos campos vanilla
+  (itens vanilla também se beneficiam); classes do mod vão para o canal do
+  jogador. Combinações sem campo no jogo mobile são recusadas no carregamento.
+- **Barreira antes do mundo.** A entrada no mundo espera o snapshot de cada mod
+  com DamageClass (até 10 s; depois libera com aviso).
+
+Testes de host: `native_damageclass_combat.cpp` e `native_damageclass_tracking.cpp`
+(ASan/UBSan, no workflow unified), além dos testes nativos e gerenciados
+anteriores. **Ainda falta validação no Android.**
+
+### Limites conhecidos
+
+- Bônus de classe em buffs de mod ainda não: o parser antecipado de `BunnyBuff`
+  só aceita atribuições.
+- `MeleeNoSpeed`, `SummonMeleeSpeed`, `MagicSummonHybrid`, `Throwing` e `Default`
+  não têm campo próprio no jogo mobile; bônus de equipamento para elas são
+  recusados (como `DamageType` de arma continuam funcionando pela herança).
+- Penetração de armadura de classe customizada vale só pelo padrão da classe e
+  pelo Generic vanilla; bônus por jogador de penetração para classe do mod não
+  alteram o acerto.
+- Rede (multiplayer) e clones de item não foram validados.
 
 ## Fontes de referência
 
