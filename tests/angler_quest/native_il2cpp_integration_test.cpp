@@ -185,6 +185,7 @@ void setupApi() {
     a.method_is_instance=[](const MethodInfo* m){return m->instance;};
     a.object_get_class=[](Il2CppObject* object){return object->klass;};
     a.array_new=array;
+    a.array_length=[](Il2CppArray* value)->uint32_t{return static_cast<uint32_t>(value->length);};
     a.gchandle_new=[](Il2CppObject* object,bool pinned)->uint32_t {
         assert(pinned);
         ++gHandleCalls;
@@ -221,6 +222,8 @@ std::vector<int> ids() {
 namespace bl::il2cpp {
 Api& api(){static Api api;return api;}
 Il2CppClass* findClass(const TypeRef& ref) {
+    if(ref.ns=="System"&&ref.name=="Int32")return &kInt;
+    if(ref.ns=="System"&&ref.name=="Boolean")return &kBool;
     if(ref.ns=="Terraria"&&ref.name=="Main")return &kMain;
     if(ref.ns=="Terraria"&&ref.name=="Lang")return &kLang;
     if(ref.ns=="Terraria.ID"&&ref.name=="ItemID"&&ref.nested=="Sets")return &kSets;
