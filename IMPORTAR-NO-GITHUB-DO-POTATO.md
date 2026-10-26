@@ -1,3 +1,7 @@
+> **ATENÇÃO — guia histórico (26/10/2026).** Este procedimento foi escrito para uma entrega antiga, sobre a base do Bunny original `a370a664` de 15/10/2026. A `main` de Jonata já avançou e o script de importação exige um commit-base específico. **Não execute a etapa `--aplicar` nem substitua arquivos na `main` atual sem uma revisão de diferenças.** Para a entrega atual, leia primeiro [o guia de revisão para Jonata](docs/JONATA-REVISAO.md). Este texto anterior fica preservado para rastreabilidade.
+
+---
+
 # Importação da fonte C# integrada no Bunny Loader original
 
 Preparei uma cópia **completa** do Bunny Loader original com o suporte C# já integrado: o código Android e C# está nos mesmos caminhos que o projeto original. Este guia mostra como importar os arquivos para **uma branch do repositório oficial**, preservando o histórico Git e sem mexer na `main` durante a revisão. Não é necessário portar cada classe manualmente.
