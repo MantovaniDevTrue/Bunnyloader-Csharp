@@ -32,8 +32,8 @@ assert "writeOwnedStaticCell(entry.source.type" in item
 assert "nativeValue=!value" in item
 assert "nativeArrayContractIssue" in array
 assert array.index('nativeManagedPointerPlausible(array)') < array.index('a.class_get_rank(array->obj.klass)')
-assert "CoordinateHeightsNativeTypeMismatch Rows=%d Detail=%s" in tile
-assert 'nativeDeclaredArrayIssue(' in tile
+assert "get_CoordinateHeights" not in tile
+assert "tile_draw_shape::reconstructHeights(" in tile
 assert "QuestItemArrayTypeMismatch Detail=" in angler
 assert 'fieldArrayIssue(original,g_questItems,"System.Int32[]")' in angler
 assert "nativeDeclaredArrayIssue" in array

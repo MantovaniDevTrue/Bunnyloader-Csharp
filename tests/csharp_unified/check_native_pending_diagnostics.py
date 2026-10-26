@@ -10,10 +10,9 @@ for field in ("Group=", "Flag=", "Variant=", "Slot=", "Detail=", "ArmorGroupUnav
               "ArmorFlagTableUnavailable", "ArmorFlagResizeUnavailable", "ArmorFlagOwnedWriteRejected"):
     assert field in item, field
 assert 'if(!ready)return false;' in item
-assert "HeaderWord16=%zu" in shape
 read_shape = shape[shape.index("DrawShape readDrawShape("):shape.index("void hookDrawData()")]
-assert read_shape.index("nativeManagedPointerPlausible(heights)") < read_shape.index("heights->length")
-assert read_shape.index("CoordinateHeightsOutOfBounds") < read_shape.index("arrayData(heights)")
+assert "CoordinateHeightsUnreconstructable Rows=%d FullHeight=%d Padding=%d" in read_shape
+assert "arrayData(heights)" not in read_shape
 for reason in ("InvalidQuestItemArrayClassPointer", "InvalidQuestItemArrayLength",
                "QuestItemArrayTypeMismatch", "QuestItemArrayEmpty"):
     assert reason in angler, reason
