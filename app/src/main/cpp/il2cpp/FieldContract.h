@@ -67,7 +67,7 @@ inline bool nativeManagedPointerPlausible(const void* pointer) {
     value&=UINT64_C(0x00FFFFFFFFFFFFFF);
     if(value>=UINT64_C(0x0001000000000000))return false;
 #endif
-    return value>=UINTPTR_C(0x10000)&&(value&(alignof(void*)-1))==0;
+    return value>=static_cast<uintptr_t>(0x10000)&&(value&(alignof(void*)-1))==0;
 }
 inline bool nativeArrayContract(Il2CppArray* array,const char* element,size_t width,uintptr_t maximum=100000) {
     if(!nativeManagedPointerPlausible(array))return false;
