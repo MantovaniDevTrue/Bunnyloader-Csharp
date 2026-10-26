@@ -869,7 +869,7 @@ DrawShape readDrawShape(Il2CppObject* data) {
                  s.rows, static_cast<size_t>(length), static_cast<size_t>(reinterpret_cast<uintptr_t>(heights->bounds)));
         return {};
     }
-    if (!il2cpp::nativeArrayContractIssue(heights, "Int32", sizeof(int32_t), tile_draw_shape::maxCoordinateRows,declared)==nullptr) {
+    if (il2cpp::nativeArrayContractIssue(heights, "Int32", sizeof(int32_t), tile_draw_shape::maxCoordinateRows,declared)!=nullptr) {
         const char* issue=il2cpp::nativeArrayContractIssue(heights,"Int32",sizeof(int32_t),
                                                              tile_draw_shape::maxCoordinateRows,declared);
         BL_ERROR("[CSharp][TileDraw] Stage=ReadShape Result=Rejected Reason=CoordinateHeightsNativeTypeMismatch Rows=%d Length=%zu Detail=%s",
