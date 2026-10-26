@@ -147,7 +147,7 @@ int main() {
             return &colorResult.obj;
         }
         assert(target==&method&&self==nullptr&&args[2]!=nullptr);
-        textureReceived=*static_cast<Il2CppObject* const*>(args[2]);
+        textureReceived=static_cast<Il2CppObject*>(args[2]);   // IL2CPP: parametro referencia vai como o objeto
         renderedTextures.push_back(textureReceived);
         const auto* pos=static_cast<const float*>(args[0]);
         const auto* size=static_cast<const float*>(args[1]);
