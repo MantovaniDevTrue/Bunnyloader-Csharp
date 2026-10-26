@@ -115,23 +115,92 @@ Refs& refs() {
     r.alpha = fieldOffset(dust, "alpha");
     r.color = fieldOffset(dust, "color");
 
+    const auto typeMatches = [&](const Il2CppType* type, const char* expected) {
+        if (!type || !a.type_get_name || !a.il2cpp_free) return false;
+        char* actual = a.type_get_name(type);
+        const bool match = actual && std::strcmp(actual, expected) == 0;
+        if (actual) a.il2cpp_free(actual);
+        return match;
+    };
+    const auto colorMatches = [&](const Il2CppType* type, bool byRef) {
+        if (byRef)
+            return typeMatches(type, "Microsoft.Xna.Framework.Graphics.Color&") ||
+                   typeMatches(type, "Microsoft.Xna.Framework.Color&");
+        if (!a.class_from_il2cpp_type || !a.class_is_valuetype || !a.class_value_size)
+            return false;
+        auto* klass = a.class_from_il2cpp_type(type);
+        uint32_t alignment = 0;
+        return klass && a.class_is_valuetype(klass) &&
+               a.class_value_size(klass, &alignment) == sizeof(Color32) &&
+               (typeMatches(type, "Microsoft.Xna.Framework.Graphics.Color") ||
+                typeMatches(type, "Microsoft.Xna.Framework.Color"));
+    };
+    const auto methodMatches = [&](const MethodInfo* method, bool instance,
+                                   const char* returnType, uint32_t params) {
+        return method && a.method_is_instance &&
+               a.method_is_instance(method) == instance &&
+               a.method_get_param_count(method) == params &&
+               typeMatches(a.method_get_return_type(method), returnType) &&
+               il2cpp::methodPointer(method);
+    };
+    constexpr const char* newDustArgs[] = {
+        "Microsoft.Xna.Framework.Vector2", "System.Int32", "System.Int32",
+        "System.Int32", "System.Single", "System.Single", "System.Int32",
+        nullptr, "System.Single"
+    };
+    bool ambiguous = false;
+    const auto select = [&](const MethodInfo*& target, const MethodInfo* candidate) {
+        if (target && target != candidate) {
+            ambiguous = true;
+            return;
+        }
+        target = candidate;
+    };
     void* it = nullptr;
     while (const MethodInfo* m = a.class_get_methods(dust, &it)) {
-        const char* n = a.method_get_name(m);
-        const uint32_t params = a.method_get_param_count(m);
-        if (std::strcmp(n, "NewDust") == 0 && params == 9) r.newDust = m;
-        else if (std::strcmp(n, "UpdateDust") == 0 && params == 0) r.updateDust = m;
-        else if (std::strcmp(n, "SetNotActive") == 0 && params == 1) r.setNotActive = m;
-        else if (std::strcmp(n, "GetAlpha") == 0 && params == 1) {
-            // GetAlpha(ref Color) e void; GetAlpha(Color) devolve a cor.
-            const Il2CppType* ret = a.method_get_return_type(m);
-            char* name = ret ? a.type_get_name(ret) : nullptr;
-            const bool isVoid = name && std::strcmp(name, "System.Void") == 0;
-            if (name) a.il2cpp_free(name);
-            (isVoid ? r.getAlphaRef : r.getAlphaValue) = m;
+        const char* name = a.method_get_name(m);
+        if (!name) continue;
+        if (std::strcmp(name, "NewDust") == 0 &&
+            methodMatches(m, false, "System.Int32", 9)) {
+            bool matches = true;
+            for (uint32_t i = 0; i < 9 && matches; ++i)
+                matches = i == 7 ? colorMatches(a.method_get_param(m, i), false) :
+                                   typeMatches(a.method_get_param(m, i), newDustArgs[i]);
+            if (matches) select(r.newDust, m);
+        } else if (std::strcmp(name, "UpdateDust") == 0 &&
+                   methodMatches(m, false, "System.Void", 0)) {
+            select(r.updateDust, m);
+        } else if (std::strcmp(name, "SetNotActive") == 0 &&
+                   methodMatches(m, false, "System.Void", 1) &&
+                   typeMatches(a.method_get_param(m, 0), "Terraria.Dust")) {
+            select(r.setNotActive, m);
+        } else if (std::strcmp(name, "GetAlpha") == 0) {
+            if (methodMatches(m, true, "System.Void", 1) &&
+                colorMatches(a.method_get_param(m, 0), true))
+                select(r.getAlphaRef, m);
+            else if (a.method_is_instance && a.method_is_instance(m) &&
+                     a.method_get_param_count(m) == 1 &&
+                     colorMatches(a.method_get_return_type(m), false) &&
+                     colorMatches(a.method_get_param(m, 0), false) &&
+                     il2cpp::methodPointer(m))
+                select(r.getAlphaValue, m);
         }
     }
-    r.drawDust = a.class_get_method_from_name(main, "DrawDust", 0);
+    const MethodInfo* draw = a.class_get_method_from_name(main, "DrawDust", 0);
+    if (methodMatches(draw, true, "System.Void", 0)) r.drawDust = draw;
+    if (ambiguous) {
+        BL_ERROR("[CSharp][DustABI] Result=Rejected Reason=AmbiguousNativeOverload");
+        r = Refs{};
+        r.tried = true;
+        return r;
+    }
+    BL_INFO("[CSharp][DustABI] NewDust=%p UpdateDust=%p DrawDust=%p AlphaRef=%p AlphaValue=%p SetNotActive=%p",
+            r.newDust ? il2cpp::methodPointer(r.newDust) : nullptr,
+            r.updateDust ? il2cpp::methodPointer(r.updateDust) : nullptr,
+            r.drawDust ? il2cpp::methodPointer(r.drawDust) : nullptr,
+            r.getAlphaRef ? il2cpp::methodPointer(r.getAlphaRef) : nullptr,
+            r.getAlphaValue ? il2cpp::methodPointer(r.getAlphaValue) : nullptr,
+            r.setNotActive ? il2cpp::methodPointer(r.setNotActive) : nullptr);
 
     r.ok = r.mainDust && r.maxDustToDraw && r.freeDust && r.freeDustCount && r.activeDustCount &&
            r.staticAlpha && r.dustCount && r.texture && r.active >= 0 && r.type >= 0 && r.frame >= 0 &&
