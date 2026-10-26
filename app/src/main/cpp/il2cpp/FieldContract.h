@@ -1,6 +1,7 @@
 #pragma once
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
+#include "il2cpp/NativePointerContract.h"
 #include <cstring>
 #include <string>
 #include <limits>
@@ -61,14 +62,6 @@ inline bool readNativeId(Il2CppClass* owner,const char* name,int* result,std::st
     *error="Field="+std::string(name)+" Expected=IntegerId Actual="+(actual?actual:"Missing")+" Reason=NativeIdTypeMismatch";return false;
 }
 
-inline bool nativeManagedPointerPlausible(const void* pointer) {
-    uintptr_t value=reinterpret_cast<uintptr_t>(pointer);
-#if defined(__aarch64__)
-    value&=UINT64_C(0x00FFFFFFFFFFFFFF);
-    if(value>=UINT64_C(0x0001000000000000))return false;
-#endif
-    return value>=static_cast<uintptr_t>(0x10000)&&(value&(alignof(void*)-1))==0;
-}
 inline bool nativeArrayContract(Il2CppArray* array,const char* element,size_t width,uintptr_t maximum=100000) {
     if(!nativeManagedPointerPlausible(array))return false;
     auto& a=il2cpp::api();
