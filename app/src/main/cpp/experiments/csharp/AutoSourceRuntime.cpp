@@ -88,6 +88,8 @@
 #include <condition_variable>
 #include <deque>
 #include <functional>
+#include <new>
+#include <exception>
 #include <memory>
 #include <limits.h>
 #include <unistd.h>
@@ -1578,7 +1580,19 @@ bool runSourcePublicationOnGameThread(const char* stage,
         sameThread=g_sourceTextureGameThread==std::this_thread::get_id();
         if (!sameThread) g_sourceTextureQueue.push_back(job);
     }
-    if (sameThread) return job->callback();
+    if (sameThread) {
+        try {
+            return job->callback();
+        } catch (const std::bad_alloc&) {
+            *error = "[CSharp][Assets] " + name + " native allocation rejected";
+            BL_ERROR("%s", error->c_str());
+            return false;
+        } catch (const std::exception& e) {
+            *error = "[CSharp][Assets] " + name + " native exception";
+            BL_ERROR("%s: %s", error->c_str(), e.what());
+            return false;
+        }
+    }
     BL_INFO("[CSharp][Assets] Stage=Queued Kind=%s",name.c_str());
     std::unique_lock<std::mutex> lock(job->mutex);
     if (!job->condition.wait_for(lock,std::chrono::seconds(30),[&] {return job->done;})) {
@@ -1589,6 +1603,8 @@ bool runSourcePublicationOnGameThread(const char* stage,
         }
         job->condition.wait(lock,[&] {return job->done;});
     }
+    if (!job->result && error->empty())
+        *error="[CSharp][Assets] " + name + " publication failed on game thread";
     return job->result;
 }
 
@@ -1607,7 +1623,16 @@ void pumpSourcePublicationsOnGameThread() {
         job->started=true;
     }
     BL_INFO("[CSharp][Assets] Stage=GameThread Kind=%s",job->stage.c_str());
-    const bool result=job->callback();
+    bool result=false;
+    try {
+        result=job->callback();
+    } catch (const std::bad_alloc&) {
+        BL_ERROR("[CSharp][Assets] Stage=GameThread Kind=%s Result=Rejected Reason=NativeBadAlloc",
+                 job->stage.c_str());
+    } catch (const std::exception& e) {
+        BL_ERROR("[CSharp][Assets] Stage=GameThread Kind=%s Result=Rejected Reason=NativeException Detail=%s",
+                 job->stage.c_str(),e.what());
+    }
     {
         std::lock_guard<std::mutex> lock(job->mutex);
         job->result=result;
