@@ -1,6 +1,7 @@
 #pragma once
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
+#include "il2cpp/NativePointerContract.h"
 #include <cstring>
 #include <string>
 #include <limits>
@@ -62,8 +63,10 @@ inline bool readNativeId(Il2CppClass* owner,const char* name,int* result,std::st
 }
 
 inline bool nativeArrayContract(Il2CppArray* array,const char* element,size_t width,uintptr_t maximum=100000) {
+    if(!nativeManagedPointerPlausible(array))return false;
     auto& a=il2cpp::api();
-    if(!array||array->length>maximum||!a.class_get_rank||!a.class_get_element_class||
+    if(!nativeManagedPointerPlausible(array->obj.klass)||
+       array->length>maximum||!a.class_get_rank||!a.class_get_element_class||
        !a.class_value_size||!a.class_is_valuetype||!a.class_get_name||!a.class_get_namespace||
        a.class_get_rank(array->obj.klass)!=1)return false;
     auto* cls=a.class_get_element_class(array->obj.klass);uint32_t align=0;
