@@ -2718,13 +2718,17 @@ bool installCraftingStationIcon(const std::string& modId,
 }
 
 void onManagedTilesInstalled(int first, int last) {
+    BL_DEBUG("[CSharp][Tile] Stage=InstallBegin First=%d Last=%d",first,last);
     std::vector<std::pair<std::string, ManagedTileEntry>> records;
     {
         std::lock_guard<std::mutex> lock(g_tileDefaultsMutex);
         for (const auto& [type, entry] : g_tileDefaults)
             if (type >= first && type <= last) records.push_back(entry);
     }
+    BL_DEBUG("[CSharp][Tile] Stage=InstallSnapshot Count=%zu",records.size());
     for (const auto& [mod, entry] : records) {
+        BL_DEBUG("[CSharp][Tile] Stage=InstallEntry Class=%s Type=%d",
+                 entry.name.c_str(),entry.type);
         const bool flags = applyTileFlags(mod, entry.type, entry);
         const bool shape = applyTileShape(mod,entry.type, entry);
         const bool housing = (entry.flags & 256) == 0 || appendNativeHousingTable(mod, entry);
@@ -2768,7 +2772,10 @@ void onManagedTilesInstalled(int first, int last) {
         if (!guide)
             BL_DEBUG("[CSharp][Tile] Mod=%s Class=%s GuideIcon=Pending",
                      mod.c_str(), entry.name.c_str());
+        BL_DEBUG("[CSharp][Tile] Stage=InstalledEntry Class=%s Type=%d Flags=%d Shape=%d Gameplay=%d",
+                 entry.name.c_str(),entry.type,flags?1:0,shape?1:0,gameplay?1:0);
     }
+    BL_DEBUG("[CSharp][Tile] Stage=InstallComplete Count=%zu",records.size());
 }
 
 }
