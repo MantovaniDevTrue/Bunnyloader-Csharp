@@ -4,9 +4,12 @@ field = Path("app/src/main/cpp/il2cpp/FieldContract.h").read_text()
 contract = Path("app/src/main/cpp/il2cpp/NativePointerContract.h").read_text()
 angler = Path("app/src/main/cpp/experiments/csharp/NativeAnglerQuestGameplay.cpp").read_text()
 
-check = field[field.index("inline bool nativeArrayContract("):]
+check = field[field.index("inline const char* nativeArrayContractIssue("):field.index("inline bool nativeArrayContract(")]
 assert check.index("nativeManagedPointerPlausible(array)") < check.index("array->length")
-assert check.index("nativeManagedPointerPlausible(array->obj.klass)") < check.index("class_get_rank(array->obj.klass)")
+assert check.index("nativeManagedPointerPlausible(array->obj.klass)") < check.index("a.class_get_rank(array->obj.klass)")
+assert "return nativeArrayContractIssue(array,element,width,maximum)==nullptr;" in field
+assert "ArrayRankMismatchCanonicalClassMismatch" in check
+assert "ArrayLengthAbiMismatch" in check
 assert "plausibleManagedPointerValue" in contract
 assert "UINT64_C(0x00FFFFFFFFFFFFFF)" in contract
 assert "UINT64_C(0x0001000000000000)" in contract
