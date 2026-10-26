@@ -32,9 +32,10 @@ assert "writeOwnedStaticCell(entry.source.type" in item
 assert "nativeValue=!value" in item
 assert "nativeArrayContractIssue" in array
 assert array.index('nativeManagedPointerPlausible(array)') < array.index('a.class_get_rank(array->obj.klass)')
-assert "CoordinateHeightsNativeTypeMismatch Rows=%d Length=%zu Detail=%s" in tile
-assert 'nativeArrayContractIssue(heights,"Int32"' in tile
+assert "CoordinateHeightsNativeTypeMismatch Rows=%d Detail=%s" in tile
+assert 'nativeDeclaredArrayIssue(' in tile
 assert "QuestItemArrayTypeMismatch Detail=" in angler
-assert 'nativeArrayContractIssue(original,"Int32"' in angler
+assert 'fieldArrayIssue(original,g_questItems,"System.Int32[]")' in angler
+assert "nativeDeclaredArrayIssue" in array
 assert facts["metadata_sha256"] == "4c904c49d168913d28ef547c4f461e539d926d2ed27c0253ed53a2954e9585f7"
 print("TERRARIA_MOBILE_301720_DUMP_CONTRACTS=PASS")
