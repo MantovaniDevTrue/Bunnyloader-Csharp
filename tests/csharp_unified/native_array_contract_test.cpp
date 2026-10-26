@@ -77,5 +77,11 @@ int main() {
     test("ArrayRankMismatchCanonicalClassMismatch");
     arrayClass.rank=1;
     assert(bl::il2cpp::nativeArrayContract(&value,"Int32",4,16));
+    arrayClass.element=reinterpret_cast<Il2CppClass*>(UINT64_C(0x2e6b726f77656d61));
+    test("ArrayElementClassInvalidPointer");
+    arrayClass.element=&intClass;
+    assert(std::strcmp(bl::il2cpp::nativeArrayContractIssue(&value,"Int32",4,16,&wrongClass),
+                       "ArrayRuntimeClassMismatch")==0);
+    assert(bl::il2cpp::nativeArrayContractIssue(&value,"Int32",4,16,&arrayClass)==nullptr);
     std::puts("IL2CPP_NATIVE_ARRAY_CONTRACT=PASS");
 }
