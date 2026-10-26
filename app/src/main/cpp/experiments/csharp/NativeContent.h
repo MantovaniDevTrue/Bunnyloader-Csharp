@@ -10,6 +10,7 @@
 
 namespace bl::csharp {
 bool nativeCostumeRuntimeReady();
+const char* nativeCostumeRuntimeDiagnostic();
 
 enum NativeContentKind : int32_t {
     NativeProjectile = 1,
