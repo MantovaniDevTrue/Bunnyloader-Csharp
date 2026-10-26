@@ -6,6 +6,7 @@
 #include "experiments/csharp/ManagedRuntime.h"
 #include "experiments/csharp/ManagedProjectileHook.h"
 #include "experiments/csharp/ManagedMinionBuff.h"
+#include "experiments/csharp/NativeDamageClassHooks.h"
 #include "il2cpp/FieldContract.h"
 #include "il2cpp/GuardedCall.h"
 #include "experiments/csharp/NativeBasicItems.h"
@@ -521,7 +522,7 @@ void observeNativeWeaponCombat(const char* channel, Il2CppObject* player,
         validPenetration = projectNativeArmorPenetration(
             stats, playerPenetration, itemPenetration, &projectedPenetration);
     }
-    BL_INFO("[CSharp][DamageClass][Observe] Stage=%s Mod=%s ItemType=%d Class=%s Vanilla=%.3f DamageAdd=%.3f DamageMul=%.3f Crit=%.3f KnockbackAdd=%.3f KnockbackMul=%.3f Speed=%.3f ArmorPen=%.3f StandardCrit=%d LiveValid=%d Melee=%.3f Ranged=%.3f Magic=%.3f Summon=%.3f NonGenericDamageDelta=%.3f CritValid=%d SharedCrit=%.3f CritDelta=%.3f SpeedValid=%d MeleeSpeedDelta=%.3f PenValid=%d PlayerPen=%d ItemPen=%d ProjectedPen=%.3f Result=Unchanged",
+    BL_INFO("[CSharp][DamageClass][Observe] Stage=%s Mod=%s ItemType=%d Class=%s Vanilla=%.3f DamageAdd=%.3f DamageMul=%.3f Crit=%.3f KnockbackAdd=%.3f KnockbackMul=%.3f Speed=%.3f ArmorPen=%.3f StandardCrit=%d LiveValid=%d Melee=%.3f Ranged=%.3f Magic=%.3f Summon=%.3f NonGenericDamageDelta=%.3f CritValid=%d SharedCrit=%.3f CritDelta=%.3f SpeedValid=%d MeleeSpeedDelta=%.3f PenValid=%d PlayerPen=%d ItemPen=%d ProjectedPen=%.3f Result=VanillaSample",
         channel, snapshot.source.mod.c_str(), itemType,
         snapshot.source.damageClass.c_str(), nativeValue,
         stats.damage.additive, stats.damage.multiplicative, stats.crit,
@@ -540,6 +541,8 @@ int32_t hkNativeWeaponDamage(Il2CppObject* player, Il2CppObject* item,
         ? g_originalWeaponDamage(player, item, method) : 0;
     if (player) observeNativeWeaponCombat("GetWeaponDamage", player, item, original,
                                           g_damageCombatSamples);
+    int32_t custom = 0;
+    if (player && damage_combat::customWeaponDamage(player, item, original, &custom)) return custom;
     return original;
 }
 
@@ -549,6 +552,8 @@ int32_t hkNativeWeaponCrit(Il2CppObject* player, Il2CppObject* item,
         ? g_originalWeaponCrit(player, item, method) : 0;
     if (player) observeNativeWeaponCombat("GetWeaponCrit", player, item, original,
                                           g_critCombatSamples);
+    int32_t custom = 0;
+    if (player && damage_combat::customWeaponCrit(player, item, original, &custom)) return custom;
     return original;
 }
 
@@ -558,6 +563,9 @@ float hkNativeWeaponKnockback(Il2CppObject* player, Il2CppObject* item,
         ? g_originalWeaponKnockback(player, item, knockback, method) : knockback;
     if (player) observeNativeWeaponCombat("GetWeaponKnockback", player, item, original,
                                           g_knockbackCombatSamples);
+    float custom = 0.f;
+    if (player && damage_combat::customWeaponKnockback(player, item, knockback,
+            g_originalWeaponKnockback, method, &custom)) return custom;
     return original;
 }
 
@@ -582,6 +590,8 @@ void installNativeDamageCombatObservation(Il2CppClass* player) {
         bl::hook::install(knockback, hkNativeWeaponKnockback, &g_originalWeaponKnockback))
         BL_INFO("[CSharp][DamageClass] GetWeaponKnockback passive native hook installed");
     else BL_WARN("[CSharp][DamageClass] GetWeaponKnockback passive hook unavailable");
+    // Rastreio do genérico na origem, bonus de classe e velocidade de ataque.
+    damage_combat::installNativeDamageClassTracking();
 }
 
 bool g_nativeDamageClassFieldsReady=false;

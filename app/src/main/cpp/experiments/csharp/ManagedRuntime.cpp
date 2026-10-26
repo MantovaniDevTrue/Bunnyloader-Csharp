@@ -5,6 +5,7 @@
 #include "experiments/csharp/NativeWorldTickOutcome.h"
 #include "experiments/csharp/NativeDamageTypeRegistry.h"
 #include "experiments/csharp/NativeDamageClassStats.h"
+#include "experiments/csharp/NativeDamageClassPlayerStats.h"
 #include "experiments/csharp/NativeCommandMailbox.h"
 #include "experiments/csharp/NativeCommandResult.h"
 #include "experiments/csharp/ManagedLocalizationEpochFence.h"
@@ -5740,6 +5741,7 @@ ManagedSourceCompileResult compileManagedSource(
 void invalidateManagedDeferredSourceMod(const std::string& modId) {
     if (modId.empty()) return;
     nativeDamageTypes().unload(modId);
+    damage_combat::classBonuses().unload(modId);
     std::lock_guard<std::mutex> lock(g_pinnedMutex);
     g_revokedDeferredMods.insert(modId);
     nativeDamageClassStats().unload(modId);

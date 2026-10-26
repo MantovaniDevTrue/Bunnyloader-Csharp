@@ -8,6 +8,7 @@ expected = {
     "ITEM_RARITY": {3}, "RARITY": {2}, "DUST": {5}, "QUEST_FISH": {6,7}, "QUEST_LOCALE": {5}, "QUEST_CALLBACK": {3}, "QUEST_CATCH": {4},
     "SHOOT": {3,4}, "USE_SOUND": {8}, "HOLDOUT": {4}, "NATIVE_ITEM": {3}, "NATIVE_PROJECTILE": {3},
     "RECIPES": {4},
+    "DAMAGE_TYPE": {4}, "CLASS_BONUS": {14},
     "ITEM": {20, 21, 22, 23, 24, 25, 26, 27, 28},
     "TILE": {13, 14, 16, 17, 19, 20, 21, 22, 23, 25, 28, 29},
     "TREE": {5, 7, 9, 11, 12}, "GORE": {5}, "MOUNT": {3}, "MOUNT_ITEM": {3},

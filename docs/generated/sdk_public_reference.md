@@ -157,6 +157,30 @@ string Texture { get; set; }
 | `void SetDefaults()` | compile_policy |
 | `void SetRarity<T>()` | managed_helper |
 
+## BunnyLoader.Source.BunnyClassBonus
+
+struct; base: `System.ValueType`.
+
+```csharp
+BunnyClassBonus(DamageClass Class)
+DamageClass Class { get; set; }
+float ArmorPenetration { get; set; }
+float AttackSpeed { get; set; }
+float Crit { get; set; }
+float Damage { get; set; }
+float DamageMultiplier { get; set; }
+float Knockback { get; set; }
+float KnockbackMultiplier { get; set; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `bool Equals(BunnyClassBonus other)` | managed_helper |
+| `bool Equals(Object obj)` | managed_helper |
+| `int GetHashCode()` | managed_helper |
+| `string ToString()` | managed_helper |
+| `void Deconstruct(out DamageClass Class)` | managed_helper |
+
 ## BunnyLoader.Source.BunnyColor
 
 struct; base: `System.ValueType`.
@@ -1098,6 +1122,7 @@ Dictionary<string, string> QuestDescriptionTranslations { get; }
 Dictionary<string, string> TooltipTranslations { get; }
 Func<BunnyQuestContext, bool> QuestAvailableWhen { get; set; }
 Func<BunnyQuestContext, bool> QuestCanCatchWhen { get; set; }
+IReadOnlyList<BunnyClassBonus> ClassBonuses { get; }
 bool Accessory { get; set; }
 bool AutoReuse { get; set; }
 bool Consumable { get; set; }
@@ -1148,6 +1173,7 @@ string UseSound { get; set; }
 | `static int BuyPrice(int platinum, int gold, int silver, int copper)` | managed_helper |
 | `static int SellPrice(int platinum, int gold, int silver, int copper)` | managed_helper |
 | `string OnUseRejectionReason(int playerIndex, BunnyUseContext context)` | managed_helper |
+| `void AddClassBonusOnEquip(BunnyClassBonus bonus)` | managed_helper |
 | `void DefaultToGolfBall(string projectile)` | managed_helper |
 | `void DefaultToPlaceableTile(int vanillaTileId, int style)` | managed_helper |
 | `void DefaultToPlaceableTile(string modTileName, int style)` | managed_helper |

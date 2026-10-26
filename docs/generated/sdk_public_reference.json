@@ -260,6 +260,47 @@
       ]
     },
     {
+      "name": "BunnyLoader.Source.BunnyClassBonus",
+      "kind": "struct",
+      "baseType": "System.ValueType",
+      "constructors": [
+        "BunnyClassBonus(DamageClass Class)"
+      ],
+      "properties": [
+        "DamageClass Class { get; set; }",
+        "float ArmorPenetration { get; set; }",
+        "float AttackSpeed { get; set; }",
+        "float Crit { get; set; }",
+        "float Damage { get; set; }",
+        "float DamageMultiplier { get; set; }",
+        "float Knockback { get; set; }",
+        "float KnockbackMultiplier { get; set; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "bool Equals(BunnyClassBonus other)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "bool Equals(Object obj)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "int GetHashCode()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "string ToString()",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void Deconstruct(out DamageClass Class)",
+          "execution": "managed_helper"
+        }
+      ]
+    },
+    {
       "name": "BunnyLoader.Source.BunnyColor",
       "kind": "struct",
       "baseType": "System.ValueType",
@@ -2027,6 +2068,7 @@
         "Dictionary\u003Cstring, string\u003E TooltipTranslations { get; }",
         "Func\u003CBunnyQuestContext, bool\u003E QuestAvailableWhen { get; set; }",
         "Func\u003CBunnyQuestContext, bool\u003E QuestCanCatchWhen { get; set; }",
+        "IReadOnlyList\u003CBunnyClassBonus\u003E ClassBonuses { get; }",
         "bool Accessory { get; set; }",
         "bool AutoReuse { get; set; }",
         "bool Consumable { get; set; }",
@@ -2092,6 +2134,10 @@
         },
         {
           "signature": "string OnUseRejectionReason(int playerIndex, BunnyUseContext context)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void AddClassBonusOnEquip(BunnyClassBonus bonus)",
           "execution": "managed_helper"
         },
         {

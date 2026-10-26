@@ -1407,6 +1407,10 @@ public static class CompiledAssemblyProbe
             var damageClass = Value<BunnyLoader.Source.DamageClass>(content, "DamageType");
             if (damageClass is null)
                 throw new InvalidOperationException("DamageType cannot be null: " + content.GetType().FullName);
+            return DamageClassWire(damageClass, content);
+        }
+        string DamageClassWire(BunnyLoader.Source.DamageClass damageClass, object content)
+        {
             for (int i = 0; i < 10; ++i)
                 if (ReferenceEquals(damageClass, BunnyLoader.Source.DamageClassLoader.GetDamageClass(i)))
                     return "V" + i.ToString(CultureInfo.InvariantCulture);
@@ -1428,6 +1432,24 @@ public static class CompiledAssemblyProbe
         foreach (object owner in projectiles)
             lines.Add(string.Join("\t", "DAMAGE_TYPE", "PROJECTILE",
                 owner.GetType().Name, DamageTypeWire(owner)));
+        // Bonus de classe enquanto equipado (StatModifier aditivo = 1 + Damage).
+        string Wire(float value) => value.ToString("R", CultureInfo.InvariantCulture);
+        foreach (object owner in basicItems)
+        {
+            var bonuses = owner.GetType().GetProperty("ClassBonuses")?.GetValue(owner) as System.Collections.IEnumerable;
+            if (bonuses is null) continue;
+            foreach (object bonus in bonuses)
+            {
+                var cls = Value<BunnyLoader.Source.DamageClass>(bonus, "Class");
+                if (cls is null)
+                    throw new InvalidOperationException("ClassBonus requires a DamageClass: " + owner.GetType().FullName);
+                lines.Add(string.Join("\t", "CLASS_BONUS", owner.GetType().Name, DamageClassWire(cls, owner),
+                    "0", Wire(1f + Value<float>(bonus, "Damage")), Wire(Value<float>(bonus, "DamageMultiplier")), "0",
+                    "0", Wire(1f + Value<float>(bonus, "Knockback")), Wire(Value<float>(bonus, "KnockbackMultiplier")), "0",
+                    Wire(Value<float>(bonus, "Crit")), Wire(Value<float>(bonus, "AttackSpeed")),
+                    Wire(Value<float>(bonus, "ArmorPenetration"))));
+            }
+        }
         // A single public typed bridge serves all item families and projectiles.
         foreach(var definition in basicItems.Concat(weapons).Concat(potions).Concat(accessories)
             .Select(value=>(Value:value,Kind:"NATIVE_ITEM"))
