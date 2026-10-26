@@ -70,7 +70,6 @@ inline const char* nativeArrayContractIssue(Il2CppArray* array,const char* eleme
     if(!a.class_get_rank||!a.class_get_element_class||!a.class_value_size||
        !a.class_is_valuetype||!a.class_get_name||!a.class_get_namespace)
         return "MissingArrayReflectionExports";
-    if(a.class_get_rank(array->obj.klass)!=1)return "ArrayRankMismatch";
     auto* cls=a.class_get_element_class(array->obj.klass);
     if(!cls)return "ArrayElementClassMissing";
     const char* ns=a.class_get_namespace(cls);
@@ -81,18 +80,19 @@ inline const char* nativeArrayContractIssue(Il2CppArray* array,const char* eleme
     uint32_t align=0;
     if(a.class_value_size(cls,&align)!=static_cast<int>(width))
         return "ArrayElementSizeMismatch";
+    const int rank=a.class_get_rank(array->obj.klass);
+    if(rank!=1) {
+        if(!a.array_class_get||!a.array_length)return "ArrayRankMismatchNoCanonicalExports";
+        if(a.array_class_get(cls,1)!=array->obj.klass)
+            return "ArrayRankMismatchCanonicalClassMismatch";
+        if(array->bounds)return "ArrayBoundsUnexpected";
+        if(a.array_length(array)!=array->length)return "ArrayLengthAbiMismatch";
+    } else if(array->bounds) {
+        return "ArrayBoundsUnexpected";
+    }
     return nullptr;
 }
 inline bool nativeArrayContract(Il2CppArray* array,const char* element,size_t width,uintptr_t maximum=100000) {
-    if(!nativeManagedPointerPlausible(array))return false;
-    auto& a=il2cpp::api();
-    if(!nativeManagedPointerPlausible(array->obj.klass)||
-       array->length>maximum||!a.class_get_rank||!a.class_get_element_class||
-       !a.class_value_size||!a.class_is_valuetype||!a.class_get_name||!a.class_get_namespace||
-       a.class_get_rank(array->obj.klass)!=1)return false;
-    auto* cls=a.class_get_element_class(array->obj.klass);uint32_t align=0;
-    const char* ns=cls?a.class_get_namespace(cls):nullptr;const char* name=cls?a.class_get_name(cls):nullptr;
-    return cls&&ns&&name&&std::strcmp(ns,"System")==0&&std::strcmp(name,element)==0&&
-        a.class_is_valuetype(cls)&&a.class_value_size(cls,&align)==static_cast<int>(width);
+    return nativeArrayContractIssue(array,element,width,maximum)==nullptr;
 }
 }

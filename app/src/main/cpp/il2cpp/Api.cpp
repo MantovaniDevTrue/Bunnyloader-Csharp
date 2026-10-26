@@ -75,6 +75,8 @@ bool Api::load() {
     bind(lib, "il2cpp_class_is_generic", &class_is_generic);
     ok &= bind(lib, "il2cpp_method_get_class", &method_get_class);
     ok &= bind(lib, "il2cpp_class_get_element_class", &class_get_element_class);
+    bindSoft(lib, "il2cpp_array_class_get", &array_class_get);
+    bindSoft(lib, "il2cpp_array_length", &array_length);
     bindSoft(lib, "il2cpp_class_get_rank", &class_get_rank);
     bindSoft(lib, "il2cpp_value_box", &value_box);
     ok &= bind(lib, "il2cpp_class_value_size", &class_value_size);

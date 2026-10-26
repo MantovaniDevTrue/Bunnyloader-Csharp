@@ -48,6 +48,8 @@ struct Api {
     // um Vector2[] guarda os structs em linha (8 B de dados). Sem o tamanho
     // certo o indice anda errado.
     Il2CppClass* (*class_get_element_class)(Il2CppClass*) = nullptr;
+    Il2CppClass* (*array_class_get)(Il2CppClass*, uint32_t) = nullptr;
+    uint32_t (*array_length)(Il2CppArray*) = nullptr;
     // Dimensoes de um array (0 = nao e array). Um metodo que DECLARA devolver
     // System.Array ou object pode devolver um T[] de verdade.
     int (*class_get_rank)(const Il2CppClass*) = nullptr;
