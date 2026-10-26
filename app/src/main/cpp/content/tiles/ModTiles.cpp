@@ -8,6 +8,7 @@
 #include "hook/HookManager.h"
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
+#include "il2cpp/FieldContract.h"
 #include "hook/CodePatch.h"
 #include "content/common/ContentAssets.h"
 #include "content/common/GameRefs.h"
@@ -852,9 +853,18 @@ DrawShape readDrawShape(Il2CppObject* data) {
     Il2CppObject* exc = nullptr;
     auto* heights = reinterpret_cast<Il2CppArray*>(a.runtime_invoke(get, data, nullptr, &exc));
     if (exc || !heights) return {};
+    if (!il2cpp::nativeManagedPointerPlausible(heights)) {
+        BL_ERROR("[CSharp][TileDraw] Stage=ReadShape Result=Rejected Reason=CoordinateHeightsInvalidPointer Rows=%d", s.rows);
+        return {};
+    }
     const uintptr_t length = heights->length;
     if (!tile_draw_shape::valid(s.rows, length)) {
         BL_ERROR("[CSharp][TileDraw] Stage=ReadShape Result=Rejected Reason=CoordinateHeightsOutOfBounds Rows=%d Length=%zu",
+                 s.rows, static_cast<size_t>(length));
+        return {};
+    }
+    if (!il2cpp::nativeArrayContract(heights, "Int32", sizeof(int32_t), tile_draw_shape::maxCoordinateRows)) {
+        BL_ERROR("[CSharp][TileDraw] Stage=ReadShape Result=Rejected Reason=CoordinateHeightsNativeTypeMismatch Rows=%d Length=%zu",
                  s.rows, static_cast<size_t>(length));
         return {};
     }

@@ -11,6 +11,8 @@ assert "CostumePlayerHooksUnavailable Detail=" in policy
 assert "nativeCostumeRuntimeDiagnostic()" in policy
 assert "const char* nativeCostumeRuntimeDiagnostic();" in header
 assert "g_costumeReady=addBuffReady&&removeBuffReady&&hideReady&&identityReady&&fieldsReady;" in source
+assert 'costumeField("townNPCs","System.Int32",4,&g_refs.playerTownNpcs)' in source
+assert "const int32_t count=bl::runtime::field<int32_t>(player,g_refs.playerTownNpcs);" in source
 for reason in (
     "AddBuffMethodMissingOrSignatureMismatch",
     "DelBuffMethodMissingOrRuntimeInvokeUnavailable",

@@ -722,8 +722,8 @@ bool costumeHidden(Il2CppObject* player,int type) {
 }
 int costumeTownCount(Il2CppObject* player) {
     if(!player||g_refs.playerTownNpcs<0)return 0;
-    const float count=bl::runtime::field<float>(player,g_refs.playerTownNpcs);
-    return std::isfinite(count)&&count>0?static_cast<int>(count):0;
+    const int32_t count=bl::runtime::field<int32_t>(player,g_refs.playerTownNpcs);
+    return count>0?count:0;
 }
 
 void hkApplyEquip(Il2CppObject* self, int32_t slot, Il2CppObject* item, const MethodInfo* method) {
@@ -1842,7 +1842,7 @@ bool prepareNativePlayerEffects() {
     const bool hideReady=g_refs.playerHideVisibleAccessory>=0;
     const bool identityReady=g_refs.playerWhoAmI>=0;
     bool fieldsReady=true;
-    fieldsReady=costumeField("townNPCs","System.Single",4,&g_refs.playerTownNpcs)&&fieldsReady;
+    fieldsReady=costumeField("townNPCs","System.Int32",4,&g_refs.playerTownNpcs)&&fieldsReady;
     fieldsReady=costumeField("jumpSpeedBoost","System.Single",4,&g_refs.playerJumpSpeedBoost)&&fieldsReady;
     fieldsReady=costumeField("extraFall","System.Int32",4,&g_refs.playerExtraFall)&&fieldsReady;
     fieldsReady=costumeField("wet","System.Boolean",1,&g_refs.playerWet)&&fieldsReady;

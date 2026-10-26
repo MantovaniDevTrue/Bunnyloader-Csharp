@@ -46,7 +46,11 @@ jobs:
       - name: Verify Angler Quest native stage 118 and safe hook readiness
         run: python3 tests/csharp_unified/check_angler_stage118.py
       - name: Verify tile draw coordinate height array bounds
-        run: mkdir -p build/unified-tile-shapes && c++ -std=c++20 -Wall -Wextra -Werror -Iapp/src/main/cpp tests/csharp_unified/tile_draw_shape_bounds_test.cpp -o build/unified-tile-shapes/check && build/unified-tile-shapes/check
+        run: |
+          mkdir -p build/unified-tile-shapes
+          c++ -std=c++20 -Wall -Wextra -Werror -Iapp/src/main/cpp tests/csharp_unified/tile_draw_shape_bounds_test.cpp -o build/unified-tile-shapes/check
+          build/unified-tile-shapes/check
+          python3 tests/csharp_unified/check_tile_draw_native_contract.py
       - name: Verify world tick crash stage boundaries
         run: python3 tests/csharp_unified/check_world_crash_stages.py
       - name: Verify Android drink particle color jagged array ABI
