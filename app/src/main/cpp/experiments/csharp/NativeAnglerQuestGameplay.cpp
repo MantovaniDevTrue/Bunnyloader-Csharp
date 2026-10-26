@@ -449,14 +449,6 @@ bool updateQuests(const std::vector<Quest>& quests) {
         g_arrayDiagnostic = "InvalidQuestItemArrayClassPointer";
         return false;
     }
-    auto& il2cppApi=il2cpp::api();
-    Il2CppClass* declared=(g_questItems&&il2cppApi.field_get_type&&
-        il2cppApi.class_from_il2cpp_type)?
-        il2cppApi.class_from_il2cpp_type(il2cppApi.field_get_type(g_questItems)):nullptr;
-    if(!declared||original->obj.klass!=declared) {
-        g_arrayDiagnostic="QuestItemArrayRuntimeClassMismatch";
-        return false;
-    }
     if (original->length > 65536) {
         g_arrayDiagnostic = "InvalidQuestItemArrayLength";
         return false;

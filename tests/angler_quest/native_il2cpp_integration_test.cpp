@@ -147,6 +147,15 @@ void setupApi() {
     a.field_get_type=[](FieldInfo* field){return field->type;};
     a.field_get_flags=[](FieldInfo* field)->uint32_t{return (gBadStaticField&&field==&fCorner)||(gPropertiesOnly&&(field==&fCorner||field==&fFinished)) ? 0u : 0x10u;};
     a.class_from_il2cpp_type=[](const Il2CppType* t){return t->type;};
+    a.corlibImage=reinterpret_cast<const Il2CppImage*>(0x20000);
+    a.class_from_name=[](const Il2CppImage*,const char* ns,const char* name)->Il2CppClass* {
+        if(std::strcmp(ns,"System"))return nullptr;
+        return !std::strcmp(name,"Int32")?&kInt:
+               !std::strcmp(name,"Boolean")?&kBool:nullptr;
+    };
+    a.array_class_get=[](Il2CppClass* elem,uint32_t rank)->Il2CppClass* {
+        return rank!=1?nullptr:elem==&kInt?&kIntArray:elem==&kBool?&kBoolArray:nullptr;
+    };
     a.class_get_element_class=[](Il2CppClass* cls){return cls->element;};
     a.class_get_rank=[](const Il2CppClass* cls) {return cls==&kBoolArray||cls==&kIntArray?1:0;};
     a.class_is_valuetype=[](const Il2CppClass* cls) {return cls==&kBool||cls==&kInt;};

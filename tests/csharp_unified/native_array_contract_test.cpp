@@ -76,6 +76,13 @@ int main() {
     a.type_get_name=typeName;
     a.il2cpp_free=freeString;
     a.class_from_il2cpp_type=fromType;
+    a.corlibImage=reinterpret_cast<const Il2CppImage*>(0x20000);
+    a.class_from_name=[](const Il2CppImage*,const char* ns,const char* name)->Il2CppClass* {
+        if(std::strcmp(ns,"System"))return nullptr;
+        return !std::strcmp(name,"Int32")?&intClass:
+               !std::strcmp(name,"Boolean")?&boolClass:nullptr;
+    };
+    a.array_class_get=arrayClassGet;
     a.object_get_class=getObjectClass;
     a.class_get_type=classType;
     a.array_element_size=elementSize;
@@ -125,12 +132,16 @@ int main() {
     assert(bl::il2cpp::nativeDeclaredArrayIssue(&value,intArrayType,"System.Int32[]",16)==nullptr);
     value.obj.klass=reinterpret_cast<Il2CppClass*>(&wrongClass);
     assert(std::strcmp(bl::il2cpp::nativeDeclaredArrayIssue(&value,intArrayType,"System.Int32[]",16),
-                       "ArrayRuntimeTypeMismatch")==0);
+                       "ArrayUnrecognizedRuntimeClass")==0);
     value.obj.klass=reinterpret_cast<Il2CppClass*>(&arrayClass);
     Il2CppClass duplicateArrayClass{"System","Int32[]",0,nullptr,false,0};
     alternateArrayClass=&duplicateArrayClass;
     value.obj.klass=reinterpret_cast<Il2CppClass*>(&duplicateArrayClass);
+    canonical=&duplicateArrayClass;
     assert(bl::il2cpp::nativeDeclaredArrayIssue(&value,intArrayType,"System.Int32[]",16)==nullptr);
+    canonical=&arrayClass;
+    assert(std::strcmp(bl::il2cpp::nativeDeclaredArrayIssue(&value,intArrayType,"System.Int32[]",16),
+                       "ArrayUnrecognizedRuntimeClass")==0);
     value.obj.klass=reinterpret_cast<Il2CppClass*>(&arrayClass);
     alternateArrayClass=nullptr;
     std::puts("IL2CPP_NATIVE_ARRAY_CONTRACT=PASS");

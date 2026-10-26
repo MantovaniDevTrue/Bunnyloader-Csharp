@@ -99,31 +99,40 @@ inline const char* nativeDeclaredArrayIssue(Il2CppArray* array,const Il2CppType*
                                              const char* expectedType,uintptr_t maximum) {
     auto& a=il2cpp::api();
     if(!declaredType||!a.type_get_name||!a.il2cpp_free||
-       !a.object_get_class||!a.class_get_type||!a.array_length||!a.array_element_size)
+       !a.class_from_il2cpp_type||!a.class_from_name||!a.array_class_get||
+       !a.array_length||!a.array_element_size||!a.corlibImage)
         return "MissingDeclaredArrayExports";
     char* declaredName=a.type_get_name(declaredType);
     const bool declaredMatches=declaredName&&std::strcmp(declaredName,expectedType)==0;
     if(declaredName)a.il2cpp_free(declaredName);
     if(!declaredMatches)return "DeclaredArrayTypeMismatch";
+    const char* elementName=nullptr;
+    size_t width=0;
+    if(std::strcmp(expectedType,"System.Int32[]")==0) {
+        elementName="Int32";
+        width=sizeof(int32_t);
+    } else if(std::strcmp(expectedType,"System.Boolean[]")==0) {
+        elementName="Boolean";
+        width=sizeof(uint8_t);
+    } else {
+        return "UnsupportedPrimitiveArrayType";
+    }
+    Il2CppClass* element=a.class_from_name(a.corlibImage,"System",elementName);
+    if(!nativeManagedPointerPlausible(element))return "InvalidPrimitiveElementClass";
+    Il2CppClass* canonical=a.array_class_get(element,1);
+    Il2CppClass* declared=a.class_from_il2cpp_type(declaredType);
+    if(!nativeManagedPointerPlausible(canonical)||
+       !nativeManagedPointerPlausible(declared))return "InvalidDeclaredArrayClass";
     if(!nativeManagedPointerPlausible(array))return "InvalidArrayPointer";
-    if(!nativeManagedPointerPlausible(array->obj.klass))return "InvalidArrayClassPointer";
-    Il2CppClass* runtimeClass=a.object_get_class(reinterpret_cast<Il2CppObject*>(array));
-    if(!nativeManagedPointerPlausible(runtimeClass))return "InvalidRuntimeArrayClass";
-    if(runtimeClass!=array->obj.klass)return "ArrayObjectClassMismatch";
-    const Il2CppType* runtimeType=a.class_get_type(runtimeClass);
-    if(!nativeManagedPointerPlausible(runtimeType))return "InvalidRuntimeArrayType";
-    char* runtimeName=a.type_get_name(runtimeType);
-    const bool runtimeMatches=runtimeName&&std::strcmp(runtimeName,expectedType)==0;
-    if(runtimeName)a.il2cpp_free(runtimeName);
-    if(!runtimeMatches)return "ArrayRuntimeTypeMismatch";
-    const size_t elementSize=std::strcmp(expectedType,"System.Int32[]")==0?sizeof(int32_t):
-                             std::strcmp(expectedType,"System.Boolean[]")==0?sizeof(uint8_t):0;
-    if(!elementSize)return "UnsupportedPrimitiveArrayType";
-    if(a.array_element_size(runtimeClass)!=static_cast<int>(elementSize))
-        return "ArrayElementSizeMismatch";
+    Il2CppClass* runtimeClass=array->obj.klass;
+    if(!nativeManagedPointerPlausible(runtimeClass))return "InvalidArrayClassPointer";
+    if(runtimeClass!=canonical&&runtimeClass!=declared)
+        return "ArrayUnrecognizedRuntimeClass";
     if(array->bounds)return "ArrayBoundsUnexpected";
     if(array->length>maximum)return "ArrayLengthOutOfBounds";
     if(a.array_length(array)!=array->length)return "ArrayLengthAbiMismatch";
+    if(a.array_element_size(runtimeClass)!=static_cast<int>(width))
+        return "ArrayElementSizeMismatch";
     return nullptr;
 }
 inline bool nativeArrayContract(Il2CppArray* array,const char* element,size_t width,uintptr_t maximum=100000) {
