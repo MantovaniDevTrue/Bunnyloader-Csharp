@@ -1,81 +1,58 @@
 <p align="center"><img src="_icons/launcher/titulo.png" alt="Bunny Loader"></p>
 
-# Bunny Loader com suporte C#
+# Bunny Loader — suporte C#
 
-**Código-fonte integrado — a partir do Bunny Loader de Jonata Oliveira.**
+Integração C# para o [Bunny Loader original, de Jonata Oliveira](https://github.com/JonataOliveiraa/Bunny-Loader), desenvolvida por Mantovani para Terraria Android.
 
-Integrei ao [Bunny Loader original](https://github.com/JonataOliveiraa/Bunny-Loader) a implementação C# desenvolvida para Terraria Mobile. Esta árvore contém o **projeto Android completo**, com as alterações já aplicadas ao núcleo: Roslyn, MonoVM, serviços Android, C++/IL2CPP, exemplos e QuickJS funcionando como motores independentes. Não é necessário reconstruir o port copiando classes isoladas.
+**Esta branch é a cópia de revisão para Jonata, não uma release oficial.** O projeto Android está completo nesta árvore de fontes, com MonoVM, Roslyn, SDK C#, JNI, C++/IL2CPP e exemplos. O Bunny original e o suporte a JavaScript foram preservados.
 
-A entrega permanece em branch própria, para que o projeto original continue intacto durante a revisão. Preservei [o README original](README-BUNNY-ORIGINAL.md), com as instruções de JavaScript, documentação do núcleo e créditos.
+## Para começar
 
-## Importação da fonte completa
+- **[Guia de revisão para Jonata](docs/JONATA-REVISAO.md)** — arquitetura, estado real e pontos onde preciso de ajuda.
+- **[Mapa das PRs relevantes](docs/PR-CSHARP.md)** — o que está na base, o que permanece em desenvolvimento e o que é apenas experimental.
+- **[README original do Bunny](README-BUNNY-ORIGINAL.md)** — documentação do projeto de Jonata.
 
-**[Abrir o passo a passo de importação](IMPORTAR-NO-GITHUB-DO-POTATO.md)** · **[Ler minha explicação técnica completa](POTATO-C-SHARP-HANDOFF.md)** · **[Ver todas as diferenças com seu original](docs/POTATO-UPSTREAM-FILE-MAP.json)**
+Para baixar apenas esta cópia:
 
-O projeto Android está **direto na raiz**, nos mesmos caminhos do Bunny original: `app/`, `experiments/csharp/`, `samples/` e `tools/`. Basta abrir no Android Studio. **Todos os fontes QuickJS-ng v0.17.0 estão incluídos** em [`app/src/main/cpp/third_party/quickjs/`](app/src/main/cpp/third_party/quickjs/) e todas as bibliotecas MonoVM, Roslyn e SDK C# já estão no destino do aplicativo. **Não precisa instalar ou preparar esses motores separadamente.**
+```bash
+git clone --single-branch --branch handoff/jonata-csharp-20261026 \
+  https://github.com/MantovaniDevTrue/Bunnyloader-Csharp.git
+```
 
-Para manter o histórico do repositório original, a importação pode ser feita numa branch derivada do commit de base. Incluí um script de cópia com simulação e validação, sem `force push`, sem substituir `.git` e sem alterar a `main`.
+Abra o projeto Android da raiz no Android Studio. Não é necessário copiar classes separadamente para conhecer a implementação. Os componentes gerenciados e nativos de suporte estão nos caminhos usados pelo projeto, mas binários e dados proprietários do Terraria e a assinatura oficial não fazem parte desta entrega.
 
-## O que integrei
+## Estado do projeto
 
-| Parte do projeto | O que eu acrescentei |
+| Área | Estado para revisão |
 | --- | --- |
-| Linguagem C# | SDK próprio, com classes e exemplos independentes de tModLoader |
-| Compilação no Android | Roslyn compilando fontes `.cs` dos mods, com cache e carregamento automático |
-| Execução gerenciada | MonoVM isolado com worker Android e integração nativa ao Terraria IL2CPP |
-| Núcleo do loader | Hooks nativos, políticas, filas, lifecycle, registros e persistência necessários ao C# |
-| Conteúdo | Itens, armas, receitas, acessórios, armaduras, buffs, NPCs, projéteis, hooks de combate e recursos visuais cobertos pelo SDK atual |
-| Exemplos | `samples/ExampleModCSharp/` e outros mods C# de teste; mantive `samples/ExampleMod/` em JavaScript |
-| Motor original | Mantive QuickJS e as classes JavaScript; os callbacks C# do caminho principal não dependem de adaptadores JS |
+| MonoVM e Roslyn | Base implementada e exercitada em testes de build e no Android |
+| SDK, compilação de mods-fonte e ponte C++/JNI | Implementados; há integrações nativas que ainda evoluem |
+| QuickJS e mods JavaScript | Mantidos no projeto |
+| Loaders e classes específicas do Terraria | Em desenvolvimento, com diferentes graus de cobertura |
+| ExampleModBunny traduzido para C# | Port parcial; não declarar paridade completa |
+| APK oficial / merge no Bunny de Jonata | Não realizado |
 
-### Onde está cada implementação
+Os testes anteriores de MonoVM e Roslyn não precisam ser confundidos com a conclusão de cada loader. Um teste de CI aprovado comprova aquela compilação e seus testes, não todas as funcionalidades em gameplay. Esta cópia foi separada da branch de QA no commit `6d96539f749b2ac8736c08bc38244cf88ec6cda0`, em 26/10/2026, para uma revisão reproduzível; alterações posteriores da branch de QA não entram aqui automaticamente.
 
-- **C# para autores de mods:** [experiments/csharp/BunnyCsSdk/](experiments/csharp/BunnyCsSdk/).
-- **Projeto do SDK/assemblies:** [experiments/csharp/BunnySourceSdk/](experiments/csharp/BunnySourceSdk/).
-- **Roslyn e compilador:** [experiments/csharp/BunnySourceCompiler/](experiments/csharp/BunnySourceCompiler/).
-- **Host C++ e MonoVM:** [app/src/main/cpp/experiments/csharp/](app/src/main/cpp/experiments/csharp/).
-- **Serviço Android isolado:** [ManagedProbeService.kt](app/src/main/kotlin/dev/bunnyloader/csharp/ManagedProbeService.kt).
-- **Build nativo:** [CMakeLists.txt](app/src/main/cpp/CMakeLists.txt).
-- **Exemplo completo:** [samples/ExampleModCSharp/](samples/ExampleModCSharp/).
+## Onde fica o código
 
-## Base usada e grau de validação
+| Caminho | Finalidade |
+| --- | --- |
+| [`experiments/csharp/BunnyCsSdk/`](experiments/csharp/BunnyCsSdk/) | API C# para autores de mods |
+| [`experiments/csharp/BunnySourceSdk/`](experiments/csharp/BunnySourceSdk/) | SDK utilizado na compilação de fontes |
+| [`experiments/csharp/BunnySourceCompiler/`](experiments/csharp/BunnySourceCompiler/) | Compilador Roslyn, cache e contratos |
+| [`experiments/csharp/BunnyManagedProbe/`](experiments/csharp/BunnyManagedProbe/) | Componentes gerenciados do worker |
+| [`app/src/main/cpp/experiments/csharp/`](app/src/main/cpp/experiments/csharp/) | MonoVM, host nativo, registros e hooks IL2CPP |
+| [`app/src/main/kotlin/dev/bunnyloader/csharp/`](app/src/main/kotlin/dev/bunnyloader/csharp/) | Serviço Android/integração Kotlin |
+| [`samples/ExampleModCSharp/`](samples/ExampleModCSharp/) | Exemplos editáveis em C# |
+| [`tests/`](tests/) e [`.github/workflows/`](.github/workflows/) | Testes e CI |
 
-Eu comparei esta cópia com a `main` do seu repositório no commit **[a370a664](https://github.com/JonataOliveiraa/Bunny-Loader/commit/a370a664aa3b808c87e4e4f570b27504d20df723)**, de **15/10/2026**. Todos os arquivos rastreados nessa versão estão presentes. Os arquivos diferentes e os que acrescentei estão no [inventário](docs/POTATO-UPSTREAM-FILE-MAP.json), identificados pelo hash de cada conteúdo.
+## Como colaborar com segurança
 
-Esta cópia está identificada como **Bunny Loader C# 1.0**. Integrei a fonte C# mais recente do desenvolvimento, incluindo o **ExampleMod C# atualizado**, novos exemplos de armas, definições nativas, projéteis e áudio próprio de mods. 
+O desenvolvimento dos loaders continua na branch [`qa/csharp-world-tree-gore-apk-20261024`](https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/tree/qa/csharp-world-tree-gore-apk-20261024). Esta cópia é um ponto fixo para leitura e comparação. Não envie um merge direto desta branch para a `main` do Bunny original: a integração anterior foi comparada com o commit `a370a664` (15/10/2026), enquanto a `main` de Jonata já havia avançado para `c028c326` quando esta entrega foi preparada. É necessário revisar os arquivos compartilhados e resolver as diferenças antes de qualquer importação.
 
-### Antes de compilar
+Os guias `POTATO-C-SHARP-HANDOFF.md` e `IMPORTAR-NO-GITHUB-DO-POTATO.md` ficam no histórico, mas **não** devem ser usados como procedimento atual de merge sem essa revisão.
 
-**O C# já está instalado nesta fonte.** As 175 DLLs do Mono Android 8.0.23, Roslyn, SDK e compilador estão em [`app/src/main/assets/managed/`](app/src/main/assets/managed/) junto com `framework.sha256`. As bibliotecas nativas ARM64, inclusive o Mono corrigido, estão em [`app/src/main/jniLibs/arm64-v8a/`](app/src/main/jniLibs/arm64-v8a/). **Não é preciso executar scripts, instalar Mono ou compilar o SDK C# separadamente.** O Gradle verifica os arquivos antes do build. O [patch](tools/mono/patch_mono_android_signals.py), [script de recompilação](tools/mono/build_patched_mono_arm64.sh) e [guia](tools/mono/README.md) ficaram disponíveis para manutenção futura. Os binários proprietários do Terraria/Unity e a chave de assinatura oficial não são distribuídos.
+## Créditos e licenças
 
-**Identidade do aplicativo:** o `applicationId` já é `com.bunnyloader`, como no Bunny original. O versionamento identifica a integração C#; a chave de assinatura de release não é distribuída no repositório.
-
-## Estrutura
-
-~~~text
-Bunny-Loader/
-├── app/
-│   ├── build.gradle.kts
-│   └── src/main/
-│       ├── cpp/experiments/csharp/
-│       ├── kotlin/dev/bunnyloader/csharp/
-│       ├── java/net/dot/android/crypto/
-│       ├── AndroidManifest.xml
-│       └── ...
-├── experiments/csharp/
-│   ├── BunnyCsSdk/
-│   ├── BunnySourceSdk/
-│   ├── BunnySourceCompiler/
-│   └── BunnyManagedProbe/
-├── samples/
-│   ├── ExampleMod/
-│   └── ExampleModCSharp/
-├── docs/
-├── tools/
-├── POTATO-C-SHARP-HANDOFF.md
-└── IMPORTAR-NO-GITHUB-DO-POTATO.md
-~~~
-
-Eu mantive os arquivos e as licenças do Bunny original. **Jonata Oliveira é o autor do Bunny Loader original; a integração C# é meu trabalho de extensão.** Respeito a licença PolyForm Noncommercial e os avisos de terceiros do projeto. Nada aqui implica uma release oficial.
-
-· Bunny Loader original por Jonata Oliveira.*
+Bunny Loader original: **Jonata Oliveira**. Integração C#: **Mantovani**. Créditos, licenças e avisos de terceiros permanecem em [LICENSING.md](LICENSING.md), [LICENSE.md](LICENSE.md) e [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Esta branch não altera a autoria nem representa aprovação oficial de Jonata.
