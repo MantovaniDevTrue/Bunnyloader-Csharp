@@ -976,31 +976,33 @@ void hkPlayerSpawn(Il2CppObject* self, int32_t context, const MethodInfo* method
 }
 
 int32_t costumeDustId(const char* name) {
+    const int32_t metadataId=!std::strcmp(name,"GoldFlame")?228:
+        !std::strcmp(name,"BlueFlare")?187:-1;
     auto& a=bl::il2cpp::api();
     auto* cls=bl::il2cpp::findClass({"Terraria.ID","DustID",{}});
     auto* f=cls?bl::il2cpp::findField(cls,name):nullptr;
     if(!f||!a.field_get_flags||!a.field_get_type||!a.class_from_il2cpp_type||
-       !a.class_get_namespace||!a.class_get_name)return -1;
+       !a.class_get_namespace||!a.class_get_name)return metadataId;
     auto* type=a.class_from_il2cpp_type(a.field_get_type(f));
     const char* ns=type?a.class_get_namespace(type):nullptr;
     const char* n=type?a.class_get_name(type):nullptr;
-    if(!ns||!n||std::strcmp(ns,"System"))return -1;
+    if(!ns||!n||std::strcmp(ns,"System"))return metadataId;
     const bool small=!std::strcmp(n,"Int16");
-    if(!small&&std::strcmp(n,"Int32"))return -1;
+    if(!small&&std::strcmp(n,"Int32"))return metadataId;
     int32_t id=-1;
     if(a.field_get_flags(f)&0x40u) {
         using DefaultFn=const void* (*)(const FieldInfo*,const Il2CppType**);
         auto* fn=reinterpret_cast<DefaultFn>(dlsym(RTLD_DEFAULT,"il2cpp_field_get_default_value"));
         const Il2CppType* valueType=nullptr;
         const void* data=fn?fn(f,&valueType):nullptr;
-        if(!data)return -1;
+        if(!data)return metadataId;
         if(small){int16_t v=-1;std::memcpy(&v,data,2);id=v;}
         else std::memcpy(&id,data,4);
     } else if((a.field_get_flags(f)&0x10u)&&a.field_static_get_value) {
         if(small){int16_t v=-1;a.field_static_get_value(f,&v);id=v;}
         else a.field_static_get_value(f,&id);
     }
-    return id>0&&id<2000?id:-1;
+    return id>0&&id<2000?id:metadataId;
 }
 void spawnCostumeDust(Il2CppObject* player) {
     if(!player||!g_costumeParticlesReady||!nativeCostumesActive()||

@@ -53,6 +53,8 @@ jobs:
           python3 tests/csharp_unified/check_tile_draw_native_contract.py
       - name: Verify Android native policy rejection diagnostics
         run: python3 tests/csharp_unified/check_native_pending_diagnostics.py
+      - name: Verify Android 301720 dump-derived contracts
+        run: python3 tests/csharp_unified/check_mobile_301720_dump_contracts.py
       - name: Verify world tick crash stage boundaries
         run: python3 tests/csharp_unified/check_world_crash_stages.py
       - name: Verify Android drink particle color jagged array ABI

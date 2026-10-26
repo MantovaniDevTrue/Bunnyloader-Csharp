@@ -62,6 +62,27 @@ inline bool readNativeId(Il2CppClass* owner,const char* name,int* result,std::st
     *error="Field="+std::string(name)+" Expected=IntegerId Actual="+(actual?actual:"Missing")+" Reason=NativeIdTypeMismatch";return false;
 }
 
+inline const char* nativeArrayContractIssue(Il2CppArray* array,const char* element,size_t width,uintptr_t maximum=100000) {
+    if(!nativeManagedPointerPlausible(array))return "InvalidArrayPointer";
+    if(!nativeManagedPointerPlausible(array->obj.klass))return "InvalidArrayClassPointer";
+    if(array->length>maximum)return "ArrayLengthOutOfBounds";
+    auto& a=il2cpp::api();
+    if(!a.class_get_rank||!a.class_get_element_class||!a.class_value_size||
+       !a.class_is_valuetype||!a.class_get_name||!a.class_get_namespace)
+        return "MissingArrayReflectionExports";
+    if(a.class_get_rank(array->obj.klass)!=1)return "ArrayRankMismatch";
+    auto* cls=a.class_get_element_class(array->obj.klass);
+    if(!cls)return "ArrayElementClassMissing";
+    const char* ns=a.class_get_namespace(cls);
+    const char* name=a.class_get_name(cls);
+    if(!ns||!name||std::strcmp(ns,"System")||std::strcmp(name,element))
+        return "ArrayElementTypeMismatch";
+    if(!a.class_is_valuetype(cls))return "ArrayElementNotValueType";
+    uint32_t align=0;
+    if(a.class_value_size(cls,&align)!=static_cast<int>(width))
+        return "ArrayElementSizeMismatch";
+    return nullptr;
+}
 inline bool nativeArrayContract(Il2CppArray* array,const char* element,size_t width,uintptr_t maximum=100000) {
     if(!nativeManagedPointerPlausible(array))return false;
     auto& a=il2cpp::api();

@@ -448,7 +448,10 @@ bool updateQuests(const std::vector<Quest>& quests) {
         return false;
     }
     if (!il2cpp::nativeArrayContract(original, "Int32", sizeof(int32_t), 65536)) {
-        g_arrayDiagnostic = "QuestItemArrayTypeMismatch";
+        const char* issue=il2cpp::nativeArrayContractIssue(original,"Int32",sizeof(int32_t),65536);
+        static std::string detail;
+        detail=std::string("QuestItemArrayTypeMismatch Detail=")+(issue?issue:"Unknown");
+        g_arrayDiagnostic=detail.c_str();
         return false;
     }
     if (original->length == 0) {

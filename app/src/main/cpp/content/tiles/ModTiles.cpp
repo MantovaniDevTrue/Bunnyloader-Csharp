@@ -864,8 +864,10 @@ DrawShape readDrawShape(Il2CppObject* data) {
         return {};
     }
     if (!il2cpp::nativeArrayContract(heights, "Int32", sizeof(int32_t), tile_draw_shape::maxCoordinateRows)) {
-        BL_ERROR("[CSharp][TileDraw] Stage=ReadShape Result=Rejected Reason=CoordinateHeightsNativeTypeMismatch Rows=%d Length=%zu",
-                 s.rows, static_cast<size_t>(length));
+        const char* issue=il2cpp::nativeArrayContractIssue(heights,"Int32",sizeof(int32_t),
+                                                             tile_draw_shape::maxCoordinateRows);
+        BL_ERROR("[CSharp][TileDraw] Stage=ReadShape Result=Rejected Reason=CoordinateHeightsNativeTypeMismatch Rows=%d Length=%zu Detail=%s",
+                 s.rows, static_cast<size_t>(length),issue?issue:"Unknown");
         return {};
     }
     const auto* h = static_cast<const int32_t*>(arrayData(heights));

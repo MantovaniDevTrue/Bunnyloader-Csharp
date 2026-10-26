@@ -1,0 +1,61 @@
+{
+  "schema": 1,
+  "source": "User-provided Terraria Android IL2CPP v31 metadata",
+  "game": "Terraria Android 1.4.5.8.6",
+  "build": 301720,
+  "metadata_sha256": "4c904c49d168913d28ef547c4f461e539d926d2ed27c0253ed53a2954e9585f7",
+  "libil2cpp_sha256": "f33b48c09e96d17234af40c7d4ce16da52d8fb72a4ead729bfad8dc88a081814",
+  "facts": {
+    "Terraria.ID.DustID": {
+      "constant_short": {
+        "GoldFlame": 228,
+        "BlueFlare": 187
+      }
+    },
+    "Terraria.ID.ArmorIDs.Head.Sets": {
+      "present": [
+        "HidesHead"
+      ],
+      "absent": [
+        "DrawHead"
+      ]
+    },
+    "Terraria.ID.ArmorIDs.Body.Sets": {
+      "present": [
+        "MissingHand"
+      ],
+      "absent": [
+        "HidesTopSkin",
+        "HidesArms"
+      ]
+    },
+    "Terraria.ID.ArmorIDs.Legs.Sets": {
+      "absent": [
+        "HidesBottomSkin"
+      ]
+    },
+    "Terraria.ObjectData.TileObjectData": {
+      "properties": [
+        "CoordinateHeights"
+      ],
+      "methods": [
+        "get_CoordinateHeights"
+      ]
+    },
+    "Terraria.Main": {
+      "fields": [
+        "anglerQuestItemNetIDs"
+      ]
+    },
+    "Terraria.Player": {
+      "fields": [
+        "townNPCs"
+      ]
+    }
+  },
+  "limits": [
+    "Metadata does not prove method RVAs or runtime field offsets.",
+    "Skin fallbacks require Android rendering QA.",
+    "Native array class contract requires runtime inspection."
+  ]
+}

@@ -607,14 +607,32 @@ bool install(Entry& entry,std::string* error) {
             auto* sets=findNested(cls,"Sets");
             if(!sets)return fail("ArmorSetsUnavailable");
             auto field=staticArray(sets,flag);
-            if(!field)return fail("ArmorFlagArrayUnavailable");
+            const char* nativeFlag=flag;
+            bool nativeValue=value;
+            if(!field) {
+                if(!std::strcmp(group,"Head")&&!std::strcmp(flag,"DrawHead")) {
+                    nativeFlag="HidesHead";
+                    nativeValue=!value;
+                } else if(!std::strcmp(group,"Body")&&!std::strcmp(flag,"HidesArms")) {
+                    nativeFlag="MissingHand";
+                    nativeValue=!value;
+                } else {
+                    BL_WARN("[CSharp][Costume] Stage=SkinPolicy Result=MobileDefault Group=%s Flag=%s Slot=%d Variant=%d",
+                            group,flag,slot,variant);
+                    return true;
+                }
+                field=staticArray(sets,nativeFlag);
+                if(!field)return fail("NativeSkinFallbackUnavailable");
+                BL_INFO("[CSharp][Costume] Stage=SkinPolicy Result=MobileFallback Group=%s PCFlag=%s AndroidFlag=%s Slot=%d",
+                        group,flag,nativeFlag,slot);
+            }
             if(!primitive(api().class_get_element_class(field.type),"Boolean",1))
                 return fail("ArmorFlagNotBooleanArray");
             if(!table(field))return fail("ArmorFlagTableUnavailable");
             if(!grow(field,slot+1))return fail("ArmorFlagResizeUnavailable");
-            const uint8_t bits=value?1:0;
+            const uint8_t bits=nativeValue?1:0;
             if(!writeOwnedStaticCell(entry.source.type,
-                std::string("Costume.")+group+"."+flag+"."+std::to_string(variant),
+                std::string("Costume.")+group+"."+nativeFlag+"."+std::to_string(variant),
                 field,slot,&bits,1))return fail("ArmorFlagOwnedWriteRejected");
             return true;
         };
