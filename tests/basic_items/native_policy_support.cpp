@@ -35,6 +35,7 @@ int modBuffTypeByName(const std::string&,const std::string&){return 400;}
 }
 namespace bl::csharp {
 bool nativeCostumeRuntimeReady(){return true;}
+const char* nativeCostumeRuntimeDiagnostic(){return "Ready";}
 size_t activeManagedVisualCount(){return testing::visualCommands.size();}
 void visitManagedVisualCommands(int player,void (*visitor)(const ManagedVisualCommand&,void*),void* context,size_t limit){size_t count=0;for(const auto& command:testing::visualCommands)if(player<0||player==command.playerIndex){if(count++==limit)break;visitor(command,context);}}
 std::vector<ManagedNativeEquipTexture> managedNativeEquipTextures(){std::vector<ManagedNativeEquipTexture> out;for(const auto& e:testing::legacyEquips)if(!testing::legacySlots.contains(e.itemType))out.push_back(e);return out;}
