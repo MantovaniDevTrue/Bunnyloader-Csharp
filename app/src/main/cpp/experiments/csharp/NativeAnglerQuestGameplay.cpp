@@ -46,6 +46,7 @@ uint64_t g_appliedGeneration = std::numeric_limits<uint64_t>::max();
 unsigned g_poll = 0;
 unsigned g_resolveFailures = 0;
 const char* g_contractDiagnostic = "NotChecked";
+const char* g_arrayDiagnostic = "NotChecked";
 std::vector<Quest> g_active;
 uint64_t g_effectiveListFingerprint = 0;
 std::set<int> g_ownedTypes;
@@ -434,11 +435,19 @@ bool updateQuests(const std::vector<Quest>& quests) {
     auto& a = il2cpp::api();
     Il2CppArray* original = nullptr;
     a.field_static_get_value(g_questItems, &original);
+    if (!il2cpp::nativeManagedPointerPlausible(original)) {
+        g_arrayDiagnostic = "InvalidQuestItemArrayPointer";
+        return false;
+    }
     if (!il2cpp::nativeArrayContract(original, "Int32", sizeof(int32_t), 65536) ||
-        original->length == 0) return false;
+        original->length == 0) {
+        g_arrayDiagnostic = "InvalidOrUnreadyQuestItemArray";
+        return false;
+    }
     const auto* data = static_cast<const int32_t*>(arrayData(original));
     int32_t selected = -1;
     a.field_static_get_value(g_questIndex, &selected);
+    g_arrayDiagnostic = "QuestReconciliation";
     const std::vector<int> originalIds(data, data + original->length);
     const bool freshList = g_sessionBoundaryPending && g_lastQuestItems &&
         original != g_lastQuestItems;
@@ -539,12 +548,14 @@ void pumpOnGameThread() {
     const uint64_t previousListFingerprint = g_effectiveListFingerprint;
     if (!updateQuests(quests)) {
         if (++g_resolveFailures == 1 || g_resolveFailures == 120)
-            BL_WARN("[CSharp][AnglerQuest] Stage=PublishArrays Result=Pending Reason=InvalidOrUnreadyTerrariaTables");
+            BL_WARN("[CSharp][AnglerQuest] Stage=PublishArrays Result=Pending Reason=%s",
+                    g_arrayDiagnostic);
         return;
     }
 #if BUNNY_FIVE_LOADERS_QA
     setNativeGameStage(1190);
 #endif
+    g_arrayDiagnostic = "Ready";
     g_resolveFailures = 0;
     pending = pending || previousListFingerprint != g_effectiveListFingerprint;
     g_appliedGeneration = appliedRevision;
