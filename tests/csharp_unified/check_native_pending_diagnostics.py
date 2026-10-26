@@ -6,7 +6,7 @@ angler = Path("app/src/main/cpp/experiments/csharp/NativeAnglerQuestGameplay.cpp
 costume = Path("app/src/main/cpp/experiments/csharp/NativeContent.cpp").read_text()
 
 for field in ("Group=", "Flag=", "Variant=", "Slot=", "Detail=", "ArmorGroupUnavailable",
-              "ArmorSetsUnavailable", "ArmorFlagArrayUnavailable", "ArmorFlagNotBooleanArray",
+              "ArmorSetsUnavailable", "NativeSkinFallbackUnavailable", "ArmorFlagNotBooleanArray",
               "ArmorFlagTableUnavailable", "ArmorFlagResizeUnavailable", "ArmorFlagOwnedWriteRejected"):
     assert field in item, field
 assert 'if(!ready)return false;' in item
