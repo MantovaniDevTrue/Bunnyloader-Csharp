@@ -120,6 +120,14 @@ public:
         return true;
     }
 
+    // O snapshot do mod ja chegou do MonoVM (barreira antes do mundo).
+    bool hasMod(const std::string& mod) const {
+        if (mod.empty()) return false;
+        const auto view = std::atomic_load_explicit(&active_, std::memory_order_acquire);
+        const auto it = view->lower_bound(Key{mod, std::string()});
+        return it != view->end() && it->first.first == mod;
+    }
+
     void unload(const std::string& mod) {
         std::lock_guard guard(mutex_);
         auto next = std::make_shared<Stats>(*std::atomic_load_explicit(

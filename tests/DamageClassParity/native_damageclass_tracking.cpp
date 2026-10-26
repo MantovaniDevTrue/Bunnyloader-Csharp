@@ -71,5 +71,18 @@ int main() {
     r.unload("mod");
     assert(r.snapshot()->empty());
 
+    // Barreira antes do mundo: o snapshot do mod ja foi publicado?
+    auto& stats = bl::csharp::nativeDamageClassStats();
+    assert(!stats.hasMod("mod-a"));
+    std::string wire = "DAMAGE_CLASS_STATS_V2\nCLASS\tNs.Example";
+    for (int i = 0; i < 11; ++i) wire += (i == 1 || i == 2 || i == 5 || i == 6 || i == 9) ? "\t1" : "\t0";
+    wire += "\t1";
+    for (int i = 0; i < 25; ++i) wire += "\t0";
+    wire += "\n";
+    assert(stats.publish("mod-b", wire));
+    assert(stats.hasMod("mod-b") && !stats.hasMod("mod-a") && !stats.hasMod("mod-bb") && !stats.hasMod(""));
+    stats.unload("mod-b");
+    assert(!stats.hasMod("mod-b"));
+
     std::puts("NATIVE_DAMAGECLASS_TRACKING=PASS");
 }
