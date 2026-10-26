@@ -35,6 +35,8 @@ jobs:
           java-version: '17'
       - name: Verify native summon speed contracts
         run: mkdir -p build/unified-speed && c++ -std=c++20 -Wall -Wextra -Werror -Iapp/src/main/cpp tests/csharp_unified/weapon_speed_test.cpp -o build/unified-speed/check && build/unified-speed/check
+      - name: Verify world tick crash stage boundaries
+        run: python3 tests/csharp_unified/check_world_crash_stages.py
       - name: Verify Android drink particle color jagged array ABI
         run: |
           mkdir -p build/unified-drink-colors
