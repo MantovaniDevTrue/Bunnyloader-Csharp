@@ -3,6 +3,7 @@
 #include "experiments/csharp/NativeTileDrawCachePolicy.h"
 #include "experiments/csharp/NativeTileOverlayPolicy.h"
 #include "content/tiles/ModTrees.h"
+#include "content/tiles/NativeTileDrawShapeBounds.h"
 #include "core/Log.h"
 #include "hook/HookManager.h"
 #include "il2cpp/Api.h"
@@ -833,13 +834,32 @@ DrawShape readDrawShape(Il2CppObject* data) {
     s.fullHeight = invokeInt(data, "get_CoordinateFullHeight", &ok);
     s.cols = invokeInt(data, "get_Width", &ok);
     s.fullWidth = invokeInt(data, "get_CoordinateFullWidth", &ok);
+    if (!ok || !tile_draw_shape::valid(s.rows, 1)) {
+        BL_ERROR("[CSharp][TileDraw] Stage=ReadShape Result=Rejected Reason=InvalidRows Rows=%d",
+                 s.rows);
+        return {};
+    }
     const MethodInfo* get = a.class_get_method_from_name(a.object_get_class(data), "get_CoordinateHeights", 0);
+    const Il2CppType* returnType = get ? a.method_get_return_type(get) : nullptr;
+    char* name = returnType ? a.type_get_name(returnType) : nullptr;
+    const bool intArray = name && std::strcmp(name, "System.Int32[]") == 0;
+    if (name) std::free(name);
+    if (!intArray) {
+        BL_ERROR("[CSharp][TileDraw] Stage=ReadShape Result=Rejected Reason=CoordinateHeightsNotIntArray Rows=%d",
+                 s.rows);
+        return {};
+    }
     Il2CppObject* exc = nullptr;
-    auto* heights = get ? reinterpret_cast<Il2CppArray*>(a.runtime_invoke(get, data, nullptr, &exc)) : nullptr;
-    if (!ok || exc || !heights || heights->length == 0 || s.rows <= 0) return {};
+    auto* heights = reinterpret_cast<Il2CppArray*>(a.runtime_invoke(get, data, nullptr, &exc));
+    if (exc || !heights) return {};
+    const uintptr_t length = heights->length;
+    if (!tile_draw_shape::valid(s.rows, length)) {
+        BL_ERROR("[CSharp][TileDraw] Stage=ReadShape Result=Rejected Reason=CoordinateHeightsOutOfBounds Rows=%d Length=%zu",
+                 s.rows, static_cast<size_t>(length));
+        return {};
+    }
     const auto* h = static_cast<const int32_t*>(arrayData(heights));
-    s.heights.assign(h, h + heights->length);
-    // Menos alturas que linhas (o jogo tolera): a ultima vale para o resto.
+    s.heights.assign(h, h + length);
     while (static_cast<int>(s.heights.size()) < s.rows) s.heights.push_back(s.heights.back());
     s.ok = true;
     return s;
