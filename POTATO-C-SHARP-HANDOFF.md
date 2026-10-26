@@ -1,3 +1,7 @@
+> **DOCUMENTO HISTÓRICO.** Esta explicação registra a integração preparada sobre o Bunny original de 15/10/2026. O pacote de revisão atual está em [docs/JONATA-REVISAO.md](docs/JONATA-REVISAO.md), baseado no snapshot C# de 26/10/2026. Não tratar versões e instruções de importação abaixo como estado atual do repositório oficial.
+
+---
+
 # Integração C# no Bunny Loader — fontes e funcionamento
 
 Integrei ao código-fonte original do Bunny Loader o sistema C# que desenvolvi para o Terraria Mobile. Esta cópia contém **o projeto Android completo com as alterações já aplicadas**, incluindo o MonoVM, Roslyn, os hooks nativos, a ponte JNI e os exemplos. Mantive os componentes QuickJS e os exemplos JavaScript originais, sem transformar o C# numa camada de callbacks JS.
