@@ -2576,6 +2576,9 @@ bool applyTileShape(const std::string& mod,int type,const ManagedTileEntry& e) {
         size_t size=0;
     };
     const auto resolve=[&](const char* fieldName,const char* type,size_t size,NativeProperty* out) {
+        // `assign` passa o endereco do valor ao runtime_invoke: so tipo valor.
+        // Tipo referencia (array/classe) iria como endereco de pilha.
+        if(std::strstr(type,"[]")||(size!=4&&size!=1))return false;
         const std::string setterName=std::string("set_")+fieldName;
         const auto* setter=a.class_get_method_from_name(tileClass,setterName.c_str(),1);
         if(setter) {
