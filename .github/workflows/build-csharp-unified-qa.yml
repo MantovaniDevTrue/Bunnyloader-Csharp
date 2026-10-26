@@ -35,6 +35,12 @@ jobs:
           java-version: '17'
       - name: Verify native summon speed contracts
         run: mkdir -p build/unified-speed && c++ -std=c++20 -Wall -Wextra -Werror -Iapp/src/main/cpp tests/csharp_unified/weapon_speed_test.cpp -o build/unified-speed/check && build/unified-speed/check
+      - name: Verify invalid IL2CPP array pointers are rejected before dereference
+        run: |
+          python3 tests/csharp_unified/check_angler_corrupt_array_guard.py
+          c++ -std=c++20 -Iapp/src/main/cpp tests/csharp_unified/native_managed_pointer_test.cpp -o /tmp/native-managed-pointer-test
+          /tmp/native-managed-pointer-test
+
       - name: Verify Angler Quest native stage 118 and safe hook readiness
         run: python3 tests/csharp_unified/check_angler_stage118.py
       - name: Verify tile draw coordinate height array bounds
