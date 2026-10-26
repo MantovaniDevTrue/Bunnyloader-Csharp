@@ -1,0 +1,37 @@
+# TEMPORARIO (remover antes do merge): publica o fim da saida dos passos que
+# falham no PR #180 como anotacoes, porque os logs de Actions nao sao
+# acessiveis da sessao de desenvolvimento.
+name: TEMP diagnose DamageClass merge
+on:
+  push:
+    branches: [integrate/damageclass-pr135-20261026]
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+      - name: Run failing commands and annotate output
+        shell: bash
+        run: |
+          set +e
+          run() {
+            local label="$1"; shift
+            "$@" > "/tmp/$label.log" 2>&1
+            local rc=$?
+            echo "::notice title=$label::rc=$rc"
+            if [ $rc -ne 0 ]; then
+              grep -v "^\s*$" "/tmp/$label.log" | grep -iv "warning CS" | tail -n 25 | while IFS= read -r line; do
+                line="${line//%/%25}"; line="${line//$'\r'/}"
+                echo "::error title=$label::${line:0:900}"
+              done
+            fi
+          }
+          run full-example dotnet run --project tests/ready_prs/FullExampleRuntime/FullExampleRuntime.csproj -c Release -- samples/ExampleModCSharp/Playable
+          run item-batch dotnet run --project tests/basic_items/ItemBatch.csproj -c Release
+          run three-loaders bash tests/three_loaders/run.sh
+          exit 0
