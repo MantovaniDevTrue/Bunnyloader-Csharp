@@ -260,6 +260,7 @@ const MethodInfo* g_costumeAddBuff=nullptr;
 const MethodInfo* g_costumeNewDust=nullptr;
 int32_t g_costumeNormalDust=-1,g_costumeWetDust=-1;
 bool g_costumeReady=false,g_costumeParticlesReady=false;
+std::string g_costumeBindReason="NotResolved";
 std::array<uint32_t,256> g_costumeRandom{};
 
 struct CostumePlayerCycle {
@@ -693,7 +694,9 @@ CostumePlayerCycle* costumeCycle(Il2CppObject* player) {
 bool costumeEquipped(Il2CppObject* player,int type,bool vanity) {
     if(!player||type<0||g_refs.playerArmor<0||g_refs.itemType<0)return false;
     auto* armor=bl::runtime::field<Il2CppArray*>(player,g_refs.playerArmor);
-    if(!armor||armor->length<10||armor->length>40)return false;
+    if(!bl::il2cpp::nativeManagedPointerPlausible(armor)||
+       !bl::il2cpp::nativeManagedPointerPlausible(armor->obj.klass)||
+       armor->length<10||armor->length>40)return false;
     auto** items=static_cast<Il2CppObject**>(arrayData(armor));
     const uintptr_t begin=vanity?13u:3u,end=std::min<uintptr_t>(begin+7u,armor->length);
     for(uintptr_t slot=begin;slot<end;++slot) {
@@ -706,7 +709,9 @@ bool costumeHidden(Il2CppObject* player,int type) {
     if(g_refs.playerArmor<0||g_refs.playerHideVisibleAccessory<0)return true;
     auto* armor=bl::runtime::field<Il2CppArray*>(player,g_refs.playerArmor);
     auto* hidden=bl::runtime::field<Il2CppArray*>(player,g_refs.playerHideVisibleAccessory);
-    if(!armor||armor->length<10||armor->length>40||
+    if(!bl::il2cpp::nativeManagedPointerPlausible(armor)||
+       !bl::il2cpp::nativeManagedPointerPlausible(armor->obj.klass)||
+       armor->length<10||armor->length>40||
        !nativeArrayContract(hidden,"Boolean",1,60))return true;
     auto** items=static_cast<Il2CppObject**>(arrayData(armor));
     auto* flags=static_cast<uint8_t*>(arrayData(hidden));
@@ -842,7 +847,9 @@ void hkSetArmorEffectVisuals(Il2CppObject* self, Il2CppObject* drawPlayer,
     if(g_costumeReady&&nativeCostumesActive()&&g_refs.playerArmor>=0&&g_refs.itemType>=0) {
         auto* cycle=costumeCycle(actor);
         auto* armor=bl::runtime::field<Il2CppArray*>(actor,g_refs.playerArmor);
-        if(cycle&&armor&&armor->length>=20&&armor->length<=40) {
+        if(cycle&&bl::il2cpp::nativeManagedPointerPlausible(armor)&&
+           bl::il2cpp::nativeManagedPointerPlausible(armor->obj.klass)&&
+           armor->length>=20&&armor->length<=40) {
             auto** items=static_cast<Il2CppObject**>(arrayData(armor));
             for(uintptr_t slot=3;slot<20;++slot) {
                 if(slot>=10&&slot<13)continue;
@@ -1006,7 +1013,9 @@ void spawnCostumeDust(Il2CppObject* player) {
     if(type<0||!nativeCostumeEffect(type,&effect)) {
         type=-1;
         auto* armor=bl::runtime::field<Il2CppArray*>(player,g_refs.playerArmor);
-        if(!armor||armor->length<20||armor->length>40)return;
+        if(!bl::il2cpp::nativeManagedPointerPlausible(armor)||
+           !bl::il2cpp::nativeManagedPointerPlausible(armor->obj.klass)||
+           armor->length<20||armor->length>40)return;
         auto** items=static_cast<Il2CppObject**>(arrayData(armor));
         for(uintptr_t i=13;i<20;++i) {
             if(!items[i])continue;
@@ -1570,6 +1579,7 @@ void hkUpdateBuffs(Il2CppObject* self, int32_t playerIndex, const MethodInfo* me
 }
 
 bool nativeCostumeRuntimeReady() {return g_costumeReady;}
+const char* nativeCostumeRuntimeDiagnostic() {return g_costumeBindReason.c_str();}
 
 std::string nativeManagedProjectileKey(int type) {
     const auto view=std::atomic_load_explicit(&g_projectileView,std::memory_order_acquire);
@@ -1817,23 +1827,37 @@ bool prepareNativePlayerEffects() {
         player, parseSignature("void SetArmorEffectVisuals(Player drawPlayer)"));
     if (!equip || !buffs || !runSpeeds || !armorVisuals) return false;
 
+    std::string costumeFieldError;
     const auto costumeField=[&](const char* name,const char* type,size_t size,int* offset) {
         std::string detail;
-        return nativeFieldContract(player,name,type,false,size,nullptr,offset,&detail);
+        const bool ready=nativeFieldContract(player,name,type,false,size,nullptr,offset,&detail);
+        if(!ready&&costumeFieldError.empty())costumeFieldError=detail;
+        return ready;
     };
     g_costumeAddBuff=findMethodBySignature(
         player,parseSignature("void AddBuff(int type, int time, bool fromNetPvP)"));
-    g_costumeReady=g_costumeAddBuff&&api().method_is_instance&&
-        api().method_is_instance(g_costumeAddBuff)&&
-        g_removeMinionBuff&&api().runtime_invoke&&
-        g_refs.playerHideVisibleAccessory>=0&&
-        costumeField("townNPCs","System.Single",4,&g_refs.playerTownNpcs)&&
-        costumeField("jumpSpeedBoost","System.Single",4,&g_refs.playerJumpSpeedBoost)&&
-        costumeField("extraFall","System.Int32",4,&g_refs.playerExtraFall)&&
-        costumeField("wet","System.Boolean",1,&g_refs.playerWet)&&
-        costumeField("head","System.Int32",4,&g_refs.playerHead)&&
-        costumeField("body","System.Int32",4,&g_refs.playerBody)&&
-        costumeField("legs","System.Int32",4,&g_refs.playerLegs);
+    const bool addBuffReady=g_costumeAddBuff&&api().method_is_instance&&
+        api().method_is_instance(g_costumeAddBuff);
+    const bool removeBuffReady=g_removeMinionBuff&&api().runtime_invoke;
+    const bool hideReady=g_refs.playerHideVisibleAccessory>=0;
+    const bool identityReady=g_refs.playerWhoAmI>=0;
+    bool fieldsReady=true;
+    fieldsReady=costumeField("townNPCs","System.Single",4,&g_refs.playerTownNpcs)&&fieldsReady;
+    fieldsReady=costumeField("jumpSpeedBoost","System.Single",4,&g_refs.playerJumpSpeedBoost)&&fieldsReady;
+    fieldsReady=costumeField("extraFall","System.Int32",4,&g_refs.playerExtraFall)&&fieldsReady;
+    fieldsReady=costumeField("wet","System.Boolean",1,&g_refs.playerWet)&&fieldsReady;
+    fieldsReady=costumeField("head","System.Int32",4,&g_refs.playerHead)&&fieldsReady;
+    fieldsReady=costumeField("body","System.Int32",4,&g_refs.playerBody)&&fieldsReady;
+    fieldsReady=costumeField("legs","System.Int32",4,&g_refs.playerLegs)&&fieldsReady;
+    g_costumeReady=addBuffReady&&removeBuffReady&&hideReady&&identityReady&&fieldsReady;
+    g_costumeBindReason=g_costumeReady?"Ready":
+        !addBuffReady?"AddBuffMethodMissingOrSignatureMismatch":
+        !removeBuffReady?"DelBuffMethodMissingOrRuntimeInvokeUnavailable":
+        !hideReady?"HideVisibleAccessoryFieldMissing":
+        !identityReady?"PlayerWhoAmIFieldMissing":costumeFieldError;
+    if(!g_costumeReady)
+        BL_WARN("[CSharp][Costume] Stage=BindPlayerHooks Result=Pending Reason=%s",
+                g_costumeBindReason.c_str());
     if(g_costumeReady) {
         auto* dust=il2cpp::findClass({"Terraria","Dust",{}});
         g_costumeNewDust=dust?findMethodBySignature(dust,parseSignature(
