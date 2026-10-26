@@ -1711,11 +1711,17 @@ void noteAutoGameUpdate() {
     setNativeGameStage(113);
 #endif
     touch::pumpNativeTouchActivationOnGameThread();
+#if BUNNY_FIVE_LOADERS_QA
+    setNativeGameStage(114);
+#endif
     if (g_worldSessionReady.load(std::memory_order_acquire) &&
         touch::hostReady()) {
         static uint64_t touchTick = 0;
         queueManagedTouchTriggerTick(++touchTick);
     }
+    #if BUNNY_FIVE_LOADERS_QA
+    setNativeGameStage(115);
+    #endif
     if (nativeWorldNetActive()) {
         const uint64_t currentEpoch = g_worldEpoch.load(std::memory_order_acquire);
         worldNetQueue().pump(currentEpoch,
@@ -1742,9 +1748,21 @@ void noteAutoGameUpdate() {
         installManagedSourceEntityHitHook();
         installManagedSourceEntityKillHook();
     }
+    #if BUNNY_FIVE_LOADERS_QA
+    setNativeGameStage(116);
+    #endif
     pumpInteractiveConsoleOnGameThread();
+    #if BUNNY_FIVE_LOADERS_QA
+    setNativeGameStage(117);
+    #endif
     pumpBasicRecipesOnGameThread();
+    #if BUNNY_FIVE_LOADERS_QA
+    setNativeGameStage(118);
+    #endif
     angler::pumpOnGameThread();
+    #if BUNNY_FIVE_LOADERS_QA
+    setNativeGameStage(119);
+    #endif
     pumpNativeVisualRendererOnGameThread();
     if (!g_worldTilesLoaded.load(std::memory_order_acquire))
         updateManagedNpcBuffDispatcherOnGameThread();
@@ -1756,10 +1774,16 @@ void noteAutoGameUpdate() {
             bl::runtime::pendingManagedPrefixCountForActivePlayer() > 0)
             bl::runtime::retryPendingManagedPrefixesOnWorldReady();
     }
+    #if BUNNY_FIVE_LOADERS_QA
+    setNativeGameStage(120);
+    #endif
     flushDeferredWorldEntry();
     // Saving and quitting changes the menu before it writes the world. Keep
     // the epoch/store alive until the original native quit callback returns.
     if (g_worldQuitSaveFence.active()) return;
+    #if BUNNY_FIVE_LOADERS_QA
+    setNativeGameStage(121);
+    #endif
     if (!g_worldTilesLoaded.load(std::memory_order_acquire)) {
         if (g_worldDataEnteredEpoch.load(std::memory_order_acquire) != 0 &&
             g_worldMenuPollFrames.fetch_add(1, std::memory_order_relaxed) % 30 == 0) {
@@ -1782,6 +1806,9 @@ void noteAutoGameUpdate() {
         reportCSharpLoadSummary();
         return;
     }
+    #if BUNNY_FIVE_LOADERS_QA
+    setNativeGameStage(122);
+    #endif
     if (g_worldSessionReady.load(std::memory_order_acquire)) {
         static uint64_t lastInvasionWorld = 0;
         static unsigned invasionFrames = 0;
@@ -1835,22 +1862,37 @@ void noteAutoGameUpdate() {
                 }
             }
         }
+        #if BUNNY_FIVE_LOADERS_QA
+        setNativeGameStage(123);
+        #endif
         graphics::pumpCSharpScreenEffects();
         const uint64_t tick = g_visualUpdateTick.fetch_add(1, std::memory_order_relaxed) + 1;
         if (tick % 12 == 0) {
             static const std::string sdk = folderOfCheckpoint() + "BunnySourceSdk.dll";
             pollManagedVisualCommands(sdk, 8);
         }
+        #if BUNNY_FIVE_LOADERS_QA
+        setNativeGameStage(124);
+        #endif
         advanceManagedVisualState(tick, 32);
     }
+    #if BUNNY_FIVE_LOADERS_QA
+    setNativeGameStage(125);
+    #endif
     if (g_worldSessionReady.load(std::memory_order_acquire)) {
         reportCSharpLoadSummary();
         if (g_worldMenuPollFrames.fetch_add(
                 1, std::memory_order_relaxed) % 30 != 0) return;
+        #if BUNNY_FIVE_LOADERS_QA
+        setNativeGameStage(126);
+        #endif
         const ActivationContext context = readActivationContext();
         if (context.gameMenu != 1 &&
             context.netMode >= 0 && context.netMode <= 3) {
             if (worldIsAuthoritative(context.netMode)) {
+                #if BUNNY_FIVE_LOADERS_QA
+                setNativeGameStage(127);
+                #endif
                 retryWorldManagedPrefixesWhenReady();
                 showWorldPlayerMessagesWhenReady();
                 updateManagedNpcBuffDispatcherOnGameThread();
