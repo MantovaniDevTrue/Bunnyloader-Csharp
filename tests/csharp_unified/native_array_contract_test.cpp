@@ -130,6 +130,7 @@ int main() {
                        "ArrayLengthAbiMismatch")==0);
     reportedLength=4;
     assert(bl::il2cpp::nativeDeclaredArrayIssue(&value,intArrayType,"System.Int32[]",16)==nullptr);
+    canonical=&arrayClass;
     value.obj.klass=reinterpret_cast<Il2CppClass*>(&wrongClass);
     assert(std::strcmp(bl::il2cpp::nativeDeclaredArrayIssue(&value,intArrayType,"System.Int32[]",16),
                        "ArrayUnrecognizedRuntimeClass")==0);
