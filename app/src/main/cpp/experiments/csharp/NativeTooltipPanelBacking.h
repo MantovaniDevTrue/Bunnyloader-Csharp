@@ -144,7 +144,7 @@ struct NativeTooltipPanelBacking {
         Il2CppObject* textureArgument=texture;
         std::array<uint8_t,20> emptyNullable{};
         void* args[]={const_cast<float*>(pos.data()),const_cast<float*>(size.data()),
-                      &textureArgument,const_cast<uint32_t*>(&rgba),emptyNullable.data()};
+                      textureArgument,const_cast<uint32_t*>(&rgba),emptyNullable.data()};
         Il2CppObject* exception=nullptr;
         a.runtime_invoke(method,nullptr,args,&exception);
         return exception==nullptr;
