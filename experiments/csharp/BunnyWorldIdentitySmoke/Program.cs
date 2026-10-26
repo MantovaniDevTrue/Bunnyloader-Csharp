@@ -2,20 +2,22 @@ using System;
 using System.Reflection;
 using BunnyLoader.Source;
 
+// O registro so valida identidade de sistemas que usam o ciclo do motor
+// (BunnyWorldSystem.UsesEngineLifecycle); sistemas vazios sao ignorados.
 #if INVALID_NAME
 namespace InvalidCase
 {
-    public sealed class São : BunnyWorldSystem { }
+    public sealed class São : BunnyWorldSystem { public override void OnWorldExit() { } }
 }
 #else
 namespace FirstCase
 {
-    public sealed class Progress : BunnyWorldSystem { }
+    public sealed class Progress : BunnyWorldSystem { public override void OnWorldExit() { } }
 }
 
 namespace SecondCase
 {
-    public sealed class Progress : BunnyWorldSystem { }
+    public sealed class Progress : BunnyWorldSystem { public override void OnWorldExit() { } }
 }
 #endif
 

@@ -2161,7 +2161,8 @@ bool applyManagedSourceDefaults(
             " Stage=Publish Reason="+*error;
         return false;
     }
-    if (damageTypes.size() != static_cast<size_t>(mod->basicItems + mod->projectiles +
+    // So classes diferentes de V0 chegam no wire; a ausencia é o padrao.
+    if (damageTypes.size() > static_cast<size_t>(mod->basicItems + mod->projectiles +
           (mod->items - mod->accessories - mod->potions - mod->basicItems)) ||
         !nativeDamageTypes().publish(modId, damageTypes)) {
         *error = "[CSharp][DamageClass] Mod=" + modId +

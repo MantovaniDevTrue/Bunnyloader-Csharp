@@ -1426,12 +1426,18 @@ public static class CompiledAssemblyProbe
                     content.GetType().FullName);
             return "C:" + custom.FullName;
         }
+        // V0 (DamageClass.Default) é o padrao e nao gera linha: o host trata a
+        // ausencia como V0, que ja nao altera as flags vanilla.
         foreach (object owner in basicItems.Concat(weapons))
-            lines.Add(string.Join("\t", "DAMAGE_TYPE", "ITEM",
-                owner.GetType().Name, DamageTypeWire(owner)));
+        {
+            string wire = DamageTypeWire(owner);
+            if (wire != "V0") lines.Add(string.Join("\t", "DAMAGE_TYPE", "ITEM", owner.GetType().Name, wire));
+        }
         foreach (object owner in projectiles)
-            lines.Add(string.Join("\t", "DAMAGE_TYPE", "PROJECTILE",
-                owner.GetType().Name, DamageTypeWire(owner)));
+        {
+            string wire = DamageTypeWire(owner);
+            if (wire != "V0") lines.Add(string.Join("\t", "DAMAGE_TYPE", "PROJECTILE", owner.GetType().Name, wire));
+        }
         // Bonus de classe enquanto equipado (StatModifier aditivo = 1 + Damage).
         string Wire(float value) => value.ToString("R", CultureInfo.InvariantCulture);
         foreach (object owner in basicItems)

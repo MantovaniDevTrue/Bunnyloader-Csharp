@@ -318,7 +318,11 @@ try {
   int commands=compiled.GetTypes().Count(t=>t.IsClass&&!t.IsAbstract&&
    typeof(BunnyCommand).IsAssignableFrom(t));
   Equal(4,commands);
-  if(CompiledAssemblyProbe.Verify(output,diag,root)!=identities.Count+localizationModules+commands)
+  // DamageClass do mod (ExampleDamageClass) tambem conta como conteudo registrado.
+  int damageClasses=compiled.GetTypes().Count(t=>t.IsClass&&!t.IsAbstract&&
+   typeof(DamageClass).IsAssignableFrom(t));
+  Equal(1,damageClasses);
+  if(CompiledAssemblyProbe.Verify(output,diag,root)!=identities.Count+localizationModules+commands+damageClasses)
    throw new Exception(File.ReadAllText(diag));
   var contentKinds=new HashSet<string>{"ITEM","WEAPON","ACCESSORY","POTION","TILE","TREE","GORE","MOUNT","WALL","DUST","RARITY","BUFF","PLAYER","PROJECTILE","NPC","PREFIX"};
   string localizationUid="68c3115f-62f4-49f2-a56b-388256781d5f";
@@ -657,13 +661,7 @@ try {
   string output=Path.Combine(scratch,"tile.dll"),diag=Path.Combine(scratch,"tile.txt");
   Equal(1,Compiler.Compile(root,output,runtime,diag));
   Equal(6,CompiledAssemblyProbe.Verify(output,diag));
-  var allRows=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt"));
-  // Uma linha DAMAGE_TYPE por BunnyItem (DamageClassLoader); os cinco itens da
-  // fixture usam a classe padrao (V0).
-  var damageTypes=allRows.Where(row=>row.StartsWith("DAMAGE_TYPE\t")).ToArray();
-  Equal(5,damageTypes.Length);
-  if(damageTypes.Any(row=>!row.StartsWith("DAMAGE_TYPE\tITEM\t")||!row.EndsWith("\tV0")))throw new Exception("Fixture DamageType must be V0");
-  var rows=allRows.Where(row=>!row.StartsWith("DAMAGE_TYPE\t")).ToArray();
+  var rows=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt"));
   Equal(7,rows.Length);
   var exampleMaterial=rows.Single(row=>row.StartsWith("ITEM\tExampleItem\t")).Split('\t');
   Equal("ExampleItem",exampleMaterial[1]);

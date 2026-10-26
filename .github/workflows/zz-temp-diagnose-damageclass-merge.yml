@@ -44,6 +44,13 @@ jobs:
           echo "" >> $report; echo "### item-batch falhas" >> $report; echo '```' >> $report
           python3 -c "import json;d=json.load(open('build/basic-items-results.json'));[print(r['id'],'::',r['error'][:700].replace(chr(10),' | ')) for r in d['results'] if r['status']!='pass']" >> $report 2>&1
           echo '```' >> $report
+          run full-example dotnet run --project tests/ready_prs/FullExampleRuntime/FullExampleRuntime.csproj -c Release -- samples/ExampleModCSharp/Playable
+          run full-wire python3 tests/basic_items/check_full_wire.py build/basic-items/full-source-runtime-values.txt
+          run three-loaders bash tests/three_loaders/run.sh
+          run armor-port bash tests/armor_port_run.sh
+          run golf-ball bash tests/golf_ball/run.sh
           run world-identity dotnet run --project experiments/csharp/BunnyWorldIdentitySmoke/BunnyWorldIdentitySmoke.csproj -c Release
+          run world-identity-invalid dotnet run --project experiments/csharp/BunnyWorldIdentitySmoke/BunnyWorldIdentitySmoke.csproj -c Release -p:DefineConstants=INVALID_NAME
+          run sdk-reference dotnet run --project tools/sdk_reference/SdkReference.csproj -c Release -- --check
           gh pr comment 180 --repo "$GITHUB_REPOSITORY" --body-file $report
           exit 0
