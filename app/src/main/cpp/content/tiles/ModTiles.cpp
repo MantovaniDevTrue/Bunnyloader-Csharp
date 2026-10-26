@@ -859,8 +859,8 @@ DrawShape readDrawShape(Il2CppObject* data) {
     }
     const uintptr_t length = heights->length;
     if (!tile_draw_shape::valid(s.rows, length)) {
-        BL_ERROR("[CSharp][TileDraw] Stage=ReadShape Result=Rejected Reason=CoordinateHeightsOutOfBounds Rows=%d Length=%zu",
-                 s.rows, static_cast<size_t>(length));
+        BL_ERROR("[CSharp][TileDraw] Stage=ReadShape Result=Rejected Reason=CoordinateHeightsOutOfBounds Rows=%d Length=%zu HeaderWord16=%zu",
+                 s.rows, static_cast<size_t>(length), static_cast<size_t>(reinterpret_cast<uintptr_t>(heights->bounds)));
         return {};
     }
     if (!il2cpp::nativeArrayContract(heights, "Int32", sizeof(int32_t), tile_draw_shape::maxCoordinateRows)) {

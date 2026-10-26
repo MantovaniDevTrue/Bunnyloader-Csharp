@@ -439,9 +439,20 @@ bool updateQuests(const std::vector<Quest>& quests) {
         g_arrayDiagnostic = "InvalidQuestItemArrayPointer";
         return false;
     }
-    if (!il2cpp::nativeArrayContract(original, "Int32", sizeof(int32_t), 65536) ||
-        original->length == 0) {
-        g_arrayDiagnostic = "InvalidOrUnreadyQuestItemArray";
+    if (!il2cpp::nativeManagedPointerPlausible(original->obj.klass)) {
+        g_arrayDiagnostic = "InvalidQuestItemArrayClassPointer";
+        return false;
+    }
+    if (original->length > 65536) {
+        g_arrayDiagnostic = "InvalidQuestItemArrayLength";
+        return false;
+    }
+    if (!il2cpp::nativeArrayContract(original, "Int32", sizeof(int32_t), 65536)) {
+        g_arrayDiagnostic = "QuestItemArrayTypeMismatch";
+        return false;
+    }
+    if (original->length == 0) {
+        g_arrayDiagnostic = "QuestItemArrayEmpty";
         return false;
     }
     const auto* data = static_cast<const int32_t*>(arrayData(original));

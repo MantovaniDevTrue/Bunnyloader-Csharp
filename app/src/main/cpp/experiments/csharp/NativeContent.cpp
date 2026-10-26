@@ -1874,8 +1874,18 @@ bool prepareNativePlayerEffects() {
             check("position","Microsoft.Xna.Framework.Vector2",8,&g_refs.playerPosition)&&
             check("width","System.Int32",4,&g_refs.playerWidth)&&
             check("height","System.Int32",4,&g_refs.playerHeight);
-        if(!g_costumeParticlesReady)
-            BL_WARN("[CSharp][Costume] Stage=BindParticles Result=Unavailable");
+        if(!g_costumeParticlesReady) {
+            const char* reason=!g_costumeNewDust?"NewDustMethodUnavailable":
+                !api().method_is_instance?"MethodInstanceContractUnavailable":
+                api().method_is_instance(g_costumeNewDust)?"NewDustUnexpectedInstanceMethod":
+                !api().runtime_invoke?"RuntimeInvokeUnavailable":
+                g_costumeNormalDust<=0?"GoldFlameDustIdUnavailable":
+                g_costumeWetDust<=0?"BlueFlareDustIdUnavailable":
+                g_refs.playerPosition<0?"PlayerPositionUnavailable":
+                g_refs.playerWidth<0?"PlayerWidthUnavailable":
+                g_refs.playerHeight<0?"PlayerHeightUnavailable":"ParticleFieldContractUnavailable";
+            BL_WARN("[CSharp][Costume] Stage=BindParticles Result=Unavailable Reason=%s",reason);
+        }
     }
     if (!bl::hook::install(equip, hkApplyEquip, &g_originalEquip)) return false;
     const MethodInfo* vanity = findMethodBySignature(

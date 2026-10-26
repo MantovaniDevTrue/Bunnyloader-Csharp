@@ -595,16 +595,28 @@ bool install(Entry& entry,std::string* error) {
         if(buffType<0){*error="Reason=CostumeBuffNotRegistered";return false;}
         const char* names[]={"Head","Body","Legs"};
         const auto ownedFlag=[&](const char* group,const char* flag,int slot,bool value,int variant) {
+            const auto fail=[&](const char* detail) {
+                *error=std::string("Reason=CostumeSkinFlagsUnavailable Group=")+group+
+                    " Flag="+flag+" Variant="+std::to_string(variant)+
+                    " Slot="+std::to_string(slot)+" Detail="+detail;
+                return false;
+            };
+            if(slot<0||slot>=32767)return fail("InvalidEquipSlot");
             auto* cls=nested(group);
-            auto* sets=cls?findNested(cls,"Sets"):nullptr;
+            if(!cls)return fail("ArmorGroupUnavailable");
+            auto* sets=findNested(cls,"Sets");
+            if(!sets)return fail("ArmorSetsUnavailable");
             auto field=staticArray(sets,flag);
-            const auto* array=table(field);
-            if(!array||!primitive(api().class_get_element_class(field.type),"Boolean",1)||
-               !grow(field,slot+1))return false;
+            if(!field)return fail("ArmorFlagArrayUnavailable");
+            if(!primitive(api().class_get_element_class(field.type),"Boolean",1))
+                return fail("ArmorFlagNotBooleanArray");
+            if(!table(field))return fail("ArmorFlagTableUnavailable");
+            if(!grow(field,slot+1))return fail("ArmorFlagResizeUnavailable");
             const uint8_t bits=value?1:0;
-            return writeOwnedStaticCell(entry.source.type,
+            if(!writeOwnedStaticCell(entry.source.type,
                 std::string("Costume.")+group+"."+flag+"."+std::to_string(variant),
-                field,slot,&bits,1);
+                field,slot,&bits,1))return fail("ArmorFlagOwnedWriteRejected");
+            return true;
         };
         for(int i=0;i<3;++i) {
             const std::string name=names[i];
@@ -625,7 +637,7 @@ bool install(Entry& entry,std::string* error) {
                         ?ownedFlag("Body","HidesTopSkin",slot,true,variant)&&
                          ownedFlag("Body","HidesArms",slot,true,variant)
                         :ownedFlag("Legs","HidesBottomSkin",slot,true,variant);
-                if(!ready){*error="Reason=CostumeSkinFlagsUnavailable";return false;}
+                if(!ready)return false;
             }
         }
         entry.costumeBuffType=buffType;

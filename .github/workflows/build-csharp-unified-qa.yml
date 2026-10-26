@@ -51,6 +51,8 @@ jobs:
           c++ -std=c++20 -Wall -Wextra -Werror -Iapp/src/main/cpp tests/csharp_unified/tile_draw_shape_bounds_test.cpp -o build/unified-tile-shapes/check
           build/unified-tile-shapes/check
           python3 tests/csharp_unified/check_tile_draw_native_contract.py
+      - name: Verify Android native policy rejection diagnostics
+        run: python3 tests/csharp_unified/check_native_pending_diagnostics.py
       - name: Verify world tick crash stage boundaries
         run: python3 tests/csharp_unified/check_world_crash_stages.py
       - name: Verify Android drink particle color jagged array ABI
