@@ -41,10 +41,9 @@ jobs:
             fi
           }
           run item-batch dotnet run --project tests/basic_items/ItemBatch.csproj -c Release
-          run full-wire python3 tests/basic_items/check_full_wire.py build/basic-items/full-source-runtime-values.txt
-          run three-loaders bash tests/three_loaders/run.sh
-          run armor-port bash tests/armor_port_run.sh
-          run golf-ball bash tests/golf_ball/run.sh
+          echo "" >> $report; echo "### item-batch falhas" >> $report; echo '```' >> $report
+          python3 -c "import json;d=json.load(open('build/basic-items-results.json'));[print(r['id'],'::',r['error'][:700].replace(chr(10),' | ')) for r in d['results'] if r['status']!='pass']" >> $report 2>&1
+          echo '```' >> $report
           run world-identity dotnet run --project experiments/csharp/BunnyWorldIdentitySmoke/BunnyWorldIdentitySmoke.csproj -c Release
           gh pr comment 180 --repo "$GITHUB_REPOSITORY" --body-file $report
           exit 0
