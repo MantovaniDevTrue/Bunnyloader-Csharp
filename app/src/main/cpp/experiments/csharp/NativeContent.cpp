@@ -2985,6 +2985,7 @@ bool publishManagedNativeTrees(const std::string& modId,const std::string& direc
         return false;
     };
     if(trees.empty())return true;
+    BL_DEBUG("[CSharp][TreeLoader] Stage=NativeBegin Trees=%zu",trees.size());
     if(trees.size()>255||runtime::modTreeCount()+static_cast<int>(trees.size())>255)
         return fail("Preflight","CapacityExceeded");
     auto& a=il2cpp::api();
@@ -3035,6 +3036,7 @@ bool publishManagedNativeTrees(const std::string& modId,const std::string& direc
     });
     if(needsShakeEffects&&!runtime::prepareModTreeShakeEffects())
         return fail("BindTreeShake","MissingNativeShakeEffectsABI");
+    BL_DEBUG("[CSharp][TreeLoader] Stage=NativeHooksReady Trees=%zu",trees.size());
     std::map<int,bool> uniqueGround;
     struct Ready {
         int ground=-1;
@@ -3060,6 +3062,7 @@ bool publishManagedNativeTrees(const std::string& modId,const std::string& direc
         }
         ready.push_back({ground,sapling,files,nullptr,nullptr,nullptr});
     }
+    BL_DEBUG("[CSharp][TreeLoader] Stage=NativePreflightReady Trees=%zu",ready.size());
     for(size_t i=0;i<ready.size();++i) {
         auto& tree=ready[i];
         int width[3]={},height[3]={};
@@ -3079,6 +3082,7 @@ bool publishManagedNativeTrees(const std::string& modId,const std::string& direc
         tree.branch=assets[2];
         if(!tree.trunk)return fail("Asset","TrunkTextureNotLoaded:"+trees[i].name);
     }
+    BL_DEBUG("[CSharp][TreeLoader] Stage=NativeTexturesReady Trees=%zu",ready.size());
     auto* newTop=runtime::TypeTables::resizedCopy(originalTop,
         originalTop->length+ready.size());
     if(!newTop||!roots.add(reinterpret_cast<Il2CppObject*>(newTop)))
@@ -3099,6 +3103,7 @@ bool publishManagedNativeTrees(const std::string& modId,const std::string& direc
            !set(newBranch,index,ready[i].branch))
             return fail("Asset","ArrayWriteFailed");
     }
+    BL_DEBUG("[CSharp][TreeLoader] Stage=NativeArraysReady Trees=%zu",ready.size());
     FieldInfo* fields[]={fieldTop,fieldBranch};
     Il2CppArray* originals[]={originalTop,originalBranch};
     Il2CppArray* replacements[]={newTop,newBranch};
