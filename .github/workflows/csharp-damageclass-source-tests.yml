@@ -1,0 +1,250 @@
+name: CSharp DamageClass managed parity (NO APK)
+
+on:
+  push:
+    branches:
+      - feat/csharp-damageclass-complete-20261022
+    paths:
+      - 'experiments/csharp/BunnyCsSdk/DamageClass*.cs'
+      - 'experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj'
+      - 'tools/sdk_reference/Program.cs'
+      - 'app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp'
+      - 'app/src/main/cpp/experiments/csharp/SourceParser.cpp'
+      - 'app/src/main/cpp/experiments/csharp/SourceLoader.cpp'
+      - 'app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp'
+      - 'app/src/main/cpp/experiments/csharp/SourceContentIdentity.h'
+      - 'tests/DamageClassParity/native_damageclass_parser.cpp'
+      - 'tests/DamageClassParity/native_damage_type_registry.cpp'
+      - 'app/src/main/cpp/experiments/csharp/NativeDamageTypeRegistry.h'
+      - 'app/src/main/cpp/experiments/csharp/NativeContent.cpp'
+      - 'app/src/main/cpp/experiments/csharp/NativeDefaults.h'
+      - 'app/src/main/cpp/experiments/csharp/NativeDamageClassFlags.h'
+      - 'app/src/main/cpp/experiments/csharp/NativeDamageClassStats.h'
+      - 'app/src/main/cpp/experiments/csharp/NativeDamageCombatProbe.h'
+      - 'app/src/main/cpp/experiments/csharp/NativeDamagePlayerProjection.h'
+      - 'tests/DamageClassParity/native_damage_player_projection.cpp'
+      - 'tests/DamageClassParity/native_damage_combat_probe.cpp'
+      - 'tests/DamageClassParity/native_damageclass_stats.cpp'
+      - 'experiments/csharp/BunnyCsSdk/BunnyEntitySourceDispatcher.cs'
+      - 'experiments/csharp/BunnyCsSdk/DamageClassLoader.cs'
+      - 'experiments/csharp/BunnyCsSdk/BunnyItem.cs'
+      - 'experiments/csharp/BunnyCsSdk/BunnySourceScriptApi.cs'
+      - 'experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs'
+      - 'samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/ExampleWaveWand.cs'
+      - 'samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleWaveBolt.cs'
+      - 'samples/ExampleModCSharp/Playable/content/Common/DamageClasses/**'
+      - 'tests/DamageClassParity/**'
+      - '.github/workflows/csharp-damageclass-source-tests.yml'
+  pull_request:
+    paths:
+      - 'experiments/csharp/BunnyCsSdk/DamageClass*.cs'
+      - 'experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj'
+      - 'tools/sdk_reference/Program.cs'
+      - 'app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp'
+      - 'app/src/main/cpp/experiments/csharp/SourceParser.cpp'
+      - 'app/src/main/cpp/experiments/csharp/SourceLoader.cpp'
+      - 'app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp'
+      - 'app/src/main/cpp/experiments/csharp/SourceContentIdentity.h'
+      - 'tests/DamageClassParity/native_damageclass_parser.cpp'
+      - 'tests/DamageClassParity/native_damage_type_registry.cpp'
+      - 'app/src/main/cpp/experiments/csharp/NativeDamageTypeRegistry.h'
+      - 'app/src/main/cpp/experiments/csharp/NativeContent.cpp'
+      - 'app/src/main/cpp/experiments/csharp/NativeDefaults.h'
+      - 'app/src/main/cpp/experiments/csharp/NativeDamageClassFlags.h'
+      - 'app/src/main/cpp/experiments/csharp/NativeDamageClassStats.h'
+      - 'app/src/main/cpp/experiments/csharp/NativeDamageCombatProbe.h'
+      - 'app/src/main/cpp/experiments/csharp/NativeDamagePlayerProjection.h'
+      - 'tests/DamageClassParity/native_damage_player_projection.cpp'
+      - 'tests/DamageClassParity/native_damage_combat_probe.cpp'
+      - 'tests/DamageClassParity/native_damageclass_stats.cpp'
+      - 'experiments/csharp/BunnyCsSdk/BunnyEntitySourceDispatcher.cs'
+      - 'experiments/csharp/BunnyCsSdk/DamageClassLoader.cs'
+      - 'experiments/csharp/BunnyCsSdk/BunnyItem.cs'
+      - 'experiments/csharp/BunnyCsSdk/BunnySourceScriptApi.cs'
+      - 'experiments/csharp/BunnySourceCompiler/CompiledAssemblyProbe.cs'
+      - 'samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/ExampleWaveWand.cs'
+      - 'samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleWaveBolt.cs'
+      - 'samples/ExampleModCSharp/Playable/content/Common/DamageClasses/**'
+      - 'tests/DamageClassParity/**'
+      - '.github/workflows/csharp-damageclass-source-tests.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: csharp-damageclass-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  managed-parity:
+    name: Complete managed SDK and ExampleMod source checks (NO APK)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install .NET 8 and 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+      - name: Run DamageClass parity tests
+        run: dotnet run --project tests/DamageClassParity/DamageClassParity.csproj -c Release
+      - name: Build Android managed SDK
+        run: dotnet build experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj -c Release --nologo
+      - name: Compile and probe entire ExampleMod with Roslyn
+        run: dotnet run --project tests/ready_prs/FullExampleRuntime/FullExampleRuntime.csproj -c Release -- samples/ExampleModCSharp/Playable
+      - name: Syntax-check native MonoVM preload path without Android binaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          JAVA_INCLUDE="$(dirname "$(dirname "$(readlink -f "$(command -v javac)")")")/include"
+          g++ -std=c++20 -O0 -Wall -Wextra -Werror -fsyntax-only \
+            -I"$JAVA_INCLUDE" -I"$JAVA_INCLUDE/linux" \
+            -Itests/basic_items/include -Iapp/src/main/cpp \
+            app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp
+      - name: Verify managed-only DamageClass parser and source runtime syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          c++ -std=c++20 -Wall -Wextra -Werror -Iapp/src/main/cpp \
+            tests/DamageClassParity/native_damageclass_parser.cpp \
+            app/src/main/cpp/experiments/csharp/SourceParser.cpp \
+            -o "$RUNNER_TEMP/damageclass_parser"
+          "$RUNNER_TEMP/damageclass_parser"
+          c++ -std=c++20 -O2 -Wall -Wextra -Werror -pthread -Iapp/src/main/cpp \
+            tests/DamageClassParity/native_damage_type_registry.cpp \
+            -o "$RUNNER_TEMP/damage_type_registry"
+          "$RUNNER_TEMP/damage_type_registry"
+          c++ -std=c++20 -O2 -Wall -Wextra -Werror -Iapp/src/main/cpp \
+            tests/DamageClassParity/native_damageclass_flags.cpp \
+            -o "$RUNNER_TEMP/damageclass_flags"
+          "$RUNNER_TEMP/damageclass_flags"
+          c++ -std=c++20 -O2 -Wall -Wextra -Werror -pthread -Iapp/src/main/cpp \
+            tests/DamageClassParity/native_damageclass_stats.cpp \
+            -o "$RUNNER_TEMP/damageclass_stats"
+          "$RUNNER_TEMP/damageclass_stats"
+          c++ -std=c++20 -O2 -Wall -Wextra -Werror -pthread -Iapp/src/main/cpp \
+            tests/DamageClassParity/native_damage_combat_probe.cpp \
+            -o "$RUNNER_TEMP/damage_combat_probe"
+          "$RUNNER_TEMP/damage_combat_probe"
+          c++ -std=c++20 -O2 -Wall -Wextra -Werror -Iapp/src/main/cpp \
+            tests/DamageClassParity/native_damage_player_projection.cpp \
+            -o "$RUNNER_TEMP/damage_player_projection"
+          "$RUNNER_TEMP/damage_player_projection"
+          JAVA_INCLUDE="$(dirname "$(dirname "$(readlink -f "$(command -v javac)")")")/include"
+          for source in SourceLoader.cpp AutoSourceRuntime.cpp; do
+            g++ -std=c++20 -O0 -Wall -Wextra -Werror -fsyntax-only \
+              -I"$JAVA_INCLUDE" -I"$JAVA_INCLUDE/linux" \
+              -Itests/basic_items/include -Iapp/src/main/cpp \
+              "app/src/main/cpp/experiments/csharp/$source"
+          done
+      - name: Syntax-check native Item and Projectile DamageType hooks
+        shell: bash
+        run: |
+          set -euo pipefail
+          JAVA_INCLUDE="$(dirname "$(dirname "$(readlink -f "$(command -v javac)")")")/include"
+          g++ -std=c++20 -O0 -Wall -Wextra -Werror -fsyntax-only \
+            -I"$JAVA_INCLUDE" -I"$JAVA_INCLUDE/linux" \
+            -Itests/basic_items/include -Iapp/src/main/cpp \
+            app/src/main/cpp/experiments/csharp/NativeContent.cpp
+      - name: Ensure no APK was produced
+        shell: bash
+        run: |
+          if find . -type f -name '*.apk' -print -quit | grep -q .; then
+            echo "FORBIDDEN: APK cannot be generated before Android integration is complete"
+            exit 1
+          fi
+
+  arm64-combat:
+    name: Android ARM64 native combat hooks (NO APK)
+    needs: managed-parity
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Syntax-check native combat hooks with Android ARM64 ABI
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
+          if [[ -n "${ANDROID_NDK_HOME:-}" && -x "${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang++" ]]; then
+            ndk="${ANDROID_NDK_HOME}"
+          else
+            test -d "$root/ndk"
+            ndk="$(find "$root/ndk" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
+          fi
+          clang="$ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang++"
+          test -x "$clang"
+          for source in NativeContent.cpp ManagedRuntime.cpp; do
+            "$clang" -std=c++20 -O0 -Wall -Wextra -Werror -pedantic -pthread -fsyntax-only \
+              -Iapp/src/main/cpp \
+              "app/src/main/cpp/experiments/csharp/$source"
+          done
+          echo "CSHARP_DAMAGECLASS_ARM64_COMBAT=PASS NO_APK=TRUE"
+
+  publish-managed-reference:
+    name: Stage updated managed C# SDK and reference (NO APK)
+    if: github.event_name == 'push' && github.ref_name == 'feat/csharp-damageclass-complete-20261022'
+    needs: [managed-parity, arm64-combat]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout source branch
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Install .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Generate public API files from the rebuilt SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet run --project tools/sdk_reference/SdkReference.csproj -c Release -- --write
+          dotnet run --project tools/sdk_reference/SdkReference.csproj -c Release -- --check
+          sdk=experiments/csharp/BunnySourceSdk/bin/Release/net8.0/BunnySourceSdk.dll
+          dest=app/src/main/assets/managed/BunnySourceSdk.dll
+          test -s "$sdk"
+          grep -a -q DamageClassLoader "$sdk"
+          grep -a -q DamageClassPlayer "$sdk"
+          cp "$sdk" "$dest"
+          python3 - <<'PY'
+          from pathlib import Path
+          from hashlib import sha256
+          folder = Path('app/src/main/assets/managed')
+          manifest = folder / 'framework.sha256'
+          lines = manifest.read_text(encoding='utf-8').splitlines()
+          updated = []
+          found = False
+          for line in lines:
+              if not line:
+                  continue
+              name, digest = line.split('\t', 1)
+              if name == 'BunnySourceSdk.dll':
+                  digest = sha256((folder / name).read_bytes()).hexdigest()
+                  found = True
+              updated.append(f'{name}\t{digest}')
+          if not found:
+              raise SystemExit('BunnySourceSdk.dll absent from framework manifest')
+          manifest.write_text('\n'.join(updated) + '\n', encoding='utf-8')
+          PY
+          if find . -type f -name '*.apk' -print -quit | grep -q .; then
+            echo "FORBIDDEN: APK generated"
+            exit 1
+          fi
+      - name: Commit generated C# SDK DLL, checksum and public reference
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/generated/sdk_public_reference.json docs/generated/sdk_public_reference.md app/src/main/assets/managed/BunnySourceSdk.dll app/src/main/assets/managed/framework.sha256
+          if ! git diff --cached --quiet; then
+            git commit -m "build(csharp): stage DamageClass SDK and public reference (NO APK)"
+            git push origin "HEAD:feat/csharp-damageclass-complete-20261022"
+          fi
+          echo "CSHARP_DAMAGECLASS_PUBLIC_REFERENCE=PASS NO_APK=TRUE"

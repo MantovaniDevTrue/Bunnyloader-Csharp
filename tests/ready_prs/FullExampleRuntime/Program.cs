@@ -42,12 +42,64 @@ try
     if (verified < 50)
         throw new InvalidOperationException("Full ExampleMod managed validation returned " +
             verified + "\n" + File.ReadAllText(diagnostics));
+    string damageTypeWire = File.ReadAllText(Path.Combine(
+        Path.GetDirectoryName(diagnostics)!, "source-runtime-values.txt"));
+    foreach (string row in new[] {
+        "DAMAGE_TYPE\tITEM\tExampleWaveWand\tC:ExampleModCSharp.DamageClasses.ExampleDamageClass",
+        "DAMAGE_TYPE\tPROJECTILE\tExampleWaveBolt\tC:ExampleModCSharp.DamageClasses.ExampleDamageClass",
+        "DAMAGE_TYPE\tITEM\tExampleWand\tV4",
+        "DAMAGE_TYPE\tPROJECTILE\tExampleBulletProjectile\tV4",
+        "DAMAGE_TYPE\tPROJECTILE\tExampleMinion\tV6"
+    })
+        if (!damageTypeWire.Split('\n').Contains(row, StringComparer.Ordinal))
+            throw new InvalidOperationException("DamageType native wire missing: " + row);
+    Console.WriteLine("FULL_EXAMPLE_DAMAGE_TYPE_WIRE=PASS customWeaponProjectile=true vanillaFallbacks=true");
 
     string modId = "full-example-dust-validation";
     int entitySlot = BunnyEntitySourceDispatcher.Register(modId, output);
     if (entitySlot < 0)
         throw new InvalidOperationException("Full Example entity registration failed: " +
             BunnyEntitySourceDispatcher.LastRegistrationError);
+    // A mesma montagem que cria NPCs e projéteis também registra classes de
+    // dano do assembly real, sem JS e sem registro manual no mod.
+    DamageClass registeredDamageClass = DamageClassLoader.GetDamageClass(10)
+        ?? throw new InvalidOperationException("ExampleDamageClass was not auto-registered");
+    if (registeredDamageClass.GetType().FullName !=
+            "ExampleModCSharp.DamageClasses.ExampleDamageClass" ||
+        !registeredDamageClass.CountsAsClass(DamageClass.Melee) ||
+        !registeredDamageClass.CountsAsClass(DamageClass.Magic) ||
+        registeredDamageClass.CountsAsClass(DamageClass.Summon))
+        throw new InvalidOperationException("Auto-registered ExampleDamageClass effects do not match");
+    var classStats = new DamageClassPlayer();
+    if (classStats.GetTotalCritChance(registeredDamageClass) != 8f ||
+        classStats.GetTotalArmorPenetration(registeredDamageClass) != 10f)
+        throw new InvalidOperationException("Auto-registered ExampleDamageClass defaults differ");
+    string snapshot = BunnyEntitySourceDispatcher.DamageStats(entitySlot);
+    string[] statLines = snapshot.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+    if (statLines.Length != 2 || statLines[0] != "DAMAGE_CLASS_STATS_V2")
+        throw new InvalidOperationException("Managed default DamageClass stat snapshot header/count");
+    string[] stats = statLines[1].Split('\t');
+    if (stats.Length != 40 || stats[0] != "CLASS" ||
+        stats[1] != "ExampleModCSharp.DamageClasses.ExampleDamageClass" ||
+        stats[10] != "8" || stats[11] != "1" || stats[12] != "10" || stats[13] != "1")
+        throw new InvalidOperationException("ExampleDamageClass five stat channels differ from live managed registry: " +
+            statLines[1]);
+    if (stats.Skip(14).Take(5).Any(x => x != "1") ||
+        stats.Skip(19).Take(20).Any(x => x != "0") || stats[39] != "11")
+        throw new InvalidOperationException("DamageClass source inheritance matrix mismatch");
+    Console.WriteLine("FULL_EXAMPLE_DAMAGECLASS_FIVE_STAT_SNAPSHOT=PASS crit=8 armorPen=10 inheritance=generic-only");
+    if (!BunnyEntitySourceDispatcher.Status(entitySlot).Contains("damageClasses=1", StringComparison.Ordinal))
+        throw new InvalidOperationException("Managed entity context missing DamageClass registration");
+    if (BunnyEntitySourceDispatcher.Register(modId, output) != entitySlot ||
+        DamageClassLoader.DamageClassCount != 11)
+        throw new InvalidOperationException("Repeated registration changed class IDs or context");
+    bool duplicateRejected = false;
+    try { DamageClassLoader.RegisterAssembly(System.Reflection.Assembly.LoadFrom(output)); }
+    catch (InvalidOperationException) { duplicateRejected = true; }
+    if (!duplicateRejected || DamageClassLoader.DamageClassCount != 11 ||
+        !ReferenceEquals(DamageClassLoader.GetDamageClass(10), registeredDamageClass))
+        throw new InvalidOperationException("Duplicate assembly registration corrupted DamageClass registry");
+    Console.WriteLine("FULL_EXAMPLE_DAMAGECLASS_AUTO_REGISTRATION=PASS id=10 crit=8 pen=10");
     var dustOwner = typeof(BunnyDustSourceDispatcher).GetMethod("ModForAssembly",
         System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)
         ?? throw new InvalidOperationException("BunnyDust owner lookup missing");
@@ -150,6 +202,42 @@ try
         throw new InvalidOperationException("Android packaged CLR validation returned " +
             packagedVerified + "\n" + File.ReadAllText(packagedDiagnostics));
     Console.WriteLine("FULL_EXAMPLE_PACKAGED_ANDROID_CLR=PASS classes=" + packagedVerified);
+    // Revogar o mod não pode alterar os IDs vanilla nem deixar uma classe
+    // personalizada registrada após o encerramento do assembly.
+    if (!BunnyEntitySourceDispatcher.Unregister(modId) ||
+        BunnyEntitySourceDispatcher.DamageStats(entitySlot) != "" ||
+        DamageClassLoader.GetDamageClass(10) != null ||
+        DamageClassLoader.DamageClassCount != 11 ||
+        DamageClassLoader.All.Count != 10 ||
+        BunnyEntitySourceDispatcher.Register(modId, output) >= 0)
+        throw new InvalidOperationException("ExampleMod DamageClass per-mod cleanup failed");
+    Console.WriteLine("FULL_EXAMPLE_DAMAGECLASS_MOD_UNLOAD=PASS stableIds=true");
+    string onlyRoot = Path.Combine(work, "damageclass-only-mod");
+    string onlyContent = Path.Combine(onlyRoot, "content");
+    Directory.CreateDirectory(onlyContent);
+    File.WriteAllText(Path.Combine(onlyContent, "SoloDamage.cs"),
+        "using BunnyLoader.Source; namespace OnlyDamage; " +
+        "public sealed class SoloDamage : DamageClass { " +
+        "public override StatInheritanceData GetModifierInheritance(DamageClass other) " +
+        "=> ReferenceEquals(other, Generic) ? StatInheritanceData.Full : StatInheritanceData.None; }");
+    string onlyOutput = Path.Combine(work, "compiled", "OnlyDamage.dll");
+    string onlyDiagnostics = Path.Combine(work, "only-diagnostics.txt");
+    if (Compiler.Compile(onlyRoot, onlyOutput, framework, onlyDiagnostics) != 1 ||
+        CompiledAssemblyProbe.Verify(onlyOutput, onlyDiagnostics, onlyRoot) != 1)
+        throw new InvalidOperationException("DamageClass-only mod must compile and verify: " +
+            File.ReadAllText(onlyDiagnostics));
+    int onlySlot = BunnyEntitySourceDispatcher.Register("damageclass-only-smoke", onlyOutput);
+    DamageClass? onlyClass = DamageClassLoader.GetDamageClass(11);
+    if (onlySlot < 0 || onlyClass?.GetType().FullName != "OnlyDamage.SoloDamage" ||
+        !onlyClass.GetModifierInheritance(DamageClass.Generic).Equals(StatInheritanceData.Full))
+        throw new InvalidOperationException("Managed-only DamageClass registration failed");
+    if (!BunnyEntitySourceDispatcher.Unregister("damageclass-only-smoke") ||
+        DamageClassLoader.GetDamageClass(11) != null ||
+        DamageClassLoader.All.Count != 10)
+        throw new InvalidOperationException("Managed-only DamageClass unload failed");
+    Console.WriteLine("DAMAGECLASS_ONLY_ASSEMBLY_COMPILE_AND_UNLOAD=PASS");
+
+
 }
 finally
 {

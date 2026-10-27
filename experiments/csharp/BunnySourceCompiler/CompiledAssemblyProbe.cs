@@ -220,6 +220,19 @@ public static class CompiledAssemblyProbe
             var rarityTypes = contentTypes
                 .Where(type => IsContentType(type, "BunnyRarity"))
                 .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
+            var damageClassTypes = contentTypes
+                .Where(type => type.IsClass && !type.IsAbstract && !type.ContainsGenericParameters &&
+                    typeof(BunnyLoader.Source.DamageClass).IsAssignableFrom(type) &&
+                    type.Assembly == assembly)
+                .OrderBy(type => type.FullName, StringComparer.Ordinal).ToArray();
+            if (damageClassTypes.Length > 118)
+                throw new InvalidOperationException("DamageClass count out of bounds");
+            foreach (Type cls in damageClassTypes)
+            {
+                if (typeof(BunnyLoader.Source.VanillaDamageClass).IsAssignableFrom(cls) ||
+                    cls.GetConstructor(Type.EmptyTypes) == null)
+                    throw new InvalidOperationException("Invalid DamageClass public constructor: " + cls.FullName);
+            }
             var screenEffectTypes = contentTypes
                 .Where(type => IsContentType(type, "BunnyScreenEffect"))
                 .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
@@ -229,7 +242,7 @@ public static class CompiledAssemblyProbe
                 weaponTypes.Length > 4096 || basicItemTypes.Length > 4096 ||
                 buffTypes.Length > 4096 || potionTypes.Length > 4096 || screenEffectTypes.Length > 4096)
                 throw new InvalidOperationException("C# content class count out of bounds");
-            if (mountTypes.Length + treeTypes.Length + goreTypes.Length + dustTypes.Length + wallTypes.Length + tileTypes.Length + basicItemTypes.Length + projectileTypes.Length + weaponTypes.Length + buffTypes.Length + potionTypes.Length + accessoryTypes.Length + playerTypes.Length + npcTypes.Length + prefixTypes.Length + screenEffectTypes.Length + rarityTypes.Length + localizationTypes.Length + commandCount + worldTypes.Length + hookTypes.Length == 0)
+            if (mountTypes.Length + treeTypes.Length + goreTypes.Length + dustTypes.Length + wallTypes.Length + tileTypes.Length + basicItemTypes.Length + projectileTypes.Length + weaponTypes.Length + buffTypes.Length + potionTypes.Length + accessoryTypes.Length + playerTypes.Length + npcTypes.Length + prefixTypes.Length + screenEffectTypes.Length + rarityTypes.Length + localizationTypes.Length + commandCount + worldTypes.Length + hookTypes.Length + damageClassTypes.Length == 0)
                 throw new InvalidOperationException("C# assembly has no supported content types");
             bool fixture = projectileTypes.Any(t => t.FullName == "SourceCSharpMod.SourceBolt") &&
                 weaponTypes.Any(t => t.FullName == "SourceCSharpMod.SourceWand");
@@ -281,6 +294,7 @@ public static class CompiledAssemblyProbe
             }
             File.AppendAllText(diagnosticsPath,
                 "\nASSEMBLY_EXEC_OK classes=" + (trees.Length + gores.Length + mounts.Length + dusts.Length + walls.Length + tiles.Length + projectiles.Length + weapons.Length + buffs.Length + potions.Length + accessories.Length + players.Length + npcs.Length + prefixes.Length + rarityTypes.Length + basicItems.Length + screenEffects.Length) +
+                " damageClasses=" + damageClassTypes.Length +
                 " projectiles=" + projectiles.Length + " weapons=" + weapons.Length +
                 " buffs=" + buffs.Length + " potions=" + potions.Length +
                 " accessories=" + accessories.Length + " players=" + players.Length +
@@ -292,7 +306,7 @@ public static class CompiledAssemblyProbe
                     ? " projectile=SourceBolt width=10 weapon=SourceWand damage=22 shoot=SourceBolt"
                     : " policy=generic-managed-defaults"));
             return projectiles.Length + weapons.Length + buffs.Length + potions.Length +
-                accessories.Length + players.Length + npcs.Length + prefixes.Length + basicItems.Length + tiles.Length + trees.Length + gores.Length + mounts.Length + dusts.Length + walls.Length + screenEffects.Length + rarityTypes.Length + localizationTypes.Length + commandCount + worldTypes.Length + hookTypes.Length;
+                accessories.Length + players.Length + npcs.Length + prefixes.Length + basicItems.Length + tiles.Length + trees.Length + gores.Length + mounts.Length + dusts.Length + walls.Length + screenEffects.Length + rarityTypes.Length + localizationTypes.Length + commandCount + worldTypes.Length + hookTypes.Length + damageClassTypes.Length;
         }
         catch (Exception exception)
         {
@@ -1385,6 +1399,62 @@ public static class CompiledAssemblyProbe
             object? holdout=item.GetType().GetProperty("Holdout")!.GetValue(item);
             if(holdout!=null)lines.Add(string.Join("\t","HOLDOUT",item.GetType().Name,
                 Value<float>(holdout,"X").ToString("R",CultureInfo.InvariantCulture),Value<float>(holdout,"Y").ToString("R",CultureInfo.InvariantCulture)));
+        }
+        // DamageType é identidade por classe, não um ID de runtime do compilador.
+        // O MonoVM resolve os IDs dos mods no próprio processo Android.
+        string DamageTypeWire(object content)
+        {
+            var damageClass = Value<BunnyLoader.Source.DamageClass>(content, "DamageType");
+            if (damageClass is null)
+                throw new InvalidOperationException("DamageType cannot be null: " + content.GetType().FullName);
+            return DamageClassWire(damageClass, content);
+        }
+        string DamageClassWire(BunnyLoader.Source.DamageClass damageClass, object content)
+        {
+            for (int i = 0; i < 10; ++i)
+                if (ReferenceEquals(damageClass, BunnyLoader.Source.DamageClassLoader.GetDamageClass(i)))
+                    return "V" + i.ToString(CultureInfo.InvariantCulture);
+            Type custom = damageClass.GetType();
+            if (custom.Assembly != content.GetType().Assembly ||
+                custom.IsAbstract || custom.ContainsGenericParameters ||
+                !typeof(BunnyLoader.Source.DamageClass).IsAssignableFrom(custom) ||
+                typeof(BunnyLoader.Source.VanillaDamageClass).IsAssignableFrom(custom) ||
+                custom.GetConstructor(Type.EmptyTypes) == null ||
+                custom.FullName is null ||
+                custom.FullName.Length > 240)
+                throw new InvalidOperationException("DamageType requires vanilla or concrete class from same assembly: " +
+                    content.GetType().FullName);
+            return "C:" + custom.FullName;
+        }
+        // V0 (DamageClass.Default) é o padrao e nao gera linha: o host trata a
+        // ausencia como V0, que ja nao altera as flags vanilla.
+        foreach (object owner in basicItems.Concat(weapons))
+        {
+            string wire = DamageTypeWire(owner);
+            if (wire != "V0") lines.Add(string.Join("\t", "DAMAGE_TYPE", "ITEM", owner.GetType().Name, wire));
+        }
+        foreach (object owner in projectiles)
+        {
+            string wire = DamageTypeWire(owner);
+            if (wire != "V0") lines.Add(string.Join("\t", "DAMAGE_TYPE", "PROJECTILE", owner.GetType().Name, wire));
+        }
+        // Bonus de classe enquanto equipado (StatModifier aditivo = 1 + Damage).
+        string Wire(float value) => value.ToString("R", CultureInfo.InvariantCulture);
+        foreach (object owner in basicItems)
+        {
+            var bonuses = owner.GetType().GetProperty("ClassBonuses")?.GetValue(owner) as System.Collections.IEnumerable;
+            if (bonuses is null) continue;
+            foreach (object bonus in bonuses)
+            {
+                var cls = Value<BunnyLoader.Source.DamageClass>(bonus, "Class");
+                if (cls is null)
+                    throw new InvalidOperationException("ClassBonus requires a DamageClass: " + owner.GetType().FullName);
+                lines.Add(string.Join("\t", "CLASS_BONUS", owner.GetType().Name, DamageClassWire(cls, owner),
+                    "0", Wire(1f + Value<float>(bonus, "Damage")), Wire(Value<float>(bonus, "DamageMultiplier")), "0",
+                    "0", Wire(1f + Value<float>(bonus, "Knockback")), Wire(Value<float>(bonus, "KnockbackMultiplier")), "0",
+                    Wire(Value<float>(bonus, "Crit")), Wire(Value<float>(bonus, "AttackSpeed")),
+                    Wire(Value<float>(bonus, "ArmorPenetration"))));
+            }
         }
         // A single public typed bridge serves all item families and projectiles.
         foreach(var definition in basicItems.Concat(weapons).Concat(potions).Concat(accessories)

@@ -1,4 +1,5 @@
 #include "experiments/csharp/NativeRecipeCallbacks.h"
+#include "experiments/csharp/NativeDamageClassStats.h"
 #include "experiments/csharp/NativeShooting.h"
 #include "experiments/csharp/NativeTileGameplay.h"
 #include "experiments/csharp/NativeWallRuntime.h"
@@ -1101,12 +1102,13 @@ void run() {
             g_worldRegistrationReady.store(false, std::memory_order_release);
             pendingWorldModules.emplace_back(mod.id, assembly);
         }
-        if (mod.npcs > 0 || mod.projectiles > 0 || mod.items > 0 || mod.worldSystems > 0) {
+        if (mod.npcs > 0 || mod.projectiles > 0 || mod.items > 0 || mod.worldSystems > 0 ||
+            mod.damageClasses > 0) {
             const auto npcs = runtime::registeredNpcsForMod(mod.id);
             const auto projectiles = runtime::registeredProjectilesForMod(mod.id);
             if (registerManagedEntitySourceMod(mod.id, assembly, npcs, projectiles))
-                BL_INFO("csharp source entities: mod=%s registered npc=%zu projectile=%zu",
-                        mod.id.c_str(), npcs.size(), projectiles.size());
+                BL_INFO("csharp source entities: mod=%s registered npc=%zu projectile=%zu damageClasses=%d",
+                        mod.id.c_str(), npcs.size(), projectiles.size(), mod.damageClasses);
         }
         if (status.cached) g_cachedMods.fetch_add(1, std::memory_order_relaxed);
         else g_compiledMods.fetch_add(1, std::memory_order_relaxed);
@@ -1985,6 +1987,35 @@ void noteAutoGameUpdate() {
     }
 }
 
+// Barreira do DamageClass: as estatisticas das classes chegam do MonoVM de
+// forma assincrona (preload). Sem elas, armas de classe do mod usariam o dano
+// sem classe no primeiro uso. Espera ate 10 s; depois libera com aviso para
+// nunca travar a entrada no mundo por uma publicacao que falhou.
+bool damageClassStatsReady() {
+    static std::chrono::steady_clock::time_point firstWait{};
+    static bool warned = false;
+    std::string missing;
+    for (const auto& source : sourceModStatuses())
+        if (source.loaded && source.damageClasses > 0 &&
+            !nativeDamageClassStats().hasMod(source.id)) {
+            missing = source.id;
+            break;
+        }
+    if (missing.empty()) {
+        firstWait = {};
+        return true;
+    }
+    const auto now = std::chrono::steady_clock::now();
+    if (firstWait == std::chrono::steady_clock::time_point{}) firstWait = now;
+    if (now - firstWait < std::chrono::seconds(10)) return false;
+    if (!warned) {
+        warned = true;
+        BL_WARN("[CSharp][DamageClass] Stage=PreWorldBarrier Mod=%s Result=TimedOut Reason=StatsNotPublished Effect=VanillaDamageUntilPublished",
+                missing.c_str());
+    }
+    return true;
+}
+
 bool preWorldCSharpContentReady() {
     if (gore::pendingInstall()) return false;
     bool hasCSharpMods = false;
@@ -2012,7 +2043,8 @@ bool preWorldCSharpContentReady() {
              networkReady)) &&
            content.pendingBehaviors == 0 && content.pendingRecipes == 0 &&
            content.pendingPlacements == 0 && pendingNativeVisualRenderer() == 0 &&
-           (!needsNpcDispatcher || managedNpcBuffEffectStatus().gameHookInstalled);
+           (!needsNpcDispatcher || managedNpcBuffEffectStatus().gameHookInstalled) &&
+           damageClassStatsReady();
 }
 
 bool finishPreWorldCSharpPlayer() {

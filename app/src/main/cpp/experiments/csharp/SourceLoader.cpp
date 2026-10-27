@@ -9,6 +9,8 @@
 #include "experiments/csharp/ManagedGoreRuntime.h"
 #include "experiments/csharp/SourceLoader.h"
 #include "experiments/csharp/AutoSourceRuntime.h"
+#include "experiments/csharp/NativeDamageTypeRegistry.h"
+#include "experiments/csharp/NativeDamageClassPlayerStats.h"
 #include "experiments/csharp/NativeRarityRegistry.h"
 #include "experiments/csharp/NativeRarityGameplay.h"
 #include "experiments/csharp/ManagedDustContract.h"
@@ -733,12 +735,23 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
             status->commandClasses.push_back(def.namespaceName.empty() ? def.name :
                 def.namespaceName + "." + def.name);
     status->commands = static_cast<int>(status->commandClasses.size());
+    for (const auto& def : defs)
+        if (def.base == "DamageClass")
+            status->damageClassNames.push_back(def.namespaceName.empty()
+                ? def.name : def.namespaceName + "." + def.name);
+    status->damageClasses = static_cast<int>(std::count_if(defs.begin(), defs.end(),
+        [](const ParsedSourceType& def) { return def.base == "DamageClass"; }));
+    if (status->damageClasses > 118) {
+        status->error = "DamageClass: limite de 118 classes C# por mod";
+        return false;
+    }
     if (status->commands > 128) {
         status->error = "ModCommand: maximo de 128 classes por mod";
         return false;
     }
     if (status->dusts+status->items+status->tiles+status->projectiles+status->buffs+
-        status->npcs+status->prefixes+status->rarities+status->players+status->screenEffects+status->commands+status->trees+status->gores+status->goreSourcesDiscovered+status->worldSystems+status->hookModules==0) {
+        status->npcs+status->prefixes+status->rarities+status->players+status->screenEffects+status->commands+status->trees+status->gores+status->goreSourcesDiscovered+status->worldSystems+status->hookModules+
+        status->damageClasses==0) {
         status->error = "mod C# sem conteudo registrado";
         return false;
     }
@@ -773,6 +786,8 @@ void resetCSharpSourceModSession() {
         retireNativeRaritySampling(mod.id);
         localization::retireMod(mod.id);
         shooting::unload(mod.id);
+        nativeDamageTypes().unload(mod.id);
+        damage_combat::classBonuses().unload(mod.id);
         angler::registry().unload(mod.id);
         unbindNativeRecipeAssembly(mod.id);
         invalidateManagedLiveSourceMod(mod.id);
@@ -887,6 +902,9 @@ bool applyManagedSourceDefaults(
     std::vector<std::pair<std::string,std::string>> mountItems;
     std::vector<ManagedGoreEntry> gores;
     std::vector<NativeDefaultsRequest> nativeDefaults;
+    std::vector<NativeDamageTypeBinding> damageTypes;
+    std::set<std::string> seenDamageTypes;
+    std::vector<damage_combat::ClassBonusRow> classBonusRows;
     std::vector<holdout::Entry> holdouts;
     std::vector<shooting::Entry> shooting;
     std::vector<useSounds::Entry> useSounds;
@@ -1155,6 +1173,63 @@ bool applyManagedSourceDefaults(
             }
             const auto source=mod->sourcePaths.find(key);
             holdouts.push_back({modId,fields[1],source==mod->sourcePaths.end()?"<unavailable>":source->second,it->second,x,y});continue;
+        }
+        if (fields.size() == 4 && fields[0] == "DAMAGE_TYPE") {
+            const bool projectile = fields[1] == "PROJECTILE";
+            if (fields[1] != "ITEM" && !projectile) {
+                *error = "[CSharp][DamageClass] Unknown content family";
+                return false;
+            }
+            const std::string key = sourceIdentityForWire(fields[1], fields[2]);
+            const auto registered = mod->registeredKindTypes.find(key);
+            const auto base = mod->registeredBases.find(key);
+            const bool family = base != mod->registeredBases.end() &&
+                (projectile ? base->second == "BunnyProjectile" :
+                    (base->second == "BunnyItem" || base->second == "BunnyWeapon"));
+            const std::string& cls = fields[3];
+            const bool vanilla = cls.size() == 2 && cls[0] == 'V' &&
+                cls[1] >= '0' && cls[1] <= '9';
+            const bool custom = cls.starts_with("C:") &&
+                std::find(mod->damageClassNames.begin(), mod->damageClassNames.end(),
+                          cls.substr(2)) != mod->damageClassNames.end();
+            if (registered == mod->registeredKindTypes.end() || !family ||
+                (!vanilla && !custom) || !seenDamageTypes.insert(key).second) {
+                *error = "[CSharp][DamageClass] Mod=" + modId + " Class=" + fields[2] +
+                    " Stage=BindDamageType Result=Rejected Reason=OwnerOrClassIdentityMismatch";
+                return false;
+            }
+            damageTypes.push_back({modId, registered->second, projectile, cls});
+            continue;
+        }
+        if (fields.size() == damage_combat::kClassBonusWireFields && fields[0] == "CLASS_BONUS") {
+            const std::string key = sourceIdentityForWire("ITEM", fields[1]);
+            const auto registered = mod->registeredKindTypes.find(key);
+            const auto base = mod->registeredBases.find(key);
+            const std::string& cls = fields[2];
+            const bool custom = cls.starts_with("C:") &&
+                std::find(mod->damageClassNames.begin(), mod->damageClassNames.end(),
+                          cls.substr(2)) != mod->damageClassNames.end();
+            float v[11]{};
+            bool numbers = true;
+            for (size_t i = 0; i < 11 && numbers; ++i) numbers = real(fields[3 + i], &v[i]);
+            damage_combat::ClassBonus bonus;
+            bonus.damage = {v[0], v[1], v[2], v[3]};
+            bonus.knockback = {v[4], v[5], v[6], v[7]};
+            bonus.crit = v[8];
+            bonus.attackSpeed = v[9];
+            bonus.armorPenetration = v[10];
+            const char* issue = registered == mod->registeredKindTypes.end() ||
+                base == mod->registeredBases.end() || base->second != "BunnyItem" ? "OwnerNotBunnyItem" :
+                !numbers ? "InvalidNumber" :
+                cls.starts_with("C:") && !custom ? "DamageClassNotInMod" :
+                damage_combat::classBonusIssue(cls, bonus);
+            if (issue) {
+                *error = "[CSharp][DamageClass] Mod=" + modId + " Class=" + fields[1] +
+                    " DamageClass=" + cls + " Stage=BindClassBonus Result=Rejected Reason=" + issue;
+                return false;
+            }
+            classBonusRows.push_back({modId, registered->second, cls, bonus});
+            continue;
         }
         if(fields.size()==3&&(fields[0]=="NATIVE_ITEM"||fields[0]=="NATIVE_PROJECTILE")) {
             const bool projectile=fields[0]=="NATIVE_PROJECTILE";
@@ -2085,6 +2160,25 @@ bool applyManagedSourceDefaults(
         *error="[CSharp][ERROR][AnglerQuest] Mod="+modId+
             " Stage=Publish Reason="+*error;
         return false;
+    }
+    // So classes diferentes de V0 chegam no wire; a ausencia é o padrao.
+    if (damageTypes.size() > static_cast<size_t>(mod->basicItems + mod->projectiles +
+          (mod->items - mod->accessories - mod->potions - mod->basicItems)) ||
+        !nativeDamageTypes().publish(modId, damageTypes)) {
+        *error = "[CSharp][DamageClass] Mod=" + modId +
+            " Stage=Publish Result=Rejected Reason=MissingOrDuplicateDamageType";
+        return false;
+    }
+    {
+        std::string bonusError;
+        if (!damage_combat::classBonuses().publish(modId, classBonusRows, &bonusError)) {
+            *error = "[CSharp][DamageClass] Mod=" + modId +
+                " Stage=PublishClassBonus Result=Rejected Reason=" + bonusError;
+            return false;
+        }
+        if (!classBonusRows.empty())
+            BL_INFO("[CSharp][DamageClass] Mod=%s Stage=PublishClassBonus Rows=%zu Result=Ready",
+                    modId.c_str(), classBonusRows.size());
     }
     mod->runtimeApplied = true;
     defaultsApply.complete=true;

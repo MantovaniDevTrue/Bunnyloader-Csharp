@@ -177,7 +177,11 @@ try {
   string output=Path.Combine(scratch,"owned.dll"),diag=Path.Combine(scratch,"owned.txt");
   Equal(1,Compiler.Compile("tests/basic_items/owned_recipe_fixture",output,runtime,diag));
   Equal(5,CompiledAssemblyProbe.Verify(output,diag));
-  var rows=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt"));
+  var allRows=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt"));
+  // Armas e projeteis declaram a classe padrao (Ranged) explicitamente no wire.
+  Equal(true,allRows.Contains("DAMAGE_TYPE\tITEM\tContractWeapon\tV4"));
+  Equal(true,allRows.Contains("DAMAGE_TYPE\tPROJECTILE\tContractBolt\tV4"));
+  var rows=allRows.Where(row=>!row.StartsWith("DAMAGE_TYPE\t",StringComparison.Ordinal)).ToArray();
   Equal(10,rows.Length);Equal(true,rows.Contains("SHOOT\tContractWeapon\t0"));Equal(3,rows.Count(row=>row.StartsWith("RECIPES\t",StringComparison.Ordinal)));
   foreach(string owner in new[]{"ContractWeapon","ContractAccessory","ContractPotion"}) {
    string Call(int kind,string state)=>BunnyRecipeLoader.Dispatch("owned",output,owner,0,kind,state);
@@ -318,7 +322,11 @@ try {
   int commands=compiled.GetTypes().Count(t=>t.IsClass&&!t.IsAbstract&&
    typeof(BunnyCommand).IsAssignableFrom(t));
   Equal(4,commands);
-  if(CompiledAssemblyProbe.Verify(output,diag,root)!=identities.Count+localizationModules+commands)
+  // DamageClass do mod (ExampleDamageClass) tambem conta como conteudo registrado.
+  int damageClasses=compiled.GetTypes().Count(t=>t.IsClass&&!t.IsAbstract&&
+   typeof(DamageClass).IsAssignableFrom(t));
+  Equal(1,damageClasses);
+  if(CompiledAssemblyProbe.Verify(output,diag,root)!=identities.Count+localizationModules+commands+damageClasses)
    throw new Exception(File.ReadAllText(diag));
   var contentKinds=new HashSet<string>{"ITEM","WEAPON","ACCESSORY","POTION","TILE","TREE","GORE","MOUNT","WALL","DUST","RARITY","BUFF","PLAYER","PROJECTILE","NPC","PREFIX"};
   string localizationUid="68c3115f-62f4-49f2-a56b-388256781d5f";
@@ -545,7 +553,11 @@ try {
     "using BunnyLoader.Source; namespace Example.Projectiles; public sealed class ExampleWorkbench:BunnyProjectile { public override void SetDefaults(){DisplayName=\"Example Workbench Projectile\";Texture=\"Content/Projectiles/ExampleWorkbench.png\";Width=12;Height=12;AiStyle=1;Friendly=true;Penetrate=1;TimeLeft=240;} }");
   string output=Path.Combine(scratch,"dual-identity.dll"),diag=Path.Combine(scratch,"dual-identity.txt");
   Equal(1,Compiler.Compile(root,output,runtime,diag));Equal(2,CompiledAssemblyProbe.Verify(output,diag));
-  var records=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt"));
+  var allRecords=File.ReadAllLines(Path.Combine(scratch,"source-runtime-values.txt"));
+  // O projetil declara a classe padrao (Ranged); o item V0 nao gera linha.
+  Equal(true,allRecords.Contains("DAMAGE_TYPE\tPROJECTILE\tExampleWorkbench\tV4"));
+  Equal(false,allRecords.Any(line=>line.StartsWith("DAMAGE_TYPE\tITEM\t",StringComparison.Ordinal)));
+  var records=allRecords.Where(line=>!line.StartsWith("DAMAGE_TYPE\t",StringComparison.Ordinal)).ToArray();
   Equal(3,records.Length);
   if(!records.Any(line=>line.StartsWith("ITEM\tExampleWorkbench\t")) ||
      !records.Any(line=>line.StartsWith("PROJECTILE\tExampleWorkbench\t")))

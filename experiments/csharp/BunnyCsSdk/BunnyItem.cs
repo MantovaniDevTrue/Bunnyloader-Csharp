@@ -24,13 +24,54 @@ public sealed class BunnyQuestContext
     public bool Uncommon { get; internal set; }
 }
 
+/// <summary>
+/// Bonus de DamageClass concedido enquanto o item esta equipado (acessorio ou
+/// peca de armadura), como player.GetDamage(classe) += Damage no UpdateEquip do
+/// tModLoader. Aplicado pelo host nativo a cada frame, sem Mono por frame.
+/// </summary>
+public readonly record struct BunnyClassBonus(DamageClass Class)
+{
+    /// <summary>Aditivo: 0.10f = +10% (GetDamage(classe) += 0.10f).</summary>
+    public float Damage { get; init; }
+    /// <summary>Multiplicativo: 1.10f = GetDamage(classe) *= 1.10f.</summary>
+    public float DamageMultiplier { get; init; } = 1f;
+    /// <summary>Pontos de chance de critico (GetCritChance(classe) += Crit).</summary>
+    public float Crit { get; init; }
+    /// <summary>Excedente de velocidade: 0.10f = +10% (GetAttackSpeed(classe) += 0.10f).</summary>
+    public float AttackSpeed { get; init; }
+    public float Knockback { get; init; }
+    public float KnockbackMultiplier { get; init; } = 1f;
+    public float ArmorPenetration { get; init; }
+}
+
 public abstract class BunnyItem : BunnyShootSource
 {
+    private readonly List<BunnyClassBonus> classBonuses = new();
+    /// <summary>Bonus de classe ativos enquanto equipado; lidos pelo compilador do mod.</summary>
+    public IReadOnlyList<BunnyClassBonus> ClassBonuses => classBonuses;
+    /// <summary>
+    /// No Terraria Android: Generic, Melee, Ranged, Magic, Summon ou uma DamageClass
+    /// do proprio mod. Velocidade so em Melee e classes do mod; critico nao em Summon;
+    /// knockback e penetracao so em classes do mod (penetracao tambem em Generic).
+    /// </summary>
+    public void AddClassBonusOnEquip(BunnyClassBonus bonus)
+    {
+        ArgumentNullException.ThrowIfNull(bonus.Class);
+        foreach (float value in new[] { bonus.Damage, bonus.DamageMultiplier, bonus.Crit, bonus.AttackSpeed,
+                     bonus.Knockback, bonus.KnockbackMultiplier, bonus.ArmorPenetration })
+            if (!float.IsFinite(value) || MathF.Abs(value) > 100000f)
+                throw new ArgumentOutOfRangeException(nameof(bonus), "Valor de bonus de classe fora do intervalo finito");
+        if (bonus.DamageMultiplier <= 0f || bonus.KnockbackMultiplier <= 0f)
+            throw new ArgumentOutOfRangeException(nameof(bonus), "Multiplicadores precisam ser positivos");
+        if (classBonuses.Count >= 16) throw new InvalidOperationException("Mais de 16 bonus de classe por item");
+        classBonuses.Add(bonus);
+    }
     public BunnyNativeDefaults NativeDefaults { get; } = new();
     public BunnyHoldout? Holdout { get; set; }
     /// <summary>Som próprio do mod; tem precedência sobre o SoundID vanilla.</summary>
     public BunnySoundStyle? CustomUseSound { get; set; }
     public string NativeDefaultsDefinition => NativeDefaults.Definition;
+    public DamageClass DamageType { get; set; } = DamageClass.Default;
     /// <summary>Valor interno equivalente a Item.buyPrice; as quantidades são convertidas em cobre.</summary>
     public static int BuyPrice(int platinum=0,int gold=0,int silver=0,int copper=0)
     {
