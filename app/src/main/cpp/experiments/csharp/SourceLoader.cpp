@@ -37,6 +37,7 @@
 #include "content/items/ModItems.h"
 #include "content/items/ModPrefixes.h"
 #include "experiments/csharp/ManagedPrefixBridge.h"
+#include "experiments/csharp/ManagedPrefixTooltipTemplate.h"
 #include "content/npcs/ModNpcs.h"
 #include "experiments/csharp/SourceParser.h"
 #include "experiments/csharp/SourceContentIdentity.h"
@@ -55,6 +56,7 @@
 #include <fstream>
 #include <iterator>
 #include <map>
+#include <set>
 #include <sstream>
 #include <set>
 #include <string>
@@ -183,6 +185,13 @@ bool fields(const ParsedSourceType& type, NativeContentSpec* spec,
             return false;
         }
         if (mount) continue;
+        if ((basic || weapon || accessory || potion) && key == "PrefixChance") {
+            if (value != "true" && value != "false") {
+                *error = type.name + ": PrefixChance requer literal true/false";
+                return false;
+            }
+            continue;
+        }
         if (basic) {
             const std::string allowed="|Tooltip|Width|Height|MaxStack|Value|Rare|Defense|Damage|Crit|KnockBack|UseTime|UseAnimation|UseStyle|Melee|NoMelee|AutoReuse|UseTurn|Consumable|Pick|Axe|Hammer|UseSound|SpawnAtCursor|";
             if (allowed.find("|"+key+"|")==std::string::npos) {
@@ -305,6 +314,7 @@ bool fields(const ParsedSourceType& type, NativeContentSpec* spec,
             }
             continue;
         }
+        if ((weapon || projectile) && key == "DamageType") continue;
         if(weapon&&key=="SpawnAtCursor")continue; // Evaluated by the managed verifier; no native side effects during bootstrap.
         int* integerField = nullptr;
         if (projectile && key == "Width") integerField = &spec->width;
@@ -509,7 +519,8 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
             if (base == "BunnyPrefix") {
                 for (const auto& [key, value] : def.properties)
                     if (key != "DisplayName" && key != "Category" &&
-                        key != "RollWeight") {
+                        key != "RollWeight" && key != "ExtraTooltip" &&
+                        key != "RequireEffectiveStats") {
                         status->error = def.name + ": propriedade de prefixo nao suportada: " + key;
                         return false;
                     }
@@ -730,6 +741,9 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
         screenEffects.push_back(std::move(effect));
     }
     status->screenEffects = static_cast<int>(screenEffects.size());
+    const bool hasGlobalPrefix=std::any_of(defs.begin(),defs.end(),[](const auto& def) {
+        return def.base=="BunnyGlobalItem";
+    });
     for (const auto& def : defs)
         if (def.base == "BunnyCommand")
             status->commandClasses.push_back(def.namespaceName.empty() ? def.name :
@@ -751,7 +765,7 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
     }
     if (status->dusts+status->items+status->tiles+status->projectiles+status->buffs+
         status->npcs+status->prefixes+status->rarities+status->players+status->screenEffects+status->commands+status->trees+status->gores+status->goreSourcesDiscovered+status->worldSystems+status->hookModules+
-        status->damageClasses==0) {
+        status->damageClasses==0 && !hasGlobalPrefix) {
         status->error = "mod C# sem conteudo registrado";
         return false;
     }
@@ -920,6 +934,31 @@ bool applyManagedSourceDefaults(
     bool seenLocalizationRuntime = false;
     size_t rarityCount = 0;
     std::map<std::string, int> itemRarityOverrides;
+    std::map<std::string, ManagedPrefixEntry> prefixPostPolicies;
+    std::map<std::string, std::vector<std::string>> prefixTooltipPolicies;
+    std::map<std::string, std::vector<std::string>> prefixItemTooltipPolicies;
+    std::map<std::string, ManagedPrefixEntry> prefixItemConditions;
+    std::map<std::string, int> prefixCallbackMasks;
+    std::map<std::string, ManagedPrefixEntry> prefixStackWeights;
+    std::map<std::string, ManagedPrefixEntry> prefixAttributeWeights;
+    std::vector<std::pair<int, std::vector<std::string>>> prefixDenials;
+    std::set<int> seenPrefixDenials;
+    std::set<int> seenItemPrefixCallbacks;
+    std::vector<std::pair<int, std::string>> itemPrefixCallbacks;
+    std::vector<std::pair<std::string,int>> globalPrefixCallbacks;
+    std::map<int,int> itemPrefixMasks;
+    std::vector<std::pair<int, std::vector<ManagedPrefixStackDenyToken>>> prefixStackDenials;
+    std::set<int> seenPrefixStackDenials;
+    std::vector<std::pair<int, std::vector<ManagedPrefixAttributeDenyToken>>> prefixAttributeDenials;
+    std::set<int> seenPrefixAttributeDenials;
+    std::vector<std::pair<int, bool>> prefixChances;
+    std::set<int> seenPrefixChances;
+    std::vector<std::pair<int, ManagedPrefixStackChance>> prefixStackChances;
+    std::set<int> seenPrefixStackChances;
+    std::vector<ManagedPrefixChoiceToken> prefixChoices;
+    std::set<int> seenPrefixChoices;
+    std::vector<std::pair<int, ManagedItemPrefixApply>> prefixEffects;
+    std::set<int> seenPrefixEffects;
     std::vector<SourceRecipeOwner> recipeOwners;
     std::map<std::string,bool> seenRecipeOwners;
     std::map<std::string, int> accessoryTypes;
@@ -1017,6 +1056,439 @@ bool applyManagedSourceDefaults(
                     " Class=" + fields[1] + " Stage=ResolveItemRarity Reason=UnknownOrDuplicateOwnerOrRarity";
                 return false;
             }
+            continue;
+        }
+        if (!fields.empty() && fields[0] == "GLOBAL_PREFIX_CALLBACK") {
+            int mask=0;
+            if(fields.size()!=3 || fields[1].empty() || fields[1].size()>64 ||
+               !((fields[1][0]>='A'&&fields[1][0]<='Z') ||
+                 (fields[1][0]>='a'&&fields[1][0]<='z') || fields[1][0]=='_') ||
+               !std::all_of(fields[1].begin(),fields[1].end(),[](unsigned char c) {
+                   return (c>='A'&&c<='Z') || (c>='a'&&c<='z') ||
+                          (c>='0'&&c<='9') || c=='_';
+               }) || !integer(fields[2],&mask) || mask<1 || mask>15 ||
+               !mod->registeredBases.contains(
+                   sourceIdentityForBase("BunnyGlobalItem",fields[1])) ||
+               globalPrefixCallbacks.size()>=128 ||
+               std::any_of(globalPrefixCallbacks.begin(),globalPrefixCallbacks.end(),
+                   [&](const auto& entry){return entry.first==fields[1];})) {
+                *error="[CSharp][ERROR][GlobalPrefixCallback] Stage=Decode Reason=InvalidOwnerOrMask";
+                return false;
+            }
+            globalPrefixCallbacks.emplace_back(fields[1],mask);
+            continue;
+        }
+        if (!fields.empty() && fields[0] == "ITEM_PREFIX_CALLBACK") {
+            const auto key = fields.size() > 1
+                ? sourceIdentityForWire("ITEM", fields[1]) : "";
+            const auto registered = mod->registeredKindTypes.find(key);
+            int callbackMask=0;
+            if (fields.size() != 3 || registered == mod->registeredKindTypes.end() ||
+                runtime::modItemTypeByKey(modId + "/" + fields[1]) != registered->second ||
+                !integer(fields[2],&callbackMask) || callbackMask<1 || callbackMask>15 ||
+                seenItemPrefixCallbacks.size() >= kSourceMaxCategory ||
+                !seenItemPrefixCallbacks.insert(registered->second).second) {
+                *error = "[CSharp][ERROR][ItemPrefixCallback] Stage=Decode Reason=InvalidItemOrMask";
+                return false;
+            }
+            itemPrefixCallbacks.emplace_back(registered->second, fields[1]);
+            itemPrefixMasks.emplace(registered->second,callbackMask);
+            continue;
+        }
+        if (!fields.empty() && fields[0] == "PREFIX_DENY") {
+            const auto key = fields.size() > 1
+                ? sourceIdentityForWire("ITEM", fields[1]) : "";
+            const auto registered = mod->registeredKindTypes.find(key);
+            if (fields.size() != 3 || registered == mod->registeredKindTypes.end() ||
+                runtime::modItemTypeByKey(modId + "/" + fields[1]) != registered->second ||
+                fields[2].empty() || fields[2].size() > 320 ||
+                prefixDenials.size() >= kSourceMaxCategory ||
+                !seenPrefixDenials.insert(registered->second).second) {
+                *error = "[CSharp][ERROR][PrefixDeny] InvalidItemOrPolicy";
+                return false;
+            }
+            std::vector<std::string> denied;
+            std::istringstream values(fields[2]);
+            std::string entry;
+            while (std::getline(values, entry, ',')) {
+                if (entry.empty() || denied.size() >= 32) {
+                    *error = "[CSharp][ERROR][PrefixDeny] InvalidPrefixList";
+                    return false;
+                }
+                denied.push_back(std::move(entry));
+            }
+            if (denied.empty() || fields[2].back() == ',') {
+                *error = "[CSharp][ERROR][PrefixDeny] InvalidPrefixList";
+                return false;
+            }
+            prefixDenials.emplace_back(registered->second, std::move(denied));
+            continue;
+        }
+        if (!fields.empty() && fields[0] == "PREFIX_DENY_STACK") {
+            const auto key = fields.size() > 1
+                ? sourceIdentityForWire("ITEM", fields[1]) : "";
+            const auto registered = mod->registeredKindTypes.find(key);
+            if (fields.size() != 3 || registered == mod->registeredKindTypes.end() ||
+                runtime::modItemTypeByKey(modId + "/" + fields[1]) != registered->second ||
+                fields[2].empty() || fields[2].size() > 640 ||
+                prefixStackDenials.size() >= kSourceMaxCategory ||
+                !seenPrefixStackDenials.insert(registered->second).second) {
+                *error = "[CSharp][ERROR][PrefixDenyStack] InvalidItemOrPolicy";
+                return false;
+            }
+            std::vector<ManagedPrefixStackDenyToken> denied;
+            std::istringstream values(fields[2]);
+            std::string entry;
+            while (std::getline(values, entry, ',')) {
+                if (entry.empty() || denied.size() >= 32) {
+                    *error = "[CSharp][ERROR][PrefixDenyStack] InvalidPrefixList";
+                    return false;
+                }
+                const auto first = entry.find(':');
+                const auto second = first == std::string::npos
+                    ? std::string::npos : entry.find(':', first + 1);
+                if (first == 0 || second == std::string::npos ||
+                    second == first + 1 || second + 1 >= entry.size() ||
+                    entry.find(':', second + 1) != std::string::npos) {
+                    *error = "[CSharp][ERROR][PrefixDenyStack] InvalidRange";
+                    return false;
+                }
+                ManagedPrefixStackDenyToken token;
+                token.prefix = entry.substr(0, first);
+                if (!integer(entry.substr(first + 1, second - first - 1),
+                             &token.range.minStack) ||
+                    !integer(entry.substr(second + 1), &token.range.maxStack) ||
+                    token.range.minStack < 0 ||
+                    token.range.maxStack < token.range.minStack ||
+                    token.range.maxStack > 999999) {
+                    *error = "[CSharp][ERROR][PrefixDenyStack] InvalidRange";
+                    return false;
+                }
+                denied.push_back(std::move(token));
+            }
+            if (denied.empty() || fields[2].back() == ',') {
+                *error = "[CSharp][ERROR][PrefixDenyStack] InvalidPrefixList";
+                return false;
+            }
+            prefixStackDenials.emplace_back(registered->second, std::move(denied));
+            continue;
+        }
+        if (!fields.empty() && fields[0] == "PREFIX_DENY_ATTRIBUTE") {
+            const auto key = fields.size() > 1
+                ? sourceIdentityForWire("ITEM", fields[1]) : "";
+            const auto registered = mod->registeredKindTypes.find(key);
+            if (fields.size() != 3 || registered == mod->registeredKindTypes.end() ||
+                runtime::modItemTypeByKey(modId + "/" + fields[1]) != registered->second ||
+                fields[2].empty() || fields[2].size() > 800 ||
+                prefixAttributeDenials.size() >= kSourceMaxCategory ||
+                !seenPrefixAttributeDenials.insert(registered->second).second) {
+                *error = "[CSharp][ERROR][PrefixDenyAttribute] InvalidItemOrPolicy";
+                return false;
+            }
+            std::vector<ManagedPrefixAttributeDenyToken> denied;
+            std::istringstream values(fields[2]);
+            std::string entry;
+            while (std::getline(values, entry, ',')) {
+                const auto first = entry.find(':');
+                const auto second = first == std::string::npos
+                    ? std::string::npos : entry.find(':', first + 1);
+                const auto third = second == std::string::npos
+                    ? std::string::npos : entry.find(':', second + 1);
+                if (entry.empty() || denied.size() >= 32 ||
+                    first == 0 || second == std::string::npos ||
+                    second != first + 2 || third == std::string::npos ||
+                    third == second + 1 || third + 1 >= entry.size() ||
+                    entry.find(':', third + 1) != std::string::npos) {
+                    *error = "[CSharp][ERROR][PrefixDenyAttribute] InvalidRule";
+                    return false;
+                }
+                ManagedPrefixAttributeDenyToken token;
+                token.prefix = entry.substr(0, first);
+                token.attribute = entry[first + 1];
+                const int limit = token.attribute == 'D' ? 100000 :
+                                  token.attribute == 'M' ? 10000 : -1;
+                if (limit < 0 ||
+                    !integer(entry.substr(second + 1, third - second - 1), &token.minimum) ||
+                    !integer(entry.substr(third + 1), &token.maximum) ||
+                    token.minimum < 0 || token.maximum < token.minimum ||
+                    token.maximum > limit) {
+                    *error = "[CSharp][ERROR][PrefixDenyAttribute] InvalidBounds";
+                    return false;
+                }
+                denied.push_back(std::move(token));
+            }
+            if (denied.empty() || fields[2].back() == ',') {
+                *error = "[CSharp][ERROR][PrefixDenyAttribute] InvalidRule";
+                return false;
+            }
+            prefixAttributeDenials.emplace_back(registered->second, std::move(denied));
+            continue;
+        }
+        if (!fields.empty() && fields[0] == "PREFIX_CHOOSE_STACK") {
+            const auto key = fields.size() > 1
+                ? sourceIdentityForWire("ITEM", fields[1]) : "";
+            const auto registered = mod->registeredKindTypes.find(key);
+            if (fields.size() != 3 || registered == mod->registeredKindTypes.end() ||
+                runtime::modItemTypeByKey(modId + "/" + fields[1]) != registered->second ||
+                fields[2].size() < 5 || fields[2].size() > 100 ||
+                prefixChoices.size() >= kSourceMaxCategory ||
+                !seenPrefixChoices.insert(registered->second).second) {
+                *error = "[CSharp][ERROR][PrefixChooseStack] InvalidItemOrPolicy";
+                return false;
+            }
+            const auto first = fields[2].find(':');
+            const auto second = first == std::string::npos
+                ? std::string::npos : fields[2].find(':', first + 1);
+            ManagedPrefixChoiceToken choice;
+            choice.itemType = registered->second;
+            if (first == 0 || second == std::string::npos ||
+                second == first + 1 || second + 1 >= fields[2].size() ||
+                fields[2].find(':', second + 1) != std::string::npos ||
+                !integer(fields[2].substr(first + 1, second - first - 1), &choice.minStack) ||
+                !integer(fields[2].substr(second + 1), &choice.maxStack) ||
+                choice.minStack < 0 || choice.maxStack < choice.minStack ||
+                choice.maxStack > 999999) {
+                *error = "[CSharp][ERROR][PrefixChooseStack] InvalidRange";
+                return false;
+            }
+            choice.prefix = fields[2].substr(0, first);
+            prefixChoices.push_back(std::move(choice));
+            continue;
+        }
+        if (!fields.empty() && fields[0] == "PREFIX_CHANCE_STACK") {
+            const auto key = fields.size() > 1
+                ? sourceIdentityForWire("ITEM", fields[1]) : "";
+            const auto registered = mod->registeredKindTypes.find(key);
+            ManagedPrefixStackChance policy;
+            if (fields.size() != 3 || registered == mod->registeredKindTypes.end() ||
+                runtime::modItemTypeByKey(modId + "/" + fields[1]) != registered->second ||
+                fields[2].empty() || fields[2].size() > 32 ||
+                prefixStackChances.size() >= kSourceMaxCategory ||
+                !seenPrefixStackChances.insert(registered->second).second) {
+                *error = "[CSharp][ERROR][PrefixChanceStack] InvalidItemOrPolicy";
+                return false;
+            }
+            const auto first = fields[2].find(':');
+            const auto second = first == std::string::npos
+                ? std::string::npos : fields[2].find(':', first + 1);
+            if (first == 0 || second == std::string::npos ||
+                second == first + 1 || second + 1 >= fields[2].size() ||
+                fields[2].find(':', second + 1) != std::string::npos ||
+                !integer(fields[2].substr(0, first), &policy.minStack) ||
+                !integer(fields[2].substr(first + 1, second - first - 1), &policy.maxStack) ||
+                policy.minStack < 0 || policy.maxStack < policy.minStack ||
+                policy.maxStack > 999999 ||
+                (fields[2].substr(second + 1) != "0" &&
+                 fields[2].substr(second + 1) != "1")) {
+                *error = "[CSharp][ERROR][PrefixChanceStack] InvalidRange";
+                return false;
+            }
+            policy.allowed = fields[2].back() == '1';
+            prefixStackChances.emplace_back(registered->second, policy);
+            continue;
+        }
+        if (!fields.empty() && fields[0] == "PREFIX_CONDITION") {
+            const auto key = fields.size() > 1
+                ? sourceIdentityForWire("PREFIX", fields[1]) : "";
+            const auto registered = mod->registeredKindTypes.find(key);
+            ManagedPrefixEntry bounds;
+            if ((fields.size() != 6 && fields.size() != 8) ||
+                registered == mod->registeredKindTypes.end() ||
+                runtime::modPrefixByKey(modId + "/" + fields[1]) != registered->second ||
+                !integer(fields[2], &bounds.minItemDamage) ||
+                !integer(fields[3], &bounds.maxItemDamage) ||
+                !integer(fields[4], &bounds.minItemMana) ||
+                !integer(fields[5], &bounds.maxItemMana) ||
+                (fields.size() == 8 &&
+                    (!integer(fields[6], &bounds.minItemStack) ||
+                     !integer(fields[7], &bounds.maxItemStack))) ||
+                bounds.minItemDamage < 0 || bounds.maxItemDamage < bounds.minItemDamage ||
+                bounds.maxItemDamage > 100000 || bounds.minItemMana < 0 ||
+                bounds.maxItemMana < bounds.minItemMana || bounds.maxItemMana > 10000 ||
+                bounds.minItemStack < 0 || bounds.maxItemStack < bounds.minItemStack ||
+                bounds.maxItemStack > 999999 ||
+                !prefixItemConditions.emplace(fields[1], bounds).second) {
+                *error = "[CSharp][ERROR][PrefixCondition] InvalidPrefixOrBounds";
+                return false;
+            }
+            continue;
+        }
+        if (!fields.empty() && fields[0] == "PREFIX_STACK_WEIGHT") {
+            const auto key = fields.size() > 1
+                ? sourceIdentityForWire("PREFIX", fields[1]) : "";
+            const auto registered = mod->registeredKindTypes.find(key);
+            ManagedPrefixEntry rule;
+            if (fields.size() != 5 || registered == mod->registeredKindTypes.end() ||
+                runtime::modPrefixByKey(modId + "/" + fields[1]) != registered->second ||
+                !integer(fields[2], &rule.minWeightStack) ||
+                !integer(fields[3], &rule.maxWeightStack) ||
+                !integer(fields[4], &rule.weightInsideStackRange) ||
+                rule.minWeightStack < 0 || rule.maxWeightStack < rule.minWeightStack ||
+                rule.maxWeightStack > 999999 || rule.weightInsideStackRange < 0 ||
+                rule.weightInsideStackRange > 20 ||
+                !prefixStackWeights.emplace(fields[1], rule).second) {
+                *error = "[CSharp][ERROR][PrefixStackWeight] InvalidPrefixOrBounds";
+                return false;
+            }
+            continue;
+        }
+        if (!fields.empty() && fields[0] == "PREFIX_CALLBACK") {
+            const auto key = fields.size()>1
+                ? sourceIdentityForWire("PREFIX", fields[1]) : "";
+            const auto registered = mod->registeredKindTypes.find(key);
+            int mask=0;
+            if (fields.size()!=3 || registered==mod->registeredKindTypes.end() ||
+                runtime::modPrefixByKey(modId+"/"+fields[1])!=registered->second ||
+                !integer(fields[2],&mask) || mask<1 || mask>63 ||
+                !prefixCallbackMasks.emplace(fields[1],mask).second) {
+                *error="[CSharp][ERROR][PrefixCallback] InvalidPrefixOrMask";
+                return false;
+            }
+            continue;
+        }
+        if (!fields.empty() && fields[0] == "PREFIX_ATTRIBUTE_WEIGHT") {
+            const auto key = fields.size() > 1
+                ? sourceIdentityForWire("PREFIX", fields[1]) : "";
+            const auto registered = mod->registeredKindTypes.find(key);
+            ManagedPrefixEntry weight;
+            if (fields.size() != 6 || registered == mod->registeredKindTypes.end() ||
+                runtime::modPrefixByKey(modId + "/" + fields[1]) != registered->second ||
+                fields[2].size() != 1 ||
+                (fields[2][0] != 'D' && fields[2][0] != 'M') ||
+                !integer(fields[3], &weight.minWeightAttribute) ||
+                !integer(fields[4], &weight.maxWeightAttribute) ||
+                !integer(fields[5], &weight.weightInsideAttributeRange)) {
+                *error = "[CSharp][ERROR][PrefixAttributeWeight] InvalidPrefixOrWire";
+                return false;
+            }
+            weight.attributeWeightKind = fields[2][0];
+            if (weight.minWeightAttribute < 0 ||
+                weight.maxWeightAttribute < weight.minWeightAttribute ||
+                weight.maxWeightAttribute > (weight.attributeWeightKind == 'D' ? 100000 : 10000) ||
+                weight.weightInsideAttributeRange < 0 ||
+                weight.weightInsideAttributeRange > 20 ||
+                !prefixAttributeWeights.emplace(fields[1], weight).second) {
+                *error = "[CSharp][ERROR][PrefixAttributeWeight] InvalidBoundsOrDuplicate";
+                return false;
+            }
+            continue;
+        }
+        if (!fields.empty() &&
+            (fields[0] == "PREFIX_TOOLTIP" || fields[0] == "PREFIX_TOOLTIP_ITEM")) {
+            const bool itemTemplate = fields[0] == "PREFIX_TOOLTIP_ITEM";
+            auto& policies = itemTemplate ? prefixItemTooltipPolicies : prefixTooltipPolicies;
+            const auto key = fields.size() > 1 ?
+                sourceIdentityForWire("PREFIX", fields[1]) : "";
+            const auto registered = mod->registeredKindTypes.find(key);
+            if (fields.size() != 3 || registered == mod->registeredKindTypes.end() ||
+                runtime::modPrefixByKey(modId + "/" + fields[1]) != registered->second ||
+                fields[2].empty() || fields[2].size() > 970 ||
+                policies.contains(fields[1])) {
+                *error = "[CSharp][ERROR][PrefixTooltip] InvalidPrefixOrWire";
+                return false;
+            }
+            std::istringstream encoded(fields[2]);
+            std::vector<std::string> tooltips;
+            std::string part;
+            const auto nibble = [](char ch) -> int {
+                if (ch >= '0' && ch <= '9') return ch - '0';
+                if (ch >= 'A' && ch <= 'F') return ch - 'A' + 10;
+                return -1;
+            };
+            while (std::getline(encoded, part, ',')) {
+                if (part.empty() || part.size() > 240 || part.size() % 2 ||
+                    tooltips.size() >= 4) {
+                    *error = "[CSharp][ERROR][PrefixTooltip] TooManyOrMalformedLines";
+                    return false;
+                }
+                std::string decoded;
+                for (size_t i = 0; i < part.size(); i += 2) {
+                    const int hi = nibble(part[i]), lo = nibble(part[i + 1]);
+                    if (hi < 0 || lo < 0) {
+                        *error = "[CSharp][ERROR][PrefixTooltip] InvalidHex";
+                        return false;
+                    }
+                    const unsigned char ch = static_cast<unsigned char>(hi * 16 + lo);
+                    if (ch < 32 || ch == 127) {
+                        *error = "[CSharp][ERROR][PrefixTooltip] ControlCharacter";
+                        return false;
+                    }
+                    decoded.push_back(static_cast<char>(ch));
+                }
+                if (itemTemplate && !validPrefixItemTooltip(decoded)) {
+                    *error = "[CSharp][ERROR][PrefixTooltip] InvalidItemTemplate";
+                    return false;
+                }
+                tooltips.push_back(std::move(decoded));
+            }
+            if (tooltips.empty() || fields[2].back() == ',') {
+                *error = "[CSharp][ERROR][PrefixTooltip] EmptyOrTrailingLine";
+                return false;
+            }
+            policies.emplace(fields[1], std::move(tooltips));
+            continue;
+        }
+        if (!fields.empty() && fields[0] == "PREFIX_POST") {
+            const auto key = fields.size() > 1
+                ? sourceIdentityForWire("PREFIX", fields[1]) : "";
+            const auto registered = mod->registeredKindTypes.find(key);
+            ManagedPrefixEntry post;
+            if (fields.size() != 6 || registered == mod->registeredKindTypes.end() ||
+                bl::runtime::modPrefixByKey(modId + "/" + fields[1]) != registered->second ||
+                !integer(fields[2], &post.applyDamageBonus) ||
+                !integer(fields[3], &post.applyValueBonus) ||
+                post.applyDamageBonus < 0 || post.applyDamageBonus > 1000 ||
+                post.applyValueBonus < 0 || post.applyValueBonus > 100000 ||
+                (fields[4] != "0" && fields[4] != "1") ||
+                fields[5].size() > 120 ||
+                std::any_of(fields[5].begin(), fields[5].end(),
+                    [](unsigned char ch) { return ch < 32 || ch == 127; })) {
+                *error = "Politica PREFIX_POST invalida: " + (fields.size() > 1 ? fields[1] : "");
+                return false;
+            }
+            post.requireEffectiveStats = fields[4] == "1";
+            if (fields[5] != "-") post.extraTooltip = fields[5];
+            if (!prefixPostPolicies.emplace(fields[1], std::move(post)).second) {
+                *error = "PREFIX_POST duplicado: " + fields[1];
+                return false;
+            }
+            continue;
+        }
+        if (!fields.empty() && fields[0] == "PREFIX_APPLY") {
+            const auto key = fields.size() > 1
+                ? sourceIdentityForWire("ITEM", fields[1]) : "";
+            const auto registered = mod->registeredKindTypes.find(key);
+            ManagedItemPrefixApply effect;
+            if (fields.size() != 4 || registered == mod->registeredKindTypes.end() ||
+                !integer(fields[2], &effect.damageBonus) ||
+                !integer(fields[3], &effect.valueBonus) ||
+                effect.damageBonus < 0 || effect.damageBonus > 1000 ||
+                effect.valueBonus < 0 || effect.valueBonus > 100000 ||
+                (effect.damageBonus == 0 && effect.valueBonus == 0) ||
+                runtime::modItemTypeByKey(modId + "/" + fields[1]) != registered->second ||
+                prefixEffects.size() >= kSourceMaxCategory ||
+                !seenPrefixEffects.insert(registered->second).second) {
+                *error = "[CSharp][ERROR][ApplyPrefix] Mod=" + modId +
+                    " Stage=Decode Reason=InvalidItemOrEffects";
+                return false;
+            }
+            prefixEffects.emplace_back(registered->second, effect);
+            continue;
+        }
+        if (!fields.empty() && fields[0] == "PREFIX_CHANCE") {
+            const auto key = fields.size() > 1
+                ? sourceIdentityForWire("ITEM", fields[1]) : "";
+            const auto registered = mod->registeredKindTypes.find(key);
+            if (fields.size() != 3 || registered == mod->registeredKindTypes.end() ||
+                (fields[2] != "0" && fields[2] != "1") ||
+                runtime::modItemTypeByKey(modId + "/" + fields[1]) != registered->second ||
+                prefixChances.size() >= kSourceMaxCategory ||
+                !seenPrefixChances.insert(registered->second).second) {
+                *error = "[CSharp][ERROR][PrefixChance] Mod=" + modId +
+                    " Stage=Decode Reason=InvalidItemOrPolicy";
+                return false;
+            }
+            prefixChances.emplace_back(registered->second, fields[2] == "1");
             continue;
         }
         if(!fields.empty()&&fields[0]=="RECIPES") {
@@ -1809,8 +2281,9 @@ bool applyManagedSourceDefaults(
             }
             accessoryTypes[record.name] = record.type;
             accessories.push_back(std::move(record));
-        } else if (fields[0] == "PREFIX" && fields.size() == 16) {
+        } else if (fields[0] == "PREFIX" && (fields.size() == 16 || fields.size() == 17)) {
             ManagedPrefixEntry record;
+            record.modId = modId;
             record.name = fields[1];
             record.displayName = fields[15];
             record.type = registered->second;
@@ -1830,6 +2303,73 @@ bool applyManagedSourceDefaults(
                     *error = "Multiplicador de prefixo C# invalido: " + record.name;
                     return false;
                 }
+            if (fields.size() == 17) {
+                if (fields[16].empty() || fields[16].size() > 320) {
+                    *error = "Regras de prefixo C# invalidas: " + record.name;
+                    return false;
+                }
+                size_t start = 0;
+                while (start < fields[16].size()) {
+                    const size_t comma = fields[16].find(',', start);
+                    const size_t end = comma == std::string::npos ? fields[16].size() : comma;
+                    const size_t colon = fields[16].find(':', start);
+                    const size_t secondColon = colon == std::string::npos
+                        ? std::string::npos : fields[16].find(':', colon + 1);
+                    const bool hasCanRoll = secondColon != std::string::npos && secondColon < end;
+                    const size_t thirdColon = hasCanRoll ? fields[16].find(':', secondColon + 1) : std::string::npos;
+                    const bool hasPreferred = thirdColon != std::string::npos && thirdColon < end;
+                    const size_t weightEnd = hasCanRoll ? secondColon : end;
+                    const size_t allowEnd = hasPreferred ? thirdColon : end;
+                    int allowValue = -1;
+                    int preferredValue = 0;
+                    int itemType = 0;
+                    int weight = -1;
+                    const std::string token = fields[16].substr(start, colon == std::string::npos ? 0 : colon - start);
+                    if (colon == std::string::npos || colon >= end ||
+                        !integer(fields[16].substr(colon + 1, weightEnd - colon - 1), &weight) ||
+                        weight < 0 || weight > 20 ||
+                        (hasCanRoll &&
+                         (!integer(fields[16].substr(secondColon + 1, allowEnd - secondColon - 1), &allowValue) ||
+                          (allowValue != 0 && allowValue != 1))) ||
+                        (hasPreferred &&
+                         (!integer(fields[16].substr(thirdColon + 1, end - thirdColon - 1), &preferredValue) ||
+                          preferredValue != 1 || allowValue != 1)) ||
+                        record.itemWeights.size() + record.itemNames.size() >= 32) {
+                        *error = "Regra por item invalida no prefixo C#: " + record.name;
+                        return false;
+                    }
+                    if (integer(token, &itemType)) {
+                        if (itemType < 1 || itemType > 32767 ||
+                            !record.itemWeights.emplace(itemType, weight).second) {
+                            *error = "Tipo numerico repetido ou invalido no prefixo C#: " + record.name;
+                            return false;
+                        }
+                        if (hasCanRoll) record.itemCanRoll.emplace(itemType, allowValue == 1);
+                        if (hasPreferred) record.preferredTypes.insert(itemType);
+                    } else {
+                        bool validName = !token.empty() && token.size() <= 64 &&
+                            ((token[0] >= 'A' && token[0] <= 'Z') ||
+                             (token[0] >= 'a' && token[0] <= 'z') || token[0] == '_');
+                        for (unsigned char ch : token)
+                            if (!((ch >= 'A' && ch <= 'Z') ||
+                                  (ch >= 'a' && ch <= 'z') ||
+                                  (ch >= '0' && ch <= '9') || ch == '_'))
+                                validName = false;
+                        if (!validName || !record.itemNames.emplace(token, weight).second) {
+                            *error = "Nome de item repetido ou invalido no prefixo C#: " + record.name;
+                            return false;
+                        }
+                        if (hasCanRoll) record.itemNamesCanRoll.emplace(token, allowValue == 1);
+                        if (hasPreferred) record.preferredNames.insert(token);
+                    }
+                    if (comma == std::string::npos) break;
+                    start = comma + 1;
+                    if (start == fields[16].size()) {
+                        *error = "Regra de prefixo C# com virgula final: " + record.name;
+                        return false;
+                    }
+                }
+            }
             prefixes.push_back(std::move(record));
         } else if (fields[0] == "NPC" && fields.size() == 10) {
             ManagedNpcEntry record;
@@ -1940,6 +2480,93 @@ bool applyManagedSourceDefaults(
         *error = "As classes compiladas nao correspondem ao conteudo registrado";
         return false;
     }
+    for (auto& prefix : prefixes) {
+        const auto lines = prefixTooltipPolicies.find(prefix.name);
+        if (lines != prefixTooltipPolicies.end()) {
+            prefix.tooltipLines = lines->second;
+            prefixTooltipPolicies.erase(lines);
+        }
+        const auto itemLines = prefixItemTooltipPolicies.find(prefix.name);
+        if (itemLines != prefixItemTooltipPolicies.end()) {
+            prefix.tooltipItemLines = itemLines->second;
+            prefixItemTooltipPolicies.erase(itemLines);
+        }
+        if (prefix.tooltipLines.size() + prefix.tooltipItemLines.size() > 4) {
+            *error = "[CSharp][ERROR][PrefixTooltip] CombinedLineCapacityExceeded";
+            return false;
+        }
+        const auto condition = prefixItemConditions.find(prefix.name);
+        if (condition != prefixItemConditions.end()) {
+            prefix.minItemDamage = condition->second.minItemDamage;
+            prefix.maxItemDamage = condition->second.maxItemDamage;
+            prefix.minItemMana = condition->second.minItemMana;
+            prefix.maxItemMana = condition->second.maxItemMana;
+            prefix.minItemStack = condition->second.minItemStack;
+            prefix.maxItemStack = condition->second.maxItemStack;
+            prefixItemConditions.erase(condition);
+        }
+        const auto callback = prefixCallbackMasks.find(prefix.name);
+        if (callback!=prefixCallbackMasks.end()) {
+            prefix.callbackMask = callback->second;
+            prefixCallbackMasks.erase(callback);
+        }
+        const auto stackWeight = prefixStackWeights.find(prefix.name);
+        if (stackWeight != prefixStackWeights.end()) {
+            prefix.hasStackRollWeight = true;
+            prefix.minWeightStack = stackWeight->second.minWeightStack;
+            prefix.maxWeightStack = stackWeight->second.maxWeightStack;
+            prefix.weightInsideStackRange = stackWeight->second.weightInsideStackRange;
+            prefixStackWeights.erase(stackWeight);
+        }
+        const auto attributeWeight = prefixAttributeWeights.find(prefix.name);
+        if (attributeWeight != prefixAttributeWeights.end()) {
+            if (prefix.hasStackRollWeight) {
+                *error = "[CSharp][ERROR][PrefixAttributeWeight] MultipleDynamicWeightRules";
+                return false;
+            }
+            prefix.hasAttributeRollWeight = true;
+            prefix.attributeWeightKind = attributeWeight->second.attributeWeightKind;
+            prefix.minWeightAttribute = attributeWeight->second.minWeightAttribute;
+            prefix.maxWeightAttribute = attributeWeight->second.maxWeightAttribute;
+            prefix.weightInsideAttributeRange = attributeWeight->second.weightInsideAttributeRange;
+            prefixAttributeWeights.erase(attributeWeight);
+        }
+        const auto post = prefixPostPolicies.find(prefix.name);
+        if (post == prefixPostPolicies.end()) continue;
+        prefix.applyDamageBonus = post->second.applyDamageBonus;
+        prefix.applyValueBonus = post->second.applyValueBonus;
+        prefix.requireEffectiveStats = post->second.requireEffectiveStats;
+        prefix.extraTooltip = post->second.extraTooltip;
+        prefixPostPolicies.erase(post);
+    }
+    if (!prefixPostPolicies.empty()) {
+        *error = "PREFIX_POST sem descritor de prefixo correspondente";
+        return false;
+    }
+    if (!prefixItemConditions.empty()) {
+        *error = "PREFIX_CONDITION sem descritor de prefixo correspondente";
+        return false;
+    }
+    if (!prefixStackWeights.empty()) {
+        *error = "PREFIX_STACK_WEIGHT sem descritor de prefixo correspondente";
+        return false;
+    }
+    if (!prefixCallbackMasks.empty()) {
+        *error = "PREFIX_CALLBACK sem descritor de prefixo correspondente";
+        return false;
+    }
+    if (!prefixAttributeWeights.empty()) {
+        *error = "PREFIX_ATTRIBUTE_WEIGHT sem descritor de prefixo correspondente";
+        return false;
+    }
+    if (!prefixTooltipPolicies.empty()) {
+        *error = "PREFIX_TOOLTIP sem descritor de prefixo correspondente";
+        return false;
+    }
+    if (!prefixItemTooltipPolicies.empty()) {
+        *error = "PREFIX_TOOLTIP_ITEM sem descritor de prefixo correspondente";
+        return false;
+    }
     for (size_t i = 0; i < weapons.size(); ++i) {
         const auto projectile = projectilesByName.find(shootNames[i]);
         if (projectile == projectilesByName.end()) {
@@ -2045,6 +2672,43 @@ bool applyManagedSourceDefaults(
         return false;
     }
     if(!wallDefinitions.empty()&&!walls::publish(std::move(wallDefinitions),error))return false;
+    if (!applyManagedItemPrefixDenials(modId, prefixDenials)) {
+        *error = "Politicas AllowPrefix C# invalidas ou hook nativo indisponivel";
+        return false;
+    }
+    if (!applyManagedItemPrefixStackDenials(modId, prefixStackDenials)) {
+        *error = "Politicas AllowPrefix stack C# invalidas ou hook nativo indisponivel";
+        return false;
+    }
+    if (!applyManagedItemPrefixAttributeDenials(modId, prefixAttributeDenials)) {
+        *error = "Politicas AllowPrefix atributos C# invalidas ou hook nativo indisponivel";
+        return false;
+    }
+    if (!applyManagedItemPrefixChances(prefixChances)) {
+        *error = "Politicas PrefixChance C# duplicadas ou hook nativo indisponivel";
+        return false;
+    }
+    if (!applyManagedItemPrefixStackChances(prefixStackChances)) {
+        *error = "Politicas PrefixChance stack C# invalidas ou hook nativo indisponivel";
+        return false;
+    }
+    if (!applyManagedItemPrefixChoices(modId, prefixChoices)) {
+        *error = "Politicas ChoosePrefix stack C# invalidas ou hook nativo indisponivel";
+        return false;
+    }
+    if (!applyManagedItemPrefixEffects(prefixEffects)) {
+        *error = "Politicas ApplyPrefix C# invalidas ou hook nativo indisponivel";
+        return false;
+    }
+    if (!applyManagedItemPrefixCallbackBindings(modId, itemPrefixCallbacks,
+                                                 itemPrefixMasks)) {
+        *error = "[CSharp][ERROR][ItemPrefixCallback] Stage=Publish Reason=InvalidBinding";
+        return false;
+    }
+    if (!applyManagedGlobalPrefixCallbackBindings(modId,globalPrefixCallbacks)) {
+        *error="[CSharp][ERROR][GlobalPrefixCallback] Stage=Publish Reason=InvalidBinding";
+        return false;
+    }
     if (!tiles.empty() && !applyManagedNativeTileDefaultsBatch(modId, tiles)) {
         *error = "Falha ao aplicar os defaults nativos de BunnyTile"; return false;
     }

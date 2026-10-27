@@ -368,6 +368,8 @@ struct RecipeRpcJob {
     bool shooting=false;
     bool tile=false;
     bool rarity=false;
+    bool prefix=false;
+    bool itemPrefix=false;
 };
 struct LocalizationJob {
     std::string modId;
@@ -396,7 +398,11 @@ void* g_recipeDispatchMethod=nullptr;
 void* g_shootDispatchMethod=nullptr;
 void* g_tileDispatchMethod=nullptr;
 void* g_rarityDispatchMethod=nullptr;
+void* g_prefixDispatchMethod=nullptr;
+void* g_itemPrefixDispatchMethod=nullptr;
 std::map<std::string,std::shared_ptr<RecipeRpcCompletion>> g_shootWarmups;
+std::map<std::string,std::shared_ptr<RecipeRpcCompletion>> g_prefixWarmups;
+std::map<std::string,std::shared_ptr<RecipeRpcCompletion>> g_itemPrefixWarmups;
 std::map<std::string,std::shared_ptr<RecipeRpcCompletion>> g_tileWarmups;
 std::map<std::string,std::shared_ptr<RecipeRpcCompletion>> g_rarityWarmups;
 std::atomic<bool> g_recipeRuntimeReady{false};
@@ -1848,29 +1854,33 @@ bool processManagedRecipeRpc(std::unique_lock<std::mutex>& lock,Execute execute)
     if(available==g_recipeRpcQueue.end())return false;
     auto job=std::move(*available);g_recipeRpcQueue.erase(available);
     if(job.completion->cancelled||std::chrono::steady_clock::now()>=job.deadline){
-        if((job.shooting||job.tile||job.rarity)&&job.kind==2&&!job.completion->cancelled){job.completion->done=true;job.completion->output="ERROR|Stage=Warmup Reason=WarmupDeadlineExceeded";}
+        if((job.shooting||job.tile||job.rarity||job.prefix||job.itemPrefix)&&job.kind==2&&!job.completion->cancelled){job.completion->done=true;job.completion->output="ERROR|Stage=Warmup Reason=WarmupDeadlineExceeded";}
         g_recipeRpcWake.notify_all();return true;
     }
     lock.unlock();auto output=execute(job);lock.lock();
     if(!job.completion->cancelled&&std::chrono::steady_clock::now()<job.deadline) {
         job.completion->output=std::move(output);job.completion->done=true;
-    } else if((job.shooting||job.tile||job.rarity)&&job.kind==2&&!job.completion->cancelled) {
+    } else if((job.shooting||job.tile||job.rarity||job.prefix||job.itemPrefix)&&job.kind==2&&!job.completion->cancelled) {
         job.completion->output="ERROR|Stage=Warmup Reason=WarmupDeadlineExceeded";job.completion->done=true;
     }
     g_recipeRpcWake.notify_all();return true;
 }
 
 std::string executeRecipeOnWorker(const RecipeRpcJob& job) {
-    const bool unloading=!job.shooting&&!job.tile&&!job.rarity&&job.kind==6&&job.owner=="__unload__";
-    if (!unloading && !job.shooting && !job.tile && !job.rarity &&
+    const bool unloading=!job.shooting&&!job.tile&&!job.rarity&&!job.prefix&&!job.itemPrefix&&job.kind==6&&job.owner=="__unload__";
+    if (!unloading && !job.shooting && !job.tile && !job.rarity && !job.prefix && !job.itemPrefix &&
         !isNativeRecipeAssemblyCurrent(job.mod, job.assembly))
         return "PENDING|Stage=Invoke Reason=AssemblyUnloadedOrRebound";
     std::lock_guard<std::mutex> monoGuard(g_mutex);
     if(!g_domain||!g_status.methodExecuted||!g_api.attach||!g_api.openAssembly||!g_api.image||
        !g_api.findClass||!g_api.findMethod||!g_api.newString||!g_api.invoke)return "PENDING|Stage=Invoke Reason=MonoRuntimeOrRequiredExportsNotReady";
     if(!g_api.attach(g_domain))return "ERROR|Stage=AttachThread Reason=MonoAttachFailed";
-    void*& dispatcher=job.rarity?g_rarityDispatchMethod:(job.tile?g_tileDispatchMethod:(job.shooting?g_shootDispatchMethod:g_recipeDispatchMethod));
-    const char* endpoint=job.rarity?"BunnyRarityRuntime":(job.tile?"BunnyTileRuntime":(job.shooting?"BunnyShootRuntime":"BunnyRecipeRuntime"));
+    void*& dispatcher=job.itemPrefix?g_itemPrefixDispatchMethod:
+        (job.prefix?g_prefixDispatchMethod:
+        (job.rarity?g_rarityDispatchMethod:(job.tile?g_tileDispatchMethod:(job.shooting?g_shootDispatchMethod:g_recipeDispatchMethod))));
+    const char* endpoint=job.itemPrefix?"BunnyItemPrefixRuntime":
+        (job.prefix?"BunnyPrefixRuntime":
+        (job.rarity?"BunnyRarityRuntime":(job.tile?"BunnyTileRuntime":(job.shooting?"BunnyShootRuntime":"BunnyRecipeRuntime"))));
     if(!dispatcher) {
         const auto slash=g_checkpointPath.find_last_of('/');
         if(slash==std::string::npos)return "ERROR|Stage=ResolveSdk Reason=InvalidCheckpointPath";
@@ -3907,9 +3917,18 @@ bool managedRecipeRuntimeReady(){return g_recipeRuntimeReady.load(std::memory_or
 
 static bool invokeManagedCallback(bool shooting,const std::string& mod,const std::string& assembly,
                          const std::string& owner,int index,int kind,const std::string& snapshot,
-                         std::string* output,int budgetMicroseconds,bool tile=false,bool rarity=false) {
+                         std::string* output,int budgetMicroseconds,bool tile=false,bool rarity=false,
+                         bool prefix=false,bool itemPrefix=false) {
     if(!output)return false;
-    if(budgetMicroseconds<1||budgetMicroseconds>3000||index<0||index>=(tile?29:16)||kind<0||kind>6||
+    if(budgetMicroseconds<1||budgetMicroseconds>3000||index<0||
+       (itemPrefix ? ((kind==2 && (index!=0 || !snapshot.empty())) ||
+                      (kind==0 && (index<1 || index>255 || snapshot.empty())) ||
+                      (kind==1 && (index!=0 || snapshot.empty())) ||
+                      (kind==3 && (index!=0 || snapshot.empty())) ||
+                      (kind==4 && ((index!=1 && index!=2) || snapshot.empty())) ||
+                      (kind==5 && (index<1 || index>255 || snapshot.empty())) ||
+                      (kind!=0 && kind!=1 && kind!=2 && kind!=3 &&
+                       kind!=4 && kind!=5)) : (index>=(tile?29:16)||kind<0||kind>6))||
        snapshot.size()>(rarity?32768u:(shooting?1024u:512u))||assembly.empty()||assembly.size()>4096){*output="ERROR|Stage=SubmitRecipeCallback Reason=InvalidTransportArguments";return false;}
     std::unique_lock<std::mutex> lock(g_pinnedMutex,std::try_to_lock);
     if(!lock.owns_lock()){*output="PENDING|Stage=SubmitRecipeCallback Reason=WorkerQueueBusy";return false;}
@@ -3917,7 +3936,7 @@ static bool invokeManagedCallback(bool shooting,const std::string& mod,const std
     if(g_recipeRpcQueue.size()>=16){*output="PENDING|Stage=SubmitRecipeCallback Reason=QueueCapacityExceeded Expected=Below16";return false;}
     const auto until=std::chrono::steady_clock::now()+std::chrono::microseconds(budgetMicroseconds);
     auto completion=std::make_shared<RecipeRpcCompletion>();
-    g_recipeRpcQueue.push_back({mod,assembly,owner,snapshot,index,kind,until,completion,shooting,tile,rarity});g_pinnedWake.notify_one();
+    g_recipeRpcQueue.push_back({mod,assembly,owner,snapshot,index,kind,until,completion,shooting,tile,rarity,prefix,itemPrefix});g_pinnedWake.notify_one();
     if(!g_recipeRpcWake.wait_until(lock,until,[&]{return completion->done;})) {
         completion->cancelled=true;*output="PENDING|Stage=WaitRecipeCallback Reason=DeadlineExceeded BudgetUs="+std::to_string(budgetMicroseconds);return false;
     }
@@ -3928,6 +3947,223 @@ bool invokeManagedRecipe(const std::string& mod,const std::string& assembly,
     const std::string& owner,int index,int kind,const std::string& snapshot,std::string* output,int budgetMicroseconds) {
     return invokeManagedCallback(false,mod,assembly,owner,index,kind,snapshot,output,budgetMicroseconds);
 }
+bool invokeManagedPrefix(const std::string& mod,const std::string& assembly,
+    const std::string& owner,int kind,const std::string& snapshot,
+    std::string* output,int budgetMicroseconds) {
+    const auto validOwner = [](const std::string& name) {
+        if (name.empty() || name.size() > 64 ||
+            !((name.front() >= 'A' && name.front() <= 'Z') ||
+              (name.front() >= 'a' && name.front() <= 'z') ||
+              name.front() == '_')) return false;
+        return std::all_of(name.begin(), name.end(), [](unsigned char ch) {
+            return (ch >= 'A' && ch <= 'Z') ||
+                   (ch >= 'a' && ch <= 'z') ||
+                   (ch >= '0' && ch <= '9') || ch == '_';
+        });
+    };
+    if (!output || !validOwner(owner) || kind < 0 || kind > 6 ||
+        (kind == 2 ? !snapshot.empty() : snapshot.empty())) {
+        if (output) *output = "ERROR|Stage=PrefixCallback Reason=InvalidArguments";
+        return false;
+    }
+    const bool success=invokeManagedCallback(
+        false,mod,assembly,owner,0,kind,snapshot,output,budgetMicroseconds,false,false,true);
+    if (output) {
+        size_t pos=0;
+        while ((pos=output->find("RecipeCallback",pos))!=std::string::npos) {
+            output->replace(pos,14,"PrefixCallback");
+            pos+=14;
+        }
+    }
+    if (!success) return false;
+    if (kind == 2) return *output == "READY";
+    if (kind == 0 || kind == 3) return *output == "0" || *output == "1";
+    if (kind == 6) {
+        if (output->empty() || output->size()>4) return false;
+        const bool negative=(*output)[0]=='-';
+        const size_t first=negative?1u:0u;
+        if (first==output->size()) return false;
+        int bonus=0;
+        for (size_t i=first;i<output->size();++i) {
+            const char ch=(*output)[i];
+            if (ch<'0'||ch>'9') return false;
+            bonus=bonus*10+(ch-'0');
+        }
+        return bonus<=100;
+    }
+    if (kind == 5) {
+        if (output->size()>1024) return false;
+        if (output->empty()) return true;
+        size_t pos=0, count=0;
+        while (pos<output->size()) {
+            if (++count>4 || pos+4>output->size() ||
+                ((*output)[pos]!='0' && (*output)[pos]!='1') ||
+                (*output)[pos+1]!=':') return false;
+            const size_t end=output->find(';',pos);
+            const size_t stop=end==std::string::npos?output->size():end;
+            if (stop<=pos+2 || (stop-pos-2)%2!=0 || stop-pos-2>240)
+                return false;
+            for (size_t i=pos+2;i<stop;++i)
+                if (!(((*output)[i]>='0'&&(*output)[i]<='9') ||
+                      ((*output)[i]>='A'&&(*output)[i]<='F'))) return false;
+            pos=end==std::string::npos?stop:stop+1;
+            if (end!=std::string::npos && pos==output->size()) return false;
+        }
+        return true;
+    }
+    if (kind == 4) {
+        const size_t comma=output->find(',');
+        if (comma==std::string::npos || comma==0 || comma>4 ||
+            output->size()-comma-1<1 || output->size()-comma-1>6 ||
+            output->find(',',comma+1)!=std::string::npos) return false;
+        int damage=0,value=0;
+        for (size_t i=0;i<output->size();++i) {
+            const char ch=(*output)[i];
+            if (i==comma) continue;
+            if (ch<'0'||ch>'9') return false;
+            int& target=i<comma?damage:value;
+            target=target*10+ch-'0';
+        }
+        return damage<=1000 && value<=100000;
+    }
+    if (output->empty() || output->size() > 2 ||
+        !std::all_of(output->begin(), output->end(), [](unsigned char ch) {
+            return ch >= '0' && ch <= '9';
+        })) return false;
+    int weight=0;
+    for (char ch : *output) weight=weight*10+(ch-'0');
+    return weight >= 0 && weight <= 20;
+}
+
+bool invokeManagedItemPrefix(const std::string& mod,const std::string& assembly,
+                             const std::string& owner,int prefix,const std::string& snapshot,
+                             std::string* output,int budgetMicroseconds) {
+    if (!output || prefix<1 || prefix>255 || snapshot.empty() ||
+        snapshot.size()>512 || owner.empty() || owner.size()>64)
+        return false;
+    const bool validOwner = std::all_of(owner.begin(),owner.end(),[](unsigned char ch) {
+        return (ch>='A' && ch<='Z') || (ch>='a' && ch<='z') ||
+               (ch>='0' && ch<='9') || ch=='_';
+    });
+    if (!validOwner || !((owner[0]>='A' && owner[0]<='Z') ||
+                         (owner[0]>='a' && owner[0]<='z') || owner[0]=='_')) return false;
+    return invokeManagedCallback(false,mod,assembly,owner,prefix,0,snapshot,
+                                 output,budgetMicroseconds,false,false,false,true) &&
+           (*output=="0" || *output=="1");
+}
+
+bool invokeManagedItemPrefixBatch(const std::string& mod,const std::string& assembly,
+    const std::string& owner,const std::string& snapshot,size_t count,
+    std::string* output,int budgetMicroseconds) {
+    const size_t separator=snapshot.find('|');
+    if (!output || count==0 || count>128 || separator==std::string::npos ||
+        separator==0 || snapshot.size()-separator-1!=count*2 ||
+        snapshot.size()>512 || owner.empty() || owner.size()>64)
+        return false;
+    if (!std::all_of(snapshot.begin()+static_cast<std::ptrdiff_t>(separator+1),
+                     snapshot.end(),[](unsigned char c) {
+        return (c>='0'&&c<='9')||(c>='A'&&c<='F');
+    })) return false;
+    return invokeManagedCallback(false,mod,assembly,owner,0,1,snapshot,output,
+                                 budgetMicroseconds,false,false,false,true) &&
+           output->size()==count &&
+           std::all_of(output->begin(),output->end(),[](unsigned char c) {
+               return c=='0'||c=='1';
+           });
+}
+
+bool invokeManagedItemPrefixDecision(const std::string& mod,const std::string& assembly,
+    const std::string& owner,int index,int kind,const std::string& snapshot,
+    std::string* output,int budgetMicroseconds) {
+    if (!output || owner.empty() || owner.size()>64 ||
+        snapshot.empty() || snapshot.size()>512 || (kind!=3 && kind!=4 && kind!=5))
+        return false;
+    if (!std::all_of(owner.begin(),owner.end(),[](unsigned char c) {
+        return (c>='A'&&c<='Z')||(c>='a'&&c<='z')||
+               (c>='0'&&c<='9')||c=='_';
+    })) return false;
+    if (!invokeManagedCallback(false,mod,assembly,owner,index,kind,snapshot,
+                               output,budgetMicroseconds,false,false,false,true))
+        return false;
+    if (kind==4) return *output=="N" || *output=="0" || *output=="1";
+    if (kind==3) {
+        if (*output=="-1") return true;
+        if (output->empty() || output->size()>3) return false;
+        int value=0;
+        for (unsigned char c:*output) {
+            if (c<'0' || c>'9') return false;
+            value=value*10+(c-'0');
+        }
+        return value>=1 && value<=255;
+    }
+    const size_t comma=output->find(',');
+    if (comma==std::string::npos || comma==0 || comma>4 ||
+        output->size()-comma-1<1 || output->size()-comma-1>6 ||
+        output->find(',',comma+1)!=std::string::npos) return false;
+    int damage=0,value=0;
+    for(size_t i=0;i<output->size();++i) {
+        const char c=(*output)[i];
+        if(i==comma)continue;
+        if(c<'0'||c>'9')return false;
+        int& v=i<comma?damage:value;
+        v=v*10+(c-'0');
+    }
+    return damage<=1000 && value<=100000;
+}
+
+bool queueManagedItemPrefixWarmup(const std::string& mod,const std::string& assembly,
+                                  const std::string& owner) {
+    if (mod.empty() || mod.size()>128 || assembly.empty() || assembly.size()>4096 ||
+        owner.empty() || owner.size()>64) return false;
+    const std::string key=mod+"|"+assembly+"|"+owner;
+    std::lock_guard lock(g_pinnedMutex);
+    if (g_itemPrefixWarmups.contains(key)) return true;
+    if (g_itemPrefixWarmups.size()>=4096 || g_recipeRpcQueue.size()>=4096) return false;
+    auto completion=std::make_shared<RecipeRpcCompletion>();
+    g_itemPrefixWarmups.emplace(key,completion);
+    g_recipeRpcQueue.push_back({mod,assembly,owner,"",0,2,
+        std::chrono::steady_clock::now()+std::chrono::seconds(60),
+        completion,false,false,false,false,true});
+    g_pinnedWake.notify_one();
+    return true;
+}
+
+int managedItemPrefixWarmupState(const std::string& mod,const std::string& assembly,
+                                 const std::string& owner) {
+    std::unique_lock lock(g_pinnedMutex,std::try_to_lock);
+    if (!lock.owns_lock()) return 0;
+    const auto found=g_itemPrefixWarmups.find(mod+"|"+assembly+"|"+owner);
+    if (found==g_itemPrefixWarmups.end() || !found->second->done) return 0;
+    return found->second->output=="READY" ? 1 : -1;
+}
+
+bool queueManagedPrefixWarmup(const std::string& mod,const std::string& assembly,
+                              const std::string& owner) {
+    if (mod.empty() || mod.size()>128 || assembly.empty() || assembly.size()>4096 ||
+        owner.empty() || owner.size()>64) return false;
+    const std::string key=mod+"|"+assembly+"|"+owner;
+    std::lock_guard lock(g_pinnedMutex);
+    if (g_prefixWarmups.contains(key)) return true;
+    if (g_prefixWarmups.size()>=4096 || g_recipeRpcQueue.size()>=4096) return false;
+    auto completion=std::make_shared<RecipeRpcCompletion>();
+    g_prefixWarmups.emplace(key,completion);
+    g_recipeRpcQueue.push_back({mod,assembly,owner,"",0,2,
+        std::chrono::steady_clock::now()+std::chrono::seconds(60),
+        completion,false,false,false,true});
+    g_pinnedWake.notify_one();
+    return true;
+}
+
+int managedPrefixWarmupState(const std::string& mod,const std::string& assembly,
+                             const std::string& owner) {
+    std::unique_lock lock(g_pinnedMutex,std::try_to_lock);
+    if (!lock.owns_lock()) return 0;
+    const auto found=g_prefixWarmups.find(mod+"|"+assembly+"|"+owner);
+    if (found==g_prefixWarmups.end()) return -1;
+    if (!found->second->done) return 0;
+    return found->second->output=="READY" ? 1 : -1;
+}
+
 bool invokeManagedShoot(const std::string& mod,const std::string& assembly,const std::string& owner,
     int kind,const std::string& snapshot,std::string* output) {
     if(kind<0||kind>1){if(output)*output="ERROR|Reason=InvalidShootCallbackKind";return false;}

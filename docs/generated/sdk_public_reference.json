@@ -48,6 +48,7 @@
       "properties": [
         "BunnyAccessoryVisualMode VisualMode { get; set; }",
         "BunnyNativeDefaults NativeDefaults { get; }",
+        "Nullable\u003Cbool\u003E PrefixChance { get; set; }",
         "UInt32 VisualColor { get; set; }",
         "float VisualOpacity { get; set; }",
         "float VisualScale { get; set; }",
@@ -61,6 +62,30 @@
       ],
       "values": [],
       "methods": [
+        {
+          "signature": "Nullable\u003Cbool\u003E DecidePrefixChance(BunnyPrefixItemSnapshot item, int request)",
+          "execution": "worker_callback_isolated"
+        },
+        {
+          "signature": "bool AllowPrefix(BunnyPrefixItemSnapshot item, int prefix)",
+          "execution": "worker_callback_isolated"
+        },
+        {
+          "signature": "int ChoosePrefix(BunnyPrefixItemSnapshot item)",
+          "execution": "worker_callback_isolated"
+        },
+        {
+          "signature": "void ApplyPrefix(BunnyPrefixItemSnapshot item, int prefix, ref BunnyPrefixApplyStats effects)",
+          "execution": "worker_callback_isolated"
+        },
+        {
+          "signature": "void ApplyPrefix(ref BunnyPrefixApplyStats effects)",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "void ConfigurePrefixRules(BunnyItemPrefixRules rules)",
+          "execution": "managed_helper"
+        },
         {
           "signature": "void SetDefaults()",
           "execution": "compile_policy"
@@ -240,6 +265,7 @@
       "constructors": [],
       "properties": [
         "BunnyNativeDefaults NativeDefaults { get; }",
+        "Nullable\u003Cbool\u003E PrefixChance { get; set; }",
         "int Duration { get; set; }",
         "string Buff { get; set; }",
         "string DisplayName { get; set; }",
@@ -249,6 +275,30 @@
       ],
       "values": [],
       "methods": [
+        {
+          "signature": "Nullable\u003Cbool\u003E DecidePrefixChance(BunnyPrefixItemSnapshot item, int request)",
+          "execution": "worker_callback_isolated"
+        },
+        {
+          "signature": "bool AllowPrefix(BunnyPrefixItemSnapshot item, int prefix)",
+          "execution": "worker_callback_isolated"
+        },
+        {
+          "signature": "int ChoosePrefix(BunnyPrefixItemSnapshot item)",
+          "execution": "worker_callback_isolated"
+        },
+        {
+          "signature": "void ApplyPrefix(BunnyPrefixItemSnapshot item, int prefix, ref BunnyPrefixApplyStats effects)",
+          "execution": "worker_callback_isolated"
+        },
+        {
+          "signature": "void ApplyPrefix(ref BunnyPrefixApplyStats effects)",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "void ConfigurePrefixRules(BunnyItemPrefixRules rules)",
+          "execution": "managed_helper"
+        },
         {
           "signature": "void SetDefaults()",
           "execution": "compile_policy"
@@ -1078,6 +1128,36 @@
         "Wings"
       ],
       "methods": []
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyGlobalItem",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [],
+      "values": [],
+      "methods": [
+        {
+          "signature": "Nullable\u003Cbool\u003E DecidePrefixChance(BunnyPrefixItemSnapshot item, int request)",
+          "execution": "worker_callback_isolated"
+        },
+        {
+          "signature": "bool AllowPrefix(BunnyPrefixItemSnapshot item, int prefix)",
+          "execution": "worker_callback_isolated"
+        },
+        {
+          "signature": "bool AppliesTo(BunnyPrefixItemSnapshot item)",
+          "execution": "worker_callback_isolated"
+        },
+        {
+          "signature": "int ChoosePrefix(BunnyPrefixItemSnapshot item)",
+          "execution": "worker_callback_isolated"
+        },
+        {
+          "signature": "void ApplyPrefix(BunnyPrefixItemSnapshot item, int prefix, ref BunnyPrefixApplyStats effects)",
+          "execution": "worker_callback_isolated"
+        }
+      ]
     },
     {
       "name": "BunnyLoader.Source.BunnyGore",
@@ -2069,6 +2149,7 @@
         "Func\u003CBunnyQuestContext, bool\u003E QuestAvailableWhen { get; set; }",
         "Func\u003CBunnyQuestContext, bool\u003E QuestCanCatchWhen { get; set; }",
         "IReadOnlyList\u003CBunnyClassBonus\u003E ClassBonuses { get; }",
+        "Nullable\u003Cbool\u003E PrefixChance { get; set; }",
         "bool Accessory { get; set; }",
         "bool AutoReuse { get; set; }",
         "bool Consumable { get; set; }",
@@ -2113,6 +2194,14 @@
       "values": [],
       "methods": [
         {
+          "signature": "Nullable\u003Cbool\u003E DecidePrefixChance(BunnyPrefixItemSnapshot item, int request)",
+          "execution": "worker_callback_isolated"
+        },
+        {
+          "signature": "bool AllowPrefix(BunnyPrefixItemSnapshot item, int prefix)",
+          "execution": "worker_callback_isolated"
+        },
+        {
           "signature": "bool OnUse(int playerIndex)",
           "execution": "managed_helper"
         },
@@ -2123,6 +2212,10 @@
         {
           "signature": "bool PreDrawTooltipLine(BunnyDrawableTooltipLine line)",
           "execution": "managed_helper"
+        },
+        {
+          "signature": "int ChoosePrefix(BunnyPrefixItemSnapshot item)",
+          "execution": "worker_callback_isolated"
         },
         {
           "signature": "static int BuyPrice(int platinum, int gold, int silver, int copper)",
@@ -2138,6 +2231,18 @@
         },
         {
           "signature": "void AddClassBonusOnEquip(BunnyClassBonus bonus)",
+          "execution": "managed_helper"
+        },
+        {
+          "signature": "void ApplyPrefix(BunnyPrefixItemSnapshot item, int prefix, ref BunnyPrefixApplyStats effects)",
+          "execution": "worker_callback_isolated"
+        },
+        {
+          "signature": "void ApplyPrefix(ref BunnyPrefixApplyStats effects)",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "void ConfigurePrefixRules(BunnyItemPrefixRules rules)",
           "execution": "managed_helper"
         },
         {
@@ -2239,6 +2344,96 @@
         {
           "signature": "void WorldLight(float red, float green, float blue, bool scaleByEssence)",
           "execution": "managed_helper"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyItemPrefixRules",
+      "kind": "class",
+      "baseType": "System.Object",
+      "constructors": [
+        "BunnyItemPrefixRules()"
+      ],
+      "properties": [],
+      "values": [],
+      "methods": [
+        {
+          "signature": "string Serialize()",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "string SerializeAttributeDenials()",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "string SerializeStackChance()",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "string SerializeStackChoice()",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "string SerializeStackDenials()",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "void ChooseWhenStackBetween(int prefixType, int minimum, int maximum)",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "void ChooseWhenStackBetween(string ownModPrefixName, int minimum, int maximum)",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "void Deny(int prefixType)",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "void Deny(string ownModPrefixName)",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "void DenyWhenDamageBetween(int prefixType, int minimum, int maximum)",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "void DenyWhenDamageBetween(string ownModPrefixName, int minimum, int maximum)",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "void DenyWhenManaBetween(int prefixType, int minimum, int maximum)",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "void DenyWhenManaBetween(string ownModPrefixName, int minimum, int maximum)",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "void DenyWhenStackBetween(int prefixType, int minimum, int maximum)",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "void DenyWhenStackBetween(string ownModPrefixName, int minimum, int maximum)",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "void SetPrefixChanceWhenStackBetween(int minimum, int maximum, bool allowed)",
+          "execution": "compile_policy"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyItemPrefixRuntime",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [],
+      "values": [],
+      "methods": [
+        {
+          "signature": "static string Dispatch(string modId, string assemblyPath, string owner, int index, int kind, string snapshot)",
+          "execution": "worker_dispatcher"
         }
       ]
     },
@@ -3071,13 +3266,67 @@
       "constructors": [],
       "properties": [
         "PrefixCategory Category { get; set; }",
+        "bool RequireEffectiveStats { get; set; }",
         "float RollWeight { get; set; }",
-        "string DisplayName { get; set; }"
+        "string DisplayName { get; set; }",
+        "string ExtraTooltip { get; set; }"
       ],
       "values": [],
       "methods": [
         {
+          "signature": "IReadOnlyList\u003CBunnyPrefixTooltipLine\u003E GetTooltipLines(BunnyPrefixItemSnapshot item)",
+          "execution": "worker_callback_opt_in"
+        },
+        {
+          "signature": "bool AllStatChangesHaveEffectOn(BunnyPrefixItemSnapshot item)",
+          "execution": "worker_callback_opt_in"
+        },
+        {
+          "signature": "bool CanRoll(BunnyPrefixItemSnapshot item)",
+          "execution": "worker_callback_opt_in"
+        },
+        {
+          "signature": "int RollChance(BunnyPrefixItemSnapshot item)",
+          "execution": "worker_callback_opt_in"
+        },
+        {
+          "signature": "string SerializeTooltipItemLines()",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "string SerializeTooltipLines()",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "void AddTooltipItemLine(string template)",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "void AddTooltipLine(string text)",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "void Apply(BunnyPrefixItemSnapshot item, ref BunnyPrefixApplyStats effects)",
+          "execution": "worker_callback_opt_in"
+        },
+        {
+          "signature": "void Apply(ref BunnyPrefixApplyStats effects)",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "void ApplyAccessoryEffects(BunnyPrefixPlayerSnapshot player, ref int defenseBonus)",
+          "execution": "worker_callback_opt_in"
+        },
+        {
           "signature": "void ApplyAccessoryEffects(ref int defenseBonus)",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "void ConfigureItemConditions(BunnyPrefixItemConditions conditions)",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "void ConfigureRollRules(BunnyPrefixRollRules rules)",
           "execution": "compile_policy"
         },
         {
@@ -3093,6 +3342,184 @@
           "execution": "compile_policy"
         }
       ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyPrefixApplyStats",
+      "kind": "struct",
+      "baseType": "System.ValueType",
+      "constructors": [],
+      "properties": [
+        "int DamageBonus { get; set; }",
+        "int ValueBonus { get; set; }"
+      ],
+      "values": [],
+      "methods": []
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyPrefixItemConditions",
+      "kind": "class",
+      "baseType": "System.Object",
+      "constructors": [
+        "BunnyPrefixItemConditions()"
+      ],
+      "properties": [
+        "Char AttributeRollWeightKind { get; }",
+        "bool HasAttributeRollWeight { get; }",
+        "bool HasStackRollWeight { get; }",
+        "int AttributeRollWeightMaximum { get; }",
+        "int AttributeRollWeightMinimum { get; }",
+        "int AttributeRollWeightValue { get; }",
+        "int MaxDamage { get; }",
+        "int MaxMana { get; }",
+        "int MaxStack { get; }",
+        "int MinDamage { get; }",
+        "int MinMana { get; }",
+        "int MinStack { get; }",
+        "int RollWeightInRange { get; }",
+        "int RollWeightMaxStack { get; }",
+        "int RollWeightMinStack { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "void OverrideRollWeightWhenDamageBetween(int minimum, int maximum, int weight)",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "void OverrideRollWeightWhenManaBetween(int minimum, int maximum, int weight)",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "void OverrideRollWeightWhenStackBetween(int minimum, int maximum, int weight)",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "void RequireDamageBetween(int minimum, int maximum)",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "void RequireManaBetween(int minimum, int maximum)",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "void RequireStackBetween(int minimum, int maximum)",
+          "execution": "compile_policy"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyPrefixItemSnapshot",
+      "kind": "struct",
+      "baseType": "System.ValueType",
+      "constructors": [],
+      "properties": [
+        "bool Accessory { get; }",
+        "bool Consumable { get; }",
+        "bool Ranged { get; }",
+        "int CurrentPrefix { get; }",
+        "int Damage { get; }",
+        "int ItemType { get; }",
+        "int Mana { get; }",
+        "int Stack { get; }"
+      ],
+      "values": [],
+      "methods": []
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyPrefixPlayerSnapshot",
+      "kind": "struct",
+      "baseType": "System.ValueType",
+      "constructors": [],
+      "properties": [
+        "int Life { get; }",
+        "int LifeMax { get; }"
+      ],
+      "values": [],
+      "methods": []
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyPrefixRollRules",
+      "kind": "class",
+      "baseType": "System.Object",
+      "constructors": [
+        "BunnyPrefixRollRules()"
+      ],
+      "properties": [],
+      "values": [],
+      "methods": [
+        {
+          "signature": "string Serialize()",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "void Allow(int itemType, int weight)",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "void Allow(string itemName, int weight)",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "void Deny(int itemType)",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "void Deny(string itemName)",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "void PreferFor(int itemType)",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "void PreferFor(string itemName)",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "void SetCanRoll(int itemType, bool allowed)",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "void SetCanRoll(string itemName, bool allowed)",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "void SetWeight(int itemType, int weight)",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "void SetWeight(string itemName, int weight)",
+          "execution": "compile_policy"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyPrefixRuntime",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [],
+      "values": [],
+      "methods": [
+        {
+          "signature": "static string Dispatch(string modId, string assemblyPath, string owner, int index, int kind, string snapshot)",
+          "execution": "worker_dispatcher"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyPrefixTooltipLine",
+      "kind": "struct",
+      "baseType": "System.ValueType",
+      "constructors": [
+        "BunnyPrefixTooltipLine(string text, bool isNegative)"
+      ],
+      "properties": [
+        "bool IsNegative { get; }",
+        "string Text { get; }"
+      ],
+      "values": [],
+      "methods": []
     },
     {
       "name": "BunnyLoader.Source.BunnyProjectile",
@@ -4846,6 +5273,7 @@
         "BunnyNativeDefaults NativeDefaults { get; }",
         "BunnySoundStyle CustomUseSound { get; set; }",
         "DamageClass DamageType { get; set; }",
+        "Nullable\u003Cbool\u003E PrefixChance { get; set; }",
         "bool Summon { get; set; }",
         "float ShootSpeed { get; set; }",
         "int Damage { get; set; }",
@@ -4860,6 +5288,30 @@
       ],
       "values": [],
       "methods": [
+        {
+          "signature": "Nullable\u003Cbool\u003E DecidePrefixChance(BunnyPrefixItemSnapshot item, int request)",
+          "execution": "worker_callback_isolated"
+        },
+        {
+          "signature": "bool AllowPrefix(BunnyPrefixItemSnapshot item, int prefix)",
+          "execution": "worker_callback_isolated"
+        },
+        {
+          "signature": "int ChoosePrefix(BunnyPrefixItemSnapshot item)",
+          "execution": "worker_callback_isolated"
+        },
+        {
+          "signature": "void ApplyPrefix(BunnyPrefixItemSnapshot item, int prefix, ref BunnyPrefixApplyStats effects)",
+          "execution": "worker_callback_isolated"
+        },
+        {
+          "signature": "void ApplyPrefix(ref BunnyPrefixApplyStats effects)",
+          "execution": "compile_policy"
+        },
+        {
+          "signature": "void ConfigurePrefixRules(BunnyItemPrefixRules rules)",
+          "execution": "managed_helper"
+        },
         {
           "signature": "void SetDefaults()",
           "execution": "compile_policy"

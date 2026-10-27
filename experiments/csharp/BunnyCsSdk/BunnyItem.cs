@@ -137,6 +137,7 @@ public abstract class BunnyItem : BunnyShootSource
     public Func<BunnyQuestContext,bool>? QuestCanCatchWhen { get; set; }
     /// <summary>True quando SetDefaults atribuiu Defense, inclusive zero.</summary>
     public bool HasDefenseOverride => Behavior.HasDefenseOverride;
+    public bool? PrefixChance { get; set; }
     public int Defense { get => Behavior.Defense; set => Behavior.Defense=value; }
     private int wallDamage=0;
     public int Damage { get => wallDamage; set { wallDamage=value; OverrideInteger(5); } }
@@ -248,6 +249,12 @@ public abstract class BunnyItem : BunnyShootSource
     public virtual bool OnUse(int playerIndex, BunnyUseContext context) => OnUse(playerIndex);
     public virtual string OnUseRejectionReason(int playerIndex, BunnyUseContext context) => "";
     public abstract void SetDefaults();
+    public virtual void ConfigurePrefixRules(BunnyItemPrefixRules rules) { }
+    public virtual bool AllowPrefix(BunnyPrefixItemSnapshot item, int prefix) => true;
+    public virtual int ChoosePrefix(BunnyPrefixItemSnapshot item) => -1;
+    public virtual bool? DecidePrefixChance(BunnyPrefixItemSnapshot item, int request) => null;
+    public virtual void ApplyPrefix(BunnyPrefixItemSnapshot item, int prefix, ref BunnyPrefixApplyStats effects) { }
+    public virtual void ApplyPrefix(ref BunnyPrefixApplyStats effects) { }
 }
 
 /// <summary>Receita declarada em C# e instalada pelo host na thread do Terraria.</summary>

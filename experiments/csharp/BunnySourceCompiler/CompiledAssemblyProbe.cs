@@ -193,6 +193,12 @@ public static class CompiledAssemblyProbe
             var accessoryTypes = contentTypes
                 .Where(type => IsContentType(type, "BunnyAccessory"))
                 .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
+            var globalItemTypes = contentTypes
+                .Where(type => type.IsClass && !type.IsAbstract &&
+                    !type.ContainsGenericParameters &&
+                    Ancestors(type).Any(ancestor =>
+                        ancestor.FullName == "BunnyLoader.Source.BunnyGlobalItem"))
+                .OrderBy(type => type.FullName, StringComparer.Ordinal).ToArray();
             var playerTypes = contentTypes
                 .Where(type => IsContentType(type, "BunnyPlayer"))
                 .OrderBy(type => type.Name, StringComparer.Ordinal).ToArray();
@@ -240,9 +246,10 @@ public static class CompiledAssemblyProbe
             if (mountTypes.Length > 128 || treeTypes.Length > 255 || goreTypes.Length > 256 || dustTypes.Length > 4096 || wallTypes.Length > 4096 || tileTypes.Length > 4096 || rarityTypes.Length > 4096 || localizationTypes.Length > 32 || prefixTypes.Length > 4096 || npcTypes.Length > 4096 || accessoryTypes.Length > 4096 || playerTypes.Length > 4096 ||
                 projectileTypes.Length > 4096 ||
                 weaponTypes.Length > 4096 || basicItemTypes.Length > 4096 ||
-                buffTypes.Length > 4096 || potionTypes.Length > 4096 || screenEffectTypes.Length > 4096)
+                buffTypes.Length > 4096 || potionTypes.Length > 4096 || screenEffectTypes.Length > 4096 ||
+                globalItemTypes.Length > 128)
                 throw new InvalidOperationException("C# content class count out of bounds");
-            if (mountTypes.Length + treeTypes.Length + goreTypes.Length + dustTypes.Length + wallTypes.Length + tileTypes.Length + basicItemTypes.Length + projectileTypes.Length + weaponTypes.Length + buffTypes.Length + potionTypes.Length + accessoryTypes.Length + playerTypes.Length + npcTypes.Length + prefixTypes.Length + screenEffectTypes.Length + rarityTypes.Length + localizationTypes.Length + commandCount + worldTypes.Length + hookTypes.Length + damageClassTypes.Length == 0)
+            if (mountTypes.Length + treeTypes.Length + goreTypes.Length + dustTypes.Length + wallTypes.Length + tileTypes.Length + basicItemTypes.Length + projectileTypes.Length + weaponTypes.Length + buffTypes.Length + potionTypes.Length + accessoryTypes.Length + playerTypes.Length + npcTypes.Length + prefixTypes.Length + screenEffectTypes.Length + rarityTypes.Length + localizationTypes.Length + commandCount + worldTypes.Length + hookTypes.Length + damageClassTypes.Length + globalItemTypes.Length == 0)
                 throw new InvalidOperationException("C# assembly has no supported content types");
             bool fixture = projectileTypes.Any(t => t.FullName == "SourceCSharpMod.SourceBolt") &&
                 weaponTypes.Any(t => t.FullName == "SourceCSharpMod.SourceWand");
@@ -264,6 +271,9 @@ public static class CompiledAssemblyProbe
             object[] buffs = buffTypes.Select(CreateContent).ToArray();
             object[] potions = potionTypes.Select(CreateContent).ToArray();
             object[] accessories = accessoryTypes.Select(CreateContent).ToArray();
+            object[] globalItems = globalItemTypes.Select(type =>
+                Activator.CreateInstance(type) ??
+                throw new InvalidOperationException("Global item constructor failed: " + type.Name)).ToArray();
             object[] players = playerTypes.Select(CreateContent).ToArray();
             object[] npcs = npcTypes.Select(CreateContent).ToArray();
             object[] prefixes = prefixTypes.Select(CreateContent).ToArray();
@@ -276,7 +286,7 @@ public static class CompiledAssemblyProbe
                     throw new InvalidOperationException(effect.GetType().FullName + ": exactly one ShaderFile or PipelineFile required");
             }
             WriteRuntimeDefaults(projectiles, weapons, buffs, potions,
-                accessories, players, npcs, prefixes, basicItems, tiles, walls, trees, mounts, gores, dusts, rarityTypes, diagnosticsPath);
+                accessories, players, npcs, prefixes, basicItems, tiles, walls, trees, mounts, gores, dusts, rarityTypes, globalItems, diagnosticsPath);
             commandCount = CommandManifestWriter.Write(assembly, diagnosticsPath, assemblyPath);
             if (modRoot.Length != 0)
                 AppendManagedLocalization(modRoot, diagnosticsPath, localizationTypes,
@@ -293,8 +303,8 @@ public static class CompiledAssemblyProbe
                 WriteKillPolicy(primaryProjectile!, diagnosticsPath);
             }
             File.AppendAllText(diagnosticsPath,
-                "\nASSEMBLY_EXEC_OK classes=" + (trees.Length + gores.Length + mounts.Length + dusts.Length + walls.Length + tiles.Length + projectiles.Length + weapons.Length + buffs.Length + potions.Length + accessories.Length + players.Length + npcs.Length + prefixes.Length + rarityTypes.Length + basicItems.Length + screenEffects.Length) +
-                " damageClasses=" + damageClassTypes.Length +
+                "\nASSEMBLY_EXEC_OK classes=" + (trees.Length + gores.Length + mounts.Length + dusts.Length + walls.Length + tiles.Length + projectiles.Length + weapons.Length + buffs.Length + potions.Length + accessories.Length + players.Length + npcs.Length + prefixes.Length + rarityTypes.Length + basicItems.Length + screenEffects.Length + globalItems.Length) +
+                " damageClasses=" + damageClassTypes.Length + " globalItems=" + globalItems.Length +
                 " projectiles=" + projectiles.Length + " weapons=" + weapons.Length +
                 " buffs=" + buffs.Length + " potions=" + potions.Length +
                 " accessories=" + accessories.Length + " players=" + players.Length +
@@ -306,7 +316,7 @@ public static class CompiledAssemblyProbe
                     ? " projectile=SourceBolt width=10 weapon=SourceWand damage=22 shoot=SourceBolt"
                     : " policy=generic-managed-defaults"));
             return projectiles.Length + weapons.Length + buffs.Length + potions.Length +
-                accessories.Length + players.Length + npcs.Length + prefixes.Length + basicItems.Length + tiles.Length + trees.Length + gores.Length + mounts.Length + dusts.Length + walls.Length + screenEffects.Length + rarityTypes.Length + localizationTypes.Length + commandCount + worldTypes.Length + hookTypes.Length + damageClassTypes.Length;
+                accessories.Length + players.Length + npcs.Length + prefixes.Length + basicItems.Length + tiles.Length + trees.Length + gores.Length + mounts.Length + dusts.Length + walls.Length + screenEffects.Length + rarityTypes.Length + localizationTypes.Length + commandCount + worldTypes.Length + hookTypes.Length + damageClassTypes.Length + globalItems.Length;
         }
         catch (Exception exception)
         {
@@ -732,7 +742,7 @@ public static class CompiledAssemblyProbe
     private static void WriteRuntimeDefaults(object[] projectiles, object[] weapons,
         object[] buffs, object[] potions, object[] accessories,
         object[] players, object[] npcs, object[] prefixes, object[] basicItems,
-        object[] tiles, object[] walls, object[] trees, object[] mounts, object[] gores, object[] dusts, Type[] rarityTypes, string diagnosticsPath)
+        object[] tiles, object[] walls, object[] trees, object[] mounts, object[] gores, object[] dusts, Type[] rarityTypes, object[] globalItems, string diagnosticsPath)
     {
         static T Value<T>(object instance, string name) =>
             (T)(instance.GetType().GetProperty(name)?.GetValue(instance)
@@ -1291,9 +1301,40 @@ public static class CompiledAssemblyProbe
             CheckName(name);
             if (!names.Add("PREFIX:" + name))
                 throw new InvalidOperationException("Duplicate managed prefix: " + name);
+            int callbackMask = 0;
+            foreach (var (methodName, bit) in new[] { ("CanRoll", 1), ("RollChance", 2),
+                ("AllStatChangesHaveEffectOn", 4), ("GetTooltipLines", 16) })
+            {
+                MethodInfo callback = type.GetMethod(methodName,
+                    BindingFlags.Public | BindingFlags.Instance,
+                    null, new[] { type.BaseType?.Assembly.GetType("BunnyLoader.Source.BunnyPrefixItemSnapshot")
+                        ?? throw new InvalidOperationException("Missing SDK prefix item snapshot") }, null)
+                    ?? throw new InvalidOperationException("Missing prefix callback: " + methodName);
+                if (callback.DeclaringType == type)
+                    callbackMask |= bit;
+            }
+            MethodInfo applySnapshot = type.GetMethod("Apply",
+                BindingFlags.Public | BindingFlags.Instance, null,
+                new[] { type.BaseType?.Assembly.GetType("BunnyLoader.Source.BunnyPrefixItemSnapshot")
+                    ?? throw new InvalidOperationException("Missing SDK prefix item snapshot"),
+                    type.BaseType?.Assembly.GetType("BunnyLoader.Source.BunnyPrefixApplyStats")?.MakeByRefType()
+                    ?? throw new InvalidOperationException("Missing SDK prefix effect struct") }, null)
+                ?? throw new InvalidOperationException("Missing prefix snapshot Apply");
+            if (applySnapshot.DeclaringType == type) callbackMask |= 8;
+            var playerSnapshot = type.BaseType?.Assembly.GetType("BunnyLoader.Source.BunnyPrefixPlayerSnapshot")
+                ?? throw new InvalidOperationException("Missing SDK player snapshot");
+            var accessoryCallback=type.GetMethod("ApplyAccessoryEffects",
+                BindingFlags.Public | BindingFlags.Instance, null,
+                new[] { playerSnapshot, typeof(int).MakeByRefType() }, null)
+                ?? throw new InvalidOperationException("Missing prefix player callback");
+            if (accessoryCallback.DeclaringType == type)
+                callbackMask |= 32;
+            if (callbackMask != 0)
+                lines.Add(string.Join("\t", "PREFIX_CALLBACK", name,
+                    callbackMask.ToString(CultureInfo.InvariantCulture)));
             int category = Convert.ToInt32(Value<object>(prefix, "Category"), CultureInfo.InvariantCulture);
             float weight = Value<float>(prefix, "RollWeight");
-            if (category < 0 || category > 5 || !float.IsFinite(weight) ||
+            if (category < 0 || category > 6 || !float.IsFinite(weight) ||
                 weight <= 0f || weight > 20f || weight != MathF.Truncate(weight))
                 throw new InvalidOperationException("Unsupported managed prefix category or weight: " + name);
             MethodInfo setStats = type.GetMethod("SetStats",
@@ -1332,7 +1373,8 @@ public static class CompiledAssemblyProbe
                 .Invoke(prefix, valueArgs);
             value = (float)(valueArgs[0] ?? throw new InvalidOperationException("Prefix value missing"));
             object?[] defenseArgs = { 0 };
-            type.GetMethod("ApplyAccessoryEffects", BindingFlags.Public | BindingFlags.Instance)!
+            type.GetMethod("ApplyAccessoryEffects", BindingFlags.Public | BindingFlags.Instance,
+                null, new[] { typeof(int).MakeByRefType() }, null)!
                 .Invoke(prefix, defenseArgs);
             int defense = (int)(defenseArgs[0] ?? throw new InvalidOperationException("Prefix defense missing"));
             if (!float.IsFinite(value) || value < 0.05f || value > 100f ||
@@ -1354,7 +1396,117 @@ public static class CompiledAssemblyProbe
             if (display.Length > 80 || display.Any(char.IsControl))
                 throw new InvalidOperationException("Invalid C# prefix name");
             fields.Add(display);
+            MethodInfo configureRules = type.GetMethod("ConfigureRollRules",
+                BindingFlags.Public | BindingFlags.Instance)
+                ?? throw new InvalidOperationException("Missing BunnyPrefix.ConfigureRollRules");
+            Type rulesType = configureRules.GetParameters().Single().ParameterType;
+            object rules = Activator.CreateInstance(rulesType)
+                ?? throw new InvalidOperationException("BunnyPrefixRollRules unavailable");
+            configureRules.Invoke(prefix, new object[] { rules });
+            string ruleWire = (string)(rulesType.GetMethod("Serialize",
+                BindingFlags.Public | BindingFlags.Instance)?.Invoke(rules, null)
+                ?? throw new InvalidOperationException("BunnyPrefixRollRules serialization missing"));
+            if (category == 6 && string.IsNullOrEmpty(ruleWire))
+                throw new InvalidOperationException("Custom managed prefix requires explicit item rules: " + name);
+            if (ruleWire.Length > 320)
+                throw new InvalidOperationException("Managed prefix item rules too long: " + name);
+            if (!string.IsNullOrEmpty(ruleWire)) fields.Add(ruleWire);
             lines.Add(string.Join("\t", fields));
+            MethodInfo configureItemConditions = type.GetMethod("ConfigureItemConditions",
+                BindingFlags.Public | BindingFlags.Instance)
+                ?? throw new InvalidOperationException("Missing BunnyPrefix.ConfigureItemConditions");
+            Type itemConditionsType = configureItemConditions.GetParameters().Single().ParameterType;
+            object conditions = Activator.CreateInstance(itemConditionsType)
+                ?? throw new InvalidOperationException("BunnyPrefixItemConditions unavailable");
+            configureItemConditions.Invoke(prefix, new object[] { conditions });
+            int minDamage = Value<int>(conditions, "MinDamage");
+            int maxDamage = Value<int>(conditions, "MaxDamage");
+            int minMana = Value<int>(conditions, "MinMana");
+            int maxMana = Value<int>(conditions, "MaxMana");
+            int minStack = Value<int>(conditions, "MinStack");
+            int maxStack = Value<int>(conditions, "MaxStack");
+            bool hasStackRollWeight = Value<bool>(conditions, "HasStackRollWeight");
+            int minWeightStack = Value<int>(conditions, "RollWeightMinStack");
+            int maxWeightStack = Value<int>(conditions, "RollWeightMaxStack");
+            int weightInRange = Value<int>(conditions, "RollWeightInRange");
+            bool hasAttributeRollWeight = Value<bool>(conditions, "HasAttributeRollWeight");
+            char attributeKind = Value<char>(conditions, "AttributeRollWeightKind");
+            int attributeMin = Value<int>(conditions, "AttributeRollWeightMinimum");
+            int attributeMax = Value<int>(conditions, "AttributeRollWeightMaximum");
+            int attributeWeight = Value<int>(conditions, "AttributeRollWeightValue");
+            int attributeLimit = attributeKind == 'D' ? 100000 :
+                                 attributeKind == 'M' ? 10000 : -1;
+            if (hasAttributeRollWeight &&
+                (hasStackRollWeight || attributeLimit < 0 ||
+                 attributeMin < 0 || attributeMax < attributeMin ||
+                 attributeMax > attributeLimit || attributeWeight < 0 ||
+                 attributeWeight > 20))
+                throw new InvalidOperationException("Invalid attribute roll weight: " + name);
+            if (hasStackRollWeight &&
+                (minWeightStack < 0 || maxWeightStack < minWeightStack ||
+                 maxWeightStack > 999999 || weightInRange < 0 || weightInRange > 20))
+                throw new InvalidOperationException("Invalid stack prefix roll weight: " + name);
+            if (minDamage < 0 || maxDamage < minDamage || maxDamage > 100000 ||
+                minMana < 0 || maxMana < minMana || maxMana > 10000 ||
+                minStack < 0 || maxStack < minStack || maxStack > 999999)
+                throw new InvalidOperationException("Invalid runtime prefix item conditions: " + name);
+            if (minDamage != 0 || maxDamage != 100000 ||
+                minMana != 0 || maxMana != 10000 ||
+                minStack != 0 || maxStack != 999999)
+                lines.Add(string.Join("\t", "PREFIX_CONDITION", name,
+                    minDamage.ToString(CultureInfo.InvariantCulture),
+                    maxDamage.ToString(CultureInfo.InvariantCulture),
+                    minMana.ToString(CultureInfo.InvariantCulture),
+                    maxMana.ToString(CultureInfo.InvariantCulture),
+                    minStack.ToString(CultureInfo.InvariantCulture),
+                    maxStack.ToString(CultureInfo.InvariantCulture)));
+            if (hasStackRollWeight)
+                lines.Add(string.Join("\t", "PREFIX_STACK_WEIGHT", name,
+                    minWeightStack.ToString(CultureInfo.InvariantCulture),
+                    maxWeightStack.ToString(CultureInfo.InvariantCulture),
+                    weightInRange.ToString(CultureInfo.InvariantCulture)));
+            if (hasAttributeRollWeight)
+                lines.Add(string.Join("\t", "PREFIX_ATTRIBUTE_WEIGHT", name,
+                    attributeKind.ToString(),
+                    attributeMin.ToString(CultureInfo.InvariantCulture),
+                    attributeMax.ToString(CultureInfo.InvariantCulture),
+                    attributeWeight.ToString(CultureInfo.InvariantCulture)));
+            MethodInfo applyPrefix = type.GetMethod("Apply",
+                BindingFlags.Public | BindingFlags.Instance, null,
+                new[] { type.BaseType?.Assembly.GetType("BunnyLoader.Source.BunnyPrefixApplyStats")?.MakeByRefType()
+                    ?? throw new InvalidOperationException("Missing SDK prefix effect struct") }, null)
+                ?? throw new InvalidOperationException("Missing BunnyPrefix.Apply");
+            Type effectType = applyPrefix.GetParameters().Single().ParameterType.GetElementType()
+                ?? throw new InvalidOperationException("BunnyPrefixApplyStats requires ref");
+            object effectState = Activator.CreateInstance(effectType)
+                ?? throw new InvalidOperationException("BunnyPrefixApplyStats unavailable");
+            object?[] applyArgs = { effectState };
+            applyPrefix.Invoke(prefix, applyArgs);
+            effectState = applyArgs[0] ?? throw new InvalidOperationException("Missing prefix effect result");
+            int applyDamage = Value<int>(effectState, "DamageBonus");
+            int applyValue = Value<int>(effectState, "ValueBonus");
+            bool effectiveStats = Value<bool>(prefix, "RequireEffectiveStats");
+            string extraTooltip = Value<string>(prefix, "ExtraTooltip");
+            if (applyDamage < 0 || applyDamage > 1000 ||
+                applyValue < 0 || applyValue > 100000 ||
+                extraTooltip.Length > 120 || extraTooltip.Any(char.IsControl))
+                throw new InvalidOperationException("Invalid prefix post-apply policy: " + name);
+            if (applyDamage != 0 || applyValue != 0 || !effectiveStats || extraTooltip.Length != 0)
+                lines.Add(string.Join("\t", "PREFIX_POST", name,
+                    applyDamage.ToString(CultureInfo.InvariantCulture),
+                    applyValue.ToString(CultureInfo.InvariantCulture),
+                    effectiveStats ? "1" : "0",
+                    extraTooltip.Length == 0 ? "-" : extraTooltip));
+            string tooltipWire = (string)(type.GetMethod("SerializeTooltipLines",
+                BindingFlags.Public | BindingFlags.Instance)?.Invoke(prefix, null)
+                ?? throw new InvalidOperationException("Missing BunnyPrefix tooltip lines"));
+            if (tooltipWire.Length != 0)
+                lines.Add(string.Join("\t", "PREFIX_TOOLTIP", name, tooltipWire));
+            string itemTooltips = (string)(type.GetMethod("SerializeTooltipItemLines",
+                BindingFlags.Public | BindingFlags.Instance)?.Invoke(prefix, null)
+                ?? throw new InvalidOperationException("Missing BunnyPrefix item tooltip templates"));
+            if (itemTooltips.Length != 0)
+                lines.Add(string.Join("\t", "PREFIX_TOOLTIP_ITEM", name, itemTooltips));
         }
         string folder = Path.GetDirectoryName(diagnosticsPath)
             ?? throw new InvalidOperationException("Missing managed diagnostics directory");
@@ -1455,6 +1607,155 @@ public static class CompiledAssemblyProbe
                     Wire(Value<float>(bonus, "Crit")), Wire(Value<float>(bonus, "AttackSpeed")),
                     Wire(Value<float>(bonus, "ArmorPenetration"))));
             }
+        }
+        foreach (var item in basicItems.Concat(weapons).Concat(potions).Concat(accessories))
+        {
+            MethodInfo configure = item.GetType().GetMethod("ConfigurePrefixRules",
+                BindingFlags.Public | BindingFlags.Instance)
+                ?? throw new InvalidOperationException("Missing ConfigurePrefixRules");
+            Type rulesType = configure.GetParameters().Single().ParameterType;
+            object rules = Activator.CreateInstance(rulesType)
+                ?? throw new InvalidOperationException("BunnyItemPrefixRules unavailable");
+            configure.Invoke(item, new object[] { rules });
+            string denies = (string)(rulesType.GetMethod("Serialize",
+                BindingFlags.Public | BindingFlags.Instance)?.Invoke(rules, null)
+                ?? throw new InvalidOperationException("BunnyItemPrefixRules serialization missing"));
+            if (denies.Length > 320)
+                throw new InvalidOperationException("Prefix deny policy too long");
+            if (denies.Length != 0)
+                lines.Add(string.Join("\t", "PREFIX_DENY", item.GetType().Name, denies));
+            string stackDenies = (string)(rulesType.GetMethod("SerializeStackDenials",
+                BindingFlags.Public | BindingFlags.Instance)?.Invoke(rules, null)
+                ?? throw new InvalidOperationException("BunnyItemPrefixRules stack policy serialization missing"));
+            if (stackDenies.Length > 640)
+                throw new InvalidOperationException("Prefix stack deny policy too long");
+            if (stackDenies.Length != 0)
+                lines.Add(string.Join("\t", "PREFIX_DENY_STACK", item.GetType().Name, stackDenies));
+            string attributeDenies = (string)(rulesType.GetMethod("SerializeAttributeDenials",
+                BindingFlags.Public | BindingFlags.Instance)?.Invoke(rules, null)
+                ?? throw new InvalidOperationException("BunnyItemPrefixRules attribute serialization missing"));
+            if (attributeDenies.Length > 800)
+                throw new InvalidOperationException("Prefix attribute deny policy too long");
+            if (attributeDenies.Length != 0)
+                lines.Add(string.Join("\t", "PREFIX_DENY_ATTRIBUTE", item.GetType().Name, attributeDenies));
+            string stackChance = (string)(rulesType.GetMethod("SerializeStackChance",
+                BindingFlags.Public | BindingFlags.Instance)?.Invoke(rules, null)
+                ?? throw new InvalidOperationException("BunnyItemPrefixRules stack chance serialization missing"));
+            if (stackChance.Length != 0)
+                lines.Add(string.Join("\t", "PREFIX_CHANCE_STACK", item.GetType().Name, stackChance));
+            string stackChoice = (string)(rulesType.GetMethod("SerializeStackChoice",
+                BindingFlags.Public | BindingFlags.Instance)?.Invoke(rules, null)
+                ?? throw new InvalidOperationException("BunnyItemPrefixRules stack choice serialization missing"));
+            if (stackChoice.Length != 0)
+                lines.Add(string.Join("\t", "PREFIX_CHOOSE_STACK", item.GetType().Name, stackChoice));
+        }
+        foreach (object global in globalItems)
+        {
+            Type globalType = global.GetType();
+            CheckName(globalType.Name);
+            if (basicItems.Concat(weapons).Concat(potions).Concat(accessories)
+                .Any(item => item.GetType().Name == globalType.Name))
+                throw new InvalidOperationException("Global item name collides with item owner: " +
+                                                    globalType.Name);
+            if (!names.Add("GLOBAL_PREFIX:" + globalType.Name))
+                throw new InvalidOperationException("Duplicate BunnyGlobalItem: " + globalType.Name);
+            var snapshot = Ancestors(globalType)
+                .Select(ancestor => ancestor.Assembly.GetType("BunnyLoader.Source.BunnyPrefixItemSnapshot"))
+                .First(type => type != null)!;
+            var effect = Ancestors(globalType)
+                .Select(ancestor => ancestor.Assembly.GetType("BunnyLoader.Source.BunnyPrefixApplyStats"))
+                .First(type => type != null)!;
+            var methods = new (string Name, Type[] Parameters)[] {
+                ("AllowPrefix", new[] { snapshot, typeof(int) }),
+                ("ChoosePrefix", new[] { snapshot }),
+                ("DecidePrefixChance", new[] { snapshot, typeof(int) }),
+                ("ApplyPrefix", new[] { snapshot, typeof(int), effect.MakeByRefType() })
+            };
+            int mask = 0;
+            for (int i=0;i<methods.Length;++i)
+            {
+                var spec=methods[i];
+                MethodInfo method=globalType.GetMethod(spec.Name, spec.Parameters)
+                    ?? throw new InvalidOperationException("Invalid global prefix callback: " + spec.Name);
+                if (method.DeclaringType?.Assembly == globalType.Assembly)
+                    mask |= 1 << i;
+            }
+            if (mask!=0)
+                lines.Add(string.Join("\t", "GLOBAL_PREFIX_CALLBACK", globalType.Name,
+                    mask.ToString(CultureInfo.InvariantCulture)));
+        }
+        foreach (var item in basicItems.Concat(weapons).Concat(potions).Concat(accessories))
+        {
+            Type itemType = item.GetType();
+            Type snapshotType = Ancestors(itemType)
+                .Select(ancestor => ancestor.Assembly.GetType("BunnyLoader.Source.BunnyPrefixItemSnapshot"))
+                .FirstOrDefault(type => type != null)
+                ?? throw new InvalidOperationException("Missing item prefix callback snapshot type");
+            MethodInfo callback = itemType.GetMethod("AllowPrefix",
+                BindingFlags.Public | BindingFlags.Instance, null,
+                new[] { snapshotType, typeof(int) }, null)
+                ?? throw new InvalidOperationException("Missing item AllowPrefix callback");
+            var snapshotAndPrefix = new[] { snapshotType, typeof(int) };
+            var snapshotOnly = new[] { snapshotType };
+            var snapshotPrefixAndStats = new[] {
+                snapshotType, typeof(int),
+                Ancestors(itemType)
+                    .Select(ancestor => ancestor.Assembly.GetType("BunnyLoader.Source.BunnyPrefixApplyStats"))
+                    .First(type => type != null)!.MakeByRefType()
+            };
+            MethodInfo choose = itemType.GetMethod("ChoosePrefix", snapshotOnly)
+                ?? throw new InvalidOperationException("Missing ChoosePrefix callback");
+            MethodInfo chance = itemType.GetMethod("DecidePrefixChance", snapshotAndPrefix)
+                ?? throw new InvalidOperationException("Missing DecidePrefixChance callback");
+            MethodInfo dynamicApply = itemType.GetMethods(BindingFlags.Public | BindingFlags.Instance)
+                .Where(method => method.Name == "ApplyPrefix")
+                .Where(method => method.GetParameters().Select(parameter => parameter.ParameterType)
+                    .SequenceEqual(snapshotPrefixAndStats))
+                .OrderByDescending(method => method.DeclaringType == itemType)
+                .FirstOrDefault()
+                ?? throw new InvalidOperationException("Missing dynamic ApplyPrefix callback");
+            int mask = (callback.DeclaringType?.Assembly == itemType.Assembly ? 1 : 0) |
+                       (choose.DeclaringType?.Assembly == itemType.Assembly ? 2 : 0) |
+                       (chance.DeclaringType?.Assembly == itemType.Assembly ? 4 : 0) |
+                       (dynamicApply.DeclaringType?.Assembly == itemType.Assembly ? 8 : 0);
+            if (mask != 0)
+                lines.Add(string.Join("\t", "ITEM_PREFIX_CALLBACK", itemType.Name,
+                    mask.ToString(CultureInfo.InvariantCulture)));
+        }
+        foreach (var item in basicItems.Concat(weapons).Concat(potions).Concat(accessories))
+        {
+            Type staticStatsType = Ancestors(item.GetType())
+                .Select(ancestor => ancestor.Assembly.GetType("BunnyLoader.Source.BunnyPrefixApplyStats"))
+                .FirstOrDefault(type => type != null)
+                ?? throw new InvalidOperationException("Missing static ApplyPrefix state type");
+            MethodInfo apply = item.GetType().GetMethod("ApplyPrefix",
+                BindingFlags.Public | BindingFlags.Instance, null,
+                new[] { staticStatsType.MakeByRefType() }, null)
+                ?? throw new InvalidOperationException("Missing Bunny item ApplyPrefix");
+            Type stateType = apply.GetParameters().Single().ParameterType.GetElementType()
+                ?? throw new InvalidOperationException("BunnyPrefixApplyStats must be passed by reference");
+            object state = Activator.CreateInstance(stateType)
+                ?? throw new InvalidOperationException("BunnyPrefixApplyStats unavailable");
+            object?[] args = { state };
+            apply.Invoke(item, args);
+            state = args[0] ?? throw new InvalidOperationException("BunnyPrefixApplyStats result missing");
+            int damage = Value<int>(state, "DamageBonus");
+            int value = Value<int>(state, "ValueBonus");
+            if (damage < 0 || damage > 1000 || value < 0 || value > 100000)
+                throw new InvalidOperationException("Bunny item ApplyPrefix effects out of bounds: " +
+                                                    item.GetType().Name);
+            if (damage != 0 || value != 0)
+                lines.Add(string.Join("\t", "PREFIX_APPLY", item.GetType().Name,
+                    damage.ToString(CultureInfo.InvariantCulture),
+                    value.ToString(CultureInfo.InvariantCulture)));
+        }
+        foreach (var item in basicItems.Concat(weapons).Concat(potions).Concat(accessories))
+        {
+            object? chance = item.GetType().GetProperty("PrefixChance",
+                BindingFlags.Public | BindingFlags.Instance)?.GetValue(item);
+            if (chance is bool allow)
+                lines.Add(string.Join("\t", "PREFIX_CHANCE", item.GetType().Name,
+                    allow ? "1" : "0"));
         }
         // A single public typed bridge serves all item families and projectiles.
         foreach(var definition in basicItems.Concat(weapons).Concat(potions).Concat(accessories)

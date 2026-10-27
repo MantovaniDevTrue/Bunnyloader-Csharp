@@ -274,6 +274,11 @@ bool statements(const std::vector<Token>& ts, size_t first, size_t last,
         } else {
             value = ts[i++].value;
         }
+        if (key == "DamageType" && value == "new" && i + 2 < last &&
+            !ts[i].literal && ts[i + 1].value == "(" && ts[i + 2].value == ")") {
+            value = ts[i].value;
+            i += 3;
+        }
         if (def->base == "BunnyMount" && key == "Kind" &&
             value == "BunnyMountKind" && i + 1 < last &&
             ts[i].value == "." &&
@@ -337,7 +342,7 @@ bool parseClass(const std::vector<Token>& tokens, size_t begin, size_t end,
         definitions->push_back({name, base, namespaceName, {}});
         return true;
     }
-    if (!isRecognizedSourceBase(base) && base != "BunnyScreenEffect" && base != "BunnyRarity" && base != "BunnyCommand" && base != "BunnyWorldSystem" && base != "BunnyWorldUpdateLoader" && base != "BunnyHookModule" && base != "DamageClass") return true;
+    if (!isRecognizedSourceBase(base) && base != "BunnyScreenEffect" && base != "BunnyRarity" && base != "BunnyCommand" && base != "BunnyWorldSystem" && base != "BunnyWorldUpdateLoader" && base != "BunnyHookModule" && base != "DamageClass" && base != "BunnyGlobalItem") return true;
     ParsedSourceType def;
     def.name = name;
     def.base = base;
@@ -459,7 +464,7 @@ bool parseClass(const std::vector<Token>& tokens, size_t begin, size_t end,
             return false;
         }
     }
-    if (!foundDefaults) {
+    if (!foundDefaults && base != "BunnyGlobalItem") {
         *error = name + ": precisa de void SetDefaults() com atribuicoes literais";
         return false;
     }
@@ -555,13 +560,13 @@ bool parseCSharpSource(const std::string& source,
         if (!contentDeclaration(tokens, declarationStart, i, &declaredBase,
                                 &declaredProperties, error,&localizedNames)) return false;
         if (!declaredBase.empty()) {
-            if (isRecognizedSourceBase(base) && base != declaredBase) {
+            if ((isRecognizedSourceBase(base) || base == "BunnyGlobalItem") && base != declaredBase) {
                 *error = name + ": categoria BunnyContent difere da classe base";
                 return false;
             }
             base = declaredBase;
         }
-        if (!abstract && (isRecognizedSourceBase(base) || base == "BunnyScreenEffect" || base == "BunnyRarity" || base == "BunnyCommand" || base == "BunnyWorldSystem" || base == "BunnyWorldUpdateLoader" || base == "BunnyHookModule" || base == "DamageClass")) {
+        if (!abstract && (isRecognizedSourceBase(base) || base == "BunnyScreenEffect" || base == "BunnyRarity" || base == "BunnyCommand" || base == "BunnyWorldSystem" || base == "BunnyWorldUpdateLoader" || base == "BunnyHookModule" || base == "DamageClass" || base == "BunnyGlobalItem")) {
             std::string qualifiedNamespace = fileNamespace;
             for (const auto& scope : namespaces) {
                 if (!qualifiedNamespace.empty()) qualifiedNamespace += ".";

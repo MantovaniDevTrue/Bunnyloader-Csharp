@@ -112,6 +112,12 @@ public abstract class BunnyProjectile
     public virtual int OnKillDuration(int damage) => 0;
 }
 
+public struct BunnyPrefixApplyStats
+{
+    public int DamageBonus { get; set; }
+    public int ValueBonus { get; set; }
+}
+
 public abstract class BunnyWeapon : BunnyShootSource
 {
     public string ModRarityClassName { get; private set; } = "";
@@ -130,10 +136,17 @@ public abstract class BunnyWeapon : BunnyShootSource
     public int UseTime { get; set; } = 18;
     public float ShootSpeed { get; set; } = 12f;
     public string Shoot { get; set; } = "";
+    public bool? PrefixChance { get; set; }
     public bool Summon { get; set; }
     public string MinionBuff { get; set; } = "";
     public int MinionBuffTime { get; set; } = 2;
     public abstract void SetDefaults();
+    public virtual void ConfigurePrefixRules(BunnyItemPrefixRules rules) { }
+    public virtual bool AllowPrefix(BunnyPrefixItemSnapshot item, int prefix) => true;
+    public virtual int ChoosePrefix(BunnyPrefixItemSnapshot item) => -1;
+    public virtual bool? DecidePrefixChance(BunnyPrefixItemSnapshot item, int request) => null;
+    public virtual void ApplyPrefix(BunnyPrefixItemSnapshot item, int prefix, ref BunnyPrefixApplyStats effects) { }
+    public virtual void ApplyPrefix(ref BunnyPrefixApplyStats effects) { }
 }
 
 public abstract class BunnyBuff
@@ -169,7 +182,14 @@ public abstract class BunnyBuffPotion : BunnyRecipeSource
     public string Texture { get; set; } = "";
     public string Buff { get; set; } = "";
     public int Duration { get; set; } = 600;
+    public bool? PrefixChance { get; set; }
     public abstract void SetDefaults();
+    public virtual void ConfigurePrefixRules(BunnyItemPrefixRules rules) { }
+    public virtual bool AllowPrefix(BunnyPrefixItemSnapshot item, int prefix) => true;
+    public virtual int ChoosePrefix(BunnyPrefixItemSnapshot item) => -1;
+    public virtual bool? DecidePrefixChance(BunnyPrefixItemSnapshot item, int request) => null;
+    public virtual void ApplyPrefix(BunnyPrefixItemSnapshot item, int prefix, ref BunnyPrefixApplyStats effects) { }
+    public virtual void ApplyPrefix(ref BunnyPrefixApplyStats effects) { }
 }
 
 public enum BunnyAccessoryVisualMode
@@ -190,6 +210,7 @@ public abstract class BunnyAccessory : BunnyRecipeSource
     public string DisplayName { get; set; } = "";
     public string Texture { get; set; } = "";
     public int DefenseBonus { get; set; } = 0;
+    public bool? PrefixChance { get; set; }
     public string Tooltip { get; set; } = "";
     public BunnyAccessoryVisualMode VisualMode { get; set; } = BunnyAccessoryVisualMode.None;
     public string VisualTexture { get; set; } = "";
@@ -197,6 +218,12 @@ public abstract class BunnyAccessory : BunnyRecipeSource
     public float VisualOpacity { get; set; } = 1f;
     public uint VisualColor { get; set; } = 0xFFFFFFFF;
     public abstract void SetDefaults();
+    public virtual void ConfigurePrefixRules(BunnyItemPrefixRules rules) { }
+    public virtual bool AllowPrefix(BunnyPrefixItemSnapshot item, int prefix) => true;
+    public virtual int ChoosePrefix(BunnyPrefixItemSnapshot item) => -1;
+    public virtual bool? DecidePrefixChance(BunnyPrefixItemSnapshot item, int request) => null;
+    public virtual void ApplyPrefix(BunnyPrefixItemSnapshot item, int prefix, ref BunnyPrefixApplyStats effects) { }
+    public virtual void ApplyPrefix(ref BunnyPrefixApplyStats effects) { }
 }
 
 public abstract class BunnyPlayer
@@ -372,6 +399,417 @@ public struct PrefixStats
     };
 }
 
+public sealed class BunnyItemPrefixRules
+{
+    private readonly System.Collections.Generic.SortedSet<int> blocked = new();
+    private readonly System.Collections.Generic.SortedSet<string> named =
+        new(System.StringComparer.Ordinal);
+    private readonly System.Collections.Generic.SortedDictionary<int, (int Min, int Max)> stackBlocked = new();
+    private readonly System.Collections.Generic.SortedDictionary<string, (int Min, int Max)> namedStackBlocked =
+        new(System.StringComparer.Ordinal);
+    private readonly System.Collections.Generic.SortedDictionary<string, (string Prefix, char Attribute, int Min, int Max)> attributeDenials =
+        new(System.StringComparer.Ordinal);
+    private bool hasStackPrefixChance;
+    private int chanceMinStack;
+    private int chanceMaxStack;
+    private bool chanceEnabled;
+    private bool hasStackChoice;
+    private string stackChoicePrefix = "";
+    private int stackChoiceMin;
+    private int stackChoiceMax;
+
+    public void ChooseWhenStackBetween(int prefixType, int minimum, int maximum)
+    {
+        if (prefixType < 1 || prefixType > 255)
+            throw new System.ArgumentOutOfRangeException(nameof(prefixType));
+        SetStackChoice(prefixType.ToString(System.Globalization.CultureInfo.InvariantCulture), minimum, maximum);
+    }
+
+    public void ChooseWhenStackBetween(string ownModPrefixName, int minimum, int maximum)
+        => SetStackChoice(AttributePrefixName(ownModPrefixName), minimum, maximum);
+
+    private void SetStackChoice(string prefix, int minimum, int maximum)
+    {
+        if (minimum < 0 || maximum < minimum || maximum > 999999)
+            throw new System.ArgumentOutOfRangeException(nameof(minimum));
+        if (hasStackChoice)
+            throw new System.InvalidOperationException("Only one conditional prefix choice is supported");
+        hasStackChoice = true;
+        stackChoicePrefix = prefix;
+        stackChoiceMin = minimum;
+        stackChoiceMax = maximum;
+    }
+
+    public string SerializeStackChoice()
+    {
+        if (!hasStackChoice) return "";
+        return stackChoicePrefix + ":" +
+            stackChoiceMin.ToString(System.Globalization.CultureInfo.InvariantCulture) + ":" +
+            stackChoiceMax.ToString(System.Globalization.CultureInfo.InvariantCulture);
+    }
+
+    public void Deny(int prefixType)
+    {
+        if (prefixType < 1 || prefixType > 255)
+            throw new System.ArgumentOutOfRangeException(nameof(prefixType));
+        if (!blocked.Contains(prefixType) && blocked.Count + named.Count + stackBlocked.Count + namedStackBlocked.Count + attributeDenials.Count >= 32)
+            throw new System.InvalidOperationException("At most 32 denied prefixes per item");
+        blocked.Add(prefixType);
+    }
+
+    public void Deny(string ownModPrefixName)
+    {
+        if (string.IsNullOrEmpty(ownModPrefixName) || ownModPrefixName.Length > 64 ||
+            !(ownModPrefixName[0] is >= 'A' and <= 'Z' or >= 'a' and <= 'z' or '_'))
+            throw new System.ArgumentOutOfRangeException(nameof(ownModPrefixName));
+        foreach (char ch in ownModPrefixName)
+            if (!(ch is >= 'A' and <= 'Z' or >= 'a' and <= 'z' or >= '0' and <= '9' or '_'))
+                throw new System.ArgumentOutOfRangeException(nameof(ownModPrefixName));
+        if (!named.Contains(ownModPrefixName) && blocked.Count + named.Count + stackBlocked.Count + namedStackBlocked.Count + attributeDenials.Count >= 32)
+            throw new System.InvalidOperationException("At most 32 denied prefixes per item");
+        named.Add(ownModPrefixName);
+    }
+
+    public void DenyWhenStackBetween(int prefixType, int minimum, int maximum)
+    {
+        if (prefixType < 1 || prefixType > 255 ||
+            minimum < 0 || maximum < minimum || maximum > 999999)
+            throw new System.ArgumentOutOfRangeException(nameof(prefixType));
+        if (blocked.Contains(prefixType) || stackBlocked.ContainsKey(prefixType))
+            throw new System.InvalidOperationException("Duplicate prefix deny rule");
+        if (blocked.Count + named.Count + stackBlocked.Count + namedStackBlocked.Count + attributeDenials.Count >= 32)
+            throw new System.InvalidOperationException("At most 32 denied prefixes per item");
+        stackBlocked.Add(prefixType, (minimum, maximum));
+    }
+
+    public void DenyWhenStackBetween(string ownModPrefixName, int minimum, int maximum)
+    {
+        if (string.IsNullOrEmpty(ownModPrefixName) || ownModPrefixName.Length > 64 ||
+            !(ownModPrefixName[0] is >= 'A' and <= 'Z' or >= 'a' and <= 'z' or '_') ||
+            minimum < 0 || maximum < minimum || maximum > 999999)
+            throw new System.ArgumentOutOfRangeException(nameof(ownModPrefixName));
+        foreach (char ch in ownModPrefixName)
+            if (!(ch is >= 'A' and <= 'Z' or >= 'a' and <= 'z' or >= '0' and <= '9' or '_'))
+                throw new System.ArgumentOutOfRangeException(nameof(ownModPrefixName));
+        if (named.Contains(ownModPrefixName) || namedStackBlocked.ContainsKey(ownModPrefixName))
+            throw new System.InvalidOperationException("Duplicate prefix deny rule");
+        if (blocked.Count + named.Count + stackBlocked.Count + namedStackBlocked.Count + attributeDenials.Count >= 32)
+            throw new System.InvalidOperationException("At most 32 denied prefixes per item");
+        namedStackBlocked.Add(ownModPrefixName, (minimum, maximum));
+    }
+
+    private void AddAttributeDeny(string prefix, char attribute, int minimum, int maximum)
+    {
+        int limit = attribute == 'D' ? 100000 : 10000;
+        if (minimum < 0 || maximum < minimum || maximum > limit)
+            throw new System.ArgumentOutOfRangeException(nameof(minimum));
+        string key = prefix + ":" + attribute;
+        if (attributeDenials.ContainsKey(key))
+            throw new System.InvalidOperationException("Duplicate prefix attribute deny rule");
+        if (blocked.Count + named.Count + stackBlocked.Count + namedStackBlocked.Count + attributeDenials.Count >= 32)
+            throw new System.InvalidOperationException("At most 32 denied prefixes per item");
+        attributeDenials.Add(key, (prefix, attribute, minimum, maximum));
+    }
+
+    private static string AttributePrefixName(string name)
+    {
+        if (string.IsNullOrEmpty(name) || name.Length > 64 ||
+            !(name[0] is >= 'A' and <= 'Z' or >= 'a' and <= 'z' or '_'))
+            throw new System.ArgumentOutOfRangeException(nameof(name));
+        foreach (char c in name)
+            if (!(c is >= 'A' and <= 'Z' or >= 'a' and <= 'z' or >= '0' and <= '9' or '_'))
+                throw new System.ArgumentOutOfRangeException(nameof(name));
+        return name;
+    }
+
+    private static string AttributePrefixId(int prefixType)
+    {
+        if (prefixType < 1 || prefixType > 255)
+            throw new System.ArgumentOutOfRangeException(nameof(prefixType));
+        return prefixType.ToString(System.Globalization.CultureInfo.InvariantCulture);
+    }
+
+    public void DenyWhenDamageBetween(int prefixType, int minimum, int maximum)
+        => AddAttributeDeny(AttributePrefixId(prefixType), 'D', minimum, maximum);
+
+    public void DenyWhenDamageBetween(string ownModPrefixName, int minimum, int maximum)
+        => AddAttributeDeny(AttributePrefixName(ownModPrefixName), 'D', minimum, maximum);
+
+    public void DenyWhenManaBetween(int prefixType, int minimum, int maximum)
+        => AddAttributeDeny(AttributePrefixId(prefixType), 'M', minimum, maximum);
+
+    public void DenyWhenManaBetween(string ownModPrefixName, int minimum, int maximum)
+        => AddAttributeDeny(AttributePrefixName(ownModPrefixName), 'M', minimum, maximum);
+
+    public string SerializeAttributeDenials()
+    {
+        var result = new System.Collections.Generic.List<string>(attributeDenials.Count);
+        foreach (var entry in attributeDenials.Values)
+            result.Add(entry.Prefix + ":" + entry.Attribute + ":" +
+                entry.Min.ToString(System.Globalization.CultureInfo.InvariantCulture) + ":" +
+                entry.Max.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        return string.Join(",", result);
+    }
+
+    public void SetPrefixChanceWhenStackBetween(int minimum, int maximum, bool allowed)
+    {
+        if (minimum < 0 || maximum < minimum || maximum > 999999)
+            throw new System.ArgumentOutOfRangeException(nameof(minimum));
+        if (hasStackPrefixChance)
+            throw new System.InvalidOperationException("Only one stack prefix chance rule is supported");
+        hasStackPrefixChance = true;
+        chanceMinStack = minimum;
+        chanceMaxStack = maximum;
+        chanceEnabled = allowed;
+    }
+
+    public string SerializeStackChance()
+    {
+        if (!hasStackPrefixChance) return "";
+        return chanceMinStack.ToString(System.Globalization.CultureInfo.InvariantCulture) + ":" +
+            chanceMaxStack.ToString(System.Globalization.CultureInfo.InvariantCulture) + ":" +
+            (chanceEnabled ? "1" : "0");
+    }
+
+    public string SerializeStackDenials()
+    {
+        var values = new System.Collections.Generic.List<string>(
+            stackBlocked.Count + namedStackBlocked.Count);
+        foreach (var entry in stackBlocked)
+            values.Add(entry.Key.ToString(System.Globalization.CultureInfo.InvariantCulture) + ":" +
+                entry.Value.Min.ToString(System.Globalization.CultureInfo.InvariantCulture) + ":" +
+                entry.Value.Max.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        foreach (var entry in namedStackBlocked)
+            values.Add(entry.Key + ":" +
+                entry.Value.Min.ToString(System.Globalization.CultureInfo.InvariantCulture) + ":" +
+                entry.Value.Max.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        return string.Join(",", values);
+    }
+
+    public string Serialize()
+    {
+        var values = new System.Collections.Generic.List<string>();
+        foreach (int id in blocked)
+            values.Add(id.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        foreach (string name in named)
+            values.Add(name);
+        return string.Join(",", values);
+    }
+}
+
+public sealed class BunnyPrefixRollRules
+{
+    private readonly System.Collections.Generic.SortedDictionary<int, int> rules = new();
+    private readonly System.Collections.Generic.SortedDictionary<string, int> namedRules =
+        new(System.StringComparer.Ordinal);
+    private readonly System.Collections.Generic.SortedDictionary<int, bool> canRoll = new();
+    private readonly System.Collections.Generic.SortedDictionary<string, bool> namedCanRoll =
+        new(System.StringComparer.Ordinal);
+    private readonly System.Collections.Generic.SortedSet<int> preferredItems = new();
+    private readonly System.Collections.Generic.SortedSet<string> namedPreferredItems =
+        new(System.StringComparer.Ordinal);
+
+    private void Reserve(bool exists)
+    {
+        if (!exists && rules.Count + namedRules.Count >= 32)
+            throw new System.InvalidOperationException("BunnyPrefix supports at most 32 item-specific rules");
+    }
+
+    public void SetWeight(int itemType, int weight)
+    {
+        if (itemType < 1 || itemType > 32767 || weight < 0 || weight > 20)
+            throw new System.ArgumentOutOfRangeException(nameof(itemType));
+        Reserve(rules.ContainsKey(itemType));
+        rules[itemType] = weight;
+    }
+
+    public void SetWeight(string itemName, int weight)
+    {
+        if (string.IsNullOrEmpty(itemName) || itemName.Length > 64 ||
+            weight < 0 || weight > 20 ||
+            !(itemName[0] is >= 'A' and <= 'Z' or >= 'a' and <= 'z' or '_'))
+            throw new System.ArgumentOutOfRangeException(nameof(itemName));
+        foreach (char c in itemName)
+            if (!(c is >= 'A' and <= 'Z' or >= 'a' and <= 'z' or >= '0' and <= '9' or '_'))
+                throw new System.ArgumentOutOfRangeException(nameof(itemName));
+        Reserve(namedRules.ContainsKey(itemName));
+        namedRules[itemName] = weight;
+    }
+
+    public void SetCanRoll(int itemType, bool allowed)
+    {
+        if (!rules.ContainsKey(itemType))
+            throw new System.InvalidOperationException("SetWeight must be called before SetCanRoll");
+        canRoll[itemType] = allowed;
+        if (!allowed) preferredItems.Remove(itemType);
+    }
+
+    public void SetCanRoll(string itemName, bool allowed)
+    {
+        if (string.IsNullOrEmpty(itemName) || !namedRules.ContainsKey(itemName))
+            throw new System.InvalidOperationException("SetWeight must be called before SetCanRoll");
+        namedCanRoll[itemName] = allowed;
+        if (!allowed) namedPreferredItems.Remove(itemName);
+    }
+
+    public void PreferFor(int itemType)
+    {
+        if (!rules.TryGetValue(itemType, out int weight) ||
+            !(canRoll.TryGetValue(itemType, out bool allowed) ? allowed : weight > 0))
+            throw new System.InvalidOperationException("PreferFor requires an allowed item rule");
+        preferredItems.Add(itemType);
+    }
+
+    public void PreferFor(string itemName)
+    {
+        if (string.IsNullOrEmpty(itemName) ||
+            !namedRules.TryGetValue(itemName, out int weight) ||
+            !(namedCanRoll.TryGetValue(itemName, out bool allowed) ? allowed : weight > 0))
+            throw new System.InvalidOperationException("PreferFor requires an allowed item rule");
+        namedPreferredItems.Add(itemName);
+    }
+
+    public void Deny(int itemType)
+    {
+        SetWeight(itemType, 0);
+        canRoll.Remove(itemType);
+        preferredItems.Remove(itemType);
+    }
+
+    public void Deny(string itemName)
+    {
+        SetWeight(itemName, 0);
+        namedCanRoll.Remove(itemName);
+        namedPreferredItems.Remove(itemName);
+    }
+    public void Allow(int itemType, int weight = 1) => SetWeight(itemType, weight);
+    public void Allow(string itemName, int weight = 1) => SetWeight(itemName, weight);
+
+    public string Serialize()
+    {
+        var fields = new System.Collections.Generic.List<string>(rules.Count + namedRules.Count);
+        foreach (var entry in rules)
+        {
+            string key = entry.Key.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                + ":" + entry.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            bool overrideExists = canRoll.TryGetValue(entry.Key, out bool allowed);
+            if (preferredItems.Contains(entry.Key))
+            {
+                if (!(overrideExists ? allowed : entry.Value > 0))
+                    throw new System.InvalidOperationException("Preferred item cannot be denied");
+                key += ":1:1";
+            }
+            else if (overrideExists)
+                key += allowed ? ":1" : ":0";
+            fields.Add(key);
+        }
+        foreach (var entry in namedRules)
+        {
+            string key = entry.Key + ":" +
+                entry.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            bool overrideExists = namedCanRoll.TryGetValue(entry.Key, out bool allowed);
+            if (namedPreferredItems.Contains(entry.Key))
+            {
+                if (!(overrideExists ? allowed : entry.Value > 0))
+                    throw new System.InvalidOperationException("Preferred item cannot be denied");
+                key += ":1:1";
+            }
+            else if (overrideExists)
+                key += allowed ? ":1" : ":0";
+            fields.Add(key);
+        }
+        return string.Join(",", fields);
+    }
+}
+
+public sealed class BunnyPrefixItemConditions
+{
+    public int MinDamage { get; private set; } = 0;
+    public int MaxDamage { get; private set; } = 100000;
+    public int MinMana { get; private set; } = 0;
+    public int MaxMana { get; private set; } = 10000;
+    public int MinStack { get; private set; } = 0;
+    public int MaxStack { get; private set; } = 999999;
+    public bool HasStackRollWeight { get; private set; }
+    public int RollWeightMinStack { get; private set; }
+    public int RollWeightMaxStack { get; private set; }
+    public int RollWeightInRange { get; private set; }
+    public bool HasAttributeRollWeight { get; private set; }
+    public char AttributeRollWeightKind { get; private set; }
+    public int AttributeRollWeightMinimum { get; private set; }
+    public int AttributeRollWeightMaximum { get; private set; }
+    public int AttributeRollWeightValue { get; private set; }
+
+    public void RequireDamageBetween(int minimum, int maximum)
+    {
+        if (minimum < 0 || maximum < minimum || maximum > 100000)
+            throw new System.ArgumentOutOfRangeException(nameof(minimum));
+        MinDamage = minimum;
+        MaxDamage = maximum;
+    }
+
+    public void RequireManaBetween(int minimum, int maximum)
+    {
+        if (minimum < 0 || maximum < minimum || maximum > 10000)
+            throw new System.ArgumentOutOfRangeException(nameof(minimum));
+        MinMana = minimum;
+        MaxMana = maximum;
+    }
+
+    public void RequireStackBetween(int minimum, int maximum)
+    {
+        if (minimum < 0 || maximum < minimum || maximum > 999999)
+            throw new System.ArgumentOutOfRangeException(nameof(minimum));
+        MinStack = minimum;
+        MaxStack = maximum;
+    }
+
+    public void OverrideRollWeightWhenStackBetween(int minimum, int maximum, int weight)
+    {
+        if (minimum < 0 || maximum < minimum || maximum > 999999 ||
+            weight < 0 || weight > 20)
+            throw new System.ArgumentOutOfRangeException(nameof(minimum));
+        if (HasStackRollWeight || HasAttributeRollWeight)
+            throw new System.InvalidOperationException("Only one dynamic roll weight rule is supported");
+        HasStackRollWeight = true;
+        RollWeightMinStack = minimum;
+        RollWeightMaxStack = maximum;
+        RollWeightInRange = weight;
+    }
+
+    private void OverrideAttributeRollWeight(char attribute, int minimum, int maximum, int weight)
+    {
+        int limit = attribute == 'D' ? 100000 : 10000;
+        if (minimum < 0 || maximum < minimum || maximum > limit ||
+            weight < 0 || weight > 20)
+            throw new System.ArgumentOutOfRangeException(nameof(minimum));
+        if (HasStackRollWeight || HasAttributeRollWeight)
+            throw new System.InvalidOperationException("Only one dynamic roll weight rule is supported");
+        HasAttributeRollWeight = true;
+        AttributeRollWeightKind = attribute;
+        AttributeRollWeightMinimum = minimum;
+        AttributeRollWeightMaximum = maximum;
+        AttributeRollWeightValue = weight;
+    }
+
+    public void OverrideRollWeightWhenDamageBetween(int minimum, int maximum, int weight)
+        => OverrideAttributeRollWeight('D', minimum, maximum, weight);
+
+    public void OverrideRollWeightWhenManaBetween(int minimum, int maximum, int weight)
+        => OverrideAttributeRollWeight('M', minimum, maximum, weight);
+}
+
+public readonly struct BunnyPrefixTooltipLine
+{
+    public string Text { get; }
+    public bool IsNegative { get; }
+    public BunnyPrefixTooltipLine(string text, bool isNegative = false)
+    {
+        Text = text;
+        IsNegative = isNegative;
+    }
+}
+
 public abstract class BunnyPrefix
 {
     public string DisplayName { get; set; } = "";
@@ -379,9 +817,71 @@ public abstract class BunnyPrefix
     public float RollWeight { get; set; } = 1f;
 
     public abstract void SetDefaults();
+    public virtual void ConfigureRollRules(BunnyPrefixRollRules rules) { }
+    public virtual void ConfigureItemConditions(BunnyPrefixItemConditions conditions) { }
+    public virtual bool CanRoll(BunnyPrefixItemSnapshot item) => true;
+    public virtual int RollChance(BunnyPrefixItemSnapshot item) =>
+        (int)System.MathF.Round(RollWeight);
+    public virtual bool AllStatChangesHaveEffectOn(BunnyPrefixItemSnapshot item) => true;
+    public virtual void Apply(BunnyPrefixItemSnapshot item, ref BunnyPrefixApplyStats effects) { }
+    public virtual System.Collections.Generic.IReadOnlyList<BunnyPrefixTooltipLine> GetTooltipLines(
+        BunnyPrefixItemSnapshot item) => System.Array.Empty<BunnyPrefixTooltipLine>();
     public virtual void SetStats(ref PrefixStats stats) { }
+    public bool RequireEffectiveStats { get; set; } = true;
+    public string ExtraTooltip { get; set; } = "";
+    private readonly System.Collections.Generic.List<string> tooltipLines = new();
+    private readonly System.Collections.Generic.List<string> tooltipItemLines = new();
+
+    public void AddTooltipLine(string text)
+    {
+        if (string.IsNullOrEmpty(text) || tooltipLines.Count + tooltipItemLines.Count >= 4 ||
+            System.Text.Encoding.UTF8.GetByteCount(text) > 120)
+            throw new System.ArgumentOutOfRangeException(nameof(text));
+        foreach (char value in text)
+            if (char.IsControl(value))
+                throw new System.ArgumentOutOfRangeException(nameof(text));
+        tooltipLines.Add(text);
+    }
+
+    public void AddTooltipItemLine(string template)
+    {
+        if (string.IsNullOrEmpty(template) || tooltipLines.Count + tooltipItemLines.Count >= 4 ||
+            System.Text.Encoding.UTF8.GetByteCount(template) > 120)
+            throw new System.ArgumentOutOfRangeException(nameof(template));
+        foreach (char value in template)
+            if (char.IsControl(value))
+                throw new System.ArgumentOutOfRangeException(nameof(template));
+        bool variable = template.Contains("{damage}", System.StringComparison.Ordinal) ||
+                        template.Contains("{mana}", System.StringComparison.Ordinal) ||
+                        template.Contains("{stack}", System.StringComparison.Ordinal);
+        string rest = template.Replace("{damage}", "", System.StringComparison.Ordinal)
+                              .Replace("{mana}", "", System.StringComparison.Ordinal)
+                              .Replace("{stack}", "", System.StringComparison.Ordinal);
+        if (!variable || rest.Contains('{') || rest.Contains('}'))
+            throw new System.ArgumentOutOfRangeException(nameof(template));
+        tooltipItemLines.Add(template);
+    }
+
+    public string SerializeTooltipItemLines()
+    {
+        var lines = new System.Collections.Generic.List<string>(tooltipItemLines.Count);
+        foreach (string template in tooltipItemLines)
+            lines.Add(System.Convert.ToHexString(System.Text.Encoding.UTF8.GetBytes(template)));
+        return string.Join(",", lines);
+    }
+
+    public string SerializeTooltipLines()
+    {
+        var lines = new System.Collections.Generic.List<string>(tooltipLines.Count);
+        foreach (string line in tooltipLines)
+            lines.Add(System.Convert.ToHexString(System.Text.Encoding.UTF8.GetBytes(line)));
+        return string.Join(",", lines);
+    }
+
+    public virtual void Apply(ref BunnyPrefixApplyStats effects) { }
     public virtual void ModifyValue(ref float valueMultiplier) { }
     public virtual void ApplyAccessoryEffects(ref int defenseBonus) { }
+    public virtual void ApplyAccessoryEffects(BunnyPrefixPlayerSnapshot player, ref int defenseBonus) { }
 }
 
 

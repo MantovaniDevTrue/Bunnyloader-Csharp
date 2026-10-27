@@ -8,6 +8,7 @@
 #include "experiments/csharp/SourceLoader.h"
 #include "experiments/csharp/NativeRarityRegistry.h"
 #include "experiments/csharp/NativeRarityGameplay.h"
+#include "experiments/csharp/ManagedPrefixGameplay.h"
 #include "experiments/csharp/AutoSourceRuntime.h"
 #include "experiments/csharp/ManagedRuntime.h"
 #include "experiments/csharp/NativeContent.h"
@@ -149,6 +150,21 @@ JSValue jsNativeArmorPolicies(JSContext* ctx,JSValueConst,int argc,JSValueConst*
         JS_SetPropertyUint32(ctx,array,i++,value);
     }
     return array;
+}
+JSValue jsNativePrefixDiagnostics(JSContext* ctx,JSValueConst,int argc,JSValueConst*) {
+    if (argc) return JS_ThrowTypeError(ctx, "nativePrefixDiagnostics()");
+    const auto d = bl::csharp::managedPrefixDiagnostics();
+    JSValue obj = JS_NewObject(ctx);
+    JS_SetPropertyStr(ctx,obj,"rollAttempts",JS_NewInt64(ctx,static_cast<int64_t>(d.rollAttempts)));
+    JS_SetPropertyStr(ctx,obj,"restoredRolls",JS_NewInt64(ctx,static_cast<int64_t>(d.restoredRolls)));
+    JS_SetPropertyStr(ctx,obj,"chosenItemRolls",JS_NewInt64(ctx,static_cast<int64_t>(d.chosenItemRolls)));
+    JS_SetPropertyStr(ctx,obj,"preferredRolls",JS_NewInt64(ctx,static_cast<int64_t>(d.preferredRolls)));
+    JS_SetPropertyStr(ctx,obj,"weightedRolls",JS_NewInt64(ctx,static_cast<int64_t>(d.weightedRolls)));
+    JS_SetPropertyStr(ctx,obj,"vanillaFallbacks",JS_NewInt64(ctx,static_cast<int64_t>(d.vanillaFallbacks)));
+    JS_SetPropertyStr(ctx,obj,"rejectedRolls",JS_NewInt64(ctx,static_cast<int64_t>(d.rejectedRolls)));
+    JS_SetPropertyStr(ctx,obj,"totalRollMicroseconds",JS_NewInt64(ctx,static_cast<int64_t>(d.totalRollMicroseconds)));
+    JS_SetPropertyStr(ctx,obj,"maxRollMicroseconds",JS_NewInt64(ctx,static_cast<int64_t>(d.maxRollMicroseconds)));
+    return obj;
 }
 JSValue jsNativeItemPolicies(JSContext* ctx,JSValueConst,int argc,JSValueConst*) {
     if(argc)return JS_ThrowTypeError(ctx,"nativeItemPolicies()");
@@ -2963,6 +2979,7 @@ void installCSharpPrototypeApi(JSContext* ctx, JSValueConst bl) {
     JS_SetPropertyStr(ctx, api, "setNativeItemEquipSlot", JS_NewCFunction(ctx, jsSetNativeItemEquipSlot, "setNativeItemEquipSlot", 3));
     JS_SetPropertyStr(ctx, api, "nativeArmorPolicies", JS_NewCFunction(ctx, jsNativeArmorPolicies, "nativeArmorPolicies", 0));
     JS_SetPropertyStr(ctx, api, "nativeItemPolicies", JS_NewCFunction(ctx, jsNativeItemPolicies, "nativeItemPolicies", 0));
+    JS_SetPropertyStr(ctx, api, "nativePrefixDiagnostics", JS_NewCFunction(ctx, jsNativePrefixDiagnostics, "nativePrefixDiagnostics", 0));
     JS_SetPropertyStr(ctx, api, "pendingItemBehaviors", JS_NewCFunction(ctx, jsPendingItemBehaviors, "pendingItemBehaviors", 0));
     JS_SetPropertyStr(ctx, api, "acknowledgeItemBehavior", JS_NewCFunction(ctx, jsAcknowledgeItemBehavior, "acknowledgeItemBehavior", 2));
     JS_SetPropertyStr(ctx, api, "reportItemRecipeError", JS_NewCFunction(ctx, jsReportItemRecipeError, "reportItemRecipeError", 2));

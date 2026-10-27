@@ -1,0 +1,90 @@
+name: CSharp PrefixLoader and GlobalItem prefix callbacks (no APK)
+
+on:
+  pull_request:
+    paths:
+      - app/src/main/cpp/experiments/csharp/ManagedPrefix*
+      - app/src/main/cpp/experiments/csharp/SourceLoader.cpp
+      - app/src/main/cpp/experiments/csharp/SourceParser.cpp
+      - app/src/main/cpp/experiments/csharp/SourceContentIdentity.h
+      - app/src/main/cpp/experiments/csharp/ManagedRuntime.*
+      - app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp
+      - experiments/csharp/BunnyCsSdk/**
+      - experiments/csharp/BunnySourceCompiler/**
+      - experiments/csharp/BunnySourceSdk/**
+      - tests/prefix_v89/**
+      - tests/managed_prefix_cold_tables.cpp
+      - samples/ExampleModCSharp/**
+      - tools/sdk_reference/**
+      - docs/generated/sdk_public_reference.*
+      - .github/workflows/check-csharp-prefix-globalitem.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  host:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Native prefix snapshot, parser, cold tables and guards
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/headers/android"
+          printf '#pragma once\n#define ANDROID_LOG_DEBUG 3\n#define ANDROID_LOG_INFO 4\n#define ANDROID_LOG_WARN 5\n#define ANDROID_LOG_ERROR 6\n' > "$RUNNER_TEMP/headers/android/log.h"
+          g++ -std=c++20 -Wall -Wextra -Werror -pthread -I "$RUNNER_TEMP/headers" -I app/src/main/cpp \
+            tests/prefix_v89/managed_prefix_snapshot_test.cpp -o "$RUNNER_TEMP/prefix-snapshot-test"
+          "$RUNNER_TEMP/prefix-snapshot-test"
+          g++ -std=c++20 -Wall -Wextra -Werror -I app/src/main/cpp tests/prefix_v89/global_prefix_source_parser_test.cpp \
+            app/src/main/cpp/experiments/csharp/SourceParser.cpp -o "$RUNNER_TEMP/global-prefix-source-parser-test"
+          "$RUNNER_TEMP/global-prefix-source-parser-test"
+          g++ -std=c++20 -Wall -Wextra -Werror -ffunction-sections -fdata-sections -I "$RUNNER_TEMP/headers" -I app/src/main/cpp \
+            tests/managed_prefix_cold_tables.cpp -Wl,--gc-sections -o "$RUNNER_TEMP/prefix-cold-tables"
+          "$RUNNER_TEMP/prefix-cold-tables"
+          python3 tests/prefix_v89/guard_gameplay_v90.py
+          python3 tests/prefix_v89/guard_reforge_v90_2.py
+          python3 tests/prefix_v89/guard_native_bridge.py
+          python3 tests/prefix_v89/guard_persistence_v90_4.py
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Managed prefix and GlobalItem contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet build tests/prefix_v89/PrefixFixture/PrefixFixture.csproj -c Release -p:NuGetAudit=false
+          dotnet build tests/prefix_v89/GlobalOnlyFixture/GlobalOnlyFixture.csproj -c Release -p:NuGetAudit=false
+          dotnet run --project tests/prefix_v89/PrefixContract.csproj -c Release -p:NuGetAudit=false -- \
+            "$(pwd)/tests/prefix_v89/PrefixFixture/bin/Release/net8.0/PrefixFixture.dll" \
+            "$(pwd)/tests/prefix_v89/GlobalOnlyFixture/bin/Release/net8.0/GlobalOnlyFixture.dll"
+          dotnet run --project tools/sdk_reference/SdkReference.csproj -c Release -p:NuGetAudit=false -- --check
+
+  android-arm64:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile prefix bridge, hooks, SourceLoader and runtime for Android arm64
+        shell: bash
+        run: |
+          set -euo pipefail
+          NDK=$(find "${ANDROID_HOME}/ndk" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)
+          test -n "$NDK"
+          LLVM="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          ROOT="app/src/main/cpp"
+          mkdir -p "$RUNNER_TEMP/arm64"
+          for source in ManagedPrefixBridge.cpp ManagedPrefixGameplay.cpp SourceLoader.cpp NativeDamageClassHooks.cpp; do
+            echo "::group::$source"
+            "$LLVM/clang++" --target=aarch64-linux-android26 -std=c++20 -fPIC -O0 -Wall -Wextra -Werror \
+              -I"$ROOT" -c "$ROOT/experiments/csharp/$source" -o "$RUNNER_TEMP/arm64/${source%.cpp}.o"
+            "$LLVM/llvm-readelf" -h "$RUNNER_TEMP/arm64/${source%.cpp}.o" | grep AArch64 >/dev/null
+            echo "::endgroup::"
+          done
+          for source in ManagedRuntime.cpp AutoSourceRuntime.cpp; do
+            "$LLVM/clang++" --target=aarch64-linux-android26 -std=c++20 -fPIC -O0 -I"$ROOT" -fsyntax-only \
+              "$ROOT/experiments/csharp/$source"
+          done
+          echo 'BUNNY_CSHARP_PREFIX_GLOBALITEM_ANDROID_ARM64=PASS'

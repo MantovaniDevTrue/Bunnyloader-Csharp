@@ -24,6 +24,7 @@ inline std::string_view sourceContentDomain(std::string_view base) {
     if (base == "BunnyWorldSystem") return "SYSTEM";
     if (base == "BunnyWorldUpdateLoader" || base == "BunnyHookModule") return "HOOK_MODULE";
     if (base == "DamageClass") return "DAMAGE_CLASS";
+    if (base == "BunnyGlobalItem") return "GLOBAL_PREFIX";
     return {};
 }
 
@@ -31,7 +32,7 @@ inline std::string_view sourceContentDomain(std::string_view base) {
 inline bool sourceRequiresNativeRegistration(std::string_view base) {
     return base != "BunnyPlayer" && base != "BunnyScreenEffect" &&
            base != "BunnyCommand" && base != "BunnyWorldSystem" && base != "BunnyTree" && base != "BunnyGore" && base != "BunnyWorldUpdateLoader" && base != "BunnyHookModule" &&
-           base != "DamageClass";
+           base != "DamageClass" && base != "BunnyGlobalItem";
 }
 
 inline std::string_view sourceWireDomain(std::string_view kind) {

@@ -54,6 +54,9 @@
     <Compile Include="../BunnyCsSdk/BunnyWorldPersistence.cs" Link="BunnyWorldPersistence.cs" />
     <Compile Include="../BunnyCsSdk/BunnyNetData.cs" Link="BunnyNetData.cs" />
     <Compile Include="../BunnyCsSdk/BunnyWorldNetwork.cs" Link="BunnyWorldNetwork.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyPrefixCallbacks.cs" Link="BunnyPrefixCallbacks.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyItemPrefixCallbacks.cs" Link="BunnyItemPrefixCallbacks.cs" />
+    <Compile Include="../BunnyCsSdk/BunnyGlobalItem.cs" Link="BunnyGlobalItem.cs" />
     <Compile Include="../BunnyCsSdk/BunnyEntitySourceDispatcher.cs" Link="BunnyEntitySourceDispatcher.cs" />
     <Compile Include="../BunnyCsSdk/BunnyPrimitives.cs" Link="BunnyPrimitives.cs" />
     <Compile Include="../BunnyCsSdk/StatModifier.cs" Link="StatModifier.cs" />

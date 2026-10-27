@@ -992,14 +992,45 @@ void run() {
             bindNativeRecipeAssembly(mod.id,assembly);
             callbackAssembly=nativeRecipeAssemblyBindings().current(mod.id);
             bindNativeTileAssembly(mod.id,assembly);
-            if(!shooting::bindAssembly(mod.id,assembly,&error))defaultsApplied=false;
+            const auto itemCallbackOwners=managedItemPrefixCallbackView();
+            bool hasItemPrefixCallbacks=false;
+            for (const auto& [type, callback]:*itemCallbackOwners)
+                if (callback.modId==mod.id) {
+                    hasItemPrefixCallbacks=true;
+                    break;
+                }
+            const auto globalPrefixOwners=managedGlobalPrefixCallbackView();
+            bool hasGlobalPrefixCallbacks=false;
+            for(const auto& owner:*globalPrefixOwners)
+                if(owner.modId==mod.id) {
+                    hasGlobalPrefixCallbacks=true;
+                    break;
+                }
+            if (mod.prefixes>0 && !bindManagedPrefixCallbackAssembly(mod.id,assembly)) {
+                error="[CSharp][ERROR][PrefixCallback] Stage=BindAssembly";
+                defaultsApplied=false;
+            }
+            if (hasItemPrefixCallbacks &&
+                !bindManagedItemPrefixCallbackAssembly(mod.id,assembly)) {
+                error="[CSharp][ERROR][ItemPrefixCallback] Stage=BindAssembly";
+                defaultsApplied=false;
+            }
+            if(hasGlobalPrefixCallbacks &&
+                !bindManagedGlobalPrefixCallbackAssembly(mod.id,assembly)) {
+                error="[CSharp][ERROR][GlobalPrefixCallback] Stage=BindAssembly";
+                defaultsApplied=false;
+            }
+            if(defaultsApplied && !shooting::bindAssembly(mod.id,assembly,&error))
+                defaultsApplied=false;
             if (defaultsApplied && (defaults.find("LOCALE\t") != std::string::npos ||
               defaults.find("LOCALE_MODULES\t") != std::string::npos ||
               defaults.find("LOCALE_RUNTIME\t") != std::string::npos))
                 localization::bindManagedAssembly(mod.id, callbackAssembly);
             static const runtime::RecipeCallbackProvider provider{prepareNativeRecipeCallbackProvider,trackNativeRecipeCallbacks};
             runtime::setRecipeCallbackProvider(&provider);
-            if((hasManagedRecipeCallbacks(mod.id)||hasManagedAnglerQuestCallbacks(mod.id)||shooting::hasPolicies(mod.id)||mod.tiles>0||mod.rarities>0)&&!g_runtimeWarmStarted.exchange(true,std::memory_order_acq_rel)) {
+            if((hasManagedRecipeCallbacks(mod.id)||hasManagedAnglerQuestCallbacks(mod.id)||shooting::hasPolicies(mod.id)||
+                mod.tiles>0||mod.rarities>0||mod.prefixes>0||hasItemPrefixCallbacks||hasGlobalPrefixCallbacks)&&
+                !g_runtimeWarmStarted.exchange(true,std::memory_order_acq_rel)) {
                 const auto probe=work+"BunnyManagedProbe.dll";
                 g_runtimeWarming.store(true,std::memory_order_release);
                 std::thread([probe]{

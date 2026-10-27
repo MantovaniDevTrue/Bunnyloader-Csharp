@@ -17,6 +17,20 @@ public sealed class ExampleWand : BunnyWeapon
         Shoot = nameof(ExampleBolt);
         SetRarity<ExampleModRarity>();
     }
+    public override void ConfigurePrefixRules(BunnyItemPrefixRules rules)
+    {
+        rules.Deny(71);
+        rules.Deny(nameof(ExampleGuardedPrefix));
+        rules.DenyWhenStackBetween(72, 3, 5);
+        rules.DenyWhenDamageBetween(73, 10, 25);
+        rules.DenyWhenManaBetween(nameof(ExampleGuardedPrefix), 2, 8);
+        rules.SetPrefixChanceWhenStackBetween(3, 5, true);
+        rules.ChooseWhenStackBetween(nameof(ExampleMightyPrefix), 1, 2);
+    }
+
+    public override bool AllowPrefix(BunnyPrefixItemSnapshot item, int prefix)
+        => prefix != 74 || item.Damage >= 20;
+
     public override void AddRecipes()
     {
         // A mesma API atende armas, acessórios e poções. O tipo resolve a bancada

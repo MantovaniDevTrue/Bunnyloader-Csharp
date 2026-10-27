@@ -20,7 +20,12 @@ expected = {
     "ACCESSORY": {3, 4, 9},
     "PLAYER": {4, 5, 8, 9, 14},
     "NPC": {10},
-    "PREFIX": {16},
+    "PREFIX": {16, 17},
+    "GLOBAL_PREFIX_CALLBACK": {3}, "ITEM_PREFIX_CALLBACK": {3}, "PREFIX_CALLBACK": {3},
+    "PREFIX_DENY": {3}, "PREFIX_DENY_STACK": {3}, "PREFIX_DENY_ATTRIBUTE": {3},
+    "PREFIX_CHOOSE_STACK": {3}, "PREFIX_CHANCE_STACK": {3}, "PREFIX_CHANCE": {3},
+    "PREFIX_CONDITION": {6, 8}, "PREFIX_STACK_WEIGHT": {5}, "PREFIX_ATTRIBUTE_WEIGHT": {6},
+    "PREFIX_TOOLTIP": {3}, "PREFIX_TOOLTIP_ITEM": {3}, "PREFIX_POST": {6}, "PREFIX_APPLY": {4},
 }
 rows = pathlib.Path(sys.argv[1]).read_text(encoding="utf-8").splitlines()
 assert rows and rows[0] == "BUNNY_MANAGED_DEFAULTS_V2", "V2 header missing"

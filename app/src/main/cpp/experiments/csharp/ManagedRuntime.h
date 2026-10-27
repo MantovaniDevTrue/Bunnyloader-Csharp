@@ -9,6 +9,7 @@
 #include <chrono>
 #include <string>
 #include <cstdint>
+#include <cstddef>
 #include <vector>
 
 namespace bl::graphics { struct ScreenSceneRaw; }
@@ -101,6 +102,26 @@ bool invokeManagedShoot(const std::string& mod,const std::string& assembly,const
 bool invokeManagedRecipe(const std::string& mod,const std::string& assembly,
                          const std::string& owner,int index,int kind,const std::string& snapshot,
                          std::string* output,int budgetMicroseconds=3000);
+bool invokeManagedPrefix(const std::string& mod,const std::string& assembly,
+                         const std::string& owner,int kind,const std::string& snapshot,
+                         std::string* output,int budgetMicroseconds=1500);
+bool invokeManagedItemPrefix(const std::string& mod,const std::string& assembly,
+                             const std::string& owner,int prefix,const std::string& snapshot,
+                             std::string* output,int budgetMicroseconds=650);
+bool invokeManagedItemPrefixBatch(const std::string& mod,const std::string& assembly,
+    const std::string& owner,const std::string& snapshot,size_t count,
+    std::string* output,int budgetMicroseconds=650);
+bool invokeManagedItemPrefixDecision(const std::string& mod,const std::string& assembly,
+    const std::string& owner,int index,int kind,const std::string& snapshot,
+    std::string* output,int budgetMicroseconds=650);
+bool queueManagedItemPrefixWarmup(const std::string& mod,const std::string& assembly,
+                                  const std::string& owner);
+int managedItemPrefixWarmupState(const std::string& mod,const std::string& assembly,
+                                 const std::string& owner);
+bool queueManagedPrefixWarmup(const std::string& mod,const std::string& assembly,
+                              const std::string& owner);
+int managedPrefixWarmupState(const std::string& mod,const std::string& assembly,
+                             const std::string& owner);
 struct ManagedScreenLightResult {
     float sunX = 0, sunY = 0, clock = 0, strength = 0;
     float shadowThreshold = 0;

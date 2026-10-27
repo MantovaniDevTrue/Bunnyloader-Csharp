@@ -15,6 +15,8 @@
     <Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Melee/ExampleMeleeWeapon.cs" />
     <Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleStatAccessory.cs" />
     <Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/ExampleWand.cs" />
+    <Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/Prefixes/ExampleGuardedPrefix.cs" />
+    <Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/Prefixes/ExampleMightyPrefix.cs" />
     <Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/Items/Consumables/ExampleBuffPotion.cs" />
     <Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/Buffs/ExampleDefenseBuff.cs" />
     <Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/Tiles/Furniture/ExampleWorkbench.cs" />
