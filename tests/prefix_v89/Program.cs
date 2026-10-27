@@ -63,7 +63,9 @@ try
         "Dano {damage}, mana {mana}, pilha {stack}"));
     if (data.Count(row => row == "PREFIX_TOOLTIP_ITEM\tTestMightyPrefix\t" + dynamicTipHex) != 1)
         throw new InvalidOperationException("Current item tooltip template missing");
-    var byName = data.Skip(1).Where(row => !row.StartsWith("PREFIX_TOOLTIP\t", StringComparison.Ordinal) &&
+    var byName = data.Skip(1).Where(row => !row.StartsWith("SHOOT\t", StringComparison.Ordinal) &&
+                                          !row.StartsWith("DAMAGE_TYPE\t", StringComparison.Ordinal) &&
+                                          !row.StartsWith("PREFIX_TOOLTIP\t", StringComparison.Ordinal) &&
                                           !row.StartsWith("PREFIX_TOOLTIP_ITEM\t", StringComparison.Ordinal) &&
                                           !row.StartsWith("PREFIX_DENY\t", StringComparison.Ordinal) &&
                                           !row.StartsWith("PREFIX_DENY_STACK\t", StringComparison.Ordinal) &&
