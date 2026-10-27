@@ -1,6 +1,6 @@
 using BunnyLoader.Source;
 
-namespace ExampleModCSharp.Recipes;
+namespace ExampleModCSharp.CombatHelpers;
 
 // Limita dano de projetil a 20. Golpe de 8 continua sendo 8.
 // Uso: Em ModifyHurt ou ModifyHitByProjectile, com o acessorio equipado.

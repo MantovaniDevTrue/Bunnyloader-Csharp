@@ -107,7 +107,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 ### tModLoader
 
-Bunny Loader's mod API follows tModLoader's design, and parts of the JS mod runtime (`app/src/main/cpp/script/js/mod/`) and of the native content loaders adapt tModLoader code. `samples/ExampleMod` is a port of tModLoader's ExampleMod, including its textures and music. <https://github.com/tModLoader/tModLoader> — MIT License.
+Bunny Loader's mod API follows tModLoader's design, and parts of the JS mod runtime (`app/src/main/cpp/script/js/mod/`) and of the native content loaders adapt tModLoader code. `samples/ExampleMod` and `samples/ExampleModCSharp` are ports of tModLoader's ExampleMod, including its textures and music. <https://github.com/tModLoader/tModLoader> — MIT License.
 
 Copyright 2019 tModLoader Team
 

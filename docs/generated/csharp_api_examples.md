@@ -121,7 +121,7 @@ public sealed class ExampleSlimeNPC : BunnyNPC
 
 ## projectile_motion — device_verified
 
-Fonte: samples/ExampleModCSharp/Playable/content/ExampleWaveBoltMotion.cs
+Fonte: samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleWaveBoltMotion.cs
 
 Curvas controladas por C# validadas em dispositivo.
 

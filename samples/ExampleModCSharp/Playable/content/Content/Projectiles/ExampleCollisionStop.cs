@@ -8,7 +8,7 @@ public sealed class ExampleCollisionStop : BunnyProjectile
     public override void SetDefaults()
     {
         DisplayName = "Example QA Collision Stop";
-        Texture = "Content/Projectiles/ExampleBulletProjectile.png";
+        Texture = "Content/Projectiles/ExampleCollisionStop.png";
         Width = 8; Height = 8; AiStyle = 0; Friendly = true;
         Penetrate = -1; TimeLeft = 180; TileCollide = true;
         TileCollisionMode = BunnyProjectileTileCollisionMode.Stop;

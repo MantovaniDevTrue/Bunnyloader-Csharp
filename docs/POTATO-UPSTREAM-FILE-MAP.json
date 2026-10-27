@@ -2594,35 +2594,35 @@
       "sourceBlob": "1794b6df8e3c110c7690ecb1d9329809b64d0518"
     },
     {
-      "path": "samples/ExampleModCSharp/Playable/content/Common/Recipes/01_ReduzirDano.cs",
+      "path": "samples/ExampleModCSharp/Playable/content/Common/CombatHelpers/01_ReduzirDano.cs",
       "sourceBlob": "f4b007113f56f19c87bccf9a34ec2f1837f755b9"
     },
     {
-      "path": "samples/ExampleModCSharp/Playable/content/Common/Recipes/02_VidaBaixa.cs",
+      "path": "samples/ExampleModCSharp/Playable/content/Common/CombatHelpers/02_VidaBaixa.cs",
       "sourceBlob": "85b77ab2f2ccd21d78cd4d1e564f43f743795917"
     },
     {
-      "path": "samples/ExampleModCSharp/Playable/content/Common/Recipes/03_ContatoNPC.cs",
+      "path": "samples/ExampleModCSharp/Playable/content/Common/CombatHelpers/03_ContatoNPC.cs",
       "sourceBlob": "eb22162ff0c0e1e795a8ba98d42b4308c840ffae"
     },
     {
-      "path": "samples/ExampleModCSharp/Playable/content/Common/Recipes/04_Projetil.cs",
+      "path": "samples/ExampleModCSharp/Playable/content/Common/CombatHelpers/04_Projetil.cs",
       "sourceBlob": "071fdecd842e803b4d65b02eec81bbd20b4c3c9b"
     },
     {
-      "path": "samples/ExampleModCSharp/Playable/content/Common/Recipes/05_Distancia.cs",
+      "path": "samples/ExampleModCSharp/Playable/content/Common/CombatHelpers/05_Distancia.cs",
       "sourceBlob": "0ecfb3aef1b9841c097696c1197bfee27ff12c49"
     },
     {
-      "path": "samples/ExampleModCSharp/Playable/content/Common/Recipes/06_Velocidade.cs",
+      "path": "samples/ExampleModCSharp/Playable/content/Common/CombatHelpers/06_Velocidade.cs",
       "sourceBlob": "6131a86425a5d1f67ba0d4547f67bc48053f1ee0"
     },
     {
-      "path": "samples/ExampleModCSharp/Playable/content/Common/Recipes/07_Arco.cs",
+      "path": "samples/ExampleModCSharp/Playable/content/Common/CombatHelpers/07_Arco.cs",
       "sourceBlob": "2fde3a6b4a66cd6c233968544acac5de1fc14987"
     },
     {
-      "path": "samples/ExampleModCSharp/Playable/content/Common/Recipes/08_AposGolpe.cs",
+      "path": "samples/ExampleModCSharp/Playable/content/Common/CombatHelpers/08_AposGolpe.cs",
       "sourceBlob": "0ec8e720f999affb989e2f3a629a1afb416e4157"
     },
     {
@@ -2654,7 +2654,7 @@
       "sourceBlob": "93df470fa68fe99261c9d354cb767301e80f6dde"
     },
     {
-      "path": "samples/ExampleModCSharp/Playable/content/Content/Effects/TrailblazerSpark.png",
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Dusts/TrailblazerSpark.png",
       "sourceBlob": "030aacbd9553061171697e270e009d6cb24b748a"
     },
     {
@@ -3054,11 +3054,11 @@
       "sourceBlob": "913232d9dbe7a691df64d7707d3a655ceb5231f0"
     },
     {
-      "path": "samples/ExampleModCSharp/Playable/content/ExampleBoltMotion.cs",
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleBoltMotion.cs",
       "sourceBlob": "023c51489eac12cd9c190fa0f3eb14a42ed427a8"
     },
     {
-      "path": "samples/ExampleModCSharp/Playable/content/ExampleWaveBoltMotion.cs",
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleWaveBoltMotion.cs",
       "sourceBlob": "987c91463b518abed5b7b85474b1abf83735e292"
     },
     {

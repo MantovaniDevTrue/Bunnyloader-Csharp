@@ -1,6 +1,6 @@
 using BunnyLoader.Source;
 
-namespace ExampleModCSharp.Recipes;
+namespace ExampleModCSharp.CombatHelpers;
 
 // Protege de atacantes a ate 160 pixels (10 tiles de 16 pixels).
 // Uso: Em ModifyHurt, somente depois do teste de equipamento desejado.

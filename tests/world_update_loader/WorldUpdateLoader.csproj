@@ -9,8 +9,8 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj" />
-    <Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/Systems/ExampleWorldUpdateCounter.cs" Link="ExampleWorldUpdateCounter.cs" />
-    <Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/Systems/ExampleDustAndInvasionSystem.cs" Link="ExampleDustAndInvasionSystem.cs" />
-    <Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/Systems/ExampleTimeRateSystem.cs" Link="ExampleTimeRateSystem.cs" />
+    <Compile Include="../../samples/ExampleModCSharp/Playable/content/Common/Systems/ExampleWorldUpdateCounter.cs" Link="ExampleWorldUpdateCounter.cs" />
+    <Compile Include="../../samples/ExampleModCSharp/Playable/content/Common/Systems/ExampleDustAndInvasionSystem.cs" Link="ExampleDustAndInvasionSystem.cs" />
+    <Compile Include="../../samples/ExampleModCSharp/Playable/content/Common/Systems/ExampleTimeRateSystem.cs" Link="ExampleTimeRateSystem.cs" />
   </ItemGroup>
 </Project>

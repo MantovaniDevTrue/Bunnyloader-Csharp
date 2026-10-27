@@ -1,6 +1,6 @@
 // ExampleMod C# | main.cs
 // Conteudo do exemplo. Leia os membros do SDK desta build antes de copiar uma API de outro loader.
-// Guia do pacote: content/LEIA_PRIMEIRO.md. Receitas adicionais: Common/Recipes/.
+// Guia do pacote: content/LEIA_PRIMEIRO.md. Ajudantes de combate: Common/CombatHelpers/.
 using BunnyLoader.Source;
 using System;
 
@@ -11,7 +11,7 @@ public sealed class ExampleBolt : BunnyProjectile
     public override void SetDefaults()
     {
         DisplayName = "Example C# Bolt";
-        Texture = "Content/Projectiles/SourceBolt.png";
+        Texture = "Content/Projectiles/ExampleBolt.png";
         Width = 12;
         Height = 12;
         AiStyle = 1;

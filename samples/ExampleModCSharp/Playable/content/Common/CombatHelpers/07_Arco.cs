@@ -1,6 +1,6 @@
 using BunnyLoader.Source;
 
-namespace ExampleModCSharp.Recipes;
+namespace ExampleModCSharp.CombatHelpers;
 
 // Protege um arco fixo de 90 graus, centrado no eixo positivo X (direita).
 // Uso: Em ModifyHurt; o angulo recebido esta em radianos, nao em graus.

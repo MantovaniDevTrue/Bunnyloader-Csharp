@@ -1,6 +1,6 @@
 using BunnyLoader.Source;
 
-namespace ExampleModCSharp.Recipes;
+namespace ExampleModCSharp.CombatHelpers;
 
 // Monta uma descricao do resultado, sem aplicar dano novamente.
 // Uso: Em OnHurt: guarde a string para consulta; evite imprimir todo frame.

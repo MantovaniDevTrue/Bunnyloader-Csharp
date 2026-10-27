@@ -19,7 +19,7 @@ Fontes: ExampleModBunny JS, SDK C# e ExampleModCSharp. A presenca de um callback
 | on_hit_context_v2 | device_verified | — | samples/ExampleModCSharp/Playable/content/Common/Live/ExampleWaveBoltLiveEvents.cs |
 | on_hit_context_v3 | device_verified | — | samples/ExampleModCSharp/Playable/content/Common/Live/ExampleWaveBoltLiveEvents.cs |
 | on_hit_context_v4 | device_verified | — | samples/ExampleModCSharp/Playable/content/Common/Live/ExampleWaveBoltLiveEvents.cs |
-| projectile_motion | device_verified | — | samples/ExampleModCSharp/Playable/content/ExampleWaveBoltMotion.cs |
+| projectile_motion | device_verified | — | samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleWaveBoltMotion.cs |
 | projectile_registration | device_verified | BunnyProjectile | samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleWaveBolt.cs |
 | weapon_registration | device_verified | BunnyWeapon | samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/ExampleWaveWand.cs |
 | accessory | ci_verified | BunnyAccessory | samples/ExampleModCSharp/Playable/content/Content/Items/Accessories/ExampleFocusAccessory.cs |

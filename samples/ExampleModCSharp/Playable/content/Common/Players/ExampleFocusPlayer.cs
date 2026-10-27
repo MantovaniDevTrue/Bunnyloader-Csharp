@@ -1,6 +1,6 @@
 // ExampleMod C# | Common/Players/ExampleFocusPlayer.cs
 // BunnyPlayer: confira quais callbacks sao de preparacao e quais recebem contexto durante o jogo.
-// Guia do pacote: content/LEIA_PRIMEIRO.md. Receitas adicionais: Common/Recipes/.
+// Guia do pacote: content/LEIA_PRIMEIRO.md. Ajudantes de combate: Common/CombatHelpers/.
 using BunnyLoader.Source;
 
 namespace ExampleModCSharp;

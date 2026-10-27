@@ -8,7 +8,7 @@
   <ItemGroup>
     <ProjectReference Include="../../experiments/csharp/BunnySourceSdk/BunnySourceSdk.csproj" />
     <ProjectReference Include="../../experiments/csharp/BunnySourceCompiler/BunnySourceCompiler.csproj" />
-    <Compile Include="../../samples/ExampleModCSharp/Playable/content/Common/Recipes/*.cs" Link="Recipes/%(Filename)%(Extension)" />
+    <Compile Include="../../samples/ExampleModCSharp/Playable/content/Common/CombatHelpers/*.cs" Link="Recipes/%(Filename)%(Extension)" />
     <Compile Include="../../samples/ExampleModCSharp/Playable/content/Common/Players/ExampleGuardianShieldPlayer.cs" Link="Composite/ExampleGuardianShieldPlayer.cs" />
     <Compile Include="../../samples/ExampleModCSharp/Playable/content/Common/Players/ExampleTrailblazerBootsPlayer.cs" Link="Composite/ExampleTrailblazerBootsPlayer.cs" />
     <Compile Include="../../samples/ExampleModCSharp/Playable/content/Common/Players/ExampleMysticWardPlayer.cs" Link="Composite/ExampleMysticWardPlayer.cs" />

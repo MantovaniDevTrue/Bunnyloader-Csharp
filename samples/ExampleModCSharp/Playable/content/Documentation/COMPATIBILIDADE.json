@@ -16446,7 +16446,7 @@
       "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
     },
     {
-      "path": "samples/ExampleModCSharp/Playable/content/Common/Recipes/01_ReduzirDano.cs",
+      "path": "samples/ExampleModCSharp/Playable/content/Common/CombatHelpers/01_ReduzirDano.cs",
       "classes": [
         "ReduceHit"
       ],
@@ -16455,7 +16455,7 @@
       "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
     },
     {
-      "path": "samples/ExampleModCSharp/Playable/content/Common/Recipes/02_VidaBaixa.cs",
+      "path": "samples/ExampleModCSharp/Playable/content/Common/CombatHelpers/02_VidaBaixa.cs",
       "classes": [
         "LowLifeGuard"
       ],
@@ -16464,7 +16464,7 @@
       "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
     },
     {
-      "path": "samples/ExampleModCSharp/Playable/content/Common/Recipes/03_ContatoNPC.cs",
+      "path": "samples/ExampleModCSharp/Playable/content/Common/CombatHelpers/03_ContatoNPC.cs",
       "classes": [
         "NpcContactGuard"
       ],
@@ -16473,7 +16473,7 @@
       "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
     },
     {
-      "path": "samples/ExampleModCSharp/Playable/content/Common/Recipes/04_Projetil.cs",
+      "path": "samples/ExampleModCSharp/Playable/content/Common/CombatHelpers/04_Projetil.cs",
       "classes": [
         "ProjectileGuard"
       ],
@@ -16482,7 +16482,7 @@
       "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
     },
     {
-      "path": "samples/ExampleModCSharp/Playable/content/Common/Recipes/05_Distancia.cs",
+      "path": "samples/ExampleModCSharp/Playable/content/Common/CombatHelpers/05_Distancia.cs",
       "classes": [
         "NearbyGuard"
       ],
@@ -16491,7 +16491,7 @@
       "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
     },
     {
-      "path": "samples/ExampleModCSharp/Playable/content/Common/Recipes/06_Velocidade.cs",
+      "path": "samples/ExampleModCSharp/Playable/content/Common/CombatHelpers/06_Velocidade.cs",
       "classes": [
         "FastAttackGuard"
       ],
@@ -16500,7 +16500,7 @@
       "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
     },
     {
-      "path": "samples/ExampleModCSharp/Playable/content/Common/Recipes/07_Arco.cs",
+      "path": "samples/ExampleModCSharp/Playable/content/Common/CombatHelpers/07_Arco.cs",
       "classes": [
         "DirectionalGuard"
       ],
@@ -16509,7 +16509,7 @@
       "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
     },
     {
-      "path": "samples/ExampleModCSharp/Playable/content/Common/Recipes/08_AposGolpe.cs",
+      "path": "samples/ExampleModCSharp/Playable/content/Common/CombatHelpers/08_AposGolpe.cs",
       "classes": [
         "PostHitSummary"
       ],
@@ -16518,7 +16518,7 @@
       "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
     },
     {
-      "path": "samples/ExampleModCSharp/Playable/content/Common/Recipes/09_StatModifier.cs",
+      "path": "samples/ExampleModCSharp/Playable/content/Common/CombatHelpers/09_StatModifier.cs",
       "classes": [
         "ExampleStatModifierRecipe"
       ],
@@ -16578,7 +16578,7 @@
       "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
     },
     {
-      "path": "samples/ExampleModCSharp/Playable/content/Content/Effects/ExampleSparkDust.cs",
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Dusts/ExampleSparkDust.cs",
       "classes": [
         "ExampleSparkDust"
       ],
@@ -17211,7 +17211,7 @@
       "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
     },
     {
-      "path": "samples/ExampleModCSharp/Playable/content/Content/Systems/ExampleDustAndInvasionSystem.cs",
+      "path": "samples/ExampleModCSharp/Playable/content/Common/Systems/ExampleDustAndInvasionSystem.cs",
       "classes": [
         "ExampleDustAndInvasionSystem"
       ],
@@ -17220,7 +17220,7 @@
       "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
     },
     {
-      "path": "samples/ExampleModCSharp/Playable/content/Content/Systems/ExampleInvasion.cs",
+      "path": "samples/ExampleModCSharp/Playable/content/Common/Systems/ExampleInvasion.cs",
       "classes": [
         "ExampleInvasion"
       ],
@@ -17229,7 +17229,7 @@
       "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
     },
     {
-      "path": "samples/ExampleModCSharp/Playable/content/Content/Systems/ExampleInvasionSystem.cs",
+      "path": "samples/ExampleModCSharp/Playable/content/Common/Systems/ExampleInvasionSystem.cs",
       "classes": [
         "ExampleInvasionSystem"
       ],
@@ -17238,7 +17238,7 @@
       "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
     },
     {
-      "path": "samples/ExampleModCSharp/Playable/content/Content/Systems/ExampleTimeRateSystem.cs",
+      "path": "samples/ExampleModCSharp/Playable/content/Common/Systems/ExampleTimeRateSystem.cs",
       "classes": [
         "ExampleTimeRateSystem"
       ],
@@ -17247,7 +17247,7 @@
       "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
     },
     {
-      "path": "samples/ExampleModCSharp/Playable/content/Content/Systems/ExampleWorldUpdateCounter.cs",
+      "path": "samples/ExampleModCSharp/Playable/content/Common/Systems/ExampleWorldUpdateCounter.cs",
       "classes": [
         "ExampleWorldUpdateCounter"
       ],
@@ -17307,7 +17307,7 @@
       "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
     },
     {
-      "path": "samples/ExampleModCSharp/Playable/content/ExampleBoltMotion.cs",
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleBoltMotion.cs",
       "classes": [
         "ExampleBoltMotion"
       ],
@@ -17316,7 +17316,7 @@
       "note": "Compilar nao comprova equivalencia com JS nem desempenho no Android."
     },
     {
-      "path": "samples/ExampleModCSharp/Playable/content/ExampleWaveBoltMotion.cs",
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleWaveBoltMotion.cs",
       "classes": [
         "ExampleWaveBoltMotion"
       ],

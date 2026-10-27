@@ -1,6 +1,6 @@
 // ExampleMod C# | Content/Prefixes/ExampleGuardedPrefix.cs
 // Prefixo: o C# prepara os dados; hooks nativos aplicam os modificadores e bonus no Terraria.
-// Guia do pacote: content/LEIA_PRIMEIRO.md. Receitas adicionais: Common/Recipes/.
+// Guia do pacote: content/LEIA_PRIMEIRO.md. Ajudantes de combate: Common/CombatHelpers/.
 using BunnyLoader.Source;
 
 namespace ExampleModCSharp;

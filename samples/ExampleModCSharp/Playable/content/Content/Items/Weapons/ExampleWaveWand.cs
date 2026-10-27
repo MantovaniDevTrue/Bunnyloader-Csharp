@@ -1,6 +1,6 @@
 // ExampleMod C# | Content/Items/Weapons/ExampleWaveWand.cs
 // Arma: Shoot usa nameof da classe de projetil; Texture e um caminho dentro de content/.
-// Guia do pacote: content/LEIA_PRIMEIRO.md. Receitas adicionais: Common/Recipes/.
+// Guia do pacote: content/LEIA_PRIMEIRO.md. Ajudantes de combate: Common/CombatHelpers/.
 using BunnyLoader.Source;
 using ExampleModCSharp.DamageClasses;
 
@@ -12,7 +12,7 @@ public sealed class ExampleWaveWand : BunnyWeapon
     {
         DisplayName = "Example C# Wave Wand";
         DamageType = new ExampleDamageClass();
-        Texture = "Content/Items/Weapons/SourceWand.png";
+        Texture = "Content/Items/Weapons/ExampleWaveWand.png";
         Damage = 12;
         UseTime = 16;
         ShootSpeed = 9f;

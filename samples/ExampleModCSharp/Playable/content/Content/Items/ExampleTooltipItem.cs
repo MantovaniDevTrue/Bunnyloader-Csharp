@@ -7,7 +7,7 @@ public sealed class ExampleTooltipItem : BunnyItem
 {
     public override void SetDefaults()
     {
-        Texture = "Content/Items/ExampleItem.png";
+        Texture = "Content/Items/ExampleTooltipItem.png";
         DisplayName = "Exemplo de Tooltip";
         Tooltip = "Acima, uma cor por letra. Esta linha, em dourado";
         Width = 20;

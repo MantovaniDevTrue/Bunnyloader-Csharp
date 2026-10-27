@@ -65,7 +65,7 @@ public sealed class ManagedProbeDust : BunnyDust
 {
     public override void SetStaticDefaults()
     {
-        Texture = "Content/Effects/TrailblazerSpark.png";
+        Texture = "Content/Dusts/TrailblazerSpark.png";
     }
 }
 

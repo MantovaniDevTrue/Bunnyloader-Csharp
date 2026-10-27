@@ -10,7 +10,7 @@ public sealed class ExampleDustCharm : BunnyItem
 {
     public override void SetDefaults()
     {
-        Texture = "Content/Items/ExampleItem.png";
+        Texture = "Content/Items/ExampleDustCharm.png";
         DisplayName = "Example Dust Charm";
         Tooltip = "Creates Example Spark Dust to test the C# DustLoader";
         Width = 20;

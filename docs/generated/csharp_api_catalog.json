@@ -63,12 +63,12 @@
     {
       "base": "",
       "class": "ExampleBoltMotion",
-      "path": "samples/ExampleModCSharp/Playable/content/ExampleBoltMotion.cs"
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleBoltMotion.cs"
     },
     {
       "base": "",
       "class": "ExampleWaveBoltMotion",
-      "path": "samples/ExampleModCSharp/Playable/content/ExampleWaveBoltMotion.cs"
+      "path": "samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleWaveBoltMotion.cs"
     },
     {
       "base": "BunnyProjectile",
@@ -191,12 +191,12 @@
       "status": "device_verified"
     },
     {
-      "example": "samples/ExampleModCSharp/Playable/content/ExampleWaveBoltMotion.cs",
+      "example": "samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleWaveBoltMotion.cs",
       "id": "projectile_motion",
       "probes": [
         {
           "contains": "TurnAtTick(int tick)",
-          "path": "samples/ExampleModCSharp/Playable/content/ExampleWaveBoltMotion.cs"
+          "path": "samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleWaveBoltMotion.cs"
         }
       ],
       "reason": "Curvas controladas por C# validadas em dispositivo.",

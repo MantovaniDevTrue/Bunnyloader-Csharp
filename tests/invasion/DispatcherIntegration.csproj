@@ -13,8 +13,8 @@
     <Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/Items/Consumables/ExampleInvasionBeacon.cs" Link="ExampleInvasionBeacon.cs" />
     <ProjectReference Include="../../experiments/csharp/BunnyCsSdk/BunnyCsSdk.csproj" />
     <Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/NPCs/ExampleInvasionEliteSlimeNPC.cs" Link="ExampleInvasionEliteSlimeNPC.cs" />
-    <Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/Systems/ExampleInvasion.cs" Link="ExampleInvasion.cs" />
-    <Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/Systems/ExampleInvasionSystem.cs" Link="ExampleInvasionSystem.cs" />
+    <Compile Include="../../samples/ExampleModCSharp/Playable/content/Common/Systems/ExampleInvasion.cs" Link="ExampleInvasion.cs" />
+    <Compile Include="../../samples/ExampleModCSharp/Playable/content/Common/Systems/ExampleInvasionSystem.cs" Link="ExampleInvasionSystem.cs" />
     <Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/NPCs/ExampleSlimeNPC.cs" Link="ExampleSlimeNPC.cs" />
     <Compile Include="../../samples/ExampleModCSharp/Playable/content/Content/Rarities/*.cs" Link="Rarities/%(Filename)%(Extension)" />
   </ItemGroup>

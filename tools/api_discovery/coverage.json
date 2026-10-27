@@ -152,10 +152,10 @@
       "id": "projectile_motion",
       "status": "device_verified",
       "reason": "Curvas controladas por C# validadas em dispositivo.",
-      "example": "samples/ExampleModCSharp/Playable/content/ExampleWaveBoltMotion.cs",
+      "example": "samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleWaveBoltMotion.cs",
       "probes": [
         {
-          "path": "samples/ExampleModCSharp/Playable/content/ExampleWaveBoltMotion.cs",
+          "path": "samples/ExampleModCSharp/Playable/content/Content/Projectiles/ExampleWaveBoltMotion.cs",
           "contains": "TurnAtTick(int tick)"
         }
       ]
