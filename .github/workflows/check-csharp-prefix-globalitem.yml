@@ -71,7 +71,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          NDK="$(ls -d "$ANDROID_HOME"/ndk/* | sort -V | tail -n 1)"
+          NDK=$(find "${ANDROID_HOME}/ndk" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)
+          test -n "$NDK"
           LLVM="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin"
           ROOT="app/src/main/cpp"
           mkdir -p "$RUNNER_TEMP/arm64"
