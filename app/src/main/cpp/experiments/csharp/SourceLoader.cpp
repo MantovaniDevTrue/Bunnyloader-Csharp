@@ -744,9 +744,10 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
         screenEffects.push_back(std::move(effect));
     }
     status->screenEffects = static_cast<int>(screenEffects.size());
-    const bool hasGlobalPrefix=std::any_of(defs.begin(),defs.end(),[](const auto& def) {
-        return def.base=="BunnyGlobalItem";
-    });
+    status->globalItems = static_cast<int>(std::count_if(defs.begin(), defs.end(), [](const auto& def) {
+        return def.base == "BunnyGlobalItem";
+    }));
+    const bool hasGlobalPrefix = status->globalItems > 0;
     for (const auto& def : defs)
         if (def.base == "BunnyCommand")
             status->commandClasses.push_back(def.namespaceName.empty() ? def.name :
