@@ -1,14 +1,39 @@
-run: https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/40605367869
-status: success
-== branch feat/csharp-damageclass @ 1a8171d480aa36281bfdd7e2ce46db784fb4e003
+run: https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/40605586209
+status: failure
+== branch feat/csharp-damageclass @ 08ccaaf28eb613e54e6fa9249292eb49b0e45cb7
 == BunnyLoader
-/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/src/main/csharp/BunnyLoader/Loaders/DamageClassLoader.cs(654,19): error CS0117: 'On_Player' does not contain a definition for 'ApplyItemAnimation_Item' [/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/src/main/csharp/BunnyLoader/BunnyLoader.csproj]
+
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:59.02
+== test mods
+==> csitems
+
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:01.76
+==> csdamageclass
+/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/tools/tests/csdamageclass/src/Content/Items/TestBlade.cs(12,9): error CS1612: Cannot modify the return value of 'ModItem.Item' because it is not a variable [/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/tools/tests/csdamageclass/src/CsDamageClass.csproj]
 
 Build FAILED.
 
-/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/src/main/csharp/BunnyLoader/Loaders/DamageClassLoader.cs(654,19): error CS0117: 'On_Player' does not contain a definition for 'ApplyItemAnimation_Item' [/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/src/main/csharp/BunnyLoader/BunnyLoader.csproj]
+/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/tools/tests/csdamageclass/src/Content/Items/TestBlade.cs(12,9): error CS1612: Cannot modify the return value of 'ModItem.Item' because it is not a variable [/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/tools/tests/csdamageclass/src/CsDamageClass.csproj]
     0 Warning(s)
     1 Error(s)
 
-Time Elapsed 00:00:41.22
+Time Elapsed 00:00:01.41
+== ExampleModCSharp
+/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/samples/ExampleModCSharp/content/Content/Items/Weapons/ExampleCustomDamageWeapon.cs(18,9): error CS1612: Cannot modify the return value of 'ModItem.Item' because it is not a variable [/home/runner/work/_temp/examplemod/ExampleModCSharp.csproj]
+
+Build FAILED.
+
+/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/samples/ExampleModCSharp/content/Content/Items/Weapons/ExampleCustomDamageWeapon.cs(18,9): error CS1612: Cannot modify the return value of 'ModItem.Item' because it is not a variable [/home/runner/work/_temp/examplemod/ExampleModCSharp.csproj]
+    0 Warning(s)
+    1 Error(s)
+
+Time Elapsed 00:00:01.62
 == result: FAILED
