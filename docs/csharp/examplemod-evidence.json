@@ -73,7 +73,7 @@
       "validatedFilesSha256": {
         "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Ranged/ExampleGun.cs": "87be9263633bbf52aff6cce73cd848e8c6d3be78eebb0ab280042ae7d9ecd75f",
         "tests/shooting/Program.cs": "d294dc22e3004da1684bdd4ed9a325d22b4af74fa929933f18042e8b80c58834",
-        "tests/shooting/native_test.cpp": "28c0b087b5813c69aeff76932de2e809cb0a7efbb1c4744244c5e7fb5ec1f83d"
+        "tests/shooting/native_test.cpp": "010291015c915ea9a54b299f46e6b54dfc33c41cb6a0f8d952717387baaeb8e7"
       }
     },
     "requirement:ExampleRocketLauncher": {
@@ -94,7 +94,7 @@
       "validatedFilesSha256": {
         "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Ranged/ExampleRocketLauncher.cs": "df1a67d32f99a398b5d0e0363da62865328f9dfc7ef1c08c75fa4f76a0d0e3f2",
         "tests/shooting/Program.cs": "d294dc22e3004da1684bdd4ed9a325d22b4af74fa929933f18042e8b80c58834",
-        "tests/shooting/native_test.cpp": "28c0b087b5813c69aeff76932de2e809cb0a7efbb1c4744244c5e7fb5ec1f83d"
+        "tests/shooting/native_test.cpp": "010291015c915ea9a54b299f46e6b54dfc33c41cb6a0f8d952717387baaeb8e7"
       }
     },
     "requirement:ExampleShotgun": {
@@ -115,7 +115,7 @@
       "validatedFilesSha256": {
         "samples/ExampleModCSharp/Playable/content/Content/Items/Weapons/Ranged/ExampleShotgun.cs": "f2483447a74c07fe4db4c6527fd58d209739f855b4cd2c68ef6267ab82eaad34",
         "tests/shooting/Program.cs": "d294dc22e3004da1684bdd4ed9a325d22b4af74fa929933f18042e8b80c58834",
-        "tests/shooting/native_test.cpp": "28c0b087b5813c69aeff76932de2e809cb0a7efbb1c4744244c5e7fb5ec1f83d"
+        "tests/shooting/native_test.cpp": "010291015c915ea9a54b299f46e6b54dfc33c41cb6a0f8d952717387baaeb8e7"
       }
     },
     "requirement:dust-emission-binding": {
