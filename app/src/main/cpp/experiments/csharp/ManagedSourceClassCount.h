@@ -9,7 +9,7 @@ inline int expectedManagedSourceTypes(const SourceModStatus& mod) {
     return mod.trees + mod.gores + mod.mounts + mod.items + mod.tiles + mod.walls + mod.dusts +
            mod.projectiles + mod.buffs + mod.players + mod.npcs +
            mod.prefixes + mod.rarities + mod.localizationModules +
-           mod.screenEffects + mod.commands + mod.worldSystems + mod.hookModules;
+           mod.screenEffects + mod.commands + mod.worldSystems + mod.hookModules + mod.damageClasses;
 }
 
 inline bool managedSourceCompileFinished(const std::string& status,

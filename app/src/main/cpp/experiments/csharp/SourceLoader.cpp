@@ -314,6 +314,7 @@ bool fields(const ParsedSourceType& type, NativeContentSpec* spec,
             }
             continue;
         }
+        if ((weapon || projectile) && key == "DamageType") continue;
         if(weapon&&key=="SpawnAtCursor")continue; // Evaluated by the managed verifier; no native side effects during bootstrap.
         int* integerField = nullptr;
         if (projectile && key == "Width") integerField = &spec->width;
@@ -517,8 +518,6 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
             }
             if (base == "BunnyPrefix") {
                 for (const auto& [key, value] : def.properties)
-                    // ExtraTooltip e RequireEffectiveStats viram PREFIX_POST na
-                    // compilacao gerenciada; o parser antecipado so precisa aceitar.
                     if (key != "DisplayName" && key != "Category" &&
                         key != "RollWeight" && key != "ExtraTooltip" &&
                         key != "RequireEffectiveStats") {
