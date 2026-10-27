@@ -8,6 +8,9 @@
 #include "experiments/csharp/ManagedGoreDiscovery.h"
 #include "experiments/csharp/ManagedGoreRuntime.h"
 #include "experiments/csharp/SourceLoader.h"
+#include "menu/ModMenu.h"
+#include "mods/ModLoader.h"
+#include <sys/stat.h>
 #include "experiments/csharp/AutoSourceRuntime.h"
 #include "experiments/csharp/NativeDamageTypeRegistry.h"
 #include "experiments/csharp/NativeDamageClassPlayerStats.h"
@@ -837,6 +840,14 @@ bool loadCSharpSourceMod(const bl::mods::LoadedMod& mod) {
     status.directory = mod.dir;
     status.loaded = load(mod, &status);
     if (status.loaded) {
+        // Seção do mod no cheat menu (pastas Itens/NPCs/Buffs), como os mods JS.
+        std::string icon;
+        for (const char* name : {"icon_small.png", "icon.png"}) {
+            struct stat info{};
+            const std::string candidate = mod.dir + "/" + name;
+            if (stat(candidate.c_str(), &info) == 0 && S_ISREG(info.st_mode)) { icon = candidate; break; }
+        }
+        bl::runtime::setModMenuInfo(mod.id, mod.displayName.empty() ? mod.id : mod.displayName, icon);
         if (status.goreSourcesDiscovered > 0)
             BL_INFO("C# GoreLoader %s: %d PNGs registrados em arrays nativos",
                     mod.id.c_str(), status.goreSourcesDiscovered);
