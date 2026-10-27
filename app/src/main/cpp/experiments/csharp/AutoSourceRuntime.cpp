@@ -1,5 +1,6 @@
 #include "experiments/csharp/NativeRecipeCallbacks.h"
 #include "experiments/csharp/NativeDamageClassStats.h"
+#include "experiments/csharp/NativeGlobalItems.h"
 #include "experiments/csharp/NativeShooting.h"
 #include "experiments/csharp/NativeTileGameplay.h"
 #include "experiments/csharp/NativeWallRuntime.h"
@@ -1134,7 +1135,7 @@ void run() {
             pendingWorldModules.emplace_back(mod.id, assembly);
         }
         if (mod.npcs > 0 || mod.projectiles > 0 || mod.items > 0 || mod.worldSystems > 0 ||
-            mod.damageClasses > 0) {
+            mod.damageClasses > 0 || global_items::declared(mod.id)) {
             const auto npcs = runtime::registeredNpcsForMod(mod.id);
             const auto projectiles = runtime::registeredProjectilesForMod(mod.id);
             if (registerManagedEntitySourceMod(mod.id, assembly, npcs, projectiles))
@@ -2047,6 +2048,25 @@ bool damageClassStatsReady() {
     return true;
 }
 
+// Barreira do GlobalItem: as políticas chegam do MonoVM depois da foto dos
+// itens vanilla. Mesmo limite de 10 s do DamageClass.
+bool globalItemsReady() {
+    static std::chrono::steady_clock::time_point firstWait{};
+    static bool warned = false;
+    if (global_items::ready()) {
+        firstWait = {};
+        return true;
+    }
+    const auto now = std::chrono::steady_clock::now();
+    if (firstWait == std::chrono::steady_clock::time_point{}) firstWait = now;
+    if (now - firstWait < std::chrono::seconds(10)) return false;
+    if (!warned) {
+        warned = true;
+        BL_WARN("[CSharp][GlobalItem] Stage=PreWorldBarrier Result=TimedOut Effect=VanillaItemsUntilPublished");
+    }
+    return true;
+}
+
 bool preWorldCSharpContentReady() {
     if (gore::pendingInstall()) return false;
     bool hasCSharpMods = false;
@@ -2075,7 +2095,7 @@ bool preWorldCSharpContentReady() {
            content.pendingBehaviors == 0 && content.pendingRecipes == 0 &&
            content.pendingPlacements == 0 && pendingNativeVisualRenderer() == 0 &&
            (!needsNpcDispatcher || managedNpcBuffEffectStatus().gameHookInstalled) &&
-           damageClassStatsReady();
+           damageClassStatsReady() && globalItemsReady();
 }
 
 bool finishPreWorldCSharpPlayer() {

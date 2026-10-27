@@ -522,6 +522,7 @@ struct ManagedEntityBinding {
     bool cleanupQueued = false;
     bool damageStatsPublished = false;
     bool damageStatsAttempted = false;
+    std::string globalItemsSnapshot{};
 };
 
 struct ManagedEntityJob {
@@ -594,6 +595,9 @@ void* g_entityNpcTick = nullptr;
 void* g_entityWorldTick = nullptr;
 void* g_entityStatusMethod = nullptr;
 void* g_entityDamageStatsMethod = nullptr;
+void* g_entityGlobalItemsMethod = nullptr;
+std::atomic<ManagedGlobalItemsSink> g_globalItemsSink{nullptr};
+std::atomic<ManagedGlobalItemsRetire> g_globalItemsRetire{nullptr};
 void* g_entityProjectileTick = nullptr;
 void* g_entityNpcHit = nullptr;
 void* g_entityNpcKill = nullptr;
@@ -1274,6 +1278,7 @@ int64_t executeManagedEntityOnWorker(const ManagedEntityJob& job) {
         g_entityWorldTick = g_api.findMethod(klass, "TickWorld", 7);
         g_entityStatusMethod = g_api.findMethod(klass, "Status", 1);
         g_entityDamageStatsMethod = g_api.findMethod(klass, "DamageStats", 1);
+        g_entityGlobalItemsMethod = g_api.findMethod(klass, "GlobalItems", 2);
         g_entityProjectileTick = g_api.findMethod(klass, "TickProjectile", 14);
         g_entityNpcHit = g_api.findMethod(klass, "HitNpc", 6);
         g_entityNpcKill = g_api.findMethod(klass, "KillNpc", 4);
@@ -1419,6 +1424,34 @@ int64_t executeManagedEntityOnWorker(const ManagedEntityJob& job) {
                 }
             }
         }
+    }
+    if (job.kind == 9) {
+        // BunnyGlobalItem: avaliação única sobre a foto dos itens vanilla.
+        std::string snapshot;
+        {
+            std::lock_guard<std::mutex> guard(g_pinnedMutex);
+            if (job.binding >= 0 && static_cast<size_t>(job.binding) < g_entityBindings.size())
+                snapshot = g_entityBindings[static_cast<size_t>(job.binding)].globalItemsSnapshot;
+        }
+        std::string wire = "ERROR\tGlobalItemsEntryPointMissing";
+        if (g_entityGlobalItemsMethod && !snapshot.empty()) {
+            void* path = g_api.newString(g_domain, snapshot.c_str());
+            void* args[] = {&managedSlot, path};
+            void* error = nullptr;
+            void* managed = g_api.invoke(g_entityGlobalItemsMethod, nullptr, args, &error);
+            auto utf8 = resolve<char* (*)(void*)>("mono_string_to_utf8");
+            auto release = resolve<void (*)(void*)>("mono_free");
+            wire = "ERROR\tGlobalItemsManagedException";
+            if (managed && !error && utf8 && release) {
+                if (char* str = utf8(managed)) {
+                    wire.assign(str, strnlen(str, (1u << 20) + 1));
+                    release(str);
+                }
+            }
+        }
+        if (auto sink = g_globalItemsSink.load(std::memory_order_acquire))
+            sink(binding.modId, std::move(wire));
+        return managedSlot;
     }
     if (job.kind == 7) return managedSlot;
     {
@@ -3596,6 +3629,36 @@ bool registerManagedEntitySourceMod(
     g_entityQueue.push_back(std::move(preload));
     g_pinnedWake.notify_one();
     return true;
+}
+
+void setManagedGlobalItemsCallbacks(ManagedGlobalItemsSink sink, ManagedGlobalItemsRetire retire) {
+    g_globalItemsSink.store(sink, std::memory_order_release);
+    g_globalItemsRetire.store(retire, std::memory_order_release);
+}
+
+std::string managedEntityAssemblyPath(const std::string& modId) {
+    std::lock_guard<std::mutex> guard(g_pinnedMutex);
+    for (const auto& binding : g_entityBindings)
+        if (binding.modId == modId && binding.armed) return binding.assemblyPath;
+    return {};
+}
+
+bool requestManagedGlobalItems(const std::string& modId, const std::string& snapshotPath) {
+    if (snapshotPath.empty() || snapshotPath.size() > 4096) return false;
+    std::lock_guard<std::mutex> guard(g_pinnedMutex);
+    for (size_t i = 0; i < g_entityBindings.size(); ++i) {
+        auto& binding = g_entityBindings[i];
+        if (binding.modId != modId || !binding.armed) continue;
+        binding.globalItemsSnapshot = snapshotPath;
+        ManagedEntityJob job;
+        job.binding = static_cast<int>(i);
+        job.kind = 9;
+        job.session = g_entitySession;
+        g_entityQueue.push_back(std::move(job));
+        g_pinnedWake.notify_one();
+        return true;
+    }
+    return false;
 }
 
 bool managedEntitySourceModsRegistered() {
@@ -5978,6 +6041,7 @@ void invalidateManagedDeferredSourceMod(const std::string& modId) {
     if (modId.empty()) return;
     nativeDamageTypes().unload(modId);
     damage_combat::classBonuses().unload(modId);
+    if (auto retire = g_globalItemsRetire.load(std::memory_order_acquire)) retire(modId);
     std::lock_guard<std::mutex> lock(g_pinnedMutex);
     g_revokedDeferredMods.insert(modId);
     nativeDamageClassStats().unload(modId);

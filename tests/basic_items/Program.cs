@@ -326,7 +326,11 @@ try {
   int damageClasses=compiled.GetTypes().Count(t=>t.IsClass&&!t.IsAbstract&&
    typeof(DamageClass).IsAssignableFrom(t));
   Equal(1,damageClasses);
-  if(CompiledAssemblyProbe.Verify(output,diag,root)!=identities.Count+localizationModules+commands+damageClasses)
+  // BunnyGlobalItem (Common/GlobalItems) tambem entra na contagem do Verify.
+  int globalItems=compiled.GetTypes().Count(t=>t.IsClass&&!t.IsAbstract&&
+   typeof(BunnyGlobalItem).IsAssignableFrom(t));
+  Equal(4,globalItems);
+  if(CompiledAssemblyProbe.Verify(output,diag,root)!=identities.Count+localizationModules+commands+damageClasses+globalItems)
    throw new Exception(File.ReadAllText(diag));
   var contentKinds=new HashSet<string>{"ITEM","WEAPON","ACCESSORY","POTION","TILE","TREE","GORE","MOUNT","WALL","DUST","RARITY","BUFF","PLAYER","PROJECTILE","NPC","PREFIX"};
   string localizationUid="68c3115f-62f4-49f2-a56b-388256781d5f";

@@ -1065,6 +1065,10 @@
           "execution": "worker_async_entity"
         },
         {
+          "signature": "static string GlobalItems(int modSlot, string snapshotPath)",
+          "execution": "worker_async_entity"
+        },
+        {
           "signature": "static string Status(int modSlot)",
           "execution": "worker_async_entity"
         },
@@ -1086,6 +1090,24 @@
         "ShowHands"
       ],
       "methods": []
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyEquipEffects",
+      "kind": "class",
+      "baseType": "System.Object",
+      "constructors": [
+        "BunnyEquipEffects()"
+      ],
+      "properties": [
+        "IReadOnlyList\u003CBunnyClassBonus\u003E ClassBonuses { get; }"
+      ],
+      "values": [],
+      "methods": [
+        {
+          "signature": "void AddClassBonus(BunnyClassBonus bonus)",
+          "execution": "managed_helper"
+        }
+      ]
     },
     {
       "name": "BunnyLoader.Source.BunnyEquipFlag",
@@ -1150,12 +1172,66 @@
           "execution": "worker_callback_isolated"
         },
         {
+          "signature": "bool AppliesToEntity(BunnyVanillaItem item)",
+          "execution": "worker_once_vanilla_snapshot"
+        },
+        {
           "signature": "int ChoosePrefix(BunnyPrefixItemSnapshot item)",
           "execution": "worker_callback_isolated"
         },
         {
           "signature": "void ApplyPrefix(BunnyPrefixItemSnapshot item, int prefix, ref BunnyPrefixApplyStats effects)",
           "execution": "worker_callback_isolated"
+        },
+        {
+          "signature": "void ModifyTooltips(BunnyVanillaItem item, List\u003CBunnyTooltipLine\u003E tooltips)",
+          "execution": "worker_once_vanilla_snapshot"
+        },
+        {
+          "signature": "void ModifyWeaponCrit(BunnyVanillaItem item, ref float crit)",
+          "execution": "worker_once_vanilla_snapshot"
+        },
+        {
+          "signature": "void ModifyWeaponDamage(BunnyVanillaItem item, ref StatModifier damage)",
+          "execution": "worker_once_vanilla_snapshot"
+        },
+        {
+          "signature": "void ModifyWeaponKnockback(BunnyVanillaItem item, ref StatModifier knockback)",
+          "execution": "worker_once_vanilla_snapshot"
+        },
+        {
+          "signature": "void SetDefaults(BunnyVanillaItem item)",
+          "execution": "worker_once_vanilla_snapshot"
+        },
+        {
+          "signature": "void UpdateEquip(BunnyVanillaItem item, BunnyEquipEffects effects)",
+          "execution": "worker_once_vanilla_snapshot"
+        }
+      ]
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyGlobalItemRuntime",
+      "kind": "abstract class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [],
+      "values": [],
+      "methods": [
+        {
+          "signature": "static Type[] ContentGlobals(Assembly assembly)",
+          "execution": "worker_dispatcher"
+        },
+        {
+          "signature": "static int ContentMask(Type type)",
+          "execution": "worker_dispatcher"
+        },
+        {
+          "signature": "static string Evaluate(Assembly assembly, string snapshotText)",
+          "execution": "worker_dispatcher"
+        },
+        {
+          "signature": "static string EvaluateFile(Assembly assembly, string snapshotPath)",
+          "execution": "worker_dispatcher"
         }
       ]
     },
@@ -5030,6 +5106,53 @@
         "Color",
         "UInt64"
       ],
+      "methods": []
+    },
+    {
+      "name": "BunnyLoader.Source.BunnyVanillaItem",
+      "kind": "class",
+      "baseType": "System.Object",
+      "constructors": [],
+      "properties": [
+        "DamageClass DamageType { get; }",
+        "bool Accessory { get; set; }",
+        "bool AutoReuse { get; set; }",
+        "bool Consumable { get; set; }",
+        "bool Magic { get; set; }",
+        "bool Melee { get; set; }",
+        "bool NoMelee { get; set; }",
+        "bool Potion { get; set; }",
+        "bool Ranged { get; set; }",
+        "bool Summon { get; set; }",
+        "bool UseTurn { get; set; }",
+        "bool Vanity { get; set; }",
+        "float KnockBack { get; set; }",
+        "float ShootSpeed { get; set; }",
+        "int Ammo { get; set; }",
+        "int Axe { get; set; }",
+        "int CreateTile { get; }",
+        "int Crit { get; set; }",
+        "int Damage { get; set; }",
+        "int Defense { get; }",
+        "int Hammer { get; set; }",
+        "int HealLife { get; set; }",
+        "int HealMana { get; set; }",
+        "int Height { get; set; }",
+        "int Mana { get; set; }",
+        "int MaxStack { get; set; }",
+        "int Pick { get; set; }",
+        "int Rare { get; set; }",
+        "int Shoot { get; set; }",
+        "int TileBoost { get; set; }",
+        "int Type { get; }",
+        "int UseAmmo { get; set; }",
+        "int UseAnimation { get; set; }",
+        "int UseStyle { get; set; }",
+        "int UseTime { get; set; }",
+        "int Value { get; set; }",
+        "int Width { get; set; }"
+      ],
+      "values": [],
       "methods": []
     },
     {
