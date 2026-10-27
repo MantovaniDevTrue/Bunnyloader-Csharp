@@ -2,7 +2,7 @@ name: Bunny CSharp Unified Mobile — QA APK
 
 on:
   push:
-    branches: [integration/csharp-unified-20261024, qa/csharp-world-tree-gore-apk-20261024]
+    branches: [integration/csharp-unified-20261024, qa/csharp-world-tree-gore-apk-20261024, qa/pr185-globalitem-shoot-menu-apk-20261027]
   workflow_dispatch:
 
 permissions:
@@ -19,7 +19,7 @@ env:
 
 jobs:
   contracts:
-    if: github.ref == 'refs/heads/integration/csharp-unified-20261024' || github.ref == 'refs/heads/qa/csharp-world-tree-gore-apk-20261024'
+    if: github.ref == 'refs/heads/integration/csharp-unified-20261024' || github.ref == 'refs/heads/qa/csharp-world-tree-gore-apk-20261024' || github.ref == 'refs/heads/qa/pr185-globalitem-shoot-menu-apk-20261027'
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:
@@ -115,7 +115,7 @@ jobs:
           python3 tools/mods/pack.py samples/ExampleModCSharp/Playable
   android:
     needs: contracts
-    if: github.ref == 'refs/heads/integration/csharp-unified-20261024' || github.ref == 'refs/heads/qa/csharp-world-tree-gore-apk-20261024'
+    if: github.ref == 'refs/heads/integration/csharp-unified-20261024' || github.ref == 'refs/heads/qa/csharp-world-tree-gore-apk-20261024' || github.ref == 'refs/heads/qa/pr185-globalitem-shoot-menu-apk-20261027'
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
