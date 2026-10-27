@@ -17,7 +17,8 @@ try
 
     var data = File.ReadAllLines(Path.Combine(temp, "source-runtime-values.txt"));
     if (data.Length != 23 || data[0] != "BUNNY_MANAGED_DEFAULTS_V2")
-        throw new InvalidOperationException("Unexpected MonoVM native handoff");
+        throw new InvalidOperationException("Unexpected MonoVM native handoff: " + data.Length +
+            " lines\n" + string.Join("\n", data));
 
     if (data.Count(row => row == "GLOBAL_PREFIX_CALLBACK\tTestGlobal\t15") != 1)
         throw new InvalidOperationException("Global item prefix callback descriptor missing");
