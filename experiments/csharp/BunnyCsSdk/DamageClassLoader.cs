@@ -242,6 +242,12 @@ public static class DamageClassLoader
                 wire.Add(F(part.armorPenInheritance));
                 wire.Add(F(part.knockbackInheritance));
             }
+            // Mascara de ShowStatTooltipLine (tModLoader: Damage, CritChance, Speed, Knockback).
+            int tooltipLines = 0;
+            string[] lineNames = { "Damage", "CritChance", "Speed", "Knockback" };
+            for (int bit = 0; bit < lineNames.Length; bit++)
+                if (cls.ShowStatTooltipLine(player, lineNames[bit])) tooltipLines |= 1 << bit;
+            wire.Add(tooltipLines.ToString(CultureInfo.InvariantCulture));
             result.Append(string.Join("\t", wire)).Append('\n');
         }
         return result.ToString();

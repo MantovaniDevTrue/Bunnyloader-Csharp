@@ -38,6 +38,8 @@ struct NativeDamageClassStatDefaults {
     float armorPenetration = 0.f;
     bool standardCrit = true;
     std::array<NativeDamageInheritance, 5> inheritance{};
+    // ShowStatTooltipLine: 1 Damage, 2 CritChance, 4 Speed, 8 Knockback.
+    uint32_t tooltipLines = 15u;
 };
 
 class NativeDamageClassStatRegistry {
@@ -76,7 +78,8 @@ public:
                 if (tab == std::string_view::npos) break;
                 line.remove_prefix(tab + 1);
             }
-            if (columns.size() != 39 || columns[0] != "CLASS" ||
+            // Coluna 40 opcional: mascara de ShowStatTooltipLine (0..15).
+            if ((columns.size() != 39 && columns.size() != 40) || columns[0] != "CLASS" ||
                 columns[1].empty() || columns[1].size() > 240 ||
                 (columns[13] != "0" && columns[13] != "1")) return false;
             float parsed[11]{};
@@ -96,6 +99,17 @@ public:
                 stats.inheritance[source] = {
                     part[0], part[1], part[2], part[3], part[4]
                 };
+            }
+            if (columns.size() == 40) {
+                const auto mask = columns[39];
+                if (mask.empty() || mask.size() > 2) return false;
+                uint32_t value = 0;
+                for (char c : mask) {
+                    if (c < '0' || c > '9') return false;
+                    value = value * 10u + static_cast<uint32_t>(c - '0');
+                }
+                if (value > 15u) return false;
+                stats.tooltipLines = value;
             }
             if (!incoming.emplace(Key{mod, "C:" + std::string(columns[1])}, stats).second)
                 return false;
