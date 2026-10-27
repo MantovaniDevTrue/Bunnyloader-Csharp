@@ -20,6 +20,7 @@ OBJ_RHS = (r"(?:readObject|array_new|string_new|object_new|runtime_invoke|gchand
 BYREF_ALLOWED = {
     ("menu/Powers.cpp", "id"),     # BestiaryCreditIdsLookup.TryGetValue(netId, out string id)
     ("menu/Powers.cpp", "power"),  # Dictionary.TryGetValue(key, out ICreativePower power)
+    ("experiments/csharp/NativeGlobalItems.cpp", "sample"),  # ContentSamples.ItemsByType.TryGetValue(int, out Item)
 }
 
 def function_body(text, pos):

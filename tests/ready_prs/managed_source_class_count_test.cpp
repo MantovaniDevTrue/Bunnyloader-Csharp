@@ -46,6 +46,7 @@ int main(int argc, char** argv) {
         else if (base == "BunnyScreenEffect") ++mod.screenEffects;
         else if (base == "BunnyCommand") ++mod.commands;
         else if (base == "DamageClass") ++mod.damageClasses;
+        else if (base == "BunnyGlobalItem") ++mod.globalItems;
         else if (base == "BunnyWorldSystem") ++mod.worldSystems;
         else if (base == "BunnyWorldUpdateLoader" || base == "BunnyHookModule") ++mod.hookModules;
         else {
