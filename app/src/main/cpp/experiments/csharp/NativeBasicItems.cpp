@@ -1041,10 +1041,14 @@ void pumpBasicRecipesOnGameThread() {
             }
             if(result.index>=0) {
                 if(acknowledgeBasicRecipe(pending.id,result.index))
-                    BL_INFO("csharp recipe: %s indice=%d instalada pelo nucleo nativo",pending.id.c_str(),result.index);
+                    BL_DEBUG("csharp recipe: %s indice=%d instalada pelo nucleo nativo",pending.id.c_str(),result.index);
             } else if(result.error.substr(0,1000)!=pending.error) {
                 reportBasicRecipeError(pending.id,result.error);
-                if(result.error.rfind("[CSharp][WARN]",0)==0)BL_DEBUG("%s",result.error.c_str());
+                // A worker that is merely late is retried on the next pass; it is not worth a line.
+                const bool transient=result.error.find("Reason=DeadlineExceeded")!=std::string::npos||
+                    result.error.find("Reason=QueueCapacityExceeded")!=std::string::npos||
+                    result.error.find("Reason=WorkerQueueBusy")!=std::string::npos;
+                if(result.error.rfind("[CSharp][WARN]",0)==0){if(!transient)BL_DEBUG("%s",result.error.c_str());}
                 else BL_ERROR("%s",result.error.c_str());
             }
         }

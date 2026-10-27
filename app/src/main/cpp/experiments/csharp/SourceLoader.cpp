@@ -595,7 +595,7 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
                         return false;
                     }
                     bl::runtime::setModItemTooltip(type, {{"", tooltip->second}});
-                    BL_INFO("csharp accessory: tooltip inicial registrado para %s (type=%d)",
+                    BL_DEBUG("csharp accessory: tooltip inicial registrado para %s (type=%d)",
                             def.name.c_str(), type);
                 }
             }
@@ -847,13 +847,14 @@ bool loadCSharpSourceMod(const bl::mods::LoadedMod& mod) {
             const std::string candidate = mod.dir + "/" + name;
             if (stat(candidate.c_str(), &info) == 0 && S_ISREG(info.st_mode)) { icon = candidate; break; }
         }
-        bl::runtime::setModMenuInfo(mod.id, mod.displayName.empty() ? mod.id : mod.displayName, icon);
-        if (status.goreSourcesDiscovered > 0)
-            BL_INFO("C# GoreLoader %s: %d PNGs registrados em arrays nativos",
-                    mod.id.c_str(), status.goreSourcesDiscovered);
-        BL_INFO("C# source %s: %d arquivo(s), %d item(ns), %d projetil(is), %d buff(s), %d pocao(oes), %d NPC(s), %d Dust(s)",
-                mod.id.c_str(), status.sourceFiles, status.items,
-                status.projectiles, status.buffs, status.potions, status.npcs, status.dusts);
+        const std::string menuName = mod.displayName.empty() ? mod.id : mod.displayName;
+        bl::runtime::setModMenuInfo(mod.id, menuName, icon);
+        // One line per mod: what it brought and how it shows up in the cheat menu.
+        BL_INFO("C# mod %s (%s): %d arquivo(s), %d item(ns), %d projetil(is), %d buff(s), %d pocao(oes), %d NPC(s), %d Dust(s), %d gore(s); menu: %s",
+                menuName.c_str(), mod.id.c_str(), status.sourceFiles, status.items,
+                status.projectiles, status.buffs, status.potions, status.npcs, status.dusts,
+                status.goreSourcesDiscovered,
+                icon.empty() ? "sem icone" : icon.substr(icon.find_last_of('/') + 1).c_str());
     } else {
         retireNativeDefaultsForMod(mod.id);
         retireNativeMounts(mod.id);

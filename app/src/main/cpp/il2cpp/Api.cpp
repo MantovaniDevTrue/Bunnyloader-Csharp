@@ -122,9 +122,15 @@ bool Api::load() {
     for (size_t i = 0; i < count; ++i) {
         auto image = assembly_get_image(assemblies[i]);
         const char* name = image_get_name(image);
-        BL_DEBUG("assembly: %s", name);
         if (strcmp(name, "Assembly-CSharp.dll") == 0) gameImage = image;
         if (strcmp(name, "mscorlib.dll") == 0) corlibImage = image;
+    }
+    // The assembly list never changes between the runtime and the probe; one line is enough.
+    static bool reported = false;
+    if (!reported) {
+        reported = true;
+        BL_DEBUG("il2cpp: %zu assembly(ies); Assembly-CSharp=%s mscorlib=%s",
+                 count, gameImage ? "ok" : "ausente", corlibImage ? "ok" : "ausente");
     }
     return gameImage && corlibImage;
 }
