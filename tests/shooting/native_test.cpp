@@ -188,5 +188,17 @@ int main(int argc,char** argv) {
  unload("native-only");assert(hasPolicies("independent"));assert(std::atomic_load(&policies)->count(6231)==0);
  type=6231;std::memcpy(itemBytes+16,&type,4);mouseWorld[0]=0;use(p,2,i,18,true,&useMethod);assert(!active.policy);
  unload("independent");assert(!hasPolicies("independent")&&std::atomic_load(&policies)->empty());
+ // BunnyGlobalItem em itens vanilla: um dono por tipo, sem tocar nos donos BunnyItem.
+ Entry modGun{"owner","ModGun","ModGun.cs","owner.dll",6240,4};assert(publish({modGun},&error));
+ Entry global{"globals","@GlobalItem:Ns.Sword",kGlobalItemSource,"globals.dll",3507,4};
+ Entry clash=global;clash.type=6240;int skipped=-1;
+ assert(publishGlobal("globals",{global,clash},&error,&skipped)&&skipped==1);
+ assert(std::atomic_load(&policies)->at(3507)->entry.mod=="globals"&&std::atomic_load(&policies)->at(6240)->entry.mod=="owner");
+ Entry foreign=global;foreign.mod="other";assert(!publishGlobal("globals",{foreign},&error));
+ Entry invalid=global;invalid.mask=0;assert(!publishGlobal("globals",{invalid},&error));
+ assert(std::atomic_load(&policies)->count(3507)==1);
+ assert(publishGlobal("globals",{},&error)&&std::atomic_load(&policies)->count(3507)==0&&std::atomic_load(&policies)->count(6240)==1);
+ failQueue=true;assert(!publishGlobal("globals",{global},&error)&&std::atomic_load(&policies)->count(3507)==0);failQueue=false;
+ assert(publishGlobal("globals",{global},&error));unload("globals");unload("owner");assert(std::atomic_load(&policies)->empty());
  std::cout<<"SHOOT_PRODUCTION_HOOKS_TRANSACTION_SOURCE_OWNER_AMMO_DAMAGE_AI_CANSHOOT_REENTRY_WARMUP_FAILURE_CONTRACTS_AND_COMPILED_SHOTGUN_AND_NATIVE_AIM_BEFORE_SHOOT_ANDROID_MYPLAYER_GETTER_PASS\n";
 }

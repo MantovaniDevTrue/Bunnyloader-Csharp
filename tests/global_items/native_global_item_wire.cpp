@@ -30,6 +30,15 @@ int main() {
     assert(table.at(158).classBonuses.size() == 2 && table.at(158).classBonuses[1].classKey == "C:Mod.Dano");
     assert(table.at(158).classBonuses[0].values[8] == 4.f);
 
+    // SHOOT: dono do NativeShooting para itens vanilla.
+    WireTable shoot;
+    assert(parseWire("GLOBAL_ITEMS_V1\nSHOOT\t3507\t4\t@GlobalItem:ExampleModCSharp.ExampleShortswordGlobalItem\n"
+                     "SHOOT\t24\t7\t@GlobalItem:A.B,C_D.E\n", &shoot, &error));
+    assert(shoot.at(3507).shootMask == 4 && shoot.at(3507).shootOwner == "@GlobalItem:ExampleModCSharp.ExampleShortswordGlobalItem");
+    assert(shoot.at(24).shootMask == 7);
+    assert(validShootOwner("@GlobalItem:X") && !validShootOwner("@GlobalItem:") && !validShootOwner("X"));
+    assert(!validShootOwner("@GlobalItem:A,,B") && !validShootOwner("@GlobalItem:A|B") && !validShootOwner("@GlobalItem:A,"));
+
     // Erros rejeitam o lote inteiro.
     const char* bad[] = {
         "GLOBAL_ITEMS\n",
@@ -40,6 +49,11 @@ int main() {
         "GLOBAL_ITEMS_V1\nTOOLTIP\t5\tzz\n",
         "GLOBAL_ITEMS_V1\nSOMETHING\t5\tx\n",
         "GLOBAL_ITEMS_V1\nCRIT\t5\t1",
+        "GLOBAL_ITEMS_V1\nSHOOT\t5\t0\t@GlobalItem:A\n",
+        "GLOBAL_ITEMS_V1\nSHOOT\t5\t8\t@GlobalItem:A\n",
+        "GLOBAL_ITEMS_V1\nSHOOT\t5\t1\tA\n",
+        "GLOBAL_ITEMS_V1\nSHOOT\t5\t1\n",
+        "GLOBAL_ITEMS_V1\nSHOOT\t5\t1\t@GlobalItem:A\nSHOOT\t5\t2\t@GlobalItem:A\n",
     };
     for (const char* text : bad) {
         WireTable t;

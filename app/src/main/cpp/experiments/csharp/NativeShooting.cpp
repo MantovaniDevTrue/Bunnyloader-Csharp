@@ -17,6 +17,7 @@
 #include <map>
 #include <memory>
 #include <mutex>
+#include <set>
 
 namespace bl::csharp::shooting {
 namespace {
@@ -224,6 +225,34 @@ bool publish(const std::vector<Entry>& entries,std::string* error) {
         if(entry.type<1||entry.mask<0||entry.mask>7||!seen.emplace(entry.type,true).second){*error="[CSharp][ERROR][Shoot] Mod="+entry.mod+" Class="+entry.name+" Stage=Publish Reason=InvalidOrDuplicateShootOwner Result=BatchRejected";return false;}
         auto policy=std::make_shared<Policy>();policy->entry=entry;(*next)[entry.type]=std::move(policy);
     }
+    std::atomic_store_explicit(&policies,std::shared_ptr<const Table>(std::move(next)),std::memory_order_release);return true;
+}
+bool publishGlobal(const std::string& mod,const std::vector<Entry>& entries,std::string* error,int* skipped) {
+    if(skipped)*skipped=0;
+    std::lock_guard lock(writer);
+    if(!entries.empty()&&!prepare(error)){*error="[CSharp][ERROR][Shoot] Mod="+mod+" Class=GlobalItem Stage=BindNative Result=BatchRejected Detail="+*error;return false;}
+    auto next=std::make_shared<Table>(*std::atomic_load_explicit(&policies,std::memory_order_acquire));
+    for(auto p=next->begin();p!=next->end();)
+        if(p->second->entry.mod==mod&&p->second->entry.source==kGlobalItemSource)p=next->erase(p);else ++p;
+    std::vector<std::shared_ptr<Policy>> queued;
+    for(const auto& entry:entries){
+        if(entry.mod!=mod||entry.source!=kGlobalItemSource||entry.type<1||entry.mask<1||entry.mask>7||entry.name.empty()||entry.assembly.empty()){
+            *error="[CSharp][ERROR][Shoot] Mod="+mod+" Class="+entry.name+" Stage=PublishGlobal Reason=InvalidGlobalShootOwner Result=BatchRejected";return false;
+        }
+        if(next->contains(entry.type)){
+            const auto& owner=next->at(entry.type)->entry;
+            BL_WARN("[CSharp][WARN][Shoot] Mod=%s Class=%s ContentId=%d Stage=PublishGlobal Result=Skipped Reason=TypeAlreadyOwned Owner=%s/%s",
+                    mod.c_str(),entry.name.c_str(),entry.type,owner.mod.c_str(),owner.name.c_str());
+            if(skipped)++*skipped;
+            continue;
+        }
+        auto policy=std::make_shared<Policy>();policy->entry=entry;(*next)[entry.type]=policy;queued.push_back(std::move(policy));
+    }
+    std::set<std::string> warmed;
+    for(const auto& policy:queued)
+        if(warmed.insert(policy->entry.name).second&&!queueManagedShootWarmup(mod,policy->entry.assembly,policy->entry.name)){
+            *error="[CSharp][ERROR][Shoot] Mod="+mod+" Class="+policy->entry.name+" Stage=QueueWarmup Reason=WorkerQueueCapacityExceeded Result=Rejected";return false;
+        }
     std::atomic_store_explicit(&policies,std::shared_ptr<const Table>(std::move(next)),std::memory_order_release);return true;
 }
 void unload(const std::string& mod) {

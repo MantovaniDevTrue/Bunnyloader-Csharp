@@ -13,6 +13,11 @@ namespace BunnyLoader.Source;
 /// hooks não recebem Player: não dependem de quem segura o item nem do momento.
 /// </para>
 /// <para>
+/// Os callbacks de disparo (CanShoot, ModifyShootStats, Shoot) rodam no momento
+/// do uso, no mesmo caminho dos <see cref="BunnyShootSource"/>: só para os itens
+/// vanilla em que AppliesToEntity é verdadeiro e que atiram (Shoot &gt; 0).
+/// </para>
+/// <para>
 /// Os callbacks de prefixo (AppliesTo, AllowPrefix, ChoosePrefix,
 /// DecidePrefixChance, ApplyPrefix) seguem o fluxo próprio do PrefixLoader.
 /// </para>
@@ -47,6 +52,23 @@ public abstract class BunnyGlobalItem
     /// enquanto o item estiver equipado (armadura ou acessório).
     /// </summary>
     public virtual void UpdateEquip(BunnyVanillaItem item, BunnyEquipEffects effects) { }
+
+    // ---- disparo (momento do uso) ----
+
+    /// <summary>
+    /// tModLoader: CanShoot(Item, Player). Falso em qualquer GlobalItem cancela o
+    /// disparo (o item ainda gasta o tempo de uso, como no jogo).
+    /// </summary>
+    public virtual bool CanShoot(BunnyShootContext context) => true;
+
+    /// <summary>tModLoader: ModifyShootStats. Altere posição, velocidade, tipo, dano e repulsão.</summary>
+    public virtual void ModifyShootStats(BunnyShootContext context, ref BunnyShot shot) { }
+
+    /// <summary>
+    /// tModLoader: Shoot. Use <see cref="BunnyShootContext.Spawn"/> para disparos
+    /// extras; retorne false para impedir o disparo original.
+    /// </summary>
+    public virtual bool Shoot(BunnyShootContext context, BunnyShot shot) => true;
 
     // ---- prefixos ----
 

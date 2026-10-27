@@ -1078,7 +1078,7 @@ bool applyManagedSourceDefaults(
         if (!fields.empty() && fields[0] == "GLOBAL_ITEM") {
             int mask=0;
             if(fields.size()!=3 || fields[1].empty() || fields[1].size()>64 ||
-               !integer(fields[2],&mask) || mask<2 || mask>127 ||
+               !integer(fields[2],&mask) || mask<2 || mask>1023 ||
                !mod->registeredBases.contains(sourceIdentityForBase("BunnyGlobalItem",fields[1])) ||
                globalContentItems.size()>=128 ||
                std::find(globalContentItems.begin(),globalContentItems.end(),fields[1])!=globalContentItems.end()) {
