@@ -1495,8 +1495,24 @@ int64_t executeManagedEntityOnWorker(const ManagedEntityJob& job) {
                             if (use != std::string::npos &&
                                 details.compare(use + 8, 4, "None") != 0) {
                                 const size_t end = details.find(" npc=", use);
-                                const std::string outcome = details.substr(use,
+                                const std::string raw = details.substr(use,
                                     end == std::string::npos ? end : end - use);
+                                // Counters that tick every frame (cooldowns, live counts, world
+                                // bookkeeping) are dropped, so a report means the outcome changed.
+                                std::string outcome;
+                                for (size_t at = 0; at < raw.size();) {
+                                    size_t next = raw.find(' ', at);
+                                    if (next == std::string::npos) next = raw.size();
+                                    const std::string token = raw.substr(at, next - at);
+                                    at = next + 1;
+                                    static constexpr const char* kVolatile[] = {
+                                        "Cooldown=", "Active=", "Pending=", "Progress=", "world",
+                                        "damageClasses=", "SpawnFailed=0"};
+                                    bool skip = token.empty();
+                                    for (const char* prefix : kVolatile)
+                                        if (token.rfind(prefix, 0) == 0) skip = true;
+                                    if (!skip) outcome += (outcome.empty() ? "" : " ") + token;
+                                }
                                 [[maybe_unused]] bool report = false;
                                 {
                                     std::lock_guard<std::mutex> guard(g_pinnedMutex);
@@ -3983,6 +3999,8 @@ static bool invokeManagedCallback(bool shooting,const std::string& mod,const std
                          std::string* output,int budgetMicroseconds,bool tile=false,bool rarity=false,
                          bool prefix=false,bool itemPrefix=false) {
     if(!output)return false;
+    // Transport diagnostics name the API that asked, so a rarity or shoot timeout never reads as a recipe one.
+    const char* api=shooting?"Shoot":tile?"Tile":rarity?"Rarity":(prefix||itemPrefix)?"Prefix":"Recipe";
     if(budgetMicroseconds<1||budgetMicroseconds>3000||index<0||
        (itemPrefix ? ((kind==2 && (index!=0 || !snapshot.empty())) ||
                       (kind==0 && (index<1 || index>255 || snapshot.empty())) ||
@@ -3992,16 +4010,16 @@ static bool invokeManagedCallback(bool shooting,const std::string& mod,const std
                       (kind==5 && (index<1 || index>255 || snapshot.empty())) ||
                       (kind!=0 && kind!=1 && kind!=2 && kind!=3 &&
                        kind!=4 && kind!=5)) : (index>=(tile?29:16)||kind<0||kind>6))||
-       snapshot.size()>(rarity?32768u:(shooting?1024u:512u))||assembly.empty()||assembly.size()>4096){*output="ERROR|Stage=SubmitRecipeCallback Reason=InvalidTransportArguments";return false;}
+       snapshot.size()>(rarity?32768u:(shooting?1024u:512u))||assembly.empty()||assembly.size()>4096){*output=std::string("ERROR|Stage=Submit")+api+"Callback Reason=InvalidTransportArguments";return false;}
     std::unique_lock<std::mutex> lock(g_pinnedMutex,std::try_to_lock);
-    if(!lock.owns_lock()){*output="PENDING|Stage=SubmitRecipeCallback Reason=WorkerQueueBusy";return false;}
-    if(!g_pinnedStarted){*output="PENDING|Stage=SubmitRecipeCallback Reason=WorkerNotStarted";return false;}
-    if(g_recipeRpcQueue.size()>=16){*output="PENDING|Stage=SubmitRecipeCallback Reason=QueueCapacityExceeded Expected=Below16";return false;}
+    if(!lock.owns_lock()){*output=std::string("PENDING|Stage=Submit")+api+"Callback Reason=WorkerQueueBusy";return false;}
+    if(!g_pinnedStarted){*output=std::string("PENDING|Stage=Submit")+api+"Callback Reason=WorkerNotStarted";return false;}
+    if(g_recipeRpcQueue.size()>=16){*output=std::string("PENDING|Stage=Submit")+api+"Callback Reason=QueueCapacityExceeded Expected=Below16";return false;}
     const auto until=std::chrono::steady_clock::now()+std::chrono::microseconds(budgetMicroseconds);
     auto completion=std::make_shared<RecipeRpcCompletion>();
     g_recipeRpcQueue.push_back({mod,assembly,owner,snapshot,index,kind,until,completion,shooting,tile,rarity,prefix,itemPrefix});g_pinnedWake.notify_one();
     if(!g_recipeRpcWake.wait_until(lock,until,[&]{return completion->done;})) {
-        completion->cancelled=true;*output="PENDING|Stage=WaitRecipeCallback Reason=DeadlineExceeded BudgetUs="+std::to_string(budgetMicroseconds);return false;
+        completion->cancelled=true;*output=std::string("PENDING|Stage=Wait")+api+"Callback Reason=DeadlineExceeded BudgetUs="+std::to_string(budgetMicroseconds);return false;
     }
     *output=std::move(completion->output);return !output->empty();
 }
@@ -4031,13 +4049,6 @@ bool invokeManagedPrefix(const std::string& mod,const std::string& assembly,
     }
     const bool success=invokeManagedCallback(
         false,mod,assembly,owner,0,kind,snapshot,output,budgetMicroseconds,false,false,true);
-    if (output) {
-        size_t pos=0;
-        while ((pos=output->find("RecipeCallback",pos))!=std::string::npos) {
-            output->replace(pos,14,"PrefixCallback");
-            pos+=14;
-        }
-    }
     if (!success) return false;
     if (kind == 2) return *output == "READY";
     if (kind == 0 || kind == 3) return *output == "0" || *output == "1";
@@ -4230,11 +4241,7 @@ int managedPrefixWarmupState(const std::string& mod,const std::string& assembly,
 bool invokeManagedShoot(const std::string& mod,const std::string& assembly,const std::string& owner,
     int kind,const std::string& snapshot,std::string* output) {
     if(kind<0||kind>1){if(output)*output="ERROR|Reason=InvalidShootCallbackKind";return false;}
-    const bool result=invokeManagedCallback(true,mod,assembly,owner,0,kind,snapshot,output,3000);
-    if(output) { // Preserve the actual cause while identifying the correct API in transport diagnostics.
-        size_t pos=0;while((pos=output->find("RecipeCallback",pos))!=std::string::npos){output->replace(pos,14,"ShootCallback");pos+=13;}
-    }
-    return result;
+    return invokeManagedCallback(true,mod,assembly,owner,0,kind,snapshot,output,3000);
 }
 bool invokeManagedTile(const std::string& mod,const std::string& assembly,
     const std::string& owner,int callback,int x,int y,std::string* output,int budgetMicroseconds) {

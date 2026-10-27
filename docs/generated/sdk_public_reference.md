@@ -609,8 +609,11 @@ abstract class; base: `System.Object`.
 | `bool AllowPrefix(BunnyPrefixItemSnapshot item, int prefix)` | worker_callback_isolated |
 | `bool AppliesTo(BunnyPrefixItemSnapshot item)` | worker_callback_isolated |
 | `bool AppliesToEntity(BunnyVanillaItem item)` | worker_once_vanilla_snapshot |
+| `bool CanShoot(BunnyShootContext context)` | worker_sync_shoot_snapshot |
+| `bool Shoot(BunnyShootContext context, BunnyShot shot)` | worker_sync_shoot_snapshot |
 | `int ChoosePrefix(BunnyPrefixItemSnapshot item)` | worker_callback_isolated |
 | `void ApplyPrefix(BunnyPrefixItemSnapshot item, int prefix, ref BunnyPrefixApplyStats effects)` | worker_callback_isolated |
+| `void ModifyShootStats(BunnyShootContext context, ref BunnyShot shot)` | worker_sync_shoot_snapshot |
 | `void ModifyTooltips(BunnyVanillaItem item, List<BunnyTooltipLine> tooltips)` | worker_once_vanilla_snapshot |
 | `void ModifyWeaponCrit(BunnyVanillaItem item, ref float crit)` | worker_once_vanilla_snapshot |
 | `void ModifyWeaponDamage(BunnyVanillaItem item, ref StatModifier damage)` | worker_once_vanilla_snapshot |
@@ -626,6 +629,7 @@ abstract class; base: `System.Object`.
 | --- | --- |
 | `static Type[] ContentGlobals(Assembly assembly)` | worker_dispatcher |
 | `static int ContentMask(Type type)` | worker_dispatcher |
+| `static int ShootMask(Type type)` | worker_dispatcher |
 | `static string Evaluate(Assembly assembly, string snapshotText)` | worker_dispatcher |
 | `static string EvaluateFile(Assembly assembly, string snapshotPath)` | worker_dispatcher |
 

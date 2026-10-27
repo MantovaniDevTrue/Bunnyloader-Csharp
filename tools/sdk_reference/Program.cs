@@ -64,6 +64,8 @@ string Mode(Type type, MethodInfo method)
         method.Name is "AppliesToEntity" or "SetDefaults" or "ModifyTooltips" or "ModifyWeaponDamage" or
                        "ModifyWeaponCrit" or "ModifyWeaponKnockback" or "UpdateEquip")
         return "worker_once_vanilla_snapshot";
+    if (type == typeof(BunnyGlobalItem) && method.Name is "CanShoot" or "ModifyShootStats" or "Shoot")
+        return "worker_sync_shoot_snapshot";
     if (type == typeof(BunnyGlobalItemRuntime)) return "worker_dispatcher";
     if (type == typeof(BunnyGlobalItem) &&
         method.Name is "AppliesTo" or "AllowPrefix" or "ChoosePrefix" or

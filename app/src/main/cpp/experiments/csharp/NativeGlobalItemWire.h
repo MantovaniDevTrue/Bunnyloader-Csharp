@@ -10,6 +10,8 @@
 //   CRIT       <type> <valor>
 //   KNOCKBACK  <type> <base> <add> <mul> <flat>
 //   CLASS_BONUS <type> <classe> <11 números do CLASS_BONUS do BunnyItem>
+//   SHOOT      <type> <máscara 1..7> @GlobalItem:<Classe>[,<Classe>...]
+//              (CanShoot=1, ModifyShootStats=2, Shoot=4; dono do NativeShooting)
 
 #include <charconv>
 #include <cmath>
@@ -43,7 +45,30 @@ struct TypeWire {
     Modifier damage, knockback;
     float crit = 0.f;
     std::vector<ClassBonusWire> classBonuses;
+    int shootMask = 0;                   // 0 = sem callbacks de disparo
+    std::string shootOwner;              // @GlobalItem:Ns.Classe[,Ns.Outra]
 };
+
+inline constexpr std::string_view kGlobalShootOwnerPrefix = "@GlobalItem:";
+
+// Dono enviado ao BunnyShootRuntime: nomes completos de classes C#.
+inline bool validShootOwner(std::string_view owner) {
+    if (!owner.starts_with(kGlobalShootOwnerPrefix) || owner.size() > 1024 ||
+        owner.size() == kGlobalShootOwnerPrefix.size()) return false;
+    const auto names = owner.substr(kGlobalShootOwnerPrefix.size());
+    size_t start = 0;
+    for (size_t i = 0; i <= names.size(); ++i) {
+        if (i < names.size() && names[i] != ',') {
+            const unsigned char c = static_cast<unsigned char>(names[i]);
+            if (!((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') ||
+                  c == '_' || c == '.' || c == '+')) return false;
+            continue;
+        }
+        if (i == start) return false;  // nome vazio
+        start = i + 1;
+    }
+    return true;
+}
 
 using WireTable = std::map<int, TypeWire>;
 
@@ -150,6 +175,15 @@ inline bool parseWire(std::string_view wire, WireTable* out, std::string* error)
                 if (!parseNumber(cells[3 + i], &bonus.values[i])) return fail("InvalidClassBonusValue");
             if (entry.classBonuses.size() >= 16) return fail("TooManyClassBonuses");
             entry.classBonuses.push_back(std::move(bonus));
+        } else if (kind == "SHOOT") {
+            int mask = 0;
+            const auto result = cells.size() == 4
+                ? std::from_chars(cells[2].data(), cells[2].data() + cells[2].size(), mask)
+                : std::from_chars_result{nullptr, std::errc::invalid_argument};
+            if (result.ec != std::errc{} || result.ptr != cells[2].data() + cells[2].size() ||
+                mask < 1 || mask > 7 || !validShootOwner(cells[3])) return fail("InvalidShoot");
+            entry.shootMask = mask;
+            entry.shootOwner = std::string(cells[3]);
         } else {
             return fail("UnknownKind:" + kind);
         }

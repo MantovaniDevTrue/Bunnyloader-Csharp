@@ -31,7 +31,8 @@ public static class BunnyGlobalItemRuntime
     /// <summary>
     /// Bits dos hooks de conteúdo declarados no próprio tipo:
     /// 1 AppliesToEntity, 2 SetDefaults, 4 ModifyTooltips, 8 ModifyWeaponDamage,
-    /// 16 ModifyWeaponCrit, 32 ModifyWeaponKnockback, 64 UpdateEquip.
+    /// 16 ModifyWeaponCrit, 32 ModifyWeaponKnockback, 64 UpdateEquip,
+    /// 128 CanShoot, 256 ModifyShootStats, 512 Shoot.
     /// </summary>
     public static int ContentMask(Type type)
     {
@@ -45,6 +46,9 @@ public static class BunnyGlobalItemRuntime
             (nameof(BunnyGlobalItem.ModifyWeaponCrit), new[] { item, typeof(float).MakeByRefType() }),
             (nameof(BunnyGlobalItem.ModifyWeaponKnockback), new[] { item, typeof(StatModifier).MakeByRefType() }),
             (nameof(BunnyGlobalItem.UpdateEquip), new[] { item, typeof(BunnyEquipEffects) }),
+            (nameof(BunnyGlobalItem.CanShoot), new[] { typeof(BunnyShootContext) }),
+            (nameof(BunnyGlobalItem.ModifyShootStats), new[] { typeof(BunnyShootContext), typeof(BunnyShot).MakeByRefType() }),
+            (nameof(BunnyGlobalItem.Shoot), new[] { typeof(BunnyShootContext), typeof(BunnyShot) }),
         };
         int mask = 0;
         for (int i = 0; i < hooks.Length; i++)
@@ -56,6 +60,12 @@ public static class BunnyGlobalItemRuntime
         // Só AppliesToEntity não produz nada.
         return mask == 1 ? 0 : mask;
     }
+
+    /// <summary>Máscara do NativeShooting (CanShoot=1, ModifyShootStats=2, Shoot=4).</summary>
+    public static int ShootMask(Type type) => (ContentMask(type) >> 7) & 7;
+
+    /// <summary>Prefixo do dono enviado ao BunnyShootRuntime para GlobalItems.</summary>
+    public const string ShootOwnerPrefix = "@GlobalItem:";
 
     internal static List<(int Type, double[] Values)> ReadSnapshot(string text)
     {
@@ -176,6 +186,15 @@ public static class BunnyGlobalItemRuntime
 
             var effects = new BunnyEquipEffects();
             foreach (var global in applying) global.UpdateEquip(item, effects);
+            // Disparo: só itens que atiram; o dono lista as classes (ordem alfabética, como a avaliação).
+            var shooters = item.Shoot > 0 ? applying.Where(global => ShootMask(global.GetType()) != 0).ToArray() : Array.Empty<BunnyGlobalItem>();
+            if (shooters.Length > 0)
+            {
+                int shootMask = shooters.Aggregate(0, (mask, global) => mask | ShootMask(global.GetType()));
+                string owner = ShootOwnerPrefix + string.Join(",", shooters.Select(global => global.GetType().FullName));
+                if (owner.Length > 1024) throw new InvalidOperationException("Shoot: GlobalItems demais para o mesmo item");
+                output.Append("SHOOT\t").Append(type).Append('\t').Append(shootMask).Append('\t').Append(owner).Append('\n');
+            }
             foreach (var bonus in effects.ClassBonuses)
                 output.Append(string.Join("\t", "CLASS_BONUS", type.ToString(CultureInfo.InvariantCulture),
                     ClassKey(bonus.Class, assembly),

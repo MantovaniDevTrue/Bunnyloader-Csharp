@@ -17,6 +17,7 @@
 #include <map>
 #include <memory>
 #include <mutex>
+#include <set>
 
 namespace bl::csharp::shooting {
 namespace {
@@ -41,12 +42,18 @@ std::vector<std::string> split(const std::string& text,char sep) {
 }
 bool integer(const std::string& text,int* value) {auto r=std::from_chars(text.data(),text.data()+text.size(),*value);return !text.empty()&&r.ec==std::errc{}&&r.ptr==text.data()+text.size();}
 bool real(const std::string& text,float* value) {char* end=nullptr;*value=std::strtof(text.c_str(),&end);return !text.empty()&&end==text.c_str()+text.size()&&std::isfinite(*value);}
+// A worker that is late or busy is not a broken mod: the next swing usually succeeds.
+bool transient(const std::string& reason) {
+    return reason.find("DeadlineExceeded")!=std::string::npos||reason.find("NotReady")!=std::string::npos||
+        reason.find("NotStarted")!=std::string::npos||reason.find("QueueBusy")!=std::string::npos||
+        reason.find("QueueCapacityExceeded")!=std::string::npos;
+}
+bool global(const Policy& policy) {return policy.entry.source==kGlobalItemSource;}
 void diagnostic(const Policy& policy,const char* stage,const std::string& reason,const char* result="ShotRejected") {
     const auto now=static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count());
     auto expected=policy.nextLog.load(std::memory_order_relaxed);
     if(now<expected||!policy.nextLog.compare_exchange_strong(expected,now+5000)){policy.suppressed.fetch_add(1);return;}
-    const bool pending=reason.find("DeadlineExceeded")!=std::string::npos||reason.find("NotReady")!=std::string::npos||
-        reason.find("QueueBusy")!=std::string::npos||reason.find("QueueCapacityExceeded")!=std::string::npos;
+    const bool pending=transient(reason);
     bl::log::write(pending?ANDROID_LOG_WARN:ANDROID_LOG_ERROR,"[CSharp][%s][Shoot] Mod=%s Class=%s File=%s ContentId=%d Stage=%s Result=%s Suppressed=%llu Detail=%s",pending?"WARN":"ERROR",
         policy.entry.mod.c_str(),policy.entry.name.c_str(),policy.entry.source.c_str(),policy.entry.type,stage,result,
         static_cast<unsigned long long>(policy.suppressed.exchange(0)),reason.c_str());
@@ -102,7 +109,8 @@ bool ready(const Policy& policy) {
     int state=policy.ready.load(std::memory_order_acquire);if(state==1)return true;if(state<0)return false;
     std::string error;state=managedShootWarmupState(policy.entry.mod,policy.entry.assembly,policy.entry.name,&error);
     if(state==1){policy.ready.store(1,std::memory_order_release);BL_INFO("[CSharp][Shoot] Mod=%s Class=%s Stage=Warmup Result=Ready",policy.entry.mod.c_str(),policy.entry.name.c_str());}
-    else {if(state<0)policy.ready.store(-1,std::memory_order_release);diagnostic(policy,"Warmup",state<0?error:"Reason=ManagedDispatcherNotReady");}
+    else if(state<0){policy.ready.store(-1,std::memory_order_release);diagnostic(policy,"Warmup",error,global(policy)?"VanillaFallback":"ShotRejected");}
+    else if(!global(policy))diagnostic(policy,"Warmup","Reason=ManagedDispatcherNotReady");
     return state==1;
 }
 void use(Il2CppObject* player,int index,Il2CppObject* item,int damage,bool feedback,const MethodInfo* method) {
@@ -116,9 +124,14 @@ void use(Il2CppObject* player,int index,Il2CppObject* item,int damage,bool feedb
     bool allowed=context.slots>0&&who>=0&&who<=255&&damage>=0&&damage<=1000000;
     if(!allowed)diagnostic(*policy,"ReadSnapshot","Expected=Player0..255,Damage0..1000000,PoolWithAtLeast1000Cells ActualPlayer="+std::to_string(who)+" ActualDamage="+std::to_string(damage)+" ValidatedProjectileCapacity="+std::to_string(context.slots)+" Reason=InvalidNativeShotSnapshot");
     else allowed=policy->entry.mask==0||ready(*policy);
+    // A vanilla item must keep shooting like vanilla while its GlobalItem cannot answer.
+    if(!allowed&&global(*policy)){originalUse(player,index,item,damage,feedback,method);return;}
     if(allowed&&(policy->entry.mask&1)) {
         std::string output;const bool invoked=invokeManagedShoot(policy->entry.mod,policy->entry.assembly,policy->entry.name,0,snapshot(context,{}),&output);
         allowed=invoked&&output=="1";
+        if(!invoked&&global(*policy)&&transient(output)){
+            diagnostic(*policy,"CanShoot",output,"VanillaFallback");originalUse(player,index,item,damage,feedback,method);return;
+        }
         if(!invoked||(output!="0"&&output!="1"))diagnostic(*policy,"CanShoot",output);
     }
     if(!allowed){reinterpret_cast<void(*)(Il2CppObject*,Il2CppObject*,const MethodInfo*)>(il2cpp::methodPointer(refs.time))(player,item,refs.time);return;}
@@ -160,7 +173,12 @@ int spawn(Il2CppObject* source,float x,float y,float vx,float vy,int type,int da
     std::string output,error;Result result;
     if(!invokeManagedShoot(context.policy->entry.mod,context.policy->entry.assembly,context.policy->entry.name,1,snapshot(context,input),&output)||
        !decode(output,context.policy->entry,&result,&error)) {
-        diagnostic(*context.policy,"Shoot",error.empty()?output:error);active=context;return sentinel;
+        const auto& reason=error.empty()?output:error;
+        if(global(*context.policy)&&transient(reason)) { // Late worker on a vanilla item: the unmodified shot still goes out.
+            diagnostic(*context.policy,"Shoot",reason,"VanillaFallback");
+            const int slot=emit(*context.policy,input,source,owner,modifier,method,sentinel);active=context;return slot;
+        }
+        diagnostic(*context.policy,"Shoot",reason);active=context;return sentinel;
     }
     // No output touches Terraria until the entire response, including dependencies, passes validation.
     for(const auto& s:result.additional)
@@ -224,6 +242,34 @@ bool publish(const std::vector<Entry>& entries,std::string* error) {
         if(entry.type<1||entry.mask<0||entry.mask>7||!seen.emplace(entry.type,true).second){*error="[CSharp][ERROR][Shoot] Mod="+entry.mod+" Class="+entry.name+" Stage=Publish Reason=InvalidOrDuplicateShootOwner Result=BatchRejected";return false;}
         auto policy=std::make_shared<Policy>();policy->entry=entry;(*next)[entry.type]=std::move(policy);
     }
+    std::atomic_store_explicit(&policies,std::shared_ptr<const Table>(std::move(next)),std::memory_order_release);return true;
+}
+bool publishGlobal(const std::string& mod,const std::vector<Entry>& entries,std::string* error,int* skipped) {
+    if(skipped)*skipped=0;
+    std::lock_guard lock(writer);
+    if(!entries.empty()&&!prepare(error)){*error="[CSharp][ERROR][Shoot] Mod="+mod+" Class=GlobalItem Stage=BindNative Result=BatchRejected Detail="+*error;return false;}
+    auto next=std::make_shared<Table>(*std::atomic_load_explicit(&policies,std::memory_order_acquire));
+    for(auto p=next->begin();p!=next->end();)
+        if(p->second->entry.mod==mod&&p->second->entry.source==kGlobalItemSource)p=next->erase(p);else ++p;
+    std::vector<std::shared_ptr<Policy>> queued;
+    for(const auto& entry:entries){
+        if(entry.mod!=mod||entry.source!=kGlobalItemSource||entry.type<1||entry.mask<1||entry.mask>7||entry.name.empty()||entry.assembly.empty()){
+            *error="[CSharp][ERROR][Shoot] Mod="+mod+" Class="+entry.name+" Stage=PublishGlobal Reason=InvalidGlobalShootOwner Result=BatchRejected";return false;
+        }
+        if(next->contains(entry.type)){
+            const auto& owner=next->at(entry.type)->entry;
+            BL_WARN("[CSharp][WARN][Shoot] Mod=%s Class=%s ContentId=%d Stage=PublishGlobal Result=Skipped Reason=TypeAlreadyOwned Owner=%s/%s",
+                    mod.c_str(),entry.name.c_str(),entry.type,owner.mod.c_str(),owner.name.c_str());
+            if(skipped)++*skipped;
+            continue;
+        }
+        auto policy=std::make_shared<Policy>();policy->entry=entry;(*next)[entry.type]=policy;queued.push_back(std::move(policy));
+    }
+    std::set<std::string> warmed;
+    for(const auto& policy:queued)
+        if(warmed.insert(policy->entry.name).second&&!queueManagedShootWarmup(mod,policy->entry.assembly,policy->entry.name)){
+            *error="[CSharp][ERROR][Shoot] Mod="+mod+" Class="+policy->entry.name+" Stage=QueueWarmup Reason=WorkerQueueCapacityExceeded Result=Rejected";return false;
+        }
     std::atomic_store_explicit(&policies,std::shared_ptr<const Table>(std::move(next)),std::memory_order_release);return true;
 }
 void unload(const std::string& mod) {

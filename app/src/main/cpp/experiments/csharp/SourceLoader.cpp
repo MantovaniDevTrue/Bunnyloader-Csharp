@@ -8,6 +8,9 @@
 #include "experiments/csharp/ManagedGoreDiscovery.h"
 #include "experiments/csharp/ManagedGoreRuntime.h"
 #include "experiments/csharp/SourceLoader.h"
+#include "menu/ModMenu.h"
+#include "mods/ModLoader.h"
+#include <sys/stat.h>
 #include "experiments/csharp/AutoSourceRuntime.h"
 #include "experiments/csharp/NativeDamageTypeRegistry.h"
 #include "experiments/csharp/NativeDamageClassPlayerStats.h"
@@ -592,7 +595,7 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
                         return false;
                     }
                     bl::runtime::setModItemTooltip(type, {{"", tooltip->second}});
-                    BL_INFO("csharp accessory: tooltip inicial registrado para %s (type=%d)",
+                    BL_DEBUG("csharp accessory: tooltip inicial registrado para %s (type=%d)",
                             def.name.c_str(), type);
                 }
             }
@@ -837,12 +840,21 @@ bool loadCSharpSourceMod(const bl::mods::LoadedMod& mod) {
     status.directory = mod.dir;
     status.loaded = load(mod, &status);
     if (status.loaded) {
-        if (status.goreSourcesDiscovered > 0)
-            BL_INFO("C# GoreLoader %s: %d PNGs registrados em arrays nativos",
-                    mod.id.c_str(), status.goreSourcesDiscovered);
-        BL_INFO("C# source %s: %d arquivo(s), %d item(ns), %d projetil(is), %d buff(s), %d pocao(oes), %d NPC(s), %d Dust(s)",
-                mod.id.c_str(), status.sourceFiles, status.items,
-                status.projectiles, status.buffs, status.potions, status.npcs, status.dusts);
+        // Seção do mod no cheat menu (pastas Itens/NPCs/Buffs), como os mods JS.
+        std::string icon;
+        for (const char* name : {"icon_small.png", "icon.png"}) {
+            struct stat info{};
+            const std::string candidate = mod.dir + "/" + name;
+            if (stat(candidate.c_str(), &info) == 0 && S_ISREG(info.st_mode)) { icon = candidate; break; }
+        }
+        const std::string menuName = mod.displayName.empty() ? mod.id : mod.displayName;
+        bl::runtime::setModMenuInfo(mod.id, menuName, icon);
+        // One line per mod: what it brought and how it shows up in the cheat menu.
+        BL_INFO("C# mod %s (%s): %d arquivo(s), %d item(ns), %d projetil(is), %d buff(s), %d pocao(oes), %d NPC(s), %d Dust(s), %d gore(s); menu: %s",
+                menuName.c_str(), mod.id.c_str(), status.sourceFiles, status.items,
+                status.projectiles, status.buffs, status.potions, status.npcs, status.dusts,
+                status.goreSourcesDiscovered,
+                icon.empty() ? "sem icone" : icon.substr(icon.find_last_of('/') + 1).c_str());
     } else {
         retireNativeDefaultsForMod(mod.id);
         retireNativeMounts(mod.id);
@@ -1067,7 +1079,7 @@ bool applyManagedSourceDefaults(
         if (!fields.empty() && fields[0] == "GLOBAL_ITEM") {
             int mask=0;
             if(fields.size()!=3 || fields[1].empty() || fields[1].size()>64 ||
-               !integer(fields[2],&mask) || mask<2 || mask>127 ||
+               !integer(fields[2],&mask) || mask<2 || mask>1023 ||
                !mod->registeredBases.contains(sourceIdentityForBase("BunnyGlobalItem",fields[1])) ||
                globalContentItems.size()>=128 ||
                std::find(globalContentItems.begin(),globalContentItems.end(),fields[1])!=globalContentItems.end()) {

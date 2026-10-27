@@ -83,7 +83,53 @@ public static class BunnyShootRuntime
         public string Path="";
         public Assembly Assembly=null!;
         public BunnyModAssemblyLease Lease=null!;
-        public readonly Dictionary<string,BunnyShootSource> Items=new(StringComparer.Ordinal);
+        public readonly Dictionary<string,IShootHandler> Items=new(StringComparer.Ordinal);
+    }
+    // Um dono do NativeShooting: um BunnyShootSource (item do mod) ou os
+    // BunnyGlobalItem que se aplicam a um item vanilla.
+    private interface IShootHandler
+    {
+        string ClassName{get;}
+        bool CanShoot(BunnyShootContext context);
+        void ModifyShootStats(BunnyShootContext context,ref BunnyShot shot);
+        bool OnShoot(BunnyShootContext context,BunnyShot shot);
+    }
+    private sealed class ItemHandler:IShootHandler
+    {
+        private readonly BunnyShootSource item;
+        public ItemHandler(BunnyShootSource item)=>this.item=item;
+        public string ClassName=>item.GetType().FullName??item.GetType().Name;
+        public bool CanShoot(BunnyShootContext context)=>item.CanShoot(context);
+        public void ModifyShootStats(BunnyShootContext context,ref BunnyShot shot)=>item.ModifyShootStats(context,ref shot);
+        public bool OnShoot(BunnyShootContext context,BunnyShot shot)=>item.OnShoot(context,shot);
+    }
+    // tModLoader: CanShoot é falso se algum for falso; ModifyShootStats encadeia;
+    // Shoot de todos roda e o original só sai se nenhum retornar false.
+    private sealed class GlobalHandler:IShootHandler
+    {
+        private readonly BunnyGlobalItem[] globals;
+        public GlobalHandler(BunnyGlobalItem[] globals)=>this.globals=globals;
+        public string ClassName=>string.Join(",",globals.Select(g=>g.GetType().FullName));
+        public bool CanShoot(BunnyShootContext context){bool allowed=true;foreach(var g in globals)allowed&=g.CanShoot(context);return allowed;}
+        public void ModifyShootStats(BunnyShootContext context,ref BunnyShot shot){foreach(var g in globals)g.ModifyShootStats(context,ref shot);}
+        public bool OnShoot(BunnyShootContext context,BunnyShot shot){bool original=true;foreach(var g in globals)original&=g.Shoot(context,shot);return original;}
+    }
+    private static IShootHandler CreateGlobalHandler(Assembly assembly,string owner)
+    {
+        var names=owner.Substring(BunnyGlobalItemRuntime.ShootOwnerPrefix.Length).Split(',');
+        if(names.Length==0||names.Length>32)throw new ArgumentException("Invalid GlobalItem shooting owner");
+        var globals=new BunnyGlobalItem[names.Length];
+        for(int i=0;i<names.Length;i++)
+        {
+            var type=assembly.GetType(names[i],false,false);
+            if(type==null||type.IsAbstract||type.ContainsGenericParameters||!typeof(BunnyGlobalItem).IsAssignableFrom(type)||BunnyGlobalItemRuntime.ShootMask(type)==0)
+                throw new InvalidOperationException("Expected a BunnyGlobalItem with shooting callbacks: "+names[i]);
+            globals[i]=(BunnyGlobalItem)Activator.CreateInstance(type)!;
+            foreach(var name in new[]{"CanShoot","ModifyShootStats","Shoot"})
+                foreach(var method in type.GetMethods(BindingFlags.Instance|BindingFlags.Public).Where(m=>m.Name==name&&m.DeclaringType!=typeof(object)))
+                    System.Runtime.CompilerServices.RuntimeHelpers.PrepareMethod(method.MethodHandle);
+        }
+        return new GlobalHandler(globals);
     }
     private static readonly Dictionary<string,Mod> mods=new(StringComparer.Ordinal);
     private static bool coreReady;
@@ -131,23 +177,30 @@ public static class BunnyShootRuntime
                 mod=new Mod{Path=assemblyPath,Assembly=lease.Assembly,Lease=lease};
                 mods[modId]=mod;
             }
-            if(!mod.Items.TryGetValue(owner,out var item))
+            if(!mod.Items.TryGetValue(owner,out var item)&&owner.StartsWith(BunnyGlobalItemRuntime.ShootOwnerPrefix,StringComparison.Ordinal))
+            {
+                callback="SetDefaults";
+                item=CreateGlobalHandler(mod.Assembly,owner);
+                mod.Items.Add(owner,item);
+            }
+            if(item==null)
             {
                 var types=mod.Assembly.GetTypes().Where(t=>t.Name==owner&&!t.IsAbstract&&!t.ContainsGenericParameters&&typeof(BunnyShootSource).IsAssignableFrom(t)).ToArray();
                 if(types.Length!=1)throw new InvalidOperationException("Expected one registered shooting item; found "+types.Length);
                 className=types[0].FullName??owner;callback="SetDefaults";
-                item=(BunnyShootSource)Activator.CreateInstance(types[0])!;
+                var source=(BunnyShootSource)Activator.CreateInstance(types[0])!;
                 var declaration=types[0].GetCustomAttribute<BunnyContentAttribute>(false);
-                if(declaration!=null){types[0].GetProperty("DisplayName")!.SetValue(item,declaration.DisplayName);types[0].GetProperty("Texture")!.SetValue(item,declaration.Texture);}
-                types[0].GetMethod("SetDefaults",Type.EmptyTypes)!.Invoke(item,null);
-                if(item.ShootCallbackMask==0)throw new InvalidOperationException("No shooting callbacks declared");
+                if(declaration!=null){types[0].GetProperty("DisplayName")!.SetValue(source,declaration.DisplayName);types[0].GetProperty("Texture")!.SetValue(source,declaration.Texture);}
+                types[0].GetMethod("SetDefaults",Type.EmptyTypes)!.Invoke(source,null);
+                if(source.ShootCallbackMask==0)throw new InvalidOperationException("No shooting callbacks declared");
+                item=new ItemHandler(source);
                 // Compile methods without running mod gameplay or consuming its state during warmup.
                 callback="PrepareMethod";
                 foreach(var name in new[]{"CanShoot","ModifyShootStats","OnShoot"})
                     System.Runtime.CompilerServices.RuntimeHelpers.PrepareMethod(types[0].GetMethod(name)!.MethodHandle);
                 mod.Items.Add(owner,item);
             }
-            className=item.GetType().FullName??owner;
+            className=item.ClassName;
             callback="PrepareCore";PrepareCore();
             if(kind==2)return "READY";
             callback="ReadSnapshot";var (context,shot)=ReadSnapshot(snapshot);

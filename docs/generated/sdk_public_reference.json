@@ -1176,12 +1176,24 @@
           "execution": "worker_once_vanilla_snapshot"
         },
         {
+          "signature": "bool CanShoot(BunnyShootContext context)",
+          "execution": "worker_sync_shoot_snapshot"
+        },
+        {
+          "signature": "bool Shoot(BunnyShootContext context, BunnyShot shot)",
+          "execution": "worker_sync_shoot_snapshot"
+        },
+        {
           "signature": "int ChoosePrefix(BunnyPrefixItemSnapshot item)",
           "execution": "worker_callback_isolated"
         },
         {
           "signature": "void ApplyPrefix(BunnyPrefixItemSnapshot item, int prefix, ref BunnyPrefixApplyStats effects)",
           "execution": "worker_callback_isolated"
+        },
+        {
+          "signature": "void ModifyShootStats(BunnyShootContext context, ref BunnyShot shot)",
+          "execution": "worker_sync_shoot_snapshot"
         },
         {
           "signature": "void ModifyTooltips(BunnyVanillaItem item, List\u003CBunnyTooltipLine\u003E tooltips)",
@@ -1223,6 +1235,10 @@
         },
         {
           "signature": "static int ContentMask(Type type)",
+          "execution": "worker_dispatcher"
+        },
+        {
+          "signature": "static int ShootMask(Type type)",
           "execution": "worker_dispatcher"
         },
         {

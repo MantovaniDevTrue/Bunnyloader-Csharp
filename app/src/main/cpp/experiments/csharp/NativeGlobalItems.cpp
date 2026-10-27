@@ -4,6 +4,7 @@
 #include "experiments/csharp/NativeDamageClassPlayerStats.h"
 #include "experiments/csharp/NativeDefaults.h"
 #include "experiments/csharp/NativeGlobalItemWire.h"
+#include "experiments/csharp/NativeShooting.h"
 #include "content/common/GameRefs.h"
 #include "content/items/ModItems.h"
 #include "core/Log.h"
@@ -221,8 +222,21 @@ bool publishMod(const std::string& mod, const std::string& wire, std::string* er
     auto& r = refs();
     std::vector<damage_combat::ClassBonusRow> bonusRows;
     std::map<int, Policy> incoming;
+    std::vector<shooting::Entry> shootEntries;
+    const std::string assembly = managedEntityAssemblyPath(mod);
     for (auto& [type, entry] : table) {
         if (type >= runtime::kVanillaItemCount) { *error = "NotVanillaType:" + std::to_string(type); return false; }
+        if (entry.shootMask != 0) {
+            if (assembly.empty()) { *error = "ShootWithoutEntityAssembly"; return false; }
+            shooting::Entry shoot;
+            shoot.mod = mod;
+            shoot.name = entry.shootOwner;
+            shoot.source = shooting::kGlobalItemSource;
+            shoot.assembly = assembly;
+            shoot.type = type;
+            shoot.mask = entry.shootMask;
+            shootEntries.push_back(std::move(shoot));
+        }
         Policy policy;
         policy.owner = mod;
         if (!entry.defaults.empty()) {
@@ -269,8 +283,16 @@ bool publishMod(const std::string& mod, const std::string& wire, std::string* er
         std::atomic_store_explicit(&g_policies, std::shared_ptr<const PolicyTable>(std::move(next)), std::memory_order_release);
     }
     if (!touched.empty()) refreshLiveItems(touched);
-    BL_INFO("[CSharp][GlobalItem] Mod=%s Stage=Publish Items=%zu Defaults=%zu ClassBonuses=%zu Result=Ready",
-            mod.c_str(), incoming.size(), touched.size(), bonusRows.size());
+    // Callbacks de disparo (CanShoot/ModifyShootStats/Shoot) vão para o
+    // NativeShooting, o mesmo caminho dos BunnyItem que atiram.
+    int shootSkipped = 0;
+    std::string shootError;
+    if (!shooting::publishGlobal(mod, shootEntries, &shootError, &shootSkipped)) {
+        BL_ERROR("[CSharp][GlobalItem] Mod=%s Stage=PublishShoot Result=Rejected Reason=%s", mod.c_str(), shootError.c_str());
+        shootEntries.clear();
+    }
+    BL_INFO("[CSharp][GlobalItem] Mod=%s Stage=Publish Items=%zu Defaults=%zu ClassBonuses=%zu Shoot=%zu ShootSkipped=%d Result=Ready",
+            mod.c_str(), incoming.size(), touched.size(), bonusRows.size(), shootEntries.size() - static_cast<size_t>(shootSkipped), shootSkipped);
     return true;
 }
 
@@ -453,6 +475,10 @@ void declare(const std::string& mod, const std::string& assemblyPath, std::vecto
 }
 
 void unload(const std::string& mod) {
+    {
+        std::string ignored;
+        shooting::publishGlobal(mod, {}, &ignored);  // só remove os donos GlobalItem do mod
+    }
     std::lock_guard guard(g_mutex);
     g_mods.erase(mod);
     auto next = std::make_shared<PolicyTable>(*policies());
