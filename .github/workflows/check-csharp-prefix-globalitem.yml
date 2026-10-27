@@ -80,7 +80,7 @@ jobs:
             echo "::group::$source"
             "$LLVM/clang++" --target=aarch64-linux-android26 -std=c++20 -fPIC -O0 -Wall -Wextra -Werror \
               -I"$ROOT" -c "$ROOT/experiments/csharp/$source" -o "$RUNNER_TEMP/arm64/${source%.cpp}.o"
-            "$LLVM/llvm-readelf" -h "$RUNNER_TEMP/arm64/${source%.cpp}.o" | grep -q AArch64
+            "$LLVM/llvm-readelf" -h "$RUNNER_TEMP/arm64/${source%.cpp}.o" | grep AArch64 >/dev/null
             echo "::endgroup::"
           done
           for source in ManagedRuntime.cpp AutoSourceRuntime.cpp; do
