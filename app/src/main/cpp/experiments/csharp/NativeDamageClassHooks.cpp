@@ -15,6 +15,7 @@
 #include <atomic>
 #include <cstring>
 #include <random>
+#include <utility>
 #include <string>
 #include <vector>
 
@@ -345,7 +346,7 @@ namespace {
 
 struct HitRefs {
     FieldInfo* mainPlayer = nullptr;
-    FieldInfo* myPlayer = nullptr;
+    const MethodInfo* localPlayer = nullptr;  // Main.get_LocalPlayer (myPlayer é propriedade no Android)
     FieldInfo* langTip = nullptr;
     const MethodInfo* localizedValue = nullptr;
     const MethodInfo* exists = nullptr;
@@ -382,10 +383,10 @@ Il2CppObject* playerAt(int index) {
 
 Il2CppObject* localPlayer() {
     auto& api = il2cpp::api();
-    if (!h.myPlayer || !api.field_static_get_value) return nullptr;
-    int32_t me = -1;
-    api.field_static_get_value(h.myPlayer, &me);
-    return playerAt(me);
+    if (!h.localPlayer || !api.runtime_invoke) return nullptr;
+    Il2CppObject* error = nullptr;
+    Il2CppObject* player = api.runtime_invoke(h.localPlayer, nullptr, nullptr, &error);
+    return error ? nullptr : player;
 }
 
 std::u16string u16(const Il2CppString* text) {
@@ -604,7 +605,7 @@ void installHitAndTooltip(Il2CppClass* player, Il2CppClass* item) {
     Il2CppClass* localized = findClass({"Terraria.Localization", "LocalizedText", {}});
     if (main) {
         h.mainPlayer = findField(main, "player");
-        h.myPlayer = findField(main, "myPlayer");
+        h.localPlayer = findMethodBySignature(main, parseSignature("Player get_LocalPlayer()"));
     }
     if (lang) h.langTip = findField(lang, "tip");
     if (localized) h.localizedValue = findMethodBySignature(localized, parseSignature("string get_Value()"));
@@ -617,7 +618,17 @@ void installHitAndTooltip(Il2CppClass* player, Il2CppClass* item) {
     h.weaponCrit = findMethodBySignature(player, parseSignature("int GetWeaponCrit(Item sItem)"));
     h.weaponKnockback = findMethodBySignature(player, parseSignature("float GetWeaponKnockback(Item sItem, float KnockBack)"));
     bind(item, "knockBack", "System.Single", 4, &h.itemKnockBack);
-    const bool players = h.mainPlayer && h.myPlayer && api.field_static_get_value;
+    const bool players = h.mainPlayer && api.field_static_get_value;
+    // Cada referencia ausente aparece no log: sem isso o recurso some calado.
+    const std::pair<const char*, bool> refs[] = {
+        {"Main.player", h.mainPlayer != nullptr}, {"Main.get_LocalPlayer", h.localPlayer != nullptr},
+        {"Lang.tip", h.langTip != nullptr}, {"LocalizedText.get_Value", h.localizedValue != nullptr},
+        {"Language.Exists", h.exists != nullptr}, {"Language.GetTextValue", h.getText != nullptr},
+        {"Player.get_HeldItem", h.heldItem != nullptr}, {"Player.GetWeaponDamage", h.weaponDamage != nullptr},
+        {"Player.GetWeaponCrit", h.weaponCrit != nullptr}, {"Player.GetWeaponKnockback", h.weaponKnockback != nullptr},
+        {"Terraria.Projectile", projectile != nullptr}, {"Terraria.NPC", npc != nullptr}};
+    for (const auto& [name, found] : refs)
+        if (!found) BL_WARN("[CSharp][DamageClass][Combat] Stage=Resolve Member=%s Result=Missing", name);
 
     bool crit = false;
     if (projectile && npc && players &&
@@ -629,7 +640,7 @@ void installHitAndTooltip(Il2CppClass* player, Il2CppClass* item) {
         g_critReady.store(true, std::memory_order_release);
     }
     bool tooltip = false;
-    if (main && players && h.langTip && h.localizedValue && h.weaponDamage && h.weaponCrit && h.weaponKnockback &&
+    if (main && h.localPlayer && h.langTip && h.localizedValue && h.weaponDamage && h.weaponCrit && h.weaponKnockback &&
         api.runtime_invoke && api.string_new && api.gc_wbarrier_set_field) {
         const auto* lines = findMethodBySignature(main, parseSignature(
             "void MouseText_DrawItemTooltip_GetLinesInfo(Item item, ref int yoyoLogo, ref int researchLine, ref int materialsLine, float oldKB, ref int numLines, string[] toolTipLine, bool[] preFixLine, bool[] badPreFixLine, ref int setBonusLine, ref Color setBonusColour, ref int sharedLine)"));
