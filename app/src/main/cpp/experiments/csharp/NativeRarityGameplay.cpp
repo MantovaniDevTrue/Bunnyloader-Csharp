@@ -1356,16 +1356,17 @@ void pumpNativeRarityGameplay() {
     const auto& sample = current.rarities.front();
     if (!invokeManagedRarity(current.id, current.assembly, sample.name,
             0, discoSnapshot(), &response, 1200)) {
-        if (rarityRetryPending(response)) {
+        if (rarityRetryPending(response)) { // A busy worker just delays the sample; retry quietly.
             const std::lock_guard guard(g_mutex);
             for (auto& mod : g_mods)
                 if (mod.id == current.id) {
                     mod.nextSampleTick = rarityRetryAt(g_tick);
                     break;
                 }
+            return;
         }
         if (g_tick % 600u == 0)
-            BL_WARN("[CSharp][RarityLoader] Mod=%s Stage=SampleColor Result=Pending Detail=%s",
+            BL_WARN("[CSharp][RarityLoader] Mod=%s Stage=SampleColor Result=Rejected Detail=%s",
                 current.id.c_str(), response.c_str());
         return;
     }

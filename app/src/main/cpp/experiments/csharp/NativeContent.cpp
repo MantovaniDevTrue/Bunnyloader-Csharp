@@ -420,7 +420,7 @@ void logNativeWeaponCombatResult(int channel, const char* stage, Il2CppObject* i
         g_combatResultSamples[channel].load(std::memory_order_relaxed) >= 6) return;
     const int itemType = bl::runtime::field<int32_t>(item, g_refs.itemType);
     if (itemType < 0 || !nativeDamageTypes().isCustom(false, itemType)) return;
-    if (g_combatResultSamples[channel].fetch_add(1, std::memory_order_relaxed) >= 6) return;
+    if (g_combatResultSamples[channel].fetch_add(1, std::memory_order_relaxed) >= 1) return;
     BL_INFO("[CSharp][DamageClass][Combat] Stage=%s ItemType=%d Original=%.3f Final=%.3f Result=%s",
             stage, itemType, original, applied ? value : original, applied ? "Applied" : "KeptVanilla");
 }
@@ -500,7 +500,8 @@ void observeNativeWeaponCombat(const char* channel, Il2CppObject* player,
     if (itemType < 0 || !nativeDamageTypes().isCustom(false, itemType)) return;
     NativeDamageCombatSample snapshot;
     if (!resolveNativeDamageCombatSample(itemType, &snapshot)) return;
-    if (counter.fetch_add(1, std::memory_order_relaxed) >= 6) return;
+    // One full breakdown per channel; the Combat line below already shows each result.
+    if (counter.fetch_add(1, std::memory_order_relaxed) >= 1) return;
     const auto& stats = snapshot.defaults;
     NativeVanillaPlayerDamage native;
     float observedDelta = 0.f;
@@ -537,7 +538,7 @@ void observeNativeWeaponCombat(const char* channel, Il2CppObject* player,
         validPenetration = projectNativeArmorPenetration(
             stats, playerPenetration, itemPenetration, &projectedPenetration);
     }
-    BL_INFO("[CSharp][DamageClass][Observe] Stage=%s Mod=%s ItemType=%d Class=%s Vanilla=%.3f DamageAdd=%.3f DamageMul=%.3f Crit=%.3f KnockbackAdd=%.3f KnockbackMul=%.3f Speed=%.3f ArmorPen=%.3f StandardCrit=%d LiveValid=%d Melee=%.3f Ranged=%.3f Magic=%.3f Summon=%.3f NonGenericDamageDelta=%.3f CritValid=%d SharedCrit=%.3f CritDelta=%.3f SpeedValid=%d MeleeSpeedDelta=%.3f PenValid=%d PlayerPen=%d ItemPen=%d ProjectedPen=%.3f Result=VanillaSample",
+    BL_DEBUG("[CSharp][DamageClass][Observe] Stage=%s Mod=%s ItemType=%d Class=%s Vanilla=%.3f DamageAdd=%.3f DamageMul=%.3f Crit=%.3f KnockbackAdd=%.3f KnockbackMul=%.3f Speed=%.3f ArmorPen=%.3f StandardCrit=%d LiveValid=%d Melee=%.3f Ranged=%.3f Magic=%.3f Summon=%.3f NonGenericDamageDelta=%.3f CritValid=%d SharedCrit=%.3f CritDelta=%.3f SpeedValid=%d MeleeSpeedDelta=%.3f PenValid=%d PlayerPen=%d ItemPen=%d ProjectedPen=%.3f Result=VanillaSample",
         channel, snapshot.source.mod.c_str(), itemType,
         snapshot.source.damageClass.c_str(), nativeValue,
         stats.damage.additive, stats.damage.multiplicative, stats.crit,
@@ -749,7 +750,7 @@ void hkProjectileStatsFromSource(Il2CppObject* projectile,Il2CppObject* source,c
     }
     baseline=summonSourceDamage(baseline,itemDamage,runtime::field<int32_t>(projectile,g_refs.projectileDamage));
     static unsigned samples=0;
-    if(samples++<8)BL_INFO("[CSharp][ProjectileSource] ContentId=%d Stage=ApplyStatsFromSource OriginalDamage=%d IncomingDamage=%d ItemDamage=%d Result=BaselineInitialized",
+    if(samples++<1)BL_DEBUG("[CSharp][ProjectileSource] ContentId=%d Stage=ApplyStatsFromSource OriginalDamage=%d IncomingDamage=%d ItemDamage=%d Result=BaselineInitialized",
         type,baseline,runtime::field<int32_t>(projectile,g_refs.projectileDamage),itemDamage);
 }
 
@@ -881,7 +882,7 @@ void applyNativeBootVisuals(Il2CppObject* self, int32_t slot,
     using FlameFn = bool (*)(Il2CppObject*, int32_t, int32_t, const MethodInfo*);
     const bool placed = reinterpret_cast<FlameFn>(bl::il2cpp::methodPointer(g_placeBootFlames))(self, x, y, g_placeBootFlames);
     static unsigned logs = 0;
-    if (logs++ < 3)
+    if (logs++ < 1)
         BL_INFO("csharp boots: rotina nativa tile=%d,%d chama=%d", x, y, placed);
 }
 
@@ -997,7 +998,7 @@ void hkHorizontalMovement(Il2CppObject* self, const MethodInfo* method) {
         maxSpeed *= factor;
         acceleration *= factor;
         static int logged = 0;
-        if (logged < 4) {
+        if (logged < 1) {
             ++logged;
             BL_INFO("csharp player: velocidade nativa +%d%% aplicada ao correr maxRunSpeed=%.3f->%.3f",
                     movementPercent, before, maxSpeed);
@@ -1007,7 +1008,7 @@ void hkHorizontalMovement(Il2CppObject* self, const MethodInfo* method) {
         auto& acceleration = bl::runtime::field<float>(self, g_refs.playerRunAcceleration);
         acceleration *= 1.f + static_cast<float>(movementAcceleration) / 100.f;
         static int accelerationLogs = 0;
-        if (accelerationLogs++ < 3)
+        if (accelerationLogs++ < 1)
             BL_INFO("csharp BunnyPlayer UpdateMovement: +%d%% aceleracao nativa",
                     movementAcceleration);
     }
@@ -1531,38 +1532,6 @@ double hkPlayerHurt(Il2CppObject* self, const void* source, int32_t damage,
     snapshotHurtSource(source, &npcSource, &projectileSource,
                        &rawNpc, &rawProjectile);
     const HurtAttackerSnapshot attacker = snapshotHurtAttacker(npcSource, projectileSource, self);
-    static int contextNpcLogs = 0;
-    static int contextProjectileLogs = 0;
-    if (npcSource >= 0 && contextNpcLogs++ < 8)
-        BL_INFO("csharp hit context NPC: index=%d tipo=%d dano=%d vida=%d",
-                npcSource, attacker.npcType, attacker.npcDamage, attacker.npcLife);
-    else if (projectileSource >= 0 && contextProjectileLogs++ < 8)
-        BL_INFO("csharp hit context projectile: index=%d tipo=%d dano=%d dono=%d",
-                projectileSource, attacker.projectileType,
-                attacker.projectileDamage, attacker.projectileOwner);
-    static int spatialNpcLogs = 0;
-    static int spatialProjectileLogs = 0;
-    if (npcSource >= 0 && spatialNpcLogs++ < 8)
-        BL_INFO("csharp hit spatial NPC: x=%.1f y=%.1f vx=%.1f vy=%.1f ang=%.3f distancia=%.1f",
-                attacker.attackerX, attacker.attackerY,
-                attacker.attackerVelocityX, attacker.attackerVelocityY,
-                attacker.attackerAngle, attacker.attackerDistance);
-    else if (projectileSource >= 0 && spatialProjectileLogs++ < 8)
-        BL_INFO("csharp hit spatial Projectile: x=%.1f y=%.1f vx=%.1f vy=%.1f ang=%.3f distancia=%.1f",
-                attacker.attackerX, attacker.attackerY,
-                attacker.attackerVelocityX, attacker.attackerVelocityY,
-                attacker.attackerAngle, attacker.attackerDistance);
-    static int npcCaptures = 0;
-    static int projectileCaptures = 0;
-    static int unknownCaptures = 0;
-    int& sourceLogs = npcSource >= 0 ? npcCaptures :
-                      projectileSource >= 0 ? projectileCaptures : unknownCaptures;
-    const bool logSource = sourceLogs++ < 8;
-    if (logSource)
-        BL_INFO("csharp BunnyPlayer hit diag: Player.Hurt capturou rawNpc=%d rawProjectile=%d npc=%d projectile=%d origem=%s dano=%d",
-                rawNpc, rawProjectile, npcSource, projectileSource,
-                npcSource >= 0 ? "NPC" : projectileSource >= 0 ? "Projectile" : "Unknown",
-                sourceDamage);
     int changed = 0;
     for (const auto& binding : mods) {
         int mask = 0;
@@ -1627,18 +1596,23 @@ double hkPlayerHurt(Il2CppObject* self, const void* source, int32_t damage,
             return 0.0;
         }
     }
-    static int diagnosed = 0;
-    if (changed && diagnosed++ < 12)
-        BL_INFO("csharp BunnyPlayer ModifyHurt: entrada=%d final=%d callbacks=%d",
-                sourceDamage, damage, changed);
-    static int npcModifiedLogs = 0;
-    static int projectileModifiedLogs = 0;
-    if (changed && npcSource >= 0 && npcModifiedLogs++ < 8)
-        BL_INFO("csharp BunnyPlayer ModifyHitByNPC: npc=%d entrada=%d final=%d callbacks=%d",
-                npcSource, sourceDamage, damage, changed);
-    else if (changed && projectileSource >= 0 && projectileModifiedLogs++ < 8)
-        BL_INFO("csharp BunnyPlayer ModifyHitByProjectile: projectile=%d entrada=%d final=%d callbacks=%d",
-                projectileSource, sourceDamage, damage, changed);
+    // One line per hit: who hit, from where, and what the mod callbacks did to the damage.
+    // The first few hits of each origin are always shown; after that only hits a mod changed.
+    static int npcHits = 0, projectileHits = 0, unknownHits = 0, modifiedHits = 0;
+    int& originHits = npcSource >= 0 ? npcHits : projectileSource >= 0 ? projectileHits : unknownHits;
+    const bool modified = damage != sourceDamage;
+    if (originHits++ < 3 || (modified && modifiedHits++ < 12)) {
+        char origin[96];
+        if (npcSource >= 0)
+            std::snprintf(origin, sizeof origin, "NPC #%d tipo=%d vida=%d", npcSource, attacker.npcType, attacker.npcLife);
+        else if (projectileSource >= 0)
+            std::snprintf(origin, sizeof origin, "projetil #%d tipo=%d dono=%d", projectileSource,
+                          attacker.projectileType, attacker.projectileOwner);
+        else
+            std::snprintf(origin, sizeof origin, "desconhecida (rawNpc=%d rawProjectile=%d)", rawNpc, rawProjectile);
+        BL_INFO("csharp BunnyPlayer hit: %s distancia=%.1f | dano %d -> %d (%d callback(s))",
+                origin, attacker.attackerDistance, sourceDamage, damage, changed);
+    }
     const double applied = g_originalPlayerHurt(
         self, source, damage, direction, pvp,
         (flags & 2) != 0, (flags & 4) != 0, cooldown, (flags & 8) != 0, method);
@@ -1656,10 +1630,10 @@ double hkPlayerHurt(Il2CppObject* self, const void* source, int32_t damage,
                 attacker.attackerX, attacker.attackerY,
                 attacker.attackerVelocityX, attacker.attackerVelocityY,
                 attacker.attackerAngle, attacker.attackerDistance);
-            if (logSource)
-                BL_INFO("csharp BunnyPlayer hit diag: evento OnHurt fila=%s npc=%d projectile=%d dano=%d vida=%d",
-                        queued ? "aceito" : "recusado",
-                        npcSource, projectileSource, actual, remaining);
+            static int refusedLogs = 0;
+            if (!queued && refusedLogs++ < 4) // Accepted events are the norm; only a full queue is news.
+                BL_WARN("csharp BunnyPlayer OnHurt: evento recusado pela fila mod=%s npc=%d projectile=%d dano=%d vida=%d",
+                        participant.modId.c_str(), npcSource, projectileSource, actual, remaining);
         }
     }
     return applied;
@@ -1692,7 +1666,7 @@ void hkPlayerLifeRegen(Il2CppObject* self, const MethodInfo* method) {
     if (!bonus) return;
     bl::runtime::field<int32_t>(self, g_refs.playerLifeRegen) += bonus;
     static int logged = 0;
-    if (logged++ < 2)
+    if (logged++ < 1)
         BL_INFO("csharp BunnyPlayer UpdateLifeRegen: bonus nativo +%d", bonus);
 }
 
@@ -1704,7 +1678,7 @@ void hkPlayerManaRegen(Il2CppObject* self, const MethodInfo* method) {
     if (!bonus) return;
     bl::runtime::field<int32_t>(self, g_refs.playerManaRegen) += bonus;
     static int logged = 0;
-    if (logged++ < 2)
+    if (logged++ < 1)
         BL_INFO("csharp BunnyPlayer UpdateManaRegen: bonus nativo +%d", bonus);
 }
 

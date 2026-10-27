@@ -519,7 +519,7 @@ int32_t hkStrike(Il2CppObject* npc, int32_t damage, float knockback, int32_t dir
         float chance = 0.f;
         const bool rolled = rollProjectileCrit(t_projectile, &type, &chance);
         if (rolled) crit = true;
-        if (chance != 0.f && g_critSamples.fetch_add(1, std::memory_order_relaxed) < 6)
+        if (chance != 0.f && g_critSamples.fetch_add(1, std::memory_order_relaxed) < 2)
             BL_INFO("[CSharp][DamageClass][Combat] Stage=ProjectileCrit ProjectileType=%d Chance=%.1f Result=%s",
                     type, chance, rolled ? "Crit" : "NoCrit");
     }
