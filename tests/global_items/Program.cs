@@ -25,7 +25,7 @@ Check(globals.Length == 4, "Expected four content GlobalItems, got " + globals.L
 Check(BunnyGlobalItemRuntime.ContentMask(typeof(ExampleShortswordGlobalItem)) == (1 | 2), "Shortsword mask");
 Check(BunnyGlobalItemRuntime.ContentMask(typeof(ExampleGelGlobalItem)) == (1 | 4), "Gel mask");
 Check(BunnyGlobalItemRuntime.ContentMask(typeof(ExampleWeaponTuningGlobalItem)) == (1 | 8 | 16), "Tuning mask");
-Check(BunnyGlobalItemRuntime.ContentMask(typeof(ExampleAccessoryGlobalItem)) == (1 | 64), "Accessory mask");
+Check(BunnyGlobalItemRuntime.ContentMask(typeof(ExampleAccessoryGlobalItem)) == (1 | 4 | 64), "Accessory mask");
 
 string wire = BunnyGlobalItemRuntime.Evaluate(mod, snapshot);
 var lines = wire.Split('\n', StringSplitOptions.RemoveEmptyEntries);
@@ -36,7 +36,8 @@ Check(lines.Contains("DAMAGE\t24\t0\t1.1\t1\t0"), "Wooden sword damage: " + wire
 Check(lines.Contains("CRIT\t24\t4"), "Wooden sword crit: " + wire);
 Check(lines.Contains("CLASS_BONUS\t211\tV2\t0\t1.05\t1\t0\t0\t1\t1\t0\t0\t0\t0"), "Feral claws bonus: " + wire);
 Check(!lines.Any(line => line.Contains("\t4\t") && line.StartsWith("DEFAULTS\t4\t")), "Unrelated item untouched");
-Check(lines.Length == 6, "Unexpected lines: " + wire);
+Check(lines.Contains("TOOLTIP\t211\t" + Convert.ToHexString(System.Text.Encoding.UTF8.GetBytes("+5% de dano corpo a corpo (GlobalItem C#)"))), "Feral claws tooltip: " + wire);
+Check(lines.Length == 7, "Unexpected lines: " + wire);
 
 // SetDefaults fora do SetDefaults e campo somente leitura falham.
 bool threw = false;

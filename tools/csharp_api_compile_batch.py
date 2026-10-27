@@ -29,8 +29,8 @@ CASES = {
     "live_v4": ("on_hit_context_v4", ["Common/Live/ExampleWaveBoltLiveEvents.cs"]),
     "live_tick": ("legacy_live_hits", ["Common/Live/ExampleLiveRuntime.cs"]),
     "npc_ai": ("npc_ai_prototype", ["Common/Live/ExampleLiveNpcAI.cs"]),
-    "motion_bolt": ("projectile_motion", ["ExampleBoltMotion.cs"]),
-    "motion_wave": ("projectile_motion", ["ExampleWaveBoltMotion.cs"]),
+    "motion_bolt": ("projectile_motion", ["Content/Projectiles/ExampleBoltMotion.cs"]),
+    "motion_wave": ("projectile_motion", ["Content/Projectiles/ExampleWaveBoltMotion.cs"]),
 }
 
 def get_catalog():

@@ -7,7 +7,7 @@ public sealed class ExampleCollisionKeepAliveWand : BunnyWeapon
     public override void SetDefaults()
     {
         DisplayName = "Example QA Collision KeepAlive Wand";
-        Texture = "Content/Items/Weapons/SourceWand.png";
+        Texture = "Content/Items/Weapons/ExampleCollisionKeepAliveWand.png";
         Damage = 1; UseTime = 30; ShootSpeed = 8;
         Shoot = "ExampleCollisionKeepAlive";
     }

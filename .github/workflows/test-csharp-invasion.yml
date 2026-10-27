@@ -49,8 +49,8 @@ on:
       - app/src/main/cpp/experiments/csharp/NativeInvasionMailbox.h
       - app/src/main/cpp/experiments/csharp/AutoSourceRuntime.cpp
       - samples/ExampleModCSharp/Playable/content/Content/NPCs/ExampleSlimeNPC.cs
-      - samples/ExampleModCSharp/Playable/content/Content/Systems/ExampleInvasion.cs
-      - samples/ExampleModCSharp/Playable/content/Content/Systems/ExampleInvasionSystem.cs
+      - samples/ExampleModCSharp/Playable/content/Common/Systems/ExampleInvasion.cs
+      - samples/ExampleModCSharp/Playable/content/Common/Systems/ExampleInvasionSystem.cs
       - tests/invasion/**
       - .github/workflows/test-csharp-invasion.yml
   pull_request:

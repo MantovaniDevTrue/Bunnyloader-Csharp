@@ -7,7 +7,7 @@ public sealed class ExampleCollisionStopWand : BunnyWeapon
     public override void SetDefaults()
     {
         DisplayName = "Example QA Collision Stop Wand";
-        Texture = "Content/Items/Weapons/SourceWand.png";
+        Texture = "Content/Items/Weapons/ExampleCollisionStopWand.png";
         Damage = 1; UseTime = 30; ShootSpeed = 8;
         Shoot = "ExampleCollisionStop";
     }

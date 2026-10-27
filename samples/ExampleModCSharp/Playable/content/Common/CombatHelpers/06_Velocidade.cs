@@ -1,6 +1,6 @@
 using BunnyLoader.Source;
 
-namespace ExampleModCSharp.Recipes;
+namespace ExampleModCSharp.CombatHelpers;
 
 // Protege contra velocidade >= 8 pixels por tick, em qualquer direcao.
 // Uso: Em ModifyHurt; vx=-8 e tao rapido quanto vx=8.

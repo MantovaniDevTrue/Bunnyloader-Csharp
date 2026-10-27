@@ -1,6 +1,6 @@
 // ExampleMod C# | Content/Items/Accessories/ExampleFocusAccessory.cs
 // Acessorio: Tooltip descreve o efeito; o BunnyPlayer vinculado decide o bonus ao equipar.
-// Guia do pacote: content/LEIA_PRIMEIRO.md. Receitas adicionais: Common/Recipes/.
+// Guia do pacote: content/LEIA_PRIMEIRO.md. Ajudantes de combate: Common/CombatHelpers/.
 using BunnyLoader.Source;
 
 namespace ExampleModCSharp;

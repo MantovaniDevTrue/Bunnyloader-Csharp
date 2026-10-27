@@ -7,7 +7,7 @@ public sealed class ExampleMysticWardAccessory : BunnyAccessory
     public override void SetDefaults()
     {
         DisplayName = "Example Mystic Ward";
-        Texture = "Content/Items/Accessories/ExampleFocusAccessory.png";
+        Texture = "Content/Items/Accessories/ExampleMysticWardAccessory.png";
         DefenseBonus = 0;
         VisualMode = BunnyAccessoryVisualMode.EnergyBarrier;
         VisualTexture = "Content/Effects/MysticWardBarrier.png";

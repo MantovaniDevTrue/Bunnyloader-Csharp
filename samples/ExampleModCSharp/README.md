@@ -68,7 +68,7 @@ Veja os comentarios nos dois acessorios e o guia dentro do .bmod.
 Testes de host cobrem instalacao automatica, registro tardio, repeticoes,
 falhas/retry e condicoes do rastro. O desenho no aparelho ainda exige verificacao.
 
-**Versão atual do exemplo: 0.1.25**, para o lote .90.25. Comece pelo [guia incluído no .bmod](Playable/content/LEIA_PRIMEIRO.md) e pelas [oito receitas comentadas](Playable/content/Common/Recipes/).
+**Versão atual do exemplo: 0.1.25**, para o lote .90.25. Comece pelo [guia incluído no .bmod](Playable/content/LEIA_PRIMEIRO.md) e pelas [oito receitas comentadas](Playable/content/Common/CombatHelpers/).
 
 **Histórico anterior:** **Base Android validada:** Bunny Loader C# .86 (473 callbacks V4 sem falhas, 87 empurrões confirmados visualmente, debuffs funcionais e 60 FPS). **Descoberta automática:** catálogo da API na branch experimental `.87`; não altera a APK.
 

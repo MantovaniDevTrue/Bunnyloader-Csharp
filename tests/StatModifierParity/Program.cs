@@ -1,5 +1,5 @@
 using BunnyLoader.Source;
-using ExampleModCSharp.Recipes;
+using ExampleModCSharp.CombatHelpers;
 
 int passed = 0;
 int failed = 0;

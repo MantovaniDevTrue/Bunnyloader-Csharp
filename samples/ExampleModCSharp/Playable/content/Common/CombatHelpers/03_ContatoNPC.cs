@@ -1,6 +1,6 @@
 using BunnyLoader.Source;
 
-namespace ExampleModCSharp.Recipes;
+namespace ExampleModCSharp.CombatHelpers;
 
 // Reduz somente contato de NPC. Indice 0 e valido; -1 e ausente.
 // Uso: Use em ModifyHurt OU ModifyHitByNPC, nao nos dois para o mesmo efeito.

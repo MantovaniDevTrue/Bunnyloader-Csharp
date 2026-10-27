@@ -13,7 +13,7 @@ acesso à memória do Terraria: ela calcula valores de forma pura e determiníst
 - `StatInheritanceData`: cinco fatores editáveis, `Full`, `None` e
   construtor com parâmetros opcionais idênticos à referência.
 - Exemplo C# real compilado nos testes:
-  `samples/ExampleModCSharp/Playable/content/Common/Recipes/09_StatModifier.cs`.
+  `samples/ExampleModCSharp/Playable/content/Common/CombatHelpers/09_StatModifier.cs`.
 - 18 testes de paridade do cálculo, exemplos e assinaturas por `dotnet run`:
 
 ```sh

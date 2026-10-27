@@ -6,7 +6,7 @@ namespace ExampleModCSharp;
 
 public sealed class ExampleHookVoidInt32 : BunnyHookModule
 {
-    public const bool EnableAtLoad = true;
+    public static readonly bool EnableAtLoad = true;
     private const int SampleLimit = 2;
     private static readonly string[] Types = { "Terraria.WorldItem", "Terraria.NPC", "Terraria.Player", "Terraria.WorldGen" };
     private static readonly string[] Methods = { "UpdateItem", "DelBuff", "DelBuff", "QuickFindHome" };

@@ -1,6 +1,6 @@
 using BunnyLoader.Source;
 
-namespace ExampleModCSharp.Recipes;
+namespace ExampleModCSharp.CombatHelpers;
 
 // Protege somente com 30% de vida ou menos; maxLife ausente nao ativa.
 // Uso: Em ModifyHurt, depois de testar accessoryEquipped e PvP.

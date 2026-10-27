@@ -9,7 +9,7 @@ public sealed class ExampleInvasionBeacon : BunnyItem
         DisplayName = "Example Invasion Beacon";
         Tooltip = "Starts the Example Invasion during daytime at the surface";
         TooltipTranslations["pt-BR"] = "Inicia a invasão de exemplo durante o dia na superfície";
-        Texture = "Content/Items/ExampleItem.png";
+        Texture = "Content/Items/Consumables/ExampleInvasionBeacon.png";
         Width = 24;
         Height = 28;
         MaxStack = 1;

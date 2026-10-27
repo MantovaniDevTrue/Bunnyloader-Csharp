@@ -6,7 +6,7 @@ public sealed class ExampleSparkDust : BunnyDust
 {
     public override void SetStaticDefaults()
     {
-        Texture = "Content/Effects/TrailblazerSpark.png";
+        Texture = "Content/Dusts/TrailblazerSpark.png";
         UpdateType = 6;
     }
 

@@ -5,7 +5,7 @@ sdk = (root / "experiments/csharp/BunnyCsSdk/BunnySourceScriptApi.cs").read_text
 dispatcher = (root / "experiments/csharp/BunnyCsSdk/BunnyEntitySourceDispatcher.cs").read_text()
 host = (root / "app/src/main/cpp/experiments/csharp/ManagedRuntime.cpp").read_text()
 sample = (root / "samples/ExampleModCSharp/Playable/content/Content/NPCs/ExampleSlimeNPC.cs").read_text()
-pipeline = (root / "samples/ExampleModCSharp/Playable/content/Content/Systems/ExampleInvasion.cs").read_text()
+pipeline = (root / "samples/ExampleModCSharp/Playable/content/Common/Systems/ExampleInvasion.cs").read_text()
 
 assert "public long NativeIdentity;" in sdk
 assert "float playerX, float playerY, long nativeIdentity)" in dispatcher

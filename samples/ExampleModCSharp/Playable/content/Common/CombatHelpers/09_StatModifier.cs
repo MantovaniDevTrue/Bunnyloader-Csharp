@@ -1,6 +1,9 @@
 using BunnyLoader.Source;
 
-namespace ExampleModCSharp.Recipes;
+namespace ExampleModCSharp.CombatHelpers;
+
+// Uso: ExampleStatModifierRecipe.CalculateDamage(dano) devolve o dano com as contas do StatModifier.
+// Limite: so calcula; nao aplica nada no jogo sem um hook que use o resultado.
 
 /// <summary>
 /// Exemplo fiel das contas do tModLoader, sem dependência de JavaScript.

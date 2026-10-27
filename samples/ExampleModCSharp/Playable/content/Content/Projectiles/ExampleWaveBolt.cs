@@ -10,7 +10,7 @@ public sealed class ExampleWaveBolt : BunnyProjectile
     {
         DisplayName = "Example C# Wave Bolt";
         DamageType = new ExampleDamageClass();
-        Texture = "Content/Projectiles/SourceBolt.png";
+        Texture = "Content/Projectiles/ExampleWaveBolt.png";
         Width = 10;
         Height = 10;
         AiStyle = 1;

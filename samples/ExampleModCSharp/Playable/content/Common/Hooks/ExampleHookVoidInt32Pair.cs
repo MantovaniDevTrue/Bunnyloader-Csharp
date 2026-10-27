@@ -6,7 +6,7 @@ namespace ExampleModCSharp;
 
 public sealed class ExampleHookVoidInt32Pair : BunnyHookModule
 {
-    public const bool EnableAtLoad = true;
+    public static readonly bool EnableAtLoad = true;
     private const int SampleLimit = 2;
     private static readonly string[] Types = { "Terraria.Wiring", "Terraria.Wiring", "Terraria.Wiring" };
     private static readonly string[] Methods = { "HitSwitch", "HitWireSingle", "PokeLogicGate" };

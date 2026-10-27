@@ -2,7 +2,7 @@ using System.Reflection;
 using System.Text.Json;
 using BunnyLoader.Source;
 using BunnyLoader.SourceCompiler;
-using ExampleModCSharp.Recipes;
+using ExampleModCSharp.CombatHelpers;
 
 var results = new List<object>();
 int failures = 0;

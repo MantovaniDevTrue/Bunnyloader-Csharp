@@ -1,6 +1,8 @@
 // ExampleMod C# | Common/GlobalItems/ExampleAccessoryGlobalItem.cs
 // UpdateEquip em item vanilla: as Garras Selvagens dão +5% de dano corpo a corpo
 // enquanto equipadas, pelo mesmo canal do AddClassBonusOnEquip dos itens C#.
+// Como no tModLoader, UpdateEquip não muda o tooltip: a linha vem do ModifyTooltips.
+using System.Collections.Generic;
 using BunnyLoader.Source;
 
 namespace ExampleModCSharp;
@@ -14,5 +16,10 @@ public sealed class ExampleAccessoryGlobalItem : BunnyGlobalItem
     public override void UpdateEquip(BunnyVanillaItem item, BunnyEquipEffects effects)
     {
         effects.AddClassBonus(new BunnyClassBonus(DamageClass.Melee) { Damage = 0.05f });
+    }
+
+    public override void ModifyTooltips(BunnyVanillaItem item, List<BunnyTooltipLine> tooltips)
+    {
+        tooltips.Add(new BunnyTooltipLine("ExampleClawsBonus", "+5% de dano corpo a corpo (GlobalItem C#)"));
     }
 }

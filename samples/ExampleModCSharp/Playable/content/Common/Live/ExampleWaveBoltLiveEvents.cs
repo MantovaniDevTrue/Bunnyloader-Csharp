@@ -1,6 +1,6 @@
 // ExampleMod C# | Common/Live/ExampleWaveBoltLiveEvents.cs
 // Callback descoberto pelo nome da classe/metodo. Preserve as assinaturas ao adaptar este exemplo.
-// Guia do pacote: content/LEIA_PRIMEIRO.md. Receitas adicionais: Common/Recipes/.
+// Guia do pacote: content/LEIA_PRIMEIRO.md. Ajudantes de combate: Common/CombatHelpers/.
 namespace BunnyLoader.Source;
 
 public static class ExampleWaveBoltLiveEvents

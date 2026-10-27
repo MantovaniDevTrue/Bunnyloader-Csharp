@@ -6,7 +6,7 @@ namespace ExampleModCSharp;
 
 public sealed class ExampleHookInt32Zero : BunnyHookModule
 {
-    public const bool EnableAtLoad = true;
+    public static readonly bool EnableAtLoad = true;
     private const int SampleLimit = 2;
     private static BunnyMethodHook? activeHook;
     private static int installed;

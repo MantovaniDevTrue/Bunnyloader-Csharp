@@ -163,7 +163,7 @@ Esta correcao tem testes de host; animacao/FPS no Android precisam de confirmaca
 # ExampleMod C# — lote 0.1.26
 
 Requer Bunny Loader .90.25 ou mais recente. Este pacote inclui os exemplos
-existentes, tres acessorios compostos e oito receitas de combate em Common/Recipes.
+existentes, tres acessorios compostos e oito receitas de combate em Common/CombatHelpers.
 As receitas compilam junto do mod, mas so atuam quando chamadas por um callback.
 Nao instalam oito efeitos adicionais nem alteram o balanceamento automaticamente.
 
@@ -184,7 +184,7 @@ Cada exemplo composto tem um BunnyAccessory em Content/Items/Accessories e um Bu
 4. ExampleTrailblazerBoots e ExampleMysticWard: velocidade, regeneracao e defesa condicional.
 5. Content/Prefixes: multiplicadores e bonus de defesa do prefixo.
 6. Common/Players/ExampleVitalPlayer.cs: ordem de ModifyHurt, FreeDodge e OnHurt.
-7. Common/Recipes/01..08: reducao, vida baixa, NPC, projetil, distancia, velocidade,
+7. Common/CombatHelpers/01..08: reducao, vida baixa, NPC, projetil, distancia, velocidade,
    arco e observacao depois do golpe. Cada arquivo explica uso, unidades e limites.
 
 ## Integrar uma receita
@@ -196,7 +196,7 @@ Dentro do seu override ModifyHurt(bool accessoryEquipped, BunnyHurtModifiers mod
 if (!accessoryEquipped || modifiers.PvP || modifiers.Damage <= 0)
     return;
 // Escolha UMA receita para comecar. Chamar varias acumula as reducoes.
-modifiers.Damage = ExampleModCSharp.Recipes.LowLifeGuard.Apply(modifiers);
+modifiers.Damage = ExampleModCSharp.CombatHelpers.LowLifeGuard.Apply(modifiers);
 ```
 
 Nao copie outro BunnyPlayer com o mesmo nome/Accessory. Classes BunnyPlayer

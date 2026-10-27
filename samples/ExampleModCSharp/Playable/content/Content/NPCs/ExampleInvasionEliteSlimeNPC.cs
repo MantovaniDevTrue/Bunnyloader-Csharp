@@ -8,7 +8,7 @@ public sealed class ExampleInvasionEliteSlimeNPC : BunnyNPC
     public override void SetDefaults()
     {
         DisplayName = "Example Elite Slime";
-        Texture = "Content/NPCs/ExampleSlimeNPC.png";
+        Texture = "Content/NPCs/ExampleInvasionEliteSlimeNPC.png";
         Width = 36;
         Height = 28;
         Damage = 14;

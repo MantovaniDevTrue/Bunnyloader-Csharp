@@ -1,6 +1,6 @@
 using BunnyLoader.Source;
 
-namespace ExampleModCSharp.Recipes;
+namespace ExampleModCSharp.CombatHelpers;
 
 // Reduz em 25%, arredondando para baixo. 40 vira 30; 1 vira 0.
 // Uso: Em ModifyHurt: modifiers.Damage = ReduceHit.Apply(modifiers.Damage).

@@ -40,6 +40,10 @@ jobs:
         run: dotnet run --project tests/examplemod_pre_apk/ExampleModPreApk.csproj -c Release
       - name: Check conservative behavior coverage
         run: python3 tools/examplemod_coverage.py --check
+      - name: Check ExampleMod package guards
+        run: |
+          python3 samples/ExampleModCSharp/Tests/check_examples.py
+          python3 tests/combat_batch/check_package.py
       - name: Compile entire ExampleMod through production Roslyn
         run: dotnet run --project tests/basic_items/ItemBatch.csproj -c Release
       - name: Validate native costume and item policies without QuickJS
