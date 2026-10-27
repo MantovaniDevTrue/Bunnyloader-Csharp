@@ -274,6 +274,11 @@ bool statements(const std::vector<Token>& ts, size_t first, size_t last,
         } else {
             value = ts[i++].value;
         }
+        if (key == "DamageType" && value == "new" && i + 2 < last &&
+            !ts[i].literal && ts[i + 1].value == "(" && ts[i + 2].value == ")") {
+            value = ts[i].value;
+            i += 3;
+        }
         if (def->base == "BunnyMount" && key == "Kind" &&
             value == "BunnyMountKind" && i + 1 < last &&
             ts[i].value == "." &&
