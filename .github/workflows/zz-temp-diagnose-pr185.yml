@@ -47,10 +47,8 @@ jobs:
               echo '```' >> $report
             fi
           }
+          run item-batch dotnet run --project tests/basic_items/ItemBatch.csproj -c Release
           run shooting bash tests/shooting/run.sh
           run global-item-contract dotnet run --project tests/global_items/GlobalItemContract.csproj -c Release -p:NuGetAudit=false
-          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null
-          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "ndk;30.0.16248370" "cmake;3.22.1" "platforms;android-34" >/dev/null
-          run gradle-native gradle :app:externalNativeBuildDebug --no-daemon -Pbl.uiOnly=true
           gh pr comment 185 --repo "$GITHUB_REPOSITORY" --body-file $report
           exit 0
