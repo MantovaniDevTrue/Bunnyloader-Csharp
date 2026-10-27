@@ -409,6 +409,20 @@ bool g_combatArmorPenFieldsReady = false;
 std::atomic<int> g_damageCombatSamples{0};
 std::atomic<int> g_critCombatSamples{0};
 std::atomic<int> g_knockbackCombatSamples{0};
+std::atomic<int> g_combatResultSamples[3]{};
+
+// Resultado do combate de DamageClass (aplicado ou mantido), so para itens de
+// classe customizada e no maximo 6 por canal.
+void logNativeWeaponCombatResult(int channel, const char* stage, Il2CppObject* item,
+                                 double original, bool applied, double value) {
+    if (!item || g_refs.itemType < 0 || channel < 0 || channel > 2 ||
+        g_combatResultSamples[channel].load(std::memory_order_relaxed) >= 6) return;
+    const int itemType = bl::runtime::field<int32_t>(item, g_refs.itemType);
+    if (itemType < 0 || !nativeDamageTypes().isCustom(false, itemType)) return;
+    if (g_combatResultSamples[channel].fetch_add(1, std::memory_order_relaxed) >= 6) return;
+    BL_INFO("[CSharp][DamageClass][Combat] Stage=%s ItemType=%d Original=%.3f Final=%.3f Result=%s",
+            stage, itemType, original, applied ? value : original, applied ? "Applied" : "KeptVanilla");
+}
 constexpr int g_reviveSpawnContext = 0;
 bool g_ready = false;
 bool g_npcReady = false;
@@ -542,8 +556,9 @@ int32_t hkNativeWeaponDamage(Il2CppObject* player, Il2CppObject* item,
     if (player) observeNativeWeaponCombat("GetWeaponDamage", player, item, original,
                                           g_damageCombatSamples);
     int32_t custom = 0;
-    if (player && damage_combat::customWeaponDamage(player, item, original, &custom)) return custom;
-    return original;
+    const bool applied = player && damage_combat::customWeaponDamage(player, item, original, &custom);
+    if (player) logNativeWeaponCombatResult(0, "GetWeaponDamage", item, original, applied, custom);
+    return applied ? custom : original;
 }
 
 int32_t hkNativeWeaponCrit(Il2CppObject* player, Il2CppObject* item,
@@ -553,8 +568,9 @@ int32_t hkNativeWeaponCrit(Il2CppObject* player, Il2CppObject* item,
     if (player) observeNativeWeaponCombat("GetWeaponCrit", player, item, original,
                                           g_critCombatSamples);
     int32_t custom = 0;
-    if (player && damage_combat::customWeaponCrit(player, item, original, &custom)) return custom;
-    return original;
+    const bool applied = player && damage_combat::customWeaponCrit(player, item, original, &custom);
+    if (player) logNativeWeaponCombatResult(1, "GetWeaponCrit", item, original, applied, custom);
+    return applied ? custom : original;
 }
 
 float hkNativeWeaponKnockback(Il2CppObject* player, Il2CppObject* item,
@@ -564,9 +580,10 @@ float hkNativeWeaponKnockback(Il2CppObject* player, Il2CppObject* item,
     if (player) observeNativeWeaponCombat("GetWeaponKnockback", player, item, original,
                                           g_knockbackCombatSamples);
     float custom = 0.f;
-    if (player && damage_combat::customWeaponKnockback(player, item, knockback,
-            g_originalWeaponKnockback, method, &custom)) return custom;
-    return original;
+    const bool applied = player && damage_combat::customWeaponKnockback(player, item, knockback,
+            g_originalWeaponKnockback, method, &custom);
+    if (player) logNativeWeaponCombatResult(2, "GetWeaponKnockback", item, original, applied, custom);
+    return applied ? custom : original;
 }
 
 void installNativeDamageCombatObservation(Il2CppClass* player) {
