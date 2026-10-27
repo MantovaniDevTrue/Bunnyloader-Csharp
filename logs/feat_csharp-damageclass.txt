@@ -1,0 +1,14 @@
+run: https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/40605367869
+status: success
+== branch feat/csharp-damageclass @ 1a8171d480aa36281bfdd7e2ce46db784fb4e003
+== BunnyLoader
+/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/src/main/csharp/BunnyLoader/Loaders/DamageClassLoader.cs(654,19): error CS0117: 'On_Player' does not contain a definition for 'ApplyItemAnimation_Item' [/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/src/main/csharp/BunnyLoader/BunnyLoader.csproj]
+
+Build FAILED.
+
+/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/src/main/csharp/BunnyLoader/Loaders/DamageClassLoader.cs(654,19): error CS0117: 'On_Player' does not contain a definition for 'ApplyItemAnimation_Item' [/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/src/main/csharp/BunnyLoader/BunnyLoader.csproj]
+    0 Warning(s)
+    1 Error(s)
+
+Time Elapsed 00:00:41.22
+== result: FAILED
