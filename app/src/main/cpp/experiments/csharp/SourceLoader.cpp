@@ -519,7 +519,8 @@ bool load(const bl::mods::LoadedMod& mod, SourceModStatus* status) {
             if (base == "BunnyPrefix") {
                 for (const auto& [key, value] : def.properties)
                     if (key != "DisplayName" && key != "Category" &&
-                        key != "RollWeight") {
+                        key != "RollWeight" && key != "ExtraTooltip" &&
+                        key != "RequireEffectiveStats") {
                         status->error = def.name + ": propriedade de prefixo nao suportada: " + key;
                         return false;
                     }
