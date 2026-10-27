@@ -1683,6 +1683,16 @@ public static class CompiledAssemblyProbe
             if (mask!=0)
                 lines.Add(string.Join("\t", "GLOBAL_PREFIX_CALLBACK", globalType.Name,
                     mask.ToString(CultureInfo.InvariantCulture)));
+            // Hooks de conteúdo (SetDefaults, tooltip, dano, equipamento): o host
+            // avalia no MonoVM do jogo sobre a foto dos itens vanilla.
+            var runtimeType = Ancestors(globalType)
+                .Select(ancestor => ancestor.Assembly.GetType("BunnyLoader.Source.BunnyGlobalItemRuntime"))
+                .FirstOrDefault(type => type != null);
+            int contentMask = runtimeType?.GetMethod("ContentMask", BindingFlags.Public | BindingFlags.Static)
+                ?.Invoke(null, new object[] { globalType }) is int value ? value : 0;
+            if (contentMask != 0)
+                lines.Add(string.Join("\t", "GLOBAL_ITEM", globalType.Name,
+                    contentMask.ToString(CultureInfo.InvariantCulture)));
         }
         foreach (var item in basicItems.Concat(weapons).Concat(potions).Concat(accessories))
         {

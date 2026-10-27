@@ -966,6 +966,18 @@ public static class BunnyEntitySourceDispatcher
         return context.Revoked ? "" : context.DamageClassStats;
     }
 
+    /// <summary>
+    /// Políticas dos BunnyGlobalItem do mod sobre a foto dos itens vanilla
+    /// escrita pelo host (GLOBAL_ITEMS_V1, ou ERROR\t... em falha).
+    /// </summary>
+    public static string GlobalItems(int modSlot, string snapshotPath)
+    {
+        if ((uint)modSlot >= (uint)Contexts.Count) return "ERROR\tInvalidModSlot";
+        Context context = Contexts[modSlot];
+        if (context.Revoked || context.Lease is null) return "ERROR\tModRevoked";
+        return BunnyGlobalItemRuntime.EvaluateFile(context.Lease.Assembly, snapshotPath);
+    }
+
     public static string Status(int modSlot)
     {
         if ((uint)modSlot >= (uint)Contexts.Count) return LastRegistrationError;

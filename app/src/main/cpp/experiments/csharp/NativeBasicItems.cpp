@@ -1,3 +1,4 @@
+#include "experiments/csharp/NativeGlobalItems.h"
 #include <limits>
 #include "il2cpp/GuardedCall.h"
 #include "experiments/csharp/NativeDefaults.h"
@@ -1000,6 +1001,7 @@ bool hasManagedRecipeCallbacks(const std::string& modId) {
 void pumpBasicRecipesOnGameThread() {
     pumpNativeArmorPoliciesOnGameThread();
     pumpNativeTooltipGameplay();
+    global_items::pumpOnGameThread();
     static unsigned ticks=0, knownGeneration=0, fastPasses=0;
     const unsigned generation=contentGeneration.load(std::memory_order_acquire);
     if(generation!=knownGeneration) {

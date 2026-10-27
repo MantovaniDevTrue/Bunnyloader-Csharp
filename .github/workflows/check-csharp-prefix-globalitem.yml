@@ -1,4 +1,4 @@
-name: CSharp PrefixLoader and GlobalItem prefix callbacks (no APK)
+name: CSharp PrefixLoader and GlobalItem (no APK)
 
 on:
   pull_request:
@@ -13,6 +13,8 @@ on:
       - experiments/csharp/BunnySourceCompiler/**
       - experiments/csharp/BunnySourceSdk/**
       - tests/prefix_v89/**
+      - tests/global_items/**
+      - app/src/main/cpp/experiments/csharp/NativeGlobalItem*
       - tests/managed_prefix_cold_tables.cpp
       - samples/ExampleModCSharp/**
       - tools/sdk_reference/**
@@ -48,6 +50,9 @@ jobs:
           python3 tests/prefix_v89/guard_reforge_v90_2.py
           python3 tests/prefix_v89/guard_native_bridge.py
           python3 tests/prefix_v89/guard_persistence_v90_4.py
+          g++ -std=c++20 -O1 -g -fsanitize=address,undefined -Wall -Wextra -Werror -I app/src/main/cpp \
+            tests/global_items/native_global_item_wire.cpp -o "$RUNNER_TEMP/global-item-wire"
+          "$RUNNER_TEMP/global-item-wire"
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
@@ -60,6 +65,7 @@ jobs:
           dotnet run --project tests/prefix_v89/PrefixContract.csproj -c Release -p:NuGetAudit=false -- \
             "$(pwd)/tests/prefix_v89/PrefixFixture/bin/Release/net8.0/PrefixFixture.dll" \
             "$(pwd)/tests/prefix_v89/GlobalOnlyFixture/bin/Release/net8.0/GlobalOnlyFixture.dll"
+          dotnet run --project tests/global_items/GlobalItemContract.csproj -c Release -p:NuGetAudit=false
           dotnet run --project tools/sdk_reference/SdkReference.csproj -c Release -p:NuGetAudit=false -- --check
 
   android-arm64:
@@ -76,7 +82,7 @@ jobs:
           LLVM="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin"
           ROOT="app/src/main/cpp"
           mkdir -p "$RUNNER_TEMP/arm64"
-          for source in ManagedPrefixBridge.cpp ManagedPrefixGameplay.cpp SourceLoader.cpp NativeDamageClassHooks.cpp; do
+          for source in ManagedPrefixBridge.cpp ManagedPrefixGameplay.cpp SourceLoader.cpp NativeDamageClassHooks.cpp NativeGlobalItems.cpp; do
             echo "::group::$source"
             "$LLVM/clang++" --target=aarch64-linux-android26 -std=c++20 -fPIC -O0 -Wall -Wextra -Werror \
               -I"$ROOT" -c "$ROOT/experiments/csharp/$source" -o "$RUNNER_TEMP/arm64/${source%.cpp}.o"

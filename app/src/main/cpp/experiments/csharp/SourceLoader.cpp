@@ -11,6 +11,7 @@
 #include "experiments/csharp/AutoSourceRuntime.h"
 #include "experiments/csharp/NativeDamageTypeRegistry.h"
 #include "experiments/csharp/NativeDamageClassPlayerStats.h"
+#include "experiments/csharp/NativeGlobalItems.h"
 #include "experiments/csharp/NativeRarityRegistry.h"
 #include "experiments/csharp/NativeRarityGameplay.h"
 #include "experiments/csharp/ManagedDustContract.h"
@@ -803,6 +804,7 @@ void resetCSharpSourceModSession() {
         shooting::unload(mod.id);
         nativeDamageTypes().unload(mod.id);
         damage_combat::classBonuses().unload(mod.id);
+        global_items::unload(mod.id);
         angler::registry().unload(mod.id);
         unbindNativeRecipeAssembly(mod.id);
         invalidateManagedLiveSourceMod(mod.id);
@@ -947,6 +949,7 @@ bool applyManagedSourceDefaults(
     std::set<int> seenItemPrefixCallbacks;
     std::vector<std::pair<int, std::string>> itemPrefixCallbacks;
     std::vector<std::pair<std::string,int>> globalPrefixCallbacks;
+    std::vector<std::string> globalContentItems;
     std::map<int,int> itemPrefixMasks;
     std::vector<std::pair<int, std::vector<ManagedPrefixStackDenyToken>>> prefixStackDenials;
     std::set<int> seenPrefixStackDenials;
@@ -1057,6 +1060,19 @@ bool applyManagedSourceDefaults(
                     " Class=" + fields[1] + " Stage=ResolveItemRarity Reason=UnknownOrDuplicateOwnerOrRarity";
                 return false;
             }
+            continue;
+        }
+        if (!fields.empty() && fields[0] == "GLOBAL_ITEM") {
+            int mask=0;
+            if(fields.size()!=3 || fields[1].empty() || fields[1].size()>64 ||
+               !integer(fields[2],&mask) || mask<2 || mask>127 ||
+               !mod->registeredBases.contains(sourceIdentityForBase("BunnyGlobalItem",fields[1])) ||
+               globalContentItems.size()>=128 ||
+               std::find(globalContentItems.begin(),globalContentItems.end(),fields[1])!=globalContentItems.end()) {
+                *error="[CSharp][ERROR][GlobalItem] Stage=Decode Reason=InvalidOwnerOrMask";
+                return false;
+            }
+            globalContentItems.push_back(fields[1]);
             continue;
         }
         if (!fields.empty() && fields[0] == "GLOBAL_PREFIX_CALLBACK") {
@@ -2710,6 +2726,8 @@ bool applyManagedSourceDefaults(
         *error="[CSharp][ERROR][GlobalPrefixCallback] Stage=Publish Reason=InvalidBinding";
         return false;
     }
+    if (globalContentItems.empty()) global_items::unload(modId);
+    else global_items::declare(modId, {}, globalContentItems);
     if (!tiles.empty() && !applyManagedNativeTileDefaultsBatch(modId, tiles)) {
         *error = "Falha ao aplicar os defaults nativos de BunnyTile"; return false;
     }

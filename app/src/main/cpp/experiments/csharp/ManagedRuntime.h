@@ -174,6 +174,11 @@ struct ManagedEntityVelocity
     float y = 0;
 };
 
+// Pede ao MonoVM do jogo a avaliação dos BunnyGlobalItem do mod sobre a foto
+// dos itens vanilla; o resultado chega em global_items::deliver.
+bool requestManagedGlobalItems(const std::string& modId, const std::string& snapshotPath);
+// Caminho do assembly do mod no MonoVM do jogo (vazio se ainda não registrado).
+std::string managedEntityAssemblyPath(const std::string& modId);
 bool registerManagedEntitySourceMod(const std::string& modId,
                                     const std::string& assemblyPath,
                                     const std::vector<std::pair<int, std::string>>& npcTypes,

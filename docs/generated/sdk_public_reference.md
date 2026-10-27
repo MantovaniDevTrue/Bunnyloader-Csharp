@@ -558,6 +558,7 @@ string LastRegistrationError { get; }
 | `static int Register(string modId, string assemblyPath)` | worker_async_entity |
 | `static int TickWorld(int modSlot, int mode, int elapsedFrames, Int64 worldSession, int playerIndex, float playerX, float playerY)` | worker_async_entity |
 | `static string DamageStats(int modSlot)` | worker_async_entity |
+| `static string GlobalItems(int modSlot, string snapshotPath)` | worker_async_entity |
 | `static string Status(int modSlot)` | worker_async_entity |
 | `static void ResetWorld()` | worker_async_entity |
 
@@ -566,6 +567,19 @@ string LastRegistrationError { get; }
 enum; base: `System.Enum`.
 
 Values: None, UseHairColor, ShowHands.
+
+## BunnyLoader.Source.BunnyEquipEffects
+
+class; base: `System.Object`.
+
+```csharp
+BunnyEquipEffects()
+IReadOnlyList<BunnyClassBonus> ClassBonuses { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `void AddClassBonus(BunnyClassBonus bonus)` | managed_helper |
 
 ## BunnyLoader.Source.BunnyEquipFlag
 
@@ -594,8 +608,26 @@ abstract class; base: `System.Object`.
 | `Nullable<bool> DecidePrefixChance(BunnyPrefixItemSnapshot item, int request)` | worker_callback_isolated |
 | `bool AllowPrefix(BunnyPrefixItemSnapshot item, int prefix)` | worker_callback_isolated |
 | `bool AppliesTo(BunnyPrefixItemSnapshot item)` | worker_callback_isolated |
+| `bool AppliesToEntity(BunnyVanillaItem item)` | worker_once_vanilla_snapshot |
 | `int ChoosePrefix(BunnyPrefixItemSnapshot item)` | worker_callback_isolated |
 | `void ApplyPrefix(BunnyPrefixItemSnapshot item, int prefix, ref BunnyPrefixApplyStats effects)` | worker_callback_isolated |
+| `void ModifyTooltips(BunnyVanillaItem item, List<BunnyTooltipLine> tooltips)` | worker_once_vanilla_snapshot |
+| `void ModifyWeaponCrit(BunnyVanillaItem item, ref float crit)` | worker_once_vanilla_snapshot |
+| `void ModifyWeaponDamage(BunnyVanillaItem item, ref StatModifier damage)` | worker_once_vanilla_snapshot |
+| `void ModifyWeaponKnockback(BunnyVanillaItem item, ref StatModifier knockback)` | worker_once_vanilla_snapshot |
+| `void SetDefaults(BunnyVanillaItem item)` | worker_once_vanilla_snapshot |
+| `void UpdateEquip(BunnyVanillaItem item, BunnyEquipEffects effects)` | worker_once_vanilla_snapshot |
+
+## BunnyLoader.Source.BunnyGlobalItemRuntime
+
+abstract class; base: `System.Object`.
+
+| Method | Execution |
+| --- | --- |
+| `static Type[] ContentGlobals(Assembly assembly)` | worker_dispatcher |
+| `static int ContentMask(Type type)` | worker_dispatcher |
+| `static string Evaluate(Assembly assembly, string snapshotText)` | worker_dispatcher |
+| `static string EvaluateFile(Assembly assembly, string snapshotPath)` | worker_dispatcher |
 
 ## BunnyLoader.Source.BunnyGore
 
@@ -2655,6 +2687,50 @@ struct; base: `System.ValueType`.
 enum; base: `System.Enum`.
 
 Values: Void, Boolean, Int32, UInt32, Int64, Single, Double, Vector2, Rectangle, Color, UInt64.
+
+## BunnyLoader.Source.BunnyVanillaItem
+
+class; base: `System.Object`.
+
+```csharp
+DamageClass DamageType { get; }
+bool Accessory { get; set; }
+bool AutoReuse { get; set; }
+bool Consumable { get; set; }
+bool Magic { get; set; }
+bool Melee { get; set; }
+bool NoMelee { get; set; }
+bool Potion { get; set; }
+bool Ranged { get; set; }
+bool Summon { get; set; }
+bool UseTurn { get; set; }
+bool Vanity { get; set; }
+float KnockBack { get; set; }
+float ShootSpeed { get; set; }
+int Ammo { get; set; }
+int Axe { get; set; }
+int CreateTile { get; }
+int Crit { get; set; }
+int Damage { get; set; }
+int Defense { get; }
+int Hammer { get; set; }
+int HealLife { get; set; }
+int HealMana { get; set; }
+int Height { get; set; }
+int Mana { get; set; }
+int MaxStack { get; set; }
+int Pick { get; set; }
+int Rare { get; set; }
+int Shoot { get; set; }
+int TileBoost { get; set; }
+int Type { get; }
+int UseAmmo { get; set; }
+int UseAnimation { get; set; }
+int UseStyle { get; set; }
+int UseTime { get; set; }
+int Value { get; set; }
+int Width { get; set; }
+```
 
 ## BunnyLoader.Source.BunnyVanillaItems
 

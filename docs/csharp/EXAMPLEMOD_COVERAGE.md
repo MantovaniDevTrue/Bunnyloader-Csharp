@@ -19,7 +19,7 @@ O catálogo usa cada hook JS como unidade inicial de revisão, com hash do fonte
 | falhou | 3 |
 | bloqueio comprovado | 0 |
 
-Inventários: 127 fontes C#, 206 fontes JS e 558 fontes oficiais tML. Esses números não medem conclusão.
+Inventários: 131 fontes C#, 206 fontes JS e 558 fontes oficiais tML. Esses números não medem conclusão.
 
 Dependência encontrada: tooltips C# fornecem um plano nativo, mas `Exports.js` instala `TooltipLoader.js` para executar o comportamento. A independência completa de JS está pendente.
 

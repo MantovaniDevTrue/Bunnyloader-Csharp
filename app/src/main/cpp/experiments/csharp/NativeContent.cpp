@@ -7,6 +7,7 @@
 #include "experiments/csharp/ManagedProjectileHook.h"
 #include "experiments/csharp/ManagedMinionBuff.h"
 #include "experiments/csharp/NativeDamageClassHooks.h"
+#include "experiments/csharp/NativeGlobalItems.h"
 #include "il2cpp/FieldContract.h"
 #include "il2cpp/GuardedCall.h"
 #include "experiments/csharp/NativeBasicItems.h"
@@ -558,7 +559,9 @@ int32_t hkNativeWeaponDamage(Il2CppObject* player, Il2CppObject* item,
     int32_t custom = 0;
     const bool applied = player && damage_combat::customWeaponDamage(player, item, original, &custom);
     if (player) logNativeWeaponCombatResult(0, "GetWeaponDamage", item, original, applied, custom);
-    return applied ? custom : original;
+    int32_t value = applied ? custom : original;
+    global_items::modifyWeaponDamage(player, item, &value);
+    return value;
 }
 
 int32_t hkNativeWeaponCrit(Il2CppObject* player, Il2CppObject* item,
@@ -570,7 +573,9 @@ int32_t hkNativeWeaponCrit(Il2CppObject* player, Il2CppObject* item,
     int32_t custom = 0;
     const bool applied = player && damage_combat::customWeaponCrit(player, item, original, &custom);
     if (player) logNativeWeaponCombatResult(1, "GetWeaponCrit", item, original, applied, custom);
-    return applied ? custom : original;
+    int32_t value = applied ? custom : original;
+    global_items::modifyWeaponCrit(item, &value);
+    return value;
 }
 
 float hkNativeWeaponKnockback(Il2CppObject* player, Il2CppObject* item,
@@ -583,7 +588,9 @@ float hkNativeWeaponKnockback(Il2CppObject* player, Il2CppObject* item,
     const bool applied = player && damage_combat::customWeaponKnockback(player, item, knockback,
             g_originalWeaponKnockback, method, &custom);
     if (player) logNativeWeaponCombatResult(2, "GetWeaponKnockback", item, original, applied, custom);
-    return applied ? custom : original;
+    float value = applied ? custom : original;
+    global_items::modifyWeaponKnockback(item, &value);
+    return value;
 }
 
 void installNativeDamageCombatObservation(Il2CppClass* player) {
@@ -609,6 +616,7 @@ void installNativeDamageCombatObservation(Il2CppClass* player) {
     else BL_WARN("[CSharp][DamageClass] GetWeaponKnockback passive hook unavailable");
     // Rastreio do genérico na origem, bonus de classe e velocidade de ataque.
     damage_combat::installNativeDamageClassTracking();
+    global_items::installTooltipHook();
 }
 
 bool g_nativeDamageClassFieldsReady=false;
@@ -654,6 +662,7 @@ void hkItemDefaults(Il2CppObject* self, int32_t type, int32_t variant, const Met
     if ((it == weapons->end() && accessory == g_accessories.end() &&
          potion == g_potions.end()) || !self) {
         if (g_originalItem) g_originalItem(self, type, variant, method);
+        global_items::applyDefaults(self, type);
         return;
     }
     bl::runtime::prepareModItem(self, type);
