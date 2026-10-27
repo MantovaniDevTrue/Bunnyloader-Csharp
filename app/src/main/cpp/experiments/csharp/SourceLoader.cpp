@@ -314,6 +314,7 @@ bool fields(const ParsedSourceType& type, NativeContentSpec* spec,
             }
             continue;
         }
+        if ((weapon || projectile) && key == "DamageType") continue;
         if(weapon&&key=="SpawnAtCursor")continue; // Evaluated by the managed verifier; no native side effects during bootstrap.
         int* integerField = nullptr;
         if (projectile && key == "Width") integerField = &spec->width;
