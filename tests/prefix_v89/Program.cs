@@ -16,7 +16,11 @@ try
             classes + "; Diagnostics: " + File.ReadAllText(diagnostics));
 
     var data = File.ReadAllLines(Path.Combine(temp, "source-runtime-values.txt"));
-    if (data.Length != 23 || data[0] != "BUNNY_MANAGED_DEFAULTS_V2")
+    // 23 linhas do #100 + SHOOT e DAMAGE_TYPE (item e projetil V4) da base QA.
+    if (data.Length != 26 || data[0] != "BUNNY_MANAGED_DEFAULTS_V2" ||
+        data.Count(row => row == "DAMAGE_TYPE\tITEM\tTestWand\tV4") != 1 ||
+        data.Count(row => row == "DAMAGE_TYPE\tPROJECTILE\tTestBolt\tV4") != 1 ||
+        data.Count(row => row == "SHOOT\tTestWand\t0") != 1)
         throw new InvalidOperationException("Unexpected MonoVM native handoff: " + data.Length +
             " lines\n" + string.Join("\n", data));
 
