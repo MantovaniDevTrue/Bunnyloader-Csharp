@@ -2,7 +2,6 @@
 #include "experiments/csharp/UniversalHookMailbox.h"
 #include "experiments/csharp/UniversalHooks.h"
 #include "experiments/csharp/ManagedRuntime.h"
-#include "experiments/csharp/NativeGlobalItems.h"
 #include "experiments/csharp/NativeWorldTickOutcome.h"
 #include "experiments/csharp/NativeDamageTypeRegistry.h"
 #include "experiments/csharp/NativeDamageClassStats.h"
@@ -597,6 +596,8 @@ void* g_entityWorldTick = nullptr;
 void* g_entityStatusMethod = nullptr;
 void* g_entityDamageStatsMethod = nullptr;
 void* g_entityGlobalItemsMethod = nullptr;
+std::atomic<ManagedGlobalItemsSink> g_globalItemsSink{nullptr};
+std::atomic<ManagedGlobalItemsRetire> g_globalItemsRetire{nullptr};
 void* g_entityProjectileTick = nullptr;
 void* g_entityNpcHit = nullptr;
 void* g_entityNpcKill = nullptr;
@@ -1448,7 +1449,8 @@ int64_t executeManagedEntityOnWorker(const ManagedEntityJob& job) {
                 }
             }
         }
-        global_items::deliver(binding.modId, std::move(wire));
+        if (auto sink = g_globalItemsSink.load(std::memory_order_acquire))
+            sink(binding.modId, std::move(wire));
         return managedSlot;
     }
     if (job.kind == 7) return managedSlot;
@@ -3627,6 +3629,11 @@ bool registerManagedEntitySourceMod(
     g_entityQueue.push_back(std::move(preload));
     g_pinnedWake.notify_one();
     return true;
+}
+
+void setManagedGlobalItemsCallbacks(ManagedGlobalItemsSink sink, ManagedGlobalItemsRetire retire) {
+    g_globalItemsSink.store(sink, std::memory_order_release);
+    g_globalItemsRetire.store(retire, std::memory_order_release);
 }
 
 std::string managedEntityAssemblyPath(const std::string& modId) {
@@ -6034,7 +6041,7 @@ void invalidateManagedDeferredSourceMod(const std::string& modId) {
     if (modId.empty()) return;
     nativeDamageTypes().unload(modId);
     damage_combat::classBonuses().unload(modId);
-    global_items::unload(modId);
+    if (auto retire = g_globalItemsRetire.load(std::memory_order_acquire)) retire(modId);
     std::lock_guard<std::mutex> lock(g_pinnedMutex);
     g_revokedDeferredMods.insert(modId);
     nativeDamageClassStats().unload(modId);

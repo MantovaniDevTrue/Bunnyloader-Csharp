@@ -442,6 +442,7 @@ void hkLines(Il2CppObject* item, int32_t* yoyo, int32_t* research, int32_t* mate
 }  // namespace
 
 void declare(const std::string& mod, const std::string& assemblyPath, std::vector<std::string> names) {
+    setManagedGlobalItemsCallbacks(&deliver, &unload);
     std::lock_guard guard(g_mutex);
     auto& state = g_mods[mod];
     if (state.assembly != assemblyPath || state.state == State::Failed) {

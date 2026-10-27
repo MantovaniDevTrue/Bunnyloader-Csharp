@@ -177,6 +177,11 @@ struct ManagedEntityVelocity
 // Pede ao MonoVM do jogo a avaliação dos BunnyGlobalItem do mod sobre a foto
 // dos itens vanilla; o resultado chega em global_items::deliver.
 bool requestManagedGlobalItems(const std::string& modId, const std::string& snapshotPath);
+// O ManagedRuntime também entra no libbunnymonoprobe, sem o módulo de
+// GlobalItem: o resultado e a retirada passam por ponteiros registrados.
+using ManagedGlobalItemsSink = void (*)(const std::string& modId, std::string wire);
+using ManagedGlobalItemsRetire = void (*)(const std::string& modId);
+void setManagedGlobalItemsCallbacks(ManagedGlobalItemsSink sink, ManagedGlobalItemsRetire retire);
 // Caminho do assembly do mod no MonoVM do jogo (vazio se ainda não registrado).
 std::string managedEntityAssemblyPath(const std::string& modId);
 bool registerManagedEntitySourceMod(const std::string& modId,
