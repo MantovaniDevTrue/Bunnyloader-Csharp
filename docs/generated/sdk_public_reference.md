@@ -26,6 +26,7 @@ abstract class; base: `BunnyLoader.Source.BunnyRecipeSource`.
 ```csharp
 BunnyAccessoryVisualMode VisualMode { get; set; }
 BunnyNativeDefaults NativeDefaults { get; }
+Nullable<bool> PrefixChance { get; set; }
 UInt32 VisualColor { get; set; }
 float VisualOpacity { get; set; }
 float VisualScale { get; set; }
@@ -40,6 +41,12 @@ string VisualTexture { get; set; }
 
 | Method | Execution |
 | --- | --- |
+| `Nullable<bool> DecidePrefixChance(BunnyPrefixItemSnapshot item, int request)` | worker_callback_isolated |
+| `bool AllowPrefix(BunnyPrefixItemSnapshot item, int prefix)` | worker_callback_isolated |
+| `int ChoosePrefix(BunnyPrefixItemSnapshot item)` | worker_callback_isolated |
+| `void ApplyPrefix(BunnyPrefixItemSnapshot item, int prefix, ref BunnyPrefixApplyStats effects)` | worker_callback_isolated |
+| `void ApplyPrefix(ref BunnyPrefixApplyStats effects)` | compile_policy |
+| `void ConfigurePrefixRules(BunnyItemPrefixRules rules)` | managed_helper |
 | `void SetDefaults()` | compile_policy |
 | `void SetRarity<T>()` | managed_helper |
 
@@ -144,6 +151,7 @@ abstract class; base: `BunnyLoader.Source.BunnyRecipeSource`.
 
 ```csharp
 BunnyNativeDefaults NativeDefaults { get; }
+Nullable<bool> PrefixChance { get; set; }
 int Duration { get; set; }
 string Buff { get; set; }
 string DisplayName { get; set; }
@@ -154,6 +162,12 @@ string Texture { get; set; }
 
 | Method | Execution |
 | --- | --- |
+| `Nullable<bool> DecidePrefixChance(BunnyPrefixItemSnapshot item, int request)` | worker_callback_isolated |
+| `bool AllowPrefix(BunnyPrefixItemSnapshot item, int prefix)` | worker_callback_isolated |
+| `int ChoosePrefix(BunnyPrefixItemSnapshot item)` | worker_callback_isolated |
+| `void ApplyPrefix(BunnyPrefixItemSnapshot item, int prefix, ref BunnyPrefixApplyStats effects)` | worker_callback_isolated |
+| `void ApplyPrefix(ref BunnyPrefixApplyStats effects)` | compile_policy |
+| `void ConfigurePrefixRules(BunnyItemPrefixRules rules)` | managed_helper |
 | `void SetDefaults()` | compile_policy |
 | `void SetRarity<T>()` | managed_helper |
 
@@ -570,6 +584,18 @@ Values: MeleeDamage, RangedDamage, MagicDamage, MinionDamage, MoveSpeed.
 enum; base: `System.Enum`.
 
 Values: Head, Body, Legs, Beard, Back, Wings.
+
+## BunnyLoader.Source.BunnyGlobalItem
+
+abstract class; base: `System.Object`.
+
+| Method | Execution |
+| --- | --- |
+| `Nullable<bool> DecidePrefixChance(BunnyPrefixItemSnapshot item, int request)` | worker_callback_isolated |
+| `bool AllowPrefix(BunnyPrefixItemSnapshot item, int prefix)` | worker_callback_isolated |
+| `bool AppliesTo(BunnyPrefixItemSnapshot item)` | worker_callback_isolated |
+| `int ChoosePrefix(BunnyPrefixItemSnapshot item)` | worker_callback_isolated |
+| `void ApplyPrefix(BunnyPrefixItemSnapshot item, int prefix, ref BunnyPrefixApplyStats effects)` | worker_callback_isolated |
 
 ## BunnyLoader.Source.BunnyGore
 
@@ -1123,6 +1149,7 @@ Dictionary<string, string> TooltipTranslations { get; }
 Func<BunnyQuestContext, bool> QuestAvailableWhen { get; set; }
 Func<BunnyQuestContext, bool> QuestCanCatchWhen { get; set; }
 IReadOnlyList<BunnyClassBonus> ClassBonuses { get; }
+Nullable<bool> PrefixChance { get; set; }
 bool Accessory { get; set; }
 bool AutoReuse { get; set; }
 bool Consumable { get; set; }
@@ -1167,13 +1194,19 @@ string UseSound { get; set; }
 
 | Method | Execution |
 | --- | --- |
+| `Nullable<bool> DecidePrefixChance(BunnyPrefixItemSnapshot item, int request)` | worker_callback_isolated |
+| `bool AllowPrefix(BunnyPrefixItemSnapshot item, int prefix)` | worker_callback_isolated |
 | `bool OnUse(int playerIndex)` | managed_helper |
 | `bool OnUse(int playerIndex, BunnyUseContext context)` | managed_helper |
 | `bool PreDrawTooltipLine(BunnyDrawableTooltipLine line)` | managed_helper |
+| `int ChoosePrefix(BunnyPrefixItemSnapshot item)` | worker_callback_isolated |
 | `static int BuyPrice(int platinum, int gold, int silver, int copper)` | managed_helper |
 | `static int SellPrice(int platinum, int gold, int silver, int copper)` | managed_helper |
 | `string OnUseRejectionReason(int playerIndex, BunnyUseContext context)` | managed_helper |
 | `void AddClassBonusOnEquip(BunnyClassBonus bonus)` | managed_helper |
+| `void ApplyPrefix(BunnyPrefixItemSnapshot item, int prefix, ref BunnyPrefixApplyStats effects)` | worker_callback_isolated |
+| `void ApplyPrefix(ref BunnyPrefixApplyStats effects)` | compile_policy |
+| `void ConfigurePrefixRules(BunnyItemPrefixRules rules)` | managed_helper |
 | `void DefaultToGolfBall(string projectile)` | managed_helper |
 | `void DefaultToPlaceableTile(int vanillaTileId, int style)` | managed_helper |
 | `void DefaultToPlaceableTile(string modTileName, int style)` | managed_helper |
@@ -1212,6 +1245,41 @@ string NativeArmorDefinition { get; }
 | `void SetWingStats(int flyTime, float flySpeed, float acceleration, float ascentWhenFalling, float ascentWhenRising, float maxCanAscendMultiplier, float maxAscentMultiplier, float constantAscend)` | managed_helper |
 | `void WorldAlpha(Byte red, Byte green, Byte blue, Byte opacity)` | managed_helper |
 | `void WorldLight(float red, float green, float blue, bool scaleByEssence)` | managed_helper |
+
+## BunnyLoader.Source.BunnyItemPrefixRules
+
+class; base: `System.Object`.
+
+```csharp
+BunnyItemPrefixRules()
+```
+
+| Method | Execution |
+| --- | --- |
+| `string Serialize()` | compile_policy |
+| `string SerializeAttributeDenials()` | compile_policy |
+| `string SerializeStackChance()` | compile_policy |
+| `string SerializeStackChoice()` | compile_policy |
+| `string SerializeStackDenials()` | compile_policy |
+| `void ChooseWhenStackBetween(int prefixType, int minimum, int maximum)` | compile_policy |
+| `void ChooseWhenStackBetween(string ownModPrefixName, int minimum, int maximum)` | compile_policy |
+| `void Deny(int prefixType)` | compile_policy |
+| `void Deny(string ownModPrefixName)` | compile_policy |
+| `void DenyWhenDamageBetween(int prefixType, int minimum, int maximum)` | compile_policy |
+| `void DenyWhenDamageBetween(string ownModPrefixName, int minimum, int maximum)` | compile_policy |
+| `void DenyWhenManaBetween(int prefixType, int minimum, int maximum)` | compile_policy |
+| `void DenyWhenManaBetween(string ownModPrefixName, int minimum, int maximum)` | compile_policy |
+| `void DenyWhenStackBetween(int prefixType, int minimum, int maximum)` | compile_policy |
+| `void DenyWhenStackBetween(string ownModPrefixName, int minimum, int maximum)` | compile_policy |
+| `void SetPrefixChanceWhenStackBetween(int minimum, int maximum, bool allowed)` | compile_policy |
+
+## BunnyLoader.Source.BunnyItemPrefixRuntime
+
+abstract class; base: `System.Object`.
+
+| Method | Execution |
+| --- | --- |
+| `static string Dispatch(string modId, string assemblyPath, string owner, int index, int kind, string snapshot)` | worker_dispatcher |
 
 ## BunnyLoader.Source.BunnyLocalizationCatalog
 
@@ -1658,16 +1726,136 @@ abstract class; base: `System.Object`.
 
 ```csharp
 PrefixCategory Category { get; set; }
+bool RequireEffectiveStats { get; set; }
 float RollWeight { get; set; }
 string DisplayName { get; set; }
+string ExtraTooltip { get; set; }
 ```
 
 | Method | Execution |
 | --- | --- |
+| `IReadOnlyList<BunnyPrefixTooltipLine> GetTooltipLines(BunnyPrefixItemSnapshot item)` | worker_callback_opt_in |
+| `bool AllStatChangesHaveEffectOn(BunnyPrefixItemSnapshot item)` | worker_callback_opt_in |
+| `bool CanRoll(BunnyPrefixItemSnapshot item)` | worker_callback_opt_in |
+| `int RollChance(BunnyPrefixItemSnapshot item)` | worker_callback_opt_in |
+| `string SerializeTooltipItemLines()` | compile_policy |
+| `string SerializeTooltipLines()` | compile_policy |
+| `void AddTooltipItemLine(string template)` | compile_policy |
+| `void AddTooltipLine(string text)` | compile_policy |
+| `void Apply(BunnyPrefixItemSnapshot item, ref BunnyPrefixApplyStats effects)` | worker_callback_opt_in |
+| `void Apply(ref BunnyPrefixApplyStats effects)` | compile_policy |
+| `void ApplyAccessoryEffects(BunnyPrefixPlayerSnapshot player, ref int defenseBonus)` | worker_callback_opt_in |
 | `void ApplyAccessoryEffects(ref int defenseBonus)` | compile_policy |
+| `void ConfigureItemConditions(BunnyPrefixItemConditions conditions)` | compile_policy |
+| `void ConfigureRollRules(BunnyPrefixRollRules rules)` | compile_policy |
 | `void ModifyValue(ref float valueMultiplier)` | compile_policy |
 | `void SetDefaults()` | compile_policy |
 | `void SetStats(ref PrefixStats stats)` | compile_policy |
+
+## BunnyLoader.Source.BunnyPrefixApplyStats
+
+struct; base: `System.ValueType`.
+
+```csharp
+int DamageBonus { get; set; }
+int ValueBonus { get; set; }
+```
+
+## BunnyLoader.Source.BunnyPrefixItemConditions
+
+class; base: `System.Object`.
+
+```csharp
+BunnyPrefixItemConditions()
+Char AttributeRollWeightKind { get; }
+bool HasAttributeRollWeight { get; }
+bool HasStackRollWeight { get; }
+int AttributeRollWeightMaximum { get; }
+int AttributeRollWeightMinimum { get; }
+int AttributeRollWeightValue { get; }
+int MaxDamage { get; }
+int MaxMana { get; }
+int MaxStack { get; }
+int MinDamage { get; }
+int MinMana { get; }
+int MinStack { get; }
+int RollWeightInRange { get; }
+int RollWeightMaxStack { get; }
+int RollWeightMinStack { get; }
+```
+
+| Method | Execution |
+| --- | --- |
+| `void OverrideRollWeightWhenDamageBetween(int minimum, int maximum, int weight)` | compile_policy |
+| `void OverrideRollWeightWhenManaBetween(int minimum, int maximum, int weight)` | compile_policy |
+| `void OverrideRollWeightWhenStackBetween(int minimum, int maximum, int weight)` | compile_policy |
+| `void RequireDamageBetween(int minimum, int maximum)` | compile_policy |
+| `void RequireManaBetween(int minimum, int maximum)` | compile_policy |
+| `void RequireStackBetween(int minimum, int maximum)` | compile_policy |
+
+## BunnyLoader.Source.BunnyPrefixItemSnapshot
+
+struct; base: `System.ValueType`.
+
+```csharp
+bool Accessory { get; }
+bool Consumable { get; }
+bool Ranged { get; }
+int CurrentPrefix { get; }
+int Damage { get; }
+int ItemType { get; }
+int Mana { get; }
+int Stack { get; }
+```
+
+## BunnyLoader.Source.BunnyPrefixPlayerSnapshot
+
+struct; base: `System.ValueType`.
+
+```csharp
+int Life { get; }
+int LifeMax { get; }
+```
+
+## BunnyLoader.Source.BunnyPrefixRollRules
+
+class; base: `System.Object`.
+
+```csharp
+BunnyPrefixRollRules()
+```
+
+| Method | Execution |
+| --- | --- |
+| `string Serialize()` | compile_policy |
+| `void Allow(int itemType, int weight)` | compile_policy |
+| `void Allow(string itemName, int weight)` | compile_policy |
+| `void Deny(int itemType)` | compile_policy |
+| `void Deny(string itemName)` | compile_policy |
+| `void PreferFor(int itemType)` | compile_policy |
+| `void PreferFor(string itemName)` | compile_policy |
+| `void SetCanRoll(int itemType, bool allowed)` | compile_policy |
+| `void SetCanRoll(string itemName, bool allowed)` | compile_policy |
+| `void SetWeight(int itemType, int weight)` | compile_policy |
+| `void SetWeight(string itemName, int weight)` | compile_policy |
+
+## BunnyLoader.Source.BunnyPrefixRuntime
+
+abstract class; base: `System.Object`.
+
+| Method | Execution |
+| --- | --- |
+| `static string Dispatch(string modId, string assemblyPath, string owner, int index, int kind, string snapshot)` | worker_dispatcher |
+
+## BunnyLoader.Source.BunnyPrefixTooltipLine
+
+struct; base: `System.ValueType`.
+
+```csharp
+BunnyPrefixTooltipLine(string text, bool isNegative)
+bool IsNegative { get; }
+string Text { get; }
+```
 
 ## BunnyLoader.Source.BunnyProjectile
 
@@ -2608,6 +2796,7 @@ BunnyHoldout Holdout { get; set; }
 BunnyNativeDefaults NativeDefaults { get; }
 BunnySoundStyle CustomUseSound { get; set; }
 DamageClass DamageType { get; set; }
+Nullable<bool> PrefixChance { get; set; }
 bool Summon { get; set; }
 float ShootSpeed { get; set; }
 int Damage { get; set; }
@@ -2623,6 +2812,12 @@ string Texture { get; set; }
 
 | Method | Execution |
 | --- | --- |
+| `Nullable<bool> DecidePrefixChance(BunnyPrefixItemSnapshot item, int request)` | worker_callback_isolated |
+| `bool AllowPrefix(BunnyPrefixItemSnapshot item, int prefix)` | worker_callback_isolated |
+| `int ChoosePrefix(BunnyPrefixItemSnapshot item)` | worker_callback_isolated |
+| `void ApplyPrefix(BunnyPrefixItemSnapshot item, int prefix, ref BunnyPrefixApplyStats effects)` | worker_callback_isolated |
+| `void ApplyPrefix(ref BunnyPrefixApplyStats effects)` | compile_policy |
+| `void ConfigurePrefixRules(BunnyItemPrefixRules rules)` | managed_helper |
 | `void SetDefaults()` | compile_policy |
 | `void SetRarity<T>()` | managed_helper |
 

@@ -165,6 +165,33 @@ for armor_name in ("ExampleHelmet", "ExampleBreastplate", "ExampleLeggings"):
     armor_text = (playable / "content/Content/Items/Armor" / (armor_name + ".cs")).read_text(encoding="utf-8")
     assert 'AddTile("ExampleWorkbench")' in armor_text
     assert 'TooltipTranslations["pt-BR"]' in armor_text
+prefix_example = (playable / "content/Content/Prefixes/ExampleMightyPrefix.cs").read_text(encoding="utf-8")
+assert 'rules.Allow("ExampleWand", 3);' in prefix_example
+assert 'effects.DamageBonus = 3;' in prefix_example
+assert 'effects.ValueBonus = 40;' in prefix_example
+assert 'ExtraTooltip = "Bonus adicional do prefixo";' in prefix_example
+assert 'AddTooltipLine("Dano extra do prefixo");' in prefix_example
+assert 'AddTooltipLine("Valor adicional");' in prefix_example
+assert 'AddTooltipItemLine("Dano atual: {damage}, mana: {mana}, pilha: {stack}");' in prefix_example
+assert 'conditions.RequireDamageBetween(10, 25);' in prefix_example
+assert 'conditions.RequireManaBetween(0, 8);' in prefix_example
+assert 'conditions.RequireStackBetween(1, 10);' in prefix_example
+assert 'conditions.OverrideRollWeightWhenStackBetween(3, 5, 6);' in prefix_example
+guarded_prefix_example = (playable / "content/Content/Prefixes/ExampleGuardedPrefix.cs").read_text(encoding="utf-8")
+assert 'conditions.OverrideRollWeightWhenManaBetween(0, 8, 4);' in guarded_prefix_example
+assert 'public override bool CanRoll(BunnyPrefixItemSnapshot item)' in guarded_prefix_example
+assert 'public override int RollChance(BunnyPrefixItemSnapshot item)' in guarded_prefix_example
+assert 'public override bool AllStatChangesHaveEffectOn(BunnyPrefixItemSnapshot item)' in guarded_prefix_example
+assert 'public override void Apply(BunnyPrefixItemSnapshot item, ref BunnyPrefixApplyStats effects)' in guarded_prefix_example
+assert 'public override System.Collections.Generic.IReadOnlyList<BunnyPrefixTooltipLine> GetTooltipLines(' in guarded_prefix_example
+item_deny_example = (playable / "content/Content/Items/Weapons/ExampleWand.cs").read_text(encoding="utf-8")
+assert 'rules.Deny(71);' in item_deny_example
+assert 'rules.Deny(nameof(ExampleGuardedPrefix));' in item_deny_example
+assert 'rules.DenyWhenStackBetween(72, 3, 5);' in item_deny_example
+assert 'rules.DenyWhenDamageBetween(73, 10, 25);' in item_deny_example
+assert 'rules.DenyWhenManaBetween(nameof(ExampleGuardedPrefix), 2, 8);' in item_deny_example
+assert 'rules.SetPrefixChanceWhenStackBetween(3, 5, true);' in item_deny_example
+assert 'rules.ChooseWhenStackBetween(nameof(ExampleMightyPrefix), 1, 2);' in item_deny_example
 wave_weapon = (playable / "content/Content/Items/Weapons/ExampleWaveWand.cs").read_text(encoding="utf-8")
 wave_projectile = (playable / "content/Content/Projectiles/ExampleWaveBolt.cs").read_text(encoding="utf-8")
 wave_motion = (playable / "content/ExampleWaveBoltMotion.cs").read_text(encoding="utf-8")

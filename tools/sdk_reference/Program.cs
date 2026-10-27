@@ -55,7 +55,28 @@ string Mode(Type type, MethodInfo method)
         return "worker_async_entity";
     if (type == typeof(BunnyProjectile) && method.Name != "SetDefaults") return "compile_sampled_policy";
     if (type == typeof(BunnyMount)) return "authoring_contract_native_registration_pending";
-    if (type == typeof(BunnyPrefix)) return "compile_policy";
+    if (type == typeof(BunnyPrefix) &&
+        method.Name is "CanRoll" or "RollChance" or "AllStatChangesHaveEffectOn" or "GetTooltipLines" ||
+        type == typeof(BunnyPrefix) && method.Name == "Apply" && method.GetParameters().Length == 2 ||
+        type == typeof(BunnyPrefix) && method.Name == "ApplyAccessoryEffects" && method.GetParameters().Length == 2)
+        return "worker_callback_opt_in";
+    if (type == typeof(BunnyGlobalItem) &&
+        method.Name is "AppliesTo" or "AllowPrefix" or "ChoosePrefix" or
+                       "DecidePrefixChance" or "ApplyPrefix")
+        return "worker_callback_isolated";
+    if (type == typeof(BunnyPrefixRuntime) || type == typeof(BunnyItemPrefixRuntime))
+        return "worker_dispatcher";
+    if ((type == typeof(BunnyItem) || type == typeof(BunnyWeapon) ||
+         type == typeof(BunnyAccessory) || type == typeof(BunnyBuffPotion)) &&
+        (method.Name is "AllowPrefix" or "ChoosePrefix" or "DecidePrefixChance" ||
+         (method.Name == "ApplyPrefix" && method.GetParameters().Length == 3)))
+        return "worker_callback_isolated";
+    if (type == typeof(BunnyPrefix) || type == typeof(BunnyPrefixRollRules) ||
+        type == typeof(BunnyItemPrefixRules) ||
+        type == typeof(BunnyPrefixItemConditions)) return "compile_policy";
+    if ((type == typeof(BunnyItem) || type == typeof(BunnyWeapon) ||
+         type == typeof(BunnyAccessory) || type == typeof(BunnyBuffPotion)) &&
+        method.Name == "ApplyPrefix") return "compile_policy";
     if (type == typeof(BunnyLocalizationModule))
         return method.Name == "OnLocalizationsLoaded" ? "worker_async_localization" : "compile_policy";
     if (type == typeof(BunnyLocalizationRuntime))

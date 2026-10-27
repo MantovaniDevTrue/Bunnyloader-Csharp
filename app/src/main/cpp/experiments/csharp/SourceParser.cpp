@@ -337,7 +337,7 @@ bool parseClass(const std::vector<Token>& tokens, size_t begin, size_t end,
         definitions->push_back({name, base, namespaceName, {}});
         return true;
     }
-    if (!isRecognizedSourceBase(base) && base != "BunnyScreenEffect" && base != "BunnyRarity" && base != "BunnyCommand" && base != "BunnyWorldSystem" && base != "BunnyWorldUpdateLoader" && base != "BunnyHookModule" && base != "DamageClass") return true;
+    if (!isRecognizedSourceBase(base) && base != "BunnyScreenEffect" && base != "BunnyRarity" && base != "BunnyCommand" && base != "BunnyWorldSystem" && base != "BunnyWorldUpdateLoader" && base != "BunnyHookModule" && base != "DamageClass" && base != "BunnyGlobalItem") return true;
     ParsedSourceType def;
     def.name = name;
     def.base = base;
@@ -459,7 +459,7 @@ bool parseClass(const std::vector<Token>& tokens, size_t begin, size_t end,
             return false;
         }
     }
-    if (!foundDefaults) {
+    if (!foundDefaults && base != "BunnyGlobalItem") {
         *error = name + ": precisa de void SetDefaults() com atribuicoes literais";
         return false;
     }
@@ -555,13 +555,13 @@ bool parseCSharpSource(const std::string& source,
         if (!contentDeclaration(tokens, declarationStart, i, &declaredBase,
                                 &declaredProperties, error,&localizedNames)) return false;
         if (!declaredBase.empty()) {
-            if (isRecognizedSourceBase(base) && base != declaredBase) {
+            if ((isRecognizedSourceBase(base) || base == "BunnyGlobalItem") && base != declaredBase) {
                 *error = name + ": categoria BunnyContent difere da classe base";
                 return false;
             }
             base = declaredBase;
         }
-        if (!abstract && (isRecognizedSourceBase(base) || base == "BunnyScreenEffect" || base == "BunnyRarity" || base == "BunnyCommand" || base == "BunnyWorldSystem" || base == "BunnyWorldUpdateLoader" || base == "BunnyHookModule" || base == "DamageClass")) {
+        if (!abstract && (isRecognizedSourceBase(base) || base == "BunnyScreenEffect" || base == "BunnyRarity" || base == "BunnyCommand" || base == "BunnyWorldSystem" || base == "BunnyWorldUpdateLoader" || base == "BunnyHookModule" || base == "DamageClass" || base == "BunnyGlobalItem")) {
             std::string qualifiedNamespace = fileNamespace;
             for (const auto& scope : namespaces) {
                 if (!qualifiedNamespace.empty()) qualifiedNamespace += ".";
