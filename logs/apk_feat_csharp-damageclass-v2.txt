@@ -1,20 +1,4 @@
-run: https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/40694222614
+run: https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/40695174302
 status: failure
-/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/build/generated/csharp/Terraria.ID.ItemID.g.cs(6379,47): error CS0261: Partial declarations of 'ItemID.Sets' must be all classes, all record classes, all structs, all unions, all record structs, or all interfaces [/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/src/main/csharp/BunnyLoader/BunnyLoader.csproj]
-/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/build/generated/csharp/Terraria.ID.ItemID.g.cs(6389,41): error CS0563: One of the parameters of a binary operator must be the containing type [/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/src/main/csharp/BunnyLoader/BunnyLoader.csproj]
-/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/build/generated/csharp/Terraria.ID.ItemID.g.cs(6390,41): error CS0563: One of the parameters of a binary operator must be the containing type [/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/src/main/csharp/BunnyLoader/BunnyLoader.csproj]
-/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/build/generated/csharp/Terraria.ID.ItemID.g.cs(6392,45): error CS0556: User-defined conversion must convert to or from the enclosing type [/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/src/main/csharp/BunnyLoader/BunnyLoader.csproj]
-Build FAILED.
-/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/build/generated/csharp/Terraria.ID.ItemID.g.cs(6379,47): error CS0261: Partial declarations of 'ItemID.Sets' must be all classes, all record classes, all structs, all unions, all record structs, or all interfaces [/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/src/main/csharp/BunnyLoader/BunnyLoader.csproj]
-/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/build/generated/csharp/Terraria.ID.ItemID.g.cs(6389,41): error CS0563: One of the parameters of a binary operator must be the containing type [/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/src/main/csharp/BunnyLoader/BunnyLoader.csproj]
-/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/build/generated/csharp/Terraria.ID.ItemID.g.cs(6390,41): error CS0563: One of the parameters of a binary operator must be the containing type [/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/src/main/csharp/BunnyLoader/BunnyLoader.csproj]
-/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/build/generated/csharp/Terraria.ID.ItemID.g.cs(6392,45): error CS0556: User-defined conversion must convert to or from the enclosing type [/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/src/main/csharp/BunnyLoader/BunnyLoader.csproj]
-> Task :app:buildBunnyLoaderCs FAILED
-FAILURE: Build failed with an exception.
-* What went wrong:
-* Exception is:
-org.gradle.api.tasks.TaskExecutionException: Execution failed for task ':app:buildBunnyLoaderCs'.
-	at org.gradle.api.internal.tasks.execution.CatchExceptionTaskExecuter.execute(CatchExceptionTaskExecuter.java:36)
-Caused by: org.gradle.process.internal.ExecException: Process 'command 'dotnet'' finished with non-zero exit value 1
-	at org.gradle.api.internal.tasks.execution.CatchExceptionTaskExecuter.execute(CatchExceptionTaskExecuter.java:36)
-BUILD FAILED in 1m 25s
+2 files found for path 'lib/arm64-v8a/libshadowhook.so'. This version of the Android Gradle Plugin chooses the file from the app or dynamic-feature module, but this can cause unexpected behavior or errors at runtime. Future versions of the Android Gradle Plugin may throw an error in this case.
+BUILD SUCCESSFUL in 3m 43s
