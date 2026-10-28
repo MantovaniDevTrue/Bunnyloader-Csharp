@@ -1,0 +1,1 @@
+^Terraria\.Item\$\$(Prefix|CanHavePrefixes|CanApplyPrefix|GetPrefixCategory|IsAPrefixableAccessory|CanRollPrefix)$

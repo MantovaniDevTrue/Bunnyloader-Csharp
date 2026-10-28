@@ -1,0 +1,165 @@
+# Compila o BunnyLoader.dll (proxies geradas do dump do jogo), os mods de teste
+# C# e o ExampleModCSharp. O dump (refs/DummyDll) sai do runtime privado do
+# Terraria 1.4.5.8.6 com o Il2CppDumper, como no refs/README.md.
+#
+# O log de cada run vai para o branch ci/csharp-build-logs (logs/<branch>.txt),
+# para ser lido sem login no GitHub.
+name: C# build check
+
+on:
+  push:
+    branches:
+      - "feat/csharp-*"
+      - "fix/*"
+    paths-ignore:
+      - "**.md"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: csharp-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      RUNTIME_TAG: bunny-private-build-inputs-v1
+      RUNTIME_ASSET: BunnyRuntime_Terraria_1.4.5.8.6.zip
+      RUNTIME_SHA256: 2eb8d02dea144cb2fff6a27b94cc371e50ffd9aa44ba4dcd123337691a54c0ab
+      DUMPER_TAG: v6.7.46
+      LOG: ${{ github.workspace }}/../csharp-build.log
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            6.0.x
+            10.0.x
+
+      - name: Download private Terraria runtime
+        env:
+          GH_TOKEN: ${{ secrets.BUNNY_PRIVATE_BUILD_TOKEN }}
+        run: |
+          set -euo pipefail
+          test "$(gh api "repos/MantovaniDevTrue/Bunnyloader-Csharp-Builds" --jq '.private')" = "true"
+          mkdir -p "$RUNNER_TEMP/rt"
+          gh release download "$RUNTIME_TAG" --repo MantovaniDevTrue/Bunnyloader-Csharp-Builds \
+            --pattern "$RUNTIME_ASSET" --dir "$RUNNER_TEMP/rt"
+          cd "$RUNNER_TEMP/rt"
+          echo "$RUNTIME_SHA256  $RUNTIME_ASSET" | sha256sum -c -
+          unzip -q "$RUNTIME_ASSET" -d x
+          mkdir -p "$GITHUB_WORKSPACE/refs"
+          cp x/lib/arm64-v8a/libil2cpp.so "$GITHUB_WORKSPACE/refs/"
+          cp x/assets/bin/Data/Managed/Metadata/global-metadata.dat "$GITHUB_WORKSPACE/refs/"
+
+      - name: Dump the game (Il2CppDumper)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/dumper"
+          gh release download "$DUMPER_TAG" --repo Perfare/Il2CppDumper --pattern "Il2CppDumper-net6-v*.zip" --dir "$RUNNER_TEMP/dumper" \
+            || { gh release view "$DUMPER_TAG" --repo Perfare/Il2CppDumper --json assets --jq '.assets[].name'; exit 1; }
+          cd "$RUNNER_TEMP/dumper"
+          unzip -q -o ./*.zip
+          dll="$(find . -name Il2CppDumper.dll | head -1)"
+          cd "$GITHUB_WORKSPACE/refs"
+          dotnet "$RUNNER_TEMP/dumper/$dll" libil2cpp.so global-metadata.dat . < /dev/null || true
+          test -f DummyDll/Assembly-CSharp.dll
+          ls -la DummyDll | head -20
+
+      - name: Disassemble the methods asked for (fork only)
+        if: always()
+        run: |
+          set -uo pipefail
+          pip install --quiet capstone pyelftools || true
+          name="$(echo "$GITHUB_REF_NAME" | tr '/' '_')"
+          out="$RUNNER_TEMP/disasm.txt"
+          : > "$out"
+          if [ -f .github/ci/disasm-targets.txt ]; then
+            while IFS= read -r pat; do
+              [ -z "$pat" ] && continue
+              python3 .github/ci/disasm.py refs/libil2cpp.so refs/script.json "$pat" >> "$out" 2>&1 || echo "disasm failed: $pat" >> "$out"
+            done < .github/ci/disasm-targets.txt
+          fi
+          for c in $(cat .github/ci/dump-classes.txt 2>/dev/null); do
+            awk -v name="$c" '!inblock && $0 ~ ("(class|struct) " name "([ :<]|$)") {inblock=1} inblock {print; if ($0 ~ /^}/) inblock=0}' refs/dump.cs >> "$out"
+          done
+          cp "$out" "$RUNNER_TEMP/disasm-$name.txt"
+
+      - name: Match the hand-written ItemID.Sets to this dump
+        run: |
+          set -euo pipefail
+          f=app/src/main/csharp/BunnyLoader/Terraria/ID/ItemID.Sets.cs
+          if [ -f "$f" ] && grep -q "public static partial class Sets" "$f"; then
+            sed -i 's/public static partial class Sets/public readonly unsafe partial struct Sets/' "$f"
+            echo "ItemID.Sets declared as a struct for this dump"
+          fi
+
+      - name: Build BunnyLoader.dll and the C# mods
+        run: |
+          set -o pipefail
+          echo 0 > "$RUNNER_TEMP/status"
+          {
+            status=0
+            echo "== branch ${GITHUB_REF_NAME} @ ${GITHUB_SHA}"
+            echo "== BunnyLoader"
+            dotnet build app/src/main/csharp/BunnyLoader/BunnyLoader.csproj -c Release -nologo -v q -clp:NoSummary || status=1
+            if [ $status -eq 0 ]; then
+              echo "== test mods"
+              tests=""; for t in csitems csdamageclass csrarity cstooltip; do [ -d "tools/tests/$t" ] && tests="$tests $t"; done
+              bash tools/tests/build-cs.sh $tests || status=1
+              echo "== ExampleModCSharp"
+              proj="$RUNNER_TEMP/examplemod/ExampleModCSharp.csproj"
+              mkdir -p "$(dirname "$proj")"
+              cat > "$proj" <<EOF
+          <Project Sdk="Microsoft.NET.Sdk">
+            <PropertyGroup>
+              <TargetFramework>net10.0</TargetFramework>
+              <Nullable>enable</Nullable>
+              <ImplicitUsings>disable</ImplicitUsings>
+              <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+              <OutDir>$RUNNER_TEMP/examplemod/out/</OutDir>
+            </PropertyGroup>
+            <ItemGroup>
+              <Compile Include="$GITHUB_WORKSPACE/samples/ExampleModCSharp/content/**/*.cs" />
+              <ProjectReference Include="$GITHUB_WORKSPACE/app/src/main/csharp/BunnyLoader/BunnyLoader.csproj" Private="false" />
+            </ItemGroup>
+          </Project>
+          EOF
+              dotnet build "$proj" -c Release -nologo -v q -clp:NoSummary || status=1
+            fi
+            echo "== result: $([ $status -eq 0 ] && echo OK || echo FAILED)"
+            echo $status > "$RUNNER_TEMP/status"
+          } 2>&1 | tee "$LOG"
+          exit "$(cat "$RUNNER_TEMP/status")"
+
+      - name: Publish the log to ci/csharp-build-logs
+        if: always()
+        run: |
+          set -euo pipefail
+          [ -f "$LOG" ] || echo "no build log (an earlier step failed: ${{ job.status }})" > "$LOG"
+          name="$(echo "$GITHUB_REF_NAME" | tr '/' '_').txt"
+          dir="$RUNNER_TEMP/logs"
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@users.noreply.github.com"
+          if git ls-remote --exit-code origin refs/heads/ci/csharp-build-logs >/dev/null; then
+            git clone -q --depth 1 --branch ci/csharp-build-logs "https://x-access-token:${{ github.token }}@github.com/${GITHUB_REPOSITORY}.git" "$dir"
+          else
+            mkdir -p "$dir" && cd "$dir" && git init -q -b ci/csharp-build-logs \
+              && git remote add origin "https://x-access-token:${{ github.token }}@github.com/${GITHUB_REPOSITORY}.git"
+          fi
+          cd "$dir"
+          mkdir -p logs
+          name0="$(echo "$GITHUB_REF_NAME" | tr '/' '_')"
+          [ -f "$RUNNER_TEMP/disasm-$name0.txt" ] && cp "$RUNNER_TEMP/disasm-$name0.txt" "logs/disasm-$name0.txt"
+          { echo "run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"; echo "status: ${{ job.status }}"; cat "$LOG"; } > "logs/$name"
+          git add logs
+          git commit -q -m "log: ${GITHUB_REF_NAME} @ ${GITHUB_SHA::7}" || exit 0
+          git push -q origin HEAD:ci/csharp-build-logs
