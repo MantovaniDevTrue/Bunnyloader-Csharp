@@ -1,0 +1,22 @@
+run: https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/40694879637
+status: failure
+== branch feat/csharp-upstream-check @ ca7c26108e0c63b94ae774424f1892690ea05baf
+== BunnyLoader
+/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/build/generated/csharp/Terraria.ID.ItemID.g.cs(6379,47): error CS0261: Partial declarations of 'ItemID.Sets' must be all classes, all record classes, all structs, all unions, all record structs, or all interfaces [/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/src/main/csharp/BunnyLoader/BunnyLoader.csproj]
+/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/build/generated/csharp/Terraria.ID.ItemID.g.cs(6389,41): error CS0563: One of the parameters of a binary operator must be the containing type [/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/src/main/csharp/BunnyLoader/BunnyLoader.csproj]
+/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/build/generated/csharp/Terraria.ID.ItemID.g.cs(6390,41): error CS0563: One of the parameters of a binary operator must be the containing type [/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/src/main/csharp/BunnyLoader/BunnyLoader.csproj]
+/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/build/generated/csharp/Terraria.ID.ItemID.g.cs(6392,45): error CS0556: User-defined conversion must convert to or from the enclosing type [/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/src/main/csharp/BunnyLoader/BunnyLoader.csproj]
+/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/build/generated/csharp/Terraria.ID.ItemID.g.cs(6386,25): warning CS8767: Nullability of reference types in type of parameter 'other' of 'bool Sets.Equals(Sets other)' doesn't match implicitly implemented member 'bool IEquatable<Sets>.Equals(Sets? other)' (possibly because of nullability attributes). [/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/src/main/csharp/BunnyLoader/BunnyLoader.csproj]
+
+Build FAILED.
+
+/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/build/generated/csharp/Terraria.ID.ItemID.g.cs(6386,25): warning CS8767: Nullability of reference types in type of parameter 'other' of 'bool Sets.Equals(Sets other)' doesn't match implicitly implemented member 'bool IEquatable<Sets>.Equals(Sets? other)' (possibly because of nullability attributes). [/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/src/main/csharp/BunnyLoader/BunnyLoader.csproj]
+/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/build/generated/csharp/Terraria.ID.ItemID.g.cs(6379,47): error CS0261: Partial declarations of 'ItemID.Sets' must be all classes, all record classes, all structs, all unions, all record structs, or all interfaces [/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/src/main/csharp/BunnyLoader/BunnyLoader.csproj]
+/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/build/generated/csharp/Terraria.ID.ItemID.g.cs(6389,41): error CS0563: One of the parameters of a binary operator must be the containing type [/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/src/main/csharp/BunnyLoader/BunnyLoader.csproj]
+/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/build/generated/csharp/Terraria.ID.ItemID.g.cs(6390,41): error CS0563: One of the parameters of a binary operator must be the containing type [/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/src/main/csharp/BunnyLoader/BunnyLoader.csproj]
+/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/build/generated/csharp/Terraria.ID.ItemID.g.cs(6392,45): error CS0556: User-defined conversion must convert to or from the enclosing type [/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/src/main/csharp/BunnyLoader/BunnyLoader.csproj]
+    1 Warning(s)
+    4 Error(s)
+
+Time Elapsed 00:00:24.82
+== result: FAILED
