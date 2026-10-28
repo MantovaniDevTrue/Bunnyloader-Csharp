@@ -1,0 +1,26 @@
+run: https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/40609949516
+status: success
+== branch fix/moditem-save-without-js @ fb66ef86d62472c96d20f83b1350db922fedc084
+== BunnyLoader
+
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:50.55
+== test mods
+==> csitems
+
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:01.83
+== ExampleModCSharp
+
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:01.39
+== result: OK
