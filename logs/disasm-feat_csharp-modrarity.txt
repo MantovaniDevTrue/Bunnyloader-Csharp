@@ -1,0 +1,1141 @@
+
+==== Terraria.Item$$CanHavePrefixes @ 0xf52c6c (6 instr)
+0xf52c6c: str    x30, [sp, #-0x10]!
+0xf52c70: bl     #0xf52c84   ; Terraria.Item$$GetRollablePrefixes
+0xf52c74: cmp    x0, #0
+0xf52c78: cset   w0, ne
+0xf52c7c: ldr    x30, [sp], #0x10
+0xf52c80: ret    
+
+==== Terraria.Item$$Prefix @ 0xf52f24 (7 instr)
+0xf52f24: str    x30, [sp, #-0x10]!
+0xf52f28: add    x2, sp, #0xc
+0xf52f2c: strb   wzr, [sp, #0xc]
+0xf52f30: bl     #0xf52f40   ; Terraria.Item$$Prefix
+0xf52f34: and    w0, w0, #1
+0xf52f38: ldr    x30, [sp], #0x10
+0xf52f3c: ret    
+
+==== Terraria.Item$$Prefix @ 0xf52f40 (492 instr)
+0xf52f40: sub    sp, sp, #0x110
+0xf52f44: str    d14, [sp, #0x70]
+0xf52f48: stp    d13, d12, [sp, #0x80]
+0xf52f4c: stp    d11, d10, [sp, #0x90]
+0xf52f50: stp    d9, d8, [sp, #0xa0]
+0xf52f54: stp    x28, x27, [sp, #0xb0]
+0xf52f58: stp    x26, x25, [sp, #0xc0]
+0xf52f5c: stp    x24, x23, [sp, #0xd0]
+0xf52f60: stp    x22, x21, [sp, #0xe0]
+0xf52f64: stp    x20, x19, [sp, #0xf0]
+0xf52f68: stp    x29, x30, [sp, #0x100]
+0xf52f6c: adrp   x20, #0x320b000
+0xf52f70: adrp   x23, #0x3066000
+0xf52f74: ldrb   w8, [x20, #0x264]
+0xf52f78: ldr    x23, [x23, #0x610]
+0xf52f7c: mov    x21, x2
+0xf52f80: mov    w22, w1
+0xf52f84: mov    x19, x0
+0xf52f88: tbnz   w8, #0, #0xf52fd0
+0xf52f8c: adrp   x0, #0x3068000
+0xf52f90: ldr    x0, [x0, #0xcc0]
+0xf52f94: bl     #0x6ff5ac
+0xf52f98: adrp   x0, #0x3051000
+0xf52f9c: ldr    x0, [x0, #0x978]
+0xf52fa0: bl     #0x6ff5ac
+0xf52fa4: adrp   x0, #0x303d000
+0xf52fa8: ldr    x0, [x0, #0xf78]
+0xf52fac: bl     #0x6ff5ac
+0xf52fb0: adrp   x0, #0x306a000
+0xf52fb4: ldr    x0, [x0, #0xb10]
+0xf52fb8: bl     #0x6ff5ac
+0xf52fbc: adrp   x0, #0x3066000
+0xf52fc0: ldr    x0, [x0, #0x610]
+0xf52fc4: bl     #0x6ff5ac
+0xf52fc8: mov    w8, #1
+0xf52fcc: strb   w8, [x20, #0x264]
+0xf52fd0: ldr    x0, [x23]
+0xf52fd4: stp    xzr, xzr, [sp, #0x60]
+0xf52fd8: stp    xzr, xzr, [sp, #0x50]
+0xf52fdc: str    xzr, [sp, #0x48]
+0xf52fe0: str    wzr, [sp, #0x44]
+0xf52fe4: ldr    w8, [x0, #0xe0]
+0xf52fe8: cbnz   w8, #0xf52ff4
+0xf52fec: bl     #0x6ff688
+0xf52ff0: ldr    x0, [x23]
+0xf52ff4: ldr    x8, [x0, #0xb8]
+0xf52ff8: adrp   x24, #0x3068000
+0xf52ffc: ldrb   w20, [x8, #0xa4]
+0xf53000: b      #0xf5a41c
+0xf53004: bl     #0x6ff5cc
+0xf53008: cbnz   w20, #0xf53070
+0xf5300c: ldr    x0, [x24]
+0xf53010: ldr    w8, [x0, #0xe0]
+0xf53014: cbnz   w8, #0xf53020
+0xf53018: bl     #0x6ff688
+0xf5301c: ldr    x0, [x24]
+0xf53020: bl     #0x6ff5c4
+0xf53024: ldr    x8, [x0]
+0xf53028: cbnz   x8, #0xf53070
+0xf5302c: adrp   x8, #0x306a000
+0xf53030: ldr    x8, [x8, #0xb10]
+0xf53034: ldr    x0, [x8]
+0xf53038: bl     #0x6ff69c
+0xf5303c: cbz    x0, #0xf536ec
+0xf53040: mov    x1, xzr
+0xf53044: mov    x20, x0
+0xf53048: bl     #0x19f8dfc   ; Terraria.Utilities.UnifiedRandom$$.ctor
+0xf5304c: ldr    x0, [x24]
+0xf53050: ldr    w8, [x0, #0xe0]
+0xf53054: cbnz   w8, #0xf53060
+0xf53058: bl     #0x6ff688
+0xf5305c: ldr    x0, [x24]
+0xf53060: bl     #0x6ff5c4
+0xf53064: str    x20, [x0]
+0xf53068: ldr    x0, [x24]
+0xf5306c: bl     #0x6ff5c4
+0xf53070: strb   wzr, [x21]
+0xf53074: cbz    w22, #0xf53274
+0xf53078: mov    x0, x19
+0xf5307c: bl     #0xf52c84   ; Terraria.Item$$GetRollablePrefixes
+0xf53080: cbz    x0, #0xf536bc
+0xf53084: cmn    w22, #3
+0xf53088: b.eq   #0xf536b8
+0xf5308c: cmn    w22, #2
+0xf53090: fmov   s8, wzr
+0xf53094: b.lo   #0xf530a4
+0xf53098: mov    x0, x19
+0xf5309c: bl     #0xf536f0   ; Terraria.Item$$BestPrefixValue
+0xf530a0: mov    v8.16b, v0.16b
+0xf530a4: ldr    x0, [x23]
+0xf530a8: ldr    w8, [x0, #0xe0]
+0xf530ac: cbnz   w8, #0xf530b8
+0xf530b0: bl     #0x6ff688
+0xf530b4: ldr    x0, [x23]
+0xf530b8: ldr    x8, [x0, #0xb8]
+0xf530bc: ldrb   w20, [x8, #0xa4]
+0xf530c0: bl     #0x6ff5cc
+0xf530c4: str    x21, [sp, #0x38]
+0xf530c8: cbz    w20, #0xf530fc
+0xf530cc: ldr    x0, [x23]
+0xf530d0: ldr    w8, [x0, #0xe0]
+0xf530d4: cbnz   w8, #0xf530dc
+0xf530d8: bl     #0x6ff688
+0xf530dc: adrp   x20, #0x3209000
+0xf530e0: ldrb   w8, [x20, #0x32d]
+0xf530e4: cbnz   w8, #0xf530fc
+0xf530e8: adrp   x0, #0x3068000
+0xf530ec: ldr    x0, [x0, #0xcc0]
+0xf530f0: bl     #0x6ff5ac
+0xf530f4: mov    w8, #1
+0xf530f8: strb   w8, [x20, #0x32d]
+0xf530fc: ldr    x0, [x24]
+0xf53100: ldr    w8, [x0, #0xe0]
+0xf53104: cbnz   w8, #0xf53110
+0xf53108: bl     #0x6ff688
+0xf5310c: ldr    x0, [x24]
+0xf53110: adrp   x20, #0x303d000
+0xf53114: ldr    x20, [x20, #0xf78]
+0xf53118: bl     #0x6ff5c4
+0xf5311c: ldr    x23, [x0]
+0xf53120: mov    w8, #0x3f800000
+0xf53124: stp    wzr, w8, [sp, #0x50]
+0xf53128: add    x26, sp, #0x44
+0xf5312c: add    x27, sp, #0x48
+0xf53130: stp    w8, w22, [sp, #0x68]
+0xf53134: stp    w8, w8, [sp, #0x60]
+0xf53138: stp    w8, w8, [sp, #0x58]
+0xf5313c: add    x28, sp, #0x4c
+0xf53140: add    x29, sp, #0x50
+0xf53144: mov    w24, #-1
+0xf53148: mov    w8, w22
+0xf5314c: mov    x21, x20
+0xf53150: str    xzr, [sp, #0x48]
+0xf53154: str    wzr, [sp, #0x44]
+0xf53158: cmn    w8, #1
+0xf5315c: b.ne   #0xf53188
+0xf53160: cbz    x23, #0xf536ec
+0xf53164: mov    w1, #4
+0xf53168: mov    x0, x23
+0xf5316c: mov    x2, xzr
+0xf53170: bl     #0x19f92ec   ; Terraria.Utilities.UnifiedRandom$$Next
+0xf53174: cbz    w0, #0xf53180
+0xf53178: mov    w8, #-1
+0xf5317c: b      #0xf53188
+0xf53180: mov    w8, wzr
+0xf53184: str    wzr, [sp, #0x6c]
+0xf53188: cmn    w22, #2
+0xf5318c: b.le   #0xf5319c
+0xf53190: cmn    w8, #3
+0xf53194: b.hs   #0xf531a0
+0xf53198: b      #0xf531b4
+0xf5319c: str    w24, [sp, #0x6c]
+0xf531a0: add    x2, sp, #0x6c
+0xf531a4: mov    x0, x19
+0xf531a8: mov    x1, x23
+0xf531ac: bl     #0xf5380c   ; Terraria.Item$$RollAPrefix
+0xf531b0: tbz    w0, #0, #0xf53274
+0xf531b4: cmn    w22, #4
+0xf531b8: b.eq   #0xf5320c
+0xf531bc: cmn    w22, #1
+0xf531c0: b.ne   #0xf53218
+0xf531c4: ldr    x0, [x20]
+0xf531c8: ldr    w8, [x0, #0xe0]
+0xf531cc: cbnz   w8, #0xf531d8
+0xf531d0: bl     #0x6ff688
+0xf531d4: ldr    x0, [x20]
+0xf531d8: ldr    x8, [x0, #0xb8]
+0xf531dc: ldr    x8, [x8, #8]
+0xf531e0: cbz    x8, #0xf536ec
+0xf531e4: ldrsw  x20, [sp, #0x6c]
+0xf531e8: add    x8, x8, x20
+0xf531ec: ldrb   w8, [x8, #0x20]
+0xf531f0: cbz    w8, #0xf5321c
+0xf531f4: cbz    x23, #0xf536ec
+0xf531f8: mov    w1, #3
+0xf531fc: mov    x0, x23
+0xf53200: mov    x2, xzr
+0xf53204: bl     #0x19f92ec   ; Terraria.Utilities.UnifiedRandom$$Next
+0xf53208: cbz    w0, #0xf5321c
+0xf5320c: mov    w20, wzr
+0xf53210: str    wzr, [sp, #0x6c]
+0xf53214: b      #0xf5321c
+0xf53218: ldr    w20, [sp, #0x6c]
+0xf5321c: cmn    w22, #2
+0xf53220: add    x2, sp, #0x68
+0xf53224: add    x3, sp, #0x64
+0xf53228: add    x4, sp, #0x60
+0xf5322c: add    x5, sp, #0x5c
+0xf53230: add    x6, sp, #0x58
+0xf53234: add    x7, sp, #0x54
+0xf53238: mov    x0, x19
+0xf5323c: mov    w1, w20
+0xf53240: cset   w25, eq
+0xf53244: stp    x27, x26, [sp, #0x10]
+0xf53248: stp    x29, x28, [sp]
+0xf5324c: bl     #0xf5385c   ; Terraria.Item$$TryGetPrefixStatMultipliersForItem
+0xf53250: cmp    w20, #0
+0xf53254: cset   w8, eq
+0xf53258: and    w8, w25, w8
+0xf5325c: tbnz   w8, #0, #0xf53264
+0xf53260: tbnz   w0, #0, #0xf5327c
+0xf53264: mov    w8, #-1
+0xf53268: str    w8, [sp, #0x6c]
+0xf5326c: mov    x20, x21
+0xf53270: b      #0xf53158
+0xf53274: mov    w0, wzr
+0xf53278: b      #0xf536bc
+0xf5327c: ldr    s9, [sp, #0x44]
+0xf53280: ldr    x9, [sp, #0x38]
+0xf53284: fcmp   s9, s8
+0xf53288: cset   w8, eq
+0xf5328c: strb   w8, [x9]
+0xf53290: adrp   x8, #0x3051000
+0xf53294: ldr    x8, [x8, #0x978]
+0xf53298: ldr    w21, [x19, #0x84]
+0xf5329c: ldr    s8, [sp, #0x68]
+0xf532a0: ldr    x0, [x8]
+0xf532a4: ldr    w8, [x0, #0xe0]
+0xf532a8: cbnz   w8, #0xf532b0
+0xf532ac: bl     #0x6ff688
+0xf532b0: scvtf  s0, w21
+0xf532b4: fmul   s10, s8, s0
+0xf532b8: fcvt   d8, s10
+0xf532bc: add    x0, sp, #0x78
+0xf532c0: mov    v0.16b, v8.16b
+0xf532c4: bl     #0x59ed30
+0xf532c8: fcmp   s10, #0.0
+0xf532cc: fmov   d11, #0.50000000
+0xf532d0: fmov   d10, #1.00000000
+0xf532d4: fmov   d13, #-0.50000000
+0xf532d8: fmov   d12, #-1.00000000
+0xf532dc: b.ge   #0xf532f8
+0xf532e0: fcmp   d0, d13
+0xf532e4: b.ne   #0xf53318
+0xf532e8: ldr    d0, [sp, #0x78]
+0xf532ec: fcvtzs x8, d0
+0xf532f0: fadd   d1, d0, d12
+0xf532f4: b      #0xf5330c
+0xf532f8: fcmp   d0, d11
+0xf532fc: b.ne   #0xf53324
+0xf53300: ldr    d0, [sp, #0x78]
+0xf53304: fcvtzs x8, d0
+0xf53308: fadd   d1, d0, d10
+0xf5330c: tst    x8, #1
+0xf53310: fcsel  d0, d0, d1, eq
+0xf53314: b      #0xf5332c
+0xf53318: fadd   d0, d8, d13
+0xf5331c: frintp d0, d0
+0xf53320: b      #0xf5332c
+0xf53324: fadd   d0, d8, d11
+0xf53328: frintm d0, d0
+0xf5332c: mov    x9, #0x7ff0000000000000
+0xf53330: fmov   d1, x9
+0xf53334: fcvtzs w8, d0
+0xf53338: mov    w10, #-0x80000000
+0xf5333c: fcmp   d0, d1
+0xf53340: csel   w8, w10, w8, eq
+0xf53344: str    w8, [x19, #0x84]
+0xf53348: ldr    s0, [x19, #0x58]
+0xf5334c: ldr    s1, [sp, #0x60]
+0xf53350: add    x0, sp, #0x78
+0xf53354: scvtf  s0, s0
+0xf53358: fmul   s14, s1, s0
+0xf5335c: fcvt   d8, s14
+0xf53360: mov    v0.16b, v8.16b
+0xf53364: bl     #0x59ed30
+0xf53368: fcmp   s14, #0.0
+0xf5336c: b.ge   #0xf53388
+0xf53370: fcmp   d0, d13
+0xf53374: b.ne   #0xf533a8
+0xf53378: ldr    d0, [sp, #0x78]
+0xf5337c: fcvtzs x8, d0
+0xf53380: fadd   d1, d0, d12
+0xf53384: b      #0xf5339c
+0xf53388: fcmp   d0, d11
+0xf5338c: b.ne   #0xf533b4
+0xf53390: ldr    d0, [sp, #0x78]
+0xf53394: fcvtzs x8, d0
+0xf53398: fadd   d1, d0, d10
+0xf5339c: tst    x8, #1
+0xf533a0: fcsel  d0, d0, d1, eq
+0xf533a4: b      #0xf533bc
+0xf533a8: fadd   d0, d8, d13
+0xf533ac: frintp d0, d0
+0xf533b0: b      #0xf533bc
+0xf533b4: fadd   d0, d8, d11
+0xf533b8: frintm d0, d0
+0xf533bc: mov    x9, #0x7ff0000000000000
+0xf533c0: fmov   d1, x9
+0xf533c4: fcvtzs w8, d0
+0xf533c8: mov    w10, #-0x80000000
+0xf533cc: fcmp   d0, d1
+0xf533d0: csel   w8, w10, w8, eq
+0xf533d4: str    w8, [x19, #0x58]
+0xf533d8: ldr    s0, [x19, #0x5c]
+0xf533dc: ldr    s1, [sp, #0x60]
+0xf533e0: add    x0, sp, #0x78
+0xf533e4: scvtf  s0, s0
+0xf533e8: fmul   s14, s1, s0
+0xf533ec: fcvt   d8, s14
+0xf533f0: mov    v0.16b, v8.16b
+0xf533f4: bl     #0x59ed30
+0xf533f8: fcmp   s14, #0.0
+0xf533fc: b.ge   #0xf53418
+0xf53400: fcmp   d0, d13
+0xf53404: b.ne   #0xf53438
+0xf53408: ldr    d0, [sp, #0x78]
+0xf5340c: fcvtzs x8, d0
+0xf53410: fadd   d1, d0, d12
+0xf53414: b      #0xf5342c
+0xf53418: fcmp   d0, d11
+0xf5341c: b.ne   #0xf53444
+0xf53420: ldr    d0, [sp, #0x78]
+0xf53424: fcvtzs x8, d0
+0xf53428: fadd   d1, d0, d10
+0xf5342c: tst    x8, #1
+0xf53430: fcsel  d0, d0, d1, eq
+0xf53434: b      #0xf5344c
+0xf53438: fadd   d0, d8, d13
+0xf5343c: frintp d0, d0
+0xf53440: b      #0xf5344c
+0xf53444: fadd   d0, d8, d11
+0xf53448: frintm d0, d0
+0xf5344c: mov    x9, #0x7ff0000000000000
+0xf53450: fmov   d1, x9
+0xf53454: fcvtzs w8, d0
+0xf53458: mov    w10, #-0x80000000
+0xf5345c: fcmp   d0, d1
+0xf53460: csel   w8, w10, w8, eq
+0xf53464: str    w8, [x19, #0x5c]
+0xf53468: ldr    s0, [x19, #0x160]
+0xf5346c: ldr    s1, [sp, #0x60]
+0xf53470: add    x0, sp, #0x78
+0xf53474: scvtf  s0, s0
+0xf53478: fmul   s14, s1, s0
+0xf5347c: fcvt   d8, s14
+0xf53480: mov    v0.16b, v8.16b
+0xf53484: bl     #0x59ed30
+0xf53488: fcmp   s14, #0.0
+0xf5348c: b.ge   #0xf534a8
+0xf53490: fcmp   d0, d13
+0xf53494: b.ne   #0xf534c8
+0xf53498: ldr    d0, [sp, #0x78]
+0xf5349c: fcvtzs x8, d0
+0xf534a0: fadd   d1, d0, d12
+0xf534a4: b      #0xf534bc
+0xf534a8: fcmp   d0, d11
+0xf534ac: b.ne   #0xf534d4
+0xf534b0: ldr    d0, [sp, #0x78]
+0xf534b4: fcvtzs x8, d0
+0xf534b8: fadd   d1, d0, d10
+0xf534bc: tst    x8, #1
+0xf534c0: fcsel  d0, d0, d1, eq
+0xf534c4: b      #0xf534dc
+0xf534c8: fadd   d0, d8, d13
+0xf534cc: frintp d0, d0
+0xf534d0: b      #0xf534dc
+0xf534d4: fadd   d0, d8, d11
+0xf534d8: frintm d0, d0
+0xf534dc: mov    x9, #0x7ff0000000000000
+0xf534e0: fmov   d1, x9
+0xf534e4: fcvtzs w8, d0
+0xf534e8: mov    w10, #-0x80000000
+0xf534ec: fcmp   d0, d1
+0xf534f0: csel   w8, w10, w8, eq
+0xf534f4: str    w8, [x19, #0x160]
+0xf534f8: ldr    s0, [x19, #0x118]
+0xf534fc: ldr    s1, [sp, #0x54]
+0xf53500: add    x0, sp, #0x78
+0xf53504: scvtf  s0, s0
+0xf53508: fmul   s14, s1, s0
+0xf5350c: fcvt   d8, s14
+0xf53510: mov    v0.16b, v8.16b
+0xf53514: bl     #0x59ed30
+0xf53518: fcmp   s14, #0.0
+0xf5351c: b.ge   #0xf53538
+0xf53520: fcmp   d0, d13
+0xf53524: b.ne   #0xf53558
+0xf53528: ldr    d0, [sp, #0x78]
+0xf5352c: fcvtzs x8, d0
+0xf53530: fadd   d1, d0, d12
+0xf53534: b      #0xf5354c
+0xf53538: fcmp   d0, d11
+0xf5353c: b.ne   #0xf53564
+0xf53540: ldr    d0, [sp, #0x78]
+0xf53544: fcvtzs x8, d0
+0xf53548: fadd   d1, d0, d10
+0xf5354c: tst    x8, #1
+0xf53550: fcsel  d0, d0, d1, eq
+0xf53554: b      #0xf5356c
+0xf53558: fadd   d0, d8, d13
+0xf5355c: frintp d0, d0
+0xf53560: b      #0xf5356c
+0xf53564: fadd   d0, d8, d11
+0xf53568: frintm d0, d0
+0xf5356c: mov    x9, #0x7ff0000000000000
+0xf53570: fmov   d1, x9
+0xf53574: fcvtzs w8, d0
+0xf53578: mov    w10, #-0x80000000
+0xf5357c: fcmp   d0, d1
+0xf53580: csel   w8, w10, w8, eq
+0xf53584: str    w8, [x19, #0x118]
+0xf53588: ldr    s0, [x19, #0x88]
+0xf5358c: ldr    s1, [sp, #0x64]
+0xf53590: ldr    w8, [x19, #0x14c]
+0xf53594: ldr    w10, [x19, #0x154]
+0xf53598: fmul   s0, s0, s1
+0xf5359c: str    s0, [x19, #0x88]
+0xf535a0: ldr    s1, [x19, #0xa4]
+0xf535a4: ldr    s0, [sp, #0x5c]
+0xf535a8: fmul   s0, s1, s0
+0xf535ac: str    s0, [x19, #0xa4]
+0xf535b0: ldr    s1, [x19, #0xfc]
+0xf535b4: ldr    s0, [sp, #0x58]
+0xf535b8: fmul   s0, s1, s0
+0xf535bc: str    s0, [x19, #0xfc]
+0xf535c0: ldr    w9, [sp, #0x50]
+0xf535c4: fcvt   d0, s9
+0xf535c8: add    w8, w9, w8
+0xf535cc: str    w8, [x19, #0x14c]
+0xf535d0: ldr    w8, [sp, #0x4c]
+0xf535d4: ldr    w9, [x19, #0x150]
+0xf535d8: add    w8, w8, w10
+0xf535dc: adrp   x10, #0x27a2000
+0xf535e0: str    w8, [x19, #0x154]
+0xf535e4: ldr    w8, [sp, #0x48]
+0xf535e8: ldr    d1, [x10, #0x8f8]
+0xf535ec: add    w8, w8, w9
+0xf535f0: fcmp   d0, d1
+0xf535f4: str    w8, [x19, #0x150]
+0xf535f8: b.ge   #0xf53638
+0xf535fc: adrp   x8, #0x27aa000
+0xf53600: ldr    d1, [x8, #0x228]
+0xf53604: fcmp   d0, d1
+0xf53608: b.ge   #0xf53644
+0xf5360c: adrp   x8, #0x279f000
+0xf53610: ldr    d1, [x8, #0xb90]
+0xf53614: fcmp   d0, d1
+0xf53618: b.ls   #0xf53650
+0xf5361c: adrp   x8, #0x27a2000
+0xf53620: ldr    d1, [x8, #0xf90]
+0xf53624: ldr    w8, [x19, #0xe8]
+0xf53628: fcmp   d0, d1
+0xf5362c: b.hi   #0xf5365c
+0xf53630: sub    w8, w8, #1
+0xf53634: b      #0xf53658
+0xf53638: ldr    w8, [x19, #0xe8]
+0xf5363c: add    w8, w8, #2
+0xf53640: b      #0xf53658
+0xf53644: ldr    w8, [x19, #0xe8]
+0xf53648: add    w8, w8, #1
+0xf5364c: b      #0xf53658
+0xf53650: ldr    w8, [x19, #0xe8]
+0xf53654: sub    w8, w8, #2
+0xf53658: str    w8, [x19, #0xe8]
+0xf5365c: cmn    w8, #0xa
+0xf53660: b.lt   #0xf53684
+0xf53664: cmn    w8, #2
+0xf53668: b.le   #0xf5367c
+0xf5366c: cmp    w8, #0xc
+0xf53670: b.lt   #0xf53684
+0xf53674: mov    w8, #0xb
+0xf53678: b      #0xf53680
+0xf5367c: mov    w8, #-1
+0xf53680: str    w8, [x19, #0xe8]
+0xf53684: fmul   s0, s9, s9
+0xf53688: str    s0, [sp, #0x44]
+0xf5368c: ldr    s1, [x19, #0x120]
+0xf53690: mov    w8, #0x7f800000
+0xf53694: fmov   s2, w8
+0xf53698: mov    w9, #-0x80000000
+0xf5369c: scvtf  s1, s1
+0xf536a0: fmul   s0, s0, s1
+0xf536a4: fcvtzs w8, s0
+0xf536a8: fcmp   s0, s2
+0xf536ac: csel   w8, w9, w8, eq
+0xf536b0: strb   w20, [x19, #0x158]
+0xf536b4: str    w8, [x19, #0x120]
+0xf536b8: mov    w0, #1
+0xf536bc: ldp    x29, x30, [sp, #0x100]
+0xf536c0: ldp    x20, x19, [sp, #0xf0]
+0xf536c4: ldp    x22, x21, [sp, #0xe0]
+0xf536c8: ldp    x24, x23, [sp, #0xd0]
+0xf536cc: ldp    x26, x25, [sp, #0xc0]
+0xf536d0: ldp    x28, x27, [sp, #0xb0]
+0xf536d4: ldp    d9, d8, [sp, #0xa0]
+0xf536d8: ldp    d11, d10, [sp, #0x90]
+0xf536dc: ldp    d13, d12, [sp, #0x80]
+0xf536e0: ldr    d14, [sp, #0x70]
+0xf536e4: add    sp, sp, #0x110
+0xf536e8: ret    
+0xf536ec: bl     #0x6ff6ac
+
+==== Terraria.Item$$CanRollPrefix @ 0xf54398 (20 instr)
+0xf54398: stp    x19, x30, [sp, #-0x10]!
+0xf5439c: mov    w19, w1
+0xf543a0: bl     #0xf52c84   ; Terraria.Item$$GetRollablePrefixes
+0xf543a4: cbz    x0, #0xf543e0
+0xf543a8: ldr    w8, [x0, #0x18]
+0xf543ac: cmp    w8, #1
+0xf543b0: b.lt   #0xf543d4
+0xf543b4: mov    x9, xzr
+0xf543b8: add    x10, x0, #0x20
+0xf543bc: ldr    w11, [x10, x9, lsl #2]
+0xf543c0: cmp    w11, w19
+0xf543c4: b.eq   #0xf543dc
+0xf543c8: add    x9, x9, #1
+0xf543cc: cmp    w9, w8
+0xf543d0: b.lt   #0xf543bc
+0xf543d4: mov    w0, wzr
+0xf543d8: b      #0xf543e0
+0xf543dc: mov    w0, #1
+0xf543e0: ldp    x19, x30, [sp], #0x10
+0xf543e4: ret    
+
+==== Terraria.Item$$IsAPrefixableAccessory @ 0xf54658 (36 instr)
+0xf54658: str    x20, [sp, #-0x20]!
+0xf5465c: stp    x19, x30, [sp, #0x10]
+0xf54660: adrp   x20, #0x320b000
+0xf54664: ldrb   w8, [x20, #0x26a]
+0xf54668: mov    x19, x0
+0xf5466c: tbnz   w8, #0, #0xf54684
+0xf54670: adrp   x0, #0x3053000
+0xf54674: ldr    x0, [x0, #0xc0]
+0xf54678: bl     #0x6ff5ac
+0xf5467c: mov    w8, #1
+0xf54680: strb   w8, [x20, #0x26a]
+0xf54684: ldrb   w8, [x19, #0x54]
+0xf54688: cbz    w8, #0xf54694
+0xf5468c: ldrb   w8, [x19, #0x127]
+0xf54690: cbz    w8, #0xf5469c
+0xf54694: mov    w0, wzr
+0xf54698: b      #0xf546d8
+0xf5469c: adrp   x20, #0x3053000
+0xf546a0: ldr    x20, [x20, #0xc0]
+0xf546a4: ldr    x0, [x20]
+0xf546a8: ldr    w8, [x0, #0xe0]
+0xf546ac: cbnz   w8, #0xf546b8
+0xf546b0: bl     #0x6ff688
+0xf546b4: ldr    x0, [x20]
+0xf546b8: ldr    x8, [x0, #0xb8]
+0xf546bc: ldr    x8, [x8, #0x130]
+0xf546c0: cbz    x8, #0xf546e4
+0xf546c4: ldrsw  x9, [x19, #0x4c]
+0xf546c8: add    x8, x8, x9
+0xf546cc: ldrb   w8, [x8, #0x20]
+0xf546d0: cmp    w8, #0
+0xf546d4: cset   w0, ne
+0xf546d8: ldp    x19, x30, [sp, #0x10]
+0xf546dc: ldr    x20, [sp], #0x20
+0xf546e0: ret    
+0xf546e4: bl     #0x6ff6ac
+public class Item : IEntitySourceTarget // TypeDefIndex: 1130
+{
+	// Fields
+	public static int numberOfNewItems; // 0x0
+	public int width; // 0x10
+	public int height; // 0x14
+	public static int coinGrabRange; // 0x4
+	public static int manaGrabRange; // 0x8
+	public static int lifeGrabRange; // 0xC
+	public static int treasureGrabRange; // 0x10
+	private string _nameOverride; // 0x18
+	public const int luckPotionDuration1 = 18000;
+	public const int luckPotionDuration2 = 36000;
+	public const int luckPotionDuration3 = 54000;
+	public const int flaskTime = 72000;
+	public const int copper = 1;
+	public const int silver = 100;
+	public const int gold = 10000;
+	public const int platinum = 1000000;
+	public const int goldCritterRarityColor = 3;
+	private static readonly int shadowOrbPrice; // 0x14
+	private static readonly int dungeonPrice; // 0x18
+	private static readonly int queenBeePrice; // 0x1C
+	private static readonly int hellPrice; // 0x20
+	private static readonly int eclipsePrice; // 0x24
+	private static readonly int eclipsePostPlanteraPrice; // 0x28
+	private static readonly int eclipseMothronPrice; // 0x2C
+	public static int CommonMaxStack; // 0x30
+	public static int[] cachedItemSpawnsByType; // 0x38
+	public static int potionDelay; // 0x40
+	public static int restorationDelay; // 0x44
+	public static int eggnogDelay; // 0x48
+	public static int mushroomDelay; // 0x4C
+	public bool questItem; // 0x20
+	public static int[] headType; // 0x50
+	public static int[] bodyType; // 0x58
+	public static int[] legType; // 0x60
+	public static bool[] staff; // 0x68
+	public static bool[] claw; // 0x70
+	public bool flame; // 0x21
+	public bool mech; // 0x22
+	public int tileWand; // 0x24
+	public bool wornArmor; // 0x28
+	public int tooltipContext; // 0x2C
+	public int tooltipSlot; // 0x30
+	public byte dye; // 0x34
+	public int fishingPole; // 0x38
+	public int bait; // 0x3C
+	public short makeNPC; // 0x40
+	public bool expertOnly; // 0x42
+	public bool expert; // 0x43
+	public bool isAShopItem; // 0x44
+	public short hairDye; // 0x46
+	public byte paint; // 0x48
+	public byte paintCoating; // 0x49
+	public int type; // 0x4C
+	public bool favorited; // 0x50
+	public byte holdStyle; // 0x51
+	public byte useStyle; // 0x52
+	public bool channel; // 0x53
+	public bool accessory; // 0x54
+	public int useAnimation; // 0x58
+	public int useTime; // 0x5C
+	public int stack; // 0x60
+	public int maxStack; // 0x64
+	public int pick; // 0x68
+	public int axe; // 0x6C
+	public int hammer; // 0x70
+	public int tileBoost; // 0x74
+	public int createTile; // 0x78
+	public int createWall; // 0x7C
+	public int placeStyle; // 0x80
+	public int damage; // 0x84
+	public float knockBack; // 0x88
+	public int healLife; // 0x8C
+	public int healMana; // 0x90
+	public bool potion; // 0x94
+	public bool consumable; // 0x95
+	public bool autoReuse; // 0x96
+	public bool useTurn; // 0x97
+	public Color color; // 0x98
+	public int alpha; // 0x9C
+	public short glowMask; // 0xA0
+	public float scale; // 0xA4
+	public LegacySoundStyle UseSound; // 0xA8
+	public float useSoundPitch; // 0xB0
+	public int defense; // 0xB4
+	public int headSlot; // 0xB8
+	public int bodySlot; // 0xBC
+	public int legSlot; // 0xC0
+	public sbyte handOnSlot; // 0xC4
+	public sbyte handOffSlot; // 0xC5
+	public sbyte backSlot; // 0xC6
+	public sbyte frontSlot; // 0xC7
+	public sbyte shoeSlot; // 0xC8
+	public sbyte waistSlot; // 0xC9
+	public sbyte wingSlot; // 0xCA
+	public sbyte shieldSlot; // 0xCB
+	public sbyte neckSlot; // 0xCC
+	public sbyte faceSlot; // 0xCD
+	public sbyte balloonSlot; // 0xCE
+	public sbyte beardSlot; // 0xCF
+	public sbyte voiceSlot; // 0xD0
+	public int stringColor; // 0xD4
+	public ItemTooltip ToolTip; // 0xD8
+	public string BestiaryNotes; // 0xE0
+	public int rare; // 0xE8
+	[CompilerGenerated]
+	private ItemVariant <Variant>k__BackingField; // 0xF0
+	public int shoot; // 0xF8
+	public float shootSpeed; // 0xFC
+	public int ammo; // 0x100
+	public bool notAmmo; // 0x104
+	public int useAmmo; // 0x108
+	public int lifeRegen; // 0x10C
+	public int manaIncrease; // 0x110
+	public bool buyOnce; // 0x114
+	public int mana; // 0x118
+	public bool noUseGraphic; // 0x11C
+	public bool noMelee; // 0x11D
+	public int value; // 0x120
+	public bool buy; // 0x124
+	public bool reforge; // 0x125
+	public bool social; // 0x126
+	public bool vanity; // 0x127
+	public bool material; // 0x128
+	public bool noWet; // 0x129
+	public int buffType; // 0x12C
+	public int buffTime; // 0x130
+	public int mountType; // 0x134
+	public bool cartTrack; // 0x138
+	public bool uniqueStack; // 0x139
+	public int shopSpecialCurrency; // 0x13C
+	public Nullable<int> shopCustomPrice; // 0x140
+	public bool shootsEveryUse; // 0x148
+	public bool chlorophyteExtractinatorConsumable; // 0x149
+	public bool DD2Summon; // 0x14A
+	public int crit; // 0x14C
+	public int armorPenetration; // 0x150
+	public int bonusTagDamage; // 0x154
+	public byte prefix; // 0x158
+	public bool melee; // 0x159
+	public bool magic; // 0x15A
+	public bool ranged; // 0x15B
+	public bool summon; // 0x15C
+	public bool sentry; // 0x15D
+	public int reuseDelay; // 0x160
+	public bool newAndShiny; // 0x164
+	public bool hasVanityEffects; // 0x165
+	private string _affixName; // 0x168
+	private int _affixType; // 0x170
+	private byte _affixPrefix; // 0x174
+	private int _affixLang; // 0x178
+	private const int foodWidth = 22;
+	private const int foodHeight = 22;
+	public const int WALL_PLACEMENT_USETIME = 7;
+	private static Color[] _phaseColors; // 0x78
+	[ThreadStatic]
+	private static Nullable<int> _DefaultAssignItemsToNewPlayer; // 0x80000000
+	public static readonly int PickupReplacementTime; // 0x80
+	public static readonly int SlotsRemainingBeforeEmergencyStackingInMultiplayer; // 0x84
+
+	// Properties
+	public string Name { get; }
+	public string HoverName { get; }
+	public bool PaintOrCoating { get; }
+	public int OriginalRarity { get; }
+	public int OriginalDamage { get; }
+	public int OriginalDefense { get; }
+	public ItemVariant Variant { get; set; }
+	public bool IsACoin { get; }
+	public bool IsAir { get; }
+	public bool IsCurrency { get; }
+	public bool CanBeQuickUsed { get; }
+
+	// Methods
+
+	// RVA: 0xF5172C Offset: 0xF5172C VA: 0xF5172C
+	public string get_Name() { }
+
+	// RVA: 0xF5179C Offset: 0xF5179C VA: 0xF5179C
+	public string get_HoverName() { }
+
+	// RVA: 0xF519AC Offset: 0xF519AC VA: 0xF519AC
+	public static string GetHoverName(Item item, int stack) { }
+
+	// RVA: 0xF51A58 Offset: 0xF51A58 VA: 0xF51A58
+	public static void StartCachingType(int t) { }
+
+	// RVA: 0xF51AF4 Offset: 0xF51AF4 VA: 0xF51AF4
+	public static void DropCache(IEntitySource reason, Vector2 pos, Vector2 spread, int t, bool stopCaching = True) { }
+
+	// RVA: 0xF52908 Offset: 0xF52908 VA: 0xF52908
+	public IEntitySource GetNPCSource_FromThis() { }
+
+	// RVA: 0xF5296C Offset: 0xF5296C VA: 0xF5296C
+	public IEntitySource GetItemSource_Misc(int itemSourceId) { }
+
+	// RVA: 0xF529E0 Offset: 0xF529E0 VA: 0xF529E0
+	public bool get_PaintOrCoating() { }
+
+	// RVA: 0xF52A00 Offset: 0xF52A00 VA: 0xF52A00
+	public int get_OriginalRarity() { }
+
+	// RVA: 0xF52A8C Offset: 0xF52A8C VA: 0xF52A8C
+	public int get_OriginalDamage() { }
+
+	// RVA: 0xF52B18 Offset: 0xF52B18 VA: 0xF52B18
+	public int get_OriginalDefense() { }
+
+	[CompilerGenerated]
+	// RVA: 0xF52BA4 Offset: 0xF52BA4 VA: 0xF52BA4
+	public ItemVariant get_Variant() { }
+
+	[CompilerGenerated]
+	// RVA: 0xF52BAC Offset: 0xF52BAC VA: 0xF52BAC
+	private void set_Variant(ItemVariant value) { }
+
+	// RVA: 0xF52BB4 Offset: 0xF52BB4 VA: 0xF52BB4 Slot: 3
+	public override string ToString() { }
+
+	// RVA: 0xF52C6C Offset: 0xF52C6C VA: 0xF52C6C
+	public bool CanHavePrefixes() { }
+
+	// RVA: 0xF52F24 Offset: 0xF52F24 VA: 0xF52F24
+	public bool Prefix(int prefixWeWant) { }
+
+	// RVA: 0xF52F40 Offset: 0xF52F40 VA: 0xF52F40
+	public bool Prefix(int prefixWeWant, out bool rolledPrefixIsTopTier) { }
+
+	// RVA: 0xF54398 Offset: 0xF54398 VA: 0xF54398
+	public bool CanRollPrefix(int prefix) { }
+
+	// RVA: 0xF543E8 Offset: 0xF543E8 VA: 0xF543E8
+	public int GetVisualCritChance(Player player) { }
+
+	// RVA: 0xF5444C Offset: 0xF5444C VA: 0xF5444C
+	public Color GetPopupRarityColor() { }
+
+	// RVA: 0xF544AC Offset: 0xF544AC VA: 0xF544AC
+	public static Color GetPopupRarityColor(int itemRarity) { }
+
+	// RVA: 0xF5385C Offset: 0xF5385C VA: 0xF5385C
+	public bool TryGetPrefixStatMultipliersForItem(int rolledPrefix, out float dmg, out float kb, out float spd, out float size, out float shtspd, out float mcst, out int crt, out int tagdmg, out int arpen, out float value) { }
+
+	// RVA: 0xF536F0 Offset: 0xF536F0 VA: 0xF536F0
+	public float BestPrefixValue() { }
+
+	// RVA: 0xF52C84 Offset: 0xF52C84 VA: 0xF52C84
+	public int[] GetRollablePrefixes() { }
+
+	// RVA: 0xF5380C Offset: 0xF5380C VA: 0xF5380C
+	public bool RollAPrefix(UnifiedRandom random, ref int rolledPrefix) { }
+
+	// RVA: 0xF54658 Offset: 0xF54658 VA: 0xF54658
+	public bool IsAPrefixableAccessory() { }
+
+	// RVA: 0xF546E8 Offset: 0xF546E8 VA: 0xF546E8
+	public bool CanBeEquipped() { }
+
+	// RVA: 0xF5480C Offset: 0xF5480C VA: 0xF5480C
+	public bool OnlyNeedOneInInventory() { }
+
+	// RVA: 0xF51844 Offset: 0xF51844 VA: 0xF51844
+	public string AffixName() { }
+
+	// RVA: 0xF548F0 Offset: 0xF548F0 VA: 0xF548F0
+	public void RebuildTooltip() { }
+
+	// RVA: 0xF54958 Offset: 0xF54958 VA: 0xF54958
+	public void netDefaults(int type) { }
+
+	// RVA: 0xF5497C Offset: 0xF5497C VA: 0xF5497C
+	public bool FitsAmmoSlot() { }
+
+	// RVA: 0xF549DC Offset: 0xF549DC VA: 0xF549DC
+	public bool CanFillEmptyAmmoSlot() { }
+
+	// RVA: 0xF0CA20 Offset: 0xF0CA20 VA: 0xF0CA20
+	private void SetDefaults1(int type) { }
+
+	// RVA: 0xF1B980 Offset: 0xF1B980 VA: 0xF1B980
+	private void SetDefaults2(int type) { }
+
+	// RVA: 0xF27368 Offset: 0xF27368 VA: 0xF27368
+	private void SetDefaults3(int type) { }
+
+	// RVA: 0xF54A7C Offset: 0xF54A7C VA: 0xF54A7C
+	public void DefaultToQuestFish() { }
+
+	// RVA: 0xF2F584 Offset: 0xF2F584 VA: 0xF2F584
+	private void SetDefaults4(int type) { }
+
+	// RVA: 0xF54A98 Offset: 0xF54A98 VA: 0xF54A98
+	public void DefaultToGolfBall(int projid) { }
+
+	// RVA: 0xF39C34 Offset: 0xF39C34 VA: 0xF39C34
+	private void SetDefaults5(int type) { }
+
+	// RVA: 0xF54BA4 Offset: 0xF54BA4 VA: 0xF54BA4
+	public void DefaultToBanner(int tileStyleToPlace = 0) { }
+
+	// RVA: 0xF54C24 Offset: 0xF54C24 VA: 0xF54C24
+	public void DefaultToMonolith(int tileIDToPlace, int tileStyleToPlace = 0) { }
+
+	// RVA: 0xF54CA0 Offset: 0xF54CA0 VA: 0xF54CA0
+	public void DefaultToBomb(int projectileID, float throwSpeed) { }
+
+	// RVA: 0xF54D48 Offset: 0xF54D48 VA: 0xF54D48
+	public void DefaultToVoiceOverrideAccessory(sbyte voiceOverrideID) { }
+
+	// RVA: 0xF54D7C Offset: 0xF54D7C VA: 0xF54D7C
+	public void DefaultToSolution(int projectileId) { }
+
+	// RVA: 0xF54E38 Offset: 0xF54E38 VA: 0xF54E38
+	public void DefaultToWhip(int projectileId, int dmg, float kb, float shootspeed, int animationTotalTime = 30) { }
+
+	// RVA: 0xF54EF8 Offset: 0xF54EF8 VA: 0xF54EF8
+	public void DefaultToKite(int projId) { }
+
+	// RVA: 0xF54FC8 Offset: 0xF54FC8 VA: 0xF54FC8
+	public void ChangeItemType(int to) { }
+
+	// RVA: 0xF55018 Offset: 0xF55018 VA: 0xF55018
+	public bool IsConsideredSameItemAsType(int compareType) { }
+
+	// RVA: 0xF55218 Offset: 0xF55218 VA: 0xF55218
+	public void DefaultToVanitypet(int projId, int buffID) { }
+
+	// RVA: 0xF5531C Offset: 0xF5531C VA: 0xF5531C
+	public bool get_IsACoin() { }
+
+	// RVA: 0xF55330 Offset: 0xF55330 VA: 0xF55330
+	public static bool IsAGolfingItem(Item item) { }
+
+	// RVA: 0xF553D8 Offset: 0xF553D8 VA: 0xF553D8
+	private void DefaultToSeaShell() { }
+
+	// RVA: 0xF554F0 Offset: 0xF554F0 VA: 0xF554F0
+	public void DefaultToCapturedCritter(short npcIdToSpawnOnUse) { }
+
+	// RVA: 0xF5552C Offset: 0xF5552C VA: 0xF5552C
+	public void DefaultToStaff(int projType, float pushForwardSpeed, int singleShotTime, int manaPerShot) { }
+
+	// RVA: 0xF55610 Offset: 0xF55610 VA: 0xF55610
+	public void DefaultToSpear(int projType, float pushForwardSpeed, int animationTime) { }
+
+	// RVA: 0xF556C0 Offset: 0xF556C0 VA: 0xF556C0
+	private void SetFoodDefaults(int type) { }
+
+	// RVA: 0xF563A8 Offset: 0xF563A8 VA: 0xF563A8
+	public void DefaultToMinecart(int mount) { }
+
+	// RVA: 0xF563BC Offset: 0xF563BC VA: 0xF563BC
+	public void DefaultToPlaceableWall(ushort wallToPlace) { }
+
+	// RVA: 0xF563F0 Offset: 0xF563F0 VA: 0xF563F0
+	public void SetWeaponValues(int dmg, float knockback, int bonusCritChance = 0) { }
+
+	// RVA: 0xF56400 Offset: 0xF56400 VA: 0xF56400
+	public void DefaultToBow(int singleShotTime, float shotVelocity, bool hasAutoReuse = False) { }
+
+	// RVA: 0xF555E4 Offset: 0xF555E4 VA: 0xF555E4
+	public void DefaultToMagicWeapon(int projType, int singleShotTime, float shotVelocity, bool hasAutoReuse = False) { }
+
+	// RVA: 0xF564E4 Offset: 0xF564E4 VA: 0xF564E4
+	public void DefaultToRangedWeapon(int baseProjType, int ammoID, int singleShotTime, float shotVelocity, bool hasAutoReuse = False) { }
+
+	// RVA: 0xF54F9C Offset: 0xF54F9C VA: 0xF54F9C
+	public void DefaultToThrownWeapon(int baseProjType, int singleShotTime, float shotVelocity, bool hasAutoReuse = False) { }
+
+	// RVA: 0xF56514 Offset: 0xF56514 VA: 0xF56514
+	private void DefaultToTorch(int tileStyleToPlace, bool allowWaterPlacement = False) { }
+
+	// RVA: 0xF54C68 Offset: 0xF54C68 VA: 0xF54C68
+	public void DefaultToPlaceableTile(int tileIDToPlace, int tileStyleToPlace = 0) { }
+
+	// RVA: 0xF54BEC Offset: 0xF54BEC VA: 0xF54BEC
+	public void DefaultToPlaceableTile(ushort tileIDToPlace, int tileStyleToPlace = 0) { }
+
+	// RVA: 0xF56568 Offset: 0xF56568 VA: 0xF56568
+	public void MakeUsableWithChlorophyteExtractinator() { }
+
+	// RVA: 0xF5658C Offset: 0xF5658C VA: 0xF5658C
+	public void DefaultToGolfClub(int newwidth, int newheight) { }
+
+	// RVA: 0xF565C0 Offset: 0xF565C0 VA: 0xF565C0
+	public void DefaultToLawnMower(int newwidth, int newheight) { }
+
+	// RVA: 0xF561D8 Offset: 0xF561D8 VA: 0xF561D8
+	public void DefaultToFood(int newwidth, int newheight, int foodbuff, int foodbuffduration, bool useGulpSound = False, int animationTime = 17) { }
+
+	// RVA: 0xF562D4 Offset: 0xF562D4 VA: 0xF562D4
+	public void DefaultToHealingPotion(int newwidth, int newheight, int healingAmount, int animationTime = 17) { }
+
+	// RVA: 0xF54B98 Offset: 0xF54B98 VA: 0xF54B98
+	public void SetShopValues(ItemRarityColor rarity, int coinValue) { }
+
+	// RVA: 0xF56650 Offset: 0xF56650 VA: 0xF56650
+	public void DefaultToHeadgear(int newwidth, int newheight, int helmetArtID) { }
+
+	// RVA: 0xF5665C Offset: 0xF5665C VA: 0xF5665C
+	public void DefaultToBody(int newwidth, int newheight, int bodySlotID) { }
+
+	// RVA: 0xF56668 Offset: 0xF56668 VA: 0xF56668
+	public void DefaultToLegs(int newwidth, int newheight, int legSlotID) { }
+
+	// RVA: 0xF56674 Offset: 0xF56674 VA: 0xF56674
+	public void DefaultToAccessory(int newwidth = 24, int newheight = 24) { }
+
+	// RVA: 0xF56684 Offset: 0xF56684 VA: 0xF56684
+	public void DefaultToInfoAccessory(int newwidth = 24, int newheight = 24) { }
+
+	// RVA: 0xF56698 Offset: 0xF56698 VA: 0xF56698
+	public void DefaultToGuitar(int newwidth = 24, int newheight = 24) { }
+
+	// RVA: 0xF566B8 Offset: 0xF566B8 VA: 0xF566B8
+	public void DefaultToMusicBox(int style) { }
+
+	// RVA: 0xF51CAC Offset: 0xF51CAC VA: 0xF51CAC
+	public void .ctor() { }
+
+	// RVA: 0xF56710 Offset: 0xF56710 VA: 0xF56710
+	public void .ctor(int Type, ItemVariant variant) { }
+
+	// RVA: 0xF51D50 Offset: 0xF51D50 VA: 0xF51D50
+	public void SetDefaults(int Type, ItemVariant variant) { }
+
+	// RVA: 0xF569E4 Offset: 0xF569E4 VA: 0xF569E4
+	private void DebugTrySettingManaCost(int itemType, int manaToSet) { }
+
+	// RVA: 0xF569F8 Offset: 0xF569F8 VA: 0xF569F8
+	public void OnCreated(ItemCreationContext context) { }
+
+	// RVA: 0xF567D4 Offset: 0xF567D4 VA: 0xF567D4
+	public void ResetStats(int Type) { }
+
+	// RVA: 0xF56A18 Offset: 0xF56A18 VA: 0xF56A18
+	public static Color GetPhaseColor(int projectileType, bool drawColor = False) { }
+
+	// RVA: 0xF56E94 Offset: 0xF56E94 VA: 0xF56E94
+	private static Color GetPhaseColorDirect(int projectileType) { }
+
+	// RVA: 0xF56EFC Offset: 0xF56EFC VA: 0xF56EFC
+	public Color GetAlphaFaded(Color newColor) { }
+
+	// RVA: 0xF56FA0 Offset: 0xF56FA0 VA: 0xF56FA0
+	public Color GetAlpha(Color newColor) { }
+
+	// RVA: 0xF5784C Offset: 0xF5784C VA: 0xF5784C
+	public Color GetColor(Color newColor) { }
+
+	// RVA: 0xF578D0 Offset: 0xF578D0 VA: 0xF578D0
+	public static bool MechSpawn(float x, float y, int type) { }
+
+	// RVA: 0xF54B74 Offset: 0xF54B74 VA: 0xF54B74
+	public static int buyPrice(int platinum = 0, int gold = 0, int silver = 0, int copper = 0) { }
+
+	// RVA: 0xF552F4 Offset: 0xF552F4 VA: 0xF552F4
+	public static int sellPrice(int platinum = 0, int gold = 0, int silver = 0, int copper = 0) { }
+
+	// RVA: 0xF57A70 Offset: 0xF57A70 VA: 0xF57A70
+	public static int GetRandomVoiceItem() { }
+
+	// RVA: 0xF57B34 Offset: 0xF57B34 VA: 0xF57B34
+	public bool CanShimmer() { }
+
+	// RVA: 0xF57D9C Offset: 0xF57D9C VA: 0xF57D9C
+	public int FindDecraftAmount() { }
+
+	// RVA: 0xF57C84 Offset: 0xF57C84 VA: 0xF57C84
+	public int GetShimmerEquivalentType(bool forDecrafting = False) { }
+
+	// RVA: 0xF57E44 Offset: 0xF57E44 VA: 0xF57E44
+	public void FixAgainstExploit() { }
+
+	// RVA: 0xF57F38 Offset: 0xF57F38 VA: 0xF57F38
+	public FlexibleTileWand GetFlexibleTileWand() { }
+
+	// RVA: 0xF58474 Offset: 0xF58474 VA: 0xF58474
+	public bool TryAddStack(int itemType, ref int amountLeftToAdd) { }
+
+	// RVA: 0xF585DC Offset: 0xF585DC VA: 0xF585DC
+	public bool CanPassivelyStackInWorld() { }
+
+	// RVA: 0xF58710 Offset: 0xF58710 VA: 0xF58710
+	public static Rectangle GetDrawHitbox(int type, Player user) { }
+
+	// RVA: 0xF58AB0 Offset: 0xF58AB0 VA: 0xF58AB0
+	public static IDisposable DefaultAssignNewItemsToPlayer(int plr) { }
+
+	// RVA: 0xF58B14 Offset: 0xF58B14 VA: 0xF58B14
+	public static int NewItem(int X, int Y, int Width, int Height, int Type, int Stack = 1, bool noBroadcast = False, int pfix = 0, NewItemOwnership ownership = 0) { }
+
+	// RVA: 0xF58BE0 Offset: 0xF58BE0 VA: 0xF58BE0
+	public static void RequestNewItem(IEntitySource source, Vector2 center, int type, int stack = 1, int prefix = 0, NewItemOwnership ownership = 0, Nullable<Vector2> velocity, Item.NewItemModifier modifier) { }
+
+	[Obsolete("Unergonomic")]
+	// RVA: 0xF52808 Offset: 0xF52808 VA: 0xF52808
+	public static int NewItem(IEntitySource source, int X, int Y, int Width, int Height, int type, int stack = 1, bool noBroadcast = False, int prefix = 0, NewItemOwnership ownership = 0, Nullable<Vector2> velocity, Item.NewItemModifier modifier) { }
+
+	// RVA: 0xF58D58 Offset: 0xF58D58 VA: 0xF58D58
+	public static int NewItem(IEntitySource source, Vector2 center, int type, int stack = 1, int prefix = 0, NewItemOwnership ownership = 0, Nullable<Vector2> velocity, Item.NewItemModifier modifier, bool noBroadcast = False) { }
+
+	// RVA: 0xF596C4 Offset: 0xF596C4 VA: 0xF596C4
+	private static int PickAnItemSlotToSpawnItemOn() { }
+
+	// RVA: 0xF59A30 Offset: 0xF59A30 VA: 0xF59A30
+	public Item Clone() { }
+
+	// RVA: 0xF59AB0 Offset: 0xF59AB0 VA: 0xF59AB0
+	public Item clientClone(Item cloneDestination) { }
+
+	// RVA: 0xF59B68 Offset: 0xF59B68 VA: 0xF59B68
+	public Item DeepClone() { }
+
+	// RVA: 0xF59BE8 Offset: 0xF59BE8 VA: 0xF59BE8
+	public bool IsNotTheSameAs(Item compareItem) { }
+
+	// RVA: 0xF59C34 Offset: 0xF59C34 VA: 0xF59C34
+	public bool IsNetStateDifferent(Item compareItem) { }
+
+	// RVA: 0xF59C90 Offset: 0xF59C90 VA: 0xF59C90
+	public static bool CanStack(Item item1, Item item2) { }
+
+	// RVA: 0xF59CD0 Offset: 0xF59CD0 VA: 0xF59CD0
+	public static bool CanStack(ref ChestItem item1, ref ChestItem item2) { }
+
+	// RVA: 0xF59CFC Offset: 0xF59CFC VA: 0xF59CFC
+	public static bool CanStack(Item item1, ref ChestItem item2) { }
+
+	// RVA: 0xF59D38 Offset: 0xF59D38 VA: 0xF59D38
+	public void SetNameOverride(string name) { }
+
+	// RVA: 0xF59D40 Offset: 0xF59D40 VA: 0xF59D40
+	public void ClearNameOverride() { }
+
+	// RVA: 0xF585B8 Offset: 0xF585B8 VA: 0xF585B8
+	public bool get_IsAir() { }
+
+	// RVA: 0xF569C4 Offset: 0xF569C4 VA: 0xF569C4
+	public void TurnToAir() { }
+
+	// RVA: 0xF59D48 Offset: 0xF59D48 VA: 0xF59D48
+	public void OnPurchase(Item item) { }
+
+	// RVA: 0xF59D9C Offset: 0xF59D9C VA: 0xF59D9C
+	public int GetStoreValue() { }
+
+	// RVA: 0xF59E08 Offset: 0xF59E08 VA: 0xF59E08
+	public void Serialize(BinaryWriter writer, bool writeFavorite = False) { }
+
+	// RVA: 0xF59E94 Offset: 0xF59E94 VA: 0xF59E94
+	public void DeserializeFrom(BinaryReader reader, bool readFavorite = False) { }
+
+	// RVA: 0xF59F68 Offset: 0xF59F68 VA: 0xF59F68
+	public bool get_IsCurrency() { }
+
+	// RVA: 0xF57F20 Offset: 0xF57F20 VA: 0xF57F20
+	public void ResetPrefix() { }
+
+	// RVA: 0xF59FE0 Offset: 0xF59FE0 VA: 0xF59FE0
+	public void Refresh(bool onlyIfVariantChanged = True) { }
+
+	// RVA: 0xF5A0B4 Offset: 0xF5A0B4 VA: 0xF5A0B4
+	public bool get_CanBeQuickUsed() { }
+
+	// RVA: 0xF5A1BC Offset: 0xF5A1BC VA: 0xF5A1BC
+	private static void .cctor() { }
+}
