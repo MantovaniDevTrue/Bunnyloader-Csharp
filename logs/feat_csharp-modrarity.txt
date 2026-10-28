@@ -1,13 +1,13 @@
-run: https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/40724851324
+run: https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/40726019556
 status: success
-== branch feat/csharp-modrarity @ 25b47d261c8928f7e228d5edb933cc506f3f80b5
+== branch feat/csharp-modrarity @ 9baf77577e11ae40b8009ba72e0c70fb4f1f37d7
 == BunnyLoader
 
 Build succeeded.
     0 Warning(s)
     0 Error(s)
 
-Time Elapsed 00:01:19.43
+Time Elapsed 00:01:22.31
 == test mods
 ==> csitems
 
@@ -15,26 +15,26 @@ Build succeeded.
     0 Warning(s)
     0 Error(s)
 
-Time Elapsed 00:00:02.41
+Time Elapsed 00:00:02.33
 ==> csrarity
 
 Build succeeded.
     0 Warning(s)
     0 Error(s)
 
-Time Elapsed 00:00:01.93
+Time Elapsed 00:00:01.92
 ==> cstooltip
 
 Build succeeded.
     0 Warning(s)
     0 Error(s)
 
-Time Elapsed 00:00:02.13
+Time Elapsed 00:00:02.15
 == ExampleModCSharp
 
 Build succeeded.
     0 Warning(s)
     0 Error(s)
 
-Time Elapsed 00:00:02.04
+Time Elapsed 00:00:02.01
 == result: OK
