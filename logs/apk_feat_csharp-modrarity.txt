@@ -1,14 +1,4 @@
-run: https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/40714325049
-status: failure
-/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/src/main/csharp/BunnyLoader/ModLoader/ItemTooltipDraw.cs(184,17): error CS0136: A local or parameter named 'color' cannot be declared in this scope because that name is used in an enclosing local scope to define a local or parameter [/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/src/main/csharp/BunnyLoader/BunnyLoader.csproj]
-Build FAILED.
-/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/src/main/csharp/BunnyLoader/ModLoader/ItemTooltipDraw.cs(184,17): error CS0136: A local or parameter named 'color' cannot be declared in this scope because that name is used in an enclosing local scope to define a local or parameter [/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/src/main/csharp/BunnyLoader/BunnyLoader.csproj]
-> Task :app:buildBunnyLoaderCs FAILED
-FAILURE: Build failed with an exception.
-* What went wrong:
-* Exception is:
-org.gradle.api.tasks.TaskExecutionException: Execution failed for task ':app:buildBunnyLoaderCs'.
-	at org.gradle.api.internal.tasks.execution.CatchExceptionTaskExecuter.execute(CatchExceptionTaskExecuter.java:36)
-Caused by: org.gradle.process.internal.ExecException: Process 'command 'dotnet'' finished with non-zero exit value 1
-	at org.gradle.api.internal.tasks.execution.CatchExceptionTaskExecuter.execute(CatchExceptionTaskExecuter.java:36)
-BUILD FAILED in 1m 51s
+run: https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/40715063643
+status: success
+2 files found for path 'lib/arm64-v8a/libshadowhook.so'. This version of the Android Gradle Plugin chooses the file from the app or dynamic-feature module, but this can cause unexpected behavior or errors at runtime. Future versions of the Android Gradle Plugin may throw an error in this case.
+BUILD SUCCESSFUL in 3m 46s
