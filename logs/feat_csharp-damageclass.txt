@@ -1,13 +1,13 @@
-run: https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/40608892049
+run: https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/40616029044
 status: success
-== branch feat/csharp-damageclass @ 489ba8ef6f4d124067085cd23db24830b816feed
+== branch feat/csharp-damageclass @ 9fe33f9660b9a497ba26bc9e40b3e2be4ec46189
 == BunnyLoader
 
 Build succeeded.
     0 Warning(s)
     0 Error(s)
 
-Time Elapsed 00:01:05.82
+Time Elapsed 00:01:03.20
 == test mods
 ==> csitems
 
@@ -15,19 +15,19 @@ Build succeeded.
     0 Warning(s)
     0 Error(s)
 
-Time Elapsed 00:00:02.28
+Time Elapsed 00:00:02.25
 ==> csdamageclass
 
 Build succeeded.
     0 Warning(s)
     0 Error(s)
 
-Time Elapsed 00:00:01.85
+Time Elapsed 00:00:01.82
 == ExampleModCSharp
 
 Build succeeded.
     0 Warning(s)
     0 Error(s)
 
-Time Elapsed 00:00:02.16
+Time Elapsed 00:00:02.12
 == result: OK
