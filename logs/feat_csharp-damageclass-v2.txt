@@ -1,22 +1,39 @@
-run: https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/40694222605
+run: https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/40695174174
 status: failure
-== branch feat/csharp-damageclass-v2 @ 8bbc25df4f3946b76c07142254bcdd041c056afb
+== branch feat/csharp-damageclass-v2 @ fce44086658b7b52abd9afe4f414f2921cecc4bf
 == BunnyLoader
-/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/build/generated/csharp/Terraria.ID.ItemID.g.cs(6379,47): error CS0261: Partial declarations of 'ItemID.Sets' must be all classes, all record classes, all structs, all unions, all record structs, or all interfaces [/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/src/main/csharp/BunnyLoader/BunnyLoader.csproj]
-/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/build/generated/csharp/Terraria.ID.ItemID.g.cs(6389,41): error CS0563: One of the parameters of a binary operator must be the containing type [/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/src/main/csharp/BunnyLoader/BunnyLoader.csproj]
-/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/build/generated/csharp/Terraria.ID.ItemID.g.cs(6390,41): error CS0563: One of the parameters of a binary operator must be the containing type [/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/src/main/csharp/BunnyLoader/BunnyLoader.csproj]
-/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/build/generated/csharp/Terraria.ID.ItemID.g.cs(6392,45): error CS0556: User-defined conversion must convert to or from the enclosing type [/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/src/main/csharp/BunnyLoader/BunnyLoader.csproj]
-/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/build/generated/csharp/Terraria.ID.ItemID.g.cs(6386,25): warning CS8767: Nullability of reference types in type of parameter 'other' of 'bool Sets.Equals(Sets other)' doesn't match implicitly implemented member 'bool IEquatable<Sets>.Equals(Sets? other)' (possibly because of nullability attributes). [/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/src/main/csharp/BunnyLoader/BunnyLoader.csproj]
+
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:01:18.18
+== test mods
+==> csitems
+
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:02.31
+==> csdamageclass
+/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/tools/tests/csdamageclass/src/Content/Items/TestBlade.cs(10,9): error CS1612: Cannot modify the return value of 'ModItem.Item' because it is not a variable [/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/tools/tests/csdamageclass/src/CsDamageClass.csproj]
 
 Build FAILED.
 
-/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/build/generated/csharp/Terraria.ID.ItemID.g.cs(6386,25): warning CS8767: Nullability of reference types in type of parameter 'other' of 'bool Sets.Equals(Sets other)' doesn't match implicitly implemented member 'bool IEquatable<Sets>.Equals(Sets? other)' (possibly because of nullability attributes). [/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/src/main/csharp/BunnyLoader/BunnyLoader.csproj]
-/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/build/generated/csharp/Terraria.ID.ItemID.g.cs(6379,47): error CS0261: Partial declarations of 'ItemID.Sets' must be all classes, all record classes, all structs, all unions, all record structs, or all interfaces [/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/src/main/csharp/BunnyLoader/BunnyLoader.csproj]
-/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/build/generated/csharp/Terraria.ID.ItemID.g.cs(6389,41): error CS0563: One of the parameters of a binary operator must be the containing type [/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/src/main/csharp/BunnyLoader/BunnyLoader.csproj]
-/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/build/generated/csharp/Terraria.ID.ItemID.g.cs(6390,41): error CS0563: One of the parameters of a binary operator must be the containing type [/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/src/main/csharp/BunnyLoader/BunnyLoader.csproj]
-/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/build/generated/csharp/Terraria.ID.ItemID.g.cs(6392,45): error CS0556: User-defined conversion must convert to or from the enclosing type [/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/src/main/csharp/BunnyLoader/BunnyLoader.csproj]
-    1 Warning(s)
-    4 Error(s)
+/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/tools/tests/csdamageclass/src/Content/Items/TestBlade.cs(10,9): error CS1612: Cannot modify the return value of 'ModItem.Item' because it is not a variable [/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/tools/tests/csdamageclass/src/CsDamageClass.csproj]
+    0 Warning(s)
+    1 Error(s)
 
-Time Elapsed 00:00:24.57
+Time Elapsed 00:00:01.88
+== ExampleModCSharp
+/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/samples/ExampleModCSharp/content/Content/Items/Weapons/ExampleCustomDamageWeapon.cs(17,9): error CS1612: Cannot modify the return value of 'ModItem.Item' because it is not a variable [/home/runner/work/_temp/examplemod/ExampleModCSharp.csproj]
+
+Build FAILED.
+
+/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/samples/ExampleModCSharp/content/Content/Items/Weapons/ExampleCustomDamageWeapon.cs(17,9): error CS1612: Cannot modify the return value of 'ModItem.Item' because it is not a variable [/home/runner/work/_temp/examplemod/ExampleModCSharp.csproj]
+    0 Warning(s)
+    1 Error(s)
+
+Time Elapsed 00:00:02.23
 == result: FAILED
