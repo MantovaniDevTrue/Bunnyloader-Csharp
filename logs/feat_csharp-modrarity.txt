@@ -1,14 +1,40 @@
-run: https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/40714325053
-status: failure
-== branch feat/csharp-modrarity @ 4db11b64ca908afa70fed65769ca4494a4b7249f
+run: https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/40715063734
+status: success
+== branch feat/csharp-modrarity @ 3b60e878c217c057d20eb6ee1fa64d4104aaffdb
 == BunnyLoader
-/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/src/main/csharp/BunnyLoader/ModLoader/ItemTooltipDraw.cs(184,17): error CS0136: A local or parameter named 'color' cannot be declared in this scope because that name is used in an enclosing local scope to define a local or parameter [/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/src/main/csharp/BunnyLoader/BunnyLoader.csproj]
 
-Build FAILED.
-
-/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/src/main/csharp/BunnyLoader/ModLoader/ItemTooltipDraw.cs(184,17): error CS0136: A local or parameter named 'color' cannot be declared in this scope because that name is used in an enclosing local scope to define a local or parameter [/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/app/src/main/csharp/BunnyLoader/BunnyLoader.csproj]
+Build succeeded.
     0 Warning(s)
-    1 Error(s)
+    0 Error(s)
 
-Time Elapsed 00:01:12.47
-== result: FAILED
+Time Elapsed 00:01:21.08
+== test mods
+==> csitems
+
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:02.41
+==> csrarity
+
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:01.96
+==> cstooltip
+
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:02.19
+== ExampleModCSharp
+
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:01.98
+== result: OK
