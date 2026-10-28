@@ -1,13 +1,13 @@
-run: https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/40695174174
-status: failure
-== branch feat/csharp-damageclass-v2 @ fce44086658b7b52abd9afe4f414f2921cecc4bf
+run: https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/40696554437
+status: success
+== branch feat/csharp-damageclass-v2 @ d1009c7246debea69801d8d6bdccf74e9ff4ad41
 == BunnyLoader
 
 Build succeeded.
     0 Warning(s)
     0 Error(s)
 
-Time Elapsed 00:01:18.18
+Time Elapsed 00:01:17.31
 == test mods
 ==> csitems
 
@@ -15,25 +15,19 @@ Build succeeded.
     0 Warning(s)
     0 Error(s)
 
-Time Elapsed 00:00:02.31
+Time Elapsed 00:00:02.33
 ==> csdamageclass
-/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/tools/tests/csdamageclass/src/Content/Items/TestBlade.cs(10,9): error CS1612: Cannot modify the return value of 'ModItem.Item' because it is not a variable [/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/tools/tests/csdamageclass/src/CsDamageClass.csproj]
 
-Build FAILED.
-
-/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/tools/tests/csdamageclass/src/Content/Items/TestBlade.cs(10,9): error CS1612: Cannot modify the return value of 'ModItem.Item' because it is not a variable [/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/tools/tests/csdamageclass/src/CsDamageClass.csproj]
+Build succeeded.
     0 Warning(s)
-    1 Error(s)
+    0 Error(s)
 
-Time Elapsed 00:00:01.88
+Time Elapsed 00:00:01.86
 == ExampleModCSharp
-/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/samples/ExampleModCSharp/content/Content/Items/Weapons/ExampleCustomDamageWeapon.cs(17,9): error CS1612: Cannot modify the return value of 'ModItem.Item' because it is not a variable [/home/runner/work/_temp/examplemod/ExampleModCSharp.csproj]
 
-Build FAILED.
-
-/home/runner/work/Bunnyloader-Csharp/Bunnyloader-Csharp/samples/ExampleModCSharp/content/Content/Items/Weapons/ExampleCustomDamageWeapon.cs(17,9): error CS1612: Cannot modify the return value of 'ModItem.Item' because it is not a variable [/home/runner/work/_temp/examplemod/ExampleModCSharp.csproj]
+Build succeeded.
     0 Warning(s)
-    1 Error(s)
+    0 Error(s)
 
-Time Elapsed 00:00:02.23
-== result: FAILED
+Time Elapsed 00:00:01.99
+== result: OK
