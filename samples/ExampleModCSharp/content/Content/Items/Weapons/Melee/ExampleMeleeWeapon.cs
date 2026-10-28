@@ -22,8 +22,7 @@ public class ExampleMeleeWeapon : ModItem
         Item.SetWeaponValues(50, 6, 6);
 
         Item.value = Item.sellPrice(gold: 1);
-        // Verde. O ItemRarityID nao existe no jogo do celular.
-        Item.rare = 2;
+        Item.rare = ItemRarityID.Green;
         Item.UseSound = SoundID.Item1;
     }
 }

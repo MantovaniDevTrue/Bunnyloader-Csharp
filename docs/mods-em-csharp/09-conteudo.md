@@ -406,6 +406,44 @@ Today a `GlobalItem` has `SetDefaults` and the use hooks above; the others
 (combat, tooltips, drawing...) come with the rest of the item hooks (phase 1 of
 the plan).
 
+## Rarities
+
+An item's rarity (`Item.rare`) gives its name a color. `ItemRarityID` has the
+game's ones (`ItemRarityID.Green`...); a mod adds its own with tModLoader's
+`ModRarity`:
+
+```csharp
+public class ExampleModRarity : ModRarity
+{
+    public override Color RarityColor => new Color(200, 215, 230);
+
+    public override int GetPrefixedRarity(int offset, float valueMult)
+    {
+        if (offset > 0) return ModContent.RarityType<ExampleHigherTierModRarity>();
+        return Type;
+    }
+}
+```
+
+```csharp
+Item.rare = ModContent.RarityType<ExampleModRarity>();
+```
+
+`Type` comes after the game's 12 (`ItemRarityID.Count`), in load order.
+`RarityColor` is read every time the name is drawn, so it can change over time
+(with `Main.DiscoR`, for example). `GetPrefixedRarity` decides the rarity when
+the item gets a prefix: `offset` goes from -2 (a bad prefix) to +2 (a good
+one), from the prefix's value multiplier (`valueMult`); the game alone would
+hold every rarity above 11 at purple. The result is held between
+`ItemRarityID.Gray` and the last rarity. `RarityLoader.RarityCount` and
+`RarityLoader.GetRarity(type)` are there too.
+
+The color is used for the name in the tooltip (unless a mod gives the
+`ItemName` line its own `OverrideColor`, or the item is an Expert item), the
+name of an item on the floor under the cursor and the text that rises when an
+item is picked up. Not covered yet: the `[i:]` tag in the chat, which still
+shows a mod rarity in purple.
+
 ## Finding content by name
 
 The **full name** of a content class is `<mod>/<Name>`: the mod's internal

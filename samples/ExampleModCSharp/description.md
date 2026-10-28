@@ -14,7 +14,12 @@ Loader só confere o selo. Dá para abrir os arquivos e usar como modelo.
   (`Content/Items/Weapons/Melee/ExampleMeleeWeapon.cs`): dano, repulsão,
   crítico, uso e o som de golpe do jogo.
 
-Os dois aparecem no Mod Menu, na pasta *Itens* do mod.
+- **Raridades** (`Content/Rarities/`): `ExampleModRarity`, a cor
+  (200, 215, 230), e `ExampleHigherTierModRarity`, que pisca. Um prefixo bom
+  leva a primeira para a segunda, e um ruim traz de volta. No ExampleMod
+  original quem usa é o ioiô, que chega com os projéteis.
+
+Os itens aparecem no Mod Menu, na pasta *Itens* do mod.
 
 ## Ainda não
 

@@ -21,6 +21,8 @@ internal static unsafe class ItemTooltipDraw
 
     static Drawing? drawing;
 
+    internal static Color? Recolor;
+
     struct Pass
     {
         public IntPtr Self, Font;
@@ -40,6 +42,7 @@ internal static unsafe class ItemTooltipDraw
         public int Shift;
         public int YOffset;
         public int Index = -1;
+        public Color? NameColor;
         public string Text = "";
         public readonly List<Pass> Shadows = new();
         public readonly List<DrawableTooltipLine> Drawn = new();
@@ -67,11 +70,11 @@ internal static unsafe class ItemTooltipDraw
             call.Arg(method);
             ItemHooks.Original(ref call, hook, "Main.MouseText_DrawItemTooltip");
         }
-        try { Draw(Original, x, y); }
+        try { Draw(Original, x, y, rare, diff); }
         catch (Exception e) { ItemHooks.Report("tooltip drawing", e); }
     }
 
-    static void EnsureStringHooks() => ItemHooks.Once("TooltipStrings", () =>
+    internal static void EnsureStringHooks() => ItemHooks.Once("TooltipStrings", () =>
     {
         measure = ItemHooks.Raw("Microsoft.Xna.Framework.Graphics", "SpriteFont", "Vector2 MeasureString(string text)",
             (IntPtr)(delegate* unmanaged<IntPtr, IntPtr, IntPtr, Vector2>)&MeasureString);
@@ -112,7 +115,7 @@ internal static unsafe class ItemTooltipDraw
         return ItemTooltipHooks.Last;
     }
 
-    static void Draw(Action orig, int x, int y)
+    static void Draw(Action orig, int x, int y, int rare, byte diff)
     {
         Item item = default;
         Drawing? state = null;
@@ -121,12 +124,12 @@ internal static unsafe class ItemTooltipDraw
             item = Main.HoverItem;
             if (drawing == null && ItemTooltipHooks.Wanted(item) && Prepare(item) is List<TooltipLine> lines)
             {
-                state = new Drawing { Item = item, Lines = lines };
+                state = new Drawing { Item = item, Lines = lines, NameColor = RarityLoader.NameColor(item, rare, diff) };
                 int px = x, py = y;
                 state.CanDraw = PreDrawTooltip(item, lines.AsReadOnly(), ref px, ref py);
                 state.Dx = px - x;
                 state.Dy = py - y;
-                bool needed = DrawHooks(item) || lines.Exists(l => l.OverrideColor != null || HasTags(l.Text));
+                bool needed = DrawHooks(item) || state.NameColor != null || lines.Exists(l => l.OverrideColor != null || HasTags(l.Text));
                 if (needed) EnsureStringHooks();
                 else state = null;
                 ItemTooltipHooks.PreparedItem = item.Pointer;
@@ -174,6 +177,12 @@ internal static unsafe class ItemTooltipDraw
                 if (Take(state, GameString.Read(text) ?? "", pass)) return;
             }
             catch (Exception e) { ItemHooks.Report("PreDrawTooltipLine", e); }
+        }
+        else if (state == null && Recolor is Color over && (pass.Color & 0x00FFFFFF) != 0)
+        {
+            float alpha = (pass.Color >> 24) / 255f;
+            var recolored = new Color((int)(over.R * alpha), (int)(over.G * alpha), (int)(over.B * alpha), (int)(pass.Color >> 24));
+            pass.Color = *(uint*)&recolored;
         }
         Original(hook, pass, text);
     }
@@ -223,7 +232,7 @@ internal static unsafe class ItemTooltipDraw
         state.Shadows.RemoveAt(state.Shadows.Count - 1);
         TooltipLine line = state.Lines[state.Index];
         Color color = *(Color*)&main.Color;
-        if (line.OverrideColor is Color over)
+        if ((line.OverrideColor ?? (line.Role == "name" ? state.NameColor : null)) is Color over)
         {
             float alpha = color.A / 255f;
             color = new Color((int)(over.R * alpha), (int)(over.G * alpha), (int)(over.B * alpha), color.A);

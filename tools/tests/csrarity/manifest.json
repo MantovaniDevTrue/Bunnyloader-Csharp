@@ -1,0 +1,15 @@
+{
+  "uid": "c9deebfd-fdf2-485a-8511-cb24ec49e7d7",
+  "id": "test-csrarity",
+  "name": "Teste: ModRarity no C#",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "ModRarity e RarityLoader no C#: o tipo, a cor do nome, a cor do texto que sobe e a raridade com prefixo, sem QuickJS.",
+  "description": "Compilar antes com tools/tests/build-cs.sh csrarity. No mundo, loga 'csrarity <caso>: ok | FAIL' e 'csrarity END', e dá as duas espadas do teste: o nome no tooltip, no chão e ao pegar sai na cor da raridade.",
+  "updated": "2026-10-28",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CsRarity.dll",
+  "dependencies": []
+}

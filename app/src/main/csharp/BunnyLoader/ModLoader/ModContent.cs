@@ -25,6 +25,8 @@ public static class ModContent
 
     public static ModItem? GetModItem(int type) => ItemLoader.Get(type);
 
+    public static int RarityType<T>() where T : ModRarity => GetInstance<T>()?.Type ?? 0;
+
     public static T Find<T>(string fullname) where T : IModType =>
         TryFind(fullname, out T value) ? value : throw new KeyNotFoundException($"{typeof(T).Name} '{fullname}' not found");
 
@@ -121,6 +123,7 @@ public static class ModContent
             ModNet.SetHello(mods);
             foreach (Mod mod in mods)
             {
+                foreach (ModRarity rarity in mod.GetContent<ModRarity>()) Run(mod, $"{rarity.Name}.SetStaticDefaults", rarity.SetupContent);
                 foreach (GlobalType global in mod.GetContent<GlobalType>()) Run(mod, $"{global.Name}.SetStaticDefaults", global.SetupContent);
             }
             foreach (Mod mod in mods) Run(mod, "PostSetupContent", mod.PostSetupContent);

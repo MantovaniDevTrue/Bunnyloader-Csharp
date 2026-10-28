@@ -1,5 +1,12 @@
 # Novidades
 
+## 0.3.0
+
+- As raridades do ExampleMod, com o `ModRarity` do C#: `ExampleModRarity` e
+  `ExampleHigherTierModRarity` (com prefixo bom, a primeira sobe para a
+  segunda; com prefixo ruim, a segunda desce para a primeira).
+- A Espada usa `ItemRarityID.Green`.
+
 ## 0.2.0
 
 - As traduções vão para `Localization/<idioma>_Mods.ExampleMod.hjson`, no

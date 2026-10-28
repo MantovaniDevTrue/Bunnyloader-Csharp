@@ -26,13 +26,19 @@ internal static unsafe class ItemTooltipHooks
         if (!Array.Exists(HookNames, n => has(n))) return;
         if (global) globalWanted = true;
         ItemHooks.Once("TooltipDraw", ItemTooltipDraw.Install);
+        InstallLines();
+    }
+
+    internal static void InstallLines()
+    {
         ItemHooks.Once("Tooltips", () => linesInfo = ItemHooks.Raw("Terraria", "Main",
             "void MouseText_DrawItemTooltip_GetLinesInfo(Item item, ref int yoyoLogo, ref int researchLine, ref int materialsLine, float oldKB, ref int numLines, string[] toolTipLine, bool[] preFixLine, bool[] badPreFixLine, ref int setBonusLine, ref Color setBonusColour, ref int sharedLine)",
             (IntPtr)(delegate* unmanaged<IntPtr, int*, int*, int*, float, int*, IntPtr, IntPtr, IntPtr, int*, uint*, int*, IntPtr, void>)&GetLinesInfo));
     }
 
     internal static bool Wanted(Item item) =>
-        !item.IsNull && item.type > 0 && (globalWanted || ItemHooks.ModItemOf(item) is ModItem m && Array.Exists(HookNames, n => Has(m, n)));
+        !item.IsNull && item.type > 0 &&
+        (globalWanted || ItemHooks.ModItemOf(item) is ModItem m && Array.Exists(HookNames, n => Has(m, n)) || RarityLoader.IsModded(item.rare));
 
     internal static bool Has(ModItem m, string name) => ItemHooks.Overrides(m.GetType(), typeof(ModItem), name);
 

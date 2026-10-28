@@ -1,0 +1,10 @@
+Items: {
+	PlainBlade: {
+		DisplayName: Plain Blade
+		Tooltip: Its name is green (the Plain rarity)
+	}
+	ShinyBlade: {
+		DisplayName: Shiny Blade
+		Tooltip: Its name is pink (the Shiny rarity)
+	}
+}
