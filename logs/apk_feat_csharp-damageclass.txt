@@ -1,4 +1,4 @@
-run: https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/40606788156
+run: https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/40608892021
 status: success
 2 files found for path 'lib/arm64-v8a/libshadowhook.so'. This version of the Android Gradle Plugin chooses the file from the app or dynamic-feature module, but this can cause unexpected behavior or errors at runtime. Future versions of the Android Gradle Plugin may throw an error in this case.
-BUILD SUCCESSFUL in 3m 37s
+BUILD SUCCESSFUL in 3m 30s
