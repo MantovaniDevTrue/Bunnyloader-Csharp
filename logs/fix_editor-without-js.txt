@@ -1,13 +1,13 @@
-run: https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/40611526341
+run: https://github.com/MantovaniDevTrue/Bunnyloader-Csharp/actions/runs/40613300578
 status: success
-== branch fix/editor-without-js @ d0396828e98728d7cde40e3de26af20450441624
+== branch fix/editor-without-js @ 93c4acf591c4455cccdb1e01dbdd22c01ce4a3d4
 == BunnyLoader
 
 Build succeeded.
     0 Warning(s)
     0 Error(s)
 
-Time Elapsed 00:01:06.74
+Time Elapsed 00:01:00.71
 == test mods
 ==> csitems
 
@@ -15,12 +15,12 @@ Build succeeded.
     0 Warning(s)
     0 Error(s)
 
-Time Elapsed 00:00:02.37
+Time Elapsed 00:00:02.14
 == ExampleModCSharp
 
 Build succeeded.
     0 Warning(s)
     0 Error(s)
 
-Time Elapsed 00:00:01.80
+Time Elapsed 00:00:01.73
 == result: OK
